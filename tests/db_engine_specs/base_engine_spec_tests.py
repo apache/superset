@@ -27,8 +27,8 @@ from superset.db_engine_specs.base import (
 )
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.sql_parse import ParsedQuery
-from superset.utils.core import get_example_database
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
+from tests.fixtures.utils import get_test_database
 from tests.test_app import app
 
 from ..fixtures.energy_dashboard import load_energy_table_with_slice
@@ -212,7 +212,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_column_datatype_to_string(self):
-        example_db = get_example_database()
+        example_db = get_test_database()
         sqla_table = example_db.get_table("energy_usage")
         dialect = example_db.get_dialect()
 

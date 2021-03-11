@@ -23,7 +23,7 @@ from sqlalchemy.engine import Engine
 from tests.test_app import app
 
 from superset import db
-from superset.utils.core import get_example_database
+from tests.fixtures.utils import get_test_database
 
 
 CTAS_SCHEMA_NAME = "sqllab_test_db"
@@ -46,7 +46,7 @@ def setup_sample_data() -> Any:
     yield
 
     with app.app_context():
-        engine = get_example_database().get_sqla_engine()
+        engine = get_test_database().get_sqla_engine()
 
         # drop sqlachemy tables
 
@@ -77,12 +77,12 @@ def setup_presto_if_needed():
         # decrease poll interval for tests
         presto_poll_interval = app.config["PRESTO_POLL_INTERVAL"]
         extra = f'{{"engine_params": {{"connect_args": {{"poll_interval": {presto_poll_interval}}}}}}}'
-        database = get_example_database()
+        database = get_test_database()
         database.extra = extra
         db.session.commit()
 
     if backend in {"presto", "hive"}:
-        database = get_example_database()
+        database = get_test_database()
         engine = database.get_sqla_engine()
         drop_from_schema(engine, CTAS_SCHEMA_NAME)
         engine.execute(f"DROP SCHEMA IF EXISTS {CTAS_SCHEMA_NAME}")

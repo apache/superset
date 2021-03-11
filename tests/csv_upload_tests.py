@@ -32,7 +32,9 @@ from tests.test_app import app  # isort:skip
 from superset import db
 from superset.models.core import Database
 from superset.utils import core as utils
+
 from tests.base_tests import get_resp, login, SupersetTestCase
+from tests.fixtures.utils import get_test_database, superset_db_backend
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +61,7 @@ def setup_csv_upload():
             CSV_UPLOAD_DATABASE, app.config["SQLALCHEMY_EXAMPLES_URI"]
         )
         extra = upload_db.get_extra()
-        extra["explore_database_id"] = utils.get_example_database().id
+        extra["explore_database_id"] = get_test_database().id
         upload_db.extra = json.dumps(extra)
         upload_db.allow_csv_upload = True
         db.session.commit()
@@ -164,7 +166,7 @@ def mock_upload_to_s3(f: str, p: str, t: Table) -> str:
 )
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
 def test_import_csv_enforced_schema(setup_csv_upload, create_csv_files):
-    if utils.backend() == "sqlite":
+    if superset_db_backend() == "sqlite":
         pytest.skip("Sqlite doesn't support schema / database creation")
 
     full_table_name = f"admin_database.{CSV_UPLOAD_TABLE_W_SCHEMA}"
@@ -200,7 +202,7 @@ def test_import_csv_enforced_schema(setup_csv_upload, create_csv_files):
     )
 
     # user specified schema matches the expected schema, append
-    if utils.backend() == "hive":
+    if superset_db_backend() == "hive":
         pytest.skip("Hive database doesn't support append csv uploads.")
     resp = upload_csv(
         CSV_FILENAME1,
@@ -212,7 +214,7 @@ def test_import_csv_enforced_schema(setup_csv_upload, create_csv_files):
 
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
 def test_import_csv_explore_database(setup_csv_upload, create_csv_files):
-    if utils.backend() == "sqlite":
+    if superset_db_backend() == "sqlite":
         pytest.skip("Sqlite doesn't support schema / database creation")
 
     resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE_W_EXPLORE)
@@ -221,7 +223,7 @@ def test_import_csv_explore_database(setup_csv_upload, create_csv_files):
         in resp
     )
     table = SupersetTestCase.get_table_by_name(CSV_UPLOAD_TABLE_W_EXPLORE)
-    assert table.database_id == utils.get_example_database().id
+    assert table.database_id == get_test_database().id
 
 
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
@@ -241,7 +243,7 @@ def test_import_csv(setup_csv_upload, create_csv_files):
     resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE)
     assert fail_msg in resp
 
-    if utils.backend() != "hive":
+    if superset_db_backend() != "hive":
         # upload again with append mode
         resp = upload_csv(
             CSV_FILENAME1, CSV_UPLOAD_TABLE, extra={"if_exists": "append"}
@@ -279,7 +281,7 @@ def test_import_csv(setup_csv_upload, create_csv_files):
     # make sure that john and empty string are replaced with None
     engine = get_upload_db().get_sqla_engine()
     data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
-    if utils.backend() == "hive":
+    if superset_db_backend() == "hive":
         # Be aware that hive only uses first value from the null values list.
         # It is hive database engine limitation.
         # TODO(bkyryliuk): preprocess csv file for hive upload to match default engine capabilities.
@@ -291,7 +293,7 @@ def test_import_csv(setup_csv_upload, create_csv_files):
     upload_csv(CSV_FILENAME2, CSV_UPLOAD_TABLE, extra={"if_exists": "replace"})
     # make sure that john and empty string are replaced with None
     data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
-    if utils.backend() == "hive":
+    if superset_db_backend() == "hive":
         # By default hive does not convert values to null vs other databases.
         assert data == [("john", 1, "x"), ("paul", 2, "")]
     else:
@@ -300,7 +302,7 @@ def test_import_csv(setup_csv_upload, create_csv_files):
 
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
 def test_import_excel(setup_csv_upload, create_excel_files):
-    if utils.backend() == "hive":
+    if superset_db_backend() == "hive":
         pytest.skip("Hive doesn't excel upload.")
 
     success_msg = (
@@ -316,7 +318,7 @@ def test_import_excel(setup_csv_upload, create_excel_files):
     resp = upload_excel(EXCEL_FILENAME, EXCEL_UPLOAD_TABLE)
     assert fail_msg in resp
 
-    if utils.backend() != "hive":
+    if superset_db_backend() != "hive":
         # upload again with append mode
         resp = upload_excel(
             EXCEL_FILENAME, EXCEL_UPLOAD_TABLE, extra={"if_exists": "append"}

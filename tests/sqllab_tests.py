@@ -35,15 +35,12 @@ from superset.models.sql_lab import Query, SavedQuery
 from superset.result_set import SupersetResultSet
 from superset.sql_lab import execute_sql_statements, SqlLabException
 from superset.sql_parse import CtasMethod
-from superset.utils.core import (
-    datetime_to_epoch,
-    get_example_database,
-    get_main_database,
-)
+from superset.utils.core import datetime_to_epoch
 
 from .base_tests import SupersetTestCase
 from .conftest import CTAS_SCHEMA_NAME
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
+from tests.fixtures.utils import get_test_database, get_main_database
 
 QUERY_1 = "SELECT * FROM birth_names LIMIT 1"
 QUERY_2 = "SELECT * FROM NO_TABLE"
@@ -98,7 +95,7 @@ class TestSqlLab(SupersetTestCase):
         self.login("admin")
 
         sql_statement = "SELECT * FROM birth_names LIMIT 10"
-        examples_db_id = get_example_database().id
+        examples_db_id = get_test_database().id
         saved_query = SavedQuery(db_id=examples_db_id, sql=sql_statement)
         db.session.add(saved_query)
         db.session.commit()
@@ -122,7 +119,7 @@ class TestSqlLab(SupersetTestCase):
     @parameterized.expand([CtasMethod.TABLE, CtasMethod.VIEW])
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_json_cta_dynamic_db(self, ctas_method):
-        examples_db = get_example_database()
+        examples_db = get_test_database()
         if examples_db.backend == "sqlite":
             # sqlite doesn't support database creation
             return
@@ -146,7 +143,7 @@ class TestSqlLab(SupersetTestCase):
 
             # assertions
             db.session.commit()
-            examples_db = get_example_database()
+            examples_db = get_test_database()
             engine = examples_db.get_sqla_engine()
             data = engine.execute(
                 f"SELECT * FROM admin_database.{tmp_table_name}"
@@ -181,7 +178,7 @@ class TestSqlLab(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_json_has_access(self):
-        examples_db = get_example_database()
+        examples_db = get_test_database()
         examples_db_permission_view = security_manager.add_permission_view_menu(
             "database_access", examples_db.perm
         )
@@ -196,7 +193,7 @@ class TestSqlLab(SupersetTestCase):
         self.assertLess(0, len(data["data"]))
 
     def test_sql_json_schema_access(self):
-        examples_db = get_example_database()
+        examples_db = get_test_database()
         db_backend = examples_db.backend
         if db_backend == "sqlite":
             # sqlite doesn't support database creation
@@ -241,7 +238,7 @@ class TestSqlLab(SupersetTestCase):
             self.assertEqual(1, len(data["data"]))
 
         db.session.query(Query).delete()
-        get_example_database().get_sqla_engine().execute(
+        get_test_database().get_sqla_engine().execute(
             f"DROP TABLE IF EXISTS {CTAS_SCHEMA_NAME}.test_table"
         )
         db.session.commit()
@@ -290,7 +287,7 @@ class TestSqlLab(SupersetTestCase):
     def test_search_query_on_db_id(self):
         self.run_some_queries()
         self.login("admin")
-        examples_dbid = get_example_database().id
+        examples_dbid = get_test_database().id
 
         # Test search queries on database Id
         data = self.get_json_resp(
@@ -411,7 +408,7 @@ class TestSqlLab(SupersetTestCase):
 
     def test_sqllab_viz(self):
         self.login("admin")
-        examples_dbid = get_example_database().id
+        examples_dbid = get_test_database().id
         payload = {
             "chartType": "dist_bar",
             "datasourceName": f"test_viz_flow_table_{random()}",
@@ -462,7 +459,7 @@ class TestSqlLab(SupersetTestCase):
 
     def test_sqllab_table_viz(self):
         self.login("admin")
-        examples_db = get_example_database()
+        examples_db = get_test_database()
         examples_db.get_sqla_engine().execute(
             "DROP TABLE IF EXISTS test_sqllab_table_viz"
         )
@@ -486,7 +483,7 @@ class TestSqlLab(SupersetTestCase):
         table = db.session.query(SqlaTable).filter_by(id=table_id).one()
         self.assertEqual([owner.username for owner in table.owners], ["admin"])
         db.session.delete(table)
-        get_example_database().get_sqla_engine().execute(
+        get_test_database().get_sqla_engine().execute(
             "DROP TABLE test_sqllab_table_viz"
         )
         db.session.commit()
@@ -581,7 +578,7 @@ class TestSqlLab(SupersetTestCase):
     def test_api_database(self):
         self.login("admin")
         self.create_fake_db()
-        get_example_database()
+        get_test_database()
         get_main_database()
 
         arguments = {

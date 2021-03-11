@@ -22,12 +22,8 @@ from tests.test_app import app  # noqa
 
 from superset.extensions import cache_manager, db
 from superset.models.cache import CacheKey
-from tests.base_tests import (
-    SupersetTestCase,
-    post_assert_metric,
-    test_client,
-    logged_in_admin,
-)  # noqa
+from tests.base_tests import post_assert_metric, test_client
+from tests.fixtures.birth_names_dashboard import get_birth_names_dataset
 
 
 def invalidate(params: Dict[str, Any]):
@@ -93,7 +89,7 @@ def test_invalidate_cache_bad_request(logged_in_admin):
 
 
 def test_invalidate_existing_caches(logged_in_admin):
-    bn = SupersetTestCase.get_birth_names_dataset()
+    bn = get_birth_names_dataset()
 
     db.session.add(CacheKey(cache_key="cache_key1", datasource_uid="3__druid"))
     db.session.add(CacheKey(cache_key="cache_key2", datasource_uid="3__druid"))

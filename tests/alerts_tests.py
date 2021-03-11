@@ -40,9 +40,9 @@ from superset.tasks.schedules import (
     evaluate_alert,
     validate_observations,
 )
+from tests.fixtures.utils import get_test_database
 from tests.test_app import app
 from tests.utils import read_fixture
-from tests.fixtures.utils import get_test_database
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

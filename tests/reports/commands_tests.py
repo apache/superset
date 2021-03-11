@@ -51,8 +51,8 @@ from superset.reports.commands.exceptions import (
     ReportScheduleWorkingTimeoutError,
 )
 from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
-from superset.utils.core import get_example_database
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
+from tests.fixtures.utils import get_test_database
 from tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices_module_scope,
 )
@@ -329,7 +329,7 @@ def create_alert_email_chart(request):
     }
     with app.app_context():
         chart = db.session.query(Slice).first()
-        example_database = get_example_database()
+        example_database = get_test_database()
         with create_test_table_context(example_database):
 
             report_schedule = create_report_notification(
@@ -411,7 +411,7 @@ def create_no_alert_email_chart(request):
     }
     with app.app_context():
         chart = db.session.query(Slice).first()
-        example_database = get_example_database()
+        example_database = get_test_database()
         with create_test_table_context(example_database):
 
             report_schedule = create_report_notification(
@@ -446,7 +446,7 @@ def create_mul_alert_email_chart(request):
     }
     with app.app_context():
         chart = db.session.query(Slice).first()
-        example_database = get_example_database()
+        example_database = get_test_database()
         with create_test_table_context(example_database):
 
             report_schedule = create_report_notification(
@@ -481,7 +481,7 @@ def create_invalid_sql_alert_email_chart(request):
     }
     with app.app_context():
         chart = db.session.query(Slice).first()
-        example_database = get_example_database()
+        example_database = get_test_database()
         with create_test_table_context(example_database):
 
             report_schedule = create_report_notification(

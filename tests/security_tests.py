@@ -39,7 +39,7 @@ from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.sql_parse import Table
-from superset.utils.core import get_example_database
+from tests.fixtures.utils import get_test_database
 
 from tests.base_tests import SupersetTestCase
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
@@ -149,7 +149,7 @@ class TestRolePermission(SupersetTestCase):
         table = SqlaTable(
             schema="tmp_schema",
             table_name="tmp_perm_table",
-            database=get_example_database(),
+            database=get_test_database(),
         )
         session.add(table)
         session.commit()
@@ -489,7 +489,7 @@ class TestRolePermission(SupersetTestCase):
     def test_schemas_accessible_by_user_admin(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
         with self.client.application.test_request_context():
-            database = get_example_database()
+            database = get_test_database()
             schemas = security_manager.get_schemas_accessible_by_user(
                 database, ["1", "2", "3"]
             )
@@ -501,7 +501,7 @@ class TestRolePermission(SupersetTestCase):
         create_schema_perm("[examples].[1]")
         mock_g.user = security_manager.find_user("gamma")
         with self.client.application.test_request_context():
-            database = get_example_database()
+            database = get_test_database()
             schemas = security_manager.get_schemas_accessible_by_user(
                 database, ["1", "2", "3"]
             )
@@ -514,7 +514,7 @@ class TestRolePermission(SupersetTestCase):
         # User has schema access to the datasource temp_schema.wb_health_population in examples DB.
         mock_g.user = security_manager.find_user("gamma")
         with self.client.application.test_request_context():
-            database = get_example_database()
+            database = get_test_database()
             schemas = security_manager.get_schemas_accessible_by_user(
                 database, ["temp_schema", "2", "3"]
             )
@@ -526,7 +526,7 @@ class TestRolePermission(SupersetTestCase):
         create_schema_perm("[examples].[2]")
         mock_g.user = security_manager.find_user("gamma")
         with self.client.application.test_request_context():
-            database = get_example_database()
+            database = get_test_database()
             schemas = security_manager.get_schemas_accessible_by_user(
                 database, ["temp_schema", "2", "3"]
             )
@@ -938,7 +938,7 @@ class TestSecurityManager(SupersetTestCase):
 
     @patch("superset.security.SupersetSecurityManager.raise_for_access")
     def test_can_access_table(self, mock_raise_for_access):
-        database = get_example_database()
+        database = get_test_database()
         table = Table("bar", "foo")
 
         mock_raise_for_access.return_value = None
@@ -971,7 +971,7 @@ class TestSecurityManager(SupersetTestCase):
     @patch("superset.security.SupersetSecurityManager.can_access")
     def test_raise_for_access_query(self, mock_can_access):
         query = Mock(
-            database=get_example_database(), schema="bar", sql="SELECT * FROM foo"
+            database=get_test_database(), schema="bar", sql="SELECT * FROM foo"
         )
 
         mock_can_access.return_value = True
@@ -1000,7 +1000,7 @@ class TestSecurityManager(SupersetTestCase):
 
     @patch("superset.security.SupersetSecurityManager.can_access")
     def test_raise_for_access_table(self, mock_can_access):
-        database = get_example_database()
+        database = get_test_database()
         table = Table("bar", "foo")
 
         mock_can_access.return_value = True

@@ -16,21 +16,21 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
-from datetime import datetime, timedelta
 import json
 import random
 import string
-
 import pytest
 import prison
+
+from datetime import datetime
 from sqlalchemy.sql import func
 
-import tests.test_app
 from superset import db, security_manager
 from superset.models.core import Database
-from superset.utils.core import get_example_database, get_main_database, QueryStatus
 from superset.models.sql_lab import Query
+from superset.utils.core import get_main_database, QueryStatus
 
+from tests.fixtures.utils import get_test_database
 from tests.base_tests import SupersetTestCase
 
 QUERIES_FIXTURE_COUNT = 10
@@ -77,7 +77,7 @@ class TestQueryApi(SupersetTestCase):
             queries = []
             admin_id = self.get_user("admin").id
             alpha_id = self.get_user("alpha").id
-            example_database_id = get_example_database().id
+            example_database_id = get_test_database().id
             main_database_id = get_main_database().id
             for cx in range(QUERIES_FIXTURE_COUNT - 1):
                 queries.append(
@@ -121,7 +121,7 @@ class TestQueryApi(SupersetTestCase):
         """
         admin = self.get_user("admin")
         client_id = self.get_random_string()
-        example_db = get_example_database()
+        example_db = get_test_database()
         query = self.insert_query(
             example_db.id,
             admin.id,
@@ -179,7 +179,7 @@ class TestQueryApi(SupersetTestCase):
         """
         admin = self.get_user("admin")
         client_id = self.get_random_string()
-        query = self.insert_query(get_example_database().id, admin.id, client_id)
+        query = self.insert_query(get_test_database().id, admin.id, client_id)
         max_id = db.session.query(func.max(Query.id)).scalar()
         self.login(username="admin")
         uri = f"api/v1/query/{max_id + 1}"
@@ -203,10 +203,10 @@ class TestQueryApi(SupersetTestCase):
         gamma1_client_id = self.get_random_string()
         gamma2_client_id = self.get_random_string()
         query_gamma1 = self.insert_query(
-            get_example_database().id, gamma1.id, gamma1_client_id
+            get_test_database().id, gamma1.id, gamma1_client_id
         )
         query_gamma2 = self.insert_query(
-            get_example_database().id, gamma2.id, gamma2_client_id
+            get_test_database().id, gamma2.id, gamma2_client_id
         )
 
         # Gamma1 user, only sees his own queries
@@ -374,7 +374,7 @@ class TestQueryApi(SupersetTestCase):
         admin = self.get_user("admin")
         client_id = self.get_random_string()
         query = self.insert_query(
-            get_example_database().id,
+            get_test_database().id,
             admin.id,
             client_id,
             sql="SELECT col1, col2 from table1",

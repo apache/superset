@@ -32,7 +32,6 @@ from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.reports import ReportSchedule, ReportScheduleType
-from superset.utils.core import get_example_database, get_main_database
 from tests.base_tests import SupersetTestCase
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.fixtures.certificates import ssl_certificate
@@ -45,6 +44,7 @@ from tests.fixtures.importexport import (
     dataset_metadata_config,
 )
 from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_position
+from tests.fixtures.utils import get_test_database, get_main_database
 from tests.test_app import app
 
 
@@ -73,7 +73,7 @@ class TestDatabaseApi(SupersetTestCase):
     @pytest.fixture()
     def create_database_with_report(self):
         with self.create_app().app_context():
-            example_db = get_example_database()
+            example_db = get_test_database()
             database = self.insert_database(
                 "database_with_report",
                 example_db.sqlalchemy_uri_decrypted,
@@ -97,7 +97,7 @@ class TestDatabaseApi(SupersetTestCase):
     @pytest.fixture()
     def create_database_with_dataset(self):
         with self.create_app().app_context():
-            example_db = get_example_database()
+            example_db = get_test_database()
             self._database = self.insert_database(
                 "database_with_dataset",
                 example_db.sqlalchemy_uri_decrypted,
@@ -168,7 +168,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test get items with filter
         """
-        example_db = get_example_database()
+        example_db = get_test_database()
         test_database = self.insert_database(
             "test-database", example_db.sqlalchemy_uri_decrypted, expose_in_sqllab=True
         )
@@ -216,7 +216,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
         self.login(username="admin")
-        example_db = get_example_database()
+        example_db = get_test_database()
         if example_db.backend == "sqlite":
             return
         database_data = {
@@ -239,7 +239,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test create server cert validation
         """
-        example_db = get_example_database()
+        example_db = get_test_database()
         if example_db.backend == "sqlite":
             return
 
@@ -261,7 +261,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test create encrypted extra and extra validation
         """
-        example_db = get_example_database()
+        example_db = get_test_database()
         if example_db.backend == "sqlite":
             return
 
@@ -295,7 +295,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test create extra metadata_params validation
         """
-        example_db = get_example_database()
+        example_db = get_test_database()
         if example_db.backend == "sqlite":
             return
 
@@ -330,7 +330,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test create database_name already exists
         """
-        example_db = get_example_database()
+        example_db = get_test_database()
         if example_db.backend == "sqlite":
             return
 
@@ -399,7 +399,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test create fails connection
         """
-        example_db = get_example_database()
+        example_db = get_test_database()
         if example_db.backend in ("sqlite", "hive", "presto"):
             return
         example_db.password = "wrong_password"
@@ -422,7 +422,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test update
         """
-        example_db = get_example_database()
+        example_db = get_test_database()
         test_database = self.insert_database(
             "test-database", example_db.sqlalchemy_uri_decrypted
         )
@@ -440,7 +440,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test update fails connection
         """
-        example_db = get_example_database()
+        example_db = get_test_database()
         if example_db.backend in ("sqlite", "hive", "presto"):
             return
 
@@ -470,7 +470,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test update uniqueness
         """
-        example_db = get_example_database()
+        example_db = get_test_database()
         test_database1 = self.insert_database(
             "test-database1", example_db.sqlalchemy_uri_decrypted
         )
@@ -507,7 +507,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test update sqlalchemy_uri validate
         """
-        example_db = get_example_database()
+        example_db = get_test_database()
         test_database = self.insert_database(
             "test-database", example_db.sqlalchemy_uri_decrypted
         )
@@ -585,7 +585,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test get table metadata info
         """
-        example_db = get_example_database()
+        example_db = get_test_database()
         self.login(username="admin")
         uri = f"api/v1/database/{example_db.id}/table/birth_names/null/"
         rv = self.client.get(uri)
@@ -629,7 +629,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test get invalid table from table metadata
         """
-        example_db = get_example_database()
+        example_db = get_test_database()
         uri = f"api/v1/database/{example_db.id}/wrong_table/null/"
         self.login(username="admin")
         rv = self.client.get(uri)
@@ -640,7 +640,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test get table metadata from not permitted db
         """
         self.login(username="gamma")
-        example_db = get_example_database()
+        example_db = get_test_database()
         uri = f"api/v1/database/{example_db.id}/birth_names/null/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
@@ -651,7 +651,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test get select star
         """
         self.login(username="admin")
-        example_db = get_example_database()
+        example_db = get_test_database()
         uri = f"api/v1/database/{example_db.id}/select_star/birth_names/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
@@ -663,7 +663,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test get select star not allowed
         """
         self.login(username="gamma")
-        example_db = get_example_database()
+        example_db = get_test_database()
         uri = f"api/v1/database/{example_db.id}/select_star/birth_names/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
@@ -712,7 +712,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test get select star not found database
         """
         self.login(username="admin")
-        example_db = get_example_database()
+        example_db = get_test_database()
         # sqllite will not raise a NoSuchTableError
         if example_db.backend == "sqlite":
             return
@@ -745,7 +745,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         self.logout()
         self.login(username="gamma")
-        example_db = get_example_database()
+        example_db = get_test_database()
         uri = f"api/v1/database/{example_db.id}/schemas/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
@@ -774,7 +774,7 @@ class TestDatabaseApi(SupersetTestCase):
         # need to temporarily allow sqlite dbs, teardown will undo this
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
         self.login("admin")
-        example_db = get_example_database()
+        example_db = get_test_database()
         # validate that the endpoint works with the password-masked sqlalchemy uri
         data = {
             "database_name": "examples",
@@ -878,7 +878,7 @@ class TestDatabaseApi(SupersetTestCase):
         :return:
         """
         self.login(username="admin")
-        database = get_example_database()
+        database = get_test_database()
         uri = f"api/v1/database/{database.id}/related_objects/"
         rv = self.get_assert_metric(uri, "related_objects")
         self.assertEqual(rv.status_code, 200)
@@ -899,7 +899,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 404)
         self.logout()
         self.login(username="gamma")
-        database = get_example_database()
+        database = get_test_database()
         uri = f"api/v1/database/{database.id}/related_objects/"
         rv = self.get_assert_metric(uri, "related_objects")
         self.assertEqual(rv.status_code, 404)
@@ -909,7 +909,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test export database
         """
         self.login(username="admin")
-        database = get_example_database()
+        database = get_test_database()
         argument = [database.id]
         uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
         rv = self.get_assert_metric(uri, "export")
@@ -923,7 +923,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test export database not allowed
         """
         self.login(username="gamma")
-        database = get_example_database()
+        database = get_test_database()
         argument = [database.id]
         uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
         rv = self.client.get(uri)
@@ -1148,7 +1148,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     @mock.patch("superset.db_engine_specs.base.BaseEngineSpec.get_function_names",)
     def test_function_names(self, mock_get_function_names):
-        example_db = get_example_database()
+        example_db = get_test_database()
         if example_db.backend in {"hive", "presto"}:
             return
 

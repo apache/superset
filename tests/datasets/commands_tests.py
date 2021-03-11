@@ -32,7 +32,6 @@ from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasets.commands.export import ExportDatasetsCommand
 from superset.datasets.commands.importers import v0, v1
 from superset.models.core import Database
-from superset.utils.core import get_example_database
 from tests.base_tests import SupersetTestCase
 from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.fixtures.importexport import (
@@ -43,6 +42,7 @@ from tests.fixtures.importexport import (
     dataset_metadata_config,
     dataset_ui_export,
 )
+from tests.fixtures.utils import get_test_database
 from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 
 
@@ -52,7 +52,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
     def test_export_dataset_command(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
 
-        example_db = get_example_database()
+        example_db = get_test_database()
         example_dataset = _get_table_from_list_by_name(
             "energy_usage", example_db.tables
         )
@@ -160,7 +160,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
         """Test that users can't export datasets they don't have access to"""
         mock_g.user = security_manager.find_user("gamma")
 
-        example_db = get_example_database()
+        example_db = get_test_database()
         example_dataset = example_db.tables[0]
         command = ExportDatasetsCommand([example_dataset.id])
         contents = command.run()
@@ -182,7 +182,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
         """Test that they keys in the YAML have the same order as export_fields"""
         mock_g.user = security_manager.find_user("admin")
 
-        example_db = get_example_database()
+        example_db = get_test_database()
         example_dataset = _get_table_from_list_by_name(
             "energy_usage", example_db.tables
         )

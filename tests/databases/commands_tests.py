@@ -40,7 +40,6 @@ from superset.databases.schemas import DatabaseTestConnectionSchema
 from superset.errors import SupersetError
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
-from superset.utils.core import backend, get_example_database
 from tests.base_tests import SupersetTestCase
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.fixtures.energy_dashboard import load_energy_table_with_slice
@@ -50,6 +49,7 @@ from tests.fixtures.importexport import (
     dataset_config,
     dataset_metadata_config,
 )
+from tests.fixtures.utils import get_test_database
 
 
 class TestExportDatabasesCommand(SupersetTestCase):
@@ -60,7 +60,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
     def test_export_database_command(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
 
-        example_db = get_example_database()
+        example_db = get_test_database()
         db_uuid = example_db.uuid
 
         command = ExportDatabasesCommand([example_db.id])
@@ -81,7 +81,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "metadata_params": {},
             "schemas_allowed_for_csv_upload": [],
         }
-        if backend() == "presto":
+        if superset_db_backend() == "presto":
             expected_extra = {"engine_params": {"connect_args": {"poll_interval": 0.1}}}
 
         assert core_files.issubset(set(contents.keys()))
@@ -266,7 +266,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
         """Test that users can't export databases they don't have access to"""
         mock_g.user = security_manager.find_user("gamma")
 
-        example_db = get_example_database()
+        example_db = get_test_database()
         command = ExportDatabasesCommand([example_db.id])
         contents = command.run()
         with self.assertRaises(DatabaseNotFoundError):
@@ -286,7 +286,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
         """Test that they keys in the YAML have the same order as export_fields"""
         mock_g.user = security_manager.find_user("admin")
 
-        example_db = get_example_database()
+        example_db = get_test_database()
         command = ExportDatabasesCommand([example_db.id])
         contents = dict(command.run())
 
@@ -529,7 +529,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
     )
     def test_connection_db_exception(self, mock_event_logger, mock_get_sqla_engine):
         """Test to make sure event_logger is called when an exception is raised"""
-        database = get_example_database()
+        database = get_test_database()
         mock_get_sqla_engine.side_effect = Exception("An error has occurred!")
         db_uri = database.sqlalchemy_uri_decrypted
         json_payload = {"sqlalchemy_uri": db_uri}
@@ -553,7 +553,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
     ):
         """Test to make sure event_logger is called when security
         connection exc is raised"""
-        database = get_example_database()
+        database = get_test_database()
         mock_get_sqla_engine.side_effect = SupersetSecurityException(
             SupersetError(error_type=500, message="test", level="info", extra={})
         )
@@ -575,7 +575,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
     )
     def test_connection_db_api_exc(self, mock_event_logger, mock_get_sqla_engine):
         """Test to make sure event_logger is called when DBAPIError is raised"""
-        database = get_example_database()
+        database = get_test_database()
         mock_get_sqla_engine.side_effect = DBAPIError(
             statement="error", params={}, orig={}
         )

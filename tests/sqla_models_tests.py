@@ -25,10 +25,11 @@ from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.exceptions import QueryObjectValidationError
 from superset.models.core import Database
-from superset.utils.core import GenericDataType, get_example_database, FilterOperator
-from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
+from superset.utils.core import GenericDataType, FilterOperator
 
-from .base_tests import SupersetTestCase
+from tests.base_tests import SupersetTestCase
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
+from tests.fixtures.utils import get_test_database
 
 
 VIRTUAL_TABLE_INT_TYPES: Dict[str, Pattern[str]] = {
@@ -65,7 +66,7 @@ class TestDatabaseModel(SupersetTestCase):
     def test_temporal_varchar(self):
         """Ensure a column with is_dttm set to true evaluates to is_temporal == True"""
 
-        database = get_example_database()
+        database = get_test_database()
         tbl = SqlaTable(table_name="test_tbl", database=database)
         col = TableColumn(column_name="ds", type="VARCHAR", table=tbl)
         # by default, VARCHAR should not be assumed to be temporal
@@ -96,7 +97,7 @@ class TestDatabaseModel(SupersetTestCase):
             "TIMESTAMP": GenericDataType.TEMPORAL,
         }
 
-        tbl = SqlaTable(table_name="col_type_test_tbl", database=get_example_database())
+        tbl = SqlaTable(table_name="col_type_test_tbl", database=get_test_database())
         for str_type, db_col_type in test_cases.items():
             col = TableColumn(column_name="foo", type=str_type, table=tbl)
             self.assertEqual(col.is_temporal, db_col_type == GenericDataType.TEMPORAL)
@@ -120,7 +121,7 @@ class TestDatabaseModel(SupersetTestCase):
         table1 = SqlaTable(
             table_name="test_has_extra_cache_keys_table",
             sql="SELECT '{{ current_username() }}' as user",
-            database=get_example_database(),
+            database=get_test_database(),
         )
 
         query_obj = dict(**base_query_obj, extras={})
@@ -132,7 +133,7 @@ class TestDatabaseModel(SupersetTestCase):
         table2 = SqlaTable(
             table_name="test_has_extra_cache_keys_disabled_table",
             sql="SELECT '{{ current_username(False) }}' as user",
-            database=get_example_database(),
+            database=get_test_database(),
         )
         query_obj = dict(**base_query_obj, extras={})
         extra_cache_keys = table2.get_extra_cache_keys(query_obj)
@@ -144,7 +145,7 @@ class TestDatabaseModel(SupersetTestCase):
         table3 = SqlaTable(
             table_name="test_has_no_extra_cache_keys_table",
             sql=query,
-            database=get_example_database(),
+            database=get_test_database(),
         )
 
         query_obj = dict(**base_query_obj, extras={"where": "(user != 'abc')"})
@@ -218,10 +219,10 @@ class TestDatabaseModel(SupersetTestCase):
         table = SqlaTable(
             table_name="test_table",
             sql="SELECT '{{ abcd xyz + 1 ASDF }}' as user",
-            database=get_example_database(),
+            database=get_test_database(),
         )
         # TODO(villebro): make it work with presto
-        if get_example_database().backend != "presto":
+        if get_test_database().backend != "presto":
             with pytest.raises(QueryObjectValidationError):
                 table.get_sqla_query(**query_obj)
 
@@ -239,7 +240,7 @@ class TestDatabaseModel(SupersetTestCase):
         table = SqlaTable(
             table_name="test_has_extra_cache_keys_table",
             sql="SELECT 'foo' as grp, 1 as num; SELECT 'bar' as grp, 2 as num",
-            database=get_example_database(),
+            database=get_test_database(),
         )
 
         query_obj = dict(**base_query_obj, extras={})
@@ -260,7 +261,7 @@ class TestDatabaseModel(SupersetTestCase):
         table = SqlaTable(
             table_name="test_has_extra_cache_keys_table",
             sql="DELETE FROM foo",
-            database=get_example_database(),
+            database=get_test_database(),
         )
 
         query_obj = dict(**base_query_obj, extras={})
@@ -270,7 +271,7 @@ class TestDatabaseModel(SupersetTestCase):
     def test_fetch_metadata_for_updated_virtual_table(self):
         table = SqlaTable(
             table_name="updated_sql_table",
-            database=get_example_database(),
+            database=get_test_database(),
             sql="select 123 as intcol, 'abc' as strcol, 'abc' as mycase",
         )
         TableColumn(column_name="intcol", type="FLOAT", table=table)
@@ -301,7 +302,7 @@ class TestDatabaseModel(SupersetTestCase):
         }
         cols: Dict[str, TableColumn] = {col.column_name: col for col in table.columns}
         # assert that the type for intcol has been updated (asserting CI types)
-        backend = get_example_database().backend
+        backend = get_test_database().backend
         assert VIRTUAL_TABLE_INT_TYPES[backend].match(cols["intcol"].type)
         # assert that the expression has been replaced with the new physical column
         assert cols["mycase"].expression == ""

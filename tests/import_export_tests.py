@@ -39,7 +39,7 @@ from superset.dashboards.commands.importers.v0 import import_chart, import_dashb
 from superset.datasets.commands.importers.v0 import import_dataset
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database
+from tests.fixtures.utils import get_test_database
 
 from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 from .base_tests import SupersetTestCase
@@ -580,7 +580,7 @@ class TestImportExport(SupersetTestCase):
         return dash_with_1_slice
 
     def test_import_table_no_metadata(self):
-        db_id = get_example_database().id
+        db_id = get_test_database().id
         table = self.create_table("pure_table", id=10001)
         imported_id = import_dataset(table, db_id, import_time=1989)
         imported = self.get_table_by_id(imported_id)
@@ -590,7 +590,7 @@ class TestImportExport(SupersetTestCase):
         table = self.create_table(
             "table_1_col_1_met", id=10002, cols_names=["col1"], metric_names=["metric1"]
         )
-        db_id = get_example_database().id
+        db_id = get_test_database().id
         imported_id = import_dataset(table, db_id, import_time=1990)
         imported = self.get_table_by_id(imported_id)
         self.assert_table_equals(table, imported)
@@ -606,7 +606,7 @@ class TestImportExport(SupersetTestCase):
             cols_names=["c1", "c2"],
             metric_names=["m1", "m2"],
         )
-        db_id = get_example_database().id
+        db_id = get_test_database().id
         imported_id = import_dataset(table, db_id, import_time=1991)
 
         imported = self.get_table_by_id(imported_id)
@@ -616,7 +616,7 @@ class TestImportExport(SupersetTestCase):
         table = self.create_table(
             "table_override", id=10003, cols_names=["col1"], metric_names=["m1"]
         )
-        db_id = get_example_database().id
+        db_id = get_test_database().id
         imported_id = import_dataset(table, db_id, import_time=1991)
 
         table_over = self.create_table(
@@ -644,7 +644,7 @@ class TestImportExport(SupersetTestCase):
             cols_names=["new_col1", "col2", "col3"],
             metric_names=["new_metric1"],
         )
-        db_id = get_example_database().id
+        db_id = get_test_database().id
         imported_id = import_dataset(table, db_id, import_time=1993)
 
         copy_table = self.create_table(

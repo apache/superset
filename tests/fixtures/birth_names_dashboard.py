@@ -213,3 +213,11 @@ us_states = [
     "WY",
     "other",
 ]
+
+
+def get_birth_names_dataset():
+    return (
+        db.session.query(SqlaTable)
+        .filter_by(database=get_test_database(), table_name="birth_names")
+        .one()
+    )

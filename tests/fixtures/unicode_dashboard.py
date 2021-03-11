@@ -23,9 +23,8 @@ from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database
 from tests.dashboard_utils import create_dashboard, create_slice
-from tests.fixtures.utils import create_table_from_df
+from tests.fixtures.utils import create_table_from_df, get_test_database
 from tests.test_app import app
 
 
@@ -74,11 +73,7 @@ def _get_unicode_data():
 def _create_unicode_dashboard(
     df: DataFrame, table_name: str, slice_title: str, position: str
 ) -> Dashboard:
-    database = get_example_database()
-    dtype = {
-        "phrase": String(500),
-    }
-    table = create_table_from_df(df, table_name, database, dtype)
+    table = create_table_from_df(df, table_name, dtype={"phrase": String(500),})
     table.fetch_metadata()
 
     if slice_title:
@@ -98,7 +93,7 @@ def _create_and_commit_unicode_slice(table: SqlaTable, title: str):
 
 
 def _cleanup(dash: Dashboard, slice_name: str) -> None:
-    engine = get_example_database().get_sqla_engine()
+    engine = get_test_database().get_sqla_engine()
     engine.execute("DROP TABLE IF EXISTS unicode_test")
     db.session.delete(dash)
     if slice_name:

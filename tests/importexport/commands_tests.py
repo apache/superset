@@ -22,8 +22,8 @@ from freezegun import freeze_time
 
 from superset import security_manager
 from superset.databases.commands.export import ExportDatabasesCommand
-from superset.utils.core import get_example_database
 from tests.base_tests import SupersetTestCase
+from tests.fixtures.utils import get_test_database
 
 
 class TestExportModelsCommand(SupersetTestCase):
@@ -32,7 +32,7 @@ class TestExportModelsCommand(SupersetTestCase):
         """Make sure metadata.yaml has the correct content."""
         mock_g.user = security_manager.find_user("admin")
 
-        example_db = get_example_database()
+        example_db = get_test_database()
 
         with freeze_time("2020-01-01T00:00:00Z"):
             command = ExportDatabasesCommand([example_db.id])

@@ -18,7 +18,6 @@
 """Unit tests for Superset"""
 import imp
 import json
-from tests.fixtures.utils import TEST_DATABSE_NAME, get_test_database
 from typing import Any, Dict, Union, List, Optional
 from unittest.mock import Mock, patch
 
@@ -30,7 +29,6 @@ from flask_testing import TestCase
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
-from tests.test_app import app
 from superset.sql_parse import CtasMethod
 from superset import db, security_manager
 from superset.connectors.base.models import BaseDatasource
@@ -41,8 +39,10 @@ from superset.models.slice import Slice
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
-from superset.utils.core import get_example_database
 from superset.views.base_api import BaseSupersetModelRestApi
+
+from tests.test_app import app
+from tests.fixtures.utils import get_test_database
 
 FAKE_DB_NAME = "fake_db_100"
 test_client = app.test_client()
@@ -127,15 +127,6 @@ class SupersetTestCase(TestCase):
     @staticmethod
     def get_nonexistent_numeric_id(model):
         return (db.session.query(func.max(model.id)).scalar() or 0) + 1
-
-    @staticmethod
-    def get_birth_names_dataset():
-        example_db = get_example_database()
-        return (
-            db.session.query(SqlaTable)
-            .filter_by(database=example_db, table_name="birth_names")
-            .one()
-        )
 
     @staticmethod
     def create_user_with_roles(

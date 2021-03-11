@@ -23,16 +23,12 @@ import string
 import time
 import unittest.mock as mock
 from typing import Optional
-from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import pytest
 
 import flask
 from flask import current_app
 
-from tests.base_tests import login
-from tests.conftest import CTAS_SCHEMA_NAME
-from tests.test_app import app
 from superset import db, sql_lab
 from superset.result_set import SupersetResultSet
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -41,7 +37,12 @@ from superset.extensions import celery_app
 from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, CtasMethod
-from superset.utils.core import get_example_database, backend
+
+from tests.base_tests import login
+from tests.conftest import CTAS_SCHEMA_NAME
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
+from tests.fixtures.utils import get_test_database, superset_db_backend
+from tests.test_app import app
 
 CELERY_SLEEP_TIME = 6
 QUERY = "SELECT name FROM birth_names LIMIT 1"
@@ -90,7 +91,7 @@ def run_sql(
     sql, cta=False, ctas_method=CtasMethod.TABLE, tmp_table="tmp", async_=False
 ):
     login(test_client, username="admin")
-    db_id = get_example_database().id
+    db_id = get_test_database().id
     resp = test_client.post(
         "/superset/sql_json/",
         json=dict(
@@ -110,19 +111,19 @@ def run_sql(
 def drop_table_if_exists(table_name: str, table_type: CtasMethod) -> None:
     """Drop table if it exists, works on any DB"""
     sql = f"DROP {table_type} IF EXISTS  {table_name}"
-    get_example_database().get_sqla_engine().execute(sql)
+    get_test_database().get_sqla_engine().execute(sql)
 
 
 def quote_f(value: Optional[str]):
     if not value:
         return value
-    return get_example_database().inspector.engine.dialect.identifier_preparer.quote_identifier(
+    return get_test_database().inspector.engine.dialect.identifier_preparer.quote_identifier(
         value
     )
 
 
 def cta_result(ctas_method: CtasMethod):
-    if backend() != "presto":
+    if superset_db_backend() != "presto":
         return [], []
     if ctas_method == CtasMethod.TABLE:
         return [{"rows": 1}], [{"name": "rows", "type": "BIGINT", "is_date": False}]
@@ -131,7 +132,7 @@ def cta_result(ctas_method: CtasMethod):
 
 # TODO(bkyryliuk): quote table and schema names for all databases
 def get_select_star(table: str, schema: Optional[str] = None):
-    if backend() in {"presto", "hive"}:
+    if superset_db_backend() in {"presto", "hive"}:
         schema = quote_f(schema)
         table = quote_f(table)
     if schema:
@@ -143,7 +144,7 @@ def get_select_star(table: str, schema: Optional[str] = None):
 def test_run_sync_query_dont_exist(setup_sqllab, ctas_method):
     sql_dont_exist = "SELECT name FROM table_dont_exist"
     result = run_sql(sql_dont_exist, cta=True, ctas_method=ctas_method)
-    if backend() == "sqlite" and ctas_method == CtasMethod.VIEW:
+    if superset_db_backend() == "sqlite" and ctas_method == CtasMethod.VIEW:
         assert QueryStatus.SUCCESS == result["status"], result
     else:
         assert (
@@ -195,7 +196,7 @@ def test_run_sync_query_cta_no_data(setup_sqllab):
     "superset.views.core.get_cta_schema_name", lambda d, u, s, sql: CTAS_SCHEMA_NAME
 )
 def test_run_sync_query_cta_config(setup_sqllab, ctas_method):
-    if backend() == "sqlite":
+    if superset_db_backend() == "sqlite":
         # sqlite doesn't support schemas
         return
     tmp_table_name = f"{TEST_SYNC_CTA}_{ctas_method.lower()}"
@@ -222,7 +223,7 @@ def test_run_sync_query_cta_config(setup_sqllab, ctas_method):
     "superset.views.core.get_cta_schema_name", lambda d, u, s, sql: CTAS_SCHEMA_NAME
 )
 def test_run_async_query_cta_config(setup_sqllab, ctas_method):
-    if backend() == "sqlite":
+    if superset_db_backend() == "sqlite":
         # sqlite doesn't support schemas
         return
     tmp_table_name = f"{TEST_ASYNC_CTA_CONFIG}_{ctas_method.lower()}"
@@ -257,7 +258,7 @@ def test_run_async_cta_query(setup_sqllab, ctas_method):
 
     assert f"CREATE {ctas_method} {table_name} AS \n{QUERY}" == query.executed_sql
     assert QUERY == query.sql
-    assert query.rows == (1 if backend() == "presto" else 0)
+    assert query.rows == (1 if superset_db_backend() == "presto" else 0)
     assert query.select_as_cta
     assert query.select_as_cta_used
 
@@ -278,7 +279,7 @@ def test_run_async_cta_query_with_lower_limit(setup_sqllab, ctas_method):
     assert get_select_star(tmp_table) == query.select_sql
     assert f"CREATE {ctas_method} {tmp_table} AS \n{QUERY}" == query.executed_sql
     assert QUERY == query.sql
-    assert query.rows == (1 if backend() == "presto" else 0)
+    assert query.rows == (1 if superset_db_backend() == "presto" else 0)
     assert query.limit is None
     assert query.select_as_cta
     assert query.select_as_cta_used

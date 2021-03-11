@@ -18,20 +18,19 @@
 import textwrap
 import unittest
 from unittest import mock
-from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
-import pandas
 import pytest
 from sqlalchemy.engine.url import make_url
 
-import tests.test_app
 from superset import app, db as metadata_db
 from superset.models.core import Database
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database, QueryStatus
+from superset.utils.core import QueryStatus
 
-from .base_tests import SupersetTestCase
-from .fixtures.energy_dashboard import load_energy_table_with_slice
+from tests.base_tests import SupersetTestCase
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
+from tests.fixtures.utils import get_test_database
 
 
 class TestDatabaseModel(SupersetTestCase):
@@ -205,7 +204,7 @@ class TestDatabaseModel(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_select_star(self):
-        db = get_example_database()
+        db = get_test_database()
         table_name = "energy_usage"
         sql = db.select_star(table_name, show_cols=False, latest_partition=False)
         quote = db.inspector.engine.dialect.identifier_preparer.quote_identifier
@@ -265,7 +264,7 @@ class TestDatabaseModel(SupersetTestCase):
             )
 
     def test_select_star_fully_qualified_names(self):
-        db = get_example_database()
+        db = get_test_database()
         schema = "schema.name"
         table_name = "table/name"
         sql = db.select_star(
@@ -287,7 +286,7 @@ class TestDatabaseModel(SupersetTestCase):
             assert sql.startswith(expected)
 
     def test_single_statement(self):
-        main_db = get_example_database()
+        main_db = get_test_database()
 
         if main_db.backend == "mysql":
             df = main_db.get_df("SELECT 1", None)
@@ -297,7 +296,7 @@ class TestDatabaseModel(SupersetTestCase):
             self.assertEqual(df.iat[0, 0], 1)
 
     def test_multi_statement(self):
-        main_db = get_example_database()
+        main_db = get_test_database()
 
         if main_db.backend == "mysql":
             df = main_db.get_df("USE superset; SELECT 1", None)
@@ -395,7 +394,7 @@ class TestSqlaTableModel(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_query_with_expr_groupby_timeseries(self):
-        if get_example_database().backend == "presto":
+        if get_test_database().backend == "presto":
             # TODO(bkyryliuk): make it work for presto.
             return
 

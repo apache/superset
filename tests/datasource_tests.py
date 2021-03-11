@@ -23,11 +23,10 @@ import pytest
 from superset import app, ConnectorRegistry, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetNotFoundError
-from superset.utils.core import get_example_database
+from tests.base_tests import SupersetTestCase
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
-
-from tests.fixtures.utils import db_insert_temp_object, SupersetTestCase
 from tests.fixtures.datasource import datasource_post
+from tests.fixtures.utils import db_insert_temp_object, get_test_database
 
 
 class TestDatasource(SupersetTestCase):
@@ -58,7 +57,7 @@ class TestDatasource(SupersetTestCase):
         session = db.session
         table = SqlaTable(
             table_name="dummy_sql_table",
-            database=get_example_database(),
+            database=get_test_database(),
             sql="select 123 as intcol, 'abc' as strcol",
         )
         session.add(table)
@@ -75,7 +74,7 @@ class TestDatasource(SupersetTestCase):
         self.login(username="admin")
         table = SqlaTable(
             table_name="malicious_sql_table",
-            database=get_example_database(),
+            database=get_test_database(),
             sql="delete table birth_names",
         )
         with db_insert_temp_object(table):
@@ -87,7 +86,7 @@ class TestDatasource(SupersetTestCase):
         self.login(username="admin")
         table = SqlaTable(
             table_name="multistatement_sql_table",
-            database=get_example_database(),
+            database=get_test_database(),
             sql="select 123 as intcol, 'abc' as strcol;"
             "select 123 as intcol, 'abc' as strcol",
         )

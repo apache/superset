@@ -31,7 +31,7 @@ from superset.sql_validators.presto_db import (
     PrestoDBSQLValidator,
     PrestoSQLValidationError,
 )
-from superset.utils.core import get_example_database
+from tests.fixtures.utils import get_test_database
 
 from .base_tests import SupersetTestCase
 
@@ -73,7 +73,7 @@ class TestSqlValidatorEndpoint(SupersetTestCase):
     def test_validate_sql_endpoint_mocked(self, get_validator_by_name):
         """Assert that, with a mocked validator, annotations make it back out
         from the validate_sql_json endpoint as a list of json dictionaries"""
-        if get_example_database().backend == "hive":
+        if get_test_database().backend == "hive":
             pytest.skip("Hive validator is not implemented")
         self.login("admin")
 
@@ -116,7 +116,7 @@ class TestSqlValidatorEndpoint(SupersetTestCase):
             "SELECT * FROM birth_names", client_id="1", raise_on_error=False
         )
         # TODO(bkyryliuk): properly handle hive error
-        if get_example_database().backend == "hive":
+        if get_test_database().backend == "hive":
             assert resp["error"] == "no SQL validator is configured for hive"
         else:
             self.assertIn("error", resp)
@@ -214,7 +214,7 @@ class TestPrestoValidator(SupersetTestCase):
 
 class TestPostgreSQLValidator(SupersetTestCase):
     def test_valid_syntax(self):
-        if get_example_database().backend != "postgresql":
+        if get_test_database().backend != "postgresql":
             return
 
         mock_database = MagicMock()
@@ -224,7 +224,7 @@ class TestPostgreSQLValidator(SupersetTestCase):
         assert annotations == []
 
     def test_invalid_syntax(self):
-        if get_example_database().backend != "postgresql":
+        if get_test_database().backend != "postgresql":
             return
 
         mock_database = MagicMock()

@@ -23,9 +23,11 @@ from sqlalchemy.ext.declarative.api import DeclarativeMeta
 from superset import ConnectorRegistry, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
-from superset.utils.core import get_or_create_db
+from superset.utils.core import get_main_database, get_or_create_db
 
 TEST_DATABSE_NAME = "tests"
+
+get_main_database = get_main_database
 
 
 def get_test_database() -> "Database":
@@ -33,6 +35,10 @@ def get_test_database() -> "Database":
 
     db_uri = conf.get("SQLALCHEMY_EXAMPLES_URI") or conf.get("SQLALCHEMY_DATABASE_URI")
     return get_or_create_db(TEST_DATABSE_NAME, db_uri)
+
+
+def superset_db_backend() -> str:
+    return get_test_database().backend
 
 
 def create_table_from_df(

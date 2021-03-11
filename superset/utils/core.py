@@ -1222,10 +1222,6 @@ def get_main_database() -> "Database":
     return get_or_create_db("main", db_uri)
 
 
-def backend() -> str:
-    return get_example_database().backend
-
-
 def is_adhoc_metric(metric: Metric) -> bool:
     return isinstance(metric, dict)
 

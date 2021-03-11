@@ -29,9 +29,8 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database
 from tests.dashboard_utils import create_dashboard
-from tests.fixtures.utils import create_table_from_df
+from tests.fixtures.utils import create_table_from_df, get_test_database
 from tests.test_app import app
 
 
@@ -55,7 +54,7 @@ def _load_data():
     table_name = "wb_health_population"
 
     with app.app_context():
-        database = get_example_database()
+        database = get_test_database()
         df = _get_dataframe(database)
         dtype = {
             "year": DateTime if database.backend != "presto" else String(255),
@@ -107,7 +106,7 @@ def _create_world_bank_dashboard(table: SqlaTable, slices: List[Slice]) -> Dashb
 
 
 def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
-    engine = get_example_database().get_sqla_engine()
+    engine = get_test_database().get_sqla_engine()
     engine.execute("DROP TABLE IF EXISTS wb_health_population")
     dash = db.session.query(Dashboard).filter_by(id=dash_id).first()
     db.session.delete(dash)

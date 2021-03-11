@@ -39,7 +39,7 @@ import tests.test_app
 from tests.base_tests import SupersetTestCase
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.reports.utils import insert_report_schedule
-from superset.utils.core import get_example_database
+from tests.fixtures.utils import get_test_database
 
 
 REPORTS_COUNT = 10
@@ -53,7 +53,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             admin_user = self.get_user("admin")
             alpha_user = self.get_user("alpha")
             chart = db.session.query(Slice).first()
-            example_db = get_example_database()
+            example_db = get_test_database()
 
             report_schedule = insert_report_schedule(
                 type=ReportScheduleType.ALERT,
@@ -79,7 +79,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             admin_user = self.get_user("admin")
             alpha_user = self.get_user("alpha")
             chart = db.session.query(Slice).first()
-            example_db = get_example_database()
+            example_db = get_test_database()
             for cx in range(REPORTS_COUNT):
                 recipients = []
                 logs = []
@@ -417,7 +417,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         self.login(username="admin")
 
         chart = db.session.query(Slice).first()
-        example_db = get_example_database()
+        example_db = get_test_database()
         report_schedule_data = {
             "type": ReportScheduleType.ALERT,
             "name": "new3",
@@ -463,7 +463,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         self.login(username="admin")
 
         chart = db.session.query(Slice).first()
-        example_db = get_example_database()
+        example_db = get_test_database()
         report_schedule_data = {
             "type": ReportScheduleType.ALERT,
             "name": "name3",
@@ -503,7 +503,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         """
         self.login(username="admin")
         chart = db.session.query(Slice).first()
-        example_db = get_example_database()
+        example_db = get_test_database()
 
         # Check that a report does not have a database reference
         report_schedule_data = {
@@ -600,7 +600,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         # Test we can submit a chart or a dashboard not both
         chart = db.session.query(Slice).first()
         dashboard = db.session.query(Dashboard).first()
-        example_db = get_example_database()
+        example_db = get_test_database()
         report_schedule_data = {
             "type": ReportScheduleType.ALERT,
             "name": "new3",
@@ -649,7 +649,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         # Test chart and database do not exist
         chart_max_id = db.session.query(func.max(Slice.id)).scalar()
         database_max_id = db.session.query(func.max(Database.id)).scalar()
-        examples_db = get_example_database()
+        examples_db = get_test_database()
         report_schedule_data = {
             "type": ReportScheduleType.ALERT,
             "name": "new3",
@@ -698,7 +698,7 @@ class TestReportSchedulesApi(SupersetTestCase):
 
         self.login(username="admin")
         chart = db.session.query(Slice).first()
-        example_db = get_example_database()
+        example_db = get_test_database()
         report_schedule_data = {
             "type": ReportScheduleType.ALERT,
             "name": "changed",
@@ -799,7 +799,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         # Test we can submit a chart or a dashboard not both
         chart = db.session.query(Slice).first()
         dashboard = db.session.query(Dashboard).first()
-        example_db = get_example_database()
+        example_db = get_test_database()
         report_schedule_data = {
             "chart": chart.id,
             "dashboard": dashboard.id,
@@ -830,7 +830,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         # Test chart and database do not exist
         chart_max_id = db.session.query(func.max(Slice.id)).scalar()
         database_max_id = db.session.query(func.max(Database.id)).scalar()
-        examples_db = get_example_database()
+        examples_db = get_test_database()
         report_schedule_data = {
             "type": ReportScheduleType.ALERT,
             "name": "new3",

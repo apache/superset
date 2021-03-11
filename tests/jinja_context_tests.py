@@ -21,7 +21,6 @@ from unittest import mock
 
 import pytest
 
-import tests.test_app
 from superset import app
 from superset.exceptions import SupersetTemplateException
 from superset.jinja_context import (
@@ -30,8 +29,8 @@ from superset.jinja_context import (
     get_template_processor,
     safe_proxy,
 )
-from superset.utils import core as utils
 from tests.base_tests import SupersetTestCase
+from tests.fixtures.utils import get_test_database
 
 
 class TestJinja2Context(SupersetTestCase):
@@ -139,77 +138,77 @@ class TestJinja2Context(SupersetTestCase):
             safe_proxy(func, {"foo": lambda: "bar"})
 
     def test_process_template(self) -> None:
-        maindb = utils.get_example_database()
+        maindb = get_test_database()
         sql = "SELECT '{{ 1+1 }}'"
         tp = get_template_processor(database=maindb)
         rendered = tp.process_template(sql)
         self.assertEqual("SELECT '2'", rendered)
 
     def test_get_template_kwarg(self) -> None:
-        maindb = utils.get_example_database()
+        maindb = get_test_database()
         s = "{{ foo }}"
         tp = get_template_processor(database=maindb, foo="bar")
         rendered = tp.process_template(s)
         self.assertEqual("bar", rendered)
 
     def test_template_kwarg(self) -> None:
-        maindb = utils.get_example_database()
+        maindb = get_test_database()
         s = "{{ foo }}"
         tp = get_template_processor(database=maindb)
         rendered = tp.process_template(s, foo="bar")
         self.assertEqual("bar", rendered)
 
     def test_get_template_kwarg_dict(self) -> None:
-        maindb = utils.get_example_database()
+        maindb = get_test_database()
         s = "{{ foo.bar }}"
         tp = get_template_processor(database=maindb, foo={"bar": "baz"})
         rendered = tp.process_template(s)
         self.assertEqual("baz", rendered)
 
     def test_template_kwarg_dict(self) -> None:
-        maindb = utils.get_example_database()
+        maindb = get_test_database()
         s = "{{ foo.bar }}"
         tp = get_template_processor(database=maindb)
         rendered = tp.process_template(s, foo={"bar": "baz"})
         self.assertEqual("baz", rendered)
 
     def test_get_template_kwarg_lambda(self) -> None:
-        maindb = utils.get_example_database()
+        maindb = get_test_database()
         s = "{{ foo() }}"
         tp = get_template_processor(database=maindb, foo=lambda: "bar")
         with pytest.raises(SupersetTemplateException):
             tp.process_template(s)
 
     def test_template_kwarg_lambda(self) -> None:
-        maindb = utils.get_example_database()
+        maindb = get_test_database()
         s = "{{ foo() }}"
         tp = get_template_processor(database=maindb)
         with pytest.raises(SupersetTemplateException):
             tp.process_template(s, foo=lambda: "bar")
 
     def test_get_template_kwarg_module(self) -> None:
-        maindb = utils.get_example_database()
+        maindb = get_test_database()
         s = "{{ dt(2017, 1, 1).isoformat() }}"
         tp = get_template_processor(database=maindb, dt=datetime)
         with pytest.raises(SupersetTemplateException):
             tp.process_template(s)
 
     def test_template_kwarg_module(self) -> None:
-        maindb = utils.get_example_database()
+        maindb = get_test_database()
         s = "{{ dt(2017, 1, 1).isoformat() }}"
         tp = get_template_processor(database=maindb)
         with pytest.raises(SupersetTemplateException):
             tp.process_template(s, dt=datetime)
 
     def test_get_template_kwarg_nested_module(self) -> None:
-        maindb = utils.get_example_database()
+        maindb = get_test_database()
         s = "{{ foo.dt }}"
         tp = get_template_processor(database=maindb, foo={"dt": datetime})
         with pytest.raises(SupersetTemplateException):
             tp.process_template(s)
 
     def test_template_kwarg_nested_module(self) -> None:
-        maindb = utils.get_example_database()
+        maindb = get_test_database()
         s = "{{ foo.dt }}"
         tp = get_template_processor(database=maindb)
         with pytest.raises(SupersetTemplateException):
@@ -228,7 +227,7 @@ class TestJinja2Context(SupersetTestCase):
     @mock.patch("superset.jinja_context.context_addons")
     def test_template_context_addons(self, addons_mock) -> None:
         addons_mock.return_value = {"datetime": datetime}
-        maindb = utils.get_example_database()
+        maindb = get_test_database()
         s = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
         tp = get_template_processor(database=maindb)
         rendered = tp.process_template(s)
@@ -287,7 +286,7 @@ class TestJinja2Context(SupersetTestCase):
     def test_custom_template_processors_ignored(self) -> None:
         """Test custom template processor is ignored for a difference backend
         database."""
-        maindb = utils.get_example_database()
+        maindb = get_test_database()
         sql = "SELECT '$DATE()'"
         tp = get_template_processor(database=maindb)
         rendered = tp.process_template(sql)

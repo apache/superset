@@ -30,7 +30,7 @@ from superset import db
 from superset.models.core import Database
 from superset.models.core import FavStar
 from superset.models.sql_lab import SavedQuery
-from superset.utils.core import get_example_database
+from tests.fixtures.utils import get_test_database
 
 from tests.base_tests import SupersetTestCase
 
@@ -67,7 +67,7 @@ class TestSavedQueryApi(SupersetTestCase):
         self, label: str = "saved1", schema: str = "schema1", username: str = "admin"
     ) -> SavedQuery:
         admin = self.get_user(username)
-        example_db = get_example_database()
+        example_db = get_test_database()
         return self.insert_saved_query(
             label,
             "SELECT col1, col2 from table1",
@@ -223,7 +223,7 @@ class TestSavedQueryApi(SupersetTestCase):
         """
         Saved Query API: Test get list and database saved query
         """
-        example_db = get_example_database()
+        example_db = get_test_database()
         admin_user = self.get_user("admin")
 
         all_db_queries = (
@@ -542,7 +542,7 @@ class TestSavedQueryApi(SupersetTestCase):
         Saved Query API: Test create
         """
         admin = self.get_user("admin")
-        example_db = get_example_database()
+        example_db = get_test_database()
 
         post_data = {
             "schema": "schema1",

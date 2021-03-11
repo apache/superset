@@ -24,7 +24,7 @@ from sqlalchemy.sql import func
 import tests.test_app
 from superset import db
 from superset.models.core import CssTemplate
-from superset.utils.core import get_example_database
+from tests.fixtures.utils import get_test_database
 
 from tests.base_tests import SupersetTestCase
 

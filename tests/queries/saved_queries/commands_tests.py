@@ -23,13 +23,13 @@ from superset import db, security_manager
 from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.commands.exceptions import SavedQueryNotFoundError
 from superset.queries.saved_queries.commands.export import ExportSavedQueriesCommand
-from superset.utils.core import get_example_database
 from tests.base_tests import SupersetTestCase
+from tests.fixtures.utils import get_test_database
 
 
 class TestExportSavedQueriesCommand(SupersetTestCase):
     def setUp(self):
-        self.example_database = get_example_database()
+        self.example_database = get_test_database()
         self.example_query = SavedQuery(
             database=self.example_database,
             created_by=self.get_user("admin"),

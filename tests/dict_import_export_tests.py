@@ -31,7 +31,7 @@ from superset.connectors.druid.models import (
     DruidCluster,
 )
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.utils.core import get_example_database
+from tests.fixtures.utils import get_test_database
 from superset.utils.dict_import_export import export_to_dict
 
 from .base_tests import SupersetTestCase
@@ -76,7 +76,7 @@ class TestDictImportExport(SupersetTestCase):
             cols_uuids = [None] * len(cols_names)
 
         dict_rep = {
-            "database_id": get_example_database().id,
+            "database_id": get_test_database().id,
             "table_name": name,
             "schema": schema,
             "id": id,

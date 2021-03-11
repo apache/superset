@@ -44,11 +44,10 @@ from superset.models.dashboard import Dashboard
 from superset.models.reports import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.utils import core as utils
-from superset.utils.core import AnnotationType, get_example_database, get_main_database
+from superset.utils.core import AnnotationType, get_main_database
 
 from tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.base_tests import SupersetTestCase, post_assert_metric, test_client
-
 from tests.fixtures.importexport import (
     chart_config,
     chart_metadata_config,
@@ -61,6 +60,8 @@ from tests.fixtures.query_context import get_query_context, ANNOTATION_LAYERS
 from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 from tests.annotation_layers.fixtures import create_annotation_layers
 from tests.utils.get_dashboards import get_dashboards_ids
+from tests.fixtures.utils import get_test_database
+
 
 CHART_DATA_URI = "api/v1/chart/data"
 CHARTS_FIXTURE_COUNT = 10
@@ -1076,7 +1077,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(result["rowcount"], 5)
 
         # TODO: fix offset for presto DB
-        if get_example_database().backend == "presto":
+        if get_test_database().backend == "presto":
             return
 
         # ensure that offset works properly
@@ -1322,7 +1323,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         response_payload = json.loads(rv.data.decode("utf-8"))
         result = response_payload["result"][0]["query"]
-        if get_example_database().backend != "presto":
+        if get_test_database().backend != "presto":
             assert "('boy' = 'boy')" in result
 
     @mock.patch.dict(
@@ -1699,7 +1700,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
     def quote_name(self, name: str):
         if get_main_database().backend in {"presto", "hive"}:
-            return get_example_database().inspector.engine.dialect.identifier_preparer.quote_identifier(
+            return get_test_database().inspector.engine.dialect.identifier_preparer.quote_identifier(
                 name
             )
         return name
