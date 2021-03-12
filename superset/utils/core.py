@@ -82,7 +82,7 @@ from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
-from sqlalchemy.types import TEXT, TypeDecorator
+from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
 from typing_extensions import TypedDict
 
 import _thread  # pylint: disable=C0411
@@ -148,6 +148,10 @@ class GenericDataType(IntEnum):
     STRING = 1
     TEMPORAL = 2
     BOOLEAN = 3
+    # ARRAY = 4     # Mapping all the complex data types to STRING for now
+    # JSON = 5      # and leaving these as a reminder.
+    # MAP = 6
+    # ROW = 7
 
 
 class ChartDataResultFormat(str, Enum):
@@ -304,6 +308,18 @@ class TemporalType(str, Enum):
     TEXT = "TEXT"
     TIME = "TIME"
     TIMESTAMP = "TIMESTAMP"
+
+
+class ColumnTypeSource(Enum):
+    GET_TABLE = 1
+    CURSOR_DESCRIPION = 2
+
+
+class ColumnSpec(NamedTuple):
+    sqla_type: Union[TypeEngine, str]
+    generic_type: GenericDataType
+    is_dttm: bool
+    python_date_format: Optional[str] = None
 
 
 try:
