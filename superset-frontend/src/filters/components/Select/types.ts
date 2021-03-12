@@ -17,10 +17,10 @@
  * under the License.
  */
 import {
-  QueryFormData,
-  DataRecord,
-  SetDataMaskHook,
   Behavior,
+  DataRecord,
+  QueryFormData,
+  SetDataMaskHook,
 } from '@superset-ui/core';
 import { RefObject } from 'react';
 import { PluginFilterStylesProps } from '../types';
@@ -29,10 +29,10 @@ interface PluginFilterSelectCustomizeProps {
   defaultValue?: (string | number)[] | null;
   currentValue?: (string | number)[] | null;
   enableEmptyFilter: boolean;
-  fetchPredicate?: string;
   inverseSelection: boolean;
   multiSelect: boolean;
   inputRef?: RefObject<HTMLInputElement>;
+  sortAscending: boolean;
 }
 
 export type PluginFilterSelectQueryFormData = QueryFormData &
@@ -50,7 +50,7 @@ export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {
   defaultValue: null,
   currentValue: null,
   enableEmptyFilter: false,
-  fetchPredicate: '',
   inverseSelection: false,
-  multiSelect: false,
+  multiSelect: true,
+  sortAscending: true,
 };
