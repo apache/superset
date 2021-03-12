@@ -40,7 +40,7 @@ function TemplateParamsEditor({
 }: {
   code: string;
   language: 'yaml' | 'json';
-  onChange: (...args: any) => any;
+  onChange: () => void;
 }) {
   const [parsedJSON, setParsedJSON] = useState({});
   const [isValid, setIsValid] = useState(true);

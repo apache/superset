@@ -120,6 +120,7 @@ export default function AsyncAceEditor(
           theme = inferredTheme,
           tabSize = defaultTabSize,
           defaultValue = '',
+          value = '',
           ...props
         },
         ref,
@@ -152,7 +153,8 @@ export default function AsyncAceEditor(
             theme={theme}
             tabSize={tabSize}
             defaultValue={defaultValue}
-            {...{ ...props, value: props.value || '' }}
+            value={value || ''}
+            {...props}
           />
         );
       },
