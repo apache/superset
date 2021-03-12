@@ -89,13 +89,15 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   const [activityData, setActivityData] = useState<ActivityData>({});
   const [chartData, setChartData] = useState<Array<object> | null>(null);
   const [queryData, setQueryData] = useState<Array<object> | null>(null);
-  const [dashboardData, setDashboardData] = useState<Array<object> | null>(null);
+  const [dashboardData, setDashboardData] = useState<Array<object> | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     getRecentAcitivtyObjs(user.userId, recent, addDangerToast)
       .then(res => {
-        const data: any = {};
+        const data: ActivityData | null = {};
         if (res.viewed) {
           const filtered = reject(res.viewed, ['item_url', null]).map(r => r);
           data.Viewed = filtered;

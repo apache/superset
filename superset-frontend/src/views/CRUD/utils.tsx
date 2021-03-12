@@ -29,6 +29,12 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FetchDataConfig } from 'src/components/ListView';
 import { Dashboard } from './types';
 
+interface Filters {
+  col: string;
+  opr: string;
+  value: string;
+}
+
 const createFetchResourceMethod = (method: string) => (
   resource: string,
   relation: string,
@@ -61,7 +67,7 @@ const createFetchResourceMethod = (method: string) => (
   return [];
 };
 
-const getParams = (filters?: Array<any>) => {
+const getParams = (filters?: Array<Filters>) => {
   const params = {
     order_column: 'changed_on_delta_humanized',
     order_direction: 'desc',
