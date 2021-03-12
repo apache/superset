@@ -59,7 +59,10 @@ const ControlItems: FC<ControlItemsProps> = ({
           <StyledCheckboxFormItem
             key={controlItem.name}
             name={['filters', filterId, 'controlValues', controlItem.name]}
-            initialValue={filterToEdit?.controlValues?.[controlItem.name]}
+            initialValue={
+              filterToEdit?.controlValues?.[controlItem.name] ??
+              controlItem?.config?.default
+            }
             valuePropName="checked"
             colon={false}
           >

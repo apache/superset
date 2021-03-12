@@ -237,6 +237,7 @@ class BaseDatasource(
         return {
             # simple fields
             "id": self.id,
+            "uid": self.uid,
             "column_formats": self.column_formats,
             "description": self.description,
             "database": self.database.data,  # pylint: disable=no-member
@@ -359,10 +360,7 @@ class BaseDatasource(
         if is_list_target and not isinstance(values, (tuple, list)):
             values = [values]  # type: ignore
         elif not is_list_target and isinstance(values, (tuple, list)):
-            if values:
-                values = values[0]
-            else:
-                values = None
+            values = values[0] if values else None
         return values
 
     def external_metadata(self) -> List[Dict[str, str]]:

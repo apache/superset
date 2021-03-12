@@ -30,7 +30,7 @@ import {
 } from 'src/dataMask/actions';
 import { LOAD_DASHBOARD_BOOTSTRAPDATA } from './bootstrapData';
 import { dashboardInfoChanged } from './dashboardInfo';
-import { FiltersSet } from '../reducers/types';
+import { FilterSet } from '../reducers/types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
 export interface SetFilterConfigBegin {
@@ -50,18 +50,18 @@ export interface SetFilterConfigFail {
 export const SET_FILTER_SETS_CONFIG_BEGIN = 'SET_FILTER_SETS_CONFIG_BEGIN';
 export interface SetFilterSetsConfigBegin {
   type: typeof SET_FILTER_SETS_CONFIG_BEGIN;
-  filterSetsConfig: FiltersSet[];
+  filterSetsConfig: FilterSet[];
 }
 export const SET_FILTER_SETS_CONFIG_COMPLETE =
   'SET_FILTER_SETS_CONFIG_COMPLETE';
 export interface SetFilterSetsConfigComplete {
   type: typeof SET_FILTER_SETS_CONFIG_COMPLETE;
-  filterSetsConfig: FiltersSet[];
+  filterSetsConfig: FilterSet[];
 }
 export const SET_FILTER_SETS_CONFIG_FAIL = 'SET_FILTER_SETS_CONFIG_FAIL';
 export interface SetFilterSetsConfigFail {
   type: typeof SET_FILTER_SETS_CONFIG_FAIL;
-  filterSetsConfig: FiltersSet[];
+  filterSetsConfig: FilterSet[];
 }
 
 interface DashboardInfo {
@@ -126,7 +126,7 @@ export interface SetBooststapData {
 }
 
 export const setFilterSetsConfiguration = (
-  filterSetsConfig: FiltersSet[],
+  filterSetsConfig: FilterSet[],
 ) => async (dispatch: Dispatch, getState: () => any) => {
   dispatch({
     type: SET_FILTER_SETS_CONFIG_BEGIN,
@@ -150,14 +150,15 @@ export const setFilterSetsConfiguration = (
         filter_sets_configuration: filterSetsConfig,
       }),
     });
+    const newMetadata = JSON.parse(response.result.json_metadata);
     dispatch(
       dashboardInfoChanged({
-        metadata: JSON.parse(response.result.json_metadata),
+        metadata: newMetadata,
       }),
     );
     dispatch({
       type: SET_FILTER_SETS_CONFIG_COMPLETE,
-      filterSetsConfig,
+      filterSetsConfig: newMetadata?.filter_sets_configuration,
     });
   } catch (err) {
     dispatch({ type: SET_FILTER_SETS_CONFIG_FAIL, filterSetsConfig });

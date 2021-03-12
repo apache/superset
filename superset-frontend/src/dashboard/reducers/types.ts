@@ -67,14 +67,14 @@ export type LayoutItem = {
   };
 };
 
-export type FiltersSet = {
+export type FilterSet = {
   id: string;
   name: string;
   dataMask: Partial<DataMaskStateWithId>;
 };
 
 export type FilterSets = {
-  [filtersSetId: string]: FiltersSet;
+  [filtersSetId: string]: FilterSet;
 };
 
 export type Filters = {
