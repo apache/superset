@@ -32,12 +32,14 @@ interface DashboardRouteProps {
 }
 const getData = (idOrSlug: string) => {
   const batch = [
-    SupersetClient.get({ endpoint: `/api/v1/dashboard/${idOrSlug}/charts` }),
     SupersetClient.get({ endpoint: `/api/v1/dashboard/${idOrSlug}` }),
+    SupersetClient.get({ endpoint: `/api/v1/dashboard/${idOrSlug}/charts` }),
+    SupersetClient.get({ endpoint: `/api/v1/dashboard/${idOrSlug}/datasets` }),
   ];
-  return Promise.all(batch).then(([chartRes, dashboardRes]) => ({
-    chartRes: chartRes.json.result,
-    dashboardRes: dashboardRes.json.result,
+  return Promise.all(batch).then(([dashboardRes, chartRes, datasetRes]) => ({
+    dashboard: dashboardRes.json.result,
+    charts: chartRes.json.result,
+    datasets: datasetRes.json.result,
   }));
 };
 
@@ -46,9 +48,6 @@ const DashboardRoute: FC<DashboardRouteProps> = ({
   actions,
   dashboardIdOrSlug, // eventually get from react router
 }) => {
-  const appContainer = document.getElementById('app');
-  const bootstrapData = appContainer?.getAttribute('data-bootstrap');
-  const bootstrapDataJson = JSON.parse(bootstrapData || '');
   const [loaded, setLoaded] = useState(false);
 
   const handleError = (error: unknown) => ({ error, info: null });
@@ -59,9 +58,9 @@ const DashboardRoute: FC<DashboardRouteProps> = ({
       .then(data => {
         if (data) {
           actions.bootstrapDashboardState(
-            bootstrapDataJson.datasources,
-            data.chartRes,
-            data.dashboardRes,
+            data.datasets,
+            data.charts,
+            data.dashboard,
           );
           setLoaded(true);
         }

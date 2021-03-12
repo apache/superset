@@ -1866,7 +1866,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         bootstrap_data = {
             "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(),
-            "datasources": data["datasources"],
         }
 
         if request.args.get("json") == "true":

@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { isString } from 'lodash';
+import { isString, keyBy } from 'lodash';
 import shortid from 'shortid';
 import { CategoricalColorNamespace } from '@superset-ui/core';
 import querystring from 'query-string';
@@ -305,7 +305,7 @@ export const bootstrapDashboardState = (
 
   dispatch(
     setDashboardBootstrapState({
-      datasources: datasourcesData,
+      datasources: keyBy(datasourcesData, 'uid'),
       sliceEntities: { ...initSliceEntities, slices, isLoading: false },
       charts: chartQueries,
       // read-only data
