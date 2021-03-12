@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { ColumnOption, ColumnTypeLabel } from '@superset-ui/chart-controls';
 
-import columnType from 'src/explore/propTypes/columnType';
+import columnType from './columnType';
 import AdhocMetricStaticOption from './AdhocMetricStaticOption';
 import adhocMetricType from './adhocMetricType';
 

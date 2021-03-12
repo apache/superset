@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Metric } from '@superset-ui/chart-controls/lib/types';
-import columnType from 'src/explore/propTypes/columnType';
+import columnType from './columnType';
 import AdhocMetricOption from './AdhocMetricOption';
 import AdhocMetric from './AdhocMetric';
 import savedMetricType from './savedMetricType';
