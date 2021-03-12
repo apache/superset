@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-partition",
-  "version": "0.17.18",
+  "version": "0.17.19",
   "description": "Superset Legacy Chart - Partition",
   "sideEffects": [
     "*.css"
@@ -28,7 +28,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/chart-controls": "0.17.18",
+    "@superset-ui/chart-controls": "0.17.19",
     "@superset-ui/core": "0.17.18",
     "d3": "^3.5.17",
     "d3-hierarchy": "^1.1.8",
