@@ -59,10 +59,11 @@ const buildQuery: BuildQuery<TableChartFormData> = (formData: TableChartFormData
   }
 
   return buildQueryContext(formDataCopy, baseQueryObject => {
-    let { metrics = [], orderby = [] } = baseQueryObject;
+    let { metrics, orderby = [] } = baseQueryObject;
     let postProcessing: PostProcessingRule[] = [];
 
     if (queryMode === QueryMode.aggregate) {
+      metrics = metrics || [];
       // orverride orderby with timeseries metric when in aggregation mode
       if (sortByMetric) {
         orderby = [[sortByMetric, !orderDesc]];
