@@ -122,7 +122,6 @@ class QueryObject:
         is_rowcount: bool = False,
         **kwargs: Any,
     ):
-        metrics = metrics or []
         columns = columns or []
         groupby = groupby or []
         extras = extras or {}
