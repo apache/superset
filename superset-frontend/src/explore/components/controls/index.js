@@ -42,6 +42,7 @@ import FilterBoxItemControl from './FilterBoxItemControl';
 import DndColumnSelectControl, {
   DndColumnSelect,
   DndFilterSelect,
+  DndMetricSelect,
 } from './DndColumnSelectControl';
 
 const controlMap = {
@@ -57,6 +58,7 @@ const controlMap = {
   DndColumnSelectControl,
   DndColumnSelect,
   DndFilterSelect,
+  DndMetricSelect,
   FixedOrMetricControl,
   HiddenControl,
   SelectAsyncControl,
