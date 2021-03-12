@@ -52,14 +52,6 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     allows_joins = False
     allows_subqueries = True
 
-    column_type_mappings = (
-        (
-            re.compile(r"^__time", re.IGNORECASE),
-            TIMESTAMP(),
-            utils.GenericDataType.TEMPORAL,
-        ),
-    )
-
     _time_grain_expressions = {
         None: "{col}",
         "PT1S": "FLOOR({col} TO SECOND)",
@@ -118,21 +110,11 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     def get_column_spec(  # type: ignore
         cls,
         native_type: Optional[str],
+        column_name: Optional[str],
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
-        column_type_mappings: Tuple[
-            Tuple[
-                Pattern[str],
-                Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
-                GenericDataType,
-            ],
-            ...,
-        ] = column_type_mappings,
     ) -> Union[ColumnSpec, None]:
 
-        column_spec = super().get_column_spec(native_type)
-        if column_spec:
-            return column_spec
+        if column_name == "__time":
+            return ColumnSpec(TIMESTAMP, GenericDataType.TEMPORAL, True)
 
-        return super().get_column_spec(
-            native_type, column_type_mappings=column_type_mappings
-        )
+        return super().get_column_spec(native_type)
