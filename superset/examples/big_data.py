@@ -33,7 +33,7 @@ COLUMN_TYPES = [
 
 
 def load_big_data() -> None:
-    # create table with 100 columns to test SQL Lab
+    print("Creating table `wide_table` with 100 columns")
     columns: List[ColumnInfo] = []
     for i in range(100):
         column: ColumnInfo = {
@@ -45,5 +45,26 @@ def load_big_data() -> None:
             "primary_key": 1 if i == 0 else 0,
         }
         columns.append(column)
-
     add_data(columns=columns, num_rows=1000, table_name="wide_table")
+
+    print("Creating 1000 small tables")
+    columns = [
+        {
+            "name": "id",
+            "type": sqlalchemy.sql.sqltypes.INTEGER(),
+            "nullable": False,
+            "default": None,
+            "autoincrement": "auto",
+            "primary_key": 1,
+        },
+        {
+            "name": "value",
+            "type": sqlalchemy.sql.sqltypes.VARCHAR(length=255),
+            "nullable": False,
+            "default": None,
+            "autoincrement": "auto",
+            "primary_key": 0,
+        },
+    ]
+    for i in range(1000):
+        add_data(columns=columns, num_rows=10, table_name=f"small_table_{i}")
