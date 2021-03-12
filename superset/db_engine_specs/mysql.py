@@ -24,6 +24,7 @@ from sqlalchemy.dialects.mysql import (
     DECIMAL,
     DOUBLE,
     FLOAT,
+    INTEGER,
     LONGTEXT,
     MEDIUMINT,
     MEDIUMTEXT,
@@ -51,6 +52,7 @@ class MySQLEngineSpec(BaseEngineSpec):
         ],
         ...,
     ] = (
+        (re.compile(r"^int.*", re.IGNORECASE), INTEGER(), GenericDataType.NUMERIC,),
         (re.compile(r"^tinyint", re.IGNORECASE), TINYINT(), GenericDataType.NUMERIC,),
         (
             re.compile(r"^mediumint", re.IGNORECASE),

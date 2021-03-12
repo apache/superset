@@ -70,7 +70,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
             ("TINYINT", GenericDataType.NUMERIC),
             ("SMALLINT", GenericDataType.NUMERIC),
             ("MEDIUMINT", GenericDataType.NUMERIC),
-            ("INTEGER", GenericDataType.NUMERIC),
+            ("INT", GenericDataType.NUMERIC),
             ("BIGINT", GenericDataType.NUMERIC),
             ("DECIMAL", GenericDataType.NUMERIC),
             ("FLOAT", GenericDataType.NUMERIC),
@@ -90,7 +90,6 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
         )
 
         for type_str, col_type in type_expectations:
-            print(">>> ", type_str)
             column_spec = MySQLEngineSpec.get_column_spec(type_str)
             assert column_spec.generic_type == col_type
 
