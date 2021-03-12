@@ -16,12 +16,26 @@
 # under the License.
 import json
 import logging
+import re
 from datetime import datetime
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Match,
+    Optional,
+    Pattern,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+)
+
+from sqlalchemy.types import TIMESTAMP, TypeEngine
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
+from superset.utils.core import ColumnSpec, GenericDataType
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -37,6 +51,14 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     engine_name = "Apache Druid"
     allows_joins = False
     allows_subqueries = True
+
+    column_type_mappings = (
+        (
+            re.compile(r"^__time", re.IGNORECASE),
+            TIMESTAMP(),
+            utils.GenericDataType.TEMPORAL,
+        ),
+    )
 
     _time_grain_expressions = {
         None: "{col}",
@@ -91,3 +113,26 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         if tt in (utils.TemporalType.DATETIME, utils.TemporalType.TIMESTAMP):
             return f"""TIME_PARSE('{dttm.isoformat(timespec="seconds")}')"""
         return None
+
+    @classmethod
+    def get_column_spec(  # type: ignore
+        cls,
+        native_type: Optional[str],
+        source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
+        column_type_mappings: Tuple[
+            Tuple[
+                Pattern[str],
+                Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
+                GenericDataType,
+            ],
+            ...,
+        ] = column_type_mappings,
+    ) -> Union[ColumnSpec, None]:
+
+        column_spec = super().get_column_spec(native_type)
+        if column_spec:
+            return column_spec
+
+        return super().get_column_spec(
+            native_type, column_type_mappings=column_type_mappings
+        )
