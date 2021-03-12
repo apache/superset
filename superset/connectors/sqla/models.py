@@ -1112,16 +1112,22 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             if not all([flt.get(s) for s in ["col", "op"]]):
                 continue
             col = flt["col"]
+            val = flt.get("val")
             op = flt["op"].upper()
             col_obj = columns_by_name.get(col)
             if col_obj:
+                col_spec = db_engine_spec.get_column_spec(col_obj.type)
                 is_list_target = op in (
                     utils.FilterOperator.IN.value,
                     utils.FilterOperator.NOT_IN.value,
                 )
+                if col_spec:
+                    target_type = col_spec.generic_type
+                else:
+                    target_type = GenericDataType.STRING
                 eq = self.filter_values_handler(
-                    values=flt.get("val"),
-                    target_column_is_numeric=col_obj.is_numeric,
+                    values=val,
+                    target_column_type=target_type,
                     is_list_target=is_list_target,
                 )
                 if is_list_target:
