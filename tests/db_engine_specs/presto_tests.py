@@ -24,7 +24,7 @@ from sqlalchemy.sql import select
 
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.sql_parse import ParsedQuery
-from superset.utils.core import DatasourceName
+from superset.utils.core import DatasourceName, GenericDataType
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
@@ -535,30 +535,37 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         self.assertEqual(actual_expanded_cols, expected_expanded_cols)
 
     def test_get_sqla_column_type(self):
-        sqla_type = PrestoEngineSpec.get_sqla_column_type("varchar(255)")
-        assert isinstance(sqla_type, types.VARCHAR)
-        assert sqla_type.length == 255
+        column_spec = PrestoEngineSpec.get_column_spec("varchar(255)")
+        assert isinstance(column_spec.sqla_type, types.VARCHAR)
+        assert column_spec.sqla_type.length == 255
+        self.assertEqual(column_spec.generic_type, GenericDataType.STRING)
 
-        sqla_type = PrestoEngineSpec.get_sqla_column_type("varchar")
-        assert isinstance(sqla_type, types.String)
-        assert sqla_type.length is None
+        column_spec = PrestoEngineSpec.get_column_spec("varchar")
+        assert isinstance(column_spec.sqla_type, types.String)
+        assert column_spec.sqla_type.length is None
+        self.assertEqual(column_spec.generic_type, GenericDataType.STRING)
 
-        sqla_type = PrestoEngineSpec.get_sqla_column_type("char(10)")
-        assert isinstance(sqla_type, types.CHAR)
-        assert sqla_type.length == 10
+        column_spec = PrestoEngineSpec.get_column_spec("char(10)")
+        assert isinstance(column_spec.sqla_type, types.CHAR)
+        assert column_spec.sqla_type.length == 10
+        self.assertEqual(column_spec.generic_type, GenericDataType.STRING)
 
-        sqla_type = PrestoEngineSpec.get_sqla_column_type("char")
-        assert isinstance(sqla_type, types.CHAR)
-        assert sqla_type.length is None
+        column_spec = PrestoEngineSpec.get_column_spec("char")
+        assert isinstance(column_spec.sqla_type, types.CHAR)
+        assert column_spec.sqla_type.length is None
+        self.assertEqual(column_spec.generic_type, GenericDataType.STRING)
 
-        sqla_type = PrestoEngineSpec.get_sqla_column_type("integer")
-        assert isinstance(sqla_type, types.Integer)
+        column_spec = PrestoEngineSpec.get_column_spec("integer")
+        assert isinstance(column_spec.sqla_type, types.Integer)
+        self.assertEqual(column_spec.generic_type, GenericDataType.NUMERIC)
 
-        sqla_type = PrestoEngineSpec.get_sqla_column_type("time")
-        assert isinstance(sqla_type, types.Time)
+        column_spec = PrestoEngineSpec.get_column_spec("time")
+        assert isinstance(column_spec.sqla_type, types.Time)
+        self.assertEqual(column_spec.generic_type, GenericDataType.TEMPORAL)
 
-        sqla_type = PrestoEngineSpec.get_sqla_column_type("timestamp")
-        assert isinstance(sqla_type, types.TIMESTAMP)
+        column_spec = PrestoEngineSpec.get_column_spec("timestamp")
+        assert isinstance(column_spec.sqla_type, types.TIMESTAMP)
+        self.assertEqual(column_spec.generic_type, GenericDataType.TEMPORAL)
 
         sqla_type = PrestoEngineSpec.get_sqla_column_type(None)
         assert sqla_type is None

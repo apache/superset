@@ -69,6 +69,7 @@ from superset.result_set import SupersetResultSet
 from superset.sql_parse import ParsedQuery
 from superset.typing import Metric, QueryObjectDict
 from superset.utils import core as utils
+from superset.utils.core import GenericDataType
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
@@ -186,20 +187,20 @@ class TableColumn(Model, BaseColumn):
         """
         Check if the column has a numeric datatype.
         """
-        db_engine_spec = self.table.database.db_engine_spec
-        return db_engine_spec.is_db_column_type_match(
-            self.type, utils.GenericDataType.NUMERIC
-        )
+        column_spec = self.table.database.db_engine_spec.get_column_spec(self.type)
+        if column_spec is None:
+            return False
+        return column_spec.generic_type == GenericDataType.NUMERIC
 
     @property
     def is_string(self) -> bool:
         """
         Check if the column has a string datatype.
         """
-        db_engine_spec = self.table.database.db_engine_spec
-        return db_engine_spec.is_db_column_type_match(
-            self.type, utils.GenericDataType.STRING
-        )
+        column_spec = self.table.database.db_engine_spec.get_column_spec(self.type)
+        if column_spec is None:
+            return False
+        return column_spec.generic_type == GenericDataType.STRING
 
     @property
     def is_temporal(self) -> bool:
@@ -211,10 +212,10 @@ class TableColumn(Model, BaseColumn):
         """
         if self.is_dttm is not None:
             return self.is_dttm
-        db_engine_spec = self.table.database.db_engine_spec
-        return db_engine_spec.is_db_column_type_match(
-            self.type, utils.GenericDataType.TEMPORAL
-        )
+        column_spec = self.table.database.db_engine_spec.get_column_spec(self.type)
+        if column_spec is None:
+            return False
+        return column_spec.is_dttm
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.column_name
@@ -222,7 +223,8 @@ class TableColumn(Model, BaseColumn):
             col = literal_column(self.expression)
         else:
             db_engine_spec = self.table.database.db_engine_spec
-            type_ = db_engine_spec.get_sqla_column_type(self.type)
+            column_spec = db_engine_spec.get_column_spec(self.type)
+            type_ = column_spec.sqla_type if column_spec else None
             col = column(self.column_name, type_=type_)
         col = self.table.make_sqla_column_compatible(col, label)
         return col
