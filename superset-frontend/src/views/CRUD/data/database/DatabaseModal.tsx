@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { FunctionComponent, useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
 import { styled, t, SupersetClient } from '@superset-ui/core';
 import InfoTooltip from 'src/common/components/InfoTooltip';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -30,6 +29,7 @@ import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 import { DatabaseObject } from './types';
+import { useCommonConf } from './state';
 
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
@@ -38,17 +38,6 @@ interface DatabaseModalProps {
   onHide: () => void;
   show: boolean;
   database?: DatabaseObject | null; // If included, will go into edit mode
-}
-
-// todo: define common type fully in types file
-interface RootState {
-  common: {
-    conf: {
-      SQLALCHEMY_DOCS_URL: string;
-      SQLALCHEMY_DISPLAY_TEXT: string;
-    };
-  };
-  messageToast: Array<Object>;
 }
 
 const DEFAULT_TAB_KEY = '1';
@@ -143,7 +132,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [db, setDB] = useState<DatabaseObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
-  const conf = useSelector((state: RootState) => state.common.conf);
+  const conf = useCommonConf();
 
   const isEditMode = database !== null;
   const defaultExtra =
