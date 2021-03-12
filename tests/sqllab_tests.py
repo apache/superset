@@ -26,7 +26,7 @@ from unittest import mock
 from superset.extensions import db
 import prison
 
-from superset import db, security_manager
+from superset import security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetErrorType

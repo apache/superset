@@ -75,7 +75,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         dashboard_title: str,
         slug: Optional[str],
         owners: List[int],
-        roles: List[int] = [],
+        roles: Optional[List[int]] = None,
         created_by=None,
         slices: Optional[List[Slice]] = None,
         position_json: str = "",
@@ -83,6 +83,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         json_metadata: str = "",
         published: bool = False,
     ) -> Dashboard:
+        if roles is None:
+            roles = []
         obj_owners = list()
         obj_roles = list()
         slices = slices or []

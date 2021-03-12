@@ -108,7 +108,9 @@ class TestImportExport(SupersetTestCase):
             id=id,
         )
 
-    def create_dashboard(self, title, id=0, slcs=[]):
+    def create_dashboard(self, title, id=0, slcs=None):
+        if slcs is None:
+            slcs = []
         json_metadata = {"remote_id": id}
         return Dashboard(
             id=id,
@@ -119,7 +121,11 @@ class TestImportExport(SupersetTestCase):
             json_metadata=json.dumps(json_metadata),
         )
 
-    def create_table(self, name, schema=None, id=0, cols_names=[], metric_names=[]):
+    def create_table(self, name, schema=None, id=0, cols_names=None, metric_names=None):
+        if cols_names is None:
+            cols_names = []
+        if metric_names is None:
+            metric_names = []
         params = {"remote_id": id, "database_name": "examples"}
         table = SqlaTable(
             id=id, schema=schema, table_name=name, params=json.dumps(params)
@@ -130,7 +136,11 @@ class TestImportExport(SupersetTestCase):
             table.metrics.append(SqlMetric(metric_name=metric_name, expression=""))
         return table
 
-    def create_druid_datasource(self, name, id=0, cols_names=[], metric_names=[]):
+    def create_druid_datasource(self, name, id=0, cols_names=None, metric_names=None):
+        if cols_names is None:
+            cols_names = []
+        if metric_names is None:
+            metric_names = []
         cluster_name = "druid_test"
         cluster = self.get_or_create(
             DruidCluster, {"cluster_name": cluster_name}, db.session

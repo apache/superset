@@ -105,8 +105,8 @@ def _create_table(
 def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
     table_id = db.session.query(SqlaTable).filter_by(table_name="birth_names").one().id
     datasource = ConnectorRegistry.get_datasource("table", table_id, db.session)
-    columns = [column for column in datasource.columns]
-    metrics = [metric for metric in datasource.metrics]
+    columns = list(datasource.columns)
+    metrics = list(datasource.metrics)
 
     engine = get_example_database().get_sqla_engine()
     engine.execute("DROP TABLE IF EXISTS birth_names")

@@ -66,8 +66,12 @@ class TestDictImportExport(SupersetTestCase):
         cls.delete_imports()
 
     def create_table(
-        self, name, schema="", id=0, cols_names=[], cols_uuids=None, metric_names=[]
+        self, name, schema="", id=0, cols_names=None, cols_uuids=None, metric_names=None
     ):
+        if cols_names is None:
+            cols_names = []
+        if metric_names is None:
+            metric_names = []
         database_name = "main"
         name = "{0}{1}".format(NAME_PREFIX, name)
         params = {DBREF: id, "database_name": database_name}
@@ -96,7 +100,11 @@ class TestDictImportExport(SupersetTestCase):
             table.metrics.append(SqlMetric(metric_name=metric_name, expression=""))
         return table, dict_rep
 
-    def create_druid_datasource(self, name, id=0, cols_names=[], metric_names=[]):
+    def create_druid_datasource(self, name, id=0, cols_names=None, metric_names=None):
+        if cols_names is None:
+            cols_names = []
+        if metric_names is None:
+            metric_names = []
         cluster_name = "druid_test"
         cluster = self.get_or_create(
             DruidCluster, {"cluster_name": cluster_name}, db.session

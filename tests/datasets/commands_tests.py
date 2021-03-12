@@ -276,7 +276,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         assert len(dataset.metrics) == 2
         assert dataset.main_dttm_col == "ds"
         assert dataset.filter_select_enabled
-        assert set(col.column_name for col in dataset.columns) == {
+        assert {col.column_name for col in dataset.columns} == {
             "num_california",
             "ds",
             "state",

@@ -354,7 +354,7 @@ class TestDashboard(SupersetTestCase):
         positions = self.get_mock_positions(dash)
         # remove one chart
         chart_keys = []
-        for key in positions.keys():
+        for key in positions:
             if key.startswith("DASHBOARD_CHART_TYPE"):
                 chart_keys.append(key)
         positions.pop(chart_keys[0])

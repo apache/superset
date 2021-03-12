@@ -1,0 +1,22 @@
+version = 1
+
+test_patterns = [
+    "tests/**",
+    "**_tests.py"
+]
+
+exclude_patterns = [
+    "superset-frontend/**",
+    "scripts/**",
+    "requirements/**",
+    "helm/superset/**",
+    "docker/**",
+    "RELEASING/**"
+]
+
+[[analyzers]]
+name = "python"
+enabled = true
+
+  [analyzers.meta]
+  runtime_version = "3.x.x"
