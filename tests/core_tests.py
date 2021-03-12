@@ -1490,7 +1490,6 @@ class TestCore(SupersetTestCase):
         self.login()
         data = self.get_resp(url)
         self.assertIn("Error message", data)
-        self.assertIn(slice.slice_name, data)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @mock.patch("superset.models.core.DB_CONNECTION_MUTATOR")
