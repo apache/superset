@@ -26,6 +26,7 @@ import prison
 import pytest
 import yaml
 
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import func
 
 from superset import db, security_manager
@@ -364,7 +365,8 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 400)
         self.assertIn(
-            "Invalid connection string", response["message"]["sqlalchemy_uri"][0],
+            "Invalid connection string",
+            response["message"]["sqlalchemy_uri"][0],
         )
 
     @mock.patch(
@@ -522,7 +524,8 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 400)
         self.assertIn(
-            "Invalid connection string", response["message"]["sqlalchemy_uri"][0],
+            "Invalid connection string",
+            response["message"]["sqlalchemy_uri"][0],
         )
 
         db.session.delete(test_database)
@@ -866,6 +869,96 @@ class TestDatabaseApi(SupersetTestCase):
 
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
 
+    @mock.patch("superset.databases.commands.test_connection.is_hostname_valid", False)
+    def test_test_connection_failed_invalid_hostname(self):
+        """
+        Database API: Test test connection failed due to invalid hostname
+        """
+        self.login("admin")
+
+        example_db = get_example_database()
+        uri = make_url(example_db.sqlalchemy_uri_decrypted)
+        uri.host = "invalidhostname"
+
+        data = {
+            "sqlalchemy_uri": str(uri),
+            "database_name": "examples",
+            "impersonate_user": False,
+            "server_cert": None,
+        }
+        url = "api/v1/database/test_connection"
+        rv = self.post_assert_metric(url, data, "test_connection")
+        print(rv.data)
+
+        assert rv.status_code == 400
+        assert rv.headers["Content-Type"] == "application/json; charset=utf-8"
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {
+            "errors": [
+                {
+                    "message": 'Unable to resolve hostname "invalidhostname".',
+                    "error_type": "TEST_CONNECTION_INVALID_HOSTNAME_ERROR",
+                    "level": "error",
+                    "extra": {
+                        "hostname": "invalidhostname",
+                        "issue_codes": [
+                            {
+                                "code": 1007,
+                                "message": "Issue 1007 - The hostname provided can't be resolved.",
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
+        assert response == expected_response
+
+    '''
+    @mock.patch("superset.databases.commands.test_connection.is_hostname_valid", True)
+    @mock.patch("superset.databases.commands.test_connection.is_port_open", False)
+    def test_test_connection_failed_invalid_hostname(self):
+        """
+        Database API: Test test connection failed due to closed port.
+        """
+        self.login("admin")
+
+        example_db = get_example_database()
+        uri = make_url(example_db.sqlalchemy_uri_decrypted)
+        uri.host = "invalidhostname"
+
+        data = {
+            "sqlalchemy_uri": str(uri),
+            "database_name": "examples",
+            "impersonate_user": False,
+            "server_cert": None,
+        }
+        url = "api/v1/database/test_connection"
+        rv = self.post_assert_metric(url, data, "test_connection")
+
+        assert rv.status_code == 400
+        assert rv.headers["Content-Type"] == "application/json; charset=utf-8"
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {
+            "errors": [
+                {
+                    "message": 'Unable to resolve hostname "invalidhostname".',
+                    "error_type": "TEST_CONNECTION_INVALID_HOSTNAME_ERROR",
+                    "level": "error",
+                    "extra": {
+                        "hostname": "invalidhostname",
+                        "issue_codes": [
+                            {
+                                "code": 1007,
+                                "message": "Issue 1007 - The hostname provided can't be resolved.",
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
+        assert response == expected_response
+    '''
+
     @pytest.mark.usefixtures(
         "load_unicode_dashboard_with_position",
         "load_energy_table_with_slice",
@@ -1146,7 +1239,9 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    @mock.patch("superset.db_engine_specs.base.BaseEngineSpec.get_function_names",)
+    @mock.patch(
+        "superset.db_engine_specs.base.BaseEngineSpec.get_function_names",
+    )
     def test_function_names(self, mock_get_function_names):
         example_db = get_example_database()
         if example_db.backend in {"hive", "presto"}:
