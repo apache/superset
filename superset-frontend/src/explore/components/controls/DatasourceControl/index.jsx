@@ -39,7 +39,7 @@ const propTypes = {
 };
 
 const defaultProps = {
-  onChange: () => {},
+  onChange: () => { },
   onDatasourceSave: null,
   value: null,
   isEditable: true,
@@ -179,7 +179,7 @@ class DatasourceControl extends React.PureComponent {
     const { health_check_message: healthCheckMessage } = datasource;
 
     return (
-      <Styles className="DatasourceControl">
+      <Styles data-test="DatasourceControl" className="DatasourceControl">
         <div className="data-container">
           <Icon name="dataset-physical" className="dataset-svg" />
           {/* Add a tooltip only for long dataset names */}
