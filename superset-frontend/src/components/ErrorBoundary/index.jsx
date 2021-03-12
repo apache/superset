@@ -38,7 +38,7 @@ export default class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, info) {
-    this.props.onError(error, info);
+    if (this.props.onError) this.props.onError(error, info);
     this.setState({ error, info });
   }
 
