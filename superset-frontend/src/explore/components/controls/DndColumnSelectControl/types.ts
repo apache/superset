@@ -17,7 +17,8 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
+import { Metric } from '@superset-ui/core';
+import { ColumnMeta } from '@superset-ui/chart-controls';
 import { DatasourcePanelDndItem } from '../../DatasourcePanel/types';
 import { DndItemType } from '../../DndItemType';
 
