@@ -241,37 +241,31 @@ export const DndMetricSelect = (props: any) => {
     togglePopover(false);
   };
 
-  const { savedMetric, adhocMetric } = useMemo(() => {
-    if (droppedItem?.type === 'column') {
+  const handleDrop = (item: DatasourcePanelDndItem) => {
+    if (item.type === DndItemType.Metric) {
+      onNewMetric(item.value as Metric);
+    }
+    if (item.type === DndItemType.Column) {
+      setDroppedItem(item);
+      togglePopover(true);
+    }
+  };
+
+  const adhocMetric = useMemo(() => {
+    if (droppedItem?.type === DndItemType.Column) {
       const itemValue = droppedItem?.value as ColumnMeta;
-      return {
-        savedMetric: {} as savedMetricType,
-        adhocMetric: new AdhocMetric({
-          column: { column_name: itemValue?.column_name },
-        }),
-      };
+      return new AdhocMetric({
+        column: { column_name: itemValue?.column_name },
+      });
     }
-    if (droppedItem?.type === 'metric') {
-      const itemValue = droppedItem?.value as savedMetricType;
-      return {
-        savedMetric: itemValue,
-        adhocMetric: new AdhocMetric({ isNew: true }),
-      };
-    }
-    return {
-      savedMetric: {} as savedMetricType,
-      adhocMetric: new AdhocMetric({ isNew: true }),
-    };
+    return new AdhocMetric({ isNew: true });
   }, [droppedItem?.type, droppedItem?.value]);
 
   return (
     <div className="metrics-select">
       <DndSelectLabel<OptionValueType, OptionValueType[]>
         values={value}
-        onDrop={(item: DatasourcePanelDndItem) => {
-          setDroppedItem(item);
-          togglePopover(true);
-        }}
+        onDrop={handleDrop}
         canDrop={canDrop}
         valuesRenderer={valuesRenderer}
         accept={[DndItemType.Column, DndItemType.Metric]}
@@ -286,7 +280,7 @@ export const DndMetricSelect = (props: any) => {
           props.savedMetrics,
           props.value,
         )}
-        savedMetric={savedMetric}
+        savedMetric={{} as savedMetricType}
         datasourceType={props.datasourceType}
         isControlledComponent
         visible={newMetricPopoverVisible}
