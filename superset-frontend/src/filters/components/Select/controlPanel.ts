@@ -20,7 +20,12 @@ import { t, validateNonEmpty } from '@superset-ui/core';
 import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 
-const { enableEmptyFilter, inverseSelection, multiSelect } = DEFAULT_FORM_DATA;
+const {
+  enableEmptyFilter,
+  inverseSelection,
+  multiSelect,
+  sortAscending,
+} = DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -35,6 +40,18 @@ const config: ControlPanelConfig = {
       label: t('UI Configuration'),
       expanded: true,
       controlSetRows: [
+        [
+          {
+            name: 'sortAscending',
+            config: {
+              type: 'CheckboxControl',
+              renderTrigger: true,
+              label: t('Sort ascending'),
+              default: sortAscending,
+              description: t('Check for sorting ascending'),
+            },
+          },
+        ],
         [
           {
             name: 'multiSelect',
