@@ -56,7 +56,7 @@ class CreateDatabaseCommand(BaseCommand):
                     action=f"db_creation_failed.{ex.__class__.__name__}",
                     engine=database.db_engine_spec.__name__,
                 )
-                raise DatabaseConnectionFailedError(str(ex))
+                raise DatabaseConnectionFailedError()
 
             # adding a new database we always want to force refresh schema list
             schemas = database.get_all_schema_names(cache=False)
