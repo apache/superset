@@ -170,6 +170,32 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             db.session.delete(dashboard)
             db.session.commit()
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dashboard_datasets(self):
+        self.login(username="admin")
+        uri = "api/v1/dashboard/world_health/datasets"
+        response = self.get_assert_metric(uri, "get_datasets")
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data.decode("utf-8"))
+        dashboard = Dashboard.get("world_health")
+        expected_dataset_ids = set([s.datasource_id for s in dashboard.slices])
+        actual_dataset_ids = set([dataset["id"] for dataset in data["result"]])
+        self.assertEqual(actual_dataset_ids, expected_dataset_ids)
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dashboard_datasets_not_found(self):
+        self.login(username="alpha")
+        uri = "api/v1/dashboard/not_found/datasets"
+        response = self.get_assert_metric(uri, "get_datasets")
+        self.assertEqual(response.status_code, 404)
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dashboard_datasets_not_allowed(self):
+        self.login(username="gamma")
+        uri = "api/v1/dashboard/world_health/datasets"
+        response = self.get_assert_metric(uri, "get_datasets")
+        self.assertEqual(response.status_code, 404)
+
     @pytest.mark.usefixtures("create_dashboards")
     def get_dashboard_by_slug(self):
         self.login(username="admin")
