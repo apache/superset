@@ -793,7 +793,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         }
         try:
             datasource_data = datasource.data if datasource else dummy_datasource_data
-        except SupersetSecurityException:
+        except SupersetException:
             datasource_data = dummy_datasource_data
 
         bootstrap_data = {
