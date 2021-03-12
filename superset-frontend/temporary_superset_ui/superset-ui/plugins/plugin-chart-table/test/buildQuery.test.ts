@@ -46,6 +46,18 @@ describe('plugin-chart-table', () => {
       ]);
     });
 
+    it('should not add metrics in raw records mode', () => {
+      const query = buildQuery({
+        ...basicFormData,
+        query_mode: QueryMode.raw,
+        columns: ['a'],
+        metrics: ['aaa', 'aaa'],
+        percent_metrics: ['bbb', 'bbb'],
+      }).queries[0];
+      expect(query.metrics).toBeUndefined();
+      expect(query.post_processing).toEqual([]);
+    });
+
     it('should not add post-processing when there is no percent metric', () => {
       const query = buildQuery({
         ...basicFormData,
@@ -65,7 +77,7 @@ describe('plugin-chart-table', () => {
         columns: ['rawcol'],
         percent_metrics: ['ccc'],
       }).queries[0];
-      expect(query.metrics).toEqual([]);
+      expect(query.metrics).toBeUndefined();
       expect(query.columns).toEqual(['rawcol']);
       expect(query.post_processing).toEqual([]);
     });
