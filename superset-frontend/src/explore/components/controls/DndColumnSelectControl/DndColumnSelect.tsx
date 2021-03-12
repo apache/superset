@@ -72,7 +72,6 @@ export const DndColumnSelect = (props: LabelProps) => {
 
   return (
     <DndSelectLabel<string | string[], ColumnMeta[]>
-      values={values}
       onDrop={onDrop}
       canDrop={canDrop}
       valuesRenderer={valuesRenderer}

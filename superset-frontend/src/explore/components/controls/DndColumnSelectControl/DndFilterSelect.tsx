@@ -300,7 +300,6 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
   return (
     <>
       <DndSelectLabel<OptionValueType, OptionValueType[]>
-        values={values}
         onDrop={(item: DatasourcePanelDndItem) => {
           setDroppedItem(item.value);
           togglePopover(true);

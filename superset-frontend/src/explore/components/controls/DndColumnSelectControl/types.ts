@@ -46,12 +46,12 @@ export interface DndColumnSelectProps<
   T = string[] | string,
   O = string[] | string
 > extends LabelProps<T> {
-  values?: O;
   onDrop: (item: DatasourcePanelDndItem) => void;
   canDrop: (item: DatasourcePanelDndItem) => boolean;
   valuesRenderer: () => ReactNode;
   accept: DndItemType | DndItemType[];
   placeholderText?: string;
+  displayGhostButton?: boolean;
 }
 
 export type OptionValueType = Record<string, any>;

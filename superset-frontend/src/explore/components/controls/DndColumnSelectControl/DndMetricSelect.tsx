@@ -264,12 +264,12 @@ export const DndMetricSelect = (props: any) => {
   return (
     <div className="metrics-select">
       <DndSelectLabel<OptionValueType, OptionValueType[]>
-        values={value}
         onDrop={handleDrop}
         canDrop={canDrop}
         valuesRenderer={valuesRenderer}
         accept={[DndItemType.Column, DndItemType.Metric]}
         placeholderText={t('Drop columns or metrics')}
+        displayGhostButton={multi || value.length === 0}
         {...props}
       />
       <AdhocMetricPopoverTrigger
