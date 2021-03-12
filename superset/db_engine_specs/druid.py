@@ -102,6 +102,7 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     @classmethod
     def get_column_spec(  # type: ignore
+        # pylint: disable=arguments-differ
         cls,
         native_type: Optional[str],
         column_type_mappings: Tuple[
