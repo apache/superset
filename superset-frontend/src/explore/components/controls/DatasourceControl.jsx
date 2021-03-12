@@ -28,6 +28,7 @@ import DatasourceModal from 'src/datasource/DatasourceModal';
 import { postForm } from 'src/explore/exploreUtils';
 import Button from 'src/components/Button';
 import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
+import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -178,6 +179,13 @@ class DatasourceControl extends React.PureComponent {
 
     const { health_check_message: healthCheckMessage } = datasource;
 
+    let extra = {};
+    if (datasource?.extra) {
+      try {
+        extra = JSON.parse(datasource?.extra);
+      } catch {} // eslint-disable-line no-empty
+    }
+
     return (
       <Styles className="DatasourceControl">
         <div className="data-container">
@@ -199,6 +207,12 @@ class DatasourceControl extends React.PureComponent {
                 color={supersetTheme.colors.warning.base}
               />
             </Tooltip>
+          )}
+          {extra?.warning_markdown && ( // eslint-disable-line camelcase
+            <WarningIconWithTooltip
+              warningMarkdown={extra.warning_markdown} // eslint-disable-line camelcase
+              size={30}
+            />
           )}
           <Dropdown
             overlay={datasourceMenu}

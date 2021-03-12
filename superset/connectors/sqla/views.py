@@ -235,10 +235,10 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
         ),
         "extra": utils.markdown(
             "Extra data to specify metric metadata. Currently supports "
-            'certification data of the format: `{ "certification": "certified_by": '
+            'metadata of the format: `{ "certification": { "certified_by": '
             '"Data Platform Team", "details": "This metric is the source of truth." '
-            "} }`. This should be modified from the edit datasource model in "
-            "Explore to ensure correct formatting.",
+            '}, "warning_markdown": "This is a warning." }`. This should be modified '
+            "from the edit datasource model in Explore to ensure correct formatting.",
             True,
         ),
     }
@@ -463,9 +463,9 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         ),
         "extra": utils.markdown(
             "Extra data to specify table metadata. Currently supports "
-            'certification data of the format: `{ "certification": { "certified_by": '
+            'metadata of the format: `{ "certification": { "certified_by": '
             '"Data Platform Team", "details": "This table is the source of truth." '
-            "} }`.",
+            '}, "warning_markdown": "This is a warning." }`.',
             True,
         ),
     }
