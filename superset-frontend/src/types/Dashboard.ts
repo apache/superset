@@ -16,15 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import Owner from './Owner';
+import Role from './Role';
 
-export {
-  useApiResourceFullBody,
-  useApiV1Resource,
-  useTransformedResource,
-} from './apiResources';
+type Dashboard = {
+  id: number;
+  slug: string;
+  url: string;
+  dashboard_title: string;
+  thumbnail_url: string;
+  published: boolean;
+  css: string;
+  json_metadata: string;
+  position_json: string;
+  changed_by_name: string;
+  changed_by: Owner;
+  changed_on: string;
+  charts: string[]; // just chart names, unfortunately...
+  owners: Owner[];
+  roles: Role[];
+};
 
-// A central catalog of API Resource hooks.
-// Add new API hooks here, organized under
-// different files for different resource types.
-export * from './charts';
-export * from './dashboards';
+export default Dashboard;

@@ -26,7 +26,6 @@ import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
 import DashboardRoute from './components/DashboardRoute';
-import DashboardContainer from './containers/Dashboard';
 import { theme } from '../preamble';
 
 setupApp();
@@ -39,9 +38,10 @@ const App = ({ store }) => {
       <DndProvider backend={HTML5Backend}>
         <ThemeProvider theme={theme}>
           <DynamicPluginProvider>
-            <DashboardRoute store={store} dashboardIdOrSlug={dashboardIdOrSlug}>
-              <DashboardContainer />
-            </DashboardRoute>
+            <DashboardRoute
+              store={store}
+              dashboardIdOrSlug={dashboardIdOrSlug}
+            />
           </DynamicPluginProvider>
         </ThemeProvider>
       </DndProvider>

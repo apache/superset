@@ -75,9 +75,9 @@ export function setDashboardBootstrapState(data) {
 }
 
 export const bootstrapDashboardState = (
-  datasourcesData,
-  chartData,
   dashboardData,
+  chartData,
+  datasourcesData,
 ) => (dispatch, getState) => {
   const { user, common } = getState();
   const metadata = JSON.parse(dashboardData.json_metadata);

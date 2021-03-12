@@ -17,14 +17,17 @@
  * under the License.
  */
 
-export {
-  useApiResourceFullBody,
-  useApiV1Resource,
-  useTransformedResource,
-} from './apiResources';
+import { useApiV1Resource } from './apiResources';
 
-// A central catalog of API Resource hooks.
-// Add new API hooks here, organized under
-// different files for different resource types.
-export * from './charts';
-export * from './dashboards';
+export const useDashboard = (idOrSlug: string | number) =>
+  useApiV1Resource(`/api/v1/dashboard/${idOrSlug}`);
+
+// gets the chart definitions for a dashboard
+export const useDashboardCharts = (idOrSlug: string | number) =>
+  useApiV1Resource(`/api/v1/dashboard/${idOrSlug}/charts`);
+
+// gets the datasets for a dashboard
+// important: this endpoint only returns the fields in the dataset
+// that are necessary for rendering the given dashboard
+export const useDashboardDatasets = (idOrSlug: string | number) =>
+  useApiV1Resource(`/api/v1/dashboard/${idOrSlug}/datasets`);

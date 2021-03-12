@@ -16,13 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState, FC } from 'react';
+import React, { useEffect, FC } from 'react';
 import { connect } from 'react-redux';
 import { AnyAction, bindActionCreators, Dispatch } from 'redux';
-import { SupersetClient } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import ErrorBoundary from 'src/components/ErrorBoundary';
-import { bootstrapDashboardState } from '../actions/bootstrapData';
+import {
+  useDashboard,
+  useDashboardCharts,
+  useDashboardDatasets,
+} from 'src/common/hooks/apiResources';
+import { ResourceStatus } from 'src/common/hooks/apiResources/apiResources';
+import { usePrevious } from 'src/common/hooks/usePrevious';
+import { bootstrapDashboardState } from 'src/dashboard/actions/bootstrapData';
+import DashboardContainer from 'src/dashboard/containers/Dashboard';
 
 interface DashboardRouteProps {
   actions: {
@@ -30,49 +37,46 @@ interface DashboardRouteProps {
   };
   dashboardIdOrSlug: string;
 }
-const getData = (idOrSlug: string) => {
-  const batch = [
-    SupersetClient.get({ endpoint: `/api/v1/dashboard/${idOrSlug}` }),
-    SupersetClient.get({ endpoint: `/api/v1/dashboard/${idOrSlug}/charts` }),
-    SupersetClient.get({ endpoint: `/api/v1/dashboard/${idOrSlug}/datasets` }),
-  ];
-  return Promise.all(batch).then(([dashboardRes, chartRes, datasetRes]) => ({
-    dashboard: dashboardRes.json.result,
-    charts: chartRes.json.result,
-    datasets: datasetRes.json.result,
-  }));
-};
 
-const DashboardRoute: FC<DashboardRouteProps> = ({
-  children,
+const DashboardRouteGuts: FC<DashboardRouteProps> = ({
   actions,
   dashboardIdOrSlug, // eventually get from react router
 }) => {
-  const [loaded, setLoaded] = useState(false);
-
-  const handleError = (error: unknown) => ({ error, info: null });
+  const dashboardResource = useDashboard(dashboardIdOrSlug);
+  const chartsResource = useDashboardCharts(dashboardIdOrSlug);
+  const datasetsResource = useDashboardDatasets(dashboardIdOrSlug);
+  const isLoading = [dashboardResource, chartsResource, datasetsResource].some(
+    resource => resource.status === ResourceStatus.LOADING,
+  );
+  const wasLoading = usePrevious(isLoading);
+  const error = [dashboardResource, chartsResource, datasetsResource].find(
+    resource => resource.status === ResourceStatus.ERROR,
+  )?.error;
 
   useEffect(() => {
-    setLoaded(false);
-    getData(dashboardIdOrSlug)
-      .then(data => {
-        if (data) {
-          actions.bootstrapDashboardState(
-            data.datasets,
-            data.charts,
-            data.dashboard,
-          );
-          setLoaded(true);
-        }
-      })
-      .catch(err => {
-        setLoaded(true);
-        handleError(err);
-      });
-  }, [dashboardIdOrSlug, actions]);
+    if (
+      wasLoading &&
+      dashboardResource.status === ResourceStatus.COMPLETE &&
+      chartsResource.status === ResourceStatus.COMPLETE &&
+      datasetsResource.status === ResourceStatus.COMPLETE
+    ) {
+      actions.bootstrapDashboardState(
+        dashboardResource.result,
+        chartsResource.result,
+        datasetsResource.result,
+      );
+    }
+  }, [
+    actions,
+    wasLoading,
+    dashboardResource,
+    chartsResource,
+    datasetsResource,
+  ]);
 
-  if (!loaded) return <Loading />;
-  return <ErrorBoundary onError={handleError}>{children} </ErrorBoundary>;
+  if (error) throw error; // caught in error boundary
+  if (isLoading) return <Loading />;
+  return <DashboardContainer />;
 };
 
 function mapDispatchToProps(dispatch: Dispatch<AnyAction>) {
@@ -86,4 +90,15 @@ function mapDispatchToProps(dispatch: Dispatch<AnyAction>) {
   };
 }
 
-export default connect(null, mapDispatchToProps)(DashboardRoute);
+const ConnectedDashboardRoute = connect(
+  null,
+  mapDispatchToProps,
+)(DashboardRouteGuts);
+
+const DashboardRoute = ({ dashboardIdOrSlug }: DashboardRouteProps) => (
+  <ErrorBoundary>
+    <ConnectedDashboardRoute dashboardIdOrSlug={dashboardIdOrSlug} />
+  </ErrorBoundary>
+);
+
+export default DashboardRoute;
