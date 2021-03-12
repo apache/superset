@@ -158,6 +158,51 @@ class DashboardGetResponseSchema(Schema):
     table_names = fields.String()  # legacy nonsense
 
 
+class DatabaseSchema(Schema):
+    id = fields.Int()
+    name = fields.String()
+    backend = fields.String()
+    allow_multi_schema_metadata_fetch = fields.Bool()  # pylint: disable=invalid-name
+    allows_subquery = fields.Bool()
+    allows_cost_estimate = fields.Bool()
+    allows_virtual_table_explore = fields.Bool()
+    explore_database_id = fields.Int()
+
+
+class DashboardDatasetSchema(Schema):
+    id = fields.Int()
+    uid = fields.Str()
+    column_formats = fields.Dict()
+    database = fields.Nested(DatabaseSchema)
+    default_endpoint = fields.String()
+    filter_select = fields.Bool()
+    filter_select_enabled = fields.Bool()
+    is_sqllab_view = fields.Bool()
+    name = fields.Str()
+    datasource_name = fields.Str()
+    table_name = fields.Str()
+    type = fields.Str()
+    schema = fields.Str()
+    offset = fields.Int()
+    cache_timeout = fields.Int()
+    params = fields.Str()
+    perm = fields.Str()
+    edit_url = fields.Str()
+    sql = fields.Str()
+    select_star = fields.Str()
+    main_dttm_col = fields.Str()
+    health_check_message = fields.Str()
+    fetch_values_predicate = fields.Str()
+    template_params = fields.Str()
+    owners = fields.List(fields.Int())
+    columns = fields.List(fields.Dict())
+    metrics = fields.List(fields.Dict())
+    order_by_choices = fields.List(fields.List(fields.Str()))
+    verbose_map = fields.Dict(fields.Str(), fields.Str())
+    time_grain_sqla = fields.List(fields.List(fields.Str()))
+    granularity_sqla = fields.List(fields.List(fields.Str()))
+
+
 class BaseDashboardSchema(Schema):
     # pylint: disable=no-self-use,unused-argument
     @post_load

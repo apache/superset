@@ -237,6 +237,7 @@ class BaseDatasource(
         return {
             # simple fields
             "id": self.id,
+            "uid": self.uid,
             "column_formats": self.column_formats,
             "description": self.description,
             "database": self.database.data,  # pylint: disable=no-member
