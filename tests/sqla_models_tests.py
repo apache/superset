@@ -54,10 +54,10 @@ class TestDatabaseModel(SupersetTestCase):
 
         database = Database(database_name="druid_db", sqlalchemy_uri="druid://db")
         tbl = SqlaTable(table_name="druid_tbl", database=database)
-        col = TableColumn(column_name="__time", type="INTEGER", table=tbl)
-        self.assertEqual(col.is_dttm, None)
-        DruidEngineSpec.alter_new_orm_column(col)
-        self.assertEqual(col.is_dttm, True)
+        column_spec = DruidEngineSpec.get_column_spec("INTEGER", "__time")
+        self.assertEqual(column_spec.is_dttm, True)
+        col = TableColumn(column_name="__time", type=column_spec.sqla_type, table=tbl)
+        self.assertTrue(col)
 
         col = TableColumn(column_name="__not_time", type="INTEGER", table=tbl)
         self.assertEqual(col.is_temporal, False)

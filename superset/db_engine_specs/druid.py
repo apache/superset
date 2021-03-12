@@ -16,7 +16,6 @@
 # under the License.
 import json
 import logging
-import re
 from datetime import datetime
 from typing import (
     Any,
@@ -68,11 +67,6 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "P1Y": "FLOOR({col} TO YEAR)",
     }
 
-    @classmethod
-    def alter_new_orm_column(cls, orm_col: "TableColumn") -> None:
-        if orm_col.column_name == "__time":
-            orm_col.is_dttm = True
-
     @staticmethod
     def get_extra_params(database: "Database") -> Dict[str, Any]:
         """
@@ -110,6 +104,14 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     def get_column_spec(  # type: ignore
         cls,
         native_type: Optional[str],
+        column_type_mappings: Tuple[
+            Tuple[
+                Pattern[str],
+                Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
+                GenericDataType,
+            ],
+            ...,
+        ],
         column_name: Optional[str] = "",
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
     ) -> Union[ColumnSpec, None]:
