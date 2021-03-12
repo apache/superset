@@ -17,12 +17,12 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { logging, SupersetClient } from '@superset-ui/core';
+import { logging, SupersetClient, t } from '@superset-ui/core';
 import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/common/components/Tooltip';
 import { OPERATORS } from 'src/explore/constants';
 import { OptionSortType } from 'src/explore/types';
-import { DndFilterSelectProps, FilterOptionValueType } from './types';
+import { DndFilterSelectProps, OptionValueType } from './types';
 import AdhocFilterPopoverTrigger from '../FilterControl/AdhocFilterPopoverTrigger';
 import OptionWrapper from './components/OptionWrapper';
 import DndSelectLabel from './DndSelectLabel';
@@ -37,13 +37,13 @@ import {
 } from '../../DatasourcePanel/types';
 import { DndItemType } from '../../DndItemType';
 
-const isDictionaryForAdhocFilter = (value: FilterOptionValueType) =>
+const isDictionaryForAdhocFilter = (value: OptionValueType) =>
   !(value instanceof AdhocFilter) && value?.expressionType;
 
 export const DndFilterSelect = (props: DndFilterSelectProps) => {
   const propsValues = Array.from(props.value ?? []);
   const [values, setValues] = useState(
-    propsValues.map((filter: FilterOptionValueType) =>
+    propsValues.map((filter: OptionValueType) =>
       isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter,
     ),
   );
@@ -144,7 +144,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
 
   useEffect(() => {
     setValues(
-      (props.value || []).map((filter: FilterOptionValueType) =>
+      (props.value || []).map((filter: OptionValueType) =>
         isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter,
       ),
     );
@@ -171,7 +171,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
       (savedMetric: Metric) => savedMetric.metric_name === savedMetricName,
     )?.expression;
 
-  const mapOption = (option: FilterOptionValueType) => {
+  const mapOption = (option: OptionValueType) => {
     // already a AdhocFilter, skip
     if (option instanceof AdhocFilter) {
       return option;
@@ -299,7 +299,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
 
   return (
     <>
-      <DndSelectLabel<FilterOptionValueType, FilterOptionValueType[]>
+      <DndSelectLabel<OptionValueType, OptionValueType[]>
         values={values}
         onDrop={(item: DatasourcePanelDndItem) => {
           setDroppedItem(item.value);
@@ -313,6 +313,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
           DndItemType.MetricOption,
           DndItemType.AdhocMetricOption,
         ]}
+        placeholderText={t('Drop columns or metrics')}
         {...props}
       />
       <AdhocFilterPopoverTrigger
