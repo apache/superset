@@ -39,7 +39,7 @@ const propTypes = {
 };
 
 const defaultProps = {
-  onChange: () => { },
+  onChange: () => {},
   onDatasourceSave: null,
   value: null,
   isEditable: true,
