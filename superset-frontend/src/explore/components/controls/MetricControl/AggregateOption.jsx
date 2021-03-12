@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { ColumnTypeLabel } from '@superset-ui/chart-controls';
 
-import aggregateOptionType from '../propTypes/aggregateOptionType';
+import aggregateOptionType from './aggregateOptionType';
 
 const propTypes = {
   aggregate: aggregateOptionType,

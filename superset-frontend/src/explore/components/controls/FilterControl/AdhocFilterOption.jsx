@@ -18,9 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import columnType from 'src/explore/propTypes/columnType';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
 import { OptionControlLabel } from 'src/explore/components/OptionControls';
+import columnType from './columnType';
 import AdhocFilterPopoverTrigger from './AdhocFilterPopoverTrigger';
 import AdhocFilter from './AdhocFilter';
 import { DndItemType } from '../../DndItemType';
