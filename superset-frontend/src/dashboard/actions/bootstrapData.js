@@ -313,7 +313,7 @@ export const bootstrapDashboardState = (
         id: dashboardData.id,
         slug: dashboardData.slug,
         metadata,
-        userId: user.userId, // legacy, please use state.user instead
+        userId: String(user.userId), // legacy, please use state.user instead
         dash_edit_perm: getPermissions('can_write', 'Dashboard', roles),
         dash_save_perm: getPermissions('can_save_dash', 'Superset', roles),
         superset_can_explore: getPermissions('can_explore', 'Superset', roles),
