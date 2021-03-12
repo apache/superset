@@ -48,6 +48,7 @@ from superset import app, ConnectorRegistry, db, is_feature_enabled, security_ma
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.druid.models import DruidColumn, DruidMetric
 from superset.connectors.sqla.models import SqlMetric, TableColumn
+from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
@@ -248,7 +249,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
                 for datasource, slices in datasource_slices.items()
                 if datasource
             }
-        except Exception:
+        except SupersetException:
             datasources = {}
         return {
             # dashboard metadata
