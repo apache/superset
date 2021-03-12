@@ -23,8 +23,8 @@ import { styled, t } from '@superset-ui/core';
 
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Tabs from 'src/common/components/Tabs';
-import columnType from 'src/explore/propTypes/columnType';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
+import columnType from './columnType';
 import AdhocFilter, { EXPRESSION_TYPES } from './AdhocFilter';
 import AdhocFilterEditPopoverSimpleTabContent from './AdhocFilterEditPopoverSimpleTabContent';
 import AdhocFilterEditPopoverSqlTabContent from './AdhocFilterEditPopoverSqlTabContent';
