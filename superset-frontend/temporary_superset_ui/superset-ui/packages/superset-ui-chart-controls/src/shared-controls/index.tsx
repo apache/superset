@@ -58,6 +58,8 @@ import {
 import { ColumnOption } from '../components/ColumnOption';
 import {
   dnd_adhoc_filters,
+  dnd_adhoc_metric,
+  dnd_adhoc_metrics,
   dndColumnsControl,
   dndEntity,
   dndGroupByControl,
@@ -482,8 +484,8 @@ const label_colors: SharedControlConfig<'ColorMapControl'> = {
 const enableExploreDnd = isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP);
 
 const sharedControls = {
-  metrics,
-  metric,
+  metrics: enableExploreDnd ? dnd_adhoc_metrics : metrics,
+  metric: enableExploreDnd ? dnd_adhoc_metric : metric,
   datasource: datasourceControl,
   viz_type,
   color_picker,

@@ -137,6 +137,7 @@ export type InternalControlType =
   | 'FilterBoxItemControl'
   | 'DndColumnSelect'
   | 'DndFilterSelect'
+  | 'DndMetricSelect'
   | keyof SharedControlComponents; // expanded in `expandControlConfig`
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

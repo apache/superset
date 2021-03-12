@@ -17,9 +17,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { Metric, t, validateNonEmpty } from '@superset-ui/core';
 import { ExtraControlProps, SharedControlConfig } from '../types';
+import { mainMetric } from '../utils';
 import { TIME_COLUMN_OPTION } from '../constants';
+
+type Control = {
+  savedMetrics?: Metric[] | null;
+  default?: unknown;
+};
 
 export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
   type: 'DndColumnSelect',
@@ -79,4 +85,29 @@ export const dnd_adhoc_filters: SharedControlConfig<'DndFilterSelect'> = {
     datasource,
   }),
   provideFormDataToProps: true,
+};
+
+export const dnd_adhoc_metrics: SharedControlConfig<'DndMetricSelect'> = {
+  type: 'DndMetricSelect',
+  multi: true,
+  label: t('Metrics'),
+  validators: [validateNonEmpty],
+  default: (c: Control) => {
+    const metric = mainMetric(c.savedMetrics);
+    return metric ? [metric] : null;
+  },
+  mapStateToProps: ({ datasource }) => ({
+    columns: datasource ? datasource.columns : [],
+    savedMetrics: datasource ? datasource.metrics : [],
+    datasourceType: datasource?.type,
+  }),
+  description: t('One or many metrics to display'),
+};
+
+export const dnd_adhoc_metric: SharedControlConfig<'DndMetricSelect'> = {
+  ...dnd_adhoc_metrics,
+  multi: false,
+  label: t('Metric'),
+  description: t('Metric'),
+  default: (c: Control) => mainMetric(c.savedMetrics),
 };
