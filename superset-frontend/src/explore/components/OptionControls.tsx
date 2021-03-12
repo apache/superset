@@ -99,7 +99,7 @@ export const DndLabelsContainer = styled.div<{
 }>`
   padding: ${({ theme }) => theme.gridUnit}px;
   border: ${({ canDrop, isOver, theme }) => {
-    if (isOver && canDrop) {
+    if (canDrop) {
       return `dashed 1px ${theme.colors.info.dark1}`;
     }
     if (isOver && !canDrop) {
