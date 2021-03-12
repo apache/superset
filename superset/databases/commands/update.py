@@ -54,9 +54,9 @@ class UpdateDatabaseCommand(BaseCommand):
             # TODO Improve this simplistic implementation for catching DB conn fails
             try:
                 schemas = database.get_all_schema_names()
-            except Exception:
+            except Exception as ex:
                 db.session.rollback()
-                raise DatabaseConnectionFailedError()
+                raise DatabaseConnectionFailedError(str(ex))
             for schema in schemas:
                 security_manager.add_permission_view_menu(
                     "schema_access", security_manager.get_schema_perm(database, schema)
