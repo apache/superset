@@ -74,13 +74,13 @@ export default function getInitialState({
         id: id.toString(),
         loaded: true,
         title: activeTab.label,
-        sql: activeTab.sql,
-        selectedText: null,
+        sql: activeTab.sql || undefined,
+        selectedText: undefined,
         latestQueryId: activeTab.latest_query
           ? activeTab.latest_query.id
           : null,
         autorun: activeTab.autorun,
-        templateParams: activeTab.template_params,
+        templateParams: activeTab.template_params || undefined,
         dbId: activeTab.database_id,
         functionNames: [],
         schema: activeTab.schema,
