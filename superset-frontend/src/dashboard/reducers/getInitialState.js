@@ -295,6 +295,7 @@ export default function getInitialState(
   });
 
   const { roles } = user;
+  console.log('common', common)
   return {
     datasources,
     sliceEntities: { ...initSliceEntities, slices, isLoading: false },
@@ -311,8 +312,8 @@ export default function getInitialState(
       superset_can_csv: getPermissions('can_csv', 'Superset', roles),
       slice_can_edit: getPermissions('can_slice', 'Superset', roles),
       common: {
-        flash_messages: common.flash_messages,
-        conf: common.conf,
+        flash_messages: common?.flash_messages,
+        conf: common?.conf,
       },
       lastModifiedTime: dashboard.last_modified_time,
     },

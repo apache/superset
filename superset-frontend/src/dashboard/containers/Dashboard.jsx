@@ -44,8 +44,9 @@ function mapStateToProps(state) {
   } = state;
 
   return {
-    initMessages: dashboardInfo.common.flash_messages,
-    timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
+    // eslint-disable-next-line camelcase
+    initMessages: dashboardInfo?.common?.flash_messages,
+    timeout: dashboardInfo?.common.conf?.SUPERSET_WEBSERVER_TIMEOUT,
     userId: dashboardInfo.userId,
     dashboardInfo,
     dashboardState,

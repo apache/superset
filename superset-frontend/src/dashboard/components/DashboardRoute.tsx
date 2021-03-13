@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, FC } from 'react';
+import React, { useEffect, useState, FC } from 'react';
 import { connect } from 'react-redux';
 import { AnyAction, bindActionCreators, Dispatch } from 'redux';
 import Loading from 'src/components/Loading';
@@ -42,6 +42,7 @@ const DashboardRouteGuts: FC<DashboardRouteProps> = ({
   actions,
   dashboardIdOrSlug, // eventually get from react router
 }) => {
+  const [isLoaded, setLoaded] = useState(false);
   const dashboardResource = useDashboard(dashboardIdOrSlug);
   const chartsResource = useDashboardCharts(dashboardIdOrSlug);
   const datasetsResource = useDashboardDatasets(dashboardIdOrSlug);
@@ -52,7 +53,6 @@ const DashboardRouteGuts: FC<DashboardRouteProps> = ({
   const error = [dashboardResource, chartsResource, datasetsResource].find(
     resource => resource.status === ResourceStatus.ERROR,
   )?.error;
-
   useEffect(() => {
     if (
       wasLoading &&
@@ -65,6 +65,7 @@ const DashboardRouteGuts: FC<DashboardRouteProps> = ({
         chartsResource.result,
         datasetsResource.result,
       );
+      setLoaded(true);
     }
   }, [
     actions,
@@ -75,7 +76,8 @@ const DashboardRouteGuts: FC<DashboardRouteProps> = ({
   ]);
 
   if (error) throw error; // caught in error boundary
-  if (isLoading) return <Loading />;
+
+  if (!isLoaded) return <Loading />;
   return <DashboardContainer />;
 };
 
