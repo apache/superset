@@ -295,7 +295,6 @@ export default function getInitialState(
   });
 
   const { roles } = user;
-  console.log('common', common)
   return {
     datasources,
     sliceEntities: { ...initSliceEntities, slices, isLoading: false },
