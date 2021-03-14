@@ -22,7 +22,7 @@ import { HandlerFunction, styled, t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { DataMaskState, DataMaskUnit, MaskWithId } from 'src/dataMask/types';
 import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
-import { FilterSet } from 'src/dashboard/reducers/types';
+import { Filters, FilterSet } from 'src/dashboard/reducers/types';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { findExistingFilterSet, generateFiltersSetId } from './utils';
 import { Filter } from '../../types';
@@ -88,7 +88,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
   const filterSets = useFilterSets();
   const filterSetFilterValues = Object.values(filterSets);
   const filters = useFilters();
-  const filterValues = Object.values(filters);
+  const filterValues = Object.values(filters) as Filter[];
   const [selectedFiltersSetId, setSelectedFiltersSetId] = useState<
     string | null
   >(null);
@@ -126,16 +126,13 @@ const FilterSets: React.FC<FilterSetsProps> = ({
       return;
     }
     const filtersSet = filterSets[id];
-    Object.values(filtersSet.dataMask?.nativeFilters ?? []).forEach(
+    Object.values(filtersSet?.dataMask?.nativeFilters ?? []).forEach(
       dataMask => {
         const { extraFormData, currentState, id } = dataMask as MaskWithId;
         // if we have extra filters in filter set don't add them to selected data mask || if we have filters with changed metadata not apply them
         if (
-          !filterValues.find(filter => filter.id === id) ||
-          !areObjectsEqual(
-            filters[id] ?? {},
-            filtersSet.nativeFilters?.[id] ?? {},
-          )
+          !filterValues.find(filter => filter?.id === id) ||
+          !areObjectsEqual(filters[id], filtersSet?.nativeFilters?.[id])
         ) {
           return;
         }
@@ -150,23 +147,20 @@ const FilterSets: React.FC<FilterSetsProps> = ({
   const handleInvalidate = (id: string) => {
     const filtersSet = filterSets[id];
     // We need remove invalid filters from filter set
-    const newFilters = Object.values(filtersSet.dataMask?.nativeFilters ?? [])
+    const newFilters = Object.values(filtersSet?.dataMask?.nativeFilters ?? [])
       .filter(dataMask => {
         const { id } = dataMask as MaskWithId;
         // if we have extra filters in filter set don't add them to selected data mask || if we have filters with changed metadata not apply them
         return !(
-          !filterValues.find(filter => filter.id === id) ||
-          !areObjectsEqual(
-            filters[id] ?? {},
-            filtersSet.nativeFilters?.[id] ?? {},
-          )
+          !filterValues.find(filter => filter?.id === id) ||
+          !areObjectsEqual(filters[id], filtersSet?.nativeFilters?.[id])
         );
       })
       .reduce((prev, next) => ({ ...prev, [next.id]: filters[next.id] }), {});
 
     const updatedFilterSet: FilterSet = {
       ...filtersSet,
-      nativeFilters: newFilters,
+      nativeFilters: newFilters as Filters,
       dataMask: {
         nativeFilters: Object.keys(newFilters).reduce(
           (prev, nextFilterId) => ({

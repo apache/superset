@@ -196,7 +196,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const [isFilterSetChanged, setIsFilterSetChanged] = useState(false);
   const [tab, setTab] = useState(TabIds.AllFilters);
   const filters = useFilters();
-  const filterValues = Object.values(filters);
+  const filterValues = Object.values<Filter>(filters);
   const dataMaskApplied = useDataMask();
   const canEdit = useSelector<any, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
@@ -224,8 +224,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     }
     const areFiltersInitialized = filterValues.every(filterValue =>
       areObjectsEqual(
-        filterValue.defaultValue ?? {},
-        dataMaskSelected[filterValue.id]?.currentState?.value ?? {},
+        filterValue?.defaultValue,
+        dataMaskSelected[filterValue?.id]?.currentState?.value,
       ),
     );
     if (areFiltersInitialized) {
@@ -304,8 +304,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   );
 
   const isApplyDisabled =
-    !isInitialized ||
-    areObjectsEqual(dataMaskSelected ?? {}, lastAppliedFilterData ?? {});
+    !isInitialized || areObjectsEqual(dataMaskSelected, lastAppliedFilterData);
 
   return (
     <BarWrapper data-test="filter-bar" className={cx({ open: filtersOpen })}>

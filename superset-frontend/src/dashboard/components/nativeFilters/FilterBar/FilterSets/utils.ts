@@ -58,8 +58,8 @@ export const findExistingFilterSet = ({
       return dataMaskSelectedEntries.every(
         ([id, filterFromSelectedFilters]) =>
           areObjectsEqual(
-            filterFromSelectedFilters.currentState ?? {},
-            dataMaskFromFilterSet?.nativeFilters[id]?.currentState ?? {},
+            filterFromSelectedFilters.currentState,
+            dataMaskFromFilterSet?.nativeFilters?.[id]?.currentState,
           ) &&
           dataMaskSelectedEntries.length ===
             Object.keys(dataMaskFromFilterSet?.nativeFilters ?? {}).length,
