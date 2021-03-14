@@ -87,7 +87,7 @@ Superset provides:
 * A lightweight semantic layer which empowers data analysts to quickly define custom dimensions and metrics
 * Out-of-the-box support for most SQL-speaking databases
 * Seamless, in-memory asynchronous caching and queries
-* An extensible security model that allows configuration of very intricate rules on
+* An extensible security model that allows configuration of very intricate rules
     on who can access which product features and datasets.
 * Integration with major
     authentication backends (database, OpenID, LDAP, OAuth, REMOTE_USER, etc)
