@@ -60,10 +60,12 @@ const IndeterminateCheckbox = React.forwardRef(
     }, [resolvedRef, indeterminate]);
 
     return (
-      <CheckboxLabel title={title}>
-        {indeterminate && <IconWithColor name="checkbox-half" />}
-        {!indeterminate && checked && <IconWithColor name="checkbox-on" />}
-        {!indeterminate && !checked && <Icon name="checkbox-off" />}
+      <>
+        <CheckboxLabel title={title}>
+          {indeterminate && <IconWithColor name="checkbox-half" />}
+          {!indeterminate && checked && <IconWithColor name="checkbox-on" />}
+          {!indeterminate && !checked && <Icon name="checkbox-off" />}
+        </CheckboxLabel>
         <HiddenInput
           className="hidden"
           name={id}
@@ -73,7 +75,7 @@ const IndeterminateCheckbox = React.forwardRef(
           checked={checked}
           onChange={onChange}
         />
-      </CheckboxLabel>
+      </>
     );
   },
 );
