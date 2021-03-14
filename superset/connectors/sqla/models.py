@@ -508,7 +508,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         """
         label_expected = label or sqla_col.name
         db_engine_spec = self.database.db_engine_spec
-        if db_engine_spec.allows_column_aliases:
+        # add quotes to tables
+        if db_engine_spec.allows_alias_in_select:
             label = db_engine_spec.make_label_compatible(label_expected)
             sqla_col = sqla_col.label(label)
         return sqla_col
@@ -1050,7 +1051,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         groupby_exprs_with_timestamp = OrderedDict(groupby_exprs_sans_timestamp.items())
 
         if granularity:
-            if not granularity in columns_by_name:
+            if granularity not in columns_by_name:
                 raise QueryObjectValidationError(
                     _(
                         'Time column "%(col)s" does not exist in dataset',
@@ -1197,6 +1198,11 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         qry = qry.having(and_(*having_clause_and))
 
         for col, (orig_col, ascending) in zip(orderby_exprs, orderby):
+            if (
+                db_engine_spec.allows_alias_in_orderby
+                and col.name in metrics_exprs_by_label
+            ):
+                col = Label(col.name, metrics_exprs_by_label[col.name])
             direction = asc if ascending else desc
             qry = qry.order_by(direction(col))
 
@@ -1211,7 +1217,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             and not time_groupby_inline
             and groupby
         ):
-            if self.database.db_engine_spec.allows_joins:
+            if db_engine_spec.allows_joins:
                 # some sql dialects require for order by expressions
                 # to also be in the select clause -- others, e.g. vertica,
                 # require a unique inner alias
