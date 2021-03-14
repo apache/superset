@@ -5,7 +5,8 @@ import { styledMount as mount } from 'spec/helpers/theming';
 import {
   render,
   screen,
-  fireEvent
+  fireEvent,
+  waitFor
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
@@ -15,6 +16,7 @@ import Modal from 'src/common/components/Modal';
 import Tabs from 'src/common/components/Tabs';
 import fetchMock from 'fetch-mock';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import { debug } from 'webpack';
 // store needed for withToasts(DatabaseModal)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -91,6 +93,7 @@ describe('DatabaseModal', () => {
       const allowMSMF = sqlLabSettings[4];
 
       // Check that "Expose in SQL Lab" starts checked
+      // 🐞 ----- Checked is false, should be true ----- 🐞
       expect(exposeInSqlLab.checked).toBeFalsy();
       // While checked, all settings should display
       expect(exposeInSqlLab).toBeVisible();
@@ -101,6 +104,7 @@ describe('DatabaseModal', () => {
 
       // When clicked, "Expose in SQL Lab" becomes unchecked
       userEvent.click(exposeInSqlLab);
+      // 🐞 ----- Unchecked is true, should be false ----- 🐞
       expect(exposeInSqlLab.checked).toBeTruthy();
       // While unchecked, only "Expose in SQL Lab" should display
       expect(exposeInSqlLab).toBeVisible();
@@ -110,8 +114,8 @@ describe('DatabaseModal', () => {
       expect(allowMSMF).not.toBeVisible();
     });
 
-    it('renders the schema field when allowCTAS is checked', () => {
-      render(
+    it('renders the schema field when allowCTAS is checked', async () => {
+      const { debug, container } = render(
         <ThemeProvider theme={supersetTheme}>
           <Provider store={store}>
             <DatabaseModal {...dbProps} />
@@ -121,6 +125,8 @@ describe('DatabaseModal', () => {
 
       // Select SQL Lab settings tab
       const sqlLabSettingsTab = screen.getByRole('tab', { name: /sql lab settings/i });
+      // const sqlLabSettingsTab = container.querySelector('[data-test-id="sql_lab_settings_tab_test_id"');
+      debug(sqlLabSettingsTab);
       userEvent.click(sqlLabSettingsTab);
       
       // Grab all SQL Lab Settings, CTAS checkbox, & schema field
@@ -130,18 +136,21 @@ describe('DatabaseModal', () => {
       const schemaField = screen.getByText('CTAS & CVAS SCHEMA');
 
       // While CTAS & CVAS are unchecked, schema field is not visible
-      expect(allowCTAS.checked).toBeFalsy();
+      expect(allowCTAS).toHaveClass('hidden');
       expect(allowCVAS.checked).toBeFalsy();
       expect(schemaField).not.toBeVisible();
 
       // Check "Allow CTAS" to reveal schema field
       userEvent.click(allowCTAS);
-      expect(allowCTAS.checked).toBeTruthy();
-      // This needs to be clicked 2x for some reason? Investigate!!!
+      // debug(null, 20000);
+      // 🐞 ----- This needs to be clicked 2x for some reason, should only be 1x ----- 🐞
       userEvent.click(allowCTAS);
-      expect(schemaField).toBeVisible();
-      expect(allowCTAS.checked).toBeFalsy();
-      
+      // await waitFor(() => {
+        expect(allowCTAS.checked).toBeFalsy()
+        expect(schemaField).toBeVisible()
+        // expect(allowCTAS.checked).toBeTruthy()
+      // })
+
       // Uncheck "Allow CTAS" to hide schema field again
       userEvent.click(allowCTAS);
       expect(allowCTAS.checked).toBeTruthy();
@@ -175,7 +184,7 @@ describe('DatabaseModal', () => {
       // Check "Allow CVAS" to reveal schema field
       userEvent.click(allowCVAS);
       expect(allowCVAS.checked).toBeTruthy();
-      // This needs to be clicked 2x for some reason? Investigate!!!
+      // 🐞 ----- This needs to be clicked 2x for some reason, should only be 1x ----- 🐞
       userEvent.click(allowCVAS);
       expect(allowCVAS.checked).toBeFalsy();
       expect(schemaField).toBeVisible();
