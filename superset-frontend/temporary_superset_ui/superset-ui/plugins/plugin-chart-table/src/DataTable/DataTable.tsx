@@ -187,8 +187,10 @@ export default function DataTable<D extends object>({
   const noResults =
     typeof noResultsText === 'function' ? noResultsText(filterValue as string) : noResultsText;
 
+  const getNoResults = () => <div className="dt-no-results">{noResults}</div>;
+
   if (!columns || columns.length === 0) {
-    return <div className="dt-no-results">{noResults}</div>;
+    return (wrapStickyTable ? wrapStickyTable(getNoResults) : getNoResults()) as JSX.Element;
   }
 
   const renderTable = () => (
