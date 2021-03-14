@@ -331,7 +331,6 @@ class TestQueryContext(SupersetTestCase):
         assert len(responses) == 1
         response = responses["queries"][0]
         assert len(response) == 2
-        print(response)
         assert response["language"] == "sql"
         assert "123 = 123" in response["query"]
 
