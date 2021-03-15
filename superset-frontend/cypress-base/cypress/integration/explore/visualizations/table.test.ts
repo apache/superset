@@ -187,9 +187,9 @@ describe('Visualization > Table', () => {
       ...VIZ_DEFAULTS,
       // should still work when query_mode is not-set/invalid
       query_mode: undefined,
-      all_columns: ['name'],
+      all_columns: ['state'],
       metrics: [],
-      row_limit: 10,
+      row_limit: 100,
     });
 
     // should display in raw records mode
@@ -198,8 +198,9 @@ describe('Visualization > Table', () => {
     cy.get('div[data-test="groupby"]').should('not.exist');
 
     cy.verifySliceSuccess({ waitAlias: '@chartData', chartSelector: 'table' });
+    cy.get('[data-test="row-count-label"]').contains('100 rows');
 
-    // should allow switch to aggregate mode
+    // should allow switch back to aggregate mode
     cy.get('div[data-test="query_mode"] .btn').contains('Aggregate').click();
     cy.get('div[data-test="query_mode"] .btn.active').contains('Aggregate');
     cy.get('div[data-test="all_columns"]').should('not.exist');
