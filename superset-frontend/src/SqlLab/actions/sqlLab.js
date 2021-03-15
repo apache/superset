@@ -1064,7 +1064,7 @@ export function addTable(query, tableName, schemaName) {
         ...table,
         isMetadataLoading: true,
         isExtraMetadataLoading: true,
-        expanded: false,
+        expanded: true,
       }),
     );
 
