@@ -141,7 +141,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [db, setDB] = useState<DatabaseObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
-  const [isOpen, setIsOpen] = useState<boolean>(true);
+  const [expandableModalisOpen, setExpandableModalIsOpen] = useState<boolean>(
+    true,
+  );
   const [createAsOpen, setCreateAsOpen] = useState<boolean>(false);
   const [ctas, setCtas] = useState<boolean>(false);
   const [cvas, setCvas] = useState<boolean>(false);
@@ -295,7 +297,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
 
     if (target.id === 'expose_in_sqllab') {
-      setIsOpen(!isOpen);
+      setExpandableModalIsOpen(!expandableModalisOpen);
     }
 
     // Conditional form rendering
@@ -536,7 +538,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 />
               </div>
               <StyledExpandableForm
-                style={{ display: isOpen ? 'inherit' : 'none' }}
+                style={{ display: expandableModalisOpen ? 'inherit' : 'none' }}
               >
                 <StyledInputContainer>
                   <div className="input-container">
