@@ -17,7 +17,13 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { D3_FORMAT_OPTIONS, formatSelectOptions, sections } from '@superset-ui/chart-controls';
+import {
+  D3_FORMAT_DOCS,
+  D3_FORMAT_OPTIONS,
+  D3_TIME_FORMAT_OPTIONS,
+  formatSelectOptions,
+  sections,
+} from '@superset-ui/chart-controls';
 
 export default {
   controlPanelSections: [
@@ -83,6 +89,20 @@ export default {
               description: `${t('D3 format syntax: https://github.com/d3/d3-format')} ${t(
                 'Only applies when "Label Type" is set to show values.',
               )}`,
+            },
+          },
+        ],
+        [
+          {
+            name: 'date_format',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Date format'),
+              renderTrigger: true,
+              choices: D3_TIME_FORMAT_OPTIONS,
+              default: 'smart_date',
+              description: D3_FORMAT_DOCS,
             },
           },
         ],

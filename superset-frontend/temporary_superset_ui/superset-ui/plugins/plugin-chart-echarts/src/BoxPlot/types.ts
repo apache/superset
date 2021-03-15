@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormData } from '@superset-ui/core';
+import { ChartDataResponseResult, ChartProps, QueryFormData } from '@superset-ui/core';
 import { PostProcessingBoxplot } from '@superset-ui/core/lib/query/types/PostProcessing';
 
 export type BoxPlotQueryFormData = QueryFormData & {
@@ -32,5 +32,10 @@ export type BoxPlotFormDataWhiskerOptions =
   | '9/91 percentiles';
 
 export type BoxPlotFormXTickLayout = '45°' | '90°' | 'auto' | 'flat' | 'staggered';
+
+export interface EchartsBoxPlotChartProps extends ChartProps {
+  formData: BoxPlotQueryFormData;
+  queriesData: ChartDataResponseResult[];
+}
 
 export type BoxPlotQueryObjectWhiskerType = PostProcessingBoxplot['options']['whisker_type'];
