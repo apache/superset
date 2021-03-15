@@ -83,6 +83,7 @@ export type LayoutItem = {
 export type FilterSet = {
   id: string;
   name: string;
+  nativeFilters: Filters;
   dataMask: Partial<DataMaskStateWithId>;
 };
 

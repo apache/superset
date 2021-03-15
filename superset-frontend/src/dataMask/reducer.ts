@@ -20,7 +20,7 @@
 /* eslint-disable no-param-reassign */
 // <- When we work with Immer, we need reassign, so disabling lint
 import produce from 'immer';
-import { MaskWithId, DataMaskType, DataMaskStateWithId } from './types';
+import { MaskWithId, DataMaskType, DataMaskStateWithId, Mask } from './types';
 import {
   AnyDataMaskAction,
   SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
@@ -43,8 +43,7 @@ const setUnitDataMask = (
 ) => {
   if (action[unitName]) {
     dataMaskState[unitName][action.filterId] = {
-      ...dataMaskState[unitName][action.filterId],
-      ...action[unitName],
+      ...(action[unitName] as Mask),
       id: action.filterId,
     };
   }

@@ -267,7 +267,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
       />
       <StyledCheckboxFormItem
         name={['filters', filterId, 'isInstant']}
-        initialValue={filterToEdit?.isInstant}
+        initialValue={filterToEdit?.isInstant || false}
         valuePropName="checked"
         colon={false}
       >

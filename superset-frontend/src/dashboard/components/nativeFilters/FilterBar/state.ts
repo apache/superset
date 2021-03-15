@@ -18,12 +18,12 @@
  */
 import { useSelector } from 'react-redux';
 import {
+  Filters,
   FilterSets as FilterSetsType,
   NativeFiltersState,
 } from 'src/dashboard/reducers/types';
 import { DataMaskUnitWithId } from 'src/dataMask/types';
 import { mergeExtraFormData } from '../utils';
-import { Filter } from '../types';
 
 export const useFilterSets = () =>
   useSelector<any, FilterSetsType>(
@@ -31,7 +31,7 @@ export const useFilterSets = () =>
   );
 
 export const useFilters = () =>
-  useSelector<any, Filter>(state => state.nativeFilters.filters);
+  useSelector<any, Filters>(state => state.nativeFilters.filters);
 
 export const useDataMask = () =>
   useSelector<any, DataMaskUnitWithId>(state => state.dataMask.nativeFilters);

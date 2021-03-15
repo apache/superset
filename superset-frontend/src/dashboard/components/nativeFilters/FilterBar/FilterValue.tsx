@@ -70,7 +70,7 @@ const FilterValue: React.FC<FilterProps> = ({
       groupby,
       inputRef,
     });
-    if (!areObjectsEqual(formData || {}, newFormData)) {
+    if (!areObjectsEqual(formData, newFormData)) {
       setFormData(newFormData);
       if (!hasDataSource) {
         return;
