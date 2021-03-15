@@ -32,14 +32,7 @@ from typing import (
 )
 
 from pytz import _FixedOffset  # type: ignore
-from sqlalchemy.dialects.postgresql import (
-    ARRAY,
-    BOOLEAN,
-    DOUBLE_PRECISION,
-    ENUM,
-    INTEGER,
-    JSON,
-)
+from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.types import String, TypeEngine
 
@@ -99,16 +92,6 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
     try_remove_schema_from_table_name = False
 
     column_type_mappings = (
-        (
-            re.compile(r"^int.*", re.IGNORECASE),
-            INTEGER(),
-            utils.GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^bool.*", re.IGNORECASE),
-            BOOLEAN(),
-            utils.GenericDataType.BOOLEAN,
-        ),
         (
             re.compile(r"^double precision", re.IGNORECASE),
             DOUBLE_PRECISION(),
