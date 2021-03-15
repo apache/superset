@@ -50,7 +50,7 @@ export interface DndColumnSelectProps<
   canDrop: (item: DatasourcePanelDndItem) => boolean;
   valuesRenderer: () => ReactNode;
   accept: DndItemType | DndItemType[];
-  placeholderText?: string;
+  ghostButtonText?: string;
   displayGhostButton?: boolean;
 }
 

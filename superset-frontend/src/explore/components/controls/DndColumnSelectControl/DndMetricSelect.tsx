@@ -268,7 +268,7 @@ export const DndMetricSelect = (props: any) => {
         canDrop={canDrop}
         valuesRenderer={valuesRenderer}
         accept={[DndItemType.Column, DndItemType.Metric]}
-        placeholderText={t('Drop columns or metrics')}
+        ghostButtonText={t('Drop columns or metrics')}
         displayGhostButton={multi || value.length === 0}
         {...props}
       />

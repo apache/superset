@@ -51,11 +51,11 @@ export default function DndSelectLabel<T, O>({
     }),
   });
 
-  function renderPlaceHolder() {
+  function renderGhostButton() {
     return (
       <AddControlLabel cancelHover>
         <Icon name="plus-small" color={theme.colors.grayscale.light1} />
-        {t(props.placeholderText || 'Drop columns')}
+        {t(props.ghostButtonText || 'Drop columns')}
       </AddControlLabel>
     );
   }
@@ -67,7 +67,7 @@ export default function DndSelectLabel<T, O>({
       </HeaderContainer>
       <DndLabelsContainer canDrop={canDrop} isOver={isOver}>
         {props.valuesRenderer()}
-        {displayGhostButton && renderPlaceHolder()}
+        {displayGhostButton && renderGhostButton()}
       </DndLabelsContainer>
     </div>
   );

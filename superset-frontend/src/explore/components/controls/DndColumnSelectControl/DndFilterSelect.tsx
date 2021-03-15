@@ -312,7 +312,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
           DndItemType.MetricOption,
           DndItemType.AdhocMetricOption,
         ]}
-        placeholderText={t('Drop columns or metrics')}
+        ghostButtonText={t('Drop columns or metrics')}
         {...props}
       />
       <AdhocFilterPopoverTrigger
