@@ -18,7 +18,7 @@
  */
 import { t } from '@superset-ui/core';
 import React, { FC } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { StyledModal } from '../../../common/components/Modal';
 import Button from '../../../components/Button';
 import { Form } from '../../../common/components';
@@ -26,6 +26,8 @@ import CrossFilterScopingForm from './CrossFilterScopingForm';
 import { Scope } from '../nativeFilters/types';
 import { CrossFilterScopingFormType } from './types';
 import { StyledForm } from '../nativeFilters/FiltersConfigModal/FiltersConfigModal';
+import { setChartConfiguration } from '../../actions/dashboardInfo';
+import { ChartConfiguration } from '../../reducers/types';
 
 type CrossFilterScopingModalProps = {
   chartId: number;
@@ -38,8 +40,21 @@ const CrossFilterScopingModal: FC<CrossFilterScopingModalProps> = ({
   chartId,
   onClose,
 }) => {
+  const dispatch = useDispatch();
   const [form] = Form.useForm<CrossFilterScopingFormType>();
-  const scope = useSelector<any, Scope>(({ charts }) => charts[chartId]?.scope);
+  const chartConfig = useSelector<any, ChartConfiguration>(
+    ({ dashboardInfo }) => dashboardInfo?.metadata?.chartConfiguration,
+  );
+  const scope = chartConfig?.[chartId]?.crossFilters?.scope;
+  const handleSave = () => {
+    dispatch(
+      setChartConfiguration({
+        ...chartConfig,
+        [chartId]: { crossFilters: { scope: form.getFieldValue('scope') } },
+      }),
+    );
+  };
+
   return (
     <StyledModal
       visible={isOpen}
@@ -48,7 +63,7 @@ const CrossFilterScopingModal: FC<CrossFilterScopingModalProps> = ({
       width="55%"
       destroyOnClose
       onCancel={onClose}
-      onOk={onClose}
+      onOk={handleSave}
       centered
       data-test="cross-filter-scoping-modal"
       footer={
