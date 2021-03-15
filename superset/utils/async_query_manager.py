@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import jwt
 import redis
-from flask import Flask, Request, Response, session
+from flask import Flask, request, Request, Response, session
 
 logger = logging.getLogger(__name__)
 
@@ -111,13 +111,14 @@ class AsyncQueryManager:
         def validate_session(  # pylint: disable=unused-variable
             response: Response,
         ) -> Response:
-            reset_token = False
             user_id = session["user_id"] if "user_id" in session else None
 
-            if "async_channel_id" not in session or "async_user_id" not in session:
-                reset_token = True
-            elif user_id != session["async_user_id"]:
-                reset_token = True
+            reset_token = (
+                not request.cookies.get(self._jwt_cookie_name)
+                or "async_channel_id" not in session
+                or "async_user_id" not in session
+                or user_id != session["async_user_id"]
+            )
 
             if reset_token:
                 async_channel_id = str(uuid.uuid4())
