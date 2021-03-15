@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useRef } from 'react';
 import PropTypes from 'prop-types';
 import shortid from 'shortid';
 import Alert from 'src/components/Alert';
@@ -55,11 +55,6 @@ const propTypes = {
   displayLimit: PropTypes.number.isRequired,
 };
 
-const defaultProps = {
-  activeSouthPaneTab: 'Results',
-  offline: false,
-};
-
 const StyledPane = styled.div`
   width: 100%;
 
@@ -83,33 +78,35 @@ const StyledPane = styled.div`
   }
 `;
 
-export class SouthPane extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.southPaneRef = React.createRef();
-    this.switchTab = this.switchTab.bind(this);
-  }
+function SouthPane(
+  editorQueries,
+  latestQueryId,
+  dataPreviewQueries,
+  actions,
+  activeSouthPaneTab = 'Results',
+  height,
+  databases,
+  offline = false,
+  displayLimit,
+) {
+  const innerTabContentHeight = height - TAB_HEIGHT;
+  const southPaneRef = useRef();
+  const switchTab = id => {
+    actions.setActiveSouthPaneTab(id);
+  };
 
-  switchTab(id) {
-    this.props.actions.setActiveSouthPaneTab(id);
-  }
+  const renderOfflineStatus = () =>
+    offline && (
+      <Label className="m-r-3" type={STATE_TYPE_MAP[STATUS_OPTIONS.offline]}>
+        {STATUS_OPTIONS.offline}
+      </Label>
+    );
 
-  render() {
-    if (this.props.offline) {
-      return (
-        <Label className="m-r-3" type={STATE_TYPE_MAP[STATUS_OPTIONS.offline]}>
-          {STATUS_OPTIONS.offline}
-        </Label>
-      );
-    }
-    const innerTabContentHeight = this.props.height - TAB_HEIGHT;
+  const renderResults = () => {
     let latestQuery;
-    const { props } = this;
-    if (props.editorQueries.length > 0) {
+    if (editorQueries.length > 0) {
       // get the latest query
-      latestQuery = props.editorQueries.find(
-        q => q.id === this.props.latestQueryId,
-      );
+      latestQuery = editorQueries.find(q => q.id === latestQueryId);
     }
     let results;
     if (latestQuery) {
@@ -136,10 +133,10 @@ export class SouthPane extends React.PureComponent {
             showControls
             search
             query={latestQuery}
-            actions={props.actions}
+            actions={actions}
             height={innerTabContentHeight}
-            database={this.props.databases[latestQuery.dbId]}
-            displayLimit={this.props.displayLimit}
+            database={databases[latestQuery.dbId]}
+            displayLimit={displayLimit}
           />
         );
       }
@@ -148,7 +145,11 @@ export class SouthPane extends React.PureComponent {
         <Alert type="info" message={t('Run a query to display results here')} />
       );
     }
-    const dataPreviewTabs = props.dataPreviewQueries.map(query => (
+    return results;
+  };
+
+  const renderDataPreviewTabs = () =>
+    dataPreviewQueries.map(query => (
       <Tabs.TabPane
         tab={t('Preview: `%s`', decodeURIComponent(query.tableName))}
         key={query.id}
@@ -157,38 +158,38 @@ export class SouthPane extends React.PureComponent {
           query={query}
           visualize={false}
           csv={false}
-          actions={props.actions}
+          actions={actions}
           cache
           height={innerTabContentHeight}
-          displayLimit={this.props.displayLimit}
+          displayLimit={displayLimit}
         />
       </Tabs.TabPane>
     ));
 
-    return (
-      <StyledPane className="SouthPane" ref={this.southPaneRef}>
-        <Tabs
-          activeKey={this.props.activeSouthPaneTab}
-          className="SouthPaneTabs"
-          onChange={this.switchTab}
-          id={shortid.generate()}
-          fullWidth={false}
-        >
-          <Tabs.TabPane tab={t('Results')} key="Results">
-            {results}
-          </Tabs.TabPane>
-          <Tabs.TabPane tab={t('Query history')} key="History">
-            <QueryHistory
-              queries={props.editorQueries}
-              actions={props.actions}
-              displayLimit={props.displayLimit}
-            />
-          </Tabs.TabPane>
-          {dataPreviewTabs}
-        </Tabs>
-      </StyledPane>
-    );
-  }
+  return (
+    <StyledPane className="SouthPane" ref={southPaneRef}>
+      {renderOfflineStatus}
+      <Tabs
+        activeKey={activeSouthPaneTab}
+        className="SouthPaneTabs"
+        onChange={switchTab}
+        id={shortid.generate()}
+        fullWidth={false}
+      >
+        <Tabs.TabPane tab={t('Results')} key="Results">
+          {renderResults}
+        </Tabs.TabPane>
+        <Tabs.TabPane tab={t('Query history')} key="History">
+          <QueryHistory
+            queries={editorQueries}
+            actions={actions}
+            displayLimit={displayLimit}
+          />
+        </Tabs.TabPane>
+        {renderDataPreviewTabs}
+      </Tabs>
+    </StyledPane>
+  );
 }
 
 function mapStateToProps({ sqlLab }) {
@@ -206,6 +207,5 @@ function mapDispatchToProps(dispatch) {
 }
 
 SouthPane.propTypes = propTypes;
-SouthPane.defaultProps = defaultProps;
 
 export default connect(mapStateToProps, mapDispatchToProps)(SouthPane);
