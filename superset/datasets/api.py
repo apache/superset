@@ -262,7 +262,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             schema:
               type: integer
             name: pk
-          - in: path
+          - in: query
             schema:
               type: bool
             name: override_columns
