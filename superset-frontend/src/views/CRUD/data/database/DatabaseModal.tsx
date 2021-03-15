@@ -121,11 +121,11 @@ const StyledJsonEditor = styled(JsonEditor)`
 `;
 
 const StyledExpandableForm = styled.div`
-  padding-left: 28px;
-  padding-top: 10px;
+  padding-left: ${({ theme }) => theme.gridUnit}px;
+  padding-top: ${({ theme }) => theme.gridUnit}px;
 
   .input-container {
-    padding: 5px;
+    padding: ${({ theme }) => theme.gridUnit}px;
   }
 `;
 
