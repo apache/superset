@@ -2,12 +2,7 @@ import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import { styledMount as mount } from 'spec/helpers/theming';
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor
-} from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { Provider } from 'react-redux';
@@ -16,7 +11,7 @@ import Modal from 'src/common/components/Modal';
 import Tabs from 'src/common/components/Tabs';
 import fetchMock from 'fetch-mock';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { debug } from 'webpack';
+
 // store needed for withToasts(DatabaseModal)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -33,6 +28,7 @@ const dbProps = {
 };
 const DATABASE_ENDPOINT = 'glob:*/api/v1/database/*';
 fetchMock.get(DATABASE_ENDPOINT, {});
+
 describe('DatabaseModal', () => {
   describe('enzyme', () => {
     let wrapper;
@@ -81,9 +77,10 @@ describe('DatabaseModal', () => {
       );
 
       // Select SQL Lab settings tab
-      const sqlLabSettingsTab = screen.getByRole('tab', { name: /sql lab settings/i });
+      const sqlLabSettingsTab = screen.getByRole('tab', {
+        name: /sql lab settings/i,
+      });
       userEvent.click(sqlLabSettingsTab);
-      
       // Grab all SQL Lab Settings and checkboxes
       const sqlLabSettings = screen.getAllByRole('checkbox', { name: '' });
       const exposeInSqlLab = sqlLabSettings[0];
@@ -115,7 +112,7 @@ describe('DatabaseModal', () => {
     });
 
     it('renders the schema field when allowCTAS is checked', async () => {
-      const { debug, container } = render(
+      render(
         <ThemeProvider theme={supersetTheme}>
           <Provider store={store}>
             <DatabaseModal {...dbProps} />
@@ -124,11 +121,10 @@ describe('DatabaseModal', () => {
       );
 
       // Select SQL Lab settings tab
-      const sqlLabSettingsTab = screen.getByRole('tab', { name: /sql lab settings/i });
-      // const sqlLabSettingsTab = container.querySelector('[data-test-id="sql_lab_settings_tab_test_id"');
-      debug(sqlLabSettingsTab);
+      const sqlLabSettingsTab = screen.getByRole('tab', {
+        name: /sql lab settings/i,
+      });
       userEvent.click(sqlLabSettingsTab);
-      
       // Grab all SQL Lab Settings, CTAS checkbox, & schema field
       const sqlLabSettings = screen.getAllByRole('checkbox', { name: '' });
       const allowCTAS = sqlLabSettings[1];
@@ -145,11 +141,8 @@ describe('DatabaseModal', () => {
       // debug(null, 20000);
       // 🐞 ----- This needs to be clicked 2x for some reason, should only be 1x ----- 🐞
       userEvent.click(allowCTAS);
-      // await waitFor(() => {
-        expect(allowCTAS.checked).toBeFalsy()
-        expect(schemaField).toBeVisible()
-        // expect(allowCTAS.checked).toBeTruthy()
-      // })
+      expect(allowCTAS.checked).toBeFalsy();
+      expect(schemaField).toBeVisible();
 
       // Uncheck "Allow CTAS" to hide schema field again
       userEvent.click(allowCTAS);
@@ -167,9 +160,10 @@ describe('DatabaseModal', () => {
       );
 
       // Select SQL Lab settings tab
-      const sqlLabSettingsTab = screen.getByRole('tab', { name: /sql lab settings/i });
+      const sqlLabSettingsTab = screen.getByRole('tab', {
+        name: /sql lab settings/i,
+      });
       userEvent.click(sqlLabSettingsTab);
-      
       // Grab all SQL Lab Settings, CVAS checkbox, & schema field
       const sqlLabSettings = screen.getAllByRole('checkbox', { name: '' });
       const allowCTAS = sqlLabSettings[1];
@@ -205,9 +199,10 @@ describe('DatabaseModal', () => {
       );
 
       // Select SQL Lab settings tab
-      const sqlLabSettingsTab = screen.getByRole('tab', { name: /sql lab settings/i });
+      const sqlLabSettingsTab = screen.getByRole('tab', {
+        name: /sql lab settings/i,
+      });
       userEvent.click(sqlLabSettingsTab);
-      
       // Grab all SQL Lab Settings, CTAS/CVAS checkboxes, & schema field
       const sqlLabSettings = screen.getAllByRole('checkbox', { name: '' });
       const allowCTAS = sqlLabSettings[1];
@@ -225,7 +220,6 @@ describe('DatabaseModal', () => {
       userEvent.click(allowCVAS);
       expect(allowCVAS.checked).toBeTruthy();
       expect(schemaField).toBeVisible();
-      
       // Uncheck both "Allow CTAS" and "Allow CVAS" to hide schema field again
       userEvent.click(allowCTAS);
       expect(allowCTAS.checked).toBeFalsy();
