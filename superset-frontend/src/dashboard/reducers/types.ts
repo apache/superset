@@ -19,11 +19,22 @@
 
 import componentTypes from 'src/dashboard/util/componentTypes';
 import { DataMaskStateWithId } from 'src/dataMask/types';
-import { Filter } from '../components/nativeFilters/types';
+import { Filter, Scope } from '../components/nativeFilters/types';
 
 export enum Scoping {
-  all,
-  specific,
+  All = 'All',
+  Specific = 'Specific',
+}
+
+export type ChartConfiguration = {
+  crossFilters: {
+    scope: Scope;
+  };
+};
+
+export interface DashboardInfo {
+  id: number;
+  json_metadata: string;
 }
 
 /** Chart state of redux */
