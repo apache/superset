@@ -26,7 +26,7 @@ assists people when migrating to a new version.
 ### Breaking Changes
 ### Potential Downtime
 ### Deprecations
-- [11509](https://github.com/apache/superset/pull/12491): Dashboard/Charts reports and old Alerts is deprecated. The following config keys are deprecated:
+- [13440](https://github.com/apache/superset/pull/13440): Dashboard/Charts reports and old Alerts is deprecated. The following config keys are deprecated:
     - ENABLE_ALERTS
     - SCHEDULED_EMAIL_DEBUG_MODE
     - EMAIL_REPORTS_CRON_RESOLUTION
