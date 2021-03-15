@@ -106,10 +106,10 @@ const FilterSets: React.FC<FilterSetsProps> = ({
 
   const isFilterMissingOrContainsInvalidMetadata = (
     id: string,
-    filtersSet?: FilterSet,
+    filterSet?: FilterSet,
   ) =>
     !filterValues.find(filter => filter?.id === id) ||
-    !areObjectsEqual(filters[id], filtersSet?.nativeFilters?.[id]);
+    !areObjectsEqual(filters[id], filterSet?.nativeFilters?.[id]);
 
   const takeFilterSet = (id: string, target?: HTMLElement) => {
     const ignoreSelectorHeader = 'ant-collapse-header';
@@ -133,12 +133,12 @@ const FilterSets: React.FC<FilterSetsProps> = ({
       return;
     }
 
-    const filtersSet = filterSets[id];
+    const filterSet = filterSets[id];
 
-    Object.values(filtersSet?.dataMask?.nativeFilters ?? []).forEach(
+    Object.values(filterSet?.dataMask?.nativeFilters ?? []).forEach(
       dataMask => {
         const { extraFormData, currentState, id } = dataMask as MaskWithId;
-        if (isFilterMissingOrContainsInvalidMetadata(id, filtersSet)) {
+        if (isFilterMissingOrContainsInvalidMetadata(id, filterSet)) {
           return;
         }
         onFilterSelectionChange(
@@ -150,23 +150,23 @@ const FilterSets: React.FC<FilterSetsProps> = ({
   };
 
   const handleRebuild = (id: string) => {
-    const filtersSet = filterSets[id];
+    const filterSet = filterSets[id];
     // We need remove invalid filters from filter set
-    const newFilters = Object.values(filtersSet?.dataMask?.nativeFilters ?? [])
+    const newFilters = Object.values(filterSet?.dataMask?.nativeFilters ?? [])
       .filter(dataMask => {
         const { id } = dataMask as MaskWithId;
-        return !isFilterMissingOrContainsInvalidMetadata(id, filtersSet);
+        return !isFilterMissingOrContainsInvalidMetadata(id, filterSet);
       })
       .reduce((prev, next) => ({ ...prev, [next.id]: filters[next.id] }), {});
 
     const updatedFilterSet: FilterSet = {
-      ...filtersSet,
+      ...filterSet,
       nativeFilters: newFilters as Filters,
       dataMask: {
         nativeFilters: Object.keys(newFilters).reduce(
           (prev, nextFilterId) => ({
             ...prev,
-            [nextFilterId]: filtersSet.dataMask?.nativeFilters?.[nextFilterId],
+            [nextFilterId]: filterSet.dataMask?.nativeFilters?.[nextFilterId],
           }),
           {},
         ),
