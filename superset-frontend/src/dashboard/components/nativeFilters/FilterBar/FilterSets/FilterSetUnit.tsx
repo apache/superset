@@ -49,7 +49,7 @@ type FilterSetUnitProps = {
   setFilterSetName?: (name: string) => void;
   onDelete?: HandlerFunction;
   onEdit?: HandlerFunction;
-  onInvalidate?: HandlerFunction;
+  onRebuild?: HandlerFunction;
 };
 
 const FilterSetUnit: FC<FilterSetUnitProps> = ({
@@ -61,13 +61,13 @@ const FilterSetUnit: FC<FilterSetUnitProps> = ({
   dataMaskSelected,
   filterSet,
   isApplied,
-  onInvalidate,
+  onRebuild,
 }) => {
   const menu = (
     <Menu>
       <Menu.Item onClick={onEdit}>{t('Edit')}</Menu.Item>
-      <Menu.Item onClick={onInvalidate}>
-        <Tooltip placement="right" title={t('It will remove invalid filters')}>
+      <Menu.Item onClick={onRebuild}>
+        <Tooltip placement="right" title={t('Remove invalid filters')}>
           {t('Rebuild')}
         </Tooltip>
       </Menu.Item>

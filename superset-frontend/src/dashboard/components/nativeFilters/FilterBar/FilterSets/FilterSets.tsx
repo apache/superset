@@ -104,7 +104,10 @@ const FilterSets: React.FC<FilterSetsProps> = ({
     setSelectedFiltersSetId(foundFilterSet?.id ?? null);
   }, [isFilterSetChanged, dataMaskSelected, filterSetFilterValues]);
 
-  const hasInvalidData = (id: string, filtersSet?: FilterSet) =>
+  const isFilterMissingOrContainsInvalidMetadata = (
+    id: string,
+    filtersSet?: FilterSet,
+  ) =>
     !filterValues.find(filter => filter?.id === id) ||
     !areObjectsEqual(filters[id], filtersSet?.nativeFilters?.[id]);
 
@@ -135,8 +138,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
     Object.values(filtersSet?.dataMask?.nativeFilters ?? []).forEach(
       dataMask => {
         const { extraFormData, currentState, id } = dataMask as MaskWithId;
-        // if we have extra filters in filter set don't add them to selected data mask || if we have filters with changed metadata not apply them
-        if (hasInvalidData(id, filtersSet)) {
+        if (isFilterMissingOrContainsInvalidMetadata(id, filtersSet)) {
           return;
         }
         onFilterSelectionChange(
@@ -147,14 +149,13 @@ const FilterSets: React.FC<FilterSetsProps> = ({
     );
   };
 
-  const handleInvalidate = (id: string) => {
+  const handleRebuild = (id: string) => {
     const filtersSet = filterSets[id];
     // We need remove invalid filters from filter set
     const newFilters = Object.values(filtersSet?.dataMask?.nativeFilters ?? [])
       .filter(dataMask => {
         const { id } = dataMask as MaskWithId;
-        // if we have extra filters in filter set don't add them to selected data mask || if we have filters with changed metadata not apply them
-        return !hasInvalidData(id, filtersSet);
+        return !isFilterMissingOrContainsInvalidMetadata(id, filtersSet);
       })
       .reduce((prev, next) => ({ ...prev, [next.id]: filters[next.id] }), {});
 
@@ -257,7 +258,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
             isApplied={filterSet.id === selectedFiltersSetId && !disabled}
             onDelete={() => handleDeleteFilterSet(filterSet.id)}
             onEdit={() => handleEdit(filterSet.id)}
-            onInvalidate={() => handleInvalidate(filterSet.id)}
+            onRebuild={() => handleRebuild(filterSet.id)}
             dataMaskSelected={dataMaskSelected}
             filterSet={filterSet}
           />
