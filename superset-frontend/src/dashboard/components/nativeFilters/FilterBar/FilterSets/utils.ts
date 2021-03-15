@@ -47,28 +47,22 @@ export const getFilterValueForDisplay = (
 
 export const findExistingFilterSet = ({
   filterSetFilterValues,
-  dataMaskApplied,
   dataMaskSelected,
 }: {
   filterSetFilterValues: FilterSet[];
-  dataMaskApplied: DataMaskUnit;
   dataMaskSelected: DataMaskUnit;
 }) =>
-  filterSetFilterValues.find(({ dataMask }) => {
-    if (dataMask?.nativeFilters) {
-      return Object.values(dataMask?.nativeFilters).every(
-        filterFromFilterSet => {
-          let currentValueFromFiltersTab =
-            dataMaskApplied[filterFromFilterSet.id]?.currentState ?? {};
-          if (dataMaskSelected[filterFromFilterSet.id]) {
-            currentValueFromFiltersTab =
-              dataMaskSelected[filterFromFilterSet.id]?.currentState;
-          }
-          return areObjectsEqual(
-            filterFromFilterSet.currentState ?? {},
-            currentValueFromFiltersTab,
-          );
-        },
+  filterSetFilterValues.find(({ dataMask: dataMaskFromFilterSet }) => {
+    if (dataMaskFromFilterSet?.nativeFilters) {
+      const dataMaskSelectedEntries = Object.entries(dataMaskSelected);
+      return dataMaskSelectedEntries.every(
+        ([id, filterFromSelectedFilters]) =>
+          areObjectsEqual(
+            filterFromSelectedFilters.currentState,
+            dataMaskFromFilterSet?.nativeFilters?.[id]?.currentState,
+          ) &&
+          dataMaskSelectedEntries.length ===
+            Object.keys(dataMaskFromFilterSet?.nativeFilters ?? {}).length,
       );
     }
     return false;
