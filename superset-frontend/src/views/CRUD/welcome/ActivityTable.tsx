@@ -162,7 +162,7 @@ export default function ActivityTable({
   activityData,
   user,
 }: ActivityProps) {
-  const [editedObjs, setEditedObjs] = useState<any>();
+  const [editedObjs, setEditedObjs] = useState<Array<ActivityData>>();
   const [loadingState, setLoadingState] = useState(false);
 
   const getEditedCards = () => {
@@ -245,7 +245,7 @@ export default function ActivityTable({
       />
       <>
         {activityData[activeChild]?.length > 0 ||
-        (activeChild === 'Edited' && editedObjs) ? (
+        (activeChild === 'Edited' && editedObjs && editedObjs.length > 0) ? (
           <ActivityContainer>{renderActivity()}</ActivityContainer>
         ) : (
           <EmptyState tableName="RECENTS" tab={activeChild} />
