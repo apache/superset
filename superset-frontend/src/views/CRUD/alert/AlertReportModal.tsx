@@ -611,11 +611,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       validator_config_json: conditionNotNull
         ? {}
         : currentAlert?.validator_config_json,
-      chart: contentType === 'chart' ? currentAlert?.chart?.value : undefined,
+      chart: contentType === 'chart' ? currentAlert?.chart?.value : null,
       dashboard:
-        contentType === 'dashboard'
-          ? currentAlert?.dashboard?.value
-          : undefined,
+        contentType === 'dashboard' ? currentAlert?.dashboard?.value : null,
       database: currentAlert?.database?.value,
       owners: (currentAlert?.owners || []).map(
         owner => (owner as MetaObject).value,
@@ -869,10 +867,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const onDashboardChange = (dashboard: SelectValue) => {
     updateAlertState('dashboard', dashboard || undefined);
+    updateAlertState('chart', null);
   };
 
   const onChartChange = (chart: SelectValue) => {
     updateAlertState('chart', chart || undefined);
+    updateAlertState('dashboard', null);
   };
 
   const onActiveSwitch = (checked: boolean) => {
