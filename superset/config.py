@@ -28,7 +28,7 @@ import os
 import sys
 from collections import OrderedDict
 from datetime import date
-from typing import Any, Callable, Dict, List, Optional, Type, Union, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
 from cachelib.base import BaseCache
 from celery.schedules import crontab
