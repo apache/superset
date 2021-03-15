@@ -21,8 +21,12 @@ import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import { BoxPlotQueryFormData, EchartsBoxPlotChartProps } from './types';
 
-export default class EchartsBoxPlotChartPlugin extends ChartPlugin {
+export default class EchartsBoxPlotChartPlugin extends ChartPlugin<
+  BoxPlotQueryFormData,
+  EchartsBoxPlotChartProps
+> {
   /**
    * The constructor is used to pass relevant metadata and callbacks that get
    * registered in respective registries that are used throughout the library
