@@ -104,7 +104,7 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     def get_column_spec(  # type: ignore
         # pylint: disable=arguments-differ
         cls,
-        native_type: Optional[str],
+        column_name: Optional[str] = "",
         column_type_mappings: Tuple[
             Tuple[
                 Pattern[str],
@@ -112,12 +112,13 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
                 GenericDataType,
             ],
             ...,
-        ],
-        column_name: Optional[str] = "",
+        ] = (),
+        native_type: Optional[str] = "",
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
     ) -> Union[ColumnSpec, None]:
 
         if column_name == "__time":
+            print(">>> hello!")
             return ColumnSpec(TIMESTAMP(), GenericDataType.TEMPORAL, True)
 
         return super().get_column_spec(native_type)
