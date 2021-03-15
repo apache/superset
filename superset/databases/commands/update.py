@@ -54,7 +54,7 @@ class UpdateDatabaseCommand(BaseCommand):
             # TODO Improve this simplistic implementation for catching DB conn fails
             try:
                 schemas = database.get_all_schema_names()
-            except Exception:
+            except Exception as ex:
                 db.session.rollback()
                 raise DatabaseConnectionFailedError()
             for schema in schemas:
