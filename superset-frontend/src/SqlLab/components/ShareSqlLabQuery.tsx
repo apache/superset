@@ -31,8 +31,8 @@ import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 
 interface ShareSqlLabQueryPropTypes {
   queryEditor: {
-    dbId?: number;
-    title?: string;
+    dbId: number;
+    title: string;
     schema: string;
     autorun: boolean;
     sql: string;
