@@ -28,4 +28,4 @@ class DatasetMetricDeleteFailedError(CommandException):
 
 
 class DatasetMetricForbiddenError(CommandException):
-    message = _("Changing this dataset is forbidden")
+    message = _("Changing this dataset is forbidden.")
