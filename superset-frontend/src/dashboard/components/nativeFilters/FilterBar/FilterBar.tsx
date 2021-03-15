@@ -18,7 +18,7 @@
  */
 
 /* eslint-disable no-param-reassign */
-import { styled, t } from '@superset-ui/core';
+import { HandlerFunction, styled, t } from '@superset-ui/core';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import cx from 'classnames';
@@ -52,6 +52,11 @@ const BarWrapper = styled.div`
 `;
 
 const Bar = styled.div`
+  & .ant-typography-edit-content {
+    left: 0;
+    margin-top: 0;
+    width: 100%;
+  }
   position: absolute;
   top: 0;
   left: 0;
@@ -169,6 +174,11 @@ interface FiltersBarProps {
   directPathToChild?: string[];
 }
 
+enum TabIds {
+  AllFilters = 'allFilters',
+  FilterSets = 'filterSets',
+}
+
 const FilterBar: React.FC<FiltersBarProps> = ({
   filtersOpen,
   toggleFiltersBar,
@@ -183,8 +193,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const dispatch = useDispatch();
   const filterSets = useFilterSets();
   const filterSetFilterValues = Object.values(filterSets);
+  const [isFilterSetChanged, setIsFilterSetChanged] = useState(false);
+  const [tab, setTab] = useState(TabIds.AllFilters);
   const filters = useFilters();
-  const filterValues = Object.values(filters);
+  const filterValues = Object.values<Filter>(filters);
   const dataMaskApplied = useDataMask();
   const canEdit = useSelector<any, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
@@ -212,8 +224,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     }
     const areFiltersInitialized = filterValues.every(filterValue =>
       areObjectsEqual(
-        filterValue.defaultValue,
-        dataMaskSelected[filterValue.id]?.currentState?.value,
+        filterValue?.defaultValue,
+        dataMaskSelected[filterValue?.id]?.currentState?.value,
       ),
     );
     if (areFiltersInitialized) {
@@ -245,6 +257,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     filter: Pick<Filter, 'id'> & Partial<Filter>,
     dataMask: Partial<DataMaskState>,
   ) => {
+    setIsFilterSetChanged(tab !== TabIds.AllFilters);
     setDataMaskSelected(draft => {
       const children = cascadeChildren[filter.id] || [];
       // force instant updating on initialization or for parent filters
@@ -338,12 +351,13 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET) ? (
           <StyledTabs
             centered
-            defaultActiveKey="allFilters"
-            activeKey={editFilterSetId ? 'allFilters' : undefined}
+            onChange={setTab as HandlerFunction}
+            defaultActiveKey={TabIds.AllFilters}
+            activeKey={editFilterSetId ? TabIds.AllFilters : undefined}
           >
             <Tabs.TabPane
               tab={t(`All Filters (${filterValues.length})`)}
-              key="allFilters"
+              key={TabIds.AllFilters}
             >
               {editFilterSetId && (
                 <EditSection
@@ -358,12 +372,13 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             <Tabs.TabPane
               disabled={!!editFilterSetId}
               tab={t(`Filter Sets (${filterSetFilterValues.length})`)}
-              key="filterSets"
+              key={TabIds.FilterSets}
             >
               <FilterSets
                 onEditFilterSet={setEditFilterSetId}
                 disabled={!isApplyDisabled}
                 dataMaskSelected={dataMaskSelected}
+                isFilterSetChanged={isFilterSetChanged}
                 onFilterSelectionChange={handleFilterSelectionChange}
               />
             </Tabs.TabPane>
