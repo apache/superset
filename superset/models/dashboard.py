@@ -38,6 +38,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.engine.base import Connection
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import relationship, sessionmaker, subqueryload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.session import object_session
@@ -249,7 +250,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
                 for datasource, slices in datasource_slices.items()
                 if datasource
             }
-        except SupersetException:
+        except (SupersetException, SQLAlchemyError):
             datasources = {}
         return {
             # dashboard metadata
