@@ -41,7 +41,7 @@ export const opts = {
   redisStreamReadCount: 100,
   redisStreamReadBlockMs: 5000,
   socketResponseTimeoutMs: 60 * 1000,
-  gcSocketsIntervalMs: 90 * 1000,
+  pingSocketsIntervalMs: 20 * 1000,
   gcChannelsIntervalMs: 120 * 1000,
 }
 
@@ -97,6 +97,7 @@ export const sendToChannel = (channel: string, value: EventValue): void => {
   }
   channels[channel].sockets.forEach(socketId => {
     const socketInstance: SocketInstance = sockets[socketId];
+    if(!socketInstance) return cleanChannel(channel);
     try {
       socketInstance.ws.send(strData);
     } catch(err) {
@@ -147,6 +148,7 @@ export const subscribeToGlobalStream = async (stream: string, listener: Listener
 }
 
 export const processStreamResults = (results: StreamResult[]): void => {
+  console.debug('events received', results);
   results.forEach((item) => {
     try {
       const id = item[0];
@@ -177,7 +179,8 @@ export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
   const channel: string = jwtPayload.channel;
   const socketInstance: SocketInstance = { ws, channel, pongTs: Date.now() }
 
-  trackClient(channel, socketInstance);
+  const socketId = trackClient(channel, socketInstance);
+  console.debug(`socket ${socketId} connected on channel ${channel}`);
 
   const lastId = getLastId(request);
   if(lastId) {
@@ -221,6 +224,7 @@ export const httpUpgrade = (request: http.IncomingMessage, socket: net.Socket, h
 // Connection cleanup and garbage collection
 
 export const checkSockets = () => {
+  console.debug('*** socket count', Object.keys(sockets).length);
   for (const socketId in sockets) {
     const socketInstance = sockets[socketId];
     const timeout = Date.now() - socketInstance.pongTs;
@@ -235,9 +239,11 @@ export const checkSockets = () => {
     }
 
     if(isActive) {
+      console.debug(`ping ${socketId}`);
       socketInstance.ws.ping(socketId);
     } else {
       delete sockets[socketId];
+      console.debug(`forgetting socket ${socketId}`);
     }
   }
 }
@@ -270,7 +276,7 @@ if(startServer) {
   subscribeToGlobalStream(GLOBAL_EVENT_STREAM_NAME, processStreamResults);
 
   // init garbage collection
-  const checkSocketsInterval = setInterval(checkSockets, opts.gcSocketsIntervalMs);
+  const checkSocketsInterval = setInterval(checkSockets, opts.pingSocketsIntervalMs);
   const cleanChannelInterval = setInterval(function gc() {
     for (const channel in channels) {
       cleanChannel(channel);
