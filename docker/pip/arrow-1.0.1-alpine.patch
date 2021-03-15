@@ -1,0 +1,10 @@
+--- a/cpp/src/arrow/CMakeLists.txt
++++ b/cpp/src/arrow/CMakeLists.txt
+@@ -513,6 +513,7 @@
+     target_compile_definitions(${LIB_TARGET} PRIVATE ARROW_EXPORTING)
+     if(Backtrace_FOUND AND ARROW_WITH_BACKTRACE)
+       target_compile_definitions(${LIB_TARGET} PRIVATE ARROW_WITH_BACKTRACE)
++      target_link_libraries(${LIB_TARGET} PRIVATE ${Backtrace_LIBRARIES})
+     endif()
+   endforeach()
+ endif()
