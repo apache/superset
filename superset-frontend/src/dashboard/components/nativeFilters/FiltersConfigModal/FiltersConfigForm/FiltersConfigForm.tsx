@@ -283,9 +283,14 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
         forceUpdate={forceUpdate}
       />
       <FilterScope
-        filterId={filterId}
-        filterToEdit={filterToEdit}
-        form={form}
+        updateFormValues={(values: any) =>
+          setFilterFieldValues(form, filterId, values)
+        }
+        pathToFormValue={['filters', filterId]}
+        forceUpdate={forceUpdate}
+        scope={filterToEdit?.scope}
+        formScope={formFilter?.scope}
+        formScoping={formFilter?.scoping}
       />
     </>
   );
