@@ -79,8 +79,11 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
         channel = self._get_channel()
         body = self._get_body()
         try:
+            token = app.config["SLACK_API_TOKEN"]
+            if callable(token):
+                token = token()
             client = WebClient(
-                token=app.config["SLACK_API_TOKEN"], proxy=app.config["SLACK_PROXY"]
+                token=token, proxy=app.config["SLACK_PROXY"]
             )
             # files_upload returns SlackResponse as we run it in sync mode.
             if file:
