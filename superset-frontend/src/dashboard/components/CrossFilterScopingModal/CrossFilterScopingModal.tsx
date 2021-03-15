@@ -23,7 +23,6 @@ import { StyledModal } from '../../../common/components/Modal';
 import Button from '../../../components/Button';
 import { Form } from '../../../common/components';
 import CrossFilterScopingForm from './CrossFilterScopingForm';
-import { Scope } from '../nativeFilters/types';
 import { CrossFilterScopingFormType } from './types';
 import { StyledForm } from '../nativeFilters/FiltersConfigModal/FiltersConfigModal';
 import { setChartConfiguration } from '../../actions/dashboardInfo';
@@ -43,7 +42,7 @@ const CrossFilterScopingModal: FC<CrossFilterScopingModalProps> = ({
   const dispatch = useDispatch();
   const [form] = Form.useForm<CrossFilterScopingFormType>();
   const chartConfig = useSelector<any, ChartConfiguration>(
-    ({ dashboardInfo }) => dashboardInfo?.metadata?.chartConfiguration,
+    ({ dashboardInfo }) => dashboardInfo?.metadata?.chart_configuration,
   );
   const scope = chartConfig?.[chartId]?.crossFilters?.scope;
   const handleSave = () => {
@@ -53,6 +52,7 @@ const CrossFilterScopingModal: FC<CrossFilterScopingModalProps> = ({
         [chartId]: { crossFilters: { scope: form.getFieldValue('scope') } },
       }),
     );
+    onClose();
   };
 
   return (
@@ -79,7 +79,7 @@ const CrossFilterScopingModal: FC<CrossFilterScopingModalProps> = ({
           <Button
             key="submit"
             buttonStyle="primary"
-            onClick={onClose}
+            onClick={handleSave}
             data-test="cross-filter-scoping-modal-save-button"
           >
             {t('Save')}

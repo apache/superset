@@ -56,7 +56,7 @@ const FilterScope: FC<FilterScopeProps> = ({
   updateFormValues,
 }) => {
   const initialScope = scope || getDefaultScopeValue();
-  const currentScoping = isScopingAll(initialScope)
+  const initialScoping = isScopingAll(initialScope)
     ? Scoping.all
     : Scoping.specific;
 
@@ -65,7 +65,7 @@ const FilterScope: FC<FilterScopeProps> = ({
       <Typography.Title level={5}>{t('Scoping')}</Typography.Title>
       <CleanFormItem
         name={[...pathToFormValue, 'scoping']}
-        initialValue={currentScoping}
+        initialValue={initialScoping}
       >
         <Radio.Group
           onChange={({ target: { value } }) => {
@@ -84,11 +84,11 @@ const FilterScope: FC<FilterScopeProps> = ({
         </Radio.Group>
       </CleanFormItem>
       <Typography.Text type="secondary">
-        {formScoping === Scoping.specific
+        {(formScoping ?? initialScoping) === Scoping.specific
           ? t('Only selected panels will be affected by this filter')
           : t('All panels with this column will be affected by this filter')}
       </Typography.Text>
-      {formScoping === Scoping.specific && (
+      {(formScoping ?? initialScoping) === Scoping.specific && (
         <ScopingTree
           updateFormValues={updateFormValues}
           initialScope={initialScope}

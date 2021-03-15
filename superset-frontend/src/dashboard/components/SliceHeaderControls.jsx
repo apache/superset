@@ -287,6 +287,7 @@ class SliceHeaderControls extends React.PureComponent {
     return (
       <>
         <CrossFilterScopingModal
+          chartId={slice.slice_id}
           isOpen={this.state.showCrossFilterScopingModal}
           onClose={() => this.setState({ showCrossFilterScopingModal: false })}
         />
