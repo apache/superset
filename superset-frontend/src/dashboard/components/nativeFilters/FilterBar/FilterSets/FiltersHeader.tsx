@@ -80,12 +80,12 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
     const changedFilter =
       filterSet &&
       !areObjectsEqual(filters[id], filterSet?.nativeFilters?.[id]);
-    const nonExistedFilter = !Object.keys(filters).includes(id);
+    const removedFilter = !Object.keys(filters).includes(id);
 
     return (
       <Tooltip
         title={
-          (nonExistedFilter &&
+          (removedFilter &&
             t(
               "This filter doesn't exist in dashboard. It will not be applied.",
             )) ||
@@ -95,14 +95,10 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
         placement="bottomLeft"
       >
         <div>
-          <Typography.Text
-            strong
-            delete={nonExistedFilter}
-            mark={changedFilter}
-          >
+          <Typography.Text strong delete={removedFilter} mark={changedFilter}>
             {name}:&nbsp;
           </Typography.Text>
-          <Typography.Text delete={nonExistedFilter} mark={changedFilter}>
+          <Typography.Text delete={removedFilter} mark={changedFilter}>
             {getFilterValueForDisplay(dataMask?.[id]?.currentState?.value) || (
               <Typography.Text type="secondary">{t('None')}</Typography.Text>
             )}

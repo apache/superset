@@ -22,6 +22,7 @@ import { FilterSet } from 'src/dashboard/reducers/types';
 import { DataMaskUnit } from 'src/dataMask/types';
 import { CheckOutlined, EllipsisOutlined } from '@ant-design/icons';
 import { HandlerFunction, styled, supersetTheme, t } from '@superset-ui/core';
+import { Tooltip } from 'src/common/components/Tooltip';
 import FiltersHeader from './FiltersHeader';
 
 const TitleText = styled.div`
@@ -65,7 +66,11 @@ const FilterSetUnit: FC<FilterSetUnitProps> = ({
   const menu = (
     <Menu>
       <Menu.Item onClick={onEdit}>{t('Edit')}</Menu.Item>
-      <Menu.Item onClick={onInvalidate}>{t('Invalidate')}</Menu.Item>
+      <Menu.Item onClick={onInvalidate}>
+        <Tooltip placement="right" title={t('It will remove invalid filters')}>
+          {t('Rebuild')}
+        </Tooltip>
+      </Menu.Item>
       <Menu.Item onClick={onDelete} danger>
         {t('Delete')}
       </Menu.Item>

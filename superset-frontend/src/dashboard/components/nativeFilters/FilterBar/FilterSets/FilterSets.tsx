@@ -22,7 +22,7 @@ import { HandlerFunction, styled, t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { DataMaskState, DataMaskUnit, MaskWithId } from 'src/dataMask/types';
 import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
-import { Filters, FilterSet } from 'src/dashboard/reducers/types';
+import { Filters, FilterSet, FilterSets } from 'src/dashboard/reducers/types';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { findExistingFilterSet, generateFiltersSetId } from './utils';
 import { Filter } from '../../types';
@@ -104,6 +104,10 @@ const FilterSets: React.FC<FilterSetsProps> = ({
     setSelectedFiltersSetId(foundFilterSet?.id ?? null);
   }, [isFilterSetChanged, dataMaskSelected, filterSetFilterValues]);
 
+  const hasInvalidData = (id: string, filtersSet?: FilterSet) =>
+    !filterValues.find(filter => filter?.id === id) ||
+    !areObjectsEqual(filters[id], filtersSet?.nativeFilters?.[id]);
+
   const takeFilterSet = (id: string, target?: HTMLElement) => {
     const ignoreSelectorHeader = 'ant-collapse-header';
     const ignoreSelectorDropdown = 'ant-dropdown-menu-item';
@@ -125,15 +129,14 @@ const FilterSets: React.FC<FilterSetsProps> = ({
     if (!id) {
       return;
     }
+
     const filtersSet = filterSets[id];
+
     Object.values(filtersSet?.dataMask?.nativeFilters ?? []).forEach(
       dataMask => {
         const { extraFormData, currentState, id } = dataMask as MaskWithId;
         // if we have extra filters in filter set don't add them to selected data mask || if we have filters with changed metadata not apply them
-        if (
-          !filterValues.find(filter => filter?.id === id) ||
-          !areObjectsEqual(filters[id], filtersSet?.nativeFilters?.[id])
-        ) {
+        if (hasInvalidData(id, filtersSet)) {
           return;
         }
         onFilterSelectionChange(
@@ -151,10 +154,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
       .filter(dataMask => {
         const { id } = dataMask as MaskWithId;
         // if we have extra filters in filter set don't add them to selected data mask || if we have filters with changed metadata not apply them
-        return !(
-          !filterValues.find(filter => filter?.id === id) ||
-          !areObjectsEqual(filters[id], filtersSet?.nativeFilters?.[id])
-        );
+        return !hasInvalidData(id, filtersSet);
       })
       .reduce((prev, next) => ({ ...prev, [next.id]: filters[next.id] }), {});
 
