@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import { useDrop } from 'react-dnd';
-import { isEmpty } from 'lodash';
 import { t, useTheme } from '@superset-ui/core';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import {
@@ -30,9 +29,10 @@ import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/t
 import Icon from 'src/components/Icon';
 import { DndColumnSelectProps } from './types';
 
-export default function DndSelectLabel<T, O>(
-  props: DndColumnSelectProps<T, O>,
-) {
+export default function DndSelectLabel<T, O>({
+  displayGhostButton = true,
+  ...props
+}: DndColumnSelectProps<T, O>) {
   const theme = useTheme();
 
   const [{ isOver, canDrop }, datasourcePanelDrop] = useDrop({
@@ -51,11 +51,11 @@ export default function DndSelectLabel<T, O>(
     }),
   });
 
-  function renderPlaceHolder() {
+  function renderGhostButton() {
     return (
       <AddControlLabel cancelHover>
         <Icon name="plus-small" color={theme.colors.grayscale.light1} />
-        {t(props.placeholderText || 'Drop columns')}
+        {t(props.ghostButtonText || 'Drop columns')}
       </AddControlLabel>
     );
   }
@@ -66,7 +66,8 @@ export default function DndSelectLabel<T, O>(
         <ControlHeader {...props} />
       </HeaderContainer>
       <DndLabelsContainer canDrop={canDrop} isOver={isOver}>
-        {isEmpty(props.values) ? renderPlaceHolder() : props.valuesRenderer()}
+        {props.valuesRenderer()}
+        {displayGhostButton && renderGhostButton()}
       </DndLabelsContainer>
     </div>
   );
