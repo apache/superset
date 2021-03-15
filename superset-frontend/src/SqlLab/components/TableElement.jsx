@@ -283,6 +283,7 @@ class TableElement extends React.PureComponent {
         {...this.props}
         header={this.renderHeader()}
         className="TableElement"
+        forceRender="true"
       >
         {this.renderBody()}
       </Collapse.Panel>
