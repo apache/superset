@@ -484,15 +484,15 @@ type FavoriteStatusResponse = {
 };
 
 const favoriteApis = {
-  chart: makeApi<string, FavoriteStatusResponse>({
-    requestType: 'search',
+  chart: makeApi<Array<string | number>, FavoriteStatusResponse>({
+    requestType: 'rison',
     method: 'GET',
-    endpoint: '/api/v1/chart/favorite_status',
+    endpoint: '/api/v1/chart/favorite_status/',
   }),
-  dashboard: makeApi<string, FavoriteStatusResponse>({
-    requestType: 'search',
+  dashboard: makeApi<Array<string | number>, FavoriteStatusResponse>({
+    requestType: 'rison',
     method: 'GET',
-    endpoint: '/api/v1/dashboard/favorite_status',
+    endpoint: '/api/v1/dashboard/favorite_status/',
   }),
 };
 
@@ -510,7 +510,7 @@ export function useFavoriteStatus(
     if (!ids.length) {
       return;
     }
-    favoriteApis[type](`q=${rison.encode(ids)}`).then(
+    favoriteApis[type](ids).then(
       ({ result }) => {
         const update = result.reduce((acc, element) => {
           acc[element.id] = element.value;
@@ -524,7 +524,7 @@ export function useFavoriteStatus(
         ),
       ),
     );
-  }, [ids]);
+  }, [ids, type, handleErrorMsg]);
 
   const saveFaveStar = useCallback(
     (id: number, isStarred: boolean) => {
