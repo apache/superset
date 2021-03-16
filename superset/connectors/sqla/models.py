@@ -992,7 +992,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         # Since orderby may use adhoc metrics, too; we need to process them first
         orderby_exprs: List[ColumnElement] = []
         for orig_col, ascending in orderby:
-            col: Optional[Union[Metric, ColumnElement]] = orig_col
+            col: Union[Metric, ColumnElement] = orig_col
             if isinstance(col, dict):
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists
