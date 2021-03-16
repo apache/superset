@@ -20,8 +20,8 @@ import React from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { render, screen } from 'spec/helpers/testing-library';
+import { DndItemType } from 'src/explore/components/DndItemType';
 import DatasourcePanelDragWrapper from '.';
-import { DndItemType } from '../../DndItemType';
 
 test('should render', () => {
   render(
