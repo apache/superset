@@ -491,6 +491,11 @@ nvm install
 nvm use
 ```
 
+Or if you use the default macOS starting with Catalina shell `zsh`, try:
+```zsh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh)"
+```
+
 For those interested, you may also try out [avn](https://github.com/nvm-sh/nvm#deeper-shell-integration) to automatically switch to the node version that is required to run Superset frontend.
 
 We have upgraded our `package-lock.json` to use `lockfileversion: 2` from npm 7, so please make sure you have installed npm 7, too:
