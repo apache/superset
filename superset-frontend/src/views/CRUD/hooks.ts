@@ -38,10 +38,16 @@ interface ListViewResourceState<D extends object = any> {
   lastFetched?: string;
 }
 
-const parsedErrorMessage = (errorMessage: Record<string, string[]> | string) =>
-  Object.entries(errorMessage)
+const parsedErrorMessage = (
+  errorMessage: Record<string, string[]> | string,
+) => {
+  if (typeof errorMessage === 'string') {
+    return errorMessage;
+  }
+  return Object.entries(errorMessage)
     .map(([key, value]) => `(${key}) ${value.join(', ')}`)
     .join('\n');
+};
 
 export function useListViewResource<D extends object = any>(
   resource: string,
@@ -624,14 +630,8 @@ export const testDatabaseConnection = (
     () => {
       addSuccessToast(t('Connection looks good!'));
     },
-    createErrorHandler((errMsg: Record<string, string[]>) => {
-      handleErrorMsg(
-        t(
-          `${t('ERROR: ')}${
-            typeof errMsg === 'string' ? errMsg : parsedErrorMessage(errMsg)
-          }`,
-        ),
-      );
+    createErrorHandler((errMsg: Record<string, string[]> | string) => {
+      handleErrorMsg(t(`${t('ERROR: ')}${parsedErrorMessage(errMsg)}`));
     }),
   );
 };
