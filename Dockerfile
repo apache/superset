@@ -90,6 +90,7 @@ RUN useradd --user-group --no-create-home --no-log-init --shell /bin/bash supers
         && apt-get install -y --no-install-recommends \
             build-essential \
             default-libmysqlclient-dev \
+            libsasl2-modules-gssapi-mit \
             libpq-dev \
         && rm -rf /var/lib/apt/lists/*
 
