@@ -56,6 +56,7 @@ const mapStateToProps = (
     datasources,
     dashboardFilters,
     nativeFilters,
+    dashboardInfo,
     charts,
     dataMask,
     dashboardLayout: { present },
@@ -75,6 +76,7 @@ const mapStateToProps = (
     chartId,
     charts,
     present,
+    dashboardInfo.metadata?.chart_configuration,
   );
 
   const indicators = uniqWith(

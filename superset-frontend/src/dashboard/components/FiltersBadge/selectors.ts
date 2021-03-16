@@ -18,7 +18,10 @@
  */
 import { TIME_FILTER_MAP } from 'src/explore/constants';
 import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
-import { NativeFiltersState } from 'src/dashboard/reducers/types';
+import {
+  ChartConfiguration,
+  NativeFiltersState,
+} from 'src/dashboard/reducers/types';
 import { DataMaskStateWithId } from 'src/dataMask/types';
 import { Layout } from '../../types';
 import { getTreeCheckedItems } from '../nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/utils';
@@ -179,6 +182,7 @@ export const selectNativeIndicatorsForChart = (
   chartId: number,
   charts: any,
   dashboardLayout: Layout,
+  chartConfiguration: ChartConfiguration,
 ): Indicator[] => {
   const chart = charts[chartId];
 
@@ -207,26 +211,55 @@ export const selectNativeIndicatorsForChart = (
     return IndicatorStatus.Unset;
   };
 
-  const indicators = Object.values(nativeFilters.filters).map(nativeFilter => {
-    const isAffectedByScope = getTreeCheckedItems(
-      nativeFilter.scope,
-      dashboardLayout,
-    ).some(
-      layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
-    );
-    const column = nativeFilter.targets[0]?.column?.name;
-    const dataMaskNativeFilters = dataMask.nativeFilters?.[nativeFilter.id];
-    let value = dataMaskNativeFilters?.currentState?.value ?? [];
-    if (!Array.isArray(value)) {
-      value = [value];
-    }
-    return {
-      column,
-      name: nativeFilter.name,
-      path: [nativeFilter.id],
-      status: getStatus(value, isAffectedByScope, column),
-      value,
-    };
-  });
-  return indicators;
+  const nativeFilterIndicators = Object.values(nativeFilters.filters).map(
+    nativeFilter => {
+      const isAffectedByScope = getTreeCheckedItems(
+        nativeFilter.scope,
+        dashboardLayout,
+      ).some(
+        layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
+      );
+      const column = nativeFilter.targets[0]?.column?.name;
+      const dataMaskNativeFilters = dataMask.nativeFilters?.[nativeFilter.id];
+      let value = dataMaskNativeFilters?.currentState?.value ?? [];
+      if (!Array.isArray(value)) {
+        value = [value];
+      }
+      return {
+        column,
+        name: nativeFilter.name,
+        path: [nativeFilter.id],
+        status: getStatus(value, isAffectedByScope, column),
+        value,
+      };
+    },
+  );
+
+  const crossFilterIndicators = Object.values(chartConfiguration).map(
+    chartConfig => {
+      const scope = chartConfig?.crossFilters?.scope;
+      const isAffectedByScope = getTreeCheckedItems(
+        scope,
+        dashboardLayout,
+      ).some(
+        layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
+      );
+
+      const dataMaskCrossFilters = dataMask.crossFilters?.[chartConfig.id];
+      let value = dataMaskCrossFilters?.currentState?.value ?? [];
+      if (!Array.isArray(value)) {
+        value = [value];
+      }
+      return {
+        name: Object.values(dashboardLayout).find(
+          layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
+        )?.sliceName,
+        path: [chartConfig.id],
+        status: getStatus(value, isAffectedByScope),
+        value,
+      };
+    },
+  );
+
+  return crossFilterIndicators.concat(nativeFilterIndicators);
 };
