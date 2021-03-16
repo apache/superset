@@ -26,7 +26,7 @@ import { FilterValue } from 'src/components/ListView/types';
 import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { FavoriteStatus, ImportResourceName } from './types';
+import { FavoriteStatus, ImportResourceName, DatabaseObject } from './types';
 
 interface ListViewResourceState<D extends object = any> {
   loading: boolean;
@@ -37,6 +37,17 @@ interface ListViewResourceState<D extends object = any> {
   bulkSelectEnabled: boolean;
   lastFetched?: string;
 }
+
+const parsedErrorMessage = (
+  errorMessage: Record<string, string[]> | string,
+) => {
+  if (typeof errorMessage === 'string') {
+    return errorMessage;
+  }
+  return Object.entries(errorMessage)
+    .map(([key, value]) => `(${key}) ${value.join(', ')}`)
+    .join('\n');
+};
 
 export function useListViewResource<D extends object = any>(
   resource: string,
@@ -188,7 +199,7 @@ export function useListViewResource<D extends object = any>(
 interface SingleViewResourceState<D extends object = any> {
   loading: boolean;
   resource: D | null;
-  error: string | null;
+  error: string | Record<string, string[]> | null;
 }
 
 export function useSingleViewResource<D extends object = any>(
@@ -224,12 +235,12 @@ export function useSingleViewResource<D extends object = any>(
             });
             return json.result;
           },
-          createErrorHandler(errMsg => {
+          createErrorHandler((errMsg: Record<string, string[]>) => {
             handleErrorMsg(
               t(
                 'An error occurred while fetching %ss: %s',
                 resourceLabel,
-                JSON.stringify(errMsg),
+                parsedErrorMessage(errMsg),
               ),
             );
 
@@ -265,12 +276,12 @@ export function useSingleViewResource<D extends object = any>(
             });
             return json.id;
           },
-          createErrorHandler(errMsg => {
+          createErrorHandler((errMsg: Record<string, string[]>) => {
             handleErrorMsg(
               t(
                 'An error occurred while creating %ss: %s',
                 resourceLabel,
-                JSON.stringify(errMsg),
+                parsedErrorMessage(errMsg),
               ),
             );
 
@@ -439,7 +450,7 @@ export function useImportResource(
                 t(
                   'An error occurred while importing %s: %s',
                   resourceLabel,
-                  errMsg,
+                  parsedErrorMessage(errMsg),
                 ),
               );
               return false;
@@ -449,7 +460,7 @@ export function useImportResource(
                 t(
                   'An error occurred while importing %s: %s',
                   resourceLabel,
-                  JSON.stringify(errMsg),
+                  parsedErrorMessage(errMsg),
                 ),
               );
             } else {
@@ -604,4 +615,23 @@ export const copyQueryLink = (
     .catch(() => {
       addDangerToast(t('Sorry, your browser does not support copying.'));
     });
+};
+
+export const testDatabaseConnection = (
+  connection: DatabaseObject,
+  handleErrorMsg: (errorMsg: string) => void,
+  addSuccessToast: (arg0: string) => void,
+) => {
+  SupersetClient.post({
+    endpoint: 'api/v1/database/test_connection',
+    body: JSON.stringify(connection),
+    headers: { 'Content-Type': 'application/json' },
+  }).then(
+    () => {
+      addSuccessToast(t('Connection looks good!'));
+    },
+    createErrorHandler((errMsg: Record<string, string[]> | string) => {
+      handleErrorMsg(t(`${t('ERROR: ')}${parsedErrorMessage(errMsg)}`));
+    }),
+  );
 };
