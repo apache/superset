@@ -76,7 +76,7 @@ config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
-VIRTUAL_TABLE_ALIAS = "expr_qry"
+VIRTUAL_TABLE_ALIAS = "virtual_table"
 
 
 class SqlaQuery(NamedTuple):
@@ -1360,7 +1360,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         errors = None
         error_message = None
 
-        def assign_column_label(df: pd.DataFrame) -> None:
+        def assign_column_label(df: pd.DataFrame) -> Optional[pd.DataFrame]:
             """
             Some engines change the case or generate bespoke column names, either by
             default or due to lack of support for aliasing. This function ensures that
@@ -1371,7 +1371,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             as metrics or groupby columns, but need to present in the SQL `select`,
             filtering by `labels_expected` make sure we only return columns users want.
 
-            :param df: Rriginal DataFrame returned by the engine
+            :param df: Original DataFrame returned by the engine
             :return: Mutated DataFrame
             """
             labels_expected = query_str_ext.labels_expected
