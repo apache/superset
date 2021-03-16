@@ -192,17 +192,7 @@ DEFAULT_FEATURE_FLAGS = {
 }
 ```
 
-Here is a list of flags and descriptions:
-
-- `ENABLE_EXPLORE_JSON_CSRF_PROTECTION`: For some security concerns, you may need to enforce CSRF
-  protection on all query request to the `explore_json` endpoint. When
-  `ENABLE_EXPLORE_JSON_CSRF_PROTECTION` is set to true, your users cannot make GET request to
-  `explore_json`. The default value for this feature is `False` and `explore_json` will accept both
-  GET and POST request. See [PR 7935](https://github.com/apache/superset/pull/7935) for
-  more details.
-
-- `PRESTO_EXPAND_DATA`: When this feature is enabled, nested types in Presto will be expanded into
-  extra columns and / or arrays. This is experimental, and doesn’t work with all nested types.
+A current list of feature flags can be found in `RESOURCES/FEATURE_FLAGS.md`
 
 ### SIP 15
 
