@@ -297,8 +297,8 @@ export const bootstrapDashboardState = (
   }
 
   const nativeFilters = getInitialNativeFilterState({
-    filterConfig: metadata.filter_configuration || [],
-    filterSetsConfig: metadata.filter_sets_configuration || [],
+    filterConfig: metadata?.filter_configuration || [],
+    filterSetsConfig: metadata?.filter_sets_configuration || [],
   });
 
   const { roles } = getState().user;
