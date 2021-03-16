@@ -31,10 +31,15 @@ jest.mock('src/components/AsyncSelect', () => ({
       data-placeholder={props.placeholder}
       data-multi={props.multi ? 'true' : 'false'}
     >
-      <button onClick={() => props.onChange(props.multi ? [] : {})}>
+      <button
+        type="button"
+        onClick={() => props.onChange(props.multi ? [] : {})}
+      >
         onChange
       </button>
-      <button onClick={() => props.mutator()}>mutator</button>
+      <button type="button" onClick={() => props.mutator()}>
+        mutator
+      </button>
 
       <div data-test="valueRenderer">
         {props.valueRenderer({ label: 'valueRenderer' })}
