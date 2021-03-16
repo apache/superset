@@ -160,7 +160,9 @@ export const getRecentAcitivtyObjs = (
 export const createFetchRelated = createFetchResourceMethod('related');
 export const createFetchDistinct = createFetchResourceMethod('distinct');
 
-export function createErrorHandler(handleErrorFunc: (errMsg?: string) => void) {
+export function createErrorHandler(
+  handleErrorFunc: (errMsg?: string | Record<string, string[]>) => void,
+) {
   return async (e: SupersetClientResponse | string) => {
     const parsedError = await getClientErrorObject(e);
     logging.error(e);

@@ -116,3 +116,13 @@ export enum QueryObjectColumns {
 }
 
 export type ImportResourceName = 'chart' | 'dashboard' | 'database' | 'dataset';
+
+export type DatabaseObject = {
+  allow_run_async?: boolean;
+  database_name?: string;
+  encrypted_extra?: string;
+  extra?: string;
+  impersonate_user?: boolean;
+  server_cert?: string;
+  sqlalchemy_uri: string;
+};
