@@ -610,7 +610,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except DatabaseTestConnectionFailedError as ex:
             return self.response_422(message=str(ex))
         except SupersetErrorException as ex:
-            return self.response(ex.status, message=[ex.error])
+            return self.response(ex.status, message=ex.error)
 
     @expose("/<int:pk>/related_objects/", methods=["GET"])
     @protect()
