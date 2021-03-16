@@ -24,6 +24,7 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
 from superset.commands.base import BaseCommand
+from superset.commands.exceptions import CommandInvalidError
 from superset.databases.commands.exceptions import (
     DatabaseSecurityUnsafeError,
     DatabaseTestConnectionDriverError,
@@ -142,7 +143,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 action=f"test_connection_error.{ex.__class__.__name__}",
                 engine=database.db_engine_spec.__name__,
             )
-            raise DatabaseTestConnectionUnexpectedError()
+            raise DatabaseTestConnectionUnexpectedError(str(ex))
 
     def validate(self) -> None:
         database_name = self._properties.get("database_name")

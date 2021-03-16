@@ -47,8 +47,7 @@ class DatabaseExistsValidationError(ValidationError):
 class DatabaseRequiredFieldValidationError(ValidationError):
     def __init__(self, field_name: str) -> None:
         super().__init__(
-            [_("Field is required")],
-            field_name=field_name,
+            [_("Field is required")], field_name=field_name,
         )
 
 
@@ -101,8 +100,7 @@ class DatabaseUpdateFailedError(UpdateFailedError):
 
 
 class DatabaseConnectionFailedError(  # pylint: disable=too-many-ancestors
-    DatabaseCreateFailedError,
-    DatabaseUpdateFailedError,
+    DatabaseCreateFailedError, DatabaseUpdateFailedError,
 ):
     message = _("Connection failed, please check your connection settings")
 

@@ -20,7 +20,6 @@ import subprocess
 
 from sqlalchemy.engine.url import make_url
 
-
 PORT_TIMEOUT = 5
 PING_TIMEOUT = 5
 
