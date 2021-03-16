@@ -32,6 +32,8 @@ except ModuleNotFoundError:
     exit(1)
 
 SUPERSET_REPO = "apache/superset"
+SUPERSET_PULL_REQUEST_TYPES = r"^(fix|feat|chore|refactor|docs|build|ci|/gmi)"
+SUPERSET_RISKY_LABELS = r"^(blocking|risk|hold|revert|security vulnerability)"
 
 
 @dataclass
@@ -122,10 +124,9 @@ class GitChangeLog:
 
     def _has_commit_migrations(self, git_sha: str) -> bool:
         commit = self._superset_repo.get_commit(sha=git_sha)
-        for file in commit.files:
-            if "superset/migrations/versions/" in file.filename:
-                return True
-        return False
+        return any(
+            "superset/migrations/versions/" in file.filename for file in commit.files
+        )
 
     def _get_pull_request_details(self, git_log: GitLog) -> Dict[str, Any]:
         pr_number = git_log.pr_number
@@ -133,16 +134,13 @@ class GitChangeLog:
             detail = self._pr_logs_with_details.get(pr_number)
             if detail:
                 return detail
-            else:
-                pr_info = self._fetch_github_pr(pr_number)
+            pr_info = self._fetch_github_pr(pr_number)
 
         has_migrations = self._has_commit_migrations(git_log.sha)
         title = pr_info.title if pr_info else git_log.message
-        pr_type = re.match(r"^(fix|feat|chore|refactor|docs|build|ci|/gmi)", title)
+        pr_type = re.match(SUPERSET_PULL_REQUEST_TYPES, title)
         if pr_type:
             pr_type = pr_type.group().strip('"')
-        else:
-            pr_type = None
 
         labels = (" | ").join([label.name for label in pr_info.labels])
         is_risky = self._is_risk_pull_request(pr_info.labels)
@@ -162,9 +160,7 @@ class GitChangeLog:
 
     def _is_risk_pull_request(self, labels: List[Any]) -> bool:
         for label in labels:
-            risk_label = re.match(
-                r"^(blocking|risk|hold|revert|security vulnerability)", label.name
-            )
+            risk_label = re.match(SUPERSET_RISKY_LABELS, label.name)
             if risk_label is not None:
                 return True
         return False
@@ -368,7 +364,7 @@ def compare(base_parameters: BaseParameters) -> None:
     help="The github access token,"
     " if not provided will try to fetch from GITHUB_TOKEN env var",
 )
-@click.option("--risk", is_flag=True, help="show all pull request with risky labels")
+@click.option("--risk", is_flag=True, help="show all pull requests with risky labels")
 @click.pass_obj
 def change_log(
     base_parameters: BaseParameters, csv: str, access_token: str, risk: bool
