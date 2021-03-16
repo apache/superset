@@ -96,7 +96,7 @@ setup(
         "python-dotenv",
         "python-geohash",
         "pyarrow>=3.0.0, <3.1",
-        "pyyaml>=5.1",
+        "pyyaml>=5.4",
         "PyJWT>=1.7.1, <2",
         "redis",
         "retry>=0.9.2",
