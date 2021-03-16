@@ -33,6 +33,12 @@ const mockStore = configureStore([thunk]);
 const store = mockStore({});
 let isFeatureEnabledMock;
 
+const standardProvider = ({ children }) => (
+  <ThemeProvider theme={supersetTheme}>
+    <Provider store={store}>{children}</Provider>
+  </ThemeProvider>
+);
+
 const defaultProps = {
   queryEditor: {
     dbId: 0,
@@ -72,13 +78,9 @@ describe('ShareSqlLabQuery', () => {
 
     it('calls storeQuery() with the query when getCopyUrl() is called', async () => {
       await act(async () => {
-        render(
-          <ThemeProvider theme={supersetTheme}>
-            <Provider store={store}>
-              <ShareSqlLabQuery {...defaultProps} />
-            </Provider>
-          </ThemeProvider>,
-        );
+        render(<ShareSqlLabQuery {...defaultProps} />, {
+          wrapper: standardProvider,
+        });
       });
       const button = screen.getByRole('button');
       const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
@@ -101,13 +103,9 @@ describe('ShareSqlLabQuery', () => {
 
     it('does not call storeQuery() with the query when getCopyUrl() is called and feature is not enabled', async () => {
       await act(async () => {
-        render(
-          <ThemeProvider theme={supersetTheme}>
-            <Provider store={store}>
-              <ShareSqlLabQuery {...defaultProps} />
-            </Provider>
-          </ThemeProvider>,
-        );
+        render(<ShareSqlLabQuery {...defaultProps} />, {
+          wrapper: standardProvider,
+        });
       });
       const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
       const button = screen.getByRole('button');
@@ -124,13 +122,9 @@ describe('ShareSqlLabQuery', () => {
         },
       };
       await act(async () => {
-        render(
-          <ThemeProvider theme={supersetTheme}>
-            <Provider store={store}>
-              <ShareSqlLabQuery {...updatedProps} />
-            </Provider>
-          </ThemeProvider>,
-        );
+        render(<ShareSqlLabQuery {...updatedProps} />, {
+          wrapper: standardProvider,
+        });
       });
       const button = screen.getByRole('button', { name: /copy link/i });
       const style = window.getComputedStyle(button);

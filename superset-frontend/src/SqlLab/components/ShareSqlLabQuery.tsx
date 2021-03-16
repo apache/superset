@@ -36,7 +36,7 @@ interface ShareSqlLabQueryPropTypes {
     schema: string;
     autorun: boolean;
     sql: string;
-    remoteId: number;
+    remoteId: number | null;
   };
   addDangerToast: (msg: string) => void;
 }
@@ -133,7 +133,7 @@ function ShareSqlLabQuery({
     >
       {canShare ? (
         <CopyToClipboard
-          getText={(callback: any) => getCopyUrl(callback)}
+          getText={getCopyUrl}
           wrapped={false}
           copyNode={buildButton()}
         />
