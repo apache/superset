@@ -17,7 +17,7 @@
 import json
 from datetime import datetime, timedelta
 from typing import List, Optional
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from contextlib2 import contextmanager
@@ -767,6 +767,32 @@ def test_slack_chart_alert(screenshot_mock, email_mock, create_alert_email_chart
         smtp_images = email_mock.call_args[1]["images"]
         assert smtp_images[list(smtp_images.keys())[0]] == screenshot
         # Assert logs are correct
+        assert_log(ReportState.SUCCESS)
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_slack_chart"
+)
+@patch("superset.reports.notifications.slack.WebClient")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_slack_token_callable_chart_report(
+    screenshot_mock, slack_client_mock_class, create_report_slack_chart
+):
+    """
+    ExecuteReport Command: Test chart slack alert (slack token callable)
+    """
+    slack_client_mock_class.return_value = Mock()
+    app.config["SLACK_API_TOKEN"] = Mock(return_value="cool_code")
+    # setup screenshot mock
+    screenshot = read_fixture("sample.png")
+    screenshot_mock.return_value = screenshot
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        AsyncExecuteReportScheduleCommand(
+            create_report_slack_chart.id, datetime.utcnow()
+        ).run()
+        app.config["SLACK_API_TOKEN"].assert_called_once()
+        assert slack_client_mock_class.called_with(token="cool_code", proxy="")
         assert_log(ReportState.SUCCESS)
 
 
