@@ -18,8 +18,6 @@ import platform
 import socket
 import subprocess
 
-from sqlalchemy.engine.url import make_url
-
 PORT_TIMEOUT = 5
 PING_TIMEOUT = 5
 
@@ -28,6 +26,7 @@ def is_port_open(host: str, port: int) -> bool:
     """
     Test if a given port in a host is open.
     """
+    # pylint: disable=invalid-name
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(PORT_TIMEOUT)
     try:

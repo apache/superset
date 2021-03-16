@@ -24,7 +24,6 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
 from superset.commands.base import BaseCommand
-from superset.commands.exceptions import CommandInvalidError
 from superset.databases.commands.exceptions import (
     DatabaseSecurityUnsafeError,
     DatabaseTestConnectionDriverError,
@@ -33,7 +32,7 @@ from superset.databases.commands.exceptions import (
     DatabaseTestConnectionUnexpectedError,
 )
 from superset.databases.dao import DatabaseDAO
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger
 from superset.models.core import Database
@@ -67,7 +66,9 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 if not is_port_open(parsed_uri.host, parsed_uri.port):
                     if is_host_up(parsed_uri.host):
                         raise DatabaseTestConnectionNetworkError(
-                            error_type=SupersetErrorType.TEST_CONNECTION_PORT_CLOSED_ERROR,
+                            error_type=(
+                                SupersetErrorType.TEST_CONNECTION_PORT_CLOSED_ERROR
+                            ),
                             message=_(
                                 "The host %(host)s is up, but the port %(port)s is "
                                 "closed.",
