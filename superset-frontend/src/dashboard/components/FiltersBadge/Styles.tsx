@@ -95,6 +95,11 @@ export const Title = styled.span<TitleProps>`
     return 'auto';
   }};
   color: ${({ color, theme }) => color || theme.colors.grayscale.light5};
+  display: flex;
+  align-items: center;
+  & > * {
+    margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
 `;
 
 export const ItemIcon = styled.i`

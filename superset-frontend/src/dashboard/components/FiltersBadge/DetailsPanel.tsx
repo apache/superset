@@ -27,6 +27,7 @@ import {
 import { Popover } from 'src/common/components/index';
 import Collapse from 'src/common/components/Collapse';
 import { Global } from '@emotion/core';
+import Icon from 'src/components/Icon';
 import {
   Indent,
   Item,
@@ -38,7 +39,6 @@ import {
 } from './Styles';
 import { Indicator } from './selectors';
 import { getFilterValueForDisplay } from '../nativeFilters/FilterBar/FilterSets/utils';
-import Icon from '../../../components/Icon';
 
 export interface IndicatorProps {
   indicator: Indicator;
@@ -83,21 +83,32 @@ const DetailsPanelPopover = ({
 }: DetailsPanelProps) => {
   const theme = useTheme();
 
-  function defaultActivePanel() {
-    if (incompatibleIndicators.length) return 'incompatible';
-    if (appliedIndicators.length) return 'applied';
-    return 'unset';
-  }
+  const getDefaultActivePanel = () => {
+    const result = [];
+    if (incompatibleIndicators.length) return ['incompatible'];
+    if (appliedCrossFilterIndicators.length) {
+      result.push('appliedCrossFilters');
+    }
+    if (appliedIndicators.length) {
+      result.push('applied');
+    }
+    if (result.length) {
+      return result;
+    }
+    return ['unset'];
+  };
 
   const [activePanels, setActivePanels] = useState<string[]>(() => [
-    defaultActivePanel(),
+    ...getDefaultActivePanel(),
   ]);
 
   function handlePopoverStatus(isOpen: boolean) {
     // every time the popover opens, make sure the most relevant panel is active
     if (isOpen) {
-      if (!activePanels.includes(defaultActivePanel())) {
-        setActivePanels([...activePanels, defaultActivePanel()]);
+      if (
+        !activePanels.find(panel => getDefaultActivePanel().includes(panel))
+      ) {
+        setActivePanels([...activePanels, ...getDefaultActivePanel()]);
       }
     }
   }
@@ -176,7 +187,10 @@ const DetailsPanelPopover = ({
               key="appliedCrossFilters"
               header={
                 <Title bold color={theme.colors.primary.light1}>
-                  <Icon name="cross_filter" />
+                  <Icon
+                    name="cross-filter"
+                    css={{ fill: theme.colors.primary.light1 }}
+                  />
                   {t(
                     'Applied Cross Filters (%d)',
                     appliedCrossFilterIndicators.length,

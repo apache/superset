@@ -206,7 +206,7 @@ export const selectNativeIndicatorsForChart = (
     if (!isAffectedByScope) {
       return IndicatorStatus.Unset;
     }
-    if (type === DataMaskType.CrossFilters) {
+    if (type === DataMaskType.CrossFilters && hasValue) {
       return IndicatorStatus.CrossFilterApplied;
     }
     if (!column && hasValue) {
