@@ -19,7 +19,7 @@
 import React, { FC } from 'react';
 import { FormInstance } from 'antd/lib/form';
 import FilterScope from '../nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/FilterScope';
-import { setFilterFieldValues } from './utils';
+import { setCrossFilterFieldValues } from './utils';
 import { Scope } from '../nativeFilters/types';
 import { useForceUpdate } from '../nativeFilters/FiltersConfigModal/FiltersConfigForm/utils';
 import { CrossFilterScopingFormType } from './types';
@@ -39,7 +39,7 @@ const CrossFilterScopingForm: FC<CrossFilterScopingFormProps> = ({
   return (
     <FilterScope
       updateFormValues={(values: any) => {
-        setFilterFieldValues(form, {
+        setCrossFilterFieldValues(form, {
           ...values,
         });
       }}

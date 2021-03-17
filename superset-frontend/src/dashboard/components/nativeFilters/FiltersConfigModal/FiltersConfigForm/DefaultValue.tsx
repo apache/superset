@@ -19,7 +19,7 @@
 import React, { FC } from 'react';
 import { t, SuperChart, Behavior } from '@superset-ui/core';
 import { FormInstance } from 'antd/lib/form';
-import { setFilterFieldValues } from './utils';
+import { setNativeFilterFieldValues } from './utils';
 import { StyledFormItem, StyledLabel } from './FiltersConfigForm';
 import { Filter } from '../../types';
 import { NativeFiltersForm } from '../types';
@@ -68,7 +68,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
           chartType={formFilter?.filterType}
           hooks={{
             setDataMask: ({ nativeFilters }) => {
-              setFilterFieldValues(form, filterId, {
+              setNativeFilterFieldValues(form, filterId, {
                 defaultValue: nativeFilters?.currentState?.value,
               });
               forceUpdate();
