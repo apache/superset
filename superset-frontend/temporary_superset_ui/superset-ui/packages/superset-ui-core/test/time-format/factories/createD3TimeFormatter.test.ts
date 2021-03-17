@@ -62,7 +62,7 @@ describe('createD3TimeFormatter(config)', () => {
       const formatterInUTC = createD3TimeFormatter({
         formatString: TimeFormats.DATABASE_DATETIME,
       });
-      const offset = new Date().getTimezoneOffset(); // in minutes
+      const offset = new Date(PREVIEW_TIME.valueOf()).getTimezoneOffset(); // in minutes
       const expected =
         offset === 0
           ? '2017-02-14 11:22:33'
@@ -90,7 +90,7 @@ describe('createD3TimeFormatter(config)', () => {
         formatString: '%c',
         locale: thLocale,
       });
-      const offset = new Date().getTimezoneOffset();
+      const offset = new Date(PREVIEW_TIME.valueOf()).getTimezoneOffset();
       const expected =
         offset === 0
           ? 'อา. 20 ธ.ค. 2015 00:00:00'
