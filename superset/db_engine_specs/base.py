@@ -159,7 +159,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             GenericDataType.NUMERIC,
         ),
         (
-            re.compile(r"^integer", re.IGNORECASE),
+            re.compile(r"^int.*", re.IGNORECASE),
             types.Integer(),
             GenericDataType.NUMERIC,
         ),
@@ -222,7 +222,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ),
         (re.compile(r"^time", re.IGNORECASE), types.Time(), GenericDataType.TEMPORAL,),
         (
-            re.compile(r"^boolean", re.IGNORECASE),
+            re.compile(r"^bool.*", re.IGNORECASE),
             types.Boolean(),
             GenericDataType.BOOLEAN,
         ),
