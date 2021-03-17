@@ -48,6 +48,13 @@ export const Pill = styled.div`
     background: ${({ theme }) => theme.colors.grayscale.dark1};
   }
 
+  &.has-cross-filters {
+    background: ${({ theme }) => theme.colors.primary.base};
+    &:hover {
+      background: ${({ theme }) => theme.colors.primary.dark1};
+    }
+  }
+
   &.has-incompatible-filters {
     color: ${({ theme }) => theme.colors.grayscale.dark2};
     background: ${({ theme }) => theme.colors.alert.base};
@@ -71,15 +78,6 @@ export const Pill = styled.div`
       background: ${({ theme }) => theme.colors.grayscale.base};
     }
   }
-`;
-
-export const WarningPill = styled(Pill)`
-  background: ${({ theme }) => theme.colors.alert.base};
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-`;
-
-export const UnsetPill = styled(Pill)`
-  background: ${({ theme }) => theme.colors.grayscale.light1};
 `;
 
 export interface TitleProps {

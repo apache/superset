@@ -19,11 +19,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import { t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/common/components/Tooltip';
 import EditableTitle from '../../components/EditableTitle';
 import SliceHeaderControls from './SliceHeaderControls';
 import FiltersBadge from '../containers/FiltersBadge';
+import Icon from '../../components/Icon';
 
 const propTypes = {
   innerRef: PropTypes.func,
@@ -51,6 +52,7 @@ const propTypes = {
   addDangerToast: PropTypes.func.isRequired,
   handleToggleFullSize: PropTypes.func.isRequired,
   chartStatus: PropTypes.string.isRequired,
+  crossFilterCurrentState: PropTypes.object,
 };
 
 const defaultProps = {
@@ -62,6 +64,7 @@ const defaultProps = {
   exportCSV: () => ({}),
   editMode: false,
   annotationQuery: {},
+  crossFilterCurrentState: {},
   annotationError: {},
   cachedDttm: null,
   updatedDttm: null,
@@ -75,6 +78,13 @@ const defaultProps = {
 
 const annoationsLoading = t('Annotation layers are still loading.');
 const annoationsError = t('One ore more annotation layers failed loading.');
+
+const CrossFilterIcon = styled(Icon)`
+  fill: ${({ theme }) => theme.colors.grayscale.light5};
+  & circle {
+    fill: ${({ theme }) => theme.colors.primary.base};
+  }
+`;
 
 class SliceHeader extends React.PureComponent {
   render() {
@@ -102,6 +112,7 @@ class SliceHeader extends React.PureComponent {
       addSuccessToast,
       addDangerToast,
       handleToggleFullSize,
+      crossFilterCurrentState,
       isFullSize,
       chartStatus,
     } = this.props;
@@ -143,6 +154,9 @@ class SliceHeader extends React.PureComponent {
         <div className="header-controls">
           {!editMode && (
             <>
+              {crossFilterCurrentState?.value && (
+                <CrossFilterIcon name="cross-filter-badge" />
+              )}
               <FiltersBadge chartId={slice.slice_id} />
               <SliceHeaderControls
                 slice={slice}

@@ -70,6 +70,7 @@ const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
   ownCurrentState: PropTypes.object,
+  crossFilterCurrentState: PropTypes.object,
 };
 
 const defaultProps = {
@@ -261,6 +262,7 @@ export default class Chart extends React.Component {
       addSuccessToast,
       addDangerToast,
       ownCurrentState,
+      crossFilterCurrentState,
       handleToggleFullSize,
       isFullSize,
     } = this.props;
@@ -315,6 +317,7 @@ export default class Chart extends React.Component {
           handleToggleFullSize={handleToggleFullSize}
           isFullSize={isFullSize}
           chartStatus={chart.chartStatus}
+          crossFilterCurrentState={crossFilterCurrentState}
         />
 
         {/*
@@ -362,6 +365,7 @@ export default class Chart extends React.Component {
             dashboardId={dashboardId}
             initialValues={initialValues}
             formData={formData}
+            crossFilterCurrentState={crossFilterCurrentState}
             ownCurrentState={ownCurrentState}
             queriesResponse={chart.queriesResponse}
             timeout={timeout}

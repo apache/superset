@@ -304,7 +304,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   );
 
   const isApplyDisabled =
-    !isInitialized || areObjectsEqual(dataMaskSelected, lastAppliedFilterData);
+    !isInitialized ||
+    areObjectsEqual(dataMaskSelected, lastAppliedFilterData) ||
+    !Object.keys(dataMaskApplied).some(
+      dataMaskId => !filterValues.find(filter => filter.id === dataMaskId),
+    );
 
   return (
     <BarWrapper data-test="filter-bar" className={cx({ open: filtersOpen })}>

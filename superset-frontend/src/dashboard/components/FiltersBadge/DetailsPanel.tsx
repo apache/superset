@@ -85,12 +85,14 @@ const DetailsPanelPopover = ({
 
   const getDefaultActivePanel = () => {
     const result = [];
-    if (incompatibleIndicators.length) return ['incompatible'];
     if (appliedCrossFilterIndicators.length) {
       result.push('appliedCrossFilters');
     }
     if (appliedIndicators.length) {
       result.push('applied');
+    }
+    if (incompatibleIndicators.length) {
+      result.push('incompatible');
     }
     if (result.length) {
       return result;
@@ -188,7 +190,7 @@ const DetailsPanelPopover = ({
               header={
                 <Title bold color={theme.colors.primary.light1}>
                   <Icon
-                    name="cross-filter"
+                    name="cross-filter-badge"
                     css={{ fill: theme.colors.primary.light1 }}
                   />
                   {t(

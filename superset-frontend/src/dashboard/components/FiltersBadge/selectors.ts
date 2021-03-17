@@ -231,8 +231,8 @@ export const selectNativeIndicatorsForChart = (
       );
       const column = nativeFilter.targets[0]?.column?.name;
       const dataMaskNativeFilters = dataMask.nativeFilters?.[nativeFilter.id];
-      let value = dataMaskNativeFilters?.currentState?.value ?? [];
-      if (!Array.isArray(value)) {
+      let value = dataMaskNativeFilters?.currentState?.value ?? null;
+      if (!Array.isArray(value) && value !== null) {
         value = [value];
       }
       return {
@@ -256,15 +256,15 @@ export const selectNativeIndicatorsForChart = (
       );
 
       const dataMaskCrossFilters = dataMask.crossFilters?.[chartConfig.id];
-      let value = dataMaskCrossFilters?.currentState?.value ?? [];
-      if (!Array.isArray(value)) {
+      let value = dataMaskCrossFilters?.currentState?.value ?? null;
+      if (!Array.isArray(value) && value !== null) {
         value = [value];
       }
       return {
         name: Object.values(dashboardLayout).find(
-          layoutItem => layoutItem?.meta?.chartId === chartId,
-        )?.meta?.sliceName,
-        path: [chartConfig.id],
+          layoutItem => layoutItem?.meta?.chartId === chartConfig.id,
+        )?.meta?.sliceName as string,
+        path: [`${chartConfig.id}`],
         status: getStatus({
           value,
           isAffectedByScope,
