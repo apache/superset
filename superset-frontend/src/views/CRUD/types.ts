@@ -29,6 +29,7 @@ export interface DashboardTableProps {
   search: string;
   user?: User;
   mine: Array<Dashboard>;
+  showThumbnails?: boolean;
 }
 
 export interface Dashboard {

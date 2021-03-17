@@ -44,6 +44,7 @@ interface ChartCardProps {
   favoriteStatus: boolean;
   chartFilter?: string;
   userId?: number;
+  showThumbnails?: boolean;
 }
 
 export default function ChartCard({
@@ -55,6 +56,7 @@ export default function ChartCard({
   addSuccessToast,
   refreshData,
   loading,
+  showThumbnails,
   saveFavoriteStatus,
   favoriteStatus,
   chartFilter,
@@ -138,6 +140,9 @@ export default function ChartCard({
       <ListViewCard
         loading={loading}
         title={chart.slice_name}
+        cover={
+          !window.featureFlags.THUMBNAILS || !showThumbnails ? <></> : null
+        }
         url={bulkSelectEnabled ? undefined : chart.url}
         imgURL={chart.thumbnail_url || ''}
         imgFallbackURL="/static/assets/images/chart-card-fallback.svg"

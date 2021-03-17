@@ -46,6 +46,7 @@ interface DashboardCardProps {
   favoriteStatus: boolean;
   dashboardFilter?: string;
   userId?: number;
+  showThumbnails?: boolean;
 }
 
 function DashboardCard({
@@ -60,6 +61,7 @@ function DashboardCard({
   openDashboardEditModal,
   favoriteStatus,
   saveFavoriteStatus,
+  showThumbnails,
 }: DashboardCardProps) {
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
@@ -145,6 +147,9 @@ function DashboardCard({
         title={dashboard.dashboard_title}
         titleRight={
           <Label>{dashboard.published ? t('published') : t('draft')}</Label>
+        }
+        cover={
+          !window.featureFlags.THUMBNAILS || !showThumbnails ? <></> : null
         }
         url={bulkSelectEnabled ? undefined : dashboard.url}
         imgURL={dashboard.thumbnail_url}
