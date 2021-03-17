@@ -127,7 +127,7 @@ def _get_dataframe(database: Database) -> DataFrame:
     data = _get_birth_names_data()
     df = pd.DataFrame.from_dict(data)
     if database.backend == "presto":
-        df.ds = df.ds.dt.strftime("%Y-%m-%d %H:%M%:%S")
+        df.ds = df.ds.dt.strftime("%Y-%m-%d %H:%M:%S")
     return df
 
 

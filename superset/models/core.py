@@ -394,7 +394,7 @@ class Database(
             )
             df = result_set.to_pandas_df()
             if mutator:
-                mutator(df)
+                df = mutator(df)
 
             for col, coltype in df.dtypes.to_dict().items():
                 if coltype == numpy.object_ and needs_conversion(df[col]):

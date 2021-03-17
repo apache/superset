@@ -45,7 +45,7 @@ A modern, enterprise-ready business intelligence web application.
 [**Get Involved**](#get-involved) |
 [**Contributor Guide**](#contributor-guide) |
 [**Resources**](#resources) |
-[**Organizations Using Superset**](INTHEWILD.md)
+[**Organizations Using Superset**](RESOURCES/INTHEWILD.md)
 
 
 ## Screenshots & Gifs
@@ -140,7 +140,7 @@ Want to add support for your datastore or data engine? Read more [here](https://
 
 * Ask and answer questions on [StackOverflow](https://stackoverflow.com/questions/tagged/apache-superset) using the **apache-superset** tag
 * [Join our community's Slack](https://join.slack.com/t/apache-superset/shared_invite/zt-l5f5e0av-fyYu8tlfdqbMdz_sPLwUqQ)
-  and please read our [Slack Community Guidelines](CODE_OF_CONDUCT.md#slack-community-guidelines)
+  and please read our [Slack Community Guidelines](https://github.com/apache/superset/blob/master/CODE_OF_CONDUCT.md#slack-community-guidelines)
 * [Join our dev@superset.apache.org Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org)
 
 

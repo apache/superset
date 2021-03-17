@@ -503,7 +503,7 @@ export function redirectSQLLab(formData) {
   return dispatch => {
     getChartDataRequest({ formData, resultFormat: 'json', resultType: 'query' })
       .then(({ result }) => {
-        const redirectUrl = '/superset/sqllab';
+        const redirectUrl = '/superset/sqllab/';
         const payload = {
           datasourceKey: formData.datasource,
           sql: result[0].query,

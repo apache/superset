@@ -33,7 +33,7 @@ import { ColumnSelect } from './ColumnSelect';
 import { NativeFiltersForm } from '../types';
 import {
   datasetToSelectOption,
-  setFilterFieldValues,
+  setNativeFilterFieldValues,
   useForceUpdate,
 } from './utils';
 import { useBackendFormUpdate } from './state';
@@ -171,7 +171,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
               label: nativeFilterItems[filterType]?.value.name,
             }))}
             onChange={({ value }: { value: string }) => {
-              setFilterFieldValues(form, filterId, {
+              setNativeFilterFieldValues(form, filterId, {
                 filterType: value,
                 defaultValue: null,
               });
@@ -202,7 +202,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
                 // We need reset column when dataset changed
                 const datasetId = formFilter?.dataset?.value;
                 if (datasetId && e?.value !== datasetId) {
-                  setFilterFieldValues(form, filterId, {
+                  setNativeFilterFieldValues(form, filterId, {
                     column: null,
                   });
                 }
@@ -283,9 +283,14 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
         forceUpdate={forceUpdate}
       />
       <FilterScope
-        filterId={filterId}
-        filterToEdit={filterToEdit}
-        form={form}
+        updateFormValues={(values: any) =>
+          setNativeFilterFieldValues(form, filterId, values)
+        }
+        pathToFormValue={['filters', filterId]}
+        forceUpdate={forceUpdate}
+        scope={filterToEdit?.scope}
+        formScope={formFilter?.scope}
+        formScoping={formFilter?.scoping}
       />
     </>
   );
