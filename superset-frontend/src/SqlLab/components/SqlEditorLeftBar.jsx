@@ -178,6 +178,7 @@ export default class SqlEditorLeftBar extends React.PureComponent {
                   table={table}
                   key={table.id}
                   actions={this.props.actions}
+                  onClick={this.toggleTable}
                 />
               ))}
             </Collapse>
