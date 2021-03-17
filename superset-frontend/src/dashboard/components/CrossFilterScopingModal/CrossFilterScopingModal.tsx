@@ -19,14 +19,14 @@
 import { t } from '@superset-ui/core';
 import React, { FC } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { StyledModal } from '../../../common/components/Modal';
-import Button from '../../../components/Button';
-import { Form } from '../../../common/components';
+import { StyledModal } from 'src/common/components/Modal';
+import Button from 'src/components/Button';
+import { Form } from 'src/common/components';
+import { setChartConfiguration } from 'src/dashboard/actions/dashboardInfo';
+import { ChartConfiguration } from 'src/dashboard/reducers/types';
 import CrossFilterScopingForm from './CrossFilterScopingForm';
 import { CrossFilterScopingFormType } from './types';
 import { StyledForm } from '../nativeFilters/FiltersConfigModal/FiltersConfigModal';
-import { setChartConfiguration } from '../../actions/dashboardInfo';
-import { ChartConfiguration } from '../../reducers/types';
 
 type CrossFilterScopingModalProps = {
   chartId: number;

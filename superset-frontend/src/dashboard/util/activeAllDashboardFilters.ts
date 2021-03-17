@@ -90,7 +90,7 @@ export const getAllActiveFilters = ({
     ...dataMask.crossFilters,
   }).forEach(({ id: filterId, extraFormData }) => {
     const scope = nativeFilters?.[filterId]?.scope ??
-      chartConfiguration[filterId]?.crossFilters?.scope ?? {
+      chartConfiguration?.[filterId]?.crossFilters?.scope ?? {
         rootPath: [DASHBOARD_ROOT_ID],
         excluded: [],
       };
