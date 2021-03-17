@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { useRef } from 'react';
-import PropTypes from 'prop-types';
 import shortid from 'shortid';
 import Alert from 'src/components/Alert';
 import Tabs from 'src/common/components/Tabs';
@@ -43,17 +42,17 @@ const TAB_HEIGHT = 64;
     editorQueries are queries executed by users passed from SqlEditor component
     dataPrebiewQueries are all queries executed for preview of table data (from SqlEditorLeft)
 */
-const propTypes = {
-  editorQueries: PropTypes.array.isRequired,
-  latestQueryId: PropTypes.string,
-  dataPreviewQueries: PropTypes.array.isRequired,
-  actions: PropTypes.object.isRequired,
-  activeSouthPaneTab: PropTypes.string,
-  height: PropTypes.number,
-  databases: PropTypes.object.isRequired,
-  offline: PropTypes.bool,
-  displayLimit: PropTypes.number.isRequired,
-};
+interface SouthPanePropTypes {
+  editorQueries: any[];
+  latestQueryId?: string;
+  dataPreviewQueries: any[];
+  actions: Record<string, any>;
+  activeSouthPaneTab?: string;
+  height?: number;
+  databases: Record<string, any>;
+  offline?: boolean;
+  displayLimit: number;
+}
 
 const StyledPane = styled.div`
   width: 100%;
@@ -78,7 +77,7 @@ const StyledPane = styled.div`
   }
 `;
 
-function SouthPane(
+function SouthPane({
   editorQueries,
   latestQueryId,
   dataPreviewQueries,
@@ -88,10 +87,10 @@ function SouthPane(
   databases,
   offline = false,
   displayLimit,
-) {
+}: SouthPanePropTypes) {
   const innerTabContentHeight = height - TAB_HEIGHT;
   const southPaneRef = useRef();
-  const switchTab = id => {
+  const switchTab = (id: string) => {
     actions.setActiveSouthPaneTab(id);
   };
 
@@ -192,7 +191,7 @@ function SouthPane(
   );
 }
 
-function mapStateToProps({ sqlLab }) {
+function mapStateToProps({ sqlLab }: any) {
   return {
     activeSouthPaneTab: sqlLab.activeSouthPaneTab,
     databases: sqlLab.databases,
@@ -200,12 +199,10 @@ function mapStateToProps({ sqlLab }) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: any) {
   return {
     actions: bindActionCreators(Actions, dispatch),
   };
 }
-
-SouthPane.propTypes = propTypes;
 
 export default connect(mapStateToProps, mapDispatchToProps)(SouthPane);
