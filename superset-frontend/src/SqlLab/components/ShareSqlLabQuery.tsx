@@ -125,10 +125,15 @@ function ShareSqlLabQuery({
     <Tooltip
       id="copy_link"
       placement="top"
+      overlayStyle={{
+        fontSize: supersetTheme.typography.sizes.s,
+        lineHeight: '1.6',
+        maxWidth: '125px',
+      }}
       title={
         canShare
           ? t('Copy query link to your clipboard')
-          : t('Save the query to copy the link')
+          : t('Save the query to enable this feature')
       }
     >
       {canShare ? (
