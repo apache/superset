@@ -288,7 +288,11 @@ export default class Chart extends React.Component {
         })
       : {};
     return (
-      <div className="chart-slice">
+      <div
+        className="chart-slice"
+        data-test-chart-id={id}
+        data-test-viz-type={slice.viz_type}
+      >
         <SliceHeader
           innerRef={this.setHeaderRef}
           slice={slice}

@@ -39,30 +39,30 @@ describe('Dashboard tabs', () => {
 
     cy.visit(TABBED_DASHBOARD);
 
-    cy.get('#app').then(data => {
-      const bootstrapData = JSON.parse(data[0].dataset.bootstrap || '');
-      const dashboard = bootstrapData.dashboard_data as { slices: Slice[] };
-      filterId = dashboard.slices.find(
-        slice => slice.form_data.viz_type === 'filter_box',
-      )?.slice_id;
-      boxplotId = dashboard.slices.find(
-        slice => slice.form_data.viz_type === 'box_plot',
-      )?.slice_id;
-      treemapId = dashboard.slices.find(
-        slice => slice.form_data.viz_type === 'treemap',
-      )?.slice_id;
-      linechartId = dashboard.slices.find(
-        slice => slice.form_data.viz_type === 'line',
-      )?.slice_id;
-      interceptChart({ sliceId: filterId, legacy: true }).as('filterRequest');
-      interceptChart({ sliceId: treemapId, legacy: true }).as('treemapRequest');
-      interceptChart({ sliceId: linechartId, legacy: true }).as(
-        'linechartRequest',
-      );
-      interceptChart({ sliceId: boxplotId, legacy: false }).as(
-        'boxplotRequest',
-      );
-    });
+    // cy.get('#app').then(data => {
+    // const bootstrapData = JSON.parse(data[0].dataset.bootstrap || '');
+    // const dashboard = bootstrapData.dashboard_data as { slices: Slice[] };
+    // filterId = dashboard.slices.find(
+    //   slice => slice.form_data.viz_type === 'filter_box',
+    // )?.slice_id;
+    // boxplotId = dashboard.slices.find(
+    //   slice => slice.form_data.viz_type === 'box_plot',
+    // )?.slice_id;
+    // treemapId = dashboard.slices.find(
+    //   slice => slice.form_data.viz_type === 'treemap',
+    // )?.slice_id;
+    // linechartId = dashboard.slices.find(
+    //   slice => slice.form_data.viz_type === 'line',
+    // )?.slice_id;
+    // interceptChart({ sliceId: filterId, legacy: true }).as('filterRequest');
+    // interceptChart({ sliceId: treemapId, legacy: true }).as('treemapRequest');
+    // interceptChart({ sliceId: linechartId, legacy: true }).as(
+    //   'linechartRequest',
+    // );
+    // interceptChart({ sliceId: boxplotId, legacy: false }).as(
+    //   'boxplotRequest',
+    // );
+    // });
   });
 
   it('should switch active tab on click', () => {
@@ -91,13 +91,25 @@ describe('Dashboard tabs', () => {
       .should('not.have.class', 'ant-tabs-tab-active');
   });
 
-  it('should load charts when tab is visible', () => {
+  it.only('should load charts when tab is visible', () => {
     // landing in first tab, should see 2 charts
-    cy.wait('@filterRequest');
+    // cy.wait('@filterRequest');
     cy.get('[data-test="grid-container"]')
-      .find('.filter_box')
+      .find('.chart-slice[data-test-viz-type="filter_box"]')
+      .then(element => {
+        const sliceId = parseInt(element.attr('data-test-chart-id') || '', 10);
+        // interceptChart({ sliceId, legacy: true }).as('filterRequest');
+        return cy.wait(interceptChart({ sliceId, legacy: true }));
+      })
       .should('be.visible');
-    cy.wait('@treemapRequest');
+    cy.get('[data-test="grid-container"]')
+      .find('.chart-slice[data-test-viz-type="treemap"]')
+      .then(element => {
+        const sliceId = parseInt(element.attr('data-test-chart-id') || '', 10);
+        // interceptChart({ sliceId, legacy: true }).as('filterRequest');
+        return cy.wait(interceptChart({ sliceId, legacy: true }));
+      })
+      .should('be.visible');
     cy.get('[data-test="grid-container"]')
       .find('.treemap')
       .should('be.visible');
@@ -114,7 +126,14 @@ describe('Dashboard tabs', () => {
 
     cy.get('@row-level-tabs').last().click();
 
-    cy.wait('@linechartRequest');
+    cy.get('[data-test="grid-container"]')
+      .find('.chart-slice[data-test-viz-type="line"]')
+      .then(element => {
+        const sliceId = parseInt(element.attr('data-test-chart-id') || '', 10);
+        // interceptChart({ sliceId, legacy: true }).as('filterRequest');
+        return cy.wait(interceptChart({ sliceId, legacy: true }));
+      })
+      .should('be.visible');
     cy.get('[data-test="grid-container"]').find('.line').should('be.visible');
 
     // click top level tab, see 1 more chart
