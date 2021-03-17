@@ -15,19 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-import datetime
 import inspect
 import re
 import unittest
-from unittest.mock import Mock, patch
 
-import pandas as pd
+from unittest.mock import Mock, patch
+from typing import Any, Dict
+
 import prison
 import pytest
-import random
 
 from flask import current_app, g
-from sqlalchemy import Float, Date, String
 
 from superset.models.dashboard import Dashboard
 
@@ -42,11 +40,6 @@ from superset.sql_parse import Table
 from superset.utils.core import get_example_database
 
 from .base_tests import SupersetTestCase
-from .dashboard_utils import (
-    create_table_for_dashboard,
-    create_slice,
-    create_dashboard,
-)
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.fixtures.public_role import (
@@ -1037,9 +1030,9 @@ class TestRowLevelSecurity(SupersetTestCase):
     """
 
     rls_entry = None
-    query_obj = dict(
+    query_obj: Dict[str, Any] = dict(
         groupby=[],
-        metrics=[],
+        metrics=None,
         filter=[],
         is_timeseries=False,
         columns=["value"],

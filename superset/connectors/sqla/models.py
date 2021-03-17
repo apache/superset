@@ -48,6 +48,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
+from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom, TextClause
 from sqlalchemy.types import TypeEngine
 
@@ -67,13 +68,15 @@ from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import ParsedQuery
-from superset.typing import Metric, QueryObjectDict
+from superset.typing import AdhocMetric, Metric, OrderBy, QueryObjectDict
 from superset.utils import core as utils
 from superset.utils.core import GenericDataType
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
+
+VIRTUAL_TABLE_ALIAS = "virtual_table"
 
 
 class SqlaQuery(NamedTuple):
@@ -378,7 +381,7 @@ class SqlMetric(Model, BaseMetric):
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.metric_name
-        sqla_col = literal_column(self.expression)
+        sqla_col: ColumnClause = literal_column(self.expression)
         return self.table.make_sqla_column_compatible(sqla_col, label)
 
     @property
@@ -505,10 +508,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         """
         label_expected = label or sqla_col.name
         db_engine_spec = self.database.db_engine_spec
-        if db_engine_spec.allows_column_aliases:
+        # add quotes to tables
+        if db_engine_spec.allows_alias_in_select:
             label = db_engine_spec.make_label_compatible(label_expected)
             sqla_col = sqla_col.label(label)
-        sqla_col._df_label_expected = label_expected  # pylint: disable=protected-access
         return sqla_col
 
     def __repr__(self) -> str:
@@ -796,40 +799,53 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     def get_from_clause(
         self, template_processor: Optional[BaseTemplateProcessor] = None
     ) -> Union[table, TextAsFrom]:
-        # Supporting arbitrary SQL statements in place of tables
-        if self.sql:
-            from_sql = self.sql
-            if template_processor:
-                try:
-                    from_sql = template_processor.process_template(from_sql)
-                except TemplateError as ex:
-                    raise QueryObjectValidationError(
-                        _(
-                            "Error in jinja expression in FROM clause: %(msg)s",
-                            msg=ex.message,
-                        )
-                    )
+        """
+        Return where to select the columns and metrics from. Either a physical table
+        or a virtual table with it's own subquery.
+        """
+        if not self.is_virtual:
+            return self.get_sqla_table()
 
-            from_sql = sqlparse.format(from_sql, strip_comments=True)
-            if len(sqlparse.split(from_sql)) > 1:
+        from_sql = self.get_rendered_sql(template_processor)
+        parsed_query = ParsedQuery(from_sql)
+        db_engine_spec = self.database.db_engine_spec
+        if not (
+            parsed_query.is_unknown() or db_engine_spec.is_readonly_query(parsed_query)
+        ):
+            raise QueryObjectValidationError(
+                _("Virtual dataset query must be read-only")
+            )
+        return TextAsFrom(sa.text(from_sql), []).alias(VIRTUAL_TABLE_ALIAS)
+
+    def get_rendered_sql(
+        self, template_processor: Optional[BaseTemplateProcessor] = None
+    ) -> str:
+        """
+        Render sql with template engine (Jinja).
+        """
+        sql = self.sql
+        if template_processor:
+            try:
+                sql = template_processor.process_template(sql)
+            except TemplateError as ex:
                 raise QueryObjectValidationError(
-                    _("Virtual dataset query cannot consist of multiple statements")
+                    _(
+                        "Error while rendering virtual dataset query: %(msg)s",
+                        msg=ex.message,
+                    )
                 )
-            parsed_query = ParsedQuery(from_sql)
-            db_engine_spec = self.database.db_engine_spec
-            if not (
-                parsed_query.is_unknown()
-                or db_engine_spec.is_readonly_query(parsed_query)
-            ):
-                raise QueryObjectValidationError(
-                    _("Virtual dataset query must be read-only")
-                )
-            return TextAsFrom(sa.text(from_sql), []).alias("expr_qry")
-        return self.get_sqla_table()
+        sql = sqlparse.format(sql, strip_comments=True)
+        if not sql:
+            raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
+        if len(sqlparse.split(sql)) > 1:
+            raise QueryObjectValidationError(
+                _("Virtual dataset query cannot consist of multiple statements")
+            )
+        return sql
 
     def adhoc_metric_to_sqla(
-        self, metric: Dict[str, Any], columns_by_name: Dict[str, Any]
-    ) -> Optional[Column]:
+        self, metric: AdhocMetric, columns_by_name: Dict[str, TableColumn]
+    ) -> Column:
         """
         Turn an adhoc metric into a sqlalchemy column.
 
@@ -843,7 +859,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
             column_name = metric["column"].get("column_name")
-            table_column = columns_by_name.get(column_name)
+            table_column: Optional[TableColumn] = columns_by_name.get(column_name)
             if table_column:
                 sqla_column = table_column.get_sqla_col()
             else:
@@ -852,7 +868,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
             sqla_metric = literal_column(metric.get("sqlExpression"))
         else:
-            return None
+            raise QueryObjectValidationError("Adhoc metric expressionType is invalid")
 
         return self.make_sqla_column_compatible(sqla_metric, label)
 
@@ -883,10 +899,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
-        metrics: List[Metric],
-        granularity: str,
-        from_dttm: Optional[datetime],
-        to_dttm: Optional[datetime],
+        metrics: Optional[List[Metric]] = None,
+        granularity: Optional[str] = None,
+        from_dttm: Optional[datetime] = None,
+        to_dttm: Optional[datetime] = None,
         columns: Optional[List[str]] = None,
         groupby: Optional[List[str]] = None,
         filter: Optional[  # pylint: disable=redefined-builtin
@@ -899,7 +915,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         row_offset: Optional[int] = None,
         inner_from_dttm: Optional[datetime] = None,
         inner_to_dttm: Optional[datetime] = None,
-        orderby: Optional[List[Tuple[ColumnElement, bool]]] = None,
+        orderby: Optional[List[OrderBy]] = None,
         extras: Optional[Dict[str, Any]] = None,
         order_desc: bool = True,
         is_rowcount: bool = False,
@@ -922,8 +938,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.database.db_engine_spec
         prequeries: List[str] = []
-
         orderby = orderby or []
+        extras = extras or {}
+        need_groupby = bool(metrics is not None or groupby)
+        metrics = metrics or []
 
         # For backward compatibility
         if granularity not in self.dttm_cols:
@@ -965,19 +983,47 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             main_metric_expr, label = literal_column("COUNT(*)"), "ccount"
             main_metric_expr = self.make_sqla_column_compatible(main_metric_expr, label)
 
-        select_exprs: List[Column] = []
-        groupby_exprs_sans_timestamp = OrderedDict()
+        # To ensure correct handling of the ORDER BY labeling we need to reference the
+        # metric instance if defined in the SELECT clause.
+        metrics_exprs_by_label = {
+            m.name: m for m in metrics_exprs  # pylint: disable=protected-access
+        }
 
-        assert extras is not None
+        # Since orderby may use adhoc metrics, too; we need to process them first
+        orderby_exprs: List[ColumnElement] = []
+        for orig_col, ascending in orderby:
+            col: Union[Metric, ColumnElement] = orig_col
+            if isinstance(col, dict):
+                if utils.is_adhoc_metric(col):
+                    # add adhoc sort by column to columns_by_name if not exists
+                    col = self.adhoc_metric_to_sqla(col, columns_by_name)
+                    need_groupby = True
+            elif col in columns_by_name:
+                col = columns_by_name[col].get_sqla_col()
+            elif col in metrics_by_name:
+                col = metrics_by_name[col].get_sqla_col()
+                need_groupby = True
+            elif col in metrics_exprs_by_label:
+                col = metrics_exprs_by_label[col]
+
+            if isinstance(col, ColumnElement):
+                orderby_exprs.append(col)
+            else:
+                # Could not convert a column reference to valid ColumnElement
+                raise QueryObjectValidationError(
+                    _("Unknown column used in orderby: %(col)", col=orig_col)
+                )
+
+        select_exprs: List[Union[Column, Label]] = []
+        groupby_exprs_sans_timestamp = OrderedDict()
 
         # filter out the pseudo column  __timestamp from columns
         columns = columns or []
         columns = [col for col in columns if col != utils.DTTM_ALIAS]
 
-        if metrics or groupby:
+        if need_groupby:
             # dedup columns while preserving order
             columns = groupby or columns
-            select_exprs = []
             for selected in columns:
                 # if groupby field/expr equals granularity field/expr
                 if selected == granularity:
@@ -1005,6 +1051,13 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         groupby_exprs_with_timestamp = OrderedDict(groupby_exprs_sans_timestamp.items())
 
         if granularity:
+            if granularity not in columns_by_name:
+                raise QueryObjectValidationError(
+                    _(
+                        'Time column "%(col)s" does not exist in dataset',
+                        col=granularity,
+                    )
+                )
             dttm_col = columns_by_name[granularity]
             time_grain = extras.get("time_grain_sqla")
             time_filters = []
@@ -1031,12 +1084,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             )
 
         select_exprs += metrics_exprs
-
-        labels_expected = [
-            c._df_label_expected  # pylint: disable=protected-access
-            for c in select_exprs
-        ]
-
+        labels_expected = [c.name for c in select_exprs]
         select_exprs = db_engine_spec.make_select_compatible(
             groupby_exprs_with_timestamp.values(), select_exprs
         )
@@ -1149,26 +1197,13 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             qry = qry.where(and_(*where_clause_and))
         qry = qry.having(and_(*having_clause_and))
 
-        # To ensure correct handling of the ORDER BY labeling we need to reference the
-        # metric instance if defined in the SELECT clause.
-        metrics_exprs_by_label = {
-            m._label: m for m in metrics_exprs  # pylint: disable=protected-access
-        }
-
-        for col, ascending in orderby:
+        for col, (orig_col, ascending) in zip(orderby_exprs, orderby):
+            if (
+                db_engine_spec.allows_alias_in_orderby
+                and col.name in metrics_exprs_by_label
+            ):
+                col = Label(col.name, metrics_exprs_by_label[col.name])
             direction = asc if ascending else desc
-            if utils.is_adhoc_metric(col):
-                col = self.adhoc_metric_to_sqla(col, columns_by_name)
-            elif col in columns_by_name:
-                col = columns_by_name[col].get_sqla_col()
-            elif col in metrics_by_name:
-                col = metrics_by_name[col].get_sqla_col()
-
-            if isinstance(col, Label):
-                label = col._label  # pylint: disable=protected-access
-                if label in metrics_exprs_by_label:
-                    col = metrics_exprs_by_label[label]
-
             qry = qry.order_by(direction(col))
 
         if row_limit:
@@ -1182,7 +1217,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             and not time_groupby_inline
             and groupby
         ):
-            if self.database.db_engine_spec.allows_joins:
+            if db_engine_spec.allows_joins:
                 # some sql dialects require for order by expressions
                 # to also be in the select clause -- others, e.g. vertica,
                 # require a unique inner alias
@@ -1287,7 +1322,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         timeseries_limit_metric: Metric,
         metrics_by_name: Dict[str, SqlMetric],
         columns_by_name: Dict[str, TableColumn],
-    ) -> Optional[Column]:
+    ) -> Column:
         if utils.is_adhoc_metric(timeseries_limit_metric):
             assert isinstance(timeseries_limit_metric, dict)
             ob = self.adhoc_metric_to_sqla(timeseries_limit_metric, columns_by_name)
@@ -1300,7 +1335,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             raise QueryObjectValidationError(
                 _("Metric '%(metric)s' does not exist", metric=timeseries_limit_metric)
             )
-
         return ob
 
     def _get_top_groups(  # pylint: disable=no-self-use
@@ -1326,27 +1360,33 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         errors = None
         error_message = None
 
-        def mutator(df: pd.DataFrame) -> None:
+        def assign_column_label(df: pd.DataFrame) -> Optional[pd.DataFrame]:
             """
             Some engines change the case or generate bespoke column names, either by
             default or due to lack of support for aliasing. This function ensures that
             the column names in the DataFrame correspond to what is expected by
             the viz components.
 
-            :param df: Original DataFrame returned by the engine
-            """
+            Sometimes a query may also contain only order by columns that are not used
+            as metrics or groupby columns, but need to present in the SQL `select`,
+            filtering by `labels_expected` make sure we only return columns users want.
 
+            :param df: Original DataFrame returned by the engine
+            :return: Mutated DataFrame
+            """
             labels_expected = query_str_ext.labels_expected
             if df is not None and not df.empty:
-                if len(df.columns) != len(labels_expected):
+                if len(df.columns) < len(labels_expected):
                     raise QueryObjectValidationError(
-                        f"For {sql}, df.columns: {df.columns}"
-                        f" differs from {labels_expected}"
+                        _("Db engine did not return all queried columns")
                     )
+                if len(df.columns) > len(labels_expected):
+                    df = df.iloc[:, 0 : len(labels_expected)]
                 df.columns = labels_expected
+            return df
 
         try:
-            df = self.database.get_df(sql, self.schema, mutator)
+            df = self.database.get_df(sql, self.schema, mutator=assign_column_label)
         except Exception as ex:  # pylint: disable=broad-except
             df = pd.DataFrame()
             status = utils.QueryStatus.FAILED
