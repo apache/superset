@@ -888,20 +888,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.headers["Content-Type"] == "application/json; charset=utf-8"
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "message": {
-                "error_type": "TEST_CONNECTION_INVALID_HOSTNAME_ERROR",
-                "extra": {
-                    "hostname": "invalidhostname",
-                    "issue_codes": [
-                        {
-                            "code": 1007,
-                            "message": "Issue 1007 - The hostname provided can't be resolved.",
-                        }
-                    ],
-                },
-                "level": "error",
-                "message": 'Unable to resolve hostname "invalidhostname".',
-            }
+            "message": 'Unable to resolve hostname "invalidhostname".',
         }
         assert response == expected_response
 
@@ -932,18 +919,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.headers["Content-Type"] == "application/json; charset=utf-8"
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "message": {
-                "error_type": "TEST_CONNECTION_PORT_CLOSED_ERROR",
-                "extra": {
-                    "hostname": "localhost",
-                    "issue_codes": [
-                        {"code": 1008, "message": "Issue 1008 - The port is closed.",}
-                    ],
-                    "port": 12345,
-                },
-                "level": "error",
-                "message": "The host localhost is up, but the port 12345 is closed.",
-            }
+            "message": "The host localhost is up, but the port 12345 is closed.",
         }
         assert response == expected_response
 
@@ -974,21 +950,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.headers["Content-Type"] == "application/json; charset=utf-8"
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "message": {
-                "error_type": "TEST_CONNECTION_HOST_DOWN_ERROR",
-                "extra": {
-                    "hostname": "localhost",
-                    "issue_codes": [
-                        {
-                            "code": 1009,
-                            "message": "Issue 1009 - The host might be down, and can't be reached on the provided port.",
-                        }
-                    ],
-                    "port": 12345,
-                },
-                "level": "error",
-                "message": "The host localhost might be down, ond can't be reached on port 12345.",
-            }
+            "message": "The host localhost might be down, ond can't be reached on port 12345.",
         }
         assert response == expected_response
 
