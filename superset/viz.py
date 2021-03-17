@@ -519,7 +519,8 @@ class BaseViz:
                     + (query_obj.get("groupby") or [])
                     + utils.get_column_names_from_metrics(
                         cast(
-                            List[Union[str, Dict[str, Any]]], query_obj.get("metrics"),
+                            List[Union[str, Dict[str, Any]]],
+                            query_obj.get("metrics") or [],
                         )
                     )
                     if col not in self.datasource.column_names
@@ -1666,7 +1667,8 @@ class HistogramViz(BaseViz):
         self.columns = numeric_columns
         d["columns"] = numeric_columns + self.groupby
         # override groupby entry to avoid aggregation
-        d["groupby"] = []
+        d["groupby"] = None
+        d["metrics"] = None
         return d
 
     def labelify(self, keys: Union[List[str], str], column: str) -> str:

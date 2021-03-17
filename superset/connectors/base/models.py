@@ -112,11 +112,12 @@ class BaseDatasource(
     update_from_object_fields: List[str]
 
     @property
-    def kind(self) -> str:
-        if self.sql:
-            return DatasourceKind.VIRTUAL.value
+    def kind(self) -> DatasourceKind:
+        return DatasourceKind.VIRTUAL if self.sql else DatasourceKind.PHYSICAL
 
-        return DatasourceKind.PHYSICAL.value
+    @property
+    def is_virtual(self) -> bool:
+        return self.kind == DatasourceKind.VIRTUAL
 
     @declared_attr
     def slices(self) -> RelationshipProperty:
