@@ -55,6 +55,7 @@
     "lodash": "^4.17.11",
     "pretty-ms": "^7.0.0",
     "react-error-boundary": "^1.2.5",
+    "react-markdown": "^4.3.1",
     "reselect": "^4.0.0",
     "rison": "^0.1.1",
     "seedrandom": "^3.0.5",
