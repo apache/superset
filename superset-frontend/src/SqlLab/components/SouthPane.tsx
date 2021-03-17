@@ -46,9 +46,9 @@ interface SouthPanePropTypes {
   editorQueries: any[];
   latestQueryId?: string;
   dataPreviewQueries: any[];
-  actions: Record<string, any>;
+  actions: Record<string, Function>;
   activeSouthPaneTab?: string;
-  height?: number;
+  height: number;
   databases: Record<string, any>;
   offline?: boolean;
   displayLimit: number;
@@ -89,17 +89,16 @@ function SouthPane({
   displayLimit,
 }: SouthPanePropTypes) {
   const innerTabContentHeight = height - TAB_HEIGHT;
-  const southPaneRef = useRef();
+  const southPaneRef: any = useRef();
   const switchTab = (id: string) => {
     actions.setActiveSouthPaneTab(id);
   };
 
-  const renderOfflineStatus = () =>
-    offline && (
-      <Label className="m-r-3" type={STATE_TYPE_MAP[STATUS_OPTIONS.offline]}>
-        {STATUS_OPTIONS.offline}
-      </Label>
-    );
+  const renderOfflineStatus = () => (
+    <Label className="m-r-3" type={STATE_TYPE_MAP[STATUS_OPTIONS.offline]}>
+      {STATUS_OPTIONS.offline}
+    </Label>
+  );
 
   const renderResults = () => {
     let latestQuery;
@@ -123,10 +122,9 @@ function SouthPane({
             )}
           />
         );
-      } else if (
-        Date.now() - latestQuery.startDttm <=
-        LOCALSTORAGE_MAX_QUERY_AGE_MS
-      ) {
+        return results;
+      }
+      if (Date.now() - latestQuery.startDttm <= LOCALSTORAGE_MAX_QUERY_AGE_MS) {
         results = (
           <ResultSet
             showControls
@@ -164,10 +162,10 @@ function SouthPane({
         />
       </Tabs.TabPane>
     ));
-
-  return (
+  return offline ? (
+    renderOfflineStatus()
+  ) : (
     <StyledPane className="SouthPane" ref={southPaneRef}>
-      {renderOfflineStatus}
       <Tabs
         activeKey={activeSouthPaneTab}
         className="SouthPaneTabs"
@@ -176,7 +174,7 @@ function SouthPane({
         fullWidth={false}
       >
         <Tabs.TabPane tab={t('Results')} key="Results">
-          {renderResults}
+          {renderResults()}
         </Tabs.TabPane>
         <Tabs.TabPane tab={t('Query history')} key="History">
           <QueryHistory
@@ -185,13 +183,13 @@ function SouthPane({
             displayLimit={displayLimit}
           />
         </Tabs.TabPane>
-        {renderDataPreviewTabs}
+        {renderDataPreviewTabs()}
       </Tabs>
     </StyledPane>
   );
 }
 
-function mapStateToProps({ sqlLab }: any) {
+function mapStateToProps({ sqlLab }: Record<string, any>) {
   return {
     activeSouthPaneTab: sqlLab.activeSouthPaneTab,
     databases: sqlLab.databases,
@@ -201,8 +199,8 @@ function mapStateToProps({ sqlLab }: any) {
 
 function mapDispatchToProps(dispatch: any) {
   return {
-    actions: bindActionCreators(Actions, dispatch),
+    actions: bindActionCreators<any, any>(Actions, dispatch),
   };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(SouthPane);
+export default connect<any>(mapStateToProps, mapDispatchToProps)(SouthPane);
