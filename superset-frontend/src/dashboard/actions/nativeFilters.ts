@@ -26,7 +26,7 @@ import {
   SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL,
 } from 'src/dataMask/actions';
 import { dashboardInfoChanged } from './dashboardInfo';
-import {DashboardInfo, FilterSet} from '../reducers/types';
+import { DashboardInfo, FilterSet } from '../reducers/types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
 export interface SetFilterConfigBegin {
