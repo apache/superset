@@ -20,52 +20,57 @@
 import React, { FC } from 'react';
 import { t, styled } from '@superset-ui/core';
 import { Radio } from 'src/common/components/Radio';
-import { Form, Typography, Space, FormInstance } from 'src/common/components';
-import { NativeFiltersForm } from '../../types';
-import { Filter } from '../../../types';
+import { Form, Typography } from 'src/common/components';
+import { Scope } from '../../../types';
 import { Scoping } from './types';
 import ScopingTree from './ScopingTree';
-import { setFilterFieldValues, useForceUpdate } from '../utils';
 import { getDefaultScopeValue, isScopingAll } from './utils';
 
 type FilterScopeProps = {
-  filterId: string;
-  filterToEdit?: Filter;
-  form: FormInstance<NativeFiltersForm>;
+  pathToFormValue?: string[];
+  updateFormValues: (values: any) => void;
+  formScope?: Scope;
+  forceUpdate: Function;
+  scope?: Scope;
+  formScoping?: Scoping;
 };
+
+const Wrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  & > * {
+    margin-bottom: ${({ theme }) => theme.gridUnit}px;
+  }
+`;
 
 const CleanFormItem = styled(Form.Item)`
   margin-bottom: 0;
 `;
 
 const FilterScope: FC<FilterScopeProps> = ({
-  filterId,
-  filterToEdit,
-  form,
+  pathToFormValue = [],
+  formScoping,
+  formScope,
+  forceUpdate,
+  scope,
+  updateFormValues,
 }) => {
-  const formFilter = form.getFieldValue('filters')?.[filterId];
-  const initialScope = filterToEdit?.scope || getDefaultScopeValue();
-
-  const scoping = isScopingAll(initialScope) ? Scoping.all : Scoping.specific;
-
-  const forceUpdate = useForceUpdate();
+  const initialScope = scope || getDefaultScopeValue();
+  const initialScoping = isScopingAll(initialScope)
+    ? Scoping.all
+    : Scoping.specific;
 
   return (
-    <Space direction="vertical">
-      <CleanFormItem
-        name={['filters', filterId, 'scope']}
-        hidden
-        initialValue={initialScope}
-      />
+    <Wrapper>
       <Typography.Title level={5}>{t('Scoping')}</Typography.Title>
       <CleanFormItem
-        name={['filters', filterId, 'scoping']}
-        initialValue={scoping}
+        name={[...pathToFormValue, 'scoping']}
+        initialValue={initialScoping}
       >
         <Radio.Group
           onChange={({ target: { value } }) => {
             if (value === Scoping.all) {
-              setFilterFieldValues(form, filterId, {
+              updateFormValues({
                 scope: getDefaultScopeValue(),
               });
             }
@@ -79,18 +84,24 @@ const FilterScope: FC<FilterScopeProps> = ({
         </Radio.Group>
       </CleanFormItem>
       <Typography.Text type="secondary">
-        {formFilter?.scoping === Scoping.specific
+        {(formScoping ?? initialScoping) === Scoping.specific
           ? t('Only selected panels will be affected by this filter')
           : t('All panels with this column will be affected by this filter')}
       </Typography.Text>
-      {formFilter?.scoping === Scoping.specific && (
+      {(formScoping ?? initialScoping) === Scoping.specific && (
         <ScopingTree
+          updateFormValues={updateFormValues}
           initialScope={initialScope}
-          form={form}
-          filterId={filterId}
+          formScope={formScope}
+          forceUpdate={forceUpdate}
         />
       )}
-    </Space>
+      <CleanFormItem
+        name={[...pathToFormValue, 'scope']}
+        hidden
+        initialValue={initialScope}
+      />
+    </Wrapper>
   );
 };
 

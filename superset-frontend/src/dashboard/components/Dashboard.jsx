@@ -207,7 +207,10 @@ class Dashboard extends React.PureComponent {
       this.appliedOwnDataCharts,
     );
     [...allKeys].forEach(filterKey => {
-      if (!currFilterKeys.includes(filterKey)) {
+      if (
+        !currFilterKeys.includes(filterKey) &&
+        appliedFilterKeys.includes(filterKey)
+      ) {
         // filterKey is removed?
         affectedChartIds.push(...appliedFilters[filterKey].scope);
       } else if (!appliedFilterKeys.includes(filterKey)) {
