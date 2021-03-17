@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Metric } from '@superset-ui/chart-controls/lib/types';
 import columnType from './columnType';
 import AdhocMetricOption from './AdhocMetricOption';
 import AdhocMetric from './AdhocMetric';
@@ -29,7 +28,6 @@ const propTypes = {
   option: PropTypes.oneOfType([
     savedMetricType,
     adhocMetricType,
-    Metric,
     PropTypes.string,
   ]).isRequired,
   index: PropTypes.number.isRequired,
