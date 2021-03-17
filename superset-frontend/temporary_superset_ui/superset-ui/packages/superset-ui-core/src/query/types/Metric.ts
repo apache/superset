@@ -61,6 +61,7 @@ export interface Metric {
   description?: Maybe<string>;
   is_certified?: boolean;
   verbose_name?: string;
+  warning_markdown?: Maybe<string>;
   warning_text?: Maybe<string>;
 }
 
