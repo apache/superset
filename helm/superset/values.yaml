@@ -27,6 +27,10 @@ additionalRequirements:
   - "psycopg2==2.8.5"
   - "redis==3.2.1"
 
+## These apt packages are applied on init of superset containers
+additionalAptPackages: {}
+  # - nano
+
 ## The name of the secret which we will use to generate a superset_config.py file
 ## Note: this secret must have the key superset_config.py in it and can include other files as well
 ##
