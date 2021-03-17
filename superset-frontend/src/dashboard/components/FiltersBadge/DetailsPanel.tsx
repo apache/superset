@@ -38,6 +38,7 @@ import {
 } from './Styles';
 import { Indicator } from './selectors';
 import { getFilterValueForDisplay } from '../nativeFilters/FilterBar/FilterSets/utils';
+import Icon from '../../../components/Icon';
 
 export interface IndicatorProps {
   indicator: Indicator;
@@ -64,6 +65,7 @@ const Indicator = ({
 };
 
 export interface DetailsPanelProps {
+  appliedCrossFilterIndicators: Indicator[];
   appliedIndicators: Indicator[];
   incompatibleIndicators: Indicator[];
   unsetIndicators: Indicator[];
@@ -72,6 +74,7 @@ export interface DetailsPanelProps {
 }
 
 const DetailsPanelPopover = ({
+  appliedCrossFilterIndicators = [],
   appliedIndicators = [],
   incompatibleIndicators = [],
   unsetIndicators = [],
@@ -168,6 +171,30 @@ const DetailsPanelPopover = ({
           activeKey={activePanels}
           onChange={handleActivePanelChange}
         >
+          {appliedCrossFilterIndicators.length ? (
+            <Collapse.Panel
+              key="appliedCrossFilters"
+              header={
+                <Title bold color={theme.colors.primary.light1}>
+                  <Icon name="cross_filter" />
+                  {t(
+                    'Applied Cross Filters (%d)',
+                    appliedCrossFilterIndicators.length,
+                  )}
+                </Title>
+              }
+            >
+              <Indent css={{ paddingBottom: theme.gridUnit * 3 }}>
+                {appliedCrossFilterIndicators.map(indicator => (
+                  <Indicator
+                    key={indicatorKey(indicator)}
+                    indicator={indicator}
+                    onClick={onHighlightFilterSource}
+                  />
+                ))}
+              </Indent>
+            </Collapse.Panel>
+          ) : null}
           {appliedIndicators.length ? (
             <Collapse.Panel
               key="applied"

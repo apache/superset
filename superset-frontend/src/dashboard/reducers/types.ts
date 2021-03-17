@@ -28,6 +28,7 @@ export enum Scoping {
 
 export type ChartConfiguration = {
   [chartId: string]: {
+    id: string;
     crossFilters: {
       scope: Scope;
     };

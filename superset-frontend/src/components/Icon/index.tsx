@@ -165,6 +165,7 @@ export type IconName =
   | 'caret-right'
   | 'caret-up'
   | 'certified'
+  | 'cross_filter'
   | 'check'
   | 'checkbox-half'
   | 'checkbox-off'

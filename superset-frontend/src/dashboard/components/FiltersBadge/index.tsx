@@ -31,6 +31,7 @@ export interface FiltersBadgeProps {
 }
 
 const FiltersBadge = ({
+  appliedCrossFilterIndicators,
   appliedIndicators,
   unsetIndicators,
   incompatibleIndicators,
@@ -49,6 +50,7 @@ const FiltersBadge = ({
 
   return (
     <DetailsPanelPopover
+      appliedCrossFilterIndicators={appliedCrossFilterIndicators}
       appliedIndicators={appliedIndicators}
       unsetIndicators={unsetIndicators}
       incompatibleIndicators={incompatibleIndicators}

@@ -22,7 +22,7 @@ import {
   ChartConfiguration,
   NativeFiltersState,
 } from 'src/dashboard/reducers/types';
-import { DataMaskStateWithId } from 'src/dataMask/types';
+import { DataMaskStateWithId, DataMaskType } from 'src/dataMask/types';
 import { Layout } from '../../types';
 import { getTreeCheckedItems } from '../nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/utils';
 import { FilterValue } from '../nativeFilters/types';
@@ -31,6 +31,7 @@ export enum IndicatorStatus {
   Unset = 'UNSET',
   Applied = 'APPLIED',
   Incompatible = 'INCOMPATIBLE',
+  CrossFilterApplied = 'CROSS_FILTER_APPLIED',
 }
 
 const TIME_GRANULARITY_FIELDS = new Set(Object.values(TIME_FILTER_MAP));
@@ -189,15 +190,24 @@ export const selectNativeIndicatorsForChart = (
   const appliedColumns = getAppliedColumns(chart);
   const rejectedColumns = getRejectedColumns(chart);
 
-  const getStatus = (
-    value: FilterValue,
-    isAffectedByScope: boolean,
-    column?: string,
-  ): IndicatorStatus => {
+  const getStatus = ({
+    value,
+    isAffectedByScope,
+    column,
+    type = DataMaskType.NativeFilters,
+  }: {
+    value: FilterValue;
+    isAffectedByScope: boolean;
+    column?: string;
+    type?: DataMaskType;
+  }): IndicatorStatus => {
     // a filter is only considered unset if it's value is null
     const hasValue = value !== null;
     if (!isAffectedByScope) {
       return IndicatorStatus.Unset;
+    }
+    if (type === DataMaskType.CrossFilters) {
+      return IndicatorStatus.CrossFilterApplied;
     }
     if (!column && hasValue) {
       // Filter without datasource
@@ -229,7 +239,7 @@ export const selectNativeIndicatorsForChart = (
         column,
         name: nativeFilter.name,
         path: [nativeFilter.id],
-        status: getStatus(value, isAffectedByScope, column),
+        status: getStatus({ value, isAffectedByScope, column }),
         value,
       };
     },
@@ -252,10 +262,14 @@ export const selectNativeIndicatorsForChart = (
       }
       return {
         name: Object.values(dashboardLayout).find(
-          layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
-        )?.sliceName,
+          layoutItem => layoutItem?.meta?.chartId === chartId,
+        )?.meta?.sliceName,
         path: [chartConfig.id],
-        status: getStatus(value, isAffectedByScope),
+        status: getStatus({
+          value,
+          isAffectedByScope,
+          type: DataMaskType.CrossFilters,
+        }),
         value,
       };
     },

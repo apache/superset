@@ -88,6 +88,9 @@ const mapStateToProps = (
         ind2.status !== IndicatorStatus.Applied),
   );
 
+  const appliedCrossFilterIndicators = indicators.filter(
+    indicator => indicator.status === IndicatorStatus.CrossFilterApplied,
+  );
   const appliedIndicators = indicators.filter(
     indicator => indicator.status === IndicatorStatus.Applied,
   );
@@ -101,6 +104,7 @@ const mapStateToProps = (
   return {
     chartId,
     appliedIndicators,
+    appliedCrossFilterIndicators,
     unsetIndicators,
     incompatibleIndicators,
   };
