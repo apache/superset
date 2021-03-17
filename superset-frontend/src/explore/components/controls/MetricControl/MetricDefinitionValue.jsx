@@ -22,14 +22,9 @@ import columnType from './columnType';
 import AdhocMetricOption from './AdhocMetricOption';
 import AdhocMetric from './AdhocMetric';
 import savedMetricType from './savedMetricType';
-import adhocMetricType from './adhocMetricType';
 
 const propTypes = {
-  option: PropTypes.oneOfType([
-    savedMetricType,
-    adhocMetricType,
-    PropTypes.string,
-  ]).isRequired,
+  option: PropTypes.oneOfType([PropTypes.object, PropTypes.string]).isRequired,
   index: PropTypes.number.isRequired,
   onMetricEdit: PropTypes.func,
   onRemoveMetric: PropTypes.func,
