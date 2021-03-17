@@ -26,7 +26,7 @@ import {
   SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL,
 } from 'src/dataMask/actions';
 import { dashboardInfoChanged } from './dashboardInfo';
-import { FilterSet } from '../reducers/types';
+import { DashboardInfo, FilterSet } from '../reducers/types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
 export interface SetFilterConfigBegin {
@@ -60,11 +60,6 @@ export interface SetFilterSetsConfigFail {
   filterSetsConfig: FilterSet[];
 }
 
-interface DashboardInfo {
-  id: number;
-  json_metadata: string;
-}
-
 export const setFilterConfiguration = (
   filterConfig: FilterConfiguration,
 ) => async (dispatch: Dispatch, getState: () => any) => {
@@ -87,7 +82,7 @@ export const setFilterConfiguration = (
     const response = await updateDashboard({
       json_metadata: JSON.stringify({
         ...metadata,
-        filter_configuration: filterConfig,
+        native_filter_configuration: filterConfig,
       }),
     });
     dispatch(

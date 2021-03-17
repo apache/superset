@@ -28,7 +28,7 @@ import {
 import { triggerQuery } from '../../chart/chartAction';
 import { logEvent } from '../../logger/actions';
 import { getActiveFilters } from '../util/activeDashboardFilters';
-import { getActiveNativeFilters } from '../util/activeDashboardNativeFilters';
+import { getAllActiveFilters } from '../util/activeAllDashboardFilters';
 
 function mapStateToProps(state) {
   const {
@@ -58,8 +58,10 @@ function mapStateToProps(state) {
     // When user start interacting with dashboard, it will be user picked values from all filter_box
     activeFilters: {
       ...getActiveFilters(),
-      ...getActiveNativeFilters({
-        filters: nativeFilters.filters,
+      ...getAllActiveFilters({
+        // eslint-disable-next-line camelcase
+        chartConfiguration: dashboardInfo.metadata?.chart_configuration,
+        nativeFilters: nativeFilters.filters,
         dataMask,
         layout: dashboardLayout.present,
       }),
