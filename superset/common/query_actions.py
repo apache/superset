@@ -80,10 +80,12 @@ def _get_query(
     query_context: "QueryContext", query_obj: "QueryObject", _: bool,
 ) -> Dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
-    return {
-        "query": datasource.get_query_str(query_obj.to_dict()),
-        "language": datasource.query_language,
-    }
+    result = {"language": datasource.query_language}
+    try:
+        result["query"] = datasource.get_query_str(query_obj.to_dict())
+    except QueryObjectValidationError as err:
+        result["error"] = err.message
+    return result
 
 
 def _get_full(
@@ -118,7 +120,7 @@ def _get_full(
     ] + rejected_time_columns
 
     if result_type == ChartDataResultType.RESULTS and status != QueryStatus.FAILED:
-        return {"data": payload["data"]}
+        return {"data": payload.get("data")}
     return payload
 
 
@@ -143,7 +145,7 @@ def _get_results(
     query_context: "QueryContext", query_obj: "QueryObject", force_cached: bool = False
 ) -> Dict[str, Any]:
     payload = _get_full(query_context, query_obj, force_cached)
-    return {"data": payload["data"]}
+    return {"data": payload.get("data"), "error": payload.get("error")}
 
 
 _result_type_functions: Dict[
