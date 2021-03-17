@@ -31,3 +31,4 @@ export * from './style';
 export * from './validator';
 export * from './chart';
 export * from './chart-composition';
+export * from './components';
