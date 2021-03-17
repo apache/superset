@@ -282,6 +282,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const onInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('I HAVE CHANGED HERE');
     const { target } = event;
     const data = {
       database_name: db ? db.database_name : '',
@@ -509,8 +510,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 indeterminate={false}
                 checked={db ? !!db.allow_run_async : false}
                 onChange={onInputChange}
+                labelText={t('Asynchronous query execution')}
               />
-              <div>{t('Asynchronous query execution')}</div>
               <InfoTooltip
                 tooltip={t(
                   'Operate the database in asynchronous mode, meaning that the queries ' +
@@ -531,8 +532,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   indeterminate={false}
                   checked={db ? !!db.expose_in_sqllab : false}
                   onChange={onInputChange}
+                  labelText={t('Expose in SQL Lab')}
                 />
-                <div>{t('Expose in SQL Lab')}</div>
                 <InfoTooltip
                   tooltip={t('Allow this database to be queried in SQL Lab')}
                 />
@@ -547,8 +548,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                       indeterminate={false}
                       checked={db ? !!db.allow_ctas : false}
                       onChange={onInputChange}
+                      labelText={t('Allow CREATE TABLE AS')}
                     />
-                    <div>{t('Allow CREATE TABLE AS')}</div>
                     <InfoTooltip
                       tooltip={t(
                         'Allow creation of new tables based on queries',
@@ -563,8 +564,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                       indeterminate={false}
                       checked={db ? !!db.allow_cvas : false}
                       onChange={onInputChange}
+                      labelText={t('Allow CREATE VIEW AS')}
                     />
-                    <div>{t('Allow CREATE VIEW AS')}</div>
                     <InfoTooltip
                       tooltip={t(
                         'Allow creation of new views based on queries',
@@ -602,8 +603,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                       indeterminate={false}
                       checked={db ? !!db.allow_dml : false}
                       onChange={onInputChange}
+                      labelText={t('Allow DML')}
                     />
-                    <div>{t('Allow DML')}</div>
                     <InfoTooltip
                       tooltip={t(
                         'Allow manipulation of the database using non-SELECT statements such as UPDATE, DELETE, CREATE, etc.',
@@ -620,8 +621,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                         db ? !!db.allow_multi_schema_metadata_fetch : false
                       }
                       onChange={onInputChange}
+                      labelText={t('Allow multi schema metadata fetch')}
                     />
-                    <div>{t('Allow multi schema metadata fetch')}</div>
                     <InfoTooltip
                       tooltip={t(
                         'Allow SQL Lab to fetch a list of all tables and all views across all database ' +
