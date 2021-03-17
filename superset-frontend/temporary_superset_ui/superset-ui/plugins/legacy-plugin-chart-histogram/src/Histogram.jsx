@@ -23,7 +23,7 @@ import { Histogram, BarSeries, XAxis, YAxis } from '@data-ui/histogram';
 import { chartTheme } from '@data-ui/theme';
 import { LegendOrdinal } from '@vx/legend';
 import { scaleOrdinal } from '@vx/scale';
-import { CategoricalColorNamespace, styled } from '@superset-ui/core';
+import { CategoricalColorNamespace, styled, t } from '@superset-ui/core';
 import WithLegend from './WithLegend';
 
 const propTypes = {
@@ -109,11 +109,11 @@ class CustomHistogram extends React.PureComponent {
                   {datum.bin0} to {datum.bin1}
                 </strong>
                 <div>
-                  <strong>count </strong>
+                  <strong>{t('count')} </strong>
                   {datum.count}
                 </div>
                 <div>
-                  <strong>cumulative </strong>
+                  <strong>{t('cumulative')} </strong>
                   {datum.cumulative}
                 </div>
               </div>
