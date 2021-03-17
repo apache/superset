@@ -29,8 +29,8 @@ import {
 } from 'src/dashboard/components/nativeFilters/utils';
 import { DataMaskStateWithId } from 'src/dataMask/types';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
-import { getActiveNativeFilters } from '../activeDashboardNativeFilters';
-import { NativeFiltersState } from '../../reducers/types';
+import { ChartConfiguration, NativeFiltersState } from '../../reducers/types';
+import { getAllActiveFilters } from '../activeAllDashboardFilters';
 
 // We cache formData objects so that our connected container components don't always trigger
 // render cascades. we cannot leverage the reselect library because our cache size is >1
@@ -38,6 +38,7 @@ const cachedFiltersByChart = {};
 const cachedFormdataByChart = {};
 
 export interface GetFormDataWithExtraFiltersArguments {
+  chartConfiguration: ChartConfiguration;
   chart: ChartQueryPayload;
   charts: Charts;
   filters: DataRecordFilters;
@@ -57,6 +58,7 @@ export default function getFormDataWithExtraFilters({
   charts,
   filters,
   nativeFilters,
+  chartConfiguration,
   colorScheme,
   colorNamespace,
   sliceId,
@@ -81,12 +83,13 @@ export default function getFormDataWithExtraFilters({
   }
 
   let extraData: { extra_form_data?: JsonObject } = {};
-  const activeNativeFilters = getActiveNativeFilters({
+  const activeFilters = getAllActiveFilters({
+    chartConfiguration,
     dataMask,
     layout,
-    filters: nativeFilters.filters,
+    nativeFilters: nativeFilters.filters,
   });
-  const filterIdsAppliedOnChart = Object.entries(activeNativeFilters)
+  const filterIdsAppliedOnChart = Object.entries(activeFilters)
     .filter(([, { scope }]) => scope.includes(chart.id))
     .map(([filterId]) => filterId);
   if (filterIdsAppliedOnChart.length) {

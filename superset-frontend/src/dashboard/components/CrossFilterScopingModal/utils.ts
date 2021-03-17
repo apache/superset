@@ -16,10 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { FormInstance } from 'antd/lib/form';
 
-export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
-
-// updates partially changed dashboard info
-export function dashboardInfoChanged(newInfo) {
-  return { type: DASHBOARD_INFO_UPDATED, newInfo };
-}
+// eslint-disable-next-line import/prefer-default-export
+export const setCrossFilterFieldValues = (
+  form: FormInstance,
+  values: object,
+) => {
+  form.setFieldsValue({
+    ...values,
+  });
+};
