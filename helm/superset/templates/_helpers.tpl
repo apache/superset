@@ -52,8 +52,8 @@ Create chart name and version as used by the chart label.
 {{- define "superset-bootstrap" -}}
 #!/bin/sh
 {{ if .Values.additionalAptPackages }}
-apt-get update -y --no-install-recommends \
-  && apt-get install -y \
+apt-get update -y \
+  && apt-get install -y --no-install-recommends \
      {{ range .Values.additionalAptPackages }}{{ . }} {{ end }}\
   && rm -rf /var/lib/apt/lists/*
 {{ end -}}
