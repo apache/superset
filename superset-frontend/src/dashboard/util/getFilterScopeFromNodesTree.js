@@ -22,11 +22,29 @@ import { flatMap, isEmpty } from 'lodash';
 import { CHART_TYPE, TAB_TYPE } from './componentTypes';
 import { getChartIdAndColumnFromFilterKey } from './getDashboardFilterKey';
 
+function getChartsFromTabsNotInScope({ tabs = [], tabsInScope = [] }) {
+  const chartsNotInScope = [];
+  tabs.forEach(({ value: tab, children: tabChildren }) => {
+    if (tabChildren && !tabsInScope.includes(tab)) {
+      tabChildren.forEach(({ value: subTab, children: subTabChildren }) => {
+        if (subTabChildren && !tabsInScope.includes(subTab)) {
+          chartsNotInScope.push(
+            ...subTabChildren.filter(({ type }) => type === CHART_TYPE),
+          );
+        }
+      });
+    }
+  });
+
+  // return chartId only
+  return chartsNotInScope.map(({ value }) => value);
+}
 function getTabChildrenScope({
   tabScopes,
   parentNodeValue,
   forceAggregate = false,
   hasChartSiblings = false,
+  tabChildren = [],
   immuneChartSiblings = [],
 }) {
   // if all sub-tabs are in scope, or forceAggregate =  true
@@ -38,9 +56,21 @@ function getTabChildrenScope({
         ([key, { scope }]) => scope && scope.length && key === scope[0],
       ))
   ) {
+    // get all charts from tabChildren that is not in scope
+    const chartsFromTabsNotInScope = getChartsFromTabsNotInScope({
+      tabs: tabChildren,
+      tabsInScope: flatMap(tabScopes, ({ scope }) => scope),
+    });
+    const immuneChartsFromTabsInScope = flatMap(
+      Object.values(tabScopes),
+      ({ immune }) => immune,
+    );
+    const immuneCharts = [
+      ...new Set([...chartsFromTabsNotInScope, ...immuneChartsFromTabsInScope]),
+    ];
     return {
       scope: [parentNodeValue],
-      immune: flatMap(Object.values(tabScopes), ({ immune }) => immune),
+      immune: immuneCharts,
     };
   }
 
@@ -96,6 +126,7 @@ function traverse({ currentNode = {}, filterId, checkedChartIds = [] }) {
       tabScopes,
       parentNodeValue: currentValue,
       forceAggregate: true,
+      tabChildren,
     });
     return {
       scope,
@@ -109,6 +140,7 @@ function traverse({ currentNode = {}, filterId, checkedChartIds = [] }) {
       tabScopes,
       parentNodeValue: currentValue,
       hasChartSiblings: !isEmpty(chartChildren),
+      tabChildren,
       immuneChartSiblings: chartsImmune,
     });
   }
