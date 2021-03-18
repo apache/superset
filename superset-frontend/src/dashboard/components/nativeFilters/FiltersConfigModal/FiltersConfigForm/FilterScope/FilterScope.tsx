@@ -57,8 +57,8 @@ const FilterScope: FC<FilterScopeProps> = ({
   updateFormValues,
   chartId,
 }) => {
-  const initialScope = scope || getDefaultScopeValue();
-  const initialScoping = isScopingAll(initialScope)
+  const initialScope = scope || getDefaultScopeValue(chartId);
+  const initialScoping = isScopingAll(initialScope, chartId)
     ? Scoping.all
     : Scoping.specific;
 
@@ -72,8 +72,9 @@ const FilterScope: FC<FilterScopeProps> = ({
         <Radio.Group
           onChange={({ target: { value } }) => {
             if (value === Scoping.all) {
+              const scope = getDefaultScopeValue(chartId);
               updateFormValues({
-                scope: getDefaultScopeValue(),
+                scope,
               });
             }
             forceUpdate();

@@ -54,10 +54,11 @@ const ScopingTree: FC<ScopingTreeProps> = ({
   const handleCheck = (checkedKeys: string[]) => {
     forceUpdate();
     const scope = findFilterScope(checkedKeys, layout);
+    const excluded = new Set([...scope.excluded, chartId]);
     updateFormValues({
       scope: {
         ...scope,
-        excluded: [...scope.excluded, chartId],
+        excluded: [...excluded].filter(id => id !== undefined),
       },
     });
   };
