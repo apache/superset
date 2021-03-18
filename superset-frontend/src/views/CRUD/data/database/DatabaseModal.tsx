@@ -255,11 +255,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     // Count starts a 0 (closed)
     // Any checkbox in this for that gets checked
     // will increase the count and keep the form open
-    if (trueOrFalse) {
-      setCount(count + 1);
-    } else {
-      setCount(count - 1);
-    }
+    setCount(count + (trueOrFalse ? 1 : -1));
   };
 
   useEffect(() => {
