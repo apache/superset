@@ -94,12 +94,9 @@ const WelcomeNav = styled.div`
   height: 50px;
   background-color: white;
   margin-top: ${({ theme }) => (theme.gridUnit * -4) -1}px;
-  .title {
-    margin: ${({ theme }) => theme.gridUnit * 4}px;
-    font-size: ${({ theme }) => theme.typography.sizes.xl}px;
+  .navbar-brand{
+    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
     font-weight: ${({ theme }) => theme.typography.weights.bold};
-    display: block;
-    float: left;
   }
   .switch {
     float: right;
@@ -168,11 +165,15 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   return (
     <WelcomeContainer>
       <WelcomeNav>
-        <span className="title">Home</span>
-        <div className="switch">
-          <Switch checked={checked} onChange={handleToggle} />
-          <span>Thumbnails</span>
-        </div>
+        <span className="navbar-brand">Home</span>
+        {window.featureFlags.THUMBNAILS ?
+          <div className="switch">
+            <Switch checked={checked} onChange={handleToggle} />
+            <span>Thumbnails</span>
+          </div>
+          :
+          null
+        }
       </WelcomeNav>
       <Collapse defaultActiveKey={['1', '2', '3', '4']} ghost bigger>
         <Collapse.Panel header={t('Recents')} key="1">
