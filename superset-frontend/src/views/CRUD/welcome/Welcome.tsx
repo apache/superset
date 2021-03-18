@@ -106,6 +106,7 @@ const WelcomeNav = styled.div`
     span {
       display: block;
       margin:${({ theme }) => theme.gridUnit * 1}px; 
+      line-height: 1;
     }
   }
 `;
