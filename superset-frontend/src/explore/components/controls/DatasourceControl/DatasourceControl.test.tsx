@@ -76,7 +76,7 @@ test('Should open a menu', () => {
 
   expect(screen.queryByText('Edit dataset')).toBeInTheDocument();
   expect(screen.queryByText('Change dataset')).toBeInTheDocument();
-  expect(screen.queryByText('View in SQL Lab')).toBeInTheDocument();
+  expect(screen.getByText('View in SQL Lab')).toBeInTheDocument();
 });
 
 test('Click on Change dataset option', async () => {
