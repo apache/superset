@@ -29,7 +29,9 @@ import { TreeItem } from './types';
 import { buildTree } from './utils';
 
 // eslint-disable-next-line import/prefer-default-export
-export function useFilterScopeTree(): {
+export function useFilterScopeTree(
+  currentChartId?: number,
+): {
   treeData: [TreeItem];
   layout: Layout;
 } {
@@ -49,12 +51,12 @@ export function useFilterScopeTree(): {
   const validNodes = useMemo(
     () =>
       Object.values(layout).reduce<string[]>((acc, cur) => {
-        if (cur?.type === CHART_TYPE) {
+        if (cur?.type === CHART_TYPE && currentChartId !== cur?.meta?.chartId) {
           return [...new Set([...acc, ...cur?.parents, cur.id])];
         }
         return acc;
       }, []),
-    [layout],
+    [layout, currentChartId],
   );
 
   useMemo(() => {

@@ -49,7 +49,10 @@ const CrossFilterScopingModal: FC<CrossFilterScopingModalProps> = ({
     dispatch(
       setChartConfiguration({
         ...chartConfig,
-        [chartId]: { crossFilters: { scope: form.getFieldValue('scope') } },
+        [chartId]: {
+          id: chartId,
+          crossFilters: { scope: form.getFieldValue('scope') },
+        },
       }),
     );
     onClose();
@@ -88,7 +91,7 @@ const CrossFilterScopingModal: FC<CrossFilterScopingModalProps> = ({
       }
     >
       <StyledForm preserve={false} form={form} layout="vertical">
-        <CrossFilterScopingForm form={form} scope={scope} />
+        <CrossFilterScopingForm form={form} scope={scope} chartId={chartId} />
       </StyledForm>
     </StyledModal>
   );
