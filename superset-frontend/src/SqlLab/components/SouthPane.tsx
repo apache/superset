@@ -21,7 +21,7 @@ import shortid from 'shortid';
 import Alert from 'src/components/Alert';
 import Tabs from 'src/common/components/Tabs';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { t, styled } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -197,7 +197,7 @@ function mapStateToProps({ sqlLab }: Record<string, any>) {
   };
 }
 
-function mapDispatchToProps(dispatch: any) {
+function mapDispatchToProps(dispatch: Dispatch) {
   return {
     actions: bindActionCreators<any, any>(Actions, dispatch),
   };

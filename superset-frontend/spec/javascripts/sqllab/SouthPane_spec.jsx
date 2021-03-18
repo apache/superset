@@ -19,12 +19,9 @@
 import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { Provider } from 'react-redux';
 import { styledShallow as shallow } from 'spec/helpers/theming';
 import SouthPaneContainer from 'src/SqlLab/components/SouthPane';
 import ResultSet from 'src/SqlLab/components/ResultSet';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import { render, screen, act } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';
 import { initialState } from './fixtures';
@@ -74,50 +71,6 @@ const mockedProps = {
   offline: false,
 };
 
-const offlineMockedProps = {
-  editorQueries: [
-    {
-      cached: false,
-      changedOn: Date.now(),
-      db: 'main',
-      dbId: 1,
-      id: 'LCly_kkIN',
-      startDttm: Date.now(),
-    },
-    {
-      cached: false,
-      changedOn: 1559238500401,
-      db: 'main',
-      dbId: 1,
-      id: 'lXJa7F9_r',
-      startDttm: 1559238500401,
-    },
-    {
-      cached: false,
-      changedOn: 1559238506925,
-      db: 'main',
-      dbId: 1,
-      id: '2g2_iRFMl',
-      startDttm: 1559238506925,
-    },
-    {
-      cached: false,
-      changedOn: 1559238516395,
-      db: 'main',
-      dbId: 1,
-      id: 'erWdqEWPm',
-      startDttm: 1559238516395,
-    },
-  ],
-  latestQueryId: 'LCly_kkIN',
-  dataPreviewQueries: [],
-  actions: {},
-  activeSouthPaneTab: '',
-  height: 1,
-  displayLimit: 1,
-  databases: {},
-  offline: true,
-};
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 const store = mockStore(initialState);
@@ -140,23 +93,5 @@ describe('SouthPane', () => {
     expect(wrapper.find(ResultSet).props().query.id).toEqual(
       mockedProps.latestQueryId,
     );
-  });
-});
-
-describe('South Pane behavior', () => {
-  beforeEach(async () => {
-    await act(async () => {
-      render(
-        <ThemeProvider theme={supersetTheme}>
-          <Provider store={store}>
-            <SouthPaneContainer {...offlineMockedProps} />
-          </Provider>
-        </ThemeProvider>,
-      );
-    });
-  });
-  it('has correct status when offline', () => {
-    const offlineStatus = screen.getByText(/offline/i);
-    expect(offlineStatus).toBeInTheDocument();
   });
 });
