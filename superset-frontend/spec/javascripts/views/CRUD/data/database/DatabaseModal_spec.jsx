@@ -81,18 +81,14 @@ describe('DatabaseModal', () => {
         name: /sql lab settings/i,
       });
       userEvent.click(sqlLabSettingsTab);
-      // Grab all SQL Lab Settings and checkboxes
-      const sqlLabSettings = screen.getAllByRole('checkbox', { name: '' });
-      const exposeInSqlLab = sqlLabSettings[0];
-      const allowCTAS = sqlLabSettings[1];
-      const allowCVAS = sqlLabSettings[2];
-      const allowDML = sqlLabSettings[3];
-      const allowMSMF = sqlLabSettings[4];
+      // Grab all SQL Lab Settings by their labels
+      const exposeInSqlLab = screen.getByText('Expose in SQL Lab');
+      const allowCTAS = screen.getByText('Allow CREATE TABLE AS');
+      const allowCVAS = screen.getByText('Allow CREATE VIEW AS');
+      const allowDML = screen.getByText('Allow DML');
+      const allowMSMF = screen.getByText('Allow multi schema metadata fetch');
 
-      // Check that "Expose in SQL Lab" starts checked
-      // 🐞 ----- Checked is false, should be true ----- 🐞
-      expect(exposeInSqlLab.checked).toBeFalsy();
-      // While checked, all settings should display
+      // While 'Expose in SQL Lab' is checked, all settings should display
       expect(exposeInSqlLab).toBeVisible();
       expect(allowCTAS).toBeVisible();
       expect(allowCVAS).toBeVisible();
@@ -101,8 +97,6 @@ describe('DatabaseModal', () => {
 
       // When clicked, "Expose in SQL Lab" becomes unchecked
       userEvent.click(exposeInSqlLab);
-      // 🐞 ----- Unchecked is true, should be false ----- 🐞
-      expect(exposeInSqlLab.checked).toBeTruthy();
       // While unchecked, only "Expose in SQL Lab" should display
       expect(exposeInSqlLab).toBeVisible();
       expect(allowCTAS).not.toBeVisible();
@@ -125,28 +119,21 @@ describe('DatabaseModal', () => {
         name: /sql lab settings/i,
       });
       userEvent.click(sqlLabSettingsTab);
-      // Grab all SQL Lab Settings, CTAS checkbox, & schema field
-      const sqlLabSettings = screen.getAllByRole('checkbox', { name: '' });
-      const allowCTAS = sqlLabSettings[1];
-      const allowCVAS = sqlLabSettings[2];
+      // Grab CTAS by it's label & schema field
+      const allowCTAS = screen.getByText('Allow CREATE TABLE AS');
       const schemaField = screen.getByText('CTAS & CVAS SCHEMA');
 
       // While CTAS & CVAS are unchecked, schema field is not visible
-      expect(allowCTAS).toHaveClass('hidden');
-      expect(allowCVAS.checked).toBeFalsy();
       expect(schemaField).not.toBeVisible();
 
       // Check "Allow CTAS" to reveal schema field
-      userEvent.click(allowCTAS);
-      // debug(null, 20000);
       // 🐞 ----- This needs to be clicked 2x for some reason, should only be 1x ----- 🐞
       userEvent.click(allowCTAS);
-      expect(allowCTAS.checked).toBeFalsy();
+      userEvent.click(allowCTAS);
       expect(schemaField).toBeVisible();
 
       // Uncheck "Allow CTAS" to hide schema field again
       userEvent.click(allowCTAS);
-      expect(allowCTAS.checked).toBeTruthy();
       expect(schemaField).not.toBeVisible();
     });
 
@@ -164,28 +151,21 @@ describe('DatabaseModal', () => {
         name: /sql lab settings/i,
       });
       userEvent.click(sqlLabSettingsTab);
-      // Grab all SQL Lab Settings, CVAS checkbox, & schema field
-      const sqlLabSettings = screen.getAllByRole('checkbox', { name: '' });
-      const allowCTAS = sqlLabSettings[1];
-      const allowCVAS = sqlLabSettings[2];
+      // Grab CVAS by it's label & schema field
+      const allowCVAS = screen.getByText('Allow CREATE VIEW AS');
       const schemaField = screen.getByText('CTAS & CVAS SCHEMA');
 
       // While CTAS & CVAS are unchecked, schema field is not visible
-      expect(allowCTAS.checked).toBeFalsy();
-      expect(allowCVAS.checked).toBeFalsy();
       expect(schemaField).not.toBeVisible();
 
       // Check "Allow CVAS" to reveal schema field
-      userEvent.click(allowCVAS);
-      expect(allowCVAS.checked).toBeTruthy();
       // 🐞 ----- This needs to be clicked 2x for some reason, should only be 1x ----- 🐞
       userEvent.click(allowCVAS);
-      expect(allowCVAS.checked).toBeFalsy();
+      userEvent.click(allowCVAS);
       expect(schemaField).toBeVisible();
 
       // Uncheck "Allow CVAS" to hide schema field again
       userEvent.click(allowCVAS);
-      expect(allowCVAS.checked).toBeTruthy();
       expect(schemaField).not.toBeVisible();
     });
 
@@ -203,33 +183,25 @@ describe('DatabaseModal', () => {
         name: /sql lab settings/i,
       });
       userEvent.click(sqlLabSettingsTab);
-      // Grab all SQL Lab Settings, CTAS/CVAS checkboxes, & schema field
-      const sqlLabSettings = screen.getAllByRole('checkbox', { name: '' });
-      const allowCTAS = sqlLabSettings[1];
-      const allowCVAS = sqlLabSettings[2];
+      // Grab CTAS and CVAS by their labels, & schema field
+      const allowCTAS = screen.getByText('Allow CREATE TABLE AS');
+      const allowCVAS = screen.getByText('Allow CREATE VIEW AS');
       const schemaField = screen.getByTestId('schema_field_test_id');
 
       // While CTAS & CVAS are unchecked, schema field is not visible
-      expect(allowCTAS.checked).toBeFalsy();
-      expect(allowCVAS.checked).toBeFalsy();
       expect(schemaField).not.toBeVisible();
 
       // Check both "Allow CTAS" and "Allow CVAS" to reveal schema field
       userEvent.click(allowCTAS);
-      expect(allowCTAS.checked).toBeTruthy();
       userEvent.click(allowCVAS);
-      expect(allowCVAS.checked).toBeTruthy();
       expect(schemaField).toBeVisible();
       // Uncheck both "Allow CTAS" and "Allow CVAS" to hide schema field again
       userEvent.click(allowCTAS);
-      expect(allowCTAS.checked).toBeFalsy();
       userEvent.click(allowCVAS);
-      expect(allowCVAS.checked).toBeFalsy();
-      // ----- This extra click should not be happening to make the field invisible -----
+      // 🐞 ----- This extra click should not be happening to make the schema field invisible ----- 🐞
       // Both checkboxes go unchecked, so the field should no longer render
       // But the field requires one more click in order to lose visibility, as seen below
       userEvent.click(allowCVAS);
-      expect(allowCVAS.checked).toBeTruthy();
       expect(schemaField).not.toBeVisible();
     });
   });

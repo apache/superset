@@ -282,7 +282,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const onInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('I HAVE CHANGED HERE');
     const { target } = event;
     const data = {
       database_name: db ? db.database_name : '',
