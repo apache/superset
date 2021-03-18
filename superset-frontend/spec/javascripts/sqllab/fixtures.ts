@@ -172,6 +172,7 @@ export const table = {
   ],
   expanded: true,
 };
+
 export const defaultQueryEditor = {
   id: 'dfsadfs',
   autorun: false,
