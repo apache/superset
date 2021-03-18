@@ -145,8 +145,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     true,
   );
   const [createAsOpen, setCreateAsOpen] = useState<boolean>(false);
-  const [ctas, setCtas] = useState<boolean>(false);
-  const [cvas, setCvas] = useState<boolean>(false);
   const [count, setCount] = useState<number>(0);
 
   const isEditMode = database !== null;
@@ -251,27 +249,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   };
 
-  const shouldExpand = (trueOrFalse: boolean) => {
-    // Count starts a 0 (closed)
-    // Any checkbox in this for that gets checked
-    // will increase the count and keep the form open
-    setCount(count + (trueOrFalse ? 1 : -1));
-  };
-
   useEffect(() => {
     // Opens the form if at least one option is checked
     // Closes the form only if both options are unchecked
     setCreateAsOpen(count > 0);
   }, [count]);
-
-  const cvasCtasCheck = (createAs: string, trueOrFalse: boolean) => {
-    if (createAs.includes('cvas')) {
-      setCvas(trueOrFalse);
-    } else if (createAs.includes('ctas')) {
-      setCtas(trueOrFalse);
-    }
-    shouldExpand(trueOrFalse);
-  };
 
   const onInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { target } = event;
@@ -297,24 +279,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     so that the input will not disappear when one options goes
     unchecked but the other is still checked */
     const { id, checked } = target;
-    // 🐞 ----- This is a suggested fix, did not work, coming back to this ----- 🐞
-    // const check =
-    //   (!cvas && id.includes('cvas') && 'cvas') ||
-    //   (!ctas && id.includes('ctas') && 'ctas');
-    // cvasCtasCheck(check, checked);
-    if (id.includes('cvas')) {
-      if (!cvas && checked) {
-        cvasCtasCheck('cvas', true);
-      } else {
-        cvasCtasCheck('cvas', false);
-      }
-    }
-    if (id.includes('ctas')) {
-      if (!ctas && checked) {
-        cvasCtasCheck('ctas', true);
-      } else {
-        cvasCtasCheck('ctas', false);
-      }
+    if (id.includes('cvas') || id.includes('ctas')) {
+      setCount(count + (checked ? 1 : -1));
     }
 
     setDB(data);
