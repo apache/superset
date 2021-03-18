@@ -84,7 +84,8 @@ from superset.exceptions import (
     SupersetTemplateParamsErrorException,
     SupersetTimeoutException,
 )
-from superset.extensions import async_query_manager, cache_manager
+from superset.extensions import async_query_manager, cache_manager, \
+    dashboard_jwt_manager
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database, FavStar, Log
 from superset.models.dashboard import Dashboard
@@ -102,6 +103,8 @@ from superset.utils import core as utils
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
 from superset.utils.core import ReservedUrlParameters
+from superset.utils.dashboard_jwt_manager import DashboardJwtManager, \
+    DashboardJwtDataObject
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import check_dashboard_access
 from superset.views.base import (
@@ -1866,6 +1869,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             if key not in [param.value for param in utils.ReservedUrlParameters]
         }
 
+
+
         bootstrap_data = {
             "user_id": g.user.get_id(),
             "common": common_bootstrap_payload(),
@@ -1880,6 +1885,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 "superset_can_csv": superset_can_csv,
                 "slice_can_edit": slice_can_edit,
             },
+            "extra_jwt": dashboard_jwt_manager
+                .generate_jwt(DashboardJwtDataObject(dashboard.id,
+                                                     list(
+                                                         map(
+                                                             lambda
+                                                             datasource: datasource.id,
+                                                             dashboard.datasources))
+                                                     )),
             "datasources": data["datasources"],
         }
 
