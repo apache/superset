@@ -261,11 +261,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   useEffect(() => {
     // Opens the form if at least one option is checked
     // Closes the form only if both options are unchecked
-    if (count > 0) {
-      setCreateAsOpen(true);
-    } else {
-      setCreateAsOpen(false);
-    }
+    setCreateAsOpen(count > 0);
   }, [count]);
 
   const cvasCtasCheck = (createAs: string, trueOrFalse: boolean) => {
