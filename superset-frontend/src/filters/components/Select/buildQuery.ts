@@ -21,14 +21,18 @@ import { DEFAULT_FORM_DATA, PluginFilterSelectQueryFormData } from './types';
 
 export default function buildQuery(formData: PluginFilterSelectQueryFormData) {
   const { sortAscending } = { ...DEFAULT_FORM_DATA, ...formData };
-  return buildQueryContext(formData, baseQueryObject => [
-    {
-      ...baseQueryObject,
-      apply_fetch_values_predicate: true,
-      groupby: baseQueryObject.columns,
-      orderby: sortAscending
-        ? baseQueryObject.columns.map(column => [column, true])
-        : [],
-    },
-  ]);
+  return buildQueryContext(formData, baseQueryObject => {
+    const { columns, filters = [] } = baseQueryObject;
+    return [
+      {
+        ...baseQueryObject,
+        apply_fetch_values_predicate: true,
+        groupby: columns,
+        filters: filters.concat(
+          columns.map(column => ({ col: column, op: 'IS NOT NULL' })),
+        ),
+        orderby: sortAscending ? columns.map(column => [column, true]) : [],
+      },
+    ];
+  });
 }

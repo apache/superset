@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, Hashable, List, Optional, Type, Union
 
@@ -334,7 +335,7 @@ class BaseDatasource(
     @staticmethod
     def filter_values_handler(
         values: Optional[FilterValues],
-        target_column_is_numeric: bool = False,
+        target_column_type: utils.GenericDataType,
         is_list_target: bool = False,
     ) -> Optional[FilterValues]:
         if values is None:
@@ -342,12 +343,18 @@ class BaseDatasource(
 
         def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
             # backward compatibility with previous <select> components
+            if (
+                isinstance(value, (float, int))
+                and target_column_type == utils.GenericDataType.TEMPORAL
+            ):
+                return datetime.utcfromtimestamp(value / 1000)
             if isinstance(value, str):
                 value = value.strip("\t\n'\"")
-                if target_column_is_numeric:
+
+                if target_column_type == utils.GenericDataType.NUMERIC:
                     # For backwards compatibility and edge cases
                     # where a column data type might have changed
-                    value = utils.cast_to_num(value)
+                    return utils.cast_to_num(value)
                 if value == NULL_STRING:
                     return None
                 if value == "<empty string>":
