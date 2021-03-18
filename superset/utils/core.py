@@ -430,6 +430,10 @@ def parse_js_uri_path_item(
 def cast_to_num(value: Optional[Union[float, int, str]]) -> Optional[Union[float, int]]:
     """Casts a value to an int/float
 
+    >>> cast_to_num('1 ')
+    1.0
+    >>> cast_to_num(' 2')
+    2.0
     >>> cast_to_num('5')
     5
     >>> cast_to_num('5.2')
