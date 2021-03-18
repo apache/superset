@@ -29,6 +29,7 @@ type ScopingTreeProps = {
   updateFormValues: (values: any) => void;
   formScope?: Scope;
   initialScope: Scope;
+  chartId?: number;
 };
 
 const ScopingTree: FC<ScopingTreeProps> = ({
@@ -36,22 +37,28 @@ const ScopingTree: FC<ScopingTreeProps> = ({
   initialScope,
   forceUpdate,
   updateFormValues,
+  chartId,
 }) => {
   const [expandedKeys, setExpandedKeys] = useState<string[]>([
     DASHBOARD_ROOT_ID,
   ]);
 
-  const { treeData, layout } = useFilterScopeTree();
+  const { treeData, layout } = useFilterScopeTree(chartId);
   const [autoExpandParent, setAutoExpandParent] = useState<boolean>(true);
 
   const handleExpand = (expandedKeys: string[]) => {
     setExpandedKeys(expandedKeys);
     setAutoExpandParent(false);
   };
+
   const handleCheck = (checkedKeys: string[]) => {
     forceUpdate();
+    const scope = findFilterScope(checkedKeys, layout);
+    if (chartId !== undefined) {
+      scope.excluded = [...new Set([...scope.excluded, chartId])];
+    }
     updateFormValues({
-      scope: findFilterScope(checkedKeys, layout),
+      scope,
     });
   };
 
