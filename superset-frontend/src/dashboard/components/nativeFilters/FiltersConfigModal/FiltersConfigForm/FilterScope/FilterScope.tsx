@@ -33,6 +33,7 @@ type FilterScopeProps = {
   forceUpdate: Function;
   scope?: Scope;
   formScoping?: Scoping;
+  chartId?: number;
 };
 
 const Wrapper = styled.div`
@@ -54,6 +55,7 @@ const FilterScope: FC<FilterScopeProps> = ({
   forceUpdate,
   scope,
   updateFormValues,
+  chartId,
 }) => {
   const initialScope = scope || getDefaultScopeValue();
   const initialScoping = isScopingAll(initialScope)
@@ -94,6 +96,7 @@ const FilterScope: FC<FilterScopeProps> = ({
           initialScope={initialScope}
           formScope={formScope}
           forceUpdate={forceUpdate}
+          chartId={chartId}
         />
       )}
       <CleanFormItem

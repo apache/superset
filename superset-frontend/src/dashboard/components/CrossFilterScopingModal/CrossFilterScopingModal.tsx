@@ -91,7 +91,7 @@ const CrossFilterScopingModal: FC<CrossFilterScopingModalProps> = ({
       }
     >
       <StyledForm preserve={false} form={form} layout="vertical">
-        <CrossFilterScopingForm form={form} scope={scope} />
+        <CrossFilterScopingForm form={form} scope={scope} chartId={chartId} />
       </StyledForm>
     </StyledModal>
   );

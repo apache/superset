@@ -183,7 +183,7 @@ export const selectNativeIndicatorsForChart = (
   chartId: number,
   charts: any,
   dashboardLayout: Layout,
-  chartConfiguration: ChartConfiguration,
+  chartConfiguration: ChartConfiguration = {},
 ): Indicator[] => {
   const chart = charts[chartId];
 
