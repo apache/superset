@@ -251,7 +251,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   };
 
-  const expandForm = (trueOrFalse: boolean) => {
+  const shouldExpand = (trueOrFalse: boolean) => {
     // Count starts a 0 (closed)
     // Any checkbox in this for that gets checked
     // will increase the count and keep the form open
@@ -278,7 +278,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     } else if (createAs.includes('ctas')) {
       setCtas(trueOrFalse);
     }
-    expandForm(trueOrFalse);
+    shouldExpand(trueOrFalse);
   };
 
   const onInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
