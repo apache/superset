@@ -45,10 +45,12 @@ const store = mockStore(initialState);
 describe('ResultSet', () => {
   const clearQuerySpy = sinon.spy();
   const fetchQuerySpy = sinon.spy();
+  const reRunQuerySpy = sinon.spy();
   const mockedProps = {
     actions: {
       clearQueryResults: clearQuerySpy,
       fetchQueryResults: fetchQuerySpy,
+      reRunQuery: reRunQuerySpy,
     },
     cache: true,
     query: queries[0],
@@ -82,6 +84,29 @@ describe('ResultSet', () => {
   it('renders a Table', () => {
     const wrapper = shallow(<ResultSet {...mockedProps} />);
     expect(wrapper.find(FilterableTable)).toExist();
+  });
+  describe('componentDidMount', () => {
+    const propsWithError = {
+      ...mockedProps,
+      query: { ...queries[0], errorMessage: 'Your session timed out' },
+    };
+    let spy;
+    beforeEach(() => {
+      reRunQuerySpy.resetHistory();
+      spy = sinon.spy(ResultSet.prototype, 'componentDidMount');
+    });
+    afterEach(() => {
+      spy.restore();
+    });
+    it('should call reRunQuery if timed out', () => {
+      shallow(<ResultSet {...propsWithError} />);
+      expect(reRunQuerySpy.callCount).toBe(1);
+    });
+
+    it('should not call reRunQuery if no error', () => {
+      shallow(<ResultSet {...mockedProps} />);
+      expect(reRunQuerySpy.callCount).toBe(0);
+    });
   });
   describe('UNSAFE_componentWillReceiveProps', () => {
     const wrapper = shallow(<ResultSet {...mockedProps} />);
