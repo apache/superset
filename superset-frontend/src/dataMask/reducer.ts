@@ -28,13 +28,11 @@ import {
   UpdateDataMask,
 } from './actions';
 
-export function getInitialMask(id: string): MaskWithId {
-  return {
-    id,
-    extraFormData: {},
-    currentState: {},
-  };
-}
+export const getInitialMask = (id: string): MaskWithId => ({
+  id,
+  extraFormData: {},
+  currentState: {},
+});
 
 const setUnitDataMask = (
   unitName: DataMaskType,
@@ -49,11 +47,11 @@ const setUnitDataMask = (
   }
 };
 
-const emptyDataMask = {
+const getEmptyDataMask = () => ({
   [DataMaskType.NativeFilters]: {},
   [DataMaskType.CrossFilters]: {},
   [DataMaskType.OwnFilters]: {},
-};
+});
 
 const dataMaskReducer = produce(
   (draft: DataMaskStateWithId, action: AnyDataMaskAction) => {
@@ -66,7 +64,7 @@ const dataMaskReducer = produce(
 
       case SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE:
         Object.values(DataMaskType).forEach(unitName => {
-          draft[unitName] = emptyDataMask[unitName];
+          draft[unitName] = getEmptyDataMask()[unitName];
         });
         (action.filterConfig ?? []).forEach(filter => {
           draft[DataMaskType.NativeFilters][filter.id] =
@@ -78,7 +76,7 @@ const dataMaskReducer = produce(
       default:
     }
   },
-  emptyDataMask,
+  getEmptyDataMask(),
 );
 
 export default dataMaskReducer;
