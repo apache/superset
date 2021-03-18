@@ -40,7 +40,7 @@ from superset.extensions import (
     manifest_processor,
     migrate,
     results_backend_manager,
-    talisman,
+    talisman, dashboard_jwt_manager,
 )
 from superset.security import SupersetSecurityManager
 from superset.typing import FlaskResponse
@@ -534,6 +534,7 @@ class SupersetAppInitializer:
         self.configure_data_sources()
         self.configure_auth_provider()
         self.configure_async_queries()
+        self.configure_dashboard_jwt()
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
@@ -698,3 +699,7 @@ class SupersetAppInitializer:
 
     def setup_bundle_manifest(self) -> None:
         manifest_processor.init_app(self.flask_app)
+
+    def configure_dashboard_jwt(self):
+        if feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC"):
+            dashboard_jwt_manager.init_app(self.flask_app)

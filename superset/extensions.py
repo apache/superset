@@ -29,6 +29,7 @@ from werkzeug.local import LocalProxy
 
 from superset.utils.async_query_manager import AsyncQueryManager
 from superset.utils.cache_manager import CacheManager
+from superset.utils.dashboard_jwt_manager import DashboardJwtManager
 from superset.utils.feature_flag_manager import FeatureFlagManager
 from superset.utils.machine_auth import MachineAuthProviderFactory
 
@@ -100,6 +101,7 @@ APP_DIR = os.path.dirname(__file__)
 appbuilder = AppBuilder(update_perms=False)
 async_query_manager = AsyncQueryManager()
 cache_manager = CacheManager()
+dashboard_jwt_manager = DashboardJwtManager()
 celery_app = celery.Celery()
 csrf = CSRFProtect()
 db = SQLA()
