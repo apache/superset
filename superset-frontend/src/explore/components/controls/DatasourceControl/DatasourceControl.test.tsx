@@ -74,7 +74,7 @@ test('Should open a menu', () => {
 
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
-  expect(screen.queryByText('Edit dataset')).toBeInTheDocument();
+  expect(screen.getByText('Edit dataset')).toBeInTheDocument();
   expect(screen.queryByText('Change dataset')).toBeInTheDocument();
   expect(screen.getByText('View in SQL Lab')).toBeInTheDocument();
 });
