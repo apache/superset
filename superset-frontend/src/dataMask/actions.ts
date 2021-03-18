@@ -33,6 +33,7 @@ export const SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE =
 export interface SetDataMaskForFilterConfigComplete {
   type: typeof SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE;
   filterConfig: FilterConfiguration;
+  unitName: DataMaskType;
 }
 export const SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL =
   'SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL';
