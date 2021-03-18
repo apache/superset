@@ -49,6 +49,7 @@ const setUnitDataMask = (
 
 const dataMaskReducer = produce(
   (draft: DataMaskStateWithId, action: AnyDataMaskAction) => {
+    const oldData = { ...draft };
     switch (action.type) {
       case UPDATE_DATA_MASK:
         Object.values(DataMaskType).forEach(unitName =>
@@ -60,7 +61,7 @@ const dataMaskReducer = produce(
         draft[action.unitName] = {};
         (action.filterConfig ?? []).forEach(filter => {
           draft[action.unitName][filter.id] =
-            draft[action.unitName][filter.id] ?? getInitialMask(filter.id);
+            oldData[action.unitName][filter.id] ?? getInitialMask(filter.id);
         });
         break;
 
