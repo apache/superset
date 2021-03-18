@@ -25,7 +25,6 @@ import {
 import { DataMaskStateWithId, DataMaskType } from 'src/dataMask/types';
 import { Layout } from '../../types';
 import { getTreeCheckedItems } from '../nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/utils';
-import { FilterValue } from '../nativeFilters/types';
 
 export enum IndicatorStatus {
   Unset = 'UNSET',
@@ -57,7 +56,7 @@ const selectIndicatorValue = (
   columnKey: string,
   filter: Filter,
   datasource: Datasource,
-): FilterValue => {
+): any => {
   const values = filter.columns[columnKey];
   const arrValues = Array.isArray(values) ? values : [values];
 
@@ -137,9 +136,9 @@ const getRejectedColumns = (chart: any): Set<string> =>
 export type Indicator = {
   column?: string;
   name: string;
-  value: FilterValue;
-  status: IndicatorStatus;
-  path: string[];
+  value?: any;
+  status?: IndicatorStatus;
+  path?: string[];
 };
 
 // inspects redux state to find what the filter indicators should be shown for a given chart
@@ -196,7 +195,7 @@ export const selectNativeIndicatorsForChart = (
     column,
     type = DataMaskType.NativeFilters,
   }: {
-    value: FilterValue;
+    value: any;
     isAffectedByScope: boolean;
     column?: string;
     type?: DataMaskType;

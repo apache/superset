@@ -47,7 +47,9 @@ const sortByStatus = (indicators: Indicator[]): Indicator[] => {
     IndicatorStatus.Incompatible,
   ];
   return indicators.sort(
-    (a, b) => statuses.indexOf(a.status) - statuses.indexOf(b.status),
+    (a, b) =>
+      statuses.indexOf(a.status as IndicatorStatus) -
+      statuses.indexOf(b.status as IndicatorStatus),
   );
 };
 

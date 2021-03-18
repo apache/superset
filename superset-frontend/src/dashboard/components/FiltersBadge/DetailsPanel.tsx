@@ -19,7 +19,6 @@
 import React, { useState } from 'react';
 import { t, useTheme, css } from '@superset-ui/core';
 import {
-  SearchOutlined,
   MinusCircleFilled,
   CheckCircleFilled,
   ExclamationCircleFilled,
@@ -28,41 +27,9 @@ import { Popover } from 'src/common/components/index';
 import Collapse from 'src/common/components/Collapse';
 import { Global } from '@emotion/core';
 import Icon from 'src/components/Icon';
-import {
-  Indent,
-  Item,
-  ItemIcon,
-  Panel,
-  Reset,
-  Title,
-  FilterValue,
-} from './Styles';
+import { Indent, Panel, Reset, Title } from './Styles';
 import { Indicator } from './selectors';
-import { getFilterValueForDisplay } from '../nativeFilters/FilterBar/FilterSets/utils';
-
-export interface IndicatorProps {
-  indicator: Indicator;
-  onClick: (path: string[]) => void;
-}
-
-const Indicator = ({
-  indicator: { column, name, value = [], path },
-  onClick,
-}: IndicatorProps) => {
-  const resultValue = getFilterValueForDisplay(value);
-  return (
-    <Item onClick={() => onClick([...path, `LABEL-${column}`])}>
-      <Title bold>
-        <ItemIcon>
-          <SearchOutlined />
-        </ItemIcon>
-        {name}
-        {resultValue ? ': ' : ''}
-      </Title>
-      <FilterValue>{resultValue}</FilterValue>
-    </Item>
-  );
-};
+import FilterIndicator from './FilterIndicator';
 
 export interface DetailsPanelProps {
   appliedCrossFilterIndicators: Indicator[];
@@ -202,7 +169,7 @@ const DetailsPanelPopover = ({
             >
               <Indent css={{ paddingBottom: theme.gridUnit * 3 }}>
                 {appliedCrossFilterIndicators.map(indicator => (
-                  <Indicator
+                  <FilterIndicator
                     key={indicatorKey(indicator)}
                     indicator={indicator}
                     onClick={onHighlightFilterSource}
@@ -223,7 +190,7 @@ const DetailsPanelPopover = ({
             >
               <Indent css={{ paddingBottom: theme.gridUnit * 3 }}>
                 {appliedIndicators.map(indicator => (
-                  <Indicator
+                  <FilterIndicator
                     key={indicatorKey(indicator)}
                     indicator={indicator}
                     onClick={onHighlightFilterSource}
@@ -247,7 +214,7 @@ const DetailsPanelPopover = ({
             >
               <Indent css={{ paddingBottom: theme.gridUnit * 3 }}>
                 {incompatibleIndicators.map(indicator => (
-                  <Indicator
+                  <FilterIndicator
                     key={indicatorKey(indicator)}
                     indicator={indicator}
                     onClick={onHighlightFilterSource}
@@ -269,7 +236,7 @@ const DetailsPanelPopover = ({
             >
               <Indent css={{ paddingBottom: theme.gridUnit * 3 }}>
                 {unsetIndicators.map(indicator => (
-                  <Indicator
+                  <FilterIndicator
                     key={indicatorKey(indicator)}
                     indicator={indicator}
                     onClick={onHighlightFilterSource}
