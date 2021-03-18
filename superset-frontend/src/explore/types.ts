@@ -43,5 +43,4 @@ export interface ChartState {
   queryController: AbortController | null;
   queriesResponse: QueryData | null;
   triggerQuery: boolean;
-  asyncJobId?: string;
 }
