@@ -86,7 +86,7 @@ builtin_time_grains: Dict[Optional[str], str] = {
     "PT15M": __("15 minute"),
     "PT0.5H": __("Half hour"),
     "PT1H": __("Hour"),
-    "PT2H": __("2 Hours"),
+    "PT2H": __("2 hour"),
     "P1D": __("Day"),
     "P1W": __("Week"),
     "P1M": __("Month"),
