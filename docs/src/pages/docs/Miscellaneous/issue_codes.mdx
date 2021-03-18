@@ -84,3 +84,32 @@ Your query was not submitted to the database because it's missing one or more
 parameters. You should define all the parameters referenced in the query in a
 valid JSON document. Check that the parameters are spelled correctly and that
 the document has a valid syntax.
+
+## Issue 1007
+
+```
+The hostname provided can't be resolved.
+```
+
+The hostname provided when adding a new database is invalid and cannot be
+resolved. Please check that there are no typos in the hostname.
+
+## Issue 1008
+
+```
+The port is closed.
+```
+
+The port provided when adding a new database is not open. Please check that
+the port number is correct, and that the database is running and listening on
+that port.
+
+## Issue 1009
+
+```
+The host might be down, and cannot be reached on the provided port.
+```
+
+The host provided when adding a new database doesn't seem to be up.
+Additionally, it cannot be reached on the provided port. Please check that
+there are no firewall rules preventing access to the host.

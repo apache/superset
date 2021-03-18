@@ -20,6 +20,7 @@ from typing import Any, Dict, Optional
 
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as _
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
 from superset.commands.base import BaseCommand
@@ -27,12 +28,15 @@ from superset.databases.commands.exceptions import (
     DatabaseSecurityUnsafeError,
     DatabaseTestConnectionDriverError,
     DatabaseTestConnectionFailedError,
+    DatabaseTestConnectionNetworkError,
     DatabaseTestConnectionUnexpectedError,
 )
 from superset.databases.dao import DatabaseDAO
+from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger
 from superset.models.core import Database
+from superset.utils.network import is_host_up, is_hostname_valid, is_port_open
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +46,53 @@ class TestConnectionDatabaseCommand(BaseCommand):
         self._actor = user
         self._properties = data.copy()
         self._model: Optional[Database] = None
+
+    @staticmethod
+    def _diagnose(uri: str) -> None:
+        parsed_uri = make_url(uri)
+        if parsed_uri.host:
+            if not is_hostname_valid(parsed_uri.host):
+                raise DatabaseTestConnectionNetworkError(
+                    error_type=SupersetErrorType.TEST_CONNECTION_INVALID_HOSTNAME_ERROR,
+                    message=_(
+                        'Unable to resolve hostname "%(hostname)s".',
+                        hostname=parsed_uri.host,
+                    ),
+                    level=ErrorLevel.ERROR,
+                    extra={"hostname": parsed_uri.host},
+                )
+
+            if parsed_uri.port:
+                if not is_port_open(parsed_uri.host, parsed_uri.port):
+                    if is_host_up(parsed_uri.host):
+                        raise DatabaseTestConnectionNetworkError(
+                            error_type=(
+                                SupersetErrorType.TEST_CONNECTION_PORT_CLOSED_ERROR
+                            ),
+                            message=_(
+                                "The host %(host)s is up, but the port %(port)s is "
+                                "closed.",
+                                host=parsed_uri.host,
+                                port=parsed_uri.port,
+                            ),
+                            level=ErrorLevel.ERROR,
+                            extra={
+                                "hostname": parsed_uri.host,
+                                "port": parsed_uri.port,
+                            },
+                        )
+
+                    raise DatabaseTestConnectionNetworkError(
+                        error_type=SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
+                        message=_(
+                            "The host %(host)s might be down, ond can't be reached on "
+                            "port %(port)s.",
+                            host=parsed_uri.host,
+                            port=parsed_uri.port,
+                        ),
+                        level=ErrorLevel.ERROR,
+                        extra={"hostname": parsed_uri.host, "port": parsed_uri.port,},
+                    )
 
     def run(self) -> None:
         self.validate()
@@ -79,6 +130,8 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 action=f"test_connection_error.{ex.__class__.__name__}",
                 engine=database.db_engine_spec.__name__,
             )
+            # check if we have connectivity to the host, and if the port is open
+            self._diagnose(uri)
             raise DatabaseTestConnectionFailedError()
         except SupersetSecurityException as ex:
             event_logger.log_with_context(
@@ -91,7 +144,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 action=f"test_connection_error.{ex.__class__.__name__}",
                 engine=database.db_engine_spec.__name__,
             )
-            raise DatabaseTestConnectionUnexpectedError()
+            raise DatabaseTestConnectionUnexpectedError(str(ex))
 
     def validate(self) -> None:
         database_name = self._properties.get("database_name")
