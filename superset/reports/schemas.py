@@ -220,8 +220,8 @@ class ReportSchedulePutSchema(Schema):
         required=False,
         allow_none=True,
     )
-    chart = fields.Integer(required=False)
-    dashboard = fields.Integer(required=False)
+    chart = fields.Integer(required=False, allow_none=True)
+    dashboard = fields.Integer(required=False, allow_none=True)
     database = fields.Integer(required=False)
     owners = fields.List(fields.Integer(description=owners_description), required=False)
     validator_type = fields.String(

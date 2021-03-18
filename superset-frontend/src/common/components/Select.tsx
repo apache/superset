@@ -16,10 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import { styled } from '@superset-ui/core';
-import { Select as BaseSelect } from 'src/common/components';
+import { Select as BaseSelect, SelectProps } from 'src/common/components';
 
-const StyledSelect = styled(BaseSelect)`
+const StyledSelect = styled((props: SelectProps<any>) => (
+  <BaseSelect
+    getPopupContainer={(trigger: any) => trigger.parentNode}
+    {...props}
+  />
+))`
   display: block;
 `;
 

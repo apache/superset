@@ -1243,7 +1243,7 @@ def backend() -> str:
 
 
 def is_adhoc_metric(metric: Metric) -> bool:
-    return isinstance(metric, dict)
+    return isinstance(metric, dict) and "expressionType" in metric
 
 
 def get_metric_name(metric: Metric) -> str:

@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { ConfigProvider } from 'antd';
 import { styled, t } from '@superset-ui/core';
 import ReactCronPicker, { Locale, CronProps } from 'react-js-cron';
 
@@ -103,7 +104,11 @@ export const LOCALE: Locale = {
 };
 
 export const CronPicker = styled((props: CronProps) => (
-  <ReactCronPicker locale={LOCALE} {...props} />
+  <ConfigProvider
+    getPopupContainer={trigger => trigger.parentElement as HTMLElement}
+  >
+    <ReactCronPicker locale={LOCALE} {...props} />
+  </ConfigProvider>
 ))`
   .react-js-cron-select:not(.react-js-cron-custom-select) > div:first-of-type,
   .react-js-cron-custom-select {

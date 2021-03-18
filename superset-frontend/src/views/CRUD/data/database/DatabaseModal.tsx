@@ -17,11 +17,13 @@
  * under the License.
  */
 import React, { FunctionComponent, useState, useEffect } from 'react';
-import { styled, t, SupersetClient } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import InfoTooltip from 'src/common/components/InfoTooltip';
-import { useSingleViewResource } from 'src/views/CRUD/hooks';
+import {
+  useSingleViewResource,
+  testDatabaseConnection,
+} from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
 import Tabs from 'src/common/components/Tabs';
@@ -168,29 +170,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       server_cert: db ? db.server_cert || undefined : undefined,
     };
 
-    SupersetClient.post({
-      endpoint: 'api/v1/database/test_connection',
-      body: JSON.stringify(connection),
-      headers: { 'Content-Type': 'application/json' },
-    })
-      .then(() => {
-        addSuccessToast(t('Connection looks good!'));
-      })
-      .catch(response =>
-        getClientErrorObject(response).then(error => {
-          addDangerToast(
-            error?.message
-              ? `${t('ERROR: ')}${
-                  typeof error.message === 'string'
-                    ? error.message
-                    : Object.entries(error.message as Record<string, string[]>)
-                        .map(([key, value]) => `(${key}) ${value.join(', ')}`)
-                        .join('\n')
-                }`
-              : t('ERROR: Connection failed. '),
-          );
-        }),
-      );
+    testDatabaseConnection(connection, addDangerToast, addSuccessToast);
   };
 
   // Functions

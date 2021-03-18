@@ -87,7 +87,7 @@ params:
   slice_id: 2395
   stacked_style: stream
   time_grain_sqla: P1D
-  time_range: Last quarter
+  time_range: No filter
   time_range_endpoints:
   - inclusive
   - exclusive
