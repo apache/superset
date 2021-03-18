@@ -28,11 +28,13 @@ import {
   UpdateDataMask,
 } from './actions';
 
-export const getInitialMask = (id: string): MaskWithId => ({
-  id,
-  extraFormData: {},
-  currentState: {},
-});
+export function getInitialMask(id: string): MaskWithId {
+  return {
+    id,
+    extraFormData: {},
+    currentState: {},
+  };
+}
 
 const setUnitDataMask = (
   unitName: DataMaskType,
