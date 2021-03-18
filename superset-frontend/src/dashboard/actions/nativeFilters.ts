@@ -96,6 +96,7 @@ export const setFilterConfiguration = (
     });
     dispatch({
       type: SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
+      unitName: DataMaskType.NativeFilters,
       filterConfig,
     });
   } catch (err) {

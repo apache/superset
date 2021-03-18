@@ -240,6 +240,30 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     }
   }, [filterValues.length]);
 
+  useEffect(() => {
+    // Remove deleted filters from local state
+    Object.keys(dataMaskSelected).forEach(selectedId => {
+      if (!filters[selectedId]) {
+        setDataMaskSelected(draft => {
+          delete draft[selectedId];
+        });
+      }
+    });
+    Object.keys(dataMaskApplied).forEach(appliedId => {
+      if (!filters[appliedId]) {
+        setLastAppliedFilterData(draft => {
+          delete draft[appliedId];
+        });
+      }
+    });
+  }, [
+    dataMaskApplied,
+    dataMaskSelected,
+    filters,
+    setDataMaskSelected,
+    setLastAppliedFilterData,
+  ]);
+
   const cascadeChildren = useMemo(
     () => mapParentFiltersToChildren(filterValues),
     [filterValues],
