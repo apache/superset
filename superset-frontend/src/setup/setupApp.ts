@@ -22,8 +22,16 @@ import { SupersetClient } from '@superset-ui/core';
 import {
   getClientErrorObject,
   ClientErrorObject,
-} from '../utils/getClientErrorObject';
-import setupErrorMessages from './setupErrorMessages';
+} from 'src/utils/getClientErrorObject';
+import setupErrorMessages from 'src/setup/setupErrorMessages';
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+declare global {
+  interface Window {
+    $: any;
+    jQuery: any;
+  }
+}
 
 function showApiMessage(resp: ClientErrorObject) {
   const template =
