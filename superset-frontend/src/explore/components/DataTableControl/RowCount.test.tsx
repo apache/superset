@@ -25,7 +25,7 @@ test('Render a RowCount', () => {
   expect(screen.getByText('3 rows retrieved')).toBeInTheDocument();
 });
 
-test('Render a RowCount on loading', async () => {
+test('Render a RowCount on loading', () => {
   render(<RowCount data={[{}, {}, {}]} loading />);
   expect(screen.getByText('Loading...')).toBeInTheDocument();
 });
