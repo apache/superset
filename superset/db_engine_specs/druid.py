@@ -47,6 +47,7 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "PT15M": "TIME_FLOOR({col}, 'PT15M')",
         "PT0.5H": "TIME_FLOOR({col}, 'PT30M')",
         "PT1H": "FLOOR({col} TO HOUR)",
+        "PT2H": "TIME_FLOOR({col}, 'PT2H')",
         "P1D": "FLOOR({col} TO DAY)",
         "P1W": "FLOOR({col} TO WEEK)",
         "P1M": "FLOOR({col} TO MONTH)",

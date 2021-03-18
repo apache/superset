@@ -760,6 +760,7 @@ class DruidDatasource(Model, BaseDatasource):
             "5 minutes": "PT5M",
             "30 minutes": "PT30M",
             "1 hour": "PT1H",
+            "2 hours": "PT2H",
             "6 hour": "PT6H",
             "one day": "P1D",
             "1 day": "P1D",

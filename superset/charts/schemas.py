@@ -134,6 +134,7 @@ TIME_GRAINS = (
     "PT15M",
     "PT0.5H",
     "PT1H",
+    "PT2H",
     "P1D",
     "P1W",
     "P1M",

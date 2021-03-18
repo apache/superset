@@ -79,6 +79,9 @@ class BigQueryEngineSpec(BaseEngineSpec):
         "30*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 30*60)"
         ") AS {type})",
         "PT1H": "{func}({col}, HOUR)",
+        "PT2H": "CAST(TIMESTAMP_SECONDS("
+        "60*60*2 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 60*60*2)"
+        ") AS {type})",
         "P1D": "{func}({col}, DAY)",
         "P1W": "{func}({col}, WEEK)",
         "P1M": "{func}({col}, MONTH)",
