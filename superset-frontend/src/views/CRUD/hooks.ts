@@ -36,7 +36,6 @@ interface ListViewResourceState<D extends object = any> {
   lastFetchDataConfig: FetchDataConfig | null;
   bulkSelectEnabled: boolean;
   lastFetched?: string;
-  defualtLoading?: boolean;
 }
 
 export function useListViewResource<D extends object = any>(
@@ -46,12 +45,12 @@ export function useListViewResource<D extends object = any>(
   infoEnable = true,
   defaultCollectionValue: D[] = [],
   baseFilters?: FilterValue[], // must be memoized
-  defaultLoading = true,
+  initialLoadingState = true,
 ) {
   const [state, setState] = useState<ListViewResourceState<D>>({
     count: 0,
     collection: defaultCollectionValue,
-    loading: defaultLoading,
+    loading: initialLoadingState,
     lastFetchDataConfig: null,
     permissions: [],
     bulkSelectEnabled: false,

@@ -25,7 +25,7 @@ import ListViewCard from 'src/components/ListViewCard';
 import SubMenu from 'src/components/Menu/SubMenu';
 import { Chart } from 'src/types/Chart';
 import { Dashboard, SavedQueryObject } from 'src/views/CRUD/types';
-import { mq, CardStyles, getEditedObjs } from 'src/views/CRUD/utils';
+import { mq, CardStyles, getEditedObjects } from 'src/views/CRUD/utils';
 
 import { ActivityData } from './Welcome';
 import EmptyState from './EmptyState';
@@ -167,7 +167,7 @@ export default function ActivityTable({
 
   const getEditedCards = () => {
     setLoadingState(true);
-    getEditedObjs(user.userId).then(r => {
+    getEditedObjects(user.userId).then(r => {
       setEditedObjs([...r.editedChart, ...r.editedDash]);
       setLoadingState(false);
     });

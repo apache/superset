@@ -27,7 +27,7 @@ import {
   createErrorHandler,
   getRecentAcitivtyObjs,
   mq,
-  getMineObjs,
+  getUserOwnedObjects,
 } from 'src/views/CRUD/utils';
 
 import ActivityTable from './ActivityTable';
@@ -120,7 +120,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
 
     // Sets other activity data in parallel with recents api call
     const id = user.userId;
-    getMineObjs(id, 'dashboard')
+    getUserOwnedObjects(id, 'dashboard')
       .then(r => {
         setDashboardData(r);
       })
@@ -130,7 +130,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           t('There was an issues fetching your dashboards: %s', err),
         );
       });
-    getMineObjs(id, 'chart')
+    getUserOwnedObjects(id, 'chart')
       .then(r => {
         setChartData(r);
       })
@@ -138,7 +138,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         setChartData([]);
         addDangerToast(t('There was an issues fetching your chart: %s', err));
       });
-    getMineObjs(id, 'saved_query')
+    getUserOwnedObjects(id, 'saved_query')
       .then(r => {
         setQueryData(r);
       })

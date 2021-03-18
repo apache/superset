@@ -27,13 +27,7 @@ import Chart from 'src/types/Chart';
 import rison from 'rison';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FetchDataConfig } from 'src/components/ListView';
-import { Dashboard } from './types';
-
-interface Filters {
-  col: string;
-  opr: string;
-  value: string;
-}
+import { Dashboard, Filters } from './types';
 
 const createFetchResourceMethod = (method: string) => (
   resource: string,
@@ -79,7 +73,7 @@ const getParams = (filters?: Array<Filters>) => {
   return rison.encode(params);
 };
 
-export const getEditedObjs = (userId: string | number) => {
+export const getEditedObjects = (userId: string | number) => {
   const filters = {
     edited: [
       {
@@ -108,7 +102,10 @@ export const getEditedObjs = (userId: string | number) => {
     .catch(err => err);
 };
 
-export const getMineObjs = (userId: string | number, resource: string) => {
+export const getUserOwnedObjects = (
+  userId: string | number,
+  resource: string,
+) => {
   const filters = {
     created: [
       {
