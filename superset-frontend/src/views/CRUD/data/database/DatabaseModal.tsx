@@ -293,19 +293,24 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
 
     // Conditional form rendering
-    const checkedTrue = target.checked === true;
     /* The CTAS & CVAS schema field needs individual setters
     so that the input will not disappear when one options goes
     unchecked but the other is still checked */
-    if (target.id.includes('cvas')) {
-      if (!cvas && checkedTrue) {
+    const { id, checked } = target;
+    // 🐞 ----- This is a suggested fix, did not work, coming back to this ----- 🐞
+    // const check =
+    //   (!cvas && id.includes('cvas') && 'cvas') ||
+    //   (!ctas && id.includes('ctas') && 'ctas');
+    // cvasCtasCheck(check, checked);
+    if (id.includes('cvas')) {
+      if (!cvas && checked) {
         cvasCtasCheck('cvas', true);
       } else {
         cvasCtasCheck('cvas', false);
       }
     }
-    if (target.id.includes('ctas')) {
-      if (!ctas && checkedTrue) {
+    if (id.includes('ctas')) {
+      if (!ctas && checked) {
         cvasCtasCheck('ctas', true);
       } else {
         cvasCtasCheck('ctas', false);
