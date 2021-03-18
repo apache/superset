@@ -17,43 +17,32 @@
  * under the License.
  */
 import React from 'react';
-import { t, supersetTheme } from '@superset-ui/core';
+import { supersetTheme, SafeMarkdown } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
 import { Tooltip } from 'src/common/components/Tooltip';
 
-interface CertifiedIconWithTooltipProps {
-  certifiedBy?: string;
-  details?: string;
+interface WarningIconWithTooltipProps {
+  warningMarkdown: string;
   size?: number;
 }
 
-function CertifiedIconWithTooltip({
-  certifiedBy,
-  details,
+function WarningIconWithTooltip({
+  warningMarkdown,
   size = 24,
-}: CertifiedIconWithTooltipProps) {
+}: WarningIconWithTooltipProps) {
   return (
     <Tooltip
-      id="certified-details-tooltip"
-      title={
-        <>
-          {certifiedBy && (
-            <div>
-              <strong>{t('Certified by %s', certifiedBy)}</strong>
-            </div>
-          )}
-          <div>{details}</div>
-        </>
-      }
+      id="warning-tooltip"
+      title={<SafeMarkdown source={warningMarkdown} />}
     >
       <Icon
-        color={supersetTheme.colors.primary.base}
+        color={supersetTheme.colors.alert.base}
         height={size}
         width={size}
-        name="certified"
+        name="alert-solid"
       />
     </Tooltip>
   );
 }
 
-export default CertifiedIconWithTooltip;
+export default WarningIconWithTooltip;

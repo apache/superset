@@ -30,6 +30,7 @@ import FormLabel from 'src/components/FormLabel';
 import DatabaseSelector from 'src/components/DatabaseSelector';
 import RefreshLabel from 'src/components/RefreshLabel';
 import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
+import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 
 const FieldTitle = styled.p`
   color: ${({ theme }) => theme.colors.secondary.light2};
@@ -263,6 +264,12 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           <CertifiedIconWithTooltip
             certifiedBy={option.extra.certification.certified_by}
             details={option.extra.certification.details}
+            size={20}
+          />
+        )}
+        {option.extra?.warning_markdown && (
+          <WarningIconWithTooltip
+            warningMarkdown={option.extra.warning_markdown}
             size={20}
           />
         )}

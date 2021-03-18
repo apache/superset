@@ -416,8 +416,17 @@ class SqlMetric(Model, BaseMetric):
         return self.get_extra_dict().get("certification", {}).get("details")
 
     @property
+    def warning_markdown(self) -> Optional[str]:
+        return self.get_extra_dict().get("warning_markdown")
+
+    @property
     def data(self) -> Dict[str, Any]:
-        attrs = ("is_certified", "certified_by", "certification_details")
+        attrs = (
+            "is_certified",
+            "certified_by",
+            "certification_details",
+            "warning_markdown",
+        )
         attr_dict = {s: getattr(self, s) for s in attrs}
 
         attr_dict.update(super().data)
@@ -485,7 +494,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         "fetch_values_predicate",
         "extra",
     ]
-    update_from_object_fields = [f for f in export_fields if not f == "database_id"]
+    update_from_object_fields = [f for f in export_fields if f != "database_id"]
     export_parent = "database"
     export_children = ["metrics", "columns"]
 
@@ -715,6 +724,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 if config.get("DATASET_HEALTH_CHECK")
                 else None
             )
+            data_["extra"] = self.extra
         return data_
 
     @property
