@@ -67,7 +67,6 @@ const CrossFilterIcon = styled(Icon)`
   }
 `;
 
-// @ts-ignore
 const SliceHeader: FC<SliceHeaderProps> = ({
   innerRef = null,
   forceRefresh = () => ({}),
