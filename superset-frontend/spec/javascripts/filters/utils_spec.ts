@@ -18,9 +18,18 @@
  */
 
 import {
+  GenericDataType,
+  getNumberFormatter,
+  getTimeFormatter,
+  NumberFormats,
+  TimeFormats,
+} from '@superset-ui/core';
+import {
+  getDataRecordFormatter,
   getRangeExtraFormData,
   getSelectExtraFormData,
-} from '../../../src/filters/utils';
+} from 'src/filters/utils';
+import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
 
 describe('Filter utils', () => {
   describe('getRangeExtraFormData', () => {
@@ -155,6 +164,87 @@ describe('Filter utils', () => {
           filters: [],
         },
       });
+    });
+  });
+
+  describe('getDataRecordFormatter', () => {
+    it('default formatter returns expected values', () => {
+      const formatter = getDataRecordFormatter();
+      expect(formatter(null, GenericDataType.STRING)).toEqual(NULL_STRING);
+      expect(formatter(null, GenericDataType.NUMERIC)).toEqual(NULL_STRING);
+      expect(formatter(null, GenericDataType.TEMPORAL)).toEqual(NULL_STRING);
+      expect(formatter(null, GenericDataType.BOOLEAN)).toEqual(NULL_STRING);
+      expect(formatter('foo', GenericDataType.STRING)).toEqual('foo');
+      expect(formatter('foo', GenericDataType.NUMERIC)).toEqual('foo');
+      expect(formatter('foo', GenericDataType.TEMPORAL)).toEqual('foo');
+      expect(formatter('foo', GenericDataType.BOOLEAN)).toEqual(FALSE_STRING);
+      expect(formatter(true, GenericDataType.BOOLEAN)).toEqual(TRUE_STRING);
+      expect(formatter(false, GenericDataType.BOOLEAN)).toEqual(FALSE_STRING);
+      expect(formatter('true', GenericDataType.BOOLEAN)).toEqual(TRUE_STRING);
+      expect(formatter('false', GenericDataType.BOOLEAN)).toEqual(FALSE_STRING);
+      expect(formatter('TRUE', GenericDataType.BOOLEAN)).toEqual(TRUE_STRING);
+      expect(formatter('FALSE', GenericDataType.BOOLEAN)).toEqual(FALSE_STRING);
+      expect(formatter(0, GenericDataType.BOOLEAN)).toEqual(FALSE_STRING);
+      expect(formatter(1, GenericDataType.BOOLEAN)).toEqual(TRUE_STRING);
+      expect(formatter(2, GenericDataType.BOOLEAN)).toEqual(TRUE_STRING);
+      expect(formatter(0, GenericDataType.STRING)).toEqual('0');
+      expect(formatter(0, GenericDataType.NUMERIC)).toEqual('0');
+      expect(formatter(0, GenericDataType.TEMPORAL)).toEqual('0');
+      expect(formatter(1234567.89, GenericDataType.STRING)).toEqual(
+        '1234567.89',
+      );
+      expect(formatter(1234567.89, GenericDataType.NUMERIC)).toEqual(
+        '1234567.89',
+      );
+      expect(formatter(1234567.89, GenericDataType.TEMPORAL)).toEqual(
+        '1234567.89',
+      );
+      expect(formatter(1234567.89, GenericDataType.BOOLEAN)).toEqual(
+        TRUE_STRING,
+      );
+    });
+
+    it('formatter with defined formatters returns expected values', () => {
+      const formatter = getDataRecordFormatter({
+        timeFormatter: getTimeFormatter(TimeFormats.DATABASE_DATETIME),
+        numberFormatter: getNumberFormatter(NumberFormats.SMART_NUMBER),
+      });
+      expect(formatter(null, GenericDataType.STRING)).toEqual(NULL_STRING);
+      expect(formatter(null, GenericDataType.NUMERIC)).toEqual(NULL_STRING);
+      expect(formatter(null, GenericDataType.TEMPORAL)).toEqual(NULL_STRING);
+      expect(formatter(null, GenericDataType.BOOLEAN)).toEqual(NULL_STRING);
+      expect(formatter('foo', GenericDataType.STRING)).toEqual('foo');
+      expect(formatter('foo', GenericDataType.NUMERIC)).toEqual('foo');
+      expect(formatter('foo', GenericDataType.TEMPORAL)).toEqual('foo');
+      expect(formatter('foo', GenericDataType.BOOLEAN)).toEqual(FALSE_STRING);
+      expect(formatter(0, GenericDataType.STRING)).toEqual('0');
+      expect(formatter(0, GenericDataType.NUMERIC)).toEqual('0');
+      expect(formatter(0, GenericDataType.TEMPORAL)).toEqual(
+        '1970-01-01 00:00:00',
+      );
+      expect(formatter(0, GenericDataType.BOOLEAN)).toEqual(FALSE_STRING);
+      expect(formatter(1234567.89, GenericDataType.STRING)).toEqual(
+        '1234567.89',
+      );
+      expect(formatter(1234567.89, GenericDataType.NUMERIC)).toEqual('1.23M');
+      expect(formatter(1234567.89, GenericDataType.TEMPORAL)).toEqual(
+        '1970-01-01 00:20:34',
+      );
+      expect(formatter(1234567.89, GenericDataType.BOOLEAN)).toEqual(
+        TRUE_STRING,
+      );
+      expect(formatter('1970-01-01 00:00:00', GenericDataType.STRING)).toEqual(
+        '1970-01-01 00:00:00',
+      );
+      expect(formatter('1970-01-01 00:00:00', GenericDataType.NUMERIC)).toEqual(
+        '1970-01-01 00:00:00',
+      );
+      expect(formatter('1970-01-01 00:00:00', GenericDataType.BOOLEAN)).toEqual(
+        FALSE_STRING,
+      );
+      expect(
+        formatter('1970-01-01 00:00:00', GenericDataType.TEMPORAL),
+      ).toEqual('1970-01-01 00:00:00');
     });
   });
 });
