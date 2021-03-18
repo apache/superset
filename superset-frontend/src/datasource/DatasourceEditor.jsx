@@ -27,6 +27,7 @@ import { styled, SupersetClient, t, supersetTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import Tabs from 'src/common/components/Tabs';
 import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
+import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import DatabaseSelector from 'src/components/DatabaseSelector';
 import Icon from 'src/components/Icon';
 import Label from 'src/components/Label';
@@ -564,9 +565,9 @@ class DatasourceEditor extends React.PureComponent {
             label={t('Extra')}
             description={t(
               'Extra data to specify table metadata. Currently supports ' +
-                'certification data of the format: `{ "certification": { "certified_by": ' +
+                'metadata of the format: `{ "certification": { "certified_by": ' +
                 '"Data Platform Team", "details": "This table is the source of truth." ' +
-                '} }`.',
+                '}, "warning_markdown": "This is a warning." }`.',
             )}
             control={
               <TextAreaControl
@@ -882,19 +883,6 @@ class DatasourceEditor extends React.PureComponent {
                 }
               />
               <Field
-                label={t('Warning message')}
-                fieldKey="warning_text"
-                description={t(
-                  'Warning message to display in the metric selector',
-                )}
-                control={
-                  <TextControl
-                    controlId="warning_text"
-                    placeholder={t('Warning message')}
-                  />
-                }
-              />
-              <Field
                 label={t('Certified by')}
                 fieldKey="certified_by"
                 description={t(
@@ -918,6 +906,18 @@ class DatasourceEditor extends React.PureComponent {
                   />
                 }
               />
+              <Field
+                label={t('Warning')}
+                fieldKey="warning_markdown"
+                description={t('Optional warning about use of this metric')}
+                control={
+                  <TextAreaControl
+                    controlId="warning_markdown"
+                    language="markdown"
+                    offerEditInModal={false}
+                  />
+                }
+              />
             </Fieldset>
           </FormContainer>
         }
@@ -936,6 +936,11 @@ class DatasourceEditor extends React.PureComponent {
                 <CertifiedIconWithTooltip
                   certifiedBy={record.certified_by}
                   details={record.certification_details}
+                />
+              )}
+              {record.warning_markdown && (
+                <WarningIconWithTooltip
+                  warningMarkdown={record.warning_markdown}
                 />
               )}
               <EditableTitle canEdit title={v} onSaveTitle={onChange} />
