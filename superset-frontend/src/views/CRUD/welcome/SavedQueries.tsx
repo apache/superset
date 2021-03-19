@@ -58,6 +58,7 @@ interface SavedQueriesProps {
   addSuccessToast: (arg0: string) => void;
   mine: Array<Query>;
   showThumbnails: boolean;
+  featureFlag: boolean;
 }
 
 export const CardStyles = styled.div`
@@ -111,6 +112,7 @@ const SavedQueries = ({
   addSuccessToast,
   mine,
   showThumbnails,
+  featureFlag,
 }: SavedQueriesProps) => {
   const {
     state: { resourceCollection: queries },
@@ -304,7 +306,7 @@ const SavedQueries = ({
                 imgFallbackURL="/static/assets/images/empty-query.svg"
                 description={t('Last run %s', q.changed_on_delta_humanized)}
                 cover={
-                  q?.sql?.length && showThumbnails && window.featureFlags.THUMBNAILS ? (
+                  q?.sql?.length && showThumbnails && featureFlag ? (
                     <QueryContainer>
                       <SyntaxHighlighter
                         language="sql"
@@ -325,8 +327,10 @@ const SavedQueries = ({
                         {shortenSQL(q.sql, 25)}
                       </SyntaxHighlighter>
                     </QueryContainer>
+                  ) : showThumbnails && !q?.sql?.length ? (
+                    false
                   ) : (
-                   showThumbnails && !q?.sql?.length ? false : <></> 
+                    <></>
                   )
                 }
                 actions={

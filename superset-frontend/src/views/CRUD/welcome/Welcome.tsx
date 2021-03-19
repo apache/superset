@@ -32,6 +32,7 @@ import {
   getRecentAcitivtyObjs,
   mq,
 } from 'src/views/CRUD/utils';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { Switch } from 'src/common/components';
 
 import ActivityTable from './ActivityTable';
@@ -93,8 +94,8 @@ const WelcomeContainer = styled.div`
 const WelcomeNav = styled.div`
   height: 50px;
   background-color: white;
-  margin-top: ${({ theme }) => (theme.gridUnit * -4) -1}px;
-  .navbar-brand{
+  margin-top: ${({ theme }) => theme.gridUnit * -4 - 1}px;
+  .navbar-brand {
     margin-left: ${({ theme }) => theme.gridUnit * 2}px;
     font-weight: ${({ theme }) => theme.typography.weights.bold};
   }
@@ -105,7 +106,7 @@ const WelcomeNav = styled.div`
     flex-direction: row;
     span {
       display: block;
-      margin:${({ theme }) => theme.gridUnit * 1}px; 
+      margin: ${({ theme }) => theme.gridUnit * 1}px;
       line-height: 1;
     }
   }
@@ -162,19 +163,16 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     setChecked(!checked);
     setInLocalStorage(id, { thumbnails: !checked });
   };
-
   return (
     <WelcomeContainer>
       <WelcomeNav>
         <span className="navbar-brand">Home</span>
-        {window.featureFlags.THUMBNAILS ?
+        {isFeatureEnabled(FeatureFlag.THUMBNAILS) ? (
           <div className="switch">
             <Switch checked={checked} onChange={handleToggle} />
             <span>Thumbnails</span>
           </div>
-          :
-          null
-        }
+        ) : null}
       </WelcomeNav>
       <Collapse defaultActiveKey={['1', '2', '3', '4']} ghost bigger>
         <Collapse.Panel header={t('Recents')} key="1">
@@ -195,6 +193,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
               mine={activityData.myDash}
               isLoading={loading}
               showThumbnails={checked}
+              featureFlag={isFeatureEnabled(FeatureFlag.THUMBNAILS)}
             />
           )}
         </Collapse.Panel>
@@ -206,6 +205,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
               showThumbnails={checked}
               user={user}
               mine={activityData.myQuery}
+              featureFlag={isFeatureEnabled(FeatureFlag.THUMBNAILS)}
             />
           )}
         </Collapse.Panel>
@@ -217,6 +217,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
               showThumbnails={checked}
               user={user}
               mine={activityData.myChart}
+              featureFlag={isFeatureEnabled(FeatureFlag.THUMBNAILS)}
             />
           )}
         </Collapse.Panel>

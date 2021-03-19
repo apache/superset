@@ -30,6 +30,7 @@ export interface DashboardTableProps {
   user?: User;
   mine: Array<Dashboard>;
   showThumbnails?: boolean;
+  featureFlag?: boolean;
 }
 
 export interface Dashboard {
