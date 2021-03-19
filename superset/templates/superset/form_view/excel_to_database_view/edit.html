@@ -21,31 +21,44 @@
 {% block tail_js %}
   {{ super() }}
   <script>
-    var db = $("#con");
-    var schema = $("#schema");
+    var db = document.getElementById("con");
+    var schema = document.getElementById("schema");
 
-    // this element is a text input
+    // this element starts as a text input by default
+    // but is replaced with a select input if we get a list of the db's schemas.
     // copy it here so it can be reused later
-    var any_schema_is_allowed = schema.clone();
+    var any_schema_is_allowed = schema.cloneNode();
 
-    update_schemas_allowed_for_excel_upload(db.val());
-    db.change(function(){
-        update_schemas_allowed_for_excel_upload(db.val());
+    update_schemas_allowed_for_excel_upload(db.value);
+    db.addEventListener("change", function(){
+        update_schemas_allowed_for_excel_upload(db.value);
     });
 
+    function tryParseResponse(responseText, alt) {
+        try {
+            return JSON.parse(responseText);
+        } catch (error) {
+            return null;
+        }
+    }
+
     function update_schemas_allowed_for_excel_upload(db_id) {
-        $.ajax({
-          method: "GET",
-          url: "/superset/schemas_access_for_excel_upload",
-          data: {db_id: db_id},
-          dataType: 'json',
-          contentType: "application/json; charset=utf-8"
-        }).done(function(data) {
-          change_schema_field_in_formview(data)
-        }).fail(function(error) {
-          var errorMsg = error.responseJSON.error;
-          alert("ERROR: " + errorMsg);
-        });
+        var url = "/superset/schemas_access_for_csv_upload?db_id=" + db_id;
+        var request = new XMLHttpRequest();
+        request.open("GET", url, true);
+        //Send the proper header information along with the request
+        request.setRequestHeader("Content-type", 'application/json; charset=UTF-8');
+        request.onload = function() {
+            var response = tryParseResponse(request.responseText);
+            if (request.status === 200) {
+                change_schema_field_in_formview(response);
+            } else {
+                var errorMsg = response ? response.error : "failed to get schemas for this database";
+                change_schema_field_in_formview([]);
+                alert("ERROR: " + errorMsg);
+            }
+        }
+        request.send();
     }
 
     function change_schema_field_in_formview(schemas_allowed){
@@ -55,9 +68,9 @@
               dropdown_schema_lists += ('<option value="' + schema_allowed + '">' + schema_allowed + '</option>');
             });
             dropdown_schema_lists += '</select>';
-            $("#schema").replaceWith(dropdown_schema_lists);
+            document.getElementById("schema").replaceWith(dropdown_schema_lists);
         } else {
-            $("#schema").replaceWith(any_schema_is_allowed)
+            document.getElementById("schema").replaceWith(any_schema_is_allowed)
         }
     }
   </script>

@@ -43,7 +43,7 @@
                     name="file"
                     accept=".json"
                     style="display:none;"
-                    onchange="$('#upload-file-info').html(this.files[0].name)"/>
+                    onchange="document.getElementById('upload-file-info').innerText = this.files[0].name"/>
                   {{ _("Choose File") }}
                 </label>
                 <span class='label label-info' id="upload-file-info"></span>
