@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
@@ -43,6 +43,7 @@ export default class EchartsBoxPlotChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('./EchartsBoxPlot'),
       metadata: new ChartMetadata({
+        behaviors: [Behavior.CROSS_FILTER],
         credits: ['https://echarts.apache.org'],
         description: 'Box Plot (Apache ECharts)',
         name: t('Box Plot'),
