@@ -67,6 +67,69 @@ describe('extractTimeseriesSeries', () => {
       },
     ]);
   });
+
+  it('should do missing value imputation', () => {
+    const data = [
+      {
+        __timestamp: '2000-01-01',
+        abc: null,
+      },
+      {
+        __timestamp: '2000-02-01',
+        abc: null,
+      },
+      {
+        __timestamp: '2000-03-01',
+        abc: 1,
+      },
+      {
+        __timestamp: '2000-04-01',
+        abc: null,
+      },
+      {
+        __timestamp: '2000-05-01',
+        abc: null,
+      },
+      {
+        __timestamp: '2000-06-01',
+        abc: null,
+      },
+      {
+        __timestamp: '2000-07-01',
+        abc: 2,
+      },
+      {
+        __timestamp: '2000-08-01',
+        abc: 3,
+      },
+      {
+        __timestamp: '2000-09-01',
+        abc: null,
+      },
+      {
+        __timestamp: '2000-10-01',
+        abc: null,
+      },
+    ];
+    expect(extractTimeseriesSeries(data, { fillNeighborValue: 0 })).toEqual([
+      {
+        id: 'abc',
+        name: 'abc',
+        data: [
+          [new Date('2000-01-01'), null],
+          [new Date('2000-02-01'), 0],
+          [new Date('2000-03-01'), 1],
+          [new Date('2000-04-01'), 0],
+          [new Date('2000-05-01'), null],
+          [new Date('2000-06-01'), 0],
+          [new Date('2000-07-01'), 2],
+          [new Date('2000-08-01'), 3],
+          [new Date('2000-09-01'), 0],
+          [new Date('2000-10-01'), null],
+        ],
+      },
+    ]);
+  });
 });
 
 describe('extractGroupbyLabel', () => {
