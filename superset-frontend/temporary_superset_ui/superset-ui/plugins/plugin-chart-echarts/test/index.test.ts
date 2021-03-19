@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  EchartsBoxPlotChartPlugin,
   EchartsPieChartPlugin,
   EchartsTimeseriesChartPlugin,
   EchartsGraphChartPlugin,
@@ -24,6 +25,7 @@ import {
 
 describe('@superset-ui/plugin-chart-echarts', () => {
   it('exists', () => {
+    expect(EchartsBoxPlotChartPlugin).toBeDefined();
     expect(EchartsPieChartPlugin).toBeDefined();
     expect(EchartsTimeseriesChartPlugin).toBeDefined();
     expect(EchartsGraphChartPlugin).toBeDefined();

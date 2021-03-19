@@ -66,6 +66,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     annotationLayers,
     colorScheme,
     contributionMode,
+    forecastEnabled,
     legendMargin,
     legendOrientation,
     legendType,
@@ -87,7 +88,9 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseTimeseriesDatum(data);
-  const rawSeries = extractTimeseriesSeries(rebasedData);
+  const rawSeries = extractTimeseriesSeries(rebasedData, {
+    fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
+  });
   const series: SeriesOption[] = [];
   const formatter = getNumberFormatter(contributionMode ? ',.0%' : yAxisFormat);
 
