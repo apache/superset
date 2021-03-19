@@ -38,6 +38,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.engine.base import Connection
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import relationship, sessionmaker, subqueryload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.session import object_session
@@ -48,6 +49,7 @@ from superset import app, ConnectorRegistry, db, is_feature_enabled, security_ma
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.druid.models import DruidColumn, DruidMetric
 from superset.connectors.sqla.models import SqlMetric, TableColumn
+from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
@@ -241,18 +243,22 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         """Bootstrap data for rendering the dashboard page."""
         slices = self.slices
         datasource_slices = utils.indexed(slices, "datasource")
+        try:
+            datasources = {
+                # Filter out unneeded fields from the datasource payload
+                datasource.uid: datasource.data_for_slices(slices)
+                for datasource, slices in datasource_slices.items()
+                if datasource
+            }
+        except (SupersetException, SQLAlchemyError):
+            datasources = {}
         return {
             # dashboard metadata
             "dashboard": self.data,
             # slices metadata
             "slices": [slc.data for slc in slices],
             # datasource metadata
-            "datasources": {
-                # Filter out unneeded fields from the datasource payload
-                datasource.uid: datasource.data_for_slices(slices)
-                for datasource, slices in datasource_slices.items()
-                if datasource
-            },
+            "datasources": datasources,
         }
 
     @property  # type: ignore

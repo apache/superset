@@ -19,7 +19,7 @@
 import { CHART_TYPE } from './componentTypes';
 import { Scope } from '../components/nativeFilters/types';
 import { ActiveFilters, LayoutItem } from '../types';
-import { Filters } from '../reducers/types';
+import { ChartConfiguration, Filters } from '../reducers/types';
 import { DASHBOARD_ROOT_ID } from './constants';
 import { DataMaskStateWithId } from '../../dataMask/types';
 
@@ -28,14 +28,14 @@ export const findAffectedCharts = ({
   child,
   layout,
   scope,
-  activeNativeFilters,
+  activeFilters,
   filterId,
   extraFormData,
 }: {
   child: string;
   layout: { [key: string]: LayoutItem };
   scope: Scope;
-  activeNativeFilters: ActiveFilters;
+  activeFilters: ActiveFilters;
   filterId: string;
   extraFormData: any;
 }) => {
@@ -45,17 +45,17 @@ export const findAffectedCharts = ({
     if (scope.excluded.includes(chartId)) {
       return;
     }
-    if (!activeNativeFilters[filterId]) {
+    if (!activeFilters[filterId]) {
       // Small mutation but simplify logic
       // eslint-disable-next-line no-param-reassign
-      activeNativeFilters[filterId] = {
+      activeFilters[filterId] = {
         scope: [],
         values: [],
       };
     }
     // Add not excluded chart scopes(to know what charts refresh) and values(refresh only if its value changed)
-    activeNativeFilters[filterId].scope.push(chartId);
-    activeNativeFilters[filterId].values.push(extraFormData);
+    activeFilters[filterId].scope.push(chartId);
+    activeFilters[filterId].values.push(extraFormData);
     return;
   }
   // If child is not chart, recursive iterate over its children
@@ -64,35 +64,36 @@ export const findAffectedCharts = ({
       child,
       layout,
       scope,
-      activeNativeFilters,
+      activeFilters,
       filterId,
       extraFormData,
     }),
   );
 };
 
-export const getActiveNativeFilters = ({
-  filters,
+export const getAllActiveFilters = ({
+  chartConfiguration,
+  nativeFilters,
   dataMask,
   layout,
 }: {
+  chartConfiguration: ChartConfiguration;
   dataMask: DataMaskStateWithId;
-  filters: Filters;
+  nativeFilters: Filters;
   layout: { [key: string]: LayoutItem };
 }): ActiveFilters => {
-  const activeNativeFilters = {};
-  if (!dataMask?.nativeFilters) {
-    return activeNativeFilters;
-  }
+  const activeFilters = {};
+
+  // Combine native filters with cross filters, because they have similar logic
   Object.values({
     ...dataMask.nativeFilters,
     ...dataMask.crossFilters,
   }).forEach(({ id: filterId, extraFormData }) => {
-    // TODO: for a case of a cross filters (should be updated will be added scope there)
-    const scope = filters?.[filterId]?.scope ?? {
-      rootPath: [DASHBOARD_ROOT_ID],
-      excluded: [],
-    };
+    const scope = nativeFilters?.[filterId]?.scope ??
+      chartConfiguration?.[filterId]?.crossFilters?.scope ?? {
+        rootPath: [DASHBOARD_ROOT_ID],
+        excluded: [],
+      };
     // Iterate over all roots to find all affected charts
     scope.rootPath.forEach(layoutItemId => {
       layout[layoutItemId].children.forEach((child: string) => {
@@ -101,12 +102,12 @@ export const getActiveNativeFilters = ({
           child,
           layout,
           scope,
-          activeNativeFilters,
+          activeFilters,
           filterId,
           extraFormData,
         });
       });
     });
   });
-  return activeNativeFilters;
+  return activeFilters;
 };

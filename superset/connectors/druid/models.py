@@ -1515,7 +1515,9 @@ class DruidDatasource(Model, BaseDatasource):
             eq = cls.filter_values_handler(
                 eq,
                 is_list_target=is_list_target,
-                target_column_is_numeric=is_numeric_col,
+                target_column_type=utils.GenericDataType.NUMERIC
+                if is_numeric_col
+                else utils.GenericDataType.STRING,
             )
 
             # For these two ops, could have used Dimension,

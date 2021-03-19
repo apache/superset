@@ -19,9 +19,14 @@
 
 import React from 'react';
 import { t } from '@superset-ui/core';
-import { ColumnOption } from '@superset-ui/chart-controls';
+import {
+  ColumnMeta,
+  ColumnOption,
+  ControlConfig,
+  ControlPanelSectionConfig,
+} from '@superset-ui/chart-controls';
 
-export const controlPanelSectionsChartOptions = [
+export const controlPanelSectionsChartOptions: ControlPanelSectionConfig[] = [
   {
     label: t('Chart Options'),
     expanded: true,
@@ -63,7 +68,7 @@ export const controlPanelSectionsChartOptions = [
   },
 ];
 
-export const controlPanelSectionsChartOptionsOnlyColorScheme = [
+export const controlPanelSectionsChartOptionsOnlyColorScheme: ControlPanelSectionConfig[] = [
   {
     label: t('Chart Options'),
     expanded: true,
@@ -71,7 +76,7 @@ export const controlPanelSectionsChartOptionsOnlyColorScheme = [
   },
 ];
 
-export const controlPanelSectionsChartOptionsTable = [
+export const controlPanelSectionsChartOptionsTable: ControlPanelSectionConfig[] = [
   {
     label: t('Chart Options'),
     expanded: true,
@@ -96,7 +101,7 @@ export const controlPanelSectionsChartOptionsTable = [
             }),
             commaChoosesOption: false,
             freeForm: true,
-          },
+          } as ControlConfig<'SelectControl', ColumnMeta>,
         },
       ],
     ],

@@ -16,17 +16,48 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, DataMask, t, tn, ensureIsArray } from '@superset-ui/core';
+import {
+  createMultiFormatter,
+  Behavior,
+  DataMask,
+  ensureIsArray,
+  GenericDataType,
+  t,
+  tn,
+} from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
 import { PluginFilterSelectProps } from './types';
-import { Styles, StyledSelect } from '../common';
-import { getSelectExtraFormData } from '../../utils';
+import { StyledSelect, Styles } from '../common';
+import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
 
 const { Option } = Select;
 
+const timeFormatter = createMultiFormatter({
+  id: 'smart_date_verbose',
+  label: 'Adaptive temporal formatter',
+  formats: {
+    millisecond: '%Y-%m-%d %H:%M:%S.%L',
+    second: '%Y-%m-%d %H:%M:%S',
+    minute: '%Y-%m-%d %H:%M',
+    hour: '%Y-%m-%d %H:%M:%M',
+    day: '%Y-%m-%d',
+    week: '%Y-%m-%d',
+    month: '%Y-%m-%d',
+    year: '%Y-%m-%d',
+  },
+});
+
 export default function PluginFilterSelect(props: PluginFilterSelectProps) {
-  const { data, formData, height, width, behaviors, setDataMask } = props;
+  const {
+    coltypeMap,
+    data,
+    formData,
+    height,
+    width,
+    behaviors,
+    setDataMask,
+  } = props;
   const {
     defaultValue,
     enableEmptyFilter,
@@ -37,10 +68,16 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     inputRef,
   } = formData;
 
-  const [values, setValues] = useState<(string | number)[]>(defaultValue ?? []);
+  const [values, setValues] = useState<(string | number | boolean)[]>(
+    defaultValue ?? [],
+  );
+  const groupby = ensureIsArray<string>(formData.groupby);
 
-  let { groupby = [] } = formData;
-  groupby = Array.isArray(groupby) ? groupby : [groupby];
+  const [col] = groupby;
+  const datatype: GenericDataType = coltypeMap[col];
+  const labelFormatter = getDataRecordFormatter({
+    timeFormatter,
+  });
 
   const handleChange = (
     value?: (number | string)[] | number | string | null,
@@ -50,7 +87,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     );
     setValues(resultValue);
 
-    const [col] = groupby;
     const emptyFilter =
       enableEmptyFilter && !inverseSelection && resultValue?.length === 0;
 
@@ -104,6 +140,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     <Styles height={height} width={width}>
       <StyledSelect
         allowClear
+        // @ts-ignore
         value={values}
         showSearch={showSearch}
         mode={multiSelect ? 'multiple' : undefined}
@@ -113,10 +150,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         ref={inputRef}
       >
         {(data || []).map(row => {
-          const option = `${groupby.map(col => row[col])[0]}`;
+          const [value] = groupby.map(col => row[col]);
           return (
-            <Option key={option} value={option}>
-              {option}
+            // @ts-ignore
+            <Option key={`${value}`} value={value}>
+              {labelFormatter(value, datatype)}
             </Option>
           );
         })}

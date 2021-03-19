@@ -91,10 +91,14 @@ export const DisplayQueryButton = props => {
         setError(null);
       })
       .catch(response => {
-        getClientErrorObject(response).then(({ error, statusText }) => {
-          setError(error || statusText || t('Sorry, An error occurred'));
-          setIsLoading(false);
-        });
+        getClientErrorObject(response).then(
+          ({ error, message, statusText }) => {
+            setError(
+              error || message || statusText || t('Sorry, An error occurred'),
+            );
+            setIsLoading(false);
+          },
+        );
       });
   };
 

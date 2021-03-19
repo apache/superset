@@ -16,10 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
-
-// updates partially changed dashboard info
-export function dashboardInfoChanged(newInfo) {
-  return { type: DASHBOARD_INFO_UPDATED, newInfo };
-}
+export * from './getSectionsToRender';
+export * from './getControlConfig';
+export * from './getControlState';
+export * from './getFormDataFromControls';

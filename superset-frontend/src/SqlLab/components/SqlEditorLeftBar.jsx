@@ -147,8 +147,9 @@ export default class SqlEditorLeftBar extends React.PureComponent {
         <StyledScrollbarContainer>
           <StyledScrollbarContent contentHeight={tableMetaDataHeight}>
             <Collapse
-              ghost
-              expandIconPosition="right"
+              activeKey={this.props.tables
+                .filter(({ expanded }) => expanded)
+                .map(({ id }) => id)}
               css={theme => css`
                 .ant-collapse-item {
                   margin-bottom: ${theme.gridUnit * 3}px;
@@ -169,12 +170,15 @@ export default class SqlEditorLeftBar extends React.PureComponent {
                   }
                 }
               `}
+              expandIconPosition="right"
+              ghost
             >
               {this.props.tables.map(table => (
                 <TableElement
                   table={table}
                   key={table.id}
                   actions={this.props.actions}
+                  onClick={this.toggleTable}
                 />
               ))}
             </Collapse>

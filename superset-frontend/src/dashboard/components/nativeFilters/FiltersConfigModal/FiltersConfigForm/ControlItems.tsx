@@ -21,7 +21,7 @@ import React, { FC } from 'react';
 import { Checkbox } from 'src/common/components';
 import { FormInstance } from 'antd/lib/form';
 import { getChartControlPanelRegistry } from '@superset-ui/core';
-import { getControlItems, setFilterFieldValues } from './utils';
+import { getControlItems, setNativeFilterFieldValues } from './utils';
 import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
 import { StyledCheckboxFormItem } from './FiltersConfigForm';
 import { Filter } from '../../types';
@@ -59,7 +59,10 @@ const ControlItems: FC<ControlItemsProps> = ({
           <StyledCheckboxFormItem
             key={controlItem.name}
             name={['filters', filterId, 'controlValues', controlItem.name]}
-            initialValue={filterToEdit?.controlValues?.[controlItem.name]}
+            initialValue={
+              filterToEdit?.controlValues?.[controlItem.name] ??
+              controlItem?.config?.default
+            }
             valuePropName="checked"
             colon={false}
           >
@@ -68,7 +71,7 @@ const ControlItems: FC<ControlItemsProps> = ({
                 if (!controlItem.config.resetConfig) {
                   return;
                 }
-                setFilterFieldValues(form, filterId, {
+                setNativeFilterFieldValues(form, filterId, {
                   defaultValue: null,
                 });
                 forceUpdate();

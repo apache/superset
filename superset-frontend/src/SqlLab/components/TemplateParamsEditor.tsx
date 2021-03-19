@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
-import PropTypes from 'prop-types';
 import Badge from 'src/components/Badge';
 import { t, styled } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
@@ -26,17 +25,7 @@ import { debounce } from 'lodash';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { ConfigEditor } from 'src/components/AsyncAceEditor';
 import { FAST_DEBOUNCE } from 'src/constants';
-
-const propTypes = {
-  onChange: PropTypes.func,
-  code: PropTypes.string,
-  language: PropTypes.oneOf(['yaml', 'json']),
-};
-
-const defaultProps = {
-  onChange: () => {},
-  code: '{}',
-};
+import { Tooltip } from 'src/common/components/Tooltip';
 
 const StyledConfigEditor = styled(ConfigEditor)`
   &.ace_editor {
@@ -44,8 +33,16 @@ const StyledConfigEditor = styled(ConfigEditor)`
   }
 `;
 
-function TemplateParamsEditor({ code, language, onChange }) {
-  const [parsedJSON, setParsedJSON] = useState();
+function TemplateParamsEditor({
+  code = '{}',
+  language,
+  onChange = () => {},
+}: {
+  code: string;
+  language: 'yaml' | 'json';
+  onChange: () => void;
+}) {
+  const [parsedJSON, setParsedJSON] = useState({});
   const [isValid, setIsValid] = useState(true);
 
   useEffect(() => {
@@ -53,7 +50,7 @@ function TemplateParamsEditor({ code, language, onChange }) {
       setParsedJSON(JSON.parse(code));
       setIsValid(true);
     } catch {
-      setParsedJSON({});
+      setParsedJSON({} as any);
       setIsValid(false);
     }
   }, [code]);
@@ -96,25 +93,29 @@ function TemplateParamsEditor({ code, language, onChange }) {
     <ModalTrigger
       modalTitle={t('Template parameters')}
       triggerNode={
-        <div tooltip={t('Edit template parameters')} buttonSize="small">
-          {`${t('Parameters')} `}
-          <Badge count={paramCount} />
-          {!isValid && (
-            <InfoTooltipWithTrigger
-              icon="exclamation-triangle"
-              bsStyle="danger"
-              tooltip={t('Invalid JSON')}
-              label="invalid-json"
-            />
-          )}
-        </div>
+        <Tooltip
+          id="parameters-tooltip"
+          placement="top"
+          title={t('Edit template parameters')}
+          trigger={['hover']}
+        >
+          <div role="button">
+            {`${t('Parameters')} `}
+            <Badge count={paramCount} />
+            {!isValid && (
+              <InfoTooltipWithTrigger
+                icon="exclamation-triangle"
+                bsStyle="danger"
+                tooltip={t('Invalid JSON')}
+                label="invalid-json"
+              />
+            )}
+          </div>
+        </Tooltip>
       }
       modalBody={modalBody}
     />
   );
 }
-
-TemplateParamsEditor.propTypes = propTypes;
-TemplateParamsEditor.defaultProps = defaultProps;
 
 export default TemplateParamsEditor;

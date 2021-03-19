@@ -19,12 +19,19 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { styled, t } from '@superset-ui/core';
+import {
+  Behavior,
+  getChartMetadataRegistry,
+  styled,
+  t,
+} from '@superset-ui/core';
 import { Menu, NoAnimationDropdown } from 'src/common/components';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from '../../utils/downloadAsImage';
 import getDashboardUrl from '../util/getDashboardUrl';
 import { getActiveFilters } from '../util/activeDashboardFilters';
+import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
+import CrossFilterScopingModal from './CrossFilterScopingModal/CrossFilterScopingModal';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
@@ -59,6 +66,7 @@ const defaultProps = {
 };
 
 const MENU_KEYS = {
+  CROSS_FILTER_SCOPING: 'cross_filter_scoping',
   FORCE_REFRESH: 'force_refresh',
   TOGGLE_CHART_DESCRIPTION: 'toggle_chart_description',
   EXPLORE_CHART: 'explore_chart',
@@ -111,6 +119,7 @@ class SliceHeaderControls extends React.PureComponent {
 
     this.state = {
       showControls: false,
+      showCrossFilterScopingModal: false,
     };
   }
 
@@ -133,6 +142,9 @@ class SliceHeaderControls extends React.PureComponent {
     switch (key) {
       case MENU_KEYS.FORCE_REFRESH:
         this.refreshChart();
+        break;
+      case MENU_KEYS.CROSS_FILTER_SCOPING:
+        this.setState({ showCrossFilterScopingModal: true });
         break;
       case MENU_KEYS.TOGGLE_CHART_DESCRIPTION:
         this.props.toggleExpandSlice(this.props.slice.slice_id);
@@ -177,6 +189,14 @@ class SliceHeaderControls extends React.PureComponent {
       addDangerToast,
       isFullSize,
     } = this.props;
+    const crossFilterItems = getChartMetadataRegistry().items;
+    const isCrossFilter = Object.entries(crossFilterItems)
+      // @ts-ignore
+      .filter(([, { value }]) =>
+        value.behaviors?.includes(Behavior.CROSS_FILTER),
+      )
+      .find(([key]) => key === slice.viz_type);
+
     const cachedWhen = cachedDttm.map(itemCachedDttm =>
       moment.utc(itemCachedDttm).fromNow(),
     );
@@ -255,25 +275,38 @@ class SliceHeaderControls extends React.PureComponent {
         {this.props.supersetCanCSV && (
           <Menu.Item key={MENU_KEYS.EXPORT_CSV}>{t('Export CSV')}</Menu.Item>
         )}
+        {isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+          isCrossFilter && (
+            <Menu.Item key={MENU_KEYS.CROSS_FILTER_SCOPING}>
+              {t('Cross-filter scoping')}
+            </Menu.Item>
+          )}
       </Menu>
     );
 
     return (
-      <NoAnimationDropdown
-        overlay={menu}
-        trigger={['click']}
-        placement="bottomRight"
-        dropdownAlign={{
-          offset: [-40, 4],
-        }}
-        getPopupContainer={triggerNode =>
-          triggerNode.closest(SCREENSHOT_NODE_SELECTOR)
-        }
-      >
-        <span id={`slice_${slice.slice_id}-controls`} role="button">
-          <VerticalDotsTrigger />
-        </span>
-      </NoAnimationDropdown>
+      <>
+        <CrossFilterScopingModal
+          chartId={slice.slice_id}
+          isOpen={this.state.showCrossFilterScopingModal}
+          onClose={() => this.setState({ showCrossFilterScopingModal: false })}
+        />
+        <NoAnimationDropdown
+          overlay={menu}
+          trigger={['click']}
+          placement="bottomRight"
+          dropdownAlign={{
+            offset: [-40, 4],
+          }}
+          getPopupContainer={triggerNode =>
+            triggerNode.closest(SCREENSHOT_NODE_SELECTOR)
+          }
+        >
+          <span id={`slice_${slice.slice_id}-controls`} role="button">
+            <VerticalDotsTrigger />
+          </span>
+        </NoAnimationDropdown>
+      </>
     );
   }
 }

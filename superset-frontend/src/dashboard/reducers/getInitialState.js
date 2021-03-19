@@ -259,7 +259,7 @@ export default function getInitialState(bootstrapData) {
   }
 
   const nativeFilters = getInitialNativeFilterState({
-    filterConfig: dashboard.metadata.filter_configuration || [],
+    filterConfig: dashboard.metadata.native_filter_configuration || [],
     filterSetsConfig: dashboard.metadata.filter_sets_configuration || [],
   });
 

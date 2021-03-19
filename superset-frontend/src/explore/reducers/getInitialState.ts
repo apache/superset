@@ -17,13 +17,11 @@
  * under the License.
  */
 import shortid from 'shortid';
+import { DatasourceType, JsonObject, QueryFormData } from '@superset-ui/core';
 import {
-  Datasource,
-  DatasourceType,
-  JsonObject,
-  QueryFormData,
-} from '@superset-ui/core';
-import { ControlStateMapping } from '@superset-ui/chart-controls';
+  ControlStateMapping,
+  DatasourceMeta,
+} from '@superset-ui/chart-controls';
 import { CommonBootstrapData } from 'src/types/bootstrapTypes';
 import getToastsFromPyFlashMessages from 'src/messageToasts/utils/getToastsFromPyFlashMessages';
 
@@ -39,7 +37,7 @@ export interface ExlorePageBootstrapData extends JsonObject {
   can_add: boolean;
   can_download: boolean;
   can_overwrite: boolean;
-  datasource: Datasource;
+  datasource: DatasourceMeta;
   form_data: QueryFormData;
   datasource_id: number;
   datasource_type: DatasourceType;
