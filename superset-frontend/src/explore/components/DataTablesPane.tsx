@@ -278,12 +278,9 @@ export const DataTablesPane = ({
                 }
               }
             }
-`}
+          `}
         >
-          <Collapse.Panel
-            header={t('Data')}
-            key={DATAPANEL_KEY}
-          >
+          <Collapse.Panel header={t('Data')} key={DATAPANEL_KEY}>
             <Tabs
               fullWidth={false}
               tabBarExtraContent={TableControls}
