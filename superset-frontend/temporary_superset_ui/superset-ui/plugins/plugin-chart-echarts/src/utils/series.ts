@@ -31,9 +31,17 @@ import { NULL_STRING, TIMESERIES_CONSTANTS } from '../constants';
 import { LegendOrientation, LegendType } from '../types';
 import { defaultLegendPadding } from '../defaults';
 
-export function extractTimeseriesSeries(data: TimeseriesDataRecord[]): SeriesOption[] {
+function isDefined<T>(value: T | undefined | null): boolean {
+  return value !== undefined && value !== null;
+}
+
+export function extractTimeseriesSeries(
+  data: TimeseriesDataRecord[],
+  opts: { fillNeighborValue?: number } = {},
+): SeriesOption[] {
+  const { fillNeighborValue } = opts;
   if (data.length === 0) return [];
-  const rows = data.map(datum => ({
+  const rows: TimeseriesDataRecord[] = data.map(datum => ({
     ...datum,
     __timestamp: datum.__timestamp || datum.__timestamp === 0 ? new Date(datum.__timestamp) : null,
   }));
@@ -43,10 +51,16 @@ export function extractTimeseriesSeries(data: TimeseriesDataRecord[]): SeriesOpt
     .map(key => ({
       id: key,
       name: key,
-      data: rows.map((datum: { [p: string]: DataRecordValue; __timestamp: Date | null }) => [
-        datum.__timestamp,
-        datum[key],
-      ]),
+      data: rows.map((row, idx) => {
+        const isNextToDefinedValue =
+          isDefined(rows[idx - 1]?.[key]) || isDefined(rows[idx + 1]?.[key]);
+        return [
+          row.__timestamp,
+          !isDefined(row[key]) && isNextToDefinedValue && fillNeighborValue !== undefined
+            ? fillNeighborValue
+            : row[key],
+        ];
+      }),
     }));
 }
 
