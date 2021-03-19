@@ -399,7 +399,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <input
                 type="text"
                 name="database_name"
-                value={db ? db.database_name : ''}
+                value={db?.database_name || ''}
                 placeholder={t('Name your dataset')}
                 onChange={onInputChange}
               />
@@ -414,7 +414,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <input
                 type="text"
                 name="sqlalchemy_uri"
-                value={db ? db.sqlalchemy_uri : ''}
+                value={db?.sqlalchemy_uri || ''}
                 autoComplete="off"
                 placeholder={t(
                   'dialect+driver://username:password@host:port/database',
@@ -445,7 +445,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <input
                 type="number"
                 name="cache_timeout"
-                value={db ? db.cache_timeout || '' : ''}
+                value={db?.cache_timeout || ''}
                 placeholder={t('Chart cache timeout')}
                 onChange={onInputChange}
               />
@@ -463,7 +463,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <IndeterminateCheckbox
                 id="allow_run_async"
                 indeterminate={false}
-                checked={db ? !!db.allow_run_async : false}
+                checked={!!db?.allow_run_async}
                 onChange={onInputChange}
                 labelText={t('Asynchronous query execution')}
               />
@@ -485,7 +485,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 <IndeterminateCheckbox
                   id="expose_in_sqllab"
                   indeterminate={false}
-                  checked={db ? !!db.expose_in_sqllab : false}
+                  checked={!!db?.expose_in_sqllab}
                   onChange={onInputChange}
                   labelText={t('Expose in SQL Lab')}
                 />
@@ -537,7 +537,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                       <input
                         type="text"
                         name="force_ctas_schema"
-                        value={db ? db.force_ctas_schema || '' : ''}
+                        value={db?.force_ctas_schema || ''}
                         placeholder={t('Search or select schema')}
                         onChange={onInputChange}
                       />
@@ -555,7 +555,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     <IndeterminateCheckbox
                       id="allow_dml"
                       indeterminate={false}
-                      checked={db ? !!db.allow_dml : false}
+                      checked={!!db?.allow_dml}
                       onChange={onInputChange}
                       labelText={t('Allow DML')}
                     />
@@ -571,9 +571,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     <IndeterminateCheckbox
                       id="allow_multi_schema_metadata_fetch"
                       indeterminate={false}
-                      checked={
-                        db ? !!db.allow_multi_schema_metadata_fetch : false
-                      }
+                      checked={!!db?.allow_multi_schema_metadata_fetch}
                       onChange={onInputChange}
                       labelText={t('Allow multi schema metadata fetch')}
                     />
@@ -596,7 +594,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <div className="input-container">
               <StyledJsonEditor
                 name="encrypted_extra"
-                value={db ? db.encrypted_extra || '' : ''}
+                value={db?.encrypted_extra || ''}
                 placeholder={t('Secure extra')}
                 onChange={(json: string) =>
                   onEditorChange(json, 'encrypted_extra')
@@ -625,7 +623,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <div className="input-container">
               <textarea
                 name="server_cert"
-                value={db ? db.server_cert || '' : ''}
+                value={db?.server_cert || ''}
                 placeholder={t('Root certificate')}
                 onChange={onTextChange}
               />
@@ -644,7 +642,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <IndeterminateCheckbox
                 id="impersonate_user"
                 indeterminate={false}
-                checked={db ? !!db.impersonate_user : false}
+                checked={!!db?.impersonate_user}
                 onChange={onInputChange}
               />
               <div>{t('Impersonate Logged In User (Presto & Hive)')}</div>
@@ -664,7 +662,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <IndeterminateCheckbox
                 id="allow_csv_upload"
                 indeterminate={false}
-                checked={db ? !!db.allow_csv_upload : false}
+                checked={!!db?.allow_csv_upload}
                 onChange={onInputChange}
               />
               <div>{t('Allow data upload')}</div>
@@ -680,7 +678,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <div className="input-container">
               <StyledJsonEditor
                 name="extra"
-                value={(db && db.extra) ?? defaultExtra}
+                value={db?.extra ?? defaultExtra}
                 placeholder={t('Secure extra')}
                 onChange={(json: string) => onEditorChange(json, 'extra')}
                 width="100%"
