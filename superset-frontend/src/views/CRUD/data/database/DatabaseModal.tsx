@@ -298,8 +298,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const onEditorChange = (json: string, name: string) => {
     const data = {
-      database_name: db ? db.database_name : '',
-      sqlalchemy_uri: db ? db.sqlalchemy_uri : '',
+      database_name: db?.database_name || '',
+      sqlalchemy_uri: db?.sqlalchemy_uri || '',
       ...db,
     };
 
