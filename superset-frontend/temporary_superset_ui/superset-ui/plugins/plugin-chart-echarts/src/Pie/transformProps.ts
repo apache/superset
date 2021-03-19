@@ -18,6 +18,7 @@
  */
 import {
   CategoricalColorNamespace,
+  DataRecordValue,
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
@@ -31,8 +32,9 @@ import {
   EchartsPieChartProps,
   EchartsPieFormData,
   EchartsPieLabelType,
+  PieChartTransformedProps,
 } from './types';
-import { DEFAULT_LEGEND_FORM_DATA, EchartsProps } from '../types';
+import { DEFAULT_LEGEND_FORM_DATA } from '../types';
 import {
   extractGroupbyLabel,
   getChartPadding,
@@ -74,8 +76,8 @@ export function formatPieLabel({
   }
 }
 
-export default function transformProps(chartProps: EchartsPieChartProps): EchartsProps {
-  const { width, height, formData, queriesData } = chartProps;
+export default function transformProps(chartProps: EchartsPieChartProps): PieChartTransformedProps {
+  const { formData, height, hooks, ownCurrentState, queriesData, width } = chartProps;
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 
@@ -97,6 +99,7 @@ export default function transformProps(chartProps: EchartsPieChartProps): Echart
     showLabels,
     showLegend,
     showLabelsThreshold,
+    emitFilter,
   }: EchartsPieFormData = { ...DEFAULT_LEGEND_FORM_DATA, ...DEFAULT_PIE_FORM_DATA, ...formData };
   const metricLabel = getMetricLabel(metric);
 
@@ -108,6 +111,20 @@ export default function transformProps(chartProps: EchartsPieChartProps): Echart
       timeFormatter: getTimeFormatter(dateFormat),
     }),
   );
+  const labelMap = data.reduce((acc: Record<string, DataRecordValue[]>, datum) => {
+    const label = extractGroupbyLabel({
+      datum,
+      groupby,
+      coltypeMapping,
+      timeFormatter: getTimeFormatter(dateFormat),
+    });
+    return {
+      ...acc,
+      [label]: groupby.map(col => datum[col]),
+    };
+  }, {});
+
+  const { setDataMask = () => {} } = hooks;
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
@@ -128,6 +145,17 @@ export default function transformProps(chartProps: EchartsPieChartProps): Echart
       },
     };
   });
+
+  const selectedValues = (ownCurrentState.selectedValues || []).reduce(
+    (acc: Record<string, number>, selectedValue: string) => {
+      const index = transformedData.findIndex(({ name }) => name === selectedValue);
+      return {
+        ...acc,
+        [index]: selectedValue,
+      };
+    },
+    {},
+  );
 
   const formatter = (params: CallbackDataParams) => {
     if (params.percent && params.percent < showLabelsThreshold) return '';
@@ -198,8 +226,14 @@ export default function transformProps(chartProps: EchartsPieChartProps): Echart
   };
 
   return {
+    formData,
     width,
     height,
     echartOptions,
+    setDataMask,
+    emitFilter,
+    labelMap,
+    groupby,
+    selectedValues,
   };
 }
