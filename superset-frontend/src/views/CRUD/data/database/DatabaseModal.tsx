@@ -308,12 +308,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const validate = () => {
-    if (
-      db &&
-      db.database_name.length &&
-      db.sqlalchemy_uri &&
-      db.sqlalchemy_uri.length
-    ) {
+    if (db?.database_name && db?.sqlalchemy_uri) {
       setDisableSave(false);
     } else {
       setDisableSave(true);
@@ -323,9 +318,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   // Initialize
   if (
     isEditMode &&
-    (!db || !db.id || (database && database.id !== db.id) || (isHidden && show))
+    (!db || !db.id || database?.id !== db.id || (isHidden && show))
   ) {
-    if (database && database.id !== null && !dbLoading) {
+    if (database?.id && !dbLoading) {
       const id = database.id || 0;
       setTabKey(DEFAULT_TAB_KEY);
 
@@ -353,7 +348,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   // Validation
   useEffect(() => {
     validate();
-  }, [db ? db.database_name : null, db ? db.sqlalchemy_uri : null]);
+  }, [db?.database_name || null, db?.sqlalchemy_uri || null]);
 
   // Show/hide
   if (isHidden && show) {
