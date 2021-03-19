@@ -278,7 +278,7 @@ export const DataTablesPane = ({
                 }
               }
             }
-          `}
+`}
         >
           <Collapse.Panel
             header={t('Data')}
