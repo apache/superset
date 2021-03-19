@@ -18,6 +18,7 @@
  */
 import { DataMaskType, MaskWithId } from './types';
 import { FilterConfiguration } from '../dashboard/components/nativeFilters/types';
+import { FeatureFlag, isFeatureEnabled } from '../featureFlags';
 
 export const UPDATE_DATA_MASK = 'UPDATE_DATA_MASK';
 export interface UpdateDataMask {
@@ -50,10 +51,22 @@ export function updateDataMask(
     ownFilters?: Omit<MaskWithId, 'id'>;
   },
 ): UpdateDataMask {
+  const { nativeFilters, crossFilters, ownFilters } = dataMask;
+  const filteredDataMask: {
+    nativeFilters?: Omit<MaskWithId, 'id'>;
+    crossFilters?: Omit<MaskWithId, 'id'>;
+    ownFilters?: Omit<MaskWithId, 'id'>;
+  } = { ownFilters };
+  if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && nativeFilters) {
+    filteredDataMask.nativeFilters = nativeFilters;
+  }
+  if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) && crossFilters) {
+    filteredDataMask.crossFilters = crossFilters;
+  }
   return {
     type: UPDATE_DATA_MASK,
     filterId,
-    ...dataMask,
+    ...filteredDataMask,
   };
 }
 
