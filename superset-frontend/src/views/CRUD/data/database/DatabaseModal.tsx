@@ -376,7 +376,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       show={show}
       title={
         <h4>
-          <StyledIcon name="database" data-test-id="edit-database-button" />
+          <StyledIcon name="database" />
           {isEditMode ? t('Edit database') : t('Add database')}
         </h4>
       }
@@ -542,7 +542,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                       <input
                         type="text"
                         name="force_ctas_schema"
-                        data-test-id="schema_field_test_id"
                         value={db ? db.force_ctas_schema || '' : ''}
                         placeholder={t('Search or select schema')}
                         onChange={onInputChange}

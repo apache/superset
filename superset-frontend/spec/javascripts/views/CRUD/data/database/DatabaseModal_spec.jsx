@@ -20,7 +20,7 @@ import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import { styledMount as mount } from 'spec/helpers/theming';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { Provider } from 'react-redux';
@@ -123,7 +123,7 @@ describe('DatabaseModal', () => {
       expect(allowMSMF).not.toBeVisible();
     });
 
-    it('renders the schema field when allowCTAS is checked', async () => {
+    it('renders the schema field when allowCTAS is checked', () => {
       render(
         <ThemeProvider theme={supersetTheme}>
           <Provider store={store}>
@@ -137,10 +137,9 @@ describe('DatabaseModal', () => {
         name: /sql lab settings/i,
       });
       userEvent.click(sqlLabSettingsTab);
-      // Grab CTAS by it's label & schema field
+      // Grab CTAS & schema field by their labels
       const allowCTAS = screen.getByLabelText('Allow CREATE TABLE AS');
-      // screen.debug(null, 200000);
-      const schemaField = screen.getByTestId('schema_field_test_id');
+      const schemaField = screen.getByText('CTAS & CVAS SCHEMA');
 
       // While CTAS & CVAS are unchecked, schema field is not visible
       expect(schemaField).not.toBeVisible();
@@ -148,10 +147,7 @@ describe('DatabaseModal', () => {
       // Check "Allow CTAS" to reveal schema field
       // 🐞 ----- This needs to be clicked 2x for some reason, should only be 1x ----- 🐞
       userEvent.click(allowCTAS);
-      // userEvent.click(allowCTAS);
-      await waitFor(() => {
-        screen.getByTestId('schema_field_test_id');
-      });
+      userEvent.click(allowCTAS);
       expect(schemaField).toBeVisible();
 
       // Uncheck "Allow CTAS" to hide schema field again
@@ -208,7 +204,7 @@ describe('DatabaseModal', () => {
       // Grab CTAS and CVAS by their labels, & schema field
       const allowCTAS = screen.getByText('Allow CREATE TABLE AS');
       const allowCVAS = screen.getByText('Allow CREATE VIEW AS');
-      const schemaField = screen.getByTestId('schema_field_test_id');
+      const schemaField = screen.getByText('CTAS & CVAS SCHEMA');
 
       // While CTAS & CVAS are unchecked, schema field is not visible
       expect(schemaField).not.toBeVisible();
