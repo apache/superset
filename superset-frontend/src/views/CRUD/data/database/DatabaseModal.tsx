@@ -138,7 +138,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   database = null,
 }) => {
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [db, setDB] = useState<DatabaseObject | null>(null);
+  const [db, setDB] = useState<DatabaseObject | null>(database);
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [expandableModalisOpen, setExpandableModalIsOpen] = useState<boolean>(
@@ -257,30 +257,28 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const onInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { target } = event;
+    const { id, checked, name, value, type } = target;
     const data = {
-      database_name: db ? db.database_name : '',
-      sqlalchemy_uri: db ? db.sqlalchemy_uri : '',
+      database_name: db?.database_name || '',
+      sqlalchemy_uri: db?.sqlalchemy_uri || '',
       ...db,
     };
 
-    if (target.type === 'checkbox') {
-      data[target.name] = target.checked;
+    if (type === 'checkbox') {
+      data[name] = checked;
+      // Conditional form rendering
+      /* The CTAS & CVAS schema field needs individual setters
+      so that the input will not disappear when one options goes
+      unchecked but the other is still checked */
+      if (id.includes('cvas') || id.includes('ctas')) {
+        setCount(count + (checked ? 1 : -1));
+      }
     } else {
-      data[target.name] =
-        typeof target.value === 'string' ? target.value.trim() : target.value;
+      data[name] = typeof value === 'string' ? value.trim() : value;
     }
 
-    if (target.id === 'expose_in_sqllab') {
+    if (id === 'expose_in_sqllab') {
       setExpandableModalIsOpen(!expandableModalisOpen);
-    }
-
-    // Conditional form rendering
-    /* The CTAS & CVAS schema field needs individual setters
-    so that the input will not disappear when one options goes
-    unchecked but the other is still checked */
-    const { id, checked } = target;
-    if (id.includes('cvas') || id.includes('ctas')) {
-      setCount(count + (checked ? 1 : -1));
     }
 
     setDB(data);
@@ -508,7 +506,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     <IndeterminateCheckbox
                       id="allow_ctas"
                       indeterminate={false}
-                      checked={db ? !!db.allow_ctas : false}
+                      checked={!!db?.allow_ctas}
                       onChange={onInputChange}
                       labelText={t('Allow CREATE TABLE AS')}
                     />
@@ -524,7 +522,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     <IndeterminateCheckbox
                       id="allow_cvas"
                       indeterminate={false}
-                      checked={db ? !!db.allow_cvas : false}
+                      checked={!!db?.allow_cvas}
                       onChange={onInputChange}
                       labelText={t('Allow CREATE VIEW AS')}
                     />
