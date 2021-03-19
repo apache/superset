@@ -72,6 +72,7 @@ const StyledInputContainer = styled.div`
     label {
       display: flex;
       margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+      font-family: ${({ theme }) => theme.typography.families.sansSerif};
     }
 
     i {
