@@ -22,7 +22,7 @@ import { flatMap, isEmpty } from 'lodash';
 import { CHART_TYPE, TAB_TYPE } from './componentTypes';
 import { getChartIdAndColumnFromFilterKey } from './getDashboardFilterKey';
 
-function getChartIdsFromTabsNotInScope({ tabs = [], tabsInScope = [] }) {
+function getImmuneChartIdsFromTabsNotInScope({ tabs = [], tabsInScope = [] }) {
   const chartsNotInScope = [];
   tabs.forEach(({ value: tab, children: tabChildren }) => {
     if (tabChildren && !tabsInScope.includes(tab)) {
@@ -57,18 +57,20 @@ function getTabChildrenScope({
       ))
   ) {
     // get all charts from tabChildren that is not in scope
-    const immuneChartIdsFromTabsNotInScope = getChartIdsFromTabsNotInScope({
-      tabs: tabChildren,
-      tabsInScope: flatMap(tabScopes, ({ scope }) => scope),
-    });
-    const immuneChartsFromTabsInScope = flatMap(
+    const immuneChartIdsFromTabsNotInScope = getImmuneChartIdsFromTabsNotInScope(
+      {
+        tabs: tabChildren,
+        tabsInScope: flatMap(tabScopes, ({ scope }) => scope),
+      },
+    );
+    const immuneChartIdsFromTabsInScope = flatMap(
       Object.values(tabScopes),
       ({ immune }) => immune,
     );
     const immuneCharts = [
       ...new Set([
         ...immuneChartIdsFromTabsNotInScope,
-        ...immuneChartsFromTabsInScope,
+        ...immuneChartIdsFromTabsInScope,
       ]),
     ];
     return {
