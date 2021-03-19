@@ -412,8 +412,9 @@ export function exploreJSON(
         return dispatch(chartUpdateSucceeded(queriesResponse, key));
       })
       .catch(response => {
-        if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES))
+        if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
           return dispatch(chartUpdateFailed([response], key));
+        }
 
         const appendErrorLog = (errorDetails, isCached) => {
           dispatch(
