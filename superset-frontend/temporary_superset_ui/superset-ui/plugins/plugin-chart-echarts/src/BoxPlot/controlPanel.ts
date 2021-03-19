@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 import {
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
@@ -24,6 +24,9 @@ import {
   formatSelectOptions,
   sections,
 } from '@superset-ui/chart-controls';
+import { DEFAULT_FORM_DATA } from '../Pie/types';
+
+const { emitFilter } = DEFAULT_FORM_DATA;
 
 export default {
   controlPanelSections: [
@@ -62,6 +65,20 @@ export default {
       expanded: true,
       controlSetRows: [
         ['color_scheme'],
+        isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)
+          ? [
+              {
+                name: 'emit_filter',
+                config: {
+                  type: 'CheckboxControl',
+                  label: t('Enable emitting filters'),
+                  default: emitFilter,
+                  renderTrigger: true,
+                  description: t('Enable emmiting filters.'),
+                },
+              },
+            ]
+          : [],
         [
           {
             name: 'x_ticks_layout',

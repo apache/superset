@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
@@ -43,6 +43,7 @@ export default class EchartsPieChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('./EchartsPie'),
       metadata: new ChartMetadata({
+        behaviors: [Behavior.CROSS_FILTER],
         credits: ['https://echarts.apache.org'],
         description: 'Pie Chart (Apache ECharts)',
         name: t('Pie Chart'),

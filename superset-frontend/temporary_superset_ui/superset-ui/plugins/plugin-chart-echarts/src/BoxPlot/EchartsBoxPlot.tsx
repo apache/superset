@@ -16,10 +16,84 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { EchartsProps } from '../types';
+import React, { useCallback } from 'react';
 import Echart from '../components/Echart';
+import { EventHandlers } from '../types';
+import { BoxPlotChartTransformedProps } from './types';
 
-export default function EchartsBoxPlot({ height, width, echartOptions }: EchartsProps) {
-  return <Echart height={height} width={width} echartOptions={echartOptions} />;
+export default function EchartsBoxPlot({
+  height,
+  width,
+  echartOptions,
+  setDataMask,
+  labelMap,
+  groupby,
+  selectedValues,
+  formData,
+}: BoxPlotChartTransformedProps) {
+  const handleChange = useCallback(
+    (values: string[]) => {
+      if (!formData.emitFilter) {
+        return;
+      }
+
+      const groupbyValues = values.map(value => labelMap[value]);
+
+      setDataMask({
+        crossFilters: {
+          extraFormData: {
+            append_form_data: {
+              filters:
+                values.length === 0
+                  ? []
+                  : groupby.map((col, idx) => {
+                      const val = groupbyValues.map(v => v[idx]);
+                      if (val === null || val === undefined)
+                        return {
+                          col,
+                          op: 'IS NULL',
+                        };
+                      return {
+                        col,
+                        op: 'IN',
+                        val: val as (string | number | boolean)[],
+                      };
+                    }),
+            },
+          },
+          currentState: {
+            value: groupbyValues.length ? groupbyValues : null,
+          },
+        },
+        ownFilters: {
+          currentState: {
+            selectedValues: values.length ? values : null,
+          },
+        },
+      });
+    },
+    [groupby, labelMap, setDataMask, selectedValues],
+  );
+
+  const eventHandlers: EventHandlers = {
+    click: props => {
+      const { name } = props;
+      const values = Object.values(selectedValues);
+      if (values.includes(name)) {
+        handleChange(values.filter(v => v !== name));
+      } else {
+        handleChange([...values, name]);
+      }
+    },
+  };
+
+  return (
+    <Echart
+      height={height}
+      width={width}
+      echartOptions={echartOptions}
+      eventHandlers={eventHandlers}
+      selectedValues={selectedValues}
+    />
+  );
 }

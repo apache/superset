@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartDataResponseResult, ChartProps, QueryFormData } from '@superset-ui/core';
+import { EChartsOption } from 'echarts';
+import {
+  ChartDataResponseResult,
+  ChartProps,
+  DataRecordValue,
+  QueryFormData,
+  SetDataMaskHook,
+} from '@superset-ui/core';
 import {
   DEFAULT_LEGEND_FORM_DATA,
   EchartsLegendFormData,
@@ -27,7 +34,10 @@ import {
 export type EchartsPieFormData = QueryFormData &
   EchartsLegendFormData & {
     colorScheme?: string;
+    currentOwnValue?: string[] | null;
+    currentValue?: string[] | null;
     donut: boolean;
+    defaultValue?: string[] | null;
     groupby: string[];
     innerRadius: number;
     labelLine: boolean;
@@ -39,6 +49,7 @@ export type EchartsPieFormData = QueryFormData &
     numberFormat: string;
     dateFormat: string;
     showLabelsThreshold: number;
+    emitFilter: boolean;
   };
 
 export enum EchartsPieLabelType {
@@ -70,5 +81,18 @@ export const DEFAULT_FORM_DATA: EchartsPieFormData = {
   showLabels: true,
   labelsOutside: true,
   showLabelsThreshold: 5,
+  emitFilter: false,
   dateFormat: 'smart_date',
 };
+
+export interface PieChartTransformedProps {
+  formData: EchartsPieFormData;
+  height: number;
+  width: number;
+  echartOptions: EChartsOption;
+  emitFilter: boolean;
+  setDataMask: SetDataMaskHook;
+  labelMap: Record<string, DataRecordValue[]>;
+  groupby: string[];
+  selectedValues: Record<number, string>;
+}
