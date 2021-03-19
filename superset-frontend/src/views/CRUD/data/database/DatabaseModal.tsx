@@ -215,8 +215,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (isEditMode) {
       // Edit
       const update: DatabaseObject = {
-        database_name: db ? db.database_name : '',
-        sqlalchemy_uri: db ? db.sqlalchemy_uri : '',
+        database_name: db?.database_name || '',
+        sqlalchemy_uri: db?.sqlalchemy_uri || '',
         ...db,
       };
 
@@ -225,7 +225,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         delete update.id;
       }
 
-      if (db && db.id) {
+      if (db?.id) {
         updateResource(db.id, update).then(result => {
           if (result) {
             if (onDatabaseAdd) {
