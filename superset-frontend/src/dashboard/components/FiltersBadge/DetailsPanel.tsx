@@ -74,11 +74,7 @@ const DetailsPanelPopover = ({
   function handlePopoverStatus(isOpen: boolean) {
     // every time the popover opens, make sure the most relevant panel is active
     if (isOpen) {
-      if (
-        !activePanels.find(panel => getDefaultActivePanel().includes(panel))
-      ) {
-        setActivePanels([...activePanels, ...getDefaultActivePanel()]);
-      }
+      setActivePanels(getDefaultActivePanel());
     }
   }
 
