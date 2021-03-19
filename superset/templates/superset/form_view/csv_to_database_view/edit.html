@@ -21,43 +21,48 @@
 {% block tail_js %}
   {{ super() }}
   <script>
-    var db = $("#con");
-    var schema = $("#schema");
+    var db = document.getElementById("con");
+    var schema = document.getElementById("schema");
 
     // this element is a text input
     // copy it here so it can be reused later
-    var any_schema_is_allowed = schema.clone();
+    var any_schema_is_allowed = schema.cloneNode();
 
-    update_schemas_allowed_for_csv_upload(db.val());
-    db.change(function(){
-        update_schemas_allowed_for_csv_upload(db.val());
+    update_schemas_allowed_for_csv_upload(db.value);
+    db.addEventListener("change", function(){
+        update_schemas_allowed_for_csv_upload(db.value);
     });
 
     function update_schemas_allowed_for_csv_upload(db_id) {
-        $.ajax({
-          method: "GET",
-          url: "/superset/schemas_access_for_csv_upload",
-          data: {db_id: db_id},
-          dataType: 'json',
-          contentType: "application/json; charset=utf-8"
-        }).done(function(data) {
-          change_schema_field_in_formview(data)
-        }).fail(function(error) {
-          var errorMsg = error.responseJSON.error;
-          alert("ERROR: " + errorMsg);
-        });
+        const request = new XMLHttpRequest();
+        request.open("GET", "/superset/schemas_access_for_csv_upload?db_id=" + db_id, true);
+        request.onload = function () {
+            if (this.status == 200) {
+                change_schema_field_in_formview(JSON.parse(request.responseText));
+            }
+        };
+        request.onerror = function () {
+            var errorMsg = request.responseText;
+            alert("ERROR: " + errorMsg);
+        };
+        request.send();
     }
 
     function change_schema_field_in_formview(schemas_allowed){
         if (schemas_allowed && schemas_allowed.length > 0) {
-            var dropdown_schema_lists = '<select id="schema" name="schema" required>';
+	    var dropdown_schema_lists = document.createElement("select");
+	    dropdown_schema_lists.setAttribute("id", "schema");
+	    dropdown_schema_lists.setAttribute("name", "schema");
+	    dropdown_schema_lists.setAttribute("required", "required");
             schemas_allowed.forEach(function(schema_allowed) {
-              dropdown_schema_lists += ('<option value="' + schema_allowed + '">' + schema_allowed + '</option>');
+	      var option = document.createElement("option");
+	      option.setAttribute("value", schema_allowed);
+	      option.appendChild(document.createTextNode(schema_allowed));
+	      dropdown_schema_lists.appendChild(option);
             });
-            dropdown_schema_lists += '</select>';
-            $("#schema").replaceWith(dropdown_schema_lists);
+            schema.replaceWith(dropdown_schema_lists);
         } else {
-            $("#schema").replaceWith(any_schema_is_allowed)
+            schema.replaceWith(any_schema_is_allowed)
         }
     }
   </script>
