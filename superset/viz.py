@@ -1755,7 +1755,9 @@ class DistributionBarViz(BaseViz):
 
         row = df.groupby(self.groupby).sum()[metrics[0]].copy()
         row.sort_values(ascending=False, inplace=True)
-        pt = df.pivot_table(index=self.groupby, columns=columns, values=metrics)
+        pt = df.pivot_table(
+            index=self.groupby, columns=columns, values=metrics, dropna=False
+        )
         if fd.get("contribution"):
             pt = pt.T
             pt = (pt / pt.sum()).T

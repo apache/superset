@@ -532,6 +532,38 @@ class TestDistBarViz(SupersetTestCase):
         ]
         self.assertEqual(expected, data)
 
+    def test_column_metric_nan(self):
+        self.maxDiff = None
+        form_data = {
+            "metrics": ["z_column", "votes"],
+            "adhoc_filters": [],
+            "groupby": ["toppings"],
+            "columns": [],
+        }
+        datasource = self.get_datasource_mock()
+        df = pd.DataFrame(
+            {
+                "toppings": ["cheese", "pepperoni", "cheese", "pepperoni"],
+                "votes": [3, 5, 1, 2],
+                "z_column": [nan, nan, nan, nan],
+            }
+        )
+        test_viz = viz.DistributionBarViz(datasource, form_data)
+        data = test_viz.get_data(df)
+
+        expected = [
+            {
+                "key": "z_column",
+                "values": [{"x": "cheese", "y": nan}, {"x": "pepperoni", "y": nan}],
+            },
+            {
+                "key": "votes",
+                "values": [{"x": "cheese", "y": 2.0}, {"x": "pepperoni", "y": 3.5}],
+            },
+        ]
+
+        np.testing.assert_equal(expected, data)
+
     def test_column_metrics_in_order(self):
         form_data = {
             "metrics": ["z_column", "votes", "a_column"],
