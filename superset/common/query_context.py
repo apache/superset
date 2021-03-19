@@ -35,6 +35,7 @@ from superset.exceptions import (
 )
 from superset.extensions import cache_manager, security_manager
 from superset.stats_logger import BaseStatsLogger
+from superset.utils import csv
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
     ChartDataResultFormat,
@@ -151,7 +152,9 @@ class QueryContext:
     def get_data(self, df: pd.DataFrame,) -> Union[str, List[Dict[str, Any]]]:
         if self.result_format == ChartDataResultFormat.CSV:
             include_index = not isinstance(df.index, pd.RangeIndex)
-            result = df.to_csv(index=include_index, **config["CSV_EXPORT"])
+            result = csv.df_to_escaped_csv(
+                df, index=include_index, **config["CSV_EXPORT"]
+            )
             return result or ""
 
         return df.to_dict(orient="records")
