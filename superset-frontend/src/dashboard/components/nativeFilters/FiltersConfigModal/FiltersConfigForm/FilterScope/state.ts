@@ -51,8 +51,9 @@ export function useFilterScopeTree(
   const validNodes = useMemo(
     () =>
       Object.values(layout).reduce<string[]>((acc, cur) => {
-        if (cur?.type === CHART_TYPE && currentChartId !== cur?.meta?.chartId) {
-          return [...new Set([...acc, ...cur?.parents, cur.id])];
+        const { id, parents = [], type, meta } = cur;
+        if (type === CHART_TYPE && currentChartId !== meta?.chartId) {
+          return [...new Set([...acc, ...parents, id])];
         }
         return acc;
       }, []),
