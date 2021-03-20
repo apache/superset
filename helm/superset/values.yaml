@@ -150,11 +150,11 @@ init:
     superset init
     echo "Creating admin user..."
     superset fab create-admin \
-                    --username {{ .Values.init.user.username }} \
-                    --firstname {{ .Values.init.user.firstname }} \
-                    --lastname {{ .Values.init.user.lastname }} \
-                    --email {{ .Values.init.user.email }} \
-                    --password {{ .Values.init.user.password }} \
+                    --username {{ .Values.init.adminUser.username }} \
+                    --firstname {{ .Values.init.adminUser.firstname }} \
+                    --lastname {{ .Values.init.adminUser.lastname }} \
+                    --email {{ .Values.init.adminUser.email }} \
+                    --password {{ .Values.init.adminUser.password }} \
                     || true
     {{ if .Values.init.loadExamples }}
     echo "Loading examples..."
