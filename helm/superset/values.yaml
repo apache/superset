@@ -128,7 +128,7 @@ init:
     - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; . {{ .Values.configMountPath }}/superset_init.sh"
   enabled: true
   loadExamples: false
-  user:
+  adminUser:
     username: admin
     firstname: Superset
     lastname: Admin
