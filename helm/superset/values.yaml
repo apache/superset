@@ -200,6 +200,12 @@ init:
     - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; . {{ .Values.configMountPath }}/superset_init.sh"
   enabled: true
   loadExamples: false
+  adminUser:
+    username: admin
+    firstname: Superset
+    lastname: Admin
+    email: admin@superset.com
+    password: admin
   initContainers:
     - name: wait-for-postgres
       image: busybox:latest
@@ -216,11 +222,12 @@ init:
     superset init
     echo "Creating admin user..."
     superset fab create-admin \
-                    --username admin \
-                      --firstname Superset \
-                      --lastname Admin \
-                      --email admin@superset.com \
-                      --password admin || true
+                    --username {{ .Values.init.adminUser.username }} \
+                    --firstname {{ .Values.init.adminUser.firstname }} \
+                    --lastname {{ .Values.init.adminUser.lastname }} \
+                    --email {{ .Values.init.adminUser.email }} \
+                    --password {{ .Values.init.adminUser.password }} \
+                    || true
     {{ if .Values.init.loadExamples }}
     echo "Loading examples..."
     superset load_examples
