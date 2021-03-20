@@ -66,7 +66,6 @@ interface ActivityProps {
   };
   activeChild: string;
   setActiveChild: (arg0: string) => void;
-  loading: boolean;
   activityData: ActivityData;
 }
 
@@ -156,7 +155,6 @@ const getEntityLastActionOn = (entity: ActivityObject) => {
 };
 
 export default function ActivityTable({
-  loading,
   activeChild,
   setActiveChild,
   activityData,
@@ -164,7 +162,6 @@ export default function ActivityTable({
 }: ActivityProps) {
   const [editedObjs, setEditedObjs] = useState<Array<ActivityData>>();
   const [loadingState, setLoadingState] = useState(false);
-
   const getEditedCards = () => {
     setLoadingState(true);
     getEditedObjects(user.userId).then(r => {
@@ -221,7 +218,6 @@ export default function ActivityTable({
             key={url}
           >
             <ListViewCard
-              loading={loading}
               cover={<></>}
               url={url}
               title={getEntityTitle(entity)}
@@ -233,7 +229,7 @@ export default function ActivityTable({
         );
       },
     );
-  if (loading || (loadingState && !editedObjs)) {
+  if (loadingState && !editedObjs) {
     return <Loading position="inline" />;
   }
   return (

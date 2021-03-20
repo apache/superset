@@ -86,13 +86,12 @@ const WelcomeContainer = styled.div`
 function Welcome({ user, addDangerToast }: WelcomeProps) {
   const recent = `/superset/recent_activity/${user.userId}/?limit=6`;
   const [activeChild, setActiveChild] = useState('Viewed');
-  const [activityData, setActivityData] = useState<ActivityData>({});
+  const [activityData, setActivityData] = useState<ActivityData | null >(null);
   const [chartData, setChartData] = useState<Array<object> | null>(null);
   const [queryData, setQueryData] = useState<Array<object> | null>(null);
   const [dashboardData, setDashboardData] = useState<Array<object> | null>(
     null,
   );
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     getRecentAcitivtyObjs(user.userId, recent, addDangerToast)
@@ -106,12 +105,11 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           data.Examples = res.examples;
           setActiveChild('Examples');
         }
-        setActivityData(data);
-        setLoading(false);
+        setActivityData(activityData => ({ ...activityData, ...data}));
       })
       .catch(
         createErrorHandler((errMsg: unknown) => {
-          setLoading(false);
+          setActivityData(activityData => ({ ...activityData, Viewed: [] }));
           addDangerToast(
             t('There was an issue fetching your recent activity: %s', errMsg),
           );
@@ -165,13 +163,16 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     <WelcomeContainer>
       <Collapse defaultActiveKey={['1', '2', '3', '4']} ghost bigger>
         <Collapse.Panel header={t('Recents')} key="1">
-          <ActivityTable
-            user={user}
-            activeChild={activeChild}
-            setActiveChild={setActiveChild}
-            loading={loading && !chartData && !queryData && !dashboardData}
-            activityData={activityData}
-          />
+          {activityData && (activityData.Viewed || activityData.Examples)  ?
+            <ActivityTable
+              user={user}
+              activeChild={activeChild}
+              setActiveChild={setActiveChild}
+              activityData={activityData}
+            />
+            :
+            <Loading position="inline" />
+          }
         </Collapse.Panel>
         <Collapse.Panel header={t('Dashboards')} key="2">
           {!dashboardData ? (
