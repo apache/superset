@@ -19,6 +19,7 @@
 import { ChartProps } from '@superset-ui/core';
 import { chart } from 'src/chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
+import { DataMaskStateWithId } from '../dataMask/types';
 
 export type ChartReducerInitialState = typeof chart;
 
@@ -44,6 +45,7 @@ export type RootState = {
   charts: { [key: string]: Chart };
   dashboardLayout: { present: { [key: string]: LayoutItem } };
   dashboardFilters: {};
+  dataMask: DataMaskStateWithId;
 };
 
 /** State of dashboardLayout in redux */

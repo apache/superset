@@ -25,6 +25,7 @@ import { useForceUpdate } from '../nativeFilters/FiltersConfigModal/FiltersConfi
 import { CrossFilterScopingFormType } from './types';
 
 type CrossFilterScopingFormProps = {
+  chartId: number;
   scope: Scope;
   form: FormInstance<CrossFilterScopingFormType>;
 };
@@ -32,6 +33,7 @@ type CrossFilterScopingFormProps = {
 const CrossFilterScopingForm: FC<CrossFilterScopingFormProps> = ({
   form,
   scope,
+  chartId,
 }) => {
   const forceUpdate = useForceUpdate();
   const formScope = form.getFieldValue('scope');
@@ -44,6 +46,7 @@ const CrossFilterScopingForm: FC<CrossFilterScopingFormProps> = ({
         });
       }}
       scope={scope}
+      chartId={chartId}
       formScope={formScope}
       forceUpdate={forceUpdate}
       formScoping={formScoping}

@@ -16,16 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlagMap, FeatureFlag } from '@superset-ui/core';
 
-export { FeatureFlagMap, FeatureFlag } from '@superset-ui/core';
+import { useEffect } from 'react';
+import { usePrevious } from '../usePrevious';
 
-export function initFeatureFlags(featureFlags: FeatureFlagMap) {
-  if (!window.featureFlags) {
-    window.featureFlags = featureFlags || {};
-  }
-}
-
-export function isFeatureEnabled(feature: FeatureFlag) {
-  return window && window.featureFlags && !!window.featureFlags[feature];
+/**
+ * Calls the callback when the value changes.
+ *
+ * Passes the previous and current values to the callback
+ */
+export function useChangeEffect<T>(
+  value: T,
+  callback: (previous: T | undefined, current: T) => void,
+) {
+  const previous = usePrevious(value);
+  useEffect(() => {
+    if (value !== previous) {
+      callback(previous, value);
+    }
+  }, [value, previous, callback]);
 }

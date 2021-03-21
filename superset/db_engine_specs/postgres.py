@@ -145,7 +145,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
-        if tt == utils.TemporalType.TIMESTAMP:
+        if "TIMESTAMP" in tt or "DATETIME" in tt:
             dttm_formatted = dttm.isoformat(sep=" ", timespec="microseconds")
             return f"""TO_TIMESTAMP('{dttm_formatted}', 'YYYY-MM-DD HH24:MI:SS.US')"""
         return None

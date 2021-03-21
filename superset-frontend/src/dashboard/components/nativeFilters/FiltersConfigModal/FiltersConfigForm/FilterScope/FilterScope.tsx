@@ -33,6 +33,7 @@ type FilterScopeProps = {
   forceUpdate: Function;
   scope?: Scope;
   formScoping?: Scoping;
+  chartId?: number;
 };
 
 const Wrapper = styled.div`
@@ -54,9 +55,10 @@ const FilterScope: FC<FilterScopeProps> = ({
   forceUpdate,
   scope,
   updateFormValues,
+  chartId,
 }) => {
-  const initialScope = scope || getDefaultScopeValue();
-  const initialScoping = isScopingAll(initialScope)
+  const initialScope = scope || getDefaultScopeValue(chartId);
+  const initialScoping = isScopingAll(initialScope, chartId)
     ? Scoping.all
     : Scoping.specific;
 
@@ -70,8 +72,9 @@ const FilterScope: FC<FilterScopeProps> = ({
         <Radio.Group
           onChange={({ target: { value } }) => {
             if (value === Scoping.all) {
+              const scope = getDefaultScopeValue(chartId);
               updateFormValues({
-                scope: getDefaultScopeValue(),
+                scope,
               });
             }
             forceUpdate();
@@ -94,6 +97,7 @@ const FilterScope: FC<FilterScopeProps> = ({
           initialScope={initialScope}
           formScope={formScope}
           forceUpdate={forceUpdate}
+          chartId={chartId}
         />
       )}
       <CleanFormItem

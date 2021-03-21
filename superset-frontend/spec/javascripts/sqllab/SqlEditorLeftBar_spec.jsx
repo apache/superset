@@ -18,32 +18,36 @@
  */
 import React from 'react';
 import configureStore from 'redux-mock-store';
+import fetchMock from 'fetch-mock';
 import { shallow } from 'enzyme';
-import sinon from 'sinon';
+import { render, screen, act } from '@testing-library/react';
+import { Provider } from 'react-redux';
+import '@testing-library/jest-dom/extend-expect';
 import thunk from 'redux-thunk';
 import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
 import TableElement from 'src/SqlLab/components/TableElement';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import {
+  table,
+  initialState,
+  databases,
+  defaultQueryEditor,
+  mockedActions,
+} from './fixtures';
 
-import { table, defaultQueryEditor, initialState } from './fixtures';
-
+const mockedProps = {
+  actions: mockedActions,
+  tables: [table],
+  queryEditor: defaultQueryEditor,
+  database: databases,
+  height: 0,
+};
+const middlewares = [thunk];
+const mockStore = configureStore(middlewares);
+const store = mockStore(initialState);
+const DATABASE_ENDPOINT = 'glob:*/api/v1/database/?*';
+fetchMock.get(DATABASE_ENDPOINT, []);
 describe('SqlEditorLeftBar', () => {
-  const mockedProps = {
-    actions: {
-      queryEditorSetSchema: sinon.stub(),
-      queryEditorSetDb: sinon.stub(),
-      setDatabases: sinon.stub(),
-      addTable: sinon.stub(),
-      addDangerToast: sinon.stub(),
-    },
-    tables: [table],
-    queryEditor: defaultQueryEditor,
-    database: {},
-    height: 0,
-  };
-  const middlewares = [thunk];
-  const mockStore = configureStore(middlewares);
-  const store = mockStore(initialState);
-
   let wrapper;
 
   beforeEach(() => {
@@ -60,5 +64,30 @@ describe('SqlEditorLeftBar', () => {
 
   it('renders a TableElement', () => {
     expect(wrapper.find(TableElement)).toExist();
+  });
+});
+
+describe('Left Panel Expansion', () => {
+  beforeEach(async () => {
+    await act(async () => {
+      render(
+        <ThemeProvider theme={supersetTheme}>
+          <Provider store={store}>
+            <SqlEditorLeftBar {...mockedProps} />
+          </Provider>
+        </ThemeProvider>,
+      );
+    });
+  });
+
+  it('table should be visible when expanded is true', async () => {
+    const dbSelect = screen.getByText(/select a database/i);
+    const schemaSelect = screen.getByText(/select a schema \(0\)/i);
+    const dropdown = screen.getByText(/Select table/i);
+    const abUser = screen.getByText(/ab_user/i);
+    expect(dbSelect).toBeInTheDocument();
+    expect(schemaSelect).toBeInTheDocument();
+    expect(dropdown).toBeInTheDocument();
+    expect(abUser).toBeInTheDocument();
   });
 });

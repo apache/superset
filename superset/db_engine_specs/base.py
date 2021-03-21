@@ -55,6 +55,7 @@ from sqlalchemy.types import String, TypeEngine, UnicodeText
 from superset import app, security_manager, sql_parse
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
+from superset.models.sql_types.base import literal_dttm_type_factory
 from superset.sql_parse import ParsedQuery, Table
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
@@ -208,6 +209,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             re.compile(r"^((VAR)?CHAR|TEXT|STRING)", re.IGNORECASE),
             String(),
             utils.GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^datetime", re.IGNORECASE),
+            types.DateTime(),
+            GenericDataType.TEMPORAL,
         ),
         (re.compile(r"^date", re.IGNORECASE), types.Date(), GenericDataType.TEMPORAL,),
         (
@@ -1176,22 +1182,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param source: Type coming from the database table or cursor description
         :return: ColumnSpec object
         """
-        column_type = None
-
-        if (
-            cls.get_sqla_column_type(
-                native_type, column_type_mappings=column_type_mappings
-            )
-            is not None
-        ):
-            column_type, generic_type = cls.get_sqla_column_type(  # type: ignore
-                native_type, column_type_mappings=column_type_mappings
-            )
+        col_types = cls.get_sqla_column_type(
+            native_type, column_type_mappings=column_type_mappings
+        )
+        if col_types:
+            column_type, generic_type = col_types
+            # wrap temporal types in custom type that supports literal binding
+            # using datetimes
+            if generic_type == GenericDataType.TEMPORAL:
+                column_type = literal_dttm_type_factory(
+                    type(column_type), cls, native_type or ""
+                )
             is_dttm = generic_type == GenericDataType.TEMPORAL
-
-        if column_type:
             return ColumnSpec(
                 sqla_type=column_type, generic_type=generic_type, is_dttm=is_dttm
             )
-
         return None
