@@ -21,6 +21,7 @@ import { NativeFiltersState } from 'src/dashboard/reducers/types';
 import { mergeExtraFormData } from '../../utils';
 import { useDataMask } from '../state';
 
+// eslint-disable-next-line import/prefer-default-export
 export function useCascadingFilters(id: string) {
   const { filters } = useSelector<any, NativeFiltersState>(
     state => state.nativeFilters,

@@ -19,7 +19,7 @@
 import React from 'react';
 import { styled, DataMask } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
-import FilterControl from '../FilterControl/FilterControl';
+import FilterControl from '../FilterControls/FilterControl';
 import { Filter } from '../../types';
 import { CascadeFilter } from './types';
 

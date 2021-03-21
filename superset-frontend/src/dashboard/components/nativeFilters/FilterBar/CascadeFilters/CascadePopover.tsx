@@ -24,7 +24,7 @@ import { Pill } from 'src/dashboard/components/FiltersBadge/Styles';
 import { useSelector } from 'react-redux';
 import { getInitialMask } from 'src/dataMask/reducer';
 import { MaskWithId } from 'src/dataMask/types';
-import FilterControl from '../FilterControl/FilterControl';
+import FilterControl from '../FilterControls/FilterControl';
 import CascadeFilterControl from './CascadeFilterControl';
 import { CascadeFilter } from './types';
 import { Filter } from '../../types';

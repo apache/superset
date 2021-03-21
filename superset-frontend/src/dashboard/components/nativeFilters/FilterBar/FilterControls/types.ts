@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { DataMask } from '@superset-ui/core';
-import { Filter } from '../types';
+import { Filter } from '../../types';
 
 export interface FilterProps {
   filter: Filter;

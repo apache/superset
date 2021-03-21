@@ -19,28 +19,29 @@
 
 /* eslint-disable no-param-reassign */
 import { HandlerFunction, styled, t } from '@superset-ui/core';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import cx from 'classnames';
 import Icon from 'src/components/Icon';
 import { Tabs } from 'src/common/components';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { updateDataMask } from 'src/dataMask/actions';
-import { DataMaskUnit, DataMaskState } from 'src/dataMask/types';
+import { DataMaskState, DataMaskUnit } from 'src/dataMask/types';
 import { useImmer } from 'use-immer';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { Filter } from '../types';
-import { mapParentFiltersToChildren } from './utils';
+import { mapParentFiltersToChildren, TabIds } from './utils';
 import FilterSets from './FilterSets/FilterSets';
 import {
   useDataMask,
   useFilters,
   useFilterSets,
   useFiltersInitialisation,
+  useFilterUpdates,
 } from './state';
 import EditSection from './FilterSets/EditSection';
 import Header from './Header';
-import FilterControls from './FilterControl/FilterControls';
+import FilterControls from './FilterControls/FilterControls';
 
 const barWidth = `250px`;
 
@@ -143,11 +144,6 @@ interface FiltersBarProps {
   directPathToChild?: string[];
 }
 
-enum TabIds {
-  AllFilters = 'allFilters',
-  FilterSets = 'filterSets',
-}
-
 const FilterBar: React.FC<FiltersBarProps> = ({
   filtersOpen,
   toggleFiltersBar,
@@ -162,60 +158,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const dispatch = useDispatch();
   const filterSets = useFilterSets();
   const filterSetFilterValues = Object.values(filterSets);
-  const [isFilterSetChanged, setIsFilterSetChanged] = useState(false);
   const [tab, setTab] = useState(TabIds.AllFilters);
   const filters = useFilters();
   const filterValues = Object.values<Filter>(filters);
   const dataMaskApplied = useDataMask();
-
-  const handleApply = () => {
-    const filterIds = Object.keys(dataMaskSelected);
-    filterIds.forEach(filterId => {
-      if (dataMaskSelected[filterId]) {
-        dispatch(
-          updateDataMask(filterId, {
-            nativeFilters: dataMaskSelected[filterId],
-          }),
-        );
-      }
-    });
-    setLastAppliedFilterData(() => dataMaskSelected);
-  };
-
-  const { isInitialized } = useFiltersInitialisation(
-    dataMaskSelected,
-    handleApply,
-  );
-
-  useEffect(() => {
-    if (filterValues.length === 0 && filtersOpen) {
-      toggleFiltersBar(false);
-    }
-  }, [filterValues.length]);
-
-  useEffect(() => {
-    // Remove deleted filters from local state
-    Object.keys(dataMaskSelected).forEach(selectedId => {
-      if (!filters[selectedId]) {
-        setDataMaskSelected(draft => {
-          delete draft[selectedId];
-        });
-      }
-    });
-    Object.keys(dataMaskApplied).forEach(appliedId => {
-      if (!filters[appliedId]) {
-        setLastAppliedFilterData(draft => {
-          delete draft[appliedId];
-        });
-      }
-    });
-  }, [
-    dataMaskApplied,
-    dataMaskSelected,
-    filters,
-    setDataMaskSelected,
-    setLastAppliedFilterData,
-  ]);
+  const [isFilterSetChanged, setIsFilterSetChanged] = useState(false);
 
   const cascadeChildren = useMemo(
     () => mapParentFiltersToChildren(filterValues),
@@ -239,6 +186,31 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       }
     });
   };
+
+  const handleApply = () => {
+    const filterIds = Object.keys(dataMaskSelected);
+    filterIds.forEach(filterId => {
+      if (dataMaskSelected[filterId]) {
+        dispatch(
+          updateDataMask(filterId, {
+            nativeFilters: dataMaskSelected[filterId],
+          }),
+        );
+      }
+    });
+    setLastAppliedFilterData(() => dataMaskSelected);
+  };
+
+  const { isInitialized } = useFiltersInitialisation(
+    dataMaskSelected,
+    handleApply,
+  );
+
+  useFilterUpdates(
+    dataMaskSelected,
+    setDataMaskSelected,
+    setLastAppliedFilterData,
+  );
 
   const isApplyDisabled =
     !isInitialized || areObjectsEqual(dataMaskSelected, lastAppliedFilterData);

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* eslint-disable no-param-reassign */
 import { useSelector } from 'react-redux';
 import {
   Filters,
@@ -63,4 +64,37 @@ export const useFiltersInitialisation = (
   return {
     isInitialized,
   };
+};
+
+export const useFilterUpdates = (
+  dataMaskSelected: DataMaskUnit,
+  setDataMaskSelected: (arg0: (arg0: DataMaskUnit) => void) => void,
+  setLastAppliedFilterData: (arg0: (arg0: DataMaskUnit) => void) => void,
+) => {
+  const filters = useFilters();
+  const dataMaskApplied = useDataMask();
+
+  useEffect(() => {
+    // Remove deleted filters from local state
+    Object.keys(dataMaskSelected).forEach(selectedId => {
+      if (!filters[selectedId]) {
+        setDataMaskSelected(draft => {
+          delete draft[selectedId];
+        });
+      }
+    });
+    Object.keys(dataMaskApplied).forEach(appliedId => {
+      if (!filters[appliedId]) {
+        setLastAppliedFilterData(draft => {
+          delete draft[appliedId];
+        });
+      }
+    });
+  }, [
+    dataMaskApplied,
+    dataMaskSelected,
+    filters,
+    setDataMaskSelected,
+    setLastAppliedFilterData,
+  ]);
 };

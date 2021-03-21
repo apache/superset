@@ -24,7 +24,7 @@ import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
 import getLayoutComponentFromChartId from '../util/getLayoutComponentFromChartId';
-import DashboardBuilder from '../containers/DashboardBuilder';
+import DashboardBuilder from './DashboardBuilder/DashboardBuilder';
 import {
   chartPropShape,
   slicePropShape,

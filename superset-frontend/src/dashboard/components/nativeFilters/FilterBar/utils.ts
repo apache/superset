@@ -19,6 +19,11 @@
 
 import { Filter } from '../types';
 
+export enum TabIds {
+  AllFilters = 'allFilters',
+  FilterSets = 'filterSets',
+}
+
 export function mapParentFiltersToChildren(
   filters: Filter[],
 ): { [id: string]: Filter[] } {
