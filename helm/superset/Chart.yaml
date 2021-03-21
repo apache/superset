@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-apiVersion: v1
+apiVersion: v2
 appVersion: "1.0"
 description: Apache Superset is a modern, enterprise-ready business intelligence web application
 name: superset
@@ -23,3 +23,12 @@ maintainers:
     email: cychiang0823@gmail.com
     url: https://github.com/cychiang
 version: 0.1.0
+dependencies:
+- name: postgresql
+  version: 10.2.0
+  repository: https://charts.bitnami.com/bitnami
+  condition: postgresql.enabled
+- name: redis
+  version: 12.3.0
+  repository: https://charts.bitnami.com/bitnami
+  condition: redis.enabled
