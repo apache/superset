@@ -8255,4 +8255,3 @@ msgstr ""
 #: superset-frontend/src/visualizations/TimeTable/TimeTableChartPlugin.js:24
 msgid "Time-series Table"
 msgstr "시계열 테이블"
-
