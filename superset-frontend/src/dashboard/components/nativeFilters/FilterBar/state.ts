@@ -20,10 +20,11 @@ import { useSelector } from 'react-redux';
 import {
   Filters,
   FilterSets as FilterSetsType,
-  NativeFiltersState,
 } from 'src/dashboard/reducers/types';
-import { DataMaskUnitWithId } from 'src/dataMask/types';
-import { mergeExtraFormData } from '../utils';
+import { DataMaskUnit, DataMaskUnitWithId } from 'src/dataMask/types';
+import { useEffect, useState } from 'react';
+import { areObjectsEqual } from 'src/reduxUtils';
+import { Filter } from '../types';
 
 export const useFilterSets = () =>
   useSelector<any, FilterSetsType>(
@@ -36,18 +37,30 @@ export const useFilters = () =>
 export const useDataMask = () =>
   useSelector<any, DataMaskUnitWithId>(state => state.dataMask.nativeFilters);
 
-export function useCascadingFilters(id: string) {
-  const { filters } = useSelector<any, NativeFiltersState>(
-    state => state.nativeFilters,
-  );
-  const filter = filters[id];
-  const cascadeParentIds: string[] = filter?.cascadeParentIds ?? [];
-  let cascadedFilters = {};
-  const nativeFilters = useDataMask();
-  cascadeParentIds.forEach(parentId => {
-    const parentState = nativeFilters[parentId] || {};
-    const { extraFormData: parentExtra = {} } = parentState;
-    cascadedFilters = mergeExtraFormData(cascadedFilters, parentExtra);
-  });
-  return cascadedFilters;
-}
+export const useFiltersInitialisation = (
+  dataMaskSelected: DataMaskUnit,
+  handleApply: () => void,
+) => {
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const filters = useFilters();
+  const filterValues = Object.values<Filter>(filters);
+  useEffect(() => {
+    if (isInitialized) {
+      return;
+    }
+    const areFiltersInitialized = filterValues.every(filterValue =>
+      areObjectsEqual(
+        filterValue?.defaultValue,
+        dataMaskSelected[filterValue?.id]?.currentState?.value,
+      ),
+    );
+    if (areFiltersInitialized) {
+      handleApply();
+      setIsInitialized(true);
+    }
+  }, [filterValues, dataMaskSelected, isInitialized]);
+
+  return {
+    isInitialized,
+  };
+};

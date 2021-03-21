@@ -19,7 +19,7 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 import FilterValue from './FilterValue';
-import { FilterProps } from './types';
+import { FilterProps } from '../types';
 
 const StyledFilterControlTitle = styled.h4`
   width: 100%;

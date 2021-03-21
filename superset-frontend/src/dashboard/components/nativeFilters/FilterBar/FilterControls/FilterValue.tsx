@@ -29,8 +29,8 @@ import { areObjectsEqual } from 'src/reduxUtils';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import Loading from 'src/components/Loading';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
-import { FilterProps } from './types';
-import { getFormData } from '../utils';
+import { FilterProps } from '../types';
+import { getFormData } from '../../utils';
 import { useCascadingFilters } from './state';
 
 const StyledLoadingBox = styled.div`

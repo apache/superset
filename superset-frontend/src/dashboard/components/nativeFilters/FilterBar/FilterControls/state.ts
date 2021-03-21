@@ -16,13 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { DataMask } from '@superset-ui/core';
-import { Filter } from '../types';
+import { useSelector } from 'react-redux';
+import { NativeFiltersState } from 'src/dashboard/reducers/types';
+import { mergeExtraFormData } from '../../utils';
+import { useDataMask } from '../state';
 
-export interface FilterProps {
-  filter: Filter;
-  icon?: React.ReactElement;
-  directPathToChild?: string[];
-  onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
+export function useCascadingFilters(id: string) {
+  const { filters } = useSelector<any, NativeFiltersState>(
+    state => state.nativeFilters,
+  );
+  const filter = filters[id];
+  const cascadeParentIds: string[] = filter?.cascadeParentIds ?? [];
+  let cascadedFilters = {};
+  const nativeFilters = useDataMask();
+  cascadeParentIds.forEach(parentId => {
+    const parentState = nativeFilters[parentId] || {};
+    const { extraFormData: parentExtra = {} } = parentState;
+    cascadedFilters = mergeExtraFormData(cascadedFilters, parentExtra);
+  });
+  return cascadedFilters;
 }
