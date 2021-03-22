@@ -34,7 +34,7 @@ import {
   RowCount,
   useFilteredTableData,
   useTableColumns,
-} from './DataTableControl';
+} from 'src/explore/components/DataTableControl';
 
 const RESULT_TYPES = {
   results: 'results' as const,
@@ -88,8 +88,8 @@ export const DataTablesPane = ({
 }: {
   queryFormData: Record<string, any>;
   tableSectionHeight: number;
-  onCollapseChange: (openPanelName: string) => void;
   chartStatus: string;
+  onCollapseChange: (openPanelName: string) => void;
 }) => {
   const [data, setData] = useState<{
     [RESULT_TYPES.results]?: Record<string, any>[];
@@ -255,7 +255,7 @@ export const DataTablesPane = ({
   };
 
   return (
-    <SouthPane>
+    <SouthPane data-test="DataTablesPane">
       <TabsWrapper contentHeight={tableSectionHeight}>
         <Collapse
           accordion
