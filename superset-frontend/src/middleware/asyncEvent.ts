@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { makeApi, SupersetClient } from '@superset-ui/core';
+import { ensureIsArray, makeApi, SupersetClient } from '@superset-ui/core';
 import { SupersetError } from 'src/components/ErrorMessage/types';
 import { FeatureFlag, isFeatureEnabled } from '../featureFlags';
 import {
@@ -116,7 +116,7 @@ export const waitForAsyncData = async (asyncResponse: AsyncEvent) =>
       switch (asyncEvent.status) {
         case JOB_STATUS.DONE: {
           let { data, status } = await fetchCachedData(asyncEvent); // eslint-disable-line prefer-const
-          data = Array.isArray(data) ? data : [data];
+          data = ensureIsArray(data);
           if (status === 'success') {
             resolve(data);
           } else {
