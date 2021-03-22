@@ -166,6 +166,12 @@ export function createErrorHandler(
   return async (e: SupersetClientResponse | string) => {
     const parsedError = await getClientErrorObject(e);
     logging.error(e);
+
+    // Navigate to login page if authorization is lost
+    if (parsedError.error === 'Authorization lost. Please login again.'){
+      window.location.href = "/login";
+    }
+
     handleErrorFunc(parsedError.message || parsedError.error);
   };
 }
