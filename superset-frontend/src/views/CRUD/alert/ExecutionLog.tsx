@@ -98,9 +98,10 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
       {
         Cell: ({
           row: {
-            original: { scheduled_dttm: scheduledDttm }
-          }
-        }: any) => moment(new Date(scheduledDttm)).format('YYYY-MM-DD hh:mm:ss a'),
+            original: { scheduled_dttm: scheduledDttm },
+          },
+        }: any) =>
+          moment(new Date(scheduledDttm)).format('YYYY-MM-DD hh:mm:ss a'),
         accessor: 'scheduled_dttm',
         Header: t('Scheduled at (UTC)'),
       },
