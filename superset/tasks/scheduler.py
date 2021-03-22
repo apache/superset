@@ -84,8 +84,6 @@ def execute(report_schedule_id: int, scheduled_dttm: str) -> None:
         ).run()
     except ReportScheduleUnexpectedError as ex:
         logger.error("An unexpected occurred while executing the report: %s", ex)
-    except SoftTimeLimitExceeded as ex:
-        logger.error("A timeout occurred while executing the report: %s", ex)
     except CommandException as ex:
         logger.info("Report state: %s", ex)
 
