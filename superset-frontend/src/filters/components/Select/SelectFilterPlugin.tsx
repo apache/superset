@@ -137,7 +137,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     multiSelect,
     enableEmptyFilter,
     inverseSelection,
-    defaultToFirstItem,
   ]);
 
   const placeholderText =
