@@ -16,26 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
+import { DataMask } from '@superset-ui/core';
+import { Filter } from '../../types';
 
-import { Filter } from '../types';
-
-export enum TabIds {
-  AllFilters = 'allFilters',
-  FilterSets = 'filterSets',
-}
-
-export function mapParentFiltersToChildren(
-  filters: Filter[],
-): { [id: string]: Filter[] } {
-  const cascadeChildren = {};
-  filters.forEach(filter => {
-    const [parentId] = filter.cascadeParentIds || [];
-    if (parentId) {
-      if (!cascadeChildren[parentId]) {
-        cascadeChildren[parentId] = [];
-      }
-      cascadeChildren[parentId].push(filter);
-    }
-  });
-  return cascadeChildren;
+export interface FilterProps {
+  filter: Filter;
+  icon?: React.ReactElement;
+  directPathToChild?: string[];
+  onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
 }
