@@ -26,7 +26,7 @@ import {
 import { Tooltip } from 'src/common/components/Tooltip';
 import Icon from 'src/components/Icon';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
-import AdhocMetric from './controls/MetricControl/AdhocMetric';
+import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 
 export const DragContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit}px;
