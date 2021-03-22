@@ -61,7 +61,7 @@ const SortableListGroupItem = SortableElement(ListGroupItem);
 const SortableListGroup = SortableContainer(ListGroup);
 const SortableDragger = SortableHandle(() => (
   <i
-    data-test="SortableDragger"
+    role="img"
     className="fa fa-bars text-primary"
     style={{ cursor: 'ns-resize' }}
   />

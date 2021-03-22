@@ -159,7 +159,7 @@ test('Should have remove button', () => {
 
 test('Should have SortableDragger icon', () => {
   render(<CollectionControl {...defaultProps} />);
-  expect(screen.getByTestId('SortableDragger')).toBeVisible();
+  expect(screen.getByRole('img')).toBeVisible();
 });
 
 test('Should call Control component', () => {
