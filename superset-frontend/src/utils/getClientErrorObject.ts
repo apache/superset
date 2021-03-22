@@ -85,6 +85,11 @@ export function getClientErrorObject(
           .json()
           .then(errorJson => {
             const error = { ...responseObject, ...errorJson };
+            // If Missing Authorization Header is returned, user is no longer
+            // authenticated. They need to login again to continue.
+            if(error["msg"] === "Missing Authorization Header"){
+              resolve({error:'Authorization lost. Please login again.'});
+            }
             resolve(parseErrorJson(error));
           })
           .catch(() => {
