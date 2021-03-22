@@ -18,6 +18,7 @@
  */
 import React, { FunctionComponent, useState } from 'react';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import Form, { FormProps, FormValidation } from 'react-jsonschema-form';
 import { Col, FormControl, FormGroup, Row } from 'react-bootstrap';
 import { t, styled } from '@superset-ui/core';
@@ -28,13 +29,20 @@ import './ScheduleQueryButton.less';
 import Button from 'src/components/Button';
 =======
 import Form, { FormValidation } from 'react-jsonschema-form';
+=======
+import Form, { FormProps, FormValidation } from 'react-jsonschema-form';
+>>>>>>> worked on changes
 import { Col, FormControl, FormGroup, Row } from 'react-bootstrap';
 import { t, styled } from '@superset-ui/core';
-import chrono from 'chrono-node';
+import * as chrono from 'chrono-node';
 import ModalTrigger from 'src/components/ModalTrigger';
 import FormLabel from 'src/components/FormLabel';
 import './ScheduleQueryButton.less';
+<<<<<<< HEAD
 >>>>>>> changed into TypeScript
+=======
+import Button from 'src/components/Button';
+>>>>>>> worked on changes
 
 const validators = {
   greater: (a: number, b: number) => a > b,
@@ -43,6 +51,7 @@ const validators = {
   less_equal: (a: number, b: number) => a <= b,
 };
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 const getJSONSchema = () => {
@@ -104,6 +113,8 @@ function getValidator() {
 >>>>>>> changed into TypeScript
 =======
 =======
+=======
+>>>>>>> worked on changes
 const getJSONSchema = () => {
   const jsonSchema = window.featureFlags.SCHEDULED_QUERIES?.JSONSCHEMA;
   // parse date-time into usable value (eg, 'today' => `new Date()`)
@@ -130,8 +141,11 @@ const getValidationRules = () =>
 
 const getValidator = () => {
   const rules: any = getValidationRules();
+<<<<<<< HEAD
 >>>>>>> changed file configs
 >>>>>>> changed file configs
+=======
+>>>>>>> worked on changes
   return (formData: Record<string, any>, errors: FormValidation) => {
     rules.forEach((rule: any) => {
       const test = validators[rule.name];
@@ -163,10 +177,14 @@ interface ScheduleQueryButtonProps {
   scheduleQueryWarning: string | null;
   disabled: boolean;
 <<<<<<< HEAD
+<<<<<<< HEAD
   tooltip: string;
 =======
   tooltip: string | null;
 >>>>>>> changed into TypeScript
+=======
+  tooltip: string;
+>>>>>>> worked on changes
 }
 
 const StyledRow = styled(Row)`
@@ -175,6 +193,9 @@ const StyledRow = styled(Row)`
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> worked on changes
 export const StyledButtonComponent = styled(Button)`
   background: none;
   text-transform: none;
@@ -184,6 +205,7 @@ export const StyledButtonComponent = styled(Button)`
   font-weight: ${({ theme }) => theme.typography.weights.normal};
   &: disabled {
     background: none;
+<<<<<<< HEAD
     color: rgba(0, 0, 0, 0.85);
     &: hover {
       background: none;
@@ -193,32 +215,36 @@ export const StyledButtonComponent = styled(Button)`
 const ButtonComponent = styled.div`
   background-color: none;
   .ant-btn.superset-button {
+=======
+>>>>>>> worked on changes
     color: rgba(0, 0, 0, 0.85);
-    text-transform: none;
-    padding-right: 0px;
-    padding: 0px;
-    font-size: 14px;
-    height: 22px;
-    font-weight: ${({ theme }) => theme.typography.weights.normal};
-    &:first-child {
+    &: hover {
       background: none;
+<<<<<<< HEAD
 >>>>>>> changed file configs
+=======
+      color: rgba(0, 0, 0, 0.85);
+>>>>>>> worked on changes
     }
   }
 `;
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 =======
 >>>>>>> changed into TypeScript
 =======
 >>>>>>> changed file configs
 >>>>>>> changed file configs
+=======
+>>>>>>> worked on changes
 const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
   defaultLabel = t('Undefined'),
   sql,
   schema,
   dbId,
   onSchedule = () => {},
+<<<<<<< HEAD
 <<<<<<< HEAD
   scheduleQueryWarning,
   tooltip,
@@ -228,10 +254,16 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
   disabled = false,
   tooltip = null,
 >>>>>>> changed into TypeScript
+=======
+  scheduleQueryWarning,
+  tooltip,
+  disabled = false,
+>>>>>>> worked on changes
 }) => {
   const [description, setDescription] = useState('');
   const [label, setLabel] = useState(defaultLabel);
   const [showSchedule, setShowSchedule] = useState(false);
+<<<<<<< HEAD
 <<<<<<< HEAD
   let saveModal: ModalTrigger | null;
 
@@ -245,6 +277,15 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
 
   const onScheduleSubmit = ({ formData }: Record<string, any>) => {
 >>>>>>> changed into TypeScript
+=======
+  let saveModal: ModalTrigger | null;
+
+  const onScheduleSubmit = ({
+    formData,
+  }: {
+    formData: Omit<FormProps<Record<string, any>>, 'schema'>;
+  }) => {
+>>>>>>> worked on changes
     const query = {
       label,
       description,
@@ -255,10 +296,14 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
     };
     onSchedule(query);
 <<<<<<< HEAD
+<<<<<<< HEAD
     saveModal?.close();
 =======
     saveModal.close();
 >>>>>>> changed into TypeScript
+=======
+    saveModal?.close();
+>>>>>>> worked on changes
   };
 
   const renderModalBody = () => (
@@ -295,10 +340,14 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
             <Form
               schema={getJSONSchema()}
 <<<<<<< HEAD
+<<<<<<< HEAD
               uiSchema={getUISchema}
 =======
               uiSchema={getUISchema()}
 >>>>>>> changed into TypeScript
+=======
+              uiSchema={getUISchema}
+>>>>>>> worked on changes
               onSubmit={onScheduleSubmit}
               validate={getValidator()}
             />
@@ -325,6 +374,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
         modalBody={renderModalBody()}
         triggerNode={
 <<<<<<< HEAD
+<<<<<<< HEAD
           <StyledButtonComponent
             onClick={() => setShowSchedule(!showSchedule)}
             buttonSize="small"
@@ -338,13 +388,22 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
           <div
             role="button"
             buttonSize="small"
+=======
+          <StyledButtonComponent
+>>>>>>> worked on changes
             onClick={() => setShowSchedule(!showSchedule)}
-            disabled={disabled}
+            buttonSize="small"
+            buttonStyle="link"
             tooltip={tooltip}
+            disabled={disabled}
           >
             {t('Schedule')}
+<<<<<<< HEAD
           </div>
 >>>>>>> changed into TypeScript
+=======
+          </StyledButtonComponent>
+>>>>>>> worked on changes
         }
       />
     </span>
