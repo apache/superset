@@ -48,7 +48,35 @@ describe('asyncEvent middleware', () => {
     errors: [{ message: "Error: relation 'foo' does not exist" }],
   };
   const chartData = {
-    some: 'data',
+    result: [
+      {
+        cache_key: '199f01f81f99c98693694821e4458111',
+        cached_dttm: null,
+        cache_timeout: 86400,
+        annotation_data: {},
+        error: null,
+        is_cached: false,
+        query:
+          'SELECT product_line AS product_line,\n       sum(sales) AS "(Sales)"\nFROM cleaned_sales_data\nGROUP BY product_line\nLIMIT 50000',
+        status: 'success',
+        stacktrace: null,
+        rowcount: 7,
+        colnames: ['product_line', '(Sales)'],
+        coltypes: [1, 0],
+        data: [
+          {
+            product_line: 'Classic Cars',
+            '(Sales)': 3919615.66,
+          },
+        ],
+        applied_filters: [
+          {
+            column: '__time_range',
+          },
+        ],
+        rejected_filters: [],
+      },
+    ],
   };
 
   const EVENTS_ENDPOINT = 'glob:*/api/v1/async_event/*';
