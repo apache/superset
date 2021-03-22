@@ -137,7 +137,15 @@ class LimitMethod:  # pylint: disable=too-few-public-methods
 
 
 class BaseEngineSpec:  # pylint: disable=too-many-public-methods
-    """Abstract class for database engine specific configurations"""
+    """Abstract class for database engine specific configurations
+
+    Attributes:
+        allows_alias_to_source_column: Whether the engine is able to pick the
+                                       source column for aggregation clauses
+                                       used in ORDER BY when a column in SELECT
+                                       has an alias that is the same as a source
+                                       column.
+    """
 
     engine = "base"  # str as defined in sqlalchemy.engine.engine
     engine_aliases: Optional[Tuple[str]] = None
@@ -240,6 +248,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_subqueries = True
     allows_alias_in_select = True
     allows_alias_in_orderby = True
+    allows_alias_to_source_column = False
     allows_sql_comments = True
     force_column_alias_quotes = False
     arraysize = 0
