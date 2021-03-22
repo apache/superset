@@ -52,7 +52,6 @@ logger = logging.getLogger(__name__)
 
 def create_app() -> Flask:
     app = Flask(__name__)
-    print("testing codecov, will remove")
 
     try:
         # Allow user to override our config completely
