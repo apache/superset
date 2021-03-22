@@ -326,7 +326,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           optionRenderer={renderTableOption}
           valueRenderer={renderTableOption}
           isDisabled={readOnly}
-          menuPortalTarget={document.body}
           menuPosition="fixed"
         />
       );
