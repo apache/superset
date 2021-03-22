@@ -20,7 +20,7 @@ import os
 from typing import Any, Callable, Dict
 
 import wtforms_json
-from flask import Flask, redirect
+from flask import Flask, redirect, request, session
 from flask_appbuilder import expose, IndexView
 from flask_babel import gettext as __, lazy_gettext as _
 from flask_compress import Compress
@@ -96,6 +96,15 @@ class SupersetAppInitializer:
         """
         Called after any other init tasks
         """
+        @self.flask_app.before_request
+        def session_refresh():
+            """
+            If request has a session and is not requesting for login.
+            Refresh their session timer by modifying the session
+            """
+            if request.path != appbuilder.get_url_for_login and session:
+                session.permanent = True
+                session.modified = True
 
     def configure_celery(self) -> None:
         celery_app.config_from_object(self.config["CELERY_CONFIG"])
