@@ -19,6 +19,7 @@ from datetime import datetime, timedelta
 from typing import Iterator
 
 import croniter
+from celery.exceptions import SoftTimeLimitExceeded
 from dateutil import parser
 
 from superset import app
@@ -83,6 +84,8 @@ def execute(report_schedule_id: int, scheduled_dttm: str) -> None:
         ).run()
     except ReportScheduleUnexpectedError as ex:
         logger.error("An unexpected occurred while executing the report: %s", ex)
+    except SoftTimeLimitExceeded as ex:
+        logger.error("A timeout occurred while executing the report: %s", ex)
     except CommandException as ex:
         logger.info("Report state: %s", ex)
 
@@ -91,5 +94,7 @@ def execute(report_schedule_id: int, scheduled_dttm: str) -> None:
 def prune_log() -> None:
     try:
         AsyncPruneReportScheduleLogCommand().run()
+    except SoftTimeLimitExceeded as ex:
+        logger.error("A timeout occurred while pruning report schedule logs: %s", ex)
     except CommandException as ex:
         logger.error("An exception occurred while pruning report schedule logs: %s", ex)

@@ -18,6 +18,7 @@
 import logging
 from typing import Any, cast, Dict, Optional
 
+from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app, g
 
 from superset import app
@@ -62,6 +63,9 @@ def load_chart_data_into_cache(
             async_query_manager.update_job(
                 job_metadata, async_query_manager.STATUS_DONE, result_url=result_url,
             )
+        except SoftTimeLimitExceeded as ex:
+            logger.error("A timeout occurred while loading chart data, error: %s", ex)
+            raise ex
         except Exception as exc:
             # TODO: QueryContext should support SIP-40 style errors
             error = exc.message if hasattr(exc, "message") else str(exc)  # type: ignore # pylint: disable=no-member
@@ -106,6 +110,9 @@ def load_explore_json_into_cache(
             async_query_manager.update_job(
                 job_metadata, async_query_manager.STATUS_DONE, result_url=result_url,
             )
+        except SoftTimeLimitExceeded as ex:
+            logger.error("A timeout occurred while loading explore json, error: %s", ex)
+            raise ex
         except Exception as exc:
             if isinstance(exc, SupersetVizException):
                 errors = exc.errors  # pylint: disable=no-member
