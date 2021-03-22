@@ -56,13 +56,13 @@ beforeEach(() => {
 
 test('Should render', () => {
   render(<DatasourceControl {...defaultProps} />);
-  expect(screen.getByTestId('DatasourceControl')).toBeInTheDocument();
+  expect(screen.getByTestId('DatasourceControl')).toBeVisible();
 });
 
 test('Should have elements', () => {
   render(<DatasourceControl {...defaultProps} />);
   expect(screen.getByText('channels')).toBeVisible();
-  expect(screen.getByTestId('datasource-menu-trigger')).toBeVisible(); // Error
+  expect(screen.getByTestId('datasource-menu-trigger')).toBeVisible();
 });
 
 test('Should open a menu', () => {
