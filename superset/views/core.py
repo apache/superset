@@ -2633,11 +2633,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             sql = query.select_sql or query.executed_sql
             df = query.database.get_df(sql, query.schema)
         csv_data = csv.df_to_escaped_csv(df, index=False, **config["CSV_EXPORT"])
-        response = Response(csv_data, mimetype="text/csv")
         quoted_csv_name = parse.quote(query.name)
-        response.headers["Content-Disposition"] = (
-            f'attachment; filename="{quoted_csv_name}.csv"; '
-            f"filename*=UTF-8''{quoted_csv_name}.csv"
+        response = CsvResponse(
+            csv_data, headers=generate_download_headers("csv", quoted_csv_name)
         )
         event_info = {
             "event_type": "data_export",
