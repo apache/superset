@@ -1123,6 +1123,8 @@ DATASET_HEALTH_CHECK = None
 SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
 SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 
+DASHBOARD_JWT_SECRET = "my secret key replace me"
+
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
 # -------------------------------------------------------------------
