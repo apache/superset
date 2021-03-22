@@ -66,12 +66,16 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     currentValue,
     inverseSelection,
     inputRef,
+    defaultToFirstItem,
   } = formData;
-
-  const [values, setValues] = useState<(string | number | boolean)[]>(
-    defaultValue ?? [],
-  );
   const groupby = ensureIsArray<string>(formData.groupby);
+  const initValues = defaultValue ?? [];
+  const firstItem: (string | number)[] = data[0]
+    ? (groupby.map(col => data[0][col]) as string[]) ?? initValues
+    : initValues;
+  const [values, setValues] = useState<(string | number | boolean)[]>(
+    defaultToFirstItem ? firstItem : initValues,
+  );
 
   const [col] = groupby;
   const datatype: GenericDataType = coltypeMap[col];
@@ -118,18 +122,22 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     handleChange(currentValue ?? []);
   }, [
     JSON.stringify(currentValue),
+    defaultToFirstItem,
     multiSelect,
     enableEmptyFilter,
     inverseSelection,
   ]);
 
   useEffect(() => {
-    handleChange(defaultValue ?? []);
+    handleChange(defaultToFirstItem ? firstItem : initValues);
   }, [
     JSON.stringify(defaultValue),
+    JSON.stringify(firstItem),
+    defaultToFirstItem,
     multiSelect,
     enableEmptyFilter,
     inverseSelection,
+    defaultToFirstItem,
   ]);
 
   const placeholderText =

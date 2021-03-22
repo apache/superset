@@ -24,6 +24,7 @@ const {
   enableEmptyFilter,
   inverseSelection,
   multiSelect,
+  defaultToFirstItem,
   sortAscending,
 } = DEFAULT_FORM_DATA;
 
@@ -76,6 +77,19 @@ const config: ControlPanelConfig = {
               description: t(
                 'When selection is empty, should an always false filter event be emitted',
               ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'defaultToFirstItem',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Default to first item'),
+              default: defaultToFirstItem,
+              resetConfig: true,
+              renderTrigger: true,
+              description: t('Select first item by default'),
             },
           },
         ],
