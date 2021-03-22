@@ -133,6 +133,9 @@ SUPERSET_WEBSERVER_PORT = 8088
 # (gunicorn, nginx, apache, ...) timeout setting to be <= to this setting
 SUPERSET_WEBSERVER_TIMEOUT = 60
 
+# Invalidate sessions that are older than 10 minutes
+PERMANENT_SESSION_LIFETIME = 600
+
 # this 2 settings are used by dashboard period force refresh feature
 # When user choose auto force refresh frequency
 # < SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT
