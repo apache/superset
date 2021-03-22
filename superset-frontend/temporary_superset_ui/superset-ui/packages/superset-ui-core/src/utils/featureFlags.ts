@@ -42,9 +42,21 @@ export enum FeatureFlag {
   ENABLE_TEMPLATE_PROCESSING = 'ENABLE_TEMPLATE_PROCESSING',
   ENABLE_EXPLORE_DRAG_AND_DROP = 'ENABLE_EXPLORE_DRAG_AND_DROP',
 }
-
+export type ScheduleQueriesProps = {
+  JSONSCHEMA: {
+    [key: string]: string;
+  };
+  UISCHEMA: {
+    [key: string]: string;
+  };
+  VALIDATION: {
+    [key: string]: string;
+  };
+};
 export type FeatureFlagMap = {
-  [key in FeatureFlag]?: boolean;
+  [key in Exclude<FeatureFlag, FeatureFlag.SCHEDULED_QUERIES>]?: boolean;
+} & {
+  SCHEDULED_QUERIES?: ScheduleQueriesProps;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
