@@ -72,7 +72,7 @@ from superset.result_set import SupersetResultSet
 from superset.sql_parse import ParsedQuery
 from superset.typing import AdhocMetric, Metric, OrderBy, QueryObjectDict
 from superset.utils import core as utils
-from superset.utils.core import GenericDataType
+from superset.utils.core import GenericDataType, remove_duplicates
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
@@ -467,7 +467,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
     fetch_values_predicate = Column(String(1000))
     owners = relationship(owner_class, secondary=sqlatable_user, backref="tables")
-    database = relationship(
+    database: Database = relationship(
         "Database",
         backref=backref("tables", cascade="all, delete-orphan"),
         foreign_keys=[database_id],
@@ -694,11 +694,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     def data(self) -> Dict[str, Any]:
         data_ = super().data
         if self.type == "table":
-            grains = self.database.grains() or []
-            if grains:
-                grains = [(g.duration, g.name) for g in grains]
             data_["granularity_sqla"] = utils.choicify(self.dttm_cols)
-            data_["time_grain_sqla"] = grains
+            data_["time_grain_sqla"] = [
+                (g.duration, g.name) for g in self.database.grains() or []
+            ]
             data_["main_dttm_col"] = self.main_dttm_col
             data_["fetch_values_predicate"] = self.fetch_values_predicate
             data_["template_params"] = self.template_params
@@ -884,7 +883,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             sqla_col = sqla_col.label(label)
         return sqla_col
 
-    def make_orderby_compatible(self, query: Select):
+    def make_orderby_compatible(self, query: Select) -> None:
         """
         If needed, make sure aliases for selected columns are not used in
         `ORDER BY`.
@@ -1119,9 +1118,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
         select_exprs += metrics_exprs
         labels_expected = [c.name for c in select_exprs]
-        select_exprs = db_engine_spec.make_select_compatible(
-            groupby_exprs_with_timestamp.values(), select_exprs
-        )
+        if not db_engine_spec.allows_hidden_ordeby_agg:
+            select_exprs = remove_duplicates(select_exprs + orderby_exprs)
         qry = sa.select(select_exprs)
 
         tbl = self.get_from_clause(template_processor)
@@ -1237,12 +1235,13 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             qry = qry.where(and_(*where_clause_and))
         qry = qry.having(and_(*having_clause_and))
 
+        select_exprs_by_label = {col.name: col for col in select_exprs}
         for col, (orig_col, ascending) in zip(orderby_exprs, orderby):
             if (
                 db_engine_spec.allows_alias_in_orderby
-                and col.name in metrics_exprs_by_label
+                and col.name in select_exprs_by_label
             ):
-                col = Label(col.name, metrics_exprs_by_label[col.name])
+                col = Label(col.name, select_exprs_by_label[col.name])
             direction = asc if ascending else desc
             qry = qry.order_by(direction(col))
 

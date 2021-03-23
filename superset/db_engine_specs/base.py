@@ -145,6 +145,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                                        used in ORDER BY when a column in SELECT
                                        has an alias that is the same as a source
                                        column.
+        allows_hidden_orderby_agg:     Whether the engine allows ORDER BY to
+                                       directly use aggregation clauses, without
+                                       having to add the same aggregation in SELECT.
     """
 
     engine = "base"  # str as defined in sqlalchemy.engine.engine
@@ -248,8 +251,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_subqueries = True
     allows_alias_in_select = True
     allows_alias_in_orderby = True
-    allows_alias_to_source_column = False
     allows_sql_comments = True
+
+    # Whether ORDER BY clause can use aliases created in SELECT
+    # that are the same as a source column
+    allows_alias_to_source_column = True
+
+    # Whether ORDER BY clause must appear in SELECT
+    # if TRUE, then it doesn't have to.
+    allows_hidden_ordeby_agg = True
+
     force_column_alias_quotes = False
     arraysize = 0
     max_column_name_length = 0
@@ -449,20 +460,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 ),
             )
         )
-
-    @classmethod
-    def make_select_compatible(
-        cls, groupby_exprs: Dict[str, ColumnElement], select_exprs: List[ColumnElement]
-    ) -> List[ColumnElement]:
-        """
-        Some databases will just return the group-by field into the select, but don't
-        allow the group-by field to be put into the select list.
-
-        :param groupby_exprs: mapping between column name and column object
-        :param select_exprs: all columns in the select clause
-        :return: columns to be included in the final select clause
-        """
-        return select_exprs
 
     @classmethod
     def fetch_data(

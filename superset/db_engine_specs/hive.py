@@ -81,6 +81,8 @@ class HiveEngineSpec(PrestoEngineSpec):
     engine = "hive"
     engine_name = "Apache Hive"
     max_column_name_length = 767
+    allows_hidden_ordeby_agg = False
+
     # pylint: disable=line-too-long
     _time_grain_expressions = {
         None: "{col}",
