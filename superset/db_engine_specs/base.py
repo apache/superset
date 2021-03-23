@@ -49,7 +49,7 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import quoted_name, text
-from sqlalchemy.sql.expression import ColumnClause, ColumnElement, Select, TextAsFrom
+from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom
 from sqlalchemy.types import String, TypeEngine, UnicodeText
 
 from superset import app, security_manager, sql_parse

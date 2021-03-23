@@ -49,12 +49,12 @@ from sqlalchemy import (
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
-from sqlalchemy.sql.elements import ClauseList, ColumnClause
+from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom, TextClause
-from sqlalchemy.sql.selectable import Alias, FromClause, TableClause
+from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy.types import TypeEngine
 
-from superset import app, db, is_feature_enabled, security_manager, sql_parse
+from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -899,13 +899,14 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         orderby_clause = str(query._order_by_clause)  # pylint: disable=protected-access
 
         # Iterate through selected columns, if column alias appears in orderby
-        # use another `alias`. The final output columns will still be correct,
-        # because they are updated by `labels_expected` after querying.
-        for i, col in enumerate(query.inner_columns):
+        # use another `alias`. The final output columns will still use the
+        # original names, because they are updated by `labels_expected` after
+        # querying.
+        for col in query.inner_columns:
             if isinstance(col, Label) and re.search(
                 f"\\b{col.name}\\b", orderby_clause
             ):
-                col.name = f"{col.name}__{i}"
+                col.name = f"{col.name}__"
 
     def _get_sqla_row_level_filters(
         self, template_processor: BaseTemplateProcessor
@@ -1119,7 +1120,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         select_exprs += metrics_exprs
         labels_expected = [c.name for c in select_exprs]
         if not db_engine_spec.allows_hidden_ordeby_agg:
-            select_exprs = remove_duplicates(select_exprs + orderby_exprs)
+            select_exprs = remove_duplicates(
+                select_exprs + orderby_exprs, key=lambda x: x.name
+            )
         qry = sa.select(select_exprs)
 
         tbl = self.get_from_clause(template_processor)

@@ -31,13 +31,13 @@ query_birth_names = {
     },
     "groupby": ["name"],
     "metrics": [{"label": "sum__num"}],
-    "order_desc": True,
     "orderby": [["sum__num", False]],
     "row_limit": 100,
     "granularity": "ds",
     "time_range": "100 years ago : now",
     "timeseries_limit": 0,
     "timeseries_limit_metric": None,
+    "order_desc": True,
     "filters": [
         {"col": "gender", "op": "==", "val": "boy"},
         {"col": "num", "op": "IS NOT NULL"},
@@ -49,8 +49,31 @@ query_birth_names = {
 }
 
 QUERY_OBJECTS: Dict[str, Dict[str, object]] = {
-    "birth_names": {**query_birth_names, "is_timeseries": False,},
-    "birth_names:include_time": {**query_birth_names, "groupby": [DTTM_ALIAS, "name"],},
+    "birth_names": query_birth_names,
+    # `:suffix` are overrides only
+    "birth_names:include_time": {"groupby": [DTTM_ALIAS, "name"],},
+    "birth_names:orderby_dup_alias": {
+        "metrics": [
+            {
+                "expressionType": "SIMPLE",
+                "column": {"column_name": "num_boys", "type": "BIGINT(20)"},
+                "aggregate": "SUM",
+                "label": "num_boys",
+            }
+        ],
+        "orderby": [
+            [
+                {
+                    "expressionType": "SIMPLE",
+                    "column": {"column_name": "num_boys", "type": "BIGINT(20)"},
+                    "aggregate": "SUM",
+                    "label": "SUM(num_boys)",
+                },
+                False,
+            ]
+        ],
+    },
+    "birth_names:only_orderby_has_metric": {"metrics": [],},
 }
 
 ANNOTATION_LAYERS = {
@@ -150,7 +173,17 @@ def get_query_object(
 ) -> Dict[str, Any]:
     if query_name not in QUERY_OBJECTS:
         raise Exception(f"QueryObject fixture not defined for datasource: {query_name}")
-    query_object = copy.deepcopy(QUERY_OBJECTS[query_name])
+    obj = QUERY_OBJECTS[query_name]
+
+    # apply overrides
+    if ":" in query_name:
+        parent_query_name = query_name.split(":")[0]
+        obj = {
+            **QUERY_OBJECTS[parent_query_name],
+            **obj,
+        }
+
+    query_object = copy.deepcopy(obj)
     if add_postprocessing_operations:
         query_object["post_processing"] = _get_postprocessing_operation(query_name)
     return query_object

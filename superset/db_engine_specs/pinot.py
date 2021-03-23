@@ -14,10 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
-from sqlalchemy.sql.expression import ColumnClause, ColumnElement
-
+from sqlalchemy.sql.expression import ColumnClause
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 
 

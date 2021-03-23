@@ -27,6 +27,7 @@ from superset.extensions import cache_manager
 from superset.models.cache import CacheKey
 from superset.utils.core import (
     AdhocMetricExpressionType,
+    backend,
     ChartDataResultFormat,
     ChartDataResultType,
     TimeRangeEndpoint,
@@ -34,6 +35,17 @@ from superset.utils.core import (
 from tests.base_tests import SupersetTestCase
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.fixtures.query_context import get_query_context
+
+
+def get_sql_text(payload: QueryContext) -> str:
+    payload["result_type"] = ChartDataResultType.QUERY.value
+    query_context = ChartDataQueryContextSchema().load(payload)
+    responses = query_context.get_payload()
+    assert len(responses) == 1
+    response = responses["queries"][0]
+    assert len(response) == 2
+    assert response["language"] == "sql"
+    return response["query"]
 
 
 class TestQueryContext(SupersetTestCase):
@@ -301,14 +313,7 @@ class TestQueryContext(SupersetTestCase):
         """
         self.login(username="admin")
         payload = get_query_context("birth_names")
-        payload["result_type"] = ChartDataResultType.QUERY.value
-        query_context = ChartDataQueryContextSchema().load(payload)
-        responses = query_context.get_payload()
-        assert len(responses) == 1
-        response = responses["queries"][0]
-        assert len(response) == 2
-        sql_text = response["query"]
-        assert response["language"] == "sql"
+        sql_text = get_sql_text(payload)
         assert "SELECT" in sql_text
         assert re.search(r'[`"\[]?num[`"\]]? IS NOT NULL', sql_text)
         assert re.search(
@@ -318,37 +323,65 @@ class TestQueryContext(SupersetTestCase):
         )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_fetch_values_predicate_in_query(self):
+    def test_handle_sort_by_metrics(self):
         """
-        Ensure that fetch values predicate is added to query
+        Should properly handle sort by metrics in various scenarios.
         """
         self.login(username="admin")
-        payload = get_query_context("birth_names")
-        payload["result_type"] = ChartDataResultType.QUERY.value
-        payload["queries"][0]["apply_fetch_values_predicate"] = True
-        query_context = ChartDataQueryContextSchema().load(payload)
-        responses = query_context.get_payload()
-        assert len(responses) == 1
-        response = responses["queries"][0]
-        assert len(response) == 2
-        assert response["language"] == "sql"
-        assert "123 = 123" in response["query"]
+
+        sql_text = get_sql_text(get_query_context("birth_names"))
+        if backend() == "hive":
+            # should have no duplicate `SUM(num)`
+            assert "SUM(num) AS `sum__num`," not in sql_text
+            assert "SUM(num) AS `sum__num`" in sql_text
+            # the alias should be in ORDER BY
+            assert "ORDER BY `sum__num` DESC" in sql_text
+        else:
+            assert re.search(r'ORDER BY [`"\[]?sum__num[`"\]]? DESC', sql_text)
+
+        sql_text = get_sql_text(
+            get_query_context("birth_names:only_orderby_has_metric")
+        )
+        if backend() == "hive":
+            assert "SUM(num) AS `sum__num`," not in sql_text
+            assert "SUM(num) AS `sum__num`" in sql_text
+            assert "ORDER BY `sum__num` DESC" in sql_text
+        else:
+            assert re.search(
+                r'ORDER BY SUM\([`"\[]?num[`"\]]?\) DESC', sql_text, re.IGNORECASE
+            )
+
+        sql_text = get_sql_text(get_query_context("birth_names:orderby_dup_alias"))
+        if backend() == "hive":
+            assert "sum(`num_boys`) AS `num_boys`," in sql_text
+            assert "sum(`num_boys`) AS `SUM(num_boys)`" in sql_text
+            assert "ORDER BY `SUM(num_boys)`" in sql_text
+        else:
+            print(sql_text)
+            if backend() == "presto":
+                assert re.search(
+                    r'SUM\([`"\[]?num_boys[`"\]]?\) AS "num_boys__"',
+                    sql_text,
+                    re.IGNORECASE,
+                )
+            assert re.search(
+                r'ORDER BY SUM\([`"\[]?num_boys[`"\]]?\) DESC', sql_text, re.IGNORECASE
+            )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_fetch_values_predicate_not_in_query(self):
+    def test_fetch_values_predicate(self):
         """
-        Ensure that fetch values predicate is not added to query
+        Ensure that fetch values predicate is added to query if needed
         """
         self.login(username="admin")
+
         payload = get_query_context("birth_names")
-        payload["result_type"] = ChartDataResultType.QUERY.value
-        query_context = ChartDataQueryContextSchema().load(payload)
-        responses = query_context.get_payload()
-        assert len(responses) == 1
-        response = responses["queries"][0]
-        assert len(response) == 2
-        assert response["language"] == "sql"
-        assert "123 = 123" not in response["query"]
+        sql_text = get_sql_text(payload)
+        assert "123 = 123" not in sql_text
+
+        payload["queries"][0]["apply_fetch_values_predicate"] = True
+        sql_text = get_sql_text(payload)
+        assert "123 = 123" in sql_text
 
     def test_query_object_unknown_fields(self):
         """
