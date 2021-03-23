@@ -36,7 +36,10 @@ import {
   DISABLE_INPUT_OPERATORS,
 } from 'src/explore/constants';
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
-import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from './AdhocFilter';
+import AdhocFilter, {
+  EXPRESSION_TYPES,
+  CLAUSES,
+} from 'src/explore/components/controls/FilterControl/AdhocFilter';
 
 const SelectWithLabel = styled(Select)`
   .ant-select-selector::after {

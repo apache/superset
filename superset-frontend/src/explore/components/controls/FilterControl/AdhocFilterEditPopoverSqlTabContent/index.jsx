@@ -26,7 +26,10 @@ import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
 import columnType from 'src/explore/propTypes/columnType';
-import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from './AdhocFilter';
+import AdhocFilter, {
+  EXPRESSION_TYPES,
+  CLAUSES,
+} from 'src/explore/components/controls/FilterControl/AdhocFilter';
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,

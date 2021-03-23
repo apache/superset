@@ -21,9 +21,9 @@ import PropTypes from 'prop-types';
 import columnType from 'src/explore/propTypes/columnType';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
 import { OptionControlLabel } from 'src/explore/components/OptionControls';
-import AdhocFilterPopoverTrigger from './AdhocFilterPopoverTrigger';
-import AdhocFilter from './AdhocFilter';
-import { DndItemType } from '../../DndItemType';
+import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import { DndItemType } from '../../../DndItemType';
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
