@@ -74,7 +74,7 @@ class BaseReportState:
         session: Session,
         report_schedule: ReportSchedule,
         scheduled_dttm: datetime,
-        execution_id: int
+        execution_id: str
     ) -> None:
         self._session = session
         self._report_schedule = report_schedule
