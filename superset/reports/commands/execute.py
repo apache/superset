@@ -17,6 +17,7 @@
 import logging
 from datetime import datetime, timedelta
 from typing import Any, List, Optional
+from random import randint
 
 from celery.exceptions import SoftTimeLimitExceeded
 from flask_appbuilder.security.sqla.models import User
@@ -73,11 +74,13 @@ class BaseReportState:
         session: Session,
         report_schedule: ReportSchedule,
         scheduled_dttm: datetime,
+        execution_id: int
     ) -> None:
         self._session = session
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
         self._start_dttm = datetime.utcnow()
+        self._execution_id = execution_id
 
     def set_state_and_log(
         self, state: ReportState, error_message: Optional[str] = None,
@@ -117,6 +120,7 @@ class BaseReportState:
             state=state,
             error_message=error_message,
             report_schedule=self._report_schedule,
+            execution_id=self._execution_id,
         )
         self._session.add(log)
         self._session.commit()
@@ -403,6 +407,7 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
         self._session = session
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
+        self._execution_id = randint(1, 99999)
 
     def run(self) -> None:
         state_found = False
@@ -411,7 +416,10 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
                 self._report_schedule.last_state in state_cls.current_states
             ):
                 state_cls(
-                    self._session, self._report_schedule, self._scheduled_dttm
+                    self._session,
+                    self._report_schedule,
+                    self._scheduled_dttm,
+                    self._execution_id
                 ).next()
                 state_found = True
                 break
