@@ -1487,13 +1487,14 @@ Install Superset with helm in Kubernetes
 ----------------------------------------
 
 You can install Superset into Kubernetes with Helm <https://helm.sh/>. The chart is
-located in ``install/helm``.
+located in the ``helm`` directory.
 
-To install Superset into your Kubernetes:
+To install Superset in your Kubernetes cluster with Helm 3, run:
 
 .. code-block:: bash
 
-    helm upgrade --install superset ./install/helm/superset
+    helm dep install ./helm/superset
+    helm upgrade --install superset ./helm/superset
 
 Note that the above command will install Superset into ``default`` namespace of your Kubernetes cluster.
 
@@ -1575,17 +1576,7 @@ You can enable or disable features with flag from ``superset_config.py``:
          'PRESTO_EXPAND_DATA': False,
      }
 
-Here is a list of flags and descriptions:
-
-* ENABLE_EXPLORE_JSON_CSRF_PROTECTION
-
-  * For some security concerns, you may need to enforce CSRF protection on all query request to explore_json endpoint. In Superset, we use `flask-csrf <https://sjl.bitbucket.io/flask-csrf/>`_ add csrf protection for all POST requests, but this protection doesn't apply to GET method.
-
-  * When ENABLE_EXPLORE_JSON_CSRF_PROTECTION is set to true, your users cannot make GET request to explore_json. The default value for this feature False (current behavior), explore_json accepts both GET and POST request. See `PR 7935 <https://github.com/apache/superset/pull/7935>`_ for more details.
-
-* PRESTO_EXPAND_DATA
-
-  * When this feature is enabled, nested types in Presto will be expanded into extra columns and/or arrays. This is experimental, and doesn't work with all nested types.
+A current list of feature flags can be found in `RESOURCES/FEATURE_FLAGS.md`
 
 
 SIP-15

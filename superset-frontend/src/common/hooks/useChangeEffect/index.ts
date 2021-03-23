@@ -17,9 +17,4 @@
  * under the License.
  */
 
-export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
-
-// updates partially changed dashboard info
-export function dashboardInfoChanged(newInfo) {
-  return { type: DASHBOARD_INFO_UPDATED, newInfo };
-}
+export * from './useChangeEffect';

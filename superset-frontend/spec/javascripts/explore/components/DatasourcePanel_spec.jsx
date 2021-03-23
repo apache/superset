@@ -72,6 +72,7 @@ describe('datasourcepanel', () => {
     expect(screen.getByText('birth_names')).toBeTruthy();
     expect(screen.getByText('Columns')).toBeTruthy();
     expect(screen.getByText('Metrics')).toBeTruthy();
+    expect(screen.queryByTestId('warning')).not.toBeInTheDocument();
   });
 
   it('should render search results', () => {
@@ -102,5 +103,25 @@ describe('datasourcepanel', () => {
       expect(c).toHaveLength(4);
       expect(c[0].value).toBe('metric_end_certified');
     }, 201);
+  });
+
+  it('should render a warning', () => {
+    const deprecatedDatasource = {
+      ...datasource,
+      extra: JSON.stringify({ warning_markdown: 'This is a warning.' }),
+    };
+    render(
+      setup({
+        ...props,
+        datasource: deprecatedDatasource,
+        controls: {
+          datasource: {
+            ...props.controls.datasource,
+            datasource: deprecatedDatasource,
+          },
+        },
+      }),
+    );
+    expect(screen.getByTestId('alert-solid')).toBeTruthy();
   });
 });

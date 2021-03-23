@@ -29,6 +29,7 @@ import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { User } from 'src/types/bootstrapTypes';
 import ChartCard from 'src/views/CRUD/chart/ChartCard';
 import Chart from 'src/types/Chart';
+import Loading from 'src/components/Loading';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
@@ -57,7 +58,7 @@ function ChartTable({
 }: ChartTableProps) {
   const history = useHistory();
   const {
-    state: { resourceCollection: charts, bulkSelectEnabled },
+    state: { loading, resourceCollection: charts, bulkSelectEnabled },
     setResourceCollection: setCharts,
     hasPerm,
     refreshData,
@@ -68,7 +69,10 @@ function ChartTable({
     addDangerToast,
     true,
     mine,
+    [],
+    false,
   );
+
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
     'chart',
@@ -116,6 +120,7 @@ function ChartTable({
       filters: getFilters(filter),
     });
 
+  if (loading) return <Loading position="inline" />;
   return (
     <ErrorBoundary>
       {sliceCurrentlyEditing && (

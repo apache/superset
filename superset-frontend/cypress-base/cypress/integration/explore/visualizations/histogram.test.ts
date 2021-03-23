@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { QueryFormData } from '@superset-ui/core';
+
 describe('Visualization > Histogram', () => {
-  const HISTOGRAM_FORM_DATA = {
+  const HISTOGRAM_FORM_DATA: QueryFormData = {
     datasource: '3__table',
     viz_type: 'histogram',
     slice_id: 60,
@@ -36,7 +38,7 @@ describe('Visualization > Histogram', () => {
     normalized: false,
   };
 
-  function verify(formData) {
+  function verify(formData: QueryFormData) {
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
@@ -73,12 +75,10 @@ describe('Visualization > Histogram', () => {
       adhoc_filters: [
         {
           expressionType: 'SIMPLE',
+          clause: 'WHERE',
           subject: 'state',
           operator: '==',
           comparator: 'CA',
-          clause: 'WHERE',
-          sqlExpression: null,
-          filterOptionName: 'filter_tqx1en70hh_7nksse7nqic',
         },
       ],
     });

@@ -129,7 +129,7 @@ class QueryContext:
             if self.enforce_numerical_metrics:
                 self.df_metrics_to_num(df, query_object)
 
-            df.replace([np.inf, -np.inf], np.nan)
+            df.replace([np.inf, -np.inf], np.nan, inplace=True)
             df = query_object.exec_post_processing(df)
 
         return {
@@ -345,7 +345,7 @@ class QueryContext:
                     col
                     for col in query_obj.columns
                     + query_obj.groupby
-                    + get_column_names_from_metrics(query_obj.metrics)
+                    + get_column_names_from_metrics(query_obj.metrics or [])
                     if col not in self.datasource.column_names and col != DTTM_ALIAS
                 ]
                 if invalid_columns:

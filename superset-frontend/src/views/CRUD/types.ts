@@ -23,6 +23,12 @@ export type FavoriteStatus = {
   [id: number]: boolean;
 };
 
+export type Filters = {
+  col: string;
+  opr: string;
+  value: string;
+};
+
 export interface DashboardTableProps {
   addDangerToast: (message: string) => void;
   addSuccessToast: (message: string) => void;

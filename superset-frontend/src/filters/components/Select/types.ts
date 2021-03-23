@@ -17,10 +17,13 @@
  * under the License.
  */
 import {
+  ChartProps,
   Behavior,
   DataRecord,
+  GenericDataType,
   QueryFormData,
   SetDataMaskHook,
+  ChartDataResponseResult,
 } from '@superset-ui/core';
 import { RefObject } from 'react';
 import { PluginFilterStylesProps } from '../types';
@@ -39,7 +42,12 @@ export type PluginFilterSelectQueryFormData = QueryFormData &
   PluginFilterStylesProps &
   PluginFilterSelectCustomizeProps;
 
+export interface PluginFilterSelectChartProps extends ChartProps {
+  queriesData: ChartDataResponseResult[];
+}
+
 export type PluginFilterSelectProps = PluginFilterStylesProps & {
+  coltypeMap: Record<string, GenericDataType>;
   data: DataRecord[];
   setDataMask: SetDataMaskHook;
   behaviors: Behavior[];

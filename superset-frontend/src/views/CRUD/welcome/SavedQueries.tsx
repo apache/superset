@@ -22,6 +22,7 @@ import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import Loading from 'src/components/Loading';
 import { Dropdown, Menu } from 'src/common/components';
 import { useListViewResource, copyQueryLink } from 'src/views/CRUD/hooks';
 import ListViewCard from 'src/components/ListViewCard';
@@ -115,7 +116,7 @@ const SavedQueries = ({
   featureFlag,
 }: SavedQueriesProps) => {
   const {
-    state: { resourceCollection: queries },
+    state: { loading, resourceCollection: queries },
     hasPerm,
     fetchData,
     refreshData,
@@ -125,6 +126,8 @@ const SavedQueries = ({
     addDangerToast,
     true,
     mine,
+    [],
+    false,
   );
   const [queryFilter, setQueryFilter] = useState('Mine');
   const [queryDeleteModal, setQueryDeleteModal] = useState(false);
@@ -231,6 +234,8 @@ const SavedQueries = ({
       )}
     </Menu>
   );
+
+  if (loading) return <Loading position="inline" />;
   return (
     <>
       {queryDeleteModal && (
