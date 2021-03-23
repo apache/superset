@@ -19,7 +19,7 @@
 import React, { ReactNode } from 'react';
 import { useDrag } from 'react-dnd';
 import { styled } from '@superset-ui/core';
-import { DatasourcePanelDndItem } from './types';
+import { DatasourcePanelDndItem } from '../types';
 
 const DatasourceItemContainer = styled.div`
   display: flex;
@@ -48,7 +48,7 @@ export default function DatasourcePanelDragWrapper(
   });
 
   return (
-    <DatasourceItemContainer ref={drag}>
+    <DatasourceItemContainer data-test="DatasourcePanelDragWrapper" ref={drag}>
       {props.children}
     </DatasourceItemContainer>
   );
