@@ -49,6 +49,7 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
         "value_row_json",
         "state",
         "error_message",
+        "execution_id",
     ]
     list_columns = [
         "id",
@@ -59,6 +60,7 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
         "value_row_json",
         "state",
         "error_message",
+        "execution_id",
     ]
     order_columns = [
         "state",
