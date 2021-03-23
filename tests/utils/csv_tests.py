@@ -53,8 +53,8 @@ def test_escape_value():
 
 
 def test_df_to_escaped_csv():
-    csv_str = "col_a,col_b\n-10,=cmd|' /C calc'!A0\na,=b"
+    csv_str = "col_a,=col_b\n-10,=cmd|' /C calc'!A0\na,=b"
     df = pd.read_csv(io.StringIO(csv_str))
 
     result = csv.df_to_escaped_csv(df, encoding="utf8", index=False)
-    assert result == "col_a,col_b\n-10,'=cmd\|' /C calc'!A0\na,'=b\n"
+    assert result == "col_a,'=col_b\n-10,'=cmd\|' /C calc'!A0\na,'=b\n"
