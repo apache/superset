@@ -55,7 +55,6 @@ class TestDatabaseModel(SupersetTestCase):
         database = Database(database_name="druid_db", sqlalchemy_uri="druid://db")
         tbl = SqlaTable(table_name="druid_tbl", database=database)
         column_spec = DruidEngineSpec.get_column_spec(column_name="__time")
-        print(">>> {}".format(column_spec))
         self.assertTrue(column_spec.is_dttm)
         col = TableColumn(column_name="__time", type=column_spec.sqla_type, table=tbl)
         self.assertTrue(col)
