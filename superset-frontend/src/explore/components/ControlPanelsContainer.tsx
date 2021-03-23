@@ -128,17 +128,23 @@ export class ControlPanelsContainer extends React.Component<ControlPanelsContain
   }
 
   renderControl({ name, config }: CustomControlItem) {
-    const { actions, controls } = this.props;
+    const { actions, controls, chart, exploreState } = this.props;
     const { visibility } = config;
 
     // If the control item is not an object, we have to look up the control data from
     // the centralized controls file.
     // When it is an object we read control data straight from `config` instead
-    const controlData = {
+    let controlData = {
       ...config,
       ...controls[name],
       name,
     };
+    if (config.mapStateToProps?.length === 3) {
+      controlData = {
+        ...controlData,
+        ...config.mapStateToProps(exploreState, controls[name], chart),
+      };
+    }
     const { validationErrors, ...restProps } = controlData as ControlState & {
       validationErrors?: any[];
     };
