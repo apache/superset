@@ -67,7 +67,10 @@ fetchMock.get(savedQueryEndpoint, {
   result: [],
 });
 
-fetchMock.get(recentActivityEndpoint, {});
+fetchMock.get(recentActivityEndpoint, {
+  Created: [],
+  Viewed: [],
+});
 
 fetchMock.get(chartInfoEndpoint, {
   permissions: [],
@@ -122,10 +125,14 @@ describe('Welcome', () => {
     expect(wrapper.find('CollapsePanel')).toHaveLength(8);
   });
 
-  it('calls batch method on page load', () => {
+  it('calls api methods in parallel on page load', () => {
     const chartCall = fetchMock.calls(/chart\/\?q/);
+    const savedQueryCall = fetchMock.calls(/saved_query\/\?q/);
+    const recentCall = fetchMock.calls(/superset\/recent_activity\/*/);
     const dashboardCall = fetchMock.calls(/dashboard\/\?q/);
-    expect(chartCall).toHaveLength(2);
-    expect(dashboardCall).toHaveLength(2);
+    expect(chartCall).toHaveLength(1);
+    expect(recentCall).toHaveLength(1);
+    expect(savedQueryCall).toHaveLength(1);
+    expect(dashboardCall).toHaveLength(1);
   });
 });

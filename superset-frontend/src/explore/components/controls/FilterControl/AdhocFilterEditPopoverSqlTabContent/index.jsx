@@ -25,7 +25,7 @@ import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
-import columnType from 'src/explore/propTypes/columnType';
+import columnType from 'src/explore/components/controls/FilterControl/columnType';
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import moment from 'moment';
 import { styled, t } from '@superset-ui/core';
 
@@ -25,7 +25,7 @@ import ListViewCard from 'src/components/ListViewCard';
 import SubMenu from 'src/components/Menu/SubMenu';
 import { Chart } from 'src/types/Chart';
 import { Dashboard, SavedQueryObject } from 'src/views/CRUD/types';
-import { mq, CardStyles } from 'src/views/CRUD/utils';
+import { mq, CardStyles, getEditedObjects } from 'src/views/CRUD/utils';
 
 import { ActivityData } from './Welcome';
 import EmptyState from './EmptyState';
@@ -66,7 +66,6 @@ interface ActivityProps {
   };
   activeChild: string;
   setActiveChild: (arg0: string) => void;
-  loading: boolean;
   activityData: ActivityData;
 }
 
@@ -156,17 +155,27 @@ const getEntityLastActionOn = (entity: ActivityObject) => {
 };
 
 export default function ActivityTable({
-  loading,
   activeChild,
   setActiveChild,
   activityData,
+  user,
 }: ActivityProps) {
+  const [editedObjs, setEditedObjs] = useState<Array<ActivityData>>();
+  const [loadingState, setLoadingState] = useState(false);
+  const getEditedCards = () => {
+    setLoadingState(true);
+    getEditedObjects(user.userId).then(r => {
+      setEditedObjs([...r.editedChart, ...r.editedDash]);
+      setLoadingState(false);
+    });
+  };
   const tabs = [
     {
       name: 'Edited',
       label: t('Edited'),
       onClick: () => {
         setActiveChild('Edited');
+        getEditedCards();
       },
     },
     {
@@ -197,30 +206,32 @@ export default function ActivityTable({
   }
 
   const renderActivity = () =>
-    activityData[activeChild].map((entity: ActivityObject) => {
-      const url = getEntityUrl(entity);
-      const lastActionOn = getEntityLastActionOn(entity);
-      return (
-        <CardStyles
-          onClick={() => {
-            window.location.href = url;
-          }}
-          key={url}
-        >
-          <ListViewCard
-            loading={loading}
-            cover={<></>}
-            url={url}
-            title={getEntityTitle(entity)}
-            description={lastActionOn}
-            avatar={getEntityIconName(entity)}
-            actions={null}
-          />
-        </CardStyles>
-      );
-    });
-
-  if (loading) return <Loading position="inline" />;
+    (activeChild !== 'Edited' ? activityData[activeChild] : editedObjs).map(
+      (entity: ActivityObject) => {
+        const url = getEntityUrl(entity);
+        const lastActionOn = getEntityLastActionOn(entity);
+        return (
+          <CardStyles
+            onClick={() => {
+              window.location.href = url;
+            }}
+            key={url}
+          >
+            <ListViewCard
+              cover={<></>}
+              url={url}
+              title={getEntityTitle(entity)}
+              description={lastActionOn}
+              avatar={getEntityIconName(entity)}
+              actions={null}
+            />
+          </CardStyles>
+        );
+      },
+    );
+  if (loadingState && !editedObjs) {
+    return <Loading position="inline" />;
+  }
   return (
     <>
       <SubMenu
@@ -229,7 +240,8 @@ export default function ActivityTable({
         tabs={tabs}
       />
       <>
-        {activityData[activeChild]?.length > 0 ? (
+        {activityData[activeChild]?.length > 0 ||
+        (activeChild === 'Edited' && editedObjs && editedObjs.length > 0) ? (
           <ActivityContainer>{renderActivity()}</ActivityContainer>
         ) : (
           <EmptyState tableName="RECENTS" tab={activeChild} />

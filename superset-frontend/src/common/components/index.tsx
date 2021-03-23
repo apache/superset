@@ -44,7 +44,6 @@ export {
   Slider,
   Row,
   Space,
-  Select,
   Skeleton,
   Switch,
   Tag,
@@ -52,10 +51,11 @@ export {
   Tooltip,
   Input as AntdInput,
 } from 'antd';
-export { default as Alert, AlertProps } from 'antd/lib/alert';
-export { TreeProps } from 'antd/lib/tree';
 export { FormInstance } from 'antd/lib/form';
 export { RadioChangeEvent } from 'antd/lib/radio';
+export { TreeProps } from 'antd/lib/tree';
+export { default as Alert, AlertProps } from 'antd/lib/alert';
+export { default as Select, SelectProps } from 'antd/lib/select';
 
 export { default as Collapse } from './Collapse';
 export { default as Progress } from './ProgressBar';

@@ -75,6 +75,11 @@ spec:
             - name: superset-config
               mountPath: {{ .Values.configMountPath | quote }}
               readOnly: true
+          {{- if .Values.extraConfigs }}
+            - name: superset-extra-config
+              mountPath: {{ .Values.extraConfigMountPath | quote }}
+              readOnly: true
+          {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
@@ -97,3 +102,8 @@ spec:
         - name: superset-config
           secret:
             secretName: {{ tpl .Values.configFromSecret . }}
+        {{- if .Values.extraConfigs }}
+        - name: superset-extra-config
+          configMap:
+            name: {{ template "superset.fullname" . }}-extra-config
+        {{- end }}

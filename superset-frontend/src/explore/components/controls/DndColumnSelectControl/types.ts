@@ -17,8 +17,8 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { AdhocFilter } from '@superset-ui/core';
-import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
+import { Metric } from '@superset-ui/core';
+import { ColumnMeta } from '@superset-ui/chart-controls';
 import { DatasourcePanelDndItem } from '../../DatasourcePanel/types';
 import { DndItemType } from '../../DndItemType';
 
@@ -46,21 +46,22 @@ export interface DndColumnSelectProps<
   T = string[] | string,
   O = string[] | string
 > extends LabelProps<T> {
-  values?: O;
   onDrop: (item: DatasourcePanelDndItem) => void;
   canDrop: (item: DatasourcePanelDndItem) => boolean;
   valuesRenderer: () => ReactNode;
   accept: DndItemType | DndItemType[];
+  ghostButtonText?: string;
+  displayGhostButton?: boolean;
 }
 
-export type FilterOptionValueType = Record<string, any> | AdhocFilter;
+export type OptionValueType = Record<string, any>;
 export interface DndFilterSelectProps {
   name: string;
-  value: FilterOptionValueType[];
+  value: OptionValueType[];
   columns: ColumnMeta[];
   datasource: Record<string, any>;
   formData: Record<string, any>;
   savedMetrics: Metric[];
-  onChange: (filters: FilterOptionValueType[]) => void;
+  onChange: (filters: OptionValueType[]) => void;
   options: { string: ColumnMeta };
 }

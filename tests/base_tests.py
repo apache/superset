@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+from datetime import datetime
 import imp
 import json
 from contextlib import contextmanager
@@ -130,7 +131,7 @@ class SupersetTestCase(TestCase):
         return (db.session.query(func.max(model.id)).scalar() or 0) + 1
 
     @staticmethod
-    def get_birth_names_dataset():
+    def get_birth_names_dataset() -> SqlaTable:
         example_db = get_example_database()
         return (
             db.session.query(SqlaTable)
@@ -525,6 +526,10 @@ class SupersetTestCase(TestCase):
         else:
             mock_method.assert_called_once_with("error", func_name)
         return rv
+
+    @classmethod
+    def get_dttm(cls):
+        return datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")
 
 
 @contextmanager

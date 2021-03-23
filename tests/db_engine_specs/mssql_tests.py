@@ -24,32 +24,37 @@ from sqlalchemy.types import String, UnicodeText
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
+from superset.utils.core import GenericDataType
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
 class TestMssqlEngineSpec(TestDbEngineSpec):
     def test_mssql_column_types(self):
-        def assert_type(type_string, type_expected):
-            type_assigned = MssqlEngineSpec.get_sqla_column_type(type_string)
+        def assert_type(type_string, type_expected, generic_type_expected):
             if type_expected is None:
+                type_assigned = MssqlEngineSpec.get_sqla_column_type(type_string)
                 self.assertIsNone(type_assigned)
             else:
-                self.assertIsInstance(type_assigned, type_expected)
+                column_spec = MssqlEngineSpec.get_column_spec(type_string)
+                if column_spec != None:
+                    self.assertIsInstance(column_spec.sqla_type, type_expected)
+                    self.assertEquals(column_spec.generic_type, generic_type_expected)
 
-        assert_type("INT", None)
-        assert_type("STRING", String)
-        assert_type("CHAR(10)", String)
-        assert_type("VARCHAR(10)", String)
-        assert_type("TEXT", String)
-        assert_type("NCHAR(10)", UnicodeText)
-        assert_type("NVARCHAR(10)", UnicodeText)
-        assert_type("NTEXT", UnicodeText)
+        assert_type("STRING", String, GenericDataType.STRING)
+        assert_type("CHAR(10)", String, GenericDataType.STRING)
+        assert_type("VARCHAR(10)", String, GenericDataType.STRING)
+        assert_type("TEXT", String, GenericDataType.STRING)
+        assert_type("NCHAR(10)", UnicodeText, GenericDataType.STRING)
+        assert_type("NVARCHAR(10)", UnicodeText, GenericDataType.STRING)
+        assert_type("NTEXT", UnicodeText, GenericDataType.STRING)
 
     def test_where_clause_n_prefix(self):
         dialect = mssql.dialect()
         spec = MssqlEngineSpec
-        str_col = column("col", type_=spec.get_sqla_column_type("VARCHAR(10)"))
-        unicode_col = column("unicode_col", type_=spec.get_sqla_column_type("NTEXT"))
+        type_, _ = spec.get_sqla_column_type("VARCHAR(10)")
+        str_col = column("col", type_=type_)
+        type_, _ = spec.get_sqla_column_type("NTEXT")
+        unicode_col = column("unicode_col", type_=type_)
         tbl = table("tbl")
         sel = (
             select([str_col, unicode_col])

@@ -24,7 +24,6 @@ import { Input } from 'src/common/components';
 import { t, SupersetClient, styled } from '@superset-ui/core';
 
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
-import columnType from 'src/explore/propTypes/columnType';
 import {
   OPERATORS,
   OPERATORS_OPTIONS,
@@ -40,6 +39,7 @@ import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import columnType from 'src/explore/components/controls/FilterControl/columnType';
 
 const SelectWithLabel = styled(Select)`
   .ant-select-selector::after {

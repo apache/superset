@@ -84,11 +84,9 @@ class TestDatabaseModel(SupersetTestCase):
             "TEXT": GenericDataType.STRING,
             "NTEXT": GenericDataType.STRING,
             # numeric
-            "INT": GenericDataType.NUMERIC,
+            "INTEGER": GenericDataType.NUMERIC,
             "BIGINT": GenericDataType.NUMERIC,
-            "FLOAT": GenericDataType.NUMERIC,
             "DECIMAL": GenericDataType.NUMERIC,
-            "MONEY": GenericDataType.NUMERIC,
             # temporal
             "DATE": GenericDataType.TEMPORAL,
             "DATETIME": GenericDataType.TEMPORAL,

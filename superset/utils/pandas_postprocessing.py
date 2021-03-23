@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from decimal import Decimal
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
@@ -577,7 +578,7 @@ def contribution(
     :return: DataFrame with contributions.
     """
     contribution_df = df.copy()
-    numeric_df = contribution_df.select_dtypes(include="number")
+    numeric_df = contribution_df.select_dtypes(include=["number", Decimal])
     # verify column selections
     if columns:
         numeric_columns = numeric_df.columns.tolist()

@@ -18,12 +18,12 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import columnType from 'src/explore/propTypes/columnType';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
 import { OptionControlLabel } from 'src/explore/components/OptionControls';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { DndItemType } from '../../../DndItemType';
+import columnType from 'src/explore/components/controls/FilterControl/columnType';
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,

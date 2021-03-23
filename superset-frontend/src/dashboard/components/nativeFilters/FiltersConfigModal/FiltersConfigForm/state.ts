@@ -20,7 +20,7 @@ import { useEffect } from 'react';
 import { FormInstance } from 'antd/lib/form';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import { NativeFiltersForm } from '../types';
-import { setFilterFieldValues, useForceUpdate } from './utils';
+import { setNativeFilterFieldValues, useForceUpdate } from './utils';
 import { Filter } from '../../types';
 import { getFormData } from '../../utils';
 
@@ -44,7 +44,7 @@ export const useBackendFormUpdate = (
     // No need to check data set change because it cascading update column
     // So check that column exists is enough
     if (hasColumn && !formFilter?.column) {
-      setFilterFieldValues(form, filterId, {
+      setNativeFilterFieldValues(form, filterId, {
         defaultValueQueriesData: [],
         defaultValue: resolvedDefaultValue,
       });
@@ -73,7 +73,7 @@ export const useBackendFormUpdate = (
       ) {
         resolvedDefaultValue = filterToEdit?.defaultValue;
       }
-      setFilterFieldValues(form, filterId, {
+      setNativeFilterFieldValues(form, filterId, {
         defaultValueQueriesData: response.result,
         defaultValue: resolvedDefaultValue,
       });

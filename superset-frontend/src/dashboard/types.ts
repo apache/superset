@@ -19,6 +19,7 @@
 import { ChartProps } from '@superset-ui/core';
 import { chart } from 'src/chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
+import { DataMaskStateWithId } from '../dataMask/types';
 
 export type ChartReducerInitialState = typeof chart;
 
@@ -39,11 +40,17 @@ export type Chart = {
   };
 };
 
+export type DashboardLayout = { [key: string]: LayoutItem };
+export type DashboardLayoutState = { present: DashboardLayout };
+export type DashboardState = { editMode: boolean; directPathToChild: string[] };
+
 /** Root state of redux */
 export type RootState = {
   charts: { [key: string]: Chart };
-  dashboardLayout: { present: { [key: string]: LayoutItem } };
+  dashboardLayout: DashboardLayoutState;
   dashboardFilters: {};
+  dashboardState: DashboardState;
+  dataMask: DataMaskStateWithId;
 };
 
 /** State of dashboardLayout in redux */

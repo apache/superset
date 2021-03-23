@@ -38,6 +38,13 @@ import {
 import { setDirectPathToChild } from '../actions/dashboardState';
 
 const propTypes = {
+  id: PropTypes.string,
+  parentId: PropTypes.string,
+  depth: PropTypes.number,
+  index: PropTypes.number,
+  renderHoverMenu: PropTypes.bool,
+  renderTabContent: PropTypes.bool,
+  onChangeTab: PropTypes.func,
   component: componentShape.isRequired,
   parentComponent: componentShape.isRequired,
   createComponent: PropTypes.func.isRequired,

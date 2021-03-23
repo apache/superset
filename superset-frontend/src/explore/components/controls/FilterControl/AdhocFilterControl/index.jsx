@@ -29,7 +29,6 @@ import {
 import ControlHeader from 'src/explore/components/ControlHeader';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
 import savedMetricType from 'src/explore/components/controls/MetricControl/savedMetricType';
-import columnType from 'src/explore/propTypes/columnType';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import { OPERATORS } from 'src/explore/constants';
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
@@ -47,6 +46,7 @@ import AdhocFilter, {
   EXPRESSION_TYPES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import adhocFilterType from 'src/explore/components/controls/FilterControl/adhocFilterType';
+import columnType from 'src/explore/components/controls/FilterControl/columnType';
 
 const selectedMetricType = PropTypes.oneOfType([
   PropTypes.string,
