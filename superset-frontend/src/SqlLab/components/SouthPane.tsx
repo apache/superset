@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useRef } from 'react';
+import React, { createRef } from 'react';
 import shortid from 'shortid';
 import Alert from 'src/components/Alert';
 import Tabs from 'src/common/components/Tabs';
@@ -89,7 +89,7 @@ function SouthPane({
   displayLimit,
 }: SouthPanePropTypes) {
   const innerTabContentHeight = height - TAB_HEIGHT;
-  const southPaneRef: any = useRef();
+  const southPaneRef = createRef<HTMLDivElement>();
   const switchTab = (id: string) => {
     actions.setActiveSouthPaneTab(id);
   };
@@ -104,7 +104,7 @@ function SouthPane({
     let latestQuery;
     if (editorQueries.length > 0) {
       // get the latest query
-      latestQuery = editorQueries.find(q => q.id === latestQueryId);
+      latestQuery = editorQueries.find(({ id }) => id === latestQueryId);
     }
     let results;
     if (latestQuery) {
