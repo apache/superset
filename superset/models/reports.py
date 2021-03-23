@@ -171,7 +171,7 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
 
     __tablename__ = "report_execution_log"
     id = Column(Integer, primary_key=True)
-    execution_id = Column(Integer)
+    execution_id = Column(String(50))
 
     # Timestamps
     scheduled_dttm = Column(DateTime, nullable=False)

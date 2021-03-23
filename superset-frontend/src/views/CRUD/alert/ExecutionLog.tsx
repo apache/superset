@@ -83,6 +83,11 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
   const columns = useMemo(
     () => [
       {
+        Cell: ({
+          row: {
+            original: { execution_id: executionId },
+          },
+        }: any) => executionId.slice(0, 6),
         accessor: 'execution_id',
         Header: t('Execution ID'),
         size: 'xs',

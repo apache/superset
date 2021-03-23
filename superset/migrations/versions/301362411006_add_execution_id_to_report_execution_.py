@@ -33,7 +33,7 @@ import sqlalchemy as sa
 def upgrade():
     op.add_column(
         'report_execution_log',
-        sa.Column('execution_id', sa.Integer(), nullable=True)
+        sa.Column('execution_id', sa.VARCHAR(length=50), nullable=True)
     )
 
   
