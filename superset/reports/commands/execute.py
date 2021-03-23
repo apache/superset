@@ -407,7 +407,7 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
         self._session = session
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
-        self._execution_id = randint(1, 99999)
+        self._execution_id = randint(10000, 99999)
 
     def run(self) -> None:
         state_found = False
