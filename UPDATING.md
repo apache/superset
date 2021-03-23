@@ -53,7 +53,7 @@ assists people when migrating to a new version.
 ### Deprecations
 
 - [12552](https://github.com/apache/superset/pull/12552) removes the use of unclear time offsets, eg, "30 days". An error message is displayed if the user doesn't specify "ago" or "later", instructing the user of the correct format.
-- [12627](https://github.com/apache/superset/pull/12627) deprecrates the legacy alerts module.
+- [12627](https://github.com/apache/superset/pull/12627) deprecates the legacy alerts module.
 
 ### Other
 
