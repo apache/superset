@@ -118,7 +118,6 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     ) -> Union[ColumnSpec, None]:
 
         if column_name == "__time":
-            print(">>> hello!")
             return ColumnSpec(TIMESTAMP(), GenericDataType.TEMPORAL, True)
 
         return super().get_column_spec(native_type)
