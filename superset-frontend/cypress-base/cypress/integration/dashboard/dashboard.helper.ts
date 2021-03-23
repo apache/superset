@@ -22,6 +22,19 @@ export const TABBED_DASHBOARD = '/superset/dashboard/tabbed_dash/';
 export const CHECK_DASHBOARD_FAVORITE_ENDPOINT =
   '/superset/favstar/Dashboard/*/count';
 
+export const WORLD_HEALTH_CHARTS = [
+  { name: '% Rural', viz: 'world_map' },
+  { name: 'Most Populated Countries', viz: 'table' },
+  { name: 'Region Filter', viz: 'filter_box' },
+  { name: "World's Population", viz: 'big_number' },
+  { name: 'Growth Rate', viz: 'line' },
+  { name: 'Rural Breakdown', viz: 'sunburst' },
+  { name: "World's Pop Growth", viz: 'area' },
+  { name: 'Life Expectancy VS Rural %', viz: 'bubble' },
+  { name: 'Treemap', viz: 'treemap' },
+  { name: 'Box plot', viz: 'box_plot' },
+] as const;
+
 /**
  * Drag an element and drop it to another element.
  * Usage:
