@@ -31,28 +31,32 @@ describe('Dashboard save action', () => {
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
     cy.get('#app').then(data => {
-      const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
-      const dashboard = bootstrapData.dashboard_data;
-      const dashboardId = dashboard.id;
-      cy.intercept('POST', `/superset/copy_dash/${dashboardId}/`).as(
-        'copyRequest',
-      );
+      cy.get('[data-test="dashboard-header"]')
+        .then(headerElement => {
+          const dashboardId = headerElement.attr('data-test-id');
 
-      cy.get('[data-test="more-horiz"]').trigger('click', { force: true });
-      cy.get('[data-test="save-as-menu-item"]').trigger('click', {
-        force: true,
-      });
-      cy.get('[data-test="modal-save-dashboard-button"]').trigger('click', {
-        force: true,
-      });
+          cy.intercept('POST', `/superset/copy_dash/${dashboardId}/`).as(
+            'copyRequest',
+          );
+
+          cy.get('[data-test="more-horiz"]').trigger('click', { force: true });
+          cy.get('[data-test="save-as-menu-item"]').trigger('click', {
+            force: true,
+          });
+          cy.get('[data-test="modal-save-dashboard-button"]').trigger('click', {
+            force: true,
+          });
+        })
     });
   });
 
+  // change to what the title should be
   it('should save as new dashboard', () => {
     cy.wait('@copyRequest').then(xhr => {
-      expect(xhr.response.body.dashboard_title).to.not.equal(
-        `World Bank's Data`,
-      );
+      cy.get('[data-test="editable-title-input"]').then(element => {
+        const dashboardTitle = element.attr('title') 
+        expect(dashboardTitle).to.not.equal(`World Bank's Data`)
+      });
     });
   });
 
