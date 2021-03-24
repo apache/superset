@@ -19,7 +19,6 @@
 import React, { useState } from 'react';
 import { t, useTheme, css } from '@superset-ui/core';
 import {
-  SearchOutlined,
   MinusCircleFilled,
   CheckCircleFilled,
   ExclamationCircleFilled,
@@ -27,39 +26,13 @@ import {
 import { Popover } from 'src/common/components/index';
 import Collapse from 'src/common/components/Collapse';
 import { Global } from '@emotion/core';
-import {
-  Indent,
-  Item,
-  ItemIcon,
-  Panel,
-  Reset,
-  Title,
-  FilterValue,
-} from './Styles';
+import Icon from 'src/components/Icon';
+import { Indent, Panel, Reset, Title } from './Styles';
 import { Indicator } from './selectors';
-
-export interface IndicatorProps {
-  indicator: Indicator;
-  onClick: (path: string[]) => void;
-}
-
-const Indicator = ({
-  indicator: { column, name, value = [], path },
-  onClick,
-}: IndicatorProps) => (
-  <Item onClick={() => onClick([...path, `LABEL-${column}`])}>
-    <Title bold>
-      <ItemIcon>
-        <SearchOutlined />
-      </ItemIcon>
-      {name}
-      {value.length ? ': ' : ''}
-    </Title>
-    <FilterValue>{value.length ? value.join(', ') : ''}</FilterValue>
-  </Item>
-);
+import FilterIndicator from './FilterIndicator';
 
 export interface DetailsPanelProps {
+  appliedCrossFilterIndicators: Indicator[];
   appliedIndicators: Indicator[];
   incompatibleIndicators: Indicator[];
   unsetIndicators: Indicator[];
@@ -68,6 +41,7 @@ export interface DetailsPanelProps {
 }
 
 const DetailsPanelPopover = ({
+  appliedCrossFilterIndicators = [],
   appliedIndicators = [],
   incompatibleIndicators = [],
   unsetIndicators = [],
@@ -76,22 +50,31 @@ const DetailsPanelPopover = ({
 }: DetailsPanelProps) => {
   const theme = useTheme();
 
-  function defaultActivePanel() {
-    if (incompatibleIndicators.length) return 'incompatible';
-    if (appliedIndicators.length) return 'applied';
-    return 'unset';
-  }
+  const getDefaultActivePanel = () => {
+    const result = [];
+    if (appliedCrossFilterIndicators.length) {
+      result.push('appliedCrossFilters');
+    }
+    if (appliedIndicators.length) {
+      result.push('applied');
+    }
+    if (incompatibleIndicators.length) {
+      result.push('incompatible');
+    }
+    if (result.length) {
+      return result;
+    }
+    return ['unset'];
+  };
 
   const [activePanels, setActivePanels] = useState<string[]>(() => [
-    defaultActivePanel(),
+    ...getDefaultActivePanel(),
   ]);
 
   function handlePopoverStatus(isOpen: boolean) {
     // every time the popover opens, make sure the most relevant panel is active
     if (isOpen) {
-      if (!activePanels.includes(defaultActivePanel())) {
-        setActivePanels([...activePanels, defaultActivePanel()]);
-      }
+      setActivePanels(getDefaultActivePanel());
     }
   }
 
@@ -164,6 +147,33 @@ const DetailsPanelPopover = ({
           activeKey={activePanels}
           onChange={handleActivePanelChange}
         >
+          {appliedCrossFilterIndicators.length ? (
+            <Collapse.Panel
+              key="appliedCrossFilters"
+              header={
+                <Title bold color={theme.colors.primary.light1}>
+                  <Icon
+                    name="cross-filter-badge"
+                    css={{ fill: theme.colors.primary.light1 }}
+                  />
+                  {t(
+                    'Applied Cross Filters (%d)',
+                    appliedCrossFilterIndicators.length,
+                  )}
+                </Title>
+              }
+            >
+              <Indent css={{ paddingBottom: theme.gridUnit * 3 }}>
+                {appliedCrossFilterIndicators.map(indicator => (
+                  <FilterIndicator
+                    key={indicatorKey(indicator)}
+                    indicator={indicator}
+                    onClick={onHighlightFilterSource}
+                  />
+                ))}
+              </Indent>
+            </Collapse.Panel>
+          ) : null}
           {appliedIndicators.length ? (
             <Collapse.Panel
               key="applied"
@@ -176,7 +186,7 @@ const DetailsPanelPopover = ({
             >
               <Indent css={{ paddingBottom: theme.gridUnit * 3 }}>
                 {appliedIndicators.map(indicator => (
-                  <Indicator
+                  <FilterIndicator
                     key={indicatorKey(indicator)}
                     indicator={indicator}
                     onClick={onHighlightFilterSource}
@@ -200,7 +210,7 @@ const DetailsPanelPopover = ({
             >
               <Indent css={{ paddingBottom: theme.gridUnit * 3 }}>
                 {incompatibleIndicators.map(indicator => (
-                  <Indicator
+                  <FilterIndicator
                     key={indicatorKey(indicator)}
                     indicator={indicator}
                     onClick={onHighlightFilterSource}
@@ -222,7 +232,7 @@ const DetailsPanelPopover = ({
             >
               <Indent css={{ paddingBottom: theme.gridUnit * 3 }}>
                 {unsetIndicators.map(indicator => (
-                  <Indicator
+                  <FilterIndicator
                     key={indicatorKey(indicator)}
                     indicator={indicator}
                     onClick={onHighlightFilterSource}

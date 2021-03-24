@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { makeApi, SupersetClient } from '@superset-ui/core';
+import { ensureIsArray, makeApi, SupersetClient } from '@superset-ui/core';
 import { SupersetError } from 'src/components/ErrorMessage/types';
 import { FeatureFlag, isFeatureEnabled } from '../featureFlags';
 import {
@@ -61,12 +61,6 @@ let listenersByJobId: Record<string, ListenerFn>;
 let retriesByJobId: Record<string, number>;
 let lastReceivedEventId: string | null | undefined;
 
-try {
-  lastReceivedEventId = localStorage.getItem(LOCALSTORAGE_KEY);
-} catch (err) {
-  console.warn('Failed to fetch last event Id from localStorage');
-}
-
 export const init = (appConfig?: AppConfig) => {
   if (!isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) return;
 
@@ -92,6 +86,12 @@ export const init = (appConfig?: AppConfig) => {
   transport = config.GLOBAL_ASYNC_QUERIES_TRANSPORT || TRANSPORT_POLLING;
   polling_delay = config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY || 500;
 
+  try {
+    lastReceivedEventId = localStorage.getItem(LOCALSTORAGE_KEY);
+  } catch (err) {
+    console.warn('Failed to fetch last event Id from localStorage');
+  }
+
   if (transport === TRANSPORT_POLLING) {
     loadEventsFromApi();
   }
@@ -116,7 +116,7 @@ export const waitForAsyncData = async (asyncResponse: AsyncEvent) =>
       switch (asyncEvent.status) {
         case JOB_STATUS.DONE: {
           let { data, status } = await fetchCachedData(asyncEvent); // eslint-disable-line prefer-const
-          data = Array.isArray(data) ? data : [data];
+          data = ensureIsArray(data);
           if (status === 'success') {
             resolve(data);
           } else {

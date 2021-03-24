@@ -23,6 +23,12 @@ export type FavoriteStatus = {
   [id: number]: boolean;
 };
 
+export type Filters = {
+  col: string;
+  opr: string;
+  value: string;
+};
+
 export interface DashboardTableProps {
   addDangerToast: (message: string) => void;
   addSuccessToast: (message: string) => void;
@@ -116,3 +122,13 @@ export enum QueryObjectColumns {
 }
 
 export type ImportResourceName = 'chart' | 'dashboard' | 'database' | 'dataset';
+
+export type DatabaseObject = {
+  allow_run_async?: boolean;
+  database_name?: string;
+  encrypted_extra?: string;
+  extra?: string;
+  impersonate_user?: boolean;
+  server_cert?: string;
+  sqlalchemy_uri: string;
+};

@@ -148,6 +148,8 @@ class SupersetAppInitializer:
         from superset.dashboards.api import DashboardRestApi
         from superset.databases.api import DatabaseRestApi
         from superset.datasets.api import DatasetRestApi
+        from superset.datasets.columns.api import DatasetColumnsRestApi
+        from superset.datasets.metrics.api import DatasetMetricRestApi
         from superset.queries.api import QueryRestApi
         from superset.security.api import SecurityRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
@@ -213,6 +215,8 @@ class SupersetAppInitializer:
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
         appbuilder.add_api(DatasetRestApi)
+        appbuilder.add_api(DatasetColumnsRestApi)
+        appbuilder.add_api(DatasetMetricRestApi)
         appbuilder.add_api(QueryRestApi)
         appbuilder.add_api(SavedQueryRestApi)
         if feature_flag_manager.is_feature_enabled("ALERT_REPORTS"):
@@ -412,6 +416,10 @@ class SupersetAppInitializer:
         # Conditionally setup email views
         #
         if self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"]:
+            logging.warning(
+                "ENABLE_SCHEDULED_EMAIL_REPORTS "
+                "is deprecated and will be removed in version 2.0.0"
+            )
             appbuilder.add_separator("Manage")
             appbuilder.add_view(
                 DashboardEmailScheduleView,
@@ -431,6 +439,9 @@ class SupersetAppInitializer:
             )
 
         if self.config["ENABLE_ALERTS"]:
+            logging.warning(
+                "ENABLE_ALERTS is deprecated and will be removed in version 2.0.0"
+            )
             appbuilder.add_view(
                 AlertModelView,
                 "Alerts",

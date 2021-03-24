@@ -1139,11 +1139,17 @@ class DruidDatasource(Model, BaseDatasource):
         client: Optional["PyDruid"] = None,
         order_desc: bool = True,
         is_rowcount: bool = False,
+        apply_fetch_values_predicate: bool = False,
     ) -> str:
         """Runs a query against Druid and returns a dataframe."""
-        # is_rowcount is only supported on SQL connector
+        # is_rowcount and apply_fetch_values_predicate is only
+        # supported on SQL connector
         if is_rowcount:
             raise SupersetException("is_rowcount is not supported on Druid connector")
+        if apply_fetch_values_predicate:
+            raise SupersetException(
+                "apply_fetch_values_predicate is not supported on Druid connector"
+            )
 
         # TODO refactor into using a TBD Query object
         client = client or self.cluster.get_pydruid_client()
@@ -1509,7 +1515,9 @@ class DruidDatasource(Model, BaseDatasource):
             eq = cls.filter_values_handler(
                 eq,
                 is_list_target=is_list_target,
-                target_column_is_numeric=is_numeric_col,
+                target_column_type=utils.GenericDataType.NUMERIC
+                if is_numeric_col
+                else utils.GenericDataType.STRING,
             )
 
             # For these two ops, could have used Dimension,

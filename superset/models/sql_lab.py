@@ -277,6 +277,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     # other properties
     autorun = Column(Boolean, default=False)
     template_params = Column(Text)
+    hide_left_bar = Column(Boolean, default=False)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -292,6 +293,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
             "latest_query": self.latest_query.to_dict() if self.latest_query else None,
             "autorun": self.autorun,
             "template_params": self.template_params,
+            "hide_left_bar": self.hide_left_bar,
         }
 
 

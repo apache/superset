@@ -16,19 +16,52 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ReactNode } from 'react';
+import { Metric } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
+import { DatasourcePanelDndItem } from '../../DatasourcePanel/types';
+import { DndItemType } from '../../DndItemType';
 
 export interface OptionProps {
-  column: ColumnMeta;
+  children: ReactNode;
   index: number;
   clickClose: (index: number) => void;
   onShiftOptions: (dragIndex: number, hoverIndex: number) => void;
   withCaret?: boolean;
 }
 
-export const GroupByItemType = 'groupByItem';
-
-export interface GroupByItemInterface {
-  type: typeof GroupByItemType;
+export interface OptionItemInterface {
+  type: string;
   dragIndex: number;
+}
+
+export interface LabelProps<T = string[] | string> {
+  name: string;
+  value?: T;
+  onChange: (value?: T) => void;
+  options: { string: ColumnMeta };
+}
+
+export interface DndColumnSelectProps<
+  T = string[] | string,
+  O = string[] | string
+> extends LabelProps<T> {
+  onDrop: (item: DatasourcePanelDndItem) => void;
+  canDrop: (item: DatasourcePanelDndItem) => boolean;
+  valuesRenderer: () => ReactNode;
+  accept: DndItemType | DndItemType[];
+  ghostButtonText?: string;
+  displayGhostButton?: boolean;
+}
+
+export type OptionValueType = Record<string, any>;
+export interface DndFilterSelectProps {
+  name: string;
+  value: OptionValueType[];
+  columns: ColumnMeta[];
+  datasource: Record<string, any>;
+  formData: Record<string, any>;
+  savedMetrics: Metric[];
+  onChange: (filters: OptionValueType[]) => void;
+  options: { string: ColumnMeta };
 }

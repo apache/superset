@@ -38,15 +38,18 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.engine.base import Connection
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import relationship, sessionmaker, subqueryload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.sql import join, select
+from sqlalchemy.sql.elements import BinaryExpression
 
 from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.druid.models import DruidColumn, DruidMetric
 from superset.connectors.sqla.models import SqlMetric, TableColumn
+from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
@@ -56,6 +59,8 @@ from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.utils import core as utils
 from superset.utils.decorators import debounce
 from superset.utils.urls import get_url_path
+
+# pylint: disable=too-many-public-methods
 
 metadata = Model.metadata  # pylint: disable=no-member
 config = app.config
@@ -238,18 +243,22 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         """Bootstrap data for rendering the dashboard page."""
         slices = self.slices
         datasource_slices = utils.indexed(slices, "datasource")
+        try:
+            datasources = {
+                # Filter out unneeded fields from the datasource payload
+                datasource.uid: datasource.data_for_slices(slices)
+                for datasource, slices in datasource_slices.items()
+                if datasource
+            }
+        except (SupersetException, SQLAlchemyError):
+            datasources = {}
         return {
             # dashboard metadata
             "dashboard": self.data,
             # slices metadata
             "slices": [slc.data for slc in slices],
             # datasource metadata
-            "datasources": {
-                # Filter out unneeded fields from the datasource payload
-                datasource.uid: datasource.data_for_slices(slices)
-                for datasource, slices in datasource_slices.items()
-                if datasource
-            },
+            "datasources": datasources,
         }
 
     @property  # type: ignore
@@ -361,13 +370,14 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
     @classmethod
     def get(cls, id_or_slug: str) -> Dashboard:
         session = db.session()
-        qry = session.query(Dashboard)
-        if id_or_slug.isdigit():
-            qry = qry.filter_by(id=int(id_or_slug))
-        else:
-            qry = qry.filter_by(slug=id_or_slug)
-
+        qry = session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
         return qry.one_or_none()
+
+
+def id_or_slug_filter(id_or_slug: str) -> BinaryExpression:
+    if id_or_slug.isdigit():
+        return Dashboard.id == int(id_or_slug)
+    return Dashboard.slug == id_or_slug
 
 
 OnDashboardChange = Callable[[Mapper, Connection, Dashboard], Any]

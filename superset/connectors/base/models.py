@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, Hashable, List, Optional, Type, Union
 
@@ -112,11 +113,12 @@ class BaseDatasource(
     update_from_object_fields: List[str]
 
     @property
-    def kind(self) -> str:
-        if self.sql:
-            return DatasourceKind.VIRTUAL.value
+    def kind(self) -> DatasourceKind:
+        return DatasourceKind.VIRTUAL if self.sql else DatasourceKind.PHYSICAL
 
-        return DatasourceKind.PHYSICAL.value
+    @property
+    def is_virtual(self) -> bool:
+        return self.kind == DatasourceKind.VIRTUAL
 
     @declared_attr
     def slices(self) -> RelationshipProperty:
@@ -237,6 +239,7 @@ class BaseDatasource(
         return {
             # simple fields
             "id": self.id,
+            "uid": self.uid,
             "column_formats": self.column_formats,
             "description": self.description,
             "database": self.database.data,  # pylint: disable=no-member
@@ -332,7 +335,7 @@ class BaseDatasource(
     @staticmethod
     def filter_values_handler(
         values: Optional[FilterValues],
-        target_column_is_numeric: bool = False,
+        target_column_type: utils.GenericDataType,
         is_list_target: bool = False,
     ) -> Optional[FilterValues]:
         if values is None:
@@ -340,12 +343,18 @@ class BaseDatasource(
 
         def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
             # backward compatibility with previous <select> components
+            if (
+                isinstance(value, (float, int))
+                and target_column_type == utils.GenericDataType.TEMPORAL
+            ):
+                return datetime.utcfromtimestamp(value / 1000)
             if isinstance(value, str):
                 value = value.strip("\t\n'\"")
-                if target_column_is_numeric:
+
+                if target_column_type == utils.GenericDataType.NUMERIC:
                     # For backwards compatibility and edge cases
                     # where a column data type might have changed
-                    value = utils.cast_to_num(value)
+                    return utils.cast_to_num(value)
                 if value == NULL_STRING:
                     return None
                 if value == "<empty string>":
@@ -359,10 +368,7 @@ class BaseDatasource(
         if is_list_target and not isinstance(values, (tuple, list)):
             values = [values]  # type: ignore
         elif not is_list_target and isinstance(values, (tuple, list)):
-            if values:
-                values = values[0]
-            else:
-                values = None
+            values = values[0] if values else None
         return values
 
     def external_metadata(self) -> List[Dict[str, str]]:

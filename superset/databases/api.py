@@ -64,6 +64,7 @@ from superset.databases.schemas import (
     TableMetadataResponseSchema,
 )
 from superset.databases.utils import get_table_metadata
+from superset.exceptions import SupersetErrorException
 from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.typing import FlaskResponse
@@ -608,6 +609,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response(200, message="OK")
         except DatabaseTestConnectionFailedError as ex:
             return self.response_422(message=str(ex))
+        except SupersetErrorException as ex:
+            return self.response(ex.status, message=ex.error.message)
 
     @expose("/<int:pk>/related_objects/", methods=["GET"])
     @protect()

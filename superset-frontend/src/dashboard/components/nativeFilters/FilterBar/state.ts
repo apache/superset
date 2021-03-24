@@ -16,55 +16,85 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* eslint-disable no-param-reassign */
 import { useSelector } from 'react-redux';
-import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
 import {
-  NativeFiltersState,
-  FilterState,
-  FilterSets,
-  FilterStates,
+  Filters,
+  FilterSets as FilterSetsType,
 } from 'src/dashboard/reducers/types';
-import { mergeExtraFormData } from '../utils';
+import { DataMaskUnit, DataMaskUnitWithId } from 'src/dataMask/types';
+import { useEffect, useState } from 'react';
+import { areObjectsEqual } from 'src/reduxUtils';
 import { Filter } from '../types';
 
-export function useFilters() {
-  return useSelector<any, Filter>(state => state.nativeFilters.filters);
-}
-
-export function useFiltersStateNative() {
-  return useSelector<any, FilterStates>(
-    state => state.nativeFilters.filtersState.nativeFilters ?? {},
+export const useFilterSets = () =>
+  useSelector<any, FilterSetsType>(
+    state => state.nativeFilters.filterSets || {},
   );
-}
 
-export function useFilterSets() {
-  return useSelector<any, FilterSets>(
-    state => state.nativeFilters.filterSets ?? {},
-  );
-}
+export const useFilters = () =>
+  useSelector<any, Filters>(state => state.nativeFilters.filters);
 
-export function useCascadingFilters(id: string) {
-  const {
+export const useDataMask = () =>
+  useSelector<any, DataMaskUnitWithId>(state => state.dataMask.nativeFilters);
+
+export const useFiltersInitialisation = (
+  dataMaskSelected: DataMaskUnit,
+  handleApply: () => void,
+) => {
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const filters = useFilters();
+  const filterValues = Object.values<Filter>(filters);
+  useEffect(() => {
+    if (isInitialized) {
+      return;
+    }
+    const areFiltersInitialized = filterValues.every(filterValue =>
+      areObjectsEqual(
+        filterValue?.defaultValue,
+        dataMaskSelected[filterValue?.id]?.currentState?.value,
+      ),
+    );
+    if (areFiltersInitialized) {
+      handleApply();
+      setIsInitialized(true);
+    }
+  }, [filterValues, dataMaskSelected, isInitialized]);
+
+  return {
+    isInitialized,
+  };
+};
+
+export const useFilterUpdates = (
+  dataMaskSelected: DataMaskUnit,
+  setDataMaskSelected: (arg0: (arg0: DataMaskUnit) => void) => void,
+  setLastAppliedFilterData: (arg0: (arg0: DataMaskUnit) => void) => void,
+) => {
+  const filters = useFilters();
+  const dataMaskApplied = useDataMask();
+
+  useEffect(() => {
+    // Remove deleted filters from local state
+    Object.keys(dataMaskSelected).forEach(selectedId => {
+      if (!filters[selectedId]) {
+        setDataMaskSelected(draft => {
+          delete draft[selectedId];
+        });
+      }
+    });
+    Object.keys(dataMaskApplied).forEach(appliedId => {
+      if (!filters[appliedId]) {
+        setLastAppliedFilterData(draft => {
+          delete draft[appliedId];
+        });
+      }
+    });
+  }, [
+    dataMaskApplied,
+    dataMaskSelected,
     filters,
-    filtersState: { nativeFilters },
-  } = useSelector<any, NativeFiltersState>(state => state.nativeFilters);
-  const filter = filters[id];
-  const cascadeParentIds: string[] = filter?.cascadeParentIds ?? [];
-  let cascadedFilters = {};
-  cascadeParentIds.forEach(parentId => {
-    const parentState = nativeFilters[parentId] || {};
-    const { extraFormData: parentExtra = {} } = parentState;
-    cascadedFilters = {
-      nativeFilters: mergeExtraFormData(cascadedFilters, parentExtra),
-    };
-  });
-  return cascadedFilters;
-}
-
-export function useFilterStateNative(id: string) {
-  return useSelector<any, FilterState>(
-    state =>
-      state.nativeFilters.filtersState.nativeFilters[id] ??
-      getInitialFilterState(id),
-  );
-}
+    setDataMaskSelected,
+    setLastAppliedFilterData,
+  ]);
+};

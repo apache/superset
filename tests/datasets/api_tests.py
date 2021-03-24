@@ -659,6 +659,53 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
+    def test_update_dataset_delete_column(self):
+        """
+        Dataset API: Test update dataset delete column
+        """
+        # create example dataset by Command
+        dataset = self.insert_default_dataset()
+
+        new_column_data = {
+            "column_name": "new_col",
+            "description": "description",
+            "expression": "expression",
+            "type": "INTEGER",
+            "verbose_name": "New Col",
+        }
+        uri = f"api/v1/dataset/{dataset.id}"
+        # Get current cols and append the new column
+        self.login(username="admin")
+        rv = self.get_assert_metric(uri, "get")
+        data = json.loads(rv.data.decode("utf-8"))
+
+        for column in data["result"]["columns"]:
+            column.pop("changed_on", None)
+            column.pop("created_on", None)
+
+        data["result"]["columns"].append(new_column_data)
+        rv = self.client.put(uri, json={"columns": data["result"]["columns"]})
+
+        assert rv.status_code == 200
+
+        # Remove this new column
+        data["result"]["columns"].remove(new_column_data)
+        rv = self.client.put(uri, json={"columns": data["result"]["columns"]})
+        assert rv.status_code == 200
+
+        columns = (
+            db.session.query(TableColumn)
+            .filter_by(table_id=dataset.id)
+            .order_by("column_name")
+            .all()
+        )
+        assert columns[0].column_name == "id"
+        assert columns[1].column_name == "name"
+        assert len(columns) == 2
+
+        db.session.delete(dataset)
+        db.session.commit()
+
     def test_update_dataset_update_column(self):
         """
         Dataset API: Test update dataset columns
@@ -690,6 +737,49 @@ class TestDatasetApi(SupersetTestCase):
         if get_example_database().backend != "presto":
             assert columns[0].groupby is False
             assert columns[0].filterable is False
+
+        db.session.delete(dataset)
+        db.session.commit()
+
+    def test_update_dataset_delete_metric(self):
+        """
+        Dataset API: Test update dataset delete metric
+        """
+        dataset = self.insert_default_dataset()
+        metrics_query = (
+            db.session.query(SqlMetric)
+            .filter_by(table_id=dataset.id)
+            .order_by("metric_name")
+        )
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}"
+        data = {
+            "metrics": [
+                {"metric_name": "metric1", "expression": "COUNT(*)"},
+                {"metric_name": "metric2", "expression": "DIFF_COUNT(*)"},
+            ]
+        }
+        rv = self.put_assert_metric(uri, data, "put")
+        assert rv.status_code == 200
+
+        metrics = metrics_query.all()
+        assert len(metrics) == 2
+
+        data = {
+            "metrics": [
+                {
+                    "id": metrics[0].id,
+                    "metric_name": "metric1",
+                    "expression": "COUNT(*)",
+                },
+            ]
+        }
+        rv = self.put_assert_metric(uri, data, "put")
+        assert rv.status_code == 200
+
+        metrics = metrics_query.all()
+        assert len(metrics) == 1
 
         db.session.delete(dataset)
         db.session.commit()
@@ -921,6 +1011,137 @@ class TestDatasetApi(SupersetTestCase):
         assert data == {"message": "Dataset could not be deleted."}
         db.session.delete(dataset)
         db.session.commit()
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_delete_dataset_column(self):
+        """
+        Dataset API: Test delete dataset column
+        """
+        dataset = self.get_fixture_datasets()[0]
+        column_id = dataset.columns[0].id
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}/column/{column_id}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 200
+        assert db.session.query(TableColumn).get(column_id) == None
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_delete_dataset_column_not_found(self):
+        """
+        Dataset API: Test delete dataset column not found
+        """
+        dataset = self.get_fixture_datasets()[0]
+        non_id = self.get_nonexistent_numeric_id(TableColumn)
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}/column/{non_id}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 404
+
+        non_id = self.get_nonexistent_numeric_id(SqlaTable)
+        column_id = dataset.columns[0].id
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{non_id}/column/{column_id}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_delete_dataset_column_not_owned(self):
+        """
+        Dataset API: Test delete dataset column not owned
+        """
+        dataset = self.get_fixture_datasets()[0]
+        column_id = dataset.columns[0].id
+
+        self.login(username="alpha")
+        uri = f"api/v1/dataset/{dataset.id}/column/{column_id}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 403
+
+    @pytest.mark.usefixtures("create_datasets")
+    @patch("superset.datasets.dao.DatasetDAO.delete")
+    def test_delete_dataset_column_fail(self, mock_dao_delete):
+        """
+        Dataset API: Test delete dataset column
+        """
+        mock_dao_delete.side_effect = DAODeleteFailedError()
+        dataset = self.get_fixture_datasets()[0]
+        column_id = dataset.columns[0].id
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}/column/{column_id}"
+        rv = self.client.delete(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 422
+        assert data == {"message": "Dataset column delete failed."}
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_delete_dataset_metric(self):
+        """
+        Dataset API: Test delete dataset metric
+        """
+        dataset = self.get_fixture_datasets()[0]
+        test_metric = SqlMetric(
+            metric_name="metric1", expression="COUNT(*)", table=dataset
+        )
+        db.session.add(test_metric)
+        db.session.commit()
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}/metric/{test_metric.id}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 200
+        assert db.session.query(SqlMetric).get(test_metric.id) == None
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_delete_dataset_metric_not_found(self):
+        """
+        Dataset API: Test delete dataset metric not found
+        """
+        dataset = self.get_fixture_datasets()[0]
+        non_id = self.get_nonexistent_numeric_id(SqlMetric)
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}/metric/{non_id}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 404
+
+        non_id = self.get_nonexistent_numeric_id(SqlaTable)
+        metric_id = dataset.metrics[0].id
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{non_id}/metric/{metric_id}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_delete_dataset_metric_not_owned(self):
+        """
+        Dataset API: Test delete dataset metric not owned
+        """
+        dataset = self.get_fixture_datasets()[0]
+        metric_id = dataset.metrics[0].id
+
+        self.login(username="alpha")
+        uri = f"api/v1/dataset/{dataset.id}/metric/{metric_id}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 403
+
+    @pytest.mark.usefixtures("create_datasets")
+    @patch("superset.datasets.dao.DatasetDAO.delete")
+    def test_delete_dataset_metric_fail(self, mock_dao_delete):
+        """
+        Dataset API: Test delete dataset metric
+        """
+        mock_dao_delete.side_effect = DAODeleteFailedError()
+        dataset = self.get_fixture_datasets()[0]
+        column_id = dataset.metrics[0].id
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}/metric/{column_id}"
+        rv = self.client.delete(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 422
+        assert data == {"message": "Dataset metric delete failed."}
 
     @pytest.mark.usefixtures("create_datasets")
     def test_bulk_delete_dataset_items(self):

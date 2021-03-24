@@ -490,6 +490,11 @@ export default function sqlLabReducer(state = {}, action) {
         southPercent: action.southPercent,
       });
     },
+    [actions.QUERY_EDITOR_TOGGLE_LEFT_BAR]() {
+      return alterInArr(state, 'queryEditors', action.queryEditor, {
+        hideLeftBar: action.hideLeftBar,
+      });
+    },
     [actions.SET_DATABASES]() {
       const databases = {};
       action.databases.forEach(db => {

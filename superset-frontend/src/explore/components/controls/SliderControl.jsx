@@ -19,8 +19,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import BootstrapSliderWrapper from '../../../components/BootstrapSliderWrapper';
-import ControlHeader from '../ControlHeader';
+import BootstrapSliderWrapper from 'src/components/BootstrapSliderWrapper';
+import ControlHeader from 'src/explore/components/ControlHeader';
 
 const propTypes = {
   onChange: PropTypes.func,

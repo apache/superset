@@ -21,7 +21,7 @@ import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
 import Dashboard from 'src/dashboard/components/Dashboard';
-import DashboardBuilder from 'src/dashboard/containers/DashboardBuilder';
+import DashboardBuilder from 'src/dashboard/components/DashboardBuilder/DashboardBuilder';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 
@@ -33,12 +33,13 @@ import {
   NATIVE_FILTER_ID,
   layoutForSingleNativeFilter,
   singleNativeFiltersState,
+  dataMaskWith1Filter,
 } from 'spec/fixtures/mockNativeFilters';
 import dashboardInfo from 'spec/fixtures/mockDashboardInfo';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
 import dashboardState from 'spec/fixtures/mockDashboardState';
 import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
-import { getActiveNativeFilters } from 'src/dashboard/util/activeDashboardNativeFilters';
+import { getAllActiveFilters } from 'src/dashboard/util/activeAllDashboardFilters';
 
 describe('Dashboard', () => {
   const props = {
@@ -153,8 +154,9 @@ describe('Dashboard', () => {
       wrapper.setProps({
         activeFilters: {
           ...OVERRIDE_FILTERS,
-          ...getActiveNativeFilters({
-            nativeFilters: singleNativeFiltersState,
+          ...getAllActiveFilters({
+            dataMask: dataMaskWith1Filter,
+            nativeFilters: singleNativeFiltersState.filters,
             layout: layoutForSingleNativeFilter,
           }),
         },
