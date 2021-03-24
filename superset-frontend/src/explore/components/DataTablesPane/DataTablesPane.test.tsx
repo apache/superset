@@ -119,7 +119,7 @@ test('Shoud show tabs: View results', async () => {
   });
   userEvent.click(await screen.findByText('Data'));
   userEvent.click(await screen.findByText('View results'));
-  expect(screen.queryByText('0 rows retrieved')).toBeVisible();
+  expect(screen.getByText('0 rows retrieved')).toBeVisible();
 });
 
 test('Shoud show tabs: View samples', async () => {
