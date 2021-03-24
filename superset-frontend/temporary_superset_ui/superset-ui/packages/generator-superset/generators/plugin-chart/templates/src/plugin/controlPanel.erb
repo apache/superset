@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
-import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import { ControlPanelConfig, sections, sharedControls } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   /**
@@ -96,10 +96,40 @@ const config: ControlPanelConfig = {
 
   // For control input types, see: superset-frontend/src/explore/components/controls/index.js
   controlPanelSections: [
+    <%if (chartType === 'timeseries') { %>sections.legacyTimeseriesTime,<% } else { %>sections.legacyRegularTime,<% } %>
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [['groupby'], ['metrics'], ['adhoc_filters'], ['row_limit', null]],
+      controlSetRows: [
+        [
+          {
+            name: 'cols',
+            config: {
+              ...sharedControls.groupby,
+              label: t('Columns'),
+              description: t('Columns to group by'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'metrics',
+            config: {
+              ...sharedControls.metrics,
+              // it's possible to add validators to controls if
+              // certain selections/types need to be enforced
+              validators: [validateNonEmpty],
+            },
+          },
+        ],
+        ['adhoc_filters'],
+        [
+          {
+            name: 'row_limit',
+            config: sharedControls.row_limit,
+          },
+        ],
+      ],
     },
     {
       label: t('Hello Controls!'),
@@ -155,25 +185,6 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-<%if (chartType === 'timeseries') { %>  // Time series charts need to override the `druidTimeSeries` and `sqlaTimeSeries`
-  // sections to add the time grain dropdown.
-  sectionOverrides: {
-    druidTimeSeries: {
-      controlSetRows: [['granularity', 'druid_time_origin'], ['time_range']],
-    },
-    sqlaTimeSeries: {
-      controlSetRows: [['granularity_sqla', 'time_grain_sqla'], ['time_range']],
-    },
-  },<% } %>
-  controlOverrides: {
-    series: {
-      validators: [validateNonEmpty],
-      clearable: false,
-    },
-    row_limit: {
-      default: 100,
-    },
-  },
 };
 
 export default config;
