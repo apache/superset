@@ -49,7 +49,14 @@ import newComponentFactory from '../util/newComponentFactory';
 import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 
 export default function getInitialState(bootstrapData) {
-  const { user_id, datasources, common, editMode, urlParams } = bootstrapData;
+  const {
+    user_id,
+    datasources,
+    common,
+    editMode,
+    urlParams,
+    extra_jwt,
+  } = bootstrapData;
 
   const dashboard = { ...bootstrapData.dashboard_data };
   let preselectFilters = {};
@@ -283,6 +290,7 @@ export default function getInitialState(bootstrapData) {
         conf: common.conf,
       },
       lastModifiedTime: dashboard.last_modified_time,
+      extraJwt: extra_jwt,
     },
     dashboardFilters,
     nativeFilters,

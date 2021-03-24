@@ -69,6 +69,7 @@ class QueryContext:
     custom_cache_timeout: Optional[int]
     result_type: ChartDataResultType
     result_format: ChartDataResultFormat
+    extra_jwt: str
 
     # TODO: Type datasource and query_object dictionary with TypedDict when it becomes
     #  a vanilla python type https://github.com/python/mypy/issues/5288
