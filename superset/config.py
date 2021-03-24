@@ -349,7 +349,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # by that custom datasource access. So we are assuming a default security config,
     # a custom security config could potentially give access to setting filters on
     # tables that users do not have access to.
-    "ROW_LEVEL_SECURITY": False,
+    "ROW_LEVEL_SECURITY": True,
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
     # Enable experimental feature to search for other dashboards
