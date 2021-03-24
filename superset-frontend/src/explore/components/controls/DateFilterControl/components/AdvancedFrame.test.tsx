@@ -19,7 +19,7 @@
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { AdvancedFrame } from 'src/explore/components/controls/DateFilterControl/components/AdvancedFrame';
+import { AdvancedFrame } from '.';
 
 test('renders with default props', () => {
   render(<AdvancedFrame onChange={jest.fn()} value="Last week" />);
