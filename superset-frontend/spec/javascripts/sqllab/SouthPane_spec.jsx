@@ -20,7 +20,7 @@ import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { styledShallow as shallow } from 'spec/helpers/theming';
-import SouthPaneContainer from 'src/SqlLab/components/SouthPane';
+import SouthPaneContainer from 'src/SqlLab/components/SouthPane/state';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import '@testing-library/jest-dom/extend-expect';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';

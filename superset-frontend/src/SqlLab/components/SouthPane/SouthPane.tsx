@@ -20,21 +20,18 @@ import React, { createRef } from 'react';
 import shortid from 'shortid';
 import Alert from 'src/components/Alert';
 import Tabs from 'src/common/components/Tabs';
-import { connect } from 'react-redux';
-import { bindActionCreators, Dispatch } from 'redux';
 import { t, styled } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import Label from 'src/components/Label';
-import * as Actions from '../actions/sqlLab';
-import QueryHistory from './QueryHistory';
-import ResultSet from './ResultSet';
+import QueryHistory from '../QueryHistory';
+import ResultSet from '../ResultSet';
 import {
   STATUS_OPTIONS,
   STATE_TYPE_MAP,
   LOCALSTORAGE_MAX_QUERY_AGE_MS,
-} from '../constants';
+} from '../../constants';
 
 const TAB_HEIGHT = 64;
 
@@ -77,7 +74,7 @@ const StyledPane = styled.div`
   }
 `;
 
-function SouthPane({
+export default function SouthPane({
   editorQueries,
   latestQueryId,
   dataPreviewQueries,
@@ -188,19 +185,3 @@ function SouthPane({
     </StyledPane>
   );
 }
-
-function mapStateToProps({ sqlLab }: Record<string, any>) {
-  return {
-    activeSouthPaneTab: sqlLab.activeSouthPaneTab,
-    databases: sqlLab.databases,
-    offline: sqlLab.offline,
-  };
-}
-
-function mapDispatchToProps(dispatch: Dispatch) {
-  return {
-    actions: bindActionCreators<any, any>(Actions, dispatch),
-  };
-}
-
-export default connect<any>(mapStateToProps, mapDispatchToProps)(SouthPane);
