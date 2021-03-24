@@ -98,10 +98,10 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
       {
         Cell: ({
           row: {
-            original: { execution_id: executionId },
+            original: { uuid: executionId },
           },
         }: any) => executionId.slice(0, 6),
-        accessor: 'execution_id',
+        accessor: 'uuid',
         Header: t('Execution ID'),
         size: 'xs',
         disableSortBy: true,

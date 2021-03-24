@@ -28,12 +28,13 @@ down_revision = '67da9ef1ef9c'
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy_utils import UUIDType
 
 
 def upgrade():
     op.add_column(
         'report_execution_log',
-        sa.Column('execution_id', sa.VARCHAR(length=50), nullable=True)
+        sa.Column('uuid', UUIDType(binary=True))
     )
 
   
