@@ -78,11 +78,17 @@ const toSlicelike = ($chart: JQuery<HTMLElement>): Slice => ({
   },
 });
 
-export function getChartAliases(charts: readonly ChartSpec[]) {
+export function getChartAliasBySpec(chart: ChartSpec) {
+  return getChartGridComponent(chart).then($chart =>
+    getChartAlias(toSlicelike($chart)),
+  );
+}
+
+export function getChartAliasesBySpec(charts: readonly ChartSpec[]) {
   const aliases: string[] = [];
   charts.forEach(chart =>
-    getChartGridComponent(chart).then($chart => {
-      aliases.push(getChartAlias(toSlicelike($chart)));
+    getChartAliasBySpec(chart).then(alias => {
+      aliases.push(alias);
     }),
   );
   // Wrapping the aliases is key.

@@ -20,7 +20,7 @@ import { isLegacyResponse, parsePostForm } from 'cypress/utils';
 import {
   WORLD_HEALTH_CHARTS,
   WORLD_HEALTH_DASHBOARD,
-  getChartAliases,
+  getChartAliasesBySpec,
   waitForChartLoad,
 } from './dashboard.helper';
 
@@ -32,7 +32,7 @@ describe('Dashboard filter', () => {
 
   it('should apply filter', () => {
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
-    getChartAliases(
+    getChartAliasesBySpec(
       WORLD_HEALTH_CHARTS.filter(({ viz }) => viz !== 'filter_box'),
     ).then(nonFilterChartAliases => {
       cy.get('.Select__placeholder:first').click();

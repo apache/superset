@@ -17,25 +17,24 @@
  * under the License.
  */
 import { interceptChart, parsePostForm, Slice } from 'cypress/utils';
-import { ChartSpec, TABBED_DASHBOARD } from './dashboard.helper';
+import {
+  ChartSpec,
+  TABBED_DASHBOARD,
+  getChartAliasesBySpec,
+  waitForChartLoad,
+  getChartAliasBySpec,
+} from './dashboard.helper';
 
-const TAB_A_WITH_ROW_1: ChartSpec[] = [
-  { name: 'Treemap', viz: 'treemap' },
-  { name: 'Region Filter', viz: 'filter_box' },
-];
-
-const TAB_A_WITH_ROW_2: ChartSpec[] = [
-  { name: 'Treemap', viz: 'treemap' },
-  { name: 'Growth Rate', viz: 'line' },
-];
-
-const TAB_B_CHARTS: ChartSpec[] = [{ name: 'Box plot', viz: 'box_plot' }];
+const TREEMAP = { name: 'Treemap', viz: 'treemap' };
+const FILTER_BOX = { name: 'Region Filter', viz: 'filter_box' };
+const LINE_CHART = { name: 'Growth Rate', viz: 'line' };
+const BOX_PLOT = { name: 'Box plot', viz: 'box_plot' };
 
 describe('Dashboard tabs', () => {
-  let filterId;
-  let treemapId;
-  let linechartId;
-  let boxplotId;
+  // let filterId;
+  // let treemapId;
+  // let linechartId;
+  // let boxplotId;
 
   // cypress can not handle window.scrollTo
   // https://github.com/cypress-io/cypress/issues/2761
@@ -50,36 +49,35 @@ describe('Dashboard tabs', () => {
     cy.login();
 
     cy.visit(TABBED_DASHBOARD);
-
-    cy.get('#app').then(data => {
-      const bootstrapData = JSON.parse(data[0].dataset.bootstrap || '');
-      const dashboard = bootstrapData.dashboard_data as { slices: Slice[] };
-      filterId = dashboard.slices.find(
-        slice => slice.form_data.viz_type === 'filter_box',
-      )?.slice_id;
-      boxplotId = dashboard.slices.find(
-        slice => slice.form_data.viz_type === 'box_plot',
-      )?.slice_id;
-      treemapId = dashboard.slices.find(
-        slice => slice.form_data.viz_type === 'treemap',
-      )?.slice_id;
-      linechartId = dashboard.slices.find(
-        slice => slice.form_data.viz_type === 'line',
-      )?.slice_id;
-      interceptChart({ sliceId: filterId, legacy: true }).as('filterRequest');
-      interceptChart({ sliceId: treemapId, legacy: true }).as('treemapRequest');
-      interceptChart({ sliceId: linechartId, legacy: true }).as(
-        'linechartRequest',
-      );
-      interceptChart({ sliceId: boxplotId, legacy: false }).as(
-        'boxplotRequest',
-      );
-    });
+    // cy.get('#app').then(data => {
+    //   const bootstrapData = JSON.parse(data[0].dataset.bootstrap || '');
+    //   const dashboard = bootstrapData.dashboard_data as { slices: Slice[] };
+    //   filterId = dashboard.slices.find(
+    //     slice => slice.form_data.viz_type === 'filter_box',
+    //   )?.slice_id;
+    //   boxplotId = dashboard.slices.find(
+    //     slice => slice.form_data.viz_type === 'box_plot',
+    //   )?.slice_id;
+    //   treemapId = dashboard.slices.find(
+    //     slice => slice.form_data.viz_type === 'treemap',
+    //   )?.slice_id;
+    //   linechartId = dashboard.slices.find(
+    //     slice => slice.form_data.viz_type === 'line',
+    //   )?.slice_id;
+    //   interceptChart({ sliceId: filterId, legacy: true }).as('filterRequest');
+    //   interceptChart({ sliceId: treemapId, legacy: true }).as('treemapRequest');
+    //   interceptChart({ sliceId: linechartId, legacy: true }).as(
+    //     'linechartRequest',
+    //   );
+    //   interceptChart({ sliceId: boxplotId, legacy: false }).as(
+    //     'boxplotRequest',
+    //   );
+    // });
   });
 
   it('should switch active tab on click', () => {
-    cy.wait('@filterRequest');
-    cy.wait('@treemapRequest');
+    waitForChartLoad(FILTER_BOX);
+    waitForChartLoad(TREEMAP);
 
     cy.get('[data-test="dashboard-component-tabs"]')
       .first()
@@ -105,11 +103,11 @@ describe('Dashboard tabs', () => {
 
   it('should load charts when tab is visible', () => {
     // landing in first tab, should see 2 charts
-    cy.wait('@filterRequest');
+    waitForChartLoad(FILTER_BOX);
     cy.get('[data-test="grid-container"]')
       .find('.filter_box')
       .should('be.visible');
-    cy.wait('@treemapRequest');
+    waitForChartLoad(TREEMAP);
     cy.get('[data-test="grid-container"]')
       .find('.treemap')
       .should('be.visible');
@@ -126,7 +124,7 @@ describe('Dashboard tabs', () => {
 
     cy.get('@row-level-tabs').last().click();
 
-    cy.wait('@linechartRequest');
+    waitForChartLoad(LINE_CHART);
     cy.get('[data-test="grid-container"]').find('.line').should('be.visible');
 
     // click top level tab, see 1 more chart
@@ -144,49 +142,55 @@ describe('Dashboard tabs', () => {
 
   it('should send new queries when tab becomes visible', () => {
     // landing in first tab
-    cy.wait('@filterRequest');
-    cy.wait('@treemapRequest');
+    waitForChartLoad(FILTER_BOX);
+    waitForChartLoad(TREEMAP);
 
-    // apply filter
-    cy.get('.Select__control').first().should('be.visible').click();
-    cy.get('.Select__control input[type=text]').first().focus().type('South');
-    cy.get('.Select__option').contains('South Asia').click();
-    cy.get('.filter_box button:not(:disabled)').contains('Apply').click();
+    getChartAliasBySpec(TREEMAP).then(treemapAlias => {
+      // apply filter
+      cy.get('.Select__control').first().should('be.visible').click();
+      cy.get('.Select__control input[type=text]').first().focus().type('South');
+      cy.get('.Select__option').contains('South Asia').click();
+      cy.get('.filter_box button:not(:disabled)').contains('Apply').click();
 
-    // send new query from same tab
-    cy.wait('@treemapRequest').then(({ request }) => {
-      const requestBody = parsePostForm(request.body);
-      const requestParams = JSON.parse(requestBody.form_data as string);
-      expect(requestParams.extra_filters[0]).deep.eq({
-        col: 'region',
-        op: '==',
-        val: 'South Asia',
+      // send new query from same tab
+      cy.wait(treemapAlias).then(({ request }) => {
+        const requestBody = parsePostForm(request.body);
+        const requestParams = JSON.parse(requestBody.form_data as string);
+        expect(requestParams.extra_filters[0]).deep.eq({
+          col: 'region',
+          op: '==',
+          val: 'South Asia',
+        });
       });
     });
 
-    // click row level tab, send 1 more query
-    cy.get('.ant-tabs-tab').contains('row tab 2').click();
+    getChartAliasBySpec(LINE_CHART).then(lineChartAlias => {
+      // click row level tab, send 1 more query
+      cy.get('.ant-tabs-tab').contains('row tab 2').click();
 
-    cy.wait('@linechartRequest').then(({ request }) => {
-      const requestBody = parsePostForm(request.body);
-      const requestParams = JSON.parse(requestBody.form_data as string);
-      expect(requestParams.extra_filters[0]).deep.eq({
-        col: 'region',
-        op: '==',
-        val: 'South Asia',
+      cy.wait(lineChartAlias).then(({ request }) => {
+        const requestBody = parsePostForm(request.body);
+        const requestParams = JSON.parse(requestBody.form_data as string);
+        expect(requestParams.extra_filters[0]).deep.eq({
+          col: 'region',
+          op: '==',
+          val: 'South Asia',
+        });
       });
     });
 
-    // click top level tab, send 1 more query
-    cy.get('.ant-tabs-tab').contains('Tab B').click();
+    getChartAliasBySpec(BOX_PLOT).then(boxPlotAlias => {
+      // click top level tab, send 1 more query
+      cy.get('.ant-tabs-tab').contains('Tab B').click();
 
-    cy.wait('@boxplotRequest').then(({ request }) => {
-      const requestBody = request.body;
-      const requestParams = requestBody.queries[0];
-      expect(requestParams.filters[0]).deep.eq({
-        col: 'region',
-        op: '==',
-        val: 'South Asia',
+      cy.wait(boxPlotAlias).then(({ request }) => {
+        const requestBody = request.body;
+        const requestParams = requestBody.queries[0];
+        expect(requestParams.filters[0]).deep.eq({
+          col: 'region',
+          op: '==',
+          val: 'South Asia',
+        });
       });
     });
 
@@ -198,16 +202,18 @@ describe('Dashboard tabs', () => {
     cy.get('.filter_box button:not(:disabled)').contains('Apply').click();
 
     // trigger 1 new query
-    cy.wait('@treemapRequest');
+    waitForChartLoad(TREEMAP);
 
-    // make sure query API not requested multiple times
-    cy.on('fail', err => {
-      expect(err.message).to.include('timed out waiting');
-      return false;
-    });
+    getChartAliasBySpec(BOX_PLOT).then(boxPlotAlias => {
+      // make sure query API not requested multiple times
+      cy.on('fail', err => {
+        expect(err.message).to.include('timed out waiting');
+        return false;
+      });
 
-    cy.wait('@boxplotRequest', { timeout: 1000 }).then(() => {
-      throw new Error('Unexpected API call.');
+      cy.wait(boxPlotAlias, { timeout: 1000 }).then(() => {
+        throw new Error('Unexpected API call.');
+      });
     });
   });
 });
