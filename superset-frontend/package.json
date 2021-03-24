@@ -8,12 +8,12 @@
     "test": "spec"
   },
   "scripts": {
-    "tdd": "NODE_ENV=test jest --watch",
-    "test": "NODE_ENV=test jest",
+    "tdd": "cross-env NODE_ENV=test jest --watch",
+    "test": "cross-env NODE_ENV=test jest",
     "type": "tsc --noEmit",
-    "cover": "NODE_ENV=test jest --coverage",
+    "cover": "cross-env NODE_ENV=test jest --coverage",
     "dev": "webpack --mode=development --colors --debug --watch",
-    "dev-server": "NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development",
+    "dev-server": "cross-env NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development",
     "prod": "npm run build",
     "build-dev": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=development webpack --mode=development --colors",
     "build-instrumented": "cross-env NODE_ENV=development BABEL_ENV=instrumented webpack --mode=development --colors",
@@ -26,7 +26,7 @@
     "prettier": "npm run format",
     "check-translation": "prettier --check ../superset/translations/**/LC_MESSAGES/*.json",
     "clean-translation": "prettier --write ../superset/translations/**/LC_MESSAGES/*.json",
-    "storybook": "NODE_ENV=development BABEL_ENV=development start-storybook -s ./images -p 6006",
+    "storybook": "cross-env NODE_ENV=development BABEL_ENV=development start-storybook -s ./images -p 6006",
     "build-storybook": "build-storybook"
   },
   "repository": {
