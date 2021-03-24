@@ -17,7 +17,19 @@
  * under the License.
  */
 import { interceptChart, parsePostForm, Slice } from 'cypress/utils';
-import { TABBED_DASHBOARD } from './dashboard.helper';
+import { ChartSpec, TABBED_DASHBOARD } from './dashboard.helper';
+
+const TAB_A_WITH_ROW_1: ChartSpec[] = [
+  { name: 'Treemap', viz: 'treemap' },
+  { name: 'Region Filter', viz: 'filter_box' },
+];
+
+const TAB_A_WITH_ROW_2: ChartSpec[] = [
+  { name: 'Treemap', viz: 'treemap' },
+  { name: 'Growth Rate', viz: 'line' },
+];
+
+const TAB_B_CHARTS: ChartSpec[] = [{ name: 'Box plot', viz: 'box_plot' }];
 
 describe('Dashboard tabs', () => {
   let filterId;
