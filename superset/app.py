@@ -34,13 +34,14 @@ from superset.extensions import (
     cache_manager,
     celery_app,
     csrf,
+    dashboard_jwt_manager,
     db,
     feature_flag_manager,
     machine_auth_provider_factory,
     manifest_processor,
     migrate,
     results_backend_manager,
-    talisman, dashboard_jwt_manager,
+    talisman,
 )
 from superset.security import SupersetSecurityManager
 from superset.typing import FlaskResponse
