@@ -31,22 +31,21 @@ describe('Dashboard save action', () => {
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
     cy.get('#app').then(data => {
-      cy.get('[data-test="dashboard-header"]')
-        .then(headerElement => {
-          const dashboardId = headerElement.attr('data-test-id');
+      cy.get('[data-test="dashboard-header"]').then(headerElement => {
+        const dashboardId = headerElement.attr('data-test-id');
 
-          cy.intercept('POST', `/superset/copy_dash/${dashboardId}/`).as(
-            'copyRequest',
-          );
+        cy.intercept('POST', `/superset/copy_dash/${dashboardId}/`).as(
+          'copyRequest',
+        );
 
-          cy.get('[data-test="more-horiz"]').trigger('click', { force: true });
-          cy.get('[data-test="save-as-menu-item"]').trigger('click', {
-            force: true,
-          });
-          cy.get('[data-test="modal-save-dashboard-button"]').trigger('click', {
-            force: true,
-          });
-        })
+        cy.get('[data-test="more-horiz"]').trigger('click', { force: true });
+        cy.get('[data-test="save-as-menu-item"]').trigger('click', {
+          force: true,
+        });
+        cy.get('[data-test="modal-save-dashboard-button"]').trigger('click', {
+          force: true,
+        });
+      });
     });
   });
 
@@ -54,8 +53,8 @@ describe('Dashboard save action', () => {
   it('should save as new dashboard', () => {
     cy.wait('@copyRequest').then(xhr => {
       cy.get('[data-test="editable-title-input"]').then(element => {
-        const dashboardTitle = element.attr('title') 
-        expect(dashboardTitle).to.not.equal(`World Bank's Data`)
+        const dashboardTitle = element.attr('title');
+        expect(dashboardTitle).to.not.equal(`World Bank's Data`);
       });
     });
   });
