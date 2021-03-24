@@ -40,16 +40,28 @@ interface DatabaseModalProps {
 }
 
 const DEFAULT_TAB_KEY = '1';
+const EXPOSE_SQLLAB_FORM_HEIGHT = '260px';
+const CTAS_CVAS_SCHEMA_FORM_HEIGHT = '94px';
 
 const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
 `;
 
 const StyledInputContainer = styled.div`
-  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-
   &.extra-container {
     padding-top: 8px;
+  }
+
+  &.expandable {
+    height: 0;
+    overflow: hidden;
+    transition: height 0.25s;
+    margin-left: ${({ theme }) => theme.gridUnit * 8}px;
+    padding: 0;
+
+    &.open {
+      height: ${CTAS_CVAS_SCHEMA_FORM_HEIGHT};
+    }
   }
 
   .helper {
@@ -67,12 +79,15 @@ const StyledInputContainer = styled.div`
 
   .input-container {
     display: flex;
-    align-items: center;
+    align-items: top;
 
     label {
       display: flex;
       margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-top: ${({ theme }) => theme.gridUnit * 0.75}px;
       font-family: ${({ theme }) => theme.typography.families.sansSerif};
+      font-size: ${({ theme }) => theme.typography.sizes.m}px;
     }
 
     i {
@@ -122,11 +137,21 @@ const StyledJsonEditor = styled(JsonEditor)`
 `;
 
 const StyledExpandableForm = styled.div`
-  padding-left: ${({ theme }) => theme.gridUnit}px;
   padding-top: ${({ theme }) => theme.gridUnit}px;
 
   .input-container {
-    padding: ${({ theme }) => theme.gridUnit}px;
+    padding-top: ${({ theme }) => theme.gridUnit}px;
+    padding-bottom: ${({ theme }) => theme.gridUnit}px;
+  }
+  &.expandable {
+    height: 0;
+    overflow: hidden;
+    transition: height 0.25s;
+    margin-left: ${({ theme }) => theme.gridUnit * 7}px;
+
+    &.open {
+      height: ${EXPOSE_SQLLAB_FORM_HEIGHT};
+    }
   }
 `;
 
@@ -142,11 +167,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [db, setDB] = useState<DatabaseObject | null>(database);
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
-  const [expandableModalisOpen, setExpandableModalIsOpen] = useState<boolean>(
-    true,
-  );
-  const [createAsOpen, setCreateAsOpen] = useState<boolean>(false);
-  const [count, setCount] = useState<number>(0);
 
   const isEditMode = database !== null;
   const defaultExtra =
@@ -210,6 +230,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const hide = () => {
     setIsHidden(true);
     onHide();
+    // reset db to props
+    setDB(database);
   };
 
   const onSave = () => {
@@ -249,12 +271,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   };
 
-  useEffect(() => {
-    // Opens the form if at least one option is checked
-    // Closes the form only if both options are unchecked
-    setCreateAsOpen(count > 0);
-  }, [count]);
-
   const onInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { target } = event;
     const { id, checked, name, value, type } = target;
@@ -266,19 +282,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
     if (type === 'checkbox') {
       data[name] = checked;
-      // Conditional form rendering
-      /* The CTAS & CVAS schema field needs individual setters
-      so that the input will not disappear when one options goes
-      unchecked but the other is still checked */
-      if (id.includes('cvas') || id.includes('ctas')) {
-        setCount(count + (checked ? 1 : -1));
-      }
     } else {
       data[name] = typeof value === 'string' ? value.trim() : value;
-    }
-
-    if (id === 'expose_in_sqllab') {
-      setExpandableModalIsOpen(!expandableModalisOpen);
     }
 
     setDB(data);
@@ -359,6 +364,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const tabChange = (key: string) => {
     setTabKey(key);
   };
+
+  const expandableModalIsOpen = !!db?.expose_in_sqllab;
+  const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
 
   return (
     <Modal
@@ -495,7 +503,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 />
               </div>
               <StyledExpandableForm
-                style={{ display: expandableModalisOpen ? 'inherit' : 'none' }}
+                className={`expandable ${expandableModalIsOpen ? 'open' : ''}`}
               >
                 <StyledInputContainer>
                   <div className="input-container">
@@ -529,7 +537,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     />
                   </div>
                   <StyledInputContainer
-                    style={{ display: createAsOpen ? 'inherit' : 'none' }}
+                    className={`expandable ${createAsOpen ? 'open' : ''}`}
                   >
                     <div className="control-label">
                       {t('CTAS & CVAS SCHEMA')}

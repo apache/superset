@@ -42,6 +42,7 @@ const dbProps = {
     id: 10,
     database_name: 'test',
     sqlalchemy_uri: 'sqllite:///user:pw/test',
+    expose_in_sqllab: true,
   },
 };
 const DATABASE_ENDPOINT = 'glob:*/api/v1/database/*';
@@ -85,6 +86,60 @@ describe('DatabaseModal', () => {
   });
 
   describe('RTL', () => {
+    describe('initial load', () => {
+      it('displays the correct properties from the db when selected', () => {
+        render(
+          <ThemeProvider theme={supersetTheme}>
+            <Provider store={store}>
+              <DatabaseModal
+                show
+                database={{ expose_in_sqllab: true, allow_ctas: true }}
+              />
+            </Provider>
+          </ThemeProvider>,
+        );
+        // Select SQL Lab settings tab
+        const sqlLabSettingsTab = screen.getByRole('tab', {
+          name: /sql lab settings/i,
+        });
+        userEvent.click(sqlLabSettingsTab);
+
+        const exposeInSqlLab = screen.getByText('Expose in SQL Lab');
+        const exposeChoicesForm = exposeInSqlLab.parentElement.nextSibling;
+        const schemaField = screen.getByText('CTAS & CVAS SCHEMA')
+          .parentElement;
+        expect(exposeChoicesForm).toHaveClass('open');
+        expect(schemaField).toHaveClass('open');
+      });
+      it('hides the forms from the db when not selected', () => {
+        render(
+          <ThemeProvider theme={supersetTheme}>
+            <Provider store={store}>
+              <DatabaseModal
+                show
+                database={{
+                  expose_in_sqllab: false,
+                  allow_ctas: false,
+                  allow_cvas: false,
+                }}
+              />
+            </Provider>
+          </ThemeProvider>,
+        );
+        // Select SQL Lab settings tab
+        const sqlLabSettingsTab = screen.getByRole('tab', {
+          name: /sql lab settings/i,
+        });
+        userEvent.click(sqlLabSettingsTab);
+
+        const exposeInSqlLab = screen.getByText('Expose in SQL Lab');
+        const exposeChoicesForm = exposeInSqlLab.parentElement.nextSibling;
+        const schemaField = screen.getByText('CTAS & CVAS SCHEMA')
+          .parentElement;
+        expect(exposeChoicesForm).not.toHaveClass('open');
+        expect(schemaField).not.toHaveClass('open');
+      });
+    });
     it('renders solely "Expose in SQL Lab" option when unchecked', () => {
       render(
         <ThemeProvider theme={supersetTheme}>
@@ -101,26 +156,16 @@ describe('DatabaseModal', () => {
       userEvent.click(sqlLabSettingsTab);
       // Grab all SQL Lab Settings by their labels
       const exposeInSqlLab = screen.getByText('Expose in SQL Lab');
-      const allowCTAS = screen.getByText('Allow CREATE TABLE AS');
-      const allowCVAS = screen.getByText('Allow CREATE VIEW AS');
-      const allowDML = screen.getByText('Allow DML');
-      const allowMSMF = screen.getByText('Allow multi schema metadata fetch');
+      const exposeChoicesForm = exposeInSqlLab.parentElement.nextSibling;
 
       // While 'Expose in SQL Lab' is checked, all settings should display
-      expect(exposeInSqlLab).toBeVisible();
-      expect(allowCTAS).toBeVisible();
-      expect(allowCVAS).toBeVisible();
-      expect(allowDML).toBeVisible();
-      expect(allowMSMF).toBeVisible();
+      expect(exposeChoicesForm).toHaveClass('open');
 
       // When clicked, "Expose in SQL Lab" becomes unchecked
       userEvent.click(exposeInSqlLab);
       // While unchecked, only "Expose in SQL Lab" should display
       expect(exposeInSqlLab).toBeVisible();
-      expect(allowCTAS).not.toBeVisible();
-      expect(allowCVAS).not.toBeVisible();
-      expect(allowDML).not.toBeVisible();
-      expect(allowMSMF).not.toBeVisible();
+      expect(exposeChoicesForm).not.toHaveClass('open');
     });
 
     it('renders the schema field when allowCTAS is checked', () => {
@@ -139,20 +184,18 @@ describe('DatabaseModal', () => {
       userEvent.click(sqlLabSettingsTab);
       // Grab CTAS & schema field by their labels
       const allowCTAS = screen.getByLabelText('Allow CREATE TABLE AS');
-      const schemaField = screen.getByText('CTAS & CVAS SCHEMA');
+      const schemaField = screen.getByText('CTAS & CVAS SCHEMA').parentElement;
 
       // While CTAS & CVAS are unchecked, schema field is not visible
-      expect(schemaField).not.toBeVisible();
+      expect(schemaField).not.toHaveClass('open');
 
       // Check "Allow CTAS" to reveal schema field
-      // 🐞 ----- This needs to be clicked 2x for some reason, should only be 1x ----- 🐞
       userEvent.click(allowCTAS);
-      userEvent.click(allowCTAS);
-      expect(schemaField).toBeVisible();
+      expect(schemaField).toHaveClass('open');
 
       // Uncheck "Allow CTAS" to hide schema field again
       userEvent.click(allowCTAS);
-      expect(schemaField).not.toBeVisible();
+      expect(schemaField).not.toHaveClass('open');
     });
 
     it('renders the schema field when allowCVAS is checked', () => {
@@ -171,20 +214,18 @@ describe('DatabaseModal', () => {
       userEvent.click(sqlLabSettingsTab);
       // Grab CVAS by it's label & schema field
       const allowCVAS = screen.getByText('Allow CREATE VIEW AS');
-      const schemaField = screen.getByText('CTAS & CVAS SCHEMA');
+      const schemaField = screen.getByText('CTAS & CVAS SCHEMA').parentElement;
 
       // While CTAS & CVAS are unchecked, schema field is not visible
-      expect(schemaField).not.toBeVisible();
+      expect(schemaField).not.toHaveClass('open');
 
       // Check "Allow CVAS" to reveal schema field
-      // 🐞 ----- This needs to be clicked 2x for some reason, should only be 1x ----- 🐞
       userEvent.click(allowCVAS);
-      userEvent.click(allowCVAS);
-      expect(schemaField).toBeVisible();
+      expect(schemaField).toHaveClass('open');
 
       // Uncheck "Allow CVAS" to hide schema field again
       userEvent.click(allowCVAS);
-      expect(schemaField).not.toBeVisible();
+      expect(schemaField).not.toHaveClass('open');
     });
 
     it('renders the schema field when both allowCTAS and allowCVAS are checked', () => {
@@ -204,23 +245,20 @@ describe('DatabaseModal', () => {
       // Grab CTAS and CVAS by their labels, & schema field
       const allowCTAS = screen.getByText('Allow CREATE TABLE AS');
       const allowCVAS = screen.getByText('Allow CREATE VIEW AS');
-      const schemaField = screen.getByText('CTAS & CVAS SCHEMA');
+      const schemaField = screen.getByText('CTAS & CVAS SCHEMA').parentElement;
 
       // While CTAS & CVAS are unchecked, schema field is not visible
-      expect(schemaField).not.toBeVisible();
+      expect(schemaField).not.toHaveClass('open');
 
       // Check both "Allow CTAS" and "Allow CVAS" to reveal schema field
       userEvent.click(allowCTAS);
       userEvent.click(allowCVAS);
-      expect(schemaField).toBeVisible();
+      expect(schemaField).toHaveClass('open');
       // Uncheck both "Allow CTAS" and "Allow CVAS" to hide schema field again
       userEvent.click(allowCTAS);
-      userEvent.click(allowCVAS);
-      // 🐞 ----- This extra click should not be happening to make the schema field invisible ----- 🐞
       // Both checkboxes go unchecked, so the field should no longer render
-      // But the field requires one more click in order to lose visibility, as seen below
       userEvent.click(allowCVAS);
-      expect(schemaField).not.toBeVisible();
+      expect(schemaField).not.toHaveClass('open');
     });
   });
 });
