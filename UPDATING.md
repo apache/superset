@@ -39,7 +39,7 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
-- This is the first release since we adopted semantic versioning ([SIP-57](https://github.com/apache/superset/issues/12566)). There are no breaking changes in 1.1.0, since this is a minor release.
+- This is the first release since we adopted semantic versioning ([SIP-57](https://github.com/apache/superset/issues/12566)). There are no breaking changes in 1.1.0 since this is a minor release.
 
 ### Potential Downtime
 
