@@ -23,20 +23,17 @@ Create Date: 2021-03-23 05:23:15.641856
 """
 
 # revision identifiers, used by Alembic.
-revision = '301362411006'
-down_revision = '67da9ef1ef9c'
+revision = "301362411006"
+down_revision = "67da9ef1ef9c"
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy_utils import UUIDType
 
 
 def upgrade():
-    op.add_column(
-        'report_execution_log',
-        sa.Column('uuid', UUIDType(binary=True))
-    )
+    op.add_column("report_execution_log", sa.Column("uuid", UUIDType(binary=True)))
 
-  
+
 def downgrade():
-    op.drop_column('report_execution_log', 'execution_id')
+    op.drop_column("report_execution_log", "execution_id")

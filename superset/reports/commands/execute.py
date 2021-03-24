@@ -17,7 +17,7 @@
 import logging
 from datetime import datetime, timedelta
 from typing import Any, List, Optional
-from uuid import uuid4, UUID
+from uuid import UUID, uuid4
 
 from celery.exceptions import SoftTimeLimitExceeded
 from flask_appbuilder.security.sqla.models import User
@@ -419,7 +419,7 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
                     self._session,
                     self._report_schedule,
                     self._scheduled_dttm,
-                    self._execution_id
+                    self._execution_id,
                 ).next()
                 state_found = True
                 break
