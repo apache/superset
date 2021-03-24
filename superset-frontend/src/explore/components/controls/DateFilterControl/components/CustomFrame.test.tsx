@@ -19,7 +19,7 @@
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { CustomFrame } from 'src/explore/components/controls/DateFilterControl/components/CustomFrame';
+import { CustomFrame } from '.';
 
 const emptyValue = '';
 const nowValue = 'now : now';
