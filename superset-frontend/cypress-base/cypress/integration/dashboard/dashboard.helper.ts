@@ -37,19 +37,6 @@ export const WORLD_HEALTH_CHARTS = [
   { name: 'Box plot', viz: 'box_plot' },
 ] as const;
 
-export const BIRTH_NAMES_CHARTS = [
-  { name: 'Participants', viz: 'blah' },
-  { name: 'Genders', viz: 'blah' },
-  { name: 'Trends', viz: 'blah' },
-  { name: 'Genders by State', viz: 'blah' },
-  { name: 'Girls', viz: 'blah' },
-  { name: 'Girl Name Cloud', viz: 'blah' },
-  { name: 'Top 10 Girl Name Share', viz: 'blah' },
-  { name: 'Boys', viz: 'blah' },
-  { name: 'Boy Name Cloud', viz: 'blah' },
-  { name: 'Top 10 Boy Name Share', viz: 'blah' },
-] as const;
-
 /** Used to specify charts expected by the test suite */
 export interface ChartSpec {
   name: string;
