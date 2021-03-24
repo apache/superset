@@ -17,32 +17,18 @@
  * under the License.
  */
 import {
+  waitForChartLoad,
   WORLD_HEALTH_CHARTS,
   WORLD_HEALTH_DASHBOARD,
 } from './dashboard.helper';
 
 describe('Dashboard load', () => {
-  beforeEach(() => {
+  before(() => {
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
   });
 
   it('should load dashboard', () => {
-    // wait and verify one-by-one
-    WORLD_HEALTH_CHARTS.forEach(({ name, viz }) => {
-      // prettier-ignore
-      cy.get('[data-test="grid-content"] [data-test="editable-title"]').contains(name)
-        // use the chart title to find the chart grid component,
-        // which has the chart id and viz type info
-        .parentsUntil('[data-test="chart-grid-component"]').parent()
-        .should('have.attr', 'data-test-viz-type', viz)
-        .then(chartElement => {
-          const chartId = chartElement.attr('data-test-chart-id');
-          // the chart should load in under a minute
-          // (big timeout so that it works in CI)
-          cy.wrap(chartElement).find(`#chart-id-${chartId}`, { timeout: 30000 })
-            .should('be.visible');
-        });
-    });
+    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
   });
 });

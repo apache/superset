@@ -1,3 +1,5 @@
+import { getChartAlias, Slice } from 'cypress/utils/vizPlugins';
+
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -34,6 +36,73 @@ export const WORLD_HEALTH_CHARTS = [
   { name: 'Treemap', viz: 'treemap' },
   { name: 'Box plot', viz: 'box_plot' },
 ] as const;
+
+export const BIRTH_NAMES_CHARTS = [
+  { name: 'Participants', viz: 'blah' },
+  { name: 'Genders', viz: 'blah' },
+  { name: 'Trends', viz: 'blah' },
+  { name: 'Genders by State', viz: 'blah' },
+  { name: 'Girls', viz: 'blah' },
+  { name: 'Girl Name Cloud', viz: 'blah' },
+  { name: 'Top 10 Girl Name Share', viz: 'blah' },
+  { name: 'Boys', viz: 'blah' },
+  { name: 'Boy Name Cloud', viz: 'blah' },
+  { name: 'Top 10 Boy Name Share', viz: 'blah' },
+] as const;
+
+/** Used to specify charts expected by the test suite */
+export interface ChartSpec {
+  name: string;
+  viz: string;
+}
+
+export function getChartGridComponent({ name, viz }: ChartSpec) {
+  return (
+    cy
+      .get('[data-test="grid-content"] [data-test="editable-title"]')
+      .contains(name)
+      // parentsUntil returns the child of the element matching the selector
+      .parentsUntil('[data-test="chart-grid-component"]')
+      .parent()
+      .should('have.attr', 'data-test-viz-type', viz)
+  );
+}
+
+export function waitForChartLoad(chart: ChartSpec) {
+  return getChartGridComponent(chart).then(gridComponent => {
+    const chartId = gridComponent.attr('data-test-chart-id');
+    // the chart should load in under half a minute
+    return (
+      cy
+        // this id only becomes visible when the chart is loaded
+        .wrap(gridComponent)
+        .find(`#chart-id-${chartId}`, { timeout: 30000 })
+        .should('be.visible')
+        // return the chart grid component
+        .then(() => gridComponent)
+    );
+  });
+}
+
+const toSlicelike = ($chart: JQuery<HTMLElement>): Slice => ({
+  slice_id: parseInt($chart.attr('data-test-chart-id')!, 10),
+  form_data: {
+    viz_type: $chart.attr('data-test-viz-type')!,
+  },
+});
+
+export function getChartAliases(charts: readonly ChartSpec[]) {
+  const aliases: string[] = [];
+  charts.forEach(chart =>
+    getChartGridComponent(chart).then($chart => {
+      aliases.push(getChartAlias(toSlicelike($chart)));
+    }),
+  );
+  // Wrapping the aliases is key.
+  // That way callers can chain off this function
+  // and actually get the list of aliases.
+  return cy.wrap(aliases);
+}
 
 /**
  * Drag an element and drop it to another element.
