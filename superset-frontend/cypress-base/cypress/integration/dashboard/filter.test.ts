@@ -21,6 +21,7 @@ import {
   WORLD_HEALTH_CHARTS,
   WORLD_HEALTH_DASHBOARD,
   getChartAliases,
+  waitForChartLoad,
 } from './dashboard.helper';
 
 describe('Dashboard filter', () => {
@@ -30,6 +31,7 @@ describe('Dashboard filter', () => {
   });
 
   it('should apply filter', () => {
+    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
     getChartAliases(
       WORLD_HEALTH_CHARTS.filter(({ viz }) => viz !== 'filter_box'),
     ).then(nonFilterChartAliases => {
