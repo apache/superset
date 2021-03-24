@@ -390,6 +390,7 @@ type NotificationSetting = {
   method?: NotificationMethod;
   recipients: string;
   options: NotificationMethod[];
+  reportFormat: 'PNG' | 'PDF';
 };
 
 interface NotificationMethodProps {
@@ -405,13 +406,30 @@ const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   onUpdate,
   onRemove,
 }) => {
-  const { method, recipients, options } = setting || {};
+  const { method, recipients, options, reportFormat } = setting || {};
   const [recipientValue, setRecipientValue] = useState<string>(
     recipients || '',
+  );
+  const [formatValue, setFormatValue] = useState<string>(
+    reportFormat || 'PNG',
   );
 
   if (!setting) {
     return null;
+  }
+
+  const onFormatChange = (event: any) => {
+    const { target } = event;
+    setFormatValue(target.value)
+
+    if (onUpdate) {
+      const updatedSetting = {
+        ...setting,
+        reportFormat: target.value,
+      };
+
+      onUpdate(index, updatedSetting);
+    }
   }
 
   const onMethodChange = (method: NotificationMethod) => {
@@ -485,6 +503,11 @@ const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       </div>
       {method !== undefined ? (
         <StyledInputContainer>
+          <div className="control-label">{t("format")}</div>
+          <Radio.Group onChange={onFormatChange} value={formatValue}>
+            <Radio value="PNG">PNG</Radio>
+            <Radio value="PDF">PDF</Radio>
+          </Radio.Group>
           <div className="control-label">{t(method)}</div>
           <div className="input-container">
             <textarea
@@ -598,6 +621,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         recipients.push({
           recipient_config_json: {
             target: setting.recipients,
+            format: setting.reportFormat,
           },
           type: setting.method,
         });
@@ -1385,18 +1409,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <h4>{t('Notification method')}</h4>
               <span className="required">*</span>
             </StyledSectionTitle>
-            <NotificationMethod
-              setting={notificationSettings[0]}
-              index={0}
-              onUpdate={updateNotificationSetting}
-              onRemove={removeNotificationSetting}
-            />
-            <NotificationMethod
-              setting={notificationSettings[1]}
-              index={1}
-              onUpdate={updateNotificationSetting}
-              onRemove={removeNotificationSetting}
-            />
+            {notificationSettings.map((notificationSetting, i) => (
+              <NotificationMethod
+                setting={notificationSetting}
+                index={i}
+                onUpdate={updateNotificationSetting}
+                onRemove={removeNotificationSetting}
+              />
+            ))}
             <NotificationMethodAdd
               data-test="notification-add"
               status={notificationAddState}
