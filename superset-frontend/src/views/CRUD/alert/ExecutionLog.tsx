@@ -85,17 +85,6 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
       {
         Cell: ({
           row: {
-            original: { execution_id: executionId },
-          },
-        }: any) => executionId.slice(0, 6),
-        accessor: 'execution_id',
-        Header: t('Execution ID'),
-        size: 'xs',
-        disableSortBy: true,
-      },
-      {
-        Cell: ({
-          row: {
             original: { state },
           },
         }: any) => (
@@ -103,6 +92,17 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
         ),
         accessor: 'state',
         Header: t('State'),
+        size: 'xs',
+        disableSortBy: true,
+      },
+      {
+        Cell: ({
+          row: {
+            original: { execution_id: executionId },
+          },
+        }: any) => executionId.slice(0, 6),
+        accessor: 'execution_id',
+        Header: t('Execution ID'),
         size: 'xs',
         disableSortBy: true,
       },
