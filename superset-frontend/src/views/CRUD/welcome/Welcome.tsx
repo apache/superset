@@ -120,10 +120,10 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   const [dashboardData, setDashboardData] = useState<Array<object> | null>(
     null,
   );
-  
+
   const userid = user.userId;
   const id = userid.toString();
-  
+
   useEffect(() => {
     const userKey = getFromLocalStorage(id, null);
     if (userKey && !userKey.thumbnails) setChecked(false);
@@ -150,7 +150,6 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
       );
 
     // Sets other activity data in parallel with recents api call
-    const id = user.userId;
     getUserOwnedObjects(id, 'dashboard')
       .then(r => {
         setDashboardData(r);
@@ -180,7 +179,6 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         );
       });
   }, []);
-
 
   const handleToggle = () => {
     setChecked(!checked);
@@ -228,8 +226,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           ) : (
             <DashboardTable
               user={user}
-              mine={activityData.myDash}
-              isLoading={loading}
+              mine={dashboardData}
               showThumbnails={checked}
               featureFlag={isFeatureEnabled(FeatureFlag.THUMBNAILS)}
             />
@@ -242,7 +239,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
             <SavedQueries
               showThumbnails={checked}
               user={user}
-              mine={activityData.myQuery}
+              mine={queryData}
               featureFlag={isFeatureEnabled(FeatureFlag.THUMBNAILS)}
             />
           )}
@@ -254,7 +251,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
             <ChartTable
               showThumbnails={checked}
               user={user}
-              mine={activityData.myChart}
+              mine={chartData}
               featureFlag={isFeatureEnabled(FeatureFlag.THUMBNAILS)}
             />
           )}
