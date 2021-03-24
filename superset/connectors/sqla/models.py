@@ -49,7 +49,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
-from sqlalchemy.sql.elements import ColumnClause
+from sqlalchemy.sql.elements import ClauseList, ColumnClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom, TextClause
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy.types import TypeEngine
@@ -896,7 +896,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         if self.database.db_engine_spec.allows_alias_to_source_column:
             return
 
-        orderby_clause = str(query._order_by_clause)  # pylint: disable=protected-access
+        orderby_clauses: ClauseList = query._order_by_clause  # pylint: disable=protected-access
+        orderby_clauses_str = str(orderby_clauses)
+        allows_alias_in_orderby = self.database.db_engine_spec.allows_alias_in_orderby
 
         # Iterate through selected columns, if column alias appears in orderby
         # use another `alias`. The final output columns will still use the
@@ -904,9 +906,18 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         # querying.
         for col in query.inner_columns:
             if isinstance(col, Label) and re.search(
-                f"\\b{col.name}\\b", orderby_clause
+                f"\\b{col.name}\\b", orderby_clauses_str, re.IGNORECASE
             ):
                 col.name = f"{col.name}__"
+                if allows_alias_in_orderby:
+                    # update the reference of this selected column in order by
+                    for clause in orderby_clauses:
+                        elem = clause
+                        while hasattr(elem, "element"):
+                            if isinstance(elem, Label) and elem.element is col.element:
+                                elem.name = col.name
+                                break
+                            elem = elem.element
 
     def _get_sqla_row_level_filters(
         self, template_processor: BaseTemplateProcessor
@@ -1117,12 +1128,23 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 dttm_col.get_time_filter(from_dttm, to_dttm, time_range_endpoints)
             )
 
-        select_exprs += metrics_exprs
+        # Always remove duplicates by column name, as sometimes `metrics_exprs`
+        # can have the same name as a groupby column (e.g. when users use
+        # raw columns as custom SQL adhoc metric).
+        select_exprs = remove_duplicates(
+            select_exprs + metrics_exprs, key=lambda x: x.name
+        )
+
+        # Expected output columns
         labels_expected = [c.name for c in select_exprs]
+
+        # Order by columns are "hidden" columns, some databases require them
+        # always be present in SELECT if an aggregation function is used
         if not db_engine_spec.allows_hidden_ordeby_agg:
             select_exprs = remove_duplicates(
                 select_exprs + orderby_exprs, key=lambda x: x.name
             )
+
         qry = sa.select(select_exprs)
 
         tbl = self.get_from_clause(template_processor)

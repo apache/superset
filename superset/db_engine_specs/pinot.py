@@ -17,6 +17,7 @@
 from typing import Dict, Optional
 
 from sqlalchemy.sql.expression import ColumnClause
+
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 
 

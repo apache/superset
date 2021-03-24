@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import re
+from typing import Any, Dict
 
 import pytest
 
@@ -24,7 +25,6 @@ from superset.common.query_context import QueryContext
 from superset.common.query_object import QueryObject
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import cache_manager
-from superset.models.cache import CacheKey
 from superset.utils.core import (
     AdhocMetricExpressionType,
     backend,
@@ -37,7 +37,7 @@ from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with
 from tests.fixtures.query_context import get_query_context
 
 
-def get_sql_text(payload: QueryContext) -> str:
+def get_sql_text(payload: Dict[str, Any]) -> str:
     payload["result_type"] = ChartDataResultType.QUERY.value
     query_context = ChartDataQueryContextSchema().load(payload)
     responses = query_context.get_payload()
