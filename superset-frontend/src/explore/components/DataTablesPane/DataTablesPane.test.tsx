@@ -131,5 +131,5 @@ test('Shoud show tabs: View samples', async () => {
   await act(async () => {
     userEvent.click(await screen.findByText('View samples'));
   });
-  expect(screen.queryByText('0 rows retrieved')).toBeVisible();
+  expect(screen.getByText('0 rows retrieved')).toBeVisible();
 });
