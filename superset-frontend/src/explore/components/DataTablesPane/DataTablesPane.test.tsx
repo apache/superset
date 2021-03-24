@@ -109,8 +109,8 @@ test('Shoud show tabs', async () => {
   expect(screen.queryByText('View results')).not.toBeInTheDocument();
   expect(screen.queryByText('View samples')).not.toBeInTheDocument();
   userEvent.click(await screen.findByText('Data'));
-  expect(screen.queryByText('View results')).toBeVisible();
-  expect(screen.queryByText('View samples')).toBeVisible();
+  expect(screen.getByText('View results')).toBeVisible();
+  expect(screen.getByText('View samples')).toBeVisible();
 });
 
 test('Shoud show tabs: View results', async () => {
