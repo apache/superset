@@ -68,7 +68,7 @@ Superset is only as good as the databases it can query. This release saw the exp
 
 # PR Highlights
 
-**Dashboard Native Filters**
+**Progress On Dashboard Native Filters**
 
 - feat(chart-data): add rowcount, timegrain and column result types (#[13271](https://github.com/apache/superset/pull/13271))
 - feat(native-filters): enable filter indicator and make datasource optional (#[13148](https://github.com/apache/superset/pull/13148))
@@ -78,14 +78,14 @@ Superset is only as good as the databases it can query. This release saw the exp
 - feat(native-filters): Add defaultValue for Native filters modal (#[12199](https://github.com/apache/superset/pull/12199))
 - feat(native-filters): apply scoping of native filters to dashboard (#[12716](https://github.com/apache/superset/pull/12716))
 
-**Dashboard Level Access**
+**Progress On Dashboard Level Access**
 
 - feat(dashboard-rbac): dashboard lists (#[12680](https://github.com/apache/superset/pull/12680))
 - feat(dashboard-rbac): add support for related roles (#[13035](https://github.com/apache/superset/pull/13035))
 - feat(dashboard-rbac): dashboards API support for roles create/update + roles validation (#[12865](https://github.com/apache/superset/pull/12865))
 - feat(dashboard-rbac): `dashboard_view` access enforcement (#[12875](https://github.com/apache/superset/pull/12875))
 
-**Explore**
+**Improvements to Explore**
 
 - feat: Add sort by metric for charts with multiple metrics (#[13057](https://github.com/apache/superset/pull/13057))
 - feat: add sort_by_metric for charts with single metric (#[13058](https://github.com/apache/superset/pull/13058))
@@ -94,7 +94,7 @@ Superset is only as good as the databases it can query. This release saw the exp
 - feat: clear search on dataset change (#[12909](https://github.com/apache/superset/pull/12909))
 - feat: default timepicker to last week when dataset is changed (#[12609](https://github.com/apache/superset/pull/12609))
 
-**Developer Experience**
+**Improvements to Developer Experience**
 
 - chore: add non-dev docker-compose workflow (#[13143](https://github.com/apache/superset/pull/13143))
 - feat(style-theme): add support for custom superset themes (#[12858](https://github.com/apache/superset/pull/12858))
