@@ -18,7 +18,7 @@
  */
 
 import React from 'react';
-import { render, act, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { SupersetClient } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import DatabaseSelector from '.';
@@ -148,33 +148,34 @@ test('Should render', async () => {
   expect(await screen.findByTestId('DatabaseSelector')).toBeInTheDocument();
 });
 
-test('Refresh should works', async () => {
+test('Refresh should work', async () => {
   const props = createProps();
-  await act(async () => {
-    render(<DatabaseSelector {...props} />);
+
+  render(<DatabaseSelector {...props} />);
+
+  await waitFor(() => {
+    expect(SupersetClientGet).toBeCalledTimes(2);
+    expect(props.getDbList).toBeCalledTimes(1);
+    expect(props.getTableList).toBeCalledTimes(0);
+    expect(props.handleError).toBeCalledTimes(0);
+    expect(props.onDbChange).toBeCalledTimes(0);
+    expect(props.onSchemaChange).toBeCalledTimes(0);
+    expect(props.onSchemasLoad).toBeCalledTimes(1);
+    expect(props.onChange).toBeCalledTimes(0);
   });
 
-  expect(SupersetClientGet).toBeCalledTimes(2);
-  expect(props.getDbList).toBeCalledTimes(1);
-  expect(props.getTableList).toBeCalledTimes(0);
-  expect(props.handleError).toBeCalledTimes(0);
-  expect(props.onDbChange).toBeCalledTimes(0);
-  expect(props.onSchemaChange).toBeCalledTimes(0);
-  expect(props.onSchemasLoad).toBeCalledTimes(1);
-  expect(props.onChange).toBeCalledTimes(0);
+  userEvent.click(screen.getByRole('button'));
 
-  await act(async () => {
-    userEvent.click(screen.getByRole('button'));
+  await waitFor(() => {
+    expect(SupersetClientGet).toBeCalledTimes(3);
+    expect(props.getDbList).toBeCalledTimes(1);
+    expect(props.getTableList).toBeCalledTimes(0);
+    expect(props.handleError).toBeCalledTimes(0);
+    expect(props.onDbChange).toBeCalledTimes(1);
+    expect(props.onSchemaChange).toBeCalledTimes(1);
+    expect(props.onSchemasLoad).toBeCalledTimes(2);
+    expect(props.onChange).toBeCalledTimes(1);
   });
-
-  expect(SupersetClientGet).toBeCalledTimes(3);
-  expect(props.getDbList).toBeCalledTimes(1);
-  expect(props.getTableList).toBeCalledTimes(0);
-  expect(props.handleError).toBeCalledTimes(0);
-  expect(props.onDbChange).toBeCalledTimes(1);
-  expect(props.onSchemaChange).toBeCalledTimes(1);
-  expect(props.onSchemasLoad).toBeCalledTimes(2);
-  expect(props.onChange).toBeCalledTimes(1);
 });
 
 test('Should database select display options', async () => {
