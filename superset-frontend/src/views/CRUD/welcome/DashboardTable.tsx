@@ -42,6 +42,8 @@ function DashboardTable({
   addDangerToast,
   addSuccessToast,
   mine,
+  showThumbnails,
+  featureFlag,
 }: DashboardTableProps) {
   const history = useHistory();
   const {
@@ -191,6 +193,8 @@ function DashboardTable({
               dashboard={e}
               hasPerm={hasPerm}
               bulkSelectEnabled={false}
+              featureFlag={featureFlag}
+              showThumbnails={showThumbnails}
               dashboardFilter={dashboardFilter}
               refreshData={refreshData}
               addDangerToast={addDangerToast}
