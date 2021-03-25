@@ -22,7 +22,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocMetricEditPopover from '.';
 
-const factoryProps = () => ({
+const createProps = () => ({
   onChange: jest.fn(),
   onClose: jest.fn(),
   onResize: jest.fn(),
@@ -54,13 +54,13 @@ const factoryProps = () => ({
 });
 
 test('Should render', () => {
-  const props = factoryProps();
+  const props = createProps();
   render(<AdhocMetricEditPopover {...props} />);
   expect(screen.getByTestId('metrics-edit-popover')).toBeVisible();
 });
 
 test('Should render correct elements', () => {
-  const props = factoryProps();
+  const props = createProps();
   render(<AdhocMetricEditPopover {...props} />);
 
   expect(screen.getByRole('tablist')).toBeVisible();
@@ -77,7 +77,7 @@ test('Should render correct elements', () => {
 });
 
 test('When click on "Close" should call onClose', () => {
-  const props = factoryProps();
+  const props = createProps();
   render(<AdhocMetricEditPopover {...props} />);
   expect(props.onClose).toBeCalledTimes(0);
   userEvent.click(screen.getByRole('button', { name: 'Close' }));
@@ -85,7 +85,7 @@ test('When click on "Close" should call onClose', () => {
 });
 
 test('When click on "Save" should call onChange and onClose', () => {
-  const props = factoryProps();
+  const props = createProps();
   render(<AdhocMetricEditPopover {...props} />);
   expect(props.onChange).toBeCalledTimes(0);
   expect(props.onClose).toBeCalledTimes(0);
@@ -107,7 +107,7 @@ test('When click on "Save" should call onChange and onClose', () => {
 });
 
 test('Should switch to tab:Simple', () => {
-  const props = factoryProps();
+  const props = createProps();
   props.getCurrentTab.mockImplementation(tab => {
     props.adhocMetric.expressionType = tab;
   });
@@ -132,7 +132,7 @@ test('Should switch to tab:Simple', () => {
 });
 
 test('Should render tab "Simple" correctly', () => {
-  const props = factoryProps();
+  const props = createProps();
   props.getCurrentTab.mockImplementation(tab => {
     props.adhocMetric.expressionType = tab;
   });
@@ -148,7 +148,7 @@ test('Should render tab "Simple" correctly', () => {
 });
 
 test('Should switch to tab:Custom SQL', () => {
-  const props = factoryProps();
+  const props = createProps();
   props.getCurrentTab.mockImplementation(tab => {
     props.adhocMetric.expressionType = tab;
   });
@@ -175,7 +175,7 @@ test('Should switch to tab:Custom SQL', () => {
 });
 
 test('Should render tab "Custom SQL" correctly', () => {
-  const props = factoryProps();
+  const props = createProps();
   props.getCurrentTab.mockImplementation(tab => {
     props.adhocMetric.expressionType = tab;
   });
