@@ -25,13 +25,13 @@ import DatabaseSelector from '.';
 
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
 
-let defaultProps: any = {
-  dbId: 123,
-  formMode: true,
-  isDatabaseSelectEnabled: false,
+const createProps = () => ({
+  dbId: 1,
+  formMode: false,
+  isDatabaseSelectEnabled: true,
   readOnly: false,
-  sqlLabMode: false,
-  schema: 'schema',
+  schema: 'public',
+  sqlLabMode: true,
   getDbList: jest.fn(),
   getTableList: jest.fn(),
   handleError: jest.fn(),
@@ -39,7 +39,7 @@ let defaultProps: any = {
   onSchemaChange: jest.fn(),
   onSchemasLoad: jest.fn(),
   onChange: jest.fn(),
-};
+});
 
 beforeEach(() => {
   jest.resetAllMocks();
@@ -140,34 +140,16 @@ beforeEach(() => {
       } as any;
     },
   );
-
-  defaultProps = {
-    dbId: 1,
-    formMode: false,
-    isDatabaseSelectEnabled: true,
-    readOnly: false,
-    schema: 'public',
-    sqlLabMode: true,
-    getDbList: jest.fn(),
-    getTableList: jest.fn(),
-    handleError: jest.fn(),
-    onDbChange: jest.fn(),
-    onSchemaChange: jest.fn(),
-    onSchemasLoad: jest.fn(),
-    onChange: jest.fn(),
-  };
 });
 
 test('Should render', async () => {
-  const props = { ...defaultProps };
-  await act(async () => {
-    render(<DatabaseSelector {...props} />);
-  });
-  expect(screen.getByTestId('DatabaseSelector')).toBeInTheDocument();
+  const props = createProps();
+  render(<DatabaseSelector {...props} />);
+  expect(await screen.findByTestId('DatabaseSelector')).toBeInTheDocument();
 });
 
 test('Refresh should works', async () => {
-  const props = { ...defaultProps };
+  const props = createProps();
   await act(async () => {
     render(<DatabaseSelector {...props} />);
   });
@@ -196,7 +178,7 @@ test('Refresh should works', async () => {
 });
 
 test('Should database select display options', async () => {
-  const props = { ...defaultProps };
+  const props = createProps();
   await act(async () => {
     render(<DatabaseSelector {...props} />);
   });
@@ -208,7 +190,7 @@ test('Should database select display options', async () => {
 });
 
 test('Should schema select display options', async () => {
-  const props = { ...defaultProps };
+  const props = createProps();
   await act(async () => {
     render(<DatabaseSelector {...props} />);
   });
