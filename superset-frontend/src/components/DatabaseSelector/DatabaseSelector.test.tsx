@@ -179,14 +179,12 @@ test('Refresh should works', async () => {
 
 test('Should database select display options', async () => {
   const props = createProps();
-  await act(async () => {
-    render(<DatabaseSelector {...props} />);
-  });
-
-  const selector = screen.getByText('Database:').parentElement;
-
+  render(<DatabaseSelector {...props} />);
+  const selector = await screen.findByText('Database:');
   expect(selector).toBeInTheDocument();
-  expect(selector?.textContent).toBe('Database:postgresql examples');
+  expect(selector.parentElement).toHaveTextContent(
+    'Database:postgresql examples',
+  );
 });
 
 test('Should schema select display options', async () => {
