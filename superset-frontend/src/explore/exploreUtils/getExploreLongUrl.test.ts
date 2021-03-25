@@ -18,29 +18,18 @@
  */
 import { getExploreLongUrl } from '.';
 
-let params = {
+const createParams = () => ({
   formData: {
     datasource: 'datasource',
     viz_type: 'viz_type',
   },
-  endpointType: 'standalone',
+  endpointType: 'endpointType',
   allowOverflow: true,
   extraSearch: { same: 'any-string' },
-};
-
-beforeEach(() => {
-  params = {
-    formData: {
-      datasource: 'datasource',
-      viz_type: 'viz_type',
-    },
-    endpointType: 'endpointType',
-    allowOverflow: true,
-    extraSearch: { same: 'any-string' },
-  };
 });
 
 test('Should return null if formData.datasource is falsy', () => {
+  const params = createParams();
   expect(
     getExploreLongUrl(
       {},
@@ -52,6 +41,7 @@ test('Should return null if formData.datasource is falsy', () => {
 });
 
 test('Get url when endpointType:standalone', () => {
+  const params = createParams();
   expect(
     getExploreLongUrl(
       params.formData,
@@ -65,6 +55,7 @@ test('Get url when endpointType:standalone', () => {
 });
 
 test('Get url when endpointType:standalone and allowOverflow:false', () => {
+  const params = createParams();
   expect(
     getExploreLongUrl(
       params.formData,
@@ -78,6 +69,7 @@ test('Get url when endpointType:standalone and allowOverflow:false', () => {
 });
 
 test('Get url when endpointType:results', () => {
+  const params = createParams();
   expect(
     getExploreLongUrl(
       params.formData,
@@ -91,6 +83,7 @@ test('Get url when endpointType:results', () => {
 });
 
 test('Get url when endpointType:results and allowOverflow:false', () => {
+  const params = createParams();
   expect(
     getExploreLongUrl(params.formData, 'results', false, params.extraSearch),
   ).toBe(

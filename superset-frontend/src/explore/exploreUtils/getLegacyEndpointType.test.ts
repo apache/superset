@@ -18,12 +18,17 @@
  */
 import { getLegacyEndpointType } from '.';
 
-const params = { resultType: 'resultType', resultFormat: 'resultFormat' };
+const createParams = () => ({
+  resultType: 'resultType',
+  resultFormat: 'resultFormat',
+});
 
 test('Should return resultType when resultFormat!=csv', () => {
-  expect(getLegacyEndpointType(params)).toBe('resultType');
+  expect(getLegacyEndpointType(createParams())).toBe('resultType');
 });
 
 test('Should return resultFormat when resultFormat:csv', () => {
-  expect(getLegacyEndpointType({ ...params, resultFormat: 'csv' })).toBe('csv');
+  expect(
+    getLegacyEndpointType({ ...createParams(), resultFormat: 'csv' }),
+  ).toBe('csv');
 });

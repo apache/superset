@@ -18,7 +18,7 @@
  */
 import { getExploreUrl } from '.';
 
-let params = {
+const createParams = () => ({
   formData: {
     datasource: 'datasource',
     viz_type: 'viz_type',
@@ -29,34 +29,22 @@ let params = {
   requestParams: {},
   allowDomainSharding: false,
   method: 'POST',
-};
-
-beforeEach(() => {
-  params = {
-    formData: {
-      datasource: 'datasource',
-      viz_type: 'viz_type',
-    },
-    endpointType: 'base',
-    force: false,
-    curUrl: null,
-    requestParams: {},
-    allowDomainSharding: false,
-    method: 'POST',
-  };
 });
 
 test('Get ExploreUrl whit default params', () => {
+  const params = createParams();
   expect(getExploreUrl(params)).toBe('http:///superset/explore/');
 });
 
 test('Get ExploreUrl whit endpointType:full', () => {
+  const params = createParams();
   expect(getExploreUrl({ ...params, endpointType: 'full' })).toBe(
     'http:///superset/explore_json/',
   );
 });
 
 test('Get ExploreUrl whit endpointType:full and method:GET', () => {
+  const params = createParams();
   expect(
     getExploreUrl({ ...params, endpointType: 'full', method: 'GET' }),
   ).toBe('http:///superset/explore_json/');
