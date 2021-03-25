@@ -24,7 +24,6 @@ export type FormLabelProps = {
   children: ReactNode;
   htmlFor?: string;
   required?: boolean;
-  className?: string;
 };
 
 export default function FormLabel({
