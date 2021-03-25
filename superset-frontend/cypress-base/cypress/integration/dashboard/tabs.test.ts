@@ -158,10 +158,10 @@ describe('Dashboard tabs', () => {
       });
     });
 
-    getChartAliasBySpec(LINE_CHART).then(lineChartAlias => {
-      // click row level tab, send 1 more query
-      cy.get('.ant-tabs-tab').contains('row tab 2').click();
+    // click row level tab, send 1 more query
+    cy.get('.ant-tabs-tab').contains('row tab 2').click();
 
+    getChartAliasBySpec(LINE_CHART).then(lineChartAlias => {
       cy.wait(lineChartAlias).then(({ request }) => {
         const requestBody = parsePostForm(request.body);
         const requestParams = JSON.parse(requestBody.form_data as string);
