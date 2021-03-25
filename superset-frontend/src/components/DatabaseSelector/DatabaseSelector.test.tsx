@@ -160,10 +160,8 @@ beforeEach(() => {
 
 test('Should render', async () => {
   const props = { ...defaultProps };
-  await act(async () => {
-    render(<DatabaseSelector {...props} />);
-  });
-  expect(screen.getByTestId('DatabaseSelector')).toBeInTheDocument();
+  render(<DatabaseSelector {...props} />);
+  expect(await screen.findByTestId('DatabaseSelector')).toBeInTheDocument();
 });
 
 test('Refresh should works', async () => {
