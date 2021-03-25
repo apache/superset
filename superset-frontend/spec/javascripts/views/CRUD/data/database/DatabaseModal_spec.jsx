@@ -33,11 +33,9 @@ import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 // store needed for withToasts(DatabaseModal)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
-
 const mockedProps = {
   show: true,
 };
-
 const dbProps = {
   show: true,
   database: {
@@ -47,14 +45,7 @@ const dbProps = {
     expose_in_sqllab: true,
   },
 };
-
-jest.mock('react-redux', () => ({
-  ...jest.requireActual('react-redux'),
-  useSelector: jest.fn(),
-}));
-
 const DATABASE_ENDPOINT = 'glob:*/api/v1/database/*';
-
 fetchMock.get(DATABASE_ENDPOINT, {});
 
 describe('DatabaseModal', () => {
@@ -93,6 +84,7 @@ describe('DatabaseModal', () => {
       expect(wrapper.find('input[name="sqlalchemy_uri"]')).toExist();
     });
   });
+
   describe('RTL', () => {
     describe('initial load', () => {
       it('displays the correct properties from the db when selected', () => {
@@ -111,6 +103,7 @@ describe('DatabaseModal', () => {
           name: /sql lab settings/i,
         });
         userEvent.click(sqlLabSettingsTab);
+
         const exposeInSqlLab = screen.getByText('Expose in SQL Lab');
         const exposeChoicesForm = exposeInSqlLab.parentElement.nextSibling;
         const schemaField = screen.getByText('CTAS & CVAS SCHEMA')
@@ -138,6 +131,7 @@ describe('DatabaseModal', () => {
           name: /sql lab settings/i,
         });
         userEvent.click(sqlLabSettingsTab);
+
         const exposeInSqlLab = screen.getByText('Expose in SQL Lab');
         const exposeChoicesForm = exposeInSqlLab.parentElement.nextSibling;
         const schemaField = screen.getByText('CTAS & CVAS SCHEMA')
@@ -154,6 +148,7 @@ describe('DatabaseModal', () => {
           </Provider>
         </ThemeProvider>,
       );
+
       // Select SQL Lab settings tab
       const sqlLabSettingsTab = screen.getByRole('tab', {
         name: /sql lab settings/i,
@@ -162,6 +157,7 @@ describe('DatabaseModal', () => {
       // Grab all SQL Lab Settings by their labels
       const exposeInSqlLab = screen.getByText('Expose in SQL Lab');
       const exposeChoicesForm = exposeInSqlLab.parentElement.nextSibling;
+
       // While 'Expose in SQL Lab' is checked, all settings should display
       expect(exposeChoicesForm).toHaveClass('open');
 
@@ -253,6 +249,7 @@ describe('DatabaseModal', () => {
 
       // While CTAS & CVAS are unchecked, schema field is not visible
       expect(schemaField).not.toHaveClass('open');
+
       // Check both "Allow CTAS" and "Allow CVAS" to reveal schema field
       userEvent.click(allowCTAS);
       userEvent.click(allowCVAS);
