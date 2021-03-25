@@ -207,17 +207,13 @@ test('Should database select display options', async () => {
 
 test('Should schema select display options', async () => {
   const props = { ...defaultProps };
-  await act(async () => {
-    render(<DatabaseSelector {...props} />);
-  });
+  render(<DatabaseSelector {...props} />);
 
-  const selector = screen.getByText('Schema:');
+  const selector = await screen.findByText('Schema:');
   expect(selector).toBeInTheDocument();
-  expect(selector.parentElement?.textContent).toBe('Schema: public');
+  expect(selector.parentElement).toHaveTextContent('Schema: public');
 
-  await act(async () => {
-    userEvent.click(screen.getByRole('button'));
-  });
+  userEvent.click(screen.getByRole('button'));
 
-  expect(screen.getByText('Select a schema (2)')).toBeInTheDocument();
+  expect(await screen.findByText('Select a schema (2)')).toBeInTheDocument();
 });
