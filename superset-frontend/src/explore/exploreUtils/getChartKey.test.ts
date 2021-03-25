@@ -18,20 +18,6 @@
  */
 import { getChartKey } from '.';
 
-// This validation has not been implemented
-test.skip('Should return 0 when called without arguments', () => {
-  expect(getChartKey()).toBe(0);
-});
-
-test('should return 0 when called with empty object', () => {
-  expect(getChartKey({})).toBe(0);
-});
-
-// The function does not yet have this behavior
-test.skip('should return 0 when called with incomplete object', () => {
-  expect(getChartKey({ slice: {} })).toBe(0);
-});
-
 test('should return 0 when called with complete object', () => {
   expect(getChartKey({ slice: { slice_id: 100 } })).toBe(100);
 });

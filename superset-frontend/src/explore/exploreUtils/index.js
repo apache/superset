@@ -203,11 +203,6 @@ export const shouldUseLegacyApi = formData => {
   return vizMetadata ? vizMetadata.useLegacyApi : false;
 };
 
-/**
- * buildV1ChartDataPayload
- * When trying to create a test for this function, an error occurs inside the buildQueryContext function.
- * Even when trying to create mock for '@superset-ui/core' it was not possible to create tests for this function
- */
 export const buildV1ChartDataPayload = ({
   formData,
   force,
@@ -241,9 +236,6 @@ export const buildV1ChartDataPayload = ({
 export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
   resultFormat === 'csv' ? resultFormat : resultType;
 
-/**
- * I really have no idea how to test this function
- */
 export function postForm(url, payload, target = '_blank') {
   if (!url) {
     return;
@@ -269,9 +261,6 @@ export function postForm(url, payload, target = '_blank') {
   document.body.removeChild(hiddenForm);
 }
 
-/**
- * There was a problem trying to create the test for this function. See the file "exploreChart.test.ts"
- */
 export const exportChart = ({
   formData,
   resultFormat = 'json',
@@ -300,9 +289,6 @@ export const exportChart = ({
   postForm(url, payload);
 };
 
-/**
- * There was a problem trying to create the test for this function. See the file "exploreChart.test.ts"
- */
 export const exploreChart = formData => {
   const url = getExploreUrl({
     formData,
@@ -312,10 +298,6 @@ export const exploreChart = formData => {
   postForm(url, formData);
 };
 
-/**
- * If we use window.setTime or the test works correctly. If we do not use the test it does not work.
- * Even though I believe that this exchange will not cause any impact, I preferred not to do it and leave these comments explaining what I believe should be done to make the test of this function works.
- */
 export const useDebouncedEffect = (effect, delay, deps) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const callback = useCallback(effect, deps);

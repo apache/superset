@@ -18,12 +18,6 @@
  */
 import { shouldUseLegacyApi } from '.';
 
-// This validation has not been implemented
-test.skip('Should throw exception when input is invalid', () => {
-  expect(shouldUseLegacyApi()).toThrowError();
-  expect(shouldUseLegacyApi({})).toThrowError();
-});
-
 test('Should return false by viz_type:name', () => {
   expect(shouldUseLegacyApi({ viz_type: 'name' })).toBe(false);
 });
