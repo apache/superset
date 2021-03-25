@@ -44,15 +44,9 @@ export interface ChartSpec {
 }
 
 export function getChartGridComponent({ name, viz }: ChartSpec) {
-  return (
-    cy
-      .get('[data-test="grid-content"] [data-test="editable-title"]')
-      .contains(name)
-      // parentsUntil returns the child of the element matching the selector
-      .parentsUntil('[data-test="chart-grid-component"]')
-      .parent()
-      .should('have.attr', 'data-test-viz-type', viz)
-  );
+  return cy
+    .get(`[data-test="chart-grid-component"][data-test-chart-name="${name}"]`)
+    .should('have.attr', 'data-test-viz-type', viz);
 }
 
 export function waitForChartLoad(chart: ChartSpec) {
