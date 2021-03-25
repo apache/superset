@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 import os
 import tempfile
 from typing import TYPE_CHECKING
@@ -46,6 +47,8 @@ if TYPE_CHECKING:
 
 config = app.config
 stats_logger = config["STATS_LOGGER"]
+
+logger = logging.getLogger(__name__)
 
 
 def sqlalchemy_uri_form_validator(_: _, field: StringField) -> None:
@@ -235,11 +238,9 @@ class CsvToDatabaseView(SimpleFormView):
                 db.session.add(sqla_table)
             db.session.commit()
         except Exception as ex:  # pylint: disable=broad-except
+            logger.exception(ex)
             db.session.rollback()
-            try:
-                os.remove(uploaded_tmp_file_path)
-            except OSError:
-                pass
+
             message = _(
                 'Unable to upload CSV file "%(filename)s" to table '
                 '"%(table_name)s" in database "%(db_name)s". '
@@ -253,8 +254,12 @@ class CsvToDatabaseView(SimpleFormView):
             flash(message, "danger")
             stats_logger.incr("failed_csv_upload")
             return redirect("/csvtodatabaseview/form")
-
-        os.remove(uploaded_tmp_file_path)
+        finally:
+            try:
+                os.remove(uploaded_tmp_file_path)
+            except OSError as ex:
+                logger.warning("Failed to remove temp file")
+                logger.exception(ex)
         # Go back to welcome page / splash screen
         message = _(
             'CSV file "%(csv_filename)s" uploaded to table "%(table_name)s" in '
