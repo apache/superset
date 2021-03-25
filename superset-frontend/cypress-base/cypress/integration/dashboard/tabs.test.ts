@@ -104,13 +104,7 @@ describe('Dashboard tabs', () => {
   it('should load charts when tab is visible', () => {
     // landing in first tab, should see 2 charts
     waitForChartLoad(FILTER_BOX);
-    cy.get('[data-test="grid-container"]')
-      .find('.filter_box')
-      .should('be.visible');
     waitForChartLoad(TREEMAP);
-    cy.get('[data-test="grid-container"]')
-      .find('.treemap')
-      .should('be.visible');
     cy.get('[data-test="grid-container"]')
       .find('.box_plot')
       .should('not.exist');
