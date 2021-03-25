@@ -65,6 +65,7 @@ interface DatasetOptionAutocomplete {
 }
 
 interface ResultSetProps {
+  showControls?: boolean;
   actions: Record<string, any>;
   cache?: boolean;
   csv?: boolean;
