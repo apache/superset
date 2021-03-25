@@ -30,13 +30,6 @@ const mockedProps = {
   onChange: () => null,
 };
 
-jest.mock('../Icon', () => ({
-  __esModule: true,
-  default: ({ name }: { name: string }) => (
-    <div data-test="icon" data-name={name} />
-  ),
-}));
-
 test('should render', () => {
   const { container } = render(<IndeterminateCheckbox {...mockedProps} />);
   expect(container).toBeInTheDocument();
@@ -58,20 +51,17 @@ test('should render the checkbox-half icon', () => {
     indeterminate: true,
   };
   render(<IndeterminateCheckbox {...indeterminateProps} />);
-  expect(screen.getByTestId('icon')).toBeInTheDocument();
-  expect(screen.getByTestId('icon')).toHaveAttribute(
-    'data-name',
+  expect(screen.getByRole('img')).toBeInTheDocument();
+  expect(screen.getByRole('img')).toHaveAttribute(
+    'aria-label',
     'checkbox-half',
   );
 });
 
 test('should render the checkbox-off icon', () => {
   render(<IndeterminateCheckbox {...mockedProps} />);
-  expect(screen.getByTestId('icon')).toBeInTheDocument();
-  expect(screen.getByTestId('icon')).toHaveAttribute(
-    'data-name',
-    'checkbox-off',
-  );
+  expect(screen.getByRole('img')).toBeInTheDocument();
+  expect(screen.getByRole('img')).toHaveAttribute('aria-label', 'checkbox-off');
 });
 
 test('should render the checkbox-on icon', () => {
@@ -80,11 +70,8 @@ test('should render the checkbox-on icon', () => {
     checked: true,
   };
   render(<IndeterminateCheckbox {...checkboxOnProps} />);
-  expect(screen.getByTestId('icon')).toBeInTheDocument();
-  expect(screen.getByTestId('icon')).toHaveAttribute(
-    'data-name',
-    'checkbox-on',
-  );
+  expect(screen.getByRole('img')).toBeInTheDocument();
+  expect(screen.getByRole('img')).toHaveAttribute('aria-label', 'checkbox-on');
 });
 
 test('should call the onChange', () => {
