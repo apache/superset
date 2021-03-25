@@ -27,20 +27,15 @@ import {
 } from '@superset-ui/core';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { getChartDataRequest } from 'src/chart/chartAction';
-import Loading from 'src/components/Loading';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import { FilterProps } from './types';
 import { getFormData } from '../../utils';
 import { useCascadingFilters } from './state';
-
-const StyledLoadingBox = styled.div`
-  position: relative;
-  height: ${({ theme }) => theme.gridUnit * 8}px;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 6}px;
-`;
+import LoadingBox from '../LoadingBox';
 
 const FilterItem = styled.div`
-  padding-bottom: 10px;
+  min-height: ${({ theme }) => theme.gridUnit * 10.5}px;
+  padding-bottom: ${({ theme }) => theme.gridUnit * 2.5}px;
 `;
 
 const FilterValue: React.FC<FilterProps> = ({
@@ -112,14 +107,6 @@ const FilterValue: React.FC<FilterProps> = ({
   const setDataMask = (dataMask: DataMask) =>
     onFilterSelectionChange(filter, dataMask);
 
-  if (loading) {
-    return (
-      <StyledLoadingBox>
-        <Loading />
-      </StyledLoadingBox>
-    );
-  }
-
   if (error) {
     return (
       <BasicErrorAlert
@@ -132,16 +119,20 @@ const FilterValue: React.FC<FilterProps> = ({
 
   return (
     <FilterItem data-test="form-item-value">
-      <SuperChart
-        height={20}
-        width={220}
-        formData={formData}
-        // For charts that don't have datasource we need workaround for empty placeholder
-        queriesData={hasDataSource ? state : [{ data: [{}] }]}
-        chartType={filterType}
-        behaviors={[Behavior.NATIVE_FILTER]}
-        hooks={{ setDataMask }}
-      />
+      {loading ? (
+        <LoadingBox />
+      ) : (
+        <SuperChart
+          height={20}
+          width={220}
+          formData={formData}
+          // For charts that don't have datasource we need workaround for empty placeholder
+          queriesData={hasDataSource ? state : [{ data: [{}] }]}
+          chartType={filterType}
+          behaviors={[Behavior.NATIVE_FILTER]}
+          hooks={{ setDataMask }}
+        />
+      )}
     </FilterItem>
   );
 };
