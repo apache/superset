@@ -48,7 +48,7 @@ jest.mock('src/components/AsyncSelect', () => ({
   ),
 }));
 
-let defaultProps = {
+const createProps = () => ({
   value: [],
   dataEndpoint: 'api/v1/dataset/related/owners',
   multi: true,
@@ -56,40 +56,33 @@ let defaultProps = {
   placeholder: 'Select ...',
   onChange: jest.fn(),
   mutator: jest.fn(),
-};
+});
 
 beforeEach(() => {
   jest.resetAllMocks();
-  defaultProps = {
-    value: [],
-    dataEndpoint: 'api/v1/dataset/related/owners',
-    multi: true,
-    onAsyncErrorMessage: 'Error while fetching data',
-    placeholder: 'Select ...',
-    onChange: jest.fn(),
-    mutator: jest.fn(),
-  };
 });
 
 test('Should render', () => {
-  render(<SelectAsyncControl {...defaultProps} />, { useRedux: true });
+  const props = createProps();
+  render(<SelectAsyncControl {...props} />, { useRedux: true });
   expect(screen.getByTestId('SelectAsyncControl')).toBeInTheDocument();
 });
 
 test('Should send correct props to AsyncSelect component - value props', () => {
-  render(<SelectAsyncControl {...defaultProps} />, { useRedux: true });
+  const props = createProps();
+  render(<SelectAsyncControl {...props} />, { useRedux: true });
 
   expect(screen.getByTestId('select-test')).toHaveAttribute(
     'data-data-endpoint',
-    defaultProps.dataEndpoint,
+    props.dataEndpoint,
   );
   expect(screen.getByTestId('select-test')).toHaveAttribute(
     'data-value',
-    JSON.stringify(defaultProps.value),
+    JSON.stringify(props.value),
   );
   expect(screen.getByTestId('select-test')).toHaveAttribute(
     'data-placeholder',
-    defaultProps.placeholder,
+    props.placeholder,
   );
   expect(screen.getByTestId('select-test')).toHaveAttribute(
     'data-multi',
@@ -101,17 +94,19 @@ test('Should send correct props to AsyncSelect component - value props', () => {
 });
 
 test('Should send correct props to AsyncSelect component - function onChange multi:true', () => {
-  render(<SelectAsyncControl {...defaultProps} />, { useRedux: true });
-  expect(defaultProps.onChange).toBeCalledTimes(0);
+  const props = createProps();
+  render(<SelectAsyncControl {...props} />, { useRedux: true });
+  expect(props.onChange).toBeCalledTimes(0);
   userEvent.click(screen.getByText('onChange'));
-  expect(defaultProps.onChange).toBeCalledTimes(1);
+  expect(props.onChange).toBeCalledTimes(1);
 });
 
 test('Should send correct props to AsyncSelect component - function onChange multi:false', () => {
-  render(<SelectAsyncControl {...{ ...defaultProps, multi: false }} />, {
+  const props = createProps();
+  render(<SelectAsyncControl {...{ ...props, multi: false }} />, {
     useRedux: true,
   });
-  expect(defaultProps.onChange).toBeCalledTimes(0);
+  expect(props.onChange).toBeCalledTimes(0);
   userEvent.click(screen.getByText('onChange'));
-  expect(defaultProps.onChange).toBeCalledTimes(1);
+  expect(props.onChange).toBeCalledTimes(1);
 });
