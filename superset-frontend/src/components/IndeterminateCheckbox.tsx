@@ -41,7 +41,6 @@ const IconWithColor = styled(Icon)`
 `;
 
 const HiddenInput = styled.input`
-  visibility: none;
   &[type='checkbox'] {
     cursor: pointer;
     opacity: 0;
