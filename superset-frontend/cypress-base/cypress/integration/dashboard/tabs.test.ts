@@ -186,19 +186,16 @@ describe('Dashboard tabs', () => {
           val: 'South Asia',
         });
       });
-    });
 
-    // navigate to filter and clear filter
-    cy.get('.ant-tabs-tab').contains('Tab A').click();
-    cy.get('.ant-tabs-tab').contains('row tab 1').click();
+      // navigate to filter and clear filter
+      cy.get('.ant-tabs-tab').contains('Tab A').click();
+      cy.get('.ant-tabs-tab').contains('row tab 1').click();
 
-    cy.get('.Select__clear-indicator').click();
-    cy.get('.filter_box button:not(:disabled)').contains('Apply').click();
+      cy.get('.Select__clear-indicator').click();
+      cy.get('.filter_box button:not(:disabled)').contains('Apply').click();
 
-    // trigger 1 new query
-    waitForChartLoad(TREEMAP);
-
-    getChartAliasBySpec(BOX_PLOT).then(boxPlotAlias => {
+      // trigger 1 new query
+      waitForChartLoad(TREEMAP);
       // make sure query API not requested multiple times
       cy.on('fail', err => {
         expect(err.message).to.include('timed out waiting');
