@@ -391,16 +391,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         def sort_day_week() -> int:
             if has_starting_or_ending:
                 return pos["LAST"]
-            elif is_less_than_day:
+            if is_less_than_day:
                 return pos["SECOND"]
-            else:
-                return pos["THIRD"]
+            return pos["THIRD"]
 
         def sort_interval() -> float:
             if is_less_than_day:
                 return second_minute_hour.index(interval)
-            else:
-                return day_week_month_year.index(interval)
+            return day_week_month_year.index(interval)
 
         # 0: all "PT" values should come before "P" values (i.e, PT10M)
         # 1: order values within the above arrays ("D" before "W")
