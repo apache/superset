@@ -16,11 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { interceptChart, parsePostForm, Slice } from 'cypress/utils';
+import { parsePostForm } from 'cypress/utils';
 import {
-  ChartSpec,
   TABBED_DASHBOARD,
-  getChartAliasesBySpec,
   waitForChartLoad,
   getChartAliasBySpec,
 } from './dashboard.helper';
