@@ -258,7 +258,7 @@ class CsvToDatabaseView(SimpleFormView):
             try:
                 os.remove(uploaded_tmp_file_path)
             except OSError as ex:
-                logger.warning("Failed to remove temp file")
+                logger.warning("Failed to remove uploaded temp file")
                 logger.exception(ex)
         # Go back to welcome page / splash screen
         message = _(
