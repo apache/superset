@@ -55,28 +55,26 @@ describe('Dashboard filter', () => {
       });
 
       cy.get('.filter_box button').click({ force: true });
-      cy.wait(nonFilterChartAliases).then(requests =>
-        Promise.all(
-          requests.map(async ({ response, request }) => {
-            const responseBody = response?.body;
-            let requestFilter;
-            if (isLegacyResponse(responseBody)) {
-              const requestFormData = parsePostForm(request.body);
-              const requestParams = JSON.parse(
-                requestFormData.form_data as string,
-              );
-              requestFilter = requestParams.extra_filters[0];
-            } else {
-              requestFilter = request.body.queries[0].filters[0];
-            }
-            expect(requestFilter).deep.eq({
-              col: 'region',
-              op: '==',
-              val: 'South Asia',
-            });
-          }),
-        ),
-      );
+      cy.wait(nonFilterChartAliases).then(requests => {
+        requests.forEach(({ response, request }) => {
+          const responseBody = response?.body;
+          let requestFilter;
+          if (isLegacyResponse(responseBody)) {
+            const requestFormData = parsePostForm(request.body);
+            const requestParams = JSON.parse(
+              requestFormData.form_data as string,
+            );
+            requestFilter = requestParams.extra_filters[0];
+          } else {
+            requestFilter = request.body.queries[0].filters[0];
+          }
+          expect(requestFilter).deep.eq({
+            col: 'region',
+            op: '==',
+            val: 'South Asia',
+          });
+        });
+      });
     });
 
     // TODO add test with South Asia{enter} type action to select filter

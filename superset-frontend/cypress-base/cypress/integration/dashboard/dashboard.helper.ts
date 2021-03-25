@@ -80,7 +80,7 @@ const toSlicelike = ($chart: JQuery<HTMLElement>): Slice => ({
 
 export function getChartAliasBySpec(chart: ChartSpec) {
   return getChartGridComponent(chart).then($chart =>
-    getChartAlias(toSlicelike($chart)),
+    cy.wrap(getChartAlias(toSlicelike($chart))),
   );
 }
 
