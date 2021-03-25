@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import * as http from 'http';
 import * as net from 'net';
 import WebSocket from 'ws';
@@ -8,6 +26,16 @@ const cookie = require('cookie');
 const Redis = require('ioredis');
 
 export type StreamResult = [recordId: string, record: [label: 'data', data: string]];
+
+// sync with superset-frontend/src/components/ErrorMessage/types
+export type ErrorLevel = 'info' | 'warning' | 'error';
+export type SupersetError<ExtraType = Record<string, any> | null> = {
+  error_type: string;
+  extra: ExtraType;
+  level: ErrorLevel;
+  message: string;
+};
+
 type ListenerFunction = (results: StreamResult[]) => void;
 interface EventValue {
   id: string,
@@ -15,12 +43,12 @@ interface EventValue {
   job_id: string,
   user_id?: string,
   status: string,
-  errors?: Array<any>,  // TODO
+  errors?: SupersetError[],
   result_url?: string,
 }
-interface JwtPayload { channel: string };
+interface JwtPayload { channel: string }
 interface FetchRangeFromStreamParams { sessionId: string, startId: string, endId: string, listener: ListenerFunction }
-export interface SocketInstance { ws: WebSocket, channel: string, pongTs: number };
+export interface SocketInstance { ws: WebSocket, channel: string, pongTs: number }
 
 interface ChannelValue {
   sockets: Array<string>,
@@ -46,7 +74,7 @@ export const opts = {
 }
 
 const startServer = process.argv[2] === 'start';
-const configFile = environment === 'test' ? './config.test.json' : './config.json';
+const configFile = environment === 'test' ? '../config.test.json' : '../config.json';
 let config = {};
 try {
   config = require(configFile);
@@ -64,7 +92,7 @@ const httpServer = http.createServer();
 export const wss = new WebSocket.Server({ noServer: true, clientTracking: false });
 
 const SOCKET_ACTIVE_STATES = [WebSocket.OPEN, WebSocket.CONNECTING];
-const GLOBAL_EVENT_STREAM_NAME: string = `${opts.streamPrefix}full`;
+const GLOBAL_EVENT_STREAM_NAME = `${opts.streamPrefix}full`;
 const DEFAULT_STREAM_LAST_ID = '$';
 
 export let channels: Record<string, ChannelValue> = {};
@@ -72,7 +100,7 @@ export let sockets: Record<string, SocketInstance> = {};
 let lastFirehoseId: string = DEFAULT_STREAM_LAST_ID;
 
 
-export const setLastFirehostId = (id: string): void => {
+export const setLastFirehoseId = (id: string): void => {
   lastFirehoseId = id;
 }
 
@@ -119,6 +147,7 @@ export const fetchRangeFromStream = async ({sessionId, startId, endId, listener}
 }
 
 export const subscribeToGlobalStream = async (stream: string, listener: ListenerFunction) => {
+  /*eslint no-constant-condition: ["error", { "checkLoops": false }]*/
   while (true) {
     try {
       const reply = await redis.xread(
@@ -131,18 +160,18 @@ export const subscribeToGlobalStream = async (stream: string, listener: Listener
         lastFirehoseId
       );
       if (!reply) {
-        continue
+        continue;
       }
       const results = reply[0][1];
       const {length} = results;
       if (!results.length) {
-        continue
+        continue;
       }
-      listener(results)
-      setLastFirehostId(results[length - 1][0])
+      listener(results);
+      setLastFirehoseId(results[length - 1][0]);
     } catch(e) {
       console.error(e);
-      continue
+      continue;
     }
   }
 }
@@ -174,6 +203,13 @@ const getLastId = (request: http.IncomingMessage): string | null => {
   return queryParams.get('last_id');
 }
 
+export const incrementId = (id: string): string => {
+  // redis stream IDs are in this format: '1607477697866-0'
+  const parts = id.split('-');
+  if(parts.length < 2) return id;
+  return parts[0] + '-' + (Number(parts[1]) + 1);
+}
+
 export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
   const jwtPayload: JwtPayload = getJwtPayload(request);
   const channel: string = jwtPayload.channel;
@@ -187,15 +223,14 @@ export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
     const endId = (lastFirehoseId === DEFAULT_STREAM_LAST_ID ? '+' : lastFirehoseId);
     fetchRangeFromStream({
       sessionId: channel,
-      startId: lastId,   // TODO: inclusive?
-      endId,                // TODO: inclusive?
+      startId: incrementId(lastId),   // inclusive
+      endId,                          // inclusive
       listener: processStreamResults
     });
   }
 
   ws.on('pong', function pong(data: Buffer) {
     const socketId = data.toString();
-    console.debug('pong', socketId);
     const socketInstance = sockets[socketId];
     if (!socketInstance) {
       console.warn(`pong received for nonexistent socket ${socketId}`);
@@ -224,6 +259,7 @@ export const httpUpgrade = (request: http.IncomingMessage, socket: net.Socket, h
 // Connection cleanup and garbage collection
 
 export const checkSockets = () => {
+  console.debug('*** channel count', Object.keys(channels).length);
   console.debug('*** socket count', Object.keys(sockets).length);
   for (const socketId in sockets) {
     const socketInstance = sockets[socketId];
@@ -239,7 +275,6 @@ export const checkSockets = () => {
     }
 
     if(isActive) {
-      console.debug(`ping ${socketId}`);
       socketInstance.ws.ping(socketId);
     } else {
       delete sockets[socketId];
@@ -276,8 +311,8 @@ if(startServer) {
   subscribeToGlobalStream(GLOBAL_EVENT_STREAM_NAME, processStreamResults);
 
   // init garbage collection
-  const checkSocketsInterval = setInterval(checkSockets, opts.pingSocketsIntervalMs);
-  const cleanChannelInterval = setInterval(function gc() {
+  setInterval(checkSockets, opts.pingSocketsIntervalMs);
+  setInterval(function gc() {
     for (const channel in channels) {
       cleanChannel(channel);
     }

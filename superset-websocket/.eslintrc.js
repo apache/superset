@@ -17,6 +17,24 @@
  * under the License.
  */
 module.exports = {
-  preset: 'ts-jest',
-  testEnvironment: 'node',
+  root: true,
+  parser: '@typescript-eslint/parser',
+  env: {
+    node: true,
+    browser: true,
+  },
+  plugins: [
+    '@typescript-eslint',
+  ],
+  extends: [
+    'eslint:recommended',
+    'plugin:@typescript-eslint/recommended',
+  ],
+  rules: {
+    // "import/no-unresolved": 0,
+    // "@typescript-eslint/explicit-function-return-type": 0,
+    "@typescript-eslint/explicit-module-boundary-types": 0,
+    "@typescript-eslint/no-var-requires": 0,
+    // "@typescript-eslint/camelcase": 0,
+  },
 };

@@ -1,0 +1,16 @@
+extends layout
+
+block content
+  h1 Websocket test app
+  #tokens(style="display:none")= tokens
+  #cookie(style="display:none")= c
+
+  script(src="/javascripts/js.cookie.min.js")
+  script(src="/javascripts/app.js")
+
+  div Sockets connected:
+    span#socket-count 0
+  div Messages recevied:
+    span#message-count 0
+  div Last message received:
+  code#message-debug

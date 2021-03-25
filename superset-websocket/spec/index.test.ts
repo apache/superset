@@ -1,5 +1,23 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 const jwt = require('jsonwebtoken');
-const config = require('./config.test.json');
+const config = require('../config.test.json');
 
 import {describe, expect, test, beforeEach, afterEach} from '@jest/globals'
 import * as http from 'http';
@@ -37,13 +55,23 @@ const streamReturnValue: server.StreamResult[] = [
     ],
 ]
 
-import * as server from './index';
+import * as server from '../src/index';
 
 
 describe('server', () => {
     beforeEach(() => {
         mockRedisXrange.mockClear();
         server.resetState();
+    });
+
+    describe('incrementId', () => {
+        test('it increments a valid Redis stream ID', () => {
+            expect(server.incrementId('1607477697866-0')).toEqual('1607477697866-1');
+        });
+
+        test('it handles an invalid Redis stream ID', () => {
+            expect(server.incrementId('foo')).toEqual('foo');
+        });
     });
 
     describe('processStreamResults', () => {
@@ -201,7 +229,7 @@ describe('server', () => {
             expect(trackClientSpy).toHaveBeenCalledWith(channelId, socketInstanceExpected);
             expect(fetchRangeFromStreamSpy).toHaveBeenCalledWith({
                 sessionId: channelId,
-                startId: lastId,
+                startId: '1615426152415-1',
                 endId: '+',
                 listener: server.processStreamResults,
             });
@@ -214,13 +242,13 @@ describe('server', () => {
             const lastFirehoseId = '1715426152415-0';
             const request = getRequest(validToken, `http://localhost?last_id=${lastId}`);
 
-            server.setLastFirehostId(lastFirehoseId);
+            server.setLastFirehoseId(lastFirehoseId);
             server.wsConnection(ws, request);
 
             expect(trackClientSpy).toHaveBeenCalledWith(channelId, socketInstanceExpected);
             expect(fetchRangeFromStreamSpy).toHaveBeenCalledWith({
                 sessionId: channelId,
-                startId: lastId,
+                startId: '1615426152415-1',
                 endId: lastFirehoseId,
                 listener: server.processStreamResults,
             });
