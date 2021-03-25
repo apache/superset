@@ -41,7 +41,7 @@ const V1_PLUGINS = [
   'pie',
   'table',
 ];
-export const DASHBOARD_CHART_ALIAS_PREFIX = 'getJson_';
+export const DASHBOARD_CHART_ALIAS_PREFIX = 'getChartData_';
 
 export function isLegacyChart(vizType: string): boolean {
   return !V1_PLUGINS.includes(vizType);
@@ -60,7 +60,7 @@ export function getSliceIdFromRequestUrl(url: string) {
 export function getChartAlias(slice: Slice): string {
   const vizType = slice.form_data.viz_type;
   const isLegacy = isLegacyChart(vizType);
-  const alias = `${DASHBOARD_CHART_ALIAS_PREFIX}${slice.slice_id}`;
+  const alias = `${DASHBOARD_CHART_ALIAS_PREFIX}${slice.slice_id}_${slice.form_data.viz_type}`;
   const formData = encodeURIComponent(`{"slice_id":${slice.slice_id}}`);
   if (isLegacy) {
     const route = `/superset/explore_json/?*${formData}*`;
