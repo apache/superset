@@ -31,11 +31,6 @@ const LINE_CHART = { name: 'Growth Rate', viz: 'line' };
 const BOX_PLOT = { name: 'Box plot', viz: 'box_plot' };
 
 describe('Dashboard tabs', () => {
-  // let filterId;
-  // let treemapId;
-  // let linechartId;
-  // let boxplotId;
-
   // cypress can not handle window.scrollTo
   // https://github.com/cypress-io/cypress/issues/2761
   // add this exception handler to pass test
@@ -49,30 +44,6 @@ describe('Dashboard tabs', () => {
     cy.login();
 
     cy.visit(TABBED_DASHBOARD);
-    // cy.get('#app').then(data => {
-    //   const bootstrapData = JSON.parse(data[0].dataset.bootstrap || '');
-    //   const dashboard = bootstrapData.dashboard_data as { slices: Slice[] };
-    //   filterId = dashboard.slices.find(
-    //     slice => slice.form_data.viz_type === 'filter_box',
-    //   )?.slice_id;
-    //   boxplotId = dashboard.slices.find(
-    //     slice => slice.form_data.viz_type === 'box_plot',
-    //   )?.slice_id;
-    //   treemapId = dashboard.slices.find(
-    //     slice => slice.form_data.viz_type === 'treemap',
-    //   )?.slice_id;
-    //   linechartId = dashboard.slices.find(
-    //     slice => slice.form_data.viz_type === 'line',
-    //   )?.slice_id;
-    //   interceptChart({ sliceId: filterId, legacy: true }).as('filterRequest');
-    //   interceptChart({ sliceId: treemapId, legacy: true }).as('treemapRequest');
-    //   interceptChart({ sliceId: linechartId, legacy: true }).as(
-    //     'linechartRequest',
-    //   );
-    //   interceptChart({ sliceId: boxplotId, legacy: false }).as(
-    //     'boxplotRequest',
-    //   );
-    // });
   });
 
   it('should switch active tab on click', () => {
