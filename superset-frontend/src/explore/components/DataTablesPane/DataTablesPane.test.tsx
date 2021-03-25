@@ -22,7 +22,7 @@ import React from 'react';
 import { render, screen, act } from 'spec/helpers/testing-library';
 import { DataTablesPane } from '.';
 
-let defaultProps = {
+const createProps = () => ({
   queryFormData: {
     viz_type: 'heatmap',
     datasource: '34__table',
@@ -56,48 +56,11 @@ let defaultProps = {
   tableSectionHeight: 156.9,
   chartStatus: 'loading', // "success", "rendered"
   onCollapseChange: jest.fn(),
-};
-
-beforeEach(() => {
-  defaultProps = {
-    queryFormData: {
-      viz_type: 'heatmap',
-      datasource: '34__table',
-      slice_id: 456,
-      url_params: {},
-      time_range_endpoints: ['unknown', 'inclusive'],
-      time_range: 'Last week',
-      all_columns_x: 'source',
-      all_columns_y: 'target',
-      metric: 'sum__value',
-      adhoc_filters: [],
-      row_limit: 10000,
-      linear_color_scheme: 'blue_white_yellow',
-      xscale_interval: null,
-      yscale_interval: null,
-      canvas_image_rendering: 'pixelated',
-      normalize_across: 'heatmap',
-      left_margin: 'auto',
-      bottom_margin: 'auto',
-      y_axis_bounds: [null, null],
-      y_axis_format: 'SMART_NUMBER',
-      show_perc: true,
-      sort_x_axis: 'alpha_asc',
-      sort_y_axis: 'alpha_asc',
-      extra_form_data: {
-        custom_form_data: {},
-        override_form_data: {},
-        append_form_data: {},
-      },
-    },
-    tableSectionHeight: 156.9,
-    chartStatus: 'rendered',
-    onCollapseChange: jest.fn(),
-  };
 });
 
 test('Rendering DataTablesPane correctly', () => {
-  render(<DataTablesPane {...defaultProps} />, { useRedux: true });
+  const props = createProps();
+  render(<DataTablesPane {...props} />, { useRedux: true });
   expect(screen.getByTestId('DataTablesPane')).toBeVisible();
   expect(screen.getByRole('tablist')).toBeVisible();
   expect(screen.getByRole('tab', { name: 'right Data' })).toBeVisible();
@@ -105,7 +68,8 @@ test('Rendering DataTablesPane correctly', () => {
 });
 
 test('Shoud show tabs', async () => {
-  render(<DataTablesPane {...defaultProps} />, { useRedux: true });
+  const props = createProps();
+  render(<DataTablesPane {...props} />, { useRedux: true });
   expect(screen.queryByText('View results')).not.toBeInTheDocument();
   expect(screen.queryByText('View samples')).not.toBeInTheDocument();
   userEvent.click(await screen.findByText('Data'));
@@ -114,7 +78,8 @@ test('Shoud show tabs', async () => {
 });
 
 test('Shoud show tabs: View results', async () => {
-  render(<DataTablesPane {...defaultProps} />, {
+  const props = createProps();
+  render(<DataTablesPane {...props} />, {
     useRedux: true,
   });
   userEvent.click(await screen.findByText('Data'));
@@ -123,7 +88,8 @@ test('Shoud show tabs: View results', async () => {
 });
 
 test('Shoud show tabs: View samples', async () => {
-  render(<DataTablesPane {...defaultProps} />, {
+  const props = createProps();
+  render(<DataTablesPane {...props} />, {
     useRedux: true,
   });
   userEvent.click(await screen.findByText('Data'));
