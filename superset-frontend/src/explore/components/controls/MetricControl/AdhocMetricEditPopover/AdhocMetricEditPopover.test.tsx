@@ -119,10 +119,9 @@ test('Should switch to tab:Simple', () => {
   ).not.toBeInTheDocument();
 
   expect(props.getCurrentTab).toBeCalledTimes(1);
-  const tab = screen.getByRole('tab', { name: 'Simple' }).parentElement;
-  if (tab) {
-    userEvent.click(tab);
-  }
+  const tab = screen.getByRole('tab', { name: 'Simple' }).parentElement!;
+  userEvent.click(tab);
+
   expect(props.getCurrentTab).toBeCalledTimes(2);
 
   expect(
@@ -138,10 +137,8 @@ test('Should render tab "Simple" correctly', () => {
   });
   render(<AdhocMetricEditPopover {...props} />);
 
-  const tab = screen.getByRole('tab', { name: 'Simple' }).parentElement;
-  if (tab) {
-    userEvent.click(tab);
-  }
+  const tab = screen.getByRole('tab', { name: 'Simple' }).parentElement!;
+  userEvent.click(tab);
 
   expect(screen.getByText('column')).toBeVisible();
   expect(screen.getByText('aggregate')).toBeVisible();
@@ -160,10 +157,9 @@ test('Should switch to tab:Custom SQL', () => {
   ).not.toBeInTheDocument();
 
   expect(props.getCurrentTab).toBeCalledTimes(1);
-  const tab = screen.getByRole('tab', { name: 'Custom SQL' }).parentElement;
-  if (tab) {
-    userEvent.click(tab);
-  }
+  const tab = screen.getByRole('tab', { name: 'Custom SQL' }).parentElement!;
+  userEvent.click(tab);
+
   expect(props.getCurrentTab).toBeCalledTimes(2);
 
   expect(
@@ -181,9 +177,8 @@ test('Should render tab "Custom SQL" correctly', () => {
   });
   render(<AdhocMetricEditPopover {...props} />);
 
-  const tab = screen.getByRole('tab', { name: 'Custom SQL' }).parentElement;
-  if (tab) {
-    userEvent.click(tab);
-  }
+  const tab = screen.getByRole('tab', { name: 'Custom SQL' }).parentElement!;
+  userEvent.click(tab);
+
   expect(screen.getByTestId('sql-editor')).toBeVisible();
 });
