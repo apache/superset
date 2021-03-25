@@ -1368,10 +1368,17 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
         return or_(*groups)
 
+    def _format_sql_str(self, sql: str) -> String:
+        if sql[-1] == ';':
+            stripped_str = sql[:-1]
+            return stripped_str
+        else:
+            return sql; 
+
     def query(self, query_obj: QueryObjectDict) -> QueryResult:
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
-        sql = query_str_ext.sql
+        sql = self._format_sql_str(query_str_ext.sql)
         status = utils.QueryStatus.SUCCESS
         errors = None
         error_message = None
