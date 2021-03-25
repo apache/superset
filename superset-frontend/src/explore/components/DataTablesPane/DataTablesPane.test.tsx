@@ -73,8 +73,8 @@ test('Shoud show tabs', async () => {
   expect(screen.queryByText('View results')).not.toBeInTheDocument();
   expect(screen.queryByText('View samples')).not.toBeInTheDocument();
   userEvent.click(await screen.findByText('Data'));
-  expect(screen.queryByText('View results')).toBeVisible();
-  expect(screen.queryByText('View samples')).toBeVisible();
+  expect(screen.getByText('View results')).toBeVisible();
+  expect(screen.getByText('View samples')).toBeVisible();
 });
 
 test('Shoud show tabs: View results', async () => {
@@ -84,7 +84,7 @@ test('Shoud show tabs: View results', async () => {
   });
   userEvent.click(await screen.findByText('Data'));
   userEvent.click(await screen.findByText('View results'));
-  expect(screen.queryByText('0 rows retrieved')).toBeVisible();
+  expect(screen.getByText('0 rows retrieved')).toBeVisible();
 });
 
 test('Shoud show tabs: View samples', async () => {
@@ -97,5 +97,5 @@ test('Shoud show tabs: View samples', async () => {
   await act(async () => {
     userEvent.click(await screen.findByText('View samples'));
   });
-  expect(screen.queryByText('0 rows retrieved')).toBeVisible();
+  expect(screen.getByText('0 rows retrieved')).toBeVisible();
 });
