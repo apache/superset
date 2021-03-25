@@ -20,7 +20,7 @@ import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import { Well } from 'react-bootstrap';
-import ProgressBar from 'src/common/components/ProgressBar';
+import ProgressBar from 'src/components/ProgressBar';
 import Label from 'src/components/Label';
 import { t } from '@superset-ui/core';
 
