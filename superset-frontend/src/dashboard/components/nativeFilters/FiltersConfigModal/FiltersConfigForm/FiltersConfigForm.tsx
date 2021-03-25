@@ -33,7 +33,7 @@ import { ColumnSelect } from './ColumnSelect';
 import { NativeFiltersForm } from '../types';
 import {
   datasetToSelectOption,
-  setFilterFieldValues,
+  setNativeFilterFieldValues,
   useForceUpdate,
 } from './utils';
 import { useBackendFormUpdate } from './state';
@@ -78,6 +78,8 @@ export interface FiltersConfigFormProps {
   parentFilters: { id: string; title: string }[];
 }
 
+const FILTERS_WITH_ONLY_DATASOURCE = ['filter_timegrain', 'filter_timecolumn'];
+
 /**
  * The configuration form for a specific filter.
  * Assigns field values to `filters[filterId]` in the form.
@@ -104,17 +106,21 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
   // @ts-ignore
   const hasDatasource = !!nativeFilterItems[formFilter?.filterType]?.value
     ?.datasourceCount;
+  const hasColumn =
+    hasDatasource &&
+    !FILTERS_WITH_ONLY_DATASOURCE.includes(formFilter?.filterType);
 
   const hasFilledDatasource =
-    (formFilter?.dataset && formFilter?.column) || !hasDatasource;
+    !hasDatasource ||
+    (formFilter?.dataset?.value && (formFilter?.column || !hasColumn));
 
-  useBackendFormUpdate(form, filterId, filterToEdit, hasDatasource);
+  useBackendFormUpdate(form, filterId, filterToEdit, hasDatasource, hasColumn);
 
   const initDatasetId = filterToEdit?.targets[0]?.datasetId;
   const initColumn = filterToEdit?.targets[0]?.column?.name;
   const newFormData = getFormData({
     datasetId: formFilter?.dataset?.value,
-    groupby: formFilter?.column,
+    groupby: hasColumn ? formFilter?.column : undefined,
     defaultValue: formFilter?.defaultValue,
     ...formFilter,
   });
@@ -165,7 +171,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
               label: nativeFilterItems[filterType]?.value.name,
             }))}
             onChange={({ value }: { value: string }) => {
-              setFilterFieldValues(form, filterId, {
+              setNativeFilterFieldValues(form, filterId, {
                 filterType: value,
                 defaultValue: null,
               });
@@ -196,7 +202,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
                 // We need reset column when dataset changed
                 const datasetId = formFilter?.dataset?.value;
                 if (datasetId && e?.value !== datasetId) {
-                  setFilterFieldValues(form, filterId, {
+                  setNativeFilterFieldValues(form, filterId, {
                     column: null,
                   });
                 }
@@ -204,22 +210,24 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
               }}
             />
           </StyledFormItem>
-          <StyledFormItem
-            // don't show the column select unless we have a dataset
-            // style={{ display: datasetId == null ? undefined : 'none' }}
-            name={['filters', filterId, 'column']}
-            initialValue={initColumn}
-            label={<StyledLabel>{t('Column')}</StyledLabel>}
-            rules={[{ required: !removed, message: t('Field is required') }]}
-            data-test="field-input"
-          >
-            <ColumnSelect
-              form={form}
-              filterId={filterId}
-              datasetId={formFilter?.dataset?.value}
-              onChange={forceUpdate}
-            />
-          </StyledFormItem>
+          {hasColumn && (
+            <StyledFormItem
+              // don't show the column select unless we have a dataset
+              // style={{ display: datasetId == null ? undefined : 'none' }}
+              name={['filters', filterId, 'column']}
+              initialValue={initColumn}
+              label={<StyledLabel>{t('Column')}</StyledLabel>}
+              rules={[{ required: !removed, message: t('Field is required') }]}
+              data-test="field-input"
+            >
+              <ColumnSelect
+                form={form}
+                filterId={filterId}
+                datasetId={formFilter?.dataset?.value}
+                onChange={forceUpdate}
+              />
+            </StyledFormItem>
+          )}
         </>
       )}
       {hasFilledDatasource && (
@@ -259,7 +267,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
       />
       <StyledCheckboxFormItem
         name={['filters', filterId, 'isInstant']}
-        initialValue={filterToEdit?.isInstant}
+        initialValue={filterToEdit?.isInstant || false}
         valuePropName="checked"
         colon={false}
       >
@@ -275,9 +283,14 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
         forceUpdate={forceUpdate}
       />
       <FilterScope
-        filterId={filterId}
-        filterToEdit={filterToEdit}
-        form={form}
+        updateFormValues={(values: any) =>
+          setNativeFilterFieldValues(form, filterId, values)
+        }
+        pathToFormValue={['filters', filterId]}
+        forceUpdate={forceUpdate}
+        scope={filterToEdit?.scope}
+        formScope={formFilter?.scope}
+        formScoping={formFilter?.scoping}
       />
     </>
   );

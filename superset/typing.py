@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 from flask import Flask
@@ -26,11 +27,13 @@ DbapiDescriptionRow = Tuple[
 ]
 DbapiDescription = Union[List[DbapiDescriptionRow], Tuple[DbapiDescriptionRow, ...]]
 DbapiResult = Sequence[Union[List[Any], Tuple[Any, ...]]]
-FilterValue = Union[float, int, str]
+FilterValue = Union[datetime, float, int, str]
 FilterValues = Union[FilterValue, List[FilterValue], Tuple[FilterValue]]
 FormData = Dict[str, Any]
 Granularity = Union[str, Dict[str, Union[str, float]]]
-Metric = Union[Dict[str, str], str]
+AdhocMetric = Dict[str, Any]
+Metric = Union[AdhocMetric, str]
+OrderBy = Tuple[Metric, bool]
 QueryObjectDict = Dict[str, Any]
 VizData = Optional[Union[List[Any], Dict[Any, Any]]]
 VizPayload = Dict[str, Any]

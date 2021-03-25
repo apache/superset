@@ -65,6 +65,7 @@ interface DatasetOptionAutocomplete {
 }
 
 interface ResultSetProps {
+  showControls?: boolean;
   actions: Record<string, any>;
   cache?: boolean;
   csv?: boolean;
@@ -416,7 +417,7 @@ export default class ResultSet extends React.PureComponent<
       query.errorMessage &&
       query.errorMessage.indexOf('session timed out') > 0
     ) {
-      this.props.actions.runQuery(query, true);
+      this.props.actions.reRunQuery(query);
     }
   }
 

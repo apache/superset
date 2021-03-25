@@ -24,6 +24,7 @@ import { ReactComponent as AlertSolidSmallIcon } from 'images/icons/alert_solid_
 import { ReactComponent as BinocularsIcon } from 'images/icons/binoculars.svg';
 import { ReactComponent as BoltIcon } from 'images/icons/bolt.svg';
 import { ReactComponent as BoltSmallIcon } from 'images/icons/bolt_small.svg';
+import { ReactComponent as CrossFilterBadge } from 'images/icons/cross-filter-badge.svg';
 import { ReactComponent as BoltSmallRunIcon } from 'images/icons/bolt_small_run.svg';
 import { ReactComponent as CalendarIcon } from 'images/icons/calendar.svg';
 import { ReactComponent as CancelIcon } from 'images/icons/cancel.svg';
@@ -165,6 +166,7 @@ export type IconName =
   | 'caret-right'
   | 'caret-up'
   | 'certified'
+  | 'cross-filter-badge'
   | 'check'
   | 'checkbox-half'
   | 'checkbox-off'
@@ -281,6 +283,7 @@ export const iconsRegistry: Record<
   'alert-solid-small': AlertSolidSmallIcon,
   'bolt-small': BoltSmallIcon,
   'bolt-small-run': BoltSmallRunIcon,
+  'cross-filter-badge': CrossFilterBadge,
   'cancel-solid': CancelSolidIcon,
   'cancel-x': CancelXIcon,
   'card-view': CardViewIcon,

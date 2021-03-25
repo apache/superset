@@ -37,7 +37,11 @@ function CertifiedIconWithTooltip({
       id="certified-details-tooltip"
       title={
         <>
-          {certifiedBy && <div>{t('Certified by %s', certifiedBy)}</div>}
+          {certifiedBy && (
+            <div>
+              <strong>{t('Certified by %s', certifiedBy)}</strong>
+            </div>
+          )}
           <div>{details}</div>
         </>
       }

@@ -16,12 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import { t } from '@superset-ui/core';
+import {
+  ControlPanelConfig,
+  sections,
+  sharedControls,
+} from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
-  // @ts-ignore
-  controlPanelSections: [sections.legacyRegularTime],
-  // TODO: here to add the relevant controls
+  controlPanelSections: [
+    sections.legacyRegularTime,
+    {
+      label: t('Query'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'groupby',
+            config: {
+              ...sharedControls.groupby,
+              label: 'Column',
+              description:
+                'The numeric column based on which to calculate the range',
+            },
+          },
+        ],
+      ],
+    },
+  ],
 };
 
 export default config;

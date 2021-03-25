@@ -50,7 +50,7 @@ const Contents = styled.div`
 
 export interface SVBProps {
   topOffset: number;
-  width: number;
+  width?: number;
   filtersOpen: boolean;
 }
 

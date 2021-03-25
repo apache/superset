@@ -41,6 +41,7 @@ describe('getFormDataWithExtraFilters', () => {
     },
   };
   const mockArgs: GetFormDataWithExtraFiltersArguments = {
+    chartConfiguration: {},
     charts: {
       [chartId]: mockChart,
     },
@@ -61,15 +62,15 @@ describe('getFormDataWithExtraFilters', () => {
           },
         } as unknown) as Filter,
       },
-      filtersState: {
-        crossFilters: {},
-        ownFilters: {},
-        nativeFilters: {
-          [filterId]: {
-            id: filterId,
-            extraFormData: {},
-            currentState: {},
-          },
+    },
+    dataMask: {
+      crossFilters: {},
+      ownFilters: {},
+      nativeFilters: {
+        [filterId]: {
+          id: filterId,
+          extraFormData: {},
+          currentState: {},
         },
       },
     },

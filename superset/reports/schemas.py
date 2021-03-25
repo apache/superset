@@ -148,8 +148,8 @@ class ReportSchedulePostSchema(Schema):
     sql = fields.String(
         description=sql_description, example="SELECT value FROM time_series_table"
     )
-    chart = fields.Integer(required=False)
-    dashboard = fields.Integer(required=False)
+    chart = fields.Integer(required=False, allow_none=True)
+    dashboard = fields.Integer(required=False, allow_none=True)
     database = fields.Integer(required=False)
     owners = fields.List(fields.Integer(description=owners_description))
     validator_type = fields.String(
@@ -220,8 +220,8 @@ class ReportSchedulePutSchema(Schema):
         required=False,
         allow_none=True,
     )
-    chart = fields.Integer(required=False)
-    dashboard = fields.Integer(required=False)
+    chart = fields.Integer(required=False, allow_none=True)
+    dashboard = fields.Integer(required=False, allow_none=True)
     database = fields.Integer(required=False)
     owners = fields.List(fields.Integer(description=owners_description), required=False)
     validator_type = fields.String(

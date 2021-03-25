@@ -119,4 +119,15 @@ locally by default at `localhost:8088`) and login using the username and passwor
 
 ### Installing Superset with Helm in Kubernetes
 
-See the dedicated [Kubernetes installation](/docs/installation/running-on-kubernetes) page.
+You can install Superset into Kubernetes with [Helm](https://helm.sh/). The chart is located in
+the `helm/` directory.
+
+To install Superset in your Kubernetes cluster with Helm 3, run:
+
+```
+helm dep up ./helm/superset
+helm upgrade --install superset ./helm/superset
+```
+
+Note that the above command will install Superset into `default` namespace of your Kubernetes
+cluster.
