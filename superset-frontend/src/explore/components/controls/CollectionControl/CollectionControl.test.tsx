@@ -49,7 +49,7 @@ jest.mock('..', () => ({
   },
 }));
 
-let defaultProps = {
+const createProps = () => ({
   actions: {
     addDangerToast: jest.fn(),
     addInfoToast: jest.fn(),
@@ -83,89 +83,52 @@ let defaultProps = {
   validationErrors: [],
   validators: [jest.fn()],
   value: [{ key: 'hrYAZ5iBH' }],
-};
-
-beforeEach(() => {
-  defaultProps = {
-    actions: {
-      addDangerToast: jest.fn(),
-      addInfoToast: jest.fn(),
-      addSuccessToast: jest.fn(),
-      addWarningToast: jest.fn(),
-      createNewSlice: jest.fn(),
-      fetchDatasourcesStarted: jest.fn(),
-      fetchDatasourcesSucceeded: jest.fn(),
-      fetchFaveStar: jest.fn(),
-      saveFaveStar: jest.fn(),
-      setControlValue: jest.fn(),
-      setDatasource: jest.fn(),
-      setDatasourceType: jest.fn(),
-      setDatasources: jest.fn(),
-      setExploreControls: jest.fn(),
-      sliceUpdated: jest.fn(),
-      toggleFaveStar: jest.fn(),
-      updateChartTitle: jest.fn(),
-    },
-    addTooltip: 'Add an item',
-    controlName: 'TestControl',
-    description: null,
-    hovered: false,
-    itemGenerator: jest.fn(),
-    keyAccessor: jest.fn(),
-    label: 'Time series columns',
-    name: 'column_collection',
-    onChange: jest.fn(),
-    placeholder: 'Empty collection',
-    type: 'CollectionControl',
-    validationErrors: [],
-    validators: [jest.fn()],
-    value: [{ key: 'hrYAZ5iBH' }],
-  };
 });
 
 test('Should render', () => {
-  render(<CollectionControl {...defaultProps} />);
+  const props = createProps();
+  render(<CollectionControl {...props} />);
   expect(screen.getByTestId('CollectionControl')).toBeInTheDocument();
 });
 
 test('Should show the button with the label', () => {
-  render(<CollectionControl {...defaultProps} />);
-  expect(
-    screen.getByRole('button', { name: defaultProps.label }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('button', { name: defaultProps.label }),
-  ).toHaveTextContent(defaultProps.label);
+  const props = createProps();
+  render(<CollectionControl {...props} />);
+  expect(screen.getByRole('button', { name: props.label })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: props.label })).toHaveTextContent(
+    props.label,
+  );
 });
 
 test('Should have add button', () => {
-  render(<CollectionControl {...defaultProps} />);
+  const props = createProps();
+  render(<CollectionControl {...props} />);
 
-  expect(defaultProps.onChange).toBeCalledTimes(0);
+  expect(props.onChange).toBeCalledTimes(0);
   userEvent.click(screen.getByRole('button', { name: 'add-item' }));
-  expect(defaultProps.onChange).toBeCalledWith([
-    { key: 'hrYAZ5iBH' },
-    undefined,
-  ]);
+  expect(props.onChange).toBeCalledWith([{ key: 'hrYAZ5iBH' }, undefined]);
 });
 
 test('Should have remove button', () => {
-  render(<CollectionControl {...defaultProps} />);
+  const props = createProps();
+  render(<CollectionControl {...props} />);
 
-  expect(defaultProps.onChange).toBeCalledTimes(0);
+  expect(props.onChange).toBeCalledTimes(0);
   userEvent.click(screen.getByRole('button', { name: 'remove-item' }));
-  expect(defaultProps.onChange).toBeCalledWith([]);
+  expect(props.onChange).toBeCalledWith([]);
 });
 
 test('Should have SortableDragger icon', () => {
-  render(<CollectionControl {...defaultProps} />);
+  const props = createProps();
+  render(<CollectionControl {...props} />);
   expect(screen.getByRole('img')).toBeVisible();
 });
 
 test('Should call Control component', () => {
-  render(<CollectionControl {...defaultProps} />);
+  const props = createProps();
+  render(<CollectionControl {...props} />);
 
-  expect(defaultProps.onChange).toBeCalledTimes(0);
+  expect(props.onChange).toBeCalledTimes(0);
   userEvent.click(screen.getByTestId('TestControl'));
-  expect(defaultProps.onChange).toBeCalledWith([{ key: 'hrYAZ5iBH' }]);
+  expect(props.onChange).toBeCalledWith([{ key: 'hrYAZ5iBH' }]);
 });
