@@ -30,6 +30,8 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Owner from 'src/types/Owner';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
+import { NotificationMethod } from './components/NotificationMethod';
+
 import {
   AlertObject,
   ChartObject,
@@ -58,7 +60,7 @@ interface AlertReportModalProps {
 }
 
 const NOTIFICATION_METHODS: NotificationMethod[] = ['Email', 'Slack'];
-
+const DEFAULT_NOTIFICATION_FORMAT = 'PNG';
 const CONDITIONS = [
   {
     label: t('< (Smaller than)'),
@@ -326,33 +328,6 @@ const StyledNotificationAddButton = styled.div`
   }
 `;
 
-const StyledNotificationMethod = styled.div`
-  margin-bottom: 10px;
-
-  .input-container {
-    textarea {
-      height: auto;
-    }
-  }
-
-  .inline-container {
-    margin-bottom: 10px;
-
-    .input-container {
-      margin-left: 10px;
-    }
-
-    > div {
-      margin: 0;
-    }
-
-    .delete-button {
-      margin-left: 10px;
-      padding-top: 3px;
-    }
-  }
-`;
-
 type NotificationAddStatus = 'active' | 'disabled' | 'hidden';
 
 interface NotificationMethodAddProps {
@@ -390,136 +365,7 @@ type NotificationSetting = {
   method?: NotificationMethod;
   recipients: string;
   options: NotificationMethod[];
-  format: 'PNG' | 'PDF';
-};
-
-const DEFAULT_NOTIFICATION_FORMAT = 'PNG';
-
-interface NotificationMethodProps {
-  setting?: NotificationSetting | null;
-  index: number;
-  onUpdate?: (index: number, updatedSetting: NotificationSetting) => void;
-  onRemove?: (index: number) => void;
-}
-
-const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
-  setting = null,
-  index,
-  onUpdate,
-  onRemove,
-}) => {
-  if (!setting) {
-    return null;
-  }
-  const { method, recipients, options, format } = setting;
-  const [recipientValue, setRecipientValue] = useState<string>(recipients);
-  const [formatValue, setFormatValue] = useState<string>(format);
-
-  const onFormatChange = (event: any) => {
-    const { target } = event;
-    setFormatValue(target.value);
-
-    if (onUpdate) {
-      const updatedSetting = {
-        ...setting,
-        format: target.value,
-      };
-
-      onUpdate(index, updatedSetting);
-    }
-  };
-
-  const onMethodChange = (method: NotificationMethod) => {
-    // Since we're swapping the method, reset the recipients
-    setRecipientValue('');
-    if (onUpdate) {
-      const updatedSetting = {
-        ...setting,
-        method,
-        recipients: '',
-      };
-
-      onUpdate(index, updatedSetting);
-    }
-  };
-
-  const onRecipientsChange = (
-    event: React.ChangeEvent<HTMLTextAreaElement>,
-  ) => {
-    const { target } = event;
-
-    setRecipientValue(target.value);
-
-    if (onUpdate) {
-      const updatedSetting = {
-        ...setting,
-        recipients: target.value,
-      };
-
-      onUpdate(index, updatedSetting);
-    }
-  };
-
-  // Set recipients
-  if (!!recipients && recipientValue !== recipients) {
-    setRecipientValue(recipients);
-  }
-
-  const methodOptions = (options || []).map((method: NotificationMethod) => (
-    <Select.Option key={method} value={method}>
-      {t(method)}
-    </Select.Option>
-  ));
-
-  return (
-    <StyledNotificationMethod>
-      <div className="inline-container">
-        <StyledInputContainer>
-          <div className="input-container">
-            <Select
-              data-test="select-delivery-method"
-              onChange={onMethodChange}
-              placeholder="Select Delivery Method"
-              defaultValue={method}
-              value={method}
-            >
-              {methodOptions}
-            </Select>
-          </div>
-        </StyledInputContainer>
-        {method !== undefined && !!onRemove ? (
-          <span
-            role="button"
-            tabIndex={0}
-            className="delete-button"
-            onClick={() => onRemove(index)}
-          >
-            <Icon name="trash" />
-          </span>
-        ) : null}
-      </div>
-      {method !== undefined ? (
-        <StyledInputContainer>
-          <div className="control-label">{t('format')}</div>
-          <Radio.Group onChange={onFormatChange} value={formatValue}>
-            <Radio value="PNG">PNG</Radio>
-            <Radio value="PDF">PDF</Radio>
-          </Radio.Group>
-          <div className="control-label">{t(method)}</div>
-          <div className="input-container">
-            <textarea
-              name="recipients"
-              value={recipientValue}
-              onChange={onRecipientsChange}
-            />
-          </div>
-          <div className="helper">
-            {t('Recipients are separated by "," or ";"')}
-          </div>
-        </StyledInputContainer>
-      ) : null}
-    </StyledNotificationMethod>
-  );
+  format: 'PNG' | 'CSV';
 };
 
 const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
@@ -619,7 +465,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         recipients.push({
           recipient_config_json: {
             target: setting.recipients,
-            format: setting.format,
+            report_format:
+              contentType === 'chart'
+                ? setting.format
+                : DEFAULT_NOTIFICATION_FORMAT,
           },
           type: setting.method,
         });
@@ -1007,15 +856,21 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   useEffect(() => {
     if (resource) {
       // Add notification settings
-      const settings = (resource.recipients || []).map(setting => ({
-        method: setting.type as NotificationMethod,
-        // @ts-ignore: Type not assignable
-        recipients:
+      const settings = (resource.recipients || []).map(setting => {
+        const config =
           typeof setting.recipient_config_json === 'string'
-            ? (JSON.parse(setting.recipient_config_json) || {}).target
-            : setting.recipient_config_json,
-        options: NOTIFICATION_METHODS as NotificationMethod[], // Need better logic for this
-      }));
+            ? JSON.parse(setting.recipient_config_json)
+            : {};
+        return {
+          method: setting.type as NotificationMethod,
+          // @ts-ignore: Type not assignable
+          recipients: config.target || setting.recipient_config_json,
+          options: NOTIFICATION_METHODS as NotificationMethod[], // Need better logic for this
+          format: resource.chart
+            ? config.report_format || DEFAULT_NOTIFICATION_FORMAT
+            : DEFAULT_NOTIFICATION_FORMAT,
+        };
+      });
 
       setNotificationSettings(settings);
       setNotificationAddState(
@@ -1413,6 +1268,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 index={i}
                 onUpdate={updateNotificationSetting}
                 onRemove={removeNotificationSetting}
+                contentType={contentType}
               />
             ))}
             <NotificationMethodAdd

@@ -26,7 +26,8 @@ from slack import WebClient
 from slack.errors import SlackApiError, SlackClientError
 
 from superset import app
-from superset.models.reports import ReportRecipientType
+from superset.extensions import feature_flag_manager
+from superset.models.reports import ReportDataFormat, ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
 
@@ -43,6 +44,9 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_channel(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]
 
+    def _get_format(self) -> ReportDataFormat:
+        return json.loads(self._recipient.recipient_config_json)["report_format"]
+
     @staticmethod
     def _error_template(name: str, description: str, text: str) -> str:
         return __(
@@ -58,9 +62,13 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
     def _get_body(self) -> str:
         if self._content.text:
-            return self._error_template(
-                self._content.name, self._content.description or "", self._content.text
-            )
+            return self._error_template(self._content.name, self._content.text)
+        if (
+            ReportDataFormat.DATA == self._get_format()
+            and not self._content.csv
+            and feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
+        ):
+            return self._error_template(self._content.name, "Unexpected missing csv")
         return __(
             """
             *%(name)s*\n
@@ -72,16 +80,21 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
             url=self._content.url,
         )
 
-    def _get_inline_screenshot(self) -> Optional[Union[str, IOBase, bytes]]:
-        if self._content.screenshot:
+    def _get_inline_file(self) -> Optional[Union[str, IOBase, bytes]]:
+        data_format = self._get_format()
+        if self._content.csv and ReportDataFormat.DATA == data_format:
+            return self._content.csv
+        if self._content.screenshot and ReportDataFormat.VISUALIZATION == data_format:
             return self._content.screenshot
         return None
 
     @retry(SlackApiError, delay=10, backoff=2, tries=5)
     def send(self) -> None:
-        file = self._get_inline_screenshot()
+        file = self._get_inline_file()
+        title = self._content.name
         channel = self._get_channel()
         body = self._get_body()
+        file_type = self._get_format().lower()
         try:
             token = app.config["SLACK_API_TOKEN"]
             if callable(token):
@@ -90,7 +103,11 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
             # files_upload returns SlackResponse as we run it in sync mode.
             if file:
                 client.files_upload(
-                    channels=channel, file=file, initial_comment=body, title="subject",
+                    channels=channel,
+                    file=file,
+                    initial_comment=body,
+                    title=title,
+                    filetype=file_type,
                 )
             else:
                 client.chat_postMessage(channel=channel, text=body)

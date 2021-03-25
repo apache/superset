@@ -112,6 +112,10 @@ class ReportScheduleScreenshotFailedError(CommandException):
     message = _("Report Schedule execution failed when generating a screenshot.")
 
 
+class ReportScheduleCsvFailedError(CommandException):
+    message = _("Report Schedule execution failed when generating a csv.")
+
+
 class ReportScheduleExecuteUnexpectedError(CommandException):
     message = _("Report Schedule execution got an unexpected error.")
 

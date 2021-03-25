@@ -42,7 +42,7 @@ export type DatabaseObject = {
 export type Recipient = {
   recipient_config_json: {
     target: string;
-    format: 'PNG' | 'PDF';
+    report_format: 'PNG' | 'CSV';
   };
   type: string;
 };

@@ -69,9 +69,9 @@ class ReportState(str, enum.Enum):
     GRACE = "On Grace"
 
 
-class ReportEmailFormat(str, enum.Enum):
-    VISUALIZATION = "Visualization"
-    DATA = "Raw data"
+class ReportDataFormat(str, enum.Enum):
+    VISUALIZATION = "PNG"
+    DATA = "CSV"
 
 
 report_schedule_user = Table(

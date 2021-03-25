@@ -100,6 +100,7 @@ class ValidatorConfigJSONSchema(Schema):
 class ReportRecipientConfigJSONSchema(Schema):
     # TODO if email check validity
     target = fields.String()
+    report_format = fields.String()
 
 
 class ReportRecipientSchema(Schema):
