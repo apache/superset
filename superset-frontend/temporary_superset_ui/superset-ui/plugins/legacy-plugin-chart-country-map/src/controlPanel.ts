@@ -66,6 +66,7 @@ const config: ControlPanelConfig = {
                 'Singapore',
                 'Spain',
                 'Switzerland',
+                'Syria',
                 'Thailand',
                 'Timorleste',
                 'Uk',
