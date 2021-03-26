@@ -20,13 +20,13 @@ import { useEffect } from 'react';
 import { FormInstance } from 'antd/lib/form';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import { ChartDataResponseResult, t } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { NativeFiltersForm } from '../types';
 import { setNativeFilterFieldValues, useForceUpdate } from './utils';
 import { Filter } from '../../types';
 import { getFormData } from '../../utils';
-import { FeatureFlag, isFeatureEnabled } from '../../../../../featureFlags';
-import { waitForAsyncData } from '../../../../../middleware/asyncEvent';
-import { ClientErrorObject } from '../../../../../utils/getClientErrorObject';
 
 // When some fields in form changed we need re-fetch data for Filter defaultValue
 // eslint-disable-next-line import/prefer-default-export

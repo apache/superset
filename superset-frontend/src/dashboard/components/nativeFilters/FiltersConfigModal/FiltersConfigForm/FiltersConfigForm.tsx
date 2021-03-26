@@ -264,9 +264,13 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
       >
         {(hasFilledDatasource || !hasDatasource) && (
           <DefaultValue
-            forceUpdate={forceUpdate}
+            setDataMask={({ nativeFilters }) => {
+              setNativeFilterFieldValues(form, filterId, {
+                defaultValue: nativeFilters?.currentState?.value,
+              });
+              forceUpdate();
+            }}
             filterId={filterId}
-            hasFilledDatasource={hasFilledDatasource}
             hasDatasource={hasDatasource}
             form={form}
             formData={newFormData}

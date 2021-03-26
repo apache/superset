@@ -31,11 +31,11 @@ import { getChartDataRequest } from 'src/chart/chartAction';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FilterProps } from './types';
 import { getFormData } from '../../utils';
 import { useCascadingFilters } from './state';
 import LoadingBox from '../LoadingBox';
-import { ClientErrorObject } from '../../../../../utils/getClientErrorObject';
 
 const FilterItem = styled.div`
   min-height: ${({ theme }) => theme.gridUnit * 11}px;
@@ -100,8 +100,8 @@ const FilterValue: React.FC<FilterProps> = ({
             setLoading(false);
           }
         })
-        .catch(error => {
-          setError(error.error || error.statusText || error);
+        .catch((error: Response) => {
+          setError(error.statusText);
           setLoading(false);
         });
     }

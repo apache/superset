@@ -17,16 +17,15 @@
  * under the License.
  */
 import React, { FC, useEffect, useState } from 'react';
-import { SuperChart, Behavior } from '@superset-ui/core';
+import { Behavior, SetDataMaskHook, SuperChart } from '@superset-ui/core';
 import { FormInstance } from 'antd/lib/form';
-import { setNativeFilterFieldValues } from './utils';
 import { NativeFiltersForm } from '../types';
 import { getFormData } from '../../utils';
 import LoadingBox from '../../FilterBar/LoadingBox';
 
 type DefaultValueProps = {
   filterId: string;
-  forceUpdate: Function;
+  setDataMask: SetDataMaskHook;
   hasDatasource: boolean;
   form: FormInstance<NativeFiltersForm>;
   formData: ReturnType<typeof getFormData>;
@@ -36,7 +35,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
   filterId,
   hasDatasource,
   form,
-  forceUpdate,
+  setDataMask,
   formData,
 }) => {
   const [loading, setLoading] = useState(hasDatasource);
@@ -64,14 +63,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
         hasDatasource ? formFilter?.defaultValueQueriesData : [{ data: [{}] }]
       }
       chartType={formFilter?.filterType}
-      hooks={{
-        setDataMask: ({ nativeFilters }) => {
-          setNativeFilterFieldValues(form, filterId, {
-            defaultValue: nativeFilters?.currentState?.value,
-          });
-          forceUpdate();
-        },
-      }}
+      hooks={{ setDataMask }}
     />
   );
 };
