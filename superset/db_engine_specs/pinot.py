@@ -26,7 +26,8 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     engine_name = "Apache Pinot"
     allows_subqueries = False
     allows_joins = False
-    allows_column_aliases = False
+    allows_alias_in_select = False
+    allows_alias_in_orderby = False
 
     # Pinot does its own conversion below
     _time_grain_expressions: Dict[Optional[str], str] = {

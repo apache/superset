@@ -28,7 +28,6 @@ import { Switch as AntdSwitch } from './Switch';
 import { Menu, Input, Divider } from '.';
 import { Dropdown } from './Dropdown';
 import InfoTooltip from './InfoTooltip';
-import ProgressBar from './ProgressBar';
 import { CronPicker, CronError } from './CronPicker';
 
 export default {
@@ -227,10 +226,6 @@ StyledInfoTooltip.argTypes = {
     },
   },
 };
-
-export const Progress = () => <ProgressBar percent={90} />;
-export const ProgressStriped = () => <ProgressBar percent={90} striped />;
-export const ProgressSuccess = () => <ProgressBar percent={100} />;
 
 export const Switch = () => (
   <>

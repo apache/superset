@@ -19,7 +19,7 @@
 import React, { CSSProperties } from 'react';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
-import ProgressBar from 'src/common/components/ProgressBar';
+import ProgressBar from 'src/components/ProgressBar';
 import moment from 'moment';
 import { RadioChangeEvent } from 'antd/lib/radio';
 import Button from 'src/components/Button';
@@ -65,6 +65,7 @@ interface DatasetOptionAutocomplete {
 }
 
 interface ResultSetProps {
+  showControls?: boolean;
   actions: Record<string, any>;
   cache?: boolean;
   csv?: boolean;
@@ -416,7 +417,7 @@ export default class ResultSet extends React.PureComponent<
       query.errorMessage &&
       query.errorMessage.indexOf('session timed out') > 0
     ) {
-      this.props.actions.runQuery(query, true);
+      this.props.actions.reRunQuery(query);
     }
   }
 

@@ -58,6 +58,7 @@ from superset.dashboards.filters import (
     FilterRelatedRoles,
 )
 from superset.dashboards.schemas import (
+    DashboardDatasetSchema,
     DashboardGetResponseSchema,
     DashboardPostSchema,
     DashboardPutSchema,
@@ -93,6 +94,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "bulk_delete",  # not using RouteMethod since locally defined
         "favorite_status",
         "get_charts",
+        "get_datasets",
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -169,6 +171,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     edit_model_schema = DashboardPutSchema()
     chart_entity_response_schema = ChartEntityResponseSchema()
     dashboard_get_response_schema = DashboardGetResponseSchema()
+    dashboard_dataset_schema = DashboardDatasetSchema()
 
     base_filters = [["slice", DashboardFilter, lambda: []]]
 
@@ -189,6 +192,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     openapi_spec_component_schemas = (
         ChartEntityResponseSchema,
         DashboardGetResponseSchema,
+        DashboardDatasetSchema,
         GetFavStarIdsSchema,
     )
     apispec_parameter_schemas = {
@@ -248,6 +252,57 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         try:
             dash = DashboardDAO.get_by_id_or_slug(id_or_slug)
             result = self.dashboard_get_response_schema.dump(dash)
+            return self.response(200, result=result)
+        except DashboardNotFoundError:
+            return self.response_404()
+
+    @expose("/<id_or_slug>/datasets", methods=["GET"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_datasets",
+        log_to_statsd=False,
+    )
+    def get_datasets(self, id_or_slug: str) -> Response:
+        """Gets a dashboard's datasets
+                ---
+                get:
+                  description: >-
+                    Returns a list of a dashboard's datasets. Each dataset includes only
+                    the information necessary to render the dashboard's charts.
+                  parameters:
+                  - in: path
+                    schema:
+                      type: string
+                    name: id_or_slug
+                    description: Either the id of the dashboard, or its slug
+                  responses:
+                    200:
+                      description: Dashboard dataset definitions
+                      content:
+                        application/json:
+                          schema:
+                            type: object
+                            properties:
+                              result:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/DashboardDatasetSchema'
+                    302:
+                      description: Redirects to the current digest
+                    400:
+                      $ref: '#/components/responses/400'
+                    401:
+                      $ref: '#/components/responses/401'
+                    404:
+                      $ref: '#/components/responses/404'
+                """
+        try:
+            datasets = DashboardDAO.get_datasets_for_dashboard(id_or_slug)
+            result = [
+                self.dashboard_dataset_schema.dump(dataset) for dataset in datasets
+            ]
             return self.response(200, result=result)
         except DashboardNotFoundError:
             return self.response_404()

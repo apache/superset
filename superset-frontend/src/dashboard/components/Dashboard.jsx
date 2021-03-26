@@ -24,7 +24,7 @@ import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
 import getLayoutComponentFromChartId from '../util/getLayoutComponentFromChartId';
-import DashboardBuilder from '../containers/DashboardBuilder';
+import DashboardBuilder from './DashboardBuilder/DashboardBuilder';
 import {
   chartPropShape,
   slicePropShape,
@@ -207,7 +207,10 @@ class Dashboard extends React.PureComponent {
       this.appliedOwnDataCharts,
     );
     [...allKeys].forEach(filterKey => {
-      if (!currFilterKeys.includes(filterKey)) {
+      if (
+        !currFilterKeys.includes(filterKey) &&
+        appliedFilterKeys.includes(filterKey)
+      ) {
         // filterKey is removed?
         affectedChartIds.push(...appliedFilters[filterKey].scope);
       } else if (!appliedFilterKeys.includes(filterKey)) {

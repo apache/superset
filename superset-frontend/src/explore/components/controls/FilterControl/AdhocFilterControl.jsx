@@ -29,7 +29,6 @@ import {
 import ControlHeader from 'src/explore/components/ControlHeader';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
 import savedMetricType from 'src/explore/components/controls/MetricControl/savedMetricType';
-import columnType from 'src/explore/propTypes/columnType';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import { OPERATORS } from 'src/explore/constants';
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
@@ -40,6 +39,7 @@ import {
   LabelsContainer,
 } from 'src/explore/components/OptionControls';
 import Icon from 'src/components/Icon';
+import columnType from './columnType';
 import AdhocFilterPopoverTrigger from './AdhocFilterPopoverTrigger';
 import AdhocFilterOption from './AdhocFilterOption';
 import AdhocFilter, { CLAUSES, EXPRESSION_TYPES } from './AdhocFilter';

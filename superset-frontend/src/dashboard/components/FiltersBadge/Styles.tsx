@@ -48,6 +48,13 @@ export const Pill = styled.div`
     background: ${({ theme }) => theme.colors.grayscale.dark1};
   }
 
+  &.has-cross-filters {
+    background: ${({ theme }) => theme.colors.primary.base};
+    &:hover {
+      background: ${({ theme }) => theme.colors.primary.dark1};
+    }
+  }
+
   &.has-incompatible-filters {
     color: ${({ theme }) => theme.colors.grayscale.dark2};
     background: ${({ theme }) => theme.colors.alert.base};
@@ -73,15 +80,6 @@ export const Pill = styled.div`
   }
 `;
 
-export const WarningPill = styled(Pill)`
-  background: ${({ theme }) => theme.colors.alert.base};
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-`;
-
-export const UnsetPill = styled(Pill)`
-  background: ${({ theme }) => theme.colors.grayscale.light1};
-`;
-
 export interface TitleProps {
   bold?: boolean;
   color?: string;
@@ -95,6 +93,11 @@ export const Title = styled.span<TitleProps>`
     return 'auto';
   }};
   color: ${({ color, theme }) => color || theme.colors.grayscale.light5};
+  display: flex;
+  align-items: center;
+  & > * {
+    margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
 `;
 
 export const ItemIcon = styled.i`

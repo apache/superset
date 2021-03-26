@@ -18,50 +18,53 @@
  */
 
 import React, { FC, useMemo, useState } from 'react';
-import { FormInstance, Tree } from 'src/common/components';
+import { Tree } from 'src/common/components';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { useFilterScopeTree } from './state';
-import { setFilterFieldValues, useForceUpdate } from '../utils';
 import { findFilterScope, getTreeCheckedItems } from './utils';
-import { NativeFiltersForm } from '../../types';
 import { Scope } from '../../../types';
 
 type ScopingTreeProps = {
-  form: FormInstance<NativeFiltersForm>;
-  filterId: string;
+  forceUpdate: Function;
+  updateFormValues: (values: any) => void;
+  formScope?: Scope;
   initialScope: Scope;
+  chartId?: number;
 };
 
 const ScopingTree: FC<ScopingTreeProps> = ({
-  form,
-  filterId,
+  formScope,
   initialScope,
+  forceUpdate,
+  updateFormValues,
+  chartId,
 }) => {
   const [expandedKeys, setExpandedKeys] = useState<string[]>([
     DASHBOARD_ROOT_ID,
   ]);
 
-  const formFilter = form.getFieldValue('filters')[filterId];
-
-  const { treeData, layout } = useFilterScopeTree();
+  const { treeData, layout } = useFilterScopeTree(chartId);
   const [autoExpandParent, setAutoExpandParent] = useState<boolean>(true);
 
   const handleExpand = (expandedKeys: string[]) => {
     setExpandedKeys(expandedKeys);
     setAutoExpandParent(false);
   };
-  const forceUpdate = useForceUpdate();
+
   const handleCheck = (checkedKeys: string[]) => {
     forceUpdate();
-    setFilterFieldValues(form, filterId, {
-      scope: findFilterScope(checkedKeys, layout),
+    const scope = findFilterScope(checkedKeys, layout);
+    if (chartId !== undefined) {
+      scope.excluded = [...new Set([...scope.excluded, chartId])];
+    }
+    updateFormValues({
+      scope,
     });
   };
 
   const checkedKeys = useMemo(
-    () =>
-      getTreeCheckedItems({ ...(formFilter.scope || initialScope) }, layout),
-    [formFilter.scope, initialScope, layout],
+    () => getTreeCheckedItems({ ...(formScope || initialScope) }, layout),
+    [formScope, initialScope, layout],
   );
 
   return (

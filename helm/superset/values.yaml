@@ -27,6 +27,10 @@ additionalRequirements:
   - "psycopg2==2.8.5"
   - "redis==3.2.1"
 
+## These apt packages are applied on init of superset containers
+additionalAptPackages: {}
+  # - nano
+
 ## The name of the secret which we will use to generate a superset_config.py file
 ## Note: this secret must have the key superset_config.py in it and can include other files as well
 ##
@@ -60,6 +64,10 @@ extraConfigs: {}
   #         }"
   #       sqlalchemy_uri: example://example-db.local
   #       tables: []
+
+
+extraSecrets: {}
+
 
 # A dictionary of overrides to append at the end of superset_config.py - the name does not matter
 # WARNING: the order is not guaranteed
@@ -196,6 +204,12 @@ init:
     - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; . {{ .Values.configMountPath }}/superset_init.sh"
   enabled: true
   loadExamples: false
+  adminUser:
+    username: admin
+    firstname: Superset
+    lastname: Admin
+    email: admin@superset.com
+    password: admin
   initContainers:
     - name: wait-for-postgres
       image: busybox:latest
@@ -212,11 +226,12 @@ init:
     superset init
     echo "Creating admin user..."
     superset fab create-admin \
-                    --username admin \
-                      --firstname Superset \
-                      --lastname Admin \
-                      --email admin@superset.com \
-                      --password admin || true
+                    --username {{ .Values.init.adminUser.username }} \
+                    --firstname {{ .Values.init.adminUser.firstname }} \
+                    --lastname {{ .Values.init.adminUser.lastname }} \
+                    --email {{ .Values.init.adminUser.email }} \
+                    --password {{ .Values.init.adminUser.password }} \
+                    || true
     {{ if .Values.init.loadExamples }}
     echo "Loading examples..."
     superset load_examples

@@ -16,16 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MaskWithId } from './types';
+import { DataMaskType, MaskWithId } from './types';
 import { FilterConfiguration } from '../dashboard/components/nativeFilters/types';
+import { FeatureFlag, isFeatureEnabled } from '../featureFlags';
 
 export const UPDATE_DATA_MASK = 'UPDATE_DATA_MASK';
 export interface UpdateDataMask {
   type: typeof UPDATE_DATA_MASK;
   filterId: string;
-  nativeFilters?: Omit<MaskWithId, 'id'>;
-  crossFilters?: Omit<MaskWithId, 'id'>;
-  ownFilters?: Omit<MaskWithId, 'id'>;
+  [DataMaskType.NativeFilters]?: Omit<MaskWithId, 'id'>;
+  [DataMaskType.CrossFilters]?: Omit<MaskWithId, 'id'>;
+  [DataMaskType.OwnFilters]?: Omit<MaskWithId, 'id'>;
 }
 
 export const SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE =
@@ -33,6 +34,7 @@ export const SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE =
 export interface SetDataMaskForFilterConfigComplete {
   type: typeof SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE;
   filterConfig: FilterConfiguration;
+  unitName: DataMaskType;
 }
 export const SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL =
   'SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL';
@@ -49,10 +51,22 @@ export function updateDataMask(
     ownFilters?: Omit<MaskWithId, 'id'>;
   },
 ): UpdateDataMask {
+  const { nativeFilters, crossFilters, ownFilters } = dataMask;
+  const filteredDataMask: {
+    nativeFilters?: Omit<MaskWithId, 'id'>;
+    crossFilters?: Omit<MaskWithId, 'id'>;
+    ownFilters?: Omit<MaskWithId, 'id'>;
+  } = { ownFilters };
+  if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && nativeFilters) {
+    filteredDataMask.nativeFilters = nativeFilters;
+  }
+  if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) && crossFilters) {
+    filteredDataMask.crossFilters = crossFilters;
+  }
   return {
     type: UPDATE_DATA_MASK,
     filterId,
-    ...dataMask,
+    ...filteredDataMask,
   };
 }
 
