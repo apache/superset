@@ -133,10 +133,6 @@ class AsyncQueryManager:
                     value=token,
                     httponly=True,
                     secure=self._jwt_cookie_secure,
-                    # max_age=max_age or config.cookie_max_age,
-                    # domain=config.cookie_domain,
-                    # path=config.access_cookie_path,
-                    # samesite=config.cookie_samesite
                 )
 
             return response
@@ -149,8 +145,8 @@ class AsyncQueryManager:
         data = jwt.decode(token, self._jwt_secret, algorithms=["HS256"])
         return data
 
-    def parse_jwt_from_request(self, request: Request) -> Dict[str, Any]:
-        token = request.cookies.get(self._jwt_cookie_name)
+    def parse_jwt_from_request(self, req: Request) -> Dict[str, Any]:
+        token = req.cookies.get(self._jwt_cookie_name)
         if not token:
             raise AsyncQueryTokenException("Token not preset")
 
