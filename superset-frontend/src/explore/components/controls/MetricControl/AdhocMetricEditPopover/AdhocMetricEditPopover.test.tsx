@@ -170,7 +170,7 @@ test('Should switch to tab:Custom SQL', () => {
   ).toBeInTheDocument();
 });
 
-test('Should render tab "Custom SQL" correctly', () => {
+test('Should render "Custom SQL" tab correctly', () => {
   const props = createProps();
   props.getCurrentTab.mockImplementation(tab => {
     props.adhocMetric.expressionType = tab;
