@@ -127,19 +127,19 @@ describe('Dashboard tabs', () => {
       });
     });
 
-    getChartAliasBySpec(LINE_CHART).then(lineChartAlias => {
-      // click row level tab, send 1 more query
-      cy.get('.ant-tabs-tab').contains('row tab 2').click();
+    cy.intercept('/superset/explore_json/*').as('lineChartDataRequest');
+    // click row level tab, send 1 more query
+    cy.get('.ant-tabs-tab').contains('row tab 2').click();
 
-      cy.wait(lineChartAlias).then(({ request }) => {
-        const requestBody = parsePostForm(request.body);
-        const requestParams = JSON.parse(requestBody.form_data as string);
-        expect(requestParams.extra_filters[0]).deep.eq({
-          col: 'region',
-          op: '==',
-          val: 'South Asia',
-        });
+    cy.wait('@lineChartDataRequest').then(({ request }) => {
+      const requestBody = parsePostForm(request.body);
+      const requestParams = JSON.parse(requestBody.form_data as string);
+      expect(requestParams.extra_filters[0]).deep.eq({
+        col: 'region',
+        op: '==',
+        val: 'South Asia',
       });
+      expect(requestParams.viz_type).eq(LINE_CHART.viz);
     });
 
     getChartAliasBySpec(BOX_PLOT).then(boxPlotAlias => {
