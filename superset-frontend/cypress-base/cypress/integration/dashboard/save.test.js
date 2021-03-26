@@ -18,7 +18,11 @@
  */
 
 import shortid from 'shortid';
-import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
+import {
+  waitForChartLoad,
+  WORLD_HEALTH_CHARTS,
+  WORLD_HEALTH_DASHBOARD,
+} from './dashboard.helper';
 
 function openDashboardEditProperties() {
   cy.get('.dashboard-header [data-test=edit-alt]').click();
@@ -61,8 +65,7 @@ describe('Dashboard save action', () => {
 
   it('should save/overwrite dashboard', () => {
     // should load chart
-    cy.get('.dashboard-grid', { timeout: 30000 });
-    cy.get('.box_plot').should('be.visible');
+    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
 
     // remove box_plot chart from dashboard
     cy.get('[data-test="edit-alt"]').click({ timeout: 5000 });
