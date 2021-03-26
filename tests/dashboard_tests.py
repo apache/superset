@@ -133,20 +133,6 @@ class TestDashboard(SupersetTestCase):
         self.assertEqual(dash_count_before + 1, dash_count_after)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_dashboard_modes(self):
-        self.login(username="admin")
-        dash = db.session.query(Dashboard).filter_by(slug="births").first()
-        url = dash.url
-        if dash.url.find("?") == -1:
-            url += "?"
-        else:
-            url += "&"
-        resp = self.get_resp(url + "edit=true&standalone=true")
-        self.assertIn("editMode&#34;: true", resp)
-        self.assertIn("standalone_mode&#34;: true", resp)
-        self.assertIn('<body class="standalone">', resp)
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_save_dash(self, username="admin"):
         self.login(username=username)
         dash = db.session.query(Dashboard).filter_by(slug="births").first()
