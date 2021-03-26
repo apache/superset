@@ -1863,12 +1863,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 form_data = slc.get("form_data")
                 form_data.pop("label_colors", None)
 
-        url_params = {
-            key: value
-            for key, value in request.args.items()
-            if key not in [param.value for param in utils.ReservedUrlParameters]
-        }
-
         bootstrap_data = {
             "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(),

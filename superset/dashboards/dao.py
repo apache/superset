@@ -19,7 +19,6 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import contains_eager
 
