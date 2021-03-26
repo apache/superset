@@ -76,7 +76,7 @@ test('Should render correct elements', () => {
   expect(screen.getByRole('button', { name: 'Close' })).toBeVisible();
 });
 
-test('When click on "Close" should call onClose', () => {
+test('Clicking on "Close" should call onClose', () => {
   const props = createProps();
   render(<AdhocMetricEditPopover {...props} />);
   expect(props.onClose).toBeCalledTimes(0);
