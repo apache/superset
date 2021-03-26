@@ -65,7 +65,11 @@ def execute(report_schedule_id: int, scheduled_dttm: str) -> None:
     try:
         task_id = execute.request.id
         scheduled_dttm_ = parser.parse(scheduled_dttm)
-        AsyncExecuteReportScheduleCommand(task_id, report_schedule_id, scheduled_dttm_).run()
+        AsyncExecuteReportScheduleCommand(
+            task_id,
+            report_schedule_id,
+            scheduled_dttm_,
+        ).run()
     except ReportScheduleUnexpectedError as ex:
         logger.error("An unexpected occurred while executing the report: %s", ex)
     except CommandException as ex:

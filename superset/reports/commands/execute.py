@@ -17,7 +17,7 @@
 import logging
 from datetime import datetime, timedelta
 from typing import Any, List, Optional
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from celery.exceptions import SoftTimeLimitExceeded
 from flask_appbuilder.security.sqla.models import User
