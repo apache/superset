@@ -61,6 +61,7 @@ describe('Dashboard top-level controls', () => {
   it('should allow dashboard level force refresh', () => {
     // when charts are not start loading, for example, under a secondary tab,
     // should allow force refresh
+    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
     getChartAliasesBySpec(WORLD_HEALTH_CHARTS).then(aliases => {
       cy.get('[data-test="more-horiz"]').click();
       cy.get('[data-test="refresh-dashboard-menu-item"]').should(
