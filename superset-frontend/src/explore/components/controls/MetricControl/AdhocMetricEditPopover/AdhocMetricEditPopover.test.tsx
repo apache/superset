@@ -130,7 +130,7 @@ test('Should switch to tab:Simple', () => {
   expect(screen.getByRole('tabpanel', { name: 'Simple' })).toBeInTheDocument();
 });
 
-test('Should render tab "Simple" correctly', () => {
+test('Should render "Simple" tab correctly', () => {
   const props = createProps();
   props.getCurrentTab.mockImplementation(tab => {
     props.adhocMetric.expressionType = tab;
