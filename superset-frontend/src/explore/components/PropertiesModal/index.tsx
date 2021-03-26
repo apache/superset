@@ -32,13 +32,13 @@ import rison from 'rison';
 import { t, SupersetClient } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
 import FormLabel from 'src/components/FormLabel';
-import { getClientErrorObject } from '../../utils/getClientErrorObject';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 type PropertiesModalProps = {
   slice: Slice;
+  show: boolean;
   onHide: () => void;
   onSave: (chart: Chart) => void;
-  show: boolean;
 };
 
 type OwnerOption = {
