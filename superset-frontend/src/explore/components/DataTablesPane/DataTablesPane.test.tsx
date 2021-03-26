@@ -61,7 +61,7 @@ const createProps = () => ({
 test('Rendering DataTablesPane correctly', () => {
   const props = createProps();
   render(<DataTablesPane {...props} />, { useRedux: true });
-  expect(screen.getByTestId('DataTablesPane')).toBeVisible();
+  expect(screen.getByTestId('some-purposeful-instance')).toBeVisible();
   expect(screen.getByRole('tablist')).toBeVisible();
   expect(screen.getByRole('tab', { name: 'right Data' })).toBeVisible();
   expect(screen.getByRole('img', { name: 'right' })).toBeVisible();

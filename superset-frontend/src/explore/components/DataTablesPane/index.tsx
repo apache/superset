@@ -255,7 +255,7 @@ export const DataTablesPane = ({
   };
 
   return (
-    <SouthPane data-test="DataTablesPane">
+    <SouthPane data-test="some-purposeful-instance">
       <TabsWrapper contentHeight={tableSectionHeight}>
         <Collapse
           accordion
