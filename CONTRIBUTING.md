@@ -901,7 +901,29 @@ You are now ready to attach a debugger to the process. Using VSCode you can conf
 VSCode will not stop on breakpoints right away. We've attached to PID 6 however it does not yet know of any sub-processes. In order to "wakeup" the debugger you need to modify a python file. This will trigger Flask to reload the code and create a new sub-process. This new sub-process will be detected by VSCode and breakpoints will be activated.
 
 
+### Debugging Server App in Kubernetes Environment
 
+To debug Flask running in POD inside kubernetes cluster. You'll need to make sure the pod runs as root and is granted the SYS_TRACE capability.These settings should not be used in production environments.
+
+```
+  securityContext:
+    capabilities:
+      add: ["SYS_PTRACE"]
+```
+
+See (set capabilities for a container)[https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container] for more details.
+
+Once the pod is running as root and has the SYS_PTRACE capability it will be able to debug the Flask app.
+
+You can follow the same instructions as in the docker-compose. Enter the pod and install the required library and packages; gdb, netstat and debugpy.
+
+Often in a kuernetes environment nodes are not addressable from ouside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
+
+```
+kubectl port-forward  pod/superset-<some random id> 5678:5678
+```
+
+You can now launch your VSCode debugger with the same config as above. VSCode will connect to to 127.0.0.1:5678 which is forwarded by kubectl to your remote kubernetes POD.
 
 
 ### Storybook
