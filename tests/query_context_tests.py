@@ -352,20 +352,57 @@ class TestQueryContext(SupersetTestCase):
             )
 
         sql_text = get_sql_text(get_query_context("birth_names:orderby_dup_alias"))
-        if backend() == "hive":
-            assert "sum(`num_boys`) AS `num_boys`," in sql_text
-            assert "sum(`num_boys`) AS `SUM(num_boys)`" in sql_text
-            assert "ORDER BY `SUM(num_boys)`" in sql_text
+
+        # Check SELECT clauses
+        if backend() == "presto":
+            # presto cannot have ambiguous alias in order by, so selected column
+            # alias is renamed.
+            assert 'sum("num_boys") AS "num_boys__"' in sql_text
         else:
-            print(sql_text)
+            assert re.search(
+                r'SUM\([`"\[]?num_boys[`"\]]?\) AS [`\"\[]?num_boys[`"\]]?',
+                sql_text,
+                re.IGNORECASE,
+            )
+
+        # Check ORDER BY clauses
+        if backend() == "hive":
+            # Hive must add additional SORT BY metrics to SELECT
+            assert re.search(
+                r"MAX\(CASE.*END\) AS `MAX\(CASE WHEN...`",
+                sql_text,
+                re.IGNORECASE | re.DOTALL,
+            )
+
+            # The additional column with the same expression but a different label
+            # as an existing metric should not be added
+            assert "sum(`num_girls`) AS `SUM(num_girls)`" not in sql_text
+
+            # Should reference all ORDER BY columns by aliases
+            assert "ORDER BY `num_girls` DESC," in sql_text
+            assert "`AVG(num_boys)` DESC," in sql_text
+            assert "`MAX(CASE WHEN...` ASC" in sql_text
+        else:
             if backend() == "presto":
+                # since the selected `num_boys` is renamed to `num_boys__`
+                # it must be references as expression
                 assert re.search(
-                    r'SUM\([`"\[]?num_boys[`"\]]?\) AS "num_boys__"',
+                    r'ORDER BY SUM\([`"\[]?num_girls[`"\]]?\) DESC',
                     sql_text,
                     re.IGNORECASE,
                 )
+            else:
+                # Should reference the adhoc metric by alias when possible
+                assert re.search(
+                    r'ORDER BY [`"\[]?num_girls[`"\]]? DESC', sql_text, re.IGNORECASE,
+                )
+
+            # ORDER BY only columns should always be expressions
             assert re.search(
-                r'ORDER BY SUM\([`"\[]?num_boys[`"\]]?\) DESC', sql_text, re.IGNORECASE
+                r'AVG\([`"\[]?num_boys[`"\]]?\) DESC', sql_text, re.IGNORECASE,
+            )
+            assert re.search(
+                r"MAX\(CASE.*END\) ASC", sql_text, re.IGNORECASE | re.DOTALL
             )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")

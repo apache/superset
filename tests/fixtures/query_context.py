@@ -56,21 +56,47 @@ QUERY_OBJECTS: Dict[str, Dict[str, object]] = {
         "metrics": [
             {
                 "expressionType": "SIMPLE",
+                "column": {"column_name": "num_girls", "type": "BIGINT(20)"},
+                "aggregate": "SUM",
+                "label": "num_girls",
+            },
+            {
+                "expressionType": "SIMPLE",
                 "column": {"column_name": "num_boys", "type": "BIGINT(20)"},
                 "aggregate": "SUM",
                 "label": "num_boys",
-            }
+            },
         ],
         "orderby": [
             [
                 {
                     "expressionType": "SIMPLE",
-                    "column": {"column_name": "num_boys", "type": "BIGINT(20)"},
+                    "column": {"column_name": "num_girls", "type": "BIGINT(20)"},
                     "aggregate": "SUM",
-                    "label": "SUM(num_boys)",
+                    # the same underlying expression, but different label
+                    "label": "SUM(num_girls)",
                 },
                 False,
-            ]
+            ],
+            # reference the ambiguous alias in SIMPLE metric
+            [
+                {
+                    "expressionType": "SIMPLE",
+                    "column": {"column_name": "num_boys", "type": "BIGINT(20)"},
+                    "aggregate": "AVG",
+                    "label": "AVG(num_boys)",
+                },
+                False,
+            ],
+            # reference the ambiguous alias in CUSTOM SQL metric
+            [
+                {
+                    "expressionType": "SQL",
+                    "sqlExpression": "MAX(CASE WHEN num_boys > 0 THEN 1 ELSE 0 END)",
+                    "label": "MAX(CASE WHEN...",
+                },
+                True,
+            ],
         ],
     },
     "birth_names:only_orderby_has_metric": {"metrics": [],},
