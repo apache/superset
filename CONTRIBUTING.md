@@ -802,6 +802,108 @@ npm install
 npm run cypress open
 ```
 
+### Debugging Server App
+
+Follow these instructions to debug the Flask app running inside a docker container.
+
+First add the following to the ./docker-compose.yaml file
+
+```diff
+superset:
+    env_file: docker/.env
+    image: *superset-image
+    container_name: superset_app
+    command: ["/app/docker/docker-bootstrap.sh", "app"]
+    restart: unless-stopped
++   cap_add:
++     - SYS_PTRACE
+    ports:
+      - 8088:8088
++     - 5678:5678
+    user: "root"
+    depends_on: *superset-depends-on
+    volumes: *superset-volumes
+    environment:
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
+```
+
+Start Superset as usual
+```bash
+docker-compose up
+```
+
+Install the required libraries and packages to the docker container
+
+Enter the superset_app container
+```bash
+docker exec -it superset_app /bin/bash
+root@39ce8cf9d6ab:/app#
+```
+
+Run the following commands inside the container
+```bash
+apt update
+apt install -y gdb
+apt install -y net-tools
+pip install debugpy
+```
+
+Find the PID for the Flask process. Make sure to use the first PID. The Flask app will re-spawn a sub-process everytime you change any of the python code. So it's important to use the first PID.
+
+```bash
+ps -ef
+
+UID        PID  PPID  C STIME TTY          TIME CMD
+root         1     0  0 14:09 ?        00:00:00 bash /app/docker/docker-bootstrap.sh app
+root         6     1  4 14:09 ?        00:00:04 /usr/local/bin/python /usr/bin/flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0
+root        10     6  7 14:09 ?        00:00:07 /usr/local/bin/python /usr/bin/flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0
+```
+
+Inject debugpy into the running Flask process. In this case PID 6. 
+```bash
+python3 -m debugpy --listen 0.0.0.0:5678 --pid 6
+```
+
+Verify that debugpy is listening on port 5678
+```bash
+netstat -tunap
+
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name    
+tcp        0      0 0.0.0.0:5678            0.0.0.0:*               LISTEN      462/python          
+tcp        0      0 0.0.0.0:8088            0.0.0.0:*               LISTEN      6/python            
+```
+
+You are now ready to attach a debugger to the process. Using VSCode you can configure a launch configuration file .vscode/launch.json like so.
+```
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Attach to Superset App in Docker Container",
+            "type": "python",
+            "request": "attach",
+            "connect": {
+                "host": "127.0.0.1",
+                "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "/app"
+                }
+            ]
+        },
+    ]
+}
+```
+
+VSCode will not stop on breakpoints right away. We've attached to PID 6 however it does not yet know of any sub-processes. In order to "wakeup" the debugger you need to modify a python file. This will trigger Flask to reload the code and create a new sub-process. This new sub-process will be detected by VSCode and breakpoints will be activated.
+
+
+
+
+
 ### Storybook
 
 Superset includes a [Storybook](https://storybook.js.org/) to preview the layout/styling of various Superset components, and variations thereof. To open and view the Storybook:
