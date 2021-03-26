@@ -18,7 +18,7 @@
  */
 
 import React from 'react';
-import { render, screen, act } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import * as chartAction from 'src/chart/chartAction';
 import * as downloadAsImage from 'src/utils/downloadAsImage';
