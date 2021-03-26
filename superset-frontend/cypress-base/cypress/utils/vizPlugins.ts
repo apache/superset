@@ -57,18 +57,20 @@ export function getSliceIdFromRequestUrl(url: string) {
   return query?.match(/\d+/)?.[0];
 }
 
-export function getChartAlias(slice: Slice): string {
+export function getChartDataRouteForSlice(slice: Slice) {
   const vizType = slice.form_data.viz_type;
   const isLegacy = isLegacyChart(vizType);
-  const alias = `${DASHBOARD_CHART_ALIAS_PREFIX}${slice.slice_id}_${slice.form_data.viz_type}`;
   const formData = encodeURIComponent(`{"slice_id":${slice.slice_id}}`);
   if (isLegacy) {
-    const route = `/superset/explore_json/?*${formData}*`;
-    cy.intercept('POST', `${route}`).as(alias);
-    return `@${alias}`;
+    return `/superset/explore_json/?*${formData}*`;
   }
-  const route = `/api/v1/chart/data?*${formData}*`;
-  cy.intercept('POST', `${route}`).as(alias);
+  return `/api/v1/chart/data?*${formData}*`;
+}
+
+export function getChartAlias(slice: Slice): string {
+  const alias = `${DASHBOARD_CHART_ALIAS_PREFIX}${slice.slice_id}_${slice.form_data.viz_type}`;
+  const route = getChartDataRouteForSlice(slice);
+  cy.intercept('POST', route).as(alias);
   return `@${alias}`;
 }
 
