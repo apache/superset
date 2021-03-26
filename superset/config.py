@@ -114,6 +114,9 @@ VERSION_STRING = _try_json_readversion(VERSION_INFO_FILE) or _try_json_readversi
 VERSION_SHA_LENGTH = 8
 VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE, VERSION_SHA_LENGTH)
 
+# default viz used in chart explorer
+DEFAULT_VIZ_TYPE = "table"
+
 ROW_LIMIT = 50000
 VIZ_ROW_LIMIT = 10000
 # max rows retreieved when requesting samples from datasource in explore view
