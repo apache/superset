@@ -20,9 +20,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 
-import Select from '../../../components/AsyncSelect';
-import ControlHeader from '../ControlHeader';
-import withToasts from '../../../messageToasts/enhancers/withToasts';
+import Select from 'src/components/AsyncSelect';
+import ControlHeader from 'src/explore/components/ControlHeader';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
 
 const propTypes = {
   dataEndpoint: PropTypes.string.isRequired,
@@ -68,7 +68,7 @@ const SelectAsyncControl = props => {
   };
 
   return (
-    <div>
+    <div data-test="SelectAsyncControl">
       <ControlHeader {...props} />
       <Select
         dataEndpoint={dataEndpoint}
