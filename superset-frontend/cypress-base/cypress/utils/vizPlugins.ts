@@ -41,7 +41,7 @@ const V1_PLUGINS = [
   'pie',
   'table',
 ];
-export const DASHBOARD_CHART_ALIAS_PREFIX = 'getJson_';
+export const DASHBOARD_CHART_ALIAS_PREFIX = 'getChartData_';
 
 export function isLegacyChart(vizType: string): boolean {
   return !V1_PLUGINS.includes(vizType);
@@ -57,24 +57,25 @@ export function getSliceIdFromRequestUrl(url: string) {
   return query?.match(/\d+/)?.[0];
 }
 
+export function getChartDataRouteForSlice(slice: Slice) {
+  const vizType = slice.form_data.viz_type;
+  const isLegacy = isLegacyChart(vizType);
+  const formData = encodeURIComponent(`{"slice_id":${slice.slice_id}}`);
+  if (isLegacy) {
+    return `/superset/explore_json/?*${formData}*`;
+  }
+  return `/api/v1/chart/data?*${formData}*`;
+}
+
+export function getChartAlias(slice: Slice): string {
+  const alias = `${DASHBOARD_CHART_ALIAS_PREFIX}${slice.slice_id}_${slice.form_data.viz_type}`;
+  const route = getChartDataRouteForSlice(slice);
+  cy.intercept('POST', route).as(alias);
+  return `@${alias}`;
+}
+
 export function getChartAliases(slices: Slice[]): string[] {
-  const aliases: string[] = [];
-  Array.from(slices).forEach(slice => {
-    const vizType = slice.form_data.viz_type;
-    const isLegacy = isLegacyChart(vizType);
-    const alias = `${DASHBOARD_CHART_ALIAS_PREFIX}${slice.slice_id}`;
-    const formData = encodeURIComponent(`{"slice_id":${slice.slice_id}}`);
-    if (isLegacy) {
-      const route = `/superset/explore_json/?*${formData}*`;
-      cy.intercept('POST', `${route}`).as(alias);
-      aliases.push(`@${alias}`);
-    } else {
-      const route = `/api/v1/chart/data?*${formData}*`;
-      cy.intercept('POST', `${route}`).as(alias);
-      aliases.push(`@${alias}`);
-    }
-  });
-  return aliases;
+  return Array.from(slices).map(getChartAlias);
 }
 
 export function interceptChart({
