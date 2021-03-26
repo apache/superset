@@ -26,7 +26,7 @@ export const useForceUpdate = () => {
   return React.useCallback(() => updateState({}), []);
 };
 
-export const setFilterFieldValues = (
+export const setNativeFilterFieldValues = (
   form: FormInstance,
   filterId: string,
   values: object,

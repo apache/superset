@@ -109,7 +109,10 @@ def version(verbose: bool) -> None:
 
 
 def load_examples_run(
-    load_test_data: bool, only_metadata: bool = False, force: bool = False
+    load_test_data: bool = False,
+    load_big_data: bool = False,
+    only_metadata: bool = False,
+    force: bool = False,
 ) -> None:
     if only_metadata:
         print("Loading examples metadata")
@@ -167,6 +170,10 @@ def load_examples_run(
         print("Loading DECK.gl demo")
         examples.load_deck_dash()
 
+    if load_big_data:
+        print("Loading big synthetic data for tests")
+        examples.load_big_data()
+
     # load examples that are stored as YAML config files
     examples.load_from_configs(force, load_test_data)
 
@@ -174,6 +181,7 @@ def load_examples_run(
 @with_appcontext
 @superset.command()
 @click.option("--load-test-data", "-t", is_flag=True, help="Load additional test data")
+@click.option("--load-big-data", "-b", is_flag=True, help="Load additional big data")
 @click.option(
     "--only-metadata", "-m", is_flag=True, help="Only load metadata, skip actual data"
 )
@@ -181,10 +189,13 @@ def load_examples_run(
     "--force", "-f", is_flag=True, help="Force load data even if table already exists"
 )
 def load_examples(
-    load_test_data: bool, only_metadata: bool = False, force: bool = False
+    load_test_data: bool,
+    load_big_data: bool,
+    only_metadata: bool = False,
+    force: bool = False,
 ) -> None:
     """Loads a set of Slices and Dashboards and a supporting dataset """
-    load_examples_run(load_test_data, only_metadata, force)
+    load_examples_run(load_test_data, load_big_data, only_metadata, force)
 
 
 @with_appcontext

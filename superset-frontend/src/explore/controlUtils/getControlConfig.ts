@@ -23,20 +23,6 @@ import {
   expandControlConfig,
 } from '@superset-ui/chart-controls';
 
-const getMemoizedControlConfig = memoizeOne(
-  (controlKey, controlPanelConfig) => {
-    const {
-      controlOverrides = {},
-      controlPanelSections = [],
-    } = controlPanelConfig;
-    const control = expandControlConfig(
-      findControlItem(controlPanelSections, controlKey),
-      controlOverrides,
-    );
-    return control && 'config' in control ? control.config : control;
-  },
-);
-
 /**
  * Find control item from control panel config.
  */
@@ -58,6 +44,20 @@ export function findControlItem(
       ) ?? null
   );
 }
+
+const getMemoizedControlConfig = memoizeOne(
+  (controlKey, controlPanelConfig) => {
+    const {
+      controlOverrides = {},
+      controlPanelSections = [],
+    } = controlPanelConfig;
+    const control = expandControlConfig(
+      findControlItem(controlPanelSections, controlKey),
+      controlOverrides,
+    );
+    return control && 'config' in control ? control.config : control;
+  },
+);
 
 export const getControlConfig = function getControlConfig(
   controlKey: string,

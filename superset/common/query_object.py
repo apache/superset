@@ -28,7 +28,7 @@ from superset import app, db
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import QueryObjectValidationError
-from superset.typing import Metric
+from superset.typing import Metric, OrderBy
 from superset.utils import pandas_postprocessing
 from superset.utils.core import (
     ChartDataResultType,
@@ -36,6 +36,7 @@ from superset.utils.core import (
     DTTM_ALIAS,
     find_duplicates,
     get_metric_names,
+    is_adhoc_metric,
     json_int_dttm_ser,
 )
 from superset.utils.date_parser import get_since_until, parse_human_timedelta
@@ -80,7 +81,7 @@ class QueryObject:
     is_timeseries: bool
     time_shift: Optional[timedelta]
     groupby: List[str]
-    metrics: List[Union[Dict[str, Any], str]]
+    metrics: Optional[List[Metric]]
     row_limit: int
     row_offset: int
     filter: List[Dict[str, Any]]
@@ -89,7 +90,7 @@ class QueryObject:
     order_desc: bool
     extras: Dict[str, Any]
     columns: List[str]
-    orderby: List[List[str]]
+    orderby: List[OrderBy]
     post_processing: List[Dict[str, Any]]
     datasource: Optional[BaseDatasource]
     result_type: Optional[ChartDataResultType]
@@ -116,11 +117,16 @@ class QueryObject:
         order_desc: bool = True,
         extras: Optional[Dict[str, Any]] = None,
         columns: Optional[List[str]] = None,
-        orderby: Optional[List[List[str]]] = None,
+        orderby: Optional[List[OrderBy]] = None,
         post_processing: Optional[List[Optional[Dict[str, Any]]]] = None,
         is_rowcount: bool = False,
         **kwargs: Any,
     ):
+        columns = columns or []
+        groupby = groupby or []
+        extras = extras or {}
+        annotation_layers = annotation_layers or []
+
         self.is_rowcount = is_rowcount
         self.datasource = None
         if datasource:
@@ -128,12 +134,7 @@ class QueryObject:
                 str(datasource["type"]), int(datasource["id"]), db.session
             )
         self.result_type = result_type
-        annotation_layers = annotation_layers or []
         self.apply_fetch_values_predicate = apply_fetch_values_predicate or False
-        metrics = metrics or []
-        columns = columns or []
-        groupby = groupby or []
-        extras = extras or {}
         self.annotation_layers = [
             layer
             for layer in annotation_layers
@@ -169,11 +170,11 @@ class QueryObject:
         #   1. 'metric_name'   - name of predefined metric
         #   2. { label: 'label_name' }  - legacy format for a predefined metric
         #   3. { expressionType: 'SIMPLE' | 'SQL', ... } - adhoc metric
-        self.metrics = [
-            metric
-            if isinstance(metric, str) or "expressionType" in metric
-            else metric["label"]  # type: ignore
-            for metric in metrics
+        self.metrics = metrics and [
+            x
+            if isinstance(x, str) or is_adhoc_metric(x)
+            else x["label"]  # type: ignore
+            for x in metrics
         ]
 
         self.row_limit = config["ROW_LIMIT"] if row_limit is None else row_limit
@@ -236,7 +237,7 @@ class QueryObject:
     @property
     def metric_names(self) -> List[str]:
         """Return metrics names (labels), coerce adhoc metrics to strings."""
-        return get_metric_names(self.metrics)
+        return get_metric_names(self.metrics or [])
 
     @property
     def column_names(self) -> List[str]:

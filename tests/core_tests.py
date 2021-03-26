@@ -36,7 +36,7 @@ from unittest import mock, skipUnless
 
 import pandas as pd
 import sqlalchemy as sqla
-
+from sqlalchemy.exc import SQLAlchemyError
 from superset.models.cache import CacheKey
 from superset.utils.core import get_example_database
 from tests.fixtures.energy_dashboard import load_energy_table_with_slice
@@ -53,6 +53,7 @@ from superset import (
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
+from superset.exceptions import SupersetException
 from superset.extensions import async_query_manager
 from superset.models import core as models
 from superset.models.annotations import Annotation, AnnotationLayer
@@ -1473,6 +1474,59 @@ class TestCore(SupersetTestCase):
         assert utils.get_column_names_from_metrics([simple_metric, sql_metric]) == [
             "my_col"
         ]
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @mock.patch("superset.models.core.DB_CONNECTION_MUTATOR")
+    def test_explore_injected_exceptions(self, mock_db_connection_mutator):
+        """
+        Handle injected exceptions from the db mutator
+        """
+        # Assert we can handle a custom exception at the mutator level
+        exception = SupersetException("Error message")
+        mock_db_connection_mutator.side_effect = exception
+        slice = db.session.query(Slice).first()
+        url = f"/superset/explore/?form_data=%7B%22slice_id%22%3A%20{slice.id}%7D"
+
+        self.login()
+        data = self.get_resp(url)
+        self.assertIn("Error message", data)
+
+        # Assert we can handle a driver exception at the mutator level
+        exception = SQLAlchemyError("Error message")
+        mock_db_connection_mutator.side_effect = exception
+        slice = db.session.query(Slice).first()
+        url = f"/superset/explore/?form_data=%7B%22slice_id%22%3A%20{slice.id}%7D"
+
+        self.login()
+        data = self.get_resp(url)
+        self.assertIn("Error message", data)
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @mock.patch("superset.models.core.DB_CONNECTION_MUTATOR")
+    def test_dashboard_injected_exceptions(self, mock_db_connection_mutator):
+        """
+        Handle injected exceptions from the db mutator
+        """
+
+        # Assert we can handle a custom excetion at the mutator level
+        exception = SupersetException("Error message")
+        mock_db_connection_mutator.side_effect = exception
+        dash = db.session.query(Dashboard).first()
+        url = f"/superset/dashboard/{dash.id}/"
+
+        self.login()
+        data = self.get_resp(url)
+        self.assertIn("Error message", data)
+
+        # Assert we can handle a driver exception at the mutator level
+        exception = SQLAlchemyError("Error message")
+        mock_db_connection_mutator.side_effect = exception
+        dash = db.session.query(Dashboard).first()
+        url = f"/superset/dashboard/{dash.id}/"
+
+        self.login()
+        data = self.get_resp(url)
+        self.assertIn("Error message", data)
 
 
 if __name__ == "__main__":

@@ -51,5 +51,17 @@ export default function setupErrorMessages() {
     ErrorTypeEnum.MISSING_TEMPLATE_PARAMS_ERROR,
     ParameterErrorMessage,
   );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.TEST_CONNECTION_INVALID_HOSTNAME_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.TEST_CONNECTION_PORT_CLOSED_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.TEST_CONNECTION_HOST_DOWN_ERROR,
+    DatabaseErrorMessage,
+  );
   setupErrorMessagesExtra();
 }

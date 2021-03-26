@@ -169,9 +169,6 @@ export function areArraysShallowEqual(arr1: unknown[], arr2: unknown[]) {
   return true;
 }
 
-export function areObjectsEqual(
-  obj1: Record<string, any>,
-  obj2: Record<string, any>,
-) {
+export function areObjectsEqual(obj1: any, obj2: any) {
   return isEqual(obj1, obj2);
 }

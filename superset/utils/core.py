@@ -82,7 +82,7 @@ from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
-from sqlalchemy.types import TEXT, TypeDecorator
+from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
 from typing_extensions import TypedDict
 
 import _thread  # pylint: disable=C0411
@@ -148,6 +148,10 @@ class GenericDataType(IntEnum):
     STRING = 1
     TEMPORAL = 2
     BOOLEAN = 3
+    # ARRAY = 4     # Mapping all the complex data types to STRING for now
+    # JSON = 5      # and leaving these as a reminder.
+    # MAP = 6
+    # ROW = 7
 
 
 class ChartDataResultFormat(str, Enum):
@@ -306,6 +310,18 @@ class TemporalType(str, Enum):
     TIMESTAMP = "TIMESTAMP"
 
 
+class ColumnTypeSource(Enum):
+    GET_TABLE = 1
+    CURSOR_DESCRIPION = 2
+
+
+class ColumnSpec(NamedTuple):
+    sqla_type: Union[TypeEngine, str]
+    generic_type: GenericDataType
+    is_dttm: bool
+    python_date_format: Optional[str] = None
+
+
 try:
     # Having might not have been imported.
     class DimSelector(Having):
@@ -414,6 +430,10 @@ def parse_js_uri_path_item(
 def cast_to_num(value: Optional[Union[float, int, str]]) -> Optional[Union[float, int]]:
     """Casts a value to an int/float
 
+    >>> cast_to_num('1 ')
+    1.0
+    >>> cast_to_num(' 2')
+    2.0
     >>> cast_to_num('5')
     5
     >>> cast_to_num('5.2')
@@ -1227,7 +1247,7 @@ def backend() -> str:
 
 
 def is_adhoc_metric(metric: Metric) -> bool:
-    return isinstance(metric, dict)
+    return isinstance(metric, dict) and "expressionType" in metric
 
 
 def get_metric_name(metric: Metric) -> str:

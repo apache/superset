@@ -29,6 +29,7 @@ from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard, id_or_slug_filter
 from superset.models.slice import Slice
+from superset.utils import core
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 
 logger = logging.getLogger(__name__)
@@ -56,6 +57,29 @@ class DashboardDAO(BaseDAO):
         if not dashboard:
             raise DashboardNotFoundError()
         return dashboard
+
+    @staticmethod
+    def get_datasets_for_dashboard(id_or_slug: str) -> List[Any]:
+        query = (
+            db.session.query(Dashboard)
+            .filter(id_or_slug_filter(id_or_slug))
+            .outerjoin(Slice, Dashboard.slices)
+            .outerjoin(Slice.table)
+        )
+        # Apply dashboard base filters
+        query = DashboardFilter("id", SQLAInterface(Dashboard, db.session)).apply(
+            query, None
+        )
+        dashboard = query.one_or_none()
+        if not dashboard:
+            raise DashboardNotFoundError()
+        datasource_slices = core.indexed(dashboard.slices, "datasource")
+        data = [
+            datasource.data_for_slices(slices)
+            for datasource, slices in datasource_slices.items()
+            if datasource
+        ]
+        return data
 
     @staticmethod
     def get_charts_for_dashboard(dashboard_id: int) -> List[Slice]:
