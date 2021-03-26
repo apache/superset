@@ -128,7 +128,6 @@ class TestDashboard(SupersetTestCase):
         dash_count_before = db.session.query(func.count(Dashboard.id)).first()[0]
         url = "/dashboard/new/"
         resp = self.get_resp(url)
-        self.assertIn("[ untitled dashboard ]", resp)
         dash_count_after = db.session.query(func.count(Dashboard.id)).first()[0]
         self.assertEqual(dash_count_before + 1, dash_count_after)
 
@@ -175,9 +174,6 @@ class TestDashboard(SupersetTestCase):
         new_url = updatedDash.url
         self.assertIn("world_health", new_url)
         self.assertNotIn("preselect_filters", new_url)
-
-        resp = self.get_resp(new_url)
-        self.assertIn("North America", resp)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_save_dash_with_invalid_filters(self, username="admin"):
@@ -393,8 +389,6 @@ class TestDashboard(SupersetTestCase):
 
         resp = self.get_resp("/api/v1/dashboard/")
         self.assertIn("/superset/dashboard/births/", resp)
-
-        self.assertIn("Births", self.get_resp("/superset/dashboard/births/"))
 
         # Confirm that public doesn't have access to other datasets.
         resp = self.get_resp("/api/v1/chart/")
