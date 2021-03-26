@@ -56,8 +56,9 @@ export function waitForChartLoad(chart: ChartSpec) {
     return (
       cy
         // this id only becomes visible when the chart is loaded
-        .wrap(gridComponent)
-        .find(`#chart-id-${chartId}`, { timeout: 30000 })
+        .get(`[data-test="chart-grid-component"] #chart-id-${chartId}`, {
+          timeout: 30000,
+        })
         .should('be.visible')
         // return the chart grid component
         .then(() => gridComponent)
