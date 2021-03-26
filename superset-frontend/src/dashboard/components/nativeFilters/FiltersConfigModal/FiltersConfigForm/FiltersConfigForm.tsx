@@ -256,15 +256,23 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
           isClearable
         />
       </StyledFormItem>
-      <DefaultValue
-        forceUpdate={forceUpdate}
-        filterId={filterId}
-        hasFilledDatasource={hasFilledDatasource}
-        hasDatasource={hasDatasource}
-        filterToEdit={filterToEdit}
-        form={form}
-        formData={newFormData}
-      />
+      <StyledFormItem
+        name={['filters', filterId, 'defaultValue']}
+        initialValue={filterToEdit?.defaultValue}
+        data-test="default-input"
+        label={<StyledLabel>{t('Default Value')}</StyledLabel>}
+      >
+        {(hasFilledDatasource || !hasDatasource) && (
+          <DefaultValue
+            forceUpdate={forceUpdate}
+            filterId={filterId}
+            hasFilledDatasource={hasFilledDatasource}
+            hasDatasource={hasDatasource}
+            form={form}
+            formData={newFormData}
+          />
+        )}
+      </StyledFormItem>
       <StyledCheckboxFormItem
         name={['filters', filterId, 'isInstant']}
         initialValue={filterToEdit?.isInstant || false}
