@@ -326,6 +326,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           optionRenderer={renderTableOption}
           valueRenderer={renderTableOption}
           isDisabled={readOnly}
+          menuPosition="fixed"
         />
       );
     } else if (formMode) {
