@@ -203,7 +203,7 @@
     "@storybook/react": "^6.1.20",
     "@svgr/webpack": "^5.4.0",
     "@testing-library/dom": "^7.29.4",
-    "@testing-library/jest-dom": "^5.11.9",
+    "@testing-library/jest-dom": "^5.11.10",
     "@testing-library/react": "^11.2.5",
     "@testing-library/react-hooks": "^5.0.3",
     "@testing-library/user-event": "^12.8.3",
