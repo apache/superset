@@ -144,14 +144,10 @@ test('Shoud call getChartDataRequest when click on "View query"', async () => {
   userEvent.click(screen.getByRole('button'));
   expect(getChartDataRequest).toBeCalledTimes(0);
 
-  await act(async () => {
-    const menuItem = screen.getByText('View query').parentElement;
-    if (menuItem) {
-      userEvent.click(menuItem);
-    }
-  });
+  const menuItem = screen.getByText('View query').parentElement!;
+  userEvent.click(menuItem);
 
-  expect(getChartDataRequest).toBeCalledTimes(1);
+  await waitFor(() => expect(getChartDataRequest).toBeCalledTimes(1));
 });
 
 test('Shoud call onOpenInEditor when click on "Run in SQL Lab"', () => {
