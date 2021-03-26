@@ -34,6 +34,9 @@ from superset.stats_logger import BaseStatsLogger
 
 def collect_request_payload() -> Dict[str, Any]:
     """Collect log payload identifiable from request context"""
+    if not request:
+        return {}
+
     payload: Dict[str, Any] = {
         "path": request.path,
         **request.form.to_dict(),
@@ -111,7 +114,7 @@ class AbstractEventLogger(ABC):
     ) -> None:
         from superset.views.core import get_form_data
 
-        referrer = request.referrer[:1000] if request.referrer else None
+        referrer = request.referrer[:1000] if request and request.referrer else None
 
         duration_ms = int(duration.total_seconds() * 1000) if duration else None
 

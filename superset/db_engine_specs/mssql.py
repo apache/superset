@@ -15,17 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-import re
 from datetime import datetime
-from typing import Any, List, Optional, Tuple, TYPE_CHECKING
-
-from sqlalchemy.types import String, UnicodeText
+from typing import Any, List, Optional, Tuple
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 from superset.utils import core as utils
-
-if TYPE_CHECKING:
-    from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
 
@@ -76,11 +70,6 @@ class MssqlEngineSpec(BaseEngineSpec):
         data = super().fetch_data(cursor, limit)
         # Lists of `pyodbc.Row` need to be unpacked further
         return cls.pyodbc_rows_to_tuples(data)
-
-    column_type_mappings = (
-        (re.compile(r"^N((VAR)?CHAR|TEXT)", re.IGNORECASE), UnicodeText()),
-        (re.compile(r"^((VAR)?CHAR|TEXT|STRING)", re.IGNORECASE), String()),
-    )
 
     @classmethod
     def extract_error_message(cls, ex: Exception) -> str:

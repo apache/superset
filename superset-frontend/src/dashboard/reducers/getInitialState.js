@@ -290,7 +290,7 @@ export default function getInitialState(
   }
 
   const nativeFilters = getInitialNativeFilterState({
-    filterConfig: metadata.filter_configuration || [],
+    filterConfig: metadata.native_filter_configuration || [],
     filterSetsConfig: metadata.filter_sets_configuration || [],
   });
 

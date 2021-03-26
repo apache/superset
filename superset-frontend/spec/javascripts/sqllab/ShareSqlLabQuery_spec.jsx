@@ -21,24 +21,41 @@ import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
 import * as featureFlags from 'src/featureFlags';
-import { shallow } from 'enzyme';
-
+import { Provider } from 'react-redux';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { render, screen, act } from '@testing-library/react';
+import '@testing-library/jest-dom/extend-expect';
+import userEvent from '@testing-library/user-event';
 import * as utils from 'src/utils/common';
 import ShareSqlLabQuery from 'src/SqlLab/components/ShareSqlLabQuery';
-import CopyToClipboard from 'src/components/CopyToClipboard';
-import { Tooltip } from 'src/common/components/Tooltip';
 
 const mockStore = configureStore([thunk]);
-const store = mockStore();
+const store = mockStore({});
 let isFeatureEnabledMock;
 
-const clipboardSpy = jest.fn();
+const standardProvider = ({ children }) => (
+  <ThemeProvider theme={supersetTheme}>
+    <Provider store={store}>{children}</Provider>
+  </ThemeProvider>
+);
+
+const defaultProps = {
+  queryEditor: {
+    dbId: 0,
+    title: 'query title',
+    schema: 'query_schema',
+    autorun: false,
+    sql: 'SELECT * FROM ...',
+    remoteId: 999,
+  },
+  addDangerToast: jest.fn(),
+};
 
 describe('ShareSqlLabQuery', () => {
   const storeQueryUrl = 'glob:*/kv/store/';
   const storeQueryMockId = '123';
 
-  beforeEach(() => {
+  beforeEach(async () => {
     fetchMock.post(storeQueryUrl, () => ({ id: storeQueryMockId }), {
       overwriteRoutes: true,
     });
@@ -47,33 +64,6 @@ describe('ShareSqlLabQuery', () => {
   });
 
   afterAll(fetchMock.reset);
-
-  const defaultProps = {
-    queryEditor: {
-      dbId: 0,
-      title: 'query title',
-      schema: 'query_schema',
-      autorun: false,
-      sql: 'SELECT * FROM ...',
-      remoteId: 999,
-    },
-  };
-
-  const storedQueryAttributes = {
-    dbId: 0,
-    title: 'query title',
-    schema: 'query_schema',
-    autorun: false,
-    sql: 'SELECT * FROM ...',
-  };
-
-  function setup(overrideProps) {
-    const wrapper = shallow(
-      <ShareSqlLabQuery store={store} {...defaultProps} {...overrideProps} />,
-    ).dive(); // wrapped in withToasts HOC
-
-    return wrapper;
-  }
 
   describe('via /kv/store', () => {
     beforeAll(() => {
@@ -86,54 +76,20 @@ describe('ShareSqlLabQuery', () => {
       isFeatureEnabledMock.restore();
     });
 
-    it('calls storeQuery() with the query when getCopyUrl() is called', () => {
-      expect.assertions(4);
-      const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
-
-      const wrapper = setup();
-      const instance = wrapper.instance();
-
-      return instance.getCopyUrl(clipboardSpy).then(() => {
-        expect(storeQuerySpy.mock.calls).toHaveLength(1);
-        expect(fetchMock.calls(storeQueryUrl)).toHaveLength(1);
-        expect(storeQuerySpy.mock.calls[0][0]).toMatchObject(
-          storedQueryAttributes,
-        );
-        expect(clipboardSpy).toHaveBeenCalledWith(
-          expect.stringContaining('?id='),
-        );
-
-        storeQuerySpy.mockRestore();
-
-        return Promise.resolve();
-      });
-    });
-
-    it('dispatches an error toast upon fetching failure', () => {
-      expect.assertions(3);
-      const error = 'There was an error with your request';
-      const addDangerToastSpy = jest.fn();
-      fetchMock.post(
-        storeQueryUrl,
-        { throws: error },
-        { overwriteRoutes: true },
-      );
-      const wrapper = setup();
-      wrapper.setProps({ addDangerToast: addDangerToastSpy });
-
-      return wrapper
-        .instance()
-        .getCopyUrl(clipboardSpy)
-        .then(() => {
-          // Fails then retries thrice
-          expect(fetchMock.calls(storeQueryUrl)).toHaveLength(4);
-          expect(addDangerToastSpy.mock.calls).toHaveLength(1);
-          expect(addDangerToastSpy.mock.calls[0][0]).toBe(error);
-
-          return Promise.resolve();
+    it('calls storeQuery() with the query when getCopyUrl() is called', async () => {
+      await act(async () => {
+        render(<ShareSqlLabQuery {...defaultProps} />, {
+          wrapper: standardProvider,
         });
+      });
+      const button = screen.getByRole('button');
+      const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
+      userEvent.click(button);
+      expect(storeQuerySpy.mock.calls).toHaveLength(1);
+      storeQuerySpy.mockRestore();
     });
   });
+
   describe('via saved query', () => {
     beforeAll(() => {
       isFeatureEnabledMock = jest
@@ -145,37 +101,34 @@ describe('ShareSqlLabQuery', () => {
       isFeatureEnabledMock.restore();
     });
 
-    it('does not call storeQuery() with the query when getCopyUrl() is called', () => {
+    it('does not call storeQuery() with the query when getCopyUrl() is called and feature is not enabled', async () => {
+      await act(async () => {
+        render(<ShareSqlLabQuery {...defaultProps} />, {
+          wrapper: standardProvider,
+        });
+      });
       const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
-
-      const wrapper = setup();
-      const instance = wrapper.instance();
-
-      instance.getCopyUrl(clipboardSpy);
-
+      const button = screen.getByRole('button');
+      userEvent.click(button);
       expect(storeQuerySpy.mock.calls).toHaveLength(0);
-      expect(fetchMock.calls(storeQueryUrl)).toHaveLength(0);
-      expect(clipboardSpy).toHaveBeenCalledWith(
-        expect.stringContaining('savedQueryId'),
-      );
-
       storeQuerySpy.mockRestore();
     });
 
-    it('shows a request to save the query when the query is not yet saved', () => {
-      const wrapper = setup({
+    it('button is disabled and there is a request to save the query', async () => {
+      const updatedProps = {
         queryEditor: {
           ...defaultProps.queryEditor,
           remoteId: undefined,
         },
+      };
+      await act(async () => {
+        render(<ShareSqlLabQuery {...updatedProps} />, {
+          wrapper: standardProvider,
+        });
       });
-
-      expect(wrapper.find(CopyToClipboard)).toHaveLength(0);
-      expect(wrapper.find('.btn-disabled')).toHaveLength(1);
-      expect(wrapper.find(Tooltip)).toHaveProp(
-        'title',
-        expect.stringContaining('Save the query'),
-      );
+      const button = screen.getByRole('button', { name: /copy link/i });
+      const style = window.getComputedStyle(button);
+      expect(style.color).toBe('rgb(102, 102, 102)');
     });
   });
 });

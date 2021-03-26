@@ -19,6 +19,7 @@
 import json
 from datetime import datetime, timedelta
 from io import BytesIO
+from typing import Optional
 from unittest import mock
 from zipfile import is_zipfile, ZipFile
 
@@ -36,7 +37,7 @@ from sqlalchemy.sql import func
 from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 from tests.test_app import app
 from superset.charts.commands.data import ChartDataCommand
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.extensions import async_query_manager, cache_manager, db
 from superset.models.annotations import AnnotationLayer
 from superset.models.core import Database, FavStar, FavStarClassName
@@ -1193,6 +1194,46 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         response_payload = json.loads(rv.data.decode("utf-8"))
         result = response_payload["result"][0]
         self.assertEqual(result["rowcount"], 10)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_dttm_filter(self):
+        """
+        Chart data API: Ensure temporal column filter converts epoch to dttm expression
+        """
+        table = self.get_birth_names_dataset()
+        if table.database.backend == "presto":
+            # TODO: date handling on Presto not fully in line with other engine specs
+            return
+
+        self.login(username="admin")
+        request_payload = get_query_context("birth_names")
+        request_payload["queries"][0]["time_range"] = ""
+        dttm = self.get_dttm()
+        ms_epoch = dttm.timestamp() * 1000
+        request_payload["queries"][0]["filters"][0] = {
+            "col": "ds",
+            "op": "!=",
+            "val": ms_epoch,
+        }
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+
+        # assert that unconverted timestamp is not present in query
+        assert str(ms_epoch) not in result["query"]
+
+        # assert that converted timestamp is present in query where supported
+        dttm_col: Optional[TableColumn] = None
+        for col in table.columns:
+            if col.column_name == table.main_dttm_col:
+                dttm_col = col
+        if dttm_col:
+            dttm_expression = table.database.db_engine_spec.convert_dttm(
+                dttm_col.type, dttm,
+            )
+            self.assertIn(dttm_expression, result["query"])
+        else:
+            raise Exception("ds column not found")
 
     def test_chart_data_prophet(self):
         """

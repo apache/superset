@@ -290,8 +290,10 @@ export default class Chart extends React.Component {
     return (
       <div
         className="chart-slice"
+        data-test="chart-grid-component"
         data-test-chart-id={id}
         data-test-viz-type={slice.viz_type}
+        data-test-chart-name={slice.slice_name}
       >
         <SliceHeader
           innerRef={this.setHeaderRef}

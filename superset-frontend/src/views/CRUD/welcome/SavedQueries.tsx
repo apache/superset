@@ -22,6 +22,7 @@ import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import Loading from 'src/components/Loading';
 import { Dropdown, Menu } from 'src/common/components';
 import { useListViewResource, copyQueryLink } from 'src/views/CRUD/hooks';
 import ListViewCard from 'src/components/ListViewCard';
@@ -57,6 +58,8 @@ interface SavedQueriesProps {
   addDangerToast: (arg0: string) => void;
   addSuccessToast: (arg0: string) => void;
   mine: Array<Query>;
+  showThumbnails: boolean;
+  featureFlag: boolean;
 }
 
 export const CardStyles = styled.div`
@@ -109,9 +112,11 @@ const SavedQueries = ({
   addDangerToast,
   addSuccessToast,
   mine,
+  showThumbnails,
+  featureFlag,
 }: SavedQueriesProps) => {
   const {
-    state: { resourceCollection: queries },
+    state: { loading, resourceCollection: queries },
     hasPerm,
     fetchData,
     refreshData,
@@ -121,6 +126,8 @@ const SavedQueries = ({
     addDangerToast,
     true,
     mine,
+    [],
+    false,
   );
   const [queryFilter, setQueryFilter] = useState('Mine');
   const [queryDeleteModal, setQueryDeleteModal] = useState(false);
@@ -227,6 +234,8 @@ const SavedQueries = ({
       )}
     </Menu>
   );
+
+  if (loading) return <Loading position="inline" />;
   return (
     <>
       {queryDeleteModal && (
@@ -302,7 +311,7 @@ const SavedQueries = ({
                 imgFallbackURL="/static/assets/images/empty-query.svg"
                 description={t('Last run %s', q.changed_on_delta_humanized)}
                 cover={
-                  q?.sql?.length ? (
+                  q?.sql?.length && showThumbnails && featureFlag ? (
                     <QueryContainer>
                       <SyntaxHighlighter
                         language="sql"
@@ -323,8 +332,10 @@ const SavedQueries = ({
                         {shortenSQL(q.sql, 25)}
                       </SyntaxHighlighter>
                     </QueryContainer>
-                  ) : (
+                  ) : showThumbnails && !q?.sql?.length ? (
                     false
+                  ) : (
+                    <></>
                   )
                 }
                 actions={
