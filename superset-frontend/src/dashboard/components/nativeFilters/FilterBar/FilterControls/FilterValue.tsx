@@ -24,14 +24,18 @@ import {
   DataMask,
   t,
   Behavior,
+  ChartDataResponseResult,
 } from '@superset-ui/core';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { FilterProps } from './types';
 import { getFormData } from '../../utils';
 import { useCascadingFilters } from './state';
 import LoadingBox from '../LoadingBox';
+import { ClientErrorObject } from '../../../../../utils/getClientErrorObject';
 
 const FilterItem = styled.div`
   min-height: ${({ theme }) => theme.gridUnit * 11}px;
@@ -45,8 +49,8 @@ const FilterValue: React.FC<FilterProps> = ({
 }) => {
   const { id, targets, filterType } = filter;
   const cascadingFilters = useCascadingFilters(id);
-  const [state, setState] = useState([]);
-  const [error, setError] = useState<boolean>(false);
+  const [state, setState] = useState<ChartDataResponseResult[]>([]);
+  const [error, setError] = useState<string>('');
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
   const inputRef = useRef<HTMLInputElement>(null);
   const [target] = targets;
@@ -76,12 +80,28 @@ const FilterValue: React.FC<FilterProps> = ({
         requestParams: { dashboardId: 0 },
       })
         .then(response => {
-          setState(response.result);
-          setError(false);
-          setLoading(false);
+          if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+            // deal with getChartDataRequest transforming the response data
+            const result = 'result' in response ? response.result[0] : response;
+            waitForAsyncData(result)
+              .then((asyncResult: ChartDataResponseResult[]) => {
+                setLoading(false);
+                setState(asyncResult);
+              })
+              .catch((error: ClientErrorObject) => {
+                setError(
+                  error.message || error.error || t('Check configuration'),
+                );
+                setLoading(false);
+              });
+          } else {
+            setState(response.result);
+            setError('');
+            setLoading(false);
+          }
         })
-        .catch(() => {
-          setError(true);
+        .catch(error => {
+          setError(error.error || error.statusText || error);
           setLoading(false);
         });
     }
@@ -111,7 +131,7 @@ const FilterValue: React.FC<FilterProps> = ({
     return (
       <BasicErrorAlert
         title={t('Cannot load filter')}
-        body={t('Check configuration')}
+        body={error}
         level="error"
       />
     );
