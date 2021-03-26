@@ -127,11 +127,11 @@ describe('Dashboard tabs', () => {
       });
     });
 
-    cy.intercept('/superset/explore_json/*').as('lineChartDataRequest');
+    cy.intercept('/superset/explore_json/*').as('chartDataRequest');
     // click row level tab, send 1 more query
     cy.get('.ant-tabs-tab').contains('row tab 2').click();
 
-    cy.wait('@lineChartDataRequest').then(({ request }) => {
+    cy.wait('@chartDataRequest').then(({ request }) => {
       const requestBody = parsePostForm(request.body);
       const requestParams = JSON.parse(requestBody.form_data as string);
       expect(requestParams.extra_filters[0]).deep.eq({
@@ -142,20 +142,21 @@ describe('Dashboard tabs', () => {
       expect(requestParams.viz_type).eq(LINE_CHART.viz);
     });
 
-    getChartAliasBySpec(BOX_PLOT).then(boxPlotAlias => {
-      // click top level tab, send 1 more query
-      cy.get('.ant-tabs-tab').contains('Tab B').click();
+    // click top level tab, send 1 more query
+    cy.get('.ant-tabs-tab').contains('Tab B').click();
 
-      cy.wait(boxPlotAlias).then(({ request }) => {
-        const requestBody = request.body;
-        const requestParams = requestBody.queries[0];
-        expect(requestParams.filters[0]).deep.eq({
-          col: 'region',
-          op: '==',
-          val: 'South Asia',
-        });
+    cy.wait('@chartDataRequest').then(({ request }) => {
+      const requestBody = request.body;
+      const requestParams = requestBody.queries[0];
+      expect(requestParams.filters[0]).deep.eq({
+        col: 'region',
+        op: '==',
+        val: 'South Asia',
       });
+      expect(requestParams.viz_type).eq(BOX_PLOT.viz);
+    });
 
+    getChartAliasBySpec(BOX_PLOT).then(boxPlotAlias => {
       // navigate to filter and clear filter
       cy.get('.ant-tabs-tab').contains('Tab A').click();
       cy.get('.ant-tabs-tab').contains('row tab 1').click();
