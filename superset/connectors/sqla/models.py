@@ -833,6 +833,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         """
         Render sql with template engine (Jinja).
         """
+        if not self.sql:
+            return ""
+
         sql = self.sql
         if template_processor:
             try:
@@ -844,7 +847,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         msg=ex.message,
                     )
                 )
-        sql = sqlparse.format(sql, strip_comments=True)
+        sql = sqlparse.format(sql.strip("\t\r\n; "), strip_comments=True)
         if not sql:
             raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
         if len(sqlparse.split(sql)) > 1:
@@ -1368,17 +1371,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
         return or_(*groups)
 
-    def _format_sql_str(self, sql: str) -> String:
-        if sql[-1] == ';':
-            stripped_str = sql[:-1]
-            return stripped_str
-        else:
-            return sql; 
-
     def query(self, query_obj: QueryObjectDict) -> QueryResult:
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
-        sql = self._format_sql_str(query_str_ext.sql)
+        sql = query_str_ext.sql
         status = utils.QueryStatus.SUCCESS
         errors = None
         error_message = None
