@@ -59,7 +59,7 @@ const propTypes = {
 };
 
 const defaultProps = {
-  onChange: () => { },
+  onChange: () => {},
   asc: true,
   clearable: true,
   multiple: true,
@@ -124,7 +124,7 @@ export default class FilterBoxItemControl extends React.Component {
     this.setState({ [attr]: typedValue }, this.onChange);
   }
 
-  setType() { }
+  setType() {}
 
   textSummary() {
     return this.state.column || 'N/A';
@@ -167,8 +167,8 @@ export default class FilterBoxItemControl extends React.Component {
           label={t('Default')}
           tooltip={t(
             '(optional) default value for the filter, when using ' +
-            'the multiple option, you can use a semicolon-delimited list ' +
-            'of options.',
+              'the multiple option, you can use a semicolon-delimited list ' +
+              'of options.',
           )}
           control={
             <TextControl
@@ -216,7 +216,7 @@ export default class FilterBoxItemControl extends React.Component {
           isCheckbox
           tooltip={t(
             'Multiple selections allowed, otherwise filter ' +
-            'is limited to a single value',
+              'is limited to a single value',
           )}
           control={
             <CheckboxControl
@@ -231,8 +231,8 @@ export default class FilterBoxItemControl extends React.Component {
           label={t('Search all filter options')}
           tooltip={t(
             'By default, each filter loads at most 1000 choices at the initial page load. ' +
-            'Check this box if you have more than 1000 filter values and want to enable dynamically ' +
-            'searching that loads filter values as users type (may add stress to your database).',
+              'Check this box if you have more than 1000 filter values and want to enable dynamically ' +
+              'searching that loads filter values as users type (may add stress to your database).',
           )}
           isCheckbox
           control={
