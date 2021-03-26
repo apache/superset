@@ -245,6 +245,7 @@ export default function DatabaseSelector({
         placeholder={t('Select a database')}
         autoSelect
         isDisabled={!isDatabaseSelectEnabled || readOnly}
+        menuPosition="fixed"
       />,
       null,
     );
