@@ -56,7 +56,7 @@ beforeEach(() => {
 
 test('Should render', () => {
   render(<DatasourceControl {...defaultProps} />);
-  expect(screen.getByTestId('DatasourceControl')).toBeVisible();
+  expect(screen.getByTestId('datasource-control')).toBeVisible();
 });
 
 test('Should have elements', () => {
