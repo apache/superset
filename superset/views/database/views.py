@@ -39,7 +39,7 @@ from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
 from .forms import CsvToDatabaseForm, ExcelToDatabaseForm
 from .mixins import DatabaseMixin
-from .validators import schema_allows_csv_upload, sqlalchemy_uri_validator
+from .validators import schema_allows_file_upload, sqlalchemy_uri_validator
 
 if TYPE_CHECKING:
     from werkzeug.datastructures import FileStorage  # pylint: disable=unused-import
@@ -128,7 +128,7 @@ class CsvToDatabaseView(SimpleFormView):
         database = form.con.data
         csv_table = Table(table=form.name.data, schema=form.schema.data)
 
-        if not schema_allows_csv_upload(database, csv_table.schema):
+        if not schema_allows_file_upload(database, csv_table.schema):
             message = _(
                 'Database "%(database_name)s" schema "%(schema_name)s" '
                 "is not allowed for csv uploads. Please contact your Superset Admin.",
@@ -285,7 +285,7 @@ class ExcelToDatabaseView(SimpleFormView):
         database = form.con.data
         excel_table = Table(table=form.name.data, schema=form.schema.data)
 
-        if not schema_allows_csv_upload(database, excel_table.schema):
+        if not schema_allows_file_upload(database, excel_table.schema):
             message = _(
                 'Database "%(database_name)s" schema "%(schema_name)s" '
                 "is not allowed for excel uploads. Please contact your Superset Admin.",

@@ -76,7 +76,7 @@ class CsvToDatabaseForm(DynamicForm):
         """
         if security_manager.can_access_database(database):
             return True
-        schemas = database.get_schema_access_for_csv_upload()
+        schemas = database.get_schema_access_for_file_upload()
         if schemas and security_manager.get_schemas_accessible_by_user(
             database, schemas, False
         ):
@@ -265,7 +265,7 @@ class ExcelToDatabaseForm(DynamicForm):
         """
         if security_manager.can_access_database(database):
             return True
-        schemas = database.get_schema_access_for_csv_upload()
+        schemas = database.get_schema_access_for_file_upload()
         if schemas and security_manager.schemas_accessible_by_user(
             database, schemas, False
         ):

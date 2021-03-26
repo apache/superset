@@ -637,7 +637,7 @@ class Database(
     ) -> List[Dict[str, Any]]:
         return self.inspector.get_foreign_keys(table_name, schema)
 
-    def get_schema_access_for_csv_upload(  # pylint: disable=invalid-name
+    def get_schema_access_for_file_upload(  # pylint: disable=invalid-name
         self,
     ) -> List[str]:
         allowed_databases = self.get_extra().get("schemas_allowed_for_csv_upload", [])
