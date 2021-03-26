@@ -84,7 +84,7 @@ test('When click on "Close" should call onClose', () => {
   expect(props.onClose).toBeCalledTimes(1);
 });
 
-test('When click on "Save" should call onChange and onClose', () => {
+test('Clicking on "Save" should call onChange and onClose', () => {
   const props = createProps();
   render(<AdhocMetricEditPopover {...props} />);
   expect(props.onChange).toBeCalledTimes(0);
