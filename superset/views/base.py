@@ -479,6 +479,7 @@ class CsvResponse(Response):  # pylint: disable=too-many-ancestors
     """
 
     charset = conf["CSV_EXPORT"].get("encoding", "utf-8")
+    default_mimetype = "text/csv"
 
 
 def check_ownership(obj: Any, raise_if_false: bool = True) -> bool:
