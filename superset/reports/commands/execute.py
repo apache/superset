@@ -401,13 +401,14 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
     def __init__(
         self,
         session: Session,
+        task_uuid: UUID,
         report_schedule: ReportSchedule,
         scheduled_dttm: datetime,
     ):
         self._session = session
+        self._execution_id = task_uuid
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
-        self._execution_id = uuid4()
 
     def run(self) -> None:
         state_found = False
@@ -434,10 +435,11 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
     - On Alerts uses related Command AlertCommand and sends configured notifications
     """
 
-    def __init__(self, model_id: int, scheduled_dttm: datetime):
+    def __init__(self, task_id: str, model_id: int, scheduled_dttm: datetime):
         self._model_id = model_id
         self._model: Optional[ReportSchedule] = None
         self._scheduled_dttm = scheduled_dttm
+        self._execution_id = UUID(task_id)
 
     def run(self) -> None:
         with session_scope(nullpool=True) as session:
@@ -446,7 +448,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 if not self._model:
                     raise ReportScheduleExecuteUnexpectedError()
                 ReportScheduleStateMachine(
-                    session, self._model, self._scheduled_dttm
+                    session, self._execution_id, self._model, self._scheduled_dttm
                 ).run()
             except CommandException as ex:
                 raise ex
