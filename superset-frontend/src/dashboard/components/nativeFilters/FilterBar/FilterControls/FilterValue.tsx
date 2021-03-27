@@ -34,8 +34,8 @@ import { useCascadingFilters } from './state';
 import LoadingBox from '../LoadingBox';
 
 const FilterItem = styled.div`
-  min-height: ${({ theme }) => theme.gridUnit * 10.5}px;
-  padding-bottom: ${({ theme }) => theme.gridUnit * 2.5}px;
+  min-height: ${({ theme }) => theme.gridUnit * 11}px;
+  padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;
 `;
 
 const FilterValue: React.FC<FilterProps> = ({
