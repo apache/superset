@@ -41,16 +41,16 @@ function isProbablyHTML(text: string) {
 export default function formatValue(
   { formatter }: DataColumnMeta,
   value: DataRecordValue,
-): [boolean, string, string | null] {
+): [boolean, string] {
   if (value === null) {
-    return [false, 'N/A', 'dt-is-null'];
+    return [false, 'N/A'];
   }
   if (formatter) {
     // in case percent metric can specify percent format in the future
-    return [false, formatter(value as number), null];
+    return [false, formatter(value as number)];
   }
   if (typeof value === 'string') {
-    return isProbablyHTML(value) ? [true, xss.process(value), null] : [false, value, null];
+    return isProbablyHTML(value) ? [true, xss.process(value)] : [false, value];
   }
-  return [false, value.toString(), null];
+  return [false, value.toString()];
 }

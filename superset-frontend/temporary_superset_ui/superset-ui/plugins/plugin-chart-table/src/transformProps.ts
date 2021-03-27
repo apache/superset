@@ -78,6 +78,7 @@ const processColumns = memoizeOne(function processColumns(props: TableChartProps
       time_grain_sqla: granularity,
       metrics: metrics_,
       percent_metrics: percentMetrics_,
+      column_config: columnConfig = {},
     },
     queriesData,
   } = props;
@@ -100,23 +101,31 @@ const processColumns = memoizeOne(function processColumns(props: TableChartProps
     .map((key: string, i) => {
       const label = verboseMap?.[key] || key;
       const dataType = coltypes[i];
-      // fallback to column level formats defined in datasource
-      const format = columnFormats?.[key];
+      const config = columnConfig[key] || {};
       // for the purpose of presentation, only numeric values are treated as metrics
+      // because users can also add things like `MAX(str_col)` as a metric.
       const isMetric = metricsSet.has(key) && isNumeric(key, records);
       const isPercentMetric = percentMetricsSet.has(key);
       const isTime = dataType === GenericDataType.TEMPORAL;
+      const savedFormat = columnFormats?.[key];
+      const numberFormat = config.d3NumberFormat || savedFormat;
+
       let formatter;
-      if (isTime) {
-        const timeFormat = format || tableTimestampFormat;
+
+      if (isTime || config.d3TimeFormat) {
+        // string types may also apply d3-time format
+        // pick adhoc format first, fallback to column level formats defined in
+        // datasource
+        const customFormat = config.d3TimeFormat || savedFormat;
+        const timeFormat = customFormat || tableTimestampFormat;
         // When format is "Adaptive Formatting" (smart_date)
         if (timeFormat === smartDateFormatter.id) {
           if (isTimeColumn(key)) {
             // time column use formats based on granularity
             formatter = getTimeFormatterForGranularity(granularity);
-          } else if (format) {
+          } else if (customFormat) {
             // other columns respect the column-specific format
-            formatter = getTimeFormatter(format);
+            formatter = getTimeFormatter(customFormat);
           } else if (isNumeric(key, records)) {
             // if column is numeric values, it is considered a timestamp64
             formatter = getTimeFormatter(DATABASE_DATETIME);
@@ -127,11 +136,11 @@ const processColumns = memoizeOne(function processColumns(props: TableChartProps
         } else if (timeFormat) {
           formatter = getTimeFormatter(timeFormat);
         }
-      } else if (isMetric) {
-        formatter = getNumberFormatter(format);
       } else if (isPercentMetric) {
         // percent metrics have a default format
-        formatter = getNumberFormatter(format || PERCENT_3_POINT);
+        formatter = getNumberFormatter(numberFormat || PERCENT_3_POINT);
+      } else if (isMetric || numberFormat) {
+        formatter = getNumberFormatter(numberFormat);
       }
       return {
         key,
@@ -140,6 +149,7 @@ const processColumns = memoizeOne(function processColumns(props: TableChartProps
         isMetric,
         isPercentMetric,
         formatter,
+        config,
       };
     });
   return [

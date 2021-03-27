@@ -114,14 +114,8 @@ const controlPanel: ControlPanelConfig = {
               label: t('Graph layout'),
               default: DEFAULT_FORM_DATA.layout,
               options: [
-                {
-                  label: 'force',
-                  value: 'force',
-                },
-                {
-                  label: 'circular',
-                  value: 'circular',
-                },
+                ['force', t('Force')],
+                ['circular', t('Circular')],
               ],
               description: t('Layout type of graph'),
             },

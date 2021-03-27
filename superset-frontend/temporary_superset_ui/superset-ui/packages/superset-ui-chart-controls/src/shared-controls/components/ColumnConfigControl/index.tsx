@@ -16,17 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import RadioButtonControl from './RadioButtonControl';
 import ColumnConfigControl from './ColumnConfigControl';
 
-export * from './RadioButtonControl';
-export * from './ColumnConfigControl';
+export * from './types';
+export { default as __hack__reexport__ } from './types';
 
-/**
- * Shared chart controls. Can be referred via string shortcuts in chart control
- * configs.
- */
-export default {
-  RadioButtonControl,
-  ColumnConfigControl,
-};
+export default ColumnConfigControl;

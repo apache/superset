@@ -34,7 +34,6 @@
     "d3-array": "^2.4.0",
     "match-sorter": "^6.1.0",
     "memoize-one": "^5.1.1",
-    "react-icons": "^3.10.0",
     "react-table": "^7.2.1",
     "regenerator-runtime": "^0.13.5",
     "xss": "^1.0.6"
@@ -42,6 +41,7 @@
   "peerDependencies": {
     "@types/react": "*",
     "react": "^16.13.1",
-    "react-dom": "^16.13.1"
+    "react-dom": "^16.13.1",
+    "react-icons": "^4.2.0"
   }
 }

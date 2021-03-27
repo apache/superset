@@ -43,10 +43,18 @@ import {
   SequentialScheme,
   legacyValidateInteger,
   validateNonEmpty,
-  smartDateFormatter,
 } from '@superset-ui/core';
 
-import { mainMetric, formatSelectOptions } from '../utils';
+import {
+  mainMetric,
+  formatSelectOptions,
+  D3_FORMAT_OPTIONS,
+  D3_FORMAT_DOCS,
+  D3_TIME_FORMAT_OPTIONS,
+  D3_TIME_FORMAT_DOCS,
+  DEFAULT_TIME_FORMAT,
+  DEFAULT_NUMBER_FORMAT,
+} from '../utils';
 import { TIME_FILTER_LABELS, TIME_COLUMN_OPTION } from '../constants';
 import {
   Metric,
@@ -56,6 +64,7 @@ import {
   SelectControlConfig,
 } from '../types';
 import { ColumnOption } from '../components/ColumnOption';
+
 import {
   dnd_adhoc_filters,
   dnd_adhoc_metric,
@@ -71,39 +80,8 @@ const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
 export const PRIMARY_COLOR = { r: 0, g: 122, b: 135, a: 1 };
 
-// input choices & options
-export const D3_FORMAT_OPTIONS = [
-  ['SMART_NUMBER', 'Adaptative formating'],
-  ['~g', 'Original value'],
-  [',d', ',d (12345.432 => 12,345)'],
-  ['.1s', '.1s (12345.432 => 10k)'],
-  ['.3s', '.3s (12345.432 => 12.3k)'],
-  [',.1%', ',.1% (12345.432 => 1,234,543.2%)'],
-  ['.3%', '.3% (12345.432 => 1234543.200%)'],
-  ['.4r', '.4r (12345.432 => 12350)'],
-  [',.3f', ',.3f (12345.432 => 12,345.432)'],
-  ['+,', '+, (12345.432 => +12,345.432)'],
-  ['$,.2f', '$,.2f (12345.432 => $12,345.43)'],
-  ['DURATION', 'Duration in ms (66000 => 1m 6s)'],
-  ['DURATION_SUB', 'Duration in ms (100.40008 => 100ms 400µs 80ns)'],
-];
-
 const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
 const SERIES_LIMITS = [0, 5, 10, 25, 50, 100, 500];
-
-export const D3_FORMAT_DOCS = t('D3 format syntax: https://github.com/d3/d3-format');
-
-export const D3_TIME_FORMAT_OPTIONS = [
-  ['smart_date', t('Adaptative formating')],
-  ['%d/%m/%Y', '%d/%m/%Y | 14/01/2019'],
-  ['%m/%d/%Y', '%m/%d/%Y | 01/14/2019'],
-  ['%Y-%m-%d', '%Y-%m-%d | 2019-01-14'],
-  ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M:%S | 2019-01-14 01:32:10'],
-  ['%d-%m-%Y %H:%M:%S', '%Y-%m-%d %H:%M:%S | 14-01-2019 01:32:10'],
-  ['%H:%M:%S', '%H:%M:%S | 01:32:10'],
-];
-
-export const D3_TIME_FORMAT_DOCS = t('D3 time format syntax: https://github.com/d3/d3-time-format');
 
 type Control = {
   savedMetrics?: Metric[] | null;
@@ -417,7 +395,7 @@ const y_axis_format: SharedControlConfig<'SelectControl'> = {
   freeForm: true,
   label: t('Y Axis Format'),
   renderTrigger: true,
-  default: 'SMART_NUMBER',
+  default: DEFAULT_NUMBER_FORMAT,
   choices: D3_FORMAT_OPTIONS,
   description: D3_FORMAT_DOCS,
   mapStateToProps: state => {
@@ -439,7 +417,7 @@ const x_axis_time_format: SharedControlConfig<'SelectControl'> = {
   freeForm: true,
   label: t('Time format'),
   renderTrigger: true,
-  default: smartDateFormatter.id,
+  default: DEFAULT_TIME_FORMAT,
   choices: D3_TIME_FORMAT_OPTIONS,
   description: D3_TIME_FORMAT_DOCS,
 };

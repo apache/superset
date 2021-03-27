@@ -107,11 +107,11 @@ export default function DataTable<D extends object>({
     sortBy: sortByRef.current,
     pageSize: initialPageSize > 0 ? initialPageSize : resultsSize || 10,
   };
-
   const defaultWrapperRef = useRef<HTMLDivElement>(null);
   const globalControlRef = useRef<HTMLDivElement>(null);
   const paginationRef = useRef<HTMLDivElement>(null);
   const wrapperRef = userWrapperRef || defaultWrapperRef;
+  const paginationData = JSON.stringify(serverPaginationData);
 
   const defaultGetTableSize = useCallback(() => {
     if (wrapperRef.current) {
@@ -134,7 +134,7 @@ export default function DataTable<D extends object>({
     hasGlobalControl,
     paginationRef,
     resultsSize,
-    JSON.stringify(serverPaginationData),
+    paginationData,
   ]);
 
   const defaultGlobalFilter: FilterType<D> = useCallback(

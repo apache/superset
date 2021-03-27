@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { Tooltip } from './Tooltip';
-import { ColumnTypeLabel } from './ColumnTypeLabel';
+import { ColumnTypeLabel, LaxColumnType } from './ColumnTypeLabel';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 import { ColumnMeta } from '../types';
 
@@ -30,7 +30,7 @@ export type ColumnOptionProps = {
 export function ColumnOption({ column, showType = false }: ColumnOptionProps) {
   const hasExpression = column.expression && column.expression !== column.column_name;
 
-  let columnType = column.type;
+  let columnType: LaxColumnType | undefined = column.type;
   if (column.is_dttm) {
     columnType = 'time';
   } else if (hasExpression) {

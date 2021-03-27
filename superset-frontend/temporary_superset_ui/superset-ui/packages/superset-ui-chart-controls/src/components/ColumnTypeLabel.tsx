@@ -1,3 +1,4 @@
+/* eslint-disable no-nested-ternary */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,14 +17,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ColumnType, GenericDataType } from '@superset-ui/core';
 import React from 'react';
 
+export type LaxColumnType = ColumnType | GenericDataType | 'expression' | 'aggregate' | 'time' | '';
+
 export type ColumnTypeLabelProps = {
-  type: string;
+  type?: LaxColumnType;
 };
 
-export function ColumnTypeLabel({ type }: ColumnTypeLabelProps) {
+export function ColumnTypeLabel({ type: type_ }: ColumnTypeLabelProps) {
+  const type: string =
+    type_ === undefined || type_ === null
+      ? '?'
+      : type_ === GenericDataType.BOOLEAN
+      ? 'bool'
+      : type_ === GenericDataType.NUMERIC
+      ? 'FLOAT'
+      : type_ === GenericDataType.TEMPORAL
+      ? 'time'
+      : type_ === GenericDataType.STRING
+      ? 'string'
+      : type_;
+
   let stringIcon;
+
   if (typeof type !== 'string') {
     stringIcon = '?';
   } else if (type === '' || type === 'expression') {

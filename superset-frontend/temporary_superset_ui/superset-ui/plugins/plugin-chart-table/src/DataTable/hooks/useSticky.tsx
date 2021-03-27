@@ -49,7 +49,7 @@ type ColGroup = ReactElementWithChildren<'colgroup', Col>;
 export type Table = ReactElementWithChildren<'table', (Thead | Tbody | ColGroup)[]>;
 export type TableRenderer = () => Table;
 export type GetTableSize = () => Partial<StickyState> | undefined;
-export type SetStickyState = (size?: StickyState) => void;
+export type SetStickyState = (size?: Partial<StickyState>) => void;
 
 export enum ReducerActions {
   init = 'init', // this is from global reducer
@@ -95,6 +95,7 @@ const mergeStyleProp = (node: ReactElement<{ style?: CSSProperties }>, style: CS
     ...style,
   },
 });
+const fixedTableLayout: CSSProperties = { tableLayout: 'fixed' };
 
 /**
  * An HOC for generating sticky header and fixed-height scrollable area
@@ -117,14 +118,11 @@ function StickyWrap({
   }
   let thead: Thead | undefined;
   let tbody: Tbody | undefined;
-  let colgroup: ColGroup | undefined;
   React.Children.forEach(table.props.children, node => {
     if (node.type === 'thead') {
       thead = node;
     } else if (node.type === 'tbody') {
       tbody = node;
-    } else if (node.type === 'colgroup') {
-      colgroup = node;
     }
   });
   if (!thead || !tbody) {
@@ -139,13 +137,13 @@ function StickyWrap({
   const scrollHeaderRef = useRef<HTMLDivElement>(null); // fixed header
   const scrollBodyRef = useRef<HTMLDivElement>(null); // main body
 
+  const scrollBarSize = getScrollBarSize();
   const { bodyHeight, columnWidths } = sticky;
   const needSizer =
     !columnWidths ||
     sticky.width !== maxWidth ||
     sticky.height !== maxHeight ||
     sticky.setStickyState !== setStickyState;
-  const scrollBarSize = getScrollBarSize();
 
   // update scrollable area and header column sizes when mounted
   useLayoutEffect(() => {
@@ -199,21 +197,23 @@ function StickyWrap({
           visibility: 'hidden',
         }}
       >
-        {React.cloneElement(table, {}, colgroup, theadWithRef, tbody)}
+        {React.cloneElement(table, {}, theadWithRef, tbody)}
       </div>
     );
   }
 
   // reuse previously column widths, will be updated by `useLayoutEffect` above
   const colWidths = columnWidths?.slice(0, columnCount);
-  if (colWidths && bodyHeight) {
-    const tableStyle: CSSProperties = { tableLayout: 'fixed' };
 
-    const bodyCols = colWidths.map((w, i) => (
-      // eslint-disable-next-line react/no-array-index-key
-      <col key={i} width={w} />
-    ));
-    const bodyColgroup = <colgroup>{bodyCols}</colgroup>;
+  if (colWidths && bodyHeight) {
+    const bodyColgroup = (
+      <colgroup>
+        {colWidths.map((w, i) => (
+          // eslint-disable-next-line react/no-array-index-key
+          <col key={i} width={w} />
+        ))}
+      </colgroup>
+    );
 
     // header columns do not have vertical scroll bars,
     // so we add scroll bar size to the last column
@@ -237,7 +237,7 @@ function StickyWrap({
           overflow: 'hidden',
         }}
       >
-        {React.cloneElement(table, mergeStyleProp(table, tableStyle), headerColgroup, thead)}
+        {React.cloneElement(table, mergeStyleProp(table, fixedTableLayout), headerColgroup, thead)}
         {headerTable}
       </div>
     );
@@ -257,7 +257,7 @@ function StickyWrap({
         }}
         onScroll={sticky.hasHorizontalScroll ? onScroll : undefined}
       >
-        {React.cloneElement(table, mergeStyleProp(table, tableStyle), bodyColgroup, tbody)}
+        {React.cloneElement(table, mergeStyleProp(table, fixedTableLayout), bodyColgroup, tbody)}
       </div>
     );
   }
@@ -332,12 +332,14 @@ function useInstance<D extends object>(instance: TableInstance<D>) {
 
 export default function useSticky<D extends object>(hooks: Hooks<D>) {
   hooks.useInstance.push(useInstance);
-  hooks.stateReducers.push((newState, action_) => {
+  hooks.stateReducers.push((newState, action_, prevState) => {
     const action = action_ as ReducerAction<ReducerActions, { size: StickyState }>;
     if (action.type === ReducerActions.init) {
       return {
         ...newState,
-        sticky: newState.sticky || {},
+        sticky: {
+          ...prevState?.sticky,
+        },
       };
     }
     if (action.type === ReducerActions.setStickyState) {
@@ -348,7 +350,8 @@ export default function useSticky<D extends object>(hooks: Hooks<D>) {
       return {
         ...newState,
         sticky: {
-          ...newState.sticky,
+          ...prevState?.sticky,
+          ...newState?.sticky,
           ...action.size,
         },
       };

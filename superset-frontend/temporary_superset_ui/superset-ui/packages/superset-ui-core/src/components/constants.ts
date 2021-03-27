@@ -16,17 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import RadioButtonControl from './RadioButtonControl';
-import ColumnConfigControl from './ColumnConfigControl';
-
-export * from './RadioButtonControl';
-export * from './ColumnConfigControl';
 
 /**
- * Shared chart controls. Can be referred via string shortcuts in chart control
- * configs.
+ * Faster debounce delay for inputs without expensive operation.
  */
-export default {
-  RadioButtonControl,
-  ColumnConfigControl,
-};
+export const FAST_DEBOUNCE = 250;
+
+/**
+ * Slower debounce delay for inputs with expensive API calls.
+ */
+export const SLOW_DEBOUNCE = 500;
