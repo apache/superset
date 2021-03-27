@@ -39,7 +39,7 @@ fi
 #
 # Building loop
 #
-for base in "" "alpine"; do
+for base in "alpine" ""; do
   DOCKER_FILE="Dockerfile${base:+.$base}"
   DOCKER_BASE="${base:+-$base}"
 

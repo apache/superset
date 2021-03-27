@@ -69,8 +69,9 @@ RUN set -eux; \
     export NO_INSTALL_BUILD_TOOLS=true; \
     /scripts/build_pyarrow.sh; \
     export REQUIREMENTS_TXT=./requirements/local.txt; \
-    /scripts/install_requirements.sh;
-    # pip install --no-cache -r requirements/local.txt
+    /scripts/install_requirements.sh; \
+    export REQUIREMENTS_TXT=./requirements/docker.txt; \
+    /scripts/install_requirements.sh
 
 
 ######################################################################
