@@ -20,7 +20,7 @@ import emotionStyled, { CreateStyled } from '@emotion/styled';
 import { useTheme as useThemeBasic } from 'emotion-theming';
 
 export { ThemeProvider, withTheme } from 'emotion-theming';
-export { css } from '@emotion/core';
+export { css, InterpolationWithTheme } from '@emotion/core';
 
 export function useTheme() {
   const theme = useThemeBasic<SupersetTheme>();
@@ -36,6 +36,10 @@ export function useTheme() {
 const defaultTheme = {
   borderRadius: 4,
   colors: {
+    text: {
+      label: '#879399',
+      help: '#737373',
+    },
     primary: {
       base: '#20A7C9',
       dark1: '#1A85A0',

@@ -16,3 +16,5 @@ export const Tooltip = ({ overlayStyle, color, ...props }: TooltipProps) => {
     />
   );
 };
+
+export default Tooltip;
