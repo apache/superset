@@ -16,17 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import RadioButtonControl from './RadioButtonControl';
-import ColumnConfigControl from './ColumnConfigControl';
-
-export * from './RadioButtonControl';
-export * from './ColumnConfigControl';
+import { QueryFormData, JsonValue } from '@superset-ui/core';
+import { ReactNode } from 'react';
 
 /**
- * Shared chart controls. Can be referred via string shortcuts in chart control
- * configs.
+ * Props passed to control components.
+ *
+ * Ref: superset-frontend/src/explore/components/Control.tsx
  */
-export default {
-  RadioButtonControl,
-  ColumnConfigControl,
-};
+export interface ControlComponentProps<ValueType extends JsonValue = JsonValue> {
+  name: string;
+  label?: ReactNode;
+  description?: ReactNode;
+  formData?: QueryFormData | null;
+  value?: ValueType | null;
+  validationErrors?: any[];
+  hidden?: boolean;
+  renderTrigger?: boolean;
+  hovered?: boolean;
+  onChange?: (value: ValueType) => void;
+}

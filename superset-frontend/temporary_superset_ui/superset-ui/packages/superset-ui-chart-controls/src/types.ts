@@ -18,7 +18,14 @@
  * under the License.
  */
 import React, { ReactNode, ReactText, ReactElement } from 'react';
-import { QueryFormData, DatasourceType, Metric, JsonValue, Column } from '@superset-ui/core';
+import {
+  QueryFormData,
+  DatasourceType,
+  Metric,
+  JsonValue,
+  Column,
+  ColumnType,
+} from '@superset-ui/core';
 import sharedControls from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
 
@@ -40,7 +47,7 @@ export type SharedControlComponents = typeof sharedControlComponents;
  * ---------------------------------------------*/
 export type ColumnMeta = Omit<Column, 'id' | 'type'> & {
   id?: number;
-  type?: string;
+  type?: ColumnType;
 } & AnyDict;
 
 export interface DatasourceMeta {
@@ -186,8 +193,15 @@ export interface BaseControlConfig<
   validators?: ControlValueValidator<T, O, V>[];
   warning?: ReactNode;
   error?: ReactNode;
-  // override control panel state props
-  mapStateToProps?: (state: ControlPanelState, control: this) => ExtraControlProps;
+  /**
+   * Add additional props to chart control.
+   */
+  mapStateToProps?: (
+    state: ControlPanelState,
+    controlState: this & ExtraControlProps,
+    // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
+    chartState?: AnyDict,
+  ) => ExtraControlProps;
   visibility?: (props: ControlPanelsContainerProps) => boolean;
 }
 
@@ -196,7 +210,7 @@ export interface ControlValueValidator<
   O extends SelectOption = SelectOption,
   V = unknown
 > {
-  (value: V, state: ControlState<T, O>): boolean | string;
+  (value: V, state?: ControlState<T, O>): boolean | string;
 }
 
 /** --------------------------------------------

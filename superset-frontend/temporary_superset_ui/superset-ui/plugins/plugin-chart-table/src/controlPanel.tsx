@@ -20,11 +20,11 @@
 import React from 'react';
 import {
   t,
-  validateNonEmpty,
   addLocaleData,
   smartDateFormatter,
   QueryMode,
   QueryFormColumn,
+  ChartDataResponseResult,
 } from '@superset-ui/core';
 import {
   D3_TIME_FORMAT_OPTIONS,
@@ -35,17 +35,13 @@ import {
   ControlPanelsContainerProps,
   sharedControls,
   sections,
+  QueryModeLabel,
 } from '@superset-ui/chart-controls';
 
 import i18n from './i18n';
 import { PAGE_SIZE_OPTIONS } from './consts';
 
 addLocaleData(i18n);
-
-const QueryModeLabel = {
-  [QueryMode.aggregate]: t('Aggregate'),
-  [QueryMode.raw]: t('Raw Records'),
-};
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;
@@ -69,17 +65,11 @@ const isRawMode = isQueryMode(QueryMode.raw);
 
 const queryMode: ControlConfig<'RadioButtonControl'> = {
   type: 'RadioButtonControl',
-  label: t('Query Mode'),
+  label: t('Query mode'),
   default: null,
   options: [
-    {
-      label: QueryModeLabel[QueryMode.aggregate],
-      value: QueryMode.aggregate,
-    },
-    {
-      label: QueryModeLabel[QueryMode.raw],
-      value: QueryMode.raw,
-    },
+    [QueryMode.aggregate, QueryModeLabel[QueryMode.aggregate]],
+    [QueryMode.raw, QueryModeLabel[QueryMode.raw]],
   ],
   mapStateToProps: ({ controls }) => ({ value: getQueryMode(controls) }),
 };
@@ -105,7 +95,7 @@ const all_columns: typeof sharedControls.groupby = {
 
 const percent_metrics: typeof sharedControls.metrics = {
   type: 'MetricsControl',
-  label: t('Percentage Metrics'),
+  label: t('Percentage metrics'),
   description: t(
     'Metrics for which percentage of total are to be displayed. Calculated from only data within the row limit.',
   ),
@@ -221,7 +211,7 @@ const config: ControlPanelConfig = {
             name: 'include_time',
             config: {
               type: 'CheckboxControl',
-              label: t('Include Time'),
+              label: t('Include time'),
               description: t(
                 'Whether to include the time granularity as defined in the time section',
               ),
@@ -233,7 +223,7 @@ const config: ControlPanelConfig = {
             name: 'order_desc',
             config: {
               type: 'CheckboxControl',
-              label: t('Sort Descending'),
+              label: t('Sort descending'),
               default: true,
               description: t('Whether to sort descending or ascending'),
               visibility: isAggMode,
@@ -253,13 +243,12 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               freeForm: true,
-              label: t('Table Timestamp Format'),
+              label: t('Timestamp format'),
               default: smartDateFormatter.id,
               renderTrigger: true,
-              validators: [validateNonEmpty],
               clearable: false,
               choices: D3_TIME_FORMAT_OPTIONS,
-              description: t('Timestamp Format'),
+              description: t('D3 time format for datetime columns'),
             },
           },
         ],
@@ -270,7 +259,7 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               freeForm: true,
               renderTrigger: true,
-              label: t('Page Length'),
+              label: t('Page length'),
               default: null,
               choices: PAGE_SIZE_OPTIONS,
               description: t('Rows per page, 0 means no pagination'),
@@ -285,20 +274,20 @@ const config: ControlPanelConfig = {
             name: 'include_search',
             config: {
               type: 'CheckboxControl',
-              label: t('Search Box'),
+              label: t('Search box'),
               renderTrigger: true,
               default: false,
               description: t('Whether to include a client-side search box'),
             },
           },
           {
-            name: 'table_filter',
+            name: 'show_cell_bars',
             config: {
               type: 'CheckboxControl',
-              label: t('Emit Filter Events'),
+              label: t('Cell bars'),
               renderTrigger: true,
-              default: false,
-              description: t('Whether to apply filter to dashboards when table cells are clicked'),
+              default: true,
+              description: t('Whether to display a bar chart background in table columns'),
             },
           },
         ],
@@ -310,7 +299,9 @@ const config: ControlPanelConfig = {
               label: t('Align +/-'),
               renderTrigger: true,
               default: false,
-              description: t('Whether to align the background chart for +/- values'),
+              description: t(
+                'Whether to align background charts with both positive and negative values at 0',
+              ),
             },
           },
           {
@@ -320,22 +311,39 @@ const config: ControlPanelConfig = {
               label: t('Color +/-'),
               renderTrigger: true,
               default: true,
-              description: t('Whether to color +/- values'),
+              description: t(
+                'Whether to colorize numeric values by if they are positive or negative',
+              ),
             },
           },
         ],
         [
           {
-            name: 'show_cell_bars',
+            name: 'table_filter',
             config: {
               type: 'CheckboxControl',
-              label: t('Show Cell Bars'),
+              label: t('Allow cross filter'),
               renderTrigger: true,
-              default: true,
-              description: t('Enable to display bar chart background elements in table columns'),
+              default: false,
+              description: t('Whether to apply filter to dashboards when table cells are clicked'),
             },
           },
-          null,
+        ],
+        [
+          {
+            name: 'column_config',
+            config: {
+              type: 'ColumnConfigControl',
+              label: t('Cuztomize columns'),
+              description: t('Further customize how to display each column'),
+              renderTrigger: true,
+              mapStateToProps(explore, control, chart) {
+                return {
+                  queryResponse: chart?.queriesResponse?.[0] as ChartDataResponseResult | undefined,
+                };
+              },
+            },
+          },
         ],
       ],
     },

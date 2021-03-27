@@ -16,14 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactText, ReactNode, MouseEvent, useCallback } from 'react';
-import { styled } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from '../../components/InfoTooltipWithTrigger';
+import React, { ReactNode } from 'react';
+import { JsonValue, useTheme } from '@superset-ui/core';
+import ControlHeader from '../../components/ControlHeader';
 
-export interface RadioButtonOption {
-  label: string;
-  value: ReactText;
-}
+// [value, label]
+export type RadioButtonOption = [JsonValue, Exclude<ReactNode, null | undefined | boolean>];
 
 export interface RadioButtonControlProps {
   label?: ReactNode;
@@ -31,61 +29,52 @@ export interface RadioButtonControlProps {
   options: RadioButtonOption[];
   hovered?: boolean;
   value?: string;
-  onChange: (opt: string) => void;
+  onChange: (opt: RadioButtonOption[0]) => void;
 }
 
-const Styles = styled.div`
-  .btn:focus {
-    outline: none;
-  }
-  .control-label + .btn-group {
-    margin-top: 1px;
-  }
-  .btn-group .btn.active {
-    background: ${({ theme }) => theme.colors.secondary.light5};
-    box-shadow: none;
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
-  }
-`;
-
 export default function RadioButtonControl({
-  label: controlLabel,
-  description,
   value: initialValue,
-  hovered,
   options,
   onChange,
+  ...props
 }: RadioButtonControlProps) {
-  const currentValue = initialValue || options[0].value;
-  const onClick = useCallback(
-    (e: MouseEvent<HTMLButtonElement>) => {
-      onChange(e.currentTarget.value);
-    },
-    [onChange],
-  );
+  const currentValue = initialValue || options[0][0];
+  const theme = useTheme();
   return (
-    <Styles>
-      {controlLabel && (
-        <div className="control-label">
-          {controlLabel}{' '}
-          {hovered && description && (
-            <InfoTooltipWithTrigger tooltip={description} placement="top" />
-          )}
-        </div>
-      )}
+    <div
+      css={{
+        '.btn svg': {
+          position: 'relative',
+          top: '0.2em',
+        },
+        '.btn:focus': {
+          outline: 'none',
+        },
+        '.control-label + .btn-group': {
+          marginTop: 1,
+        },
+        '.btn-group .btn.active': {
+          background: theme.colors.secondary.light5,
+          fontWeight: theme.typography.weights.bold,
+          boxShadow: 'none',
+        },
+      }}
+    >
+      <ControlHeader {...props} />
       <div className="btn-group btn-group-sm">
-        {options.map(({ label, value }, i) => (
+        {options.map(([val, label]) => (
           <button
-            key={value}
+            key={JSON.stringify(val)}
             type="button"
-            className={`btn btn-default ${options[i].value === currentValue ? 'active' : ''}`}
-            value={value}
-            onClick={onClick}
+            className={`btn btn-default ${val === currentValue ? 'active' : ''}`}
+            onClick={() => {
+              onChange(val);
+            }}
           >
             {label}
           </button>
         ))}
       </div>
-    </Styles>
+    </div>
   );
 }
