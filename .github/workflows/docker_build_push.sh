@@ -36,45 +36,55 @@ if [[ "${REFSPEC}" == "master" ]]; then
   LATEST_TAG="latest"
 fi
 
-cat<<EOF
+#
+# Building loop
+#
+for base in "" "alpine"; do
+  DOCKER_FILE="Dockerfile${base:+.$base}"
+  DOCKER_BASE="${base:+-$base}"
+
+  cat<<EOF
   Rolling with tags:
-  - ${REPO_NAME}:${SHA}
-  - ${REPO_NAME}:${REFSPEC}
-  - ${REPO_NAME}:${LATEST_TAG}
+  - ${REPO_NAME}:${SHA}${DOCKER_BASE}
+  - ${REPO_NAME}:${REFSPEC}${DOCKER_BASE}
+  - ${REPO_NAME}:${LATEST_TAG}${DOCKER_BASE}
 EOF
 
-#
-# Build the "lean" image
-#
-docker build --target lean \
-  -t "${REPO_NAME}:${SHA}" \
-  -t "${REPO_NAME}:${REFSPEC}" \
-  -t "${REPO_NAME}:${LATEST_TAG}" \
-  --label "sha=${SHA}" \
-  --label "built_at=$(date)" \
-  --label "target=lean" \
-  --label "build_actor=${GITHUB_ACTOR}" \
-  .
+  #
+  # Build the "lean" image
+  #
+  docker build --target lean \
+    -t "${REPO_NAME}:${SHA}${DOCKER_BASE}" \
+    -t "${REPO_NAME}:${REFSPEC}${DOCKER_BASE}" \
+    -t "${REPO_NAME}:${LATEST_TAG}${DOCKER_BASE}" \
+    -f "$DOCKER_FILE" \
+    --label "sha=${SHA}${DOCKER_BASE}" \
+    --label "built_at=$(date)" \
+    --label "target=lean" \
+    --label "build_actor=${GITHUB_ACTOR}" \
+    .
 
-#
-# Build the dev image
-#
-docker build --target dev \
-  -t "${REPO_NAME}:${SHA}-dev" \
-  -t "${REPO_NAME}:${REFSPEC}-dev" \
-  -t "${REPO_NAME}:${LATEST_TAG}-dev" \
-  --label "sha=${SHA}" \
-  --label "built_at=$(date)" \
-  --label "target=dev" \
-  --label "build_actor=${GITHUB_ACTOR}" \
-  .
+  #
+  # Build the dev image
+  #
+  docker build --target dev \
+    -t "${REPO_NAME}:${SHA}${DOCKER_BASE}-dev" \
+    -t "${REPO_NAME}:${REFSPEC}${DOCKER_BASE}-dev" \
+    -t "${REPO_NAME}:${LATEST_TAG}${DOCKER_BASE}-dev" \
+    -f "$DOCKER_FILE" \
+    --label "sha=${SHA}${DOCKER_BASE}" \
+    --label "built_at=$(date)" \
+    --label "target=dev" \
+    --label "build_actor=${GITHUB_ACTOR}" \
+    .
 
-if [ -z "${DOCKERHUB_TOKEN}" ]; then
-  # Skip if secrets aren't populated -- they're only visible for actions running in the repo (not on forks)
-  echo "Skipping Docker push"
-else
-  # Login and push
-  docker logout
-  docker login --username "${DOCKERHUB_USER}" --password "${DOCKERHUB_TOKEN}"
-  docker push "${REPO_NAME}"
-fi
+  if [ -z "${DOCKERHUB_TOKEN}" ]; then
+    # Skip if secrets aren't populated -- they're only visible for actions running in the repo (not on forks)
+    echo "Skipping Docker push"
+  else
+    # Login and push
+    docker logout
+    docker login --username "${DOCKERHUB_USER}" --password "${DOCKERHUB_TOKEN}"
+    docker push "${REPO_NAME}"
+  fi
+done
