@@ -32,7 +32,7 @@ from typing import (
 )
 
 from pytz import _FixedOffset  # type: ignore
-from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION, ENUM, JSON
+from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION, ENUM, FLOAT, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.types import String, TypeEngine
 
@@ -93,8 +93,13 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
 
     column_type_mappings = (
         (
-            re.compile(r"^double precision", re.IGNORECASE),
+            re.compile(r"^float", re.IGNORECASE),
             DOUBLE_PRECISION(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^double precision", re.IGNORECASE),
+            FLOAT(),
             GenericDataType.NUMERIC,
         ),
         (
