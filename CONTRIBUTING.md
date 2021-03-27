@@ -859,7 +859,7 @@ root         6     1  4 14:09 ?        00:00:04 /usr/local/bin/python /usr/bin/f
 root        10     6  7 14:09 ?        00:00:07 /usr/local/bin/python /usr/bin/flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0
 ```
 
-Inject debugpy into the running Flask process. In this case PID 6. 
+Inject debugpy into the running Flask process. In this case PID 6.
 ```bash
 python3 -m debugpy --listen 0.0.0.0:5678 --pid 6
 ```
@@ -869,9 +869,9 @@ Verify that debugpy is listening on port 5678
 netstat -tunap
 
 Active Internet connections (servers and established)
-Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name    
-tcp        0      0 0.0.0.0:5678            0.0.0.0:*               LISTEN      462/python          
-tcp        0      0 0.0.0.0:8088            0.0.0.0:*               LISTEN      6/python            
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 0.0.0.0:5678            0.0.0.0:*               LISTEN      462/python
+tcp        0      0 0.0.0.0:8088            0.0.0.0:*               LISTEN      6/python
 ```
 
 You are now ready to attach a debugger to the process. Using VSCode you can configure a launch configuration file .vscode/launch.json like so.
