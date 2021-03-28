@@ -16,17 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { DataMask } from '@superset-ui/core';
-import { Filter } from '../types';
+import { connect } from 'react-redux';
+import { bindActionCreators, Dispatch } from 'redux';
+import * as Actions from '../../actions/sqlLab';
+import SouthPane from './SouthPane';
 
-export interface FilterProps {
-  filter: Filter;
-  icon?: React.ReactElement;
-  directPathToChild?: string[];
-  onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
+function mapStateToProps({ sqlLab }: Record<string, any>) {
+  return {
+    activeSouthPaneTab: sqlLab.activeSouthPaneTab,
+    databases: sqlLab.databases,
+    offline: sqlLab.offline,
+  };
 }
 
-export interface CascadeFilter extends Filter {
-  cascadeChildren: CascadeFilter[];
+function mapDispatchToProps(dispatch: Dispatch) {
+  return {
+    actions: bindActionCreators<any, any>(Actions, dispatch),
+  };
 }
+
+export default connect<any>(mapStateToProps, mapDispatchToProps)(SouthPane);

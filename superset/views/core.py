@@ -98,7 +98,7 @@ from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
 from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.typing import FlaskResponse
-from superset.utils import core as utils
+from superset.utils import core as utils, csv
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
 from superset.utils.core import ReservedUrlParameters
@@ -437,10 +437,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     ) -> FlaskResponse:
         if response_type == utils.ChartDataResultFormat.CSV:
             return CsvResponse(
-                viz_obj.get_csv(),
-                status=200,
-                headers=generate_download_headers("csv"),
-                mimetype="application/csv",
+                viz_obj.get_csv(), headers=generate_download_headers("csv")
             )
 
         if response_type == utils.ChartDataResultType.QUERY:
@@ -2628,18 +2625,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             columns = [c["name"] for c in obj["columns"]]
             df = pd.DataFrame.from_records(obj["data"], columns=columns)
             logger.info("Using pandas to convert to CSV")
-            csv = df.to_csv(index=False, **config["CSV_EXPORT"])
         else:
             logger.info("Running a query to turn into CSV")
             sql = query.select_sql or query.executed_sql
             df = query.database.get_df(sql, query.schema)
-            # TODO(bkyryliuk): add compression=gzip for big files.
-            csv = df.to_csv(index=False, **config["CSV_EXPORT"])
-        response = Response(csv, mimetype="text/csv")
+        csv_data = csv.df_to_escaped_csv(df, index=False, **config["CSV_EXPORT"])
         quoted_csv_name = parse.quote(query.name)
-        response.headers["Content-Disposition"] = (
-            f'attachment; filename="{quoted_csv_name}.csv"; '
-            f"filename*=UTF-8''{quoted_csv_name}.csv"
+        response = CsvResponse(
+            csv_data, headers=generate_download_headers("csv", quoted_csv_name)
         )
         event_info = {
             "event_type": "data_export",

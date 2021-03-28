@@ -16,77 +16,47 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { isLegacyResponse, parsePostForm } from 'cypress/utils';
 import {
-  getChartAliases,
-  DASHBOARD_CHART_ALIAS_PREFIX,
-  isLegacyResponse,
-  parsePostForm,
-} from 'cypress/utils';
-import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
-
-interface Slice {
-  slice_id: number;
-  form_data: {
-    viz_type: string;
-    [key: string]: JSONValue;
-  };
-}
-
-interface DashboardData {
-  slices: Slice[];
-}
+  WORLD_HEALTH_CHARTS,
+  WORLD_HEALTH_DASHBOARD,
+  getChartAliasesBySpec,
+  waitForChartLoad,
+} from './dashboard.helper';
 
 describe('Dashboard filter', () => {
-  let filterId: number;
-  let aliases: string[];
-
-  const getAlias = (id: number) => `@${DASHBOARD_CHART_ALIAS_PREFIX}${id}`;
-
-  beforeEach(() => {
+  before(() => {
     cy.login();
-
     cy.visit(WORLD_HEALTH_DASHBOARD);
-
-    cy.get('#app').then(app => {
-      const bootstrapData = app.data('bootstrap');
-      const dashboard = bootstrapData.dashboard_data as DashboardData;
-      const { slices } = dashboard;
-      filterId =
-        dashboard.slices.find(
-          slice => slice.form_data.viz_type === 'filter_box',
-        )?.slice_id || 0;
-
-      aliases = getChartAliases(slices);
-
-      // wait the initial page load requests
-      cy.wait(aliases);
-    });
   });
 
   it('should apply filter', () => {
-    cy.get('.Select__placeholder:first').click();
+    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
+    getChartAliasesBySpec(
+      WORLD_HEALTH_CHARTS.filter(({ viz }) => viz !== 'filter_box'),
+    ).then(nonFilterChartAliases => {
+      cy.get('.Select__placeholder:first').click();
 
-    // should show the filter indicator
-    cy.get('svg[data-test="filter"]:visible').should(nodes => {
-      expect(nodes.length).to.least(9);
-    });
+      // should show the filter indicator
+      cy.get('svg[data-test="filter"]:visible').should(nodes => {
+        expect(nodes.length).to.least(9);
+      });
 
-    cy.get('.Select__control:first input[type=text]').type('So', {
-      force: true,
-      delay: 100,
-    });
+      cy.get('.Select__control:first input[type=text]').type('So', {
+        force: true,
+        delay: 100,
+      });
 
-    cy.get('.Select__menu').first().contains('South Asia').click();
+      cy.get('.Select__menu').first().contains('South Asia').click();
 
-    // should still have all filter indicators
-    cy.get('svg[data-test="filter"]:visible').should(nodes => {
-      expect(nodes.length).to.least(9);
-    });
+      // should still have all filter indicators
+      cy.get('svg[data-test="filter"]:visible').should(nodes => {
+        expect(nodes.length).to.least(9);
+      });
 
-    cy.get('.filter_box button').click({ force: true });
-    cy.wait(aliases.filter(x => x !== getAlias(filterId))).then(requests =>
-      Promise.all(
-        requests.map(async ({ response, request }) => {
+      cy.get('.filter_box button').click({ force: true });
+      cy.wait(nonFilterChartAliases).then(requests => {
+        requests.forEach(({ response, request }) => {
           const responseBody = response?.body;
           let requestFilter;
           if (isLegacyResponse(responseBody)) {
@@ -103,9 +73,9 @@ describe('Dashboard filter', () => {
             op: '==',
             val: 'South Asia',
           });
-        }),
-      ),
-    );
+        });
+      });
+    });
 
     // TODO add test with South Asia{enter} type action to select filter
   });

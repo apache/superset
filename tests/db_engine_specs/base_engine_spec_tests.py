@@ -25,6 +25,7 @@ from superset.db_engine_specs.base import (
     builtin_time_grains,
     LimitMethod,
 )
+from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.sql_parse import ParsedQuery
 from superset.utils.core import get_example_database
@@ -196,6 +197,73 @@ class TestDbEngineSpecs(TestDbEngineSpec):
                 defined_grains = {grain.duration for grain in engine.get_time_grains()}
                 intersection = time_grains.intersection(defined_grains)
                 self.assertSetEqual(defined_grains, intersection, engine)
+
+    def test_get_time_grain_with_config(self):
+        """ Should concatenate from configs and then sort in the proper order """
+        app.config["TIME_GRAIN_ADDON_EXPRESSIONS"] = {
+            "mysql": {
+                "PT2H": "foo",
+                "PT4H": "foo",
+                "PT6H": "foo",
+                "PT8H": "foo",
+                "PT10H": "foo",
+                "PT12H": "foo",
+                "PT1S": "foo",
+            }
+        }
+        time_grains = MySQLEngineSpec.get_time_grain_expressions()
+        self.assertEqual(
+            list(time_grains.keys()),
+            [
+                None,
+                "PT1S",
+                "PT1M",
+                "PT1H",
+                "PT2H",
+                "PT4H",
+                "PT6H",
+                "PT8H",
+                "PT10H",
+                "PT12H",
+                "P1D",
+                "P1W",
+                "P1M",
+                "P0.25Y",
+                "P1Y",
+                "1969-12-29T00:00:00Z/P1W",
+            ],
+        )
+        app.config["TIME_GRAIN_ADDON_EXPRESSIONS"] = {}
+
+    def test_get_time_grain_expressions(self):
+        time_grains = MySQLEngineSpec.get_time_grain_expressions()
+        self.assertEqual(
+            list(time_grains.keys()),
+            [
+                None,
+                "PT1S",
+                "PT1M",
+                "PT1H",
+                "P1D",
+                "P1W",
+                "P1M",
+                "P0.25Y",
+                "P1Y",
+                "1969-12-29T00:00:00Z/P1W",
+            ],
+        )
+
+    def test_get_time_grain_with_unkown_values(self):
+        """ Should concatenate from configs and then sort in the proper order
+        putting unknown patterns at the end """
+        app.config["TIME_GRAIN_ADDON_EXPRESSIONS"] = {
+            "mysql": {"PT2H": "foo", "weird": "foo", "PT12H": "foo",}
+        }
+        time_grains = MySQLEngineSpec.get_time_grain_expressions()
+        self.assertEqual(
+            list(time_grains)[-1], "weird",
+        )
+        app.config["TIME_GRAIN_ADDON_EXPRESSIONS"] = {}
 
     def test_get_table_names(self):
         inspector = mock.Mock()

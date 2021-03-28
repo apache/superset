@@ -22,7 +22,7 @@ import rison from 'rison';
 import { Select } from 'src/components/Select';
 import Label from 'src/components/Label';
 import RefreshLabel from 'src/components/RefreshLabel';
-import SupersetAsyncSelect from './AsyncSelect';
+import SupersetAsyncSelect from 'src/components/AsyncSelect';
 
 const FieldTitle = styled.p`
   color: ${({ theme }) => theme.colors.secondary.light2};
@@ -245,6 +245,7 @@ export default function DatabaseSelector({
         placeholder={t('Select a database')}
         autoSelect
         isDisabled={!isDatabaseSelectEnabled || readOnly}
+        menuPosition="fixed"
       />,
       null,
     );
@@ -280,7 +281,7 @@ export default function DatabaseSelector({
   }
 
   return (
-    <DatabaseSelectorWrapper>
+    <DatabaseSelectorWrapper data-test="DatabaseSelector">
       {formMode && <FieldTitle>{t('datasource')}</FieldTitle>}
       {renderDatabaseSelect()}
       {formMode && <FieldTitle>{t('schema')}</FieldTitle>}
