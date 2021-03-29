@@ -223,6 +223,28 @@ class TestDatabaseModel(SupersetTestCase):
             with pytest.raises(QueryObjectValidationError):
                 table.get_sqla_query(**query_obj)
 
+    def test_query_format(self): 
+        query_obj = {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "groupby": ["user"],
+            "metrics": [],
+            "is_timeseries": False,
+            "filter": [],
+            "extras": {},
+        }
+
+        # Table with Jinja callable.
+        table = SqlaTable(
+            table_name="test_table",
+            sql="SELECT * from test_table;",
+            database=get_example_database(),
+        )
+        sqlaq = table.get_sqla_query(**query_obj)
+        sql = get_example_database().compile_sqla_query(sqlaq.sqla_query)
+        assert sql.match("SELECT * from test_table")
+
     def test_multiple_sql_statements_raises_exception(self):
         base_query_obj = {
             "granularity": None,
