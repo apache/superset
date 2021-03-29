@@ -530,10 +530,7 @@ export function refreshChart(chartKey, force, dashboardId) {
     }
     dispatch(
       postChartFormData(
-        {
-          ...chart.latestQueryFormData,
-          extra_jwt: dashboardInfo.extraJwt,
-        },
+        chart.latestQueryFormData,
         force,
         timeout,
         chart.id,

@@ -1011,8 +1011,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
         for query in query_context.queries:
+            datasource = query.datasource if query.datasource else query_context.datasource
             if not (
-                query.datasource.id in dashboard_data_context.dataset_ids
+                datasource.id in dashboard_data_context.dataset_ids
                 or self.can_access_schema(query.datasource)
                 or self.can_access("datasource_access", query.datasource.perm or "")
             ):

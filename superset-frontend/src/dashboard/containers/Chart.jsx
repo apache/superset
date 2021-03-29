@@ -73,6 +73,7 @@ function mapStateToProps(
   });
 
   formData.dashboardId = dashboardInfo.id;
+  formData.extra_jwt = dashboardInfo.extraJwt;
 
   return {
     chart,

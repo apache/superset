@@ -81,6 +81,7 @@ class QueryContext:
         custom_cache_timeout: Optional[int] = None,
         result_type: Optional[ChartDataResultType] = None,
         result_format: Optional[ChartDataResultFormat] = None,
+        extra_jwt: str = None,
     ) -> None:
         self.datasource = ConnectorRegistry.get_datasource(
             str(datasource["type"]), int(datasource["id"]), db.session
@@ -96,6 +97,7 @@ class QueryContext:
             "result_type": self.result_type,
             "result_format": self.result_format,
         }
+        self.extra_jwt = extra_jwt
 
     def get_query_result(self, query_object: QueryObject) -> Dict[str, Any]:
         """Returns a pandas dataframe based on the query object"""
