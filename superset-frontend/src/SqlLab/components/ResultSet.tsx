@@ -512,7 +512,7 @@ export default class ResultSet extends React.PureComponent<
   }
 
   renderRowsReturned() {
-    const { results, rows } = this.props.query;
+    const { results, rows, queryLimit } = this.props.query;
     const limitReached = results?.displayLimitReached;
     const limitWarning = <Icon className="returnedRowsImage" name="warning" />;
     return (
@@ -522,10 +522,11 @@ export default class ResultSet extends React.PureComponent<
         {limitReached && (
           <span className="limitMessage">
             {t(
-              `It appears that the number of rows in the query results displayed
-           was limited on the server side to
-           the %s limit.`,
+              `The number of results displayed is limited to %s. Please add
+              additional limits/filters or download to csv to see more rows up to
+              the %s limit.`,
               rows,
+              queryLimit,
             )}
           </span>
         )}
