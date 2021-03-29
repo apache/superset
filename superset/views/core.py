@@ -88,6 +88,7 @@ from superset.extensions import (
     async_query_manager,
     cache_manager,
     dashboard_jwt_manager,
+    feature_flag_manager,
 )
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database, FavStar, Log
@@ -1880,6 +1881,19 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             if key not in [param.value for param in utils.ReservedUrlParameters]
         }
 
+        extra_jwt = {}
+        if feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC"):
+            extra_jwt = {
+                "extra_jwt": dashboard_jwt_manager.generate_jwt(
+                    DashboardJwtDataObject(
+                        dashboard.id,
+                        list(
+                            map(lambda datasource: datasource.id, dashboard.datasources)
+                        ),
+                    )
+                )
+            }
+
         bootstrap_data = {
             "user_id": g.user.get_id(),
             "common": common_bootstrap_payload(),
@@ -1894,12 +1908,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 "superset_can_csv": superset_can_csv,
                 "slice_can_edit": slice_can_edit,
             },
-            "extra_jwt": dashboard_jwt_manager.generate_jwt(
-                DashboardJwtDataObject(
-                    dashboard.id,
-                    list(map(lambda datasource: datasource.id, dashboard.datasources)),
-                )
-            ),
+            **extra_jwt,
             "datasources": data["datasources"],
         }
 
