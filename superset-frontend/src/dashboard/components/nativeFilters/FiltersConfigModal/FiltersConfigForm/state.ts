@@ -60,6 +60,11 @@ export const useBackendFormUpdate = (
       defaultValue: formFilter?.defaultValue,
       ...formFilter,
     });
+    setNativeFilterFieldValues(form, filterId, {
+      defaultValueQueriesData: null,
+      defaultValue: resolvedDefaultValue,
+    });
+    forceUpdate();
     getChartDataRequest({
       formData,
       force: false,
