@@ -94,6 +94,8 @@ export const useBackendFormUpdate = (
             forceUpdate();
           })
           .catch((error: ClientErrorObject) => {
+            // TODO: show error once this logic is moved into new NativeFilter
+            //  component
             console.error(
               error.message || error.error || t('Check configuration'),
             );
