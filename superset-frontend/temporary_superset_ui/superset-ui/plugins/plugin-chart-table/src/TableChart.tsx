@@ -20,7 +20,14 @@ import React, { useState, useMemo, useCallback, CSSProperties } from 'react';
 import { ColumnInstance, DefaultSortTypes, ColumnWithLooseAccessor } from 'react-table';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
 import { FaSort, FaSortUp as FaSortAsc, FaSortDown as FaSortDesc } from 'react-icons/fa';
-import { t, tn, DataRecordValue, DataRecord, GenericDataType } from '@superset-ui/core';
+import {
+  t,
+  tn,
+  DataRecordValue,
+  DataRecord,
+  GenericDataType,
+  getNumberFormatter,
+} from '@superset-ui/core';
 
 import { TableChartTransformedProps, DataColumnMeta } from './types';
 import DataTable, {
@@ -213,7 +220,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const getColumnConfigs = useCallback(
     (column: DataColumnMeta, i: number): ColumnWithLooseAccessor<D> => {
-      const { key, label, dataType, isMetric, config = {} } = column;
+      const { key, label, dataType, isMetric, formatter, config = {} } = column;
       const isNumber = dataType === GenericDataType.NUMERIC;
       const isFilter = !isNumber && emitFilter;
       const textAlign = config.horizontalAlign
@@ -228,7 +235,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         config.alignPositiveNegative === undefined ? defaultAlignPN : config.alignPositiveNegative;
       const colorPositiveNegative =
         config.colorPositiveNegative === undefined ? defaultColorPN : config.colorPositiveNegative;
-      const fractionDigits = isNumber ? config.fractionDigits : undefined;
+      const smallNumberFormatter =
+        config.d3SmallNumberFormat === undefined
+          ? formatter
+          : getNumberFormatter(config.d3SmallNumberFormat);
 
       const valueRange =
         (config.showCellBars === undefined ? showCellBars : config.showCellBars) &&
@@ -247,11 +257,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         // so we ask TS not to check.
         accessor: ((datum: D) => datum[key]) as never,
         Cell: ({ value }: { column: ColumnInstance<D>; value: DataRecordValue }) => {
-          let rounded = value;
-          if (fractionDigits !== undefined && typeof value === 'number') {
-            rounded = Number(value.toFixed(fractionDigits));
-          }
-          const [isHtml, text] = formatValue(column, rounded);
+          const [isHtml, text] = formatValue(
+            isNumber && typeof value === 'number' && Math.abs(value) < 1
+              ? smallNumberFormatter
+              : formatter,
+            value,
+          );
           const html = isHtml ? { __html: text } : undefined;
           const style: CSSProperties = {
             background: valueRange

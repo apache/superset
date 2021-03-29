@@ -43,12 +43,11 @@ export default class DateWithFormatter extends Date {
 
     this.input = input;
     this.formatter = formatter;
-  }
-
-  toString(): string {
-    if (this.formatter === String) {
-      return String(this.input);
-    }
-    return this.formatter ? this.formatter(this) : Date.toString.call(this);
+    this.toString = (): string => {
+      if (this.formatter === String) {
+        return String(this.input);
+      }
+      return this.formatter ? this.formatter(this) : Date.toString.call(this);
+    };
   }
 }
