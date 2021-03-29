@@ -49,7 +49,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import dashboard_jwt_manager
+from superset.extensions import dashboard_jwt_manager, feature_flag_manager
 from superset.utils.core import DatasourceName, RowLevelSecurityFilterType
 
 if TYPE_CHECKING:
@@ -998,11 +998,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             assert datasource
 
-            dashboard_data_context = dashboard_jwt_manager.parse_jwt(extra_jwt)
+            data_source_allowed_in_dashboard = False
+            if feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC"):
+                dashboard_data_context = dashboard_jwt_manager.parse_jwt(extra_jwt)
 
-            data_source_allowed_in_dashboard = (
-                datasource.id in dashboard_data_context.dataset_ids
-            )
+                data_source_allowed_in_dashboard = (
+                    datasource.id in dashboard_data_context.dataset_ids
+                )
             if not (
                 data_source_allowed_in_dashboard
                 or self.can_access_schema(datasource)
