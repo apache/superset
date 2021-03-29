@@ -988,10 +988,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
 
         if datasource or query_context or viz:
-            extra_jwt=None
+            extra_jwt = None
             if query_context:
                 datasource = query_context.datasource
-                extra_jwt= query_context.extra_jwt
+                extra_jwt = query_context.extra_jwt
             elif viz:
                 datasource = viz.datasource
                 extra_jwt = viz.extra_jwt
@@ -1000,7 +1000,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             dashboard_data_context = dashboard_jwt_manager.parse_jwt(extra_jwt)
 
-            data_source_allowed_in_dashboard = datasource.id in dashboard_data_context.dataset_ids
+            data_source_allowed_in_dashboard = (
+                datasource.id in dashboard_data_context.dataset_ids
+            )
             if not (
                 data_source_allowed_in_dashboard
                 or self.can_access_schema(datasource)
