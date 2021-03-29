@@ -271,7 +271,7 @@
     "exports-loader": "^0.7.0",
     "fetch-mock": "^7.7.3",
     "file-loader": "^6.0.0",
-    "fork-ts-checker-webpack-plugin": "^0.4.9",
+    "fork-ts-checker-webpack-plugin": "^1.0.0",
     "ignore-styles": "^5.0.1",
     "imports-loader": "^0.7.1",
     "jest": "^26.6.3",
