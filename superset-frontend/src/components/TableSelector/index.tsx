@@ -106,6 +106,7 @@ interface TableSelectorProps {
   sqlLabMode?: boolean;
   tableName?: string;
   tableNameSticky?: boolean;
+  useDocumentBody?: boolean;
 }
 
 const TableSelector: FunctionComponent<TableSelectorProps> = ({
@@ -126,6 +127,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   sqlLabMode = true,
   tableName,
   tableNameSticky = true,
+  useDocumentBody = false,
 }) => {
   const [currentSchema, setCurrentSchema] = useState<string | undefined>(
     schema,
@@ -135,6 +137,10 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   );
   const [tableLoading, setTableLoading] = useState(false);
   const [tableOptions, setTableOptions] = useState([]);
+<<<<<<< HEAD
+=======
+  let TableRef: HTMLElement;
+>>>>>>> floating table git issue
   function fetchTables(
     databaseId?: number,
     schema?: string,
@@ -304,6 +310,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         sqlLabMode={sqlLabMode}
         isDatabaseSelectEnabled={isDatabaseSelectEnabled && !readOnly}
         readOnly={readOnly}
+        useDocumentBody={useDocumentBody}
       />
     );
   }
@@ -318,6 +325,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           name="select-table"
           isLoading={tableLoading}
           ignoreAccents={false}
+          menuShouldScrollIntoView={false}
           placeholder={t('Select table or type table name')}
           autosize={false}
           onChange={changeTable}
@@ -327,8 +335,15 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           optionRenderer={renderTableOption}
           valueRenderer={renderTableOption}
           isDisabled={readOnly}
+<<<<<<< HEAD
           styles={{
             menuPortal: base => ({ ...base, zIndex: 5 }),
+=======
+          menuPosition="fixed"
+          menuPortalTarget={useDocumentBody ? document.body : TableRef}
+          styles={{
+            menuPortal: base => ({ ...base, zIndex: 9999 }),
+>>>>>>> floating table git issue
           }}
         />
       );
