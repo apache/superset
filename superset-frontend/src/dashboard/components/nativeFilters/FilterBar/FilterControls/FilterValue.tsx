@@ -27,11 +27,11 @@ import {
 } from '@superset-ui/core';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { getChartDataRequest } from 'src/chart/chartAction';
+import Loading from 'src/components/Loading';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import { FilterProps } from './types';
 import { getFormData } from '../../utils';
 import { useCascadingFilters } from './state';
-import LoadingBox from '../LoadingBox';
 
 const FilterItem = styled.div`
   min-height: ${({ theme }) => theme.gridUnit * 11}px;
@@ -120,7 +120,7 @@ const FilterValue: React.FC<FilterProps> = ({
   return (
     <FilterItem data-test="form-item-value">
       {loading ? (
-        <LoadingBox />
+        <Loading position="inline-centered" />
       ) : (
         <SuperChart
           height={20}
