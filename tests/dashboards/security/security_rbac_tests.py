@@ -19,6 +19,7 @@ from unittest import mock
 
 import pytest
 
+from superset.extensions import dashboard_jwt_manager
 from tests.dashboards.dashboard_test_utils import *
 from tests.dashboards.security.base_case import BaseTestDashboardSecurity
 from tests.dashboards.superset_factory_util import (
@@ -28,6 +29,7 @@ from tests.dashboards.superset_factory_util import (
     create_slice_to_db,
 )
 from tests.fixtures.public_role import public_role_like_gamma
+from tests.test_app import app
 
 
 @mock.patch.dict(
@@ -36,6 +38,7 @@ from tests.fixtures.public_role import public_role_like_gamma
 class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
     def test_get_dashboard_view__admin_can_access(self):
         # arrange
+        self.init_dashboard_jwt_manager()
         dashboard_to_access = create_dashboard_to_db(
             owners=[], slices=[create_slice_to_db()], published=False
         )
@@ -47,8 +50,13 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # assert
         self.assert_dashboard_view_response(response, dashboard_to_access)
 
+    def init_dashboard_jwt_manager(self):
+        app.config["DASHBOARD_JWT_SECRET"] = "this is my secret"
+        dashboard_jwt_manager.init_app(app)
+
     def test_get_dashboard_view__owner_can_access(self):
         # arrange
+        self.init_dashboard_jwt_manager()
         username = random_str()
         new_role = f"role_{random_str()}"
         owner = self.create_user_with_roles(
@@ -100,7 +108,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
     def test_get_dashboard_view__user_access_with_dashboard_permission(self):
         # arrange
-
+        self.init_dashboard_jwt_manager()
         username = random_str()
         new_role = f"role_{random_str()}"
         self.create_user_with_roles(username, [new_role], should_create_roles=True)
@@ -136,6 +144,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         self,
     ):
         # arrange
+        self.init_dashboard_jwt_manager()
         dashboard_to_access = create_dashboard_to_db(published=False)
         grant_access_to_dashboard(dashboard_to_access, "Public")
         self.logout()

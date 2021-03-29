@@ -14,18 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import List, Optional
 
 import jwt
 from flask import Flask
 
 
 class DashboardJwtDataObject:
-    id: int
-    dataset_ids: [int]
+    dashboard_id: int
+    dataset_ids: List[int]
 
-    def __init__(self, id: int, dataset_ids: [int]) -> None:
+    def __init__(self, dashboard_id: int, dataset_ids: List[int]) -> None:
         super().__init__()
-        self.id = id
+        self.dashboard_id = dashboard_id
         self.dataset_ids = dataset_ids
 
 
@@ -43,8 +44,10 @@ class DashboardJwtManager:
         encoded_jwt = jwt.encode(data.__dict__, self._jwt_secret, algorithm="HS256")
         return encoded_jwt.decode("utf-8")
 
-    def parse_jwt(self, token: str) -> DashboardJwtDataObject:
+    def parse_jwt(self, token: Optional[str]) -> Optional[DashboardJwtDataObject]:
         if token:
             data = jwt.decode(token, self._jwt_secret, algorithms=["HS256"])
-            return DashboardJwtDataObject(data["id"], dataset_ids=data["dataset_ids"])
-        return {}
+            return DashboardJwtDataObject(
+                dashboard_id=data["id"], dataset_ids=data["dataset_ids"]
+            )
+        return None

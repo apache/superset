@@ -155,7 +155,6 @@ class BaseViz:
 
         self.applied_filters: List[Dict[str, str]] = []
         self.rejected_filters: List[Dict[str, str]] = []
-        self.extra_jwt: str
 
     @property
     def force_cached(self) -> bool:

@@ -1123,7 +1123,8 @@ DATASET_HEALTH_CHECK = None
 SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
 SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 
-# This secret is used to sign dashboard context in order to manage data access when using DASHBOARD_RBAC feature flag
+# This secret is used to sign dashboard context in order to manage data access when
+# using DASHBOARD_RBAC feature flag
 DASHBOARD_JWT_SECRET = None
 
 # -------------------------------------------------------------------

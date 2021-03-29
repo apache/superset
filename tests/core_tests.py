@@ -1503,7 +1503,6 @@ class TestCore(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @mock.patch("superset.models.core.DB_CONNECTION_MUTATOR")
-    @pytest.mark.amit
     def test_dashboard_injected_exceptions(self, mock_db_connection_mutator):
         """
         Handle injected exceptions from the db mutator

@@ -701,6 +701,6 @@ class SupersetAppInitializer:
     def setup_bundle_manifest(self) -> None:
         manifest_processor.init_app(self.flask_app)
 
-    def configure_dashboard_jwt(self):
+    def configure_dashboard_jwt(self) -> None:
         if feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC"):
             dashboard_jwt_manager.init_app(self.flask_app)

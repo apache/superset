@@ -69,7 +69,7 @@ class QueryContext:
     custom_cache_timeout: Optional[int]
     result_type: ChartDataResultType
     result_format: ChartDataResultFormat
-    extra_jwt: str
+    extra_jwt: Optional[str]
 
     # TODO: Type datasource and query_object dictionary with TypedDict when it becomes
     #  a vanilla python type https://github.com/python/mypy/issues/5288
@@ -81,7 +81,7 @@ class QueryContext:
         custom_cache_timeout: Optional[int] = None,
         result_type: Optional[ChartDataResultType] = None,
         result_format: Optional[ChartDataResultFormat] = None,
-        extra_jwt: str = None,
+        extra_jwt: Optional[str] = None,
     ) -> None:
         self.datasource = ConnectorRegistry.get_datasource(
             str(datasource["type"]), int(datasource["id"]), db.session
