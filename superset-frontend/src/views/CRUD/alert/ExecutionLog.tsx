@@ -96,16 +96,22 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
         disableSortBy: true,
       },
       {
+        Cell: ({
+          row: {
+            original: { scheduled_dttm: scheduledDttm },
+          },
+        }: any) =>
+          moment(new Date(scheduledDttm)).format('YYYY-MM-DD hh:mm:ss a'),
         accessor: 'scheduled_dttm',
-        Header: t('Scheduled at'),
+        Header: t('Scheduled at (UTC)'),
       },
       {
         Cell: ({
           row: {
             original: { start_dttm: startDttm },
           },
-        }: any) => moment(new Date(startDttm)).format('MM/DD/YYYY hh:mm:ss a'),
-        Header: t('Start at'),
+        }: any) => moment(new Date(startDttm)).format('YYYY-MM-DD hh:mm:ss a'),
+        Header: t('Start at (UTC)'),
         accessor: 'start_dttm',
       },
       {
