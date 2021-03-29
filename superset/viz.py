@@ -126,6 +126,7 @@ class BaseViz:
         force: bool = False,
         force_cached: bool = False,
     ) -> None:
+        self.extra_jwt = form_data.get("extra_jwt") or None
         if not datasource:
             raise QueryObjectValidationError(_("Viz is missing a datasource"))
 
@@ -154,6 +155,7 @@ class BaseViz:
 
         self.applied_filters: List[Dict[str, str]] = []
         self.rejected_filters: List[Dict[str, str]] = []
+        self.extra_jwt: str
 
     @property
     def force_cached(self) -> bool:

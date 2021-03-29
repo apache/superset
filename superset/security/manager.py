@@ -929,6 +929,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         database: Optional["Database"] = None,
         datasource: Optional["BaseDatasource"] = None,
         query: Optional["Query"] = None,
+        query_context: Optional["QueryContext"] = None,
         table: Optional["Table"] = None,
         viz: Optional["BaseViz"] = None,
     ) -> None:
@@ -938,6 +939,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param database: The Superset database
         :param datasource: The Superset datasource
         :param query: The SQL Lab query
+        :param query_context: The query context
         :param table: The Superset table (requires database)
         :param viz: The visualization
         :raises SupersetSecurityException: If the user cannot access the resource
@@ -985,40 +987,27 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     self.get_table_access_error_object(denied)
                 )
 
-        if datasource or viz:
-            if viz:
+        if datasource or query_context or viz:
+            extra_jwt=None
+            if query_context:
+                datasource = query_context.datasource
+                extra_jwt= query_context.extra_jwt
+            elif viz:
                 datasource = viz.datasource
+                extra_jwt = viz.extra_jwt
 
             assert datasource
 
+            dashboard_data_context = dashboard_jwt_manager.parse_jwt(extra_jwt)
+
+            data_source_allowed_in_dashboard = datasource.id in dashboard_data_context.dataset_ids
             if not (
-                self.can_access_schema(datasource)
+                data_source_allowed_in_dashboard
+                or self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
             ):
                 raise SupersetSecurityException(
                     self.get_datasource_access_error_object(datasource)
-                )
-
-    def raise_for_access(self, query_context: Optional["QueryContext"] = None,) -> None:
-        """
-                Raise an exception if the user cannot access the resource.
-
-                :param query_context: The query context
-                """
-
-        dashboard_data_context = dashboard_jwt_manager.parse_jwt(
-            query_context.extra_jwt
-        )
-
-        for query in query_context.queries:
-            datasource = query.datasource if query.datasource else query_context.datasource
-            if not (
-                datasource.id in dashboard_data_context.dataset_ids
-                or self.can_access_schema(query.datasource)
-                or self.can_access("datasource_access", query.datasource.perm or "")
-            ):
-                raise SupersetSecurityException(
-                    self.get_datasource_access_error_object(query.datasource)
                 )
 
     def get_user_by_username(
