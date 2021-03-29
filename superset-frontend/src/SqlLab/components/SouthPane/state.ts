@@ -16,32 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// import { styled } from '@superset-ui/core';
-import React, { ReactNode } from 'react';
-import { ControlLabel } from 'react-bootstrap';
+import { connect } from 'react-redux';
+import { bindActionCreators, Dispatch } from 'redux';
+import * as Actions from '../../actions/sqlLab';
+import SouthPane from './SouthPane';
 
-export type FormLabelProps = {
-  children: ReactNode;
-  htmlFor?: string;
-  required?: boolean;
-  className?: string;
-};
-
-export default function FormLabel({
-  children,
-  htmlFor,
-  required = false,
-}: FormLabelProps) {
-  return (
-    <>
-      <ControlLabel htmlFor={htmlFor}>
-        {children}
-        {required && (
-          <span className="text-danger m-l-4">
-            <strong>*</strong>
-          </span>
-        )}
-      </ControlLabel>
-    </>
-  );
+function mapStateToProps({ sqlLab }: Record<string, any>) {
+  return {
+    activeSouthPaneTab: sqlLab.activeSouthPaneTab,
+    databases: sqlLab.databases,
+    offline: sqlLab.offline,
+  };
 }
+
+function mapDispatchToProps(dispatch: Dispatch) {
+  return {
+    actions: bindActionCreators<any, any>(Actions, dispatch),
+  };
+}
+
+export default connect<any>(mapStateToProps, mapDispatchToProps)(SouthPane);

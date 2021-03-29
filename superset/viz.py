@@ -66,7 +66,7 @@ from superset.extensions import cache_manager, security_manager
 from superset.models.cache import CacheKey
 from superset.models.helpers import QueryResult
 from superset.typing import QueryObjectDict, VizData, VizPayload
-from superset.utils import core as utils
+from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
     DTTM_ALIAS,
@@ -615,7 +615,7 @@ class BaseViz:
     def get_csv(self) -> Optional[str]:
         df = self.get_df_payload()["df"]  # leverage caching logic
         include_index = not isinstance(df.index, pd.RangeIndex)
-        return df.to_csv(index=include_index, **config["CSV_EXPORT"])
+        return csv.df_to_escaped_csv(df, index=include_index, **config["CSV_EXPORT"])
 
     def get_data(self, df: pd.DataFrame) -> VizData:
         return df.to_dict(orient="records")

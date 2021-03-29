@@ -17,40 +17,45 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import ProgressBar, { ProgressBarProps } from '.';
 
-import PopoverDropdown, {
-  OnChangeHandler,
-} from 'src/components/PopoverDropdown';
+export default {
+  title: 'ProgressBar',
+  component: ProgressBar,
+};
 
-interface MarkdownModeDropdownProps {
-  id: string;
-  value: string;
-  onChange: OnChangeHandler;
-}
+export const InteractiveProgressBar = (args: ProgressBarProps) => (
+  <ProgressBar {...args} />
+);
 
-const dropdownOptions = [
-  {
-    value: 'edit',
-    label: t('Edit'),
+InteractiveProgressBar.args = {
+  striped: true,
+  percent: 90,
+  showInfo: true,
+  status: 'normal',
+  strokeColor: '#FF0000',
+  trailColor: '#000',
+  strokeLinecap: 'round',
+  type: 'line',
+};
+
+InteractiveProgressBar.argTypes = {
+  status: {
+    control: {
+      type: 'select',
+      options: ['normal', 'success', 'exception', 'active'],
+    },
   },
-  {
-    value: 'preview',
-    label: t('Preview'),
+  strokeLinecap: {
+    control: {
+      type: 'select',
+      options: ['round', 'square'],
+    },
   },
-];
-
-export default class MarkdownModeDropdown extends React.PureComponent<MarkdownModeDropdownProps> {
-  render() {
-    const { id, value, onChange } = this.props;
-
-    return (
-      <PopoverDropdown
-        id={id}
-        options={dropdownOptions}
-        value={value}
-        onChange={onChange}
-      />
-    );
-  }
-}
+  type: {
+    control: {
+      type: 'select',
+      options: ['line', 'circle', 'dashboard'],
+    },
+  },
+};

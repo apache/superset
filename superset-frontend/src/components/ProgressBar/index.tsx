@@ -18,11 +18,10 @@
  */
 import React from 'react';
 import { styled } from '@superset-ui/core';
-// eslint-disable-next-line no-restricted-imports
 import { Progress as AntdProgress } from 'antd';
 import { ProgressProps } from 'antd/lib/progress/progress';
 
-interface ProgressBarProps extends ProgressProps {
+export interface ProgressBarProps extends ProgressProps {
   striped?: boolean;
 }
 
@@ -46,8 +45,9 @@ const ProgressBar = styled(({ striped, ...props }: ProgressBarProps) => (
             transparent 25%, transparent 50%,
             rgba(255, 255, 255, 0.15) 50%,
             rgba(255, 255, 255, 0.15) 75%,
-            transparent 75%, transparent);
-        background-size: 1rem 1rem; `};
+            transparent 75%, transparent) !important;
+        background-size: 1rem 1rem !important;
+        `};
   }
 `;
 
