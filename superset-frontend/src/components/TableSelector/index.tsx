@@ -106,6 +106,7 @@ interface TableSelectorProps {
   sqlLabMode?: boolean;
   tableName?: string;
   tableNameSticky?: boolean;
+  useDocumentBody?: boolean;
 }
 
 const TableSelector: FunctionComponent<TableSelectorProps> = ({
@@ -137,12 +138,15 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const [tableOptions, setTableOptions] = useState([]);
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
   let TableRef: HTMLElement;
 >>>>>>> floating table git issue
 =======
 
 >>>>>>> made changes
+=======
+>>>>>>> floating table git issue
   function fetchTables(
     databaseId?: number,
     schema?: string,
@@ -326,6 +330,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           name="select-table"
           isLoading={tableLoading}
           ignoreAccents={false}
+          menuShouldScrollIntoView={false}
           placeholder={t('Select table or type table name')}
           autosize={false}
           onChange={changeTable}
