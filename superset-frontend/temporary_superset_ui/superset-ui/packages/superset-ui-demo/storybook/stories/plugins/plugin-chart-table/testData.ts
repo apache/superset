@@ -16,28 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { TableChartProps } from '@superset-ui/plugin-chart-table/src';
+import { ChartDataResponseResult, GenericDataType } from '@superset-ui/core/src';
+import { TableChartFormData, TableChartProps } from '@superset-ui/plugin-chart-table/src';
 // @ts-ignore
 // eslint-disable-next-line import/extensions
 import birthNamesJson from './birthNames.json';
 
 export const birthNames = (birthNamesJson as unknown) as TableChartProps;
-export const basicFormData = {
-  alignPn: false,
-  colorPn: false,
-  includeSearch: false,
+
+export const basicFormData: TableChartFormData = {
+  datasource: '1__table',
+  viz_type: 'table',
+  align_pn: false,
+  color_pn: false,
+  include_search: true,
   metrics: ['sum__num', 'MAX(ds)'],
-  orderDesc: true,
-  pageLength: 0,
-  percentMetrics: null,
-  showCellBars: true,
-  tableFilter: false,
-  tableTimestampFormat: 'smart_date',
-  timeseriesLimitMetric: null,
+  order_desc: true,
+  page_length: 0,
+  percent_metrics: null,
+  show_cell_bars: true,
+  table_filter: false,
+  table_timestamp_format: 'smart_date',
 };
-export const basicData = {
-  columns: ['name', 'sum__num', 'MAX(ds)', 'Abc.com'],
-  records: [
+
+export const basicData: Partial<ChartDataResponseResult> = {
+  colnames: ['name', 'sum__num', 'MAX(ds)', 'Abc.com'],
+  coltypes: [
+    GenericDataType.STRING,
+    GenericDataType.NUMERIC,
+    GenericDataType.TEMPORAL,
+    GenericDataType.STRING,
+  ],
+  data: [
     {
       name: 'Michael',
       sum__num: 2467063,

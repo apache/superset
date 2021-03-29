@@ -78,7 +78,7 @@ export const basic = ({ width, height }) => (
     }}
     width={width}
     height={height}
-    queriesData={[{ data: basicData }]}
+    queriesData={[basicData]}
     formData={basicFormData}
   />
 );
