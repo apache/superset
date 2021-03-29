@@ -19,9 +19,9 @@
 import React, { FC, useEffect, useState } from 'react';
 import { Behavior, SetDataMaskHook, SuperChart } from '@superset-ui/core';
 import { FormInstance } from 'antd/lib/form';
+import Loading from 'src/components/Loading';
 import { NativeFiltersForm } from '../types';
 import { getFormData } from '../../utils';
-import LoadingBox from '../../FilterBar/LoadingBox';
 
 type DefaultValueProps = {
   filterId: string;
@@ -51,7 +51,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
   }, [hasDatasource, queriesData]);
 
   return loading ? (
-    <LoadingBox />
+    <Loading position="inline-centered" />
   ) : (
     <SuperChart
       height={25}
