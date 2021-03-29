@@ -52,7 +52,7 @@ export function InfoTooltipWithTrigger({
       onClick={onClick}
       onKeyPress={
         onClick &&
-        ((event: React.KeyboardEvent) => {
+        (event => {
           if (event.key === 'Enter' || event.key === ' ') {
             onClick();
           }

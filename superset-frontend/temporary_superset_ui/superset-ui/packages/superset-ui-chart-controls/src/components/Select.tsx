@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, ReactNode, ReactElement } from 'react';
-import AntdSelect, { SelectProps as AntdSelectProps, OptionProps } from 'antd/lib/select';
+import React, { useState, ReactNode } from 'react';
+import AntdSelect, { SelectProps as AntdSelectProps } from 'antd/lib/select';
 
 export const { Option } = AntdSelect;
 
@@ -34,12 +34,14 @@ export type SelectProps<VT> = Omit<AntdSelectProps<VT>, 'options'> & {
  */
 export default function Select<VT extends string | number>({
   creatable,
-  children,
   onSearch,
   dropdownMatchSelectWidth = false,
   minWidth = '100%',
   showSearch: showSearch_ = true,
+  onChange,
   options,
+  children,
+  value,
   ...props
 }: SelectProps<VT>) {
   const [searchValue, setSearchValue] = useState<string>();
@@ -56,15 +58,26 @@ export default function Select<VT extends string | number>({
       }
     : undefined;
 
-  const searchValueNotFound = React.Children.toArray(children).every(
-    node => node && (node as ReactElement<OptionProps>).props.value !== searchValue,
-  );
+  const optionsHasSearchValue = options?.some(([val]) => val === searchValue);
+  const optionsHasValue = options?.some(([val]) => val === value);
+
+  const handleChange: SelectProps<VT>['onChange'] = showSearch
+    ? (val, opt) => {
+        // reset input value once selected
+        setSearchValue('');
+        if (onChange) {
+          onChange(val, opt);
+        }
+      }
+    : onChange;
 
   return (
     <AntdSelect<VT>
       dropdownMatchSelectWidth={dropdownMatchSelectWidth}
       showSearch={showSearch}
       onSearch={handleSearch}
+      onChange={handleChange}
+      value={value}
       {...props}
       css={{
         minWidth,
@@ -74,7 +87,12 @@ export default function Select<VT extends string | number>({
         <Option value={val}>{label}</Option>
       ))}
       {children}
-      {searchValue && searchValueNotFound && (
+      {value && !optionsHasValue && (
+        <Option key={value} value={value}>
+          {value}
+        </Option>
+      )}
+      {searchValue && !optionsHasSearchValue && (
         <Option key={searchValue} value={searchValue}>
           {/* Unfortunately AntD select does not support displaying different
           label for option vs select value, so we can't use

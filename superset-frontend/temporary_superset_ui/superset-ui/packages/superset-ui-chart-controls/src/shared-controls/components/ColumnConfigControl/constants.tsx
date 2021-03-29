@@ -34,98 +34,116 @@ export type SharedColumnConfigProp =
   | 'columnWidth'
   | 'fractionDigits'
   | 'd3NumberFormat'
+  | 'd3SmallNumberFormat'
   | 'd3TimeFormat'
   | 'horizontalAlign'
   | 'showCellBars';
+
+const d3NumberFormat: ControlFormItemSpec<'Select'> = {
+  controlType: 'Select',
+  label: t('D3 format'),
+  description: D3_FORMAT_DOCS,
+  options: D3_FORMAT_OPTIONS,
+  defaultValue: D3_FORMAT_OPTIONS[0][0],
+  creatable: true,
+  minWidth: '14em',
+  debounceDelay: 500,
+};
+
+const d3TimeFormat: ControlFormItemSpec<'Select'> = {
+  controlType: 'Select',
+  label: t('D3 format'),
+  description: D3_TIME_FORMAT_DOCS,
+  options: D3_TIME_FORMAT_OPTIONS,
+  defaultValue: D3_TIME_FORMAT_OPTIONS[0][0],
+  creatable: true,
+  minWidth: '10em',
+  debounceDelay: 500,
+};
+
+const fractionDigits: ControlFormItemSpec<'Slider'> = {
+  controlType: 'Slider',
+  label: t('Fraction digits'),
+  description: t('Number of decimal digits to round numbers to'),
+  min: 0,
+  step: 1,
+  max: 100,
+  defaultValue: 100,
+};
+
+const columnWidth: ControlFormItemSpec<'InputNumber'> = {
+  controlType: 'InputNumber',
+  label: t('Width'),
+  description: t(
+    'Default column width in pixels, may still be restricted by the shortest/longest word in the column',
+  ),
+  width: 120,
+  placeholder: 'auto',
+  debounceDelay: 400,
+  validators: [validateNumber],
+};
+
+const horizontalAlign: ControlFormItemSpec<'RadioButtonControl'> & {
+  value?: 'left' | 'right' | 'center';
+  defaultValue?: 'left' | 'right' | 'center';
+} = {
+  controlType: 'RadioButtonControl',
+  label: t('Text align'),
+  description: t('Horizontal alignment'),
+  width: 130,
+  debounceDelay: 50,
+  defaultValue: 'left',
+  options: [
+    ['left', <FaAlignLeft title={t('Left')} />],
+    ['center', <FaAlignCenter title={t('Center')} />],
+    ['right', <FaAlignRight title={t('Right')} />],
+  ],
+};
+
+const showCellBars: ControlFormItemSpec<'Checkbox'> = {
+  controlType: 'Checkbox',
+  label: t('Show cell bars'),
+  description: t('Whether to display a bar chart background in table columns'),
+  defaultValue: true,
+  debounceDelay: 200,
+};
+
+const alignPositiveNegative: ControlFormItemSpec<'Checkbox'> = {
+  controlType: 'Checkbox',
+  label: t('Align +/-'),
+  description: t('Whether to align positive and negative values in cell bar chart at 0'),
+  defaultValue: false,
+  debounceDelay: 200,
+};
+
+const colorPositiveNegative: ControlFormItemSpec<'Checkbox'> = {
+  controlType: 'Checkbox',
+  label: t('Color +/-'),
+  description: t('Whether to colorize numeric values by if they are positive or negative'),
+  defaultValue: false,
+  debounceDelay: 200,
+};
 
 /**
  * All configurable column formatting properties.
  */
 export const SHARED_COLUMN_CONFIG_PROPS = {
-  d3NumberFormat: {
-    controlType: 'Select',
-    label: t('D3 format'),
-    description: D3_FORMAT_DOCS,
-    options: D3_FORMAT_OPTIONS,
-    defaultValue: D3_FORMAT_OPTIONS[0][0],
-    creatable: true,
-    minWidth: '10em',
-    debounceDelay: 400,
-  } as ControlFormItemSpec<'Select'>,
-
-  d3TimeFormat: {
-    controlType: 'Select',
-    label: t('D3 format'),
-    description: D3_TIME_FORMAT_DOCS,
-    options: D3_TIME_FORMAT_OPTIONS,
-    defaultValue: D3_TIME_FORMAT_OPTIONS[0][0],
-    creatable: true,
-    minWidth: '10em',
-    debounceDelay: 400,
-  } as ControlFormItemSpec<'Select'>,
-
-  fractionDigits: {
-    controlType: 'Slider',
-    label: t('Fraction digits'),
-    description: t('Number of decimal digits to round numbers to'),
-    min: 0,
-    step: 1,
-    max: 100,
-    defaultValue: 100,
-  } as ControlFormItemSpec<'Slider'>,
-
-  columnWidth: {
-    controlType: 'InputNumber',
-    label: t('Width'),
+  d3NumberFormat,
+  d3SmallNumberFormat: {
+    ...d3NumberFormat,
+    label: t('Small number format'),
     description: t(
-      'Default column width in pixels, may still be restricted by the shortest/longest word in the column',
+      'D3 number format for numbers between -1.0 and 1.0, ' +
+        'useful when you want to have different siginificant digits for small and large numbers',
     ),
-    width: 120,
-    placeholder: 'auto',
-    debounceDelay: 400,
-    validators: [validateNumber],
-  } as ControlFormItemSpec<'InputNumber'>,
-
-  horizontalAlign: {
-    controlType: 'RadioButtonControl',
-    label: t('Text align'),
-    description: t('Horizontal alignment'),
-    width: 130,
-    debounceDelay: 50,
-    defaultValue: 'left',
-    options: [
-      ['left', <FaAlignLeft title={t('Left')} />],
-      ['center', <FaAlignCenter title={t('Center')} />],
-      ['right', <FaAlignRight title={t('Right')} />],
-    ],
-  } as ControlFormItemSpec<'RadioButtonControl'> & {
-    value: 'left' | 'right' | 'center';
-    defaultValue: 'left' | 'right' | 'center';
   },
-
-  showCellBars: {
-    controlType: 'Checkbox',
-    label: t('Show cell bars'),
-    description: t('Whether to display a bar chart background in table columns'),
-    defaultValue: true,
-    debounceDelay: 200,
-  } as ControlFormItemSpec<'Checkbox'>,
-
-  alignPositiveNegative: {
-    controlType: 'Checkbox',
-    label: t('Align +/-'),
-    description: t('Whether to align positive and negative values in cell bar chart at 0'),
-    defaultValue: false,
-    debounceDelay: 200,
-  } as ControlFormItemSpec<'Checkbox'>,
-
-  colorPositiveNegative: {
-    controlType: 'Checkbox',
-    label: t('Color +/-'),
-    description: t('Whether to colorize numeric values by if they are positive or negative'),
-    defaultValue: false,
-    debounceDelay: 200,
-  } as ControlFormItemSpec<'Checkbox'>,
+  d3TimeFormat,
+  fractionDigits,
+  columnWidth,
+  horizontalAlign,
+  showCellBars,
+  alignPositiveNegative,
+  colorPositiveNegative,
 };
 
 export type SharedColumnConfig = {
@@ -139,7 +157,7 @@ export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
   [GenericDataType.NUMERIC]: [
     ['columnWidth', { name: 'horizontalAlign', override: { defaultValue: 'right' } }],
     ['d3NumberFormat'],
-    ['fractionDigits'],
+    ['d3SmallNumberFormat'],
     ['alignPositiveNegative', 'colorPositiveNegative'],
     ['showCellBars'],
   ],

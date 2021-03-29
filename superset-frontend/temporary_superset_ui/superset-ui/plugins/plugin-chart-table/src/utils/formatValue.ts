@@ -39,7 +39,7 @@ function isProbablyHTML(text: string) {
  * Format text for cell value.
  */
 export default function formatValue(
-  { formatter }: DataColumnMeta,
+  formatter: DataColumnMeta['formatter'],
   value: DataRecordValue,
 ): [boolean, string] {
   if (value === null) {
