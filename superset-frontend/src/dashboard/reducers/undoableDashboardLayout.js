@@ -37,6 +37,7 @@ export default undoable(dashboardLayout, {
   // +1 because length of history seems max out at limit - 1
   // +1 again so we can detect if we've exceeded the limit
   limit: UNDO_LIMIT + 2,
+  ignoreInitialState: true,
   filter: includeAction([
     LOAD_DASHBOARD_BOOTSTRAPDATA,
     UPDATE_COMPONENTS,
