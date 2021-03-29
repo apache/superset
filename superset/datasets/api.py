@@ -666,7 +666,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                       description: JSON map of passwords for each file
                       type: string
                     overwrite:
-                      description: overwrite existing databases?
+                      description: overwrite existing datasets?
                       type: bool
           responses:
             200:
@@ -714,5 +714,5 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             logger.warning("Import dataset failed")
             return self.response_422(message=exc.normalized_messages())
         except DatasetImportError as exc:
-            logger.exception("Import dataset failed")
+            logger.error("Import dataset failed")
             return self.response_500(message=str(exc))

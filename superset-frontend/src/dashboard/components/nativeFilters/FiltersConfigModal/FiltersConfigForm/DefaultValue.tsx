@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC } from 'react';
+import React, { FC, useEffect, useState } from 'react';
 import { t, SuperChart, Behavior } from '@superset-ui/core';
 import { FormInstance } from 'antd/lib/form';
+import Loading from 'src/components/Loading';
 import { setNativeFilterFieldValues } from './utils';
 import { StyledFormItem, StyledLabel } from './FiltersConfigForm';
 import { Filter } from '../../types';
@@ -44,7 +45,18 @@ const DefaultValue: FC<DefaultValueProps> = ({
   forceUpdate,
   formData,
 }) => {
+  const [loading, setLoading] = useState(hasDatasource);
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
+  const queriesData = formFilter?.defaultValueQueriesData;
+
+  useEffect(() => {
+    if (!hasDatasource || queriesData !== null) {
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+  }, [hasDatasource, queriesData]);
+
   return (
     <StyledFormItem
       name={['filters', filterId, 'defaultValue']}
@@ -52,30 +64,32 @@ const DefaultValue: FC<DefaultValueProps> = ({
       data-test="default-input"
       label={<StyledLabel>{t('Default Value')}</StyledLabel>}
     >
-      {((hasFilledDatasource && formFilter?.defaultValueQueriesData) ||
-        !hasDatasource) && (
-        <SuperChart
-          height={25}
-          width={250}
-          behaviors={[Behavior.NATIVE_FILTER]}
-          formData={formData}
-          // For charts that don't have datasource we need workaround for empty placeholder
-          queriesData={
-            hasDatasource
-              ? formFilter?.defaultValueQueriesData
-              : [{ data: [null] }]
-          }
-          chartType={formFilter?.filterType}
-          hooks={{
-            setDataMask: ({ nativeFilters }) => {
-              setNativeFilterFieldValues(form, filterId, {
-                defaultValue: nativeFilters?.currentState?.value,
-              });
-              forceUpdate();
-            },
-          }}
-        />
-      )}
+      {(hasFilledDatasource || !hasDatasource) &&
+        (loading ? (
+          <Loading position="inline-centered" />
+        ) : (
+          <SuperChart
+            height={25}
+            width={250}
+            behaviors={[Behavior.NATIVE_FILTER]}
+            formData={formData}
+            // For charts that don't have datasource we need workaround for empty placeholder
+            queriesData={
+              hasDatasource
+                ? formFilter?.defaultValueQueriesData
+                : [{ data: [{}] }]
+            }
+            chartType={formFilter?.filterType}
+            hooks={{
+              setDataMask: ({ nativeFilters }) => {
+                setNativeFilterFieldValues(form, filterId, {
+                  defaultValue: nativeFilters?.currentState?.value,
+                });
+                forceUpdate();
+              },
+            }}
+          />
+        ))}
     </StyledFormItem>
   );
 };

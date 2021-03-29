@@ -50,10 +50,10 @@ We don't recommend using the system installed Python. Instead, first install the
 [homebrew](https://brew.sh/) manager and then run the following commands:
 
 ```
-brew install pkg-config libffi openssl python
-
-env LDFLAGS="-L$(brew --prefix openssl)/lib" CFLAGS="-I$(brew --prefix openssl)/include" pip install cryptography==2.4.2
+brew install readline pkg-config libffi openssl mysql postgres
 ```
+
+You should install a recent version of Python (Superset uses 3.7.9). We'd recommend using a Python version manager like [pyenv](https://github.com/pyenv/pyenv) (and also [pyenv-virtualenv](https://github.com/pyenv/pyenv-virtualenv)).
 
 Let's also make sure we have the latest version of `pip` and `setuptools`:
 
@@ -61,10 +61,19 @@ Let's also make sure we have the latest version of `pip` and `setuptools`:
 pip install --upgrade setuptools pip
 ```
 
+Lastly, you may need to set LDFLAGS and CFLAGS for certain Python packages to properly build. You can export these variables with:
+
+```
+export LDFLAGS="-L$(brew --prefix openssl)/lib"
+export CFLAGS="-I$(brew --prefix openssl)/include"
+```
+
+These will now be available when pip installing requirements.
+
 ### Python Virtual Environment
 
 We highly recommend installing Superset inside of a virtual environment. Python ships with
-`virtualenv` out of the box but you can install it using:
+`virtualenv` out of the box. If you're using [pyenv](https://github.com/pyenv/pyenv), you can install [pyenv-virtualenv](https://github.com/pyenv/pyenv-virtualenv). Or you can install it with `pip`:
 
 ```
 pip install virtualenv
@@ -77,6 +86,14 @@ You can create and activate a virtual environment using:
 # See https://docs.python.org/3.6/library/venv.html
 python3 -m venv venv
 . venv/bin/activate
+```
+
+Or with pyenv-virtualenv:
+
+```
+# Here we name the virtual env 'superset'
+pyenv virtualenv superset
+pyenv activate superset
 ```
 
 Once you activated your virtual environment, all of the Python packages you install or uninstall
