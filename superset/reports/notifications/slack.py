@@ -52,12 +52,17 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
             Error: %(text)s
             """,
             name=name,
+            description=description,
             text=text,
         )
 
     def _get_body(self) -> str:
         if self._content.text:
-            return self._error_template(self._content.name, self._content.description, self._content.text)
+            return self._error_template(
+                self._content.name,
+                self._content.description,
+                self._content.text
+            )
         return __(
             """
             *%(name)s*\n
