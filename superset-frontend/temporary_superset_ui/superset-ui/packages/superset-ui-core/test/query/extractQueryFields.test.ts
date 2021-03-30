@@ -18,8 +18,7 @@
  */
 import extractQueryFields from '@superset-ui/core/src/query/extractQueryFields';
 import { configure } from '../../src/translation';
-import { QueryMode } from '../../src';
-import { DTTM_ALIAS } from '../../src/query/buildQueryObject';
+import { QueryMode, DTTM_ALIAS } from '../../src';
 import { NUM_METRIC } from '../fixtures';
 
 configure();

@@ -16,25 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as ApiLegacy from './api/legacy';
-import * as ApiV1 from './api/v1';
-
-export * from './constants';
-export { default as buildQueryContext } from './buildQueryContext';
-export { default as buildQueryObject } from './buildQueryObject';
-export { default as convertFilter } from './convertFilter';
-export { default as getMetricLabel } from './getMetricLabel';
-export { default as DatasourceKey } from './DatasourceKey';
-
-export * from './types/AnnotationLayer';
-export * from './types/QueryFormData';
-export * from './types/Column';
-export * from './types/Datasource';
-export * from './types/Metric';
-export * from './types/Query';
-
-export * from './api/v1/types';
-export { default as makeApi } from './api/v1/makeApi';
-
-// API Callers
-export { ApiLegacy, ApiV1 };
+export const DTTM_ALIAS = '__timestamp';

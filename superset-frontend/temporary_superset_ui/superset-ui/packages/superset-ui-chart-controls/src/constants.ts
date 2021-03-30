@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, QueryMode } from '@superset-ui/core';
-import { DTTM_ALIAS } from '@superset-ui/core/src/query/buildQueryObject';
+import { t, QueryMode, DTTM_ALIAS } from '@superset-ui/core';
 import { ColumnMeta } from './types';
 
 // eslint-disable-next-line import/prefer-default-export
