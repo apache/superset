@@ -79,6 +79,13 @@ const FlexRowContainer = styled.div`
   }
 `;
 
+const StyledTableTabs = styled(Tabs)`
+  overflow: visible;
+  .ant-tabs-content-holder {
+    overflow: visible;
+  }
+`;
+
 const EditLockContainer = styled.div`
   font-size: ${supersetTheme.typography.sizes.s}px;
   display: flex;
@@ -995,7 +1002,7 @@ class DatasourceEditor extends React.PureComponent {
             </>
           }
         />
-        <Tabs
+        <StyledTableTabs
           fullWidth={false}
           id="table-tabs"
           data-test="edit-dataset-tabs"
@@ -1086,7 +1093,7 @@ class DatasourceEditor extends React.PureComponent {
               </Col>
             </div>
           </Tabs.TabPane>
-        </Tabs>
+        </StyledTableTabs>
       </DatasourceContainer>
     );
   }

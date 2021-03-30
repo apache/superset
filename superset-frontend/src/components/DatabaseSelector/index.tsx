@@ -72,7 +72,6 @@ interface DatabaseSelectorProps {
   readOnly?: boolean;
   schema?: string;
   sqlLabMode?: boolean;
-  useDocumentBody?: boolean;
   onChange?: ({
     dbId,
     schema,
@@ -97,7 +96,6 @@ export default function DatabaseSelector({
   readOnly = false,
   schema,
   sqlLabMode = false,
-  useDocumentBody = false,
 }: DatabaseSelectorProps) {
   const [currentDbId, setCurrentDbId] = useState(dbId);
   const [currentSchema, setCurrentSchema] = useState<string | undefined>(
@@ -105,7 +103,7 @@ export default function DatabaseSelector({
   );
   const [schemaLoading, setSchemaLoading] = useState(false);
   const [schemaOptions, setSchemaOptions] = useState([]);
-  let TableRef: HTMLElement;
+
   function fetchSchemas(databaseId: number, forceRefresh = false) {
     const actualDbId = databaseId || dbId;
     if (actualDbId) {
@@ -247,8 +245,6 @@ export default function DatabaseSelector({
         placeholder={t('Select a database')}
         autoSelect
         isDisabled={!isDatabaseSelectEnabled || readOnly}
-        menuPosition="fixed"
-        menuPortalTarget={useDocumentBody ? document.body : TableRef}
       />,
       null,
     );
