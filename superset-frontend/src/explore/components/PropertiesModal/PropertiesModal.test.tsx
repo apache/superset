@@ -153,6 +153,10 @@ fetchMock.put('http://localhost/api/v1/chart/318', {
   sendAsJson: true,
 });
 
+afterAll(() => {
+  fetchMock.done();
+});
+
 test('Should render null when show:false', async () => {
   const props = createProps();
   props.show = false;
