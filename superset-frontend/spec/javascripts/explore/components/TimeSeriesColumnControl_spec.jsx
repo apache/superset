@@ -21,7 +21,7 @@ import React from 'react';
 import { FormControl } from 'react-bootstrap';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import Popover from 'src/common/components/Popover';
+import Popover from 'src/components/Popover';
 import TimeSeriesColumnControl from 'src/explore/components/controls/TimeSeriesColumnControl';
 
 const defaultProps = {
