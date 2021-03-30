@@ -106,7 +106,6 @@ interface TableSelectorProps {
   sqlLabMode?: boolean;
   tableName?: string;
   tableNameSticky?: boolean;
-  useDocumentBody?: boolean;
 }
 
 const TableSelector: FunctionComponent<TableSelectorProps> = ({
@@ -127,7 +126,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   sqlLabMode = true,
   tableName,
   tableNameSticky = true,
-  useDocumentBody = false,
 }) => {
   const [currentSchema, setCurrentSchema] = useState<string | undefined>(
     schema,
@@ -138,9 +136,13 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const [tableLoading, setTableLoading] = useState(false);
   const [tableOptions, setTableOptions] = useState([]);
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
   let TableRef: HTMLElement;
 >>>>>>> floating table git issue
+=======
+
+>>>>>>> made changes
   function fetchTables(
     databaseId?: number,
     schema?: string,
@@ -310,7 +312,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         sqlLabMode={sqlLabMode}
         isDatabaseSelectEnabled={isDatabaseSelectEnabled && !readOnly}
         readOnly={readOnly}
-        useDocumentBody={useDocumentBody}
       />
     );
   }
@@ -325,7 +326,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           name="select-table"
           isLoading={tableLoading}
           ignoreAccents={false}
-          menuShouldScrollIntoView={false}
           placeholder={t('Select table or type table name')}
           autosize={false}
           onChange={changeTable}
@@ -336,6 +336,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           valueRenderer={renderTableOption}
           isDisabled={readOnly}
 <<<<<<< HEAD
+<<<<<<< HEAD
           styles={{
             menuPortal: base => ({ ...base, zIndex: 5 }),
 =======
@@ -345,6 +346,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
             menuPortal: base => ({ ...base, zIndex: 9999 }),
 >>>>>>> floating table git issue
           }}
+=======
+>>>>>>> made changes
         />
       );
     } else if (formMode) {
