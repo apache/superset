@@ -207,11 +207,10 @@ class CsvToDatabaseView(SimpleFormView):
             # E.g. if hive was used to upload a csv, presto will be a better option
             # to explore the table.
             expore_database = database
-            explore_database_id = database.explore_database_id
-            if explore_database_id:
+            if database.explore_database_id:
                 expore_database = (
                     db.session.query(models.Database)
-                    .filter_by(id=explore_database_id)
+                    .filter_by(id=database.explore_database_id)
                     .one_or_none()
                     or database
                 )
@@ -258,7 +257,6 @@ class CsvToDatabaseView(SimpleFormView):
             try:
                 os.remove(uploaded_tmp_file_path)
             except OSError as ex:
-                logger.warning("Failed to remove uploaded temp file")
                 logger.exception(ex)
         # Go back to welcome page / splash screen
         message = _(
