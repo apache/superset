@@ -45,8 +45,7 @@ from .validators import schema_allows_csv_upload, sqlalchemy_uri_validator
 if TYPE_CHECKING:
     from werkzeug.datastructures import FileStorage  # pylint: disable=unused-import
 
-config = app.config
-stats_logger = config["STATS_LOGGER"]
+stats_logger = app.config["STATS_LOGGER"]
 
 logger = logging.getLogger(__name__)
 
@@ -159,12 +158,13 @@ class CsvToDatabaseView(SimpleFormView):
         ).name
 
         try:
-            utils.ensure_path_exists(config["UPLOAD_FOLDER"])
+            utils.ensure_path_exists(app.config["UPLOAD_FOLDER"])
             upload_stream_write(form.csv_file.data, uploaded_tmp_file_path)
 
-            con = form.data.get("con")
             database = (
-                db.session.query(models.Database).filter_by(id=con.data.get("id")).one()
+                db.session.query(models.Database)
+                .filter_by(id=form.data.get("con").data.get("id"))
+                .one()
             )
 
             # More can be found here:
@@ -228,7 +228,7 @@ class CsvToDatabaseView(SimpleFormView):
 
             if sqla_table:
                 sqla_table.fetch_metadata()
-            if not sqla_table:
+            else:
                 sqla_table = SqlaTable(table_name=csv_table.table)
                 sqla_table.database = expore_database
                 sqla_table.database_id = database.id
@@ -318,12 +318,13 @@ class ExcelToDatabaseView(SimpleFormView):
         ).name
 
         try:
-            utils.ensure_path_exists(config["UPLOAD_FOLDER"])
+            utils.ensure_path_exists(app.config["UPLOAD_FOLDER"])
             upload_stream_write(form.excel_file.data, uploaded_tmp_file_path)
 
-            con = form.data.get("con")
             database = (
-                db.session.query(models.Database).filter_by(id=con.data.get("id")).one()
+                db.session.query(models.Database)
+                .filter_by(id=form.data.get("con").data.get("id"))
+                .one()
             )
 
             # some params are not supported by pandas.read_excel (e.g. chunksize).
