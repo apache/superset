@@ -152,7 +152,7 @@ describe('DatabaseModal', () => {
         expect(schemaField).not.toHaveClass('open');
       });
     });
-    it('renders solely "Expose in SQL Lab" option when unchecked', () => {
+    it('renders all settings when "Expose in SQL Lab" is checked', () => {
       render(
         <ThemeProvider theme={supersetTheme}>
           <Provider store={store}>
@@ -178,6 +178,13 @@ describe('DatabaseModal', () => {
       // While unchecked, only "Expose in SQL Lab" should display
       expect(exposeInSqlLab).toBeVisible();
       expect(exposeChoicesForm).not.toHaveClass('open');
+      expect(exposeInSqlLab).toBeChecked();
+      const checkboxes = screen
+        .getAllByRole('checkbox')
+        .filter(checkbox => !checkbox.checked);
+
+      // While checked make sure all checkboxes are showing
+      expect(checkboxes.length).toEqual(4);
     });
 
     it('renders the schema field when allowCTAS is checked', () => {
