@@ -924,7 +924,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     )
                 )
 
-    def raise_for_access(  # pylint: disable=too-many-arguments,too-many-branches
+    def raise_for_access(  # pylint: disable=too-many-arguments,too-many-branches,
+        # pylint: disable=too-many-locals
         self,
         database: Optional["Database"] = None,
         datasource: Optional["BaseDatasource"] = None,
@@ -998,17 +999,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             assert datasource
 
-            data_source_allowed_in_dashboard = False
+            ds_allowed_in_dashboard = False
             if feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC"):
                 dashboard_data_context = dashboard_jwt_manager.parse_jwt(extra_jwt)
 
                 if dashboard_data_context:
-                    data_source_allowed_in_dashboard = (
+                    ds_allowed_in_dashboard = (
                         datasource.id in dashboard_data_context.dataset_ids
                     )
 
             if not (
-                data_source_allowed_in_dashboard
+                ds_allowed_in_dashboard
                 or self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
             ):

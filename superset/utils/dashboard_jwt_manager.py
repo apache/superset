@@ -20,7 +20,7 @@ import jwt
 from flask import Flask
 
 
-class DashboardJwtDataObject:
+class DashboardJwtDataObject:  # pylint: disable=too-few-public-methods
     dashboard_id: int
     dataset_ids: List[int]
 

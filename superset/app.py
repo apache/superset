@@ -70,13 +70,13 @@ def create_app() -> Flask:
         raise ex
 
 
-class SupersetIndexView(IndexView):
+class SupersetIndexView(IndexView):  # pylint: disable=too-few-public-methods
     @expose("/")
     def index(self) -> FlaskResponse:
         return redirect("/superset/welcome/")
 
 
-class SupersetAppInitializer:
+class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
     def __init__(self, app: Flask) -> None:
         super().__init__()
 

@@ -54,7 +54,7 @@ stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 
-class QueryContext:
+class QueryContext:  # pylint: disable=too-many-instance-attributes
     """
     The query context contains the query object and additional fields necessary
     to retrieve the data payload for a given viz.

@@ -107,10 +107,8 @@ from superset.utils import core as utils
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
 from superset.utils.core import ReservedUrlParameters
-from superset.utils.dashboard_jwt_manager import (
-    DashboardJwtDataObject,
-    DashboardJwtManager,
-)
+from superset.utils.dashboard_jwt_manager import DashboardJwtDataObject
+
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import check_dashboard_access
 from superset.views.base import (
