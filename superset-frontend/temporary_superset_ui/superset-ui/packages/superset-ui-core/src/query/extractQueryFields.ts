@@ -18,7 +18,7 @@
  */
 import { t } from '../translation';
 import { removeDuplicates } from '../utils';
-import { DTTM_ALIAS } from './buildQueryObject';
+import { DTTM_ALIAS } from './constants';
 import getMetricLabel from './getMetricLabel';
 import {
   QueryFields,

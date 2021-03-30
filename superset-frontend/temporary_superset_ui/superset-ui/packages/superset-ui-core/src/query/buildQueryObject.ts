@@ -7,8 +7,6 @@ import extractQueryFields from './extractQueryFields';
 import { overrideExtraFormData } from './processExtraFormData';
 import { AdhocFilter } from './types';
 
-export const DTTM_ALIAS = '__timestamp';
-
 /**
  * Build the common segments of all query objects (e.g. the granularity field derived from
  * either sql alchemy or druid). The segments specific to each viz type is constructed in the
