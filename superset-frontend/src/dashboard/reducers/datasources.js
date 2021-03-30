@@ -17,11 +17,11 @@
  * under the License.
  */
 import { SET_DATASOURCE } from '../actions/datasources';
-import { LOAD_DASHBOARD_BOOTSTRAPDATA } from '../actions/bootstrapData';
+import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 export default function datasourceReducer(datasources = {}, action) {
   const actionHandlers = {
-    [LOAD_DASHBOARD_BOOTSTRAPDATA]() {
+    [HYDRATE_DASHBOARD]() {
       return action.data.datasources;
     },
     [SET_DATASOURCE]() {

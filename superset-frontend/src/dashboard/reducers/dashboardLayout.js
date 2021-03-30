@@ -43,10 +43,10 @@ import {
   DASHBOARD_TITLE_CHANGED,
 } from '../actions/dashboardLayout';
 
-import { LOAD_DASHBOARD_BOOTSTRAPDATA } from '../actions/bootstrapData';
+import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 const actionHandlers = {
-  [LOAD_DASHBOARD_BOOTSTRAPDATA](state, action) {
+  [HYDRATE_DASHBOARD](state, action) {
     return {
       ...action.data.dashboardLayout.present,
     };

@@ -25,7 +25,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
-import DashboardRoute from './components/DashboardRoute';
+import DashboardRoute from './components/DashboardPage';
 import { theme } from '../preamble';
 
 setupApp();

@@ -52,8 +52,11 @@ import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 
 const reservedQueryParams = new Set(['standalone', 'edit']);
 
-// returns the url params that are used to customize queries
-// in datasets built using sql lab
+/**
+ * Returns the url params that are used to customize queries
+ * in datasets built using sql lab.
+ * We may want to extract this to some kind of util in the future.
+ */
 const extractUrlParams = queryParams =>
   Object.entries(queryParams).reduce((acc, [key, value]) => {
     if (reservedQueryParams.has(key)) return acc;
@@ -66,19 +69,12 @@ const extractUrlParams = queryParams =>
     return { ...acc, [key]: value };
   }, {});
 
-export const LOAD_DASHBOARD_BOOTSTRAPDATA = 'LOAD_DASHBOARD_BOOTSTRAPDATA';
-export function setDashboardBootstrapState(data) {
-  return {
-    type: LOAD_DASHBOARD_BOOTSTRAPDATA,
-    data,
-  };
-}
+export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
-export const bootstrapDashboardState = (
-  dashboardData,
-  chartData,
-  datasourcesData,
-) => (dispatch, getState) => {
+export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
+  dispatch,
+  getState,
+) => {
   const { user, common } = getState();
   const metadata = JSON.parse(dashboardData.json_metadata);
   const queryParams = querystring.parse(window.location.search);
@@ -303,8 +299,9 @@ export const bootstrapDashboardState = (
 
   const { roles } = getState().user;
 
-  dispatch(
-    setDashboardBootstrapState({
+  return dispatch({
+    type: HYDRATE_DASHBOARD,
+    data: {
       datasources: keyBy(datasourcesData, 'uid'),
       sliceEntities: { ...initSliceEntities, slices, isLoading: false },
       charts: chartQueries,
@@ -350,6 +347,6 @@ export const bootstrapDashboardState = (
       dashboardLayout,
       messageToasts: [],
       impressionId: shortid.generate(),
-    }),
-  );
+    },
+  });
 };

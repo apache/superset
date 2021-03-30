@@ -36,11 +36,11 @@ import {
   SET_FOCUSED_FILTER_FIELD,
   UNSET_FOCUSED_FILTER_FIELD,
 } from '../actions/dashboardState';
-import { LOAD_DASHBOARD_BOOTSTRAPDATA } from '../actions/bootstrapData';
+import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 export default function dashboardStateReducer(state = {}, action) {
   const actionHandlers = {
-    [LOAD_DASHBOARD_BOOTSTRAPDATA]() {
+    [HYDRATE_DASHBOARD]() {
       return { ...state, ...action.data.dashboardState };
     },
     [UPDATE_CSS]() {

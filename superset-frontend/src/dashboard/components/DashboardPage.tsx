@@ -28,17 +28,17 @@ import {
 } from 'src/common/hooks/apiResources';
 import { ResourceStatus } from 'src/common/hooks/apiResources/apiResources';
 import { usePrevious } from 'src/common/hooks/usePrevious';
-import { bootstrapDashboardState } from 'src/dashboard/actions/bootstrapData';
+import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import DashboardContainer from 'src/dashboard/containers/Dashboard';
 
 interface DashboardRouteProps {
   actions: {
-    bootstrapDashboardState: typeof bootstrapDashboardState;
+    hydrateDashboard: typeof hydrateDashboard;
   };
   dashboardIdOrSlug: string;
 }
 
-const DashboardRouteGuts: FC<DashboardRouteProps> = ({
+const DashboardPage: FC<DashboardRouteProps> = ({
   actions,
   dashboardIdOrSlug, // eventually get from react router
 }) => {
@@ -60,7 +60,7 @@ const DashboardRouteGuts: FC<DashboardRouteProps> = ({
       chartsResource.status === ResourceStatus.COMPLETE &&
       datasetsResource.status === ResourceStatus.COMPLETE
     ) {
-      actions.bootstrapDashboardState(
+      actions.hydrateDashboard(
         dashboardResource.result,
         chartsResource.result,
         datasetsResource.result,
@@ -85,22 +85,21 @@ function mapDispatchToProps(dispatch: Dispatch<AnyAction>) {
   return {
     actions: bindActionCreators(
       {
-        bootstrapDashboardState,
+        hydrateDashboard,
       },
       dispatch,
     ),
   };
 }
 
-const ConnectedDashboardRoute = connect(
-  null,
-  mapDispatchToProps,
-)(DashboardRouteGuts);
+const ConnectedDashboardPage = connect(null, mapDispatchToProps)(DashboardPage);
 
-const DashboardRoute = ({ dashboardIdOrSlug }: DashboardRouteProps) => (
+const DashboardPageWithErrorBoundary = ({
+  dashboardIdOrSlug,
+}: DashboardRouteProps) => (
   <ErrorBoundary>
-    <ConnectedDashboardRoute dashboardIdOrSlug={dashboardIdOrSlug} />
+    <ConnectedDashboardPage dashboardIdOrSlug={dashboardIdOrSlug} />
   </ErrorBoundary>
 );
 
-export default DashboardRoute;
+export default DashboardPageWithErrorBoundary;

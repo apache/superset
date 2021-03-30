@@ -29,7 +29,7 @@ import {
   HANDLE_COMPONENT_DROP,
 } from '../actions/dashboardLayout';
 
-import { LOAD_DASHBOARD_BOOTSTRAPDATA } from '../actions/bootstrapData';
+import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 import dashboardLayout from './dashboardLayout';
 
@@ -39,7 +39,7 @@ export default undoable(dashboardLayout, {
   limit: UNDO_LIMIT + 2,
   ignoreInitialState: true,
   filter: includeAction([
-    LOAD_DASHBOARD_BOOTSTRAPDATA,
+    HYDRATE_DASHBOARD,
     UPDATE_COMPONENTS,
     DELETE_COMPONENT,
     CREATE_COMPONENT,

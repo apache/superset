@@ -28,7 +28,7 @@ import {
   SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
   SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL,
 } from 'src/dataMask/actions';
-import { LOAD_DASHBOARD_BOOTSTRAPDATA } from './bootstrapData';
+import { HYDRATE_DASHBOARD } from './hydrate';
 import { dashboardInfoChanged } from './dashboardInfo';
 import { DashboardInfo, FilterSet } from '../reducers/types';
 
@@ -117,7 +117,7 @@ type BootstrapData = {
 };
 
 export interface SetBooststapData {
-  type: typeof LOAD_DASHBOARD_BOOTSTRAPDATA;
+  type: typeof HYDRATE_DASHBOARD;
   data: BootstrapData;
 }
 

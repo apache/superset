@@ -24,7 +24,7 @@ import {
 } from 'src/dashboard/actions/nativeFilters';
 import { FilterSet, NativeFiltersState } from './types';
 import { FilterConfiguration } from '../components/nativeFilters/types';
-import { LOAD_DASHBOARD_BOOTSTRAPDATA } from '../actions/bootstrapData';
+import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 export function getInitialState({
   filterSetsConfig,
@@ -70,7 +70,7 @@ export default function nativeFilterReducer(
 ) {
   const { filterSets } = state;
   switch (action.type) {
-    case LOAD_DASHBOARD_BOOTSTRAPDATA:
+    case HYDRATE_DASHBOARD:
       return {
         filters: action.data.nativeFilters.filters,
       };

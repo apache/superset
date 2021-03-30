@@ -22,7 +22,7 @@ import { ChartState } from 'src/explore/types';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import { now } from '../modules/dates';
 import * as actions from './chartAction';
-import { LOAD_DASHBOARD_BOOTSTRAPDATA } from '../dashboard/actions/bootstrapData';
+import { HYDRATE_DASHBOARD } from '../dashboard/actions/hydrate';
 
 export const chart: ChartState = {
   id: 0,
@@ -193,7 +193,7 @@ export default function chartReducer(
     delete charts[key];
     return charts;
   }
-  if (action.type === LOAD_DASHBOARD_BOOTSTRAPDATA) {
+  if (action.type === HYDRATE_DASHBOARD) {
     return { ...action.data.charts };
   }
   if (action.type in actionHandlers) {

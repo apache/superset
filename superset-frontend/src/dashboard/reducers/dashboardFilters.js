@@ -25,7 +25,7 @@ import {
   UPDATE_LAYOUT_COMPONENTS,
   UPDATE_DASHBOARD_FILTERS_SCOPE,
 } from '../actions/dashboardFilters';
-import { LOAD_DASHBOARD_BOOTSTRAPDATA } from '../actions/bootstrapData';
+import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 import { DASHBOARD_ROOT_ID } from '../util/constants';
 import getFilterConfigsFromFormdata from '../util/getFilterConfigsFromFormdata';
@@ -162,7 +162,7 @@ export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
 
     return updatedFilters;
   }
-  if (action.type === LOAD_DASHBOARD_BOOTSTRAPDATA) {
+  if (action.type === HYDRATE_DASHBOARD) {
     return action.data.dashboardFilters;
   }
 

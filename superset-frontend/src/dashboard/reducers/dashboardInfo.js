@@ -18,7 +18,7 @@
  */
 
 import { DASHBOARD_INFO_UPDATED } from '../actions/dashboardInfo';
-import { LOAD_DASHBOARD_BOOTSTRAPDATA } from '../actions/bootstrapData';
+import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 export default function dashboardStateReducer(state = {}, action) {
   switch (action.type) {
@@ -29,7 +29,7 @@ export default function dashboardStateReducer(state = {}, action) {
         // server-side compare last_modified_time in second level
         lastModifiedTime: Math.round(new Date().getTime() / 1000),
       };
-    case LOAD_DASHBOARD_BOOTSTRAPDATA:
+    case HYDRATE_DASHBOARD:
       return {
         ...state,
         ...action.data.dashboardInfo,

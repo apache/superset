@@ -23,7 +23,7 @@ import {
   FETCH_ALL_SLICES_STARTED,
   SET_ALL_SLICES,
 } from '../actions/sliceEntities';
-import { LOAD_DASHBOARD_BOOTSTRAPDATA } from '../actions/bootstrapData';
+import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 export const initSliceEntities = {
   slices: {},
@@ -37,7 +37,7 @@ export default function sliceEntitiesReducer(
   action,
 ) {
   const actionHandlers = {
-    [LOAD_DASHBOARD_BOOTSTRAPDATA]() {
+    [HYDRATE_DASHBOARD]() {
       return {
         ...action.data.sliceEntities,
       };
