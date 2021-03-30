@@ -32,6 +32,7 @@ from superset.models.reports import (
     ReportSchedule,
     ReportScheduleType,
     ReportState,
+    ReportRecipients
 )
 from superset.reports.commands.alert import AlertCommand
 from superset.reports.commands.exceptions import (
@@ -221,14 +222,14 @@ class BaseReportState:
             )
         return NotificationContent(name=name, url=url, screenshot=screenshot_data)
 
-    def _send(self, notification_content: NotificationContent) -> None:
+    def _send(self, notification_content: NotificationContent, recipients: List[ReportRecipients]) -> None:
         """
         Sends a notification to all recipients
 
         :raises: ReportScheduleNotificationError
         """
         notification_errors = []
-        for recipient in self._report_schedule.recipients:
+        for recipient in recipients:
             notification = create_notification(recipient, notification_content)
             try:
                 notification.send()
@@ -245,7 +246,7 @@ class BaseReportState:
         :raises: ReportScheduleNotificationError
         """
         notification_content = self._get_notification_content()
-        self._send(notification_content)
+        self._send(notification_content, self._report_schedule.recipients)
 
     def send_error(self, name: str, message: str) -> None:
         """
@@ -254,7 +255,12 @@ class BaseReportState:
         :raises: ReportScheduleNotificationError
         """
         notification_content = NotificationContent(name=name, text=message)
-        self._send(notification_content)
+        
+        # filter recipients to recipients who are also owners
+        owner_ids = [owner.id for owner in self._report_schedule.owners]
+        owner_recipients = filter(lambda recipient: recipient.id in owner_ids, self._report_schedule.recipients)
+
+        self._send(notification_content, owner_recipients)
 
     def is_in_grace_period(self) -> bool:
         """
