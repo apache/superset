@@ -21,17 +21,17 @@ import { t, supersetTheme } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
 import { Tooltip } from 'src/common/components/Tooltip';
 
-interface CertifiedIconWithTooltipProps {
+export interface CertifiedIconProps {
   certifiedBy?: string;
   details?: string;
   size?: number;
 }
 
-function CertifiedIconWithTooltip({
+function CertifiedIcon({
   certifiedBy,
   details,
   size = 24,
-}: CertifiedIconWithTooltipProps) {
+}: CertifiedIconProps) {
   return (
     <Tooltip
       id="certified-details-tooltip"
@@ -56,4 +56,4 @@ function CertifiedIconWithTooltip({
   );
 }
 
-export default CertifiedIconWithTooltip;
+export default CertifiedIcon;
