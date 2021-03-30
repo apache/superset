@@ -104,7 +104,6 @@ interface TableSelectorProps {
   sqlLabMode?: boolean;
   tableName?: string;
   tableNameSticky?: boolean;
-  useDocumentBody?: boolean;
 }
 
 const TableSelector: FunctionComponent<TableSelectorProps> = ({
@@ -125,7 +124,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   sqlLabMode = true,
   tableName,
   tableNameSticky = true,
-  useDocumentBody = false,
 }) => {
   const [currentSchema, setCurrentSchema] = useState<string | undefined>(
     schema,
@@ -135,7 +133,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   );
   const [tableLoading, setTableLoading] = useState(false);
   const [tableOptions, setTableOptions] = useState([]);
-  let TableRef: HTMLElement;
+
   function fetchTables(
     databaseId?: number,
     schema?: string,
@@ -305,7 +303,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         sqlLabMode={sqlLabMode}
         isDatabaseSelectEnabled={isDatabaseSelectEnabled && !readOnly}
         readOnly={readOnly}
-        useDocumentBody={useDocumentBody}
       />
     );
   }
@@ -320,7 +317,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           name="select-table"
           isLoading={tableLoading}
           ignoreAccents={false}
-          menuShouldScrollIntoView={false}
           placeholder={t('Select table or type table name')}
           autosize={false}
           onChange={changeTable}
