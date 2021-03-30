@@ -350,6 +350,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const expandableModalIsOpen = !!db?.expose_in_sqllab;
   const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
 
+  console.log(conf);
   return (
     <Modal
       name="database"
