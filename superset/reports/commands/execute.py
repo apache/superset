@@ -222,7 +222,11 @@ class BaseReportState:
             )
         return NotificationContent(name=name, url=url, screenshot=screenshot_data)
 
-    def _send(self, notification_content: NotificationContent, recipients: List[ReportRecipients]) -> None:
+    def _send(
+        self,
+        notification_content: NotificationContent,
+        recipients: List[ReportRecipients]
+    ) -> None:
         """
         Sends a notification to all recipients
 
@@ -255,10 +259,13 @@ class BaseReportState:
         :raises: ReportScheduleNotificationError
         """
         notification_content = NotificationContent(name=name, text=message)
-        
+
         # filter recipients to recipients who are also owners
         owner_ids = [owner.id for owner in self._report_schedule.owners]
-        owner_recipients = filter(lambda recipient: recipient.id in owner_ids, self._report_schedule.recipients)
+        owner_recipients = filter(
+            lambda recipient: recipient.id in owner_ids,
+            self._report_schedule.recipients
+        )
 
         self._send(notification_content, owner_recipients)
 
