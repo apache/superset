@@ -19,6 +19,7 @@
 import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
+import * as redux from 'react-redux';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
@@ -33,7 +34,7 @@ import { initialState } from 'spec/javascripts/sqllab/fixtures';
 
 // store needed for withToasts(DatabaseModal)
 const mockStore = configureStore([thunk]);
-const store = mockStore(initialState);
+const store = mockStore({});
 const mockedProps = {
   show: true,
 };
@@ -47,17 +48,17 @@ const dbProps = {
   },
 };
 
-jest.mock('react-redux', () => ({
-  ...jest.requireActual('react-redux'),
-  useSelector: jest.fn(),
-}));
-
 const DATABASE_ENDPOINT = 'glob:*/api/v1/database/*';
 fetchMock.get(DATABASE_ENDPOINT, {});
 
 describe('DatabaseModal', () => {
   describe('enzyme', () => {
     let wrapper;
+    let spyOnUseSelector;
+    beforeAll(() => {
+      spyOnUseSelector = jest.spyOn(redux, 'useSelector');
+      spyOnUseSelector.mockReturnValue(initialState.common.conf);
+    });
     beforeEach(() => {
       wrapper = mount(<DatabaseModal store={store} {...mockedProps} />);
     });
