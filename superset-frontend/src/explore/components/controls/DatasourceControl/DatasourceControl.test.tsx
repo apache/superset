@@ -26,47 +26,46 @@ import DatasourceControl from '.';
 
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
 
-let defaultProps: any;
-
-beforeEach(() => {
-  defaultProps = {
-    hovered: false,
-    type: 'DatasourceControl',
-    label: 'Datasource',
-    default: null,
-    description: null,
-    value: '25__table',
-    datasource: {
-      id: 25,
-      database: {
-        name: 'examples',
-      },
-      name: 'channels',
-      type: 'table',
-      columns: [],
+const createProps = () => ({
+  hovered: false,
+  type: 'DatasourceControl',
+  label: 'Datasource',
+  default: null,
+  description: null,
+  value: '25__table',
+  datasource: {
+    id: 25,
+    database: {
+      name: 'examples',
     },
-    validationErrors: [],
-    name: 'datasource',
-    actions: {},
-    isEditable: true,
-    onChange: jest.fn(),
-    onDatasourceSave: jest.fn(),
-  };
+    name: 'channels',
+    type: 'table',
+    columns: [],
+  },
+  validationErrors: [],
+  name: 'datasource',
+  actions: {},
+  isEditable: true,
+  onChange: jest.fn(),
+  onDatasourceSave: jest.fn(),
 });
 
 test('Should render', () => {
-  render(<DatasourceControl {...defaultProps} />);
+  const props = createProps();
+  render(<DatasourceControl {...props} />);
   expect(screen.getByTestId('datasource-control')).toBeVisible();
 });
 
 test('Should have elements', () => {
-  render(<DatasourceControl {...defaultProps} />);
+  const props = createProps();
+  render(<DatasourceControl {...props} />);
   expect(screen.getByText('channels')).toBeVisible();
   expect(screen.getByTestId('datasource-menu-trigger')).toBeVisible();
 });
 
 test('Should open a menu', () => {
-  render(<DatasourceControl {...defaultProps} />);
+  const props = createProps();
+  render(<DatasourceControl {...props} />);
 
   expect(screen.queryByText('Edit dataset')).not.toBeInTheDocument();
   expect(screen.queryByText('Change dataset')).not.toBeInTheDocument();
@@ -80,6 +79,7 @@ test('Should open a menu', () => {
 });
 
 test('Click on Change dataset option', async () => {
+  const props = createProps();
   SupersetClientGet.mockImplementation(
     async ({ endpoint }: { endpoint: string }) => {
       if (endpoint.includes('_info')) {
@@ -91,7 +91,7 @@ test('Click on Change dataset option', async () => {
     },
   );
 
-  render(<DatasourceControl {...defaultProps} />, {
+  render(<DatasourceControl {...props} />, {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
@@ -107,10 +107,11 @@ test('Click on Change dataset option', async () => {
 });
 
 test('Click on Edit dataset', async () => {
+  const props = createProps();
   SupersetClientGet.mockImplementation(
     async () => ({ json: { result: [] } } as any),
   );
-  render(<DatasourceControl {...defaultProps} />, {
+  render(<DatasourceControl {...props} />, {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
@@ -127,10 +128,11 @@ test('Click on Edit dataset', async () => {
 });
 
 test('Click on View in SQL Lab', async () => {
+  const props = createProps();
   const postFormSpy = jest.spyOn(Utils, 'postForm');
   postFormSpy.mockImplementation(jest.fn());
 
-  render(<DatasourceControl {...defaultProps} />, {
+  render(<DatasourceControl {...props} />, {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
