@@ -17,53 +17,18 @@
  * under the License.
  */
 import {
-  getChartAliases,
-  isLegacyResponse,
-  getSliceIdFromRequestUrl,
-  JsonObject,
-} from '../../utils/vizPlugins';
-import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
+  waitForChartLoad,
+  WORLD_HEALTH_CHARTS,
+  WORLD_HEALTH_DASHBOARD,
+} from './dashboard.helper';
 
 describe('Dashboard load', () => {
-  let dashboard;
-  let aliases: string[];
-  beforeEach(() => {
+  before(() => {
     cy.login();
-
     cy.visit(WORLD_HEALTH_DASHBOARD);
-
-    cy.get('#app').then(nodes => {
-      const bootstrapData = JSON.parse(nodes[0].dataset.bootstrap || '');
-      dashboard = bootstrapData.dashboard_data;
-      const { slices } = dashboard;
-      // then define routes and create alias for each requests
-      aliases = getChartAliases(slices);
-    });
   });
 
   it('should load dashboard', () => {
-    // wait and verify one-by-one
-    cy.wait(aliases).then(requests =>
-      Promise.all(
-        requests.map(async ({ response, request }) => {
-          const responseBody = response?.body;
-          let sliceId;
-          if (isLegacyResponse(responseBody)) {
-            expect(responseBody).to.have.property('errors');
-            expect(responseBody.errors.length).to.eq(0);
-            sliceId = responseBody.form_data.slice_id;
-          } else {
-            sliceId = getSliceIdFromRequestUrl(request.url);
-            responseBody.result.forEach((element: JsonObject) => {
-              expect(element).to.have.property('error', null);
-              expect(element).to.have.property('status', 'success');
-            });
-          }
-          cy.get('[data-test="grid-content"]')
-            .find(`#chart-id-${sliceId}`)
-            .should('be.visible');
-        }),
-      ),
-    );
+    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
   });
 });
