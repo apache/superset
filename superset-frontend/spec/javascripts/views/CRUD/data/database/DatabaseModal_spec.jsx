@@ -99,30 +99,6 @@ describe('DatabaseModal', () => {
 
   describe('RTL', () => {
     describe('initial load', () => {
-      it('displays the correct properties from the db when selected', () => {
-        render(
-          <ThemeProvider theme={supersetTheme}>
-            <Provider store={store}>
-              <DatabaseModal
-                show
-                database={{ expose_in_sqllab: true, allow_ctas: true }}
-              />
-            </Provider>
-          </ThemeProvider>,
-        );
-        // Select SQL Lab settings tab
-        const sqlLabSettingsTab = screen.getByRole('tab', {
-          name: /sql lab settings/i,
-        });
-        userEvent.click(sqlLabSettingsTab);
-
-        const exposeInSqlLab = screen.getByText('Expose in SQL Lab');
-        const exposeChoicesForm = exposeInSqlLab.parentElement.nextSibling;
-        const schemaField = screen.getByText('CTAS & CVAS SCHEMA')
-          .parentElement;
-        expect(exposeChoicesForm).toHaveClass('open');
-        expect(schemaField).toHaveClass('open');
-      });
       it('hides the forms from the db when not selected', () => {
         render(
           <ThemeProvider theme={supersetTheme}>
