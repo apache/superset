@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/plugin-chart-table",
-  "version": "0.17.24",
+  "version": "0.17.25",
   "description": "Superset Chart - Table",
   "main": "lib/index.js",
   "module": "esm/index.js",
@@ -27,8 +27,8 @@
   },
   "dependencies": {
     "@emotion/core": "^10.0.28",
-    "@superset-ui/chart-controls": "0.17.24",
-    "@superset-ui/core": "0.17.23",
+    "@superset-ui/chart-controls": "0.17.25",
+    "@superset-ui/core": "0.17.25",
     "@types/d3-array": "^2.0.0",
     "@types/react-table": "^7.0.19",
     "d3-array": "^2.4.0",
