@@ -58,6 +58,7 @@ import {
   EchartsBoxPlotChartPlugin,
   EchartsTimeseriesChartPlugin,
   EchartsGraphChartPlugin,
+  EchartsTreeChartPlugin
 } from '@superset-ui/plugin-chart-echarts';
 import {
   SelectFilterPlugin,
@@ -119,6 +120,7 @@ export default class MainPreset extends Preset {
         new TimeFilterPlugin().configure({ key: 'filter_time' }),
         new TimeColumnFilterPlugin().configure({ key: 'filter_timecolumn' }),
         new TimeGrainFilterPlugin().configure({ key: 'filter_timegrain' }),
+        new EchartsTreeChartPlugin().configure({key: 'tree_chart'})
       ],
     });
   }
