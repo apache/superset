@@ -17,11 +17,13 @@
  * under the License.
  */
 import React, { FunctionComponent, useState, useEffect } from 'react';
-import { styled, t, SupersetClient } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import InfoTooltip from 'src/common/components/InfoTooltip';
-import { useSingleViewResource } from 'src/views/CRUD/hooks';
+import {
+  useSingleViewResource,
+  testDatabaseConnection,
+} from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
 import Tabs from 'src/common/components/Tabs';
@@ -29,6 +31,7 @@ import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 import { DatabaseObject } from './types';
+import { useCommonConf } from './state';
 
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
@@ -48,9 +51,12 @@ const StyledIcon = styled(Icon)`
 `;
 
 const StyledInputContainer = styled.div`
+  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+
   &.extra-container {
     padding-top: 8px;
   }
+
   &.expandable {
     height: 0;
     overflow: hidden;
@@ -61,20 +67,24 @@ const StyledInputContainer = styled.div`
       height: ${CTAS_CVAS_SCHEMA_FORM_HEIGHT};
     }
   }
+
   .helper {
     display: block;
     padding: ${({ theme }) => theme.gridUnit}px 0;
     color: ${({ theme }) => theme.colors.grayscale.base};
     font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
     text-align: left;
+
     .required {
       margin-left: ${({ theme }) => theme.gridUnit / 2}px;
       color: ${({ theme }) => theme.colors.error.base};
     }
   }
+
   .input-container {
     display: flex;
     align-items: top;
+
     label {
       display: flex;
       margin-right: ${({ theme }) => theme.gridUnit * 2}px;
@@ -83,22 +93,27 @@ const StyledInputContainer = styled.div`
       font-family: ${({ theme }) => theme.typography.families.sansSerif};
       font-size: ${({ theme }) => theme.typography.sizes.m}px;
     }
+
     i {
       margin: 0 ${({ theme }) => theme.gridUnit}px;
     }
   }
+
   input,
   textarea {
     flex: 1 1 auto;
   }
+
   textarea {
     height: 160px;
     resize: none;
   }
+
   input::placeholder,
   textarea::placeholder {
     color: ${({ theme }) => theme.colors.grayscale.light1};
   }
+
   textarea,
   input[type='text'],
   input[type='number'] {
@@ -107,10 +122,12 @@ const StyledInputContainer = styled.div`
     border-style: none;
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     border-radius: ${({ theme }) => theme.gridUnit}px;
+
     &[name='name'] {
       flex: 0 1 auto;
       width: 40%;
     }
+
     &[name='sqlalchemy_uri'] {
       margin-right: ${({ theme }) => theme.gridUnit * 3}px;
     }
@@ -149,9 +166,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   database = null,
 }) => {
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [db, setDB] = useState<DatabaseObject | null>(database);
+  const [db, setDB] = useState<DatabaseObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
+  const conf = useCommonConf();
 
   const isEditMode = database !== null;
   const defaultExtra =
@@ -183,50 +201,26 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         ? db.database_name.trim()
         : undefined,
       impersonate_user: db?.impersonate_user || undefined,
-      extra: db?.extra || undefined,
+      extra: db?.extra.trim().length ? db.extra : undefined,
       encrypted_extra: db?.encrypted_extra || undefined,
       server_cert: db?.server_cert || undefined,
     };
 
-    SupersetClient.post({
-      endpoint: 'api/v1/database/test_connection',
-      body: JSON.stringify(connection),
-      headers: { 'Content-Type': 'application/json' },
-    })
-      .then(() => {
-        addSuccessToast(t('Connection looks good!'));
-      })
-      .catch(response =>
-        getClientErrorObject(response).then(error => {
-          addDangerToast(
-            error?.message
-              ? `${t('ERROR: ')}${
-                  typeof error.message === 'string'
-                    ? error.message
-                    : Object.entries(error.message as Record<string, string[]>)
-                        .map(([key, value]) => `(${key}) ${value.join(', ')}`)
-                        .join('\n')
-                }`
-              : t('ERROR: Connection failed. '),
-          );
-        }),
-      );
+    testDatabaseConnection(connection, addDangerToast, addSuccessToast);
   };
 
   // Functions
   const hide = () => {
     setIsHidden(true);
     onHide();
-    // reset db to props
-    setDB(database);
   };
 
   const onSave = () => {
     if (isEditMode) {
       // Edit
       const update: DatabaseObject = {
-        database_name: db?.database_name.trim() || '',
-        sqlalchemy_uri: db?.sqlalchemy_uri || '',
+        database_name: db ? db.database_name.trim() : '',
+        sqlalchemy_uri: db ? db.sqlalchemy_uri : '',
         ...db,
       };
 
@@ -235,7 +229,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         delete update.id;
       }
 
-      if (db?.id) {
+      if (db && db.id) {
         updateResource(db.id, update).then(result => {
           if (result) {
             if (onDatabaseAdd) {
@@ -425,11 +419,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <div className="helper">
               {t('Refer to the ')}
               <a
-                href="https://docs.sqlalchemy.org/en/rel_1_2/core/engines.html#"
+                href={conf?.SQLALCHEMY_DOCS_URL ?? ''}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                {t('SQLAlchemy docs')}
+                {conf?.SQLALCHEMY_DISPLAY_TEXT ?? ''}
               </a>
               {t(' for more information on how to structure your URI.')}
             </div>
