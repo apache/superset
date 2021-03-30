@@ -106,7 +106,6 @@ interface TableSelectorProps {
   sqlLabMode?: boolean;
   tableName?: string;
   tableNameSticky?: boolean;
-  useDocumentBody?: boolean;
 }
 
 const TableSelector: FunctionComponent<TableSelectorProps> = ({
@@ -330,7 +329,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           name="select-table"
           isLoading={tableLoading}
           ignoreAccents={false}
-          menuShouldScrollIntoView={false}
           placeholder={t('Select table or type table name')}
           autosize={false}
           onChange={changeTable}

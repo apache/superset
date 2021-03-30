@@ -142,7 +142,6 @@ export default class SqlEditorLeftBar extends React.PureComponent {
           schema={qe.schema}
           sqlLabMode
           tableNameSticky={false}
-          useDocumentBody
         />
         <div className="divider" />
         <StyledScrollbarContainer>

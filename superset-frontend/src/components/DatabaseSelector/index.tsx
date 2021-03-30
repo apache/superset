@@ -72,7 +72,6 @@ interface DatabaseSelectorProps {
   readOnly?: boolean;
   schema?: string;
   sqlLabMode?: boolean;
-  useDocumentBody?: boolean;
   onChange?: ({
     dbId,
     schema,
