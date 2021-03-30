@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { ChartProps, QueryFormMetric, AdhocMetric } from '@superset-ui/core';
+import { ChartProps, QueryFormMetric, AdhocMetric, DTTM_ALIAS } from '@superset-ui/core';
 import getProcessColumnsFunction from './processColumns';
 import getProcessMetricsFunction from './processMetrics';
 import getProcessDataFunction from './processData';
@@ -25,8 +25,6 @@ import getProcessDataFunction from './processData';
 const processColumns = getProcessColumnsFunction();
 const processMetrics = getProcessMetricsFunction();
 const processData = getProcessDataFunction();
-
-const DTTM_ALIAS = '__timestamp';
 
 type PlainObject = {
   [key: string]: any;

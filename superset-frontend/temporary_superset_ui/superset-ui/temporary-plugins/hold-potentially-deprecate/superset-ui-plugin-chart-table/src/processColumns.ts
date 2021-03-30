@@ -4,11 +4,10 @@ import {
   getNumberFormatter,
   NumberFormats,
   NumberFormatter,
+  DTTM_ALIAS,
 } from '@superset-ui/core';
 import { createSelector } from 'reselect';
 import { PlainObject } from './types';
-
-const DTTM_ALIAS = '__timestamp';
 
 type inputType = {
   columns: string[];
