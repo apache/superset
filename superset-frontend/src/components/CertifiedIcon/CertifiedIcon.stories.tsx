@@ -16,8 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Popover as AntdPopover } from 'src/common/components';
+import React from 'react';
+import CertifiedIcon, { CertifiedIconProps } from '.';
 
-const SupersetPopover = AntdPopover;
+export default {
+  title: 'CertifiedIconWithTooltip',
+};
 
-export default SupersetPopover;
+export const InteractiveIcon = (args: CertifiedIconProps) => (
+  <CertifiedIcon {...args} />
+);
+
+InteractiveIcon.args = {
+  certifiedBy: 'Trusted Authority',
+  details: 'All requirements have been met.',
+  size: 30,
+};
+
+InteractiveIcon.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};

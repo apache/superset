@@ -165,19 +165,26 @@ describe('DatabaseModal', () => {
       const sqlLabSettingsTab = screen.getByRole('tab', {
         name: /sql lab settings/i,
       });
+
       userEvent.click(sqlLabSettingsTab);
       // Grab all SQL Lab Settings by their labels
-      const exposeInSqlLab = screen.getByText('Expose in SQL Lab');
-      const exposeChoicesForm = exposeInSqlLab.parentElement.nextSibling;
+      // const exposeInSqlLab = screen.getByText('Expose in SQL Lab');
+      const exposeInSqlLab = screen.getByRole('checkbox', {
+        name: /expose in sql lab/i,
+      });
 
       // While 'Expose in SQL Lab' is checked, all settings should display
-      expect(exposeChoicesForm).toHaveClass('open');
+      expect(exposeInSqlLab).not.toBeChecked();
 
       // When clicked, "Expose in SQL Lab" becomes unchecked
       userEvent.click(exposeInSqlLab);
+
       // While unchecked, only "Expose in SQL Lab" should display
-      expect(exposeInSqlLab).toBeVisible();
-      expect(exposeChoicesForm).not.toHaveClass('open');
+      expect(exposeInSqlLab).toBeChecked();
+      const checkboxes = screen.getAllByRole('checkbox');
+
+      // While checked make sure all checkboxes are showing
+      expect(checkboxes.length).toEqual(5);
     });
 
     it('renders the schema field when allowCTAS is checked', () => {
