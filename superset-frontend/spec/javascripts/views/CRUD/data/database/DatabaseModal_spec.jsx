@@ -60,7 +60,11 @@ describe('DatabaseModal', () => {
       spyOnUseSelector.mockReturnValue(initialState.common.conf);
     });
     beforeEach(() => {
-      wrapper = mount(<DatabaseModal store={store} {...mockedProps} />);
+      wrapper = mount(
+        <Provider store={store}>
+          <DatabaseModal store={store} {...mockedProps} />
+        </Provider>,
+      );
     });
     afterEach(() => {
       wrapper.unmount();
