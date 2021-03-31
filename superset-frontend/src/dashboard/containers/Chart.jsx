@@ -62,7 +62,7 @@ function mapStateToProps(
     layout: dashboardLayout.present,
     chart,
     // eslint-disable-next-line camelcase
-    chartConfiguration: dashboardInfo.metadata.chart_configuration,
+    chartConfiguration: dashboardInfo.metadata?.chart_configuration,
     charts: chartQueries,
     filters: getAppliedFilterValues(id),
     colorScheme,

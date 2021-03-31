@@ -298,7 +298,7 @@ class Header extends React.PureComponent {
     let labelColors = colorScheme ? scale.getColorMap() : {};
     // but allow metadata to overwrite if it exists
     // eslint-disable-next-line camelcase
-    const metadataLabelColors = dashboardInfo.metadata.label_colors;
+    const metadataLabelColors = dashboardInfo.metadata?.label_colors;
     if (metadataLabelColors) {
       labelColors = { ...labelColors, ...metadataLabelColors };
     }
@@ -306,7 +306,7 @@ class Header extends React.PureComponent {
     // check refresh frequency is for current session or persist
     const refreshFrequency = shouldPersistRefreshFrequency
       ? currentRefreshFrequency
-      : dashboardInfo.metadata.refresh_frequency; // eslint-disable-line camelcase
+      : dashboardInfo.metadata?.refresh_frequency; // eslint-disable-line camelcase
 
     const data = {
       positions,

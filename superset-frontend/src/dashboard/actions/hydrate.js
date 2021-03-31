@@ -76,7 +76,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
   getState,
 ) => {
   const { user, common } = getState();
-  const metadata = JSON.parse(dashboardData.json_metadata) || {};
+  const metadata = JSON.parse(dashboardData.json_metadata);
   const queryParams = querystring.parse(window.location.search);
   const urlParams = extractUrlParams(queryParams);
   const editMode = queryParams.edit === 'true';
@@ -98,7 +98,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
 
   // Priming the color palette with user's label-color mapping provided in
   // the dashboard's JSON metadata
-  if (metadata.label_colors) {
+  if (metadata?.label_colors) {
     const scheme = metadata.color_scheme;
     const namespace = metadata.color_namespace;
     const colorMap = isString(metadata.label_colors)
@@ -134,7 +134,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
   let newSlicesContainer;
   let newSlicesContainerWidth = 0;
 
-  const filterScopes = metadata.filter_scopes || {};
+  const filterScopes = metadata?.filter_scopes || {};
 
   const chartQueries = {};
   const dashboardFilters = {};
@@ -293,8 +293,8 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
   }
 
   const nativeFilters = getInitialNativeFilterState({
-    filterConfig: metadata.native_filter_configuration || [],
-    filterSetsConfig: metadata.filter_sets_configuration || [],
+    filterConfig: metadata?.native_filter_configuration || [],
+    filterSetsConfig: metadata?.filter_sets_configuration || [],
   });
 
   const { roles } = getState().user;
@@ -330,14 +330,14 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
         directPathToChild,
         directPathLastUpdated: Date.now(),
         focusedFilterField: null,
-        expandedSlices: metadata.expanded_slices || {},
-        refreshFrequency: metadata.refresh_frequency || 0,
+        expandedSlices: metadata?.expanded_slices || {},
+        refreshFrequency: metadata?.refresh_frequency || 0,
         // dashboard viewers can set refresh frequency for the current visit,
         // only persistent refreshFrequency will be saved to backend
         shouldPersistRefreshFrequency: false,
         css: dashboardData.css || '',
-        colorNamespace: metadata.color_namespace || null,
-        colorScheme: metadata.color_scheme || null,
+        colorNamespace: metadata?.color_namespace || null,
+        colorScheme: metadata?.color_scheme || null,
         editMode: getPermissions('can_write', 'Dashboard', roles) && editMode,
         isPublished: dashboardData.published,
         hasUnsavedChanges: false,
