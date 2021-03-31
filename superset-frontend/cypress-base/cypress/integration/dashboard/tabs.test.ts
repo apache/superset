@@ -70,7 +70,7 @@ describe('Dashboard tabs', () => {
       .should('not.have.class', 'ant-tabs-tab-active');
   });
 
-  it.only('should load charts when tab is visible', () => {
+  it('should load charts when tab is visible', () => {
     // landing in first tab, should see 2 charts
     waitForChartLoad(FILTER_BOX);
     waitForChartLoad(TREEMAP);
