@@ -359,7 +359,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "OMNIBAR": False,
     "DASHBOARD_RBAC": False,
     "ENABLE_EXPLORE_DRAG_AND_DROP": False,
-    "ALERTS_ATTACH_REPORTS": False,
+    "ALERTS_ATTACH_REPORTS": True,
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.
