@@ -93,16 +93,21 @@ export default function SupersetResourceSelect<T, V>({
       : rison.encode({ filter: value });
     return cachedSupersetGet({
       endpoint: `/api/v1/${resource}/?q=${query}`,
-    }).then(
-      response =>
-        response.json.result
-          .map(transformItem)
-          .sort((a: Value<V>, b: Value<V>) => a.label.localeCompare(b.label)),
-      async badResponse => {
-        onError(await getClientErrorObject(badResponse));
-        return [];
-      },
-    );
+    })
+      .then(
+        response =>
+          response.json.result
+            .map(transformItem)
+            .sort((a: Value<V>, b: Value<V>) => a.label.localeCompare(b.label)),
+        async badResponse => {
+          onError(await getClientErrorObject(badResponse));
+          return [];
+        },
+      )
+      .then(result => {
+        console.log('datasources', result);
+        return result;
+      });
   }
 
   return (
