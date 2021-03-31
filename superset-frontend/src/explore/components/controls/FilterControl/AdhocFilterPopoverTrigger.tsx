@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import Popover from 'src/common/components/Popover';
+import Popover from 'src/components/Popover';
 import { OptionSortType } from 'src/explore/types';
 import AdhocFilterEditPopover from './AdhocFilterEditPopover';
 import AdhocFilter from './AdhocFilter';
