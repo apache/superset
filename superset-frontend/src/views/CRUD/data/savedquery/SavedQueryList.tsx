@@ -229,7 +229,7 @@ function SavedQueryList({
           },
         }: any) => {
           const names = tables.map((table: any) => table.table);
-          const main = names.length > 0 ? names.shift() : '';
+          const main = names?.shift() || '';
 
           if (names.length) {
             return (
