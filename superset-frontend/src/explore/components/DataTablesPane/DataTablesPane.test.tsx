@@ -19,8 +19,14 @@
 
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { render, screen, act } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
+import fetchMock from 'fetch-mock';
 import { DataTablesPane } from '.';
+
+fetchMock.post(
+  'http://api/v1/chart/data?form_data=%7B%22slice_id%22%3A456%7D',
+  { body: {} },
+);
 
 const createProps = () => ({
   queryFormData: {
@@ -54,8 +60,12 @@ const createProps = () => ({
     },
   },
   tableSectionHeight: 156.9,
-  chartStatus: 'loading', // "success", "rendered"
+  chartStatus: 'rendered',
   onCollapseChange: jest.fn(),
+});
+
+afterAll(() => {
+  fetchMock.done();
 });
 
 test('Rendering DataTablesPane correctly', () => {
@@ -73,7 +83,7 @@ test('Shoud show tabs', async () => {
   expect(screen.queryByText('View results')).not.toBeInTheDocument();
   expect(screen.queryByText('View samples')).not.toBeInTheDocument();
   userEvent.click(await screen.findByText('Data'));
-  expect(screen.getByText('View results')).toBeVisible();
+  expect(await screen.findByText('View results')).toBeVisible();
   expect(screen.getByText('View samples')).toBeVisible();
 });
 
@@ -94,8 +104,6 @@ test('Shoud show tabs: View samples', async () => {
   });
   userEvent.click(await screen.findByText('Data'));
   expect(screen.queryByText('0 rows retrieved')).not.toBeInTheDocument();
-  await act(async () => {
-    userEvent.click(await screen.findByText('View samples'));
-  });
-  expect(screen.getByText('0 rows retrieved')).toBeVisible();
+  userEvent.click(await screen.findByText('View samples'));
+  expect(await screen.findByText('0 rows retrieved')).toBeVisible();
 });
