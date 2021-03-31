@@ -33,15 +33,11 @@ from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.commands.bulk_delete import (
     BulkDeleteSavedQueryCommand,
 )
-from superset.queries.saved_queries.commands.create import (
-  CreateSavedQueryCommand
-)
 from superset.queries.saved_queries.commands.exceptions import (
     SavedQueryBulkDeleteFailedError,
     SavedQueryNotFoundError,
     SavedQueryImportError,
     SavedQueryImportError,
-    SavedQueryCreateError,
     SavedQueryInvalidError,
 )
 from superset.queries.saved_queries.commands.export import ExportSavedQueriesCommand
@@ -71,6 +67,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         RouteMethod.EXPORT,
         RouteMethod.RELATED,
         RouteMethod.DISTINCT,
+        RouteMethod.IMPORT,
         "bulk_delete",  # not using RouteMethod since locally defined
     }
     class_permission_name = "SavedQuery"
@@ -274,7 +271,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def import_(self) -> Response:
-        """Import chart(s) with associated datasets and databases
+        """Import Saved Queries with associated datasets and databases
         ---
         post:
           requestBody:
@@ -296,7 +293,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
                       type: bool
           responses:
             200:
-              description: Chart import result
+              description: Saved Query import result
               content:
                 application/json:
                   schema:
@@ -338,62 +335,3 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         except Exception as exc:  # pylint: disable=broad-except
             logger.exception("Import Saved Query failed")
             return self.response_500(message=str(exc))
-    @expose("/", methods=["POST"])
-    @protect()
-    @safe
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
-        log_to_statsd=False,
-    )
-    def post(self) -> Response:
-        """Creates a new Saved Query
-        ---
-        post:
-          description: >-
-            Create a new Saved Query.
-          requestBody:
-            description: Saved Query schema
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
-          responses:
-            201:
-              description: Chart added
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      id:
-                        type: number
-                      result:
-                        $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
-        try:
-            item = self.add_model_schema.load(request.json)
-        # This validates custom Schema with custom validations
-        except ValidationError as error:
-            return self.response_400(message=error.messages)
-        try:
-            new_model = CreateSavedQueryCommand(g.user, item).run()
-            return self.response(201, id=new_model.id, result=item)
-        except SavedQueryInvalidError as ex:
-            return self.response_422(message=ex.normalized_messages())
-        except SavedQueryCreateFailedError as ex:
-            logger.error(
-                "Error creating model %s: %s", self.__class__.__name__, str(ex)
-            )
-            return self.response_422(message=str(ex))

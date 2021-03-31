@@ -20,7 +20,6 @@ from superset.commands.exceptions import (
     CommandException, 
     CommandInvalidError,
     DeleteFailedError,
-    CreateFailedError,
     ImportFailedError
 )
 
@@ -33,11 +32,8 @@ class SavedQueryNotFoundError(CommandException):
     message = _("Saved query not found.")
 
 class SavedQueryImportError(ImportFailedError):
-    message = _("Import chart failed for an unknown reason")
-
-class SavedQueryCreateError(CreateFailedError):
-    message = _("Saved Query could not be created")
+    message = _("Import saved query failed for an unknown reason.")
 
 class SavedQueryInvalidError(CommandInvalidError):
-    message = _("Saved Query Parameters are invalid")
+    message = _("Saved query parameters are invalid.")
     

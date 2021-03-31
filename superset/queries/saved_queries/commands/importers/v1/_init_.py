@@ -38,7 +38,7 @@ class ImportSavedQueriesCommand(ImportModelsCommand):
     prefix ="saved_queries/"
     schemas: Dict[str, Schema] = {
         "datasets/": ImportV1DatasetSchema(),
-        "saved_query": ImportV1SavedQuerySchema(),
+        "queries/": ImportV1SavedQuerySchema(),
     }
     import_error = SavedQueryImportError
 
@@ -46,15 +46,10 @@ class ImportSavedQueriesCommand(ImportModelsCommand):
     def _import(
         session: Session, configs: Dict[str, Any], overwrite: bool = False
     ) -> None:
-        # discover datasets associated with saved queries
-        dataset_uuids: Set[str] = set()
-        for file_name, config in configs.items():
-            if file_name.startswith("saved_queries/"):
-                dataset_uuids.add(config["dataset_uuid"])
-        # discover databases associated with datasets
+        # discover databases associated with saved queries
         database_uuids: Set[str] = set()
         for file_name, config in configs.items():
-            if file_name.startswith("datasets/") and config["uuid"] in dataset_uuids:
+            if file_name.startswith("queries/"):
                 database_uuids.add(config["database_uuid"])
 
         # import related databases
@@ -64,27 +59,17 @@ class ImportSavedQueriesCommand(ImportModelsCommand):
                 database = import_database(session, config, overwrite=False)
                 database_ids[str(database.uuid)] = database.id
 
-        # import datasets with the correct parent ref
-        datasets: Dict[str, SqlaTable] = {}
-        for file_name, config in configs.items():
-            if (
-                file_name.startswith("datasets/")
-                and config["database_uuid"] in database_ids
-            ):
-                config["database_id"] = database_ids[config["database_uuid"]]
-                dataset = import_dataset(session, config, overwrite=False)
-                datasets[str(dataset.uuid)] = dataset
 
         # import saved queries with the correct parent ref
         for file_name, config in configs.items():
-            if file_name.startswith("saved_queries/") and config["dataset_uuid"] in datasets:
+            if file_name.startswith("queries/") and config["database_uuid"] in database:
                 # update datasource id, type, and name
-                dataset = datasets[config["dataset_uuid"]]
+                database = database[config["dataset_uuid"]]
                 config.update(
                     {
-                        "datasource_id": dataset.id,
-                        "datasource_name": dataset.table_name,
+                        "datasource_id": database.id,
+                        "datasource_name": database.table_name,
                     }
                 )
-                config["params"].update({"datasource": dataset.uid})
+                config["params"].update({"datasource": database.uid})
                 import_saved_query(session, config, overwrite=overwrite)
