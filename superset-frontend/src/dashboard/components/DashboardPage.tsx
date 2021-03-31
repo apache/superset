@@ -17,8 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useState, FC } from 'react';
-import { connect } from 'react-redux';
-import { AnyAction, bindActionCreators, Dispatch } from 'redux';
+import { useDispatch } from 'react-redux';
 import Loading from 'src/components/Loading';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import {
@@ -32,16 +31,13 @@ import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import DashboardContainer from 'src/dashboard/containers/Dashboard';
 
 interface DashboardRouteProps {
-  actions: {
-    hydrateDashboard: typeof hydrateDashboard;
-  };
   dashboardIdOrSlug: string;
 }
 
 const DashboardPage: FC<DashboardRouteProps> = ({
-  actions,
   dashboardIdOrSlug, // eventually get from react router
 }) => {
+  const dispatch = useDispatch();
   const [isLoaded, setLoaded] = useState(false);
   const dashboardResource = useDashboard(dashboardIdOrSlug);
   const chartsResource = useDashboardCharts(dashboardIdOrSlug);
@@ -60,15 +56,17 @@ const DashboardPage: FC<DashboardRouteProps> = ({
       chartsResource.status === ResourceStatus.COMPLETE &&
       datasetsResource.status === ResourceStatus.COMPLETE
     ) {
-      actions.hydrateDashboard(
-        dashboardResource.result,
-        chartsResource.result,
-        datasetsResource.result,
+      dispatch(
+        hydrateDashboard(
+          dashboardResource.result,
+          chartsResource.result,
+          datasetsResource.result,
+        ),
       );
       setLoaded(true);
     }
   }, [
-    actions,
+    dispatch,
     wasLoading,
     dashboardResource,
     chartsResource,
@@ -81,24 +79,11 @@ const DashboardPage: FC<DashboardRouteProps> = ({
   return <DashboardContainer />;
 };
 
-function mapDispatchToProps(dispatch: Dispatch<AnyAction>) {
-  return {
-    actions: bindActionCreators(
-      {
-        hydrateDashboard,
-      },
-      dispatch,
-    ),
-  };
-}
-
-const ConnectedDashboardPage = connect(null, mapDispatchToProps)(DashboardPage);
-
 const DashboardPageWithErrorBoundary = ({
   dashboardIdOrSlug,
 }: DashboardRouteProps) => (
   <ErrorBoundary>
-    <ConnectedDashboardPage dashboardIdOrSlug={dashboardIdOrSlug} />
+    <DashboardPage dashboardIdOrSlug={dashboardIdOrSlug} />
   </ErrorBoundary>
 );
 
