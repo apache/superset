@@ -22,6 +22,7 @@ import shortid from 'shortid';
 import { CategoricalColorNamespace } from '@superset-ui/core';
 import querystring from 'query-string';
 
+import { chart } from 'src/chart/chartReducer';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { getParam } from 'src/modules/utils';
@@ -31,24 +32,23 @@ import getPermissions from 'src/dashboard/util/getPermissions';
 import {
   DASHBOARD_FILTER_SCOPE_GLOBAL,
   dashboardFilter,
-} from '../reducers/dashboardFilters';
-import { chart } from '../../chart/chartReducer';
+} from 'src/dashboard/reducers/dashboardFilters';
 import {
   DASHBOARD_HEADER_ID,
   GRID_DEFAULT_CHART_WIDTH,
   GRID_COLUMN_COUNT,
-} from '../util/constants';
+} from 'src/dashboard/util/constants';
 import {
   DASHBOARD_HEADER_TYPE,
   CHART_TYPE,
   ROW_TYPE,
-} from '../util/componentTypes';
-import findFirstParentContainerId from '../util/findFirstParentContainer';
-import getEmptyLayout from '../util/getEmptyLayout';
-import getFilterConfigsFromFormdata from '../util/getFilterConfigsFromFormdata';
-import getLocationHash from '../util/getLocationHash';
-import newComponentFactory from '../util/newComponentFactory';
-import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
+} from 'src/dashboard/util/componentTypes';
+import findFirstParentContainerId from 'src/dashboard/util/findFirstParentContainer';
+import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
+import getFilterConfigsFromFormdata from 'src/dashboard/util/getFilterConfigsFromFormdata';
+import getLocationHash from 'src/dashboard/util/getLocationHash';
+import newComponentFactory from 'src/dashboard/util/newComponentFactory';
+import { TIME_RANGE } from 'src/visualizations/FilterBox/FilterBox';
 
 const reservedQueryParams = new Set(['standalone', 'edit']);
 
