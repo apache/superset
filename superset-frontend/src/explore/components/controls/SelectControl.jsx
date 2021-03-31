@@ -204,7 +204,7 @@ export default class SelectControl extends React.PureComponent {
     if (this.optionsIncludesSelectAll(options)) {
       remainingOptions -= 1;
     }
-    return remainingOptions;
+    return remainingOptions < 0 ? 0 : remainingOptions;
   }
 
   createMetaSelectAllOption() {

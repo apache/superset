@@ -59,7 +59,7 @@ class SupersetTimeoutException(SupersetErrorException):
 
 
 class SupersetGenericDBErrorException(SupersetErrorException):
-    status = 500
+    status = 400
 
     def __init__(
         self,

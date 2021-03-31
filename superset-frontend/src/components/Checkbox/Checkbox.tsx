@@ -16,34 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-unused-expressions */
 import React from 'react';
-import { FormControl } from 'react-bootstrap';
-import sinon from 'sinon';
-import { shallow } from 'enzyme';
-import Popover from 'src/components/Popover';
-import TimeSeriesColumnControl from 'src/explore/components/controls/TimeSeriesColumnControl';
+import { styled } from '@superset-ui/core';
+import { CheckboxChecked, CheckboxUnchecked } from 'src/components/Checkbox';
 
-const defaultProps = {
-  name: 'x_axis_label',
-  label: 'X Axis Label',
-  onChange: sinon.spy(),
-};
+interface CheckboxProps {
+  checked: boolean;
+  onChange: (val?: boolean) => void;
+  style?: React.CSSProperties;
+}
 
-describe('SelectControl', () => {
-  let wrapper;
-  let inst;
-  beforeEach(() => {
-    wrapper = shallow(<TimeSeriesColumnControl {...defaultProps} />);
-    inst = wrapper.instance();
-  });
+const Styles = styled.span`
+  &,
+  & svg {
+    vertical-align: top;
+  }
+`;
 
-  it('renders an OverlayTrigger', () => {
-    expect(wrapper.find(Popover)).toExist();
-  });
-
-  it('renders an Popover', () => {
-    const popOver = shallow(inst.renderPopover());
-    expect(popOver.find(FormControl)).toHaveLength(3);
-  });
-});
+export default function Checkbox({ checked, onChange, style }: CheckboxProps) {
+  return (
+    <Styles
+      style={style}
+      onClick={() => {
+        onChange(!checked);
+      }}
+      role="checkbox"
+      tabIndex={0}
+      aria-checked={checked}
+      aria-label="Checkbox"
+    >
+      {checked ? <CheckboxChecked /> : <CheckboxUnchecked />}
+    </Styles>
+  );
+}

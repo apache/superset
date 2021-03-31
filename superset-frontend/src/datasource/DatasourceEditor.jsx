@@ -26,7 +26,7 @@ import shortid from 'shortid';
 import { styled, SupersetClient, t, supersetTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import Tabs from 'src/common/components/Tabs';
-import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
+import CertifiedIcon from 'src/components/CertifiedIcon';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import DatabaseSelector from 'src/components/DatabaseSelector';
 import Icon from 'src/components/Icon';
@@ -933,7 +933,7 @@ class DatasourceEditor extends React.PureComponent {
           metric_name: (v, onChange, _, record) => (
             <FlexRowContainer>
               {record.is_certified && (
-                <CertifiedIconWithTooltip
+                <CertifiedIcon
                   certifiedBy={record.certified_by}
                   details={record.certification_details}
                 />

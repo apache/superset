@@ -23,7 +23,7 @@ import {
   CheckCircleFilled,
   ExclamationCircleFilled,
 } from '@ant-design/icons';
-import { Popover } from 'src/common/components/index';
+import Popover from 'src/components/Popover';
 import Collapse from 'src/common/components/Collapse';
 import { Global } from '@emotion/core';
 import Icon from 'src/components/Icon';
