@@ -16,31 +16,20 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -->
-# Testing utilites
+# Test & development utilities
+The files provided here are for testing and development only, and are not required to run the WebSocket server application.
 
-## Express client application
-The Express web application in `client-ws-app` is provided for load testing the WebSocket server.
+## Test client application
+The Express web application in `client-ws-app` is provided for testing the WebSocket server. See `client-ws-app/README.md` for details.
+
+## Load testing script
+The `loadtest.js` script is provided to populate the Redis streams with event data.
 
 ### Running
-First, start the websocket server:
-```
-npm run dev-server
-```
-
-Then run the client application:
-```
-cd client-ws-app
-npm install
-npm start
-```
-
-Open http://127.0.0.1:3000 in your web browser.
-
-You can customize the number of WebSocket connections by passing the count in the `sockets` query param, e.g. `http://127.0.0.1:3000?sockets=180`, though beware that browsers limit the number of open WebSocket connections to around 200.
-
-Run in conjunction with the `loadtest.js` script to populate the Redis streams with event data.
 ```
 node loadtest.js
 ```
 
-**Note:** `loadtest.js` and this test client application are configured to use the server's local `config.json` values, so care should be taken to not overwrite any sensitive data.
+The script will populate data continually until the script is exited using CTRL-C.
+
+**Note:** `loadtest.js` and test client application are configured to use the server's local `config.json` values, so care should be taken to not overwrite any sensitive data.

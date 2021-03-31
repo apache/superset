@@ -55,6 +55,8 @@ interface ChannelValue {
 }
 
 const environment = process.env.NODE_ENV;
+
+// default options
 export const opts = {
   port: 8080,
   redis: {
@@ -81,12 +83,13 @@ try {
 } catch(err) {
   console.warn('config.json not found, using defaults');
 }
-
+// apply config overrides
 Object.assign(opts, config);
 
 if(startServer && opts.jwtSecret.length < 32)
   throw('Please provide a JWT secret at least 32 bytes long')
 
+// initialize servers
 const redis = new Redis(opts.redis);
 const httpServer = http.createServer();
 export const wss = new WebSocket.Server({ noServer: true, clientTracking: false });
@@ -95,6 +98,7 @@ const SOCKET_ACTIVE_STATES = [WebSocket.OPEN, WebSocket.CONNECTING];
 const GLOBAL_EVENT_STREAM_NAME = `${opts.streamPrefix}full`;
 const DEFAULT_STREAM_LAST_ID = '$';
 
+// initialize internal registries
 export let channels: Record<string, ChannelValue> = {};
 export let sockets: Record<string, SocketInstance> = {};
 let lastFirehoseId: string = DEFAULT_STREAM_LAST_ID;
@@ -104,6 +108,9 @@ export const setLastFirehoseId = (id: string): void => {
   lastFirehoseId = id;
 }
 
+/**
+ * Adds the passed channel and socket instance to the internal registries.
+ */
 export const trackClient = (channel: string, socketInstance: SocketInstance): string => {
   const socketId = uuidv4();
   sockets[socketId] = socketInstance;
@@ -117,6 +124,11 @@ export const trackClient = (channel: string, socketInstance: SocketInstance): st
   return socketId;
 }
 
+/**
+ * Sends a single async event payload to a single channel.
+ * A channel may have multiple connected sockets, this emits
+ * the event to all connected sockets within a channel.
+ */
 export const sendToChannel = (channel: string, value: EventValue): void => {
   const strData = JSON.stringify(value);
   if(!channels[channel]) {
@@ -130,11 +142,16 @@ export const sendToChannel = (channel: string, value: EventValue): void => {
       socketInstance.ws.send(strData);
     } catch(err) {
       console.debug('Error sending to socket', err);
+      // check that the connection is still active
       cleanChannel(channel);
     }
   });
 }
 
+/**
+ * Reads a range of events from a channel-specific Redis event stream.
+ * Invoked in the client re-connection flow.
+ */
 export const fetchRangeFromStream = async ({sessionId, startId, endId, listener}: FetchRangeFromStreamParams) => {
   const streamName = `${opts.streamPrefix}${sessionId}`;
   try {
@@ -146,6 +163,11 @@ export const fetchRangeFromStream = async ({sessionId, startId, endId, listener}
   }
 }
 
+/**
+ * Reads from the global Redis event stream continuously.
+ * Utilizes a blocking connection to Redis to wait for data to
+ * be returned from the stream.
+ */
 export const subscribeToGlobalStream = async (stream: string, listener: ListenerFunction) => {
   /*eslint no-constant-condition: ["error", { "checkLoops": false }]*/
   while (true) {
@@ -176,6 +198,9 @@ export const subscribeToGlobalStream = async (stream: string, listener: Listener
   }
 }
 
+/**
+ * Callback function to process events received from a Redis Stream
+ */
 export const processStreamResults = (results: StreamResult[]): void => {
   console.debug('events received', results);
   results.forEach((item) => {
@@ -189,6 +214,10 @@ export const processStreamResults = (results: StreamResult[]): void => {
   });
 }
 
+/**
+ * Verify and parse a JWT cookie from an HTTP request.
+ * Returns the JWT payload or throws an error on invalid token.
+ */
 const getJwtPayload = (request: http.IncomingMessage): JwtPayload => {
   const cookies = cookie.parse(request.headers.cookie);
   const token = cookies[opts.jwtCookieName];
@@ -197,12 +226,18 @@ const getJwtPayload = (request: http.IncomingMessage): JwtPayload => {
   return jwt.verify(token, opts.jwtSecret);
 }
 
+/**
+ * Extracts the `last_id` query param value from an HTTP request
+ */
 const getLastId = (request: http.IncomingMessage): string | null => {
   const url = new URL(String(request.url), 'http://0.0.0.0');
   const queryParams = url.searchParams;
   return queryParams.get('last_id');
 }
 
+/**
+ * Increments a Redis Stream ID
+ */
 export const incrementId = (id: string): string => {
   // redis stream IDs are in this format: '1607477697866-0'
   const parts = id.split('-');
@@ -210,16 +245,23 @@ export const incrementId = (id: string): string => {
   return parts[0] + '-' + (Number(parts[1]) + 1);
 }
 
+/**
+ * WebSocket `connection` event handler, called via wss
+ */
 export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
   const jwtPayload: JwtPayload = getJwtPayload(request);
   const channel: string = jwtPayload.channel;
   const socketInstance: SocketInstance = { ws, channel, pongTs: Date.now() }
 
+  // add this ws instance to the internal registry
   const socketId = trackClient(channel, socketInstance);
   console.debug(`socket ${socketId} connected on channel ${channel}`);
 
+  // reconnection logic
   const lastId = getLastId(request);
   if(lastId) {
+    // fetch range of events from lastId to most recent event received on
+    // via global event stream
     const endId = (lastFirehoseId === DEFAULT_STREAM_LAST_ID ? '+' : lastFirehoseId);
     fetchRangeFromStream({
       sessionId: channel,
@@ -229,6 +271,7 @@ export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
     });
   }
 
+  // init event handler for `pong` events (connection management)
   ws.on('pong', function pong(data: Buffer) {
     const socketId = data.toString();
     const socketInstance = sockets[socketId];
@@ -240,16 +283,21 @@ export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
   });
 }
 
+/**
+ * HTTP `upgrade` event handler, called via httpServer
+ */
 export const httpUpgrade = (request: http.IncomingMessage, socket: net.Socket, head: Buffer) => {
   try {
     const jwtPayload: JwtPayload = getJwtPayload(request);
     if(!jwtPayload.channel) throw new Error('Channel ID not present');
   } catch(err) {
+    // JWT invalid, do not establish a WebSocket connection
     console.error(err);
     socket.destroy();
     return;
   }
 
+  // upgrade the HTTP request into a WebSocket connection
   wss.handleUpgrade(request, socket, head, function cb(ws: WebSocket, request: http.IncomingMessage) {
     wss.emit('connection', ws, request);
   });
@@ -258,6 +306,12 @@ export const httpUpgrade = (request: http.IncomingMessage, socket: net.Socket, h
 
 // Connection cleanup and garbage collection
 
+
+/**
+ * Iterate over all tracked sockets, terminating and removing references to
+ * connections that have not responded with a _pong_ within the timeout window.
+ * Sends a _ping_ to all active connections.
+ */
 export const checkSockets = () => {
   console.debug('*** channel count', Object.keys(channels).length);
   console.debug('*** socket count', Object.keys(sockets).length);
@@ -283,6 +337,11 @@ export const checkSockets = () => {
   }
 }
 
+/**
+ * Iterate over all sockets within a channel, removing references to
+ * inactive connections, ultimately removing the channel from the
+ * _channels_ registry.
+ */
 export const cleanChannel = (channel: string) => {
   const activeSockets: string[] = channels[channel]?.sockets.filter(socketId => {
     const socketInstance = sockets[socketId];
@@ -302,6 +361,7 @@ export const cleanChannel = (channel: string) => {
 // server startup
 
 if(startServer) {
+  // init server event listeners
   wss.on('connection', wsConnection);
   httpServer.on('upgrade', httpUpgrade);
   httpServer.listen(opts.port);
@@ -310,9 +370,10 @@ if(startServer) {
   // start reading from event stream
   subscribeToGlobalStream(GLOBAL_EVENT_STREAM_NAME, processStreamResults);
 
-  // init garbage collection
+  // init garbage collection routines
   setInterval(checkSockets, opts.pingSocketsIntervalMs);
   setInterval(function gc() {
+    // clean all channels
     for (const channel in channels) {
       cleanChannel(channel);
     }
