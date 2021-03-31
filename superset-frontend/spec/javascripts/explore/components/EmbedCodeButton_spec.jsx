@@ -19,7 +19,7 @@
 import React from 'react';
 import { shallow, mount } from 'enzyme';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import Popover from 'src/common/components/Popover';
+import Popover from 'src/components/Popover';
 import sinon from 'sinon';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';

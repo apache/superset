@@ -43,6 +43,7 @@ const mockannotations = [...new Array(3)].map((_, i) => ({
   start_dttm: new Date().toISOString,
   state: 'Success',
   value: `report ${i} value`,
+  uuid: 'f44da495-b067-4645-b463-3be98d5f3206',
 }));
 
 fetchMock.get(executionLogsEndpoint, {
