@@ -16,8 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Popover as AntdPopover } from 'src/common/components';
+import { connect } from 'react-redux';
+import { bindActionCreators, Dispatch } from 'redux';
+import * as Actions from '../../actions/sqlLab';
+import SouthPane from './SouthPane';
 
-const SupersetPopover = AntdPopover;
+function mapStateToProps({ sqlLab }: Record<string, any>) {
+  return {
+    activeSouthPaneTab: sqlLab.activeSouthPaneTab,
+    databases: sqlLab.databases,
+    offline: sqlLab.offline,
+  };
+}
 
-export default SupersetPopover;
+function mapDispatchToProps(dispatch: Dispatch) {
+  return {
+    actions: bindActionCreators<any, any>(Actions, dispatch),
+  };
+}
+
+export default connect<any>(mapStateToProps, mapDispatchToProps)(SouthPane);

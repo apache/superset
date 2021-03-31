@@ -24,23 +24,22 @@ import {
   DataMask,
   t,
   Behavior,
+  ChartDataResponseResult,
 } from '@superset-ui/core';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import Loading from 'src/components/Loading';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FilterProps } from './types';
 import { getFormData } from '../../utils';
 import { useCascadingFilters } from './state';
 
-const StyledLoadingBox = styled.div`
-  position: relative;
-  height: ${({ theme }) => theme.gridUnit * 8}px;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 6}px;
-`;
-
 const FilterItem = styled.div`
-  padding-bottom: 10px;
+  min-height: ${({ theme }) => theme.gridUnit * 11}px;
+  padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;
 `;
 
 const FilterValue: React.FC<FilterProps> = ({
@@ -50,8 +49,8 @@ const FilterValue: React.FC<FilterProps> = ({
 }) => {
   const { id, targets, filterType } = filter;
   const cascadingFilters = useCascadingFilters(id);
-  const [state, setState] = useState([]);
-  const [error, setError] = useState<boolean>(false);
+  const [state, setState] = useState<ChartDataResponseResult[]>([]);
+  const [error, setError] = useState<string>('');
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
   const inputRef = useRef<HTMLInputElement>(null);
   const [target] = targets;
@@ -81,12 +80,28 @@ const FilterValue: React.FC<FilterProps> = ({
         requestParams: { dashboardId: 0 },
       })
         .then(response => {
-          setState(response.result);
-          setError(false);
-          setLoading(false);
+          if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+            // deal with getChartDataRequest transforming the response data
+            const result = 'result' in response ? response.result[0] : response;
+            waitForAsyncData(result)
+              .then((asyncResult: ChartDataResponseResult[]) => {
+                setLoading(false);
+                setState(asyncResult);
+              })
+              .catch((error: ClientErrorObject) => {
+                setError(
+                  error.message || error.error || t('Check configuration'),
+                );
+                setLoading(false);
+              });
+          } else {
+            setState(response.result);
+            setError('');
+            setLoading(false);
+          }
         })
-        .catch(() => {
-          setError(true);
+        .catch((error: Response) => {
+          setError(error.statusText);
           setLoading(false);
         });
     }
@@ -112,19 +127,11 @@ const FilterValue: React.FC<FilterProps> = ({
   const setDataMask = (dataMask: DataMask) =>
     onFilterSelectionChange(filter, dataMask);
 
-  if (loading) {
-    return (
-      <StyledLoadingBox>
-        <Loading />
-      </StyledLoadingBox>
-    );
-  }
-
   if (error) {
     return (
       <BasicErrorAlert
         title={t('Cannot load filter')}
-        body={t('Check configuration')}
+        body={error}
         level="error"
       />
     );
@@ -132,16 +139,20 @@ const FilterValue: React.FC<FilterProps> = ({
 
   return (
     <FilterItem data-test="form-item-value">
-      <SuperChart
-        height={20}
-        width={220}
-        formData={formData}
-        // For charts that don't have datasource we need workaround for empty placeholder
-        queriesData={hasDataSource ? state : [{ data: [{}] }]}
-        chartType={filterType}
-        behaviors={[Behavior.NATIVE_FILTER]}
-        hooks={{ setDataMask }}
-      />
+      {loading ? (
+        <Loading position="inline-centered" />
+      ) : (
+        <SuperChart
+          height={20}
+          width={220}
+          formData={formData}
+          // For charts that don't have datasource we need workaround for empty placeholder
+          queriesData={hasDataSource ? state : [{ data: [{}] }]}
+          chartType={filterType}
+          behaviors={[Behavior.NATIVE_FILTER]}
+          hooks={{ setDataMask }}
+        />
+      )}
     </FilterItem>
   );
 };

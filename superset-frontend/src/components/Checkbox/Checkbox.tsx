@@ -16,40 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
-import { useDrag } from 'react-dnd';
+import React from 'react';
 import { styled } from '@superset-ui/core';
-import { DatasourcePanelDndItem } from './types';
+import { CheckboxChecked, CheckboxUnchecked } from 'src/components/Checkbox';
 
-const DatasourceItemContainer = styled.div`
-  display: flex;
-  align-items: center;
-  width: 100%;
-  height: ${({ theme }) => theme.gridUnit * 6}px;
-  cursor: pointer;
+interface CheckboxProps {
+  checked: boolean;
+  onChange: (val?: boolean) => void;
+  style?: React.CSSProperties;
+}
 
-  :hover {
-    background-color: ${({ theme }) => theme.colors.grayscale.light2};
+const Styles = styled.span`
+  &,
+  & svg {
+    vertical-align: top;
   }
 `;
 
-interface DatasourcePanelDragWrapperProps extends DatasourcePanelDndItem {
-  children?: ReactNode;
-}
-
-export default function DatasourcePanelDragWrapper(
-  props: DatasourcePanelDragWrapperProps,
-) {
-  const [, drag] = useDrag({
-    item: {
-      value: props.value,
-      type: props.type,
-    },
-  });
-
+export default function Checkbox({ checked, onChange, style }: CheckboxProps) {
   return (
-    <DatasourceItemContainer ref={drag}>
-      {props.children}
-    </DatasourceItemContainer>
+    <Styles
+      style={style}
+      onClick={() => {
+        onChange(!checked);
+      }}
+      role="checkbox"
+      tabIndex={0}
+      aria-checked={checked}
+      aria-label="Checkbox"
+    >
+      {checked ? <CheckboxChecked /> : <CheckboxUnchecked />}
+    </Styles>
   );
 }
