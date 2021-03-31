@@ -243,7 +243,7 @@ class TestDatabaseModel(SupersetTestCase):
         )
         sqlaq = table.get_sqla_query(**query_obj)
         sql = get_example_database().compile_sqla_query(sqlaq.sqla_query)
-        assert sql == "SELECT * from test_table"
+        assert sql[-1] != ";"
 
     def test_multiple_sql_statements_raises_exception(self):
         base_query_obj = {
