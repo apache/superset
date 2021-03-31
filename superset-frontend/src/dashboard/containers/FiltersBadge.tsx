@@ -78,7 +78,7 @@ const mapStateToProps = (
     chartId,
     charts,
     present,
-    dashboardInfo.metadata?.chart_configuration,
+    dashboardInfo.metadata.chart_configuration,
   );
 
   const indicators = uniqWith(
