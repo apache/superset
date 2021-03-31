@@ -33,7 +33,7 @@ import {
   prepareCopyToClipboardTabularData,
 } from 'src/utils/common';
 import CopyToClipboard from 'src/components/CopyToClipboard';
-import RowCountLabel from './RowCountLabel';
+import RowCountLabel from 'src/explore/components/RowCountLabel';
 
 export const CopyButton = styled(Button)`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
