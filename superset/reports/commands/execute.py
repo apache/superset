@@ -17,6 +17,7 @@
 import logging
 from datetime import datetime, timedelta
 from typing import Any, List, Optional
+from uuid import UUID
 
 from celery.exceptions import SoftTimeLimitExceeded
 from flask_appbuilder.security.sqla.models import User
@@ -73,11 +74,13 @@ class BaseReportState:
         session: Session,
         report_schedule: ReportSchedule,
         scheduled_dttm: datetime,
+        execution_id: UUID,
     ) -> None:
         self._session = session
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
         self._start_dttm = datetime.utcnow()
+        self._execution_id = execution_id
 
     def set_state_and_log(
         self, state: ReportState, error_message: Optional[str] = None,
@@ -117,6 +120,7 @@ class BaseReportState:
             state=state,
             error_message=error_message,
             report_schedule=self._report_schedule,
+            uuid=self._execution_id,
         )
         self._session.add(log)
         self._session.commit()
@@ -397,10 +401,12 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
     def __init__(
         self,
         session: Session,
+        task_uuid: UUID,
         report_schedule: ReportSchedule,
         scheduled_dttm: datetime,
     ):
         self._session = session
+        self._execution_id = task_uuid
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
 
@@ -411,7 +417,10 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
                 self._report_schedule.last_state in state_cls.current_states
             ):
                 state_cls(
-                    self._session, self._report_schedule, self._scheduled_dttm
+                    self._session,
+                    self._report_schedule,
+                    self._scheduled_dttm,
+                    self._execution_id,
                 ).next()
                 state_found = True
                 break
@@ -426,10 +435,11 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
     - On Alerts uses related Command AlertCommand and sends configured notifications
     """
 
-    def __init__(self, model_id: int, scheduled_dttm: datetime):
+    def __init__(self, task_id: str, model_id: int, scheduled_dttm: datetime):
         self._model_id = model_id
         self._model: Optional[ReportSchedule] = None
         self._scheduled_dttm = scheduled_dttm
+        self._execution_id = UUID(task_id)
 
     def run(self) -> None:
         with session_scope(nullpool=True) as session:
@@ -438,7 +448,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 if not self._model:
                     raise ReportScheduleExecuteUnexpectedError()
                 ReportScheduleStateMachine(
-                    session, self._model, self._scheduled_dttm
+                    session, self._execution_id, self._model, self._scheduled_dttm
                 ).run()
             except CommandException as ex:
                 raise ex

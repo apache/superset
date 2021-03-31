@@ -17,32 +17,25 @@
  * under the License.
  */
 import React, { FC, useEffect, useState } from 'react';
-import { t, SuperChart, Behavior } from '@superset-ui/core';
+import { Behavior, SetDataMaskHook, SuperChart } from '@superset-ui/core';
 import { FormInstance } from 'antd/lib/form';
 import Loading from 'src/components/Loading';
-import { setNativeFilterFieldValues } from './utils';
-import { StyledFormItem, StyledLabel } from './FiltersConfigForm';
-import { Filter } from '../../types';
 import { NativeFiltersForm } from '../types';
 import { getFormData } from '../../utils';
 
 type DefaultValueProps = {
   filterId: string;
-  forceUpdate: Function;
-  hasFilledDatasource: boolean;
+  setDataMask: SetDataMaskHook;
   hasDatasource: boolean;
-  filterToEdit?: Filter;
   form: FormInstance<NativeFiltersForm>;
   formData: ReturnType<typeof getFormData>;
 };
 
 const DefaultValue: FC<DefaultValueProps> = ({
   filterId,
-  hasFilledDatasource,
   hasDatasource,
-  filterToEdit,
   form,
-  forceUpdate,
+  setDataMask,
   formData,
 }) => {
   const [loading, setLoading] = useState(hasDatasource);
@@ -57,40 +50,21 @@ const DefaultValue: FC<DefaultValueProps> = ({
     }
   }, [hasDatasource, queriesData]);
 
-  return (
-    <StyledFormItem
-      name={['filters', filterId, 'defaultValue']}
-      initialValue={filterToEdit?.defaultValue}
-      data-test="default-input"
-      label={<StyledLabel>{t('Default Value')}</StyledLabel>}
-    >
-      {(hasFilledDatasource || !hasDatasource) &&
-        (loading ? (
-          <Loading position="inline-centered" />
-        ) : (
-          <SuperChart
-            height={25}
-            width={250}
-            behaviors={[Behavior.NATIVE_FILTER]}
-            formData={formData}
-            // For charts that don't have datasource we need workaround for empty placeholder
-            queriesData={
-              hasDatasource
-                ? formFilter?.defaultValueQueriesData
-                : [{ data: [{}] }]
-            }
-            chartType={formFilter?.filterType}
-            hooks={{
-              setDataMask: ({ nativeFilters }) => {
-                setNativeFilterFieldValues(form, filterId, {
-                  defaultValue: nativeFilters?.currentState?.value,
-                });
-                forceUpdate();
-              },
-            }}
-          />
-        ))}
-    </StyledFormItem>
+  return loading ? (
+    <Loading position="inline-centered" />
+  ) : (
+    <SuperChart
+      height={25}
+      width={250}
+      behaviors={[Behavior.NATIVE_FILTER]}
+      formData={formData}
+      // For charts that don't have datasource we need workaround for empty placeholder
+      queriesData={
+        hasDatasource ? formFilter?.defaultValueQueriesData : [{ data: [{}] }]
+      }
+      chartType={formFilter?.filterType}
+      hooks={{ setDataMask }}
+    />
   );
 };
 
