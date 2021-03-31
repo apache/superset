@@ -61,6 +61,7 @@ from superset.exceptions import (
     NullValueException,
     QueryObjectValidationError,
     SpatialException,
+    SupersetSecurityException,
 )
 from superset.extensions import cache_manager, security_manager
 from superset.models.cache import CacheKey
@@ -439,7 +440,13 @@ class BaseViz:
     def get_payload(self, query_obj: Optional[QueryObjectDict] = None) -> VizPayload:
         """Returns a payload of metadata and data"""
 
-        self.run_extra_queries()
+        try:
+            self.run_extra_queries()
+        except SupersetSecurityException as ex:
+            error = dataclasses.asdict(ex.error)
+            self.errors.append(error)
+            self.status = utils.QueryStatus.FAILED
+
         payload = self.get_df_payload(query_obj)
 
         df = payload.get("df")
@@ -2037,6 +2044,8 @@ class FilterBoxViz(BaseViz):
         return {}
 
     def run_extra_queries(self) -> None:
+        from superset.common.query_context import QueryContext
+
         qry = super().query_obj()
         filters = self.form_data.get("filter_configs") or []
         qry["row_limit"] = self.filter_row_limit
@@ -2050,6 +2059,10 @@ class FilterBoxViz(BaseViz):
             qry["groupby"] = [col]
             metric = flt.get("metric")
             qry["metrics"] = [metric] if metric else []
+            QueryContext(
+                datasource={"id": self.datasource.id, "type": self.datasource.type},
+                queries=[qry],
+            ).raise_for_access()
             df = self.get_df_payload(query_obj=qry).get("df")
             self.dataframes[col] = df
 
