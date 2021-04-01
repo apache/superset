@@ -32,7 +32,7 @@ import {
   AddControlLabel,
   HeaderContainer,
   LabelsContainer,
-} from 'src/explore/components/OptionControls';
+} from 'src/explore/components/controls/OptionControls';
 import columnType from './columnType';
 import MetricDefinitionOption from './MetricDefinitionOption';
 import MetricDefinitionValue from './MetricDefinitionValue';

@@ -24,7 +24,7 @@ import {
   CloseContainer,
   OptionControlContainer,
   Label,
-} from 'src/explore/components/OptionControls';
+} from 'src/explore/components/controls/OptionControls';
 import { OptionProps } from '../types';
 
 export default function Option(props: OptionProps) {
