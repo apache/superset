@@ -19,8 +19,8 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { setFilterConfiguration } from 'src/dashboard/actions/nativeFilters';
-import { FilterConfiguration } from '../types';
-import { FiltersConfigModal } from '../FiltersConfigModal/FiltersConfigModal';
+import { FilterConfiguration } from 'src/dashboard/components/nativeFilters/types';
+import { FiltersConfigModal } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
 
 export interface FCBProps {
   createNewOnOpen?: boolean;
