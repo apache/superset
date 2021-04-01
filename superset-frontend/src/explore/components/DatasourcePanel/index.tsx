@@ -38,7 +38,7 @@ interface DatasourceControl extends ControlConfig {
   datasource?: DatasourceMeta;
 }
 
-interface Props {
+export interface Props {
   datasource: DatasourceMeta;
   controls: {
     datasource: DatasourceControl;
