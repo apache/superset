@@ -282,7 +282,7 @@ test('Should render "annotationsError"', () => {
   ).toBeInTheDocument();
 });
 
-test('Should not render "annoationsError" and "annoationsLoading"', () => {
+test('Should not render "annotationsError" and "annotationsLoading"', () => {
   const props = createProps();
   props.annotationQuery = {};
   props.annotationError = {};
