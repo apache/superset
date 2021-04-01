@@ -22,7 +22,7 @@ import { ChartState } from 'src/explore/types';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import { now } from '../modules/dates';
 import * as actions from './chartAction';
-import { HYDRATE_DASHBOARD } from '../dashboard/actions/hydrate';
+import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 
 export const chart: ChartState = {
   id: 0,
