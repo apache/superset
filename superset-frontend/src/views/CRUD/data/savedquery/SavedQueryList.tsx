@@ -25,6 +25,7 @@ import {
   createFetchRelated,
   createFetchDistinct,
   createErrorHandler,
+  handleBulkDashboardExport,
 } from 'src/views/CRUD/utils';
 import Popover from 'src/components/Popover';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -97,6 +98,7 @@ function SavedQueryList({
 
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
+  const canExport = hasPerm('can_read');
 
   const openNewQuery = () => {
     window.open(`${window.location.origin}/superset/sqllab?new=true`);
@@ -300,12 +302,9 @@ function SavedQueryList({
           const handlePreview = () => {
             handleSavedQueryPreview(original.id);
           };
-          const handleEdit = () => {
-            openInSqlLab(original.id);
-          };
-          const handleCopy = () => {
-            copyQueryLink(original.id);
-          };
+          const handleEdit = () => openInSqlLab(original.id);
+          const handleCopy = () => copyQueryLink(original.id);
+          const handleExport = () => handleBulkDashboardExport([original]);
           const handleDelete = () => setQueryCurrentlyDeleting(original);
 
           const actions = [
@@ -332,6 +331,15 @@ function SavedQueryList({
               icon: 'Copy',
               onClick: handleCopy,
             },
+            canExport
+              ? {
+                  label: 'export-action',
+                  tooltip: t('Export query'),
+                  placement: 'bottom',
+                  icon: 'Share',
+                  onClick: handleExport,
+                }
+              : null,
             canDelete
               ? {
                   label: 'delete-action',
@@ -350,7 +358,7 @@ function SavedQueryList({
         disableSortBy: true,
       },
     ],
-    [canDelete, canEdit, copyQueryLink, handleSavedQueryPreview],
+    [canDelete, canEdit, canExport, copyQueryLink, handleSavedQueryPreview],
   );
 
   const filters: Filters = useMemo(
