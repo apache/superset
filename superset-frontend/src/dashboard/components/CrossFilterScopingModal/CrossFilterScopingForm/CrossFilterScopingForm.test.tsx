@@ -23,18 +23,7 @@ import CrossFilterScopingForm from '.';
 
 jest.mock(
   'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/FilterScope',
-  () => ({
-    __esModule: true,
-    default: (props: any) => (
-      <div
-        data-test="FilterScope"
-        data-scope={props.scope}
-        data-chart-id={props.chartId}
-        data-form-scope={props.formScope}
-        data-form-scoping={props.formScoping}
-      />
-    ),
-  }),
+  () => jest.fn(() => null),
 );
 
 const createProps = () => {
