@@ -776,6 +776,7 @@ def test_slack_chart_alert(screenshot_mock, email_mock, create_alert_email_chart
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)
 
+
 @pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_alert_email_chart"
 )
