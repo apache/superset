@@ -25,11 +25,17 @@ import {
 } from 'react-dnd';
 import { DragContainer } from 'src/explore/components/controls/OptionControls';
 import { DndItemType } from 'src/explore/components/DndItemType';
+import {
+  OptionProps,
+  OptionItemInterface,
+} from 'src/explore/components/controls/DndColumnSelectControl/types';
 import Option from './Option';
-import { OptionProps, OptionItemInterface } from '../types';
 
 export default function OptionWrapper(
-  props: OptionProps & { type: DndItemType },
+  props: OptionProps & {
+    type: DndItemType;
+    onShiftOptions: (dragIndex: number, hoverIndex: number) => void;
+  },
 ) {
   const {
     index,
@@ -99,13 +105,8 @@ export default function OptionWrapper(
   drag(drop(ref));
 
   return (
-    <DragContainer ref={ref} {...props}>
-      <Option
-        index={index}
-        clickClose={clickClose}
-        onShiftOptions={onShiftOptions}
-        withCaret={withCaret}
-      >
+    <DragContainer ref={ref}>
+      <Option index={index} clickClose={clickClose} withCaret={withCaret}>
         {children}
       </Option>
     </DragContainer>
