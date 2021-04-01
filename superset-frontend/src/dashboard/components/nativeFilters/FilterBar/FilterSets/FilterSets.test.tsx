@@ -20,7 +20,7 @@ import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import { mockStore } from 'spec/fixtures/mockStore';
 import { Provider } from 'react-redux';
-import FilterSets, { FilterSetsProps } from './FilterSets';
+import FilterSets, { FilterSetsProps } from '.';
 
 const mockedProps = {
   disabled: false,
@@ -45,7 +45,6 @@ const setup = (props: FilterSetsProps) => (
 test('should render', () => {
   const { container } = render(setup(mockedProps));
   expect(container).toBeInTheDocument();
-  screen.debug();
 });
 
 test('should render the default title', () => {

@@ -31,7 +31,7 @@ import { useImmer } from 'use-immer';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
 import { mapParentFiltersToChildren, TabIds } from './utils';
-import FilterSets from './FilterSets/FilterSets';
+import FilterSets from './FilterSets';
 import {
   useDataMask,
   useFilters,
