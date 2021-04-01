@@ -340,6 +340,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           isDisabled={readOnly}
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
           styles={{
             menuPortal: base => ({ ...base, zIndex: 5 }),
 =======
@@ -351,6 +352,11 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           }}
 =======
 >>>>>>> made changes
+=======
+          styles={{
+            menuPortal: base => ({ ...base, zIndex: 5 }),
+          }}
+>>>>>>> long table names
         />
       );
     } else if (formMode) {
