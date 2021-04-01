@@ -87,9 +87,6 @@ const createProps = () => ({
   chartStatus: 'rendered',
 });
 
-// beforeEach(()=>{
-//   jest.resetAllMocks();
-// })
 
 test('Should render', () => {
   const props = createProps();
