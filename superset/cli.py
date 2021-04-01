@@ -21,7 +21,7 @@ import sys
 from datetime import datetime, timedelta
 from subprocess import Popen
 from typing import Any, Dict, List, Optional, Type, Union
-from zipfile import ZipFile
+from zipfile import is_zipfile, ZipFile
 
 import click
 import yaml
@@ -250,12 +250,9 @@ if feature_flags.get("VERSIONED_EXPORT"):
     @superset.command()
     @with_appcontext
     @click.option(
-        "--dashboard-file",
-        "-f",
-        default="dashboard_export_YYYYMMDDTHHMMSS",
-        help="Specify the the file to export to",
+        "--dashboard-file", "-f", help="Specify the the file to export to",
     )
-    def export_dashboards(dashboard_file: Optional[str]) -> None:
+    def export_dashboards(dashboard_file: Optional[str] = None) -> None:
         """Export dashboards to ZIP file"""
         from superset.dashboards.commands.export import ExportDashboardsCommand
         from superset.models.dashboard import Dashboard
@@ -284,12 +281,9 @@ if feature_flags.get("VERSIONED_EXPORT"):
     @superset.command()
     @with_appcontext
     @click.option(
-        "--datasource-file",
-        "-f",
-        default="dataset_export_YYYYMMDDTHHMMSS",
-        help="Specify the the file to export to",
+        "--datasource-file", "-f", help="Specify the the file to export to",
     )
-    def export_datasources(datasource_file: Optional[str]) -> None:
+    def export_datasources(datasource_file: Optional[str] = None) -> None:
         """Export datasources to ZIP file"""
         from superset.connectors.sqla.models import SqlaTable
         from superset.datasets.commands.export import ExportDatasetsCommand
@@ -325,15 +319,20 @@ if feature_flags.get("VERSIONED_EXPORT"):
     )
     def import_dashboards(path: str, username: Optional[str]) -> None:
         """Import dashboards from ZIP file"""
+        from superset.commands.importers.v1.utils import get_contents_from_bundle
         from superset.dashboards.commands.importers.dispatcher import (
             ImportDashboardsCommand,
         )
 
         if username is not None:
             g.user = security_manager.find_user(username=username)
-        contents = {path: open(path).read()}
+        if is_zipfile(path):
+            with ZipFile(path) as bundle:
+                contents = get_contents_from_bundle(bundle)
+        else:
+            contents = {path: open(path).read()}
         try:
-            ImportDashboardsCommand(contents).run()
+            ImportDashboardsCommand(contents, overwrite=True).run()
         except Exception:  # pylint: disable=broad-except
             logger.exception(
                 "There was an error when importing the dashboards(s), please check "
@@ -343,36 +342,22 @@ if feature_flags.get("VERSIONED_EXPORT"):
     @superset.command()
     @with_appcontext
     @click.option(
-        "--path",
-        "-p",
-        help="Path to a single YAML file or path containing multiple YAML "
-        "files to import (*.yaml or *.yml)",
-    )
-    @click.option(
-        "--sync",
-        "-s",
-        "sync",
-        default="",
-        help="comma seperated list of element types to synchronize "
-        'e.g. "metrics,columns" deletes metrics and columns in the DB '
-        "that are not specified in the YAML file",
-    )
-    @click.option(
-        "--recursive",
-        "-r",
-        is_flag=True,
-        default=False,
-        help="recursively search the path for yaml files",
+        "--path", "-p", help="Path to a single ZIP file",
     )
     def import_datasources(path: str) -> None:
         """Import datasources from ZIP file"""
+        from superset.commands.importers.v1.utils import get_contents_from_bundle
         from superset.datasets.commands.importers.dispatcher import (
             ImportDatasetsCommand,
         )
 
-        contents = {path: open(path).read()}
+        if is_zipfile(path):
+            with ZipFile(path) as bundle:
+                contents = get_contents_from_bundle(bundle)
+        else:
+            contents = {path: open(path).read()}
         try:
-            ImportDatasetsCommand(contents).run()
+            ImportDatasetsCommand(contents, overwrite=True).run()
         except Exception:  # pylint: disable=broad-except
             logger.exception(
                 "There was an error when importing the dataset(s), please check the "
@@ -482,7 +467,7 @@ else:
         help="Specify the user name to assign dashboards to",
     )
     def import_dashboards(path: str, recursive: bool, username: str) -> None:
-        """Import dashboards from ZIP file"""
+        """Import dashboards from JSON file"""
         from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 
         path_object = Path(path)
