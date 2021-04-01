@@ -135,7 +135,7 @@ test('Clicking on "Copy dashboard URL" and have fail', async () => {
   });
 });
 
-test('Clicking on "Share dashboard by email" and have success', async () => {
+test('Click on "Share dashboard by email" and succeed', async () => {
   const props = createProps();
   render(
     <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
