@@ -650,7 +650,7 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
     ExecuteReport Command: Test report schedule still working but should timed out
     """
     current_time = create_report_slack_chart_working.last_eval_dttm + timedelta(
-        seconds=create_report_slack_chart_working.working_timeout + 1000
+        seconds=create_report_slack_chart_working.working_timeout + 1
     )
     with freeze_time(current_time):
 
