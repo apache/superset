@@ -60,7 +60,7 @@ def scheduler() -> None:
                 async_options = {"eta": schedule}
                 if (
                     active_schedule.working_timeout is not None
-                    and app.config["ALERT_REPORTS_WORKING_TIMOUT_KILL"]
+                    and app.config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"]
                 ):
                     async_options["time_limit"] = (
                         active_schedule.working_timeout
