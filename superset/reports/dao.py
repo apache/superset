@@ -239,7 +239,7 @@ class ReportScheduleDAO(BaseDAO):
             .filter(
                 ReportExecutionLog.state == ReportState.WORKING,
                 ReportExecutionLog.report_schedule == report_schedule,
-                ReportExecutionLog.error_message == None,
+                ReportExecutionLog.error_message.is_(None),
             )
             .order_by(ReportExecutionLog.end_dttm.desc())
             .first()
