@@ -58,10 +58,17 @@ def scheduler() -> None:
                     "Scheduling alert %s eta: %s", active_schedule.name, schedule
                 )
                 async_options = {"eta": schedule}
-                if active_schedule.working_timeout is not None:
-                    async_options["time_limit"] = active_schedule.working_timeout + 10
+                if (
+                    active_schedule.working_timeout is not None
+                    and app.config["ALERT_REPORTS_WORKING_TIMOUT_KILL"]
+                ):
+                    async_options["time_limit"] = (
+                        active_schedule.working_timeout
+                        + app.config["ALERT_REPORTS_WORKING_TIME_OUT_LAG"]
+                    )
                     async_options["soft_time_limit"] = (
-                        active_schedule.working_timeout + 1
+                        active_schedule.working_timeout
+                        + app.config["ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG"]
                     )
                 execute.apply_async((active_schedule.id, schedule,), **async_options)
 
