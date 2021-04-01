@@ -56,6 +56,7 @@ beforeEach(() => {
     href: '',
   } as any;
 });
+
 afterAll((): void => {
   window.location = location;
 });
