@@ -18,11 +18,11 @@
  */
 /* eslint camelcase: 0 */
 import { t } from '@superset-ui/core';
+import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 import { ChartState } from 'src/explore/types';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
-import { now } from '../modules/dates';
+import { now } from 'src/modules/dates';
 import * as actions from './chartAction';
-import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 
 export const chart: ChartState = {
   id: 0,
