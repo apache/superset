@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 from superset import app
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
+from superset.extensions import feature_flag_manager
 from superset.models.reports import (
     ReportExecutionLog,
     ReportSchedule,
@@ -52,7 +53,7 @@ from superset.reports.dao import (
     ReportScheduleDAO,
 )
 from superset.reports.notifications import create_notification
-from superset.reports.notifications.base import NotificationContent, ScreenshotData
+from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.celery import session_scope
 from superset.utils.screenshots import (
@@ -153,7 +154,7 @@ class BaseReportState:
             raise ReportScheduleSelleniumUserNotFoundError()
         return user
 
-    def _get_screenshot(self) -> ScreenshotData:
+    def _get_screenshot(self) -> bytes:
         """
         Get a chart or dashboard screenshot
 
@@ -176,7 +177,6 @@ class BaseReportState:
                 window_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
                 thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
             )
-        image_url = self._get_url(user_friendly=True)
         user = self._get_screenshot_user()
         try:
             image_data = screenshot.get_screenshot(user=user)
@@ -188,7 +188,7 @@ class BaseReportState:
             )
         if not image_data:
             raise ReportScheduleScreenshotFailedError()
-        return ScreenshotData(url=image_url, image=image_data)
+        return image_data
 
     def _get_notification_content(self) -> NotificationContent:
         """
@@ -196,7 +196,19 @@ class BaseReportState:
 
         :raises: ReportScheduleScreenshotFailedError
         """
-        screenshot_data = self._get_screenshot()
+        screenshot_data = None
+        url = self._get_url(user_friendly=True)
+        if (
+            feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
+            or self._report_schedule.type == ReportScheduleType.REPORT
+        ):
+            screenshot_data = self._get_screenshot()
+            if not screenshot_data:
+                return NotificationContent(
+                    name=self._report_schedule.name,
+                    text="Unexpected missing screenshot",
+                )
+
         if self._report_schedule.chart:
             name = (
                 f"{self._report_schedule.name}: "
@@ -207,7 +219,7 @@ class BaseReportState:
                 f"{self._report_schedule.name}: "
                 f"{self._report_schedule.dashboard.dashboard_title}"
             )
-        return NotificationContent(name=name, screenshot=screenshot_data)
+        return NotificationContent(name=name, url=url, screenshot=screenshot_data)
 
     def _send(self, notification_content: NotificationContent) -> None:
         """
