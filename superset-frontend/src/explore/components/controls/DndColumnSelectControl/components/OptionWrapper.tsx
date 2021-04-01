@@ -23,10 +23,10 @@ import {
   DropTargetMonitor,
   DragSourceMonitor,
 } from 'react-dnd';
-import { DragContainer } from 'src/explore/components/OptionControls';
+import { DragContainer } from 'src/explore/components/controls/OptionControls';
+import { DndItemType } from 'src/explore/components/DndItemType';
 import Option from './Option';
 import { OptionProps, OptionItemInterface } from '../types';
-import { DndItemType } from '../../../DndItemType';
 
 export default function OptionWrapper(
   props: OptionProps & { type: DndItemType },
