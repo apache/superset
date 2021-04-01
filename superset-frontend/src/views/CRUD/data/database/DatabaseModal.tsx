@@ -43,7 +43,7 @@ interface DatabaseModalProps {
 }
 
 const DEFAULT_TAB_KEY = '1';
-const EXPOSE_SQLLAB_FORM_HEIGHT = '260px';
+const EXPOSE_SQLLAB_FORM_HEIGHT = '270px';
 const CTAS_CVAS_SCHEMA_FORM_HEIGHT = '94px';
 
 const StyledIcon = styled(Icon)`
