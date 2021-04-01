@@ -24,7 +24,7 @@ import {
   AddControlLabel,
   DndLabelsContainer,
   HeaderContainer,
-} from 'src/explore/components/OptionControls';
+} from 'src/explore/components/controls/OptionControls';
 import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';
 import Icon from 'src/components/Icon';
 import { DndColumnSelectProps } from './types';
