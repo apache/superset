@@ -160,7 +160,7 @@ test('Click on "Share dashboard by email" and succeed', async () => {
   });
 });
 
-test('Clicking on "Share dashboard by email" and have fail', async () => {
+test('Click on "Share dashboard by email" and fail', async () => {
   fetchMock.post(
     'http://localhost/r/shortner/',
     { status: 404 },
