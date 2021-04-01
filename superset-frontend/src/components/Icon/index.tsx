@@ -421,7 +421,14 @@ const Icon = ({
   const Component = iconsRegistry[name];
 
   return (
-    <Component color={color} viewBox={viewBox} data-test={name} {...rest} />
+    <Component
+      role="img"
+      aria-label={name}
+      color={color}
+      viewBox={viewBox}
+      data-test={name}
+      {...rest}
+    />
   );
 };
 

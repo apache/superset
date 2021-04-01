@@ -16,8 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Popover as AntdPopover } from 'src/common/components';
+import userEvent from '@testing-library/user-event';
+import React from 'react';
+import { render, screen } from 'spec/helpers/testing-library';
+import { CopyToClipboardButton } from '.';
 
-const SupersetPopover = AntdPopover;
+test('Render a button', () => {
+  render(<CopyToClipboardButton data={{ copy: 'data', data: 'copy' }} />, {
+    useRedux: true,
+  });
+  expect(screen.getByRole('button')).toBeInTheDocument();
+});
 
-export default SupersetPopover;
+test('Should copy to clipboard', () => {
+  document.execCommand = jest.fn();
+
+  render(<CopyToClipboardButton data={{ copy: 'data', data: 'copy' }} />, {
+    useRedux: true,
+  });
+
+  expect(document.execCommand).toHaveBeenCalledTimes(0);
+  userEvent.click(screen.getByRole('button'));
+  expect(document.execCommand).toHaveBeenCalledWith('copy');
+});
