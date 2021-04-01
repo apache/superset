@@ -262,7 +262,7 @@ test('Should render title', () => {
   expect(screen.getByText('Vaccine Candidates per Phase')).toBeInTheDocument();
 });
 
-test('Should render "annoationsLoading"', () => {
+test('Should render "annotationsLoading"', () => {
   const props = createProps();
   render(<SliceHeader {...props} />, { useRedux: true });
   expect(
