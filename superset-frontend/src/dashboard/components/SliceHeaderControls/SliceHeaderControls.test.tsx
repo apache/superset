@@ -123,7 +123,7 @@ test('Should render default props', () => {
   render(<SliceHeaderControls {...props} />, { useRedux: true });
 
   userEvent.click(screen.getByRole('menuitem', { name: 'Maximize chart' }));
-  userEvent.click(screen.getByTestId('refresh-chart-menu-item'));
+  userEvent.click(screen.getByRole('menuitem', { name: /Force refresh/ }));
   userEvent.click(
     screen.getByRole('menuitem', { name: 'Toggle chart description' }),
   );
