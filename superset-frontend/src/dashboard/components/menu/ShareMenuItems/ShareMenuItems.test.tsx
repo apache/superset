@@ -42,6 +42,7 @@ beforeAll((): void => {
   // @ts-ignore
   delete window.location;
 });
+
 beforeEach(() => {
   jest.clearAllMocks();
   fetchMock.post(
