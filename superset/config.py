@@ -366,6 +366,8 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
 # always be the table layout
 if DEFAULT_FEATURE_FLAGS["THUMBNAILS"]:
     DEFAULT_FEATURE_FLAGS["LISTVIEWS_DEFAULT_CARD_VIEW"] = True
+else:
+   DEFAULT_FEATURE_FLAGS["LISTVIEWS_DEFAULT_CARD_VIEW"] = False 
 
 # This is merely a default.
 FEATURE_FLAGS: Dict[str, bool] = {}
