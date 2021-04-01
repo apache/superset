@@ -23,7 +23,7 @@ import { OptionControlLabel } from 'src/explore/components/OptionControls';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import columnType from 'src/explore/components/controls/FilterControl/columnType';
-import { DndItemType } from '../../../DndItemType';
+import { DndItemType } from 'src/explore/components/DndItemType';
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
