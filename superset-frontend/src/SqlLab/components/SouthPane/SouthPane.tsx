@@ -33,7 +33,7 @@ import {
   LOCALSTORAGE_MAX_QUERY_AGE_MS,
 } from '../../constants';
 
-const TAB_HEIGHT = 82;
+const TAB_HEIGHT = 90;
 
 /*
     editorQueries are queries executed by users passed from SqlEditor component
@@ -153,7 +153,7 @@ export default function SouthPane({
           csv={false}
           actions={actions}
           cache
-          height={innerTabContentHeight - 10}
+          height={innerTabContentHeight}
           displayLimit={displayLimit}
         />
       </Tabs.TabPane>
