@@ -19,7 +19,7 @@
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import Header from '.';
+import Header from './index';
 
 const mockedProps = {
   toggleFiltersBar: jest.fn(),
