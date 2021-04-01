@@ -272,7 +272,7 @@ test('Should render "annoationsLoading"', () => {
   ).toBeInTheDocument();
 });
 
-test('Should render "annoationsError"', () => {
+test('Should render "annotationsError"', () => {
   const props = createProps();
   render(<SliceHeader {...props} />, { useRedux: true });
   expect(
