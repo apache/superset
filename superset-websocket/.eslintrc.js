@@ -29,12 +29,10 @@ module.exports = {
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
+    'prettier',
   ],
   rules: {
-    // "import/no-unresolved": 0,
-    // "@typescript-eslint/explicit-function-return-type": 0,
     "@typescript-eslint/explicit-module-boundary-types": 0,
     "@typescript-eslint/no-var-requires": 0,
-    // "@typescript-eslint/camelcase": 0,
   },
 };
