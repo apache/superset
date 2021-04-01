@@ -43,7 +43,7 @@ interface DatabaseModalProps {
 }
 
 const DEFAULT_TAB_KEY = '1';
-const EXPOSE_SQLLAB_FORM_HEIGHT = '260px';
+const EXPOSE_SQLLAB_FORM_HEIGHT = '270px';
 const CTAS_CVAS_SCHEMA_FORM_HEIGHT = '94px';
 
 const StyledIcon = styled(Icon)`
@@ -87,7 +87,6 @@ const StyledInputContainer = styled.div`
 
     label {
       display: flex;
-      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
       margin-left: ${({ theme }) => theme.gridUnit * 2}px;
       margin-top: ${({ theme }) => theme.gridUnit * 0.75}px;
       font-family: ${({ theme }) => theme.typography.families.sansSerif};
@@ -635,8 +634,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 indeterminate={false}
                 checked={!!db?.impersonate_user}
                 onChange={onInputChange}
+                labelText={t('Impersonate Logged In User (Presto & Hive)')}
               />
-              <div>{t('Impersonate Logged In User (Presto & Hive)')}</div>
               <InfoTooltip
                 tooltip={t(
                   'If Presto, all the queries in SQL Lab are going to be executed as the ' +
@@ -655,8 +654,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 indeterminate={false}
                 checked={!!db?.allow_csv_upload}
                 onChange={onInputChange}
+                labelText={t('Allow data upload')}
               />
-              <div>{t('Allow data upload')}</div>
               <InfoTooltip
                 tooltip={t(
                   'If selected, please set the schemas allowed for data upload in Extra.',

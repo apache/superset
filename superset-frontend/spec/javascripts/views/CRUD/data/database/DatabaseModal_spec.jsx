@@ -151,15 +151,13 @@ describe('DatabaseModal', () => {
 
       // When clicked, "Expose in SQL Lab" becomes unchecked
       userEvent.click(exposeInSqlLab);
-      // While unchecked, only "Expose in SQL Lab" should display
-      expect(exposeInSqlLab).toBeVisible();
-      expect(exposeChoicesForm).not.toHaveClass('open');
+
+      // While checked make sure all checkboxes are showing
       expect(exposeInSqlLab).toBeChecked();
       const checkboxes = screen
         .getAllByRole('checkbox')
         .filter(checkbox => !checkbox.checked);
 
-      // While checked make sure all checkboxes are showing
       expect(checkboxes.length).toEqual(4);
     });
 
@@ -251,8 +249,9 @@ describe('DatabaseModal', () => {
       expect(schemaField).toHaveClass('open');
       // Uncheck both "Allow CTAS" and "Allow CVAS" to hide schema field again
       userEvent.click(allowCTAS);
-      // Both checkboxes go unchecked, so the field should no longer render
       userEvent.click(allowCVAS);
+
+      // Both checkboxes go unchecked, so the field should no longer render
       expect(schemaField).not.toHaveClass('open');
     });
   });
