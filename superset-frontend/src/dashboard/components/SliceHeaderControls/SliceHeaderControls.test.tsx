@@ -176,7 +176,7 @@ test('Should "Force refresh"', () => {
   render(<SliceHeaderControls {...props} />, { useRedux: true });
 
   expect(props.forceRefresh).toBeCalledTimes(0);
-  userEvent.click(screen.getByTestId('refresh-chart-menu-item'));
+  userEvent.click(screen.getByRole('menuitem', { name: /Force refresh/ }));
   expect(props.forceRefresh).toBeCalledTimes(1);
   expect(props.forceRefresh).toBeCalledWith(371, 26);
 });
