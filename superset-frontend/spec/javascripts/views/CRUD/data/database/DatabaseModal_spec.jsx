@@ -252,8 +252,9 @@ describe('DatabaseModal', () => {
       expect(schemaField).toHaveClass('open');
       // Uncheck both "Allow CTAS" and "Allow CVAS" to hide schema field again
       userEvent.click(allowCTAS);
-      // Both checkboxes go unchecked, so the field should no longer render
       userEvent.click(allowCVAS);
+
+      // Both checkboxes go unchecked, so the field should no longer render
       expect(schemaField).not.toHaveClass('open');
     });
   });
