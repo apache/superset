@@ -858,7 +858,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             if table_column:
                 sqla_column = table_column.get_sqla_col()
             else:
-                sqla_column = table(self.table_name, column(column_name)).c[column_name]
+                sqla_column = column(column_name)
             sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
             sqla_metric = literal_column(metric.get("sqlExpression"))
