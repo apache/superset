@@ -81,7 +81,7 @@ test('Should render menu items', () => {
   ).toBeInTheDocument();
 });
 
-test('Clicking on "Copy dashboard URL" and have success', async () => {
+test('Click on "Copy dashboard URL" and succeed', async () => {
   spy.mockResolvedValue(undefined);
   const props = createProps();
   render(
