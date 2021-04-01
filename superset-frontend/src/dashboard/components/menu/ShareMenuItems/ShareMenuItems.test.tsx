@@ -107,7 +107,7 @@ test('Clicking on "Copy dashboard URL" and have success', async () => {
   });
 });
 
-test('Clicking on "Copy dashboard URL" and have fail', async () => {
+test('Click on "Copy dashboard URL" and fail', async () => {
   spy.mockRejectedValue(undefined);
   const props = createProps();
   render(
