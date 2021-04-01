@@ -29,10 +29,9 @@ import {
   validateNonEmpty,
 } from '@superset-ui/core';
 
-import SelectControl from './SelectControl';
-import TextControl from './TextControl';
-import CheckboxControl from './CheckboxControl';
-
+import SelectControl from 'src/explore/components/controls/SelectControl';
+import TextControl from 'src/explore/components/controls/TextControl';
+import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import {
   ANNOTATION_SOURCE_TYPES,
   ANNOTATION_TYPES,
@@ -40,11 +39,9 @@ import {
   DEFAULT_ANNOTATION_TYPE,
   requiresQuery,
   ANNOTATION_SOURCE_TYPES_METADATA,
-} from '../../../modules/AnnotationTypes';
-
-import PopoverSection from '../../../components/PopoverSection';
-import ControlHeader from '../ControlHeader';
-import './AnnotationLayer.less';
+} from 'src/modules/AnnotationTypes';
+import PopoverSection from 'src/components/PopoverSection';
+import ControlHeader from 'src/explore/components/ControlHeader';
 
 const AUTOMATIC_COLOR = '';
 
@@ -359,7 +356,14 @@ export default class AnnotationLayer extends React.PureComponent {
 
   renderOption(option) {
     return (
-      <span className="optionWrapper" title={option.label}>
+      <span
+        css={{
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+        title={option.label}
+      >
         {option.label}
       </span>
     );
