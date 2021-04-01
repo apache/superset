@@ -131,7 +131,7 @@ test('Should render default props', () => {
     screen.getByRole('menuitem', { name: 'View chart in Explore' }),
   );
   userEvent.click(screen.getByRole('menuitem', { name: 'Export CSV' }));
-  userEvent.click(screen.getByTestId('refresh-chart-menu-item'));
+  userEvent.click(screen.getByRole('menuitem', { name: /Force refresh/ }));
 
   expect(screen.getByRole('button', { name: '...' })).toBeInTheDocument();
   expect(screen.getByTestId('NoAnimationDropdown')).toBeInTheDocument();
