@@ -20,4 +20,11 @@ config.plugins = [
   ['babel-plugin-typescript-to-proptypes', { loose: true }],
   ['@babel/plugin-proposal-class-properties', { loose: true }],
 ];
+config.presets.push([
+  '@emotion/babel-preset-css-prop',
+  {
+    autoLabel: 'dev-only',
+    labelFormat: '[local]',
+  },
+]);
 module.exports = config;
