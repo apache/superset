@@ -35,7 +35,7 @@ export const mockDataMaskInfo: DataMaskStateWithId = {
 export const nativeFiltersInfo: NativeFiltersState = {
   filterSets: {
     'set-id': {
-      id: 'filter-id',
+      id: 'DefaultsID',
       name: 'Set name',
       nativeFilters: {},
       dataMask: mockDataMaskInfo,

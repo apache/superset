@@ -20,25 +20,20 @@ import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import { mockStore } from 'spec/fixtures/mockStore';
 import { Provider } from 'react-redux';
-import FilterSets, { FilterSetsProps } from '.';
+import FiltersHeader, { FiltersHeaderProps } from './FiltersHeader';
 
 const mockedProps = {
-  disabled: false,
-  isFilterSetChanged: false,
-  dataMaskSelected: {
+  dataMask: {
     DefaultsID: {
       currentState: {
         value: 'value',
       },
     },
   },
-  onEditFilterSet: jest.fn(),
-  onFilterSelectionChange: jest.fn(),
 };
-
-const setup = (props: FilterSetsProps) => (
+const setup = (props: FiltersHeaderProps) => (
   <Provider store={mockStore}>
-    <FilterSets {...props} />
+    <FiltersHeader {...props} />
   </Provider>
 );
 
@@ -47,17 +42,13 @@ test('should render', () => {
   expect(container).toBeInTheDocument();
 });
 
-test('should render the default title', () => {
-  render(setup(mockedProps));
-  expect(screen.getByText('New filter set')).toBeInTheDocument();
-});
-
 test('should render the right number of filters', () => {
   render(setup(mockedProps));
   expect(screen.getByText('Filters (1)')).toBeInTheDocument();
 });
 
-test('should render the filters', () => {
+test('should render the name and value', () => {
   render(setup(mockedProps));
-  expect(screen.getByText('Set name')).toBeInTheDocument();
+  expect(screen.getByText('test:')).toBeInTheDocument();
+  expect(screen.getByText('value')).toBeInTheDocument();
 });

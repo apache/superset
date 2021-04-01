@@ -26,9 +26,9 @@ import EditSection, { EditSectionProps }  from './EditSection';
 const mockedProps = {
   filterSetId: 'set-id',
   dataMaskSelected: {
-    'filter-id': {
+    DefaultsID: {
       currentState: {
-        value: [],
+        value: 'value',
       },
     },
   },

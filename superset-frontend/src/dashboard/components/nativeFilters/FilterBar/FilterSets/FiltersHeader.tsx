@@ -54,7 +54,7 @@ const StyledCollapse = styled(Collapse)`
   }
 `;
 
-type FiltersHeaderProps = {
+export type FiltersHeaderProps = {
   dataMask?: DataMaskUnit;
   filterSet?: FilterSet;
 };
@@ -95,7 +95,7 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
         placement="bottomLeft"
         key={id}
       >
-        <div>
+        <div data-test="filter-info">
           <Typography.Text strong delete={removedFilter} mark={changedFilter}>
             {name}:&nbsp;
           </Typography.Text>

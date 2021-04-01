@@ -26,17 +26,17 @@ const mockedProps = {
   onApply: jest.fn(),
   setDataMaskSelected: jest.fn(),
   dataMaskSelected: {
-    'filter-id': {
+    DefaultsID: {
       currentState: {
         value: null,
       },
     },
   },
   dataMaskApplied: {
-    'filter-id': {
-      id: 'filter-id',
+    DefaultsID: {
+      id: 'DefaultsID',
       currentState: {
-        test: 'test',
+        value: null,
       },
     },
   },

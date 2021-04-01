@@ -31,11 +31,6 @@ const mockedProps = {
   onRebuild: jest.fn(),
 };
 
-const editModeOffProps = {
-  ...mockedProps,
-  editMode: false,
-};
-
 function openDropdown() {
   const dropdownIcon = screen.getByRole('img', { name: 'ellipsis' });
   userEvent.click(dropdownIcon);
@@ -53,32 +48,13 @@ test('should render', () => {
 });
 
 test('should render the edit button', () => {
+  const editModeOffProps = {
+    ...mockedProps,
+    editMode: false,
+  };
   render(setup(editModeOffProps));
   const editButton = screen.getAllByRole('button')[0];
   expect(editButton).toHaveAttribute('aria-label', 'Edit');
-});
-
-test('should render a textbox', () => {
-  render(setup(mockedProps));
-  expect(screen.getByRole('textbox')).toBeInTheDocument();
-});
-
-test('should edit the name', () => {
-  render(setup(mockedProps));
-  const textbox = screen.getByRole('textbox');
-  userEvent.clear(textbox);
-  userEvent.type(textbox, 'New name');
-  expect(textbox).toHaveValue('New name');
-});
-
-test('should render the enter icon', () => {
-  render(setup(mockedProps));
-  expect(screen.getByRole('img', { name: 'enter' })).toBeInTheDocument();
-});
-
-test('should render the right number of filters', () => {
-  render(setup(mockedProps));
-  expect(screen.getByText('Filters (1)')).toBeInTheDocument();
 });
 
 test('should render the menu', () => {
