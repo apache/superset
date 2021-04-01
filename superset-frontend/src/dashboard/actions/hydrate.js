@@ -60,6 +60,8 @@ const reservedQueryParams = new Set(['standalone', 'edit']);
 const extractUrlParams = queryParams =>
   Object.entries(queryParams).reduce((acc, [key, value]) => {
     if (reservedQueryParams.has(key)) return acc;
+    // if multiple url params share the same key (?foo=bar&foo=baz), they will appear as an array.
+    // Only one value can be used for a given query param, so we just take the first one.
     if (Array.isArray(value)) {
       return {
         ...acc,
