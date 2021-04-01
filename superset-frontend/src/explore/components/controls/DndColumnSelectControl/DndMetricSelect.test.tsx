@@ -16,8 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './Select';
-export * from './styles';
-export { default } from './Select';
-export { default as OnPasteSelect } from './OnPasteSelect';
-export { NativeSelect, NativeGraySelect } from './NativeSelect';
+import React from 'react';
+import { render, screen } from 'spec/helpers/testing-library';
+import { DndMetricSelect } from 'src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
+
+const defaultProps = {
+  savedMetrics: [
+    {
+      metric_name: 'Metric A',
+      expression: 'Expression A',
+    },
+  ],
+};
+
+test('renders with default props', () => {
+  render(<DndMetricSelect {...defaultProps} />, { useDnd: true });
+  expect(screen.getByText('Drop columns or metrics')).toBeInTheDocument();
+});

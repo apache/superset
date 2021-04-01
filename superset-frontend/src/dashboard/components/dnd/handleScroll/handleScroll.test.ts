@@ -16,8 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './Select';
-export * from './styles';
-export { default } from './Select';
-export { default as OnPasteSelect } from './OnPasteSelect';
-export { NativeSelect, NativeGraySelect } from './NativeSelect';
+import handleScroll from '.';
+
+jest.useFakeTimers();
+
+const { scroll } = window;
+
+afterAll(() => {
+  window.scroll = scroll;
+});
+
+test('calling: "NOT_SCROLL_TOP" ,"SCROLL_TOP", "NOT_SCROLL_TOP"', () => {
+  window.scroll = jest.fn();
+
+  handleScroll('NOT_SCROLL_TOP');
+
+  expect(clearInterval).not.toBeCalled();
+
+  handleScroll('SCROLL_TOP');
+
+  handleScroll('NOT_SCROLL_TOP');
+  expect(clearInterval).toHaveBeenCalledWith(expect.any(Number));
+});
