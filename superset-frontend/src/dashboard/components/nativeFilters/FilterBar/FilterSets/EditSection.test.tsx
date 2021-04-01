@@ -28,7 +28,7 @@ const mockedProps = {
   dataMaskSelected: {
     'filter-id': {
       currentState: {
-        test: 'test',
+        value: [],
       },
     },
   },

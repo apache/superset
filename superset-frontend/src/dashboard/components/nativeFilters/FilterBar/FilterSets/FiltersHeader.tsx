@@ -93,6 +93,7 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
             t('Filter metadata changed in dashboard. It will not be applied.'))
         }
         placement="bottomLeft"
+        key={id}
       >
         <div>
           <Typography.Text strong delete={removedFilter} mark={changedFilter}>
