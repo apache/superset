@@ -39,6 +39,7 @@ little bit helps, and credit will always be given.
     - [Protocol](#protocol)
       - [Authoring](#authoring)
       - [Reviewing](#reviewing)
+      - [Test Environments](#test-environments)
       - [Merging](#merging)
       - [Post-merge Responsibility](#post-merge-responsibility)
   - [Design Guidelines](#design-guidelines)
@@ -248,6 +249,13 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 - If you are asked to update your pull request with some changes there's no need to create a new one. Push your changes to the same branch.
 - The committers reserve the right to reject any PR and in some cases may request the author to file an issue.
 
+#### Test Environments
+
+- Members of the Apache GitHub org can launch an ephemeral test environment directly on a pull request by creating a comment containing (only) the command `/testenv up`
+- A comment will be created by the workflow script with the address and login information for the ephemeral environment.
+- Test environments may be created once the Docker build CI workflow for the PR has completed successfully.
+- Running test environments will be shutdown upon closing the pull request.
+
 #### Merging
 
 - At least one approval is required for merging a PR.
@@ -342,6 +350,8 @@ Committers may also update title to reflect the issue/PR content if the author-p
 If the PR passes CI tests and does not have any `need:` labels, it is ready for review, add label `review` and/or `design-review`.
 
 If an issue/PR has been inactive for >=30 days, it will be closed. If it does not have any status label, add `inactive`.
+
+When creating a PR, if you're aiming to have it included in a specific release, please tag it with the version label. For example, to have a PR considered for inclusion in Superset 1.1 use the label `v1.1`.
 
 ## Reporting a Security Vulnerability
 
@@ -483,6 +493,11 @@ nvm install
 nvm use
 ```
 
+Or if you use the default macOS starting with Catalina shell `zsh`, try:
+```zsh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh)"
+```
+
 For those interested, you may also try out [avn](https://github.com/nvm-sh/nvm#deeper-shell-integration) to automatically switch to the node version that is required to run Superset frontend.
 
 We have upgraded our `package-lock.json` to use `lockfileversion: 2` from npm 7, so please make sure you have installed npm 7, too:
@@ -513,7 +528,7 @@ There are three types of assets you can build:
 
 #### Webpack dev server
 
-The dev server by default starts at `http://localhost:9000` and proxies the backend requests to `http://localhost:8080`. It's possible to change these settings:
+The dev server by default starts at `http://localhost:9000` and proxies the backend requests to `http://localhost:8088`. It's possible to change these settings:
 
 ```bash
 # Start the dev server at http://localhost:9000
@@ -570,6 +585,8 @@ export enum FeatureFlag {
 those specified under FEATURE_FLAGS in `superset_config.py`. For example, `DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False }` in `superset/config.py` and `FEATURE_FLAGS = { 'BAR': True, 'BAZ': True }` in `superset_config.py` will result
 in combined feature flags of `{ 'FOO': True, 'BAR': True, 'BAZ': True }`.
 
+The current status of the usability of each flag (stable vs testing, etc) can be found in `RESOURCES/FEATURE_FLAGS.md`.
+
 ## Git Hooks
 
 Superset uses Git pre-commit hooks courtesy of [pre-commit](https://pre-commit.com/). To install run the following:
@@ -579,10 +596,17 @@ pip3 install -r requirements/integration.txt
 pre-commit install
 ```
 
+A series of checks will now run when you make a git commit.
+
 Alternatively it is possible to run pre-commit via tox:
 
 ```bash
 tox -e pre-commit
+```
+
+Or by running pre-commit manually:
+```bash
+pre-commit run --all-files
 ```
 
 ## Linting
@@ -593,14 +617,16 @@ Lint the project with:
 # for python
 tox -e pylint
 
+Alternatively, you can use pre-commit (mentioned above) for python linting
+
+The Python code is auto-formatted using [Black](https://github.com/python/black) which
+is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/editor_integration.html)
+
 # for frontend
 cd superset-frontend
 npm ci
 npm run lint
 ```
-
-The Python code is auto-formatted using [Black](https://github.com/python/black) which
-is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/editor_integration.html).
 
 ## Conventions
 
@@ -687,6 +713,14 @@ Note that the test environment uses a temporary directory for defining the
 SQLite databases which will be cleared each time before the group of test
 commands are invoked.
 
+There is also a utility script included in the Superset codebase to run python tests. The [readme can be
+found here](https://github.com/apache/superset/tree/master/scripts/tests)
+
+To run all tests for example, run this script from the root directory:
+```bash
+scripts/tests/run.sh
+```
+
 ### Frontend Testing
 
 We use [Jest](https://jestjs.io/) and [Enzyme](https://airbnb.io/enzyme/) to test TypeScript/JavaScript. Tests can be run with:
@@ -767,6 +801,130 @@ cd cypress-base
 npm install
 npm run cypress open
 ```
+
+### Debugging Server App
+
+Follow these instructions to debug the Flask app running inside a docker container.
+
+First add the following to the ./docker-compose.yaml file
+
+```diff
+superset:
+    env_file: docker/.env
+    image: *superset-image
+    container_name: superset_app
+    command: ["/app/docker/docker-bootstrap.sh", "app"]
+    restart: unless-stopped
++   cap_add:
++     - SYS_PTRACE
+    ports:
+      - 8088:8088
++     - 5678:5678
+    user: "root"
+    depends_on: *superset-depends-on
+    volumes: *superset-volumes
+    environment:
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
+```
+
+Start Superset as usual
+```bash
+docker-compose up
+```
+
+Install the required libraries and packages to the docker container
+
+Enter the superset_app container
+```bash
+docker exec -it superset_app /bin/bash
+root@39ce8cf9d6ab:/app#
+```
+
+Run the following commands inside the container
+```bash
+apt update
+apt install -y gdb
+apt install -y net-tools
+pip install debugpy
+```
+
+Find the PID for the Flask process. Make sure to use the first PID. The Flask app will re-spawn a sub-process everytime you change any of the python code. So it's important to use the first PID.
+
+```bash
+ps -ef
+
+UID        PID  PPID  C STIME TTY          TIME CMD
+root         1     0  0 14:09 ?        00:00:00 bash /app/docker/docker-bootstrap.sh app
+root         6     1  4 14:09 ?        00:00:04 /usr/local/bin/python /usr/bin/flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0
+root        10     6  7 14:09 ?        00:00:07 /usr/local/bin/python /usr/bin/flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0
+```
+
+Inject debugpy into the running Flask process. In this case PID 6.
+```bash
+python3 -m debugpy --listen 0.0.0.0:5678 --pid 6
+```
+
+Verify that debugpy is listening on port 5678
+```bash
+netstat -tunap
+
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 0.0.0.0:5678            0.0.0.0:*               LISTEN      462/python
+tcp        0      0 0.0.0.0:8088            0.0.0.0:*               LISTEN      6/python
+```
+
+You are now ready to attach a debugger to the process. Using VSCode you can configure a launch configuration file .vscode/launch.json like so.
+```
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Attach to Superset App in Docker Container",
+            "type": "python",
+            "request": "attach",
+            "connect": {
+                "host": "127.0.0.1",
+                "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "/app"
+                }
+            ]
+        },
+    ]
+}
+```
+
+VSCode will not stop on breakpoints right away. We've attached to PID 6 however it does not yet know of any sub-processes. In order to "wakeup" the debugger you need to modify a python file. This will trigger Flask to reload the code and create a new sub-process. This new sub-process will be detected by VSCode and breakpoints will be activated.
+
+
+### Debugging Server App in Kubernetes Environment
+
+To debug Flask running in POD inside kubernetes cluster. You'll need to make sure the pod runs as root and is granted the SYS_TRACE capability.These settings should not be used in production environments.
+
+```
+  securityContext:
+    capabilities:
+      add: ["SYS_PTRACE"]
+```
+
+See (set capabilities for a container)[https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container] for more details.
+
+Once the pod is running as root and has the SYS_PTRACE capability it will be able to debug the Flask app.
+
+You can follow the same instructions as in the docker-compose. Enter the pod and install the required library and packages; gdb, netstat and debugpy.
+
+Often in a kuernetes environment nodes are not addressable from ouside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
+
+```
+kubectl port-forward  pod/superset-<some random id> 5678:5678
+```
+
+You can now launch your VSCode debugger with the same config as above. VSCode will connect to to 127.0.0.1:5678 which is forwarded by kubectl to your remote kubernetes POD.
+
 
 ### Storybook
 
@@ -1001,7 +1159,7 @@ Submissions will be considered for submission (or removal) on a case-by-case bas
 
 When two DB migrations collide, you'll get an error message like this one:
 
-```
+```text
 alembic.util.exc.CommandError: Multiple head revisions are present for
 given argument 'head'; please specify a specific target
 revision, '<branchname>@head' to narrow to a specific head,
@@ -1016,15 +1174,46 @@ To fix it:
    superset db heads
    ```
 
-   This should list two or more migration hashes.
+   This should list two or more migration hashes. E.g.
 
-1. Create a new merge migration
+   ```bash
+   1412ec1e5a7b (head)
+   67da9ef1ef9c (head)
+   ```
+
+2. Pick one of them as the parent revision, open the script for the other revision
+   and update `Revises` and `down_revision` to the new parent revision. E.g.:
+
+   ```diff
+   --- a/67da9ef1ef9c_add_hide_left_bar_to_tabstate.py
+   +++ b/67da9ef1ef9c_add_hide_left_bar_to_tabstate.py
+   @@ -17,14 +17,14 @@
+   """add hide_left_bar to tabstate
+
+   Revision ID: 67da9ef1ef9c
+   -Revises: c501b7c653a3
+   +Revises: 1412ec1e5a7b
+   Create Date: 2021-02-22 11:22:10.156942
+
+   """
+
+   # revision identifiers, used by Alembic.
+   revision = "67da9ef1ef9c"
+   -down_revision = "c501b7c653a3"
+   +down_revision = "1412ec1e5a7b"
+
+   import sqlalchemy as sa
+   from alembic import op
+   ```
+
+   Alternatively you may also run `superset db merge` to create a migration script
+   just for merging the heads.
 
    ```bash
    superset db merge {HASH1} {HASH2}
    ```
 
-1. Upgrade the DB to the new checkpoint
+3. Upgrade the DB to the new checkpoint
 
    ```bash
    superset db upgrade

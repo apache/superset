@@ -19,12 +19,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
-import { Select } from 'src/common/components/Select';
+import { NativeSelect as Select } from 'src/components/Select';
 import { Input } from 'src/common/components';
 import { t, SupersetClient, styled } from '@superset-ui/core';
 
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
-import columnType from 'src/explore/propTypes/columnType';
 import {
   OPERATORS,
   OPERATORS_OPTIONS,
@@ -36,6 +35,7 @@ import {
   DISABLE_INPUT_OPERATORS,
 } from 'src/explore/constants';
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
+import columnType from './columnType';
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from './AdhocFilter';
 
 const SelectWithLabel = styled(Select)`

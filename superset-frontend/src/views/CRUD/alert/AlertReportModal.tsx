@@ -24,9 +24,8 @@ import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
 import { Switch } from 'src/common/components/Switch';
-import { GraySelect as Select } from 'src/common/components/Select';
 import { Radio } from 'src/common/components/Radio';
-import { AsyncSelect } from 'src/components/Select';
+import { AsyncSelect, NativeGraySelect as Select } from 'src/components/Select';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Owner from 'src/types/Owner';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
@@ -42,6 +41,7 @@ import {
 } from './types';
 
 const SELECT_PAGE_SIZE = 2000; // temporary fix for paginated query
+const TIMEOUT_MIN = 1;
 
 type SelectValue = {
   value: string;
@@ -417,7 +417,6 @@ const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const onMethodChange = (method: NotificationMethod) => {
     // Since we're swapping the method, reset the recipients
     setRecipientValue('');
-
     if (onUpdate) {
       const updatedSetting = {
         ...setting,
@@ -463,6 +462,7 @@ const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
         <StyledInputContainer>
           <div className="input-container">
             <Select
+              data-test="select-delivery-method"
               onChange={onMethodChange}
               placeholder="Select Delivery Method"
               defaultValue={method}
@@ -584,8 +584,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     clearError();
     setIsHidden(true);
     onHide();
-    setCurrentAlert({ ...DEFAULT_ALERT });
     setNotificationSettings([]);
+    setCurrentAlert({ ...DEFAULT_ALERT });
+    setNotificationAddState('active');
   };
 
   const onSave = () => {
@@ -610,11 +611,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       validator_config_json: conditionNotNull
         ? {}
         : currentAlert?.validator_config_json,
-      chart: contentType === 'chart' ? currentAlert?.chart?.value : undefined,
+      chart: contentType === 'chart' ? currentAlert?.chart?.value : null,
       dashboard:
-        contentType === 'dashboard'
-          ? currentAlert?.dashboard?.value
-          : undefined,
+        contentType === 'dashboard' ? currentAlert?.dashboard?.value : null,
       database: currentAlert?.database?.value,
       owners: (currentAlert?.owners || []).map(
         owner => (owner as MetaObject).value,
@@ -837,6 +836,23 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState(target.name, target.value);
   };
 
+  const onTimeoutVerifyChange = (
+    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+  ) => {
+    const { target } = event;
+    const value = +target.value;
+
+    // Need to make sure grace period is not lower than TIMEOUT_MIN
+    if (value === 0) {
+      updateAlertState(target.name, null);
+    } else {
+      updateAlertState(
+        target.name,
+        value ? Math.max(value, TIMEOUT_MIN) : value,
+      );
+    }
+  };
+
   const onSQLChange = (value: string) => {
     updateAlertState('sql', value || '');
   };
@@ -851,10 +867,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const onDashboardChange = (dashboard: SelectValue) => {
     updateAlertState('dashboard', dashboard || undefined);
+    updateAlertState('chart', null);
   };
 
   const onChartChange = (chart: SelectValue) => {
     updateAlertState('chart', chart || undefined);
+    updateAlertState('dashboard', null);
   };
 
   const onActiveSwitch = (checked: boolean) => {
@@ -978,6 +996,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }));
 
       setNotificationSettings(settings);
+      setNotificationAddState(
+        settings.length === NOTIFICATION_METHODS.length ? 'hidden' : 'active',
+      );
       setContentType(resource.chart ? 'chart' : 'dashboard');
 
       const validatorConfig =
@@ -1105,7 +1126,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               {t('Owners')}
               <span className="required">*</span>
             </div>
-            <div className="input-container">
+            <div data-test="owners-select" className="input-container">
               <AsyncSelect
                 name="owners"
                 isMulti
@@ -1283,10 +1304,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <div className="input-container">
                 <input
                   type="number"
+                  min="1"
                   name="working_timeout"
-                  value={currentAlert ? currentAlert.working_timeout : ''}
+                  value={currentAlert?.working_timeout || ''}
                   placeholder={t('Time in seconds')}
-                  onChange={onTextChange}
+                  onChange={onTimeoutVerifyChange}
                 />
                 <span className="input-label">seconds</span>
               </div>
@@ -1297,10 +1319,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <div className="input-container">
                   <input
                     type="number"
+                    min="1"
                     name="grace_period"
                     value={currentAlert?.grace_period || ''}
                     placeholder={t('Time in seconds')}
-                    onChange={onTextChange}
+                    onChange={onTimeoutVerifyChange}
                   />
                   <span className="input-label">seconds</span>
                 </div>
@@ -1375,6 +1398,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               onRemove={removeNotificationSetting}
             />
             <NotificationMethodAdd
+              data-test="notification-add"
               status={notificationAddState}
               onClick={onNotificationAdd}
             />

@@ -17,12 +17,13 @@
  * under the License.
  */
 import React, { FunctionComponent, useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import { styled, t, SupersetClient } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import InfoTooltip from 'src/common/components/InfoTooltip';
-import { useSingleViewResource } from 'src/views/CRUD/hooks';
+import {
+  useSingleViewResource,
+  testDatabaseConnection,
+} from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
 import Tabs from 'src/common/components/Tabs';
@@ -30,6 +31,7 @@ import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 import { DatabaseObject } from './types';
+import { useCommonConf } from './state';
 
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
@@ -38,17 +40,6 @@ interface DatabaseModalProps {
   onHide: () => void;
   show: boolean;
   database?: DatabaseObject | null; // If included, will go into edit mode
-}
-
-// todo: define common type fully in types file
-interface RootState {
-  common: {
-    conf: {
-      SQLALCHEMY_DOCS_URL: string;
-      SQLALCHEMY_DISPLAY_TEXT: string;
-    };
-  };
-  messageToast: Array<Object>;
 }
 
 const DEFAULT_TAB_KEY = '1';
@@ -143,7 +134,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [db, setDB] = useState<DatabaseObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
-  const conf = useSelector((state: RootState) => state.common.conf);
+  const conf = useCommonConf();
 
   const isEditMode = database !== null;
   const defaultExtra =
@@ -172,36 +163,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     const connection = {
       sqlalchemy_uri: db ? db.sqlalchemy_uri : '',
       database_name:
-        db && db.database_name.length ? db.database_name : undefined,
+        db && db.database_name.trim().length
+          ? db.database_name.trim()
+          : undefined,
       impersonate_user: db ? db.impersonate_user || undefined : undefined,
       extra: db && db.extra && db.extra.length ? db.extra : undefined,
       encrypted_extra: db ? db.encrypted_extra || undefined : undefined,
       server_cert: db ? db.server_cert || undefined : undefined,
     };
 
-    SupersetClient.post({
-      endpoint: 'api/v1/database/test_connection',
-      body: JSON.stringify(connection),
-      headers: { 'Content-Type': 'application/json' },
-    })
-      .then(() => {
-        addSuccessToast(t('Connection looks good!'));
-      })
-      .catch(response =>
-        getClientErrorObject(response).then(error => {
-          addDangerToast(
-            error?.message
-              ? `${t('ERROR: ')}${
-                  typeof error.message === 'string'
-                    ? error.message
-                    : Object.entries(error.message as Record<string, string[]>)
-                        .map(([key, value]) => `(${key}) ${value.join(', ')}`)
-                        .join('\n')
-                }`
-              : t('ERROR: Connection failed. '),
-          );
-        }),
-      );
+    testDatabaseConnection(connection, addDangerToast, addSuccessToast);
   };
 
   // Functions
@@ -214,7 +185,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (isEditMode) {
       // Edit
       const update: DatabaseObject = {
-        database_name: db ? db.database_name : '',
+        database_name: db ? db.database_name.trim() : '',
         sqlalchemy_uri: db ? db.sqlalchemy_uri : '',
         ...db,
       };
@@ -236,6 +207,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     } else if (db) {
       // Create
+      db.database_name = db.database_name.trim();
       createResource(db).then(dbId => {
         if (dbId) {
           if (onDatabaseAdd) {
@@ -258,8 +230,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (target.type === 'checkbox') {
       data[target.name] = target.checked;
     } else {
-      data[target.name] =
-        typeof target.value === 'string' ? target.value.trim() : target.value;
+      data[target.name] = target.value;
     }
 
     setDB(data);
@@ -291,7 +262,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const validate = () => {
     if (
       db &&
-      db.database_name.length &&
+      db.database_name.trim().length &&
       db.sqlalchemy_uri &&
       db.sqlalchemy_uri.length
     ) {

@@ -19,8 +19,12 @@
 import { useEffect } from 'react';
 import { FormInstance } from 'antd/lib/form';
 import { getChartDataRequest } from 'src/chart/chartAction';
+import { ChartDataResponseResult, t } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { NativeFiltersForm } from '../types';
-import { setFilterFieldValues, useForceUpdate } from './utils';
+import { setNativeFilterFieldValues, useForceUpdate } from './utils';
 import { Filter } from '../../types';
 import { getFormData } from '../../utils';
 
@@ -31,6 +35,7 @@ export const useBackendFormUpdate = (
   filterId: string,
   filterToEdit?: Filter,
   hasDatasource?: boolean,
+  hasColumn?: boolean,
 ) => {
   const forceUpdate = useForceUpdate();
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
@@ -42,11 +47,15 @@ export const useBackendFormUpdate = (
     }
     // No need to check data set change because it cascading update column
     // So check that column exists is enough
-    if (!formFilter?.column) {
-      setFilterFieldValues(form, filterId, {
+    if (hasColumn && !formFilter?.column) {
+      setNativeFilterFieldValues(form, filterId, {
         defaultValueQueriesData: [],
         defaultValue: resolvedDefaultValue,
       });
+      return;
+    }
+    if (!formFilter?.dataset?.value) {
+      // no need to make chart data request if no dataset is defined
       return;
     }
     const formData = getFormData({
@@ -55,6 +64,11 @@ export const useBackendFormUpdate = (
       defaultValue: formFilter?.defaultValue,
       ...formFilter,
     });
+    setNativeFilterFieldValues(form, filterId, {
+      defaultValueQueriesData: null,
+      defaultValue: resolvedDefaultValue,
+    });
+    forceUpdate();
     getChartDataRequest({
       formData,
       force: false,
@@ -63,15 +77,36 @@ export const useBackendFormUpdate = (
       if (
         filterToEdit?.filterType === formFilter?.filterType &&
         filterToEdit?.targets[0].datasetId === formFilter?.dataset?.value &&
-        formFilter?.column === filterToEdit?.targets[0].column?.name
+        (!hasColumn ||
+          formFilter?.column === filterToEdit?.targets[0].column?.name)
       ) {
         resolvedDefaultValue = filterToEdit?.defaultValue;
       }
-      setFilterFieldValues(form, filterId, {
-        defaultValueQueriesData: response.result,
-        defaultValue: resolvedDefaultValue,
-      });
-      forceUpdate();
+      if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+        // deal with getChartDataRequest transforming the response data
+        const result = 'result' in response ? response.result[0] : response;
+        waitForAsyncData(result)
+          .then((asyncResult: ChartDataResponseResult[]) => {
+            setNativeFilterFieldValues(form, filterId, {
+              defaultValueQueriesData: asyncResult,
+              defaultValue: resolvedDefaultValue,
+            });
+            forceUpdate();
+          })
+          .catch((error: ClientErrorObject) => {
+            // TODO: show error once this logic is moved into new NativeFilter
+            //  component
+            console.error(
+              error.message || error.error || t('Check configuration'),
+            );
+          });
+      } else {
+        setNativeFilterFieldValues(form, filterId, {
+          defaultValueQueriesData: response.result,
+          defaultValue: resolvedDefaultValue,
+        });
+        forceUpdate();
+      }
     });
   }, [
     formFilter?.filterType,

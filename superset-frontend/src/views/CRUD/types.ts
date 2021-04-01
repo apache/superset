@@ -23,18 +23,27 @@ export type FavoriteStatus = {
   [id: number]: boolean;
 };
 
+export type Filters = {
+  col: string;
+  opr: string;
+  value: string;
+};
+
 export interface DashboardTableProps {
   addDangerToast: (message: string) => void;
   addSuccessToast: (message: string) => void;
   search: string;
   user?: User;
   mine: Array<Dashboard>;
+  showThumbnails?: boolean;
+  featureFlag?: boolean;
 }
 
 export interface Dashboard {
   changed_by_name: string;
   changed_by_url: string;
-  changed_on_delta_humanized: string;
+  changed_on_delta_humanized?: string;
+  changed_on_utc?: string;
   changed_by: string;
   dashboard_title: string;
   slice_name?: string;
@@ -47,13 +56,15 @@ export interface Dashboard {
 }
 
 export type SavedQueryObject = {
+  id: number;
+  changed_on: string;
+  changed_on_delta_humanized: string;
   database: {
     database_name: string;
     id: number;
   };
   db_id: number;
   description?: string;
-  id: number;
   label: string;
   schema: string;
   sql: string | null;
@@ -113,3 +124,13 @@ export enum QueryObjectColumns {
 }
 
 export type ImportResourceName = 'chart' | 'dashboard' | 'database' | 'dataset';
+
+export type DatabaseObject = {
+  allow_run_async?: boolean;
+  database_name?: string;
+  encrypted_extra?: string;
+  extra?: string;
+  impersonate_user?: boolean;
+  server_cert?: string;
+  sqlalchemy_uri: string;
+};

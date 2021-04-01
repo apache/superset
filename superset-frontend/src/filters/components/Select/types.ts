@@ -17,9 +17,13 @@
  * under the License.
  */
 import {
-  QueryFormData,
+  ChartProps,
+  Behavior,
   DataRecord,
-  SetExtraFormDataHook,
+  GenericDataType,
+  QueryFormData,
+  SetDataMaskHook,
+  ChartDataResponseResult,
 } from '@superset-ui/core';
 import { RefObject } from 'react';
 import { PluginFilterStylesProps } from '../types';
@@ -28,19 +32,25 @@ interface PluginFilterSelectCustomizeProps {
   defaultValue?: (string | number)[] | null;
   currentValue?: (string | number)[] | null;
   enableEmptyFilter: boolean;
-  fetchPredicate?: string;
   inverseSelection: boolean;
   multiSelect: boolean;
   inputRef?: RefObject<HTMLInputElement>;
+  sortAscending: boolean;
 }
 
 export type PluginFilterSelectQueryFormData = QueryFormData &
   PluginFilterStylesProps &
   PluginFilterSelectCustomizeProps;
 
+export interface PluginFilterSelectChartProps extends ChartProps {
+  queriesData: ChartDataResponseResult[];
+}
+
 export type PluginFilterSelectProps = PluginFilterStylesProps & {
+  coltypeMap: Record<string, GenericDataType>;
   data: DataRecord[];
-  setExtraFormData: SetExtraFormDataHook;
+  setDataMask: SetDataMaskHook;
+  behaviors: Behavior[];
   formData: PluginFilterSelectQueryFormData;
 };
 
@@ -48,7 +58,7 @@ export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {
   defaultValue: null,
   currentValue: null,
   enableEmptyFilter: false,
-  fetchPredicate: '',
   inverseSelection: false,
-  multiSelect: false,
+  multiSelect: true,
+  sortAscending: true,
 };

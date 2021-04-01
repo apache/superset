@@ -19,47 +19,32 @@
 import {
   AnyFilterAction,
   SAVE_FILTER_SETS,
-  SET_EXTRA_FORM_DATA,
   SET_FILTER_CONFIG_COMPLETE,
   SET_FILTER_SETS_CONFIG_COMPLETE,
-  SET_FILTERS_STATE,
 } from 'src/dashboard/actions/nativeFilters';
-import { FiltersSet, NativeFiltersState, NativeFilterState } from './types';
+import { FilterSet, NativeFiltersState } from './types';
 import { FilterConfiguration } from '../components/nativeFilters/types';
-
-export function getInitialFilterState(id: string): NativeFilterState {
-  return {
-    id,
-    extraFormData: {},
-    currentState: {},
-  };
-}
 
 export function getInitialState({
   filterSetsConfig,
   filterConfig,
   state: prevState,
 }: {
-  filterSetsConfig?: FiltersSet[];
+  filterSetsConfig?: FilterSet[];
   filterConfig?: FilterConfiguration;
   state?: NativeFiltersState;
 }): NativeFiltersState {
   const state: Partial<NativeFiltersState> = {};
 
   const filters = {};
-  const filtersState = {};
   if (filterConfig) {
     filterConfig.forEach(filter => {
       const { id } = filter;
       filters[id] = filter;
-      filtersState[id] =
-        prevState?.filtersState?.[id] || getInitialFilterState(id);
     });
     state.filters = filters;
-    state.filtersState = filtersState;
   } else {
     state.filters = prevState?.filters ?? {};
-    state.filtersState = prevState?.filtersState ?? {};
   }
 
   if (filterSetsConfig) {
@@ -76,24 +61,14 @@ export function getInitialState({
 }
 
 export default function nativeFilterReducer(
-  state: NativeFiltersState = { filters: {}, filtersState: {}, filterSets: {} },
+  state: NativeFiltersState = {
+    filters: {},
+    filterSets: {},
+  },
   action: AnyFilterAction,
 ) {
-  const { filters, filtersState, filterSets } = state;
+  const { filterSets } = state;
   switch (action.type) {
-    case SET_EXTRA_FORM_DATA:
-      return {
-        ...state,
-        filters,
-        filtersState: {
-          ...filtersState,
-          [action.filterId]: {
-            ...filtersState[action.filterId],
-            extraFormData: action.extraFormData,
-            currentState: action.currentState,
-          },
-        },
-      };
     case SAVE_FILTER_SETS:
       return {
         ...state,
@@ -102,16 +77,8 @@ export default function nativeFilterReducer(
           [action.filtersSetId]: {
             id: action.filtersSetId,
             name: action.name,
-            filtersState: action.filtersState,
+            dataMask: action.dataMask,
           },
-        },
-      };
-    case SET_FILTERS_STATE:
-      return {
-        ...state,
-        filtersState: {
-          ...filtersState,
-          ...action.filtersState,
         },
       };
 

@@ -82,7 +82,7 @@ ENV LANG=C.UTF-8 \
     FLASK_APP="superset.app:create_app()" \
     PYTHONPATH="/app/pythonpath" \
     SUPERSET_HOME="/app/superset_home" \
-    SUPERSET_PORT=8080
+    SUPERSET_PORT=8088
 
 RUN useradd --user-group --no-create-home --no-log-init --shell /bin/bash superset \
         && mkdir -p ${SUPERSET_HOME} ${PYTHONPATH} \
@@ -90,6 +90,7 @@ RUN useradd --user-group --no-create-home --no-log-init --shell /bin/bash supers
         && apt-get install -y --no-install-recommends \
             build-essential \
             default-libmysqlclient-dev \
+            libsasl2-modules-gssapi-mit \
             libpq-dev \
         && rm -rf /var/lib/apt/lists/*
 
@@ -131,3 +132,17 @@ RUN cd /app \
     && pip install --no-cache -r requirements/docker.txt \
     && pip install --no-cache -r requirements/requirements-local.txt || true
 USER superset
+
+
+######################################################################
+# CI image...
+######################################################################
+FROM lean AS ci
+
+COPY --chown=superset ./docker/docker-bootstrap.sh /app/docker/
+COPY --chown=superset ./docker/docker-init.sh /app/docker/
+COPY --chown=superset ./docker/docker-ci.sh /app/docker/
+
+RUN chmod a+x /app/docker/*.sh
+
+CMD /app/docker/docker-ci.sh

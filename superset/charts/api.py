@@ -484,12 +484,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         if result_format == ChartDataResultFormat.CSV:
             # return the first result
             data = result["queries"][0]["data"]
-            return CsvResponse(
-                data,
-                status=200,
-                headers=generate_download_headers("csv"),
-                mimetype="application/csv",
-            )
+            return CsvResponse(data, headers=generate_download_headers("csv"))
 
         if result_format == ChartDataResultFormat.JSON:
             response_data = simplejson.dumps(
@@ -993,11 +988,14 @@ class ChartRestApi(BaseSupersetModelRestApi):
                   type: object
                   properties:
                     formData:
+                      description: upload file (ZIP)
                       type: string
                       format: binary
                     passwords:
+                      description: JSON map of passwords for each file
                       type: string
                     overwrite:
+                      description: overwrite existing databases?
                       type: bool
           responses:
             200:

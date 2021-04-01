@@ -17,8 +17,9 @@
 from typing import Any, Dict, Union
 
 from croniter import croniter
+from flask_babel import gettext as _
 from marshmallow import fields, Schema, validate, validates_schema
-from marshmallow.validate import Length, ValidationError
+from marshmallow.validate import Length, Range, ValidationError
 
 from superset.models.reports import (
     ReportRecipientType,
@@ -147,8 +148,8 @@ class ReportSchedulePostSchema(Schema):
     sql = fields.String(
         description=sql_description, example="SELECT value FROM time_series_table"
     )
-    chart = fields.Integer(required=False)
-    dashboard = fields.Integer(required=False)
+    chart = fields.Integer(required=False, allow_none=True)
+    dashboard = fields.Integer(required=False, allow_none=True)
     database = fields.Integer(required=False)
     owners = fields.List(fields.Integer(description=owners_description))
     validator_type = fields.String(
@@ -158,14 +159,22 @@ class ReportSchedulePostSchema(Schema):
         ),
     )
     validator_config_json = fields.Nested(ValidatorConfigJSONSchema)
-    log_retention = fields.Integer(description=log_retention_description, example=90)
+    log_retention = fields.Integer(
+        description=log_retention_description,
+        example=90,
+        validate=[Range(min=1, error=_("Value must be greater than 0"))],
+    )
     grace_period = fields.Integer(
-        description=grace_period_description, example=60 * 60 * 4, default=60 * 60 * 4
+        description=grace_period_description,
+        example=60 * 60 * 4,
+        default=60 * 60 * 4,
+        validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
     working_timeout = fields.Integer(
         description=working_timeout_description,
         example=60 * 60 * 1,
         default=60 * 60 * 1,
+        validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
 
     recipients = fields.List(fields.Nested(ReportRecipientSchema))
@@ -211,8 +220,8 @@ class ReportSchedulePutSchema(Schema):
         required=False,
         allow_none=True,
     )
-    chart = fields.Integer(required=False)
-    dashboard = fields.Integer(required=False)
+    chart = fields.Integer(required=False, allow_none=True)
+    dashboard = fields.Integer(required=False, allow_none=True)
     database = fields.Integer(required=False)
     owners = fields.List(fields.Integer(description=owners_description), required=False)
     validator_type = fields.String(
@@ -225,15 +234,22 @@ class ReportSchedulePutSchema(Schema):
     )
     validator_config_json = fields.Nested(ValidatorConfigJSONSchema, required=False)
     log_retention = fields.Integer(
-        description=log_retention_description, example=90, required=False
+        description=log_retention_description,
+        example=90,
+        required=False,
+        validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
     grace_period = fields.Integer(
-        description=grace_period_description, example=60 * 60 * 4, required=False
+        description=grace_period_description,
+        example=60 * 60 * 4,
+        required=False,
+        validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
     working_timeout = fields.Integer(
         description=working_timeout_description,
         example=60 * 60 * 1,
         allow_none=True,
         required=False,
+        validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
     recipients = fields.List(fields.Nested(ReportRecipientSchema), required=False)

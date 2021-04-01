@@ -38,6 +38,7 @@ import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeContr
 import { getClientErrorObject } from '../../utils/getClientErrorObject';
 import withToasts from '../../messageToasts/enhancers/withToasts';
 import '../stylesheets/buttons.less';
+import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 
 const StyledJsonEditor = styled(JsonEditor)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
@@ -85,10 +86,10 @@ const handleErrorResponse = async response => {
   });
 };
 
-const loadOwnerOptions = (input = '') => {
+const loadAccessOptions = accessType => (input = '') => {
   const query = rison.encode({ filter: input });
   return SupersetClient.get({
-    endpoint: `/api/v1/dashboard/related/owners?q=${query}`,
+    endpoint: `/api/v1/dashboard/related/${accessType}?q=${query}`,
   }).then(
     response =>
       response.json.result.map(item => ({
@@ -111,6 +112,7 @@ class PropertiesModal extends React.PureComponent {
         dashboard_title: '',
         slug: '',
         owners: [],
+        roles: [],
         json_metadata: '',
         colorScheme: props.colorScheme,
       },
@@ -120,9 +122,12 @@ class PropertiesModal extends React.PureComponent {
     this.onChange = this.onChange.bind(this);
     this.onMetadataChange = this.onMetadataChange.bind(this);
     this.onOwnersChange = this.onOwnersChange.bind(this);
+    this.onRolesChange = this.onRolesChange.bind(this);
     this.submit = this.submit.bind(this);
     this.toggleAdvanced = this.toggleAdvanced.bind(this);
     this.onColorSchemeChange = this.onColorSchemeChange.bind(this);
+    this.getRowsWithRoles = this.getRowsWithRoles.bind(this);
+    this.getRowsWithoutRoles = this.getRowsWithoutRoles.bind(this);
   }
 
   componentDidMount() {
@@ -161,6 +166,10 @@ class PropertiesModal extends React.PureComponent {
 
   onOwnersChange(value) {
     this.updateFormState('owners', value);
+  }
+
+  onRolesChange(value) {
+    this.updateFormState('roles', value);
   }
 
   onMetadataChange(metadata) {
@@ -202,7 +211,12 @@ class PropertiesModal extends React.PureComponent {
         value: owner.id,
         label: `${owner.first_name} ${owner.last_name}`,
       }));
+      const initialSelectedRoles = dashboard.roles.map(role => ({
+        value: role.id,
+        label: `${role.name}`,
+      }));
       this.onOwnersChange(initialSelectedOwners);
+      this.onRolesChange(initialSelectedRoles);
     }, handleErrorResponse);
   }
 
@@ -231,10 +245,12 @@ class PropertiesModal extends React.PureComponent {
         dashboard_title: dashboardTitle,
         colorScheme,
         owners: ownersValue,
+        roles: rolesValue,
       },
     } = this.state;
     const { onlyApply } = this.props;
-    const owners = ownersValue.map(o => o.value);
+    const owners = ownersValue?.map(o => o.value) ?? [];
+    const roles = rolesValue?.map(o => o.value) ?? [];
     let metadataColorScheme;
 
     // update color scheme to match metadata
@@ -247,6 +263,12 @@ class PropertiesModal extends React.PureComponent {
       }
     }
 
+    const moreProps = {};
+    const morePutProps = {};
+    if (isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)) {
+      moreProps.rolesIds = roles;
+      morePutProps.roles = roles;
+    }
     if (onlyApply) {
       this.props.onSubmit({
         id: this.props.dashboardId,
@@ -255,6 +277,7 @@ class PropertiesModal extends React.PureComponent {
         jsonMetadata,
         ownerIds: owners,
         colorScheme: metadataColorScheme || colorScheme,
+        ...moreProps,
       });
       this.props.onHide();
     } else {
@@ -266,8 +289,13 @@ class PropertiesModal extends React.PureComponent {
           slug: slug || null,
           json_metadata: jsonMetadata || null,
           owners,
+          ...morePutProps,
         }),
       }).then(({ json: { result } }) => {
+        const moreResultProps = {};
+        if (isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)) {
+          moreResultProps.rolesIds = result.roles;
+        }
         this.props.addSuccessToast(t('The dashboard has been saved'));
         this.props.onSubmit({
           id: this.props.dashboardId,
@@ -276,10 +304,107 @@ class PropertiesModal extends React.PureComponent {
           jsonMetadata: result.json_metadata,
           ownerIds: result.owners,
           colorScheme: metadataColorScheme || colorScheme,
+          ...moreResultProps,
         });
         this.props.onHide();
       }, handleErrorResponse);
     }
+  }
+
+  getRowsWithoutRoles() {
+    const { values, isDashboardLoaded } = this.state;
+    return (
+      <Row>
+        <Col md={6}>
+          <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
+          <FormLabel htmlFor="owners">{t('Owners')}</FormLabel>
+          <AsyncSelect
+            name="owners"
+            isMulti
+            value={values.owners}
+            loadOptions={loadAccessOptions('owners')}
+            defaultOptions // load options on render
+            cacheOptions
+            onChange={this.onOwnersChange}
+            disabled={!isDashboardLoaded}
+            filterOption={null} // options are filtered at the api
+          />
+          <p className="help-block">
+            {t(
+              'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
+            )}
+          </p>
+        </Col>
+        <Col md={6}>
+          <h3 style={{ marginTop: '1em' }}>{t('Colors')}</h3>
+          <ColorSchemeControlWrapper
+            onChange={this.onColorSchemeChange}
+            colorScheme={values.colorScheme}
+          />
+        </Col>
+      </Row>
+    );
+  }
+
+  getRowsWithRoles() {
+    const { values, isDashboardLoaded } = this.state;
+    return (
+      <>
+        <Row>
+          <Col md={12}>
+            <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
+          </Col>
+        </Row>
+        <Row>
+          <Col md={6}>
+            <FormLabel htmlFor="owners">{t('Owners')}</FormLabel>
+            <AsyncSelect
+              name="owners"
+              isMulti
+              value={values.owners}
+              loadOptions={loadAccessOptions('owners')}
+              defaultOptions // load options on render
+              cacheOptions
+              onChange={this.onOwnersChange}
+              disabled={!isDashboardLoaded}
+              filterOption={null} // options are filtered at the api
+            />
+            <p className="help-block">
+              {t(
+                'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
+              )}
+            </p>
+          </Col>
+          <Col md={6}>
+            <FormLabel htmlFor="roles">{t('Roles')}</FormLabel>
+            <AsyncSelect
+              name="roles"
+              isMulti
+              value={values.roles}
+              loadOptions={loadAccessOptions('roles')}
+              defaultOptions // load options on render
+              cacheOptions
+              onChange={this.onRolesChange}
+              disabled={!isDashboardLoaded}
+              filterOption={null} // options are filtered at the api
+            />
+            <p className="help-block">
+              {t(
+                'Roles is a list which defines access to the dashboard. These roles are always applied in addition to restrictions on dataset level access. If no roles defined then the dashboard is available to all roles.',
+              )}
+            </p>
+          </Col>
+        </Row>
+        <Row>
+          <Col md={6}>
+            <ColorSchemeControlWrapper
+              onChange={this.onColorSchemeChange}
+              colorScheme={values.colorScheme}
+            />
+          </Col>
+        </Row>
+      </>
+    );
   }
 
   render() {
@@ -352,35 +477,9 @@ class PropertiesModal extends React.PureComponent {
               </p>
             </Col>
           </Row>
-          <Row>
-            <Col md={6}>
-              <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
-              <FormLabel htmlFor="owners">{t('Owners')}</FormLabel>
-              <AsyncSelect
-                name="owners"
-                isMulti
-                value={values.owners}
-                loadOptions={loadOwnerOptions}
-                defaultOptions // load options on render
-                cacheOptions
-                onChange={this.onOwnersChange}
-                disabled={!isDashboardLoaded}
-                filterOption={null} // options are filtered at the api
-              />
-              <p className="help-block">
-                {t(
-                  'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
-                )}
-              </p>
-            </Col>
-            <Col md={6}>
-              <h3 style={{ marginTop: '1em' }}>{t('Colors')}</h3>
-              <ColorSchemeControlWrapper
-                onChange={this.onColorSchemeChange}
-                colorScheme={values.colorScheme}
-              />
-            </Col>
-          </Row>
+          {isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)
+            ? this.getRowsWithRoles()
+            : this.getRowsWithoutRoles()}
           <Row>
             <Col md={12}>
               <h3 style={{ marginTop: '1em' }}>

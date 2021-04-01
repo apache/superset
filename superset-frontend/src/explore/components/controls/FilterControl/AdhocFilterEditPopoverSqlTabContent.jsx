@@ -19,13 +19,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
-import { Select } from 'src/common/components/Select';
+import { NativeSelect as Select } from 'src/components/Select';
 import { t } from '@superset-ui/core';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
-import columnType from 'src/explore/propTypes/columnType';
+import columnType from './columnType';
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from './AdhocFilter';
 
 const propTypes = {

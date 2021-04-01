@@ -19,7 +19,7 @@
 import React, { CSSProperties } from 'react';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
-import ProgressBar from 'src/common/components/ProgressBar';
+import ProgressBar from 'src/components/ProgressBar';
 import moment from 'moment';
 import { RadioChangeEvent } from 'antd/lib/radio';
 import Button from 'src/components/Button';
@@ -27,7 +27,6 @@ import shortid from 'shortid';
 import rison from 'rison';
 import { styled, t, makeApi } from '@superset-ui/core';
 import { debounce } from 'lodash';
-
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { put as updateDatset } from 'src/api/dataset';
@@ -65,6 +64,7 @@ interface DatasetOptionAutocomplete {
 }
 
 interface ResultSetProps {
+  showControls?: boolean;
   actions: Record<string, any>;
   cache?: boolean;
   csv?: boolean;
@@ -98,6 +98,26 @@ const MonospaceDiv = styled.div`
   word-break: break-word;
   overflow-x: auto;
   white-space: pre-wrap;
+`;
+
+const ReturnedRows = styled.div`
+  font-size: 13px;
+  line-height: 24px;
+`;
+const ResultSetControls = styled.div`
+  display: flex;
+  justify-content: space-between;
+  padding: ${({ theme }) => 2 * theme.gridUnit}px 0;
+`;
+
+const ResultSetButtons = styled.div`
+  display: grid;
+  grid-auto-flow: column;
+  padding-right: ${({ theme }) => 2 * theme.gridUnit}px;
+`;
+
+const ResultSetErrorMessage = styled.div`
+  padding-top: ${({ theme }) => 4 * theme.gridUnit}px;
 `;
 
 export default class ResultSet extends React.PureComponent<
@@ -387,7 +407,7 @@ export default class ResultSet extends React.PureComponent<
       query.errorMessage &&
       query.errorMessage.indexOf('session timed out') > 0
     ) {
-      this.props.actions.runQuery(query, true);
+      this.props.actions.reRunQuery(query);
     }
   }
 
@@ -416,7 +436,7 @@ export default class ResultSet extends React.PureComponent<
           saveModalAutocompleteValue.length === 0);
 
       return (
-        <div className="ResultSetControls">
+        <ResultSetControls>
           <SaveDatasetModal
             visible={showSaveDatasetModal}
             onOk={this.handleSaveInDataset}
@@ -435,7 +455,7 @@ export default class ResultSet extends React.PureComponent<
             filterAutocompleteOption={this.handleFilterAutocompleteOption}
             onChangeAutoComplete={this.handleOnChangeAutoComplete}
           />
-          <div className="ResultSetButtons">
+          <ResultSetButtons>
             {this.props.visualize &&
               this.props.database &&
               this.props.database.allows_virtual_table_explore && (
@@ -452,7 +472,7 @@ export default class ResultSet extends React.PureComponent<
                 buttonSize="small"
                 href={`/superset/csv/${this.props.query.id}`}
               >
-                <i className="fa fa-file-text-o" /> {t('.CSV')}
+                <i className="fa fa-file-text-o" /> {t('Download to CSV')}
               </Button>
             )}
 
@@ -461,11 +481,11 @@ export default class ResultSet extends React.PureComponent<
               wrapped={false}
               copyNode={
                 <Button buttonSize="small">
-                  <i className="fa fa-clipboard" /> {t('Clipboard')}
+                  <i className="fa fa-clipboard" /> {t('Copy to Clipboard')}
                 </Button>
               }
             />
-          </div>
+          </ResultSetButtons>
           {this.props.search && (
             <input
               type="text"
@@ -475,10 +495,32 @@ export default class ResultSet extends React.PureComponent<
               placeholder={t('Filter results')}
             />
           )}
-        </div>
+        </ResultSetControls>
       );
     }
-    return <div className="noControls" />;
+    return <div />;
+  }
+
+  renderRowsReturned() {
+    const { results, rows, queryLimit } = this.props.query;
+    const limitReached = results?.displayLimitReached;
+    return (
+      <ReturnedRows>
+        {!limitReached && <span>{t(`%s rows returned`, rows)}</span>}
+        {limitReached && (
+          <Alert
+            type="warning"
+            message={t(
+              `The number of results displayed is limited to %s. Please add
+            additional limits/filters or download to csv to see more rows up to
+            the %s limit.`,
+              rows,
+              queryLimit,
+            )}
+          />
+        )}
+      </ReturnedRows>
+    );
   }
 
   render() {
@@ -502,7 +544,7 @@ export default class ResultSet extends React.PureComponent<
     }
     if (query.state === 'failed') {
       return (
-        <div className="result-set-error-message">
+        <ResultSetErrorMessage>
           <ErrorMessageWithStackTrace
             title={t('Database error')}
             error={query?.errors?.[0]}
@@ -511,7 +553,7 @@ export default class ResultSet extends React.PureComponent<
             link={query.link}
             source="sqllab"
           />
-        </div>
+        </ResultSetErrorMessage>
       );
     }
     if (query.state === 'success' && query.ctas) {
@@ -570,6 +612,7 @@ export default class ResultSet extends React.PureComponent<
         return (
           <>
             {this.renderControls()}
+            {this.renderRowsReturned()}
             {sql}
             <FilterableTable
               data={data}
@@ -592,7 +635,6 @@ export default class ResultSet extends React.PureComponent<
         return (
           <Button
             buttonSize="small"
-            className="fetch"
             buttonStyle="primary"
             onClick={() =>
               this.reFetchQueryResults({
@@ -609,7 +651,6 @@ export default class ResultSet extends React.PureComponent<
         return (
           <Button
             buttonSize="small"
-            className="fetch"
             buttonStyle="primary"
             onClick={() => this.fetchResults(query)}
           >

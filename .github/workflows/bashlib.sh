@@ -191,11 +191,6 @@ cypress-run-all() {
 
   cypress-run "*/**/*"
 
-  # Upload code coverage separately so each page can have separate flags
-  # -c will clean existing coverage reports, -F means add flags
-  # || true to prevent CI failure on codecov upload
-  codecov -cF "cypress" || true
-
   # After job is done, print out Flask log for debugging
   say "::group::Flask log for default run"
   cat "$flasklog"
@@ -211,8 +206,10 @@ cypress-run-all() {
 
   cypress-run "sqllab/*" "Backend persist"
 
+  # Upload code coverage separately so each page can have separate flags
+  # -c will clean existing coverage reports, -F means add flags
   # || true to prevent CI failure on codecov upload
-  codecov -cF "cypress" || true
+  codecov -c -F "cypress" || true
 
   say "::group::Flask log for backend persist"
   cat "$flasklog"

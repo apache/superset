@@ -22,7 +22,7 @@ import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
 import Tabs from 'src/common/components/Tabs';
 import Button from 'src/components/Button';
-import { Select } from 'src/common/components/Select';
+import { NativeSelect as Select } from 'src/components/Select';
 import { styled, t } from '@superset-ui/core';
 import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
 
@@ -32,7 +32,7 @@ import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { noOp } from 'src/utils/common';
 
 import { AGGREGATES_OPTIONS } from 'src/explore/constants';
-import columnType from 'src/explore/propTypes/columnType';
+import columnType from './columnType';
 import savedMetricType from './savedMetricType';
 import AdhocMetric, { EXPRESSION_TYPES } from './AdhocMetric';
 
@@ -122,9 +122,6 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
           this.state.savedMetric?.metric_name,
         adhocMetricLabel: this.state.adhocMetric?.getDefaultLabel(),
       });
-    }
-    if (prevProps.datasource !== this.props.datasource) {
-      this.props.onChange(null);
     }
   }
 

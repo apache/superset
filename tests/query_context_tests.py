@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
+
 import pytest
 
 from superset import db
@@ -302,18 +304,57 @@ class TestQueryContext(SupersetTestCase):
         payload["result_type"] = ChartDataResultType.QUERY.value
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
-        self.assertEqual(len(responses), 1)
+        assert len(responses) == 1
         response = responses["queries"][0]
-        self.assertEqual(len(response), 2)
-        self.assertEqual(response["language"], "sql")
-        self.assertIn("SELECT", response["query"])
+        assert len(response) == 2
+        sql_text = response["query"]
+        assert response["language"] == "sql"
+        assert "SELECT" in sql_text
+        assert re.search(r'[`"\[]?num[`"\]]? IS NOT NULL', sql_text)
+        assert re.search(
+            r"""NOT \([`"\[]?name[`"\]]? IS NULL[\s\n]* """
+            r"""OR [`"\[]?name[`"\]]? IN \('abc'\)\)""",
+            sql_text,
+        )
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_fetch_values_predicate_in_query(self):
+        """
+        Ensure that fetch values predicate is added to query
+        """
+        self.login(username="admin")
+        payload = get_query_context("birth_names")
+        payload["result_type"] = ChartDataResultType.QUERY.value
+        payload["queries"][0]["apply_fetch_values_predicate"] = True
+        query_context = ChartDataQueryContextSchema().load(payload)
+        responses = query_context.get_payload()
+        assert len(responses) == 1
+        response = responses["queries"][0]
+        assert len(response) == 2
+        assert response["language"] == "sql"
+        assert "123 = 123" in response["query"]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_fetch_values_predicate_not_in_query(self):
+        """
+        Ensure that fetch values predicate is not added to query
+        """
+        self.login(username="admin")
+        payload = get_query_context("birth_names")
+        payload["result_type"] = ChartDataResultType.QUERY.value
+        query_context = ChartDataQueryContextSchema().load(payload)
+        responses = query_context.get_payload()
+        assert len(responses) == 1
+        response = responses["queries"][0]
+        assert len(response) == 2
+        assert response["language"] == "sql"
+        assert "123 = 123" not in response["query"]
 
     def test_query_object_unknown_fields(self):
         """
         Ensure that query objects with unknown fields don't raise an Exception and
         have an identical cache key as one without the unknown field
         """
-        self.maxDiff = None
         self.login(username="admin")
         payload = get_query_context("birth_names")
         query_context = ChartDataQueryContextSchema().load(payload)

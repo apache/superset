@@ -56,7 +56,6 @@ FEATURE_FLAGS = {
     "SHARE_QUERIES_VIA_KV_STORE": True,
     "ENABLE_TEMPLATE_PROCESSING": True,
     "ENABLE_REACT_CRUD_VIEWS": os.environ.get("ENABLE_REACT_CRUD_VIEWS", False),
-    "ROW_LEVEL_SECURITY": True,
     "ALERT_REPORTS": True,
     "DASHBOARD_NATIVE_FILTERS": True,
 }
@@ -73,7 +72,6 @@ WTF_CSRF_ENABLED = False
 
 FAB_ROLES = {"TestRole": [["Security", "menu_access"], ["List Users", "menu_access"]]}
 
-PUBLIC_ROLE_LIKE = "Gamma"
 AUTH_ROLE_PUBLIC = "Public"
 EMAIL_NOTIFICATIONS = False
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")

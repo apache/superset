@@ -14,20 +14,63 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Match, Optional, Pattern, Tuple, Union
 from urllib import parse
 
+from sqlalchemy.dialects.mysql import (
+    BIT,
+    DECIMAL,
+    DOUBLE,
+    FLOAT,
+    INTEGER,
+    LONGTEXT,
+    MEDIUMINT,
+    MEDIUMTEXT,
+    TINYINT,
+    TINYTEXT,
+)
 from sqlalchemy.engine.url import URL
+from sqlalchemy.types import TypeEngine
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
+from superset.utils.core import ColumnSpec, GenericDataType
 
 
 class MySQLEngineSpec(BaseEngineSpec):
     engine = "mysql"
     engine_name = "MySQL"
     max_column_name_length = 64
+
+    column_type_mappings: Tuple[
+        Tuple[
+            Pattern[str],
+            Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
+            GenericDataType,
+        ],
+        ...,
+    ] = (
+        (re.compile(r"^int.*", re.IGNORECASE), INTEGER(), GenericDataType.NUMERIC,),
+        (re.compile(r"^tinyint", re.IGNORECASE), TINYINT(), GenericDataType.NUMERIC,),
+        (
+            re.compile(r"^mediumint", re.IGNORECASE),
+            MEDIUMINT(),
+            GenericDataType.NUMERIC,
+        ),
+        (re.compile(r"^decimal", re.IGNORECASE), DECIMAL(), GenericDataType.NUMERIC,),
+        (re.compile(r"^float", re.IGNORECASE), FLOAT(), GenericDataType.NUMERIC,),
+        (re.compile(r"^double", re.IGNORECASE), DOUBLE(), GenericDataType.NUMERIC,),
+        (re.compile(r"^bit", re.IGNORECASE), BIT(), GenericDataType.NUMERIC,),
+        (re.compile(r"^tinytext", re.IGNORECASE), TINYTEXT(), GenericDataType.STRING,),
+        (
+            re.compile(r"^mediumtext", re.IGNORECASE),
+            MEDIUMTEXT(),
+            GenericDataType.STRING,
+        ),
+        (re.compile(r"^longtext", re.IGNORECASE), LONGTEXT(), GenericDataType.STRING,),
+    )
 
     _time_grain_expressions = {
         None: "{col}",
@@ -98,3 +141,26 @@ class MySQLEngineSpec(BaseEngineSpec):
         except (AttributeError, KeyError):
             pass
         return message
+
+    @classmethod
+    def get_column_spec(  # type: ignore
+        cls,
+        native_type: Optional[str],
+        source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
+        column_type_mappings: Tuple[
+            Tuple[
+                Pattern[str],
+                Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
+                GenericDataType,
+            ],
+            ...,
+        ] = column_type_mappings,
+    ) -> Union[ColumnSpec, None]:
+
+        column_spec = super().get_column_spec(native_type)
+        if column_spec:
+            return column_spec
+
+        return super().get_column_spec(
+            native_type, column_type_mappings=column_type_mappings
+        )

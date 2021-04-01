@@ -23,7 +23,7 @@ import hashlib
 import json
 import os
 import re
-from typing import Any, Tuple, List
+from typing import Any, Tuple, List, Optional
 from unittest.mock import Mock, patch
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
@@ -924,15 +924,38 @@ class TestUtils(SupersetTestCase):
             "time_range": "Last 10 days",
             "extra_form_data": {
                 "append_form_data": {
-                    "filters": [{"col": "foo", "op": "IN", "val": "bar"}]
+                    "filters": [{"col": "foo", "op": "IN", "val": ["bar"]}],
+                    "adhoc_filters": [
+                        {
+                            "expressionType": "SQL",
+                            "clause": "WHERE",
+                            "sqlExpression": "1 = 0",
+                        }
+                    ],
                 },
                 "override_form_data": {"time_range": "Last 100 years",},
             },
         }
         merge_extra_form_data(form_data)
         assert form_data["applied_time_extras"] == {"__time_range": "Last 100 years"}
+        adhoc_filters = form_data["adhoc_filters"]
+        assert adhoc_filters[0] == {
+            "clause": "WHERE",
+            "expressionType": "SQL",
+            "isExtra": True,
+            "sqlExpression": "1 = 0",
+        }
+        converted_filter = adhoc_filters[1]
+        del converted_filter["filterOptionName"]
+        assert converted_filter == {
+            "clause": "WHERE",
+            "comparator": ["bar"],
+            "expressionType": "SIMPLE",
+            "isExtra": True,
+            "operator": "IN",
+            "subject": "foo",
+        }
         assert form_data["time_range"] == "Last 100 years"
-        assert len(form_data["adhoc_filters"]) == 1
 
     def test_ssl_certificate_parse(self):
         parsed_certificate = parse_ssl_cert(ssl_certificate)
@@ -1135,28 +1158,38 @@ class TestUtils(SupersetTestCase):
         assert extract_dataframe_dtypes(df) == [col[1] for col in cols]
 
     def test_normalize_dttm_col(self):
+        def normalize_col(
+            df: pd.DataFrame,
+            timestamp_format: Optional[str],
+            offset: int,
+            time_shift: Optional[timedelta],
+        ) -> pd.DataFrame:
+            df = df.copy()
+            normalize_dttm_col(df, timestamp_format, offset, time_shift)
+            return df
+
         ts = pd.Timestamp(2021, 2, 15, 19, 0, 0, 0)
         df = pd.DataFrame([{"__timestamp": ts, "a": 1}])
 
         # test regular (non-numeric) format
-        assert normalize_dttm_col(df, None, 0, None)[DTTM_ALIAS][0] == ts
-        assert normalize_dttm_col(df, "epoch_ms", 0, None)[DTTM_ALIAS][0] == ts
-        assert normalize_dttm_col(df, "epoch_s", 0, None)[DTTM_ALIAS][0] == ts
+        assert normalize_col(df, None, 0, None)[DTTM_ALIAS][0] == ts
+        assert normalize_col(df, "epoch_ms", 0, None)[DTTM_ALIAS][0] == ts
+        assert normalize_col(df, "epoch_s", 0, None)[DTTM_ALIAS][0] == ts
 
         # test offset
-        assert normalize_dttm_col(df, None, 1, None)[DTTM_ALIAS][0] == pd.Timestamp(
+        assert normalize_col(df, None, 1, None)[DTTM_ALIAS][0] == pd.Timestamp(
             2021, 2, 15, 20, 0, 0, 0
         )
 
         # test offset and timedelta
-        assert normalize_dttm_col(df, None, 1, timedelta(minutes=30))[DTTM_ALIAS][
+        assert normalize_col(df, None, 1, timedelta(minutes=30))[DTTM_ALIAS][
             0
         ] == pd.Timestamp(2021, 2, 15, 20, 30, 0, 0)
 
         # test numeric epoch_s format
         df = pd.DataFrame([{"__timestamp": ts.timestamp(), "a": 1}])
-        assert normalize_dttm_col(df, "epoch_s", 0, None)[DTTM_ALIAS][0] == ts
+        assert normalize_col(df, "epoch_s", 0, None)[DTTM_ALIAS][0] == ts
 
         # test numeric epoch_ms format
         df = pd.DataFrame([{"__timestamp": ts.timestamp() * 1000, "a": 1}])
-        assert normalize_dttm_col(df, "epoch_ms", 0, None)[DTTM_ALIAS][0] == ts
+        assert normalize_col(df, "epoch_ms", 0, None)[DTTM_ALIAS][0] == ts

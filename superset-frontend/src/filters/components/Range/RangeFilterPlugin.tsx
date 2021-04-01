@@ -16,20 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t } from '@superset-ui/core';
+import { t, DataMask, Behavior } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Slider } from 'src/common/components';
 import { PluginFilterRangeProps } from './types';
-import { PluginFilterStylesProps } from '../types';
+import { Styles } from '../common';
 import { getRangeExtraFormData } from '../../utils';
 
-const Styles = styled.div<PluginFilterStylesProps>`
-  height: ${({ height }) => height};
-  width: ${({ width }) => width};
-`;
-
 export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
-  const { data, formData, height, width, setExtraFormData, inputRef } = props;
+  const {
+    data,
+    formData,
+    height,
+    width,
+    setDataMask,
+    inputRef,
+    behaviors,
+  } = props;
   const [row] = data;
   // @ts-ignore
   const { min, max }: { min: number; max: number } = row;
@@ -42,12 +45,23 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const handleAfterChange = (value: [number, number]) => {
     const [lower, upper] = value;
     setValue(value);
-    setExtraFormData({
+    const dataMask = {
       extraFormData: getRangeExtraFormData(col, lower, upper),
       currentState: {
         value,
       },
-    });
+    };
+
+    const dataMaskObject: DataMask = {};
+    if (behaviors.includes(Behavior.NATIVE_FILTER)) {
+      dataMaskObject.nativeFilters = dataMask;
+    }
+
+    if (behaviors.includes(Behavior.CROSS_FILTER)) {
+      dataMaskObject.crossFilters = dataMask;
+    }
+
+    setDataMask(dataMaskObject);
   };
 
   const handleChange = (value: [number, number]) => {

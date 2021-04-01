@@ -18,16 +18,23 @@
  */
 import React, { useEffect, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
-import { Collapse } from 'src/common/components';
+import Collapse from 'src/common/components/Collapse';
 import { User } from 'src/types/bootstrapTypes';
 import { reject } from 'lodash';
+import {
+  getFromLocalStorage,
+  setInLocalStorage,
+} from 'src/utils/localStorageHelpers';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Loading from 'src/components/Loading';
 import {
   createErrorHandler,
   getRecentAcitivtyObjs,
   mq,
+  getUserOwnedObjects,
 } from 'src/views/CRUD/utils';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { Switch } from 'src/common/components';
 
 import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';
@@ -44,9 +51,6 @@ export interface ActivityData {
   Edited?: Array<object>;
   Viewed?: Array<object>;
   Examples?: Array<object>;
-  myChart?: Array<object>;
-  myDash?: Array<object>;
-  myQuery?: Array<object>;
 }
 
 const WelcomeContainer = styled.div`
@@ -85,25 +89,47 @@ const WelcomeContainer = styled.div`
   }
 `;
 
+const WelcomeNav = styled.div`
+  height: 50px;
+  background-color: white;
+  margin-top: ${({ theme }) => theme.gridUnit * -4 - 1}px;
+  .navbar-brand {
+    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+    font-weight: ${({ theme }) => theme.typography.weights.bold};
+  }
+  .switch {
+    float: right;
+    margin: ${({ theme }) => theme.gridUnit * 5}px;
+    display: flex;
+    flex-direction: row;
+    span {
+      display: block;
+      margin: ${({ theme }) => theme.gridUnit * 1}px;
+      line-height: 1;
+    }
+  }
+`;
+
 function Welcome({ user, addDangerToast }: WelcomeProps) {
   const recent = `/superset/recent_activity/${user.userId}/?limit=6`;
   const [activeChild, setActiveChild] = useState('Viewed');
-  const [activityData, setActivityData] = useState<ActivityData>({});
-  const [loading, setLoading] = useState(true);
+  const [checked, setChecked] = useState(true);
+  const [activityData, setActivityData] = useState<ActivityData | null>(null);
+  const [chartData, setChartData] = useState<Array<object> | null>(null);
+  const [queryData, setQueryData] = useState<Array<object> | null>(null);
+  const [dashboardData, setDashboardData] = useState<Array<object> | null>(
+    null,
+  );
+
+  const userid = user.userId;
+  const id = userid.toString();
+
   useEffect(() => {
+    const userKey = getFromLocalStorage(id, null);
+    if (userKey && !userKey.thumbnails) setChecked(false);
     getRecentAcitivtyObjs(user.userId, recent, addDangerToast)
       .then(res => {
-        const data: any = {
-          Created: [
-            ...res.createdByChart,
-            ...res.createdByDash,
-            ...res.createdByQuery,
-          ],
-          myChart: res.createdByChart,
-          myDash: res.createdByDash,
-          myQuery: res.createdByQuery,
-          Edited: [...res.editedChart, ...res.editedDash],
-        };
+        const data: ActivityData | null = {};
         if (res.viewed) {
           const filtered = reject(res.viewed, ['item_url', null]).map(r => r);
           data.Viewed = filtered;
@@ -112,54 +138,122 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           data.Examples = res.examples;
           setActiveChild('Examples');
         }
-        setActivityData(data);
-        setLoading(false);
+        setActivityData(activityData => ({ ...activityData, ...data }));
       })
       .catch(
         createErrorHandler((errMsg: unknown) => {
-          setLoading(false);
+          setActivityData(activityData => ({ ...activityData, Viewed: [] }));
           addDangerToast(
             t('There was an issue fetching your recent activity: %s', errMsg),
           );
         }),
       );
+
+    // Sets other activity data in parallel with recents api call
+    getUserOwnedObjects(id, 'dashboard')
+      .then(r => {
+        setDashboardData(r);
+      })
+      .catch((err: unknown) => {
+        setDashboardData([]);
+        addDangerToast(
+          t('There was an issues fetching your dashboards: %s', err),
+        );
+      });
+    getUserOwnedObjects(id, 'chart')
+      .then(r => {
+        setChartData(r);
+      })
+      .catch((err: unknown) => {
+        setChartData([]);
+        addDangerToast(t('There was an issues fetching your chart: %s', err));
+      });
+    getUserOwnedObjects(id, 'saved_query')
+      .then(r => {
+        setQueryData(r);
+      })
+      .catch((err: unknown) => {
+        setQueryData([]);
+        addDangerToast(
+          t('There was an issues fetching your saved queries: %s', err),
+        );
+      });
   }, []);
+
+  const handleToggle = () => {
+    setChecked(!checked);
+    setInLocalStorage(id, { thumbnails: !checked });
+  };
+
+  useEffect(() => {
+    setActivityData(activityData => ({
+      ...activityData,
+      Created: [
+        ...(chartData || []),
+        ...(dashboardData || []),
+        ...(queryData || []),
+      ],
+    }));
+  }, [chartData, queryData, dashboardData]);
 
   return (
     <WelcomeContainer>
+      <WelcomeNav>
+        <span className="navbar-brand">Home</span>
+        {isFeatureEnabled(FeatureFlag.THUMBNAILS) ? (
+          <div className="switch">
+            <Switch checked={checked} onChange={handleToggle} />
+            <span>Thumbnails</span>
+          </div>
+        ) : null}
+      </WelcomeNav>
       <Collapse defaultActiveKey={['1', '2', '3', '4']} ghost bigger>
         <Collapse.Panel header={t('Recents')} key="1">
-          <ActivityTable
-            user={user}
-            activeChild={activeChild}
-            setActiveChild={setActiveChild}
-            loading={loading}
-            activityData={activityData}
-          />
+          {activityData && (activityData.Viewed || activityData.Examples) ? (
+            <ActivityTable
+              user={user}
+              activeChild={activeChild}
+              setActiveChild={setActiveChild}
+              activityData={activityData}
+            />
+          ) : (
+            <Loading position="inline" />
+          )}
         </Collapse.Panel>
         <Collapse.Panel header={t('Dashboards')} key="2">
-          {loading ? (
+          {!dashboardData ? (
             <Loading position="inline" />
           ) : (
             <DashboardTable
               user={user}
-              mine={activityData.myDash}
-              isLoading={loading}
+              mine={dashboardData}
+              showThumbnails={checked}
+              featureFlag={isFeatureEnabled(FeatureFlag.THUMBNAILS)}
             />
           )}
         </Collapse.Panel>
         <Collapse.Panel header={t('Saved queries')} key="3">
-          {loading ? (
+          {!queryData ? (
             <Loading position="inline" />
           ) : (
-            <SavedQueries user={user} mine={activityData.myQuery} />
+            <SavedQueries
+              showThumbnails={checked}
+              user={user}
+              mine={queryData}
+              featureFlag={isFeatureEnabled(FeatureFlag.THUMBNAILS)}
+            />
           )}
         </Collapse.Panel>
         <Collapse.Panel header={t('Charts')} key="4">
-          {loading ? (
+          {!chartData ? (
             <Loading position="inline" />
           ) : (
-            <ChartTable user={user} mine={activityData.myChart} />
+            <ChartTable
+              showThumbnails={checked}
+              user={user}
+              mine={chartData}
+              featureFlag={isFeatureEnabled(FeatureFlag.THUMBNAILS)}
+            />
           )}
         </Collapse.Panel>
       </Collapse>

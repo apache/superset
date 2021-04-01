@@ -16,66 +16,85 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useDispatch, useSelector } from 'react-redux';
-import { useCallback } from 'react';
-import { ExtraFormData } from '@superset-ui/core';
-import { setExtraFormData } from 'src/dashboard/actions/nativeFilters';
-import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
+/* eslint-disable no-param-reassign */
+import { useSelector } from 'react-redux';
 import {
-  CurrentFilterState,
-  NativeFilterState,
-  NativeFiltersState,
-  FilterSets,
+  Filters,
+  FilterSets as FilterSetsType,
 } from 'src/dashboard/reducers/types';
-import { mergeExtraFormData } from '../utils';
+import { DataMaskUnit, DataMaskUnitWithId } from 'src/dataMask/types';
+import { useEffect, useState } from 'react';
+import { areObjectsEqual } from 'src/reduxUtils';
 import { Filter } from '../types';
 
-export function useFilters() {
-  return useSelector<any, Filter>(state => state.nativeFilters.filters);
-}
-
-export function useFiltersState() {
-  return useSelector<any, NativeFilterState>(
-    state => state.nativeFilters.filtersState,
+export const useFilterSets = () =>
+  useSelector<any, FilterSetsType>(
+    state => state.nativeFilters.filterSets || {},
   );
-}
 
-export function useFilterSets() {
-  return useSelector<any, FilterSets>(
-    state => state.nativeFilters.filterSets ?? {},
-  );
-}
+export const useFilters = () =>
+  useSelector<any, Filters>(state => state.nativeFilters.filters);
 
-export function useSetExtraFormData() {
-  const dispatch = useDispatch();
-  return useCallback(
-    (
-      id: string,
-      extraFormData: ExtraFormData,
-      currentState: CurrentFilterState,
-    ) => dispatch(setExtraFormData(id, extraFormData, currentState)),
-    [dispatch],
-  );
-}
+export const useDataMask = () =>
+  useSelector<any, DataMaskUnitWithId>(state => state.dataMask.nativeFilters);
 
-export function useCascadingFilters(id: string) {
-  const nativeFilters = useSelector<any, NativeFiltersState>(
-    state => state.nativeFilters,
-  );
-  const { filters, filtersState } = nativeFilters;
-  const filter = filters[id];
-  const cascadeParentIds = filter?.cascadeParentIds ?? [];
-  let cascadedFilters = {};
-  cascadeParentIds.forEach(parentId => {
-    const parentState = filtersState[parentId] || {};
-    const { extraFormData: parentExtra = {} } = parentState;
-    cascadedFilters = mergeExtraFormData(cascadedFilters, parentExtra);
-  });
-  return cascadedFilters;
-}
+export const useFiltersInitialisation = (
+  dataMaskSelected: DataMaskUnit,
+  handleApply: () => void,
+) => {
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const filters = useFilters();
+  const filterValues = Object.values<Filter>(filters);
+  useEffect(() => {
+    if (isInitialized) {
+      return;
+    }
+    const areFiltersInitialized = filterValues.every(filterValue =>
+      areObjectsEqual(
+        filterValue?.defaultValue,
+        dataMaskSelected[filterValue?.id]?.currentState?.value,
+      ),
+    );
+    if (areFiltersInitialized) {
+      handleApply();
+      setIsInitialized(true);
+    }
+  }, [filterValues, dataMaskSelected, isInitialized]);
 
-export function useFilterState(id: string) {
-  return useSelector<any, NativeFilterState>(
-    state => state.nativeFilters.filtersState[id] || getInitialFilterState(id),
-  );
-}
+  return {
+    isInitialized,
+  };
+};
+
+export const useFilterUpdates = (
+  dataMaskSelected: DataMaskUnit,
+  setDataMaskSelected: (arg0: (arg0: DataMaskUnit) => void) => void,
+  setLastAppliedFilterData: (arg0: (arg0: DataMaskUnit) => void) => void,
+) => {
+  const filters = useFilters();
+  const dataMaskApplied = useDataMask();
+
+  useEffect(() => {
+    // Remove deleted filters from local state
+    Object.keys(dataMaskSelected).forEach(selectedId => {
+      if (!filters[selectedId]) {
+        setDataMaskSelected(draft => {
+          delete draft[selectedId];
+        });
+      }
+    });
+    Object.keys(dataMaskApplied).forEach(appliedId => {
+      if (!filters[appliedId]) {
+        setLastAppliedFilterData(draft => {
+          delete draft[appliedId];
+        });
+      }
+    });
+  }, [
+    dataMaskApplied,
+    dataMaskSelected,
+    filters,
+    setDataMaskSelected,
+    setLastAppliedFilterData,
+  ]);
+};

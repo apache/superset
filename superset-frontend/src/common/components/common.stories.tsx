@@ -22,7 +22,6 @@ import { withKnobs, boolean, select } from '@storybook/addon-knobs';
 import Button from 'src/components/Button';
 import Modal from './Modal';
 import Tabs, { EditableTabs } from './Tabs';
-import AntdPopover from './Popover';
 import { Tooltip as AntdTooltip } from './Tooltip';
 import { Switch as AntdSwitch } from './Switch';
 import { Menu, Input, Divider } from '.';
@@ -32,9 +31,6 @@ import {
   DatePicker as AntdDatePicker,
   RangePicker as AntdRangePicker,
 } from './DatePicker';
-import Badge from './Badge';
-import ProgressBar from './ProgressBar';
-import Collapse from './Collapse';
 import { CronPicker, CronError } from './CronPicker';
 
 export default {
@@ -130,34 +126,6 @@ export const TabsWithDropdownMenu = () => (
   </EditableTabs>
 );
 
-export const Popover = () => (
-  <AntdPopover
-    trigger={select('Trigger', ['click', 'hover', 'focus'], 'click')}
-    placement={select(
-      'Placement',
-      [
-        'topLeft',
-        'top',
-        'topRight',
-        'leftTop',
-        'left',
-        'leftBottom',
-        'rightTop',
-        'right',
-        'rightBottom',
-        'bottomLeft',
-        'bottom',
-        'bottomRight',
-      ],
-      'topLeft',
-    )}
-    arrowPointAtCenter={boolean('Arrow point at center', false)}
-    content={<div>CONTENT</div>}
-  >
-    <Button>TRIGGER</Button>
-  </AntdPopover>
-);
-
 export const Tooltip = () => (
   <AntdTooltip
     title="This is a Tooltip"
@@ -243,94 +211,12 @@ export const DateRangePicker = () => (
   />
 );
 
-export const Progress = () => <ProgressBar percent={90} />;
-export const ProgressStriped = () => <ProgressBar percent={90} striped />;
-export const ProgressSuccess = () => <ProgressBar percent={100} />;
-
 export const Switch = () => (
   <>
     <AntdSwitch defaultChecked />
     <br />
     <AntdSwitch size="small" defaultChecked />
   </>
-);
-
-export const BadgeDefault = () => <Badge count={100} />;
-export const BadgeColored = () => <Badge color="blue" text="Blue" />;
-export const BadgeTextColored = () => (
-  <Badge textColor="yellow" color="red" text="yellow" />
-);
-export const BadgeSuccess = () => <Badge status="success" text="Success" />;
-export const BadgeError = () => <Badge status="error" text="Error" />;
-export const BadgeSmall = () => <Badge count={100} size="small" />;
-
-export const CollapseDefault = () => (
-  <Collapse defaultActiveKey={['1']}>
-    <Collapse.Panel header="Hi! I am a header" key="1">
-      Hi! I am a sample content
-    </Collapse.Panel>
-    <Collapse.Panel header="Hi! I am another header" key="2">
-      Hi! I am another sample content
-    </Collapse.Panel>
-  </Collapse>
-);
-export const CollapseGhost = () => (
-  <Collapse defaultActiveKey={['1']} ghost>
-    <Collapse.Panel header="Hi! I am a header" key="1">
-      Hi! I am a sample content
-    </Collapse.Panel>
-    <Collapse.Panel header="Hi! I am another header" key="2">
-      Hi! I am another sample content
-    </Collapse.Panel>
-  </Collapse>
-);
-export const CollapseBold = () => (
-  <Collapse defaultActiveKey={['1']} bold>
-    <Collapse.Panel header="Hi! I am a header" key="1">
-      Hi! I am a sample content
-    </Collapse.Panel>
-    <Collapse.Panel header="Hi! I am another header" key="2">
-      Hi! I am another sample content
-    </Collapse.Panel>
-  </Collapse>
-);
-export const CollapseBigger = () => (
-  <Collapse defaultActiveKey={['1']} bigger>
-    <Collapse.Panel header="Hi! I am a header" key="1">
-      Hi! I am a sample content
-    </Collapse.Panel>
-    <Collapse.Panel header="Hi! I am another header" key="2">
-      Hi! I am another sample content
-    </Collapse.Panel>
-  </Collapse>
-);
-export const CollapseTextLight = () => (
-  <Collapse defaultActiveKey={['1']} light>
-    <Collapse.Panel
-      header="Hi! I am a header"
-      key="1"
-      style={{ background: '#BBB' }}
-    >
-      Hi! I am a sample content
-    </Collapse.Panel>
-    <Collapse.Panel
-      header="Hi! I am another header"
-      key="2"
-      style={{ background: '#BBB' }}
-    >
-      Hi! I am another sample content
-    </Collapse.Panel>
-  </Collapse>
-);
-export const CollapseAnimateArrows = () => (
-  <Collapse animateArrows defaultActiveKey={['1']}>
-    <Collapse.Panel header="Hi! I am a header" key="1">
-      Hi! I am a sample content
-    </Collapse.Panel>
-    <Collapse.Panel header="Hi! I am another header" key="2">
-      Hi! I am another sample content
-    </Collapse.Panel>
-  </Collapse>
 );
 
 export function StyledCronPicker() {

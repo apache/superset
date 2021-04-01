@@ -387,6 +387,7 @@ class Header extends React.PureComponent {
       <StyledDashboardHeader
         className="dashboard-header"
         data-test="dashboard-header"
+        data-test-id={`${dashboardInfo.id}`}
       >
         <div className="dashboard-component-header header-large">
           <EditableTitle

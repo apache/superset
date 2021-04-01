@@ -20,7 +20,7 @@ import React, { CSSProperties, Children, ReactElement } from 'react';
 import { kebabCase } from 'lodash';
 import { mix } from 'polished';
 import cx from 'classnames';
-import { Button as AntdButton } from 'src/common/components';
+import { Button as AntdButton } from 'antd';
 import { useTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/common/components/Tooltip';
 
@@ -30,6 +30,7 @@ export interface ButtonProps {
   id?: string;
   className?: string;
   tooltip?: string;
+  ghost?: boolean;
   placement?:
     | 'bottom'
     | 'left'
@@ -159,7 +160,7 @@ export default function Button(props: ButtonProps) {
     <AntdButton
       href={disabled ? undefined : href}
       disabled={disabled}
-      className={cx(className, { cta: !!cta })}
+      className={cx(className, 'superset-button', { cta: !!cta })}
       css={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -199,9 +200,9 @@ export default function Button(props: ButtonProps) {
           backgroundColor: backgroundColorDisabled,
           borderColor: borderColorDisabled,
         },
-        marginLeft: theme.gridUnit * 2,
-        '&:first-of-type': {
-          marginLeft: 0,
+        marginLeft: 0,
+        '& + .superset-button': {
+          marginLeft: theme.gridUnit * 2,
         },
         '& :first-of-type': {
           marginRight: firstChildMargin,

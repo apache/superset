@@ -1,0 +1,3 @@
+# Notify all committers of DB migration changes, per SIP-59
+# https://github.com/apache/superset/issues/13351
+/superset/migrations/ @apache/superset-committers

@@ -18,12 +18,26 @@
  */
 
 import componentTypes from 'src/dashboard/util/componentTypes';
-import { ExtraFormData, JsonObject } from '@superset-ui/core';
-import { Filter } from '../components/nativeFilters/types';
+import { DataMaskStateWithId } from 'src/dataMask/types';
+import { Filter, Scope } from '../components/nativeFilters/types';
 
 export enum Scoping {
-  all,
-  specific,
+  All = 'All',
+  Specific = 'Specific',
+}
+
+export type ChartConfiguration = {
+  [chartId: number]: {
+    id: number;
+    crossFilters: {
+      scope: Scope;
+    };
+  };
+};
+
+export interface DashboardInfo {
+  id: number;
+  json_metadata: string;
 }
 
 /** Chart state of redux */
@@ -44,11 +58,6 @@ export type RootState = {
 
 /** State of dashboardLayout in redux */
 export type Layout = { [key: string]: LayoutItem };
-
-/** State of nativeFilters currentState */
-export type CurrentFilterState = JsonObject & {
-  value?: any;
-};
 
 /** State of charts in redux */
 export type Charts = { [key: number]: Chart };
@@ -72,29 +81,22 @@ export type LayoutItem = {
   };
 };
 
-/** Current state of the filter, stored in `nativeFilters` in redux */
-export type NativeFilterState = {
-  id: string; // ties this filter state to the config object
-  extraFormData: ExtraFormData;
-  currentState: CurrentFilterState;
-};
-
-export type FiltersSet = {
+export type FilterSet = {
   id: string;
   name: string;
-  filtersState: NativeFilterState;
+  nativeFilters: Filters;
+  dataMask: Partial<DataMaskStateWithId>;
 };
 
 export type FilterSets = {
-  [filtersSetId: string]: FiltersSet;
+  [filtersSetId: string]: FilterSet;
+};
+
+export type Filters = {
+  [filterId: string]: Filter;
 };
 
 export type NativeFiltersState = {
-  filters: {
-    [filterId: string]: Filter;
-  };
+  filters: Filters;
   filterSets: FilterSets;
-  filtersState: {
-    [filterId: string]: NativeFilterState;
-  };
 };

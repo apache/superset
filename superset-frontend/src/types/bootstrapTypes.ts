@@ -1,3 +1,5 @@
+import { JsonObject, Locale } from '@superset-ui/core';
+
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -42,3 +44,10 @@ export type Dashboard = {
   creator?: string;
   creator_url?: string;
 };
+
+export interface CommonBootstrapData {
+  flash_messages: string[][];
+  conf: JsonObject;
+  locale: Locale;
+  feature_flags: Record<string, boolean>;
+}

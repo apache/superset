@@ -20,7 +20,7 @@ from datetime import datetime
 from distutils.util import strtobool
 from io import BytesIO
 from typing import Any
-from zipfile import ZipFile
+from zipfile import is_zipfile, ZipFile
 
 import yaml
 from flask import g, request, Response, send_file
@@ -262,7 +262,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             schema:
               type: integer
             name: pk
-          - in: path
+          - in: query
             schema:
               type: bool
             name: override_columns
@@ -659,11 +659,14 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                   type: object
                   properties:
                     formData:
+                      description: upload file (ZIP or YAML)
                       type: string
                       format: binary
                     passwords:
+                      description: JSON map of passwords for each file
                       type: string
                     overwrite:
+                      description: overwrite existing datasets?
                       type: bool
           responses:
             200:
@@ -687,8 +690,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         upload = request.files.get("formData")
         if not upload:
             return self.response_400()
-        with ZipFile(upload) as bundle:
-            contents = get_contents_from_bundle(bundle)
+        if is_zipfile(upload):
+            with ZipFile(upload) as bundle:
+                contents = get_contents_from_bundle(bundle)
+        else:
+            upload.seek(0)
+            contents = {upload.filename: upload.read()}
 
         passwords = (
             json.loads(request.form["passwords"])
@@ -707,5 +714,5 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             logger.warning("Import dataset failed")
             return self.response_422(message=exc.normalized_messages())
         except DatasetImportError as exc:
-            logger.exception("Import dataset failed")
+            logger.error("Import dataset failed")
             return self.response_500(message=str(exc))
