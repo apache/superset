@@ -27,16 +27,15 @@ import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { styled, t } from '@superset-ui/core';
-
 import { Dropdown, Menu } from 'src/common/components';
-import { getClientErrorObject } from '../../utils/getClientErrorObject';
-import CopyToClipboard from '../../components/CopyToClipboard';
-import { getChartDataRequest } from '../../chart/chartAction';
-import downloadAsImage from '../../utils/downloadAsImage';
-import Loading from '../../components/Loading';
-import ModalTrigger from '../../components/ModalTrigger';
-import { sliceUpdated } from '../actions/exploreActions';
-import { CopyButton } from './DataTableControl';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import CopyToClipboard from 'src/components/CopyToClipboard';
+import { getChartDataRequest } from 'src/chart/chartAction';
+import downloadAsImage from 'src/utils/downloadAsImage';
+import Loading from 'src/components/Loading';
+import ModalTrigger from 'src/components/ModalTrigger';
+import { sliceUpdated } from 'src/explore/actions/exploreActions';
+import { CopyButton } from 'src/explore/components/DataTableControl';
 
 SyntaxHighlighter.registerLanguage('markdown', markdownSyntax);
 SyntaxHighlighter.registerLanguage('html', htmlSyntax);
@@ -193,7 +192,7 @@ export const DisplayQueryButton = props => {
         tabIndex={0}
         className="btn btn-default btn-sm"
       >
-        <i className="fa fa-bars" />
+        <i role="img" className="fa fa-bars" />
       </div>
     </Dropdown>
   );
