@@ -58,7 +58,7 @@ const ActionButton = styled.div<{ disabled?: boolean }>`
   }
 `;
 
-type EditSectionProps = {
+export type EditSectionProps = {
   filterSetId: string;
   dataMaskSelected: DataMaskUnit;
   onCancel: HandlerFunction;
