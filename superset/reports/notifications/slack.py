@@ -57,20 +57,18 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_body(self) -> str:
         if self._content.text:
             return self._error_template(self._content.name, self._content.text)
-        if self._content.screenshot:
-            return __(
-                """
-                *%(name)s*\n
-                <%(url)s|Explore in Superset>
-                """,
-                name=self._content.name,
-                url=self._content.screenshot.url,
-            )
-        return self._error_template(self._content.name, "Unexpected missing screenshot")
+        return __(
+            """
+            *%(name)s*\n
+            <%(url)s|Explore in Superset>
+            """,
+            name=self._content.name,
+            url=self._content.url,
+        )
 
     def _get_inline_screenshot(self) -> Optional[Union[str, IOBase, bytes]]:
         if self._content.screenshot:
-            return self._content.screenshot.image
+            return self._content.screenshot
         return None
 
     @retry(SlackApiError, delay=10, backoff=2, tries=5)
