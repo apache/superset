@@ -641,8 +641,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 indeterminate={false}
                 checked={!!db?.impersonate_user}
                 onChange={onInputChange}
+                labelText={t('Impersonate Logged In User (Presto & Hive)')}
               />
-              <div>{t('Impersonate Logged In User (Presto & Hive)')}</div>
               <InfoTooltip
                 tooltip={t(
                   'If Presto, all the queries in SQL Lab are going to be executed as the ' +
@@ -661,8 +661,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 indeterminate={false}
                 checked={!!db?.allow_csv_upload}
                 onChange={onInputChange}
+                labelText={t('Allow data upload')}
               />
-              <div>{t('Allow data upload')}</div>
               <InfoTooltip
                 tooltip={t(
                   'If selected, please set the schemas allowed for data upload in Extra.',
