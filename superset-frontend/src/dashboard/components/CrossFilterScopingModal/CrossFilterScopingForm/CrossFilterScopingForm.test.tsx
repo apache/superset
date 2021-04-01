@@ -50,21 +50,14 @@ test('Should send correct props', () => {
   const props = createProps();
   render(<CrossFilterScopingForm {...(props as any)} />);
 
-  expect(screen.getByTestId('FilterScope')).toHaveAttribute(
-    'data-form-scope',
-    'scope',
-  );
-  expect(screen.getByTestId('FilterScope')).toHaveAttribute(
-    'data-scope',
-    'Scope',
-  );
-  expect(screen.getByTestId('FilterScope')).toHaveAttribute(
-    'data-chart-id',
-    '123',
-  );
-  expect(screen.getByTestId('FilterScope')).toHaveAttribute(
-    'data-form-scoping',
-    'scoping',
+  expect(FilterScope).toHaveBeenCalledWith(
+    expect.objectContaining({
+      chartId: 123,
+      scope: 'Scope',
+      formScope: 'scope',
+      formScoping: 'scoping',
+    }),
+    {},
   );
 });
 
