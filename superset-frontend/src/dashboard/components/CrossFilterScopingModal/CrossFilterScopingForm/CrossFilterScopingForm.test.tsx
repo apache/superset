@@ -17,7 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render } from 'spec/helpers/testing-library';
+import FilterScope from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/FilterScope';
 import CrossFilterScopingForm from '.';
 
 jest.mock(
