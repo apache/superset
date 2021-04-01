@@ -84,6 +84,9 @@ export default function ControlForm({ onChange, value, children }: ControlFormPr
           return React.cloneElement(item, {
             width: width || defaultWidth,
             value: value?.[name],
+            // remove `debounceDelay` from rendered control item props
+            // so React DevTools don't throw a `invalid prop` warning.
+            debounceDelay: undefined,
             onChange(fieldValue: JsonValue) {
               // call `onChange` on each FormItem
               if (onItemValueChange) {

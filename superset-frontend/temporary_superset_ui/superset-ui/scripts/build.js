@@ -90,9 +90,7 @@ if (shouldLint) {
 if (shouldCleanup) {
   // these modules will be installed by `npm link` but not useful for actual build
   const dirtyModules = 'node_modules/@types/react,node_modules/@superset-ui';
-  const cachePath = shouldRunBabel
-    ? `./node_modules/${scope}/{lib,esm,tsconfig.tsbuildinfo,${dirtyModules}}`
-    : `./node_modules/${scope}/{lib/**/*.d.ts,tsconfig.tsbuildinfo,${dirtyModules}}`;
+  const cachePath = `./node_modules/${scope}/{lib,esm,tsconfig.tsbuildinfo,${dirtyModules}}`;
   console.log(`\n>> Cleaning up ${cachePath}`);
   rimraf.sync(cachePath);
 }
