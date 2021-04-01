@@ -21,7 +21,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { mockStore } from 'spec/fixtures/mockStore';
 import { Provider } from 'react-redux';
-import EditSection, { EditSectionProps }  from './EditSection';
+import EditSection, { EditSectionProps } from './EditSection';
 
 const mockedProps = {
   filterSetId: 'set-id',

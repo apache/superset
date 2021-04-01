@@ -33,7 +33,7 @@ const mockedProps: FooterProps = {
 const editModeProps = {
   ...mockedProps,
   editMode: true,
-}
+};
 
 test('should render', () => {
   const { container } = render(<Footer {...mockedProps} />, { useRedux: true });
