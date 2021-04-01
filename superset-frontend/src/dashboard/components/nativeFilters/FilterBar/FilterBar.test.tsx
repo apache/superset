@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { mockStore } from 'spec/fixtures/mockStore';
 import { Provider } from 'react-redux';
@@ -37,7 +37,6 @@ const setup = (props: FiltersBarProps) => (
 test('should render', () => {
   const { container } = render(setup(mockedProps));
   expect(container).toBeInTheDocument();
-  screen.debug();
 });
 
 test('should render the "Filters" heading', () => {
@@ -55,12 +54,25 @@ test('should render the "Apply" option', () => {
   expect(screen.getByText('Apply')).toBeInTheDocument();
 });
 
-test('should render the icon to create a filter', () => {
+test('should render the collapse icon', () => {
   render(setup(mockedProps));
-  expect(screen.getByRole('img', { name: 'edit' })).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'collapse' })).toBeInTheDocument();
 });
 
-test('should render the icon to expand filters', () => {
+test('should render the filter icon', () => {
   render(setup(mockedProps));
-  expect(screen.getByRole('img', { name: 'expand' })).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'filter' })).toBeInTheDocument();
+});
+
+test('should render the filter control name', () => {
+  render(setup(mockedProps));
+  expect(screen.getByText('test')).toBeInTheDocument();
+});
+
+test('should toggle', () => {
+  render(setup(mockedProps));
+  const collapse = screen.getByRole('img', { name: 'collapse' });
+  expect(mockedProps.toggleFiltersBar).not.toHaveBeenCalled();
+  userEvent.click(collapse);
+  expect(mockedProps.toggleFiltersBar).toHaveBeenCalled();
 });
