@@ -24,8 +24,8 @@ import {
   CloseContainer,
   OptionControlContainer,
   Label,
-} from 'src/explore/components/OptionControls';
-import { OptionProps } from '../types';
+} from 'src/explore/components/controls/OptionControls';
+import { OptionProps } from 'src/explore/components/controls/DndColumnSelectControl/types';
 
 export default function Option(props: OptionProps) {
   const theme = useTheme();

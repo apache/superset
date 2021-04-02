@@ -16,4 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default } from './DatasourcePanel';
+import React from 'react';
+import { render, screen } from 'spec/helpers/testing-library';
+
+import { CopyButton } from '.';
+
+test('Render a button', () => {
+  render(<CopyButton>btn</CopyButton>);
+  expect(screen.getByRole('button')).toBeInTheDocument();
+  expect(screen.getByRole('button')).toHaveClass('superset-button');
+});

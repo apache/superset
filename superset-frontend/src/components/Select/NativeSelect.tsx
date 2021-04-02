@@ -18,18 +18,15 @@
  */
 import React from 'react';
 import { styled } from '@superset-ui/core';
-import { Select as BaseSelect, SelectProps } from 'src/common/components';
+import Select, { SelectProps } from 'antd/lib/select';
 
-const StyledSelect = styled((props: SelectProps<any>) => (
-  <BaseSelect
-    getPopupContainer={(trigger: any) => trigger.parentNode}
-    {...props}
-  />
+const StyledNativeSelect = styled((props: SelectProps<any>) => (
+  <Select getPopupContainer={(trigger: any) => trigger.parentNode} {...props} />
 ))`
   display: block;
 `;
 
-const StyledGraySelect = styled(StyledSelect)`
+const StyledNativeGraySelect = styled(Select)`
   &.ant-select-single {
     .ant-select-selector {
       height: 36px;
@@ -49,12 +46,11 @@ const StyledGraySelect = styled(StyledSelect)`
     }
   }
 `;
-const StyledOption = BaseSelect.Option;
 
-export const Select = Object.assign(StyledSelect, {
-  Option: StyledOption,
+export const NativeSelect = Object.assign(StyledNativeSelect, {
+  Option: Select.Option,
 });
 
-export const GraySelect = Object.assign(StyledGraySelect, {
-  Option: StyledOption,
+export const NativeGraySelect = Object.assign(StyledNativeGraySelect, {
+  Option: Select.Option,
 });

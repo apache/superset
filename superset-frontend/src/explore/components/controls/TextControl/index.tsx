@@ -26,6 +26,7 @@ import ControlHeader from 'src/explore/components/ControlHeader';
 type InputValueType = string | number;
 
 export interface TextControlProps<T extends InputValueType = InputValueType> {
+  label?: string;
   disabled?: boolean;
   isFloat?: boolean;
   isInt?: boolean;
@@ -109,7 +110,7 @@ export default class TextControl<
     return (
       <div>
         <ControlHeader {...this.props} />
-        <FormGroup controlId={this.state.controlId} bsSize="medium">
+        <FormGroup controlId={this.state.controlId}>
           <FormControl
             type="text"
             data-test="inline-name"
@@ -118,6 +119,7 @@ export default class TextControl<
             onFocus={this.props.onFocus}
             value={value}
             disabled={this.props.disabled}
+            aria-label={this.props.label}
           />
         </FormGroup>
       </div>
