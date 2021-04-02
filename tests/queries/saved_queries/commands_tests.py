@@ -20,12 +20,17 @@ from unittest.mock import patch
 import yaml
 
 from superset import db, security_manager
+from superset.queries.saved_queries.commands.importers.v1 import ImportSavedQueriesCommand
 from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.commands.exceptions import SavedQueryNotFoundError
 from superset.queries.saved_queries.commands.export import ExportSavedQueriesCommand
 from superset.utils.core import get_example_database
 from tests.base_tests import SupersetTestCase
-
+from tests.fixtures.importexport import (
+    database_config,
+    saved_queries_config,
+    saved_queries_metadata_config,
+)
 
 class TestExportSavedQueriesCommand(SupersetTestCase):
     def setUp(self):
@@ -108,3 +113,20 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
             "version",
             "database_uuid",
         ]
+class TestImportSavedQueriesCommand(SupersetTestCase):
+    def test_import_v1_saved_queries(self):
+        """Test that we can import a saved query"""
+        contents = {
+            "metadata.yaml": yaml.safe_dump(saved_queries_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "queries/imported_query.yaml": yaml.safe_dump(saved_queries_config)
+        }
+
+        command = ImportSavedQueriesCommand(contents)
+        command.run()
+
+        saved_query = db.session.query(Slice).filter_by(
+            uuid=saved_queries_config["uuid"]
+        ).one()
+        database = saved_query.datasource
+        assert 

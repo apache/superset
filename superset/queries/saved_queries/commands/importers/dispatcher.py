@@ -23,7 +23,7 @@ from marshmallow.exceptions import ValidationError
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
-from superset.queries.saved_queries.importers import v1
+from superset.queries.saved_queries.commands.importers import v1
 
 logger = logging.getLogger(__name__)
 
