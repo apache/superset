@@ -3,7 +3,8 @@
     "port": 6379,
     "host": "127.0.0.1",
     "password": "",
-    "db": 10
+    "db": 10,
+    "ssl": false
   },
   "streamPrefix": "test-async-events-",
   "jwtSecret": "test123-test123-test123-test123-test123-test123-test123",

@@ -1115,6 +1115,7 @@ GLOBAL_ASYNC_QUERIES_REDIS_CONFIG = {
     "host": "127.0.0.1",
     "password": "",
     "db": 0,
+    "ssl": False,
 }
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX = "async-events-"
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT = 1000

@@ -7,7 +7,8 @@
     "port": 6379,
     "host": "127.0.0.1",
     "password": "",
-    "db": 0
+    "db": 0,
+    "ssl": false
   },
   "streamPrefix": "async-events-",
   "jwtSecret": "CHANGE-ME",

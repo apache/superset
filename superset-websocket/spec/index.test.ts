@@ -73,6 +73,42 @@ describe('server', () => {
     });
   });
 
+  describe('redisUrlFromConfig', () => {
+    test('it builds a valid Redis URL from defaults', () => {
+      expect(
+        server.redisUrlFromConfig({
+          port: 6379,
+          host: '127.0.0.1',
+          password: '',
+          db: 0,
+          ssl: false,
+        }),
+      ).toEqual('redis://127.0.0.1:6379/0');
+    });
+    test('it builds a valid Redis URL with a password', () => {
+      expect(
+        server.redisUrlFromConfig({
+          port: 6380,
+          host: 'redis.local',
+          password: 'foo',
+          db: 1,
+          ssl: false,
+        }),
+      ).toEqual('redis://:foo@redis.local:6380/1');
+    });
+    test('it builds a valid Redis URL with SSL', () => {
+      expect(
+        server.redisUrlFromConfig({
+          port: 6379,
+          host: '127.0.0.1',
+          password: '',
+          db: 0,
+          ssl: true,
+        }),
+      ).toEqual('rediss://127.0.0.1:6379/0');
+    });
+  });
+
   describe('processStreamResults', () => {
     test('sends data to channel', async () => {
       const ws = new wsMock('localhost');

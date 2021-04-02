@@ -64,6 +64,13 @@ export interface SocketInstance {
   channel: string;
   pongTs: number;
 }
+interface RedisConfig {
+  port: number;
+  host: string;
+  password?: string | null;
+  db: number;
+  ssl: boolean;
+}
 
 interface ChannelValue {
   sockets: Array<string>;
@@ -82,6 +89,7 @@ export const opts = {
     host: '127.0.0.1',
     password: '',
     db: 0,
+    ssl: false,
   },
   streamPrefix: 'async-events-',
   jwtSecret: '',
@@ -126,8 +134,15 @@ const logger = winston.createLogger({
 if (startServer && opts.jwtSecret.length < 32)
   throw new Error('Please provide a JWT secret at least 32 bytes long');
 
+export const redisUrlFromConfig = (redisConfig: RedisConfig): string => {
+  let url = redisConfig.ssl ? 'rediss://' : 'redis://';
+  if (redisConfig.password) url += `:${redisConfig.password}@`;
+  url += `${redisConfig.host}:${redisConfig.port}/${redisConfig.db}`;
+  return url;
+};
+
 // initialize servers
-const redis = new Redis(opts.redis);
+const redis = new Redis(redisUrlFromConfig(opts.redis));
 const httpServer = http.createServer();
 export const wss = new WebSocket.Server({
   noServer: true,
