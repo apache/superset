@@ -26,29 +26,29 @@ import { getFormData } from '../../utils';
 type DefaultValueProps = {
   filterId: string;
   setDataMask: SetDataMaskHook;
-  hasDatasource: boolean;
+  hasDataset: boolean;
   form: FormInstance<NativeFiltersForm>;
   formData: ReturnType<typeof getFormData>;
 };
 
 const DefaultValue: FC<DefaultValueProps> = ({
   filterId,
-  hasDatasource,
+  hasDataset,
   form,
   setDataMask,
   formData,
 }) => {
-  const [loading, setLoading] = useState(hasDatasource);
+  const [loading, setLoading] = useState(hasDataset);
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
   const queriesData = formFilter?.defaultValueQueriesData;
 
   useEffect(() => {
-    if (!hasDatasource || queriesData !== null) {
+    if (!hasDataset || queriesData !== null) {
       setLoading(false);
     } else {
       setLoading(true);
     }
-  }, [hasDatasource, queriesData]);
+  }, [hasDataset, queriesData]);
 
   return loading ? (
     <Loading position="inline-centered" />
@@ -60,7 +60,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
       formData={formData}
       // For charts that don't have datasource we need workaround for empty placeholder
       queriesData={
-        hasDatasource ? formFilter?.defaultValueQueriesData : [{ data: [{}] }]
+        hasDataset ? formFilter?.defaultValueQueriesData : [{ data: [{}] }]
       }
       chartType={formFilter?.filterType}
       hooks={{ setDataMask }}
