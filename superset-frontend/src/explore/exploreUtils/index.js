@@ -303,13 +303,11 @@ export const useDebouncedEffect = (effect, delay, deps) => {
   const callback = useCallback(effect, deps);
 
   useEffect(() => {
-    // const handler = window.setTimeout(() => {
     const handler = setTimeout(() => {
       callback();
     }, delay);
 
     return () => {
-      // window.clearTimeout(handler);
       clearTimeout(handler);
     };
   }, [callback, delay]);
