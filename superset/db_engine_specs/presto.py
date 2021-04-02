@@ -128,6 +128,7 @@ def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
 class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-methods
     engine = "presto"
     engine_name = "Presto"
+    allows_alias_to_source_column = False
 
     _time_grain_expressions = {
         None: "{col}",

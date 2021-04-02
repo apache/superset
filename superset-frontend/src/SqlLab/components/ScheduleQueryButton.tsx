@@ -95,10 +95,10 @@ export const StyledButtonComponent = styled(Button)`
   color: rgba(0, 0, 0, 0.85);
   font-size: 14px;
   font-weight: ${({ theme }) => theme.typography.weights.normal};
-  &: disabled {
+  &:disabled {
     background: none;
     color: rgba(0, 0, 0, 0.85);
-    &: hover {
+    &:hover {
       background: none;
       color: rgba(0, 0, 0, 0.85);
     }
