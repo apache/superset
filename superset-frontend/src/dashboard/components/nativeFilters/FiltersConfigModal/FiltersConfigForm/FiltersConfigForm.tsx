@@ -104,17 +104,17 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
     .map(([key]) => key);
 
   // @ts-ignore
-  const hasDatasource = !!nativeFilterItems[formFilter?.filterType]?.value
+  const hasDataset = !!nativeFilterItems[formFilter?.filterType]?.value
     ?.datasourceCount;
   const hasColumn =
-    hasDatasource &&
+    hasDataset &&
     !FILTERS_WITH_ONLY_DATASOURCE.includes(formFilter?.filterType);
 
   const hasFilledDatasource =
-    !hasDatasource ||
+    !hasDataset ||
     (formFilter?.dataset?.value && (formFilter?.column || !hasColumn));
 
-  useBackendFormUpdate(form, filterId, filterToEdit, hasDatasource, hasColumn);
+  useBackendFormUpdate(form, filterId, filterToEdit, hasDataset, hasColumn);
 
   const initDatasetId = filterToEdit?.targets[0]?.datasetId;
   const initColumn = filterToEdit?.targets[0]?.column?.name;
@@ -180,14 +180,14 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
           />
         </StyledFormItem>
       </StyledContainer>
-      {hasDatasource && (
+      {hasDataset && (
         <>
           <StyledFormItem
             name={['filters', filterId, 'dataset']}
             initialValue={{ value: initDatasetId }}
-            label={<StyledLabel>{t('Datasource')}</StyledLabel>}
+            label={<StyledLabel>{t('Dataset')}</StyledLabel>}
             rules={[
-              { required: !removed, message: t('Datasource is required') },
+              { required: !removed, message: t('Dataset is required') },
             ]}
             data-test="datasource-input"
           >
@@ -262,7 +262,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
         data-test="default-input"
         label={<StyledLabel>{t('Default Value')}</StyledLabel>}
       >
-        {(hasFilledDatasource || !hasDatasource) && (
+        {(hasFilledDatasource || !hasDataset) && (
           <DefaultValue
             setDataMask={({ nativeFilters }) => {
               setNativeFilterFieldValues(form, filterId, {
@@ -271,7 +271,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
               forceUpdate();
             }}
             filterId={filterId}
-            hasDatasource={hasDatasource}
+            hasDatasource={hasDataset}
             form={form}
             formData={newFormData}
           />
