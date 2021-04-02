@@ -70,9 +70,9 @@ const TableSelectorWrapper = styled.div`
 const TableLabel = styled.span`
   vertical-align: middle;
   display: inline-block;
-  width: 324px;
   white-space: nowrap;
   overflow: hidden;
+  width: 324px;
   text-overflow: ellipsis;
 
   > svg,
@@ -330,10 +330,12 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           valueRenderer={renderTableOption}
           isDisabled={readOnly}
           styles={{
-            menuPortal: base => ({ ...base, zIndex: 5 }),
             option: (provided, state) => ({
               ...provided,
               backgroundColor: state.isFocused ? '#F0F0F0' : 'none',
+              '&:active': {
+                backgroundColor: state.isFocused ? '#F0F0F0' : '#F0F0F000',
+              },
             }),
             control: base => ({
               ...base,
