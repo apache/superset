@@ -31,7 +31,16 @@ describe('buildQueryContext', () => {
     expect(queryContext.result_format).toBe('json');
     expect(queryContext.result_type).toBe('full');
   });
-
+  it('should build with extra_jwt', () => {
+    const queryContext = buildQueryContext({
+      datasource: '5__table',
+      viz_type: 'table',
+      extra_jwt: 'ABCDEFG',
+    });
+    expect(queryContext.datasource.id).toBe(5);
+    expect(queryContext.datasource.type).toBe('table');
+    expect(queryContext.extra_jwt).toBe('ABCDEFG');
+  });
   it('should build datasource for druid sources and set force to true', () => {
     const queryContext = buildQueryContext({
       datasource: '5__druid',

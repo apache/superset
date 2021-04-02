@@ -146,6 +146,7 @@ export interface QueryContext {
   /** Response format */
   result_format: string;
   queries: QueryObject[];
+  extra_jwt?: string;
 }
 
 export default {};

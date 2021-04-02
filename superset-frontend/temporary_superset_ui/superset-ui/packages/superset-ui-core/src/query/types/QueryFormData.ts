@@ -149,6 +149,7 @@ export interface BaseFormData extends TimeRange, FormDataResidual {
   annotation_layers?: AnnotationLayer[];
   url_params?: Record<string, string>;
   custom_params?: Record<string, string>;
+  extra_jwt?: string;
 }
 
 /**
