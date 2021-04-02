@@ -310,6 +310,24 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     );
   }
 
+  const customTableStyles = {
+    option: (provided: any, state: any) => ({
+      ...provided,
+      backgroundColor: state.isFocused ? '#F0F0F0' : 'none',
+      '&:active': {
+        backgroundColor: state.isFocused ? '#F0F0F0' : '#F0F0F000',
+      },
+    }),
+    control: (base: any) => ({
+      ...base,
+      boxShadow: '#cccccc',
+      borderColor: '#cccccc',
+      '&:hover': {
+        borderColor: '#cccccc',
+      },
+    }),
+  };
+
   function renderTableSelect() {
     const options = tableOptions;
     let select = null;
@@ -329,23 +347,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           optionRenderer={renderTableOption}
           valueRenderer={renderTableOption}
           isDisabled={readOnly}
-          styles={{
-            option: (provided, state) => ({
-              ...provided,
-              backgroundColor: state.isFocused ? '#F0F0F0' : 'none',
-              '&:active': {
-                backgroundColor: state.isFocused ? '#F0F0F0' : '#F0F0F000',
-              },
-            }),
-            control: base => ({
-              ...base,
-              boxShadow: '#cccccc',
-              borderColor: '#cccccc',
-              '&:hover': {
-                borderColor: '#cccccc',
-              },
-            }),
-          }}
+          styles={customTableStyles}
         />
       );
     } else if (formMode) {
