@@ -74,6 +74,7 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
             url=self._content.url,
         )
 
+
     def _get_inline_screenshot(self) -> Optional[Union[str, IOBase, bytes]]:
         if self._content.screenshot:
             return self._content.screenshot
