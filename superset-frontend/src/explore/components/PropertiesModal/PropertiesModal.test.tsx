@@ -154,7 +154,7 @@ fetchMock.put('http://localhost/api/v1/chart/318', {
 });
 
 afterAll(() => {
-  fetchMock.done();
+  fetchMock.resetBehavior();
 });
 
 test('Should render null when show:false', async () => {
