@@ -198,7 +198,7 @@ export const sendToChannel = (channel: string, value: EventValue): void => {
     try {
       socketInstance.ws.send(strData);
     } catch (err) {
-      logger.debug('Error sending to socket', err);
+      logger.debug(`Error sending to socket: ${err}`);
       // check that the connection is still active
       cleanChannel(channel);
     }
@@ -267,7 +267,7 @@ export const subscribeToGlobalStream = async (
  * Callback function to process events received from a Redis Stream
  */
 export const processStreamResults = (results: StreamResult[]): void => {
-  logger.debug('events received', results);
+  logger.debug(`events received: ${results}`);
   results.forEach(item => {
     try {
       const id = item[0];
@@ -386,8 +386,8 @@ export const httpUpgrade = (
  * Sends a _ping_ to all active connections.
  */
 export const checkSockets = () => {
-  logger.debug('*** channel count', Object.keys(channels).length);
-  logger.debug('*** socket count', Object.keys(sockets).length);
+  logger.debug(`channel count: ${Object.keys(channels).length}`);
+  logger.debug(`socket count: ${Object.keys(sockets).length}`);
   for (const socketId in sockets) {
     const socketInstance = sockets[socketId];
     const timeout = Date.now() - socketInstance.pongTs;
