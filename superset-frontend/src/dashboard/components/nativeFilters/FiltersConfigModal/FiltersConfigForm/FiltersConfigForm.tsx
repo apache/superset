@@ -78,7 +78,7 @@ export interface FiltersConfigFormProps {
   parentFilters: { id: string; title: string }[];
 }
 
-const FILTERS_WITH_ONLY_DATASOURCE = ['filter_timegrain', 'filter_timecolumn'];
+const FILTERS_WITHOUT_COLUMN = ['filter_timegrain', 'filter_timecolumn'];
 
 /**
  * The configuration form for a specific filter.
@@ -107,10 +107,9 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
   const hasDataset = !!nativeFilterItems[formFilter?.filterType]?.value
     ?.datasourceCount;
   const hasColumn =
-    hasDataset &&
-    !FILTERS_WITH_ONLY_DATASOURCE.includes(formFilter?.filterType);
+    hasDataset && !FILTERS_WITHOUT_COLUMN.includes(formFilter?.filterType);
 
-  const hasFilledDatasource =
+  const hasFilledDataset =
     !hasDataset ||
     (formFilter?.dataset?.value && (formFilter?.column || !hasColumn));
 
@@ -228,7 +227,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
           )}
         </>
       )}
-      {hasFilledDatasource && (
+      {hasFilledDataset && (
         <CleanFormItem
           name={['filters', filterId, 'defaultValueFormData']}
           hidden
@@ -260,7 +259,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
         data-test="default-input"
         label={<StyledLabel>{t('Default Value')}</StyledLabel>}
       >
-        {(hasFilledDatasource || !hasDataset) && (
+        {(hasFilledDataset || !hasDataset) && (
           <DefaultValue
             setDataMask={({ nativeFilters }) => {
               setNativeFilterFieldValues(form, filterId, {
@@ -269,7 +268,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
               forceUpdate();
             }}
             filterId={filterId}
-            hasDatasource={hasDataset}
+            hasDataset={hasDataset}
             form={form}
             formData={newFormData}
           />
