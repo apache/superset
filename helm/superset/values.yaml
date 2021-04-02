@@ -21,15 +21,19 @@
 
 replicaCount: 1
 
-## These requirements are used to build a requirements file which is then applied on init
-## of superset containers
-additionalRequirements:
-  - "psycopg2==2.8.5"
-  - "redis==3.2.1"
+# User ID directive. This user must have enough permissions to run the bootstrap script
+# Runn containers as root is not recommended in production. Change this to another UID - e.g. 1000 to be more secure
+runAsUser: 0
 
-## These apt packages are applied on init of superset containers
-additionalAptPackages: {}
-  # - nano
+# Install additional packages and do any other bootstrap configuration in this script
+# For production clusters it's recommended to build own image with this step done in CI
+bootstrapScript: |
+  #!/bin/bash
+  apt-get update -y &&\
+   apt-get install -y --no-install-recommends nano &&\
+   rm -rf /var/lib/apt/lists/*
+  pip install psycopg2==2.8.5 redis==3.2.1
+  if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
 
 ## The name of the secret which we will use to generate a superset_config.py file
 ## Note: this secret must have the key superset_config.py in it and can include other files as well
@@ -198,6 +202,16 @@ supersetCeleryBeat:
 ##
 ## Init job configuration
 init:
+  # Configure resources
+  # Warning: fab commant consumes a lot of ram and can
+  # cause the process to be killed due to OOM if it exceeds limit
+  resources: {}
+    # limits:
+    #   cpu:
+    #   memory:
+    # requests:
+    #   cpu:
+    #   memory:
   command:
     - "/bin/sh"
     - "-c"

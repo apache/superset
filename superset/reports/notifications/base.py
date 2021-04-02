@@ -22,15 +22,10 @@ from superset.models.reports import ReportRecipients, ReportRecipientType
 
 
 @dataclass
-class ScreenshotData:
-    url: str  # url to chart/dashboard for this screenshot
-    image: bytes  # bytes for the screenshot
-
-
-@dataclass
 class NotificationContent:
     name: str
-    screenshot: Optional[ScreenshotData] = None
+    url: Optional[str] = None  # url to chart/dashboard for this screenshot
+    screenshot: Optional[bytes] = None  # bytes for the screenshot
     text: Optional[str] = None
 
 

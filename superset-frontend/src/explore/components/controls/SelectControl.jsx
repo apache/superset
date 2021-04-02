@@ -221,6 +221,7 @@ export default class SelectControl extends React.PureComponent {
       disabled,
       filterOption,
       isLoading,
+      label,
       menuPlacement,
       name,
       noResultsText,
@@ -255,6 +256,7 @@ export default class SelectControl extends React.PureComponent {
 
     const selectProps = {
       autoFocus,
+      'aria-label': label,
       clearable,
       disabled,
       filterOption,
