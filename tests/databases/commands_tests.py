@@ -82,7 +82,10 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "schemas_allowed_for_csv_upload": [],
         }
         if backend() == "presto":
-            expected_extra = {"engine_params": {"connect_args": {"poll_interval": 0.1}}}
+            expected_extra = {
+                **expected_extra,
+                "engine_params": {"connect_args": {"poll_interval": 0.1}},
+            }
 
         assert core_files.issubset(set(contents.keys()))
 
