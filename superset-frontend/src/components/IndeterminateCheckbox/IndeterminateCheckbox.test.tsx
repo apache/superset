@@ -27,7 +27,7 @@ const mockedProps = {
   id: 'checkbox-id',
   indeterminate: false,
   title: 'Checkbox title',
-  onChange: () => null,
+  onChange: jest.fn(),
 };
 
 test('should render', () => {
@@ -75,13 +75,8 @@ test('should render the checkbox-on icon', () => {
 });
 
 test('should call the onChange', () => {
-  const onChange = jest.fn();
-  const onChangeProps = {
-    ...mockedProps,
-    onChange,
-  };
-  render(<IndeterminateCheckbox {...onChangeProps} />);
+  render(<IndeterminateCheckbox {...mockedProps} />);
   const label = screen.getByTitle('Checkbox title');
   userEvent.click(label);
-  expect(onChange).toHaveBeenCalledTimes(1);
+  expect(mockedProps.onChange).toHaveBeenCalledTimes(1);
 });
