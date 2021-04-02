@@ -163,7 +163,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     const connection = {
       sqlalchemy_uri: db ? db.sqlalchemy_uri : '',
       database_name:
-        db && db.database_name.length ? db.database_name : undefined,
+        db && db.database_name.trim().length
+          ? db.database_name.trim()
+          : undefined,
       impersonate_user: db ? db.impersonate_user || undefined : undefined,
       extra: db && db.extra && db.extra.length ? db.extra : undefined,
       encrypted_extra: db ? db.encrypted_extra || undefined : undefined,
@@ -183,7 +185,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (isEditMode) {
       // Edit
       const update: DatabaseObject = {
-        database_name: db ? db.database_name : '',
+        database_name: db ? db.database_name.trim() : '',
         sqlalchemy_uri: db ? db.sqlalchemy_uri : '',
         ...db,
       };
@@ -205,6 +207,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     } else if (db) {
       // Create
+      db.database_name = db.database_name.trim();
       createResource(db).then(dbId => {
         if (dbId) {
           if (onDatabaseAdd) {
@@ -227,8 +230,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (target.type === 'checkbox') {
       data[target.name] = target.checked;
     } else {
-      data[target.name] =
-        typeof target.value === 'string' ? target.value.trim() : target.value;
+      data[target.name] = target.value;
     }
 
     setDB(data);
@@ -260,7 +262,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const validate = () => {
     if (
       db &&
-      db.database_name.length &&
+      db.database_name.trim().length &&
       db.sqlalchemy_uri &&
       db.sqlalchemy_uri.length
     ) {

@@ -26,7 +26,8 @@ from superset.charts.commands.data import ChartDataCommand
 from superset.charts.commands.exceptions import ChartDataQueryFailedError
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetException
-from superset.extensions import async_query_manager
+from superset.extensions import async_query_manager, security_manager
+from superset.tasks import async_queries
 from superset.tasks.async_queries import (
     load_chart_data_into_cache,
     load_explore_json_into_cache,
@@ -48,17 +49,24 @@ class TestAsyncQueries(SupersetTestCase):
     def test_load_chart_data_into_cache(self, mock_update_job):
         async_query_manager.init_app(app)
         query_context = get_query_context("birth_names")
+        user = security_manager.find_user("gamma")
         job_metadata = {
             "channel_id": str(uuid4()),
             "job_id": str(uuid4()),
-            "user_id": 1,
+            "user_id": user.id,
             "status": "pending",
             "errors": [],
         }
 
-        load_chart_data_into_cache(job_metadata, query_context)
+        with mock.patch.object(
+            async_queries, "ensure_user_is_set"
+        ) as ensure_user_is_set:
+            load_chart_data_into_cache(job_metadata, query_context)
 
-        mock_update_job.assert_called_with(job_metadata, "done", result_url=mock.ANY)
+        ensure_user_is_set.assert_called_once_with(user.id)
+        mock_update_job.assert_called_once_with(
+            job_metadata, "done", result_url=mock.ANY
+        )
 
     @mock.patch.object(
         ChartDataCommand, "run", side_effect=ChartDataQueryFailedError("Error: foo")
@@ -67,25 +75,31 @@ class TestAsyncQueries(SupersetTestCase):
     def test_load_chart_data_into_cache_error(self, mock_update_job, mock_run_command):
         async_query_manager.init_app(app)
         query_context = get_query_context("birth_names")
+        user = security_manager.find_user("gamma")
         job_metadata = {
             "channel_id": str(uuid4()),
             "job_id": str(uuid4()),
-            "user_id": 1,
+            "user_id": user.id,
             "status": "pending",
             "errors": [],
         }
         with pytest.raises(ChartDataQueryFailedError):
-            load_chart_data_into_cache(job_metadata, query_context)
+            with mock.patch.object(
+                async_queries, "ensure_user_is_set"
+            ) as ensure_user_is_set:
+                load_chart_data_into_cache(job_metadata, query_context)
+            ensure_user_is_set.assert_called_once_with(user.id)
 
-        mock_run_command.assert_called_with(cache=True)
+        mock_run_command.assert_called_once_with(cache=True)
         errors = [{"message": "Error: foo"}]
-        mock_update_job.assert_called_with(job_metadata, "error", errors=errors)
+        mock_update_job.assert_called_once_with(job_metadata, "error", errors=errors)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.object(async_query_manager, "update_job")
     def test_load_explore_json_into_cache(self, mock_update_job):
         async_query_manager.init_app(app)
         table = get_table_by_name("birth_names")
+        user = security_manager.find_user("gamma")
         form_data = {
             "datasource": f"{table.id}__table",
             "viz_type": "dist_bar",
@@ -100,29 +114,40 @@ class TestAsyncQueries(SupersetTestCase):
         job_metadata = {
             "channel_id": str(uuid4()),
             "job_id": str(uuid4()),
-            "user_id": 1,
+            "user_id": user.id,
             "status": "pending",
             "errors": [],
         }
 
-        load_explore_json_into_cache(job_metadata, form_data)
+        with mock.patch.object(
+            async_queries, "ensure_user_is_set"
+        ) as ensure_user_is_set:
+            load_explore_json_into_cache(job_metadata, form_data)
 
-        mock_update_job.assert_called_with(job_metadata, "done", result_url=mock.ANY)
+        ensure_user_is_set.assert_called_once_with(user.id)
+        mock_update_job.assert_called_once_with(
+            job_metadata, "done", result_url=mock.ANY
+        )
 
     @mock.patch.object(async_query_manager, "update_job")
     def test_load_explore_json_into_cache_error(self, mock_update_job):
         async_query_manager.init_app(app)
+        user = security_manager.find_user("gamma")
         form_data = {}
         job_metadata = {
             "channel_id": str(uuid4()),
             "job_id": str(uuid4()),
-            "user_id": 1,
+            "user_id": user.id,
             "status": "pending",
             "errors": [],
         }
 
         with pytest.raises(SupersetException):
-            load_explore_json_into_cache(job_metadata, form_data)
+            with mock.patch.object(
+                async_queries, "ensure_user_is_set"
+            ) as ensure_user_is_set:
+                load_explore_json_into_cache(job_metadata, form_data)
+            ensure_user_is_set.assert_called_once_with(user.id)
 
         errors = ["The dataset associated with this chart no longer exists"]
-        mock_update_job.assert_called_with(job_metadata, "error", errors=errors)
+        mock_update_job.assert_called_once_with(job_metadata, "error", errors=errors)

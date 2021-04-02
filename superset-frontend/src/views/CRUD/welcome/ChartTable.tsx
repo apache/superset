@@ -44,6 +44,8 @@ interface ChartTableProps {
   chartFilter?: string;
   user?: User;
   mine: Array<any>;
+  showThumbnails: boolean;
+  featureFlag: boolean;
 }
 
 function ChartTable({
@@ -51,6 +53,8 @@ function ChartTable({
   addDangerToast,
   addSuccessToast,
   mine,
+  showThumbnails,
+  featureFlag,
 }: ChartTableProps) {
   const history = useHistory();
   const {
@@ -180,7 +184,9 @@ function ChartTable({
               chart={e}
               userId={user?.userId}
               hasPerm={hasPerm}
+              showThumbnails={showThumbnails}
               bulkSelectEnabled={bulkSelectEnabled}
+              featureFlag={featureFlag}
               refreshData={refreshData}
               addDangerToast={addDangerToast}
               addSuccessToast={addSuccessToast}
