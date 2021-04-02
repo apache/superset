@@ -23,8 +23,10 @@ import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
 import { act } from 'react-dom/test-utils';
 import configureStore from 'redux-mock-store';
+import * as featureFlags from 'src/featureFlags';
 import Welcome from 'src/views/CRUD/welcome/Welcome';
 import { ReactWrapper } from 'enzyme';
+import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -92,19 +94,19 @@ fetchMock.get(savedQueryInfoEndpoint, {
   permissions: [],
 });
 
-describe('Welcome', () => {
-  const mockedProps = {
-    user: {
-      username: 'alpha',
-      firstName: 'alpha',
-      lastName: 'alpha',
-      createdOn: '2016-11-11T12:34:17',
-      userId: 5,
-      email: 'alpha@alpha.com',
-      isActive: true,
-    },
-  };
+const mockedProps = {
+  user: {
+    username: 'alpha',
+    firstName: 'alpha',
+    lastName: 'alpha',
+    createdOn: '2016-11-11T12:34:17',
+    userId: 5,
+    email: 'alpha@alpha.com',
+    isActive: true,
+  },
+};
 
+describe('Welcome', () => {
   let wrapper: ReactWrapper;
 
   beforeAll(async () => {
@@ -134,5 +136,46 @@ describe('Welcome', () => {
     expect(recentCall).toHaveLength(1);
     expect(savedQueryCall).toHaveLength(1);
     expect(dashboardCall).toHaveLength(1);
+  });
+});
+
+async function mountAndWait(props = mockedProps) {
+  const wrapper = mount(
+    <Provider store={store}>
+      <Welcome {...props} />
+    </Provider>,
+  );
+  await waitForComponentToPaint(wrapper);
+  return wrapper;
+}
+
+describe('Welcome page with toggle switch', () => {
+  let wrapper: ReactWrapper;
+  let isFeatureEnabledMock: any;
+
+  beforeAll(async () => {
+    isFeatureEnabledMock = jest
+      .spyOn(featureFlags, 'isFeatureEnabled')
+      .mockReturnValue(true);
+    await act(async () => {
+      wrapper = await mountAndWait();
+    });
+  });
+
+  afterAll(() => {
+    isFeatureEnabledMock.restore();
+  });
+
+  it('shows a toggle button when feature flags is turned on', async () => {
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find('Switch')).toExist();
+  });
+  it('does not show thumbnails when switch is off', async () => {
+    act(() => {
+      // @ts-ignore
+      wrapper.find('button[role="switch"]').props().onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find('ImageLoader')).not.toExist();
   });
 });

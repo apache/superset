@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
-import Popover from 'src/common/components/Popover';
+import Popover from 'src/components/Popover';
 import FormRow from '../../../components/FormRow';
 import SelectControl from './SelectControl';
 import CheckboxControl from './CheckboxControl';

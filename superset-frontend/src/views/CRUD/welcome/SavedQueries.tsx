@@ -58,6 +58,8 @@ interface SavedQueriesProps {
   addDangerToast: (arg0: string) => void;
   addSuccessToast: (arg0: string) => void;
   mine: Array<Query>;
+  showThumbnails: boolean;
+  featureFlag: boolean;
 }
 
 export const CardStyles = styled.div`
@@ -110,6 +112,8 @@ const SavedQueries = ({
   addDangerToast,
   addSuccessToast,
   mine,
+  showThumbnails,
+  featureFlag,
 }: SavedQueriesProps) => {
   const {
     state: { loading, resourceCollection: queries },
@@ -307,7 +311,7 @@ const SavedQueries = ({
                 imgFallbackURL="/static/assets/images/empty-query.svg"
                 description={t('Last run %s', q.changed_on_delta_humanized)}
                 cover={
-                  q?.sql?.length ? (
+                  q?.sql?.length && showThumbnails && featureFlag ? (
                     <QueryContainer>
                       <SyntaxHighlighter
                         language="sql"
@@ -328,8 +332,10 @@ const SavedQueries = ({
                         {shortenSQL(q.sql, 25)}
                       </SyntaxHighlighter>
                     </QueryContainer>
-                  ) : (
+                  ) : showThumbnails && !q?.sql?.length ? (
                     false
+                  ) : (
+                    <></>
                   )
                 }
                 actions={

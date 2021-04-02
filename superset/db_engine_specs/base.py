@@ -49,7 +49,7 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import quoted_name, text
-from sqlalchemy.sql.expression import ColumnClause, ColumnElement, Select, TextAsFrom
+from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom
 from sqlalchemy.types import String, TypeEngine, UnicodeText
 
 from superset import app, security_manager, sql_parse
@@ -137,7 +137,18 @@ class LimitMethod:  # pylint: disable=too-few-public-methods
 
 
 class BaseEngineSpec:  # pylint: disable=too-many-public-methods
-    """Abstract class for database engine specific configurations"""
+    """Abstract class for database engine specific configurations
+
+    Attributes:
+        allows_alias_to_source_column: Whether the engine is able to pick the
+                                       source column for aggregation clauses
+                                       used in ORDER BY when a column in SELECT
+                                       has an alias that is the same as a source
+                                       column.
+        allows_hidden_orderby_agg:     Whether the engine allows ORDER BY to
+                                       directly use aggregation clauses, without
+                                       having to add the same aggregation in SELECT.
+    """
 
     engine = "base"  # str as defined in sqlalchemy.engine.engine
     engine_aliases: Optional[Tuple[str]] = None
@@ -241,6 +252,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_alias_in_select = True
     allows_alias_in_orderby = True
     allows_sql_comments = True
+
+    # Whether ORDER BY clause can use aliases created in SELECT
+    # that are the same as a source column
+    allows_alias_to_source_column = True
+
+    # Whether ORDER BY clause must appear in SELECT
+    # if TRUE, then it doesn't have to.
+    allows_hidden_ordeby_agg = True
+
     force_column_alias_quotes = False
     arraysize = 0
     max_column_name_length = 0
@@ -352,6 +372,68 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return tuple(ret_list)
 
     @classmethod
+    def _sort_time_grains(
+        cls, val: Tuple[Optional[str], str], index: int
+    ) -> Union[float, int, str]:
+        """
+        Return an ordered time-based value of a portion of a time grain
+        for sorting
+        Values are expected to be either None or start with P or PT
+        Have a numerical value in the middle and end with
+        a value for the time interval
+        It can also start or end with epoch start time denoting a range
+        i.e, week beginning or ending with a day
+        """
+        pos = {
+            "FIRST": 0,
+            "SECOND": 1,
+            "THIRD": 2,
+            "LAST": 3,
+        }
+
+        if val[0] is None:
+            return pos["FIRST"]
+
+        prog = re.compile(r"(.*\/)?(P|PT)([0-9\.]+)(S|M|H|D|W|M|Y)(\/.*)?")
+        result = prog.match(val[0])
+
+        # for any time grains that don't match the format, put them at the end
+        if result is None:
+            return pos["LAST"]
+
+        second_minute_hour = ["S", "M", "H"]
+        day_week_month_year = ["D", "W", "M", "Y"]
+        is_less_than_day = result.group(2) == "PT"
+        interval = result.group(4)
+        epoch_time_start_string = result.group(1) or result.group(5)
+        has_starting_or_ending = bool(len(epoch_time_start_string or ""))
+
+        def sort_day_week() -> int:
+            if has_starting_or_ending:
+                return pos["LAST"]
+            if is_less_than_day:
+                return pos["SECOND"]
+            return pos["THIRD"]
+
+        def sort_interval() -> float:
+            if is_less_than_day:
+                return second_minute_hour.index(interval)
+            return day_week_month_year.index(interval)
+
+        # 0: all "PT" values should come before "P" values (i.e, PT10M)
+        # 1: order values within the above arrays ("D" before "W")
+        # 2: sort by numeric value (PT10M before PT15M)
+        # 3: sort by any week starting/ending values
+        plist = {
+            0: sort_day_week(),
+            1: pos["SECOND"] if is_less_than_day else pos["THIRD"],
+            2: sort_interval(),
+            3: float(result.group(3)),
+        }
+
+        return plist.get(index, 0)
+
+    @classmethod
     def get_time_grain_expressions(cls) -> Dict[Optional[str], str]:
         """
         Return a dict of all supported time grains including any potential added grains
@@ -366,21 +448,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         denylist: List[str] = config["TIME_GRAIN_DENYLIST"]
         for key in denylist:
             time_grain_expressions.pop(key)
-        return time_grain_expressions
 
-    @classmethod
-    def make_select_compatible(
-        cls, groupby_exprs: Dict[str, ColumnElement], select_exprs: List[ColumnElement]
-    ) -> List[ColumnElement]:
-        """
-        Some databases will just return the group-by field into the select, but don't
-        allow the group-by field to be put into the select list.
-
-        :param groupby_exprs: mapping between column name and column object
-        :param select_exprs: all columns in the select clause
-        :return: columns to be included in the final select clause
-        """
-        return select_exprs
+        return dict(
+            sorted(
+                time_grain_expressions.items(),
+                key=lambda x: (
+                    cls._sort_time_grains(x, 0),
+                    cls._sort_time_grains(x, 1),
+                    cls._sort_time_grains(x, 2),
+                    cls._sort_time_grains(x, 3),
+                ),
+            )
+        )
 
     @classmethod
     def fetch_data(

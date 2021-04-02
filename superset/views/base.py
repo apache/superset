@@ -74,6 +74,7 @@ FRONTEND_CONF_KEYS = (
     "DISABLE_DATASET_SOURCE_EDIT",
     "ENABLE_JAVASCRIPT_CONTROLS",
     "DEFAULT_SQLLAB_LIMIT",
+    "DEFAULT_VIZ_TYPE",
     "SQL_MAX_ROW",
     "SUPERSET_WEBSERVER_DOMAINS",
     "SQLLAB_SAVE_WARNING_MESSAGE",
@@ -480,6 +481,7 @@ class CsvResponse(Response):  # pylint: disable=too-many-ancestors
     """
 
     charset = conf["CSV_EXPORT"].get("encoding", "utf-8")
+    default_mimetype = "text/csv"
 
 
 def check_ownership(obj: Any, raise_if_false: bool = True) -> bool:
