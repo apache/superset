@@ -35,7 +35,7 @@ spec:
         # Force reload on config changes
         checksum/superset_config.py: {{ include "superset-config" . | sha256sum }}
         checksum/superset_init.sh: {{ tpl .Values.init.initscript . | sha256sum }}
-        checksum/superset_bootstrap.sh: {{ include "superset-bootstrap" . | sha256sum }}
+        checksum/superset_bootstrap.sh: {{ tpl .Values.bootstrapScript . | sha256sum }}
         checksum/connections: {{ .Values.supersetNode.connections | toYaml | sha256sum }}
         checksum/extraConfigs: {{ .Values.extraConfigs | toYaml | sha256sum }}
         checksum/extraSecrets: {{ .Values.extraSecrets | toYaml | sha256sum }}
@@ -50,7 +50,7 @@ spec:
         release: {{ .Release.Name }}
     spec:
       securityContext:
-        runAsUser: 0 # Needed in order to allow pip install to work in bootstrap
+        runAsUser: {{ .Values.runAsUser }}
       {{- if .Values.supersetNode.initContainers }}
       initContainers:
       {{-  tpl (toYaml .Values.supersetNode.initContainers) . | nindent 6 }}

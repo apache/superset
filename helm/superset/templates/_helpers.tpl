@@ -49,19 +49,6 @@ Create chart name and version as used by the chart label.
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
-{{- define "superset-bootstrap" -}}
-#!/bin/sh
-{{ if .Values.additionalAptPackages }}
-apt-get update -y \
-  && apt-get install -y --no-install-recommends \
-     {{ range .Values.additionalAptPackages }}{{ . }} {{ end }}\
-  && rm -rf /var/lib/apt/lists/*
-{{ end -}}
-{{ if .Values.additionalRequirements }}
-pip install {{ range .Values.additionalRequirements }}{{ . }} {{ end }}
-{{ end -}}
-{{ end -}}
-
 {{- define "superset-config" }}
 import os
 from cachelib.redis import RedisCache
