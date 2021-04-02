@@ -17,10 +17,18 @@
  * under the License.
  */
 
-import { useApiV1Resource } from './apiResources';
+import Dashboard from 'src/types/Dashboard';
+import { useApiV1Resource, useTransformedResource } from './apiResources';
 
 export const useDashboard = (idOrSlug: string | number) =>
-  useApiV1Resource(`/api/v1/dashboard/${idOrSlug}`);
+  useTransformedResource(
+    useApiV1Resource<Dashboard>(`/api/v1/dashboard/${idOrSlug}`),
+    dashboard => ({
+      ...dashboard,
+      metadata: JSON.parse(dashboard.json_metadata),
+      position_data: JSON.parse(dashboard.position_json),
+    }),
+  );
 
 // gets the chart definitions for a dashboard
 export const useDashboardCharts = (idOrSlug: string | number) =>

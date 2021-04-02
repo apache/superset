@@ -78,7 +78,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
   getState,
 ) => {
   const { user, common } = getState();
-  const metadata = JSON.parse(dashboardData.json_metadata);
+  const { metadata } = dashboardData;
   const queryParams = querystring.parse(window.location.search);
   const urlParams = extractUrlParams(queryParams);
   const editMode = queryParams.edit === 'true';
@@ -115,11 +115,11 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
   }
 
   // dashboard layout
-  const positionJson = JSON.parse(dashboardData.position_json);
-  // new dash: positionJson could be {} or null
+  const { position_data } = dashboardData;
+  // new dash: position_json could be {} or null
   const layout =
-    positionJson && Object.keys(positionJson).length > 0
-      ? positionJson
+    position_data && Object.keys(position_data).length > 0
+      ? position_data
       : getEmptyLayout();
 
   // create a lookup to sync layout names with slice names
@@ -309,9 +309,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
       charts: chartQueries,
       // read-only data
       dashboardInfo: {
-        id: dashboardData.id,
-        slug: dashboardData.slug,
-        metadata,
+        ...dashboardData,
         userId: String(user.userId), // legacy, please use state.user instead
         dash_edit_perm: getPermissions('can_write', 'Dashboard', roles),
         dash_save_perm: getPermissions('can_save_dash', 'Superset', roles),
@@ -323,7 +321,6 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
           flash_messages: common.flash_messages,
           conf: common.conf,
         },
-        lastModifiedTime: dashboardData.last_modified_time,
       },
       dashboardFilters,
       nativeFilters,
