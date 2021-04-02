@@ -55,11 +55,12 @@ test('should render the Popover on click when uncontrolled', () => {
       Click
     </AdhocFilterPopoverTrigger>,
   );
+  expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   userEvent.click(screen.getByText('Click'));
   expect(screen.getByRole('tooltip')).toBeInTheDocument();
 });
 
-test('should be visible when controlled', () => {
+test('should be visible when controlled', async () => {
   const controlledProps = {
     ...mockedProps,
     isControlledComponent: true,
@@ -73,8 +74,6 @@ test('should be visible when controlled', () => {
     </AdhocFilterPopoverTrigger>,
   );
   expect(screen.getByRole('tooltip')).toBeInTheDocument();
-  userEvent.click(screen.getByText('Click'));
-  expect(controlledProps.togglePopover).toHaveBeenCalled();
 });
 
 test('should NOT be visible when controlled', () => {
