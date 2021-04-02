@@ -16,6 +16,7 @@
 # under the License.
 import json
 import logging
+import re
 from collections import defaultdict, OrderedDict
 from contextlib import closing
 from dataclasses import dataclass, field  # pylint: disable=wrong-import-order
@@ -50,6 +51,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
 from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom, TextClause
+from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy.types import TypeEngine
 
 from superset import app, db, is_feature_enabled, security_manager
@@ -70,7 +72,7 @@ from superset.result_set import SupersetResultSet
 from superset.sql_parse import ParsedQuery
 from superset.typing import AdhocMetric, Metric, OrderBy, QueryObjectDict
 from superset.utils import core as utils
-from superset.utils.core import GenericDataType
+from superset.utils.core import GenericDataType, remove_duplicates
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
@@ -465,7 +467,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
     fetch_values_predicate = Column(String(1000))
     owners = relationship(owner_class, secondary=sqlatable_user, backref="tables")
-    database = relationship(
+    database: Database = relationship(
         "Database",
         backref=backref("tables", cascade="all, delete-orphan"),
         foreign_keys=[database_id],
@@ -506,22 +508,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         "MIN": sa.func.MIN,
         "MAX": sa.func.MAX,
     }
-
-    def make_sqla_column_compatible(
-        self, sqla_col: Column, label: Optional[str] = None
-    ) -> Column:
-        """Takes a sqlalchemy column object and adds label info if supported by engine.
-        :param sqla_col: sqlalchemy column instance
-        :param label: alias/label that column is expected to have
-        :return: either a sql alchemy column or label instance if supported by engine
-        """
-        label_expected = label or sqla_col.name
-        db_engine_spec = self.database.db_engine_spec
-        # add quotes to tables
-        if db_engine_spec.allows_alias_in_select:
-            label = db_engine_spec.make_label_compatible(label_expected)
-            sqla_col = sqla_col.label(label)
-        return sqla_col
 
     def __repr__(self) -> str:
         return self.name
@@ -708,11 +694,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     def data(self) -> Dict[str, Any]:
         data_ = super().data
         if self.type == "table":
-            grains = self.database.grains() or []
-            if grains:
-                grains = [(g.duration, g.name) for g in grains]
             data_["granularity_sqla"] = utils.choicify(self.dttm_cols)
-            data_["time_grain_sqla"] = grains
+            data_["time_grain_sqla"] = [
+                (g.duration, g.name) for g in self.database.grains() or []
+            ]
             data_["main_dttm_col"] = self.main_dttm_col
             data_["fetch_values_predicate"] = self.fetch_values_predicate
             data_["template_params"] = self.template_params
@@ -800,7 +785,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         all_queries = query_str_ext.prequeries + [query_str_ext.sql]
         return ";\n\n".join(all_queries) + ";"
 
-    def get_sqla_table(self) -> table:
+    def get_sqla_table(self) -> TableClause:
         tbl = table(self.table_name)
         if self.schema:
             tbl.schema = self.schema
@@ -808,7 +793,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
     def get_from_clause(
         self, template_processor: Optional[BaseTemplateProcessor] = None
-    ) -> Union[table, TextAsFrom]:
+    ) -> Union[TableClause, Alias]:
         """
         Return where to select the columns and metrics from. Either a physical table
         or a virtual table with it's own subquery.
@@ -881,6 +866,51 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             raise QueryObjectValidationError("Adhoc metric expressionType is invalid")
 
         return self.make_sqla_column_compatible(sqla_metric, label)
+
+    def make_sqla_column_compatible(
+        self, sqla_col: Column, label: Optional[str] = None
+    ) -> Column:
+        """Takes a sqlalchemy column object and adds label info if supported by engine.
+        :param sqla_col: sqlalchemy column instance
+        :param label: alias/label that column is expected to have
+        :return: either a sql alchemy column or label instance if supported by engine
+        """
+        label_expected = label or sqla_col.name
+        db_engine_spec = self.database.db_engine_spec
+        # add quotes to tables
+        if db_engine_spec.allows_alias_in_select:
+            label = db_engine_spec.make_label_compatible(label_expected)
+            sqla_col = sqla_col.label(label)
+        return sqla_col
+
+    def make_orderby_compatible(
+        self, select_exprs: List[ColumnElement], orderby_exprs: List[ColumnElement]
+    ) -> None:
+        """
+        If needed, make sure aliases for selected columns are not used in
+        `ORDER BY`.
+
+        In some databases (e.g. Presto), `ORDER BY` clause is not able to
+        automatically pick the source column if a `SELECT` clause alias is named
+        the same as a source column. In this case, we update the SELECT alias to
+        another name to avoid the conflict.
+        """
+        if self.database.db_engine_spec.allows_alias_to_source_column:
+            return
+
+        def is_alias_used_in_orderby(col: ColumnElement) -> bool:
+            if not isinstance(col, Label):
+                return False
+            regexp = re.compile(f"\\(.*\\b{re.escape(col.name)}\\b.*\\)", re.IGNORECASE)
+            return any(regexp.search(str(x)) for x in orderby_exprs)
+
+        # Iterate through selected columns, if column alias appears in orderby
+        # use another `alias`. The final output columns will still use the
+        # original names, because they are updated by `labels_expected` after
+        # querying.
+        for col in select_exprs:
+            if is_alias_used_in_orderby(col):
+                col.name = f"{col.name}__"
 
     def _get_sqla_row_level_filters(
         self, template_processor: BaseTemplateProcessor
@@ -995,9 +1025,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
         # To ensure correct handling of the ORDER BY labeling we need to reference the
         # metric instance if defined in the SELECT clause.
-        metrics_exprs_by_label = {
-            m.name: m for m in metrics_exprs  # pylint: disable=protected-access
-        }
+        metrics_exprs_by_label = {m.name: m for m in metrics_exprs}
+        metrics_exprs_by_expr = {str(m): m for m in metrics_exprs}
 
         # Since orderby may use adhoc metrics, too; we need to process them first
         orderby_exprs: List[ColumnElement] = []
@@ -1007,21 +1036,25 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists
                     col = self.adhoc_metric_to_sqla(col, columns_by_name)
+                    # if the adhoc metric has been defined before
+                    # use the existing instance.
+                    col = metrics_exprs_by_expr.get(str(col), col)
                     need_groupby = True
             elif col in columns_by_name:
                 col = columns_by_name[col].get_sqla_col()
+            elif col in metrics_exprs_by_label:
+                col = metrics_exprs_by_label[col]
+                need_groupby = True
             elif col in metrics_by_name:
                 col = metrics_by_name[col].get_sqla_col()
                 need_groupby = True
-            elif col in metrics_exprs_by_label:
-                col = metrics_exprs_by_label[col]
 
             if isinstance(col, ColumnElement):
                 orderby_exprs.append(col)
             else:
                 # Could not convert a column reference to valid ColumnElement
                 raise QueryObjectValidationError(
-                    _("Unknown column used in orderby: %(col)", col=orig_col)
+                    _("Unknown column used in orderby: %(col)s", col=orig_col)
                 )
 
         select_exprs: List[Union[Column, Label]] = []
@@ -1093,11 +1126,21 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 dttm_col.get_time_filter(from_dttm, to_dttm, time_range_endpoints)
             )
 
-        select_exprs += metrics_exprs
-        labels_expected = [c.name for c in select_exprs]
-        select_exprs = db_engine_spec.make_select_compatible(
-            groupby_exprs_with_timestamp.values(), select_exprs
+        # Always remove duplicates by column name, as sometimes `metrics_exprs`
+        # can have the same name as a groupby column (e.g. when users use
+        # raw columns as custom SQL adhoc metric).
+        select_exprs = remove_duplicates(
+            select_exprs + metrics_exprs, key=lambda x: x.name
         )
+
+        # Expected output columns
+        labels_expected = [c.name for c in select_exprs]
+
+        # Order by columns are "hidden" columns, some databases require them
+        # always be present in SELECT if an aggregation function is used
+        if not db_engine_spec.allows_hidden_ordeby_agg:
+            select_exprs = remove_duplicates(select_exprs + orderby_exprs)
+
         qry = sa.select(select_exprs)
 
         tbl = self.get_from_clause(template_processor)
@@ -1213,12 +1256,13 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             qry = qry.where(and_(*where_clause_and))
         qry = qry.having(and_(*having_clause_and))
 
+        self.make_orderby_compatible(select_exprs, orderby_exprs)
+
         for col, (orig_col, ascending) in zip(orderby_exprs, orderby):
-            if (
-                db_engine_spec.allows_alias_in_orderby
-                and col.name in metrics_exprs_by_label
-            ):
-                col = Label(col.name, metrics_exprs_by_label[col.name])
+            if not db_engine_spec.allows_alias_in_orderby and isinstance(col, Label):
+                # if engine does not allow using SELECT alias in ORDER BY
+                # revert to the underlying column
+                col = col.element
             direction = asc if ascending else desc
             qry = qry.order_by(direction(col))
 
@@ -1315,6 +1359,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     result.df, dimensions, groupby_exprs_sans_timestamp
                 )
                 qry = qry.where(top_groups)
+
+        qry = qry.select_from(tbl)
+
         if is_rowcount:
             if not db_engine_spec.allows_subqueries:
                 raise QueryObjectValidationError(
@@ -1322,10 +1369,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 )
             label = "rowcount"
             col = self.make_sqla_column_compatible(literal_column("COUNT(*)"), label)
-            qry = select([col]).select_from(qry.select_from(tbl).alias("rowcount_qry"))
+            qry = select([col]).select_from(qry.alias("rowcount_qry"))
             labels_expected = [label]
-        else:
-            qry = qry.select_from(tbl)
+
         return SqlaQuery(
             extra_cache_keys=extra_cache_keys,
             labels_expected=labels_expected,
