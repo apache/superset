@@ -136,7 +136,7 @@ beforeEach(() => {
 });
 
 afterAll(() => {
-  fetchMock.done();
+  fetchMock.restore();
 });
 
 test('should render - FeatureFlag disabled', async () => {
