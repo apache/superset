@@ -53,8 +53,7 @@ test('should render the edit button', () => {
     editMode: false,
   };
   render(setup(editModeOffProps));
-  const editButton = screen.getAllByRole('button')[0];
-  expect(editButton).toHaveAttribute('aria-label', 'Edit');
+  expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
 });
 
 test('should render the menu', () => {

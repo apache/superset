@@ -85,6 +85,7 @@ test('should render the "Apply" button as disabled', () => {
 test('should apply', () => {
   render(<Header {...mockedProps} />, { useRedux: true });
   const applyBtn = screen.getByText('Apply');
+  expect(mockedProps.onApply).not.toHaveBeenCalled();
   userEvent.click(applyBtn);
   expect(mockedProps.onApply).toHaveBeenCalled();
 });
