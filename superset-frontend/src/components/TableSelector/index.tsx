@@ -68,8 +68,9 @@ const TableSelectorWrapper = styled.div`
 `;
 
 const TableLabel = styled.span`
-  align-items: center;
-  display: flex;
+  vertical-align: middle;
+  display: inline-block;
+  width: 324px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -106,7 +107,6 @@ interface TableSelectorProps {
   sqlLabMode?: boolean;
   tableName?: string;
   tableNameSticky?: boolean;
-  useDocumentBody?: boolean;
 }
 
 const TableSelector: FunctionComponent<TableSelectorProps> = ({
@@ -127,7 +127,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   sqlLabMode = true,
   tableName,
   tableNameSticky = true,
-  useDocumentBody = false,
 }) => {
   const [currentSchema, setCurrentSchema] = useState<string | undefined>(
     schema,
@@ -137,6 +136,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   );
   const [tableLoading, setTableLoading] = useState(false);
   const [tableOptions, setTableOptions] = useState([]);
+
   function fetchTables(
     databaseId?: number,
     schema?: string,
@@ -306,7 +306,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         sqlLabMode={sqlLabMode}
         isDatabaseSelectEnabled={isDatabaseSelectEnabled && !readOnly}
         readOnly={readOnly}
-        useDocumentBody={useDocumentBody}
       />
     );
   }
@@ -321,7 +320,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           name="select-table"
           isLoading={tableLoading}
           ignoreAccents={false}
-          menuShouldScrollIntoView={false}
           placeholder={t('Select table or type table name')}
           autosize={false}
           onChange={changeTable}
@@ -333,6 +331,18 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           isDisabled={readOnly}
           styles={{
             menuPortal: base => ({ ...base, zIndex: 5 }),
+            option: (provided, state) => ({
+              ...provided,
+              backgroundColor: state.isFocused ? '#F0F0F0' : 'none',
+            }),
+            control: base => ({
+              ...base,
+              boxShadow: '#cccccc',
+              borderColor: '#cccccc',
+              '&:hover': {
+                borderColor: '#cccccc',
+              },
+            }),
           }}
         />
       );
