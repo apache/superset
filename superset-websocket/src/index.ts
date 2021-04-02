@@ -21,6 +21,7 @@ import * as net from 'net';
 import WebSocket from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 
+const winston = require('winston');
 const jwt = require('jsonwebtoken');
 const cookie = require('cookie');
 const Redis = require('ioredis');
@@ -73,6 +74,9 @@ const environment = process.env.NODE_ENV;
 // default options
 export const opts = {
   port: 8080,
+  logLevel: 'info',
+  logToFile: false,
+  logFilename: 'app.log',
   redis: {
     port: 6379,
     host: '127.0.0.1',
@@ -96,13 +100,31 @@ let config = {};
 try {
   config = require(configFile);
 } catch (err) {
-  console.warn('config.json not found, using defaults');
+  console.error('config.json not found, using defaults');
 }
 // apply config overrides
 Object.assign(opts, config);
 
+// init logger
+const logTransports = [
+  new winston.transports.Console({ handleExceptions: true }),
+];
+if (opts.logToFile && opts.logFilename) {
+  logTransports.push(
+    new winston.transports.File({
+      filename: opts.logFilename,
+      handleExceptions: true,
+    }),
+  );
+}
+const logger = winston.createLogger({
+  level: opts.logLevel,
+  transports: logTransports,
+});
+
+// enforce JWT secret length
 if (startServer && opts.jwtSecret.length < 32)
-  throw 'Please provide a JWT secret at least 32 bytes long';
+  throw new Error('Please provide a JWT secret at least 32 bytes long');
 
 // initialize servers
 const redis = new Redis(opts.redis);
@@ -152,7 +174,7 @@ export const trackClient = (
 export const sendToChannel = (channel: string, value: EventValue): void => {
   const strData = JSON.stringify(value);
   if (!channels[channel]) {
-    console.debug(`channel ${channel} is unknown, skipping`);
+    logger.debug(`channel ${channel} is unknown, skipping`);
     return;
   }
   channels[channel].sockets.forEach(socketId => {
@@ -161,7 +183,7 @@ export const sendToChannel = (channel: string, value: EventValue): void => {
     try {
       socketInstance.ws.send(strData);
     } catch (err) {
-      console.debug('Error sending to socket', err);
+      logger.debug('Error sending to socket', err);
       // check that the connection is still active
       cleanChannel(channel);
     }
@@ -184,7 +206,7 @@ export const fetchRangeFromStream = async ({
     if (!reply || !reply.length) return;
     listener(reply);
   } catch (e) {
-    console.error(e);
+    logger.error(e);
   }
 };
 
@@ -220,7 +242,7 @@ export const subscribeToGlobalStream = async (
       listener(results);
       setLastFirehoseId(results[length - 1][0]);
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       continue;
     }
   }
@@ -230,14 +252,14 @@ export const subscribeToGlobalStream = async (
  * Callback function to process events received from a Redis Stream
  */
 export const processStreamResults = (results: StreamResult[]): void => {
-  console.debug('events received', results);
+  logger.debug('events received', results);
   results.forEach(item => {
     try {
       const id = item[0];
       const data = JSON.parse(item[1][1]);
       sendToChannel(data.channel_id, { id, ...data });
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     }
   });
 };
@@ -283,7 +305,7 @@ export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
 
   // add this ws instance to the internal registry
   const socketId = trackClient(channel, socketInstance);
-  console.debug(`socket ${socketId} connected on channel ${channel}`);
+  logger.debug(`socket ${socketId} connected on channel ${channel}`);
 
   // reconnection logic
   const lastId = getLastId(request);
@@ -305,7 +327,7 @@ export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
     const socketId = data.toString();
     const socketInstance = sockets[socketId];
     if (!socketInstance) {
-      console.warn(`pong received for nonexistent socket ${socketId}`);
+      logger.warn(`pong received for nonexistent socket ${socketId}`);
     } else {
       socketInstance.pongTs = Date.now();
     }
@@ -325,7 +347,7 @@ export const httpUpgrade = (
     if (!jwtPayload.channel) throw new Error('Channel ID not present');
   } catch (err) {
     // JWT invalid, do not establish a WebSocket connection
-    console.error(err);
+    logger.error(err);
     socket.destroy();
     return;
   }
@@ -349,15 +371,15 @@ export const httpUpgrade = (
  * Sends a _ping_ to all active connections.
  */
 export const checkSockets = () => {
-  console.debug('*** channel count', Object.keys(channels).length);
-  console.debug('*** socket count', Object.keys(sockets).length);
+  logger.debug('*** channel count', Object.keys(channels).length);
+  logger.debug('*** socket count', Object.keys(sockets).length);
   for (const socketId in sockets) {
     const socketInstance = sockets[socketId];
     const timeout = Date.now() - socketInstance.pongTs;
     let isActive = true;
 
     if (timeout >= opts.socketResponseTimeoutMs) {
-      console.debug(
+      logger.debug(
         `terminating unresponsive socket: ${socketId}, channel: ${socketInstance.channel}`,
       );
       socketInstance.ws.terminate();
@@ -370,7 +392,7 @@ export const checkSockets = () => {
       socketInstance.ws.ping(socketId);
     } else {
       delete sockets[socketId];
-      console.debug(`forgetting socket ${socketId}`);
+      logger.debug(`forgetting socket ${socketId}`);
     }
   }
 };
@@ -404,7 +426,7 @@ if (startServer) {
   wss.on('connection', wsConnection);
   httpServer.on('upgrade', httpUpgrade);
   httpServer.listen(opts.port);
-  console.info(`Server started on port ${opts.port}`);
+  logger.info(`Server started on port ${opts.port}`);
 
   // start reading from event stream
   subscribeToGlobalStream(GLOBAL_EVENT_STREAM_NAME, processStreamResults);
