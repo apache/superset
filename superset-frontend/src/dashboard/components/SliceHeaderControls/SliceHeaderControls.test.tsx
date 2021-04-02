@@ -87,7 +87,6 @@ const createProps = () => ({
   chartStatus: 'rendered',
 });
 
-
 test('Should render', () => {
   const props = createProps();
   render(<SliceHeaderControls {...props} />, { useRedux: true });
