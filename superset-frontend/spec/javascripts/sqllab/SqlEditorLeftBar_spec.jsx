@@ -20,7 +20,8 @@ import React from 'react';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { shallow } from 'enzyme';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import '@testing-library/jest-dom/extend-expect';
 import thunk from 'redux-thunk';
@@ -56,6 +57,10 @@ describe('SqlEditorLeftBar', () => {
     });
   });
 
+  afterEach(() => {
+    wrapper.unmount();
+  });
+
   it('is valid', () => {
     expect(React.isValidElement(<SqlEditorLeftBar {...mockedProps} />)).toBe(
       true,
@@ -68,19 +73,14 @@ describe('SqlEditorLeftBar', () => {
 });
 
 describe('Left Panel Expansion', () => {
-  beforeEach(async () => {
-    await act(async () => {
-      render(
-        <ThemeProvider theme={supersetTheme}>
-          <Provider store={store}>
-            <SqlEditorLeftBar {...mockedProps} />
-          </Provider>
-        </ThemeProvider>,
-      );
-    });
-  });
-
-  it('table should be visible when expanded is true', async () => {
+  it('table should be visible when expanded is true', () => {
+    const { container } = render(
+      <ThemeProvider theme={supersetTheme}>
+        <Provider store={store}>
+          <SqlEditorLeftBar {...mockedProps} />
+        </Provider>
+      </ThemeProvider>,
+    );
     const dbSelect = screen.getByText(/select a database/i);
     const schemaSelect = screen.getByText(/select a schema \(0\)/i);
     const dropdown = screen.getByText(/Select table/i);
@@ -89,5 +89,28 @@ describe('Left Panel Expansion', () => {
     expect(schemaSelect).toBeInTheDocument();
     expect(dropdown).toBeInTheDocument();
     expect(abUser).toBeInTheDocument();
+    expect(
+      container.querySelector('.ant-collapse-content-active'),
+    ).toBeInTheDocument();
+  });
+
+  it('should toggle the table when the header is clicked', async () => {
+    const collapseMock = jest.fn();
+    render(
+      <ThemeProvider theme={supersetTheme}>
+        <Provider store={store}>
+          <SqlEditorLeftBar
+            actions={{ ...mockedActions, collapseTable: collapseMock }}
+            tables={[table]}
+            queryEditor={defaultQueryEditor}
+            database={databases}
+            height={0}
+          />
+        </Provider>
+      </ThemeProvider>,
+    );
+    const header = screen.getByText(/ab_user/);
+    userEvent.click(header);
+    expect(collapseMock).toHaveBeenCalled();
   });
 });
