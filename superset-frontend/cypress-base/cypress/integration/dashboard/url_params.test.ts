@@ -16,52 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { parsePostForm, JsonObject } from 'cypress/utils';
 import {
-  isLegacyResponse,
-  getChartAliases,
-  parsePostForm,
-  Dashboard,
-  JsonObject,
-} from 'cypress/utils';
-import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
+  WORLD_HEALTH_DASHBOARD,
+  WORLD_HEALTH_CHARTS,
+  waitForChartLoad,
+} from './dashboard.helper';
 
 describe('Dashboard form data', () => {
   const urlParams = { param1: '123', param2: 'abc' };
-  let dashboard: Dashboard;
-
-  beforeEach(() => {
+  before(() => {
     cy.login();
 
     cy.visit(WORLD_HEALTH_DASHBOARD, { qs: urlParams });
-
-    cy.get('#app').then(data => {
-      const bootstrapData = JSON.parse(data[0].dataset.bootstrap || '');
-      dashboard = bootstrapData.dashboard_data;
-    });
   });
 
   it('should apply url params to slice requests', () => {
-    const aliases = getChartAliases(dashboard.slices);
-    // wait and verify one-by-one
-    cy.wait(aliases, { timeout: 18000 }).then(requests =>
-      Promise.all(
-        requests.map(async ({ response, request }) => {
-          const responseBody = response?.body;
-          if (isLegacyResponse(responseBody)) {
-            const requestParams = JSON.parse(
-              parsePostForm(request.body).form_data as string,
-            );
-            expect(requestParams.url_params).deep.eq(urlParams);
-          } else {
-            // TODO: export url params to chart data API
-            request.body.queries.forEach(
-              (query: { url_params: JsonObject }) => {
-                expect(query.url_params).deep.eq(urlParams);
-              },
-            );
-          }
-        }),
-      ),
-    );
+    cy.intercept('/superset/explore_json/*', request => {
+      const requestParams = JSON.parse(
+        parsePostForm(request.body).form_data as string,
+      );
+      expect(requestParams.url_params).deep.eq(urlParams);
+    });
+    cy.intercept('/api/v1/chart/data?*', request => {
+      // TODO: export url params to chart data API
+      request.body.queries.forEach((query: { url_params: JsonObject }) => {
+        expect(query.url_params).deep.eq(urlParams);
+      });
+    });
+
+    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
   });
 });

@@ -20,7 +20,7 @@
 import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import Popover from 'src/common/components/Popover';
+import Popover from 'src/components/Popover';
 
 import AdhocFilter, {
   EXPRESSION_TYPES,
