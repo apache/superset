@@ -327,9 +327,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           optionRenderer={renderTableOption}
           valueRenderer={renderTableOption}
           isDisabled={readOnly}
-          styles={{
-            menuPortal: base => ({ ...base, zIndex: 5 }),
-          }}
         />
       );
     } else if (formMode) {

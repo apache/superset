@@ -273,7 +273,9 @@ function styled<
     };
 
     const theme = useTheme();
-
+    console.log('DEFAULT', DEFAULT_STYLES);
+    console.log('CONFIG', stylesConfig);
+    console.log('TOGETHER', { ...DEFAULT_STYLES, ...stylesConfig });
     return (
       <MaybeSortableSelect
         ref={setRef}

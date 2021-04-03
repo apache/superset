@@ -25,6 +25,11 @@ const OPTIONS = [
   { label: 'Blue', value: 'blue' },
   { label: 'Red', value: 'red' },
   { label: 'Orange', value: 'orange' },
+  {
+    label:
+      'sldkfjlskdjflskjdflksjd flskdjflksjdf lkjlskdjflksdj slkdfjlksdjflkjsdf',
+    value: 'really long',
+  },
 ];
 
 export default {

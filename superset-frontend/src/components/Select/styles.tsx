@@ -239,7 +239,10 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
         font-size: ${fontSize}px;
         background-color: ${backgroundColor};
         color: ${color};
+        display: inline-block;
         font-weight: ${isSelected ? 600 : 400};
+        overflow: hidden;
+        text-overflow: ellipsis;
         white-space: nowrap;
         &:hover:active {
           background-color: ${colors.grayBg};
