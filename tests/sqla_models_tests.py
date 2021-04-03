@@ -223,7 +223,7 @@ class TestDatabaseModel(SupersetTestCase):
             with pytest.raises(QueryObjectValidationError):
                 table.get_sqla_query(**query_obj)
 
-    def test_query_format_strip_trailing_semicolon(self): 
+    def test_query_format_strip_trailing_semicolon(self):
         query_obj = {
             "granularity": None,
             "from_dttm": None,
