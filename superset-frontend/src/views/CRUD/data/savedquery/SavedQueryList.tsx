@@ -26,7 +26,7 @@ import {
   createFetchDistinct,
   createErrorHandler,
 } from 'src/views/CRUD/utils';
-import { Popover } from 'src/common/components';
+import Popover from 'src/components/Popover';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';

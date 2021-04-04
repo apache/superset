@@ -46,7 +46,7 @@ const dashboardResult = {
 fetchMock.restore();
 
 fetchMock.get('glob:*/api/v1/dashboard/related/owners?*', {
-  result: {},
+  result: [],
 });
 
 fetchMock.get('glob:*/api/v1/dashboard/*', {
@@ -255,6 +255,7 @@ describe('PropertiesModal', () => {
                 slug: '/new',
                 json_metadata: '{"color_scheme":"SUPERSET_DEFAULT"}',
                 owners: [],
+                roles: [],
               },
             },
           });
@@ -293,6 +294,7 @@ describe('PropertiesModal', () => {
                 slug: '/new',
                 json_metadata: '{"color_scheme":"SUPERSET_DEFAULT"}',
                 owners: [],
+                roles: [],
               },
             },
           });

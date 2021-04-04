@@ -21,7 +21,7 @@ import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
 import Dashboard from 'src/dashboard/components/Dashboard';
-import DashboardBuilder from 'src/dashboard/containers/DashboardBuilder';
+import DashboardBuilder from 'src/dashboard/components/DashboardBuilder/DashboardBuilder';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 
