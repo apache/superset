@@ -601,7 +601,6 @@ class TestDatasetApi(SupersetTestCase):
         columns = (
             db.session.query(TableColumn)
             .filter_by(table_id=dataset.id)
-            .order_by("column_name")
             .all()
         )
 
