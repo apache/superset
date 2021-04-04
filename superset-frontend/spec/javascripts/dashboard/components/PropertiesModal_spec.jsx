@@ -113,7 +113,7 @@ describe('PropertiesModal', () => {
             const spy = jest.spyOn(modalInstance, 'onMetadataChange');
             modalInstance.onColorSchemeChange('SUPERSET_DEFAULT');
             expect(spy).toHaveBeenCalledWith(
-              '{"color_scheme": "SUPERSET_DEFAULT"}',
+              '{"color_scheme": "SUPERSET_DEFAULT", "label_colors": {}}',
             );
           });
         });
