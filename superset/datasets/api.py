@@ -316,13 +316,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 g.user, pk, item, override_columns
             ).run()
             if override_columns:
-              print(5 * '*')
-              print(item)
-              print(5 * '*')
-              datasource = ConnectorRegistry.get_datasource(
-                'table', item['database_id'], db.session
-              )
-              external_metadata = datasource.external_metadata()
+              RefreshDatasetCommand(g.user, pk).run()
             response = self.response(200, id=changed_model.id, result=item)
         except DatasetNotFoundError:
             response = self.response_404()
