@@ -22,6 +22,7 @@ import {
   DataMask,
   ensureIsArray,
   GenericDataType,
+  Place,
   t,
   tn,
 } from '@superset-ui/core';
@@ -57,6 +58,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     width,
     behaviors,
     setDataMask,
+    place,
   } = props;
   const {
     defaultValue,
@@ -128,8 +130,15 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     inverseSelection,
   ]);
 
+  const isDefaultToFirstItemInFilterConfigModal =
+    place === Place.FILTER_CONFIG_MODAL && defaultToFirstItem;
+
   useEffect(() => {
-    handleChange(defaultToFirstItem ? firstItem : initValues);
+    let resultValue = defaultToFirstItem ? firstItem : initValues;
+    if (isDefaultToFirstItemInFilterConfigModal) {
+      resultValue = null;
+    }
+    handleChange(resultValue);
   }, [
     JSON.stringify(defaultValue),
     JSON.stringify(firstItem),
@@ -149,6 +158,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         allowClear
         // @ts-ignore
         value={values}
+        disabled={isDefaultToFirstItemInFilterConfigModal}
         showSearch={showSearch}
         mode={multiSelect ? 'multiple' : undefined}
         placeholder={placeholderText}

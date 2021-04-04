@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { FC } from 'react';
-import { t, SuperChart, Behavior } from '@superset-ui/core';
+import { t, SuperChart, Behavior, Place } from '@superset-ui/core';
 import { FormInstance } from 'antd/lib/form';
 import { setNativeFilterFieldValues } from './utils';
 import { StyledFormItem, StyledLabel } from './FiltersConfigForm';
@@ -57,6 +57,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
         <SuperChart
           height={25}
           width={250}
+          place={Place.FILTER_CONFIG_MODAL}
           behaviors={[Behavior.NATIVE_FILTER]}
           formData={formData}
           // For charts that don't have datasource we need workaround for empty placeholder

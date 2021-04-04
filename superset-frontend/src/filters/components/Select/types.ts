@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  Place,
   ChartProps,
   Behavior,
   DataRecord,
@@ -52,6 +53,7 @@ export type PluginFilterSelectProps = PluginFilterStylesProps & {
   data: DataRecord[];
   setDataMask: SetDataMaskHook;
   behaviors: Behavior[];
+  place: Place;
   formData: PluginFilterSelectQueryFormData;
 };
 
