@@ -160,7 +160,7 @@ class PropertiesModal extends React.PureComponent {
     ) {
       jsonMetadataObj.color_scheme = value;
       jsonMetadataObj.label_colors = Object.keys(
-        jsonMetadataObj.label_colors,
+        jsonMetadataObj.label_colors ?? {},
       ).reduce(
         (prev, next) => ({
           ...prev,
