@@ -28,6 +28,7 @@ import {
   t,
   SupersetClient,
   getCategoricalSchemeRegistry,
+  CategoricalColorNamespace,
 } from '@superset-ui/core';
 
 import Modal from 'src/common/components/Modal';
@@ -158,6 +159,15 @@ class PropertiesModal extends React.PureComponent {
       Object.keys(jsonMetadataObj).includes('color_scheme')
     ) {
       jsonMetadataObj.color_scheme = value;
+      jsonMetadataObj.label_colors = Object.keys(
+        jsonMetadataObj.label_colors ?? {},
+      ).reduce(
+        (prev, next) => ({
+          ...prev,
+          [next]: CategoricalColorNamespace.getScale(value)(next),
+        }),
+        {},
+      );
       this.onMetadataChange(jsonStringify(jsonMetadataObj));
     }
 
