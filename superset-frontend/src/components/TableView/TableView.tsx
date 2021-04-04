@@ -77,7 +77,7 @@ const TableViewStyles = styled.div<{
       isPaginationSticky &&
       `
         position: sticky;
-        bottom: ${theme.gridUnit * 4}px;
+        bottom: 0;
         left: 0;
     `};
   }

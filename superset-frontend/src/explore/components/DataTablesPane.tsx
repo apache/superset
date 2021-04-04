@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { styled, t, css } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import Collapse from 'src/common/components/Collapse';
 import Tabs from 'src/common/components/Tabs';
 import Loading from 'src/components/Loading';
@@ -77,6 +77,26 @@ const TabsWrapper = styled.div<{ contentHeight: number }>`
   .table-condensed {
     height: 100%;
     overflow: auto;
+  }
+`;
+
+const CollapseWrapper = styled.div`
+  height: 100%;
+
+  .collapse-inner {
+    height: 100%;
+
+    .ant-collapse-item {
+      height: 100%;
+
+      .ant-collapse-content {
+        height: calc(100% - ${({ theme }) => theme.gridUnit * 8}px);
+
+        .ant-collapse-content-box {
+          height: 100%;
+        }
+      }
+    }
   }
 `;
 
@@ -257,49 +277,39 @@ export const DataTablesPane = ({
   return (
     <SouthPane>
       <TabsWrapper contentHeight={tableSectionHeight}>
-        <Collapse
-          accordion
-          bordered={false}
-          defaultActiveKey={panelOpen ? DATAPANEL_KEY : undefined}
-          onChange={handleCollapseChange}
-          bold
-          ghost
-          css={css`
-            height: 100%;
-
-            .ant-collapse-item {
-              height: 100%;
-
-              .ant-collapse-content {
-                height: 100%;
-
-                .ant-collapse-content-box {
-                  height: 100%;
-                }
-              }
-            }
-          `}
-        >
-          <Collapse.Panel
-            header={t('Data')}
-            key={DATAPANEL_KEY}
-            css={{ paddingBottom: 12 }}
+        <CollapseWrapper>
+          <Collapse
+            accordion
+            bordered={false}
+            defaultActiveKey={panelOpen ? DATAPANEL_KEY : undefined}
+            onChange={handleCollapseChange}
+            bold
+            ghost
+            className="collapse-inner"
           >
-            <Tabs
-              fullWidth={false}
-              tabBarExtraContent={TableControls}
-              activeKey={activeTabKey}
-              onChange={setActiveTabKey}
-            >
-              <Tabs.TabPane tab={t('View results')} key={RESULT_TYPES.results}>
-                {renderDataTable(RESULT_TYPES.results)}
-              </Tabs.TabPane>
-              <Tabs.TabPane tab={t('View samples')} key={RESULT_TYPES.samples}>
-                {renderDataTable(RESULT_TYPES.samples)}
-              </Tabs.TabPane>
-            </Tabs>
-          </Collapse.Panel>
-        </Collapse>
+            <Collapse.Panel header={t('Data')} key={DATAPANEL_KEY}>
+              <Tabs
+                fullWidth={false}
+                tabBarExtraContent={TableControls}
+                activeKey={activeTabKey}
+                onChange={setActiveTabKey}
+              >
+                <Tabs.TabPane
+                  tab={t('View results')}
+                  key={RESULT_TYPES.results}
+                >
+                  {renderDataTable(RESULT_TYPES.results)}
+                </Tabs.TabPane>
+                <Tabs.TabPane
+                  tab={t('View samples')}
+                  key={RESULT_TYPES.samples}
+                >
+                  {renderDataTable(RESULT_TYPES.samples)}
+                </Tabs.TabPane>
+              </Tabs>
+            </Collapse.Panel>
+          </Collapse>
+        </CollapseWrapper>
       </TabsWrapper>
     </SouthPane>
   );

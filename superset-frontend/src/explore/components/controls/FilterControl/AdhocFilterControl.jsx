@@ -37,7 +37,7 @@ import {
   AddIconButton,
   HeaderContainer,
   LabelsContainer,
-} from 'src/explore/components/OptionControls';
+} from 'src/explore/components/controls/OptionControls';
 import Icon from 'src/components/Icon';
 import columnType from './columnType';
 import AdhocFilterPopoverTrigger from './AdhocFilterPopoverTrigger';
