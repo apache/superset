@@ -24,8 +24,8 @@ import Select from 'src/components/Select';
 import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
-import BoundsControl from './BoundsControl';
-import CheckboxControl from './CheckboxControl';
+import BoundsControl from '../BoundsControl';
+import CheckboxControl from '../CheckboxControl';
 
 const propTypes = {
   label: PropTypes.string,
@@ -58,7 +58,6 @@ const defaultProps = {
   bounds: [null, null],
   d3format: '',
   dateFormat: '',
-  onChange: () => {},
 };
 
 const comparisonTypeOptions = [
@@ -122,13 +121,9 @@ export default class TimeSeriesColumnControl extends React.Component {
     this.setState({ yAxisBounds }, this.onChange);
   }
 
-  setType() {}
-
   textSummary() {
     return `${this.state.label}`;
   }
-
-  edit() {}
 
   formRow(label, tooltip, ttLabel, control) {
     return (
@@ -204,7 +199,7 @@ export default class TimeSeriesColumnControl extends React.Component {
               value={this.state.height}
               onChange={this.onTextInputChange.bind(this, 'height')}
               bsSize="small"
-              placeholder="height"
+              placeholder="Height"
             />,
           )}
         {['time', 'avg'].indexOf(this.state.colType) >= 0 &&
@@ -315,7 +310,6 @@ export default class TimeSeriesColumnControl extends React.Component {
           <InfoTooltipWithTrigger
             icon="edit"
             className="text-primary"
-            onClick={this.edit.bind(this)}
             label="edit-ts-column"
           />
         </Popover>
