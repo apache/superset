@@ -224,8 +224,8 @@ class BaseReportState:
             )
         return NotificationContent(name=name, url=url, screenshot=screenshot_data)
 
+    @staticmethod
     def _send(
-        self,
         notification_content: NotificationContent,
         recipients: List[ReportRecipients]
     ) -> None:
@@ -263,7 +263,6 @@ class BaseReportState:
         notification_content = NotificationContent(name=name, text=message)
 
         # filter recipients to recipients who are also owners
-        
         owner_recipients = [
             ReportRecipients(
                 type=ReportRecipientType.EMAIL,
