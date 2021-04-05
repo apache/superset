@@ -28,8 +28,8 @@ import {
 } from 'react-sortable-hoc';
 
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import ControlHeader from '../ControlHeader';
-import controlMap from '.';
+import ControlHeader from 'src/explore/components/ControlHeader';
+import controlMap from '..';
 import './CollectionControl.less';
 
 const propTypes = {
@@ -60,7 +60,11 @@ const defaultProps = {
 const SortableListGroupItem = SortableElement(ListGroupItem);
 const SortableListGroup = SortableContainer(ListGroup);
 const SortableDragger = SortableHandle(() => (
-  <i className="fa fa-bars text-primary" style={{ cursor: 'ns-resize' }} />
+  <i
+    role="img"
+    className="fa fa-bars text-primary"
+    style={{ cursor: 'ns-resize' }}
+  />
 ));
 
 export default class CollectionControl extends React.Component {
@@ -134,7 +138,7 @@ export default class CollectionControl extends React.Component {
 
   render() {
     return (
-      <div className="CollectionControl">
+      <div data-test="CollectionControl" className="CollectionControl">
         <ControlHeader {...this.props} />
         {this.renderList()}
         <InfoTooltipWithTrigger
