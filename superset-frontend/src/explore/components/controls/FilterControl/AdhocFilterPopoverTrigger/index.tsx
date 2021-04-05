@@ -19,8 +19,8 @@
 import React from 'react';
 import Popover from 'src/components/Popover';
 import { OptionSortType } from 'src/explore/types';
-import AdhocFilterEditPopover from './AdhocFilterEditPopover';
-import AdhocFilter from './AdhocFilter';
+import AdhocFilterEditPopover from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopover';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 
 interface AdhocFilterPopoverTriggerProps {
   adhocFilter: AdhocFilter;
