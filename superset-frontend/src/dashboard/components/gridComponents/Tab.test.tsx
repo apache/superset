@@ -130,7 +130,7 @@ test('Edit table title', () => {
   expect(props.updateComponents).toBeCalled();
 });
 
-test('Render tab (with content)', async () => {
+test('Render tab (with content)', () => {
   const props = creteProps();
   props.isFocused = true;
   render(<Tab {...props} />, { useRedux: true, useDnd: true });
