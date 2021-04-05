@@ -90,7 +90,9 @@ const createProps = () => ({
 test('Should render', () => {
   const props = createProps();
   render(<SliceHeaderControls {...props} />, { useRedux: true });
-  expect(screen.getByRole('button', { name: '...' })).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'More Options' }),
+  ).toBeInTheDocument();
   expect(screen.getByTestId('NoAnimationDropdown')).toBeInTheDocument();
 });
 
@@ -129,7 +131,9 @@ test('Should render default props', () => {
   userEvent.click(screen.getByRole('menuitem', { name: 'Export CSV' }));
   userEvent.click(screen.getByRole('menuitem', { name: /Force refresh/ }));
 
-  expect(screen.getByRole('button', { name: '...' })).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'More Options' }),
+  ).toBeInTheDocument();
   expect(screen.getByTestId('NoAnimationDropdown')).toBeInTheDocument();
 });
 
