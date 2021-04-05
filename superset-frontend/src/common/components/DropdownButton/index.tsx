@@ -21,51 +21,6 @@ import { Dropdown as AntdDropdown, Tooltip } from 'src/common/components';
 import { styled } from '@superset-ui/core';
 import kebabCase from 'lodash/kebabCase';
 
-const MenuDots = styled.div`
-  width: ${({ theme }) => theme.gridUnit * 0.75}px;
-  height: ${({ theme }) => theme.gridUnit * 0.75}px;
-  border-radius: 50%;
-  background-color: ${({ theme }) => theme.colors.grayscale.light1};
-
-  font-weight: ${({ theme }) => theme.typography.weights.normal};
-  display: inline-flex;
-  position: relative;
-
-  &:hover {
-    background-color: ${({ theme }) => theme.colors.primary.base};
-
-    &::before,
-    &::after {
-      background-color: ${({ theme }) => theme.colors.primary.base};
-    }
-  }
-
-  &::before,
-  &::after {
-    position: absolute;
-    content: ' ';
-    width: ${({ theme }) => theme.gridUnit * 0.75}px;
-    height: ${({ theme }) => theme.gridUnit * 0.75}px;
-    border-radius: 50%;
-    background-color: ${({ theme }) => theme.colors.grayscale.light1};
-  }
-
-  &::before {
-    top: ${({ theme }) => theme.gridUnit}px;
-  }
-
-  &::after {
-    bottom: ${({ theme }) => theme.gridUnit}px;
-  }
-`;
-
-const MenuDotsWrapper = styled.div`
-  display: flex;
-  align-items: center;
-  padding: ${({ theme }) => theme.gridUnit * 2}px;
-  padding-left: ${({ theme }) => theme.gridUnit}px;
-`;
-
 const StyledDropdownButton = styled.div`
   .ant-btn-group {
     button.ant-btn {
@@ -112,30 +67,22 @@ const StyledDropdownButton = styled.div`
   }
 `;
 
-export interface DropdownProps {
+export interface DropdownButtonProps {
   overlay: React.ReactElement;
   tooltip?: string;
   placement?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
   buttonsRender?: ((buttons: ReactNode[]) => ReactNode[]) | undefined;
 }
 
-export const Dropdown = ({ overlay, ...rest }: DropdownProps) => (
-  <AntdDropdown overlay={overlay} {...rest}>
-    <MenuDotsWrapper>
-      <MenuDots />
-    </MenuDotsWrapper>
-  </AntdDropdown>
-);
-
 export const DropdownButton = ({
   overlay,
   tooltip,
   placement,
   ...rest
-}: DropdownProps) => {
+}: DropdownButtonProps) => {
   const buildButton = (
     props: {
-      buttonsRender?: DropdownProps['buttonsRender'];
+      buttonsRender?: DropdownButtonProps['buttonsRender'];
     } = {},
   ) => (
     <StyledDropdownButton>
