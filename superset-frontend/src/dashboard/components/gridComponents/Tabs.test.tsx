@@ -73,7 +73,7 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () =>
   }),
 );
 
-const creteProps = () => ({
+const createProps = () => ({
   id: 'TABS-L-d9eyOE-b',
   parentId: 'GRID_ID',
   depth: 2,
@@ -117,7 +117,7 @@ beforeEach(() => {
 });
 
 test('Should render editMode:true', () => {
-  const props = creteProps();
+  const props = createProps();
   render(<Tabs {...props} />, { useRedux: true, useDnd: true });
   expect(screen.getAllByRole('tab')).toHaveLength(3);
   expect(DragDroppable).toBeCalledTimes(1);
@@ -128,7 +128,7 @@ test('Should render editMode:true', () => {
 });
 
 test('Should render editMode:false', () => {
-  const props = creteProps();
+  const props = createProps();
   props.editMode = false;
   render(<Tabs {...props} />, { useRedux: true, useDnd: true });
   expect(screen.getAllByRole('tab')).toHaveLength(3);
@@ -144,7 +144,7 @@ test('Should render editMode:false', () => {
 });
 
 test('Update component props', () => {
-  const props = creteProps();
+  const props = createProps();
   (getLeafComponentIdFromPath as jest.Mock).mockResolvedValueOnce('none');
   props.editMode = false;
   const { rerender } = render(<Tabs {...props} />, {
@@ -159,7 +159,7 @@ test('Update component props', () => {
 });
 
 test('Clicking on "DeleteComponentButton"', () => {
-  const props = creteProps();
+  const props = createProps();
   render(<Tabs {...props} />, {
     useRedux: true,
     useDnd: true,
@@ -171,7 +171,7 @@ test('Clicking on "DeleteComponentButton"', () => {
 });
 
 test('Add new tab', () => {
-  const props = creteProps();
+  const props = createProps();
   render(<Tabs {...props} />, {
     useRedux: true,
     useDnd: true,
@@ -183,7 +183,7 @@ test('Add new tab', () => {
 });
 
 test('Removing a tab', async () => {
-  const props = creteProps();
+  const props = createProps();
   render(<Tabs {...props} />, {
     useRedux: true,
     useDnd: true,
@@ -204,7 +204,7 @@ test('Removing a tab', async () => {
 });
 
 test('Switching tabs', () => {
-  const props = creteProps();
+  const props = createProps();
   render(<Tabs {...props} />, {
     useRedux: true,
     useDnd: true,
@@ -218,7 +218,7 @@ test('Switching tabs', () => {
 });
 
 test('Call "DashboardComponent.onDropOnTab"', async () => {
-  const props = creteProps();
+  const props = createProps();
   render(<Tabs {...props} />, {
     useRedux: true,
     useDnd: true,
