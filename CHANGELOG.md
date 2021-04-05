@@ -78,6 +78,7 @@ under the License.
 - [#12415](https://github.com/apache/superset/pull/12415) feat: new Slack dashboard (@betodealmeida)
 
 **Fixes**
+- [#13657](https://github.com/apache/superset/pull/13657) fix: 'Run in SQL Lab' redirect bug (@mistercrunch)
 - [#13735](https://github.com/apache/superset/pull/13735) fix: Properly escape special characters in CSV output (@benjreinhart)
 - [#13461](https://github.com/apache/superset/pull/13461) fix: url shortener invalid input (@dpgaspar)
 - [#13157](https://github.com/apache/superset/pull/13157) fix(alerts&reports): Alerts & Reports will use values from WEBDRIVER_WINDOW option (@iercan)
