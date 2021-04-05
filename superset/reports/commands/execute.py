@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from datetime import datetime, timedelta
 from typing import Any, List, Optional
@@ -29,6 +30,7 @@ from superset.commands.exceptions import CommandException
 from superset.extensions import feature_flag_manager
 from superset.models.reports import (
     ReportExecutionLog,
+    ReportRecipientType,
     ReportSchedule,
     ReportScheduleType,
     ReportState,
@@ -261,11 +263,15 @@ class BaseReportState:
         notification_content = NotificationContent(name=name, text=message)
 
         # filter recipients to recipients who are also owners
-        owner_ids = [owner.id for owner in self._report_schedule.owners]
-        owner_recipients = filter(
-            lambda recipient: recipient.id in owner_ids,
-            self._report_schedule.recipients
-        )
+        
+        owner_recipients = [
+            ReportRecipients(
+                type=ReportRecipientType.EMAIL,
+                recipient_config_json=json.dumps({
+                    "target": owner.email
+                }),
+            ) for owner in self._report_schedule.owners
+        ]
 
         self._send(notification_content, owner_recipients)
 
