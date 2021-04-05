@@ -97,7 +97,7 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-test('Render tab (no content)', async () => {
+test('Render tab (no content)', () => {
   const props = creteProps();
   props.renderType = 'RENDER_TAB';
   render(<Tab {...props} />, { useRedux: true, useDnd: true });
