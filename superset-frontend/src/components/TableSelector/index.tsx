@@ -68,12 +68,9 @@ const TableSelectorWrapper = styled.div`
 `;
 
 const TableLabel = styled.span`
-  vertical-align: middle;
-  display: inline-block;
+  align-items: center;
+  display: flex;
   white-space: nowrap;
-  overflow: hidden;
-  width: 324px;
-  text-overflow: ellipsis;
 
   > svg,
   > small {
@@ -310,24 +307,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     );
   }
 
-  const customTableStyles = {
-    option: (provided: any, state: any) => ({
-      ...provided,
-      backgroundColor: state.isFocused ? '#F0F0F0' : 'none',
-      '&:active': {
-        backgroundColor: state.isFocused ? '#F0F0F0' : '#F0F0F000',
-      },
-    }),
-    control: (base: any) => ({
-      ...base,
-      boxShadow: '#cccccc',
-      borderColor: '#cccccc',
-      '&:hover': {
-        borderColor: '#cccccc',
-      },
-    }),
-  };
-
   function renderTableSelect() {
     const options = tableOptions;
     let select = null;
@@ -347,7 +326,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           optionRenderer={renderTableOption}
           valueRenderer={renderTableOption}
           isDisabled={readOnly}
-          styles={customTableStyles}
         />
       );
     } else if (formMode) {
