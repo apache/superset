@@ -87,9 +87,9 @@ describe('DatabaseModal', () => {
     it('renders a Tabs menu', () => {
       expect(wrapper.find(Tabs)).toExist();
     });
-    it('renders five TabPanes', () => {
-      expect(wrapper.find(Tabs.TabPane)).toExist();
-      expect(wrapper.find(Tabs.TabPane)).toHaveLength(5);
+    it('renders two TabPanes', () => {
+      expect(wrapper.find('.ant-tabs-tab')).toExist();
+      expect(wrapper.find('.ant-tabs-tab')).toHaveLength(2);
     });
     it('renders input elements for Connection section', () => {
       expect(wrapper.find('input[name="database_name"]')).toExist();
@@ -114,9 +114,14 @@ describe('DatabaseModal', () => {
             </Provider>
           </ThemeProvider>,
         );
-        // Select SQL Lab settings tab
+        // Select Advanced tab
+        const advancedTab = screen.getByRole('tab', {
+          name: /advanced/i,
+        });
+        userEvent.click(advancedTab);
+        // Select SQL Lab tab
         const sqlLabSettingsTab = screen.getByRole('tab', {
-          name: /sql lab settings/i,
+          name: /sql lab/i,
         });
         userEvent.click(sqlLabSettingsTab);
 
@@ -137,13 +142,20 @@ describe('DatabaseModal', () => {
         </ThemeProvider>,
       );
 
-      // Select SQL Lab settings tab
+      // Select Advanced tab
+      const advancedTab = screen.getByRole('tab', {
+        name: /advanced/i,
+      });
+      userEvent.click(advancedTab);
+
+      // Select SQL Lab tab
       const sqlLabSettingsTab = screen.getByRole('tab', {
-        name: /sql lab settings/i,
+        name: /sql lab/i,
       });
 
       userEvent.click(sqlLabSettingsTab);
-      // Grab all SQL Lab Settings by their labels
+
+      // Grab all SQL Lab settings by their labels
       // const exposeInSqlLab = screen.getByText('Expose in SQL Lab');
       const exposeInSqlLab = screen.getByRole('checkbox', {
         name: /expose in sql lab/i,
@@ -173,9 +185,15 @@ describe('DatabaseModal', () => {
         </ThemeProvider>,
       );
 
-      // Select SQL Lab settings tab
+      // Select Advanced tab
+      const advancedTab = screen.getByRole('tab', {
+        name: /advanced/i,
+      });
+      userEvent.click(advancedTab);
+
+      // Select SQL Lab tab
       const sqlLabSettingsTab = screen.getByRole('tab', {
-        name: /sql lab settings/i,
+        name: /sql lab/i,
       });
       userEvent.click(sqlLabSettingsTab);
       // Grab CTAS & schema field by their labels
@@ -203,9 +221,15 @@ describe('DatabaseModal', () => {
         </ThemeProvider>,
       );
 
-      // Select SQL Lab settings tab
+      // Select Advanced tab
+      const advancedTab = screen.getByRole('tab', {
+        name: /advanced/i,
+      });
+      userEvent.click(advancedTab);
+
+      // Select SQL Lab tab
       const sqlLabSettingsTab = screen.getByRole('tab', {
-        name: /sql lab settings/i,
+        name: /sql lab/i,
       });
       userEvent.click(sqlLabSettingsTab);
       // Grab CVAS by it's label & schema field
@@ -233,9 +257,15 @@ describe('DatabaseModal', () => {
         </ThemeProvider>,
       );
 
-      // Select SQL Lab settings tab
+      // Select Advanced tab
+      const advancedTab = screen.getByRole('tab', {
+        name: /advanced/i,
+      });
+      userEvent.click(advancedTab);
+
+      // Select SQL Lab tab
       const sqlLabSettingsTab = screen.getByRole('tab', {
-        name: /sql lab settings/i,
+        name: /sql lab/i,
       });
       userEvent.click(sqlLabSettingsTab);
       // Grab CTAS and CVAS by their labels, & schema field
