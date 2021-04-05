@@ -106,7 +106,7 @@ test('Render tab (no content)', () => {
   expect(DragDroppable).toBeCalledTimes(1);
 });
 
-test('Render tab (no content) editMode:true', async () => {
+test('Render tab (no content) editMode:true', () => {
   const props = creteProps();
   props.editMode = true;
   props.renderType = 'RENDER_TAB';
