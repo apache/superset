@@ -27,9 +27,14 @@ import Popover from 'src/components/Popover';
 import Collapse from 'src/common/components/Collapse';
 import { Global } from '@emotion/core';
 import Icon from 'src/components/Icon';
-import { Indent, Panel, Reset, Title } from './Styles';
-import { Indicator } from './selectors';
-import FilterIndicator from './FilterIndicator';
+import {
+  Indent,
+  Panel,
+  Reset,
+  Title,
+} from 'src/dashboard/components/FiltersBadge/Styles';
+import { Indicator } from 'src/dashboard/components/FiltersBadge/selectors';
+import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
 
 export interface DetailsPanelProps {
   appliedCrossFilterIndicators: Indicator[];
