@@ -24,10 +24,10 @@ import { Pill } from 'src/dashboard/components/FiltersBadge/Styles';
 import { useSelector } from 'react-redux';
 import { getInitialMask } from 'src/dataMask/reducer';
 import { MaskWithId } from 'src/dataMask/types';
-import FilterControl from '../FilterControls/FilterControl';
-import CascadeFilterControl from './CascadeFilterControl';
-import { CascadeFilter } from './types';
-import { Filter } from '../../types';
+import FilterControl from 'src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControl';
+import CascadeFilterControl from 'src/dashboard/components/nativeFilters/FilterBar/CascadeFilters/CascadeFilterControl';
+import { CascadeFilter } from 'src/dashboard/components/nativeFilters/FilterBar/CascadeFilters/types';
+import { Filter } from 'src/dashboard/components/nativeFilters/types';
 
 interface CascadePopoverProps {
   filter: CascadeFilter;

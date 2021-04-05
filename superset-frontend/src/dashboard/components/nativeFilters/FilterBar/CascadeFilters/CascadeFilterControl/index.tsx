@@ -19,11 +19,11 @@
 import React from 'react';
 import { styled, DataMask } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
-import FilterControl from '../FilterControls/FilterControl';
-import { Filter } from '../../types';
-import { CascadeFilter } from './types';
+import FilterControl from 'src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControl';
+import { CascadeFilter } from 'src/dashboard/components/nativeFilters/FilterBar/CascadeFilters/types';
+import { Filter } from 'src/dashboard/components/nativeFilters/types';
 
-interface CascadeFilterControlProps {
+export interface CascadeFilterControlProps {
   filter: CascadeFilter;
   directPathToChild?: string[];
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
