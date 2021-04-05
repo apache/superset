@@ -22,11 +22,11 @@ import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 import Popover from 'src/components/Popover';
-import FormRow from '../../../components/FormRow';
-import SelectControl from './SelectControl';
-import CheckboxControl from './CheckboxControl';
-import TextControl from './TextControl';
-import { FILTER_CONFIG_ATTRIBUTES } from '../../constants';
+import FormRow from 'src/components/FormRow';
+import SelectControl from 'src/explore/components/controls/SelectControl';
+import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
+import TextControl from 'src/explore/components/controls/TextControl';
+import { FILTER_CONFIG_ATTRIBUTES } from 'src/explore/constants';
 
 const INTEGRAL_TYPES = new Set([
   'TINYINT',
@@ -272,7 +272,7 @@ export default class FilterBoxItemControl extends React.Component {
 
   render() {
     return (
-      <span>
+      <span data-test="FilterBoxItemControl">
         {this.textSummary()}{' '}
         <Popover
           trigger="click"
