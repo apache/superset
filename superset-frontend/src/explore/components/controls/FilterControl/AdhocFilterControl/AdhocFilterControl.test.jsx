@@ -28,8 +28,8 @@ import AdhocFilter, {
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { LabelsContainer } from 'src/explore/components/controls/OptionControls';
 import { AGGREGATES, OPERATORS } from 'src/explore/constants';
-import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
+import AdhocFilterControl from '.';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
