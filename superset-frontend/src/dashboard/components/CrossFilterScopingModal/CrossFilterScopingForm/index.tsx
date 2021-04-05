@@ -18,11 +18,11 @@
  */
 import React, { FC } from 'react';
 import { FormInstance } from 'antd/lib/form';
-import FilterScope from '../nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/FilterScope';
-import { setCrossFilterFieldValues } from './utils';
-import { Scope } from '../nativeFilters/types';
-import { useForceUpdate } from '../nativeFilters/FiltersConfigModal/FiltersConfigForm/utils';
-import { CrossFilterScopingFormType } from './types';
+import FilterScope from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/FilterScope';
+import { setCrossFilterFieldValues } from 'src/dashboard/components/CrossFilterScopingModal/utils';
+import { Scope } from 'src/dashboard/components/nativeFilters/types';
+import { useForceUpdate } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/utils';
+import { CrossFilterScopingFormType } from 'src/dashboard/components/CrossFilterScopingModal/types';
 
 type CrossFilterScopingFormProps = {
   chartId: number;
