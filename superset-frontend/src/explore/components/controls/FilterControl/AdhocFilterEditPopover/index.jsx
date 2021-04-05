@@ -24,10 +24,12 @@ import { styled, t } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Tabs from 'src/common/components/Tabs';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
-import columnType from './columnType';
-import AdhocFilter, { EXPRESSION_TYPES } from './AdhocFilter';
-import AdhocFilterEditPopoverSimpleTabContent from './AdhocFilterEditPopoverSimpleTabContent';
-import AdhocFilterEditPopoverSqlTabContent from './AdhocFilterEditPopoverSqlTabContent';
+import AdhocFilter, {
+  EXPRESSION_TYPES,
+} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilterEditPopoverSimpleTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent';
+import AdhocFilterEditPopoverSqlTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSqlTabContent';
+import columnType from 'src/explore/components/controls/FilterControl/columnType';
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,

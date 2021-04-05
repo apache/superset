@@ -39,11 +39,14 @@ import {
   LabelsContainer,
 } from 'src/explore/components/controls/OptionControls';
 import Icon from 'src/components/Icon';
-import columnType from './columnType';
-import AdhocFilterPopoverTrigger from './AdhocFilterPopoverTrigger';
-import AdhocFilterOption from './AdhocFilterOption';
-import AdhocFilter, { CLAUSES, EXPRESSION_TYPES } from './AdhocFilter';
-import adhocFilterType from './adhocFilterType';
+import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
+import AdhocFilterOption from 'src/explore/components/controls/FilterControl/AdhocFilterOption';
+import AdhocFilter, {
+  CLAUSES,
+  EXPRESSION_TYPES,
+} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import adhocFilterType from 'src/explore/components/controls/FilterControl/adhocFilterType';
+import columnType from 'src/explore/components/controls/FilterControl/columnType';
 
 const selectedMetricType = PropTypes.oneOfType([
   PropTypes.string,
