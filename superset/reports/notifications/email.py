@@ -72,7 +72,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             <b><a href="%(url)s">Explore in Superset</a></b><p></p>
             <img src="cid:%(msgid)s">
             """,
-            description=self._content.description,
+            description=self._content.description or "",
             url=self._content.url,
             msgid=msgid,
         )

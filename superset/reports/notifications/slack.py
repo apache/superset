@@ -59,9 +59,7 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_body(self) -> str:
         if self._content.text:
             return self._error_template(
-                self._content.name,
-                self._content.description,
-                self._content.text
+                self._content.name, self._content.description or "", self._content.text
             )
         return __(
             """
@@ -70,7 +68,7 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
             <%(url)s|Explore in Superset>
             """,
             name=self._content.name,
-            description=self._content.description,
+            description=self._content.description or "",
             url=self._content.url,
         )
 
