@@ -219,7 +219,7 @@ test('Render tab (with content) editMode:true', () => {
   expect(DragDroppable).toBeCalledTimes(2);
 });
 
-test('Should call "handleDrop" and "handleTopDropTargetDrop"', async () => {
+test('Should call "handleDrop" and "handleTopDropTargetDrop"', () => {
   const props = creteProps();
   props.isFocused = true;
   props.editMode = true;
