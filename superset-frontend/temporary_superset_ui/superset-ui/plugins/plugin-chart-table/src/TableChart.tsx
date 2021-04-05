@@ -231,6 +231,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const columnWidth = Number.isNaN(Number(config.columnWidth))
         ? config.columnWidth
         : Number(config.columnWidth);
+
+      // inline style for both th and td cell
+      const sharedStyle: CSSProperties = {
+        textAlign,
+      };
+
       const alignPositiveNegative =
         config.alignPositiveNegative === undefined ? defaultAlignPN : config.alignPositiveNegative;
       const colorPositiveNegative =
@@ -264,17 +270,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             value,
           );
           const html = isHtml ? { __html: text } : undefined;
-          const style: CSSProperties = {
-            background: valueRange
-              ? cellBar({
-                  value: value as number,
-                  valueRange,
-                  alignPositiveNegative,
-                  colorPositiveNegative,
-                })
-              : undefined,
-            textAlign,
-          };
           const cellProps = {
             // show raw number in title in case of numeric values
             title: typeof value === 'number' ? String(value) : undefined,
@@ -284,7 +279,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               value == null ? 'dt-is-null' : '',
               isActiveFilterValue(key, value) ? ' dt-is-active-filter' : '',
             ].join(' '),
-            style,
+            style: {
+              ...sharedStyle,
+              background: valueRange
+                ? cellBar({
+                    value: value as number,
+                    valueRange,
+                    alignPositiveNegative,
+                    colorPositiveNegative,
+                  })
+                : undefined,
+            },
           };
           if (html) {
             // eslint-disable-next-line react/no-danger
@@ -299,6 +304,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             title="Shift + Click to sort by multiple columns"
             className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
             style={{
+              ...sharedStyle,
               ...style,
             }}
             onClick={onClick}
