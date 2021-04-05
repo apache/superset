@@ -23,7 +23,7 @@ export default function getPermissions(
   view: string,
   roles: object,
 ) {
-  return memoizeOne( () => {
+  return memoizeOne(() => {
     const roleList = Object.entries(roles);
     if (roleList.length === 0) return false;
     let bool;
@@ -36,7 +36,7 @@ export default function getPermissions(
         ),
       );
     });
-    console.log('bool', bool)
+    console.log('bool', bool);
     return bool;
   });
 }
