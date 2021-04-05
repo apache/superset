@@ -174,7 +174,7 @@ test('Render tab (with content)', async () => {
   expect(DragDroppable).toBeCalledTimes(0);
 });
 
-test('Render tab (with content) editMode:true', async () => {
+test('Render tab (with content) editMode:true', () => {
   const props = creteProps();
   props.isFocused = true;
   props.editMode = true;
