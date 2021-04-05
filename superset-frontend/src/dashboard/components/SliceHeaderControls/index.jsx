@@ -27,11 +27,11 @@ import {
 } from '@superset-ui/core';
 import { Menu, NoAnimationDropdown } from 'src/common/components';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
-import downloadAsImage from '../../utils/downloadAsImage';
-import getDashboardUrl from '../util/getDashboardUrl';
-import { getActiveFilters } from '../util/activeDashboardFilters';
-import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
-import CrossFilterScopingModal from './CrossFilterScopingModal/CrossFilterScopingModal';
+import downloadAsImage from 'src/utils/downloadAsImage';
+import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
+import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import CrossFilterScopingModal from 'src/dashboard/components/CrossFilterScopingModal/CrossFilterScopingModal';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
@@ -302,7 +302,11 @@ class SliceHeaderControls extends React.PureComponent {
             triggerNode.closest(SCREENSHOT_NODE_SELECTOR)
           }
         >
-          <span id={`slice_${slice.slice_id}-controls`} role="button">
+          <span
+            id={`slice_${slice.slice_id}-controls`}
+            role="button"
+            aria-label="More Options"
+          >
             <VerticalDotsTrigger />
           </span>
         </NoAnimationDropdown>
