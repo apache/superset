@@ -69,11 +69,7 @@ from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
-from superset.views.base_api import (
-    BaseSupersetModelRestApi,
-    handle_exception,
-    statsd_metrics,
-)
+from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -562,14 +558,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/test_connection", methods=["POST"])
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".test_connection",
         log_to_statsd=False,
     )
-    @handle_exception
     def test_connection(  # pylint: disable=too-many-return-statements
         self,
     ) -> FlaskResponse:

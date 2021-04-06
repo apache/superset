@@ -46,11 +46,13 @@ from superset import (
     get_feature_flags,
     security_manager,
 )
+from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.connectors.sqla import models
 from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetErrorException,
+    SupersetErrorsException,
     SupersetException,
     SupersetSecurityException,
 )
@@ -328,6 +330,62 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         "theme_overrides": conf["THEME_OVERRIDES"],
         "menu_data": menu_data(),
     }
+
+
+def get_error_level_from_status_code(status: int) -> ErrorLevel:
+    if status < 400:
+        return ErrorLevel.INFO
+    if status < 500:
+        return ErrorLevel.WARNING
+    return ErrorLevel.ERROR
+
+
+# SIP-40 compatible error responses; make sure APIs raise
+# SupersetErrorException or SupersetErrorsException
+@superset_app.errorhandler(SupersetErrorException)
+def show_superset_error(ex: SupersetErrorException) -> FlaskResponse:
+    logger.warning(ex)
+    return json_errors_response(errors=[ex.error], status=ex.status)
+
+
+@superset_app.errorhandler(SupersetErrorsException)
+def show_superset_errors(ex: SupersetErrorsException) -> FlaskResponse:
+    logger.warning(ex)
+    return json_errors_response(errors=ex.errors, status=ex.status)
+
+
+@superset_app.errorhandler(Exception)
+def show_unexpected_exception(ex: Exception) -> FlaskResponse:
+    logger.warning(ex)
+    return json_errors_response(
+        errors=[
+            SupersetError(
+                message=utils.error_msg_from_exception(ex),
+                error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={},
+            ),
+        ],
+    )
+
+
+# Temporary handler for CommandException; if an API raises a
+# CommandException it should be fixed to map it to SupersetErrorException
+# or SupersetErrorsException, with a specific status code and error type
+@superset_app.errorhandler(CommandException)
+def show_command_errors(ex: CommandException) -> FlaskResponse:
+    logger.warning(ex)
+    extra = ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
+    return json_errors_response(
+        errors=[
+            SupersetError(
+                message=ex.message,
+                error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                level=get_error_level_from_status_code(ex.status),
+                extra=extra,
+            ),
+        ],
+    )
 
 
 @superset_app.context_processor
