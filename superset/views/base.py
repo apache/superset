@@ -354,6 +354,22 @@ def show_superset_errors(ex: SupersetErrorsException) -> FlaskResponse:
     return json_errors_response(errors=ex.errors, status=ex.status)
 
 
+@superset_app.errorhandler(HTTPException)
+def show_http_exception(ex: HTTPException) -> FlaskResponse:
+    logger.warning(ex)
+    return json_errors_response(
+        errors=[
+            SupersetError(
+                message=utils.error_msg_from_exception(ex),
+                error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={},
+            ),
+        ],
+        status=ex.code or 500,
+    )
+
+
 @superset_app.errorhandler(Exception)
 def show_unexpected_exception(ex: Exception) -> FlaskResponse:
     logger.warning(ex)
