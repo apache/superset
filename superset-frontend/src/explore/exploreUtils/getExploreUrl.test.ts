@@ -31,19 +31,19 @@ const createParams = () => ({
   method: 'POST',
 });
 
-test('Get ExploreUrl whit default params', () => {
+test('Get ExploreUrl with default params', () => {
   const params = createParams();
   expect(getExploreUrl(params)).toBe('http:///superset/explore/');
 });
 
-test('Get ExploreUrl whit endpointType:full', () => {
+test('Get ExploreUrl with endpointType:full', () => {
   const params = createParams();
   expect(getExploreUrl({ ...params, endpointType: 'full' })).toBe(
     'http:///superset/explore_json/',
   );
 });
 
-test('Get ExploreUrl whit endpointType:full and method:GET', () => {
+test('Get ExploreUrl with endpointType:full and method:GET', () => {
   const params = createParams();
   expect(
     getExploreUrl({ ...params, endpointType: 'full', method: 'GET' }),
