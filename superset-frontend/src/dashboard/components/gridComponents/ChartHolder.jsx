@@ -245,8 +245,9 @@ class ChartHolder extends React.Component {
     let chartHeight = 0;
 
     if (this.state.isFullSize) {
-      chartWidth = document.body.clientWidth - CHART_MARGIN;
-      chartHeight = document.body.clientHeight - CHART_MARGIN;
+       //toop fixed FullSize charts broken #13600
+      chartWidth = window.innerWidth - CHART_MARGIN;
+      chartHeight = window.innerHeight - CHART_MARGIN;
     } else {
       chartWidth = Math.floor(
         widthMultiple * columnWidth +
