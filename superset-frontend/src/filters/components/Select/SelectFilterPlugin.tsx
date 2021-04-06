@@ -17,12 +17,12 @@
  * under the License.
  */
 import {
+  AppSection,
   Behavior,
   createMultiFormatter,
   DataMask,
   ensureIsArray,
   GenericDataType,
-  AppSection,
   t,
   tn,
 } from '@superset-ui/core';
@@ -71,7 +71,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     defaultToFirstItem,
   } = formData;
 
-  const isDefaultToFirstItemInFilterConfigModal =
+  const forceFirstValue =
     appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem;
 
   const groupby = ensureIsArray<string>(formData.groupby);
@@ -100,7 +100,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const handleChange = (value?: SelectValue | number | string) => {
     let selectValue: (number | string)[];
     if (value === FIRST_VALUE) {
-      selectValue = isDefaultToFirstItemInFilterConfigModal ? [] : firstItem;
+      selectValue = forceFirstValue ? [] : firstItem;
     } else {
       selectValue = ensureIsArray<number | string>(value);
     }
@@ -141,11 +141,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   useEffect(() => {
     // For currentValue we need set always `FIRST_VALUE` only if we in config modal for `defaultToFirstItem` mode
-    handleChange(
-      isDefaultToFirstItemInFilterConfigModal
-        ? FIRST_VALUE
-        : currentValue ?? [],
-    );
+    handleChange(forceFirstValue ? FIRST_VALUE : currentValue ?? []);
   }, [
     JSON.stringify(currentValue),
     defaultToFirstItem,
@@ -176,7 +172,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         allowClear
         // @ts-ignore
         value={values}
-        disabled={isDefaultToFirstItemInFilterConfigModal}
+        disabled={forceFirstValue}
         showSearch={showSearch}
         mode={multiSelect ? 'multiple' : undefined}
         placeholder={placeholderText}
