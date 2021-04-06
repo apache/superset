@@ -25,6 +25,8 @@ import {
   QueryMode,
   QueryFormColumn,
   ChartDataResponseResult,
+  isFeatureEnabled,
+  FeatureFlag,
 } from '@superset-ui/core';
 import {
   D3_TIME_FORMAT_OPTIONS,
@@ -111,6 +113,11 @@ const percent_metrics: typeof sharedControls.metrics = {
   validators: [],
 };
 
+const dnd_percent_metrics = {
+  ...percent_metrics,
+  type: 'DndMetricSelect',
+};
+
 const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyTimeseriesTime,
@@ -148,7 +155,9 @@ const config: ControlPanelConfig = {
         [
           {
             name: 'percent_metrics',
-            config: percent_metrics,
+            config: isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
+              ? dnd_percent_metrics
+              : percent_metrics,
           },
         ],
         [
@@ -226,6 +235,20 @@ const config: ControlPanelConfig = {
               label: t('Sort descending'),
               default: true,
               description: t('Whether to sort descending or ascending'),
+              visibility: isAggMode,
+            },
+          },
+        ],
+        [
+          {
+            name: 'show_totals',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show totals'),
+              default: true,
+              description: t(
+                'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
+              ),
               visibility: isAggMode,
             },
           },
@@ -334,7 +357,7 @@ const config: ControlPanelConfig = {
             name: 'column_config',
             config: {
               type: 'ColumnConfigControl',
-              label: t('Cuztomize columns'),
+              label: t('Customize columns'),
               description: t('Further customize how to display each column'),
               renderTrigger: true,
               mapStateToProps(explore, control, chart) {

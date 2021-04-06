@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FilterXSS, getDefaultWhiteList } from 'xss';
-import { DataRecordValue } from '@superset-ui/core';
+import { DataRecordValue, GenericDataType, getNumberFormatter } from '@superset-ui/core';
 import { DataColumnMeta } from '../types';
 
 const xss = new FilterXSS({
@@ -35,14 +35,15 @@ const xss = new FilterXSS({
 function isProbablyHTML(text: string) {
   return /<[^>]+>/.test(text);
 }
+
 /**
  * Format text for cell value.
  */
-export default function formatValue(
+function formatValue(
   formatter: DataColumnMeta['formatter'],
   value: DataRecordValue,
 ): [boolean, string] {
-  if (value === null) {
+  if (value === null || typeof value === 'undefined') {
     return [false, 'N/A'];
   }
   if (formatter) {
@@ -53,4 +54,17 @@ export default function formatValue(
     return isProbablyHTML(value) ? [true, xss.process(value)] : [false, value];
   }
   return [false, value.toString()];
+}
+
+export function formatColumnValue(column: DataColumnMeta, value: DataRecordValue) {
+  const { dataType, formatter, config = {} } = column;
+  const isNumber = dataType === GenericDataType.NUMERIC;
+  const smallNumberFormatter =
+    config.d3SmallNumberFormat === undefined
+      ? formatter
+      : getNumberFormatter(config.d3SmallNumberFormat);
+  return formatValue(
+    isNumber && typeof value === 'number' && Math.abs(value) < 1 ? smallNumberFormatter : formatter,
+    value,
+  );
 }

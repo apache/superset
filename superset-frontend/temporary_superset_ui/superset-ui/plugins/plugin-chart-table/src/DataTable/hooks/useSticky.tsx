@@ -43,10 +43,11 @@ type TrWithTh = ReactElementWithChildren<'tr', Th[]>;
 type TrWithTd = ReactElementWithChildren<'tr', Td[]>;
 type Thead = ReactElementWithChildren<'thead', TrWithTh>;
 type Tbody = ReactElementWithChildren<'tbody', TrWithTd>;
+type Tfoot = ReactElementWithChildren<'tfoot', TrWithTd>;
 type Col = ReactElementWithChildren<'col', null>;
 type ColGroup = ReactElementWithChildren<'colgroup', Col>;
 
-export type Table = ReactElementWithChildren<'table', (Thead | Tbody | ColGroup)[]>;
+export type Table = ReactElementWithChildren<'table', (Thead | Tbody | Tfoot | ColGroup)[]>;
 export type TableRenderer = () => Table;
 export type GetTableSize = () => Partial<StickyState> | undefined;
 export type SetStickyState = (size?: Partial<StickyState>) => void;
@@ -118,11 +119,18 @@ function StickyWrap({
   }
   let thead: Thead | undefined;
   let tbody: Tbody | undefined;
+  let tfoot: Tfoot | undefined;
+
   React.Children.forEach(table.props.children, node => {
+    if (!node) {
+      return;
+    }
     if (node.type === 'thead') {
       thead = node;
     } else if (node.type === 'tbody') {
       tbody = node;
+    } else if (node.type === 'tfoot') {
+      tfoot = node;
     }
   });
   if (!thead || !tbody) {
@@ -134,7 +142,9 @@ function StickyWrap({
   }, [thead]);
 
   const theadRef = useRef<HTMLTableSectionElement>(null); // original thead for layout computation
+  const tfootRef = useRef<HTMLTableSectionElement>(null); // original tfoot for layout computation
   const scrollHeaderRef = useRef<HTMLDivElement>(null); // fixed header
+  const scrollFooterRef = useRef<HTMLDivElement>(null); // fixed footer
   const scrollBodyRef = useRef<HTMLDivElement>(null); // main body
 
   const scrollBarSize = getScrollBarSize();
@@ -147,47 +157,51 @@ function StickyWrap({
 
   // update scrollable area and header column sizes when mounted
   useLayoutEffect(() => {
-    if (theadRef.current) {
-      const bodyThead = theadRef.current;
-      const theadHeight = bodyThead.clientHeight;
-      if (!theadHeight) {
-        return;
-      }
-      const fullTableHeight = (bodyThead.parentNode as HTMLTableElement).clientHeight;
-      const ths = bodyThead.childNodes[0].childNodes as NodeListOf<HTMLTableHeaderCellElement>;
-      const widths = Array.from(ths).map(th => th.clientWidth);
-      const [hasVerticalScroll, hasHorizontalScroll] = needScrollBar({
-        width: maxWidth,
-        height: maxHeight - theadHeight,
-        innerHeight: fullTableHeight,
-        innerWidth: widths.reduce(sum),
-        scrollBarSize,
-      });
-      // real container height, include table header and space for
-      // horizontal scroll bar
-      const realHeight = Math.min(
-        maxHeight,
-        hasHorizontalScroll ? fullTableHeight + scrollBarSize : fullTableHeight,
-      );
-      setStickyState({
-        hasVerticalScroll,
-        hasHorizontalScroll,
-        setStickyState,
-        width: maxWidth,
-        height: maxHeight,
-        realHeight,
-        tableHeight: fullTableHeight,
-        bodyHeight: realHeight - theadHeight,
-        columnWidths: widths,
-      });
+    if (!theadRef.current) {
+      return;
     }
+    const bodyThead = theadRef.current;
+    const theadHeight = bodyThead.clientHeight;
+    const tfootHeight = tfootRef.current ? tfootRef.current.clientHeight : 0;
+    if (!theadHeight) {
+      return;
+    }
+    const fullTableHeight = (bodyThead.parentNode as HTMLTableElement).clientHeight;
+    const ths = bodyThead.childNodes[0].childNodes as NodeListOf<HTMLTableHeaderCellElement>;
+    const widths = Array.from(ths).map(th => th.clientWidth);
+    const [hasVerticalScroll, hasHorizontalScroll] = needScrollBar({
+      width: maxWidth,
+      height: maxHeight - theadHeight - tfootHeight,
+      innerHeight: fullTableHeight,
+      innerWidth: widths.reduce(sum),
+      scrollBarSize,
+    });
+    // real container height, include table header, footer and space for
+    // horizontal scroll bar
+    const realHeight = Math.min(
+      maxHeight,
+      hasHorizontalScroll ? fullTableHeight + scrollBarSize : fullTableHeight,
+    );
+    setStickyState({
+      hasVerticalScroll,
+      hasHorizontalScroll,
+      setStickyState,
+      width: maxWidth,
+      height: maxHeight,
+      realHeight,
+      tableHeight: fullTableHeight,
+      bodyHeight: realHeight - theadHeight - tfootHeight,
+      columnWidths: widths,
+    });
   }, [maxWidth, maxHeight, setStickyState, scrollBarSize]);
 
   let sizerTable: ReactElement | undefined;
   let headerTable: ReactElement | undefined;
+  let footerTable: ReactElement | undefined;
   let bodyTable: ReactElement | undefined;
   if (needSizer) {
     const theadWithRef = React.cloneElement(thead, { ref: theadRef });
+    const tfootWithRef = tfoot && React.cloneElement(tfoot, { ref: tfootRef });
     sizerTable = (
       <div
         key="sizer"
@@ -197,7 +211,7 @@ function StickyWrap({
           visibility: 'hidden',
         }}
       >
-        {React.cloneElement(table, {}, theadWithRef, tbody)}
+        {React.cloneElement(table, {}, theadWithRef, tbody, tfootWithRef)}
       </div>
     );
   }
@@ -242,9 +256,25 @@ function StickyWrap({
       </div>
     );
 
+    footerTable = tfoot && (
+      <div
+        key="footer"
+        ref={scrollFooterRef}
+        style={{
+          overflow: 'hidden',
+        }}
+      >
+        {React.cloneElement(table, mergeStyleProp(table, fixedTableLayout), headerColgroup, tfoot)}
+        {footerTable}
+      </div>
+    );
+
     const onScroll: UIEventHandler<HTMLDivElement> = e => {
       if (scrollHeaderRef.current) {
         scrollHeaderRef.current.scrollLeft = e.currentTarget.scrollLeft;
+      }
+      if (scrollFooterRef.current) {
+        scrollFooterRef.current.scrollLeft = e.currentTarget.scrollLeft;
       }
     };
     bodyTable = (
@@ -272,6 +302,7 @@ function StickyWrap({
     >
       {headerTable}
       {bodyTable}
+      {footerTable}
       {sizerTable}
     </div>
   );
