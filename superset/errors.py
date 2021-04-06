@@ -143,14 +143,14 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
         {
             "code": 1010,
             "message": _(
-                "Issue 1010 - Superset found an error while running a command."
+                "Issue 1010 - Superset encountered an error while running a command."
             ),
         },
     ],
     SupersetErrorType.GENERIC_BACKEND_ERROR: [
         {
             "code": 1011,
-            "message": _("Issue 1011 - Superset found an unexpected error."),
+            "message": _("Issue 1011 - Superset encountered an unexpected error."),
         },
     ],
 }
