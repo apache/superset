@@ -58,7 +58,11 @@ from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import QueryObjectValidationError, SupersetSecurityException, SupersetGenericDBErrorException
+from superset.exceptions import (
+    QueryObjectValidationError,
+    SupersetGenericDBErrorException,
+    SupersetSecurityException,
+)
 from superset.extensions import event_logger
 from superset.jinja_context import (
     BaseTemplateProcessor,
@@ -656,9 +660,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     )
                     cols = result_set.columns
             except Exception as exc:
-                raise SupersetGenericDBErrorException(
-                    message=str(exception)
-                )
+                raise SupersetGenericDBErrorException(message=str(exc))
         else:
             db_dialect = self.database.get_dialect()
             cols = self.database.get_columns(
