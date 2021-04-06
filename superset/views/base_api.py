@@ -35,6 +35,7 @@ from superset.extensions import db, event_logger, security_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.schemas import error_payload_content
 from superset.sql_lab import Query as SqllabQuery
 from superset.stats_logger import BaseStatsLogger
 from superset.typing import FlaskResponse
@@ -197,6 +198,18 @@ class BaseSupersetModelRestApi(ModelRestApi):
     edit_columns: List[str]
     list_columns: List[str]
     show_columns: List[str]
+
+    responses = {
+        "400": {"description": "Bad request", "content": error_payload_content},
+        "401": {"description": "Unauthorized", "content": error_payload_content},
+        "403": {"description": "Forbidden", "content": error_payload_content},
+        "404": {"description": "Not found", "content": error_payload_content},
+        "422": {
+            "description": "Could not process entity",
+            "content": error_payload_content,
+        },
+        "500": {"description": "Fatal error", "content": error_payload_content},
+    }
 
     def __init__(self) -> None:
         # Setup statsd
