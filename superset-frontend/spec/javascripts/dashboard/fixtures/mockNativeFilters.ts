@@ -52,7 +52,7 @@ export const nativeFiltersInfo: NativeFiltersState = {
 
 export const mockDataMaskInfo: DataMaskStateWithId = {
   [DataMaskType.CrossFilters]: {},
-  [DataMaskType.OwnState]: {},
+  [DataMaskType.OwnFilters]: {},
   [DataMaskType.NativeFilters]: {
     DefaultsID: {
       id: 'DefaultId',
