@@ -22,7 +22,7 @@ import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
 import Tabs from 'src/common/components/Tabs';
 import Button from 'src/components/Button';
-import { Select } from 'src/common/components/Select';
+import { NativeSelect as Select } from 'src/components/Select';
 import { styled, t } from '@superset-ui/core';
 import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
 
@@ -318,7 +318,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
         option.filterBy.toLowerCase().indexOf(input.toLowerCase()) >= 0,
     };
 
-    if (this.props.datasourceType === 'druid') {
+    if (this.props.datasourceType === 'druid' && aggregateSelectProps.options) {
       aggregateSelectProps.options = aggregateSelectProps.options.filter(
         aggregate => aggregate !== 'AVG',
       );

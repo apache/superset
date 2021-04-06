@@ -28,7 +28,7 @@ spec:
       name: {{ template "superset.name" . }}-init-db
     spec:
       securityContext:
-        runAsUser: 0 # Needed in order to allow pip install to work in bootstrap
+        runAsUser: {{ .Values.runAsUser }}
       {{- if .Values.init.initContainers }}
       initContainers:
       {{-  tpl (toYaml .Values.init.initContainers) . | nindent 6 }}
@@ -57,6 +57,8 @@ spec:
             readOnly: true
         {{- end }}
         command: {{  tpl (toJson .Values.init.command) . }}
+        resources:
+{{ toYaml .Values.init.resources | indent 10 }}
       volumes:
         - name: superset-config
           secret:
