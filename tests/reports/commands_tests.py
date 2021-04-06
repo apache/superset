@@ -45,6 +45,8 @@ from superset.reports.commands.exceptions import (
     AlertQueryInvalidTypeError,
     AlertQueryMultipleColumnsError,
     AlertQueryMultipleRowsError,
+    ReportScheduleCsvFailedError,
+    ReportScheduleCsvTimeout,
     ReportScheduleNotFoundError,
     ReportScheduleNotificationError,
     ReportSchedulePreviousWorkingError,
@@ -131,7 +133,7 @@ def create_report_notification(
     validator_type: Optional[str] = None,
     validator_config_json: Optional[str] = None,
     grace_period: Optional[int] = None,
-    report_format: Optional[str] = None,
+    report_format: Optional[ReportDataFormat] = None,
 ) -> ReportSchedule:
     report_type = report_type or ReportScheduleType.REPORT
     target = email_target or slack_channel
@@ -167,6 +169,7 @@ def create_report_notification(
         validator_type=validator_type,
         validator_config_json=validator_config_json,
         grace_period=grace_period,
+        report_format=report_format or ReportDataFormat.VISUALIZATION,
     )
     return report_schedule
 
@@ -340,16 +343,8 @@ def create_alert_slack_chart_grace():
         cleanup_report_schedule(report_schedule)
 
 
-@pytest.yield_fixture(
-    params=[
-        "alert1",
-        "alert2",
-        "alert3",
-        "alert4",
-        "alert5",
-        "alert6",
-        "alert7",
-    ]
+@pytest.fixture(
+    params=["alert1", "alert2", "alert3", "alert4", "alert5", "alert6", "alert7",]
 )
 def create_alert_email_chart(request):
     param_config = {
@@ -566,27 +561,15 @@ def create_invalid_sql_alert_email_chart(request):
 @pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_report_email_chart"
 )
-@patch("superset.utils.csv.urllib.request.urlopen")
-@patch("superset.utils.csv.urllib.request.OpenerDirector.open")
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
-@patch("superset.utils.csv.get_chart_csv_data")
 def test_email_chart_report_schedule(
-    csv_mock,
-    screenshot_mock,
-    email_mock,
-    mock_open,
-    mock_urlopen,
-    create_report_email_chart,
+    screenshot_mock, email_mock, create_report_email_chart,
 ):
     """
     ExecuteReport Command: Test chart email report schedule with
     """
     # setup screenshot mock
-    response = Mock()
-    mock_open.return_value = response
-    mock_urlopen.return_value = response
-    mock_urlopen.return_value.getcode.return_value = 200
     screenshot_mock.return_value = screenshot_file
 
     with freeze_time("2020-01-01T00:00:00Z"):
@@ -618,15 +601,9 @@ def test_email_chart_report_schedule(
 @patch("superset.utils.csv.urllib.request.urlopen")
 @patch("superset.utils.csv.urllib.request.OpenerDirector.open")
 @patch("superset.reports.notifications.email.send_email_smtp")
-@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 @patch("superset.utils.csv.get_chart_csv_data")
 def test_email_chart_report_schedule_with_csv(
-    csv_mock,
-    screenshot_mock,
-    email_mock,
-    mock_open,
-    mock_urlopen,
-    create_report_email_chart_with_csv,
+    csv_mock, email_mock, mock_open, mock_urlopen, create_report_email_chart_with_csv,
 ):
     """
     ExecuteReport Command: Test chart email report schedule with CSV
@@ -697,25 +674,13 @@ def test_email_dashboard_report_schedule(
 )
 @patch("superset.reports.notifications.slack.WebClient.files_upload")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
-@patch("superset.utils.csv.urllib.request.urlopen")
-@patch("superset.utils.csv.urllib.request.OpenerDirector.open")
-@patch("superset.utils.csv.get_chart_csv_data")
 def test_slack_chart_report_schedule(
-    csv_mock,
-    mock_open,
-    mock_urlopen,
-    screenshot_mock,
-    file_upload_mock,
-    create_report_slack_chart,
+    screenshot_mock, file_upload_mock, create_report_slack_chart,
 ):
     """
     ExecuteReport Command: Test chart slack report schedule
     """
     # setup screenshot mock
-    response = Mock()
-    mock_open.return_value = response
-    mock_urlopen.return_value = response
-    mock_urlopen.return_value.getcode.return_value = 200
     screenshot_mock.return_value = screenshot_file
 
     with freeze_time("2020-01-01T00:00:00Z"):
@@ -737,7 +702,6 @@ def test_slack_chart_report_schedule(
     "load_birth_names_dashboard_with_slices", "create_report_slack_chart_with_csv"
 )
 @patch("superset.reports.notifications.slack.WebClient.files_upload")
-@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 @patch("superset.utils.csv.urllib.request.urlopen")
 @patch("superset.utils.csv.urllib.request.OpenerDirector.open")
 @patch("superset.utils.csv.get_chart_csv_data")
@@ -745,7 +709,6 @@ def test_slack_chart_report_schedule_with_csv(
     csv_mock,
     mock_open,
     mock_urlopen,
-    screenshot_mock,
     file_upload_mock,
     create_report_slack_chart_with_csv,
 ):
@@ -870,24 +833,12 @@ def test_report_schedule_success_grace_end(create_alert_slack_chart_grace):
 @pytest.mark.usefixtures("create_alert_email_chart")
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
-@patch("superset.utils.csv.urllib.request.urlopen")
-@patch("superset.utils.csv.urllib.request.OpenerDirector.open")
-@patch("superset.utils.csv.get_chart_csv_data")
 def test_alert_limit_is_applied(
-    csv_mock,
-    mock_open,
-    mock_urlopen,
-    screenshot_mock,
-    email_mock,
-    create_alert_email_chart,
+    screenshot_mock, email_mock, create_alert_email_chart,
 ):
     """
     ExecuteReport Command: Test that all alerts apply a SQL limit to stmts
     """
-    response = Mock()
-    mock_open.return_value = response
-    mock_urlopen.return_value = response
-    mock_urlopen.return_value.getcode.return_value = 200
     screenshot_mock.return_value = screenshot_file
 
     with patch.object(
@@ -938,25 +889,13 @@ def test_email_dashboard_report_fails(
     "superset.extensions.feature_flag_manager._feature_flags",
     ALERTS_ATTACH_REPORTS=True,
 )
-@patch("superset.utils.csv.urllib.request.urlopen")
-@patch("superset.utils.csv.urllib.request.OpenerDirector.open")
-@patch("superset.utils.csv.get_chart_csv_data")
 def test_slack_chart_alert(
-    csv_mock,
-    mock_open,
-    mock_urlopen,
-    screenshot_mock,
-    email_mock,
-    create_alert_email_chart,
+    screenshot_mock, email_mock, create_alert_email_chart,
 ):
     """
     ExecuteReport Command: Test chart slack alert
     """
     # setup screenshot mock
-    response = Mock()
-    mock_open.return_value = response
-    mock_urlopen.return_value = response
-    mock_urlopen.return_value.getcode.return_value = 200
     screenshot_mock.return_value = screenshot_file
 
     with freeze_time("2020-01-01T00:00:00Z"):
@@ -1007,24 +946,12 @@ def test_slack_chart_alert_no_attachment(email_mock, create_alert_email_chart):
 )
 @patch("superset.reports.notifications.slack.WebClient")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
-@patch("superset.utils.csv.urllib.request.urlopen")
-@patch("superset.utils.csv.urllib.request.OpenerDirector.open")
-@patch("superset.utils.csv.get_chart_csv_data")
 def test_slack_token_callable_chart_report(
-    csv_mock,
-    mock_open,
-    mock_urlopen,
-    screenshot_mock,
-    slack_client_mock_class,
-    create_report_slack_chart,
+    screenshot_mock, slack_client_mock_class, create_report_slack_chart,
 ):
     """
     ExecuteReport Command: Test chart slack alert (slack token callable)
     """
-    response = Mock()
-    mock_open.return_value = response
-    mock_urlopen.return_value = response
-    mock_urlopen.return_value.getcode.return_value = 200
     slack_client_mock_class.return_value = Mock()
     app.config["SLACK_API_TOKEN"] = Mock(return_value="cool_code")
     # setup screenshot mock
@@ -1110,8 +1037,6 @@ def test_soft_timeout_screenshot(screenshot_mock, email_mock, create_alert_email
     """
     from celery.exceptions import SoftTimeLimitExceeded
 
-    from superset.reports.commands.exceptions import AlertQueryTimeout
-
     screenshot_mock.side_effect = SoftTimeLimitExceeded()
     with pytest.raises(ReportScheduleScreenshotTimeout):
         AsyncExecuteReportScheduleCommand(
@@ -1123,6 +1048,78 @@ def test_soft_timeout_screenshot(screenshot_mock, email_mock, create_alert_email
 
     assert_log(
         ReportState.ERROR, error_message="A timeout occurred while taking a screenshot."
+    )
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_email_chart_with_csv"
+)
+@patch("superset.utils.csv.urllib.request.urlopen")
+@patch("superset.utils.csv.urllib.request.OpenerDirector.open")
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.csv.get_chart_csv_data")
+def test_soft_timeout_csv(
+    csv_mock, email_mock, mock_open, mock_urlopen, create_report_email_chart_with_csv,
+):
+    """
+    ExecuteReport Command: Test fail on generating csv
+    """
+    from celery.exceptions import SoftTimeLimitExceeded
+
+    response = Mock()
+    mock_open.return_value = response
+    mock_urlopen.return_value = response
+    mock_urlopen.return_value.getcode.side_effect = SoftTimeLimitExceeded()
+
+    with pytest.raises(ReportScheduleCsvTimeout):
+        AsyncExecuteReportScheduleCommand(
+            test_id, create_report_email_chart_with_csv.id, datetime.utcnow()
+        ).run()
+
+    notification_targets = get_target_from_report_schedule(
+        create_report_email_chart_with_csv
+    )
+    # Assert the email smtp address, asserts a notification was sent with the error
+    assert email_mock.call_args[0][0] == notification_targets[0]
+
+    assert_log(
+        ReportState.ERROR, error_message="A timeout occurred while generating a csv.",
+    )
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_email_chart_with_csv"
+)
+@patch("superset.utils.csv.urllib.request.urlopen")
+@patch("superset.utils.csv.urllib.request.OpenerDirector.open")
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.csv.get_chart_csv_data")
+def test_generate_no_csv(
+    csv_mock, email_mock, mock_open, mock_urlopen, create_report_email_chart_with_csv,
+):
+    """
+    ExecuteReport Command: Test fail on generating csv
+    """
+    response = Mock()
+    mock_open.return_value = response
+    mock_urlopen.return_value = response
+    mock_urlopen.return_value.getcode.return_value = 200
+    response.read.return_value = None
+
+    with pytest.raises(ReportScheduleCsvFailedError):
+        AsyncExecuteReportScheduleCommand(
+            test_id, create_report_email_chart_with_csv.id, datetime.utcnow()
+        ).run()
+
+    notification_targets = get_target_from_report_schedule(
+        create_report_email_chart_with_csv
+    )
+    # Assert the email smtp address, asserts a notification was sent with the error
+    assert email_mock.call_args[0][0] == notification_targets[0]
+
+    assert_log(
+        ReportState.ERROR,
+        error_message="Report Schedule execution failed when generating a csv.",
     )
 
 
@@ -1151,6 +1148,41 @@ def test_fail_screenshot(screenshot_mock, email_mock, create_report_email_chart)
 
     assert_log(
         ReportState.ERROR, error_message="Failed taking a screenshot Unexpected error"
+    )
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_email_chart_with_csv"
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.csv.urllib.request.urlopen")
+@patch("superset.utils.csv.urllib.request.OpenerDirector.open")
+@patch("superset.utils.csv.get_chart_csv_data")
+def test_fail_csv(
+    csv_mock, mock_open, mock_urlopen, email_mock, create_report_email_chart_with_csv
+):
+    """
+    ExecuteReport Command: Test error on csv
+    """
+
+    response = Mock()
+    mock_open.return_value = response
+    mock_urlopen.return_value = response
+    mock_urlopen.return_value.getcode.return_value = 500
+
+    with pytest.raises(ReportScheduleCsvFailedError):
+        AsyncExecuteReportScheduleCommand(
+            test_id, create_report_email_chart_with_csv.id, datetime.utcnow()
+        ).run()
+
+    notification_targets = get_target_from_report_schedule(
+        create_report_email_chart_with_csv
+    )
+    # Assert the email smtp address, asserts a notification was sent with the error
+    assert email_mock.call_args[0][0] == notification_targets[0]
+
+    assert_log(
+        ReportState.ERROR, error_message="Failed generating csv <urlopen error 500>"
     )
 
 
@@ -1247,25 +1279,12 @@ def test_grace_period_error(email_mock, create_invalid_sql_alert_email_chart):
 @pytest.mark.usefixtures("create_invalid_sql_alert_email_chart")
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
-@patch("superset.utils.csv.urllib.request.urlopen")
-@patch("superset.utils.csv.urllib.request.OpenerDirector.open")
-@patch("superset.utils.csv.get_chart_csv_data")
 def test_grace_period_error_flap(
-    csv_mock,
-    mock_open,
-    mock_urlopen,
-    screenshot_mock,
-    email_mock,
-    create_invalid_sql_alert_email_chart,
+    screenshot_mock, email_mock, create_invalid_sql_alert_email_chart,
 ):
     """
     ExecuteReport Command: Test alert grace period on error
     """
-    response = Mock()
-    mock_open.return_value = response
-    mock_urlopen.return_value = response
-    mock_urlopen.return_value.getcode.return_value = 200
-
     with freeze_time("2020-01-01T00:00:00Z"):
         with pytest.raises((AlertQueryError, AlertQueryInvalidTypeError)):
             AsyncExecuteReportScheduleCommand(

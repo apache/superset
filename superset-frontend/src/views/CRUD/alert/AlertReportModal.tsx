@@ -365,7 +365,6 @@ type NotificationSetting = {
   method?: NotificationMethod;
   recipients: string;
   options: NotificationMethod[];
-  format: 'PNG' | 'CSV';
 };
 
 const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
@@ -383,6 +382,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   ] = useState<Partial<AlertObject> | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [contentType, setContentType] = useState<string>('dashboard');
+  const [reportFormat, setReportFormat] = useState<string>(
+    DEFAULT_NOTIFICATION_FORMAT,
+  );
 
   // Dropdown options
   const [conditionNotNull, setConditionNotNull] = useState<boolean>(false);
@@ -405,7 +407,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     settings.push({
       recipients: '',
-      format: DEFAULT_NOTIFICATION_FORMAT,
       options: NOTIFICATION_METHODS, // TODO: Need better logic for this
     });
 
@@ -465,10 +466,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         recipients.push({
           recipient_config_json: {
             target: setting.recipients,
-            report_format:
-              contentType === 'chart'
-                ? setting.format
-                : DEFAULT_NOTIFICATION_FORMAT,
           },
           type: setting.method,
         });
@@ -490,6 +487,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         owner => (owner as MetaObject).value,
       ),
       recipients,
+      report_format:
+        contentType === 'dashboard'
+          ? DEFAULT_NOTIFICATION_FORMAT
+          : reportFormat || DEFAULT_NOTIFICATION_FORMAT,
     };
 
     if (data.recipients && !data.recipients.length) {
@@ -784,6 +785,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setContentType(target.value);
   };
 
+  const onFormatChange = (event: any) => {
+    const { target } = event;
+
+    setReportFormat(target.value);
+  };
+
   // Make sure notification settings has the required info
   const checkNotificationSettings = () => {
     if (!notificationSettings.length) {
@@ -866,9 +873,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           // @ts-ignore: Type not assignable
           recipients: config.target || setting.recipient_config_json,
           options: NOTIFICATION_METHODS as NotificationMethod[], // Need better logic for this
-          format: resource.chart
-            ? config.report_format || DEFAULT_NOTIFICATION_FORMAT
-            : DEFAULT_NOTIFICATION_FORMAT,
         };
       });
 
@@ -877,7 +881,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         settings.length === NOTIFICATION_METHODS.length ? 'hidden' : 'active',
       );
       setContentType(resource.chart ? 'chart' : 'dashboard');
-
+      setReportFormat(
+        resource.chart
+          ? resource.report_format || DEFAULT_NOTIFICATION_FORMAT
+          : DEFAULT_NOTIFICATION_FORMAT,
+      );
       const validatorConfig =
         typeof resource.validator_config_json === 'string'
           ? JSON.parse(resource.validator_config_json)
@@ -1218,6 +1226,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <Radio value="chart">Chart</Radio>
               </Radio.Group>
             </div>
+            {contentType === 'chart' && (
+              <div className="inline-container add-margin">
+                <Radio.Group onChange={onFormatChange} value={reportFormat}>
+                  <Radio value="PNG">PNG</Radio>
+                  <Radio value="CSV">CSV</Radio>
+                </Radio.Group>
+              </div>
+            )}
             <AsyncSelect
               className={
                 contentType === 'chart'

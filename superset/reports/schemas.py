@@ -22,6 +22,7 @@ from marshmallow import fields, Schema, validate, validates_schema
 from marshmallow.validate import Length, Range, ValidationError
 
 from superset.models.reports import (
+    ReportDataFormat,
     ReportRecipientType,
     ReportScheduleType,
     ReportScheduleValidatorType,
@@ -100,7 +101,6 @@ class ValidatorConfigJSONSchema(Schema):
 class ReportRecipientConfigJSONSchema(Schema):
     # TODO if email check validity
     target = fields.String()
-    report_format = fields.String()
 
 
 class ReportRecipientSchema(Schema):
@@ -179,6 +179,10 @@ class ReportSchedulePostSchema(Schema):
     )
 
     recipients = fields.List(fields.Nested(ReportRecipientSchema))
+    report_format = fields.String(
+        default=ReportDataFormat.VISUALIZATION,
+        validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
+    )
 
     @validates_schema
     def validate_report_references(  # pylint: disable=unused-argument,no-self-use
@@ -254,3 +258,7 @@ class ReportSchedulePutSchema(Schema):
         validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
     recipients = fields.List(fields.Nested(ReportRecipientSchema), required=False)
+    report_format = fields.String(
+        default=ReportDataFormat.VISUALIZATION,
+        validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
+    )

@@ -19,7 +19,6 @@
 import React, { FunctionComponent, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { NativeGraySelect as Select } from 'src/components/Select';
-import { Radio } from 'src/common/components/Radio';
 import Icon from 'src/components/Icon';
 import { StyledInputContainer } from '../AlertReportModal';
 
@@ -56,7 +55,6 @@ type NotificationSetting = {
   method?: NotificationMethod;
   recipients: string;
   options: NotificationMethod[];
-  format: 'PNG' | 'CSV';
 };
 
 interface NotificationMethodProps {
@@ -70,33 +68,17 @@ interface NotificationMethodProps {
 export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   setting = null,
   index,
-  contentType,
   onUpdate,
   onRemove,
 }) => {
-  const { method, recipients, options, format } = setting || {};
+  const { method, recipients, options } = setting || {};
   const [recipientValue, setRecipientValue] = useState<string>(
     recipients || '',
   );
-  const [formatValue, setFormatValue] = useState(format);
 
   if (!setting) {
     return null;
   }
-
-  const onFormatChange = (event: any) => {
-    const { target } = event;
-    setFormatValue(target.value);
-
-    if (onUpdate) {
-      const updatedSetting = {
-        ...setting,
-        format: target.value,
-      };
-
-      onUpdate(index, updatedSetting);
-    }
-  };
 
   const onMethodChange = (method: NotificationMethod) => {
     // Since we're swapping the method, reset the recipients
@@ -169,15 +151,6 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       </div>
       {method !== undefined ? (
         <StyledInputContainer>
-          {contentType === 'chart' && (
-            <>
-              <div className="control-label">{t('format')}</div>
-              <Radio.Group onChange={onFormatChange} value={formatValue}>
-                <Radio value="PNG">PNG</Radio>
-                <Radio value="CSV">CSV</Radio>
-              </Radio.Group>
-            </>
-          )}
           <div className="control-label">{t(method)}</div>
           <div className="input-container">
             <textarea

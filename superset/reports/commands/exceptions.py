@@ -167,6 +167,10 @@ class ReportScheduleScreenshotTimeout(CommandException):
     message = _("A timeout occurred while taking a screenshot.")
 
 
+class ReportScheduleCsvTimeout(CommandException):
+    message = _("A timeout occurred while generating a csv.")
+
+
 class ReportScheduleAlertGracePeriodError(CommandException):
     message = _("Alert fired during grace period.")
 

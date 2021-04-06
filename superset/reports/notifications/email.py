@@ -24,8 +24,7 @@ from typing import Any, Dict, Optional
 from flask_babel import gettext as __
 
 from superset import app
-from superset.extensions import feature_flag_manager
-from superset.models.reports import ReportDataFormat, ReportRecipientType
+from superset.models.reports import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.core import send_email_smtp
@@ -60,9 +59,6 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             text=text,
         )
 
-    def _get_format(self) -> str:
-        return json.loads(self._recipient.recipient_config_json)["report_format"]
-
     def _get_content(self) -> EmailContent:
         if self._content.text:
             return EmailContent(body=self._error_template(self._content.text))
@@ -70,7 +66,6 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         # and make a message id without the < > in the end
         image = None
         csv_data = None
-        data_format = self._get_format()
         domain = self._get_smtp_domain()
         msgid = make_msgid(domain)[1:-1]
         body = __(
@@ -83,15 +78,10 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             url=self._content.url,
             msgid=msgid,
         )
-        if self._content.screenshot and ReportDataFormat.VISUALIZATION == data_format:
+        if self._content.screenshot:
             image = {msgid: self._content.screenshot}
-        if ReportDataFormat.DATA == data_format:
-            if self._content.csv:
-                csv_data = {
-                    __("%(name)s.csv", name=self._content.name): self._content.csv
-                }
-            elif feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS"):
-                return EmailContent(body=self._error_template("Unexpected missing csv"))
+        if self._content.csv:
+            csv_data = {__("%(name)s.csv", name=self._content.name): self._content.csv}
         return EmailContent(body=body, images=image, data=csv_data)
 
     def _get_subject(self) -> str:

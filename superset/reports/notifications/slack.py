@@ -26,8 +26,7 @@ from slack import WebClient
 from slack.errors import SlackApiError, SlackClientError
 
 from superset import app
-from superset.extensions import feature_flag_manager
-from superset.models.reports import ReportDataFormat, ReportRecipientType
+from superset.models.reports import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
 
@@ -43,9 +42,6 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
     def _get_channel(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]
-
-    def _get_format(self) -> ReportDataFormat:
-        return json.loads(self._recipient.recipient_config_json)["report_format"]
 
     @staticmethod
     def _error_template(name: str, description: str, text: str) -> str:
@@ -63,12 +59,6 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_body(self) -> str:
         if self._content.text:
             return self._error_template(self._content.name, self._content.text)
-        if (
-            ReportDataFormat.DATA == self._get_format()
-            and not self._content.csv
-            and feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
-        ):
-            return self._error_template(self._content.name, "Unexpected missing csv")
         return __(
             """
             *%(name)s*\n
@@ -81,10 +71,9 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
         )
 
     def _get_inline_file(self) -> Optional[Union[str, IOBase, bytes]]:
-        data_format = self._get_format()
-        if self._content.csv and ReportDataFormat.DATA == data_format:
+        if self._content.csv:
             return self._content.csv
-        if self._content.screenshot and ReportDataFormat.VISUALIZATION == data_format:
+        if self._content.screenshot:
             return self._content.screenshot
         return None
 
@@ -94,7 +83,7 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
         title = self._content.name
         channel = self._get_channel()
         body = self._get_body()
-        file_type = self._get_format().lower()
+        file_type = "csv" if self._content.csv else "png"
         try:
             token = app.config["SLACK_API_TOKEN"]
             if callable(token):

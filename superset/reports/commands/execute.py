@@ -30,6 +30,7 @@ from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
 from superset.extensions import feature_flag_manager, machine_auth_provider_factory
 from superset.models.reports import (
+    ReportDataFormat,
     ReportExecutionLog,
     ReportRecipients,
     ReportRecipientType,
@@ -42,6 +43,7 @@ from superset.reports.commands.exceptions import (
     ReportScheduleAlertEndGracePeriodError,
     ReportScheduleAlertGracePeriodError,
     ReportScheduleCsvFailedError,
+    ReportScheduleCsvTimeout,
     ReportScheduleExecuteUnexpectedError,
     ReportScheduleNotFoundError,
     ReportScheduleNotificationError,
@@ -158,7 +160,7 @@ class BaseReportState:
             **kwargs,
         )
 
-    def _get_screenshot_user(self) -> User:
+    def _get_user(self) -> User:
         user = (
             self._session.query(User)
             .filter(User.username == app.config["THUMBNAIL_SELENIUM_USER"])
@@ -191,7 +193,7 @@ class BaseReportState:
                 window_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
                 thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
             )
-        user = self._get_screenshot_user()
+        user = self._get_user()
         try:
             image_data = screenshot.get_screenshot(user=user)
         except SoftTimeLimitExceeded:
@@ -209,12 +211,12 @@ class BaseReportState:
         if self._report_schedule.chart:
             url = self._get_url(csv=True)
             auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(
-                self._get_screenshot_user()
+                self._get_user()
             )
         try:
             csv_data = get_chart_csv_data(url, auth_cookies)
         except SoftTimeLimitExceeded:
-            raise ReportScheduleScreenshotTimeout()
+            raise ReportScheduleCsvTimeout()
         except Exception as ex:
             raise ReportScheduleCsvFailedError(f"Failed generating csv {str(ex)}")
         if not csv_data:
@@ -227,20 +229,28 @@ class BaseReportState:
 
         :raises: ReportScheduleScreenshotFailedError
         """
-        screenshot_data = None
         csv_data = None
+        error_text = None
+        screenshot_data = None
         url = self._get_url(user_friendly=True)
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
             or self._report_schedule.type == ReportScheduleType.REPORT
         ):
-            screenshot_data = self._get_screenshot()
-            if self._report_schedule.chart:
+            if self._report_schedule.report_format == ReportDataFormat.VISUALIZATION:
+                screenshot_data = self._get_screenshot()
+                if not screenshot_data:
+                    error_text = "Unexpected missing screenshot"
+            elif (
+                self._report_schedule.chart
+                and self._report_schedule.report_format == ReportDataFormat.DATA
+            ):
                 csv_data = self._get_csv_data()
-            if not screenshot_data:
+                if not csv_data:
+                    error_text = "Unexpected missing csv file"
+            if error_text:
                 return NotificationContent(
-                    name=self._report_schedule.name,
-                    text="Unexpected missing screenshot",
+                    name=self._report_schedule.name, text=error_text
                 )
 
         if self._report_schedule.chart:
