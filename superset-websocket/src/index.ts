@@ -415,7 +415,7 @@ export const checkSockets = () => {
 /**
  * Iterate over all sockets within a channel, removing references to
  * inactive connections, ultimately removing the channel from the
- * _channels_ registry.
+ * _channels_ registry if no active connections remain.
  */
 export const cleanChannel = (channel: string) => {
   const activeSockets: string[] =
