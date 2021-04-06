@@ -69,7 +69,7 @@ const propTypes = {
   sliceCanEdit: PropTypes.bool.isRequired,
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
-  ownCurrentState: PropTypes.object,
+  ownState: PropTypes.object,
 };
 
 const defaultProps = {
@@ -260,7 +260,7 @@ export default class Chart extends React.Component {
       sliceCanEdit,
       addSuccessToast,
       addDangerToast,
-      ownCurrentState,
+      ownState,
       handleToggleFullSize,
       isFullSize,
     } = this.props;
@@ -368,7 +368,7 @@ export default class Chart extends React.Component {
             dashboardId={dashboardId}
             initialValues={initialValues}
             formData={formData}
-            ownCurrentState={ownCurrentState}
+            ownState={ownState}
             queriesResponse={chart.queriesResponse}
             timeout={timeout}
             triggerQuery={chart.triggerQuery}

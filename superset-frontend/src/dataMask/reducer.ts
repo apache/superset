@@ -20,7 +20,7 @@
 /* eslint-disable no-param-reassign */
 // <- When we work with Immer, we need reassign, so disabling lint
 import produce from 'immer';
-import { MaskWithId, DataMaskType, DataMaskStateWithId, Mask } from './types';
+import { DataMaskStateWithId, DataMaskType, Mask, MaskWithId } from './types';
 import {
   AnyDataMaskAction,
   SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
@@ -28,7 +28,7 @@ import {
   UpdateDataMask,
 } from './actions';
 
-export function getInitialMask(id: string): MaskWithId {
+export function getInitialFiltersMask(id: string): MaskWithId {
   return {
     id,
     extraFormData: {},
@@ -42,9 +42,13 @@ const setUnitDataMask = (
   dataMaskState: DataMaskStateWithId,
 ) => {
   if (action[unitName]) {
+    const otherProps: Partial<MaskWithId> = {};
+    if (unitName !== DataMaskType.OwnState) {
+      otherProps.id = action.filterId;
+    }
     dataMaskState[unitName][action.filterId] = {
       ...(action[unitName] as Mask),
-      id: action.filterId,
+      ...otherProps,
     };
   }
 };
@@ -63,7 +67,8 @@ const dataMaskReducer = produce(
         draft[action.unitName] = {};
         (action.filterConfig ?? []).forEach(filter => {
           draft[action.unitName][filter.id] =
-            oldData[action.unitName][filter.id] ?? getInitialMask(filter.id);
+            oldData[action.unitName][filter.id] ??
+            getInitialFiltersMask(filter.id);
         });
         break;
 
@@ -73,7 +78,7 @@ const dataMaskReducer = produce(
   {
     [DataMaskType.NativeFilters]: {},
     [DataMaskType.CrossFilters]: {},
-    [DataMaskType.OwnFilters]: {},
+    [DataMaskType.OwnState]: {},
   },
 );
 

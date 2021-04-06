@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, DataMask, Behavior } from '@superset-ui/core';
+import { styled, Behavior, DataMask } from '@superset-ui/core';
 import React, { useState, useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { PluginFilterTimeProps } from './types';
 import { Styles } from '../common';
+import { Mask } from '../../../dataMask/types';
 
 const DEFAULT_VALUE = 'Last week';
 
@@ -36,7 +37,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
 
   const handleTimeRangeChange = (timeRange: string): void => {
     setValue(timeRange);
-    const dataMask = {
+    const dataMask: Mask = {
       extraFormData: {
         override_form_data: {
           time_range: timeRange,

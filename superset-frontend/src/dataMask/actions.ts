@@ -19,6 +19,7 @@
 import { DataMaskType, MaskWithId } from './types';
 import { FilterConfiguration } from '../dashboard/components/nativeFilters/types';
 import { FeatureFlag, isFeatureEnabled } from '../featureFlags';
+import { JsonObject } from '../../cypress-base/cypress/utils';
 
 export const UPDATE_DATA_MASK = 'UPDATE_DATA_MASK';
 export interface UpdateDataMask {
@@ -26,7 +27,7 @@ export interface UpdateDataMask {
   filterId: string;
   [DataMaskType.NativeFilters]?: Omit<MaskWithId, 'id'>;
   [DataMaskType.CrossFilters]?: Omit<MaskWithId, 'id'>;
-  [DataMaskType.OwnFilters]?: Omit<MaskWithId, 'id'>;
+  [DataMaskType.OwnState]?: JsonObject;
 }
 
 export const SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE =
@@ -48,15 +49,15 @@ export function updateDataMask(
   dataMask: {
     nativeFilters?: Omit<MaskWithId, 'id'>;
     crossFilters?: Omit<MaskWithId, 'id'>;
-    ownFilters?: Omit<MaskWithId, 'id'>;
+    ownState?: JsonObject;
   },
 ): UpdateDataMask {
-  const { nativeFilters, crossFilters, ownFilters } = dataMask;
+  const { nativeFilters, crossFilters, ownState } = dataMask;
   const filteredDataMask: {
     nativeFilters?: Omit<MaskWithId, 'id'>;
     crossFilters?: Omit<MaskWithId, 'id'>;
-    ownFilters?: Omit<MaskWithId, 'id'>;
-  } = { ownFilters };
+    ownState?: JsonObject;
+  } = { ownState };
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && nativeFilters) {
     filteredDataMask.nativeFilters = nativeFilters;
   }

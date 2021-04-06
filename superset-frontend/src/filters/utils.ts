@@ -22,6 +22,7 @@ import {
   NumberFormatter,
   QueryObjectFilterClause,
   TimeFormatter,
+  ExtraFormData,
 } from '@superset-ui/core';
 import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
 
@@ -30,7 +31,7 @@ export const getSelectExtraFormData = (
   value?: null | (string | number)[],
   emptyFilter = false,
   inverseSelection = false,
-) => ({
+): ExtraFormData => ({
   append_form_data: emptyFilter
     ? {
         adhoc_filters: [
