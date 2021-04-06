@@ -31,6 +31,9 @@ from marshmallow import fields, Schema
 from sqlalchemy import and_, distinct, func
 from sqlalchemy.orm.query import Query
 
+from superset.commands.exceptions import CommandException, CommandInvalidError
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetErrorException, SupersetErrorsException
 from superset.extensions import db, event_logger, security_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
@@ -38,7 +41,8 @@ from superset.models.slice import Slice
 from superset.sql_lab import Query as SqllabQuery
 from superset.stats_logger import BaseStatsLogger
 from superset.typing import FlaskResponse
-from superset.utils.core import time_function
+from superset.utils.core import error_msg_from_exception, time_function
+from superset.views.base import json_errors_response
 
 logger = logging.getLogger(__name__)
 get_related_schema = {
@@ -80,6 +84,72 @@ def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
         duration, response = time_function(f, self, *args, **kwargs)
         self.send_stats_metrics(response, f.__name__, duration)
         return response
+
+    return functools.update_wrapper(wraps, f)
+
+
+def get_level(status: int) -> ErrorLevel:
+    if status < 400:
+        return ErrorLevel.INFO
+    if status < 500:
+        return ErrorLevel.WARNING
+    return ErrorLevel.ERROR
+
+
+def handle_exception(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
+    """
+    A decorator that formats exceptions.
+
+    SIP-40 (https://github.com/apache/superset/issues/9194) introduced
+    a standard error payload for all API errors returned by Superset.
+    This decorator formats exceptions to conform to it.
+    """
+
+    def wraps(self: Any, *args: Any, **kwargs: Any) -> FlaskResponse:
+        try:
+            return f(self, *args, **kwargs)
+        except SupersetErrorException as ex:
+            logger.warning(ex)
+            return json_errors_response(errors=[ex.error], status=ex.status)
+        except SupersetErrorsException as ex:
+            logger.warning(ex)
+            return json_errors_response(errors=ex.errors, status=ex.status)
+        except CommandInvalidError as ex:
+            logger.warning(ex)
+            return json_errors_response(
+                errors=[
+                    SupersetError(
+                        message=ex.message,
+                        error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                        level=get_level(ex.status),
+                        extra=ex.normalized_messages(),
+                    ),
+                ]
+            )
+        except CommandException as ex:
+            logger.warning(ex)
+            return json_errors_response(
+                errors=[
+                    SupersetError(
+                        message=ex.message,
+                        error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                        level=get_level(ex.status),
+                        extra={},
+                    ),
+                ]
+            )
+        except Exception as ex:
+            logger.warning(ex)
+            return json_errors_response(
+                errors=[
+                    SupersetError(
+                        message=error_msg_from_exception(ex),
+                        error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                        level=ErrorLevel.ERROR,
+                        extra={},
+                    ),
+                ]
+            )
 
     return functools.update_wrapper(wraps, f)
 
