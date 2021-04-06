@@ -436,7 +436,7 @@ superset db upgrade
 superset init
 
 # Load some data to play with
-superset load_examples
+superset load-examples
 
 # Start the Flask dev web server from inside your virtualenv.
 # Note that your page may not have css at this point.
@@ -747,7 +747,7 @@ export ENABLE_REACT_CRUD_VIEWS=true
 export CYPRESS_BASE_URL="http://localhost:8081"
 superset db upgrade
 superset load_test_users
-superset load_examples --load-test-data
+superset load-examples --load-test-data
 superset init
 superset run --port 8081
 ```
