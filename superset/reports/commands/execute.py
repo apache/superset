@@ -30,11 +30,11 @@ from superset.commands.exceptions import CommandException
 from superset.extensions import feature_flag_manager
 from superset.models.reports import (
     ReportExecutionLog,
+    ReportRecipients,
     ReportRecipientType,
     ReportSchedule,
     ReportScheduleType,
     ReportState,
-    ReportRecipients
 )
 from superset.reports.commands.alert import AlertCommand
 from superset.reports.commands.exceptions import (
@@ -226,8 +226,7 @@ class BaseReportState:
 
     @staticmethod
     def _send(
-        notification_content: NotificationContent,
-        recipients: List[ReportRecipients]
+        notification_content: NotificationContent, recipients: List[ReportRecipients]
     ) -> None:
         """
         Sends a notification to all recipients
@@ -266,10 +265,9 @@ class BaseReportState:
         owner_recipients = [
             ReportRecipients(
                 type=ReportRecipientType.EMAIL,
-                recipient_config_json=json.dumps({
-                    "target": owner.email
-                }),
-            ) for owner in self._report_schedule.owners
+                recipient_config_json=json.dumps({"target": owner.email}),
+            )
+            for owner in self._report_schedule.owners
         ]
 
         self._send(notification_content, owner_recipients)
