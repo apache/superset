@@ -111,3 +111,15 @@ export const dnd_adhoc_metric: SharedControlConfig<'DndMetricSelect'> = {
   description: t('Metric'),
   default: (c: Control) => mainMetric(c.savedMetrics),
 };
+
+export const dnd_timeseries_limit_metric: SharedControlConfig<'DndMetricSelect'> = {
+  type: 'DndMetricSelect',
+  label: t('Sort by'),
+  default: null,
+  description: t('Metric used to define the top series'),
+  mapStateToProps: ({ datasource }) => ({
+    columns: datasource?.columns || [],
+    savedMetrics: datasource?.metrics || [],
+    datasourceType: datasource?.type,
+  }),
+};
