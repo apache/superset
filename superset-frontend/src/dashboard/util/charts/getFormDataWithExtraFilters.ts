@@ -102,9 +102,12 @@ export default function getFormDataWithExtraFilters({
     };
   }
 
-  extraData.extra_form_data = mergeExtraFormData(extraData?.extra_form_data, {
-    own_state: dataMask?.ownState?.[chart.id],
-  });
+  const { extraFormData: newExtra = {} } =
+    dataMask?.ownFilters?.[chart.id] ?? {};
+  extraData.extra_form_data = mergeExtraFormData(
+    extraData?.extra_form_data,
+    newExtra,
+  );
 
   const formData = {
     ...chart.formData,

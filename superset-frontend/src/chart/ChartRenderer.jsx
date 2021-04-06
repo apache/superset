@@ -45,7 +45,7 @@ const propTypes = {
   setDataMask: PropTypes.func,
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
-  ownState: PropTypes.object,
+  ownCurrentState: PropTypes.object,
 };
 
 const BLANK = {};
@@ -94,7 +94,7 @@ class ChartRenderer extends React.Component {
       return (
         this.hasQueryResponseChange ||
         nextProps.annotationData !== this.props.annotationData ||
-        nextProps.ownState !== this.props.ownState ||
+        nextProps.ownCurrentState !== this.props.ownCurrentState ||
         nextProps.height !== this.props.height ||
         nextProps.width !== this.props.width ||
         nextProps.triggerRender ||
@@ -184,7 +184,7 @@ class ChartRenderer extends React.Component {
       annotationData,
       datasource,
       initialValues,
-      ownState,
+      ownCurrentState,
       formData,
       queriesResponse,
     } = this.props;
@@ -224,7 +224,7 @@ class ChartRenderer extends React.Component {
         datasource={datasource}
         initialValues={initialValues}
         formData={formData}
-        ownState={ownState}
+        ownCurrentState={ownCurrentState}
         hooks={this.hooks}
         behaviors={[Behavior.CROSS_FILTER]}
         queriesData={queriesResponse}

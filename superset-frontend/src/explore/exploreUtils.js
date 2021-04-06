@@ -209,7 +209,6 @@ export const buildV1ChartDataPayload = ({
   resultFormat,
   resultType,
   setDataMask,
-  ownState,
 }) => {
   const buildQuery =
     getChartBuildQueryRegistry().get(formData.viz_type) ??
@@ -227,7 +226,6 @@ export const buildV1ChartDataPayload = ({
       result_type: resultType,
     },
     {
-      ownState,
       hooks: {
         setDataMask,
       },

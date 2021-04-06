@@ -22,7 +22,7 @@ import Popover from 'src/components/Popover';
 import Icon from 'src/components/Icon';
 import { Pill } from 'src/dashboard/components/FiltersBadge/Styles';
 import { useSelector } from 'react-redux';
-import { getInitialFiltersMask } from 'src/dataMask/reducer';
+import { getInitialMask } from 'src/dataMask/reducer';
 import { MaskWithId } from 'src/dataMask/types';
 import FilterControl from '../FilterControls/FilterControl';
 import CascadeFilterControl from './CascadeFilterControl';
@@ -84,8 +84,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   const [currentPathToChild, setCurrentPathToChild] = useState<string[]>();
   const dataMask = useSelector<any, MaskWithId>(
     state =>
-      state.dataMask.nativeFilters[filter.id] ??
-      getInitialFiltersMask(filter.id),
+      state.dataMask.nativeFilters[filter.id] ?? getInitialMask(filter.id),
   );
 
   useEffect(() => {

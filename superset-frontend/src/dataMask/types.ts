@@ -17,12 +17,11 @@
  * under the License.
  */
 import { ExtraFormData, DataMaskCurrentState } from '@superset-ui/core';
-import { JsonObject } from '../../cypress-base/cypress/utils';
 
 export enum DataMaskType {
   NativeFilters = 'nativeFilters',
   CrossFilters = 'crossFilters',
-  OwnState = 'ownState',
+  OwnFilters = 'ownFilters',
 }
 
 export type Mask = {
@@ -33,7 +32,7 @@ export type DataMaskUnit = { [filterId: string]: Mask };
 export type DataMaskState = {
   [DataMaskType.NativeFilters]: Mask;
   [DataMaskType.CrossFilters]: Mask;
-  [DataMaskType.OwnState]: JsonObject;
+  [DataMaskType.OwnFilters]: Mask;
 };
 
 export type MaskWithId = Mask & { id: string };
@@ -41,5 +40,5 @@ export type DataMaskUnitWithId = { [filterId: string]: MaskWithId };
 export type DataMaskStateWithId = {
   [DataMaskType.NativeFilters]: DataMaskUnitWithId;
   [DataMaskType.CrossFilters]: DataMaskUnitWithId;
-  [DataMaskType.OwnState]: JsonObject;
+  [DataMaskType.OwnFilters]: DataMaskUnitWithId;
 };

@@ -86,7 +86,7 @@ function mapStateToProps(
     supersetCanExplore: !!dashboardInfo.superset_can_explore,
     supersetCanCSV: !!dashboardInfo.superset_can_csv,
     sliceCanEdit: !!dashboardInfo.slice_can_edit,
-    ownState: dataMask.ownState?.[id],
+    ownCurrentState: dataMask.ownFilters?.[id]?.currentState,
     crossFilterCurrentState: dataMask.crossFilters?.[id]?.currentState,
   };
 }

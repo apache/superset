@@ -22,7 +22,7 @@ import React, { FC } from 'react';
 import Icon from 'src/components/Icon';
 import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
-import { getInitialFiltersMask } from 'src/dataMask/reducer';
+import { getInitialMask } from 'src/dataMask/reducer';
 import { DataMaskUnit, DataMaskUnitWithId } from 'src/dataMask/types';
 import FilterConfigurationLink from './FilterConfigurationLink';
 import { useFilters } from './state';
@@ -81,7 +81,7 @@ const Header: FC<HeaderProps> = ({
   const handleClearAll = () => {
     filterValues.forEach(filter => {
       setDataMaskSelected(draft => {
-        draft[filter.id] = getInitialFiltersMask(filter.id);
+        draft[filter.id] = getInitialMask(filter.id);
       });
     });
   };

@@ -47,7 +47,7 @@ const propTypes = {
   table_name: PropTypes.string,
   vizType: PropTypes.string.isRequired,
   form_data: PropTypes.object,
-  ownState: PropTypes.object,
+  ownCurrentState: PropTypes.object,
   standalone: PropTypes.number,
   timeout: PropTypes.number,
   refreshOverlayVisible: PropTypes.bool,
@@ -190,7 +190,7 @@ const ExploreChartPanel = props => {
         <ChartContainer
           width={Math.floor(chartWidth)}
           height={newHeight}
-          ownState={props.ownState}
+          ownCurrentState={props.ownCurrentState}
           annotationData={chart.annotationData}
           chartAlert={chart.chartAlert}
           chartStackTrace={chart.chartStackTrace}
