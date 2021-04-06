@@ -35,8 +35,7 @@ import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { act } from 'react-dom/test-utils';
 import userEvent from '@testing-library/user-event';
-import { useListViewResource } from 'src/views/CRUD/hooks';
-import * as hooks from 'src/views/CRUD/hooks';
+import { handleBulkDashboardExport } from 'src/views/CRUD/utils';
 
 // store needed for withToasts(DatabaseList)
 const mockStore = configureStore([thunk]);
@@ -204,7 +203,23 @@ describe('RTL', () => {
     await renderAndWait();
   });
 
-  it('renders in RTL', () => {
-    expect.anything();
+  it('renders an export button in the bulk actions', () => {
+    // Grab and click the "Bulk Select" button to expose checkboxes
+    const bulkSelectButton = screen.getByRole('button', {
+      name: /bulk select/i,
+    });
+    userEvent.click(bulkSelectButton);
+
+    // Grab and click the "toggle all" checkbox to expose export button
+    const selectAllCheckbox = screen.getByRole('checkbox', {
+      name: /toggle all rows selected/i,
+    });
+    userEvent.click(selectAllCheckbox);
+
+    // Grab and assert that export button is visible
+    const exportButton = screen.getByRole('button', {
+      name: /export/i,
+    });
+    expect(exportButton).toBeVisible();
   });
 });
