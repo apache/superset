@@ -22,8 +22,10 @@ import configureStore from 'redux-mock-store';
 import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, cleanup } from 'spec/helpers/testing-library';
 import { QueryParamProvider } from 'use-query-params';
+import { act } from 'react-dom/test-utils';
+import userEvent from '@testing-library/user-event';
 import SavedQueryList from 'src/views/CRUD/data/savedquery/SavedQueryList';
 import SubMenu from 'src/components/Menu/SubMenu';
 import ListView from 'src/components/ListView';
@@ -33,9 +35,6 @@ import DeleteModal from 'src/components/DeleteModal';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { act } from 'react-dom/test-utils';
-import userEvent from '@testing-library/user-event';
-import { handleBulkDashboardExport } from 'src/views/CRUD/utils';
 
 // store needed for withToasts(DatabaseList)
 const mockStore = configureStore([thunk]);
@@ -199,8 +198,12 @@ describe('RTL', () => {
     return mounted;
   }
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     await renderAndWait();
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   it('renders an export button in the bulk actions', () => {
@@ -221,5 +224,20 @@ describe('RTL', () => {
       name: /export/i,
     });
     expect(exportButton).toBeVisible();
+  });
+
+  it('renders an export button in the actions bar', async () => {
+    // Grab Export action button and mock mouse hovering over it
+    const exportActionButton = screen.getAllByRole('button')[17];
+    userEvent.hover(exportActionButton);
+
+    // Wait for the tooltip to pop up
+    await screen.findByRole('tooltip');
+
+    // Grab and assert that "Export Query" tooltip is in the document
+    const exportTooltip = screen.getByRole('tooltip', {
+      name: /export query/i,
+    });
+    expect(exportTooltip).toBeInTheDocument();
   });
 });
