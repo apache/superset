@@ -20,13 +20,13 @@ from typing import Any, Dict, Set
 from marshmallow import Schema
 from sqlalchemy.orm import Session
 
-from supereset.queries.saved_queries.commands.exceptions import SavedQueryImportError
+from superset.queries.saved_queries.commands.exceptions import SavedQueryImportError
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.databases.commands.importers.v1.utils import import_database
 from superset.datasets.commands.importers.v1.utils import import_dataset
-from superset.dataset.schemas import ImportV1DatasetSchema
-from superset.queries.dao import SavedQueryDAO
+from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.queries.saved_queries.dao import SavedQueryDAO
 from superset.queries.saved_queries.commands.importers.v1.utils import import_saved_query
 from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema
 
