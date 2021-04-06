@@ -22,7 +22,7 @@ import {
   DataMask,
   ensureIsArray,
   GenericDataType,
-  Place,
+  AppSection,
   t,
   tn,
 } from '@superset-ui/core';
@@ -58,7 +58,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     width,
     behaviors,
     setDataMask,
-    place,
+    appSection,
   } = props;
   const {
     defaultValue,
@@ -72,7 +72,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   } = formData;
 
   const isDefaultToFirstItemInFilterConfigModal =
-    place === Place.FILTER_CONFIG_MODAL && defaultToFirstItem;
+    appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem;
 
   const groupby = ensureIsArray<string>(formData.groupby);
   // Correct initial value for Ant Select
@@ -86,7 +86,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   // If we are in config modal we always need show empty select for `defaultToFirstItem`
   const [values, setValues] = useState<SelectValue>(
-    defaultToFirstItem && place !== Place.FILTER_CONFIG_MODAL
+    defaultToFirstItem && appSection !== AppSection.FILTER_CONFIG_MODAL
       ? firstItem
       : initSelectValue,
   );

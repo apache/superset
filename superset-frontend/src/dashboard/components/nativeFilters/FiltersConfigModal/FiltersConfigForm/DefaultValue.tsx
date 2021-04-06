@@ -21,7 +21,7 @@ import {
   Behavior,
   SetDataMaskHook,
   SuperChart,
-  Place,
+  AppSection,
 } from '@superset-ui/core';
 import { FormInstance } from 'antd/lib/form';
 import Loading from 'src/components/Loading';
@@ -61,7 +61,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
     <SuperChart
       height={25}
       width={250}
-      place={Place.FILTER_CONFIG_MODAL}
+      appSection={AppSection.FILTER_CONFIG_MODAL}
       behaviors={[Behavior.NATIVE_FILTER]}
       formData={formData}
       // For charts that don't have datasource we need workaround for empty placeholder
