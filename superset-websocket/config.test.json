@@ -6,7 +6,7 @@
     "db": 10,
     "ssl": false
   },
-  "streamPrefix": "test-async-events-",
+  "redisStreamPrefix": "test-async-events-",
   "jwtSecret": "test123-test123-test123-test123-test123-test123-test123",
   "jwtCookieName": "test-async-token"
 }

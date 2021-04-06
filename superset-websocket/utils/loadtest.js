@@ -22,12 +22,12 @@ const config = require('../config.json');
 const redis = new Redis(config.redis);
 
 const numClients = 256;
-const globalEventStreamName = `${config.streamPrefix}full`;
+const globalEventStreamName = `${config.redisStreamPrefix}full`;
 
 function pushData() {
   for (let i = 0; i < numClients; i++) {
     const channelId = String(i);
-    const streamId = `${config.streamPrefix}${channelId}`;
+    const streamId = `${config.redisStreamPrefix}${channelId}`;
     const data = {
       channel_id: channelId,
       job_id: uuidv4(),

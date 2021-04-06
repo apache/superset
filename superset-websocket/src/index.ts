@@ -91,11 +91,11 @@ export const opts = {
     db: 0,
     ssl: false,
   },
-  streamPrefix: 'async-events-',
-  jwtSecret: '',
-  jwtCookieName: 'async-token',
+  redisStreamPrefix: 'async-events-',
   redisStreamReadCount: 100,
   redisStreamReadBlockMs: 5000,
+  jwtSecret: '',
+  jwtCookieName: 'async-token',
   socketResponseTimeoutMs: 60 * 1000,
   pingSocketsIntervalMs: 20 * 1000,
   gcChannelsIntervalMs: 120 * 1000,
@@ -150,7 +150,7 @@ export const wss = new WebSocket.Server({
 });
 
 const SOCKET_ACTIVE_STATES = [WebSocket.OPEN, WebSocket.CONNECTING];
-const GLOBAL_EVENT_STREAM_NAME = `${opts.streamPrefix}full`;
+const GLOBAL_EVENT_STREAM_NAME = `${opts.redisStreamPrefix}full`;
 const DEFAULT_STREAM_LAST_ID = '$';
 
 // initialize internal registries
@@ -215,7 +215,7 @@ export const fetchRangeFromStream = async ({
   endId,
   listener,
 }: FetchRangeFromStreamParams) => {
-  const streamName = `${opts.streamPrefix}${sessionId}`;
+  const streamName = `${opts.redisStreamPrefix}${sessionId}`;
   try {
     const reply = await redis.xrange(streamName, startId, endId);
     if (!reply || !reply.length) return;

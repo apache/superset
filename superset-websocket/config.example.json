@@ -10,7 +10,7 @@
     "db": 0,
     "ssl": false
   },
-  "streamPrefix": "async-events-",
+  "redisStreamPrefix": "async-events-",
   "jwtSecret": "CHANGE-ME",
   "jwtCookieName": "async-token"
 }
