@@ -20,11 +20,11 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import { Menu, NoAnimationDropdown } from 'src/common/components';
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
-import HeaderActionsDropdown from 'src/dashboard/components/HeaderActionsDropdown';
 import SaveModal from 'src/dashboard/components/SaveModal';
 import CssEditor from 'src/dashboard/components/CssEditor';
 import fetchMock from 'fetch-mock';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
+import HeaderActionsDropdown from '.';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 
