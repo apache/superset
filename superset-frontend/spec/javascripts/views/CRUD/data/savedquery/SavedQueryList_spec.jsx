@@ -22,6 +22,8 @@ import configureStore from 'redux-mock-store';
 import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
+import { render, screen } from 'spec/helpers/testing-library';
+import { QueryParamProvider } from 'use-query-params';
 import SavedQueryList from 'src/views/CRUD/data/savedquery/SavedQueryList';
 import SubMenu from 'src/components/Menu/SubMenu';
 import ListView from 'src/components/ListView';
@@ -32,6 +34,9 @@ import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { act } from 'react-dom/test-utils';
+import userEvent from '@testing-library/user-event';
+import { useListViewResource } from 'src/views/CRUD/hooks';
+import * as hooks from 'src/views/CRUD/hooks';
 
 // store needed for withToasts(DatabaseList)
 const mockStore = configureStore([thunk]);
@@ -177,5 +182,49 @@ describe('SavedQueryList', () => {
     expect(fetchMock.lastCall()[0]).toMatchInlineSnapshot(
       `"http://localhost/api/v1/saved_query/?q=(filters:!((col:label,opr:all_text,value:fooo)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
     );
+  });
+});
+
+describe('RTL', () => {
+  // /*
+  // Mock permissions
+  // const mockCanDelete = true;
+  // const mockCanExport = true;
+  // const hasPerm = ['can_write'];
+  // jest.mock('src/views/CRUD/hooks.ts', () => ({
+  //   useListViewResource: () => hasPerm,
+  // }));
+  // jest.fn(() => {
+  //     canDelete: mockCanDelete;
+  //     canExport: mockCanExport;
+  //   }),
+  // */
+  // afterEach(cleanup);
+  it('renders in RTL', () => {
+    render(
+      <QueryParamProvider>
+        <Provider store={store}>
+          <SavedQueryList />
+        </Provider>
+      </QueryParamProvider>,
+    );
+    console.log(store.getState());
+    // ---------- Function mocks ----------
+    const mockUseListViewResource = jest
+      .fn()
+      .mockImplementation(useListViewResource)
+      .mockReturnValue({
+        permissions: ['can_write'],
+      });
+    mockUseListViewResource();
+    // const canDelete = hasPerm('can_write');
+    // ---------- TESTING BEGIN ----------
+    // console.log(canDelete);
+    expect.anything();
+    const loading = screen.getAllByText(/loading/i);
+    console.log(loading.length);
+    // userEvent.click(btn);
+    // screen.debug(btn);
+    // screen.logTestingPlaygroundURL();
   });
 });
