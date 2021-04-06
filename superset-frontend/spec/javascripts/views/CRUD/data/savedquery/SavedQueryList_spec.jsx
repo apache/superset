@@ -76,7 +76,7 @@ const mockqueries = [...new Array(3)].map((_, i) => ({
 }));
 
 fetchMock.get(queriesInfoEndpoint, {
-  permissions: ['can_write'],
+  permissions: ['can_write', 'can_read'],
 });
 fetchMock.get(queriesEndpoint, {
   result: mockqueries,
@@ -186,45 +186,25 @@ describe('SavedQueryList', () => {
 });
 
 describe('RTL', () => {
-  // /*
-  // Mock permissions
-  // const mockCanDelete = true;
-  // const mockCanExport = true;
-  // const hasPerm = ['can_write'];
-  // jest.mock('src/views/CRUD/hooks.ts', () => ({
-  //   useListViewResource: () => hasPerm,
-  // }));
-  // jest.fn(() => {
-  //     canDelete: mockCanDelete;
-  //     canExport: mockCanExport;
-  //   }),
-  // */
-  // afterEach(cleanup);
+  async function renderAndWait() {
+    const mounted = act(async () => {
+      render(
+        <QueryParamProvider>
+          <Provider store={store}>
+            <SavedQueryList />
+          </Provider>
+        </QueryParamProvider>,
+      );
+    });
+
+    return mounted;
+  }
+
+  beforeAll(async () => {
+    await renderAndWait();
+  });
+
   it('renders in RTL', () => {
-    render(
-      <QueryParamProvider>
-        <Provider store={store}>
-          <SavedQueryList />
-        </Provider>
-      </QueryParamProvider>,
-    );
-    console.log(store.getState());
-    // ---------- Function mocks ----------
-    const mockUseListViewResource = jest
-      .fn()
-      .mockImplementation(useListViewResource)
-      .mockReturnValue({
-        permissions: ['can_write'],
-      });
-    mockUseListViewResource();
-    // const canDelete = hasPerm('can_write');
-    // ---------- TESTING BEGIN ----------
-    // console.log(canDelete);
     expect.anything();
-    const loading = screen.getAllByText(/loading/i);
-    console.log(loading.length);
-    // userEvent.click(btn);
-    // screen.debug(btn);
-    // screen.logTestingPlaygroundURL();
   });
 });
