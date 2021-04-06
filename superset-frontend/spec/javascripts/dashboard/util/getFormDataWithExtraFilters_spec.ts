@@ -65,7 +65,7 @@ describe('getFormDataWithExtraFilters', () => {
     },
     dataMask: {
       crossFilters: {},
-      ownFilters: {},
+      ownState: {},
       nativeFilters: {
         [filterId]: {
           id: filterId,
