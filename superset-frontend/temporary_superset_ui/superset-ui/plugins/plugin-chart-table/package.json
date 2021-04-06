@@ -29,14 +29,14 @@
     "@emotion/core": "^10.0.28",
     "@superset-ui/chart-controls": "0.17.27",
     "@superset-ui/core": "0.17.27",
-    "@types/d3-array": "^2.0.0",
-    "@types/react-table": "^7.0.19",
+    "@types/d3-array": "^2.9.0",
+    "@types/react-table": "^7.0.29",
     "d3-array": "^2.4.0",
-    "match-sorter": "^6.1.0",
+    "match-sorter": "^6.3.0",
     "memoize-one": "^5.1.1",
-    "react-table": "^7.2.1",
-    "regenerator-runtime": "^0.13.5",
-    "xss": "^1.0.6"
+    "react-table": "^7.6.3",
+    "regenerator-runtime": "^0.13.7",
+    "xss": "^1.0.8"
   },
   "peerDependencies": {
     "@types/react": "*",

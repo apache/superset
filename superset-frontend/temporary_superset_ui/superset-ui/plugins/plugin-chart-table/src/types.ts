@@ -90,6 +90,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   setDataMask: SetDataMaskHook;
   isRawRecords?: boolean;
   data: D[];
+  totals?: D;
   columns: DataColumnMeta[];
   metrics?: (keyof D)[];
   percentMetrics?: (keyof D)[];

@@ -38,6 +38,9 @@ export default styled.div`
   .dt-metric {
     text-align: right;
   }
+  .dt-totals {
+    font-weight: bold;
+  }
   .dt-is-null {
     color: ${({ theme: { colors } }) => colors.grayscale.light1};
   }
