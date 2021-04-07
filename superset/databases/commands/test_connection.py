@@ -20,7 +20,6 @@ from typing import Any, Dict, Optional
 
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as _
-from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
 from superset.commands.base import BaseCommand
@@ -31,11 +30,9 @@ from superset.databases.commands.exceptions import (
     DatabaseTestConnectionUnexpectedError,
 )
 from superset.databases.dao import DatabaseDAO
-from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger
 from superset.models.core import Database
-from superset.utils.network import is_host_up, is_hostname_valid, is_port_open
 
 logger = logging.getLogger(__name__)
 

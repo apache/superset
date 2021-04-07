@@ -38,7 +38,7 @@ from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.types import String, TypeEngine
 
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType

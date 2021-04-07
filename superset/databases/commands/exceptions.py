@@ -25,7 +25,7 @@ from superset.commands.exceptions import (
     ImportFailedError,
     UpdateFailedError,
 )
-from superset.exceptions import SupersetErrorException, SupersetErrorsException
+from superset.exceptions import SupersetErrorsException
 
 
 class DatabaseInvalidError(CommandInvalidError):

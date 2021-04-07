@@ -158,7 +158,8 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
         {
             "code": 1012,
             "message": _(
-                "Issue 1012 - The username provided when connecting to a database is not valid."
+                "Issue 1012 - The username provided when "
+                "connecting to a database is not valid."
             ),
         },
     ],
