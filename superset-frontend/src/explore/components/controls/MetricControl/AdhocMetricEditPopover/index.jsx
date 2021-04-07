@@ -32,17 +32,19 @@ import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { noOp } from 'src/utils/common';
 
 import { AGGREGATES_OPTIONS } from 'src/explore/constants';
-import columnType from './columnType';
-import savedMetricType from './savedMetricType';
-import AdhocMetric, { EXPRESSION_TYPES } from './AdhocMetric';
+import columnType from 'src/explore/components/controls/MetricControl/columnType';
+import savedMetricType from 'src/explore/components/controls/MetricControl/savedMetricType';
+import AdhocMetric, {
+  EXPRESSION_TYPES,
+} from 'src/explore/components/controls/MetricControl/AdhocMetric';
 
 const propTypes = {
-  adhocMetric: PropTypes.instanceOf(AdhocMetric).isRequired,
   onChange: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired,
   onResize: PropTypes.func.isRequired,
   getCurrentTab: PropTypes.func,
   getCurrentLabel: PropTypes.func,
+  adhocMetric: PropTypes.instanceOf(AdhocMetric).isRequired,
   columns: PropTypes.arrayOf(columnType),
   savedMetricsOptions: PropTypes.arrayOf(savedMetricType),
   savedMetric: savedMetricType,
