@@ -1819,13 +1819,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if not dashboard:
             abort(404)
 
-        data = dashboard.full_data()
-
         if config["ENABLE_ACCESS_REQUEST"]:
-            for datasource in data["datasources"].values():
+            for datasource in dashboard.datasources:
                 datasource = ConnectorRegistry.get_datasource(
-                    datasource_type=datasource["type"],
-                    datasource_id=datasource["id"],
+                    datasource_type=datasource.type,
+                    datasource_id=datasource.id,
                     session=db.session(),
                 )
                 if datasource and not security_manager.can_access_datasource(
