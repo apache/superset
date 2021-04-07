@@ -27,6 +27,7 @@ import { render, screen, act } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
 import userEvent from '@testing-library/user-event';
 import * as utils from 'src/utils/common';
+import { hexToRgb } from 'src/utils/colorUtils';
 import ShareSqlLabQuery from 'src/SqlLab/components/ShareSqlLabQuery';
 
 const mockStore = configureStore([thunk]);
@@ -121,14 +122,15 @@ describe('ShareSqlLabQuery', () => {
           remoteId: undefined,
         },
       };
-      await act(async () => {
-        render(<ShareSqlLabQuery {...updatedProps} />, {
-          wrapper: standardProvider,
-        });
+
+      render(<ShareSqlLabQuery {...updatedProps} />, {
+        wrapper: standardProvider,
       });
-      const button = screen.getByRole('button', { name: /copy link/i });
+      const button = await screen.findByRole('button', { name: /copy link/i });
       const style = window.getComputedStyle(button);
-      expect(style.color).toBe('rgb(102, 102, 102)');
+      expect(style.backgroundColor).toBe(
+        hexToRgb(supersetTheme.colors.grayscale.light2),
+      );
     });
   });
 });

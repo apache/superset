@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { mount } from 'enzyme';
 import Header from 'src/dashboard/components/Header';
 import EditableTitle from 'src/components/EditableTitle';
 import FaveStar from 'src/components/FaveStar';
@@ -25,6 +25,7 @@ import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import HeaderActionsDropdown from 'src/dashboard/components/HeaderActionsDropdown';
 import Button from 'src/components/Button';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
+import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 
 describe('Header', () => {
   const props = {
@@ -83,7 +84,11 @@ describe('Header', () => {
   };
 
   function setup(overrideProps) {
-    const wrapper = shallow(<Header {...props} {...overrideProps} />);
+    const wrapper = mount(
+      <ThemeProvider theme={supersetTheme}>
+        <Header {...props} {...overrideProps} />
+      </ThemeProvider>,
+    );
     return wrapper;
   }
 
