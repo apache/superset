@@ -16,16 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as EchartsBoxPlotChartPlugin } from './BoxPlot';
-export { default as EchartsTimeseriesChartPlugin } from './Timeseries';
-export { default as EchartsPieChartPlugin } from './Pie';
-export { default as EchartsGraphChartPlugin } from './Graph';
-export { default as EchartsGaugeChartPlugin } from './Gauge';
+import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import controlPanel from './controlPanel';
+import transformProps from './transformProps';
+import thumbnail from './images/thumbnail.png';
+import buildQuery from './buildQuery';
 
-/**
- * Note: this file exports the default export from EchartsTimeseries.tsx.
- * If you want to export multiple visualization modules, you will need to
- * either add additional plugin folders (similar in structure to ./plugin)
- * OR export multiple instances of `ChartPlugin` extensions in ./plugin/index.ts
- * which in turn load exports from EchartsTimeseries.tsx
- */
+export default class EchartsGaugeChartPlugin extends ChartPlugin {
+  constructor() {
+    super({
+      buildQuery,
+      controlPanel,
+      loadChart: () => import('./EchartsGauge'),
+      metadata: new ChartMetadata({
+        credits: ['https://echarts.apache.org'],
+        name: t('Gauge Chart'),
+        thumbnail,
+      }),
+      transformProps,
+    });
+  }
+}
