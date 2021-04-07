@@ -16,16 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as EchartsBoxPlotChartPlugin } from './BoxPlot';
-export { default as EchartsTimeseriesChartPlugin } from './Timeseries';
-export { default as EchartsPieChartPlugin } from './Pie';
-export { default as EchartsGraphChartPlugin } from './Graph';
-export { default as EchartsGaugeChartPlugin } from './Gauge';
+import React from 'react';
+import { EchartsProps } from '../types';
+import Echart from '../components/Echart';
 
-/**
- * Note: this file exports the default export from EchartsTimeseries.tsx.
- * If you want to export multiple visualization modules, you will need to
- * either add additional plugin folders (similar in structure to ./plugin)
- * OR export multiple instances of `ChartPlugin` extensions in ./plugin/index.ts
- * which in turn load exports from EchartsTimeseries.tsx
- */
+export default function EchartsGauge({ height, width, echartOptions }: EchartsProps) {
+  return <Echart height={height} width={width} echartOptions={echartOptions} />;
+}
