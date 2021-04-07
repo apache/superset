@@ -332,6 +332,7 @@ def common_bootstrap_payload() -> Dict[str, Any]:
     }
 
 
+# pylint: disable=invalid-name
 def get_error_level_from_status_code(status: int) -> ErrorLevel:
     if status < 400:
         return ErrorLevel.INFO
