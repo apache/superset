@@ -16,26 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
-import cx from 'classnames';
-import FormLabel from 'src/components/FormLabel';
+import { getURIDirectory } from '.';
 
-const propTypes = {
-  label: PropTypes.string.isRequired,
-  isSelected: PropTypes.bool.isRequired,
-};
+test('Cases in which the "explore_json" will be returned', () => {
+  ['full', 'json', 'csv', 'query', 'results', 'samples'].forEach(name => {
+    expect(getURIDirectory(name)).toBe('/superset/explore_json/');
+  });
+});
 
-export default function FilterFieldItem({ label, isSelected }) {
-  return (
-    <span
-      className={cx('filter-field-item filter-container', {
-        'is-selected': isSelected,
-      })}
-    >
-      <FormLabel htmlFor={label}>{label}</FormLabel>
-    </span>
-  );
-}
-
-FilterFieldItem.propTypes = propTypes;
+test('Cases in which the "explore" will be returned', () => {
+  expect(getURIDirectory('any-string')).toBe('/superset/explore/');
+  expect(getURIDirectory()).toBe('/superset/explore/');
+});
