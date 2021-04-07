@@ -46,14 +46,6 @@ beforeAll((): void => {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  fetchMock.post(
-    'http://localhost/r/shortner/',
-    { body: 'http://localhost:8088/r/3' },
-    {
-      sendAsJson: false,
-      overwriteRoutes: true,
-    },
-  );
   window.location = {
     href: '',
   } as any;
