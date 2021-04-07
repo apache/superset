@@ -1859,11 +1859,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "common": common_bootstrap_payload(),
         }
 
-        if request.args.get("json") == "true":
-            return json_success(
-                json.dumps(bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser)
-            )
-
         return self.render_template(
             "superset/dashboard.html",
             entry="dashboard",
