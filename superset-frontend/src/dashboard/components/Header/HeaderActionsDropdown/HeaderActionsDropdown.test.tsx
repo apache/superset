@@ -20,6 +20,7 @@ import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
+import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
 import HeaderActionsDropdown from '.';
 
 const mockedProps = {
@@ -27,11 +28,19 @@ const mockedProps = {
   addDangerToast: jest.fn(),
   customCss: '#save-dash-split-button{margin-left: 100px;}',
   dashboardId: 1,
-  dashboardInfo: {},
+  dashboardInfo: {
+    id: 1,
+    dash_edit_perm: true,
+    dash_save_perm: true,
+    userId: 1,
+    metadata: {},
+    common: {
+      conf: {},
+    },
+  },
   dashboardTitle: 'Title',
   editMode: true,
   expandedSlices: {},
-  filters: {},
   forceRefreshAllCharts: jest.fn(),
   hasUnsavedChanges: false,
   isLoading: false,
@@ -53,7 +62,7 @@ const editModeOffProps = {
   editMode: false,
 };
 
-function setup(props: any) {
+function setup(props: HeaderDropdownProps) {
   return (
     <div className="dashboard">
       <HeaderActionsDropdown {...props} />
