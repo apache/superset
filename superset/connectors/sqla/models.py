@@ -773,7 +773,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     def get_query_str_extended(self, query_obj: QueryObjectDict) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
-        logger.info(sql)
         sql = sqlparse.format(sql, reindent=True)
         sql = self.mutate_query_from_config(sql)
         return QueryStringExtended(
@@ -818,6 +817,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         """
         Render sql with template engine (Jinja).
         """
+
         sql = self.sql
         if template_processor:
             try:
@@ -829,7 +829,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         msg=ex.message,
                     )
                 )
-        sql = sqlparse.format(sql, strip_comments=True)
+        sql = sqlparse.format(sql.strip("\t\r\n; "), strip_comments=True)
         if not sql:
             raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
         if len(sqlparse.split(sql)) > 1:

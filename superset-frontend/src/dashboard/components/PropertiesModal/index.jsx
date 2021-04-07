@@ -36,10 +36,10 @@ import FormLabel from 'src/components/FormLabel';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 
 import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
-import { getClientErrorObject } from '../../utils/getClientErrorObject';
-import withToasts from '../../messageToasts/enhancers/withToasts';
-import '../stylesheets/buttons.less';
-import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
+import 'src/dashboard/stylesheets/buttons.less';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 
 const StyledJsonEditor = styled(JsonEditor)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
@@ -143,7 +143,6 @@ class PropertiesModal extends React.PureComponent {
     const jsonMetadataObj = jsonMetadata?.length
       ? JSON.parse(jsonMetadata)
       : {};
-
     if (!colorChoices.includes(value)) {
       Modal.error({
         title: 'Error',
