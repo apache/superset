@@ -39,7 +39,7 @@ const mockedProps = {
     },
   },
   dashboardTitle: 'Title',
-  editMode: true,
+  editMode: false,
   expandedSlices: {},
   forceRefreshAllCharts: jest.fn(),
   hasUnsavedChanges: false,
@@ -49,17 +49,17 @@ const mockedProps = {
   onSave: jest.fn(),
   refreshFrequency: 200,
   setRefreshFrequency: jest.fn(),
-  shouldPersistRefreshFrequency: true,
+  shouldPersistRefreshFrequency: false,
   showPropertiesModal: jest.fn(),
   startPeriodicRender: jest.fn(),
   updateCss: jest.fn(),
-  userCanEdit: true,
-  userCanSave: true,
+  userCanEdit: false,
+  userCanSave: false,
   lastModifiedTime: 0,
 };
-const editModeOffProps = {
+const editModeOnProps = {
   ...mockedProps,
-  editMode: false,
+  editMode: true,
 };
 
 function setup(props: HeaderDropdownProps) {
@@ -99,11 +99,22 @@ test('should open the dropdown', async () => {
   expect(await screen.findByRole('menu')).toBeInTheDocument();
 });
 
-test('should render the menu items in edit mode', async () => {
+test('should render the menu items', async () => {
   render(setup(mockedProps));
   await openDropdown();
-  expect(screen.getAllByRole('menuitem')).toHaveLength(8);
-  expect(screen.getByText('Save as')).toBeInTheDocument();
+  expect(screen.getAllByRole('menuitem')).toHaveLength(6);
+  expect(screen.getByText('Copy dashboard URL')).toBeInTheDocument();
+  expect(screen.getByText('Share dashboard by email')).toBeInTheDocument();
+  expect(screen.getByText('Refresh dashboard')).toBeInTheDocument();
+  expect(screen.getByText('Set auto-refresh interval')).toBeInTheDocument();
+  expect(screen.getByText('Download as image')).toBeInTheDocument();
+  expect(screen.getByText('Toggle fullscreen')).toBeInTheDocument();
+});
+
+test('should render the menu items in edit mode', async () => {
+  render(setup(editModeOnProps));
+  await openDropdown();
+  expect(screen.getAllByRole('menuitem')).toHaveLength(7);
   expect(screen.getByText('Copy dashboard URL')).toBeInTheDocument();
   expect(screen.getByText('Share dashboard by email')).toBeInTheDocument();
   expect(screen.getByText('Refresh dashboard')).toBeInTheDocument();
@@ -113,31 +124,18 @@ test('should render the menu items in edit mode', async () => {
   expect(screen.getByText('Edit CSS')).toBeInTheDocument();
 });
 
-test('should render the menu items when not in edit mode', async () => {
-  render(setup(editModeOffProps));
-  await openDropdown();
-  expect(screen.getAllByRole('menuitem')).toHaveLength(7);
-  expect(screen.getByText('Save as')).toBeInTheDocument();
-  expect(screen.getByText('Copy dashboard URL')).toBeInTheDocument();
-  expect(screen.getByText('Share dashboard by email')).toBeInTheDocument();
-  expect(screen.getByText('Refresh dashboard')).toBeInTheDocument();
-  expect(screen.getByText('Set auto-refresh interval')).toBeInTheDocument();
-  expect(screen.getByText('Download as image')).toBeInTheDocument();
-  expect(screen.getByText('Toggle fullscreen')).toBeInTheDocument();
-});
-
 test('should render the "Save Modal" when user can save', async () => {
-  render(setup(mockedProps));
+  const canSaveProps = {
+    ...mockedProps,
+    userCanSave: true,
+  };
+  render(setup(canSaveProps));
   await openDropdown();
   expect(screen.getByText('Save as')).toBeInTheDocument();
 });
 
 test('should NOT render the "Save Modal" menu item when user cannot save', async () => {
-  const cannotSaveProps = {
-    ...mockedProps,
-    userCanSave: false,
-  };
-  render(setup(cannotSaveProps));
+  render(setup(mockedProps));
   await openDropdown();
   expect(screen.queryByText('Save as')).not.toBeInTheDocument();
 });
@@ -167,7 +165,7 @@ test('should refresh the charts', async () => {
 });
 
 test('should show the properties modal', async () => {
-  render(setup(mockedProps));
+  render(setup(editModeOnProps));
   await openDropdown();
   userEvent.click(screen.getByText('Edit dashboard properties'));
   expect(mockedProps.showPropertiesModal).toHaveBeenCalledTimes(1);
