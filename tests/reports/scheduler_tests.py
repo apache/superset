@@ -68,3 +68,21 @@ def test_scheduler_celery_timeout(execute_mock):
             assert execute_mock.call_args[1]["time_limit"] == 3610
         db.session.delete(report_schedule)
         db.session.commit()
+
+
+@patch("superset.tasks.scheduler.execute.apply_async")
+def test_scheduler_celery_no_timeout(execute_mock):
+    """
+    Reports scheduler: Test scheduler setting celery soft and hard timeout
+    """
+    with app.app_context():
+        app.config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"] = False
+        report_schedule = insert_report_schedule(
+            type=ReportScheduleType.ALERT, name=f"report", crontab=f"0 9 * * *",
+        )
+
+        with freeze_time("2020-01-01T09:00:00Z"):
+            scheduler()
+            assert execute_mock.call_args[1] == {'eta': FakeDatetime(2020, 1, 1, 9, 0)}
+        db.session.delete(report_schedule)
+        db.session.commit()
