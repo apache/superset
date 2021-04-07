@@ -48,11 +48,18 @@ const mockedProps = {
   userCanSave: true,
   lastModifiedTime: 0,
 };
-
 const editModeOffProps = {
   ...mockedProps,
   editMode: false,
 };
+
+function setup(props: any) {
+  return (
+    <div className="dashboard">
+      <HeaderActionsDropdown {...props} />
+    </div>
+  );
+}
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 
@@ -63,28 +70,28 @@ async function openDropdown() {
 }
 
 test('should render', () => {
-  const { container } = render(<HeaderActionsDropdown {...mockedProps} />);
+  const { container } = render(setup(mockedProps));
   expect(container).toBeInTheDocument();
 });
 
 test('should render the dropdown button', () => {
-  render(<HeaderActionsDropdown {...mockedProps} />);
+  render(setup(mockedProps));
   expect(screen.getByRole('button')).toBeInTheDocument();
 });
 
 test('should render the dropdown icon', () => {
-  render(<HeaderActionsDropdown {...mockedProps} />);
+  render(setup(mockedProps));
   expect(screen.getByRole('img', { name: 'more-horiz' })).toBeInTheDocument();
 });
 
 test('should open the dropdown', async () => {
-  render(<HeaderActionsDropdown {...mockedProps} />);
+  render(setup(mockedProps));
   await openDropdown();
   expect(await screen.findByRole('menu')).toBeInTheDocument();
 });
 
 test('should render the menu items in edit mode', async () => {
-  render(<HeaderActionsDropdown {...mockedProps} />);
+  render(setup(mockedProps));
   await openDropdown();
   expect(screen.getAllByRole('menuitem')).toHaveLength(8);
   expect(screen.getByText('Save as')).toBeInTheDocument();
@@ -98,7 +105,7 @@ test('should render the menu items in edit mode', async () => {
 });
 
 test('should render the menu items when not in edit mode', async () => {
-  render(<HeaderActionsDropdown {...editModeOffProps} />);
+  render(setup(editModeOffProps));
   await openDropdown();
   expect(screen.getAllByRole('menuitem')).toHaveLength(7);
   expect(screen.getByText('Save as')).toBeInTheDocument();
@@ -111,7 +118,7 @@ test('should render the menu items when not in edit mode', async () => {
 });
 
 test('should render the "Save Modal" when user can save', async () => {
-  render(<HeaderActionsDropdown {...mockedProps} />);
+  render(setup(mockedProps));
   await openDropdown();
   expect(screen.getByText('Save as')).toBeInTheDocument();
 });
@@ -121,7 +128,7 @@ test('should NOT render the "Save Modal" menu item when user cannot save', async
     ...mockedProps,
     userCanSave: false,
   };
-  render(<HeaderActionsDropdown {...cannotSaveProps} />);
+  render(setup(cannotSaveProps));
   await openDropdown();
   expect(screen.queryByText('Save as')).not.toBeInTheDocument();
 });
@@ -131,7 +138,7 @@ test('should render the "Refresh dashboard" menu item as disabled when loading',
     ...mockedProps,
     isLoading: true,
   };
-  render(<HeaderActionsDropdown {...loadingProps} />);
+  render(setup(loadingProps));
   await openDropdown();
   expect(screen.getByText('Refresh dashboard')).toHaveClass(
     'ant-dropdown-menu-item-disabled',
@@ -139,23 +146,19 @@ test('should render the "Refresh dashboard" menu item as disabled when loading',
 });
 
 test('should render with custom css', () => {
-  const loadingProps = {
-    ...mockedProps,
-    isLoading: true,
-  };
-  render(<HeaderActionsDropdown {...loadingProps} />);
+  render(setup(mockedProps));
   expect(screen.getByRole('button')).toHaveStyle('margin-left: 100px');
 });
 
 test('should refresh the charts', async () => {
-  render(<HeaderActionsDropdown {...mockedProps} />);
+  render(setup(mockedProps));
   await openDropdown();
   userEvent.click(screen.getByText('Refresh dashboard'));
   expect(mockedProps.forceRefreshAllCharts).toHaveBeenCalledTimes(1);
 });
 
 test('should show the properties modal', async () => {
-  render(<HeaderActionsDropdown {...mockedProps} />);
+  render(setup(mockedProps));
   await openDropdown();
   userEvent.click(screen.getByText('Edit dashboard properties'));
   expect(mockedProps.showPropertiesModal).toHaveBeenCalledTimes(1);
