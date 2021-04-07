@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
@@ -28,6 +28,7 @@ export { default as __hack__ } from './types';
 export * from './types';
 
 const metadata = new ChartMetadata({
+  behaviors: [Behavior.CROSS_FILTER],
   canBeAnnotationTypes: ['EVENT', 'INTERVAL'],
   description: '',
   name: t('Table'),
