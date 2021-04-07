@@ -78,7 +78,12 @@ def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
     """
 
     def wraps(self: "BaseSupersetModelRestApi", *args: Any, **kwargs: Any) -> Response:
-        duration, response = time_function(f, self, *args, **kwargs)
+        try:
+            duration, response = time_function(f, self, *args, **kwargs)
+        except Exception as ex:
+            self.incr_stats("error", f.__name__)
+            raise ex
+
         self.send_stats_metrics(response, f.__name__, duration)
         return response
 

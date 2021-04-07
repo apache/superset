@@ -134,7 +134,7 @@ def json_errors_response(
     return Response(
         json.dumps(payload, default=utils.json_iso_dttm_ser, ignore_nan=True),
         status=status,
-        mimetype="application/json",
+        mimetype="application/json; charset=utf-8",
     )
 
 
@@ -370,21 +370,6 @@ def show_http_exception(ex: HTTPException) -> FlaskResponse:
     )
 
 
-@superset_app.errorhandler(Exception)
-def show_unexpected_exception(ex: Exception) -> FlaskResponse:
-    logger.warning(ex)
-    return json_errors_response(
-        errors=[
-            SupersetError(
-                message=utils.error_msg_from_exception(ex),
-                error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
-                level=ErrorLevel.ERROR,
-                extra={},
-            ),
-        ],
-    )
-
-
 # Temporary handler for CommandException; if an API raises a
 # CommandException it should be fixed to map it to SupersetErrorException
 # or SupersetErrorsException, with a specific status code and error type
@@ -399,6 +384,23 @@ def show_command_errors(ex: CommandException) -> FlaskResponse:
                 error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
                 level=get_error_level_from_status_code(ex.status),
                 extra=extra,
+            ),
+        ],
+        status=ex.status,
+    )
+
+
+# Catch-all, to ensure all errors from the backend conform to SIP-40
+@superset_app.errorhandler(Exception)
+def show_unexpected_exception(ex: Exception) -> FlaskResponse:
+    logger.warning(ex)
+    return json_errors_response(
+        errors=[
+            SupersetError(
+                message=utils.error_msg_from_exception(ex),
+                error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={},
             ),
         ],
     )

@@ -820,7 +820,21 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "message": "Could not load database driver: BaseEngineSpec",
+            "errors": [
+                {
+                    "message": "Could not load database driver: BaseEngineSpec",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": "Issue 1010 - Superset encountered an error while running a command.",
+                            }
+                        ]
+                    },
+                }
+            ]
         }
         self.assertEqual(response, expected_response)
 
@@ -835,7 +849,21 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "message": "Could not load database driver: MssqlEngineSpec",
+            "errors": [
+                {
+                    "message": "Could not load database driver: MssqlEngineSpec",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": "Issue 1010 - Superset encountered an error while running a command.",
+                            }
+                        ]
+                    },
+                }
+            ]
         }
         self.assertEqual(response, expected_response)
 
