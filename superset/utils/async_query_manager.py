@@ -61,6 +61,8 @@ def increment_id(redis_id: str) -> str:
 
 
 class AsyncQueryManager:
+    # pylint: disable=too-many-instance-attributes
+
     MAX_EVENT_COUNT = 100
     STATUS_PENDING = "pending"
     STATUS_RUNNING = "running"
