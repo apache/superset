@@ -73,7 +73,7 @@ function setup(props: HeaderDropdownProps) {
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 
 async function openDropdown() {
-  const btn = screen.getByRole('button');
+  const btn = screen.getByRole('img', { name: 'more-horiz' });
   userEvent.click(btn);
   expect(await screen.findByRole('menu')).toBeInTheDocument();
 }
