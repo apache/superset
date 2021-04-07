@@ -62,13 +62,13 @@ INVALID_HOSTNAME_REGEX = re.compile(
     "nodename nor servname provided, or not known"
 )
 CONNECTION_PORT_CLOSED_REGEX = re.compile(
-    r"could not connect to server: Connection refused\n\tIs the server "
-    r'running on host "(?P<hostname>.*?)" (\(.*?\) )?and accepting\n\tTCP/IP '
+    r"could not connect to server: Connection refused\s+Is the server "
+    r'running on host "(?P<hostname>.*?)" (\(.*?\) )?and accepting\s+TCP/IP '
     r"connections on port (?P<port>.*?)\?"
 )
 CONNECTION_HOST_DOWN_REGEX = re.compile(
-    r"could not connect to server: Host is down\n\tIs the server running on "
-    r'host "(?P<hostname>.*?)" (\(.*?\) )?and accepting\n\tTCP/IP '
+    r"could not connect to server: (?P<reason>.*?)\s+Is the server running on "
+    r'host "(?P<hostname>.*?)" (\(.*?\) )?and accepting\s+TCP/IP '
     r"connections on port (?P<port>.*?)\?"
 )
 
