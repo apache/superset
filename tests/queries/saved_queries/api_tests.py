@@ -790,8 +790,6 @@ class TestSavedQueryApi(SupersetTestCase):
         )
         assert database.database_name == "imported_database"
 
-        assert len(database.tables) == 1
-
         saved_query = (
             db.session.query(SavedQuery)
             .filter_by(uuid=saved_queries_config["uuid"])

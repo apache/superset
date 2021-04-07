@@ -140,6 +140,7 @@ class TestImportSavedQueriesCommand(SupersetTestCase):
             .filter_by(uuid=saved_queries_config["uuid"])
             .one()
         )
+
         assert saved_query.schema == "public"
 
         database = (
@@ -161,11 +162,9 @@ class TestImportSavedQueriesCommand(SupersetTestCase):
         command.run()
         command.run()
         database = (
-            db.session.query(SavedQuery).filter_by(uuid=database_config["uuid"]).one()
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
         )
-        saved_query = (
-            db.session.query(SavedQuery).filter_by(datasource_id=database.id).all()
-        )
+        saved_query = db.session.query(SavedQuery).filter_by(db_id=database.id).all()
         assert len(saved_query) == 1
 
         db.session.delete(saved_query[0])
@@ -195,14 +194,14 @@ class TestImportSavedQueriesCommand(SupersetTestCase):
         command = ImportSavedQueriesCommand(contents)
         with pytest.raises(IncorrectVersionError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Must be equal to 1.0.0"
+        assert str(excinfo.value) == "Must be equal to 1.0.0."
 
         # type should be a SavedQuery
         contents["metadata.yaml"] = yaml.safe_dump(database_metadata_config)
         command = ImportSavedQueriesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing saved query."
+        assert str(excinfo.value) == "Error importing saved_queries"
         assert excinfo.value.normalized_messages() == {
             "metadata.yaml": {"type": ["Must be equal to SavedQuery."]}
         }
@@ -215,7 +214,7 @@ class TestImportSavedQueriesCommand(SupersetTestCase):
         command = ImportSavedQueriesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing saved query."
+        assert str(excinfo.value) == "Error importing saved_queries"
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "database_name": ["Missing data for required field."],

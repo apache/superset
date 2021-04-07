@@ -23,8 +23,7 @@ from sqlalchemy.orm import Session
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.databases.commands.importers.v1.utils import import_database
-from superset.datasets.commands.importers.v1.utils import import_dataset
-from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.queries.saved_queries.commands.exceptions import SavedQueryImportError
 from superset.queries.saved_queries.commands.importers.v1.utils import (
     import_saved_query,
@@ -40,7 +39,7 @@ class ImportSavedQueriesCommand(ImportModelsCommand):
     model_name = "saved_queries"
     prefix = "queries/"
     schemas: Dict[str, Schema] = {
-        "datasets/": ImportV1DatasetSchema(),
+        "databases/": ImportV1DatabaseSchema(),
         "queries/": ImportV1SavedQuerySchema(),
     }
     import_error = SavedQueryImportError

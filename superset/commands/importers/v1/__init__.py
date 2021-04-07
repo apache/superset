@@ -144,4 +144,5 @@ class ImportModelsCommand(BaseCommand):
         if exceptions:
             exception = CommandInvalidError(f"Error importing {self.model_name}")
             exception.add_list(exceptions)
+            print(exceptions)
             raise exception
