@@ -22,6 +22,7 @@ from typing import Any, Callable, cast, List, Optional, Set, Tuple, TYPE_CHECKIN
 
 from flask import current_app, g
 from flask_appbuilder import Model
+from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
     assoc_permissionview_role,
@@ -60,7 +61,7 @@ if TYPE_CHECKING:
     from superset.models.sql_lab import Query
     from superset.sql_parse import Table
     from superset.viz import BaseViz
-
+    from superset.models.slice import Slice
 
 logger = logging.getLogger(__name__)
 
@@ -995,7 +996,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             assert datasource
 
             if not (
-                self.can_access_schema(datasource)
+                self.can_access_based_on_dashboard(datasource)
+                or self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
             ):
                 raise SupersetSecurityException(
@@ -1125,3 +1127,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             if not can_access:
                 raise DashboardAccessDeniedError()
+
+    # pylint: disable=no-self-use
+    def can_access_based_on_dashboard(self, datasource: "BaseDatasource"):
+        from superset import db
+        from superset.dashboards.filters import DashboardFilter
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.slice import Slice
+        from superset.models.dashboard import Dashboard
+
+        query = (
+            db.session.query(SqlaTable)
+            .join(Slice.table)
+            .filter(SqlaTable.id == datasource.id)
+        )
+
+        query = DashboardFilter("id", SQLAInterface(Dashboard, db.session)).apply(
+            query, None
+        )
+
+        exists = db.session.query(query.exists()).scalar()
+        return exists
