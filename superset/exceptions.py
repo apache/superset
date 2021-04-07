@@ -54,6 +54,14 @@ class SupersetErrorException(SupersetException):
         )
 
 
+class SupersetErrorsException(SupersetException):
+    """Exceptions with multiple SupersetErrorType associated with them"""
+
+    def __init__(self, errors: List[SupersetError]) -> None:
+        super().__init__(str(errors))
+        self.errors = errors
+
+
 class SupersetTimeoutException(SupersetErrorException):
     status = 408
 
@@ -97,12 +105,8 @@ class SupersetSecurityException(SupersetException):
         self.payload = payload
 
 
-class SupersetVizException(SupersetException):
+class SupersetVizException(SupersetErrorsException):
     status = 400
-
-    def __init__(self, errors: List[SupersetError]) -> None:
-        super().__init__(str(errors))
-        self.errors = errors
 
 
 class NoDataException(SupersetException):
