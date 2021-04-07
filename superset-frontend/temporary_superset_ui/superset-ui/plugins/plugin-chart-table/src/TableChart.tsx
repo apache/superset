@@ -161,12 +161,50 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     showCellBars = true,
     emitFilter = false,
     sortDesc = false,
-    onChangeFilter,
-    filters: initialFilters,
+    filters: initialFilters = {},
     sticky = true, // whether to use sticky header
   } = props;
 
   const [filters, setFilters] = useState(initialFilters);
+
+  const handleChange = useCallback(
+    (filters: { [x: string]: DataRecordValue[] }) => {
+      if (!emitFilter) {
+        return;
+      }
+
+      const groupBy = Object.keys(filters);
+      const groupByValues = Object.values(filters);
+      setDataMask({
+        crossFilters: {
+          extraFormData: {
+            append_form_data: {
+              filters:
+                groupBy.length === 0
+                  ? []
+                  : groupBy.map(col => {
+                      const val = filters?.[col];
+                      if (val === null || val === undefined)
+                        return {
+                          col,
+                          op: 'IS NULL',
+                        };
+                      return {
+                        col,
+                        op: 'IN',
+                        val: val as (string | number | boolean)[],
+                      };
+                    }),
+            },
+          },
+          currentState: {
+            value: groupByValues.length ? groupByValues : null,
+          },
+        },
+      });
+    },
+    [emitFilter, setDataMask],
+  );
 
   // only take relevant page size options
   const pageSizeOptions = useMemo(() => {
@@ -204,12 +242,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       } else {
         updatedFilters[key] = [...(filters?.[key] || []), val];
       }
-      setFilters(updatedFilters);
-      if (onChangeFilter) {
-        onChangeFilter(updatedFilters);
+      if (Array.isArray(updatedFilters[key]) && updatedFilters[key].length === 0) {
+        delete updatedFilters[key];
       }
+      setFilters(updatedFilters);
+      handleChange(updatedFilters);
     },
-    [filters, isActiveFilterValue, onChangeFilter],
+    [filters, handleChange, isActiveFilterValue],
   );
 
   const getColumnConfigs = useCallback(

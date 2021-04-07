@@ -241,7 +241,7 @@ const transformProps = (chartProps: TableChartProps): TableChartTransformedProps
       ? serverPageLength
       : getPageSize(pageLength, data.length, columns.length),
     filters,
-    emitFilter: tableFilter === true,
+    emitFilter: tableFilter,
     onChangeFilter,
   };
 };

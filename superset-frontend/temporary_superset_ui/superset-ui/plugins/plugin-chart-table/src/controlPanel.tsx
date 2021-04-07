@@ -340,18 +340,22 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [
-          {
-            name: 'table_filter',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Allow cross filter'),
-              renderTrigger: true,
-              default: false,
-              description: t('Whether to apply filter to dashboards when table cells are clicked'),
-            },
-          },
-        ],
+        isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)
+          ? [
+              {
+                name: 'table_filter',
+                config: {
+                  type: 'CheckboxControl',
+                  label: t('Enable emitting filters'),
+                  renderTrigger: true,
+                  default: false,
+                  description: t(
+                    'Whether to apply filter to dashboards when table cells are clicked',
+                  ),
+                },
+              },
+            ]
+          : [],
         [
           {
             name: 'column_config',

@@ -48,11 +48,11 @@ export default styled.div`
     cursor: pointer;
   }
   td.dt-is-filter:hover {
-    background-color: linen;
+    background-color: ${({ theme: { colors } }) => colors.secondary.light4};
   }
   td.dt-is-active-filter,
   td.dt-is-active-filter:hover {
-    background-color: lightcyan;
+    background-color: ${({ theme: { colors } }) => colors.secondary.light3};
   }
 
   .dt-global-filter {
