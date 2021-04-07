@@ -25,7 +25,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
-import DashboardRoute from './components/DashboardPage';
+import DashboardPage from './containers/DashboardPage';
 import { theme } from '../preamble';
 
 setupApp();
@@ -38,7 +38,7 @@ const App = ({ store }) => {
       <DndProvider backend={HTML5Backend}>
         <ThemeProvider theme={theme}>
           <DynamicPluginProvider>
-            <DashboardRoute
+            <DashboardPage
               store={store}
               dashboardIdOrSlug={dashboardIdOrSlug}
             />
