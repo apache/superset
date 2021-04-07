@@ -23,9 +23,10 @@ import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { render, screen, cleanup } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import { act } from 'react-dom/test-utils';
-import userEvent from '@testing-library/user-event';
+import * as featureFlags from 'src/featureFlags';
 import SavedQueryList from 'src/views/CRUD/data/savedquery/SavedQueryList';
 import SubMenu from 'src/components/Menu/SubMenu';
 import ListView from 'src/components/ListView';
@@ -198,14 +199,18 @@ describe('RTL', () => {
     return mounted;
   }
 
+  let isFeatureEnabledMock;
   beforeEach(async () => {
+    isFeatureEnabledMock = jest
+      .spyOn(featureFlags, 'isFeatureEnabled')
+      .mockImplementation(() => true);
     await renderAndWait();
   });
 
   afterEach(() => {
     cleanup();
+    isFeatureEnabledMock.mockRestore();
   });
-
   it('renders an export button in the bulk actions', () => {
     // Grab and click the "Bulk Select" button to expose checkboxes
     const bulkSelectButton = screen.getByRole('button', {
