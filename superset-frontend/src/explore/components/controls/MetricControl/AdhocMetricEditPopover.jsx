@@ -318,7 +318,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
         option.filterBy.toLowerCase().indexOf(input.toLowerCase()) >= 0,
     };
 
-    if (this.props.datasourceType === 'druid') {
+    if (this.props.datasourceType === 'druid' && aggregateSelectProps.options) {
       aggregateSelectProps.options = aggregateSelectProps.options.filter(
         aggregate => aggregate !== 'AVG',
       );
