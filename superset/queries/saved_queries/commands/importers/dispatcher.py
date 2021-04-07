@@ -30,6 +30,8 @@ logger = logging.getLogger(__name__)
 command_versions = [
     v1.ImportSavedQueriesCommand,
 ]
+
+
 class ImportSavedQueriesCommand(BaseCommand):
     """
     Import Saved Queries
@@ -54,7 +56,7 @@ class ImportSavedQueriesCommand(BaseCommand):
                 return
             except IncorrectVersionError:
                 logger.debug("File not handled by command, skipping")
-            except(CommandInvalidError, ValidationError) as exc:
+            except (CommandInvalidError, ValidationError) as exc:
                 # found right version, but file is invalid
                 logger.exception("Error running import command")
                 raise exc

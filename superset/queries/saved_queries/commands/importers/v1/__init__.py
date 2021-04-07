@@ -20,22 +20,25 @@ from typing import Any, Dict, Set
 from marshmallow import Schema
 from sqlalchemy.orm import Session
 
-from superset.queries.saved_queries.commands.exceptions import SavedQueryImportError
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.databases.commands.importers.v1.utils import import_database
 from superset.datasets.commands.importers.v1.utils import import_dataset
 from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.queries.saved_queries.commands.exceptions import SavedQueryImportError
+from superset.queries.saved_queries.commands.importers.v1.utils import (
+    import_saved_query,
+)
 from superset.queries.saved_queries.dao import SavedQueryDAO
-from superset.queries.saved_queries.commands.importers.v1.utils import import_saved_query
 from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema
+
 
 class ImportSavedQueriesCommand(ImportModelsCommand):
     """Import Saved Queries"""
 
     dao = SavedQueryDAO
-    model_name= "saved_queries"
-    prefix ="saved_queries/"
+    model_name = "saved_queries"
+    prefix = "queries/"
     schemas: Dict[str, Schema] = {
         "datasets/": ImportV1DatasetSchema(),
         "queries/": ImportV1SavedQuerySchema(),
@@ -59,17 +62,11 @@ class ImportSavedQueriesCommand(ImportModelsCommand):
                 database = import_database(session, config, overwrite=False)
                 database_ids[str(database.uuid)] = database.id
 
-
         # import saved queries with the correct parent ref
         for file_name, config in configs.items():
-            if file_name.startswith("queries/") and config["database_uuid"] in database:
-                # update datasource id, type, and name
-                database = database[config["dataset_uuid"]]
-                config.update(
-                    {
-                        "datasource_id": database.id,
-                        "datasource_name": database.table_name,
-                    }
-                )
-                config["params"].update({"datasource": database.uid})
+            if (
+                file_name.startswith("queries/")
+                and config["database_uuid"] in database_ids
+            ):
+                config["db_id"] = database_ids[config["database_uuid"]]
                 import_saved_query(session, config, overwrite=overwrite)

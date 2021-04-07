@@ -761,12 +761,14 @@ class TestSavedQueryApi(SupersetTestCase):
                 "saved_query_export/databases/imported_database.yaml", "w"
             ) as fp:
                 fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("saved_query_export/queries/imported_database/public/imported_saved_query.yaml", "w") as fp:
+            with bundle.open(
+                "saved_query_export/queries/imported_database/public/imported_saved_query.yaml",
+                "w",
+            ) as fp:
                 fp.write(yaml.safe_dump(saved_queries_config).encode())
         buf.seek(0)
         return buf
 
-    @pytest.mark.usefixtures("create_saved_queries")
     def test_import_saved_queries(self):
         """
         Saved Query API: Test import
@@ -791,8 +793,8 @@ class TestSavedQueryApi(SupersetTestCase):
         assert len(database.tables) == 1
 
         saved_query = (
-            db.session
-            .query(SavedQuery)
-            .filter_by(uuid=saved_queries_config["uuid"]).one()
+            db.session.query(SavedQuery)
+            .filter_by(uuid=saved_queries_config["uuid"])
+            .one()
         )
         assert saved_query.database == database

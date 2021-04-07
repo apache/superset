@@ -21,15 +21,15 @@ import pytest
 import yaml
 
 from superset import db, security_manager
-from superset.queries.saved_queries.commands.importers.v1 import (
-    ImportSavedQueriesCommand
-)
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
-from superset.models.sql_lab import SavedQuery
 from superset.models.core import Database
+from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.commands.exceptions import SavedQueryNotFoundError
 from superset.queries.saved_queries.commands.export import ExportSavedQueriesCommand
+from superset.queries.saved_queries.commands.importers.v1 import (
+    ImportSavedQueriesCommand,
+)
 from superset.utils.core import get_example_database
 from tests.base_tests import SupersetTestCase
 from tests.fixtures.importexport import (
@@ -38,6 +38,7 @@ from tests.fixtures.importexport import (
     saved_queries_config,
     saved_queries_metadata_config,
 )
+
 
 class TestExportSavedQueriesCommand(SupersetTestCase):
     def setUp(self):
@@ -120,33 +121,26 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
             "version",
             "database_uuid",
         ]
+
+
 class TestImportSavedQueriesCommand(SupersetTestCase):
     def test_import_v1_saved_queries(self):
         """Test that we can import a saved query"""
         contents = {
             "metadata.yaml": yaml.safe_dump(saved_queries_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
-            "queries/imported_query.yaml": yaml.safe_dump(saved_queries_config)
+            "queries/imported_query.yaml": yaml.safe_dump(saved_queries_config),
         }
 
         command = ImportSavedQueriesCommand(contents)
         command.run()
 
-        saved_query = db.session.query(SavedQuery).filter_by(
-            uuid=saved_queries_config["uuid"]
-        ).one()
-        assert saved_query.schema == "public"
-        assert saved_query.sql == (
-            """
-            -- Note: Unless you save your query, 
-            these tabs will NOT persist if you clear
-            your cookies or change browsers.
-
-            SELECT * from birth_names
-            """
+        saved_query = (
+            db.session.query(SavedQuery)
+            .filter_by(uuid=saved_queries_config["uuid"])
+            .one()
         )
-        assert saved_query.uuid == "05b679b5-8eaf-452c-b874-a7a774cfa4e9"
-        assert saved_query.database_uuid == "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89"
+        assert saved_query.schema == "public"
 
         database = (
             db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
@@ -155,12 +149,13 @@ class TestImportSavedQueriesCommand(SupersetTestCase):
         db.session.delete(saved_query)
         db.session.delete(database)
         db.session.commit()
+
     def test_import_v1_saved_queries_multiple(self):
         """Test that a saved query can be imported multiple times"""
         contents = {
             "metadata.yaml": yaml.safe_dump(saved_queries_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
-            "queries/imported_query.yaml": yaml.safe_dump(saved_queries_config)
+            "queries/imported_query.yaml": yaml.safe_dump(saved_queries_config),
         }
         command = ImportSavedQueriesCommand(contents, overwrite=True)
         command.run()
@@ -168,27 +163,28 @@ class TestImportSavedQueriesCommand(SupersetTestCase):
         database = (
             db.session.query(SavedQuery).filter_by(uuid=database_config["uuid"]).one()
         )
-        saved_query = db.session.query(SavedQuery).filter_by(datasource_id=database.id).all()
+        saved_query = (
+            db.session.query(SavedQuery).filter_by(datasource_id=database.id).all()
+        )
         assert len(saved_query) == 1
 
         db.session.delete(saved_query[0])
         db.session.delete(database)
         db.session.commit()
-        
+
     def test_import_v1_saved_queries_validation(self):
-        """Test different validations applied when importing a chart"""
+        """Test different validations applied when importing a saved query"""
         # metadata.yaml must be present
         contents = {
-            "metadata.yaml": yaml.safe_dump(saved_queries_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
-            "queries/imported_query.yaml": yaml.safe_dump(saved_queries_config)
+            "queries/imported_query.yaml": yaml.safe_dump(saved_queries_config),
         }
         command = ImportSavedQueriesCommand(contents)
         with pytest.raises(IncorrectVersionError) as excinfo:
             command.run()
         assert str(excinfo.value) == "Missing metadata.yaml"
 
-        #version should be 1.0.0
+        # version should be 1.0.0
         contents["metadata.yaml"] = yaml.safe_dump(
             {
                 "version": "2.0.0",
@@ -201,7 +197,7 @@ class TestImportSavedQueriesCommand(SupersetTestCase):
             command.run()
         assert str(excinfo.value) == "Must be equal to 1.0.0"
 
-        #type should be a SavedQuery
+        # type should be a SavedQuery
         contents["metadata.yaml"] = yaml.safe_dump(database_metadata_config)
         command = ImportSavedQueriesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
@@ -211,7 +207,7 @@ class TestImportSavedQueriesCommand(SupersetTestCase):
             "metadata.yaml": {"type": ["Must be equal to SavedQuery."]}
         }
 
-        # must also validate databases 
+        # must also validate databases
         broken_config = database_config.copy()
         del broken_config["database_name"]
         contents["metadata.yaml"] = yaml.safe_dump(saved_queries_metadata_config)
@@ -219,10 +215,9 @@ class TestImportSavedQueriesCommand(SupersetTestCase):
         command = ImportSavedQueriesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) = "Error importing saved query."
+        assert str(excinfo.value) == "Error importing saved query."
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "database_name": ["Missing data for required field."],
             }
         }
-    

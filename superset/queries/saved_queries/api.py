@@ -21,14 +21,16 @@ from io import BytesIO
 from typing import Any
 from zipfile import ZipFile
 
-from flask import g, Response, send_file, request
+from flask import g, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
-from marshmallow import ValidationError
 
+from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.filters import DatabaseFilter
+from superset.extensions import event_logger
 from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.commands.bulk_delete import (
     BulkDeleteSavedQueryCommand,
@@ -36,12 +38,11 @@ from superset.queries.saved_queries.commands.bulk_delete import (
 from superset.queries.saved_queries.commands.exceptions import (
     SavedQueryBulkDeleteFailedError,
     SavedQueryNotFoundError,
-    SavedQueryImportError,
-    SavedQueryImportError,
-    SavedQueryInvalidError,
 )
 from superset.queries.saved_queries.commands.export import ExportSavedQueriesCommand
-from superset.queries.saved_queries.commands.importers.dispatcher import ImportSavedQueriesCommand
+from superset.queries.saved_queries.commands.importers.dispatcher import (
+    ImportSavedQueriesCommand,
+)
 from superset.queries.saved_queries.filters import (
     SavedQueryAllTextFilter,
     SavedQueryFavoriteFilter,
@@ -52,9 +53,6 @@ from superset.queries.saved_queries.schemas import (
     get_export_ids_schema,
     openapi_spec_methods_override,
 )
-from superset.commands.exceptions import CommandInvalidError
-from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.extensions import event_logger
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -262,6 +260,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             attachment_filename=filename,
         )
+
     @expose("/import/", methods=["POST"])
     @protect()
     @safe
@@ -271,7 +270,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def import_(self) -> Response:
-        """Import Saved Queries with associated datasets and databases
+        """Import Saved Queries with associated databases
         ---
         post:
           requestBody:
@@ -289,7 +288,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
                       description: JSON map of passwords for each file
                       type: string
                     overwrite:
-                      description: overwrite existing databases?
+                      description: overwrite existing saved queries?
                       type: bool
           responses:
             200:

@@ -346,7 +346,7 @@ dashboard_metadata_config: Dict[str, Any] = {
 saved_queries_metadata_config: Dict[str, Any] = {
     "version": "1.0.0",
     "type": "SavedQuery",
-    "timestamp": "2021-03-30T20:37:54.791187+00:00"
+    "timestamp": "2021-03-30T20:37:54.791187+00:00",
 }
 database_config: Dict[str, Any] = {
     "allow_csv_upload": True,
@@ -510,5 +510,5 @@ saved_queries_config = {
     "sql": "-- Note: Unless you save your query, these tabs will NOT persist if you clear\nyour cookies or change browsers.\n\n\nSELECT * from birth_names",
     "uuid": "05b679b5-8eaf-452c-b874-a7a774cfa4e9",
     "version": "1.0.0",
-    "database_uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89"
+    "database_uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
 }

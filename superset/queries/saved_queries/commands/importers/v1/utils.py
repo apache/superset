@@ -21,10 +21,11 @@ from sqlalchemy.orm import Session
 
 from superset.models.sql_lab import SavedQuery
 
+
 def import_saved_query(
     session: Session, config: Dict[str, Any], overwrite: bool = False
 ) -> SavedQuery:
-    existing = session.query(SavedQuery).filter_by(uuid= config["uuid"]).first()
+    existing = session.query(SavedQuery).filter_by(uuid=config["uuid"]).first()
     if existing:
         if not overwrite:
             return existing
