@@ -19,8 +19,8 @@
 import React from 'react';
 import cx from 'classnames';
 
-import ChartIcon from '../../../components/ChartIcon';
-import { CHART_TYPE } from '../../util/componentTypes';
+import ChartIcon from 'src/components/ChartIcon';
+import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 
 function traverse({ currentNode = {}, selectedChartId }) {
   if (!currentNode) {

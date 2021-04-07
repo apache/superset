@@ -30,6 +30,10 @@ const ProgressBar = styled(({ striped, ...props }: ProgressBarProps) => (
   <AntdProgress {...props} />
 ))`
   line-height: 0;
+  position: static;
+  .ant-progress-inner {
+    position: static;
+  }
   .ant-progress-outer {
     ${({ percent }) => !percent && `display: none;`}
   }
@@ -37,6 +41,7 @@ const ProgressBar = styled(({ striped, ...props }: ProgressBarProps) => (
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
   }
   .ant-progress-bg {
+    position: static;
     ${({ striped }) =>
       striped &&
       `

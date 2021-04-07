@@ -118,22 +118,6 @@ describe('TableElement', () => {
       'active',
     );
   });
-  it('calls the collapseTable action', () => {
-    const wrapper = mount(
-      <Provider store={store}>
-        <TableElement {...mockedProps} />
-      </Provider>,
-      {
-        wrappingComponent: ThemeProvider,
-        wrappingComponentProps: {
-          theme: supersetTheme,
-        },
-      },
-    );
-    expect(mockedActions.collapseTable.called).toBe(false);
-    wrapper.find('[data-test="collapse"]').hostNodes().simulate('click');
-    expect(mockedActions.collapseTable.called).toBe(true);
-  });
   it('removes the table', () => {
     const wrapper = mount(
       <Provider store={store}>
