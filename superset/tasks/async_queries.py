@@ -62,7 +62,9 @@ def load_chart_data_into_cache(
                 job_metadata, async_query_manager.STATUS_DONE, result_url=result_url,
             )
         except SoftTimeLimitExceeded as exc:
-            logger.error("A timeout occurred while loading chart data, error: %s", exc)
+            logger.warning(
+                "A timeout occurred while loading chart data, error: %s", exc
+            )
             raise exc
         except Exception as exc:
             # TODO: QueryContext should support SIP-40 style errors
@@ -109,7 +111,9 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
                 job_metadata, async_query_manager.STATUS_DONE, result_url=result_url,
             )
         except SoftTimeLimitExceeded as ex:
-            logger.error("A timeout occurred while loading explore json, error: %s", ex)
+            logger.warning(
+                "A timeout occurred while loading explore json, error: %s", ex
+            )
             raise ex
         except Exception as exc:
             if isinstance(exc, SupersetVizException):

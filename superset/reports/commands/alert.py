@@ -156,7 +156,7 @@ class AlertCommand(BaseCommand):
             )
             return df
         except SoftTimeLimitExceeded as ex:
-            logger.error("A timeout occurred while executing the alert query: %s", ex)
+            logger.warning("A timeout occurred while executing the alert query: %s", ex)
             raise AlertQueryTimeout()
         except Exception as ex:
             raise AlertQueryError(message=str(ex))

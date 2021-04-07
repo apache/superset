@@ -160,7 +160,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 log_params=log_params,
             )
         except SoftTimeLimitExceeded as ex:
-            logger.error("Query %d: Time limit exceeded", query_id)
+            logger.warning("Query %d: Time limit exceeded", query_id)
             logger.debug("Query %d: %s", query_id, ex)
             raise SqlLabTimeoutException(
                 _(

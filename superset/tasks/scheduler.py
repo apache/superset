@@ -93,6 +93,6 @@ def prune_log() -> None:
     try:
         AsyncPruneReportScheduleLogCommand().run()
     except SoftTimeLimitExceeded as ex:
-        logger.error("A timeout occurred while pruning report schedule logs: %s", ex)
+        logger.warning("A timeout occurred while pruning report schedule logs: %s", ex)
     except CommandException as ex:
         logger.error("An exception occurred while pruning report schedule logs: %s", ex)
