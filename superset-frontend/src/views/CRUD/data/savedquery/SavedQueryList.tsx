@@ -315,15 +315,13 @@ function SavedQueryList({
               icon: 'Binoculars',
               onClick: handlePreview,
             },
-            canEdit
-              ? {
-                  label: 'edit-action',
-                  tooltip: t('Edit query'),
-                  placement: 'bottom',
-                  icon: 'Edit',
-                  onClick: handleEdit,
-                }
-              : null,
+            canEdit && {
+              label: 'edit-action',
+              tooltip: t('Edit query'),
+              placement: 'bottom',
+              icon: 'Edit',
+              onClick: handleEdit,
+            },
             {
               label: 'copy-action',
               tooltip: t('Copy query URL'),
@@ -331,24 +329,20 @@ function SavedQueryList({
               icon: 'Copy',
               onClick: handleCopy,
             },
-            canExport
-              ? {
-                  label: 'export-action',
-                  tooltip: t('Export query'),
-                  placement: 'bottom',
-                  icon: 'Share',
-                  onClick: handleExport,
-                }
-              : null,
-            canDelete
-              ? {
-                  label: 'delete-action',
-                  tooltip: t('Delete query'),
-                  placement: 'bottom',
-                  icon: 'Trash',
-                  onClick: handleDelete,
-                }
-              : null,
+            canExport && {
+              label: 'export-action',
+              tooltip: t('Export query'),
+              placement: 'bottom',
+              icon: 'Share',
+              onClick: handleExport,
+            },
+            canDelete && {
+              label: 'delete-action',
+              tooltip: t('Delete query'),
+              placement: 'bottom',
+              icon: 'Trash',
+              onClick: handleDelete,
+            },
           ].filter(item => !!item);
 
           return <ActionsBar actions={actions as ActionProps[]} />;
