@@ -998,7 +998,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             from superset import is_feature_enabled
 
             if not (
-                is_feature_enabled("DASHBOARD_RBAC") and self.can_access_based_on_dashboard(datasource)
+                (
+                    is_feature_enabled("DASHBOARD_RBAC")
+                    and self.can_access_based_on_dashboard(datasource)
+                )
                 or self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
             ):
@@ -1138,11 +1141,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.models.dashboard import Dashboard
 
         TBL = ConnectorRegistry.sources["table"]
-        query = (
-            db.session.query(TBL)
-            .join(Slice.table)
-            .filter(TBL.id == datasource.id)
-        )
+        query = db.session.query(TBL).join(Slice.table).filter(TBL.id == datasource.id)
 
         query = DashboardFilter("id", SQLAInterface(Dashboard, db.session)).apply(
             query, None
