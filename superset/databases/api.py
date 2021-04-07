@@ -41,7 +41,6 @@ from superset.databases.commands.exceptions import (
     DatabaseImportError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
-    DatabaseTestConnectionFailedError,
     DatabaseUpdateFailedError,
 )
 from superset.databases.commands.export import ExportDatabasesCommand
@@ -64,7 +63,6 @@ from superset.databases.schemas import (
     TableMetadataResponseSchema,
 )
 from superset.databases.utils import get_table_metadata
-from superset.exceptions import SupersetErrorException
 from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.typing import FlaskResponse
