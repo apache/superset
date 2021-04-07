@@ -16,26 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
-import cx from 'classnames';
-import FormLabel from 'src/components/FormLabel';
+import { getLegacyEndpointType } from '.';
 
-const propTypes = {
-  label: PropTypes.string.isRequired,
-  isSelected: PropTypes.bool.isRequired,
-};
+const createParams = () => ({
+  resultType: 'resultType',
+  resultFormat: 'resultFormat',
+});
 
-export default function FilterFieldItem({ label, isSelected }) {
-  return (
-    <span
-      className={cx('filter-field-item filter-container', {
-        'is-selected': isSelected,
-      })}
-    >
-      <FormLabel htmlFor={label}>{label}</FormLabel>
-    </span>
-  );
-}
+test('Should return resultType when resultFormat!=csv', () => {
+  expect(getLegacyEndpointType(createParams())).toBe('resultType');
+});
 
-FilterFieldItem.propTypes = propTypes;
+test('Should return resultFormat when resultFormat:csv', () => {
+  expect(
+    getLegacyEndpointType({ ...createParams(), resultFormat: 'csv' }),
+  ).toBe('csv');
+});
