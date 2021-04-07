@@ -27,11 +27,12 @@ from tests.dashboards.superset_factory_util import (
     create_datasource_table_to_db,
     create_slice_to_db,
 )
-from tests.fixtures.public_role import public_role_like_gamma
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
+from tests.fixtures.public_role import public_role_like_gamma
 from tests.fixtures.query_context import get_query_context
 
 CHART_DATA_URI = "api/v1/chart/data"
+
 
 @mock.patch.dict(
     "superset.extensions.feature_flag_manager._feature_flags", DASHBOARD_RBAC=True,
@@ -75,10 +76,10 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         self.create_user_with_roles(username, [new_role], should_create_roles=True)
         slice = (
             db.session.query(Slice)
-                .filter_by(slice_name="Girl Name Cloud")
-                .one_or_none()
+            .filter_by(slice_name="Girl Name Cloud")
+            .one_or_none()
         )
-        dashboard_to_access = create_dashboard_to_db(published=True,slices=[slice])
+        dashboard_to_access = create_dashboard_to_db(published=True, slices=[slice])
         self.login(username)
 
         # act
@@ -121,12 +122,10 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         slice = (
             db.session.query(Slice)
-                .filter_by(slice_name="Girl Name Cloud")
-                .one_or_none()
+            .filter_by(slice_name="Girl Name Cloud")
+            .one_or_none()
         )
-        dashboard_to_access = create_dashboard_to_db(
-            published=True, slices=[slice]
-        )
+        dashboard_to_access = create_dashboard_to_db(published=True, slices=[slice])
         self.login(username)
         grant_access_to_dashboard(dashboard_to_access, new_role)
 
