@@ -61,7 +61,6 @@ if TYPE_CHECKING:
     from superset.models.sql_lab import Query
     from superset.sql_parse import Table
     from superset.viz import BaseViz
-    from superset.models.slice import Slice
 
 logger = logging.getLogger(__name__)
 
