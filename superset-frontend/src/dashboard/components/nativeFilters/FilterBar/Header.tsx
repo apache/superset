@@ -98,10 +98,14 @@ const Header: FC<HeaderProps> = ({
         <span>{t('Filters')}</span>
         {canEdit && (
           <FilterConfigurationLink createNewOnOpen={filterValues.length === 0}>
-            <Icon name="edit" data-test="create-filter" />
+            <Icon name="edit" role="button" data-test="create-filter" />
           </FilterConfigurationLink>
         )}
-        <Icon name="expand" onClick={() => toggleFiltersBar(false)} />
+        <Icon
+          name="expand"
+          role="button"
+          onClick={() => toggleFiltersBar(false)}
+        />
       </TitleArea>
       <ActionButtons>
         <Button
