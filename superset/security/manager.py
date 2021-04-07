@@ -294,7 +294,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return (
             self.can_access_all_datasources()
-            or self.can_access_database(datasource.canrdatabase)
+            or self.can_access_database(datasource.database)
             or self.can_access("schema_access", datasource.schema_perm or "")
         )
 
