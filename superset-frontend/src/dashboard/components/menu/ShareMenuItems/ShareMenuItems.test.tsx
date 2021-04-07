@@ -38,6 +38,7 @@ const createProps = () => ({
 });
 
 const { location } = window;
+
 beforeAll((): void => {
   // @ts-ignore
   delete window.location;
