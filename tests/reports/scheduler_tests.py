@@ -83,6 +83,6 @@ def test_scheduler_celery_no_timeout(execute_mock):
 
         with freeze_time("2020-01-01T09:00:00Z"):
             scheduler()
-            assert execute_mock.call_args[1] == {'eta': FakeDatetime(2020, 1, 1, 9, 0)}
+            assert execute_mock.call_args[1] == {"eta": FakeDatetime(2020, 1, 1, 9, 0)}
         db.session.delete(report_schedule)
         db.session.commit()
