@@ -83,8 +83,6 @@ class Datasource(BaseSupersetView):
                 status=409,
             )
         orm_datasource.update_from_object(datasource_dict)
-        if hasattr(orm_datasource, "health_check"):
-            orm_datasource.health_check(force=True, commit=False)
         data = orm_datasource.data
         db.session.commit()
 
