@@ -16,12 +16,42 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../../stylesheets/less/variables.less';
+import React from 'react';
+import Slider, { SliderSingleProps } from '.';
 
-.BootstrapSliderWrapper .slider-selection {
-  background: @gray-bg;
-}
+export default {
+  title: 'Slider',
+  component: Slider,
+};
 
-.BootstrapSliderWrapper .slider-handle {
-  background: @gray-light;
-}
+export const InteractiveSlider = (args: SliderSingleProps) => (
+  <Slider {...args} style={{ width: 400, height: 400 }} />
+);
+
+InteractiveSlider.args = {
+  min: 0,
+  max: 100,
+  defaultValue: 70,
+  step: 1,
+};
+
+InteractiveSlider.argTypes = {
+  onChange: { action: 'onChange' },
+  disabled: {
+    control: { type: 'boolean' },
+  },
+  reverse: {
+    control: { type: 'boolean' },
+  },
+  vertical: {
+    control: { type: 'boolean' },
+  },
+};
+
+InteractiveSlider.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};

@@ -18,8 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-
-import BootstrapSliderWrapper from 'src/components/BootstrapSliderWrapper';
+import Slider from 'src/components/Slider';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 const propTypes = {
@@ -32,17 +31,11 @@ const defaultProps = {
 };
 
 export default function SliderControl(props) {
-  // This wouldn't be necessary but might as well
   return (
-    <div>
+    <>
       <ControlHeader {...props} />
-      <BootstrapSliderWrapper
-        {...props}
-        change={obj => {
-          props.onChange(obj.target.value);
-        }}
-      />
-    </div>
+      <Slider {...props} defaultValue={props.default} />
+    </>
   );
 }
 
