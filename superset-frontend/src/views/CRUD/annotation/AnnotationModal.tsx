@@ -19,7 +19,7 @@
 import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
-import { RangePicker } from 'src/common/components/DatePicker';
+import { RangePicker } from 'src/components/DatePicker';
 import moment from 'moment';
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';

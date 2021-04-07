@@ -92,7 +92,7 @@ def import_dataset(
     # TODO (betodealmeida): move this logic to import_from_dict
     config = config.copy()
     for key in JSON_KEYS:
-        if config.get(key):
+        if config.get(key) is not None:
             try:
                 config[key] = json.dumps(config[key])
             except TypeError:

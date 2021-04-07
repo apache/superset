@@ -63,7 +63,7 @@ SQLALCHEMY_DATABASE_URI = "%s://%s:%s@%s:%s/%s" % (
 REDIS_HOST = get_env_variable("REDIS_HOST")
 REDIS_PORT = get_env_variable("REDIS_PORT")
 REDIS_CELERY_DB = get_env_variable("REDIS_CELERY_DB", 0)
-REDIS_RESULTS_DB = get_env_variable("REDIS_CELERY_DB", 1)
+REDIS_RESULTS_DB = get_env_variable("REDIS_RESULTS_DB", 1)
 
 RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
 
