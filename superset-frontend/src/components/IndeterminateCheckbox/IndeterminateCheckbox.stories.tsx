@@ -17,25 +17,29 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
-import cx from 'classnames';
-import FormLabel from 'src/components/FormLabel';
+import IndeterminateCheckbox, { IndeterminateCheckboxProps } from '.';
 
-const propTypes = {
-  label: PropTypes.string.isRequired,
-  isSelected: PropTypes.bool.isRequired,
+export default {
+  title: 'IndeterminateCheckbox',
+  component: IndeterminateCheckbox,
 };
 
-export default function FilterFieldItem({ label, isSelected }) {
-  return (
-    <span
-      className={cx('filter-field-item filter-container', {
-        'is-selected': isSelected,
-      })}
-    >
-      <FormLabel htmlFor={label}>{label}</FormLabel>
-    </span>
-  );
-}
+export const InteractiveIndeterminateCheckbox = (
+  args: IndeterminateCheckboxProps,
+) => <IndeterminateCheckbox {...args} />;
 
-FilterFieldItem.propTypes = propTypes;
+InteractiveIndeterminateCheckbox.args = {
+  checked: false,
+  id: 'checkbox-id',
+  indeterminate: false,
+  title: 'Checkbox title',
+  onChange: () => null,
+};
+
+InteractiveIndeterminateCheckbox.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};

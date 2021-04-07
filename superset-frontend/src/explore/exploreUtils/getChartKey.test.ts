@@ -16,26 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
-import cx from 'classnames';
-import FormLabel from 'src/components/FormLabel';
+import { getChartKey } from '.';
 
-const propTypes = {
-  label: PropTypes.string.isRequired,
-  isSelected: PropTypes.bool.isRequired,
-};
-
-export default function FilterFieldItem({ label, isSelected }) {
-  return (
-    <span
-      className={cx('filter-field-item filter-container', {
-        'is-selected': isSelected,
-      })}
-    >
-      <FormLabel htmlFor={label}>{label}</FormLabel>
-    </span>
-  );
-}
-
-FilterFieldItem.propTypes = propTypes;
+test('should return "slice_id" when called with an object that has "slice.slice_id"', () => {
+  expect(getChartKey({ slice: { slice_id: 100 } })).toBe(100);
+});

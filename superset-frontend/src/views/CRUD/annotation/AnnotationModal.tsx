@@ -311,14 +311,13 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
           <span className="required">*</span>
         </div>
         <RangePicker
-          format="YYYY-MM-DD hh:mm a"
+          format="YYYY-MM-DD HH:mm"
           onChange={onDateChange}
           showTime={{ format: 'hh:mm a' }}
           use12Hours
           value={
-            currentAnnotation &&
-            (currentAnnotation?.start_dttm.length ||
-              currentAnnotation?.end_dttm.length)
+            currentAnnotation?.start_dttm?.length ||
+            currentAnnotation?.end_dttm?.length
               ? [
                   moment(currentAnnotation.start_dttm),
                   moment(currentAnnotation.end_dttm),

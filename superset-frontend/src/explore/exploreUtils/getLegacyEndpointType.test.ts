@@ -16,25 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { mount } from 'enzyme';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import CssEditor from 'src/dashboard/components/CssEditor';
+import { getLegacyEndpointType } from '.';
 
-describe('CssEditor', () => {
-  const mockedProps = {
-    triggerNode: <i className="fa fa-edit" />,
-  };
-  it('is valid', () => {
-    expect(React.isValidElement(<CssEditor {...mockedProps} />)).toBe(true);
-  });
-  it('renders the trigger node', () => {
-    const wrapper = mount(<CssEditor {...mockedProps} />, {
-      wrappingComponent: ThemeProvider,
-      wrappingComponentProps: {
-        theme: supersetTheme,
-      },
-    });
-    expect(wrapper.find('.fa-edit')).toExist();
-  });
+const createParams = () => ({
+  resultType: 'resultType',
+  resultFormat: 'resultFormat',
+});
+
+test('Should return resultType when resultFormat!=csv', () => {
+  expect(getLegacyEndpointType(createParams())).toBe('resultType');
+});
+
+test('Should return resultFormat when resultFormat:csv', () => {
+  expect(
+    getLegacyEndpointType({ ...createParams(), resultFormat: 'csv' }),
+  ).toBe('csv');
 });
