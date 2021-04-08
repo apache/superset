@@ -149,7 +149,11 @@ function DashboardCard({
         titleRight={
           <Label>{dashboard.published ? t('published') : t('draft')}</Label>
         }
-        cover={!isFeatureEnabled(FeatureFlag.THUMBNAILS) || !showThumbnails ? <></> : null}
+        cover={
+          !isFeatureEnabled(FeatureFlag.THUMBNAILS) || !showThumbnails ? (
+            <></>
+          ) : null
+        }
         url={bulkSelectEnabled ? undefined : dashboard.url}
         imgURL={dashboard.thumbnail_url}
         imgFallbackURL="/static/assets/images/dashboard-card-fallback.svg"

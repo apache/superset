@@ -140,7 +140,11 @@ export default function ChartCard({
       <ListViewCard
         loading={loading}
         title={chart.slice_name}
-        cover={!isFeatureEnabled(FeatureFlag.THUMBNAILS) || !showThumbnails ? <></> : null}
+        cover={
+          !isFeatureEnabled(FeatureFlag.THUMBNAILS) || !showThumbnails ? (
+            <></>
+          ) : null
+        }
         url={bulkSelectEnabled ? undefined : chart.url}
         imgURL={chart.thumbnail_url || ''}
         imgFallbackURL="/static/assets/images/chart-card-fallback.svg"

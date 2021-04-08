@@ -46,9 +46,7 @@ import ListView, {
   SelectOption,
   FilterOperators,
 } from 'src/components/ListView';
-import {
-  getFromLocalStorage,
-} from 'src/utils/localStorageHelpers';
+import { getFromLocalStorage } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import ImportModelsModal from 'src/components/ImportModal/index';
@@ -509,12 +507,16 @@ function ChartList(props: ChartListProps) {
   ];
 
   function renderCard(chart: Chart) {
-    let { userId } = props.user;
-    let userKey = getFromLocalStorage(userId.toString(), null);
+    const { userId } = props.user;
+    const userKey = getFromLocalStorage(userId.toString(), null);
     return (
       <ChartCard
         chart={chart}
-        showThumbnails={userKey ? userKey.thumbnails : isFeatureEnabled(FeatureFlag.THUMBNAILS)}
+        showThumbnails={
+          userKey
+            ? userKey.thumbnails
+            : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+        }
         hasPerm={hasPerm}
         openChartEditModal={openChartEditModal}
         bulkSelectEnabled={bulkSelectEnabled}

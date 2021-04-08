@@ -247,11 +247,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           {!chartData ? (
             <Loading position="inline" />
           ) : (
-            <ChartTable
-              showThumbnails={checked}
-              user={user}
-              mine={chartData}
-            />
+            <ChartTable showThumbnails={checked} user={user} mine={chartData} />
           )}
         </Collapse.Panel>
       </Collapse>
