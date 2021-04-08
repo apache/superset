@@ -796,3 +796,7 @@ class TestSavedQueryApi(SupersetTestCase):
             .one()
         )
         assert saved_query.database == database
+
+        db.session.delete(saved_query)
+        db.session.delete(database)
+        db.session.commit()
