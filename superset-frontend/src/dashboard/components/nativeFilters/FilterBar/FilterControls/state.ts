@@ -29,9 +29,9 @@ export function useCascadingFilters(id: string) {
   const filter = filters[id];
   const cascadeParentIds: string[] = filter?.cascadeParentIds ?? [];
   let cascadedFilters = {};
-  const nativeFilters = useDataMask();
+  const nativeFiltersDataMask = useDataMask();
   cascadeParentIds.forEach(parentId => {
-    const parentState = nativeFilters[parentId] || {};
+    const parentState = nativeFiltersDataMask[parentId] || {};
     const { extraFormData: parentExtra = {} } = parentState;
     cascadedFilters = mergeExtraFormData(cascadedFilters, parentExtra);
   });

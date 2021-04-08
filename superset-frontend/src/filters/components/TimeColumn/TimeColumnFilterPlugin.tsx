@@ -16,14 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  Behavior,
-  DataMask,
-  ensureIsArray,
-  GenericDataType,
-  t,
-  tn,
-} from '@superset-ui/core';
+import { ensureIsArray, GenericDataType, t, tn } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
 import { Styles, StyledSelect } from '../common';
@@ -34,8 +27,8 @@ const { Option } = Select;
 export default function PluginFilterTimeColumn(
   props: PluginFilterTimeColumnProps,
 ) {
-  const { behaviors, data, formData, height, width, setDataMask } = props;
-  const { defaultValue, currentValue, inputRef } = formData;
+  const { data, formData, height, width, setDataMask, filterState } = props;
+  const { defaultValue, inputRef } = formData;
 
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
 
@@ -43,32 +36,21 @@ export default function PluginFilterTimeColumn(
     const resultValue: string[] = ensureIsArray<string>(value);
     setValue(resultValue);
 
-    const dataMask = {
+    setDataMask({
       extraFormData: {
         override_form_data: {
           granularity_sqla: resultValue.length ? resultValue[0] : null,
         },
       },
-      currentState: {
+      filterState: {
         value: resultValue.length ? resultValue : null,
       },
-    };
-
-    const dataMaskObject: DataMask = {};
-    if (behaviors.includes(Behavior.NATIVE_FILTER)) {
-      dataMaskObject.nativeFilters = dataMask;
-    }
-
-    if (behaviors.includes(Behavior.CROSS_FILTER)) {
-      dataMaskObject.crossFilters = dataMask;
-    }
-
-    setDataMask(dataMaskObject);
+    });
   };
 
   useEffect(() => {
-    handleChange(currentValue ?? null);
-  }, [JSON.stringify(currentValue)]);
+    handleChange(filterState.value ?? null);
+  }, [JSON.stringify(filterState.value)]);
 
   useEffect(() => {
     handleChange(defaultValue ?? null);

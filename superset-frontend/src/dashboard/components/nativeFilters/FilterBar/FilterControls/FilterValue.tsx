@@ -78,6 +78,7 @@ const FilterValue: React.FC<FilterProps> = ({
         formData: newFormData,
         force: false,
         requestParams: { dashboardId: 0 },
+        ownState: filter.dataMask?.ownState,
       })
         .then(response => {
           if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
@@ -150,6 +151,8 @@ const FilterValue: React.FC<FilterProps> = ({
           queriesData={hasDataSource ? state : [{ data: [{}] }]}
           chartType={filterType}
           behaviors={[Behavior.NATIVE_FILTER]}
+          filterState={filter.dataMask?.filterState}
+          ownState={filter.dataMask?.ownState}
           hooks={{ setDataMask }}
         />
       )}

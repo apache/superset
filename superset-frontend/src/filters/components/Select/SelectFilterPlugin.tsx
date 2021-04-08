@@ -18,8 +18,6 @@
  */
 import {
   createMultiFormatter,
-  Behavior,
-  DataMask,
   ensureIsArray,
   GenericDataType,
   t,
@@ -55,15 +53,14 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     formData,
     height,
     width,
-    behaviors,
     setDataMask,
+    filterState,
   } = props;
   const {
     defaultValue,
     enableEmptyFilter,
     multiSelect,
     showSearch,
-    currentValue,
     inverseSelection,
     inputRef,
   } = formData;
@@ -90,34 +87,23 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     const emptyFilter =
       enableEmptyFilter && !inverseSelection && resultValue?.length === 0;
 
-    const dataMask = {
+    setDataMask({
       extraFormData: getSelectExtraFormData(
         col,
         resultValue,
         emptyFilter,
         inverseSelection,
       ),
-      currentState: {
+      filterState: {
         value: resultValue.length ? resultValue : null,
       },
-    };
-
-    const dataMaskObject: DataMask = {};
-    if (behaviors.includes(Behavior.NATIVE_FILTER)) {
-      dataMaskObject.nativeFilters = dataMask;
-    }
-
-    if (behaviors.includes(Behavior.CROSS_FILTER)) {
-      dataMaskObject.crossFilters = dataMask;
-    }
-
-    setDataMask(dataMaskObject);
+    });
   };
 
   useEffect(() => {
-    handleChange(currentValue ?? []);
+    handleChange(filterState.value ?? []);
   }, [
-    JSON.stringify(currentValue),
+    JSON.stringify(filterState.value),
     multiSelect,
     enableEmptyFilter,
     inverseSelection,

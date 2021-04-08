@@ -20,66 +20,45 @@
 /* eslint-disable no-param-reassign */
 // <- When we work with Immer, we need reassign, so disabling lint
 import produce from 'immer';
-import { DataMaskStateWithId, DataMaskType, Mask, MaskWithId } from './types';
+import { DataMaskStateWithId, DataMaskWithId } from './types';
 import {
   AnyDataMaskAction,
   SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
   UPDATE_DATA_MASK,
-  UpdateDataMask,
 } from './actions';
 
-export function getInitialFiltersMask(id: string): MaskWithId {
+export function getInitialDataMask(id: string): DataMaskWithId {
   return {
     id,
     extraFormData: {},
-    currentState: {},
+    filterState: {},
+    ownState: {},
   };
 }
-
-const setUnitDataMask = (
-  unitName: DataMaskType,
-  action: UpdateDataMask,
-  dataMaskState: DataMaskStateWithId,
-) => {
-  if (action[unitName]) {
-    const otherProps: Partial<MaskWithId> = {};
-    if (unitName !== DataMaskType.OwnState) {
-      otherProps.id = action.filterId;
-    }
-    dataMaskState[unitName][action.filterId] = {
-      ...(action[unitName] as Mask),
-      ...otherProps,
-    };
-  }
-};
 
 const dataMaskReducer = produce(
   (draft: DataMaskStateWithId, action: AnyDataMaskAction) => {
     const oldData = { ...draft };
     switch (action.type) {
       case UPDATE_DATA_MASK:
-        Object.values(DataMaskType).forEach(unitName =>
-          setUnitDataMask(unitName, action, draft),
-        );
+        draft[action.filterId] = {
+          ...draft[action.filterId],
+          ...action.dataMask,
+          id: action.filterId,
+        };
         break;
 
       case SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE:
-        draft[action.unitName] = {};
         (action.filterConfig ?? []).forEach(filter => {
-          draft[action.unitName][filter.id] =
-            oldData[action.unitName][filter.id] ??
-            getInitialFiltersMask(filter.id);
+          draft[filter.id] =
+            oldData[filter.id] ?? getInitialDataMask(filter.id);
         });
         break;
 
       default:
     }
   },
-  {
-    [DataMaskType.NativeFilters]: {},
-    [DataMaskType.CrossFilters]: {},
-    [DataMaskType.OwnState]: {},
-  },
+  {},
 );
 
 export default dataMaskReducer;

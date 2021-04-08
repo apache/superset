@@ -95,6 +95,7 @@ class ChartRenderer extends React.Component {
         this.hasQueryResponseChange ||
         nextProps.annotationData !== this.props.annotationData ||
         nextProps.ownState !== this.props.ownState ||
+        nextProps.filterState !== this.props.filterState ||
         nextProps.height !== this.props.height ||
         nextProps.width !== this.props.width ||
         nextProps.triggerRender ||
@@ -185,6 +186,7 @@ class ChartRenderer extends React.Component {
       datasource,
       initialValues,
       ownState,
+      filterState,
       formData,
       queriesResponse,
     } = this.props;
@@ -225,6 +227,7 @@ class ChartRenderer extends React.Component {
         initialValues={initialValues}
         formData={formData}
         ownState={ownState}
+        filterState={filterState}
         hooks={this.hooks}
         behaviors={[Behavior.CROSS_FILTER]}
         queriesData={queriesResponse}

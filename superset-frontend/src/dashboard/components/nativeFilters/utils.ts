@@ -32,7 +32,6 @@ export const getFormData = ({
   datasetId,
   cascadingFilters = {},
   groupby,
-  currentValue,
   inputRef,
   defaultValue,
   controlValues,
@@ -60,7 +59,6 @@ export const getFormData = ({
     metrics: ['count'],
     row_limit: 10000,
     showSearch: true,
-    currentValue,
     defaultValue,
     time_range: 'No filter',
     time_range_endpoints: ['inclusive', 'exclusive'],
@@ -82,7 +80,6 @@ export function mergeExtraFormData(
     override_form_data: newOverride = {},
     append_form_data: newAppend = {},
     custom_form_data: newCustom = {},
-    own_state: newOwnState = {},
   } = newExtra;
 
   const appendKeys = new Set([
@@ -101,7 +98,6 @@ export function mergeExtraFormData(
 
   return {
     custom_form_data: newCustom,
-    own_state: newOwnState,
     override_form_data: {
       ...originalOverride,
       ...newOverride,
@@ -124,10 +120,10 @@ export function getExtraFormData(
 ): ExtraFormData {
   let extraFormData: ExtraFormData = {};
   filterIdsAppliedOnChart.forEach(key => {
-    const singleDataMask =
-      dataMask.nativeFilters[key] ?? dataMask.crossFilters[key] ?? {};
-    const { extraFormData: newExtra = {} } = singleDataMask;
-    extraFormData = mergeExtraFormData(extraFormData, newExtra);
+    extraFormData = mergeExtraFormData(
+      extraFormData,
+      dataMask[key]?.extraFormData ?? {},
+    );
   });
   return extraFormData;
 }

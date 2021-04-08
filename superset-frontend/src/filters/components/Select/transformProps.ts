@@ -22,7 +22,15 @@ import { DEFAULT_FORM_DATA, PluginFilterSelectChartProps } from './types';
 export default function transformProps(
   chartProps: PluginFilterSelectChartProps,
 ) {
-  const { formData, height, hooks, queriesData, width, behaviors } = chartProps;
+  const {
+    formData,
+    height,
+    hooks,
+    queriesData,
+    width,
+    behaviors,
+    filterState,
+  } = chartProps;
   const newFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const { setDataMask = () => {} } = hooks;
   const [queryData] = queriesData;
@@ -33,6 +41,7 @@ export default function transformProps(
   );
 
   return {
+    filterState,
     coltypeMap,
     width,
     behaviors,

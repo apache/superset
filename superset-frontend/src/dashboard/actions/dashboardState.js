@@ -41,6 +41,8 @@ import serializeActiveFilterValues from '../util/serializeActiveFilterValues';
 import serializeFilterScopes from '../util/serializeFilterScopes';
 import { getActiveFilters } from '../util/activeDashboardFilters';
 import { safeStringify } from '../../utils/safeStringify';
+import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
+import { setChartConfiguration } from './dashboardInfo';
 
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {
@@ -199,6 +201,28 @@ export function saveDashboardRequest(data, id, saveType) {
       },
     })
       .then(response => {
+        if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+          const {
+            dashboardInfo: {
+              metadata: { chart_configuration = {} },
+            },
+          } = getState();
+          const chartConfiguration = Object.values(chart_configuration).reduce(
+            (prev, next) => {
+              // If chart removed from dashboard - remove it from metadata
+              if (
+                Object.values(layout).find(
+                  layoutItem => layoutItem?.meta?.chartId === next.id,
+                )
+              ) {
+                return { ...prev, [next.id]: next };
+              }
+              return prev;
+            },
+            {},
+          );
+          dispatch(setChartConfiguration(chartConfiguration));
+        }
         dispatch(saveDashboardRequestSuccess(response.json.last_modified_time));
         dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
         return response;

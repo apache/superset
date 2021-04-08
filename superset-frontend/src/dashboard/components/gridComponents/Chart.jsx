@@ -70,6 +70,7 @@ const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
   ownState: PropTypes.object,
+  filterState: PropTypes.object,
 };
 
 const defaultProps = {
@@ -261,6 +262,7 @@ export default class Chart extends React.Component {
       addSuccessToast,
       addDangerToast,
       ownState,
+      filterState,
       handleToggleFullSize,
       isFullSize,
     } = this.props;
@@ -369,6 +371,7 @@ export default class Chart extends React.Component {
             initialValues={initialValues}
             formData={formData}
             ownState={ownState}
+            filterState={filterState}
             queriesResponse={chart.queriesResponse}
             timeout={timeout}
             triggerQuery={chart.triggerQuery}

@@ -20,7 +20,7 @@
 import shortid from 'shortid';
 import { t } from '@superset-ui/core';
 import { areObjectsEqual } from 'src/reduxUtils';
-import { DataMaskUnit } from 'src/dataMask/types';
+import { DataMaskState } from 'src/dataMask/types';
 import { FilterSet } from 'src/dashboard/reducers/types';
 
 export const generateFiltersSetId = () => `FILTERS_SET-${shortid.generate()}`;
@@ -50,20 +50,17 @@ export const findExistingFilterSet = ({
   dataMaskSelected,
 }: {
   filterSetFilterValues: FilterSet[];
-  dataMaskSelected: DataMaskUnit;
+  dataMaskSelected: DataMaskState;
 }) =>
-  filterSetFilterValues.find(({ dataMask: dataMaskFromFilterSet }) => {
-    if (dataMaskFromFilterSet?.nativeFilters) {
-      const dataMaskSelectedEntries = Object.entries(dataMaskSelected);
-      return dataMaskSelectedEntries.every(
-        ([id, filterFromSelectedFilters]) =>
-          areObjectsEqual(
-            filterFromSelectedFilters.currentState,
-            dataMaskFromFilterSet?.nativeFilters?.[id]?.currentState,
-          ) &&
-          dataMaskSelectedEntries.length ===
-            Object.keys(dataMaskFromFilterSet?.nativeFilters ?? {}).length,
-      );
-    }
-    return false;
+  filterSetFilterValues.find(({ dataMask: dataMaskFromFilterSet = {} }) => {
+    const dataMaskSelectedEntries = Object.entries(dataMaskSelected);
+    return dataMaskSelectedEntries.every(
+      ([id, filterFromSelectedFilters]) =>
+        areObjectsEqual(
+          filterFromSelectedFilters.filterState,
+          dataMaskFromFilterSet?.[id]?.filterState,
+        ) &&
+        dataMaskSelectedEntries.length ===
+          Object.keys(dataMaskFromFilterSet ?? {}).length,
+    );
   });

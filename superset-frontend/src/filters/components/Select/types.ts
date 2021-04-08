@@ -17,9 +17,10 @@
  * under the License.
  */
 import {
-  ChartProps,
   Behavior,
+  ChartProps,
   DataRecord,
+  FilterState,
   GenericDataType,
   QueryFormData,
   SetDataMaskHook,
@@ -30,7 +31,6 @@ import { PluginFilterStylesProps } from '../types';
 
 interface PluginFilterSelectCustomizeProps {
   defaultValue?: (string | number)[] | null;
-  currentValue?: (string | number)[] | null;
   enableEmptyFilter: boolean;
   inverseSelection: boolean;
   multiSelect: boolean;
@@ -52,11 +52,11 @@ export type PluginFilterSelectProps = PluginFilterStylesProps & {
   setDataMask: SetDataMaskHook;
   behaviors: Behavior[];
   formData: PluginFilterSelectQueryFormData;
+  filterState: FilterState;
 };
 
 export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {
   defaultValue: null,
-  currentValue: null,
   enableEmptyFilter: false,
   inverseSelection: false,
   multiSelect: true,

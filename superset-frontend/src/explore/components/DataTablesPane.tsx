@@ -35,6 +35,7 @@ import {
   useFilteredTableData,
   useTableColumns,
 } from './DataTableControl';
+import { JsonObject } from '../../../cypress-base/cypress/utils';
 
 const RESULT_TYPES = {
   results: 'results' as const,
@@ -105,11 +106,13 @@ export const DataTablesPane = ({
   tableSectionHeight,
   onCollapseChange,
   chartStatus,
+  ownState,
 }: {
   queryFormData: Record<string, any>;
   tableSectionHeight: number;
   onCollapseChange: (openPanelName: string) => void;
   chartStatus: string;
+  ownState: JsonObject;
 }) => {
   const [data, setData] = useState<{
     [RESULT_TYPES.results]?: Record<string, any>[];
@@ -142,6 +145,7 @@ export const DataTablesPane = ({
         formData: queryFormData,
         resultFormat: 'json',
         resultType,
+        ownState,
       })
         .then(response => {
           // Only displaying the first query is currently supported

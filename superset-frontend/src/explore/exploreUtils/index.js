@@ -268,6 +268,7 @@ export const exportChart = ({
   resultFormat = 'json',
   resultType = 'full',
   force = false,
+  ownState = {},
 }) => {
   let url;
   let payload;
@@ -286,6 +287,7 @@ export const exportChart = ({
       force,
       resultFormat,
       resultType,
+      ownState,
     });
   }
   postForm(url, payload);

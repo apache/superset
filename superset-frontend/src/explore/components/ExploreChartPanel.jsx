@@ -238,6 +238,7 @@ const ExploreChartPanel = props => {
 
   const header = (
     <ConnectedExploreChartHeader
+      ownState={props.ownState}
       actions={props.actions}
       addHistory={props.addHistory}
       can_overwrite={props.can_overwrite}
@@ -274,6 +275,7 @@ const ExploreChartPanel = props => {
         >
           {panelBody}
           <DataTablesPane
+            ownState={props.ownState}
             queryFormData={props.chart.latestQueryFormData}
             tableSectionHeight={tableSectionHeight}
             onCollapseChange={onCollapseChange}

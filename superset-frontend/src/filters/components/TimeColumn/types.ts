@@ -17,17 +17,17 @@
  * under the License.
  */
 import {
-  QueryFormData,
-  DataRecord,
-  SetDataMaskHook,
   Behavior,
+  DataRecord,
+  FilterState,
+  QueryFormData,
+  SetDataMaskHook,
 } from '@superset-ui/core';
 import { RefObject } from 'react';
 import { PluginFilterStylesProps } from '../types';
 
 interface PluginFilterTimeColumnCustomizeProps {
   defaultValue?: string[] | null;
-  currentValue?: string[] | null;
   inputRef?: RefObject<HTMLInputElement>;
 }
 
@@ -39,10 +39,10 @@ export type PluginFilterTimeColumnProps = PluginFilterStylesProps & {
   behaviors: Behavior[];
   data: DataRecord[];
   setDataMask: SetDataMaskHook;
+  filterState: FilterState;
   formData: PluginFilterTimeColumnQueryFormData;
 };
 
 export const DEFAULT_FORM_DATA: PluginFilterTimeColumnCustomizeProps = {
   defaultValue: null,
-  currentValue: null,
 };

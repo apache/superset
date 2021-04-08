@@ -19,8 +19,11 @@
 /* eslint-disable camelcase */
 import { isString } from 'lodash';
 import shortid from 'shortid';
-import { CategoricalColorNamespace } from '@superset-ui/core';
-
+import {
+  Behavior,
+  CategoricalColorNamespace,
+  getChartMetadataRegistry,
+} from '@superset-ui/core';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { getParam } from 'src/modules/utils';
@@ -35,6 +38,7 @@ import {
   DASHBOARD_HEADER_ID,
   GRID_DEFAULT_CHART_WIDTH,
   GRID_COLUMN_COUNT,
+  DASHBOARD_ROOT_ID,
 } from '../util/constants';
 import {
   DASHBOARD_HEADER_TYPE,
@@ -47,6 +51,7 @@ import getFilterConfigsFromFormdata from '../util/getFilterConfigsFromFormdata';
 import getLocationHash from '../util/getLocationHash';
 import newComponentFactory from '../util/newComponentFactory';
 import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
+import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 
 export default function getInitialState(bootstrapData) {
   const { user_id, datasources, common, editMode, urlParams } = bootstrapData;
@@ -168,10 +173,7 @@ export default function getInitialState(bootstrapData) {
     }
 
     // build DashboardFilters for interactive filter features
-    if (
-      slice.form_data.viz_type === 'filter_box' ||
-      slice.form_data.viz_type === 'filter_select'
-    ) {
+    if (slice.form_data.viz_type === 'filter_box') {
       const configs = getFilterConfigsFromFormdata(slice.form_data);
       let { columns } = configs;
       const { labels } = configs;
@@ -263,6 +265,35 @@ export default function getInitialState(bootstrapData) {
     filterSetsConfig: dashboard.metadata.filter_sets_configuration || [],
   });
 
+  const { metadata } = dashboard;
+  if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+    // If user just added cross filter to dashboard it's not saving it scope on server,
+    // so we tweak it until user will update scope and will save it in server
+    Object.values(dashboardLayout.present).forEach(layoutItem => {
+      const chartId = layoutItem.meta?.chartId;
+      const behaviors =
+        (
+          getChartMetadataRegistry().get(
+            chartQueries[chartId]?.formData?.viz_type,
+          ) ?? {}
+        )?.behaviors ?? [];
+      if (
+        behaviors.includes(Behavior.CROSS_FILTER) &&
+        !metadata.chart_configuration[chartId]
+      ) {
+        metadata.chart_configuration[chartId] = {
+          id: chartId,
+          crossFilters: {
+            scope: {
+              rootPath: [DASHBOARD_ROOT_ID],
+              excluded: [chartId], // By default it doesn't affects itself
+            },
+          },
+        };
+      }
+    });
+  }
+
   return {
     datasources,
     sliceEntities: { ...initSliceEntities, slices, isLoading: false },
@@ -271,7 +302,7 @@ export default function getInitialState(bootstrapData) {
     dashboardInfo: {
       id: dashboard.id,
       slug: dashboard.slug,
-      metadata: dashboard.metadata,
+      metadata,
       userId: user_id,
       dash_edit_perm: dashboard.dash_edit_perm,
       dash_save_perm: dashboard.dash_save_perm,

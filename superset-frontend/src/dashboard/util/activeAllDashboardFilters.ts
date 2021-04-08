@@ -20,7 +20,6 @@ import { CHART_TYPE } from './componentTypes';
 import { Scope } from '../components/nativeFilters/types';
 import { ActiveFilters, LayoutItem } from '../types';
 import { ChartConfiguration, Filters } from '../reducers/types';
-import { DASHBOARD_ROOT_ID } from './constants';
 import { DataMaskStateWithId } from '../../dataMask/types';
 
 // Looking for affected chart scopes and values
@@ -85,13 +84,10 @@ export const getAllActiveFilters = ({
   const activeFilters = {};
 
   // Combine native filters with cross filters, because they have similar logic
-  Object.values({
-    ...dataMask.nativeFilters,
-    ...dataMask.crossFilters,
-  }).forEach(({ id: filterId, extraFormData }) => {
+  Object.values(dataMask).forEach(({ id: filterId, extraFormData }) => {
     const scope = nativeFilters?.[filterId]?.scope ??
       chartConfiguration?.[filterId]?.crossFilters?.scope ?? {
-        rootPath: [DASHBOARD_ROOT_ID],
+        rootPath: [],
         excluded: [],
       };
     // Iterate over all roots to find all affected charts

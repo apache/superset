@@ -85,7 +85,7 @@ export type FilterSet = {
   id: string;
   name: string;
   nativeFilters: Filters;
-  dataMask: Partial<DataMaskStateWithId>;
+  dataMask: DataMaskStateWithId;
 };
 
 export type FilterSets = {

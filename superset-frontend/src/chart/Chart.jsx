@@ -62,6 +62,7 @@ const propTypes = {
   onQuery: PropTypes.func,
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
+  ownState: PropTypes.object,
 };
 
 const BLANK = {};
@@ -127,6 +128,7 @@ class Chart extends React.PureComponent {
         this.props.timeout,
         this.props.chartId,
         this.props.dashboardId,
+        this.props.ownState,
       );
     } else {
       // Create chart with POST request
@@ -136,6 +138,7 @@ class Chart extends React.PureComponent {
         this.props.timeout,
         this.props.chartId,
         this.props.dashboardId,
+        this.props.ownState,
       );
     }
   }

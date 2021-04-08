@@ -27,8 +27,8 @@ const { Option } = Select;
 export default function PluginFilterTimegrain(
   props: PluginFilterTimeGrainProps,
 ) {
-  const { data, formData, height, width, setDataMask } = props;
-  const { defaultValue, currentValue, inputRef } = formData;
+  const { data, formData, height, width, setDataMask, filterState } = props;
+  const { defaultValue, inputRef } = formData;
 
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
 
@@ -42,22 +42,20 @@ export default function PluginFilterTimegrain(
     }
     setValue(resultValue);
     setDataMask({
-      nativeFilters: {
-        extraFormData: {
-          override_form_data: {
-            extras,
-          },
+      extraFormData: {
+        override_form_data: {
+          extras,
         },
-        currentState: {
-          value: resultValue.length ? resultValue : null,
-        },
+      },
+      filterState: {
+        value: resultValue.length ? resultValue : null,
       },
     });
   };
 
   useEffect(() => {
-    handleChange(currentValue ?? []);
-  }, [JSON.stringify(currentValue)]);
+    handleChange(filterState.value ?? []);
+  }, [JSON.stringify(filterState.value)]);
 
   useEffect(() => {
     handleChange(defaultValue ?? []);

@@ -261,9 +261,9 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
       >
         {(hasFilledDataset || !hasDataset) && (
           <DefaultValue
-            setDataMask={({ nativeFilters }) => {
+            setDataMask={({ filterState }) => {
               setNativeFilterFieldValues(form, filterId, {
-                defaultValue: nativeFilters?.currentState?.value,
+                defaultValue: filterState?.value,
               });
               forceUpdate();
             }}

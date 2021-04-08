@@ -557,9 +557,7 @@ function mapStateToProps(state) {
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },
     {
-      own_state: {
-        ...dataMask?.ownState?.[form_data.slice_id],
-      },
+      ...dataMask[form_data.slice_id]?.ownState,
     },
   );
   const chartKey = Object.keys(charts)[0];
@@ -591,7 +589,7 @@ function mapStateToProps(state) {
     forcedHeight: explore.forced_height,
     chart,
     timeout: explore.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
-    ownState: dataMask?.ownState?.[form_data.slice_id],
+    ownState: dataMask[form_data.slice_id]?.ownState,
     impressionId,
   };
 }
