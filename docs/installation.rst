@@ -1570,7 +1570,7 @@ You can enable or disable features with flag from ``superset_config.py``:
 
 .. code-block:: python
 
-     DEFAULT_FEATURE_FLAGS = {
+     FEATURE_FLAGS = {
          'CLIENT_CACHE': False,
          'ENABLE_EXPLORE_JSON_CSRF_PROTECTION': False,
          'PRESTO_EXPAND_DATA': False,
