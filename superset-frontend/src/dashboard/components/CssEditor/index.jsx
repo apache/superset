@@ -33,7 +33,6 @@ const propTypes = {
 const defaultProps = {
   initialCss: '',
   onChange: () => {},
-  templates: [],
 };
 
 class CssEditor extends React.PureComponent {

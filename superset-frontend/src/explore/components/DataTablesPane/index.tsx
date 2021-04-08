@@ -34,7 +34,7 @@ import {
   RowCount,
   useFilteredTableData,
   useTableColumns,
-} from './DataTableControl';
+} from 'src/explore/components/DataTableControl';
 import { JsonObject } from '../../../cypress-base/cypress/utils';
 
 const RESULT_TYPES = {
@@ -110,9 +110,9 @@ export const DataTablesPane = ({
 }: {
   queryFormData: Record<string, any>;
   tableSectionHeight: number;
-  onCollapseChange: (openPanelName: string) => void;
   chartStatus: string;
   ownState: JsonObject;
+  onCollapseChange: (openPanelName: string) => void;
 }) => {
   const [data, setData] = useState<{
     [RESULT_TYPES.results]?: Record<string, any>[];
@@ -279,7 +279,7 @@ export const DataTablesPane = ({
   };
 
   return (
-    <SouthPane>
+    <SouthPane data-test="some-purposeful-instance">
       <TabsWrapper contentHeight={tableSectionHeight}>
         <CollapseWrapper>
           <Collapse
