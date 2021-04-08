@@ -1133,14 +1133,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 raise DashboardAccessDeniedError()
 
     # pylint: disable=no-self-use
-    def can_access_based_on_dashboard(self, datasource: "BaseDatasource"):
+    def can_access_based_on_dashboard(self, datasource: "BaseDatasource") -> bool:
         from superset import db
         from superset.dashboards.filters import DashboardFilter
         from superset.models.slice import Slice
         from superset.models.dashboard import Dashboard
 
-        TBL = ConnectorRegistry.sources["table"]
-        query = db.session.query(TBL).join(Slice.table).filter(TBL.id == datasource.id)
+        table_type = ConnectorRegistry.sources["table"]
+        query = db.session.query(table_type).join(Slice.table).filter(table_type.id == datasource.id)
 
         query = DashboardFilter("id", SQLAInterface(Dashboard, db.session)).apply(
             query, None
