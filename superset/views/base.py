@@ -169,7 +169,7 @@ def api(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
             return f(self, *args, **kwargs)
         except NoAuthorizationError:
             logger.exception(ex)            
-            return json_error_response(get_error_msg(), status=400)
+            return json_error_response(get_error_msg(), status=401)
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
             return json_error_response(get_error_msg())
