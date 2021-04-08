@@ -155,7 +155,7 @@ can optionally specify a custom formatter. Eg:
         return [{"Cost": f"US$ {cost:.2f}"}]
 
 
-    DEFAULT_FEATURE_FLAGS = {
+    FEATURE_FLAGS = {
         "ESTIMATE_QUERY_COST": True,
         "QUERY_COST_FORMATTERS_BY_ENGINE": {"presto": presto_query_cost_formatter},
     }

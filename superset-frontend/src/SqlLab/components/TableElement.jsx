@@ -25,7 +25,6 @@ import shortid from 'shortid';
 import { t, styled } from '@superset-ui/core';
 import { debounce } from 'lodash';
 
-import Fade from 'src/common/components/Fade';
 import { Tooltip } from 'src/common/components/Tooltip';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { IconTooltip } from '../../components/IconTooltip';
@@ -50,6 +49,11 @@ const StyledSpan = styled.span`
     color: ${({ theme }) => theme.colors.primary.dark2};
   }
   cursor: pointer;
+`;
+
+const Fade = styled.div`
+  transition: all ${({ theme }) => theme.transitionTiming}s;
+  opacity: ${props => (props.hovered ? 1 : 0)};
 `;
 
 class TableElement extends React.PureComponent {
@@ -77,15 +81,6 @@ class TableElement extends React.PureComponent {
       sql: this.props.table.selectStar,
     };
     this.props.actions.addQueryEditor(qe);
-  }
-
-  toggleTable(e) {
-    e.preventDefault();
-    if (this.props.table.expanded) {
-      this.props.actions.collapseTable(this.props.table);
-    } else {
-      this.props.actions.expandTable(this.props.table);
-    }
   }
 
   removeTable() {
@@ -214,13 +209,7 @@ class TableElement extends React.PureComponent {
           title={table.name}
           trigger={['hover']}
         >
-          <StyledSpan
-            data-test="collapse"
-            className="table-name"
-            onClick={e => {
-              this.toggleTable(e);
-            }}
-          >
+          <StyledSpan data-test="collapse" className="table-name">
             <strong>{table.name}</strong>
           </StyledSpan>
         </Tooltip>
@@ -230,6 +219,7 @@ class TableElement extends React.PureComponent {
             <Loading position="inline" />
           ) : (
             <Fade
+              data-test="fade"
               hovered={this.state.hovered}
               onClick={e => e.stopPropagation()}
             >

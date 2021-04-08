@@ -598,12 +598,7 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.put_assert_metric(uri, dataset_data, "put")
         assert rv.status_code == 200
 
-        columns = (
-            db.session.query(TableColumn)
-            .filter_by(table_id=dataset.id)
-            .order_by("column_name")
-            .all()
-        )
+        columns = db.session.query(TableColumn).filter_by(table_id=dataset.id).all()
 
         assert columns[0].column_name == dataset_data["columns"][0]["column_name"]
         assert columns[0].description == dataset_data["columns"][0]["description"]

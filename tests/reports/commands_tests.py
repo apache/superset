@@ -100,9 +100,9 @@ def assert_log(state: str, error_message: Optional[str] = None):
     db.session.commit()
     logs = db.session.query(ReportExecutionLog).all()
     if state == ReportState.WORKING:
-        assert len(logs) == 1
-        assert logs[0].error_message == error_message
-        assert logs[0].state == state
+        assert len(logs) == 2
+        assert logs[1].error_message == error_message
+        assert logs[1].state == state
         return
     # On error we send an email
     if state == ReportState.ERROR:
@@ -232,6 +232,17 @@ def create_report_slack_chart_working():
         report_schedule.last_state = ReportState.WORKING
         report_schedule.last_eval_dttm = datetime(2020, 1, 1, 0, 0)
         db.session.commit()
+        log = ReportExecutionLog(
+            scheduled_dttm=report_schedule.last_eval_dttm,
+            start_dttm=report_schedule.last_eval_dttm,
+            end_dttm=report_schedule.last_eval_dttm,
+            state=ReportState.WORKING,
+            report_schedule=report_schedule,
+            uuid=uuid4(),
+        )
+        db.session.add(log)
+        db.session.commit()
+
         yield report_schedule
 
         cleanup_report_schedule(report_schedule)
@@ -638,12 +649,11 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
     """
     ExecuteReport Command: Test report schedule still working but should timed out
     """
-    # setup screenshot mock
     current_time = create_report_slack_chart_working.last_eval_dttm + timedelta(
         seconds=create_report_slack_chart_working.working_timeout + 1
     )
-
     with freeze_time(current_time):
+
         with pytest.raises(ReportScheduleWorkingTimeoutError):
             AsyncExecuteReportScheduleCommand(
                 test_id, create_report_slack_chart_working.id, datetime.utcnow()
@@ -652,9 +662,10 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
     # Only needed for MySQL, understand why
     db.session.commit()
     logs = db.session.query(ReportExecutionLog).all()
-    assert len(logs) == 1
-    assert logs[0].error_message == ReportScheduleWorkingTimeoutError.message
-    assert logs[0].state == ReportState.ERROR
+    # Two logs, first is created by fixture
+    assert len(logs) == 2
+    assert logs[1].error_message == ReportScheduleWorkingTimeoutError.message
+    assert logs[1].state == ReportState.ERROR
 
     assert create_report_slack_chart_working.last_state == ReportState.ERROR
 
@@ -750,6 +761,10 @@ def test_email_dashboard_report_fails(
 )
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+@patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    ALERTS_ATTACH_REPORTS=True,
+)
 def test_slack_chart_alert(screenshot_mock, email_mock, create_alert_email_chart):
     """
     ExecuteReport Command: Test chart slack alert
@@ -769,6 +784,34 @@ def test_slack_chart_alert(screenshot_mock, email_mock, create_alert_email_chart
         # Assert the email inline screenshot
         smtp_images = email_mock.call_args[1]["images"]
         assert smtp_images[list(smtp_images.keys())[0]] == screenshot
+        # Assert logs are correct
+        assert_log(ReportState.SUCCESS)
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_alert_email_chart"
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    ALERTS_ATTACH_REPORTS=False,
+)
+def test_slack_chart_alert_no_attachment(email_mock, create_alert_email_chart):
+    """
+    ExecuteReport Command: Test chart slack alert
+    """
+    # setup screenshot mock
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        AsyncExecuteReportScheduleCommand(
+            test_id, create_alert_email_chart.id, datetime.utcnow()
+        ).run()
+
+        notification_targets = get_target_from_report_schedule(create_alert_email_chart)
+        # Assert the email smtp address
+        assert email_mock.call_args[0][0] == notification_targets[0]
+        # Assert the there is no attached image
+        assert email_mock.call_args[1]["images"] is None
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)
 
@@ -859,6 +902,10 @@ def test_soft_timeout_alert(email_mock, create_alert_email_chart):
 )
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+@patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    ALERTS_ATTACH_REPORTS=True,
+)
 def test_soft_timeout_screenshot(screenshot_mock, email_mock, create_alert_email_chart):
     """
     ExecuteReport Command: Test soft timeout on screenshot
@@ -882,11 +929,11 @@ def test_soft_timeout_screenshot(screenshot_mock, email_mock, create_alert_email
 
 
 @pytest.mark.usefixtures(
-    "load_birth_names_dashboard_with_slices", "create_alert_email_chart"
+    "load_birth_names_dashboard_with_slices", "create_report_email_chart"
 )
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
-def test_fail_screenshot(screenshot_mock, email_mock, create_alert_email_chart):
+def test_fail_screenshot(screenshot_mock, email_mock, create_report_email_chart):
     """
     ExecuteReport Command: Test soft timeout on screenshot
     """
@@ -896,16 +943,42 @@ def test_fail_screenshot(screenshot_mock, email_mock, create_alert_email_chart):
     screenshot_mock.side_effect = Exception("Unexpected error")
     with pytest.raises(ReportScheduleScreenshotFailedError):
         AsyncExecuteReportScheduleCommand(
-            test_id, create_alert_email_chart.id, datetime.utcnow()
+            test_id, create_report_email_chart.id, datetime.utcnow()
         ).run()
 
-    notification_targets = get_target_from_report_schedule(create_alert_email_chart)
+    notification_targets = get_target_from_report_schedule(create_report_email_chart)
     # Assert the email smtp address, asserts a notification was sent with the error
     assert email_mock.call_args[0][0] == notification_targets[0]
 
     assert_log(
         ReportState.ERROR, error_message="Failed taking a screenshot Unexpected error"
     )
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_alert_email_chart"
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    ALERTS_ATTACH_REPORTS=False,
+)
+def test_email_disable_screenshot(email_mock, create_alert_email_chart):
+    """
+    ExecuteReport Command: Test soft timeout on screenshot
+    """
+
+    AsyncExecuteReportScheduleCommand(
+        test_id, create_alert_email_chart.id, datetime.utcnow()
+    ).run()
+
+    notification_targets = get_target_from_report_schedule(create_alert_email_chart)
+    # Assert the email smtp address, asserts a notification was sent with the error
+    assert email_mock.call_args[0][0] == notification_targets[0]
+    # Assert the there is no attached image
+    assert email_mock.call_args[1]["images"] is None
+
+    assert_log(ReportState.SUCCESS)
 
 
 @pytest.mark.usefixtures("create_invalid_sql_alert_email_chart")

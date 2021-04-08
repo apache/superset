@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=unused-argument
-import dataclasses
 import hashlib
 import json
 import logging
@@ -49,7 +48,7 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import quoted_name, text
-from sqlalchemy.sql.expression import ColumnClause, ColumnElement, Select, TextAsFrom
+from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom
 from sqlalchemy.types import String, TypeEngine, UnicodeText
 
 from superset import app, security_manager, sql_parse
@@ -137,7 +136,18 @@ class LimitMethod:  # pylint: disable=too-few-public-methods
 
 
 class BaseEngineSpec:  # pylint: disable=too-many-public-methods
-    """Abstract class for database engine specific configurations"""
+    """Abstract class for database engine specific configurations
+
+    Attributes:
+        allows_alias_to_source_column: Whether the engine is able to pick the
+                                       source column for aggregation clauses
+                                       used in ORDER BY when a column in SELECT
+                                       has an alias that is the same as a source
+                                       column.
+        allows_hidden_orderby_agg:     Whether the engine allows ORDER BY to
+                                       directly use aggregation clauses, without
+                                       having to add the same aggregation in SELECT.
+    """
 
     engine = "base"  # str as defined in sqlalchemy.engine.engine
     engine_aliases: Optional[Tuple[str]] = None
@@ -241,11 +251,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_alias_in_select = True
     allows_alias_in_orderby = True
     allows_sql_comments = True
+
+    # Whether ORDER BY clause can use aliases created in SELECT
+    # that are the same as a source column
+    allows_alias_to_source_column = True
+
+    # Whether ORDER BY clause must appear in SELECT
+    # if TRUE, then it doesn't have to.
+    allows_hidden_ordeby_agg = True
+
     force_column_alias_quotes = False
     arraysize = 0
     max_column_name_length = 0
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
+    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType]] = {}
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
@@ -440,20 +460,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 ),
             )
         )
-
-    @classmethod
-    def make_select_compatible(
-        cls, groupby_exprs: Dict[str, ColumnElement], select_exprs: List[ColumnElement]
-    ) -> List[ColumnElement]:
-        """
-        Some databases will just return the group-by field into the select, but don't
-        allow the group-by field to be put into the select list.
-
-        :param groupby_exprs: mapping between column name and column object
-        :param select_exprs: all columns in the select clause
-        :return: columns to be included in the final select clause
-        """
-        return select_exprs
 
     @classmethod
     def fetch_data(
@@ -740,15 +746,27 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return utils.error_msg_from_exception(ex)
 
     @classmethod
-    def extract_errors(cls, ex: Exception) -> List[Dict[str, Any]]:
+    def extract_errors(cls, ex: Exception) -> List[SupersetError]:
+        raw_message = cls._extract_error_message(ex)
+
+        for regex, (message, error_type) in cls.custom_errors.items():
+            match = regex.search(raw_message)
+            if match:
+                return [
+                    SupersetError(
+                        error_type=error_type,
+                        message=message % match.groupdict(),
+                        level=ErrorLevel.ERROR,
+                        extra={"engine_name": cls.engine_name},
+                    )
+                ]
+
         return [
-            dataclasses.asdict(
-                SupersetError(
-                    error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                    message=cls._extract_error_message(ex),
-                    level=ErrorLevel.ERROR,
-                    extra={"engine_name": cls.engine_name},
-                )
+            SupersetError(
+                error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                message=cls._extract_error_message(ex),
+                level=ErrorLevel.ERROR,
+                extra={"engine_name": cls.engine_name},
             )
         ]
 
