@@ -14,27 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask_babel import lazy_gettext as _
 
-from superset.commands.exceptions import (
-    CommandException,
-    CommandInvalidError,
-    DeleteFailedError,
-    ImportFailedError,
-)
+from typing import Any, Dict
+
+from sqlalchemy.orm import Session
+
+from superset.models.sql_lab import SavedQuery
 
 
-class SavedQueryBulkDeleteFailedError(DeleteFailedError):
-    message = _("Saved queries could not be deleted.")
+def import_saved_query(
+    session: Session, config: Dict[str, Any], overwrite: bool = False
+) -> SavedQuery:
+    existing = session.query(SavedQuery).filter_by(uuid=config["uuid"]).first()
+    if existing:
+        if not overwrite:
+            return existing
+        config["id"] = existing.id
 
+    saved_query = SavedQuery.import_from_dict(session, config, recursive=False)
+    if saved_query.id is None:
+        session.flush()
 
-class SavedQueryNotFoundError(CommandException):
-    message = _("Saved query not found.")
-
-
-class SavedQueryImportError(ImportFailedError):
-    message = _("Import saved query failed for an unknown reason.")
-
-
-class SavedQueryInvalidError(CommandInvalidError):
-    message = _("Saved query parameters are invalid.")
+    return saved_query
