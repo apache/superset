@@ -14,20 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Dict, Any
 import logging
+from typing import Any, Dict
+
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
+
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.dashboards.filter_sets.commands.base import BaseFilterSetCommand
-from superset.dashboards.filter_sets.commands.exceptions import FilterSetUpdateFailedError
-from superset.dashboards.filter_sets.dao import FilterSetDAO
+from superset.dashboards.filter_sets.commands.exceptions import (
+    FilterSetUpdateFailedError,
+)
 from superset.dashboards.filter_sets.consts import DASHBOARD_ID_FIELD
+from superset.dashboards.filter_sets.dao import FilterSetDAO
+
 logger = logging.getLogger(__name__)
 
 
 class UpdateFilterSetCommand(BaseFilterSetCommand):
-    def __init__(self, user: User, dashboard_id: int, filter_set_id: int, data: Dict[str, Any]):
+    def __init__(
+        self, user: User, dashboard_id: int, filter_set_id: int, data: Dict[str, Any]
+    ):
         super().__init__(user, dashboard_id)
         self._filter_set_id = filter_set_id
         self._properties = data.copy()
@@ -38,11 +45,8 @@ class UpdateFilterSetCommand(BaseFilterSetCommand):
             self._properties[DASHBOARD_ID_FIELD] = self._dashboard_id
             return FilterSetDAO.update(self._filter_set, self._properties, commit=True)
         except DAOUpdateFailedError as e:
-            raise FilterSetUpdateFailedError(str(self._filter_set_id), '', e)
+            raise FilterSetUpdateFailedError(str(self._filter_set_id), "", e)
 
     def validate(self) -> None:
         super().validate()
         self.validate_exist_filter_use_cases_set()
-
-
-

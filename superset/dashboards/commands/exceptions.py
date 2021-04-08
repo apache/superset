@@ -26,8 +26,8 @@ from superset.commands.exceptions import (
     DeleteFailedError,
     ForbiddenError,
     ImportFailedError,
+    ObjectNotFoundError,
     UpdateFailedError,
-    ObjectNotFoundError
 )
 
 
@@ -45,9 +45,10 @@ class DashboardInvalidError(CommandInvalidError):
 
 
 class DashboardNotFoundError(ObjectNotFoundError):
-    def __init__(self, dashboard_id: str = None, exception: Optional[Exception] = None) -> None:
-        super().__init__('Dashboard', dashboard_id, exception)
-
+    def __init__(
+        self, dashboard_id: str = None, exception: Optional[Exception] = None
+    ) -> None:
+        super().__init__("Dashboard", dashboard_id, exception)
 
 
 class DashboardCreateFailedError(CreateFailedError):

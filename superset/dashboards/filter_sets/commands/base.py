@@ -16,15 +16,21 @@
 # under the License.
 import logging
 from typing import Optional
+
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
+
 from superset.commands.base import BaseCommand
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
 from superset.dashboards.dao import DashboardDAO
-from superset.dashboards.filter_sets.commands.exceptions import FilterSetNotFoundError, FilterSetForbiddenError
+from superset.dashboards.filter_sets.commands.exceptions import (
+    FilterSetForbiddenError,
+    FilterSetNotFoundError,
+)
+from superset.dashboards.filter_sets.consts import USER_OWNER_TYPE
 from superset.models.dashboard import Dashboard
 from superset.models.filter_set import FilterSet
-from superset.dashboards.filter_sets.consts import USER_OWNER_TYPE
+
 logger = logging.getLogger(__name__)
 
 
@@ -50,7 +56,9 @@ class BaseFilterSetCommand(BaseCommand):
 
     def validate_exist_filter_use_cases_set(self):
         if self._filter_set_id:
-            self._filter_set = self._dashboard.filter_sets.get(self._filter_set_id, None)
+            self._filter_set = self._dashboard.filter_sets.get(
+                self._filter_set_id, None
+            )
             if not self._filter_set:
                 raise FilterSetNotFoundError(str(self._filter_set_id))
             self.check_ownership()
@@ -58,6 +66,12 @@ class BaseFilterSetCommand(BaseCommand):
     def check_ownership(self):
         if self._filter_set.owner_type == USER_OWNER_TYPE:
             if self._actor.id != self._filter_set.owner_id:
-                raise FilterSetForbiddenError(str(self._filter_set_id), "The user is not the owner of the filter_set")
+                raise FilterSetForbiddenError(
+                    str(self._filter_set_id),
+                    "The user is not the owner of the filter_set",
+                )
         elif not self.is_user_dashboard_owner():
-            raise FilterSetForbiddenError(str(self._filter_set_id), "The user is not an owner of the filter_set's dashboard")
+            raise FilterSetForbiddenError(
+                str(self._filter_set_id),
+                "The user is not an owner of the filter_set's dashboard",
+            )

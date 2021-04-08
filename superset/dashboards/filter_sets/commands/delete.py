@@ -15,11 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
+
 from superset.dao.exceptions import DAODeleteFailedError
 from superset.dashboards.filter_sets.commands.base import BaseFilterSetCommand
-from superset.dashboards.filter_sets.commands.exceptions import FilterSetNotFoundError, FilterSetForbiddenError, FilterSetDeleteFailedError
+from superset.dashboards.filter_sets.commands.exceptions import (
+    FilterSetDeleteFailedError,
+    FilterSetForbiddenError,
+    FilterSetNotFoundError,
+)
 from superset.dashboards.filter_sets.dao import FilterSetDAO
 
 logger = logging.getLogger(__name__)
@@ -35,7 +41,7 @@ class DeleteFilterSetCommand(BaseFilterSetCommand):
             self.validate()
             return FilterSetDAO.delete(self._filter_set, commit=True)
         except DAODeleteFailedError as e:
-            raise FilterSetDeleteFailedError(str(self._filter_set_id), '', e)
+            raise FilterSetDeleteFailedError(str(self._filter_set_id), "", e)
 
     def validate(self) -> None:
         super().validate()
@@ -43,9 +49,9 @@ class DeleteFilterSetCommand(BaseFilterSetCommand):
             self.validate_exist_filter_use_cases_set()
         except FilterSetNotFoundError as e:
             if FilterSetDAO.find_by_id(self._filter_set_id):
-                FilterSetForbiddenError('the filter-set does not related to dashboard "%s"' % self._dashboard_id)
+                FilterSetForbiddenError(
+                    'the filter-set does not related to dashboard "%s"'
+                    % self._dashboard_id
+                )
             else:
                 raise e
-
-
-

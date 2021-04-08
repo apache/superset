@@ -47,11 +47,13 @@ from sqlalchemy.sql import join, select
 from sqlalchemy.sql.elements import BinaryExpression
 
 from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
+from superset.common.request_contexed_based import is_user_admin
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.druid.models import DruidColumn, DruidMetric
 from superset.connectors.sqla.models import SqlMetric, TableColumn
 from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
+from superset.models.filter_set import FilterSet
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
 from superset.models.tags import DashboardUpdater
@@ -60,7 +62,6 @@ from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.utils import core as utils
 from superset.utils.decorators import debounce
 from superset.utils.urls import get_url_path
-from superset.common.request_contexed_based import is_user_admin
 
 # pylint: disable=too-many-public-methods
 
@@ -68,7 +69,6 @@ metadata = Model.metadata  # pylint: disable=no-member
 config = app.config
 logger = logging.getLogger(__name__)
 
-from superset.models.filter_set import FilterSet
 
 def copy_dashboard(
     _mapper: Mapper, connection: Connection, target: "Dashboard"
@@ -173,7 +173,9 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         mapa = {"Dashboard": [], "User": []}
         for fs in self._filter_sets:
             mapa[fs.owner_type].append(fs)
-        rv = list(filter(lambda filter_set: filter_set.owner_id == current_user, mapa["User"]))
+        rv = list(
+            filter(lambda filter_set: filter_set.owner_id == current_user, mapa["User"])
+        )
         return {fs.id: fs for fs in rv + mapa["Dashboard"]}
 
     @property

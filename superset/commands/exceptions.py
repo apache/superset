@@ -15,8 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 from typing import Any, Dict, List, Optional
+
 from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
+
 from superset.exceptions import SupersetException
 
 
@@ -31,11 +33,22 @@ class CommandException(SupersetException):
 
 class ObjectNotFoundError(CommandException):
     status = 404
-    message_format = '{} {}not found.'
+    message_format = "{} {}not found."
 
-    def __init__(self, object_type: str, object_id: str = None,
-                 exception: Optional[Exception] = None) -> None:
-        super().__init__(_(self.message_format.format(object_type, '"%s" ' % object_id if object_id else '')), exception)
+    def __init__(
+        self,
+        object_type: str,
+        object_id: str = None,
+        exception: Optional[Exception] = None,
+    ) -> None:
+        super().__init__(
+            _(
+                self.message_format.format(
+                    object_type, '"%s" ' % object_id if object_id else ""
+                )
+            ),
+            exception,
+        )
 
 
 class CommandInvalidError(CommandException):

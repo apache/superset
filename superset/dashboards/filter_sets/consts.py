@@ -14,16 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-USER_OWNER_TYPE = 'User'
-DASHBOARD_OWNER_TYPE = 'Dashboard'
+USER_OWNER_TYPE = "User"
+DASHBOARD_OWNER_TYPE = "Dashboard"
 
-NAME_FIELD = 'name'
-DESCRIPTION_FIELD = 'description'
-JSON_METADATA_FIELD = 'json_metadata'
-OWNER_ID_FIELD = 'owner_id'
-OWNER_TYPE_FIELD = 'owner_type'
-DASHBOARD_ID_FIELD = 'dashboard_id'
-OWNER_OBJECT_FIELD = 'owner_object'
-DASHBOARD_FIELD = 'dashboard'
+NAME_FIELD = "name"
+DESCRIPTION_FIELD = "description"
+JSON_METADATA_FIELD = "json_metadata"
+OWNER_ID_FIELD = "owner_id"
+OWNER_TYPE_FIELD = "owner_type"
+DASHBOARD_ID_FIELD = "dashboard_id"
+OWNER_OBJECT_FIELD = "owner_object"
+DASHBOARD_FIELD = "dashboard"
 
-FILTER_SET_API_PERMISSIONS_NAME = 'FilterSets'
+FILTER_SET_API_PERMISSIONS_NAME = "FilterSets"

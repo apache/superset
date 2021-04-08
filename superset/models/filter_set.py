@@ -15,24 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 from __future__ import annotations
-from sqlalchemy_utils import generic_relationship
+
 import json
 import logging
 from typing import Any, Dict
+
 from flask_appbuilder import Model
-from sqlalchemy import (
-    Column,
-    Integer,
-    MetaData,
-    String,
-    Text,
-    ForeignKey,
-)
-from sqlalchemy.sql.elements import BinaryExpression
+from sqlalchemy import Column, ForeignKey, Integer, MetaData, String, Text
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql.elements import BinaryExpression
+from sqlalchemy_utils import generic_relationship
+
 from superset import app, db
 from superset.models.helpers import AuditMixinNullable
-
 
 # pylint: disable=too-many-public-methods
 

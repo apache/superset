@@ -15,12 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 from __future__ import annotations
+
 from typing import List, TYPE_CHECKING
+
 from flask import g
-from superset import (
-    conf,
-    security_manager,
-)
+
+from superset import conf, security_manager
+
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import Role
 

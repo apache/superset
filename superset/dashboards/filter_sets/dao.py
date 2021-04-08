@@ -14,16 +14,24 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict
 import logging
+from typing import Any, Dict
+
 from flask_appbuilder.models.sqla import Model
 from sqlalchemy.exc import SQLAlchemyError
+
 from superset.dao.base import BaseDAO
 from superset.dao.exceptions import DAOConfigError, DAOCreateFailedError
+from superset.dashboards.filter_sets.consts import (
+    DASHBOARD_ID_FIELD,
+    DESCRIPTION_FIELD,
+    JSON_METADATA_FIELD,
+    NAME_FIELD,
+    OWNER_ID_FIELD,
+    OWNER_TYPE_FIELD,
+)
 from superset.extensions import db
 from superset.models.filter_set import FilterSet
-from superset.dashboards.filter_sets.consts import NAME_FIELD, JSON_METADATA_FIELD, \
-    DESCRIPTION_FIELD, OWNER_ID_FIELD, OWNER_TYPE_FIELD, DASHBOARD_ID_FIELD
 
 logger = logging.getLogger(__name__)
 
