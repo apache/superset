@@ -461,7 +461,11 @@ function DashboardList(props: DashboardListProps) {
         hasPerm={hasPerm}
         bulkSelectEnabled={bulkSelectEnabled}
         refreshData={refreshData}
-        showThumbnails={userKey.thumbnails}
+        showThumbnails={
+          userKey
+            ? userKey.thumbnails
+            : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+        }
         loading={loading}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
