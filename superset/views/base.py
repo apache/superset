@@ -167,7 +167,7 @@ def api(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
     def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
         try:
             return f(self, *args, **kwargs)
-        except NoAuthorizationError:
+        except NoAuthorizationError as ex: # pylint: disable=broad-except
             logger.exception(ex)            
             return json_error_response(get_error_msg(), status=401)
         except Exception as ex:  # pylint: disable=broad-except
