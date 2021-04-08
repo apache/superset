@@ -227,6 +227,25 @@ class ReportScheduleDAO(BaseDAO):
         )
 
     @staticmethod
+    def find_last_entered_working_log(
+        report_schedule: ReportSchedule, session: Optional[Session] = None,
+    ) -> Optional[ReportExecutionLog]:
+        """
+        Finds last success execution log for a given report
+        """
+        session = session or db.session
+        return (
+            session.query(ReportExecutionLog)
+            .filter(
+                ReportExecutionLog.state == ReportState.WORKING,
+                ReportExecutionLog.report_schedule == report_schedule,
+                ReportExecutionLog.error_message.is_(None),
+            )
+            .order_by(ReportExecutionLog.end_dttm.desc())
+            .first()
+        )
+
+    @staticmethod
     def find_last_error_notification(
         report_schedule: ReportSchedule, session: Optional[Session] = None,
     ) -> Optional[ReportExecutionLog]:
