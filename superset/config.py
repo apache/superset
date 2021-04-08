@@ -361,14 +361,6 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ENABLE_EXPLORE_DRAG_AND_DROP": False,
 }
 
-# Set the default view to card/grid view if thumbnail support is enabled.
-# Setting LISTVIEWS_DEFAULT_CARD_VIEW to False will force the default view to
-# always be the table layout
-if DEFAULT_FEATURE_FLAGS["THUMBNAILS"]:
-    DEFAULT_FEATURE_FLAGS["LISTVIEWS_DEFAULT_CARD_VIEW"] = True
-else:
-   DEFAULT_FEATURE_FLAGS["LISTVIEWS_DEFAULT_CARD_VIEW"] = False 
-
 # This is merely a default.
 FEATURE_FLAGS: Dict[str, bool] = {}
 
