@@ -107,6 +107,11 @@ function VizSupportValidation({ vizType }) {
   );
 }
 
+const nativeFilterGate = behaviors =>
+  !behaviors.includes(Behavior.NATIVE_FILTER) ||
+  (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+    behaviors.includes(Behavior.CROSS_FILTER));
+
 const VizTypeControl = props => {
   const [showModal, setShowModal] = useState(false);
   const [filter, setFilter] = useState('');
@@ -168,11 +173,7 @@ const VizTypeControl = props => {
   const filteredTypes = DEFAULT_ORDER.filter(type => registry.has(type))
     .filter(type => {
       const behaviors = registry.get(type)?.behaviors || [];
-      return (
-        (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
-          behaviors.includes(Behavior.CROSS_FILTER)) ||
-        !behaviors.length
-      );
+      return nativeFilterGate(behaviors);
     })
     .map(type => ({
       key: type,
@@ -183,11 +184,7 @@ const VizTypeControl = props => {
         .entries()
         .filter(entry => {
           const behaviors = entry.value?.behaviors || [];
-          return (
-            (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
-              behaviors.includes(Behavior.CROSS_FILTER)) ||
-            !behaviors.length
-          );
+          return nativeFilterGate(behaviors);
         })
         .filter(({ key }) => !typesWithDefaultOrder.has(key)),
     )

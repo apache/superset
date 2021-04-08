@@ -79,15 +79,6 @@ class TableElement extends React.PureComponent {
     this.props.actions.addQueryEditor(qe);
   }
 
-  toggleTable(e) {
-    e.preventDefault();
-    if (this.props.table.expanded) {
-      this.props.actions.collapseTable(this.props.table);
-    } else {
-      this.props.actions.expandTable(this.props.table);
-    }
-  }
-
   removeTable() {
     this.props.actions.removeDataPreview(this.props.table);
     this.props.actions.removeTable(this.props.table);
@@ -214,13 +205,7 @@ class TableElement extends React.PureComponent {
           title={table.name}
           trigger={['hover']}
         >
-          <StyledSpan
-            data-test="collapse"
-            className="table-name"
-            onClick={e => {
-              this.toggleTable(e);
-            }}
-          >
+          <StyledSpan data-test="collapse" className="table-name">
             <strong>{table.name}</strong>
           </StyledSpan>
         </Tooltip>

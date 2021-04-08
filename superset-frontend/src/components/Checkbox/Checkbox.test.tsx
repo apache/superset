@@ -24,8 +24,10 @@ import {
   styledShallow as shallow,
 } from 'spec/helpers/theming';
 
-import Checkbox from '.';
-import { CheckboxChecked, CheckboxUnchecked } from '../CheckboxIcons';
+import Checkbox, {
+  CheckboxChecked,
+  CheckboxUnchecked,
+} from 'src/components/Checkbox';
 
 describe('Checkbox', () => {
   let wrapper: ReactWrapper;

@@ -26,7 +26,7 @@ import shortid from 'shortid';
 import { styled, SupersetClient, t, supersetTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import Tabs from 'src/common/components/Tabs';
-import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
+import CertifiedIcon from 'src/components/CertifiedIcon';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import DatabaseSelector from 'src/components/DatabaseSelector';
 import Icon from 'src/components/Icon';
@@ -76,6 +76,13 @@ const FlexRowContainer = styled.div`
 
   > svg {
     margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
+`;
+
+const StyledTableTabs = styled(Tabs)`
+  overflow: visible;
+  .ant-tabs-content-holder {
+    overflow: visible;
   }
 `;
 
@@ -933,7 +940,7 @@ class DatasourceEditor extends React.PureComponent {
           metric_name: (v, onChange, _, record) => (
             <FlexRowContainer>
               {record.is_certified && (
-                <CertifiedIconWithTooltip
+                <CertifiedIcon
                   certifiedBy={record.certified_by}
                   details={record.certification_details}
                 />
@@ -995,7 +1002,7 @@ class DatasourceEditor extends React.PureComponent {
             </>
           }
         />
-        <Tabs
+        <StyledTableTabs
           fullWidth={false}
           id="table-tabs"
           data-test="edit-dataset-tabs"
@@ -1086,7 +1093,7 @@ class DatasourceEditor extends React.PureComponent {
               </Col>
             </div>
           </Tabs.TabPane>
-        </Tabs>
+        </StyledTableTabs>
       </DatasourceContainer>
     );
   }
