@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { JsonObject, styled, t } from '@superset-ui/core';
 import Collapse from 'src/common/components/Collapse';
 import Tabs from 'src/common/components/Tabs';
 import Loading from 'src/components/Loading';
@@ -35,7 +35,6 @@ import {
   useFilteredTableData,
   useTableColumns,
 } from 'src/explore/components/DataTableControl';
-import { JsonObject } from '../../../cypress-base/cypress/utils';
 
 const RESULT_TYPES = {
   results: 'results' as const,

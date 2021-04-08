@@ -107,7 +107,7 @@ export class ExploreChartHeader extends React.PureComponent {
       true,
       this.props.timeout,
       this.props.chart.id,
-      this.props.ownState
+      this.props.ownState,
     );
   }
 

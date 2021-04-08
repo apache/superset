@@ -207,7 +207,7 @@ export async function getChartDataRequest({
   force = false,
   method = 'POST',
   requestParams = {},
-  ownState = {}
+  ownState = {},
 }) {
   let querySettings = {
     ...requestParams,
@@ -378,7 +378,7 @@ export function exploreJSON(
       force,
       method,
       requestParams,
-      ownState
+      ownState,
     });
 
     dispatch(chartUpdateStarted(controller, formData, key));
@@ -488,7 +488,15 @@ export function getSavedChart(
    *  GET  /explore_json?{"chart_id":1,"extra_filters":"..."}
    *
    */
-  return exploreJSON(formData, force, timeout, key, 'GET', dashboardId, ownState);
+  return exploreJSON(
+    formData,
+    force,
+    timeout,
+    key,
+    'GET',
+    dashboardId,
+    ownState,
+  );
 }
 
 export const POST_CHART_FORM_DATA = 'POST_CHART_FORM_DATA';
@@ -506,7 +514,15 @@ export function postChartFormData(
    * This will post the form data to the endpoint, returning a new chart.
    *
    */
-  return exploreJSON(formData, force, timeout, key, 'POST', dashboardId, ownState);
+  return exploreJSON(
+    formData,
+    force,
+    timeout,
+    key,
+    'POST',
+    dashboardId,
+    ownState,
+  );
 }
 
 export function redirectSQLLab(formData) {
