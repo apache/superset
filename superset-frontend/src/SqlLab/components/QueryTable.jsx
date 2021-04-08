@@ -44,8 +44,8 @@ const propTypes = {
 const defaultProps = {
   columns: ['started', 'duration', 'rows'],
   queries: [],
-  onUserClicked: () => { },
-  onDbClicked: () => { },
+  onUserClicked: () => {},
+  onDbClicked: () => {},
 };
 
 const openQuery = id => {
