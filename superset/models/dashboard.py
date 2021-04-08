@@ -22,6 +22,7 @@ from functools import partial
 from typing import Any, Callable, Dict, List, Set, Union
 
 import sqlalchemy as sqla
+from flask import g
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
@@ -59,6 +60,7 @@ from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.utils import core as utils
 from superset.utils.decorators import debounce
 from superset.utils.urls import get_url_path
+from superset.common.request_contexed_based import is_user_admin
 
 # pylint: disable=too-many-public-methods
 
@@ -66,6 +68,7 @@ metadata = Model.metadata  # pylint: disable=no-member
 config = app.config
 logger = logging.getLogger(__name__)
 
+from superset.models.filter_set import FilterSet
 
 def copy_dashboard(
     _mapper: Mapper, connection: Connection, target: "Dashboard"
@@ -149,6 +152,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
     published = Column(Boolean, default=False)
     roles = relationship(security_manager.role_model, secondary=DashboardRoles)
+    _filter_sets = relationship(FilterSet, back_populates="dashboard")
     export_fields = [
         "dashboard_title",
         "position_json",
@@ -160,6 +164,17 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     def __repr__(self) -> str:
         return f"Dashboard<{self.id or self.slug}>"
+
+    @property
+    def filter_sets(self):
+        if is_user_admin():
+            return self._filter_set
+        current_user = g.user.id
+        mapa = {"Dashboard": [], "User": []}
+        for fs in self._filter_sets:
+            mapa[fs.owner_type].append(fs)
+        rv = list(filter(lambda filter_set: filter_set.owner_id == current_user, mapa["User"]))
+        return {fs.id: fs for fs in rv + mapa["Dashboard"]}
 
     @property
     def table_names(self) -> str:
@@ -372,6 +387,12 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         session = db.session()
         qry = session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
         return qry.one_or_none()
+
+    def am_i_owner(self):
+        if g.user is None or g.user.is_anonymous or not g.user.is_authenticated:
+            return False
+        else:
+            return g.user.id in set(map(lambda user: user.id, self.owners))
 
 
 def id_or_slug_filter(id_or_slug: str) -> BinaryExpression:

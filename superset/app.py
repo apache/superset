@@ -523,6 +523,8 @@ class SupersetAppInitializer:
                     icon="fa-cog",
                 )
             appbuilder.add_separator("Data")
+        from superset.dashboards.filter_sets.api import FilterSetRestApi
+        appbuilder.add_api(FilterSetRestApi)
 
     def init_app_in_ctx(self) -> None:
         """
