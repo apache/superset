@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import dataclasses
 import json
 import logging
 import re
@@ -1456,7 +1457,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 "Query %s on schema %s failed", sql, self.schema, exc_info=True
             )
             db_engine_spec = self.database.db_engine_spec
-            errors = db_engine_spec.extract_errors(ex)
+            errors = [
+                dataclasses.asdict(error) for error in db_engine_spec.extract_errors(ex)
+            ]
             error_message = utils.error_msg_from_exception(ex)
 
         return QueryResult(
