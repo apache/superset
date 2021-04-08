@@ -116,7 +116,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (formData: TableChartFormData
     options?.hooks?.setCachedChanges({ [formData.slice_id]: queryObject.filters });
 
     const extraQueries: QueryObject[] = [];
-    if (metrics && formData.show_totals && queryMode === QueryMode.aggregate) {
+    if (metrics?.length && formData.show_totals && queryMode === QueryMode.aggregate) {
       extraQueries.push({
         ...queryObject,
         columns: [],
