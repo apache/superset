@@ -40,6 +40,7 @@ class SupersetErrorType(str, Enum):
     COLUMN_DOES_NOT_EXIST_ERROR = "COLUMN_DOES_NOT_EXIST_ERROR"
     TABLE_DOES_NOT_EXIST_ERROR = "TABLE_DOES_NOT_EXIST_ERROR"
     TEST_CONNECTION_INVALID_USERNAME_ERROR = "TEST_CONNECTION_INVALID_USERNAME_ERROR"
+    TEST_CONNECTION_INVALID_PASSWORD_ERROR = "TEST_CONNECTION_INVALID_PASSWORD_ERROR"
     TEST_CONNECTION_INVALID_HOSTNAME_ERROR = "TEST_CONNECTION_INVALID_HOSTNAME_ERROR"
     TEST_CONNECTION_PORT_CLOSED_ERROR = "TEST_CONNECTION_PORT_CLOSED_ERROR"
     TEST_CONNECTION_HOST_DOWN_ERROR = "TEST_CONNECTION_HOST_DOWN_ERROR"
@@ -159,6 +160,15 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
             "code": 1012,
             "message": _(
                 "Issue 1012 - The username provided when "
+                "connecting to a database is not valid."
+            ),
+        },
+    ],
+    SupersetErrorType.TEST_CONNECTION_INVALID_PASSWORD_ERROR: [
+        {
+            "code": 1013,
+            "message": _(
+                "Issue 1013 - The password provided when "
                 "connecting to a database is not valid."
             ),
         },
