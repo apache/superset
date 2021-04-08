@@ -17,10 +17,11 @@
  * under the License.
  */
 import React from 'react';
-import { Panel } from 'react-bootstrap';
+// import { Panel } from 'react-bootstrap';
+import Collapse from 'src/common/components/Collapse';
 import Button from 'src/components/Button';
 import Select from 'src/components/Select';
-import { t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 
 import VizTypeControl from '../explore/components/controls/VizTypeControl';
 
@@ -41,6 +42,21 @@ export type AddSliceContainerState = {
 };
 
 const styleSelectContainer = { width: 600, marginBottom: '10px' };
+const StyledContainer = styled.div`
+  h3 {
+    margin-left: ${({ theme }) => theme.gridUnit * -6 + (-1)}px;
+  }
+  .ant-collapse-header {
+    background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  }
+  .ant-collapse-content {
+    margin-top:${({ theme }) => theme.gridUnit * -5}px;
+    border-top: none;
+  }
+  .ant-collapse > .ant-collapse-item > .ant-collapse-header .ant-collapse-arrow {
+    display: none;
+  }
+`;
 
 export default class AddSliceContainer extends React.PureComponent<
   AddSliceContainerProps,
@@ -88,12 +104,16 @@ export default class AddSliceContainer extends React.PureComponent<
 
   render() {
     return (
-      <div className="container">
-        <Panel>
-          <Panel.Heading>
-            <h3>{t('Create a new chart')}</h3>
-          </Panel.Heading>
-          <Panel.Body>
+      <StyledContainer className="container">
+        <Collapse
+          defaultActiveKey={['1']}
+        >
+          <Collapse.Panel 
+            header={ 
+              <h3>{t('Create a new chart')}</h3>
+            }
+            key="1"
+          >
             <div>
               <p>{t('Choose a dataset')}</p>
               <div style={styleSelectContainer}>
@@ -148,9 +168,9 @@ export default class AddSliceContainer extends React.PureComponent<
             </Button>
             <br />
             <br />
-          </Panel.Body>
-        </Panel>
-      </div>
+          </Collapse.Panel>
+        </Collapse>
+      </StyledContainer>
     );
   }
 }
