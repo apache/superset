@@ -251,9 +251,16 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 
 #### Test Environments
 
-- Members of the Apache GitHub org can launch an ephemeral test environment directly on a pull request by creating a comment containing (only) the command `/testenv up`
+- Members of the Apache GitHub org can launch an ephemeral test environment directly on a pull request by creating a comment containing (only) the command `/testenv up`.
+  - Note that org membership must be public in order for this validation to function properly.
+- Feature flags may be set for a test environment by specifying the flag name (prefixed with `FEATURE_`) and value after the command.
+  - Format: `/testenv up FEATURE_<feature flag name>=true|false`
+  - Example: `/testenv up FEATURE_DASHBOARD_NATIVE_FILTERS=true`
+  - Multiple feature flags may be set in single command, separated by whitespace
 - A comment will be created by the workflow script with the address and login information for the ephemeral environment.
 - Test environments may be created once the Docker build CI workflow for the PR has completed successfully.
+- Test environments do not currently update automatically when new commits are added to a pull request.
+- Test environments do not currently support async workers, though this is planned.
 - Running test environments will be shutdown upon closing the pull request.
 
 #### Merging
