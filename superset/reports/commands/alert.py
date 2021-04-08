@@ -17,6 +17,7 @@
 import json
 import logging
 from operator import eq, ge, gt, le, lt, ne
+from timeit import default_timer
 from typing import Optional
 
 import numpy as np
@@ -145,7 +146,15 @@ class AlertCommand(BaseCommand):
             limited_rendered_sql = self._report_schedule.database.apply_limit_to_sql(
                 rendered_sql, ALERT_SQL_LIMIT
             )
-            return self._report_schedule.database.get_df(limited_rendered_sql)
+            start = default_timer()
+            df = self._report_schedule.database.get_df(limited_rendered_sql)
+            stop = default_timer()
+            logger.info(
+                "Query for %s took %.2f ms",
+                self._report_schedule.name,
+                (stop - start) * 1000.0,
+            )
+            return df
         except SoftTimeLimitExceeded:
             raise AlertQueryTimeout()
         except Exception as ex:
