@@ -100,7 +100,7 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
           row: {
             original: { uuid: executionId },
           },
-        }: any) => executionId.slice(0, 6),
+        }: any) => (executionId ? executionId.slice(0, 6) : 'none'),
         accessor: 'uuid',
         Header: t('Execution ID'),
         size: 'xs',
