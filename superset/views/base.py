@@ -46,6 +46,7 @@ from superset import (
     get_feature_flags,
     security_manager,
 )
+from superset.common.request_contexed_based import is_user_admin as common_is_user_admin, get_user_roles as common_get_user_roles
 from superset.connectors.sqla import models
 from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -239,15 +240,11 @@ def create_table_permissions(table: models.SqlaTable) -> None:
 
 
 def get_user_roles() -> List[Role]:
-    if g.user.is_anonymous:
-        public_role = conf.get("AUTH_ROLE_PUBLIC")
-        return [security_manager.find_role(public_role)] if public_role else []
-    return g.user.roles
+    return common_get_user_roles()
 
 
 def is_user_admin() -> bool:
-    user_roles = [role.name.lower() for role in list(get_user_roles())]
-    return "admin" in user_roles
+    return common_is_user_admin()
 
 
 class BaseSupersetView(BaseView):
