@@ -224,12 +224,12 @@ class TableColumn(Model, BaseColumn):
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.column_name
+        db_engine_spec = self.table.database.db_engine_spec
+        column_spec = db_engine_spec.get_column_spec(self.type)
+        type_ = column_spec.sqla_type if column_spec else None
         if self.expression:
-            col = literal_column(self.expression)
+            col = literal_column(self.expression, type_=type_)
         else:
-            db_engine_spec = self.table.database.db_engine_spec
-            column_spec = db_engine_spec.get_column_spec(self.type)
-            type_ = column_spec.sqla_type if column_spec else None
             col = column(self.column_name, type_=type_)
         col = self.table.make_sqla_column_compatible(col, label)
         return col
