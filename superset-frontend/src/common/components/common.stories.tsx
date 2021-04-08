@@ -22,17 +22,11 @@ import { withKnobs, boolean, select } from '@storybook/addon-knobs';
 import Button from 'src/components/Button';
 import Modal from './Modal';
 import Tabs, { EditableTabs } from './Tabs';
-import AntdPopover from './Popover';
 import { Tooltip as AntdTooltip } from './Tooltip';
 import { Switch as AntdSwitch } from './Switch';
 import { Menu, Input, Divider } from '.';
 import { Dropdown } from './Dropdown';
 import InfoTooltip from './InfoTooltip';
-import {
-  DatePicker as AntdDatePicker,
-  RangePicker as AntdRangePicker,
-} from './DatePicker';
-import ProgressBar from './ProgressBar';
 import { CronPicker, CronError } from './CronPicker';
 
 export default {
@@ -128,34 +122,6 @@ export const TabsWithDropdownMenu = () => (
   </EditableTabs>
 );
 
-export const Popover = () => (
-  <AntdPopover
-    trigger={select('Trigger', ['click', 'hover', 'focus'], 'click')}
-    placement={select(
-      'Placement',
-      [
-        'topLeft',
-        'top',
-        'topRight',
-        'leftTop',
-        'left',
-        'leftBottom',
-        'rightTop',
-        'right',
-        'rightBottom',
-        'bottomLeft',
-        'bottom',
-        'bottomRight',
-      ],
-      'topLeft',
-    )}
-    arrowPointAtCenter={boolean('Arrow point at center', false)}
-    content={<div>CONTENT</div>}
-  >
-    <Button>TRIGGER</Button>
-  </AntdPopover>
-);
-
 export const Tooltip = () => (
   <AntdTooltip
     title="This is a Tooltip"
@@ -231,19 +197,6 @@ StyledInfoTooltip.argTypes = {
     },
   },
 };
-
-export const DatePicker = () => <AntdDatePicker showTime />;
-export const DateRangePicker = () => (
-  <AntdRangePicker
-    format="YYYY-MM-DD hh:mm a"
-    showTime={{ format: 'hh:mm a' }}
-    use12Hours
-  />
-);
-
-export const Progress = () => <ProgressBar percent={90} />;
-export const ProgressStriped = () => <ProgressBar percent={90} striped />;
-export const ProgressSuccess = () => <ProgressBar percent={100} />;
 
 export const Switch = () => (
   <>

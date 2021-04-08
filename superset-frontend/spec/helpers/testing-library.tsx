@@ -23,34 +23,41 @@ import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { Provider } from 'react-redux';
 import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import reducerIndex from 'spec/helpers/reducerIndex';
 
 type Options = Omit<RenderOptions, 'queries'> & {
   useRedux?: boolean;
+  useDnd?: boolean;
   initialState?: {};
   reducers?: {};
 };
 
 function createWrapper(options?: Options) {
-  const { useRedux, initialState, reducers } = options || {};
+  const { useDnd, useRedux, initialState, reducers } = options || {};
 
-  if (useRedux) {
-    const store = createStore(
-      combineReducers(reducers || reducerIndex),
-      initialState || {},
-      compose(applyMiddleware(thunk)),
+  return ({ children }: { children?: ReactNode }) => {
+    let result = (
+      <ThemeProvider theme={supersetTheme}>{children}</ThemeProvider>
     );
 
-    return ({ children }: { children?: ReactNode }) => (
-      <Provider store={store}>
-        <ThemeProvider theme={supersetTheme}>{children}</ThemeProvider>
-      </Provider>
-    );
-  }
+    if (useDnd) {
+      result = <DndProvider backend={HTML5Backend}>{result}</DndProvider>;
+    }
 
-  return ({ children }: { children?: ReactNode }) => (
-    <ThemeProvider theme={supersetTheme}>{children}</ThemeProvider>
-  );
+    if (useRedux) {
+      const store = createStore(
+        combineReducers(reducers || reducerIndex),
+        initialState || {},
+        compose(applyMiddleware(thunk)),
+      );
+
+      result = <Provider store={store}>{result}</Provider>;
+    }
+
+    return result;
+  };
 }
 
 const customRender = (ui: ReactElement, options?: Options) =>

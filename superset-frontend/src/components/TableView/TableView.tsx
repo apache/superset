@@ -26,8 +26,8 @@ import { SortColumns } from './types';
 const DEFAULT_PAGE_SIZE = 10;
 
 export enum EmptyWrapperType {
-  Default,
-  Small,
+  Default = 'Default',
+  Small = 'Small',
 }
 
 export interface TableViewProps {
@@ -77,7 +77,7 @@ const TableViewStyles = styled.div<{
       isPaginationSticky &&
       `
         position: sticky;
-        bottom: ${theme.gridUnit * 4}px;
+        bottom: 0;
         left: 0;
     `};
   }

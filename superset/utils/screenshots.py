@@ -151,13 +151,13 @@ class BaseScreenshot:
         try:
             payload = self.get_screenshot(user=user, window_size=window_size)
         except Exception as ex:  # pylint: disable=broad-except
-            logger.error("Failed at generating thumbnail %s", ex)
+            logger.warning("Failed at generating thumbnail %s", ex, exc_info=True)
 
         if payload and window_size != thumb_size:
             try:
                 payload = self.resize_image(payload, thumb_size=thumb_size)
             except Exception as ex:  # pylint: disable=broad-except
-                logger.error("Failed at resizing thumbnail %s", ex)
+                logger.warning("Failed at resizing thumbnail %s", ex, exc_info=True)
                 payload = None
 
         if payload:

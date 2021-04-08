@@ -40,11 +40,16 @@ export type Chart = {
   };
 };
 
+export type DashboardLayout = { [key: string]: LayoutItem };
+export type DashboardLayoutState = { present: DashboardLayout };
+export type DashboardState = { editMode: boolean; directPathToChild: string[] };
+
 /** Root state of redux */
 export type RootState = {
   charts: { [key: string]: Chart };
-  dashboardLayout: { present: { [key: string]: LayoutItem } };
+  dashboardLayout: DashboardLayoutState;
   dashboardFilters: {};
+  dashboardState: DashboardState;
   dataMask: DataMaskStateWithId;
 };
 
