@@ -33,7 +33,7 @@ import {
   LOCALSTORAGE_MAX_QUERY_AGE_MS,
 } from '../../constants';
 
-const TAB_HEIGHT = 64;
+const TAB_HEIGHT = 90;
 
 /*
     editorQueries are queries executed by users passed from SqlEditor component
@@ -63,7 +63,6 @@ const StyledPane = styled.div`
     flex-direction: column;
   }
   .tab-content {
-    overflow: hidden;
     .alert {
       margin-top: ${({ theme }) => theme.gridUnit * 2}px;
     }

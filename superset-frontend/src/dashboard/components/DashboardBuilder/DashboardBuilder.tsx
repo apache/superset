@@ -112,6 +112,10 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const filters = useFilters();
   const filterValues = Object.values<Filter>(filters);
 
+  const nativeFiltersEnabled = isFeatureEnabled(
+    FeatureFlag.DASHBOARD_NATIVE_FILTERS,
+  );
+
   const [dashboardFiltersOpen, setDashboardFiltersOpen] = useState(true);
 
   const toggleDashboardFiltersOpen = (visible?: boolean) => {
@@ -150,7 +154,11 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     (topLevelTabs ? TABS_HEIGHT : 0);
 
   useEffect(() => {
-    if (filterValues.length === 0 && dashboardFiltersOpen) {
+    if (
+      filterValues.length === 0 &&
+      dashboardFiltersOpen &&
+      nativeFiltersEnabled
+    ) {
       toggleDashboardFiltersOpen(false);
     }
   }, [filterValues.length]);
@@ -215,7 +223,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
         className="dashboard-content"
         dashboardFiltersOpen={dashboardFiltersOpen}
       >
-        {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && !editMode && (
+        {nativeFiltersEnabled && !editMode && (
           <StickyVerticalBar
             filtersOpen={dashboardFiltersOpen}
             topOffset={barTopOffset}
