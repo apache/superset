@@ -25,9 +25,11 @@ import importlib.util
 import json
 import logging
 import os
+import re
 import sys
 from collections import OrderedDict
 from datetime import date
+from distutils.util import strtobool
 from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
 from cachelib.base import BaseCache
@@ -296,7 +298,7 @@ LANGUAGES = {}
 # Feature flags
 # ---------------------------------------------------
 # Feature flags that are set by default go here. Their values can be
-# overwritten by those specified under FEATURE_FLAGS in super_config.py
+# overwritten by those specified under FEATURE_FLAGS in superset_config.py
 # For example, DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False } here
 # and FEATURE_FLAGS = { 'BAR': True, 'BAZ': True } in superset_config.py
 # will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
@@ -373,6 +375,15 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
 # always be the table layout
 if DEFAULT_FEATURE_FLAGS["THUMBNAILS"]:
     DEFAULT_FEATURE_FLAGS["LISTVIEWS_DEFAULT_CARD_VIEW"] = True
+
+# Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
+DEFAULT_FEATURE_FLAGS.update(
+    {
+        k[len("SUPERSET_FEATURE_") :]: bool(strtobool(v))
+        for k, v in os.environ.items()
+        if re.search(r"^SUPERSET_FEATURE_\w+", k)
+    }
+)
 
 # This is merely a default.
 FEATURE_FLAGS: Dict[str, bool] = {}
@@ -721,7 +732,7 @@ ESTIMATE_QUERY_COST = False
 #
 #     return out
 #
-# DEFAULT_FEATURE_FLAGS = {
+# FEATURE_FLAGS = {
 #     "ESTIMATE_QUERY_COST": True,
 #     "QUERY_COST_FORMATTERS_BY_ENGINE": {"postgresql": postgres_query_cost_formatter},
 # }
