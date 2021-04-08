@@ -923,7 +923,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     )
                 )
 
-    def raise_for_access(  # pylint: disable=too-many-arguments,too-many-branches
+    def raise_for_access(
+        # pylint: disable=too-many-arguments,too-many-branches,
+        # pylint: disable=too-many-locals
         self,
         database: Optional["Database"] = None,
         datasource: Optional["BaseDatasource"] = None,
@@ -1140,7 +1142,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.models.dashboard import Dashboard
 
         table_type = ConnectorRegistry.sources["table"]
-        query = db.session.query(table_type).join(Slice.table).filter(table_type.id == datasource.id)
+        query = (
+            db.session.query(table_type)
+            .join(Slice.table)
+            .filter(table_type.id == datasource.id)
+        )
 
         query = DashboardFilter("id", SQLAInterface(Dashboard, db.session)).apply(
             query, None
