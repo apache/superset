@@ -26,10 +26,9 @@ def import_saved_query(
     session: Session, config: Dict[str, Any], overwrite: bool = False
 ) -> SavedQuery:
     existing = session.query(SavedQuery).filter_by(uuid=config["uuid"]).first()
-    if existing:
-        if not overwrite:
+    if existing and not overwrite:
             return existing
-        config["id"] = existing.id
+    config["id"] = existing.id
 
     saved_query = SavedQuery.import_from_dict(session, config, recursive=False)
     if saved_query.id is None:
