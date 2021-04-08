@@ -84,7 +84,9 @@ class BaseReportState:
         self._execution_id = execution_id
 
     def set_state_and_log(
-        self, state: ReportState, error_message: Optional[str] = None,
+        self,
+        state: ReportState,
+        error_message: Optional[str] = None,
     ) -> None:
         """
         Updates current ReportSchedule state and TS. If on final state writes the log
@@ -93,7 +95,8 @@ class BaseReportState:
         now_dttm = datetime.utcnow()
         self.set_state(state, now_dttm)
         self.create_log(
-            state, error_message=error_message,
+            state,
+            error_message=error_message,
         )
 
     def set_state(self, state: ReportState, dttm: datetime) -> None:
@@ -107,7 +110,9 @@ class BaseReportState:
         self._session.commit()
 
     def create_log(  # pylint: disable=too-many-arguments
-        self, state: ReportState, error_message: Optional[str] = None,
+        self,
+        state: ReportState,
+        error_message: Optional[str] = None,
     ) -> None:
         """
         Creates a Report execution log, uses the current computed last_value for Alerts
@@ -223,7 +228,7 @@ class BaseReportState:
             name=name,
             url=url,
             screenshot=screenshot_data,
-            description=self._report_schedule.description
+            description=self._report_schedule.description,
         )
 
     def _send(self, notification_content: NotificationContent) -> None:
@@ -366,12 +371,14 @@ class ReportWorkingState(BaseReportState):
         if self.is_on_working_timeout():
             exception_timeout = ReportScheduleWorkingTimeoutError()
             self.set_state_and_log(
-                ReportState.ERROR, error_message=str(exception_timeout),
+                ReportState.ERROR,
+                error_message=str(exception_timeout),
             )
             raise exception_timeout
         exception_working = ReportSchedulePreviousWorkingError()
         self.set_state_and_log(
-            ReportState.WORKING, error_message=str(exception_working),
+            ReportState.WORKING,
+            error_message=str(exception_working),
         )
         raise exception_working
 

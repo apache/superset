@@ -90,7 +90,10 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
             # files_upload returns SlackResponse as we run it in sync mode.
             if file:
                 client.files_upload(
-                    channels=channel, file=file, initial_comment=body, title="subject",
+                    channels=channel,
+                    file=file,
+                    initial_comment=body,
+                    title="subject",
                 )
             else:
                 client.chat_postMessage(channel=channel, text=body)
