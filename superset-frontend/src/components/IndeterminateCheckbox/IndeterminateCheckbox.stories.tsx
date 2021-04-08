@@ -17,24 +17,29 @@
  * under the License.
  */
 import React from 'react';
-import { mount } from 'enzyme';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import CssEditor from 'src/dashboard/components/CssEditor';
+import IndeterminateCheckbox, { IndeterminateCheckboxProps } from '.';
 
-describe('CssEditor', () => {
-  const mockedProps = {
-    triggerNode: <i className="fa fa-edit" />,
-  };
-  it('is valid', () => {
-    expect(React.isValidElement(<CssEditor {...mockedProps} />)).toBe(true);
-  });
-  it('renders the trigger node', () => {
-    const wrapper = mount(<CssEditor {...mockedProps} />, {
-      wrappingComponent: ThemeProvider,
-      wrappingComponentProps: {
-        theme: supersetTheme,
-      },
-    });
-    expect(wrapper.find('.fa-edit')).toExist();
-  });
-});
+export default {
+  title: 'IndeterminateCheckbox',
+  component: IndeterminateCheckbox,
+};
+
+export const InteractiveIndeterminateCheckbox = (
+  args: IndeterminateCheckboxProps,
+) => <IndeterminateCheckbox {...args} />;
+
+InteractiveIndeterminateCheckbox.args = {
+  checked: false,
+  id: 'checkbox-id',
+  indeterminate: false,
+  title: 'Checkbox title',
+  onChange: () => null,
+};
+
+InteractiveIndeterminateCheckbox.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};
