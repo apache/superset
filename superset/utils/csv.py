@@ -70,10 +70,10 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
 
 
 def get_chart_csv_data(
-    chart_url: Optional[str], auth_cookies: Optional[Dict[str, str]] = None
+    chart_url: str, auth_cookies: Optional[Dict[str, str]] = None
 ) -> Optional[bytes]:
     content = None
-    if chart_url and auth_cookies:
+    if auth_cookies:
         opener = urllib.request.build_opener()
         cookie_str = ";".join([f"{key}={val}" for key, val in auth_cookies.items()])
         opener.addheaders.append(("Cookie", cookie_str))

@@ -268,7 +268,7 @@ class BaseReportState:
             url=url,
             screenshot=screenshot_data,
             description=self._report_schedule.description,
-            csv=csv_data
+            csv=csv_data,
         )
 
     @staticmethod

@@ -26,6 +26,7 @@ import Modal from 'src/common/components/Modal';
 import { Switch } from 'src/common/components/Switch';
 import { Radio } from 'src/common/components/Radio';
 import { AsyncSelect, NativeGraySelect as Select } from 'src/components/Select';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Owner from 'src/types/Owner';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
@@ -393,6 +394,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [chartOptions, setChartOptions] = useState<MetaObject[]>([]);
 
   const isEditMode = alert !== null;
+  const formatOptionEnabled =
+    contentType === 'chart' &&
+    (isFeatureEnabled(FeatureFlag.ALERTS_ATTACH_REPORTS) || isReport);
 
   const [
     notificationAddState,
@@ -1226,7 +1230,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <Radio value="chart">Chart</Radio>
               </Radio.Group>
             </div>
-            {contentType === 'chart' && (
+            {formatOptionEnabled && (
               <div className="inline-container add-margin">
                 <Radio.Group onChange={onFormatChange} value={reportFormat}>
                   <Radio value="PNG">PNG</Radio>

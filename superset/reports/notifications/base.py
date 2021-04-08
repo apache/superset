@@ -31,7 +31,6 @@ class NotificationContent:
     url: Optional[str] = None  # url to chart/dashboard for this screenshot
 
 
-
 class BaseNotification:  # pylint: disable=too-few-public-methods
     """
     Serves has base for all notifications and creates a simple plugin system
