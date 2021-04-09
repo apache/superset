@@ -54,6 +54,7 @@ export type EchartsTimeseriesFormData = {
   rowLimit: number;
   seriesType: EchartsTimeseriesSeriesType;
   stack: boolean;
+  tooltipTimeFormat?: string;
   truncateYAxis: boolean;
   yAxisFormat?: string;
   xAxisShowMinLabel?: boolean;
@@ -85,11 +86,12 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   rowLimit: 10000,
   seriesType: EchartsTimeseriesSeriesType.Line,
   stack: false,
+  tooltipTimeFormat: 'smart_date',
   truncateYAxis: true,
   yAxisBounds: [null, null],
-  xAxisShowMinLabel: true,
-  xAxisShowMaxLabel: true,
+  xAxisShowMinLabel: false,
+  xAxisShowMaxLabel: false,
   zoomable: false,
   richTooltip: true,
-  xAxisLabelRotation: 45,
+  xAxisLabelRotation: 0,
 };
