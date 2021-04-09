@@ -36,7 +36,12 @@ import { EChartsOption, SeriesOption } from 'echarts';
 import { DEFAULT_FORM_DATA, EchartsTimeseriesFormData } from './types';
 import { EchartsProps, ForecastSeriesEnum, ProphetValue, LegendOrientation } from '../types';
 import { parseYAxisBound } from '../utils/controls';
-import { extractTimeseriesSeries, getChartPadding, getLegendProps } from '../utils/series';
+import {
+  dedupSeries,
+  extractTimeseriesSeries,
+  getChartPadding,
+  getLegendProps,
+} from '../utils/series';
 import { extractAnnotationLabels } from '../utils/annotation';
 import {
   extractForecastSeriesContext,
@@ -214,7 +219,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
         .map(entry => entry.name || '')
         .concat(extractAnnotationLabels(annotationLayers, annotationData)),
     },
-    series,
+    series: dedupSeries(series),
     toolbox: {
       show: zoomable,
       top: TIMESERIES_CONSTANTS.toolboxTop,

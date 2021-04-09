@@ -18,6 +18,7 @@
  */
 import { getNumberFormatter, getTimeFormatter } from '@superset-ui/core';
 import {
+  dedupSeries,
   extractGroupbyLabel,
   extractTimeseriesSeries,
   formatSeriesName,
@@ -326,6 +327,27 @@ describe('formatSeriesName', () => {
         right: 0,
         top: 0,
       });
+    });
+  });
+
+  describe('dedupSeries', () => {
+    it('should deduplicate ids in series', () => {
+      expect(
+        dedupSeries([
+          {
+            id: 'foo',
+          },
+          {
+            id: 'bar',
+          },
+          {
+            id: 'foo',
+          },
+          {
+            id: 'foo',
+          },
+        ]),
+      ).toEqual([{ id: 'foo' }, { id: 'bar' }, { id: 'foo (1)' }, { id: 'foo (2)' }]);
     });
   });
 });
