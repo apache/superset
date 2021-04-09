@@ -44,6 +44,7 @@ class SupersetErrorType(str, Enum):
     TEST_CONNECTION_INVALID_HOSTNAME_ERROR = "TEST_CONNECTION_INVALID_HOSTNAME_ERROR"
     TEST_CONNECTION_PORT_CLOSED_ERROR = "TEST_CONNECTION_PORT_CLOSED_ERROR"
     TEST_CONNECTION_HOST_DOWN_ERROR = "TEST_CONNECTION_HOST_DOWN_ERROR"
+    TEST_CONNECTION_ACCESS_DENIED_ERROR = "TEST_CONNECTION_ACCESS_DENIED_ERROR"
 
     # Viz errors
     VIZ_GET_DF_ERROR = "VIZ_GET_DF_ERROR"
@@ -164,6 +165,7 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
             ),
         },
     ],
+<<<<<<< HEAD
     SupersetErrorType.TEST_CONNECTION_INVALID_PASSWORD_ERROR: [
         {
             "code": 1013,
@@ -172,6 +174,15 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
                 "connecting to a database is not valid."
             ),
         },
+=======
+    SupersetErrorType.TEST_CONNECTION_ACCESS_DENIED_ERROR: [
+        {
+            "code": 1013,
+            "message": _(
+                "Issue 1013 - Either the username or " "the password is wrong."
+            ),
+        }
+>>>>>>> custom errors for mySQL
     ],
 }
 
