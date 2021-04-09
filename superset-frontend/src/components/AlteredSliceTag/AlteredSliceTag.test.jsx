@@ -148,7 +148,7 @@ describe('AlteredSliceTag', () => {
       const td = getTableWrapperFromModalBody(modalBody).find('td');
       expect(td).toHaveLength(21);
       ['control', 'before', 'after'].forEach((v, i) => {
-        expect(td.find('Cell').get(0).props.columns[i].id).toBe(v);
+        expect(td.find('defaultRenderer').get(0).props.columns[i].id).toBe(v);
       });
     });
   });
