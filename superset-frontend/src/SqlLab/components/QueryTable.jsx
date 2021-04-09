@@ -19,7 +19,7 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { Well } from 'react-bootstrap';
+import Card from 'src/common/components/Card';
 import ProgressBar from 'src/components/ProgressBar';
 import Label from 'src/components/Label';
 import { t } from '@superset-ui/core';
@@ -129,14 +129,14 @@ const QueryTable = props => {
           </Button>
         );
         q.sql = (
-          <Well>
+          <Card>
             <HighlightedSql
               sql={q.sql}
               rawSql={q.executedSql}
               shrink
               maxWidth={60}
             />
-          </Well>
+          </Card>
         );
         if (q.resultsKey) {
           q.output = (
