@@ -31,3 +31,13 @@ for more details.
   }]}
 />
 ```
+
+### Update Map
+
+To update the country maps or add a new country, run scripts in the Jupyter notebook
+`scripts/Country Map GeoJSON Generator.ipynb`.
+
+```bash
+pip install jupyter notebook
+jupyter notebook
+```
