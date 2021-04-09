@@ -237,10 +237,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             </ErrorBoundary>
           </StickyVerticalBar>
         )}
-        <DashboardContainer
-          topLevelTabs={topLevelTabs}
-          handleChangeTab={handleChangeTab}
-        />
+        <DashboardContainer topLevelTabs={topLevelTabs} />
         {editMode && <BuilderComponentPane topOffset={barTopOffset} />}
       </StyledDashboardContent>
       <ToastPresenter />
