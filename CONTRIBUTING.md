@@ -442,7 +442,7 @@ superset db upgrade
 # Create default roles and permissions
 superset init
 
-# Load some data to play with
+# Load some data to play with (you must create an Admin user with the username `admin` for this command to work)
 superset load-examples
 
 # Start the Flask dev web server from inside your virtualenv.
