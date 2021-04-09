@@ -43,16 +43,19 @@ export type AddSliceContainerState = {
 const styleSelectContainer = { width: 600, marginBottom: '10px' };
 const StyledContainer = styled.div`
   h3 {
-    margin-left: ${({ theme }) => theme.gridUnit * -6 + (-1)}px;
+    margin-left: ${({ theme }) => theme.gridUnit * -6 + -1}px;
   }
   .ant-collapse-header {
     background-color: ${({ theme }) => theme.colors.grayscale.light5};
   }
   .ant-collapse-content {
-    margin-top:${({ theme }) => theme.gridUnit * -5}px;
+    margin-top: ${({ theme }) => theme.gridUnit * -5}px;
     border-top: none;
   }
-  .ant-collapse > .ant-collapse-item > .ant-collapse-header .ant-collapse-arrow {
+  .ant-collapse
+    > .ant-collapse-item
+    > .ant-collapse-header
+    .ant-collapse-arrow {
     display: none;
   }
 `;
@@ -104,15 +107,8 @@ export default class AddSliceContainer extends React.PureComponent<
   render() {
     return (
       <StyledContainer className="container">
-        <Collapse
-          defaultActiveKey={['1']}
-        >
-          <Collapse.Panel
-            header={
-              <h3>{t('Create a new chart')}</h3>
-            }
-            key="1"
-          >
+        <Collapse defaultActiveKey={['1']}>
+          <Collapse.Panel header={<h3>{t('Create a new chart')}</h3>} key="1">
             <div>
               <p>{t('Choose a dataset')}</p>
               <div style={styleSelectContainer}>
