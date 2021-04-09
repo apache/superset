@@ -24,8 +24,7 @@ RUN apt-get install -y vim less postgresql-client redis-tools
 # https://superset.incubator.apache.org/installation.html#making-your-own-build
 # https://nodejs.org/en/download/package-manager/
 RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - \
-  && apt-get install -y nodejs
-
+  && apt-get --force-yes install -y nodejs
 
 ARG SUPERSET_ENV=$SUPERSET_ENV
 ARG SQLALCHEMY_DATABASE_URI=$SQLALCHEMY_DATABASE_URI
