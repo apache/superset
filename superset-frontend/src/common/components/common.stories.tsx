@@ -209,17 +209,6 @@ export const Switch = () => (
   </>
 );
 
-export const BadgeDefault = () => <Badge count={100} />;
-export const BadgeColored = () => <Badge color="blue" text="Blue" />;
-export const BadgeTextColored = () => (
-  <Badge textColor="yellow" color="red" text="yellow" />
-);
-export const BadgeSuccess = () => <Badge status="success" text="Success" />;
-export const BadgeError = () => <Badge status="error" text="Error" />;
-export const BadgeSmall = () => <Badge count={100} size="small" />;
-
-export const CardDefault = () => <Card />;
-export const CardPadded = () => <Card padded />;
 
 export const CollapseDefault = () => (
   <Collapse defaultActiveKey={['1']}>
