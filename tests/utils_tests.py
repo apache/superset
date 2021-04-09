@@ -24,7 +24,6 @@ import json
 import os
 import re
 from typing import Any, Tuple, List, Optional
-from unittest import mock
 from unittest.mock import Mock, patch
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
