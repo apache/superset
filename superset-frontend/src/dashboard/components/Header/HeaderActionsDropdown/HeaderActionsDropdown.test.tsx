@@ -23,7 +23,7 @@ import fetchMock from 'fetch-mock';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
 import HeaderActionsDropdown from '.';
 
-const mockedProps = {
+const createProps = () => ({
   addSuccessToast: jest.fn(),
   addDangerToast: jest.fn(),
   customCss: '#save-dash-split-button{margin-left: 100px;}',
@@ -56,9 +56,9 @@ const mockedProps = {
   userCanEdit: false,
   userCanSave: false,
   lastModifiedTime: 0,
-};
+});
 const editModeOnProps = {
-  ...mockedProps,
+  ...createProps(),
   editMode: true,
 };
 
@@ -79,27 +79,32 @@ async function openDropdown() {
 }
 
 test('should render', () => {
+  const mockedProps = createProps();
   const { container } = render(setup(mockedProps));
   expect(container).toBeInTheDocument();
 });
 
 test('should render the dropdown button', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(screen.getByRole('button')).toBeInTheDocument();
 });
 
 test('should render the dropdown icon', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(screen.getByRole('img', { name: 'more-horiz' })).toBeInTheDocument();
 });
 
 test('should open the dropdown', async () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   await openDropdown();
   expect(await screen.findByRole('menu')).toBeInTheDocument();
 });
 
 test('should render the menu items', async () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   await openDropdown();
   expect(screen.getAllByRole('menuitem')).toHaveLength(6);
@@ -125,6 +130,7 @@ test('should render the menu items in edit mode', async () => {
 });
 
 test('should render the "Save Modal" when user can save', async () => {
+  const mockedProps = createProps();
   const canSaveProps = {
     ...mockedProps,
     userCanSave: true,
@@ -135,12 +141,14 @@ test('should render the "Save Modal" when user can save', async () => {
 });
 
 test('should NOT render the "Save Modal" menu item when user cannot save', async () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   await openDropdown();
   expect(screen.queryByText('Save as')).not.toBeInTheDocument();
 });
 
 test('should render the "Refresh dashboard" menu item as disabled when loading', async () => {
+  const mockedProps = createProps();
   const loadingProps = {
     ...mockedProps,
     isLoading: true,
@@ -153,11 +161,13 @@ test('should render the "Refresh dashboard" menu item as disabled when loading',
 });
 
 test('should render with custom css', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(screen.getByRole('button')).toHaveStyle('margin-left: 100px');
 });
 
 test('should refresh the charts', async () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   await openDropdown();
   userEvent.click(screen.getByText('Refresh dashboard'));
@@ -168,5 +178,5 @@ test('should show the properties modal', async () => {
   render(setup(editModeOnProps));
   await openDropdown();
   userEvent.click(screen.getByText('Edit dashboard properties'));
-  expect(mockedProps.showPropertiesModal).toHaveBeenCalledTimes(1);
+  expect(editModeOnProps.showPropertiesModal).toHaveBeenCalledTimes(1);
 });

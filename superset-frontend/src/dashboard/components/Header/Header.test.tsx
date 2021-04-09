@@ -23,7 +23,7 @@ import fetchMock from 'fetch-mock';
 import { HeaderProps } from './types';
 import Header from '.';
 
-const mockedProps = {
+const createProps = () => ({
   addSuccessToast: jest.fn(),
   addDangerToast: jest.fn(),
   addWarningToast: jest.fn(),
@@ -73,12 +73,13 @@ const mockedProps = {
   maxUndoHistoryToast: jest.fn(),
   dashboardInfoChanged: jest.fn(),
   dashboardTitleChanged: jest.fn(),
-};
+});
+const props = createProps();
 const editableProps = {
-  ...mockedProps,
+  ...props,
   editMode: true,
   dashboardInfo: {
-    ...mockedProps.dashboardInfo,
+    ...props.dashboardInfo,
     dash_edit_perm: true,
     dash_save_perm: true,
   },
@@ -109,11 +110,13 @@ async function openActionsDropdown() {
 }
 
 test('should render', () => {
+  const mockedProps = createProps();
   const { container } = render(setup(mockedProps));
   expect(container).toBeInTheDocument();
 });
 
 test('should render the title', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(screen.getByText('Dashboard Title')).toBeInTheDocument();
 });
@@ -126,16 +129,17 @@ test('should render the editable title', () => {
 test('should edit the title', () => {
   render(setup(editableProps));
   const editableTitle = screen.getByDisplayValue('Dashboard Title');
-  expect(mockedProps.onChange).not.toHaveBeenCalled();
+  expect(editableProps.onChange).not.toHaveBeenCalled();
   userEvent.click(editableTitle);
   userEvent.clear(editableTitle);
   userEvent.type(editableTitle, 'New Title');
   userEvent.click(document.body);
-  expect(mockedProps.onChange).toHaveBeenCalled();
+  expect(editableProps.onChange).toHaveBeenCalled();
   expect(screen.getByDisplayValue('New Title')).toBeInTheDocument();
 });
 
 test('should render the "Draft" status', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(screen.getByText('Draft')).toBeInTheDocument();
 });
@@ -143,9 +147,9 @@ test('should render the "Draft" status', () => {
 test('should publish', () => {
   render(setup(editableProps));
   const draft = screen.getByText('Draft');
-  expect(mockedProps.savePublished).not.toHaveBeenCalled();
+  expect(editableProps.savePublished).not.toHaveBeenCalled();
   userEvent.click(draft);
-  expect(mockedProps.savePublished).toHaveBeenCalledTimes(1);
+  expect(editableProps.savePublished).toHaveBeenCalledTimes(1);
 });
 
 test('should render the "Undo" action as disabled', () => {
@@ -156,17 +160,17 @@ test('should render the "Undo" action as disabled', () => {
 test('should undo', () => {
   render(setup(undoProps));
   const undo = screen.getByTitle('Undo');
-  expect(mockedProps.onUndo).not.toHaveBeenCalled();
+  expect(undoProps.onUndo).not.toHaveBeenCalled();
   userEvent.click(undo);
-  expect(mockedProps.onUndo).toHaveBeenCalledTimes(1);
+  expect(undoProps.onUndo).toHaveBeenCalledTimes(1);
 });
 
 test('should undo with key listener', () => {
   undoProps.onUndo.mockReset();
   render(setup(undoProps));
-  expect(mockedProps.onUndo).not.toHaveBeenCalled();
+  expect(undoProps.onUndo).not.toHaveBeenCalled();
   fireEvent.keyDown(document.body, { key: 'z', code: 'KeyZ', ctrlKey: true });
-  expect(mockedProps.onUndo).toHaveBeenCalledTimes(1);
+  expect(undoProps.onUndo).toHaveBeenCalledTimes(1);
 });
 
 test('should render the "Redo" action as disabled', () => {
@@ -177,17 +181,17 @@ test('should render the "Redo" action as disabled', () => {
 test('should redo', () => {
   render(setup(redoProps));
   const redo = screen.getByTitle('Redo');
-  expect(mockedProps.onRedo).not.toHaveBeenCalled();
+  expect(redoProps.onRedo).not.toHaveBeenCalled();
   userEvent.click(redo);
-  expect(mockedProps.onRedo).toHaveBeenCalledTimes(1);
+  expect(redoProps.onRedo).toHaveBeenCalledTimes(1);
 });
 
 test('should redo with key listener', () => {
-  undoProps.onRedo.mockReset();
+  redoProps.onRedo.mockReset();
   render(setup(redoProps));
-  expect(mockedProps.onRedo).not.toHaveBeenCalled();
+  expect(redoProps.onRedo).not.toHaveBeenCalled();
   fireEvent.keyDown(document.body, { key: 'y', code: 'KeyY', ctrlKey: true });
-  expect(mockedProps.onRedo).toHaveBeenCalledTimes(1);
+  expect(redoProps.onRedo).toHaveBeenCalledTimes(1);
 });
 
 test('should render the "Discard changes" button', () => {
@@ -207,12 +211,13 @@ test('should save', () => {
   };
   render(setup(unsavedProps));
   const save = screen.getByText('Save');
-  expect(mockedProps.onSave).not.toHaveBeenCalled();
+  expect(unsavedProps.onSave).not.toHaveBeenCalled();
   userEvent.click(save);
-  expect(mockedProps.onSave).toHaveBeenCalledTimes(1);
+  expect(unsavedProps.onSave).toHaveBeenCalledTimes(1);
 });
 
 test('should NOT render the "Draft" status', () => {
+  const mockedProps = createProps();
   const publishedProps = {
     ...mockedProps,
     isPublished: true,
@@ -222,6 +227,7 @@ test('should NOT render the "Draft" status', () => {
 });
 
 test('should render the unselected fave icon', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(mockedProps.fetchFaveStar).toHaveBeenCalled();
   expect(
@@ -230,6 +236,7 @@ test('should render the unselected fave icon', () => {
 });
 
 test('should render the selected fave icon', () => {
+  const mockedProps = createProps();
   const favedProps = {
     ...mockedProps,
     isStarred: true,
@@ -241,6 +248,7 @@ test('should render the selected fave icon', () => {
 });
 
 test('should fave', async () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   const fave = screen.getByRole('img', { name: 'favorite-unselected' });
   expect(mockedProps.saveFaveStar).not.toHaveBeenCalled();
@@ -249,6 +257,7 @@ test('should fave', async () => {
 });
 
 test('should toggle the edit mode', () => {
+  const mockedProps = createProps();
   const canEditProps = {
     ...mockedProps,
     dashboardInfo: {
@@ -264,11 +273,13 @@ test('should toggle the edit mode', () => {
 });
 
 test('should render the dropdown icon', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(screen.getByRole('img', { name: 'more-horiz' })).toBeInTheDocument();
 });
 
 test('should refresh the charts', async () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   await openActionsDropdown();
   userEvent.click(screen.getByText('Refresh dashboard'));
