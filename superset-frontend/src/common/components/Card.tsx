@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import { styled } from '@superset-ui/core';
-// eslint-disable-next-line no-restricted-imports
 import { Card as AntdCard } from 'antd';
 import { CardProps as AntdCardProps } from 'antd/lib/card';
 
