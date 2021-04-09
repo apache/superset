@@ -30,8 +30,8 @@ from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import Role, User
 from flask_appbuilder.widgets import ListWidget
-from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
+from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.form import FlaskForm
 from sqlalchemy import or_
 from sqlalchemy.orm import Query
