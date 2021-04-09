@@ -996,7 +996,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             assert datasource
 
-            from superset import is_feature_enabled
+            from superset.extensions import feature_flag_manager
 
             if not (
                 (
