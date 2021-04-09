@@ -23,6 +23,10 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+{{- if .Values.supersetWorker.deploymentAnnotations }}
+  annotations:
+    {{ toYaml .Values.supersetWorker.deploymentAnnotations | nindent 4 }}
+{{- end }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -42,6 +46,9 @@ spec:
         # Optionally force the thing to reload
         force-reload: {{ randAlphaNum 5 | quote }}
         {{ end }}
+      {{- if .Values.supersetWorker.podAnnotations }}
+        {{ toYaml .Values.supersetWorker.podAnnotations | nindent 8 }}
+      {{- end }}
       labels:
         app: {{ template "superset.name" . }}-worker
         release: {{ .Release.Name }}
