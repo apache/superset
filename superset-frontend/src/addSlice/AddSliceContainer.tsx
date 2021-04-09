@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-// import { Panel } from 'react-bootstrap';
 import Collapse from 'src/common/components/Collapse';
 import Button from 'src/components/Button';
 import Select from 'src/components/Select';
