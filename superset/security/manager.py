@@ -1141,11 +1141,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.models.slice import Slice
         from superset.models.dashboard import Dashboard
 
-        table_type = ConnectorRegistry.sources["table"]
+        datasource_class = type(datasource)
         query = (
-            db.session.query(table_type)
+            db.session.query(datasource_class)
             .join(Slice.table)
-            .filter(table_type.id == datasource.id)
+            .filter(datasource_class.id == datasource.id)
         )
 
         query = DashboardFilter("id", SQLAInterface(Dashboard, db.session)).apply(
