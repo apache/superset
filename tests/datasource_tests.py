@@ -99,18 +99,18 @@ class TestDatasource(SupersetTestCase):
             self.assertEqual(resp["error"], "Only single queries supported")
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @mock.patch("superset.views.datasource.ConnectorRegistry.get_datasource")
+    @mock.patch("superset.connectors.sqla.models.SqlaTable.external_metadata")
     def test_external_metadata_error_return_400(self, mock_get_datasource):
         self.login(username="admin")
         tbl = self.get_table_by_name("birth_names")
         url = f"/datasource/external_metadata/table/{tbl.id}/"
 
-        mock_get_datasource.external_metadata.side_effect = SupersetException("oops")
+        mock_get_datasource.side_effect = SupersetGenericDBErrorException("oops")
 
         pytest.raises(
-            SupersetException,
+            SupersetGenericDBErrorException,
             lambda: ConnectorRegistry.get_datasource(
-                "table", 9999999, db.session
+                "table", tbl.id, db.session
             ).external_metadata(),
         )
 
