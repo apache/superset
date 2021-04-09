@@ -20,13 +20,13 @@ import React, { FC } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/common/components/Tooltip';
 import { useSelector } from 'react-redux';
-import EditableTitle from '../../components/EditableTitle';
-import SliceHeaderControls from './SliceHeaderControls';
-import FiltersBadge from '../containers/FiltersBadge';
-import Icon from '../../components/Icon';
-import { RootState } from '../types';
-import { Slice } from '../../types/Chart';
-import FilterIndicator from './FiltersBadge/FilterIndicator';
+import EditableTitle from 'src/components/EditableTitle';
+import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
+import FiltersBadge from 'src/dashboard/containers/FiltersBadge';
+import Icon from 'src/components/Icon';
+import { RootState } from 'src/dashboard/types';
+import { Slice } from 'src/types/Chart';
+import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
 
 type SliceHeaderProps = {
   innerRef?: string;
@@ -101,7 +101,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   );
 
   return (
-    <div className="chart-header" ref={innerRef}>
+    <div className="chart-header" data-test="slice-header" ref={innerRef}>
       <div className="header-title">
         <EditableTitle
           title={
@@ -121,7 +121,11 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             placement="top"
             title={annoationsLoading}
           >
-            <i className="fa fa-refresh warning" />
+            <i
+              role="img"
+              aria-label={annoationsLoading}
+              className="fa fa-refresh warning"
+            />
           </Tooltip>
         )}
         {!!Object.values(annotationError).length && (
@@ -130,7 +134,11 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             placement="top"
             title={annoationsError}
           >
-            <i className="fa fa-exclamation-circle danger" />
+            <i
+              role="img"
+              aria-label={annoationsError}
+              className="fa fa-exclamation-circle danger"
+            />
           </Tooltip>
         )}
       </div>
