@@ -17,11 +17,11 @@
  * under the License.
  */
 import {
-  createMultiFormatter,
   Behavior,
   DataMask,
   ensureIsArray,
   GenericDataType,
+  smartDateDetailedFormatter,
   t,
   tn,
 } from '@superset-ui/core';
@@ -32,21 +32,6 @@ import { StyledSelect, Styles } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
 
 const { Option } = Select;
-
-const timeFormatter = createMultiFormatter({
-  id: 'smart_date_verbose',
-  label: 'Adaptive temporal formatter',
-  formats: {
-    millisecond: '%Y-%m-%d %H:%M:%S.%L',
-    second: '%Y-%m-%d %H:%M:%S',
-    minute: '%Y-%m-%d %H:%M',
-    hour: '%Y-%m-%d %H:%M:%M',
-    day: '%Y-%m-%d',
-    week: '%Y-%m-%d',
-    month: '%Y-%m-%d',
-    year: '%Y-%m-%d',
-  },
-});
 
 export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const {
@@ -76,7 +61,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const [col] = groupby;
   const datatype: GenericDataType = coltypeMap[col];
   const labelFormatter = getDataRecordFormatter({
-    timeFormatter,
+    timeFormatter: smartDateDetailedFormatter,
   });
 
   const handleChange = (

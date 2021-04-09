@@ -20,7 +20,7 @@ import React from 'react';
 import { styled } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
 
-interface IndeterminateCheckboxProps {
+export interface IndeterminateCheckboxProps {
   indeterminate: boolean;
   id: string;
   checked: boolean;

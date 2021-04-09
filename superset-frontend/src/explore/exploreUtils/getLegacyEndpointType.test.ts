@@ -16,13 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { getLegacyEndpointType } from '.';
 
-type FadeProps = { hovered: boolean };
+const createParams = () => ({
+  resultType: 'resultType',
+  resultFormat: 'resultFormat',
+});
 
-const Fade = styled.div<FadeProps>`
-  transition: all ${({ theme }) => theme.transitionTiming}s;
-  opacity: ${props => (props.hovered ? 1 : 0)};
-`;
+test('Should return resultType when resultFormat!=csv', () => {
+  expect(getLegacyEndpointType(createParams())).toBe('resultType');
+});
 
-export default Fade;
+test('Should return resultFormat when resultFormat:csv', () => {
+  expect(
+    getLegacyEndpointType({ ...createParams(), resultFormat: 'csv' }),
+  ).toBe('csv');
+});
