@@ -1000,7 +1000,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             if not (
                 (
-                    is_feature_enabled("DASHBOARD_RBAC")
+                    feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC")
                     and self.can_access_based_on_dashboard(datasource)
                 )
                 or self.can_access_schema(datasource)
