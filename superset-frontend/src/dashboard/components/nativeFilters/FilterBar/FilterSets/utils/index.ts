@@ -56,13 +56,16 @@ export const findExistingFilterSet = ({
     if (dataMaskFromFilterSet?.nativeFilters) {
       const dataMaskSelectedEntries = Object.entries(dataMaskSelected);
       return dataMaskSelectedEntries.every(
-        ([id, filterFromSelectedFilters]) =>
-          areObjectsEqual(
+        ([id, filterFromSelectedFilters]) => {
+          const isEqual = areObjectsEqual(
             filterFromSelectedFilters.currentState,
             dataMaskFromFilterSet?.nativeFilters?.[id]?.currentState,
-          ) &&
-          dataMaskSelectedEntries.length ===
-            Object.keys(dataMaskFromFilterSet?.nativeFilters ?? {}).length,
+          );
+          const hasSamePropsNumber =
+            dataMaskSelectedEntries.length ===
+            Object.keys(dataMaskFromFilterSet?.nativeFilters ?? {}).length;
+          return isEqual && hasSamePropsNumber;
+        },
       );
     }
     return false;
