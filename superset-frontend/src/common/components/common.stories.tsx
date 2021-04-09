@@ -20,7 +20,6 @@ import React, { useState, useRef, useCallback } from 'react';
 import { action } from '@storybook/addon-actions';
 import { withKnobs, boolean, select } from '@storybook/addon-knobs';
 import Button from 'src/components/Button';
-import Badge from 'src/components/Badge';
 import Modal from './Modal';
 import Tabs, { EditableTabs } from './Tabs';
 import { Tooltip as AntdTooltip } from './Tooltip';
