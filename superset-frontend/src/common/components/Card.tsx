@@ -18,8 +18,7 @@
  */
 import React from 'react';
 import { styled } from '@superset-ui/core';
-import { Card as AntdCard } from 'antd';
-import { CardProps as AntdCardProps } from 'antd/lib/card';
+import AntdCard, { CardProps as AntdCardProps } from 'antd/lib/card';
 
 interface CardProps extends AntdCardProps {
   padded?: boolean;
