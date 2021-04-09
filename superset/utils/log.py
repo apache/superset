@@ -28,7 +28,6 @@ from flask import current_app, g, request
 from flask_appbuilder.const import API_URI_RIS_KEY
 from sqlalchemy.exc import SQLAlchemyError
 from typing_extensions import Literal
-
 from superset.stats_logger import BaseStatsLogger
 
 
@@ -118,11 +117,22 @@ class AbstractEventLogger(ABC):
 
         duration_ms = int(duration.total_seconds() * 1000) if duration else None
 
+        # Initial try and grab user_id via flask.g.user
         try:
             user_id = g.user.get_id()
         except Exception as ex:  # pylint: disable=broad-except
-            logging.warning(ex)
             user_id = None
+        
+        # Whenever a user is not bounded to a session we
+        # need to add them back before logging to capture user_id
+        if user_id is None:
+            try:
+                session = current_app.appbuilder.get_session
+                session.add(g.user)
+                user_id = g.user.get_id()
+            except Exception as ex:  # pylint: disable=broad-except
+                logging.warning(ex)
+                user_id = None
 
         payload = collect_request_payload()
         if object_ref:
