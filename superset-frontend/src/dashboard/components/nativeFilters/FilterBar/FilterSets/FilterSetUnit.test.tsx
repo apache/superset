@@ -23,13 +23,13 @@ import { Provider } from 'react-redux';
 import userEvent from '@testing-library/user-event';
 import FilterSetUnit, { FilterSetUnitProps } from './FilterSetUnit';
 
-const mockedProps = {
+const createProps = () => ({
   editMode: true,
   setFilterSetName: jest.fn(),
   onDelete: jest.fn(),
   onEdit: jest.fn(),
   onRebuild: jest.fn(),
-};
+});
 
 function openDropdown() {
   const dropdownIcon = screen.getByRole('img', { name: 'ellipsis' });
@@ -43,11 +43,13 @@ const setup = (props: FilterSetUnitProps) => (
 );
 
 test('should render', () => {
+  const mockedProps = createProps();
   const { container } = render(setup(mockedProps));
   expect(container).toBeInTheDocument();
 });
 
 test('should render the edit button', () => {
+  const mockedProps = createProps();
   const editModeOffProps = {
     ...mockedProps,
     editMode: false,
@@ -57,6 +59,7 @@ test('should render the edit button', () => {
 });
 
 test('should render the menu', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   openDropdown();
   expect(screen.getByRole('menu')).toBeInTheDocument();
@@ -67,6 +70,7 @@ test('should render the menu', () => {
 });
 
 test('should edit', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   openDropdown();
   const editBtn = screen.getByText('Edit');
@@ -76,6 +80,7 @@ test('should edit', () => {
 });
 
 test('should delete', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   openDropdown();
   const deleteBtn = screen.getByText('Delete');
@@ -85,6 +90,7 @@ test('should delete', () => {
 });
 
 test('should rebuild', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   openDropdown();
   const rebuildBtn = screen.getByText('Rebuild');

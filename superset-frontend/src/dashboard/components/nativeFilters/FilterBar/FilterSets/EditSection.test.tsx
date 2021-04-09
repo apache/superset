@@ -23,7 +23,7 @@ import { mockStore } from 'spec/fixtures/mockStore';
 import { Provider } from 'react-redux';
 import EditSection, { EditSectionProps } from './EditSection';
 
-const mockedProps = {
+const createProps = () => ({
   filterSetId: 'set-id',
   dataMaskSelected: {
     DefaultsID: {
@@ -34,7 +34,7 @@ const mockedProps = {
   },
   onCancel: jest.fn(),
   disabled: false,
-};
+});
 
 const setup = (props: EditSectionProps) => (
   <Provider store={mockStore}>
@@ -43,26 +43,31 @@ const setup = (props: EditSectionProps) => (
 );
 
 test('should render', () => {
+  const mockedProps = createProps();
   const { container } = render(setup(mockedProps));
   expect(container).toBeInTheDocument();
 });
 
 test('should render the title', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(screen.getByText('Editing filter set:')).toBeInTheDocument();
 });
 
 test('should render the set name', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(screen.getByText('Set name')).toBeInTheDocument();
 });
 
 test('should render a textbox', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(screen.getByRole('textbox')).toBeInTheDocument();
 });
 
 test('should change the set name', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   const textbox = screen.getByRole('textbox');
   userEvent.clear(textbox);
@@ -71,16 +76,19 @@ test('should change the set name', () => {
 });
 
 test('should render the enter icon', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(screen.getByRole('img', { name: 'enter' })).toBeInTheDocument();
 });
 
 test('should render the Cancel button', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(screen.getByText('Cancel')).toBeInTheDocument();
 });
 
 test('should cancel', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   const cancelBtn = screen.getByText('Cancel');
   expect(mockedProps.onCancel).not.toHaveBeenCalled();
@@ -89,11 +97,13 @@ test('should cancel', () => {
 });
 
 test('should render the Save button', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(screen.getByText('Save')).toBeInTheDocument();
 });
 
 test('should render the Save button as disabled', () => {
+  const mockedProps = createProps();
   const saveDisabledProps = {
     ...mockedProps,
     disabled: true,

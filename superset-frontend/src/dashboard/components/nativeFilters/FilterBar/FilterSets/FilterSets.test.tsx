@@ -22,7 +22,7 @@ import { mockStore } from 'spec/fixtures/mockStore';
 import { Provider } from 'react-redux';
 import FilterSets, { FilterSetsProps } from '.';
 
-const mockedProps = {
+const createProps = () => ({
   disabled: false,
   isFilterSetChanged: false,
   dataMaskSelected: {
@@ -34,7 +34,7 @@ const mockedProps = {
   },
   onEditFilterSet: jest.fn(),
   onFilterSelectionChange: jest.fn(),
-};
+});
 
 const setup = (props: FilterSetsProps) => (
   <Provider store={mockStore}>
@@ -43,21 +43,25 @@ const setup = (props: FilterSetsProps) => (
 );
 
 test('should render', () => {
+  const mockedProps = createProps();
   const { container } = render(setup(mockedProps));
   expect(container).toBeInTheDocument();
 });
 
 test('should render the default title', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(screen.getByText('New filter set')).toBeInTheDocument();
 });
 
 test('should render the right number of filters', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(screen.getByText('Filters (1)')).toBeInTheDocument();
 });
 
 test('should render the filters', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(screen.getByText('Set name')).toBeInTheDocument();
 });

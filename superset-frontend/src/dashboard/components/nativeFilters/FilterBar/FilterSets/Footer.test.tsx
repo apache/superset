@@ -19,34 +19,37 @@
 import React from 'react';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
-import Footer, { FooterProps } from './Footer';
+import Footer from './Footer';
 
-const mockedProps: FooterProps = {
+const createProps = () => ({
   filterSetName: 'Set name',
   disabled: false,
   editMode: false,
   onCancel: jest.fn(),
   onEdit: jest.fn(),
   onCreate: jest.fn(),
-};
+});
 
 const editModeProps = {
-  ...mockedProps,
+  ...createProps(),
   editMode: true,
 };
 
 test('should render', () => {
+  const mockedProps = createProps();
   const { container } = render(<Footer {...mockedProps} />, { useRedux: true });
   expect(container).toBeInTheDocument();
 });
 
 test('should render a button', () => {
+  const mockedProps = createProps();
   render(<Footer {...mockedProps} />, { useRedux: true });
   expect(screen.getByRole('button')).toBeInTheDocument();
   expect(screen.getByText('Create new filter set')).toBeInTheDocument();
 });
 
 test('should render a disabled button', () => {
+  const mockedProps = createProps();
   const disabledProps = {
     ...mockedProps,
     disabled: true,
@@ -56,6 +59,7 @@ test('should render a disabled button', () => {
 });
 
 test('should edit', () => {
+  const mockedProps = createProps();
   render(<Footer {...mockedProps} />, { useRedux: true });
   const btn = screen.getByRole('button');
   expect(mockedProps.onEdit).not.toHaveBeenCalled();
@@ -71,9 +75,9 @@ test('should render the Create button', () => {
 test('should create', () => {
   render(<Footer {...editModeProps} />, { useRedux: true });
   const createBtn = screen.getByText('Create');
-  expect(mockedProps.onCreate).not.toHaveBeenCalled();
+  expect(editModeProps.onCreate).not.toHaveBeenCalled();
   userEvent.click(createBtn);
-  expect(mockedProps.onCreate).toHaveBeenCalled();
+  expect(editModeProps.onCreate).toHaveBeenCalled();
 });
 
 test('should render the Cancel button', () => {
@@ -84,7 +88,7 @@ test('should render the Cancel button', () => {
 test('should cancel', () => {
   render(<Footer {...editModeProps} />, { useRedux: true });
   const cancelBtn = screen.getByText('Cancel');
-  expect(mockedProps.onCancel).not.toHaveBeenCalled();
+  expect(editModeProps.onCancel).not.toHaveBeenCalled();
   userEvent.click(cancelBtn);
-  expect(mockedProps.onCancel).toHaveBeenCalled();
+  expect(editModeProps.onCancel).toHaveBeenCalled();
 });

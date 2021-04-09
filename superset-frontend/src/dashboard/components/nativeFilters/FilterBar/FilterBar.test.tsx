@@ -23,10 +23,10 @@ import { mockStore } from 'spec/fixtures/mockStore';
 import { Provider } from 'react-redux';
 import FilterBar, { FiltersBarProps } from '.';
 
-const mockedProps = {
+const createProps = () => ({
   filtersOpen: false,
   toggleFiltersBar: jest.fn(),
-};
+});
 
 const setup = (props: FiltersBarProps) => (
   <Provider store={mockStore}>
@@ -35,41 +35,49 @@ const setup = (props: FiltersBarProps) => (
 );
 
 test('should render', () => {
+  const mockedProps = createProps();
   const { container } = render(setup(mockedProps));
   expect(container).toBeInTheDocument();
 });
 
 test('should render the "Filters" heading', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(screen.getByText('Filters')).toBeInTheDocument();
 });
 
 test('should render the "Clear all" option', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(screen.getByText('Clear all')).toBeInTheDocument();
 });
 
 test('should render the "Apply" option', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(screen.getByText('Apply')).toBeInTheDocument();
 });
 
 test('should render the collapse icon', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(screen.getByRole('img', { name: 'collapse' })).toBeInTheDocument();
 });
 
 test('should render the filter icon', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(screen.getByRole('img', { name: 'filter' })).toBeInTheDocument();
 });
 
 test('should render the filter control name', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   expect(screen.getByText('test')).toBeInTheDocument();
 });
 
 test('should toggle', () => {
+  const mockedProps = createProps();
   render(setup(mockedProps));
   const collapse = screen.getByRole('img', { name: 'collapse' });
   expect(mockedProps.toggleFiltersBar).not.toHaveBeenCalled();
