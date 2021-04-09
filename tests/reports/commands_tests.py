@@ -100,9 +100,9 @@ def assert_log(state: str, error_message: Optional[str] = None):
     db.session.commit()
     logs = db.session.query(ReportExecutionLog).all()
     if state == ReportState.WORKING:
-        assert len(logs) == 1
-        assert logs[0].error_message == error_message
-        assert logs[0].state == state
+        assert len(logs) == 2
+        assert logs[1].error_message == error_message
+        assert logs[1].state == state
         return
     # On error we send an email
     if state == ReportState.ERROR:
@@ -232,6 +232,17 @@ def create_report_slack_chart_working():
         report_schedule.last_state = ReportState.WORKING
         report_schedule.last_eval_dttm = datetime(2020, 1, 1, 0, 0)
         db.session.commit()
+        log = ReportExecutionLog(
+            scheduled_dttm=report_schedule.last_eval_dttm,
+            start_dttm=report_schedule.last_eval_dttm,
+            end_dttm=report_schedule.last_eval_dttm,
+            state=ReportState.WORKING,
+            report_schedule=report_schedule,
+            uuid=uuid4(),
+        )
+        db.session.add(log)
+        db.session.commit()
+
         yield report_schedule
 
         cleanup_report_schedule(report_schedule)
@@ -638,12 +649,11 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
     """
     ExecuteReport Command: Test report schedule still working but should timed out
     """
-    # setup screenshot mock
     current_time = create_report_slack_chart_working.last_eval_dttm + timedelta(
         seconds=create_report_slack_chart_working.working_timeout + 1
     )
-
     with freeze_time(current_time):
+
         with pytest.raises(ReportScheduleWorkingTimeoutError):
             AsyncExecuteReportScheduleCommand(
                 test_id, create_report_slack_chart_working.id, datetime.utcnow()
@@ -652,9 +662,10 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
     # Only needed for MySQL, understand why
     db.session.commit()
     logs = db.session.query(ReportExecutionLog).all()
-    assert len(logs) == 1
-    assert logs[0].error_message == ReportScheduleWorkingTimeoutError.message
-    assert logs[0].state == ReportState.ERROR
+    # Two logs, first is created by fixture
+    assert len(logs) == 2
+    assert logs[1].error_message == ReportScheduleWorkingTimeoutError.message
+    assert logs[1].state == ReportState.ERROR
 
     assert create_report_slack_chart_working.last_state == ReportState.ERROR
 

@@ -25,9 +25,11 @@ import importlib.util
 import json
 import logging
 import os
+import re
 import sys
 from collections import OrderedDict
 from datetime import date
+from distutils.util import strtobool
 from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
 from cachelib.base import BaseCache
@@ -51,6 +53,9 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla import models  # pylint: disable=unused-import
 
+    from superset.connectors.sqla.models import (  # pylint: disable=unused-import
+        SqlaTable,
+    )
     from superset.models.core import Database  # pylint: disable=unused-import
 
 # Realtime stats logger, a StatsD implementation exists
@@ -296,7 +301,7 @@ LANGUAGES = {}
 # Feature flags
 # ---------------------------------------------------
 # Feature flags that are set by default go here. Their values can be
-# overwritten by those specified under FEATURE_FLAGS in super_config.py
+# overwritten by those specified under FEATURE_FLAGS in superset_config.py
 # For example, DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False } here
 # and FEATURE_FLAGS = { 'BAR': True, 'BAZ': True } in superset_config.py
 # will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
@@ -373,6 +378,15 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
 # always be the table layout
 if DEFAULT_FEATURE_FLAGS["THUMBNAILS"]:
     DEFAULT_FEATURE_FLAGS["LISTVIEWS_DEFAULT_CARD_VIEW"] = True
+
+# Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
+DEFAULT_FEATURE_FLAGS.update(
+    {
+        k[len("SUPERSET_FEATURE_") :]: bool(strtobool(v))
+        for k, v in os.environ.items()
+        if re.search(r"^SUPERSET_FEATURE_\w+", k)
+    }
+)
 
 # This is merely a default.
 FEATURE_FLAGS: Dict[str, bool] = {}
@@ -721,7 +735,7 @@ ESTIMATE_QUERY_COST = False
 #
 #     return out
 #
-# DEFAULT_FEATURE_FLAGS = {
+# FEATURE_FLAGS = {
 #     "ESTIMATE_QUERY_COST": True,
 #     "QUERY_COST_FORMATTERS_BY_ENGINE": {"postgresql": postgres_query_cost_formatter},
 # }
@@ -929,6 +943,14 @@ ENABLE_ALERTS = False
 # Used for Alerts/Reports (Feature flask ALERT_REPORTS) to set the size for the
 # sliding cron window size, should be synced with the celery beat config minus 1 second
 ALERT_REPORTS_CRON_WINDOW_SIZE = 59
+ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
+# if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
+# Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
+ALERT_REPORTS_WORKING_TIME_OUT_LAG = 10
+# if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
+# Equal to working timeout + ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG
+ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = 1
+
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
 
@@ -1115,6 +1137,7 @@ GLOBAL_ASYNC_QUERIES_REDIS_CONFIG = {
     "host": "127.0.0.1",
     "password": "",
     "db": 0,
+    "ssl": False,
 }
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX = "async-events-"
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT = 1000
@@ -1124,10 +1147,38 @@ GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
 GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"
 GLOBAL_ASYNC_QUERIES_TRANSPORT = "polling"
 GLOBAL_ASYNC_QUERIES_POLLING_DELAY = 500
+GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 
-# It's possible to add a dataset health check logic which is specific to your system.
-# It will get executed each time when user open a chart's explore view.
-DATASET_HEALTH_CHECK = None
+# A SQL dataset health check. Note if enabled it is strongly advised that the callable
+# be memoized to aid with performance, i.e.,
+#
+#    @cache_manager.cache.memoize(timeout=0)
+#    def DATASET_HEALTH_CHECK(datasource: SqlaTable) -> Optional[str]:
+#        if (
+#            datasource.sql and
+#            len(sql_parse.ParsedQuery(datasource.sql, strip_comments=True).tables) == 1
+#        ):
+#            return (
+#                "This virtual dataset queries only one table and therefore could be "
+#                "replaced by querying the table directly."
+#            )
+#
+#        return None
+#
+# Within the FLASK_APP_MUTATOR callable, i.e., once the application and thus cache have
+# been initialized it is also necessary to add the following logic to blow the cache for
+# all datasources if the callback function changed.
+#
+#    def FLASK_APP_MUTATOR(app: Flask) -> None:
+#        name = "DATASET_HEALTH_CHECK"
+#        func = app.config[name]
+#        code = func.uncached.__code__.co_code
+#
+#        if cache_manager.cache.get(name) != code:
+#            cache_manager.cache.delete_memoized(func)
+#            cache_manager.cache.set(name, code, timeout=0)
+#
+DATASET_HEALTH_CHECK: Optional[Callable[["SqlaTable"], str]] = None
 
 # SQLalchemy link doc reference
 SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
