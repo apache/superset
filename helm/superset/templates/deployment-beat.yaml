@@ -24,6 +24,10 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+{{- if .Values.supersetCeleryBeat.deploymentAnnotations }}
+  annotations:
+    {{ toYaml .Values.supersetCeleryBeat.deploymentAnnotations | nindent 4 }}
+{{- end }}
 spec:
   # This must be a singleton
   replicas: 1
@@ -44,6 +48,9 @@ spec:
         # Optionally force the thing to reload
         force-reload: {{ randAlphaNum 5 | quote }}
         {{ end }}
+      {{- if .Values.supersetCeleryBeat.podAnnotations }}
+        {{ toYaml .Values.supersetCeleryBeat.podAnnotations | nindent 8 }}
+      {{- end }}
       labels:
         app: {{ template "superset.name" . }}-celerybeat
         release: {{ .Release.Name }}
