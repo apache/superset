@@ -27,8 +27,8 @@ import {
   isIntervalAnnotationLayer,
   isTimeseriesAnnotationLayer,
   getTimeFormatter,
-  getTimeFormatterForGranularity,
   smartDateFormatter,
+  smartDateDetailedFormatter,
   TimeseriesChartDataResponseResult,
   TimeFormatter,
 } from '@superset-ui/core';
@@ -85,7 +85,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     xAxisShowMaxLabel,
     xAxisTimeFormat,
     yAxisBounds,
-    timeGrainSqla,
+    tooltipTimeFormat,
     zoomable,
     richTooltip,
     xAxisLabelRotation,
@@ -138,9 +138,18 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     if (max === undefined) max = 1;
   }
 
-  let xAxisFormatter: TimeFormatter | StringConstructor;
-  if (xAxisTimeFormat === smartDateFormatter.id) {
-    xAxisFormatter = getTimeFormatterForGranularity(timeGrainSqla);
+  let tooltipFormatter: TimeFormatter | StringConstructor;
+  if (tooltipTimeFormat === smartDateFormatter.id) {
+    tooltipFormatter = smartDateDetailedFormatter;
+  } else if (tooltipTimeFormat) {
+    tooltipFormatter = getTimeFormatter(xAxisTimeFormat);
+  } else {
+    tooltipFormatter = String;
+  }
+
+  let xAxisFormatter: TimeFormatter | StringConstructor | undefined;
+  if (xAxisTimeFormat === smartDateFormatter.id || !xAxisTimeFormat) {
+    xAxisFormatter = undefined;
   } else if (xAxisTimeFormat) {
     xAxisFormatter = getTimeFormatter(xAxisTimeFormat);
   } else {
@@ -189,7 +198,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
         const value: number = !richTooltip ? params.value : params[0].value[0];
         const prophetValue = !richTooltip ? [params] : params;
 
-        const rows: Array<string> = [`${xAxisFormatter(value)}`];
+        const rows: Array<string> = [`${tooltipFormatter(value)}`];
         const prophetValues: Record<string, ProphetValue> = extractProphetValuesFromTooltipParams(
           prophetValue,
         );
