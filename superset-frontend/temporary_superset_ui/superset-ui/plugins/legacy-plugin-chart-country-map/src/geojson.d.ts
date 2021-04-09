@@ -16,16 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export default function transformProps(chartProps) {
-  const { width, height, formData, queriesData } = chartProps;
-  const { linearColorScheme, numberFormat, selectCountry } = formData;
+declare module 'file-loader!*.geojson' {
+  const geojsonPath: string;
 
-  return {
-    width,
-    height,
-    data: queriesData[0].data,
-    country: selectCountry ? String(selectCountry).toLowerCase() : null,
-    linearColorScheme,
-    numberFormat,
-  };
+  export default geojsonPath;
 }

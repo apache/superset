@@ -30,7 +30,7 @@ import uruguay from 'file-loader!./countries/uruguay.geojson';
 import usa from 'file-loader!./countries/usa.geojson';
 import zambia from 'file-loader!./countries/zambia.geojson';
 
-const countries = {
+export const countries = {
   belgium,
   brazil,
   bulgaria,
@@ -62,5 +62,12 @@ const countries = {
   usa,
   zambia,
 };
+
+export const countryOptions = Object.keys(countries).map(x => {
+  if (x === 'uk' || x === 'usa') {
+    return [x, x.toUpperCase()];
+  }
+  return [x, x[0].toUpperCase() + x.slice(1)];
+});
 
 export default countries;

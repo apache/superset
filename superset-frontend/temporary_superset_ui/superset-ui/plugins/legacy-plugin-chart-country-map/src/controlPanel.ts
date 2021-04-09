@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   sections,
 } from '@superset-ui/chart-controls';
+import { countryOptions } from './countries';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -30,7 +31,29 @@ const config: ControlPanelConfig = {
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [['entity'], ['metric'], ['adhoc_filters']],
+      controlSetRows: [
+        [
+          {
+            name: 'select_country',
+            config: {
+              type: 'SelectControl',
+              label: t('Country'),
+              default: null,
+              choices: countryOptions,
+              description: t('Which country to plot the map for?'),
+              validators: [validateNonEmpty],
+              mapStateToProps(state, { value }) {
+                return {
+                  value: value ? String(value).toLowerCase() : null,
+                };
+              },
+            },
+          },
+        ],
+        ['entity'],
+        ['metric'],
+        ['adhoc_filters'],
+      ],
     },
     {
       label: t('Chart Options'),
@@ -38,46 +61,6 @@ const config: ControlPanelConfig = {
       tabOverride: 'customize',
       controlSetRows: [
         [
-          {
-            name: 'select_country',
-            config: {
-              type: 'SelectControl',
-              label: t('Country Name'),
-              default: 'France',
-              choices: [
-                'Belgium',
-                'Brazil',
-                'Bulgaria',
-                'China',
-                'Egypt',
-                'France',
-                'Germany',
-                'India',
-                'Iran',
-                'Italy',
-                'Japan',
-                'Korea',
-                'Liechtenstein',
-                'Morocco',
-                'Myanmar',
-                'Netherlands',
-                'Portugal',
-                'Russia',
-                'Singapore',
-                'Spain',
-                'Switzerland',
-                'Syria',
-                'Thailand',
-                'Timorleste',
-                'Uk',
-                'Ukraine',
-                'Uruguay',
-                'Usa',
-                'Zambia',
-              ].map(s => [s, s]),
-              description: t('The name of the country that Superset should display'),
-            },
-          },
           {
             name: 'number_format',
             config: {

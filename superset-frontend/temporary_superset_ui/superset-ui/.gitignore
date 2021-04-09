@@ -43,3 +43,7 @@ package-lock.json
 # Ignore yarn.lock in packages
 plugins/*/yarn.lock
 packages/*/yarn.lock
+
+# For country map geojson conversion script
+.ipynb_checkpoints/
+scripts/*.zip
