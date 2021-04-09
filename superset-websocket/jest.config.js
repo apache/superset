@@ -16,25 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { mount } from 'enzyme';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import CssEditor from 'src/dashboard/components/CssEditor';
-
-describe('CssEditor', () => {
-  const mockedProps = {
-    triggerNode: <i className="fa fa-edit" />,
-  };
-  it('is valid', () => {
-    expect(React.isValidElement(<CssEditor {...mockedProps} />)).toBe(true);
-  });
-  it('renders the trigger node', () => {
-    const wrapper = mount(<CssEditor {...mockedProps} />, {
-      wrappingComponent: ThemeProvider,
-      wrappingComponentProps: {
-        theme: supersetTheme,
-      },
-    });
-    expect(wrapper.find('.fa-edit')).toExist();
-  });
-});
+module.exports = {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+};

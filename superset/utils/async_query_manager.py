@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import jwt
 import redis
-from flask import Flask, Request, Response, session
+from flask import Flask, request, Request, Response, session
 
 logger = logging.getLogger(__name__)
 
@@ -111,13 +111,14 @@ class AsyncQueryManager:
         def validate_session(  # pylint: disable=unused-variable
             response: Response,
         ) -> Response:
-            reset_token = False
             user_id = session["user_id"] if "user_id" in session else None
 
-            if "async_channel_id" not in session or "async_user_id" not in session:
-                reset_token = True
-            elif user_id != session["async_user_id"]:
-                reset_token = True
+            reset_token = (
+                not request.cookies.get(self._jwt_cookie_name)
+                or "async_channel_id" not in session
+                or "async_user_id" not in session
+                or user_id != session["async_user_id"]
+            )
 
             if reset_token:
                 async_channel_id = str(uuid.uuid4())
@@ -132,10 +133,6 @@ class AsyncQueryManager:
                     value=token,
                     httponly=True,
                     secure=self._jwt_cookie_secure,
-                    # max_age=max_age or config.cookie_max_age,
-                    # domain=config.cookie_domain,
-                    # path=config.access_cookie_path,
-                    # samesite=config.cookie_samesite
                 )
 
             return response
@@ -148,8 +145,8 @@ class AsyncQueryManager:
         data = jwt.decode(token, self._jwt_secret, algorithms=["HS256"])
         return data
 
-    def parse_jwt_from_request(self, request: Request) -> Dict[str, Any]:
-        token = request.cookies.get(self._jwt_cookie_name)
+    def parse_jwt_from_request(self, req: Request) -> Dict[str, Any]:
+        token = req.cookies.get(self._jwt_cookie_name)
         if not token:
             raise AsyncQueryTokenException("Token not preset")
 

@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import dataclasses
 import json
 import logging
 import re
@@ -59,7 +60,6 @@ from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetr
 from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
-from superset.extensions import event_logger
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -224,12 +224,12 @@ class TableColumn(Model, BaseColumn):
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.column_name
+        db_engine_spec = self.table.database.db_engine_spec
+        column_spec = db_engine_spec.get_column_spec(self.type)
+        type_ = column_spec.sqla_type if column_spec else None
         if self.expression:
-            col = literal_column(self.expression)
+            col = literal_column(self.expression, type_=type_)
         else:
-            db_engine_spec = self.table.database.db_engine_spec
-            column_spec = db_engine_spec.get_column_spec(self.type)
-            type_ = column_spec.sqla_type if column_spec else None
             col = column(self.column_name, type_=type_)
         col = self.table.make_sqla_column_compatible(col, label)
         return col
@@ -686,9 +686,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             self.table_name, schema=self.schema, show_cols=False, latest_partition=False
         )
 
-    @property
+    @property  # type: ignore
     def health_check_message(self) -> Optional[str]:
-        return self.extra_dict.get("health_check", {}).get("message")
+        check = config["DATASET_HEALTH_CHECK"]
+        return check(self) if check else None
 
     @property
     def data(self) -> Dict[str, Any]:
@@ -702,13 +703,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             data_["fetch_values_predicate"] = self.fetch_values_predicate
             data_["template_params"] = self.template_params
             data_["is_sqllab_view"] = self.is_sqllab_view
-            # Don't return previously populated health check message in case
-            # the health check feature is turned off
-            data_["health_check_message"] = (
-                self.health_check_message
-                if config.get("DATASET_HEALTH_CHECK")
-                else None
-            )
+            data_["health_check_message"] = self.health_check_message
             data_["extra"] = self.extra
         return data_
 
@@ -1456,7 +1451,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 "Query %s on schema %s failed", sql, self.schema, exc_info=True
             )
             db_engine_spec = self.database.db_engine_spec
-            errors = db_engine_spec.extract_errors(ex)
+            errors = [
+                dataclasses.asdict(error) for error in db_engine_spec.extract_errors(ex)
+            ]
             error_message = utils.error_msg_from_exception(ex)
 
         return QueryResult(
@@ -1604,26 +1601,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             sqla_query = self.get_sqla_query(**query_obj)
             extra_cache_keys += sqla_query.extra_cache_keys
         return extra_cache_keys
-
-    def health_check(self, commit: bool = False, force: bool = False) -> None:
-        check = config.get("DATASET_HEALTH_CHECK")
-        if check is None:
-            return
-
-        extra = self.extra_dict
-        # force re-run health check, or health check is updated
-        if force or extra.get("health_check", {}).get("version") != check.version:
-            with event_logger.log_context(action="dataset_health_check"):
-                message = check(self)
-                extra["health_check"] = {
-                    "version": check.version,
-                    "message": message,
-                }
-                self.extra = json.dumps(extra)
-
-                db.session.merge(self)
-                if commit:
-                    db.session.commit()
 
 
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)
