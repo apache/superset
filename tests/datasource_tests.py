@@ -221,21 +221,11 @@ class TestDatasource(SupersetTestCase):
             return "Warning message!"
 
         app.config["DATASET_HEALTH_CHECK"] = my_check
-        my_check.version = 0.1
-
         self.login(username="admin")
         tbl = self.get_table_by_name("birth_names")
-        self.datasource = ConnectorRegistry.get_datasource("table", tbl.id, db.session)
-
-        for key in self.datasource.export_fields:
-            self.original_attrs[key] = getattr(self.datasource, key)
-
-        url = f"/datasource/get/{tbl.type}/{tbl.id}/"
-        tbl.health_check(commit=True, force=True)
-        resp = self.get_json_resp(url)
-        self.assertEqual(resp["health_check_message"], "Warning message!")
-
-        del app.config["DATASET_HEALTH_CHECK"]
+        datasource = ConnectorRegistry.get_datasource("table", tbl.id, db.session)
+        assert datasource.health_check_message == "Warning message!"
+        app.config["DATASET_HEALTH_CHECK"] = None
 
     def test_get_datasource_failed(self):
         pytest.raises(

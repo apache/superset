@@ -65,7 +65,7 @@ from superset.charts.schemas import (
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
+from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
@@ -500,7 +500,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     @expose("/data", methods=["POST"])
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
@@ -569,8 +568,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
                     "Request is incorrect: %(error)s", error=error.normalized_messages()
                 )
             )
-        except SupersetSecurityException:
-            return self.response_401()
 
         # TODO: support CSV, SQL query and other non-JSON types
         if (
@@ -591,7 +588,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     @expose("/data/<cache_key>", methods=["GET"])
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
@@ -641,9 +637,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_400(
                 message=_("Request is incorrect: %(error)s", error=error.messages)
             )
-        except SupersetSecurityException as exc:
-            logger.info(exc)
-            return self.response_401()
 
         return self.get_data_response(command, True)
 
