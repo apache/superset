@@ -133,7 +133,6 @@ test('Should return undefined when dataMask.nativeFilters is undefined}', () => 
   expect(response).toBeUndefined();
 });
 
-
 test('Should return undefined when filterSetFilterValues is []', () => {
   const dataMaskSelected = createDataMaskSelected();
   const filterSetFilterValues: FilterSet[] = [];
