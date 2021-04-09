@@ -53,6 +53,9 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla import models  # pylint: disable=unused-import
 
+    from superset.connectors.sqla.models import (  # pylint: disable=unused-import
+        SqlaTable,
+    )
     from superset.models.core import Database  # pylint: disable=unused-import
 
 # Realtime stats logger, a StatsD implementation exists
@@ -1146,9 +1149,36 @@ GLOBAL_ASYNC_QUERIES_TRANSPORT = "polling"
 GLOBAL_ASYNC_QUERIES_POLLING_DELAY = 500
 GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 
-# It's possible to add a dataset health check logic which is specific to your system.
-# It will get executed each time when user open a chart's explore view.
-DATASET_HEALTH_CHECK = None
+# A SQL dataset health check. Note if enabled it is strongly advised that the callable
+# be memoized to aid with performance, i.e.,
+#
+#    @cache_manager.cache.memoize(timeout=0)
+#    def DATASET_HEALTH_CHECK(datasource: SqlaTable) -> Optional[str]:
+#        if (
+#            datasource.sql and
+#            len(sql_parse.ParsedQuery(datasource.sql, strip_comments=True).tables) == 1
+#        ):
+#            return (
+#                "This virtual dataset queries only one table and therefore could be "
+#                "replaced by querying the table directly."
+#            )
+#
+#        return None
+#
+# Within the FLASK_APP_MUTATOR callable, i.e., once the application and thus cache have
+# been initialized it is also necessary to add the following logic to blow the cache for
+# all datasources if the callback function changed.
+#
+#    def FLASK_APP_MUTATOR(app: Flask) -> None:
+#        name = "DATASET_HEALTH_CHECK"
+#        func = app.config[name]
+#        code = func.uncached.__code__.co_code
+#
+#        if cache_manager.cache.get(name) != code:
+#            cache_manager.cache.delete_memoized(func)
+#            cache_manager.cache.set(name, code, timeout=0)
+#
+DATASET_HEALTH_CHECK: Optional[Callable[["SqlaTable"], str]] = None
 
 # SQLalchemy link doc reference
 SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
