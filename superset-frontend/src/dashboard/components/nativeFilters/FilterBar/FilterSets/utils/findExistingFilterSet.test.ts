@@ -77,7 +77,7 @@ test('Should return undefined when nativeFilters has less values', () => {
   expect(response).toBeUndefined();
 });
 
-test('Should return undefined when nativeFilters has diferent values', () => {
+test('Should return undefined when nativeFilters has different values', () => {
   const dataMaskSelected = createDataMaskSelected();
   const filterSetFilterValues = [
     {
