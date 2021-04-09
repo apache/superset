@@ -209,27 +209,6 @@ export const Switch = () => (
   </>
 );
 
-
-export const CollapseDefault = () => (
-  <Collapse defaultActiveKey={['1']}>
-    <Collapse.Panel header="Hi! I am a header" key="1">
-      Hi! I am a sample content
-    </Collapse.Panel>
-    <Collapse.Panel header="Hi! I am another header" key="2">
-      Hi! I am another sample content
-    </Collapse.Panel>
-  </Collapse>
-);
-export const CollapseGhost = () => (
-  <Collapse defaultActiveKey={['1']} ghost>
-    <Collapse.Panel header="Hi! I am a header" key="1">
-      Hi! I am a sample content
-    </Collapse.Panel>
-    <Collapse.Panel header="Hi! I am another header" key="2">
-      Hi! I am another sample content
-    </Collapse.Panel>
-  </Collapse>
-);
 export const CollapseBold = () => (
   <Collapse defaultActiveKey={['1']} bold>
     <Collapse.Panel header="Hi! I am a header" key="1">
