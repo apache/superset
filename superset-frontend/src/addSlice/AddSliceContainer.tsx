@@ -107,8 +107,8 @@ export default class AddSliceContainer extends React.PureComponent<
         <Collapse
           defaultActiveKey={['1']}
         >
-          <Collapse.Panel 
-            header={ 
+          <Collapse.Panel
+            header={
               <h3>{t('Create a new chart')}</h3>
             }
             key="1"
