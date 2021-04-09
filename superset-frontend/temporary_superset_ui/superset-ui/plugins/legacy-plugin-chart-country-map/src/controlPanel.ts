@@ -42,11 +42,6 @@ const config: ControlPanelConfig = {
               choices: countryOptions,
               description: t('Which country to plot the map for?'),
               validators: [validateNonEmpty],
-              mapStateToProps(state, { value }) {
-                return {
-                  value: value ? String(value).toLowerCase() : null,
-                };
-              },
             },
           },
         ],
