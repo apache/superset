@@ -209,44 +209,6 @@ export const Switch = () => (
   </>
 );
 
-export const CollapseBold = () => (
-  <Collapse defaultActiveKey={['1']} bold>
-    <Collapse.Panel header="Hi! I am a header" key="1">
-      Hi! I am a sample content
-    </Collapse.Panel>
-    <Collapse.Panel header="Hi! I am another header" key="2">
-      Hi! I am another sample content
-    </Collapse.Panel>
-  </Collapse>
-);
-export const CollapseBigger = () => (
-  <Collapse defaultActiveKey={['1']} bigger>
-    <Collapse.Panel header="Hi! I am a header" key="1">
-      Hi! I am a sample content
-    </Collapse.Panel>
-    <Collapse.Panel header="Hi! I am another header" key="2">
-      Hi! I am another sample content
-    </Collapse.Panel>
-  </Collapse>
-);
-export const CollapseTextLight = () => (
-  <Collapse defaultActiveKey={['1']} light>
-    <Collapse.Panel
-      header="Hi! I am a header"
-      key="1"
-      style={{ background: '#BBB' }}
-    >
-      Hi! I am a sample content
-    </Collapse.Panel>
-    <Collapse.Panel
-      header="Hi! I am another header"
-      key="2"
-      style={{ background: '#BBB' }}
-    >
-      Hi! I am another sample content
-    </Collapse.Panel>
-  </Collapse>
-);
 export function StyledCronPicker() {
   // @ts-ignore
   const inputRef = useRef<Input>(null);
