@@ -26,6 +26,10 @@ describe('tokenizeToNumericArray', () => {
     expect(tokenizeToNumericArray('   1, 2,   3,    4 ')).toStrictEqual([1, 2, 3, 4]);
   });
 
+  it('evals undefined to null', () => {
+    expect(tokenizeToNumericArray(undefined)).toBeNull();
+  });
+
   it('evals empty strings to null', () => {
     expect(tokenizeToNumericArray('')).toBeNull();
     expect(tokenizeToNumericArray('    ')).toBeNull();
@@ -41,6 +45,10 @@ describe('tokenizeToStringArray', () => {
     expect(tokenizeToStringArray('a')).toStrictEqual(['a']);
     expect(tokenizeToStringArray('1.1 , 2.2, 3.0 ,4')).toStrictEqual(['1.1', '2.2', '3.0', '4']);
     expect(tokenizeToStringArray('1.1,a,3, bc ,d')).toStrictEqual(['1.1', 'a', '3', 'bc', 'd']);
+  });
+
+  it('evals undefined to null', () => {
+    expect(tokenizeToStringArray(undefined)).toBeNull();
   });
 
   it('evals empty string to null', () => {
