@@ -21,7 +21,7 @@ import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { extent as d3Extent } from 'd3-array';
 import { getNumberFormatter, getSequentialSchemeRegistry } from '@superset-ui/core';
-import countries from './countries';
+import countries, { countryOptions } from './countries';
 import './CountryMap.css';
 
 const propTypes = {
@@ -199,15 +199,19 @@ function CountryMap(element, props) {
       .on('click', clicked);
   }
 
-  const countryKey = country.toLowerCase();
-  const map = maps[countryKey];
+  const map = maps[country];
   if (map) {
     drawMap(map);
   } else {
-    const url = countries[countryKey];
+    const url = countries[country];
     d3.json(url, (error, mapData) => {
-      if (!error) {
-        maps[countryKey] = mapData;
+      if (error) {
+        const countryName = countryOptions.find(x => x[0] === country)?.[1] || country;
+        d3.select(element).html(
+          `<div class="alert alert-danger">Could not load map data for ${countryName}</div>`,
+        );
+      } else {
+        maps[country] = mapData;
         drawMap(mapData);
       }
     });
