@@ -27,8 +27,6 @@ import { Switch as AntdSwitch } from './Switch';
 import { Menu, Input, Divider } from '.';
 import { Dropdown } from './Dropdown';
 import InfoTooltip from './InfoTooltip';
-import Card from './Card';
-import Collapse from './Collapse';
 import { CronPicker, CronError } from './CronPicker';
 
 export default {
