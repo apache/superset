@@ -160,6 +160,15 @@ test('should render the "Refresh dashboard" menu item as disabled when loading',
   );
 });
 
+test('should NOT render the "Refresh dashboard" menu item as disabled', async () => {
+  const mockedProps = createProps();
+  render(setup(mockedProps));
+  await openDropdown();
+  expect(screen.getByText('Refresh dashboard')).not.toHaveClass(
+    'ant-dropdown-menu-item-disabled',
+  );
+});
+
 test('should render with custom css', () => {
   const mockedProps = createProps();
   render(setup(mockedProps));
