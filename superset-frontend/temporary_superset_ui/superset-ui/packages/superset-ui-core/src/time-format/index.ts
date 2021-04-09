@@ -14,6 +14,7 @@ export { default as createD3TimeFormatter } from './factories/createD3TimeFormat
 export { default as createMultiFormatter } from './factories/createMultiFormatter';
 
 export { default as smartDateFormatter } from './formatters/smartDate';
+export { default as smartDateDetailedFormatter } from './formatters/smartDateDetailed';
 export { default as smartDateVerboseFormatter } from './formatters/smartDateVerbose';
 
 export * from './types';
