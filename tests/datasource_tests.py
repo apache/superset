@@ -17,12 +17,14 @@
 """Unit tests for Superset"""
 import json
 from copy import deepcopy
+from unittest import mock
 
 import pytest
 
 from superset import app, ConnectorRegistry, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetNotFoundError
+from superset.exceptions import SupersetException, SupersetGenericDBErrorException
 from superset.utils.core import get_example_database
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
@@ -95,6 +97,25 @@ class TestDatasource(SupersetTestCase):
             url = f"/datasource/external_metadata/table/{table.id}/"
             resp = self.get_json_resp(url)
             self.assertEqual(resp["error"], "Only single queries supported")
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch("superset.connectors.sqla.models.SqlaTable.external_metadata")
+    def test_external_metadata_error_return_400(self, mock_get_datasource):
+        self.login(username="admin")
+        tbl = self.get_table_by_name("birth_names")
+        url = f"/datasource/external_metadata/table/{tbl.id}/"
+
+        mock_get_datasource.side_effect = SupersetGenericDBErrorException("oops")
+
+        pytest.raises(
+            SupersetGenericDBErrorException,
+            lambda: ConnectorRegistry.get_datasource(
+                "table", tbl.id, db.session
+            ).external_metadata(),
+        )
+
+        resp = self.client.get(url)
+        assert resp.status_code == 400
 
     def compare_lists(self, l1, l2, key):
         l2_lookup = {o.get(key): o for o in l2}
