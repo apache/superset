@@ -640,7 +640,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 indeterminate={false}
                 checked={!!db?.impersonate_user}
                 onChange={onInputChange}
-                labelText={t('Impersonate Logged In User (Presto & Hive)')}
+                labelText={t('Impersonate Logged In User (Presto, Trino & Hive)')}
               />
               <InfoTooltip
                 tooltip={t(

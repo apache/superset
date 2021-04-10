@@ -15,11 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Optional
+from typing import Any, Dict, Optional
 
+from sqlalchemy.engine.url import make_url, URL
 from superset.db_engine_specs import BaseEngineSpec
 from superset.utils import core as utils
-
 
 class TrinoEngineSpec(BaseEngineSpec):
     engine = "trino"
@@ -56,3 +56,34 @@ class TrinoEngineSpec(BaseEngineSpec):
     @classmethod
     def epoch_to_dttm(cls) -> str:
         return "from_unixtime({col})"
+
+    @classmethod
+    def modify_url_for_impersonation(
+        cls, url: URL, impersonate_user: bool, username: Optional[str]
+    ) -> None:
+        """
+        Modify the SQL Alchemy URL object with the user to impersonate if applicable.
+        :param url: SQLAlchemy URL object
+        :param impersonate_user: Flag indicating if impersonation is enabled
+        :param username: Effective username
+        """
+        # Do nothing in the URL object since instead this should modify
+        # the configuraiton dictionary. See get_configuration_for_impersonation
+
+    @classmethod
+    def update_impersonation_config(
+        cls, connect_args: Dict[str, Any], uri: str, username: Optional[str],
+    ) -> None:
+        """
+        Update a configuration dictionary
+        that can set the correct properties for impersonating users
+        :param connect_args:
+        :param uri: URI string
+        :param username: Effective username
+        :return: None
+        """
+        url = make_url(uri)
+        backend_name = url.get_backend_name()
+
+        if backend_name == "trino" and username is not None:
+            connect_args["user"] = username
