@@ -59,6 +59,7 @@ export default class SqlEditorLeftBar extends React.PureComponent {
     this.onDbChange = this.onDbChange.bind(this);
     this.getDbList = this.getDbList.bind(this);
     this.onTableChange = this.onTableChange.bind(this);
+    this.onToggleTable = this.onToggleTable.bind(this);
   }
 
   onSchemaChange(schema) {
@@ -89,6 +90,16 @@ export default class SqlEditorLeftBar extends React.PureComponent {
 
   onTableChange(tableName, schemaName) {
     this.props.actions.addTable(this.props.queryEditor, tableName, schemaName);
+  }
+
+  onToggleTable(tables) {
+    this.props.tables.forEach(table => {
+      if (!tables.includes(table.id.toString()) && table.expanded) {
+        this.props.actions.collapseTable(table);
+      } else if (tables.includes(table.id.toString()) && !table.expanded) {
+        this.props.actions.expandTable(table);
+      }
+    });
   }
 
   getDbList(dbs) {
@@ -172,13 +183,13 @@ export default class SqlEditorLeftBar extends React.PureComponent {
               `}
               expandIconPosition="right"
               ghost
+              onChange={this.onToggleTable}
             >
               {this.props.tables.map(table => (
                 <TableElement
                   table={table}
                   key={table.id}
                   actions={this.props.actions}
-                  onClick={this.toggleTable}
                 />
               ))}
             </Collapse>

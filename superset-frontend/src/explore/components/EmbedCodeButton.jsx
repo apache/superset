@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 
-import Popover from 'src/common/components/Popover';
+import Popover from 'src/components/Popover';
 import FormLabel from 'src/components/FormLabel';
 import Icon from 'src/components/Icon';
 import { Tooltip } from 'src/common/components/Tooltip';

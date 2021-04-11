@@ -118,6 +118,7 @@ class DatabaseDeleteFailedReportsExistError(DatabaseDeleteFailedError):
 
 
 class DatabaseTestConnectionFailedError(CommandException):
+    status = 422
     message = _("Connection failed, please check your connection settings")
 
 

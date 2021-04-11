@@ -368,7 +368,7 @@ dataset_config: Dict[str, Any] = {
     "schema": "",
     "sql": "",
     "params": None,
-    "template_params": None,
+    "template_params": {},
     "filter_select_enabled": True,
     "fetch_values_predicate": None,
     "extra": None,

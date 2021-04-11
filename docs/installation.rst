@@ -1207,7 +1207,7 @@ To render dashboards you need to install a local browser on your superset instan
   * `geckodriver <https://github.com/mozilla/geckodriver>`_ and Firefox is preferred
   * `chromedriver <http://chromedriver.chromium.org/>`_ is a good option too
 
-You need to adjust the ``EMAIL_REPORTS_WEBDRIVER`` accordingly in your configuration.
+You need to adjust the ``WEBDRIVER_TYPE`` accordingly in your configuration.
 
 You also need to specify on behalf of which username to render the dashboards. In general
 dashboards and charts are not accessible to unauthorized requests, that is why the

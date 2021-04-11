@@ -28,11 +28,12 @@ under the License.
 - [#13052](https://github.com/apache/superset/pull/13052) fix(explore): pie chart label bugs (@villebro)
 - [#13015](https://github.com/apache/superset/pull/13015) fix: time filter db migration optimization (@ktmud)
 - [#12950](https://github.com/apache/superset/pull/12950) chore: rename revision to match naming scheme (@etr2460)
-- [#12680](https://github.com/apache/superset/pull/12680) feat(dashboard-rbac): dashboard lists (@amitmiran137)
+- [#12680](https://github.com/apache/superset/pull/12680) feat(dashboard_rbac): dashboard lists (@amitmiran137)
 - [#12552](https://github.com/apache/superset/pull/12552) fix(explore): deprecated x periods pattern in new time picker value (@zhaoyongjie)
 - [#12336](https://github.com/apache/superset/pull/12336) chore: remove additional incubator references (@amitmiran137)
 
 **Features**
+- [#13353](https://github.com/apache/superset/pull/13353) feat: add Firebird DB engine spec (@betodealmeida)
 - [#13271](https://github.com/apache/superset/pull/13271) feat(chart-data): add rowcount, timegrain and column result types (@villebro)
 - [#13214](https://github.com/apache/superset/pull/13214) feat(presto): add support for user impersonation (@rijojoseph07)
 - [#13049](https://github.com/apache/superset/pull/13049) feat: Add sort by for dist bar chart (@maloun96)
@@ -77,6 +78,10 @@ under the License.
 - [#12415](https://github.com/apache/superset/pull/12415) feat: new Slack dashboard (@betodealmeida)
 
 **Fixes**
+- [#13735](https://github.com/apache/superset/pull/13735) fix: Properly escape special characters in CSV output (@benjreinhart)
+- [#13461](https://github.com/apache/superset/pull/13461) fix: url shortener invalid input (@dpgaspar)
+- [#13157](https://github.com/apache/superset/pull/13157) fix(alerts&reports): Alerts & Reports will use values from WEBDRIVER_WINDOW option (@iercan)
+- [#13350](https://github.com/apache/superset/pull/13350) fix(celery): Reset DB connection pools for forked worker processes (@robdiciuccio)
 - [#13300](https://github.com/apache/superset/pull/13300) fix: exception when saving dash (@amitmiran137)
 - [#13284](https://github.com/apache/superset/pull/13284) fix(listview): preserve bulk selections when view mode is changed (@nytai)
 - [#13289](https://github.com/apache/superset/pull/13289) fix(alerts): Handle None on results (@dpgaspar)
@@ -186,6 +191,11 @@ under the License.
 - [#12404](https://github.com/apache/superset/pull/12404) fix(explore): Prevent duplicated query by data table (@graceguo-supercat)
 
 **Others**
+- [#13777](https://github.com/apache/superset/pull/13777) docs: added release notes for 1.1 (@srinify)
+- [#13588](https://github.com/apache/superset/pull/13588) chore: script for changelog (@lilykuang)
+- [#13402](https://github.com/apache/superset/pull/13402) docs: add file for users to see status of feature flags (@eschutho)
+- [#13431](https://github.com/apache/superset/pull/13431) chore: clean remaining old directed force graph code (@mayurnewase)
+- [#12882](https://github.com/apache/superset/pull/12882) chore: bump pyarrow and pandas (@villebro)
 - [#13304](https://github.com/apache/superset/pull/13304) test: change data-test-id to data-test in FlashProvider (@yardz)
 - [#13171](https://github.com/apache/superset/pull/13171) docs: Connecting to Trino Databases (@dungdm93)
 - [#12238](https://github.com/apache/superset/pull/12238) chore: update instructions for Pinot in connecting to databases (@pablo-tech)

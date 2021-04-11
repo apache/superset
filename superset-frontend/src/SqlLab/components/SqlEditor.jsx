@@ -60,7 +60,7 @@ import {
 } from '../actions/sqlLab';
 
 import TemplateParamsEditor from './TemplateParamsEditor';
-import ConnectedSouthPane from './SouthPane';
+import ConnectedSouthPane from './SouthPane/state';
 import SaveQuery from './SaveQuery';
 import ScheduleQueryButton from './ScheduleQueryButton';
 import EstimateQueryCostButton from './EstimateQueryCostButton';

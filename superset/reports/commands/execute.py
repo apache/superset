@@ -17,6 +17,7 @@
 import logging
 from datetime import datetime, timedelta
 from typing import Any, List, Optional
+from uuid import UUID
 
 from celery.exceptions import SoftTimeLimitExceeded
 from flask_appbuilder.security.sqla.models import User
@@ -25,6 +26,7 @@ from sqlalchemy.orm import Session
 from superset import app
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
+from superset.extensions import feature_flag_manager
 from superset.models.reports import (
     ReportExecutionLog,
     ReportSchedule,
@@ -51,7 +53,7 @@ from superset.reports.dao import (
     ReportScheduleDAO,
 )
 from superset.reports.notifications import create_notification
-from superset.reports.notifications.base import NotificationContent, ScreenshotData
+from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.celery import session_scope
 from superset.utils.screenshots import (
@@ -73,11 +75,13 @@ class BaseReportState:
         session: Session,
         report_schedule: ReportSchedule,
         scheduled_dttm: datetime,
+        execution_id: UUID,
     ) -> None:
         self._session = session
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
         self._start_dttm = datetime.utcnow()
+        self._execution_id = execution_id
 
     def set_state_and_log(
         self, state: ReportState, error_message: Optional[str] = None,
@@ -117,6 +121,7 @@ class BaseReportState:
             state=state,
             error_message=error_message,
             report_schedule=self._report_schedule,
+            uuid=self._execution_id,
         )
         self._session.add(log)
         self._session.commit()
@@ -149,7 +154,7 @@ class BaseReportState:
             raise ReportScheduleSelleniumUserNotFoundError()
         return user
 
-    def _get_screenshot(self) -> ScreenshotData:
+    def _get_screenshot(self) -> bytes:
         """
         Get a chart or dashboard screenshot
 
@@ -172,7 +177,6 @@ class BaseReportState:
                 window_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
                 thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
             )
-        image_url = self._get_url(user_friendly=True)
         user = self._get_screenshot_user()
         try:
             image_data = screenshot.get_screenshot(user=user)
@@ -184,7 +188,7 @@ class BaseReportState:
             )
         if not image_data:
             raise ReportScheduleScreenshotFailedError()
-        return ScreenshotData(url=image_url, image=image_data)
+        return image_data
 
     def _get_notification_content(self) -> NotificationContent:
         """
@@ -192,7 +196,19 @@ class BaseReportState:
 
         :raises: ReportScheduleScreenshotFailedError
         """
-        screenshot_data = self._get_screenshot()
+        screenshot_data = None
+        url = self._get_url(user_friendly=True)
+        if (
+            feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
+            or self._report_schedule.type == ReportScheduleType.REPORT
+        ):
+            screenshot_data = self._get_screenshot()
+            if not screenshot_data:
+                return NotificationContent(
+                    name=self._report_schedule.name,
+                    text="Unexpected missing screenshot",
+                )
+
         if self._report_schedule.chart:
             name = (
                 f"{self._report_schedule.name}: "
@@ -203,7 +219,7 @@ class BaseReportState:
                 f"{self._report_schedule.name}: "
                 f"{self._report_schedule.dashboard.dashboard_title}"
             )
-        return NotificationContent(name=name, screenshot=screenshot_data)
+        return NotificationContent(name=name, url=url, screenshot=screenshot_data)
 
     def _send(self, notification_content: NotificationContent) -> None:
         """
@@ -397,10 +413,12 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
     def __init__(
         self,
         session: Session,
+        task_uuid: UUID,
         report_schedule: ReportSchedule,
         scheduled_dttm: datetime,
     ):
         self._session = session
+        self._execution_id = task_uuid
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
 
@@ -411,7 +429,10 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
                 self._report_schedule.last_state in state_cls.current_states
             ):
                 state_cls(
-                    self._session, self._report_schedule, self._scheduled_dttm
+                    self._session,
+                    self._report_schedule,
+                    self._scheduled_dttm,
+                    self._execution_id,
                 ).next()
                 state_found = True
                 break
@@ -426,10 +447,11 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
     - On Alerts uses related Command AlertCommand and sends configured notifications
     """
 
-    def __init__(self, model_id: int, scheduled_dttm: datetime):
+    def __init__(self, task_id: str, model_id: int, scheduled_dttm: datetime):
         self._model_id = model_id
         self._model: Optional[ReportSchedule] = None
         self._scheduled_dttm = scheduled_dttm
+        self._execution_id = UUID(task_id)
 
     def run(self) -> None:
         with session_scope(nullpool=True) as session:
@@ -438,7 +460,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 if not self._model:
                     raise ReportScheduleExecuteUnexpectedError()
                 ReportScheduleStateMachine(
-                    session, self._model, self._scheduled_dttm
+                    session, self._execution_id, self._model, self._scheduled_dttm
                 ).run()
             except CommandException as ex:
                 raise ex

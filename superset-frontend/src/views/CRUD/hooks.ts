@@ -56,11 +56,12 @@ export function useListViewResource<D extends object = any>(
   infoEnable = true,
   defaultCollectionValue: D[] = [],
   baseFilters?: FilterValue[], // must be memoized
+  initialLoadingState = true,
 ) {
   const [state, setState] = useState<ListViewResourceState<D>>({
     count: 0,
     collection: defaultCollectionValue,
-    loading: true,
+    loading: initialLoadingState,
     lastFetchDataConfig: null,
     permissions: [],
     bulkSelectEnabled: false,

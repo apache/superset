@@ -42,6 +42,7 @@ import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger/LogUtils';
 import { getClientErrorObject } from '../utils/getClientErrorObject';
 import { allowCrossDomain as domainShardingEnabled } from '../utils/hostNamesConfig';
 import { updateDataMask } from '../dataMask/actions';
+import { waitForAsyncData } from '../middleware/asyncEvent';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -66,11 +67,6 @@ export function chartUpdateStopped(key) {
 export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED';
 export function chartUpdateFailed(queriesResponse, key) {
   return { type: CHART_UPDATE_FAILED, queriesResponse, key };
-}
-
-export const CHART_UPDATE_QUEUED = 'CHART_UPDATE_QUEUED';
-export function chartUpdateQueued(asyncJobMeta, key) {
-  return { type: CHART_UPDATE_QUEUED, asyncJobMeta, key };
 }
 
 export const CHART_RENDERING_FAILED = 'CHART_RENDERING_FAILED';
@@ -387,9 +383,11 @@ export function exploreJSON(
         if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
           // deal with getChartDataRequest transforming the response data
           const result = 'result' in response ? response.result[0] : response;
-          return dispatch(chartUpdateQueued(result, key));
+          return waitForAsyncData(result);
         }
-
+        return queriesResponse;
+      })
+      .then(queriesResponse => {
         queriesResponse.forEach(resultItem =>
           dispatch(
             logEvent(LOG_ACTIONS_LOAD_CHART, {
@@ -414,6 +412,10 @@ export function exploreJSON(
         return dispatch(chartUpdateSucceeded(queriesResponse, key));
       })
       .catch(response => {
+        if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+          return dispatch(chartUpdateFailed([response], key));
+        }
+
         const appendErrorLog = (errorDetails, isCached) => {
           dispatch(
             logEvent(LOG_ACTIONS_LOAD_CHART, {

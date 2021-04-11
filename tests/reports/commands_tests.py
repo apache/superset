@@ -18,6 +18,7 @@ import json
 from datetime import datetime, timedelta
 from typing import List, Optional
 from unittest.mock import Mock, patch
+from uuid import uuid4
 
 import pytest
 from contextlib2 import contextmanager
@@ -63,6 +64,8 @@ from tests.utils import read_fixture
 pytestmark = pytest.mark.usefixtures(
     "load_world_bank_dashboard_with_slices_module_scope"
 )
+
+test_id = str(uuid4())
 
 
 def get_target_from_report_schedule(report_schedule: ReportSchedule) -> List[str]:
@@ -518,7 +521,7 @@ def test_email_chart_report_schedule(
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
-            create_report_email_chart.id, datetime.utcnow()
+            test_id, create_report_email_chart.id, datetime.utcnow()
         ).run()
 
         notification_targets = get_target_from_report_schedule(
@@ -556,7 +559,7 @@ def test_email_dashboard_report_schedule(
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
-            create_report_email_dashboard.id, datetime.utcnow()
+            test_id, create_report_email_dashboard.id, datetime.utcnow()
         ).run()
 
         notification_targets = get_target_from_report_schedule(
@@ -588,7 +591,7 @@ def test_slack_chart_report_schedule(
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
-            create_report_slack_chart.id, datetime.utcnow()
+            test_id, create_report_slack_chart.id, datetime.utcnow()
         ).run()
 
         notification_targets = get_target_from_report_schedule(
@@ -608,7 +611,7 @@ def test_report_schedule_not_found(create_report_slack_chart):
     """
     max_id = db.session.query(func.max(ReportSchedule.id)).scalar()
     with pytest.raises(ReportScheduleNotFoundError):
-        AsyncExecuteReportScheduleCommand(max_id + 1, datetime.utcnow()).run()
+        AsyncExecuteReportScheduleCommand(test_id, max_id + 1, datetime.utcnow()).run()
 
 
 @pytest.mark.usefixtures("create_report_slack_chart_working")
@@ -620,7 +623,7 @@ def test_report_schedule_working(create_report_slack_chart_working):
     with freeze_time("2020-01-01T00:00:00Z"):
         with pytest.raises(ReportSchedulePreviousWorkingError):
             AsyncExecuteReportScheduleCommand(
-                create_report_slack_chart_working.id, datetime.utcnow()
+                test_id, create_report_slack_chart_working.id, datetime.utcnow()
             ).run()
 
         assert_log(
@@ -643,7 +646,7 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
     with freeze_time(current_time):
         with pytest.raises(ReportScheduleWorkingTimeoutError):
             AsyncExecuteReportScheduleCommand(
-                create_report_slack_chart_working.id, datetime.utcnow()
+                test_id, create_report_slack_chart_working.id, datetime.utcnow()
             ).run()
 
     # Only needed for MySQL, understand why
@@ -668,7 +671,7 @@ def test_report_schedule_success_grace(create_alert_slack_chart_success):
 
     with freeze_time(current_time):
         AsyncExecuteReportScheduleCommand(
-            create_alert_slack_chart_success.id, datetime.utcnow()
+            test_id, create_alert_slack_chart_success.id, datetime.utcnow()
         ).run()
 
     db.session.commit()
@@ -687,7 +690,7 @@ def test_report_schedule_success_grace_end(create_alert_slack_chart_grace):
 
     with freeze_time(current_time):
         AsyncExecuteReportScheduleCommand(
-            create_alert_slack_chart_grace.id, datetime.utcnow()
+            test_id, create_alert_slack_chart_grace.id, datetime.utcnow()
         ).run()
 
     db.session.commit()
@@ -711,7 +714,7 @@ def test_alert_limit_is_applied(screenshot_mock, email_mock, create_alert_email_
             return_value=None,
         ) as fetch_data_mock:
             AsyncExecuteReportScheduleCommand(
-                create_alert_email_chart.id, datetime.utcnow()
+                test_id, create_alert_email_chart.id, datetime.utcnow()
             ).run()
             assert "LIMIT 2" in execute_mock.call_args[0][1]
 
@@ -736,7 +739,7 @@ def test_email_dashboard_report_fails(
 
     with pytest.raises(ReportScheduleNotificationError):
         AsyncExecuteReportScheduleCommand(
-            create_report_email_dashboard.id, datetime.utcnow()
+            test_id, create_report_email_dashboard.id, datetime.utcnow()
         ).run()
 
     assert_log(ReportState.ERROR, error_message="Could not connect to SMTP XPTO")
@@ -747,6 +750,10 @@ def test_email_dashboard_report_fails(
 )
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+@patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    ALERTS_ATTACH_REPORTS=True,
+)
 def test_slack_chart_alert(screenshot_mock, email_mock, create_alert_email_chart):
     """
     ExecuteReport Command: Test chart slack alert
@@ -757,7 +764,7 @@ def test_slack_chart_alert(screenshot_mock, email_mock, create_alert_email_chart
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
-            create_alert_email_chart.id, datetime.utcnow()
+            test_id, create_alert_email_chart.id, datetime.utcnow()
         ).run()
 
         notification_targets = get_target_from_report_schedule(create_alert_email_chart)
@@ -766,6 +773,34 @@ def test_slack_chart_alert(screenshot_mock, email_mock, create_alert_email_chart
         # Assert the email inline screenshot
         smtp_images = email_mock.call_args[1]["images"]
         assert smtp_images[list(smtp_images.keys())[0]] == screenshot
+        # Assert logs are correct
+        assert_log(ReportState.SUCCESS)
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_alert_email_chart"
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    ALERTS_ATTACH_REPORTS=False,
+)
+def test_slack_chart_alert_no_attachment(email_mock, create_alert_email_chart):
+    """
+    ExecuteReport Command: Test chart slack alert
+    """
+    # setup screenshot mock
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        AsyncExecuteReportScheduleCommand(
+            test_id, create_alert_email_chart.id, datetime.utcnow()
+        ).run()
+
+        notification_targets = get_target_from_report_schedule(create_alert_email_chart)
+        # Assert the email smtp address
+        assert email_mock.call_args[0][0] == notification_targets[0]
+        # Assert the there is no attached image
+        assert email_mock.call_args[1]["images"] is None
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)
 
@@ -789,7 +824,7 @@ def test_slack_token_callable_chart_report(
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
-            create_report_slack_chart.id, datetime.utcnow()
+            test_id, create_report_slack_chart.id, datetime.utcnow()
         ).run()
         app.config["SLACK_API_TOKEN"].assert_called_once()
         assert slack_client_mock_class.called_with(token="cool_code", proxy="")
@@ -803,7 +838,7 @@ def test_email_chart_no_alert(create_no_alert_email_chart):
     """
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
-            create_no_alert_email_chart.id, datetime.utcnow()
+            test_id, create_no_alert_email_chart.id, datetime.utcnow()
         ).run()
     assert_log(ReportState.NOOP)
 
@@ -818,7 +853,7 @@ def test_email_mul_alert(create_mul_alert_email_chart):
             (AlertQueryMultipleRowsError, AlertQueryMultipleColumnsError)
         ):
             AsyncExecuteReportScheduleCommand(
-                create_mul_alert_email_chart.id, datetime.utcnow()
+                test_id, create_mul_alert_email_chart.id, datetime.utcnow()
             ).run()
 
 
@@ -839,7 +874,7 @@ def test_soft_timeout_alert(email_mock, create_alert_email_chart):
         execute_mock.side_effect = SoftTimeLimitExceeded()
         with pytest.raises(AlertQueryTimeout):
             AsyncExecuteReportScheduleCommand(
-                create_alert_email_chart.id, datetime.utcnow()
+                test_id, create_alert_email_chart.id, datetime.utcnow()
             ).run()
 
     notification_targets = get_target_from_report_schedule(create_alert_email_chart)
@@ -856,6 +891,10 @@ def test_soft_timeout_alert(email_mock, create_alert_email_chart):
 )
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+@patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    ALERTS_ATTACH_REPORTS=True,
+)
 def test_soft_timeout_screenshot(screenshot_mock, email_mock, create_alert_email_chart):
     """
     ExecuteReport Command: Test soft timeout on screenshot
@@ -866,7 +905,7 @@ def test_soft_timeout_screenshot(screenshot_mock, email_mock, create_alert_email
     screenshot_mock.side_effect = SoftTimeLimitExceeded()
     with pytest.raises(ReportScheduleScreenshotTimeout):
         AsyncExecuteReportScheduleCommand(
-            create_alert_email_chart.id, datetime.utcnow()
+            test_id, create_alert_email_chart.id, datetime.utcnow()
         ).run()
 
     notification_targets = get_target_from_report_schedule(create_alert_email_chart)
@@ -879,11 +918,11 @@ def test_soft_timeout_screenshot(screenshot_mock, email_mock, create_alert_email
 
 
 @pytest.mark.usefixtures(
-    "load_birth_names_dashboard_with_slices", "create_alert_email_chart"
+    "load_birth_names_dashboard_with_slices", "create_report_email_chart"
 )
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
-def test_fail_screenshot(screenshot_mock, email_mock, create_alert_email_chart):
+def test_fail_screenshot(screenshot_mock, email_mock, create_report_email_chart):
     """
     ExecuteReport Command: Test soft timeout on screenshot
     """
@@ -893,16 +932,42 @@ def test_fail_screenshot(screenshot_mock, email_mock, create_alert_email_chart):
     screenshot_mock.side_effect = Exception("Unexpected error")
     with pytest.raises(ReportScheduleScreenshotFailedError):
         AsyncExecuteReportScheduleCommand(
-            create_alert_email_chart.id, datetime.utcnow()
+            test_id, create_report_email_chart.id, datetime.utcnow()
         ).run()
 
-    notification_targets = get_target_from_report_schedule(create_alert_email_chart)
+    notification_targets = get_target_from_report_schedule(create_report_email_chart)
     # Assert the email smtp address, asserts a notification was sent with the error
     assert email_mock.call_args[0][0] == notification_targets[0]
 
     assert_log(
         ReportState.ERROR, error_message="Failed taking a screenshot Unexpected error"
     )
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_alert_email_chart"
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    ALERTS_ATTACH_REPORTS=False,
+)
+def test_email_disable_screenshot(email_mock, create_alert_email_chart):
+    """
+    ExecuteReport Command: Test soft timeout on screenshot
+    """
+
+    AsyncExecuteReportScheduleCommand(
+        test_id, create_alert_email_chart.id, datetime.utcnow()
+    ).run()
+
+    notification_targets = get_target_from_report_schedule(create_alert_email_chart)
+    # Assert the email smtp address, asserts a notification was sent with the error
+    assert email_mock.call_args[0][0] == notification_targets[0]
+    # Assert the there is no attached image
+    assert email_mock.call_args[1]["images"] is None
+
+    assert_log(ReportState.SUCCESS)
 
 
 @pytest.mark.usefixtures("create_invalid_sql_alert_email_chart")
@@ -914,7 +979,7 @@ def test_invalid_sql_alert(email_mock, create_invalid_sql_alert_email_chart):
     with freeze_time("2020-01-01T00:00:00Z"):
         with pytest.raises((AlertQueryError, AlertQueryInvalidTypeError)):
             AsyncExecuteReportScheduleCommand(
-                create_invalid_sql_alert_email_chart.id, datetime.utcnow()
+                test_id, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
 
         notification_targets = get_target_from_report_schedule(
@@ -933,7 +998,7 @@ def test_grace_period_error(email_mock, create_invalid_sql_alert_email_chart):
     with freeze_time("2020-01-01T00:00:00Z"):
         with pytest.raises((AlertQueryError, AlertQueryInvalidTypeError)):
             AsyncExecuteReportScheduleCommand(
-                create_invalid_sql_alert_email_chart.id, datetime.utcnow()
+                test_id, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
 
         # Only needed for MySQL, understand why
@@ -950,7 +1015,7 @@ def test_grace_period_error(email_mock, create_invalid_sql_alert_email_chart):
     with freeze_time("2020-01-01T00:30:00Z"):
         with pytest.raises((AlertQueryError, AlertQueryInvalidTypeError)):
             AsyncExecuteReportScheduleCommand(
-                create_invalid_sql_alert_email_chart.id, datetime.utcnow()
+                test_id, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
         db.session.commit()
         assert (
@@ -961,7 +1026,7 @@ def test_grace_period_error(email_mock, create_invalid_sql_alert_email_chart):
     with freeze_time("2020-01-01T01:30:00Z"):
         with pytest.raises((AlertQueryError, AlertQueryInvalidTypeError)):
             AsyncExecuteReportScheduleCommand(
-                create_invalid_sql_alert_email_chart.id, datetime.utcnow()
+                test_id, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
         db.session.commit()
         assert (
@@ -981,7 +1046,7 @@ def test_grace_period_error_flap(
     with freeze_time("2020-01-01T00:00:00Z"):
         with pytest.raises((AlertQueryError, AlertQueryInvalidTypeError)):
             AsyncExecuteReportScheduleCommand(
-                create_invalid_sql_alert_email_chart.id, datetime.utcnow()
+                test_id, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
         db.session.commit()
         # Assert we have 1 notification sent on the log
@@ -992,7 +1057,7 @@ def test_grace_period_error_flap(
     with freeze_time("2020-01-01T00:30:00Z"):
         with pytest.raises((AlertQueryError, AlertQueryInvalidTypeError)):
             AsyncExecuteReportScheduleCommand(
-                create_invalid_sql_alert_email_chart.id, datetime.utcnow()
+                test_id, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
         db.session.commit()
         assert (
@@ -1008,11 +1073,11 @@ def test_grace_period_error_flap(
     with freeze_time("2020-01-01T00:31:00Z"):
         # One success
         AsyncExecuteReportScheduleCommand(
-            create_invalid_sql_alert_email_chart.id, datetime.utcnow()
+            test_id, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
         ).run()
         # Grace period ends
         AsyncExecuteReportScheduleCommand(
-            create_invalid_sql_alert_email_chart.id, datetime.utcnow()
+            test_id, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
         ).run()
 
         db.session.commit()
@@ -1027,7 +1092,7 @@ def test_grace_period_error_flap(
     with freeze_time("2020-01-01T00:32:00Z"):
         with pytest.raises((AlertQueryError, AlertQueryInvalidTypeError)):
             AsyncExecuteReportScheduleCommand(
-                create_invalid_sql_alert_email_chart.id, datetime.utcnow()
+                test_id, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
         db.session.commit()
         assert (

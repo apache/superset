@@ -128,7 +128,7 @@ export class ControlPanelsContainer extends React.Component<ControlPanelsContain
   }
 
   renderControl({ name, config }: CustomControlItem) {
-    const { actions, controls } = this.props;
+    const { actions, controls, chart, exploreState } = this.props;
     const { visibility } = config;
 
     // If the control item is not an object, we have to look up the control data from
@@ -137,6 +137,14 @@ export class ControlPanelsContainer extends React.Component<ControlPanelsContain
     const controlData = {
       ...config,
       ...controls[name],
+      // if `mapStateToProps` accept three arguments, it means it needs chart
+      // state, too. Since it's may be expensive to run mapStateToProps for every
+      // re-render, we only run this when the chart plugin explicitly ask for this.
+      ...(config.mapStateToProps?.length === 3
+        ? config.mapStateToProps(exploreState, controls[name], chart)
+        : // for other controls, `mapStateToProps` is already run in
+          // controlUtils/getControlState.ts
+          undefined),
       name,
     };
     const { validationErrors, ...restProps } = controlData as ControlState & {

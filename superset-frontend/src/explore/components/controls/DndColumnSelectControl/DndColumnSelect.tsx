@@ -19,12 +19,12 @@
 import React, { useState } from 'react';
 import { ColumnMeta, ColumnOption } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
-import { LabelProps } from './types';
-import DndSelectLabel from './DndSelectLabel';
-import OptionWrapper from './components/OptionWrapper';
-import { OptionSelector } from './utils';
-import { DatasourcePanelDndItem } from '../../DatasourcePanel/types';
-import { DndItemType } from '../../DndItemType';
+import { LabelProps } from 'src/explore/components/controls/DndColumnSelectControl/types';
+import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
+import OptionWrapper from 'src/explore/components/controls/DndColumnSelectControl/OptionWrapper';
+import { OptionSelector } from 'src/explore/components/controls/DndColumnSelectControl/utils';
+import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';
+import { DndItemType } from 'src/explore/components/DndItemType';
 
 export const DndColumnSelect = (props: LabelProps) => {
   const { value, options } = props;

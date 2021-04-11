@@ -58,7 +58,6 @@ export { default as Alert, AlertProps } from 'antd/lib/alert';
 export { default as Select, SelectProps } from 'antd/lib/select';
 
 export { default as Collapse } from './Collapse';
-export { default as Progress } from './ProgressBar';
 
 export const MenuItem = styled(AntdMenu.Item)`
   > a {

@@ -33,6 +33,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import UniqueConstraint
+from sqlalchemy_utils import UUIDType
 
 from superset.extensions import security_manager
 from superset.models.core import Database
@@ -171,6 +172,7 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
 
     __tablename__ = "report_execution_log"
     id = Column(Integer, primary_key=True)
+    uuid = Column(UUIDType(binary=True))
 
     # Timestamps
     scheduled_dttm = Column(DateTime, nullable=False)

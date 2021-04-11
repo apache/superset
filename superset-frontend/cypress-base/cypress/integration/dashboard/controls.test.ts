@@ -16,79 +16,80 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 import {
-  getChartAliases,
-  isLegacyResponse,
-  DASHBOARD_CHART_ALIAS_PREFIX,
-} from '../../utils/vizPlugins';
+  WORLD_HEALTH_CHARTS,
+  WORLD_HEALTH_DASHBOARD,
+  waitForChartLoad,
+  ChartSpec,
+  getChartAliasesBySpec,
+} from './dashboard.helper';
+import { isLegacyResponse } from '../../utils/vizPlugins';
 
 describe('Dashboard top-level controls', () => {
-  let mapId: string;
-  let aliases: string[];
-
   beforeEach(() => {
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
-
-    cy.get('#app').then(data => {
-      const bootstrapData = JSON.parse(data[0].dataset.bootstrap || '');
-      const dashboard = bootstrapData.dashboard_data;
-      mapId = dashboard.slices.find(
-        (slice: { form_data: { viz_type: string }; slice_id: number }) =>
-          slice.form_data.viz_type === 'world_map',
-      ).slice_id;
-      aliases = getChartAliases(dashboard.slices);
-    });
   });
 
   // flaky test
   xit('should allow chart level refresh', () => {
-    cy.wait(aliases);
-    cy.get('[data-test="grid-container"]').find('.world_map').should('exist');
-    cy.get(`#slice_${mapId}-controls`).click();
-    cy.get(`[data-test="slice_${mapId}-menu"]`)
-      .find('[data-test="refresh-chart-menu-item"]')
-      .click({ force: true });
-    cy.get('[data-test="refresh-chart-menu-item"]').should(
-      'have.class',
-      'ant-dropdown-menu-item-disabled',
-    );
-
-    cy.wait(`@${DASHBOARD_CHART_ALIAS_PREFIX}${mapId}`);
-    cy.get('[data-test="refresh-chart-menu-item"]').should(
-      'not.have.class',
-      'ant-dropdown-menu-item-disabled',
-    );
+    const mapSpec = WORLD_HEALTH_CHARTS.find(
+      ({ viz }) => viz === 'world_map',
+    ) as ChartSpec;
+    waitForChartLoad(mapSpec).then(gridComponent => {
+      const mapId = gridComponent.attr('data-test-chart-id');
+      cy.get('[data-test="grid-container"]').find('.world_map').should('exist');
+      cy.get(`#slice_${mapId}-controls`).click();
+      cy.get(`[data-test="slice_${mapId}-menu"]`)
+        .find('[data-test="refresh-chart-menu-item"]')
+        .click({ force: true });
+      // likely cause for flakiness:
+      // The query completes before this assertion happens.
+      // Solution: pause the network before clicking, assert, then unpause network.
+      cy.get('[data-test="refresh-chart-menu-item"]').should(
+        'have.class',
+        'ant-dropdown-menu-item-disabled',
+      );
+      waitForChartLoad(mapSpec);
+      cy.get('[data-test="refresh-chart-menu-item"]').should(
+        'not.have.class',
+        'ant-dropdown-menu-item-disabled',
+      );
+    });
   });
 
   it('should allow dashboard level force refresh', () => {
-    cy.wait(aliases);
     // when charts are not start loading, for example, under a secondary tab,
     // should allow force refresh
-    cy.get('[data-test="more-horiz"]').click();
-    cy.get('[data-test="refresh-dashboard-menu-item"]').should(
-      'not.have.class',
-      'ant-dropdown-menu-item-disabled',
-    );
+    WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
+    getChartAliasesBySpec(WORLD_HEALTH_CHARTS).then(aliases => {
+      cy.get('[data-test="more-horiz"]').click();
+      cy.get('[data-test="refresh-dashboard-menu-item"]').should(
+        'not.have.class',
+        'ant-dropdown-menu-item-disabled',
+      );
 
-    cy.get('[data-test="refresh-dashboard-menu-item"]').click({ force: true });
-    cy.get('[data-test="refresh-dashboard-menu-item"]').should(
-      'have.class',
-      'ant-dropdown-menu-item-disabled',
-    );
+      cy.get('[data-test="refresh-dashboard-menu-item"]').click({
+        force: true,
+      });
+      cy.get('[data-test="refresh-dashboard-menu-item"]').should(
+        'have.class',
+        'ant-dropdown-menu-item-disabled',
+      );
 
-    // wait all charts force refreshed.
-    cy.wait(aliases).then(xhrs => {
-      xhrs.forEach(async ({ response, request }) => {
-        const responseBody = response?.body;
-        const isCached = isLegacyResponse(responseBody)
-          ? responseBody.is_cached
-          : responseBody.result[0].is_cached;
-        // request url should indicate force-refresh operation
-        expect(request.url).to.have.string('force=true');
-        // is_cached in response should be false
-        expect(isCached).to.equal(false);
+      // wait all charts force refreshed.
+
+      cy.wait(aliases).then(xhrs => {
+        xhrs.forEach(async ({ response, request }) => {
+          const responseBody = response?.body;
+          const isCached = isLegacyResponse(responseBody)
+            ? responseBody.is_cached
+            : responseBody.result[0].is_cached;
+          // request url should indicate force-refresh operation
+          expect(request.url).to.have.string('force=true');
+          // is_cached in response should be false
+          expect(isCached).to.equal(false);
+        });
       });
     });
     cy.get('[data-test="more-horiz"]').click();

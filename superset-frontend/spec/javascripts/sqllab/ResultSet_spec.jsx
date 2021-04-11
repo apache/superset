@@ -22,7 +22,7 @@ import { styledMount } from 'spec/helpers/theming';
 import { Provider } from 'react-redux';
 import sinon from 'sinon';
 import Alert from 'src/components/Alert';
-import ProgressBar from 'src/common/components/ProgressBar';
+import ProgressBar from 'src/components/ProgressBar';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import FilterableTable from 'src/components/FilterableTable/FilterableTable';

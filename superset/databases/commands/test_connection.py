@@ -115,6 +115,12 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 if not engine.dialect.do_ping(conn):
                     raise DBAPIError(None, None, None)
 
+            # Log succesful connection test with engine
+            event_logger.log_with_context(
+                action="test_connection_success",
+                engine=database.db_engine_spec.__name__,
+            )
+
         except (NoSuchModuleError, ModuleNotFoundError) as ex:
             event_logger.log_with_context(
                 action=f"test_connection_error.{ex.__class__.__name__}",

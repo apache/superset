@@ -1631,6 +1631,22 @@ def find_duplicates(items: Iterable[InputType]) -> List[InputType]:
     return [item for item, count in collections.Counter(items).items() if count > 1]
 
 
+def remove_duplicates(
+    items: Iterable[InputType], key: Optional[Callable[[InputType], Any]] = None
+) -> List[InputType]:
+    """Remove duplicate items in an iterable."""
+    if not key:
+        return list(dict.fromkeys(items).keys())
+    seen = set()
+    result = []
+    for item in items:
+        item_key = key(item)
+        if item_key not in seen:
+            seen.add(item_key)
+            result.append(item)
+    return result
+
+
 def normalize_dttm_col(
     df: pd.DataFrame,
     timestamp_format: Optional[str],

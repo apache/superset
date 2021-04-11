@@ -71,6 +71,9 @@ export default class Control extends React.PureComponent<
     const { type, hidden } = this.props;
     if (!type) return null;
     const ControlComponent = typeof type === 'string' ? controlMap[type] : type;
+    if (!ControlComponent) {
+      return `Unknown controlType: ${type}`;
+    }
     return (
       <div
         className="Control"

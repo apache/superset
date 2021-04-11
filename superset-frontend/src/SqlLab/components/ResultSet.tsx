@@ -19,7 +19,7 @@
 import React, { CSSProperties } from 'react';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
-import ProgressBar from 'src/common/components/ProgressBar';
+import ProgressBar from 'src/components/ProgressBar';
 import moment from 'moment';
 import { RadioChangeEvent } from 'antd/lib/radio';
 import Button from 'src/components/Button';
@@ -27,7 +27,6 @@ import shortid from 'shortid';
 import rison from 'rison';
 import { styled, t, makeApi } from '@superset-ui/core';
 import { debounce } from 'lodash';
-import Icon from 'src/components/Icon';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { put as updateDatset } from 'src/api/dataset';
@@ -65,6 +64,7 @@ interface DatasetOptionAutocomplete {
 }
 
 interface ResultSetProps {
+  showControls?: boolean;
   actions: Record<string, any>;
   cache?: boolean;
   csv?: boolean;
@@ -103,15 +103,6 @@ const MonospaceDiv = styled.div`
 const ReturnedRows = styled.div`
   font-size: 13px;
   line-height: 24px;
-  .returnedRowsImage {
-    color: ${({ theme }) => theme.colors.warning.base};
-    vertical-align: bottom;
-    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
-  }
-  .limitMessage {
-    color: ${({ theme }) => theme.colors.secondary.light1};
-    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-  }
 `;
 const ResultSetControls = styled.div`
   display: flex;
@@ -511,22 +502,22 @@ export default class ResultSet extends React.PureComponent<
   }
 
   renderRowsReturned() {
-    const { results, rows } = this.props.query;
+    const { results, rows, queryLimit } = this.props.query;
     const limitReached = results?.displayLimitReached;
-    const limitWarning = <Icon className="returnedRowsImage" name="warning" />;
     return (
       <ReturnedRows>
-        {limitReached && limitWarning}
-        <span>{t(`%s rows returned`, rows)}</span>
+        {!limitReached && <span>{t(`%s rows returned`, rows)}</span>}
         {limitReached && (
-          <span className="limitMessage">
-            {t(
-              `It appears that the number of rows in the query results displayed
-           was limited on the server side to
-           the %s limit.`,
+          <Alert
+            type="warning"
+            message={t(
+              `The number of results displayed is limited to %s. Please add
+            additional limits/filters or download to csv to see more rows up to
+            the %s limit.`,
               rows,
+              queryLimit,
             )}
-          </span>
+          />
         )}
       </ReturnedRows>
     );

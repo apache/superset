@@ -33,7 +33,7 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Label from 'src/components/Label';
-import Popover from 'src/common/components/Popover';
+import Popover from 'src/components/Popover';
 import { Divider } from 'src/common/components';
 import Icon from 'src/components/Icon';
 import { Select } from 'src/components/Select';

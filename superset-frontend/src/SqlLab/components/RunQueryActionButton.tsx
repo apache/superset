@@ -22,7 +22,10 @@ import { t, styled, supersetTheme } from '@superset-ui/core';
 import { Menu } from 'src/common/components';
 import Button, { ButtonProps } from 'src/components/Button';
 import Icon from 'src/components/Icon';
-import { DropdownButton, DropdownProps } from 'src/common/components/Dropdown';
+import {
+  DropdownButton,
+  DropdownButtonProps,
+} from 'src/common/components/DropdownButton';
 
 interface Props {
   allowAsync: boolean;
@@ -34,7 +37,7 @@ interface Props {
   overlayCreateAsMenu: typeof Menu | null;
 }
 
-type QueryButtonProps = DropdownProps | ButtonProps;
+type QueryButtonProps = DropdownButtonProps | ButtonProps;
 
 const buildText = (
   shouldShowStopButton: boolean,

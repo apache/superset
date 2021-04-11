@@ -38,7 +38,7 @@ function reset_db() {
 EOF
 "
   docker exec -i superset_db bash -c "${RESET_DB_CMD}"
-  docker-compose start superset-tests-worker
+  docker-compose start superset-tests-worker superset
 }
 
 #

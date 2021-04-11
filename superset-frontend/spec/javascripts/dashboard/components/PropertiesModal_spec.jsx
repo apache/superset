@@ -46,7 +46,7 @@ const dashboardResult = {
 fetchMock.restore();
 
 fetchMock.get('glob:*/api/v1/dashboard/related/owners?*', {
-  result: {},
+  result: [],
 });
 
 fetchMock.get('glob:*/api/v1/dashboard/*', {
@@ -113,7 +113,7 @@ describe('PropertiesModal', () => {
             const spy = jest.spyOn(modalInstance, 'onMetadataChange');
             modalInstance.onColorSchemeChange('SUPERSET_DEFAULT');
             expect(spy).toHaveBeenCalledWith(
-              '{"color_scheme": "SUPERSET_DEFAULT"}',
+              '{"color_scheme": "SUPERSET_DEFAULT", "label_colors": {}}',
             );
           });
         });
@@ -255,6 +255,7 @@ describe('PropertiesModal', () => {
                 slug: '/new',
                 json_metadata: '{"color_scheme":"SUPERSET_DEFAULT"}',
                 owners: [],
+                roles: [],
               },
             },
           });
@@ -293,6 +294,7 @@ describe('PropertiesModal', () => {
                 slug: '/new',
                 json_metadata: '{"color_scheme":"SUPERSET_DEFAULT"}',
                 owners: [],
+                roles: [],
               },
             },
           });

@@ -115,7 +115,7 @@ def import_dashboard(
     # TODO (betodealmeida): move this logic to import_from_dict
     config = config.copy()
     for key, new_name in JSON_KEYS.items():
-        if config.get(key):
+        if config.get(key) is not None:
             value = config.pop(key)
             try:
                 config[new_name] = json.dumps(value)

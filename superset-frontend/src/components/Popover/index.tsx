@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Popover } from 'src/common/components';
+import { Popover } from 'antd';
 
 // Eventually Popover can be wrapped and customized in this file
 // for now we're just redirecting

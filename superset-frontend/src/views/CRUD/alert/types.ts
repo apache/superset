@@ -91,6 +91,7 @@ export type LogObject = {
   start_dttm: string;
   state: string;
   value: string;
+  uuid: string;
 };
 
 export enum AlertState {

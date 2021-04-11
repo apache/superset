@@ -18,11 +18,16 @@
 import logging
 from typing import Any, cast, Dict, Optional
 
-from flask import current_app
+from flask import current_app, g
 
 from superset import app
 from superset.exceptions import SupersetVizException
-from superset.extensions import async_query_manager, cache_manager, celery_app
+from superset.extensions import (
+    async_query_manager,
+    cache_manager,
+    celery_app,
+    security_manager,
+)
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.views.utils import get_datasource_info, get_viz
 
@@ -30,6 +35,12 @@ logger = logging.getLogger(__name__)
 query_timeout = current_app.config[
     "SQLLAB_ASYNC_TIME_LIMIT_SEC"
 ]  # TODO: new config key
+
+
+def ensure_user_is_set(user_id: Optional[int]) -> None:
+    user_is_set = hasattr(g, "user") and g.user is not None
+    if not user_is_set and user_id is not None:
+        g.user = security_manager.get_user_by_id(user_id)
 
 
 @celery_app.task(name="load_chart_data_into_cache", soft_time_limit=query_timeout)
@@ -42,6 +53,7 @@ def load_chart_data_into_cache(
 
     with app.app_context():  # type: ignore
         try:
+            ensure_user_is_set(job_metadata.get("user_id"))
             command = ChartDataCommand()
             command.set_query_context(form_data)
             result = command.run(cache=True)
@@ -72,6 +84,7 @@ def load_explore_json_into_cache(
     with app.app_context():  # type: ignore
         cache_key_prefix = "ejr-"  # ejr: explore_json request
         try:
+            ensure_user_is_set(job_metadata.get("user_id"))
             datasource_id, datasource_type = get_datasource_info(None, None, form_data)
 
             viz_obj = get_viz(

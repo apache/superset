@@ -22,20 +22,23 @@ import { ColumnMeta } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/common/components/Tooltip';
 import { OPERATORS } from 'src/explore/constants';
 import { OptionSortType } from 'src/explore/types';
-import { DndFilterSelectProps, OptionValueType } from './types';
-import AdhocFilterPopoverTrigger from '../FilterControl/AdhocFilterPopoverTrigger';
-import OptionWrapper from './components/OptionWrapper';
-import DndSelectLabel from './DndSelectLabel';
+import {
+  DndFilterSelectProps,
+  OptionValueType,
+} from 'src/explore/components/controls/DndColumnSelectControl/types';
+import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
+import OptionWrapper from 'src/explore/components/controls/DndColumnSelectControl/OptionWrapper';
+import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import AdhocFilter, {
   CLAUSES,
   EXPRESSION_TYPES,
-} from '../FilterControl/AdhocFilter';
-import AdhocMetric from '../MetricControl/AdhocMetric';
+} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import {
   DatasourcePanelDndItem,
   DndItemValue,
-} from '../../DatasourcePanel/types';
-import { DndItemType } from '../../DndItemType';
+} from 'src/explore/components/DatasourcePanel/types';
+import { DndItemType } from 'src/explore/components/DndItemType';
 
 const isDictionaryForAdhocFilter = (value: OptionValueType) =>
   !(value instanceof AdhocFilter) && value?.expressionType;

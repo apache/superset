@@ -26,7 +26,6 @@ export interface OptionProps {
   children: ReactNode;
   index: number;
   clickClose: (index: number) => void;
-  onShiftOptions: (dragIndex: number, hoverIndex: number) => void;
   withCaret?: boolean;
 }
 

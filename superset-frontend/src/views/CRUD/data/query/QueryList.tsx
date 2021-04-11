@@ -28,7 +28,7 @@ import {
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import { Popover } from 'src/common/components';
+import Popover from 'src/components/Popover';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import ListView, {
   Filters,

@@ -63,21 +63,21 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             return EmailContent(body=self._error_template(self._content.text))
         # Get the domain from the 'From' address ..
         # and make a message id without the < > in the end
+        image = None
+        domain = self._get_smtp_domain()
+        msgid = make_msgid(domain)[1:-1]
+        body = __(
+            """
+            <b><a href="%(url)s">Explore in Superset</a></b><p></p>
+            <img src="cid:%(msgid)s">
+            """,
+            url=self._content.url,
+            msgid=msgid,
+        )
         if self._content.screenshot:
-            domain = self._get_smtp_domain()
-            msgid = make_msgid(domain)[1:-1]
+            image = {msgid: self._content.screenshot}
 
-            image = {msgid: self._content.screenshot.image}
-            body = __(
-                """
-                <b><a href="%(url)s">Explore in Superset</a></b><p></p>
-                <img src="cid:%(msgid)s">
-                """,
-                url=self._content.screenshot.url,
-                msgid=msgid,
-            )
-            return EmailContent(body=body, images=image)
-        return EmailContent(body=self._error_template("Unexpected missing screenshot"))
+        return EmailContent(body=body, images=image)
 
     def _get_subject(self) -> str:
         return __(
