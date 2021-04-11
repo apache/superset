@@ -21,6 +21,8 @@ from datetime import datetime, timedelta
 from typing import Any, Callable, cast, Dict, Iterator, Optional, Type, Union
 from unittest.mock import patch
 
+from flask import current_app
+
 from freezegun import freeze_time
 
 from superset import security_manager
@@ -194,7 +196,7 @@ class TestEventLogger(unittest.TestCase):
                 "duration": 5558756000,
             }
         ]
-
+    
     @patch("superset.utils.log.g", spec={})
     def test_log_with_context_user_null(self, mock_g):
         class DummyEventLogger(AbstractEventLogger):
@@ -228,16 +230,4 @@ class TestEventLogger(unittest.TestCase):
                 payload_override={"engine": "sqllite"},
             )
 
-        assert logger.records == [
-            {
-                "records": [
-                    {
-                        "path": "/",
-                        "object_ref": {"baz": "food"},
-                        "payload_override": {"engine": "sqllite"},
-                    }
-                ],
-                "user_id": None,
-                "duration": 5558756000,
-            }
-        ]
+        assert logger.records[0]["user_id"] == None
