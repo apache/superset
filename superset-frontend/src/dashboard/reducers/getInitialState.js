@@ -274,6 +274,7 @@ export default function getInitialState(bootstrapData) {
       metadata: dashboard.metadata,
       userId: user_id,
       dash_edit_perm: dashboard.dash_edit_perm,
+      dash_share_perm: dashboard.dash_share_perm,
       dash_save_perm: dashboard.dash_save_perm,
       superset_can_explore: dashboard.superset_can_explore,
       superset_can_share: dashboard.superset_can_share,
