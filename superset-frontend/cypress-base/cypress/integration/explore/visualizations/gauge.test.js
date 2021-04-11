@@ -54,8 +54,8 @@ describe('Visualization > Gauge', () => {
           sqlExpression: null,
           isExtra: false,
           isNew: false,
-          filterOptionName: 'filter_jaemvkxd5h_ku22m3wyo'
-        }
+          filterOptionName: 'filter_jaemvkxd5h_ku22m3wyo',
+        },
       ],
     });
     cy.get('.chart-container .gauge_chart canvas').should('have.length', 1);
