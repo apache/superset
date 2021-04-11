@@ -31,6 +31,7 @@ from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import Role, User
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
+from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.form import FlaskForm
 from sqlalchemy import or_
 from sqlalchemy.orm import Query
@@ -166,6 +167,9 @@ def api(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
     def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
         try:
             return f(self, *args, **kwargs)
+        except NoAuthorizationError as ex:  # pylint: disable=broad-except
+            logger.warning(ex)
+            return json_error_response(get_error_msg(), status=401)
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
             return json_error_response(get_error_msg())
