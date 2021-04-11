@@ -17,15 +17,17 @@
 from __future__ import annotations
 from typing import List, TYPE_CHECKING
 from flask import g
-from superset import (
-    conf,
-    security_manager,
-)
+
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import Role
 
 
 def get_user_roles() -> List[Role]:
+    from superset import (
+        conf,
+        security_manager,
+    )
+    
     if g.user.is_anonymous:
         public_role = conf.get("AUTH_ROLE_PUBLIC")
         return [security_manager.find_role(public_role)] if public_role else []
