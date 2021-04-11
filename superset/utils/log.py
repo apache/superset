@@ -28,6 +28,7 @@ from flask import current_app, g, request
 from flask_appbuilder.const import API_URI_RIS_KEY
 from sqlalchemy.exc import SQLAlchemyError
 from typing_extensions import Literal
+
 from superset.stats_logger import BaseStatsLogger
 
 
@@ -180,10 +181,7 @@ class AbstractEventLogger(ABC):
 
     @contextmanager
     def log_context(  # pylint: disable=too-many-locals
-        self,
-        action: str,
-        object_ref: Optional[str] = None,
-        log_to_statsd: bool = True,
+        self, action: str, object_ref: Optional[str] = None, log_to_statsd: bool = True,
     ) -> Iterator[Callable[..., None]]:
         """
         Log an event with additional information from the request context.
