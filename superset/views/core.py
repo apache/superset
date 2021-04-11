@@ -1838,8 +1838,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         ) and security_manager.can_access("can_save_dash", "Superset")
         dash_save_perm = security_manager.can_access("can_save_dash", "Superset")
         superset_can_explore = security_manager.can_access("can_explore", "Superset")
-        superset_can_share_chart = security_manager.can_access("can_share_chart", "Superset")
-        superset_can_share_dashboard = security_manager.can_access("can_share_dashboard", "Superset")
+        superset_can_share_chart = security_manager.can_access(
+            "can_share_chart", "Superset"
+        )
+        superset_can_share_dashboard = security_manager.can_access(
+            "can_share_dashboard", "Superset"
+        )
         superset_can_csv = security_manager.can_access("can_csv", "Superset")
         slice_can_edit = security_manager.can_access("can_edit", "SliceModelView")
         standalone_mode = ReservedUrlParameters.is_standalone_mode()
