@@ -28,7 +28,7 @@ from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
-from flask_appbuilder.security.sqla.models import Role, User
+from flask_appbuilder.security.sqla.models import User
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from flask_wtf.form import FlaskForm
@@ -46,7 +46,7 @@ from superset import (
     get_feature_flags,
     security_manager,
 )
-from superset.common.request_contexed_based import is_user_admin as common_is_user_admin, get_user_roles as common_get_user_roles
+from superset.common.request_contexed_based import is_user_admin
 from superset.connectors.sqla import models
 from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -237,15 +237,6 @@ def create_table_permissions(table: models.SqlaTable) -> None:
     security_manager.add_permission_view_menu("datasource_access", table.get_perm())
     if table.schema:
         security_manager.add_permission_view_menu("schema_access", table.schema_perm)
-
-
-def get_user_roles() -> List[Role]:
-    return common_get_user_roles()
-
-
-def is_user_admin() -> bool:
-    return common_is_user_admin()
-
 
 class BaseSupersetView(BaseView):
     @staticmethod

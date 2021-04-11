@@ -45,6 +45,7 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 
 from superset import sql_parse
+from superset.common.request_contexed_based import is_user_admin, get_user_roles
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -1108,7 +1109,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :raises DashboardAccessDeniedError: If the user cannot access the resource
         """
         from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
-        from superset.views.base import get_user_roles, is_user_admin
         from superset.views.utils import is_owner
         from superset import is_feature_enabled
 
