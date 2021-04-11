@@ -549,13 +549,13 @@ class SupersetAppInitializer:
         order to fully init the app
         """
         self.pre_init()
+        self.configure_logging()
         self.setup_db()
         self.configure_celery()
         self.setup_event_logger()
         self.setup_bundle_manifest()
         self.register_blueprints()
         self.configure_wtf()
-        self.configure_logging()
         self.configure_middlewares()
         self.configure_cache()
 
