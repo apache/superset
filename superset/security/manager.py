@@ -999,12 +999,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             from superset.extensions import feature_flag_manager
 
             if not (
-                (
+                self.can_access_schema(datasource)
+                or self.can_access("datasource_access", datasource.perm or "")
+                or (
                     feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC")
                     and self.can_access_based_on_dashboard(datasource)
                 )
-                or self.can_access_schema(datasource)
-                or self.can_access("datasource_access", datasource.perm or "")
             ):
                 raise SupersetSecurityException(
                     self.get_datasource_access_error_object(datasource)
@@ -1107,8 +1107,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ids.sort()  # Combinations rather than permutations
         return ids
 
-    # pylint: disable=no-self-use
-    def raise_for_dashboard_access(self, dashboard: "Dashboard") -> None:
+    @staticmethod
+    def raise_for_dashboard_access(dashboard: "Dashboard") -> None:
         """
         Raise an exception if the user cannot access the dashboard.
 
@@ -1134,8 +1134,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if not can_access:
                 raise DashboardAccessDeniedError()
 
-    # pylint: disable=no-self-use
-    def can_access_based_on_dashboard(self, datasource: "BaseDatasource") -> bool:
+    @staticmethod
+    def can_access_based_on_dashboard(datasource: "BaseDatasource") -> bool:
         from superset import db
         from superset.dashboards.filters import DashboardFilter
         from superset.models.slice import Slice
