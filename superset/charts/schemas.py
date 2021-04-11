@@ -551,7 +551,6 @@ class ChartDataBoxplotOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
         "references to datasource metrics (strings), or ad-hoc metrics"
         "which are defined only within the query object. See "
         "`ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics.",
-        allow_none=True,
     )
 
     whisker_type = fields.String(
