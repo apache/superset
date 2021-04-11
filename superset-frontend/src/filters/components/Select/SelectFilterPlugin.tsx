@@ -19,7 +19,6 @@
 import {
   AppSection,
   Behavior,
-  createMultiFormatter,
   DataMask,
   ensureIsArray,
   GenericDataType,
