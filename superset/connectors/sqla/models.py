@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import dataclasses
 import json
 import logging
 import re
@@ -58,8 +59,11 @@ from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
-from superset.extensions import event_logger
+from superset.exceptions import (
+    QueryObjectValidationError,
+    SupersetGenericDBErrorException,
+    SupersetSecurityException,
+)
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -645,15 +649,18 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 )
             # TODO(villebro): refactor to use same code that's used by
             #  sql_lab.py:execute_sql_statements
-            with closing(engine.raw_connection()) as conn:
-                cursor = conn.cursor()
-                query = self.database.apply_limit_to_sql(statements[0])
-                db_engine_spec.execute(cursor, query)
-                result = db_engine_spec.fetch_data(cursor, limit=1)
-                result_set = SupersetResultSet(
-                    result, cursor.description, db_engine_spec
-                )
-                cols = result_set.columns
+            try:
+                with closing(engine.raw_connection()) as conn:
+                    cursor = conn.cursor()
+                    query = self.database.apply_limit_to_sql(statements[0])
+                    db_engine_spec.execute(cursor, query)
+                    result = db_engine_spec.fetch_data(cursor, limit=1)
+                    result_set = SupersetResultSet(
+                        result, cursor.description, db_engine_spec
+                    )
+                    cols = result_set.columns
+            except Exception as exc:
+                raise SupersetGenericDBErrorException(message=str(exc))
         else:
             db_dialect = self.database.get_dialect()
             cols = self.database.get_columns(
@@ -686,9 +693,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             self.table_name, schema=self.schema, show_cols=False, latest_partition=False
         )
 
-    @property
+    @property  # type: ignore
     def health_check_message(self) -> Optional[str]:
-        return self.extra_dict.get("health_check", {}).get("message")
+        check = config["DATASET_HEALTH_CHECK"]
+        return check(self) if check else None
 
     @property
     def data(self) -> Dict[str, Any]:
@@ -702,13 +710,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             data_["fetch_values_predicate"] = self.fetch_values_predicate
             data_["template_params"] = self.template_params
             data_["is_sqllab_view"] = self.is_sqllab_view
-            # Don't return previously populated health check message in case
-            # the health check feature is turned off
-            data_["health_check_message"] = (
-                self.health_check_message
-                if config.get("DATASET_HEALTH_CHECK")
-                else None
-            )
+            data_["health_check_message"] = self.health_check_message
             data_["extra"] = self.extra
         return data_
 
@@ -1456,7 +1458,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 "Query %s on schema %s failed", sql, self.schema, exc_info=True
             )
             db_engine_spec = self.database.db_engine_spec
-            errors = db_engine_spec.extract_errors(ex)
+            errors = [
+                dataclasses.asdict(error) for error in db_engine_spec.extract_errors(ex)
+            ]
             error_message = utils.error_msg_from_exception(ex)
 
         return QueryResult(
@@ -1604,26 +1608,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             sqla_query = self.get_sqla_query(**query_obj)
             extra_cache_keys += sqla_query.extra_cache_keys
         return extra_cache_keys
-
-    def health_check(self, commit: bool = False, force: bool = False) -> None:
-        check = config.get("DATASET_HEALTH_CHECK")
-        if check is None:
-            return
-
-        extra = self.extra_dict
-        # force re-run health check, or health check is updated
-        if force or extra.get("health_check", {}).get("version") != check.version:
-            with event_logger.log_context(action="dataset_health_check"):
-                message = check(self)
-                extra["health_check"] = {
-                    "version": check.version,
-                    "message": message,
-                }
-                self.extra = json.dumps(extra)
-
-                db.session.merge(self)
-                if commit:
-                    db.session.commit()
 
 
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)

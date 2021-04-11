@@ -16,13 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import { styled } from '@superset-ui/core';
+import AntdCard, { CardProps as AntdCardProps } from 'antd/lib/card';
 
-type FadeProps = { hovered: boolean };
+interface CardProps extends AntdCardProps {
+  padded?: boolean;
+}
 
-const Fade = styled.div<FadeProps>`
-  transition: all ${({ theme }) => theme.transitionTiming}s;
-  opacity: ${props => (props.hovered ? 1 : 0)};
+const Card = styled(({ padded, ...props }: CardProps) => (
+  <AntdCard {...props} />
+))`
+  background-color: ${({ theme }) => theme.colors.grayscale.light4};
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+
+  .ant-card-body {
+    padding: ${({ padded, theme }) =>
+      padded ? theme.gridUnit * 4 : theme.gridUnit}px;
+  }
 `;
 
-export default Fade;
+export default Card;
