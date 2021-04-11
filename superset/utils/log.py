@@ -122,7 +122,7 @@ class AbstractEventLogger(ABC):
             user_id = g.user.get_id()
         except Exception as ex:  # pylint: disable=broad-except
             user_id = None
-        
+
         # Whenever a user is not bounded to a session we
         # need to add them back before logging to capture user_id
         if user_id is None:
@@ -180,7 +180,10 @@ class AbstractEventLogger(ABC):
 
     @contextmanager
     def log_context(  # pylint: disable=too-many-locals
-        self, action: str, object_ref: Optional[str] = None, log_to_statsd: bool = True,
+        self,
+        action: str,
+        object_ref: Optional[str] = None,
+        log_to_statsd: bool = True,
     ) -> Iterator[Callable[..., None]]:
         """
         Log an event with additional information from the request context.
