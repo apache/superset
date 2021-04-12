@@ -68,9 +68,11 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         msgid = make_msgid(domain)[1:-1]
         body = __(
             """
+            <p>%(description)s</p>
             <b><a href="%(url)s">Explore in Superset</a></b><p></p>
             <img src="cid:%(msgid)s">
             """,
+            description=self._content.description or "",
             url=self._content.url,
             msgid=msgid,
         )
