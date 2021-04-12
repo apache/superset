@@ -26,7 +26,7 @@ from flask_sqlalchemy import BaseQuery
 from freezegun import freeze_time
 from sqlalchemy.sql import func
 
-from superset import db
+from superset import db, security_manager
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.reports import (
@@ -130,6 +130,12 @@ def create_report_notification(
     report_type = report_type or ReportScheduleType.REPORT
     target = email_target or slack_channel
     config_json = {"target": target}
+    owner = (
+        db.session.query(security_manager.user_model)
+        .filter_by(email="admin@fab.org")
+        .one_or_none()
+    )
+
     if slack_channel:
         recipient = ReportRecipients(
             type=ReportRecipientType.SLACK,
@@ -151,6 +157,7 @@ def create_report_notification(
         dashboard=dashboard,
         database=database,
         recipients=[recipient],
+        owners=[owner],
         validator_type=validator_type,
         validator_config_json=validator_config_json,
         grace_period=grace_period,
@@ -890,7 +897,7 @@ def test_soft_timeout_alert(email_mock, create_alert_email_chart):
 
     notification_targets = get_target_from_report_schedule(create_alert_email_chart)
     # Assert the email smtp address, asserts a notification was sent with the error
-    assert email_mock.call_args[0][0] == notification_targets[0]
+    assert email_mock.call_args[0][0] == "admin@fab.org"
 
     assert_log(
         ReportState.ERROR, error_message="A timeout occurred while executing the query."
@@ -919,9 +926,8 @@ def test_soft_timeout_screenshot(screenshot_mock, email_mock, create_alert_email
             test_id, create_alert_email_chart.id, datetime.utcnow()
         ).run()
 
-    notification_targets = get_target_from_report_schedule(create_alert_email_chart)
     # Assert the email smtp address, asserts a notification was sent with the error
-    assert email_mock.call_args[0][0] == notification_targets[0]
+    assert email_mock.call_args[0][0] == "admin@fab.org"
 
     assert_log(
         ReportState.ERROR, error_message="A timeout occurred while taking a screenshot."
@@ -948,7 +954,7 @@ def test_fail_screenshot(screenshot_mock, email_mock, create_report_email_chart)
 
     notification_targets = get_target_from_report_schedule(create_report_email_chart)
     # Assert the email smtp address, asserts a notification was sent with the error
-    assert email_mock.call_args[0][0] == notification_targets[0]
+    assert email_mock.call_args[0][0] == "admin@fab.org"
 
     assert_log(
         ReportState.ERROR, error_message="Failed taking a screenshot Unexpected error"
@@ -997,7 +1003,7 @@ def test_invalid_sql_alert(email_mock, create_invalid_sql_alert_email_chart):
             create_invalid_sql_alert_email_chart
         )
         # Assert the email smtp address, asserts a notification was sent with the error
-        assert email_mock.call_args[0][0] == notification_targets[0]
+        assert email_mock.call_args[0][0] == "admin@fab.org"
 
 
 @pytest.mark.usefixtures("create_invalid_sql_alert_email_chart")
@@ -1018,7 +1024,7 @@ def test_grace_period_error(email_mock, create_invalid_sql_alert_email_chart):
             create_invalid_sql_alert_email_chart
         )
         # Assert the email smtp address, asserts a notification was sent with the error
-        assert email_mock.call_args[0][0] == notification_targets[0]
+        assert email_mock.call_args[0][0] == "admin@fab.org"
         assert (
             get_notification_error_sent_count(create_invalid_sql_alert_email_chart) == 1
         )
