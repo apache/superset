@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  AppSection,
   Behavior,
   DataMask,
   ensureIsArray,
@@ -27,7 +28,7 @@ import {
 } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
-import { PluginFilterSelectProps } from './types';
+import { FIRST_VALUE, PluginFilterSelectProps, SelectValue } from './types';
 import { StyledSelect, Styles } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
 
@@ -42,6 +43,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     width,
     behaviors,
     setDataMask,
+    appSection,
   } = props;
   const {
     defaultValue,
@@ -51,12 +53,28 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     currentValue,
     inverseSelection,
     inputRef,
+    defaultToFirstItem,
   } = formData;
 
-  const [values, setValues] = useState<(string | number | boolean)[]>(
-    defaultValue ?? [],
-  );
+  const forceFirstValue =
+    appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem;
+
   const groupby = ensureIsArray<string>(formData.groupby);
+  // Correct initial value for Ant Select
+  const initSelectValue: SelectValue =
+    // `defaultValue` can be `FIRST_VALUE` if `defaultToFirstItem` is checked, so need convert it to correct value for Select
+    defaultValue === FIRST_VALUE ? [] : defaultValue ?? [];
+
+  const firstItem: SelectValue = data[0]
+    ? (groupby.map(col => data[0][col]) as string[]) ?? initSelectValue
+    : initSelectValue;
+
+  // If we are in config modal we always need show empty select for `defaultToFirstItem`
+  const [values, setValues] = useState<SelectValue>(
+    defaultToFirstItem && appSection !== AppSection.FILTER_CONFIG_MODAL
+      ? firstItem
+      : initSelectValue,
+  );
 
   const [col] = groupby;
   const datatype: GenericDataType = coltypeMap[col];
@@ -64,26 +82,36 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     timeFormatter: smartDateDetailedFormatter,
   });
 
-  const handleChange = (
-    value?: (number | string)[] | number | string | null,
-  ) => {
-    const resultValue: (number | string)[] = ensureIsArray<number | string>(
+  const handleChange = (value?: SelectValue | number | string) => {
+    let selectValue: (number | string)[] = ensureIsArray<number | string>(
       value,
     );
-    setValues(resultValue);
+    let stateValue: SelectValue | typeof FIRST_VALUE = selectValue.length
+      ? selectValue
+      : null;
+
+    if (value === FIRST_VALUE) {
+      selectValue = forceFirstValue ? [] : firstItem;
+      stateValue = FIRST_VALUE;
+    }
+
+    setValues(selectValue);
 
     const emptyFilter =
-      enableEmptyFilter && !inverseSelection && resultValue?.length === 0;
+      enableEmptyFilter && !inverseSelection && selectValue?.length === 0;
 
     const dataMask = {
       extraFormData: getSelectExtraFormData(
         col,
-        resultValue,
+        selectValue,
         emptyFilter,
         inverseSelection,
       ),
       currentState: {
-        value: resultValue.length ? resultValue : null,
+        // We need to save in state `FIRST_VALUE` as some const and not as REAL value,
+        // because when FiltersBar check if all filters initialized it compares `defaultValue` with this value
+        // and because REAL value can be unpredictable for users that have different data for same dashboard we use `FIRST_VALUE`
+        value: stateValue,
       },
     };
 
@@ -100,18 +128,23 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   };
 
   useEffect(() => {
-    handleChange(currentValue ?? []);
+    // For currentValue we need set always `FIRST_VALUE` only if we in config modal for `defaultToFirstItem` mode
+    handleChange(forceFirstValue ? FIRST_VALUE : currentValue ?? []);
   }, [
     JSON.stringify(currentValue),
+    defaultToFirstItem,
     multiSelect,
     enableEmptyFilter,
     inverseSelection,
   ]);
 
   useEffect(() => {
-    handleChange(defaultValue ?? []);
+    // If we have `defaultToFirstItem` mode it means that default value always `FIRST_VALUE`
+    handleChange(defaultToFirstItem ? FIRST_VALUE : defaultValue);
   }, [
     JSON.stringify(defaultValue),
+    JSON.stringify(firstItem),
+    defaultToFirstItem,
     multiSelect,
     enableEmptyFilter,
     inverseSelection,
@@ -127,6 +160,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         allowClear
         // @ts-ignore
         value={values}
+        disabled={forceFirstValue}
         showSearch={showSearch}
         mode={multiSelect ? 'multiple' : undefined}
         placeholder={placeholderText}
