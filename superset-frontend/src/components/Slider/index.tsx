@@ -17,14 +17,13 @@
  * under the License.
  */
 import React from 'react';
-import ReactBootstrapSlider from 'react-bootstrap-slider';
-import 'bootstrap-slider/dist/css/bootstrap-slider.min.css';
-import './BootstrapSliderWrapper.less';
+import AntDSlider, {
+  SliderSingleProps,
+  SliderRangeProps,
+} from 'antd/lib/slider';
 
-export default function BootstrapSliderWrapper(props) {
-  return (
-    <span className="BootstrapSliderWrapper">
-      <ReactBootstrapSlider {...props} />
-    </span>
-  );
+export { SliderSingleProps, SliderRangeProps };
+
+export default function Slider(props: SliderSingleProps | SliderRangeProps) {
+  return <AntDSlider {...props} css={{ marginLeft: 0, marginRight: 0 }} />;
 }
