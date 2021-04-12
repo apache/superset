@@ -20,7 +20,6 @@ from datetime import datetime, timedelta
 from typing import Any, List, Optional
 from uuid import UUID
 
-import simplejson as json
 from celery.exceptions import SoftTimeLimitExceeded
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session

@@ -1288,7 +1288,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 index={i}
                 onUpdate={updateNotificationSetting}
                 onRemove={removeNotificationSetting}
-                contentType={contentType}
               />
             ))}
             <NotificationMethodAdd

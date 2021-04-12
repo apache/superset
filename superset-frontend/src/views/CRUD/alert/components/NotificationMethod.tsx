@@ -62,7 +62,6 @@ interface NotificationMethodProps {
   index: number;
   onUpdate?: (index: number, updatedSetting: NotificationSetting) => void;
   onRemove?: (index: number) => void;
-  contentType: string;
 }
 
 export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({

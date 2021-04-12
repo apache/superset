@@ -70,9 +70,10 @@ pytestmark = pytest.mark.usefixtures(
     "load_world_bank_dashboard_with_slices_module_scope"
 )
 
-test_id = str(uuid4())
-csv_file = read_fixture("trends.csv")
-screenshot_file = read_fixture("sample.png")
+TEST_ID = str(uuid4())
+CSV_FILE = read_fixture("trends.csv")
+SCREENSHOT_FILE = read_fixture("sample.png")
+OWNER_EMAIL = "admin@fab.org"
 
 
 def get_target_from_report_schedule(report_schedule: ReportSchedule) -> List[str]:
@@ -140,7 +141,7 @@ def create_report_notification(
     config_json = {"target": target}
     owner = (
         db.session.query(security_manager.user_model)
-        .filter_by(email="admin@fab.org")
+        .filter_by(email=OWNER_EMAIL)
         .one_or_none()
     )
 
@@ -570,11 +571,11 @@ def test_email_chart_report_schedule(
     ExecuteReport Command: Test chart email report schedule with
     """
     # setup screenshot mock
-    screenshot_mock.return_value = screenshot_file
+    screenshot_mock.return_value = SCREENSHOT_FILE
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
-            test_id, create_report_email_chart.id, datetime.utcnow()
+            TEST_ID, create_report_email_chart.id, datetime.utcnow()
         ).run()
 
         notification_targets = get_target_from_report_schedule(
@@ -590,7 +591,7 @@ def test_email_chart_report_schedule(
         assert email_mock.call_args[0][0] == notification_targets[0]
         # Assert the email inline screenshot
         smtp_images = email_mock.call_args[1]["images"]
-        assert smtp_images[list(smtp_images.keys())[0]] == screenshot_file
+        assert smtp_images[list(smtp_images.keys())[0]] == SCREENSHOT_FILE
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)
 
@@ -613,11 +614,11 @@ def test_email_chart_report_schedule_with_csv(
     mock_open.return_value = response
     mock_urlopen.return_value = response
     mock_urlopen.return_value.getcode.return_value = 200
-    response.read.return_value = csv_file
+    response.read.return_value = CSV_FILE
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
-            test_id, create_report_email_chart_with_csv.id, datetime.utcnow()
+            TEST_ID, create_report_email_chart_with_csv.id, datetime.utcnow()
         ).run()
 
         notification_targets = get_target_from_report_schedule(
@@ -633,7 +634,7 @@ def test_email_chart_report_schedule_with_csv(
         assert email_mock.call_args[0][0] == notification_targets[0]
         # Assert the email csv file
         smtp_images = email_mock.call_args[1]["data"]
-        assert smtp_images[list(smtp_images.keys())[0]] == csv_file
+        assert smtp_images[list(smtp_images.keys())[0]] == CSV_FILE
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)
 
@@ -650,11 +651,11 @@ def test_email_dashboard_report_schedule(
     ExecuteReport Command: Test dashboard email report schedule
     """
     # setup screenshot mock
-    screenshot_mock.return_value = screenshot_file
+    screenshot_mock.return_value = SCREENSHOT_FILE
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
-            test_id, create_report_email_dashboard.id, datetime.utcnow()
+            TEST_ID, create_report_email_dashboard.id, datetime.utcnow()
         ).run()
 
         notification_targets = get_target_from_report_schedule(
@@ -664,7 +665,7 @@ def test_email_dashboard_report_schedule(
         assert email_mock.call_args[0][0] == notification_targets[0]
         # Assert the email inline screenshot
         smtp_images = email_mock.call_args[1]["images"]
-        assert smtp_images[list(smtp_images.keys())[0]] == screenshot_file
+        assert smtp_images[list(smtp_images.keys())[0]] == SCREENSHOT_FILE
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)
 
@@ -681,18 +682,18 @@ def test_slack_chart_report_schedule(
     ExecuteReport Command: Test chart slack report schedule
     """
     # setup screenshot mock
-    screenshot_mock.return_value = screenshot_file
+    screenshot_mock.return_value = SCREENSHOT_FILE
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
-            test_id, create_report_slack_chart.id, datetime.utcnow()
+            TEST_ID, create_report_slack_chart.id, datetime.utcnow()
         ).run()
 
         notification_targets = get_target_from_report_schedule(
             create_report_slack_chart
         )
         assert file_upload_mock.call_args[1]["channels"] == notification_targets[0]
-        assert file_upload_mock.call_args[1]["file"] == screenshot_file
+        assert file_upload_mock.call_args[1]["file"] == SCREENSHOT_FILE
 
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)
@@ -720,18 +721,18 @@ def test_slack_chart_report_schedule_with_csv(
     mock_open.return_value = response
     mock_urlopen.return_value = response
     mock_urlopen.return_value.getcode.return_value = 200
-    response.read.return_value = csv_file
+    response.read.return_value = CSV_FILE
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
-            test_id, create_report_slack_chart_with_csv.id, datetime.utcnow()
+            TEST_ID, create_report_slack_chart_with_csv.id, datetime.utcnow()
         ).run()
 
         notification_targets = get_target_from_report_schedule(
             create_report_slack_chart_with_csv
         )
         assert file_upload_mock.call_args[1]["channels"] == notification_targets[0]
-        assert file_upload_mock.call_args[1]["file"] == csv_file
+        assert file_upload_mock.call_args[1]["file"] == CSV_FILE
 
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)
@@ -744,7 +745,7 @@ def test_report_schedule_not_found(create_report_slack_chart):
     """
     max_id = db.session.query(func.max(ReportSchedule.id)).scalar()
     with pytest.raises(ReportScheduleNotFoundError):
-        AsyncExecuteReportScheduleCommand(test_id, max_id + 1, datetime.utcnow()).run()
+        AsyncExecuteReportScheduleCommand(TEST_ID, max_id + 1, datetime.utcnow()).run()
 
 
 @pytest.mark.usefixtures("create_report_slack_chart_working")
@@ -756,7 +757,7 @@ def test_report_schedule_working(create_report_slack_chart_working):
     with freeze_time("2020-01-01T00:00:00Z"):
         with pytest.raises(ReportSchedulePreviousWorkingError):
             AsyncExecuteReportScheduleCommand(
-                test_id, create_report_slack_chart_working.id, datetime.utcnow()
+                TEST_ID, create_report_slack_chart_working.id, datetime.utcnow()
             ).run()
 
         assert_log(
@@ -778,7 +779,7 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
 
         with pytest.raises(ReportScheduleWorkingTimeoutError):
             AsyncExecuteReportScheduleCommand(
-                test_id, create_report_slack_chart_working.id, datetime.utcnow()
+                TEST_ID, create_report_slack_chart_working.id, datetime.utcnow()
             ).run()
 
     # Only needed for MySQL, understand why
@@ -804,7 +805,7 @@ def test_report_schedule_success_grace(create_alert_slack_chart_success):
 
     with freeze_time(current_time):
         AsyncExecuteReportScheduleCommand(
-            test_id, create_alert_slack_chart_success.id, datetime.utcnow()
+            TEST_ID, create_alert_slack_chart_success.id, datetime.utcnow()
         ).run()
 
     db.session.commit()
@@ -823,7 +824,7 @@ def test_report_schedule_success_grace_end(create_alert_slack_chart_grace):
 
     with freeze_time(current_time):
         AsyncExecuteReportScheduleCommand(
-            test_id, create_alert_slack_chart_grace.id, datetime.utcnow()
+            TEST_ID, create_alert_slack_chart_grace.id, datetime.utcnow()
         ).run()
 
     db.session.commit()
@@ -839,7 +840,7 @@ def test_alert_limit_is_applied(
     """
     ExecuteReport Command: Test that all alerts apply a SQL limit to stmts
     """
-    screenshot_mock.return_value = screenshot_file
+    screenshot_mock.return_value = SCREENSHOT_FILE
 
     with patch.object(
         create_alert_email_chart.database.db_engine_spec, "execute", return_value=None
@@ -850,7 +851,7 @@ def test_alert_limit_is_applied(
             return_value=None,
         ) as fetch_data_mock:
             AsyncExecuteReportScheduleCommand(
-                test_id, create_alert_email_chart.id, datetime.utcnow()
+                TEST_ID, create_alert_email_chart.id, datetime.utcnow()
             ).run()
             assert "LIMIT 2" in execute_mock.call_args[0][1]
 
@@ -869,12 +870,12 @@ def test_email_dashboard_report_fails(
     # setup screenshot mock
     from smtplib import SMTPException
 
-    screenshot_mock.return_value = screenshot_file
+    screenshot_mock.return_value = SCREENSHOT_FILE
     email_mock.side_effect = SMTPException("Could not connect to SMTP XPTO")
 
     with pytest.raises(ReportScheduleNotificationError):
         AsyncExecuteReportScheduleCommand(
-            test_id, create_report_email_dashboard.id, datetime.utcnow()
+            TEST_ID, create_report_email_dashboard.id, datetime.utcnow()
         ).run()
 
     assert_log(ReportState.ERROR, error_message="Could not connect to SMTP XPTO")
@@ -896,11 +897,11 @@ def test_slack_chart_alert(
     ExecuteReport Command: Test chart slack alert
     """
     # setup screenshot mock
-    screenshot_mock.return_value = screenshot_file
+    screenshot_mock.return_value = SCREENSHOT_FILE
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
-            test_id, create_alert_email_chart.id, datetime.utcnow()
+            TEST_ID, create_alert_email_chart.id, datetime.utcnow()
         ).run()
 
         notification_targets = get_target_from_report_schedule(create_alert_email_chart)
@@ -908,7 +909,7 @@ def test_slack_chart_alert(
         assert email_mock.call_args[0][0] == notification_targets[0]
         # Assert the email inline screenshot
         smtp_images = email_mock.call_args[1]["images"]
-        assert smtp_images[list(smtp_images.keys())[0]] == screenshot_file
+        assert smtp_images[list(smtp_images.keys())[0]] == SCREENSHOT_FILE
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)
 
@@ -929,7 +930,7 @@ def test_slack_chart_alert_no_attachment(email_mock, create_alert_email_chart):
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
-            test_id, create_alert_email_chart.id, datetime.utcnow()
+            TEST_ID, create_alert_email_chart.id, datetime.utcnow()
         ).run()
 
         notification_targets = get_target_from_report_schedule(create_alert_email_chart)
@@ -955,11 +956,11 @@ def test_slack_token_callable_chart_report(
     slack_client_mock_class.return_value = Mock()
     app.config["SLACK_API_TOKEN"] = Mock(return_value="cool_code")
     # setup screenshot mock
-    screenshot_mock.return_value = screenshot_file
+    screenshot_mock.return_value = SCREENSHOT_FILE
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
-            test_id, create_report_slack_chart.id, datetime.utcnow()
+            TEST_ID, create_report_slack_chart.id, datetime.utcnow()
         ).run()
         app.config["SLACK_API_TOKEN"].assert_called_once()
         assert slack_client_mock_class.called_with(token="cool_code", proxy="")
@@ -973,7 +974,7 @@ def test_email_chart_no_alert(create_no_alert_email_chart):
     """
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
-            test_id, create_no_alert_email_chart.id, datetime.utcnow()
+            TEST_ID, create_no_alert_email_chart.id, datetime.utcnow()
         ).run()
     assert_log(ReportState.NOOP)
 
@@ -988,7 +989,7 @@ def test_email_mul_alert(create_mul_alert_email_chart):
             (AlertQueryMultipleRowsError, AlertQueryMultipleColumnsError)
         ):
             AsyncExecuteReportScheduleCommand(
-                test_id, create_mul_alert_email_chart.id, datetime.utcnow()
+                TEST_ID, create_mul_alert_email_chart.id, datetime.utcnow()
             ).run()
 
 
@@ -1010,12 +1011,12 @@ def test_soft_timeout_alert(email_mock, create_alert_email_chart):
         execute_mock.side_effect = SoftTimeLimitExceeded()
         with pytest.raises(AlertQueryTimeout):
             AsyncExecuteReportScheduleCommand(
-                test_id, create_alert_email_chart.id, datetime.utcnow()
+                TEST_ID, create_alert_email_chart.id, datetime.utcnow()
             ).run()
 
     notification_targets = get_target_from_report_schedule(create_alert_email_chart)
     # Assert the email smtp address, asserts a notification was sent with the error
-    assert email_mock.call_args[0][0] == "admin@fab.org"
+    assert email_mock.call_args[0][0] == OWNER_EMAIL
 
     assert_log(
         ReportState.ERROR, error_message="A timeout occurred while executing the query."
@@ -1040,11 +1041,11 @@ def test_soft_timeout_screenshot(screenshot_mock, email_mock, create_alert_email
     screenshot_mock.side_effect = SoftTimeLimitExceeded()
     with pytest.raises(ReportScheduleScreenshotTimeout):
         AsyncExecuteReportScheduleCommand(
-            test_id, create_alert_email_chart.id, datetime.utcnow()
+            TEST_ID, create_alert_email_chart.id, datetime.utcnow()
         ).run()
 
     # Assert the email smtp address, asserts a notification was sent with the error
-    assert email_mock.call_args[0][0] == "admin@fab.org"
+    assert email_mock.call_args[0][0] == OWNER_EMAIL
 
     assert_log(
         ReportState.ERROR, error_message="A timeout occurred while taking a screenshot."
@@ -1073,14 +1074,14 @@ def test_soft_timeout_csv(
 
     with pytest.raises(ReportScheduleCsvTimeout):
         AsyncExecuteReportScheduleCommand(
-            test_id, create_report_email_chart_with_csv.id, datetime.utcnow()
+            TEST_ID, create_report_email_chart_with_csv.id, datetime.utcnow()
         ).run()
 
     notification_targets = get_target_from_report_schedule(
         create_report_email_chart_with_csv
     )
     # Assert the email smtp address, asserts a notification was sent with the error
-    assert email_mock.call_args[0][0] == notification_targets[0]
+    assert email_mock.call_args[0][0] == OWNER_EMAIL
 
     assert_log(
         ReportState.ERROR, error_message="A timeout occurred while generating a csv.",
@@ -1108,14 +1109,14 @@ def test_generate_no_csv(
 
     with pytest.raises(ReportScheduleCsvFailedError):
         AsyncExecuteReportScheduleCommand(
-            test_id, create_report_email_chart_with_csv.id, datetime.utcnow()
+            TEST_ID, create_report_email_chart_with_csv.id, datetime.utcnow()
         ).run()
 
     notification_targets = get_target_from_report_schedule(
         create_report_email_chart_with_csv
     )
     # Assert the email smtp address, asserts a notification was sent with the error
-    assert email_mock.call_args[0][0] == notification_targets[0]
+    assert email_mock.call_args[0][0] == OWNER_EMAIL
 
     assert_log(
         ReportState.ERROR,
@@ -1139,12 +1140,12 @@ def test_fail_screenshot(screenshot_mock, email_mock, create_report_email_chart)
     screenshot_mock.side_effect = Exception("Unexpected error")
     with pytest.raises(ReportScheduleScreenshotFailedError):
         AsyncExecuteReportScheduleCommand(
-            test_id, create_report_email_chart.id, datetime.utcnow()
+            TEST_ID, create_report_email_chart.id, datetime.utcnow()
         ).run()
 
     notification_targets = get_target_from_report_schedule(create_report_email_chart)
     # Assert the email smtp address, asserts a notification was sent with the error
-    assert email_mock.call_args[0][0] == "admin@fab.org"
+    assert email_mock.call_args[0][0] == OWNER_EMAIL
 
     assert_log(
         ReportState.ERROR, error_message="Failed taking a screenshot Unexpected error"
@@ -1172,14 +1173,14 @@ def test_fail_csv(
 
     with pytest.raises(ReportScheduleCsvFailedError):
         AsyncExecuteReportScheduleCommand(
-            test_id, create_report_email_chart_with_csv.id, datetime.utcnow()
+            TEST_ID, create_report_email_chart_with_csv.id, datetime.utcnow()
         ).run()
 
     notification_targets = get_target_from_report_schedule(
         create_report_email_chart_with_csv
     )
     # Assert the email smtp address, asserts a notification was sent with the error
-    assert email_mock.call_args[0][0] == notification_targets[0]
+    assert email_mock.call_args[0][0] == OWNER_EMAIL
 
     assert_log(
         ReportState.ERROR, error_message="Failed generating csv <urlopen error 500>"
@@ -1200,7 +1201,7 @@ def test_email_disable_screenshot(email_mock, create_alert_email_chart):
     """
 
     AsyncExecuteReportScheduleCommand(
-        test_id, create_alert_email_chart.id, datetime.utcnow()
+        TEST_ID, create_alert_email_chart.id, datetime.utcnow()
     ).run()
 
     notification_targets = get_target_from_report_schedule(create_alert_email_chart)
@@ -1221,14 +1222,14 @@ def test_invalid_sql_alert(email_mock, create_invalid_sql_alert_email_chart):
     with freeze_time("2020-01-01T00:00:00Z"):
         with pytest.raises((AlertQueryError, AlertQueryInvalidTypeError)):
             AsyncExecuteReportScheduleCommand(
-                test_id, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
+                TEST_ID, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
 
         notification_targets = get_target_from_report_schedule(
             create_invalid_sql_alert_email_chart
         )
         # Assert the email smtp address, asserts a notification was sent with the error
-        assert email_mock.call_args[0][0] == "admin@fab.org"
+        assert email_mock.call_args[0][0] == OWNER_EMAIL
 
 
 @pytest.mark.usefixtures("create_invalid_sql_alert_email_chart")
@@ -1240,7 +1241,7 @@ def test_grace_period_error(email_mock, create_invalid_sql_alert_email_chart):
     with freeze_time("2020-01-01T00:00:00Z"):
         with pytest.raises((AlertQueryError, AlertQueryInvalidTypeError)):
             AsyncExecuteReportScheduleCommand(
-                test_id, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
+                TEST_ID, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
 
         # Only needed for MySQL, understand why
@@ -1249,7 +1250,7 @@ def test_grace_period_error(email_mock, create_invalid_sql_alert_email_chart):
             create_invalid_sql_alert_email_chart
         )
         # Assert the email smtp address, asserts a notification was sent with the error
-        assert email_mock.call_args[0][0] == "admin@fab.org"
+        assert email_mock.call_args[0][0] == OWNER_EMAIL
         assert (
             get_notification_error_sent_count(create_invalid_sql_alert_email_chart) == 1
         )
@@ -1257,7 +1258,7 @@ def test_grace_period_error(email_mock, create_invalid_sql_alert_email_chart):
     with freeze_time("2020-01-01T00:30:00Z"):
         with pytest.raises((AlertQueryError, AlertQueryInvalidTypeError)):
             AsyncExecuteReportScheduleCommand(
-                test_id, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
+                TEST_ID, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
         db.session.commit()
         assert (
@@ -1268,7 +1269,7 @@ def test_grace_period_error(email_mock, create_invalid_sql_alert_email_chart):
     with freeze_time("2020-01-01T01:30:00Z"):
         with pytest.raises((AlertQueryError, AlertQueryInvalidTypeError)):
             AsyncExecuteReportScheduleCommand(
-                test_id, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
+                TEST_ID, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
         db.session.commit()
         assert (
@@ -1288,7 +1289,7 @@ def test_grace_period_error_flap(
     with freeze_time("2020-01-01T00:00:00Z"):
         with pytest.raises((AlertQueryError, AlertQueryInvalidTypeError)):
             AsyncExecuteReportScheduleCommand(
-                test_id, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
+                TEST_ID, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
         db.session.commit()
         # Assert we have 1 notification sent on the log
@@ -1299,7 +1300,7 @@ def test_grace_period_error_flap(
     with freeze_time("2020-01-01T00:30:00Z"):
         with pytest.raises((AlertQueryError, AlertQueryInvalidTypeError)):
             AsyncExecuteReportScheduleCommand(
-                test_id, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
+                TEST_ID, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
         db.session.commit()
         assert (
@@ -1315,11 +1316,11 @@ def test_grace_period_error_flap(
     with freeze_time("2020-01-01T00:31:00Z"):
         # One success
         AsyncExecuteReportScheduleCommand(
-            test_id, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
+            TEST_ID, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
         ).run()
         # Grace period ends
         AsyncExecuteReportScheduleCommand(
-            test_id, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
+            TEST_ID, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
         ).run()
 
         db.session.commit()
@@ -1334,7 +1335,7 @@ def test_grace_period_error_flap(
     with freeze_time("2020-01-01T00:32:00Z"):
         with pytest.raises((AlertQueryError, AlertQueryInvalidTypeError)):
             AsyncExecuteReportScheduleCommand(
-                test_id, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
+                TEST_ID, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
         db.session.commit()
         assert (
