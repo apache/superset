@@ -252,7 +252,7 @@ describe('RTL', () => {
 
   it('runs handleBulkSavedQueryExport when export is clicked', () => {
     // Grab Export action button and mock mouse clicking it
-    const exportActionButton = screen.getAllByRole('button')[17];
+    const exportActionButton = screen.getAllByRole('button')[18];
     userEvent.click(exportActionButton);
 
     expect(handleBulkSavedQueryExport).toHaveBeenCalled();

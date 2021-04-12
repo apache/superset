@@ -517,7 +517,7 @@ function SavedQueryList({
 
       <ImportModelsModal
         resourceName="saved_query"
-        resourceLabel={t('saved_query')}
+        resourceLabel={t('saved query')}
         passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
         confirmOverwriteMessage={CONFIRM_OVERWRITE_MESSAGE}
         addDangerToast={addDangerToast}
