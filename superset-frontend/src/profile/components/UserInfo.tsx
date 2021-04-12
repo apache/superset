@@ -19,17 +19,36 @@
 import React from 'react';
 import Gravatar from 'react-gravatar';
 import moment from 'moment';
-import { Panel } from 'react-bootstrap';
-import { t } from '@superset-ui/core';
+import Collapse from 'src/common/components/Collapse';
+import { t, styled } from '@superset-ui/core';
 import { UserWithPermissionsAndRoles } from '../../types/bootstrapTypes';
 
 interface UserInfoProps {
   user: UserWithPermissionsAndRoles;
 }
 
+const StyledContainer = styled.div`
+  .ant-collapse-header {
+    background-color: ${({ theme }) => theme.colors.grayscale.light5};
+    .header {
+      margin-left: ${({ theme }) => theme.gridUnit * -6}px;
+    }
+  }
+  .ant-collapse-content {
+    margin-top: ${({ theme }) => theme.gridUnit * -5}px;
+    border-top: none;
+  }
+  .ant-collapse
+    > .ant-collapse-item
+    > .ant-collapse-header
+    .ant-collapse-arrow {
+    display: none;
+  }
+`;
+
 export default function UserInfo({ user }: UserInfoProps) {
   return (
-    <div>
+    <StyledContainer>
       <a href="https://en.gravatar.com/">
         <Gravatar
           email={user.email}
@@ -42,16 +61,24 @@ export default function UserInfo({ user }: UserInfoProps) {
         />
       </a>
       <hr />
-      <Panel>
-        <Panel.Body>
-          <h3>
-            <strong>
-              {user.firstName} {user.lastName}
-            </strong>
-          </h3>
-          <h4 className="username">
-            <i className="fa fa-user-o" /> {user.username}
-          </h4>
+      <Collapse
+        defaultActiveKey={['1']}
+      >
+        <Collapse.Panel
+          header={
+            <div className="header">
+              <h3>
+                <strong>
+                  {user.firstName} {user.lastName}
+                </strong>
+              </h3>
+              <h4 className="username">
+                <i className="fa fa-user-o" /> {user.username}
+              </h4>
+            </div>
+          }
+          key="1"
+        >
           <hr />
           <p>
             <i className="fa fa-clock-o" /> {t('joined')}{' '}
@@ -69,8 +96,8 @@ export default function UserInfo({ user }: UserInfoProps) {
             <span className="text-muted">{t('id:')}</span>&nbsp;
             <span className="user-id">{user.userId}</span>
           </p>
-        </Panel.Body>
-      </Panel>
-    </div>
+        </Collapse.Panel>
+      </Collapse>
+    </StyledContainer>
   );
 }
