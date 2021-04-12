@@ -30,7 +30,6 @@ from typing import Dict
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy_utils import EncryptedType
 
 
 def upgrade():
@@ -38,7 +37,7 @@ def upgrade():
     bind = op.get_bind()
     op.add_column(
         "dbs",
-        sa.Column("server_cert", EncryptedType(sa.Text()), nullable=True, **kwargs),
+        sa.Column("server_cert", sa.LargeBinary(), nullable=True, **kwargs),
     )
 
 

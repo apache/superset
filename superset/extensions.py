@@ -27,6 +27,7 @@ from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.local import LocalProxy
 
+from superset.utils.enc import EncryptedFieldFactory
 from superset.utils.async_query_manager import AsyncQueryManager
 from superset.utils.cache_manager import CacheManager
 from superset.utils.feature_flag_manager import FeatureFlagManager
@@ -104,6 +105,7 @@ celery_app = celery.Celery()
 csrf = CSRFProtect()
 db = SQLA()
 _event_logger: Dict[str, Any] = {}
+encrypted_field_factory = EncryptedFieldFactory()
 event_logger = LocalProxy(lambda: _event_logger.get("event_logger"))
 feature_flag_manager = FeatureFlagManager()
 machine_auth_provider_factory = MachineAuthProviderFactory()

@@ -35,6 +35,7 @@ from superset.extensions import (
     celery_app,
     csrf,
     db,
+    encrypted_field_factory,
     feature_flag_manager,
     machine_auth_provider_factory,
     manifest_processor,
@@ -549,6 +550,7 @@ class SupersetAppInitializer:
         order to fully init the app
         """
         self.pre_init()
+        self.configure_db_enc()
         self.setup_db()
         self.configure_celery()
         self.setup_event_logger()
@@ -668,6 +670,9 @@ class SupersetAppInitializer:
         self.config["LOGGING_CONFIGURATOR"].configure_logging(
             self.config, self.flask_app.debug
         )
+
+    def configure_db_enc(self) -> None:
+        encrypted_field_factory.init_app(self.flask_app)
 
     def setup_db(self) -> None:
         db.init_app(self.flask_app)
