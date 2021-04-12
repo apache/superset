@@ -123,7 +123,6 @@ class DashboardGrid extends React.PureComponent {
       width,
       isComponentVisible,
     } = this.props;
-
     const columnPlusGutterWidth =
       (width + GRID_GUTTER_SIZE) / GRID_COLUMN_COUNT;
 
