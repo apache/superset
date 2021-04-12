@@ -47,11 +47,13 @@ from superset.reports.commands.exceptions import (
     ReportScheduleNotFoundError,
     ReportScheduleNotificationError,
     ReportSchedulePreviousWorkingError,
+    ReportSchedulePruneLogError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
     ReportScheduleWorkingTimeoutError,
 )
 from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
+from superset.reports.commands.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.utils.core import get_example_database
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.fixtures.world_bank_dashboard import (
@@ -193,7 +195,7 @@ def create_test_table_context(database: Database):
     database.get_sqla_engine().execute("DROP TABLE test_table")
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def create_report_email_chart():
     with app.app_context():
         chart = db.session.query(Slice).first()
@@ -205,7 +207,7 @@ def create_report_email_chart():
         cleanup_report_schedule(report_schedule)
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def create_report_email_dashboard():
     with app.app_context():
         dashboard = db.session.query(Dashboard).first()
@@ -217,7 +219,7 @@ def create_report_email_dashboard():
         cleanup_report_schedule(report_schedule)
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def create_report_slack_chart():
     with app.app_context():
         chart = db.session.query(Slice).first()
@@ -229,7 +231,7 @@ def create_report_slack_chart():
         cleanup_report_schedule(report_schedule)
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def create_report_slack_chart_working():
     with app.app_context():
         chart = db.session.query(Slice).first()
@@ -255,7 +257,7 @@ def create_report_slack_chart_working():
         cleanup_report_schedule(report_schedule)
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def create_alert_slack_chart_success():
     with app.app_context():
         chart = db.session.query(Slice).first()
@@ -281,7 +283,7 @@ def create_alert_slack_chart_success():
         cleanup_report_schedule(report_schedule)
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def create_alert_slack_chart_grace():
     with app.app_context():
         chart = db.session.query(Slice).first()
@@ -1115,3 +1117,17 @@ def test_grace_period_error_flap(
         assert (
             get_notification_error_sent_count(create_invalid_sql_alert_email_chart) == 2
         )
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_email_dashboard"
+)
+@patch("superset.reports.dao.ReportScheduleDAO.bulk_delete_logs")
+def test_prune_log_soft_time_out(bulk_delete_logs, create_report_email_dashboard):
+    from celery.exceptions import SoftTimeLimitExceeded
+    from datetime import datetime, timedelta
+
+    bulk_delete_logs.side_effect = SoftTimeLimitExceeded()
+    with pytest.raises(SoftTimeLimitExceeded) as excinfo:
+        AsyncPruneReportScheduleLogCommand().run()
+    assert str(excinfo.value) == "SoftTimeLimitExceeded()"
