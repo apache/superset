@@ -184,6 +184,7 @@ class BaseReportState:
         try:
             image_data = screenshot.get_screenshot(user=user)
         except SoftTimeLimitExceeded:
+            logger.warning("A timeout occurred while taking a screenshot.")
             raise ReportScheduleScreenshotTimeout()
         except Exception as ex:
             raise ReportScheduleScreenshotFailedError(
