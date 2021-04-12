@@ -24,6 +24,7 @@ import {
 } from 'src/dashboard/actions/nativeFilters';
 import { FilterSet, NativeFiltersState } from './types';
 import { FilterConfiguration } from '../components/nativeFilters/types';
+import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 export function getInitialState({
   filterSetsConfig,
@@ -69,6 +70,10 @@ export default function nativeFilterReducer(
 ) {
   const { filterSets } = state;
   switch (action.type) {
+    case HYDRATE_DASHBOARD:
+      return {
+        filters: action.data.nativeFilters.filters,
+      };
     case SAVE_FILTER_SETS:
       return {
         ...state,

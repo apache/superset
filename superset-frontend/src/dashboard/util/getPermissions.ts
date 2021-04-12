@@ -16,15 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import memoizeOne from 'memoize-one';
 
-export {
-  useApiResourceFullBody,
-  useApiV1Resource,
-  useTransformedResource,
-} from './apiResources';
+export default function getPermissions(
+  perm: string,
+  view: string,
+  roles: object,
+) {
+  return memoizeOne(() => {
+    const roleList = Object.entries(roles);
+    if (roleList.length === 0) return false;
+    let bool;
 
-// A central catalog of API Resource hooks.
-// Add new API hooks here, organized under
-// different files for different resource types.
-export * from './charts';
-export * from './dashboards';
+    roleList.forEach(([role, permissions]) => {
+      bool = Boolean(
+        permissions.find(
+          (permission: Array<string>) =>
+            permission[0] === perm && permission[1] === view,
+        ),
+      );
+    });
+    console.log('bool', bool);
+    return bool;
+  });
+}

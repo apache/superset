@@ -239,6 +239,22 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         )
 
     @pytest.mark.usefixtures("create_dashboards")
+    def test_get_dashboard_charts_by_slug(self):
+        """
+        Dashboard API: Test getting charts belonging to a dashboard
+        """
+        self.login(username="admin")
+        dashboard = self.dashboards[0]
+        uri = f"api/v1/dashboard/{dashboard.slug}/charts"
+        response = self.get_assert_metric(uri, "get_charts")
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data.decode("utf-8"))
+        self.assertEqual(len(data["result"]), 1)
+        self.assertEqual(
+            data["result"][0]["slice_name"], dashboard.slices[0].slice_name
+        )
+
+    @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboard_charts_not_found(self):
         """
         Dashboard API: Test getting charts belonging to a dashboard that does not exist
