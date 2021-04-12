@@ -41,13 +41,8 @@ from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
 
 # Regular expressions to catch custom errors
-INVALID_USERNAME_REGEX = re.compile(
-    "Access denied for user '(?P<username>.*?)'@'(?P<hostname>.*?)'"
-    " (using password: NO)"
-)
-INVALID_PASSWORD_REGEX = re.compile(
-    "Access denied for user '(?P<username>.*?)'@'(?P<hostname>.*?)'"
-    " (using password: YES)"
+INVALID_ACCESS_REGEX = re.compile(
+    "Access denied for user '(?P<username>.*?)'@'(?P<hostname>.*?)' "
 )
 INVALID_HOSTNAME_REGEX = re.compile("Unknown MySQL server host '(?P<hostname>.*?)'")
 CONNECTION_HOST_DOWN_REGEX = re.compile(
@@ -110,12 +105,8 @@ class MySQLEngineSpec(BaseEngineSpec):
     type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
 
     custom_errors = {
-        INVALID_USERNAME_REGEX: (
-            __('The username "%(username)s" does not exist'),
-            SupersetErrorType.TEST_CONNECTION_INVALID_USERNAME_ERROR,
-        ),
-        INVALID_PASSWORD_REGEX: (
-            __('Unable to connect "%(username)s"'),
+        INVALID_ACCESS_REGEX: (
+            __('Either the username "%(username)s" or the password is incorrect.'),
             SupersetErrorType.TEST_CONNECTION_ACCESS_DENIED_ERROR,
         ),
         INVALID_HOSTNAME_REGEX: (
