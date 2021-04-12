@@ -138,7 +138,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportExportMixin):
     metadata_last_refreshed = Column(DateTime)
     cache_timeout = Column(Integer)
     broker_user = Column(String(255))
-    broker_pass = Column(encrypted_field_factory(String(255)))
+    broker_pass = Column(encrypted_field_factory.create(String(255)))
 
     export_fields = [
         "cluster_name",
