@@ -17,46 +17,82 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { isString } from 'lodash';
+import { isString, keyBy } from 'lodash';
 import shortid from 'shortid';
 import { CategoricalColorNamespace } from '@superset-ui/core';
+import querystring from 'query-string';
 
+import { chart } from 'src/chart/chartReducer';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { getParam } from 'src/modules/utils';
 import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
+import getPermissions from 'src/dashboard/util/getPermissions';
 import {
   DASHBOARD_FILTER_SCOPE_GLOBAL,
   dashboardFilter,
-} from './dashboardFilters';
-import { chart } from '../../chart/chartReducer';
+} from 'src/dashboard/reducers/dashboardFilters';
 import {
   DASHBOARD_HEADER_ID,
   GRID_DEFAULT_CHART_WIDTH,
   GRID_COLUMN_COUNT,
-} from '../util/constants';
+} from 'src/dashboard/util/constants';
 import {
   DASHBOARD_HEADER_TYPE,
   CHART_TYPE,
   ROW_TYPE,
-} from '../util/componentTypes';
-import findFirstParentContainerId from '../util/findFirstParentContainer';
-import getEmptyLayout from '../util/getEmptyLayout';
-import getFilterConfigsFromFormdata from '../util/getFilterConfigsFromFormdata';
-import getLocationHash from '../util/getLocationHash';
-import newComponentFactory from '../util/newComponentFactory';
-import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
+} from 'src/dashboard/util/componentTypes';
+import findFirstParentContainerId from 'src/dashboard/util/findFirstParentContainer';
+import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
+import getFilterConfigsFromFormdata from 'src/dashboard/util/getFilterConfigsFromFormdata';
+import getLocationHash from 'src/dashboard/util/getLocationHash';
+import newComponentFactory from 'src/dashboard/util/newComponentFactory';
+import { TIME_RANGE } from 'src/visualizations/FilterBox/FilterBox';
 
-export default function getInitialState(bootstrapData) {
-  const { user_id, datasources, common, editMode, urlParams } = bootstrapData;
+const reservedQueryParams = new Set(['standalone', 'edit']);
 
-  const dashboard = { ...bootstrapData.dashboard_data };
+/**
+ * Returns the url params that are used to customize queries
+ * in datasets built using sql lab.
+ * We may want to extract this to some kind of util in the future.
+ */
+const extractUrlParams = queryParams =>
+  Object.entries(queryParams).reduce((acc, [key, value]) => {
+    if (reservedQueryParams.has(key)) return acc;
+    // if multiple url params share the same key (?foo=bar&foo=baz), they will appear as an array.
+    // Only one value can be used for a given query param, so we just take the first one.
+    if (Array.isArray(value)) {
+      return {
+        ...acc,
+        [key]: value[0],
+      };
+    }
+    return { ...acc, [key]: value };
+  }, {});
+
+export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
+
+export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
+  dispatch,
+  getState,
+) => {
+  const { user, common } = getState();
+  const { metadata } = dashboardData;
+  const queryParams = querystring.parse(window.location.search);
+  const urlParams = extractUrlParams(queryParams);
+  const editMode = queryParams.edit === 'true';
+
   let preselectFilters = {};
+
+  chartData.forEach(chart => {
+    // eslint-disable-next-line no-param-reassign
+    chart.slice_id = chart.form_data.slice_id;
+  });
   try {
     // allow request parameter overwrite dashboard metadata
     preselectFilters = JSON.parse(
-      getParam('preselect_filters') || dashboard.metadata.default_filters,
+      getParam('preselect_filters') || metadata.default_filters,
     );
   } catch (e) {
     //
@@ -64,12 +100,12 @@ export default function getInitialState(bootstrapData) {
 
   // Priming the color palette with user's label-color mapping provided in
   // the dashboard's JSON metadata
-  if (dashboard.metadata && dashboard.metadata.label_colors) {
-    const scheme = dashboard.metadata.color_scheme;
-    const namespace = dashboard.metadata.color_namespace;
-    const colorMap = isString(dashboard.metadata.label_colors)
-      ? JSON.parse(dashboard.metadata.label_colors)
-      : dashboard.metadata.label_colors;
+  if (metadata?.label_colors) {
+    const scheme = metadata.color_scheme;
+    const namespace = metadata.color_namespace;
+    const colorMap = isString(metadata.label_colors)
+      ? JSON.parse(metadata.label_colors)
+      : metadata.label_colors;
     Object.keys(colorMap).forEach(label => {
       CategoricalColorNamespace.getScale(scheme, namespace).setColor(
         label,
@@ -79,11 +115,11 @@ export default function getInitialState(bootstrapData) {
   }
 
   // dashboard layout
-  const { position_json: positionJson } = dashboard;
-  // new dash: positionJson could be {} or null
+  const { position_data } = dashboardData;
+  // new dash: position_json could be {} or null
   const layout =
-    positionJson && Object.keys(positionJson).length > 0
-      ? positionJson
+    position_data && Object.keys(position_data).length > 0
+      ? position_data
       : getEmptyLayout();
 
   // create a lookup to sync layout names with slice names
@@ -100,13 +136,13 @@ export default function getInitialState(bootstrapData) {
   let newSlicesContainer;
   let newSlicesContainerWidth = 0;
 
-  const filterScopes = dashboard.metadata.filter_scopes || {};
+  const filterScopes = metadata?.filter_scopes || {};
 
   const chartQueries = {};
   const dashboardFilters = {};
   const slices = {};
   const sliceIds = new Set();
-  dashboard.slices.forEach(slice => {
+  chartData.forEach(slice => {
     const key = slice.slice_id;
     const form_data = {
       ...slice.form_data,
@@ -240,7 +276,7 @@ export default function getInitialState(bootstrapData) {
     id: DASHBOARD_HEADER_ID,
     type: DASHBOARD_HEADER_TYPE,
     meta: {
-      text: dashboard.dashboard_title,
+      text: dashboardData.dashboard_title,
     },
   };
 
@@ -259,54 +295,57 @@ export default function getInitialState(bootstrapData) {
   }
 
   const nativeFilters = getInitialNativeFilterState({
-    filterConfig: dashboard.metadata.native_filter_configuration || [],
-    filterSetsConfig: dashboard.metadata.filter_sets_configuration || [],
+    filterConfig: metadata?.native_filter_configuration || [],
+    filterSetsConfig: metadata?.filter_sets_configuration || [],
   });
 
-  return {
-    datasources,
-    sliceEntities: { ...initSliceEntities, slices, isLoading: false },
-    charts: chartQueries,
-    // read-only data
-    dashboardInfo: {
-      id: dashboard.id,
-      slug: dashboard.slug,
-      metadata: dashboard.metadata,
-      userId: user_id,
-      dash_edit_perm: dashboard.dash_edit_perm,
-      dash_save_perm: dashboard.dash_save_perm,
-      superset_can_explore: dashboard.superset_can_explore,
-      superset_can_csv: dashboard.superset_can_csv,
-      slice_can_edit: dashboard.slice_can_edit,
-      common: {
-        flash_messages: common.flash_messages,
-        conf: common.conf,
+  const { roles } = getState().user;
+
+  return dispatch({
+    type: HYDRATE_DASHBOARD,
+    data: {
+      datasources: keyBy(datasourcesData, 'uid'),
+      sliceEntities: { ...initSliceEntities, slices, isLoading: false },
+      charts: chartQueries,
+      // read-only data
+      dashboardInfo: {
+        ...dashboardData,
+        userId: String(user.userId), // legacy, please use state.user instead
+        dash_edit_perm: getPermissions('can_write', 'Dashboard', roles),
+        dash_save_perm: getPermissions('can_save_dash', 'Superset', roles),
+        superset_can_explore: getPermissions('can_explore', 'Superset', roles),
+        superset_can_csv: getPermissions('can_csv', 'Superset', roles),
+        slice_can_edit: getPermissions('can_slice', 'Superset', roles),
+        common: {
+          // legacy, please use state.common instead
+          flash_messages: common.flash_messages,
+          conf: common.conf,
+        },
       },
-      lastModifiedTime: dashboard.last_modified_time,
+      dashboardFilters,
+      nativeFilters,
+      dashboardState: {
+        sliceIds: Array.from(sliceIds),
+        directPathToChild,
+        directPathLastUpdated: Date.now(),
+        focusedFilterField: null,
+        expandedSlices: metadata?.expanded_slices || {},
+        refreshFrequency: metadata?.refresh_frequency || 0,
+        // dashboard viewers can set refresh frequency for the current visit,
+        // only persistent refreshFrequency will be saved to backend
+        shouldPersistRefreshFrequency: false,
+        css: dashboardData.css || '',
+        colorNamespace: metadata?.color_namespace || null,
+        colorScheme: metadata?.color_scheme || null,
+        editMode: getPermissions('can_write', 'Dashboard', roles) && editMode,
+        isPublished: dashboardData.published,
+        hasUnsavedChanges: false,
+        maxUndoHistoryExceeded: false,
+        lastModifiedTime: dashboardData.changed_on,
+      },
+      dashboardLayout,
+      messageToasts: [],
+      impressionId: shortid.generate(),
     },
-    dashboardFilters,
-    nativeFilters,
-    dashboardState: {
-      sliceIds: Array.from(sliceIds),
-      directPathToChild,
-      directPathLastUpdated: Date.now(),
-      focusedFilterField: null,
-      expandedSlices: dashboard.metadata.expanded_slices || {},
-      refreshFrequency: dashboard.metadata.refresh_frequency || 0,
-      // dashboard viewers can set refresh frequency for the current visit,
-      // only persistent refreshFrequency will be saved to backend
-      shouldPersistRefreshFrequency: false,
-      css: dashboard.css || '',
-      colorNamespace: dashboard.metadata.color_namespace,
-      colorScheme: dashboard.metadata.color_scheme,
-      editMode: dashboard.dash_edit_perm && editMode,
-      isPublished: dashboard.published,
-      hasUnsavedChanges: false,
-      maxUndoHistoryExceeded: false,
-      lastModifiedTime: dashboard.last_modified_time,
-    },
-    dashboardLayout,
-    messageToasts: [],
-    impressionId: shortid.generate(),
-  };
-}
+  });
+};
