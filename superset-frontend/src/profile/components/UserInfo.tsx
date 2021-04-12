@@ -61,9 +61,7 @@ export default function UserInfo({ user }: UserInfoProps) {
         />
       </a>
       <hr />
-      <Collapse
-        defaultActiveKey={['1']}
-      >
+      <Collapse defaultActiveKey={['1']}>
         <Collapse.Panel
           header={
             <div className="header">
