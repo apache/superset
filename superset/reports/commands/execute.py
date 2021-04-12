@@ -219,7 +219,12 @@ class BaseReportState:
                 f"{self._report_schedule.name}: "
                 f"{self._report_schedule.dashboard.dashboard_title}"
             )
-        return NotificationContent(name=name, url=url, screenshot=screenshot_data)
+        return NotificationContent(
+            name=name,
+            url=url,
+            screenshot=screenshot_data,
+            description=self._report_schedule.description,
+        )
 
     def _send(self, notification_content: NotificationContent) -> None:
         """
