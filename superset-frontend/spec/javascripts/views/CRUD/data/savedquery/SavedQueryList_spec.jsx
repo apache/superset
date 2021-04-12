@@ -26,6 +26,7 @@ import { render, screen, cleanup } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import { act } from 'react-dom/test-utils';
+import { handleBulkSavedQueryExport } from 'src/views/CRUD/utils';
 import * as featureFlags from 'src/featureFlags';
 import SavedQueryList from 'src/views/CRUD/data/savedquery/SavedQueryList';
 import SubMenu from 'src/components/Menu/SubMenu';
@@ -94,6 +95,9 @@ fetchMock.get(queriesDistinctEndpoint, {
   count: 0,
   result: [],
 });
+
+// Mock utils module
+jest.mock('src/views/CRUD/utils');
 
 describe('SavedQueryList', () => {
   const wrapper = mount(
@@ -233,7 +237,7 @@ describe('RTL', () => {
 
   it('renders an export button in the actions bar', async () => {
     // Grab Export action button and mock mouse hovering over it
-    const exportActionButton = screen.getAllByRole('button')[17];
+    const exportActionButton = screen.getAllByRole('button')[18];
     userEvent.hover(exportActionButton);
 
     // Wait for the tooltip to pop up
@@ -244,5 +248,31 @@ describe('RTL', () => {
       name: /export query/i,
     });
     expect(exportTooltip).toBeInTheDocument();
+  });
+
+  it('runs handleBulkSavedQueryExport when export is clicked', () => {
+    // Grab Export action button and mock mouse clicking it
+    const exportActionButton = screen.getAllByRole('button')[17];
+    userEvent.click(exportActionButton);
+
+    expect(handleBulkSavedQueryExport).toHaveBeenCalled();
+  });
+
+  it('renders an import button in the submenu', () => {
+    // Grab and assert that import saved query button is visible
+    const importSavedQueryButton = screen.getAllByRole('button')[2];
+    expect(importSavedQueryButton).toBeVisible();
+  });
+
+  it('renders an import model when import button is clicked', async () => {
+    // Grab and click import saved query button to reveal modal
+    const importSavedQueryButton = screen.getAllByRole('button')[2];
+    userEvent.click(importSavedQueryButton);
+
+    // Grab and assert that saved query import modal's heading is visible
+    const importSavedQueryModalHeading = screen.getByRole('heading', {
+      name: /import saved query/i,
+    });
+    expect(importSavedQueryModalHeading).toBeVisible();
   });
 });
