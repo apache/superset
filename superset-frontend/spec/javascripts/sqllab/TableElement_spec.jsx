@@ -24,7 +24,6 @@ import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import Collapse from 'src/common/components/Collapse';
 
 import { IconTooltip } from 'src/components/IconTooltip';
-import Fade from 'src/common/components/Fade';
 import TableElement from 'src/SqlLab/components/TableElement';
 import ColumnElement from 'src/SqlLab/components/ColumnElement';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
@@ -88,11 +87,15 @@ describe('TableElement', () => {
       },
     );
     expect(wrapper.find(TableElement).state().hovered).toBe(false);
-    expect(wrapper.find(Fade).props().hovered).toBe(false);
+    expect(wrapper.find('[data-test="fade"]').first().props().hovered).toBe(
+      false,
+    );
     wrapper.find('.header-container').hostNodes().simulate('mouseEnter');
     await waitForComponentToPaint(wrapper, 300);
     expect(wrapper.find(TableElement).state().hovered).toBe(true);
-    expect(wrapper.find(Fade).props().hovered).toBe(true);
+    expect(wrapper.find('[data-test="fade"]').first().props().hovered).toBe(
+      true,
+    );
   });
   it('sorts columns', () => {
     const wrapper = mount(

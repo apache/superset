@@ -57,7 +57,20 @@ def scheduler() -> None:
                 logger.info(
                     "Scheduling alert %s eta: %s", active_schedule.name, schedule
                 )
-                execute.apply_async((active_schedule.id, schedule,), eta=schedule)
+                async_options = {"eta": schedule}
+                if (
+                    active_schedule.working_timeout is not None
+                    and app.config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"]
+                ):
+                    async_options["time_limit"] = (
+                        active_schedule.working_timeout
+                        + app.config["ALERT_REPORTS_WORKING_TIME_OUT_LAG"]
+                    )
+                    async_options["soft_time_limit"] = (
+                        active_schedule.working_timeout
+                        + app.config["ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG"]
+                    )
+                execute.apply_async((active_schedule.id, schedule,), **async_options)
 
 
 @celery_app.task(name="reports.execute")

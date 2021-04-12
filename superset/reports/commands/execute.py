@@ -292,12 +292,17 @@ class BaseReportState:
         """
         Checks if an alert is on a working timeout
         """
+        last_working = ReportScheduleDAO.find_last_entered_working_log(
+            self._report_schedule, session=self._session
+        )
+        if not last_working:
+            return False
         return (
             self._report_schedule.working_timeout is not None
             and self._report_schedule.last_eval_dttm is not None
             and datetime.utcnow()
             - timedelta(seconds=self._report_schedule.working_timeout)
-            > self._report_schedule.last_eval_dttm
+            > last_working.end_dttm
         )
 
     def next(self) -> None:

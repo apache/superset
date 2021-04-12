@@ -22,6 +22,11 @@ import configureStore from 'redux-mock-store';
 import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
+import { render, screen, cleanup } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+import { QueryParamProvider } from 'use-query-params';
+import { act } from 'react-dom/test-utils';
+import * as featureFlags from 'src/featureFlags';
 import SavedQueryList from 'src/views/CRUD/data/savedquery/SavedQueryList';
 import SubMenu from 'src/components/Menu/SubMenu';
 import ListView from 'src/components/ListView';
@@ -31,7 +36,6 @@ import DeleteModal from 'src/components/DeleteModal';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { act } from 'react-dom/test-utils';
 
 // store needed for withToasts(DatabaseList)
 const mockStore = configureStore([thunk]);
@@ -71,7 +75,7 @@ const mockqueries = [...new Array(3)].map((_, i) => ({
 }));
 
 fetchMock.get(queriesInfoEndpoint, {
-  permissions: ['can_write'],
+  permissions: ['can_write', 'can_read'],
 });
 fetchMock.get(queriesEndpoint, {
   result: mockqueries,
@@ -177,5 +181,68 @@ describe('SavedQueryList', () => {
     expect(fetchMock.lastCall()[0]).toMatchInlineSnapshot(
       `"http://localhost/api/v1/saved_query/?q=(filters:!((col:label,opr:all_text,value:fooo)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
     );
+  });
+});
+
+describe('RTL', () => {
+  async function renderAndWait() {
+    const mounted = act(async () => {
+      render(
+        <QueryParamProvider>
+          <Provider store={store}>
+            <SavedQueryList />
+          </Provider>
+        </QueryParamProvider>,
+      );
+    });
+
+    return mounted;
+  }
+
+  let isFeatureEnabledMock;
+  beforeEach(async () => {
+    isFeatureEnabledMock = jest
+      .spyOn(featureFlags, 'isFeatureEnabled')
+      .mockImplementation(() => true);
+    await renderAndWait();
+  });
+
+  afterEach(() => {
+    cleanup();
+    isFeatureEnabledMock.mockRestore();
+  });
+  it('renders an export button in the bulk actions', () => {
+    // Grab and click the "Bulk Select" button to expose checkboxes
+    const bulkSelectButton = screen.getByRole('button', {
+      name: /bulk select/i,
+    });
+    userEvent.click(bulkSelectButton);
+
+    // Grab and click the "toggle all" checkbox to expose export button
+    const selectAllCheckbox = screen.getByRole('checkbox', {
+      name: /toggle all rows selected/i,
+    });
+    userEvent.click(selectAllCheckbox);
+
+    // Grab and assert that export button is visible
+    const exportButton = screen.getByRole('button', {
+      name: /export/i,
+    });
+    expect(exportButton).toBeVisible();
+  });
+
+  it('renders an export button in the actions bar', async () => {
+    // Grab Export action button and mock mouse hovering over it
+    const exportActionButton = screen.getAllByRole('button')[17];
+    userEvent.hover(exportActionButton);
+
+    // Wait for the tooltip to pop up
+    await screen.findByRole('tooltip');
+
+    // Grab and assert that "Export Query" tooltip is in the document
+    const exportTooltip = screen.getByRole('tooltip', {
+      name: /export query/i,
+    });
+    expect(exportTooltip).toBeInTheDocument();
   });
 });

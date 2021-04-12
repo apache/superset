@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from textwrap import dedent
 from unittest import mock
 
 from sqlalchemy import column, literal_column
@@ -21,6 +22,7 @@ from sqlalchemy.dialects import postgresql
 
 from superset.db_engine_specs import engines
 from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
 from tests.fixtures.certificates import ssl_certificate
 from tests.fixtures.database import default_db_extra
@@ -171,7 +173,9 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         )
         sql = "SELECT * FROM birth_names"
         results = PostgresEngineSpec.estimate_statement_cost(sql, cursor)
-        self.assertEqual(results, {"Start-up cost": 0.00, "Total cost": 1537.91,})
+        self.assertEqual(
+            results, {"Start-up cost": 0.00, "Total cost": 1537.91,},
+        )
 
     def test_estimate_statement_invalid_syntax(self):
         """
@@ -207,3 +211,90 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
                 {"Start-up cost": "10.0", "Total cost": "1537.0",},
             ],
         )
+
+    def test_extract_errors(self):
+        """
+        Test that custom error messages are extracted correctly.
+        """
+        msg = 'psql: error: FATAL:  role "testuser" does not exist'
+        result = PostgresEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.TEST_CONNECTION_INVALID_USERNAME_ERROR,
+                message='The username "testuser" does not exist.',
+                level=ErrorLevel.ERROR,
+                extra={"engine_name": "PostgreSQL"},
+            )
+        ]
+
+        msg = 'psql: error: could not translate host name "locahost" to address: nodename nor servname provided, or not known'
+        result = PostgresEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.TEST_CONNECTION_INVALID_HOSTNAME_ERROR,
+                message='The hostname "locahost" cannot be resolved.',
+                level=ErrorLevel.ERROR,
+                extra={"engine_name": "PostgreSQL"},
+            )
+        ]
+
+        msg = dedent(
+            """
+psql: error: could not connect to server: Connection refused
+        Is the server running on host "localhost" (::1) and accepting
+        TCP/IP connections on port 12345?
+could not connect to server: Connection refused
+        Is the server running on host "localhost" (127.0.0.1) and accepting
+        TCP/IP connections on port 12345?
+            """
+        )
+        result = PostgresEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.TEST_CONNECTION_PORT_CLOSED_ERROR,
+                message="Port 12345 on hostname localhost refused the connection.",
+                level=ErrorLevel.ERROR,
+                extra={"engine_name": "PostgreSQL"},
+            )
+        ]
+
+        msg = dedent(
+            """
+psql: error: could not connect to server: Operation timed out
+        Is the server running on host "example.com" (93.184.216.34) and accepting
+        TCP/IP connections on port 12345?
+            """
+        )
+        result = PostgresEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
+                message=(
+                    "The host example.com might be down, "
+                    "and can't be reached on port 12345"
+                ),
+                level=ErrorLevel.ERROR,
+                extra={"engine_name": "PostgreSQL"},
+            )
+        ]
+
+        # response with IP only
+        msg = dedent(
+            """
+psql: error: could not connect to server: Operation timed out
+        Is the server running on host "93.184.216.34" and accepting
+        TCP/IP connections on port 12345?
+            """
+        )
+        result = PostgresEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
+                message=(
+                    "The host 93.184.216.34 might be down, "
+                    "and can't be reached on port 12345"
+                ),
+                level=ErrorLevel.ERROR,
+                extra={"engine_name": "PostgreSQL"},
+            )
+        ]

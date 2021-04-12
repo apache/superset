@@ -55,12 +55,15 @@ export const findExistingFilterSet = ({
   filterSetFilterValues.find(({ dataMask: dataMaskFromFilterSet = {} }) => {
     const dataMaskSelectedEntries = Object.entries(dataMaskSelected);
     return dataMaskSelectedEntries.every(
-      ([id, filterFromSelectedFilters]) =>
-        areObjectsEqual(
+      ([id, filterFromSelectedFilters]) =>{
+        const isEqual =areObjectsEqual(
           filterFromSelectedFilters.filterState,
           dataMaskFromFilterSet?.[id]?.filterState,
-        ) &&
+        ) ;
+          const hasSamePropsNumber =
         dataMaskSelectedEntries.length ===
-          Object.keys(dataMaskFromFilterSet ?? {}).length,
+          Object.keys(dataMaskFromFilterSet ?? {}).length;
+          return isEqual && hasSamePropsNumber;
+        },
     );
   });

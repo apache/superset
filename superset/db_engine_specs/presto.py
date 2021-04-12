@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import dataclasses
 import logging
 import re
 import textwrap
@@ -1133,54 +1132,41 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         return database.get_df("SHOW FUNCTIONS")["Function"].tolist()
 
     @classmethod
-    def extract_errors(cls, ex: Exception) -> List[Dict[str, Any]]:
+    def extract_errors(cls, ex: Exception) -> List[SupersetError]:
         raw_message = cls._extract_error_message(ex)
 
         column_match = re.search(COLUMN_NOT_RESOLVED_ERROR_REGEX, raw_message)
         if column_match:
             return [
-                dataclasses.asdict(
-                    SupersetError(
-                        error_type=SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
-                        message=__(
-                            'We can\'t seem to resolve the column "%(column_name)s" at '
-                            "line %(location)s.",
-                            column_name=column_match.group(2),
-                            location=column_match.group(1),
-                        ),
-                        level=ErrorLevel.ERROR,
-                        extra={"engine_name": cls.engine_name},
-                    )
+                SupersetError(
+                    error_type=SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+                    message=__(
+                        'We can\'t seem to resolve the column "%(column_name)s" at '
+                        "line %(location)s.",
+                        column_name=column_match.group(2),
+                        location=column_match.group(1),
+                    ),
+                    level=ErrorLevel.ERROR,
+                    extra={"engine_name": cls.engine_name},
                 )
             ]
 
         table_match = re.search(TABLE_DOES_NOT_EXIST_ERROR_REGEX, raw_message)
         if table_match:
             return [
-                dataclasses.asdict(
-                    SupersetError(
-                        error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
-                        message=__(
-                            'The table "%(table_name)s" does not exist. '
-                            "A valid table must be used to run this query.",
-                            table_name=table_match.group(1),
-                        ),
-                        level=ErrorLevel.ERROR,
-                        extra={"engine_name": cls.engine_name},
-                    )
-                )
-            ]
-
-        return [
-            dataclasses.asdict(
                 SupersetError(
-                    error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                    message=cls._extract_error_message(ex),
+                    error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+                    message=__(
+                        'The table "%(table_name)s" does not exist. '
+                        "A valid table must be used to run this query.",
+                        table_name=table_match.group(1),
+                    ),
                     level=ErrorLevel.ERROR,
                     extra={"engine_name": cls.engine_name},
                 )
-            )
-        ]
+            ]
+
+        return super().extract_errors(ex)
 
     @classmethod
     def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
