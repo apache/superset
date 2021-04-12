@@ -277,6 +277,10 @@ export default function getInitialState(bootstrapData) {
             chartQueries[chartId]?.formData?.viz_type,
           ) ?? {}
         )?.behaviors ?? [];
+
+      if (!metadata.chart_configuration) {
+        metadata.chart_configuration = {};
+      }
       if (
         behaviors.includes(Behavior.CROSS_FILTER) &&
         !metadata.chart_configuration[chartId]
