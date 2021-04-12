@@ -83,19 +83,22 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   });
 
   const handleChange = (value?: SelectValue | number | string) => {
-    let selectValue: (number | string)[];
+    let selectValue: (number | string)[] = ensureIsArray<number | string>(
+      value,
+    );
+    let stateValue: SelectValue | typeof FIRST_VALUE = selectValue.length
+      ? selectValue
+      : null;
+
     if (value === FIRST_VALUE) {
       selectValue = forceFirstValue ? [] : firstItem;
-    } else {
-      selectValue = ensureIsArray<number | string>(value);
+      stateValue = FIRST_VALUE;
     }
+
     setValues(selectValue);
 
     const emptyFilter =
       enableEmptyFilter && !inverseSelection && selectValue?.length === 0;
-
-    // Set currentState value for a case of non-`defaultToFirstItem`
-    const stateValue = selectValue.length ? selectValue : null;
 
     const dataMask = {
       extraFormData: getSelectExtraFormData(
@@ -108,7 +111,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         // We need to save in state `FIRST_VALUE` as some const and not as REAL value,
         // because when FiltersBar check if all filters initialized it compares `defaultValue` with this value
         // and because REAL value can be unpredictable for users that have different data for same dashboard we use `FIRST_VALUE`
-        value: value === FIRST_VALUE ? FIRST_VALUE : stateValue,
+        value: stateValue,
       },
     };
 
