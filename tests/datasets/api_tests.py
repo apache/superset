@@ -583,12 +583,12 @@ class TestDatasetApi(SupersetTestCase):
         dataset = self.insert_default_dataset()
         self.login(username="admin")
         new_col_dict = {
-                    "column_name": "new_col",
-                    "description": "description",
-                    "expression": "expression",
-                    "type": "INTEGER",
-                    "verbose_name": "New Col",
-                }
+            "column_name": "new_col",
+            "description": "description",
+            "expression": "expression",
+            "type": "INTEGER",
+            "verbose_name": "New Col",
+        }
         dataset_data = {
             "columns": [new_col_dict],
             "description": "changed description",
