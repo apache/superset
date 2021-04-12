@@ -167,8 +167,6 @@ def api(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
     def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
         try:
             return f(self, *args, **kwargs)
-        except SupersetException as ex:
-            return json_error_response(get_error_msg(), status=ex.status)
         except NoAuthorizationError as ex:  # pylint: disable=broad-except
             logger.warning(ex)
             return json_error_response(get_error_msg(), status=401)
@@ -200,7 +198,8 @@ def handle_api_exception(
             logger.warning(ex)
             return json_errors_response(errors=[ex.error], status=ex.status)
         except SupersetException as ex:
-            logger.exception(ex)
+            if ex.status > 500:
+                logger.exception(ex)
             return json_error_response(
                 utils.error_msg_from_exception(ex), status=ex.status
             )
