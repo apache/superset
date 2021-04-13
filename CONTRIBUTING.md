@@ -77,6 +77,8 @@ little bit helps, and credit will always be given.
     - [Python Testing](#python-testing)
     - [Frontend Testing](#frontend-testing)
     - [Integration Testing](#integration-testing)
+    - [Debugging Server App](#debugging-server-app)
+    - [Debugging Server App in Kubernetes Environment](#debugging-server-app-in-kubernetes-environment)
     - [Storybook](#storybook)
   - [Translating](#translating)
     - [Enabling language selection](#enabling-language-selection)
