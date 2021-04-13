@@ -16,28 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
-import Slider from 'src/components/Slider';
-import ControlHeader from 'src/explore/components/ControlHeader';
+import Owner from './Owner';
+import Role from './Role';
 
-const propTypes = {
-  onChange: PropTypes.func,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+type Dashboard = {
+  id: number;
+  slug: string;
+  url: string;
+  dashboard_title: string;
+  thumbnail_url: string;
+  published: boolean;
+  css: string;
+  json_metadata: string;
+  position_json: string;
+  changed_by_name: string;
+  changed_by: Owner;
+  changed_on: string;
+  charts: string[]; // just chart names, unfortunately...
+  owners: Owner[];
+  roles: Role[];
 };
 
-const defaultProps = {
-  onChange: () => {},
-};
-
-export default function SliderControl(props) {
-  return (
-    <>
-      <ControlHeader {...props} />
-      <Slider {...props} defaultValue={props.default} />
-    </>
-  );
-}
-
-SliderControl.propTypes = propTypes;
-SliderControl.defaultProps = defaultProps;
+export default Dashboard;

@@ -17,27 +17,13 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
-import Slider from 'src/components/Slider';
-import ControlHeader from 'src/explore/components/ControlHeader';
+import AntDSlider, {
+  SliderSingleProps,
+  SliderRangeProps,
+} from 'antd/lib/slider';
 
-const propTypes = {
-  onChange: PropTypes.func,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-};
+export { SliderSingleProps, SliderRangeProps };
 
-const defaultProps = {
-  onChange: () => {},
-};
-
-export default function SliderControl(props) {
-  return (
-    <>
-      <ControlHeader {...props} />
-      <Slider {...props} defaultValue={props.default} />
-    </>
-  );
+export default function Slider(props: SliderSingleProps | SliderRangeProps) {
+  return <AntDSlider {...props} css={{ marginLeft: 0, marginRight: 0 }} />;
 }
-
-SliderControl.propTypes = propTypes;
-SliderControl.defaultProps = defaultProps;

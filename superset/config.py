@@ -373,12 +373,6 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ALERTS_ATTACH_REPORTS": True,
 }
 
-# Set the default view to card/grid view if thumbnail support is enabled.
-# Setting LISTVIEWS_DEFAULT_CARD_VIEW to False will force the default view to
-# always be the table layout
-if DEFAULT_FEATURE_FLAGS["THUMBNAILS"]:
-    DEFAULT_FEATURE_FLAGS["LISTVIEWS_DEFAULT_CARD_VIEW"] = True
-
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(
     {
@@ -1144,6 +1138,7 @@ GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT = 1000
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE = 1000000
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME = "async-token"
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
+GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN = None
 GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"
 GLOBAL_ASYNC_QUERIES_TRANSPORT = "polling"
 GLOBAL_ASYNC_QUERIES_POLLING_DELAY = 500

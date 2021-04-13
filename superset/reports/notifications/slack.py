@@ -44,25 +44,31 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
         return json.loads(self._recipient.recipient_config_json)["target"]
 
     @staticmethod
-    def _error_template(name: str, text: str) -> str:
+    def _error_template(name: str, description: str, text: str) -> str:
         return __(
             """
             *%(name)s*\n
+            %(description)s\n
             Error: %(text)s
             """,
             name=name,
+            description=description,
             text=text,
         )
 
     def _get_body(self) -> str:
         if self._content.text:
-            return self._error_template(self._content.name, self._content.text)
+            return self._error_template(
+                self._content.name, self._content.description or "", self._content.text
+            )
         return __(
             """
             *%(name)s*\n
+            %(description)s\n
             <%(url)s|Explore in Superset>
             """,
             name=self._content.name,
+            description=self._content.description or "",
             url=self._content.url,
         )
 
