@@ -286,4 +286,3 @@ class ImportV1DashboardSchema(Schema):
     metadata = fields.Dict()
     version = fields.String(required=True)
     published = fields.Boolean(allow_none=True)
-
