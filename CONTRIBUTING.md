@@ -431,7 +431,7 @@ python3 -m venv venv # setup a python3 virtualenv
 source venv/bin/activate
 
 # Install external dependencies
-pip install -r requirements/local.txt
+pip install -r requirements/testing.txt
 
 # Install Superset in editable (development) mode
 pip install -e .
