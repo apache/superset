@@ -34,13 +34,12 @@ import Button from 'src/components/Button';
 import EditableTitle from 'src/components/EditableTitle';
 import FaveStar from 'src/components/FaveStar';
 import { safeStringify } from 'src/utils/safeStringify';
-
+import { chartPropShape } from 'src/dashboard/util/propShapes';
 import HeaderActionsDropdown from './HeaderActionsDropdown';
 import PublishedStatus from './PublishedStatus';
-import UndoRedoKeylisteners from './UndoRedoKeylisteners';
+import UndoRedoKeyListeners from './UndoRedoKeyListeners';
 import PropertiesModal from './PropertiesModal';
 
-import { chartPropShape } from '../util/propShapes';
 import {
   UNDO_LIMIT,
   SAVE_TYPE_OVERWRITE,
@@ -473,7 +472,7 @@ class Header extends React.PureComponent {
             </div>
           )}
           {editMode && (
-            <UndoRedoKeylisteners
+            <UndoRedoKeyListeners
               onUndo={this.handleCtrlZ}
               onRedo={this.handleCtrlY}
             />
