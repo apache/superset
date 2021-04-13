@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from datetime import datetime, timedelta
 from typing import Any, List, Optional
@@ -29,6 +30,8 @@ from superset.commands.exceptions import CommandException
 from superset.extensions import feature_flag_manager
 from superset.models.reports import (
     ReportExecutionLog,
+    ReportRecipients,
+    ReportRecipientType,
     ReportSchedule,
     ReportScheduleType,
     ReportState,
@@ -181,6 +184,7 @@ class BaseReportState:
         try:
             image_data = screenshot.get_screenshot(user=user)
         except SoftTimeLimitExceeded:
+            logger.warning("A timeout occurred while taking a screenshot.")
             raise ReportScheduleScreenshotTimeout()
         except Exception as ex:
             raise ReportScheduleScreenshotFailedError(
@@ -219,16 +223,24 @@ class BaseReportState:
                 f"{self._report_schedule.name}: "
                 f"{self._report_schedule.dashboard.dashboard_title}"
             )
-        return NotificationContent(name=name, url=url, screenshot=screenshot_data)
+        return NotificationContent(
+            name=name,
+            url=url,
+            screenshot=screenshot_data,
+            description=self._report_schedule.description,
+        )
 
-    def _send(self, notification_content: NotificationContent) -> None:
+    @staticmethod
+    def _send(
+        notification_content: NotificationContent, recipients: List[ReportRecipients]
+    ) -> None:
         """
         Sends a notification to all recipients
 
         :raises: ReportScheduleNotificationError
         """
         notification_errors = []
-        for recipient in self._report_schedule.recipients:
+        for recipient in recipients:
             notification = create_notification(recipient, notification_content)
             try:
                 notification.send()
@@ -245,7 +257,7 @@ class BaseReportState:
         :raises: ReportScheduleNotificationError
         """
         notification_content = self._get_notification_content()
-        self._send(notification_content)
+        self._send(notification_content, self._report_schedule.recipients)
 
     def send_error(self, name: str, message: str) -> None:
         """
@@ -254,7 +266,17 @@ class BaseReportState:
         :raises: ReportScheduleNotificationError
         """
         notification_content = NotificationContent(name=name, text=message)
-        self._send(notification_content)
+
+        # filter recipients to recipients who are also owners
+        owner_recipients = [
+            ReportRecipients(
+                type=ReportRecipientType.EMAIL,
+                recipient_config_json=json.dumps({"target": owner.email}),
+            )
+            for owner in self._report_schedule.owners
+        ]
+
+        self._send(notification_content, owner_recipients)
 
     def is_in_grace_period(self) -> bool:
         """
@@ -292,12 +314,17 @@ class BaseReportState:
         """
         Checks if an alert is on a working timeout
         """
+        last_working = ReportScheduleDAO.find_last_entered_working_log(
+            self._report_schedule, session=self._session
+        )
+        if not last_working:
+            return False
         return (
             self._report_schedule.working_timeout is not None
             and self._report_schedule.last_eval_dttm is not None
             and datetime.utcnow()
             - timedelta(seconds=self._report_schedule.working_timeout)
-            > self._report_schedule.last_eval_dttm
+            > last_working.end_dttm
         )
 
     def next(self) -> None:

@@ -19,12 +19,16 @@
 
 import { makeApi } from '@superset-ui/core';
 import { Dispatch } from 'redux';
-import { FilterConfiguration } from 'src/dashboard/components/nativeFilters/types';
+import {
+  Filter,
+  FilterConfiguration,
+} from 'src/dashboard/components/nativeFilters/types';
 import { DataMaskType, DataMaskStateWithId } from 'src/dataMask/types';
 import {
   SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
   SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL,
 } from 'src/dataMask/actions';
+import { HYDRATE_DASHBOARD } from './hydrate';
 import { dashboardInfoChanged } from './dashboardInfo';
 import { DashboardInfo, FilterSet } from '../reducers/types';
 
@@ -105,6 +109,18 @@ export const setFilterConfiguration = (
   }
 };
 
+type BootstrapData = {
+  nativeFilters: {
+    filters: Filter;
+    filtersState: object;
+  };
+};
+
+export interface SetBooststapData {
+  type: typeof HYDRATE_DASHBOARD;
+  data: BootstrapData;
+}
+
 export const setFilterSetsConfiguration = (
   filterSetsConfig: FilterSet[],
 ) => async (dispatch: Dispatch, getState: () => any) => {
@@ -173,4 +189,5 @@ export type AnyFilterAction =
   | SetFilterSetsConfigBegin
   | SetFilterSetsConfigComplete
   | SetFilterSetsConfigFail
-  | SaveFilterSets;
+  | SaveFilterSets
+  | SetBooststapData;
