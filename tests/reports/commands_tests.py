@@ -26,7 +26,7 @@ from flask_sqlalchemy import BaseQuery
 from freezegun import freeze_time
 from sqlalchemy.sql import func
 
-from superset import db
+from superset import db, security_manager
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.reports import (
@@ -47,11 +47,13 @@ from superset.reports.commands.exceptions import (
     ReportScheduleNotFoundError,
     ReportScheduleNotificationError,
     ReportSchedulePreviousWorkingError,
+    ReportSchedulePruneLogError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
     ReportScheduleWorkingTimeoutError,
 )
 from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
+from superset.reports.commands.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.utils.core import get_example_database
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.fixtures.world_bank_dashboard import (
@@ -100,9 +102,9 @@ def assert_log(state: str, error_message: Optional[str] = None):
     db.session.commit()
     logs = db.session.query(ReportExecutionLog).all()
     if state == ReportState.WORKING:
-        assert len(logs) == 1
-        assert logs[0].error_message == error_message
-        assert logs[0].state == state
+        assert len(logs) == 2
+        assert logs[1].error_message == error_message
+        assert logs[1].state == state
         return
     # On error we send an email
     if state == ReportState.ERROR:
@@ -130,6 +132,12 @@ def create_report_notification(
     report_type = report_type or ReportScheduleType.REPORT
     target = email_target or slack_channel
     config_json = {"target": target}
+    owner = (
+        db.session.query(security_manager.user_model)
+        .filter_by(email="admin@fab.org")
+        .one_or_none()
+    )
+
     if slack_channel:
         recipient = ReportRecipients(
             type=ReportRecipientType.SLACK,
@@ -151,6 +159,7 @@ def create_report_notification(
         dashboard=dashboard,
         database=database,
         recipients=[recipient],
+        owners=[owner],
         validator_type=validator_type,
         validator_config_json=validator_config_json,
         grace_period=grace_period,
@@ -186,7 +195,7 @@ def create_test_table_context(database: Database):
     database.get_sqla_engine().execute("DROP TABLE test_table")
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def create_report_email_chart():
     with app.app_context():
         chart = db.session.query(Slice).first()
@@ -198,7 +207,7 @@ def create_report_email_chart():
         cleanup_report_schedule(report_schedule)
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def create_report_email_dashboard():
     with app.app_context():
         dashboard = db.session.query(Dashboard).first()
@@ -210,7 +219,7 @@ def create_report_email_dashboard():
         cleanup_report_schedule(report_schedule)
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def create_report_slack_chart():
     with app.app_context():
         chart = db.session.query(Slice).first()
@@ -222,7 +231,7 @@ def create_report_slack_chart():
         cleanup_report_schedule(report_schedule)
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def create_report_slack_chart_working():
     with app.app_context():
         chart = db.session.query(Slice).first()
@@ -232,12 +241,23 @@ def create_report_slack_chart_working():
         report_schedule.last_state = ReportState.WORKING
         report_schedule.last_eval_dttm = datetime(2020, 1, 1, 0, 0)
         db.session.commit()
+        log = ReportExecutionLog(
+            scheduled_dttm=report_schedule.last_eval_dttm,
+            start_dttm=report_schedule.last_eval_dttm,
+            end_dttm=report_schedule.last_eval_dttm,
+            state=ReportState.WORKING,
+            report_schedule=report_schedule,
+            uuid=uuid4(),
+        )
+        db.session.add(log)
+        db.session.commit()
+
         yield report_schedule
 
         cleanup_report_schedule(report_schedule)
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def create_alert_slack_chart_success():
     with app.app_context():
         chart = db.session.query(Slice).first()
@@ -263,7 +283,7 @@ def create_alert_slack_chart_success():
         cleanup_report_schedule(report_schedule)
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def create_alert_slack_chart_grace():
     with app.app_context():
         chart = db.session.query(Slice).first()
@@ -638,12 +658,11 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
     """
     ExecuteReport Command: Test report schedule still working but should timed out
     """
-    # setup screenshot mock
     current_time = create_report_slack_chart_working.last_eval_dttm + timedelta(
         seconds=create_report_slack_chart_working.working_timeout + 1
     )
-
     with freeze_time(current_time):
+
         with pytest.raises(ReportScheduleWorkingTimeoutError):
             AsyncExecuteReportScheduleCommand(
                 test_id, create_report_slack_chart_working.id, datetime.utcnow()
@@ -652,9 +671,10 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
     # Only needed for MySQL, understand why
     db.session.commit()
     logs = db.session.query(ReportExecutionLog).all()
-    assert len(logs) == 1
-    assert logs[0].error_message == ReportScheduleWorkingTimeoutError.message
-    assert logs[0].state == ReportState.ERROR
+    # Two logs, first is created by fixture
+    assert len(logs) == 2
+    assert logs[1].error_message == ReportScheduleWorkingTimeoutError.message
+    assert logs[1].state == ReportState.ERROR
 
     assert create_report_slack_chart_working.last_state == ReportState.ERROR
 
@@ -879,7 +899,7 @@ def test_soft_timeout_alert(email_mock, create_alert_email_chart):
 
     notification_targets = get_target_from_report_schedule(create_alert_email_chart)
     # Assert the email smtp address, asserts a notification was sent with the error
-    assert email_mock.call_args[0][0] == notification_targets[0]
+    assert email_mock.call_args[0][0] == "admin@fab.org"
 
     assert_log(
         ReportState.ERROR, error_message="A timeout occurred while executing the query."
@@ -908,9 +928,8 @@ def test_soft_timeout_screenshot(screenshot_mock, email_mock, create_alert_email
             test_id, create_alert_email_chart.id, datetime.utcnow()
         ).run()
 
-    notification_targets = get_target_from_report_schedule(create_alert_email_chart)
     # Assert the email smtp address, asserts a notification was sent with the error
-    assert email_mock.call_args[0][0] == notification_targets[0]
+    assert email_mock.call_args[0][0] == "admin@fab.org"
 
     assert_log(
         ReportState.ERROR, error_message="A timeout occurred while taking a screenshot."
@@ -937,7 +956,7 @@ def test_fail_screenshot(screenshot_mock, email_mock, create_report_email_chart)
 
     notification_targets = get_target_from_report_schedule(create_report_email_chart)
     # Assert the email smtp address, asserts a notification was sent with the error
-    assert email_mock.call_args[0][0] == notification_targets[0]
+    assert email_mock.call_args[0][0] == "admin@fab.org"
 
     assert_log(
         ReportState.ERROR, error_message="Failed taking a screenshot Unexpected error"
@@ -986,7 +1005,7 @@ def test_invalid_sql_alert(email_mock, create_invalid_sql_alert_email_chart):
             create_invalid_sql_alert_email_chart
         )
         # Assert the email smtp address, asserts a notification was sent with the error
-        assert email_mock.call_args[0][0] == notification_targets[0]
+        assert email_mock.call_args[0][0] == "admin@fab.org"
 
 
 @pytest.mark.usefixtures("create_invalid_sql_alert_email_chart")
@@ -1007,7 +1026,7 @@ def test_grace_period_error(email_mock, create_invalid_sql_alert_email_chart):
             create_invalid_sql_alert_email_chart
         )
         # Assert the email smtp address, asserts a notification was sent with the error
-        assert email_mock.call_args[0][0] == notification_targets[0]
+        assert email_mock.call_args[0][0] == "admin@fab.org"
         assert (
             get_notification_error_sent_count(create_invalid_sql_alert_email_chart) == 1
         )
@@ -1098,3 +1117,17 @@ def test_grace_period_error_flap(
         assert (
             get_notification_error_sent_count(create_invalid_sql_alert_email_chart) == 2
         )
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_email_dashboard"
+)
+@patch("superset.reports.dao.ReportScheduleDAO.bulk_delete_logs")
+def test_prune_log_soft_time_out(bulk_delete_logs, create_report_email_dashboard):
+    from celery.exceptions import SoftTimeLimitExceeded
+    from datetime import datetime, timedelta
+
+    bulk_delete_logs.side_effect = SoftTimeLimitExceeded()
+    with pytest.raises(SoftTimeLimitExceeded) as excinfo:
+        AsyncPruneReportScheduleLogCommand().run()
+    assert str(excinfo.value) == "SoftTimeLimitExceeded()"

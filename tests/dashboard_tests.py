@@ -128,23 +128,8 @@ class TestDashboard(SupersetTestCase):
         dash_count_before = db.session.query(func.count(Dashboard.id)).first()[0]
         url = "/dashboard/new/"
         resp = self.get_resp(url)
-        self.assertIn("[ untitled dashboard ]", resp)
         dash_count_after = db.session.query(func.count(Dashboard.id)).first()[0]
         self.assertEqual(dash_count_before + 1, dash_count_after)
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_dashboard_modes(self):
-        self.login(username="admin")
-        dash = db.session.query(Dashboard).filter_by(slug="births").first()
-        url = dash.url
-        if dash.url.find("?") == -1:
-            url += "?"
-        else:
-            url += "&"
-        resp = self.get_resp(url + "edit=true&standalone=true")
-        self.assertIn("editMode&#34;: true", resp)
-        self.assertIn("standalone_mode&#34;: true", resp)
-        self.assertIn('<body class="standalone">', resp)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_save_dash(self, username="admin"):
@@ -189,9 +174,6 @@ class TestDashboard(SupersetTestCase):
         new_url = updatedDash.url
         self.assertIn("world_health", new_url)
         self.assertNotIn("preselect_filters", new_url)
-
-        resp = self.get_resp(new_url)
-        self.assertIn("North America", resp)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_save_dash_with_invalid_filters(self, username="admin"):
@@ -407,8 +389,6 @@ class TestDashboard(SupersetTestCase):
 
         resp = self.get_resp("/api/v1/dashboard/")
         self.assertIn("/superset/dashboard/births/", resp)
-
-        self.assertIn("Births", self.get_resp("/superset/dashboard/births/"))
 
         # Confirm that public doesn't have access to other datasets.
         resp = self.get_resp("/api/v1/chart/")

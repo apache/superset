@@ -84,7 +84,7 @@ describe('ChangeDatasourceModal', () => {
   });
 
   it('fetches datasources', async () => {
-    expect(fetchMock.calls(/api\/v1\/dataset\/\\?q*/)).toHaveLength(3);
+    expect(fetchMock.calls(INFO_ENDPOINT)).toHaveLength(3);
   });
 
   it('renders confirmation message', async () => {

@@ -97,6 +97,8 @@ DATA_CACHE_CONFIG = {
 
 GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me-test-secret-change-me"
 
+ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
+
 
 class CeleryConfig(object):
     BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"

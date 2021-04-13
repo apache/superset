@@ -43,6 +43,7 @@ const propTypes = {
   isExpanded: PropTypes.bool,
   updatedDttm: PropTypes.number,
   supersetCanExplore: PropTypes.bool,
+  supersetCanShare: PropTypes.bool,
   supersetCanCSV: PropTypes.bool,
   sliceCanEdit: PropTypes.bool,
   toggleExpandSlice: PropTypes.func,
@@ -61,6 +62,7 @@ const defaultProps = {
   isCached: [],
   isExpanded: false,
   supersetCanExplore: false,
+  supersetCanShare: false,
   supersetCanCSV: false,
   sliceCanEdit: false,
 };
@@ -72,7 +74,6 @@ const MENU_KEYS = {
   EXPLORE_CHART: 'explore_chart',
   EXPORT_CSV: 'export_csv',
   RESIZE_LABEL: 'resize_label',
-  SHARE_CHART: 'share_chart',
   DOWNLOAD_AS_IMAGE: 'download_as_image',
 };
 
@@ -188,6 +189,7 @@ class SliceHeaderControls extends React.PureComponent {
       addSuccessToast,
       addDangerToast,
       isFullSize,
+      supersetCanShare,
     } = this.props;
     const crossFilterItems = getChartMetadataRegistry().items;
     const isCrossFilter = Object.entries(crossFilterItems)
@@ -253,18 +255,20 @@ class SliceHeaderControls extends React.PureComponent {
           </Menu.Item>
         )}
 
-        <ShareMenuItems
-          url={getDashboardUrl(
-            window.location.pathname,
-            getActiveFilters(),
-            componentId,
-          )}
-          copyMenuItemTitle={t('Copy chart URL')}
-          emailMenuItemTitle={t('Share chart by email')}
-          emailSubject={t('Superset chart')}
-          addSuccessToast={addSuccessToast}
-          addDangerToast={addDangerToast}
-        />
+        {supersetCanShare && (
+          <ShareMenuItems
+            url={getDashboardUrl(
+              window.location.pathname,
+              getActiveFilters(),
+              componentId,
+            )}
+            copyMenuItemTitle={t('Copy chart URL')}
+            emailMenuItemTitle={t('Share chart by email')}
+            emailSubject={t('Superset chart')}
+            addSuccessToast={addSuccessToast}
+            addDangerToast={addDangerToast}
+          />
+        )}
 
         <Menu.Item key={MENU_KEYS.RESIZE_LABEL}>{resizeLabel}</Menu.Item>
 

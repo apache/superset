@@ -169,9 +169,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
             super().update(model, properties, commit=commit)
             properties["columns"] = original_properties
 
-        updated_model = super().update(model, properties, commit=False)
-        model.health_check(force=True, commit=False)
-        return updated_model
+        return super().update(model, properties, commit=False)
 
     @classmethod
     def update_columns(

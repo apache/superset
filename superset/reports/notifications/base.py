@@ -27,6 +27,7 @@ class NotificationContent:
     url: Optional[str] = None  # url to chart/dashboard for this screenshot
     screenshot: Optional[bytes] = None  # bytes for the screenshot
     text: Optional[str] = None
+    description: Optional[str] = ""
 
 
 class BaseNotification:  # pylint: disable=too-few-public-methods

@@ -22,6 +22,7 @@ import pytest
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.exceptions import QueryObjectValidationError
 from superset.models.core import Database
@@ -223,6 +224,28 @@ class TestDatabaseModel(SupersetTestCase):
             with pytest.raises(QueryObjectValidationError):
                 table.get_sqla_query(**query_obj)
 
+    def test_query_format_strip_trailing_semicolon(self):
+        query_obj = {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "groupby": ["user"],
+            "metrics": [],
+            "is_timeseries": False,
+            "filter": [],
+            "extras": {},
+        }
+
+        # Table with Jinja callable.
+        table = SqlaTable(
+            table_name="test_table",
+            sql="SELECT * from test_table;",
+            database=get_example_database(),
+        )
+        sqlaq = table.get_sqla_query(**query_obj)
+        sql = table.database.compile_sqla_query(sqlaq.sqla_query)
+        assert sql[-1] != ";"
+
     def test_multiple_sql_statements_raises_exception(self):
         base_query_obj = {
             "granularity": None,
@@ -305,3 +328,36 @@ class TestDatabaseModel(SupersetTestCase):
         assert cols["mycase"].expression == ""
         assert VIRTUAL_TABLE_STRING_TYPES[backend].match(cols["mycase"].type)
         assert cols["expr"].expression == "case when 1 then 1 else 0 end"
+
+    @patch("superset.models.core.Database.db_engine_spec", BigQueryEngineSpec)
+    def test_labels_expected_on_mutated_query(self):
+        query_obj = {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "groupby": ["user"],
+            "metrics": [
+                {
+                    "expressionType": "SIMPLE",
+                    "column": {"column_name": "user"},
+                    "aggregate": "COUNT_DISTINCT",
+                    "label": "COUNT_DISTINCT(user)",
+                }
+            ],
+            "is_timeseries": False,
+            "filter": [],
+            "extras": {},
+        }
+
+        database = Database(database_name="testdb", sqlalchemy_uri="sqlite://")
+        table = SqlaTable(table_name="bq_table", database=database)
+        db.session.add(database)
+        db.session.add(table)
+        db.session.commit()
+        sqlaq = table.get_sqla_query(**query_obj)
+        assert sqlaq.labels_expected == ["user", "COUNT_DISTINCT(user)"]
+        sql = table.database.compile_sqla_query(sqlaq.sqla_query)
+        assert "COUNT_DISTINCT_user__00db1" in sql
+        db.session.delete(table)
+        db.session.delete(database)
+        db.session.commit()

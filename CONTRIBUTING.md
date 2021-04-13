@@ -251,9 +251,16 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 
 #### Test Environments
 
-- Members of the Apache GitHub org can launch an ephemeral test environment directly on a pull request by creating a comment containing (only) the command `/testenv up`
+- Members of the Apache GitHub org can launch an ephemeral test environment directly on a pull request by creating a comment containing (only) the command `/testenv up`.
+  - Note that org membership must be public in order for this validation to function properly.
+- Feature flags may be set for a test environment by specifying the flag name (prefixed with `FEATURE_`) and value after the command.
+  - Format: `/testenv up FEATURE_<feature flag name>=true|false`
+  - Example: `/testenv up FEATURE_DASHBOARD_NATIVE_FILTERS=true`
+  - Multiple feature flags may be set in single command, separated by whitespace
 - A comment will be created by the workflow script with the address and login information for the ephemeral environment.
 - Test environments may be created once the Docker build CI workflow for the PR has completed successfully.
+- Test environments do not currently update automatically when new commits are added to a pull request.
+- Test environments do not currently support async workers, though this is planned.
 - Running test environments will be shutdown upon closing the pull request.
 
 #### Merging
@@ -435,7 +442,7 @@ superset db upgrade
 # Create default roles and permissions
 superset init
 
-# Load some data to play with
+# Load some data to play with (you must create an Admin user with the username `admin` for this command to work)
 superset load-examples
 
 # Start the Flask dev web server from inside your virtualenv.
@@ -1276,6 +1283,7 @@ The following configuration settings are available for async queries (see config
 - `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE` - the maximum number of events for all users (FIFO eviction)
 - `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME` - the async query feature uses a [JWT](https://tools.ietf.org/html/rfc7519) cookie for authentication, this setting is the cookie's name
 - `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE` - JWT cookie secure option
+- `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN` - JWT cookie domain option ([see docs for set_cookie](https://tedboy.github.io/flask/interface_api.response_object.html#flask.Response.set_cookie))
 - `GLOBAL_ASYNC_QUERIES_JWT_SECRET` - JWT's use a secret key to sign and validate the contents. This value should be at least 32 bytes and have sufficient randomness for proper security
 - `GLOBAL_ASYNC_QUERIES_TRANSPORT` - currently the only available option is (HTTP) `polling`, but support for a WebSocket will be added in future versions
 - `GLOBAL_ASYNC_QUERIES_POLLING_DELAY` - the time (in ms) between polling requests

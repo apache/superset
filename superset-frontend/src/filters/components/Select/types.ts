@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  AppSection,
   ChartProps,
   Behavior,
   DataRecord,
@@ -28,12 +29,16 @@ import {
 import { RefObject } from 'react';
 import { PluginFilterStylesProps } from '../types';
 
+export const FIRST_VALUE = '__FIRST_VALUE__';
+export type SelectValue = (number | string)[] | null;
+
 interface PluginFilterSelectCustomizeProps {
-  defaultValue?: (string | number)[] | null;
-  currentValue?: (string | number)[] | null;
+  defaultValue?: SelectValue | typeof FIRST_VALUE;
+  currentValue?: SelectValue | typeof FIRST_VALUE;
   enableEmptyFilter: boolean;
   inverseSelection: boolean;
   multiSelect: boolean;
+  defaultToFirstItem: boolean;
   inputRef?: RefObject<HTMLInputElement>;
   sortAscending: boolean;
 }
@@ -51,6 +56,7 @@ export type PluginFilterSelectProps = PluginFilterStylesProps & {
   data: DataRecord[];
   setDataMask: SetDataMaskHook;
   behaviors: Behavior[];
+  appSection: AppSection;
   formData: PluginFilterSelectQueryFormData;
 };
 
@@ -59,6 +65,7 @@ export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {
   currentValue: null,
   enableEmptyFilter: false,
   inverseSelection: false,
+  defaultToFirstItem: false,
   multiSelect: true,
   sortAscending: true,
 };

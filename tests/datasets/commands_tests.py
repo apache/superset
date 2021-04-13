@@ -312,7 +312,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         assert dataset.schema == ""
         assert dataset.sql == ""
         assert dataset.params is None
-        assert dataset.template_params is None
+        assert dataset.template_params == "{}"
         assert dataset.filter_select_enabled
         assert dataset.fetch_values_predicate is None
         assert dataset.extra is None

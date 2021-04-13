@@ -14,19 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from datetime import datetime
 from io import BytesIO
 from typing import Any
 from zipfile import ZipFile
 
-from flask import g, Response, send_file
+from flask import g, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 
+from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.filters import DatabaseFilter
+from superset.extensions import event_logger
 from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.commands.bulk_delete import (
     BulkDeleteSavedQueryCommand,
@@ -36,6 +40,9 @@ from superset.queries.saved_queries.commands.exceptions import (
     SavedQueryNotFoundError,
 )
 from superset.queries.saved_queries.commands.export import ExportSavedQueriesCommand
+from superset.queries.saved_queries.commands.importers.dispatcher import (
+    ImportSavedQueriesCommand,
+)
 from superset.queries.saved_queries.filters import (
     SavedQueryAllTextFilter,
     SavedQueryFavoriteFilter,
@@ -58,6 +65,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         RouteMethod.EXPORT,
         RouteMethod.RELATED,
         RouteMethod.DISTINCT,
+        RouteMethod.IMPORT,
         "bulk_delete",  # not using RouteMethod since locally defined
     }
     class_permission_name = "SavedQuery"
@@ -252,3 +260,77 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             attachment_filename=filename,
         )
+
+    @expose("/import/", methods=["POST"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
+        log_to_statsd=False,
+    )
+    def import_(self) -> Response:
+        """Import Saved Queries with associated databases
+        ---
+        post:
+          requestBody:
+            required: true
+            content:
+              multipart/form-data:
+                schema:
+                  type: object
+                  properties:
+                    formData:
+                      description: upload file (ZIP)
+                      type: string
+                      format: binary
+                    passwords:
+                      description: JSON map of passwords for each file
+                      type: string
+                    overwrite:
+                      description: overwrite existing saved queries?
+                      type: bool
+          responses:
+            200:
+              description: Saved Query import result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        upload = request.files.get("formData")
+        if not upload:
+            return self.response_400()
+        with ZipFile(upload) as bundle:
+            contents = get_contents_from_bundle(bundle)
+
+        passwords = (
+            json.loads(request.form["passwords"])
+            if "passwords" in request.form
+            else None
+        )
+        overwrite = request.form.get("overwrite") == "true"
+
+        command = ImportSavedQueriesCommand(
+            contents, passwords=passwords, overwrite=overwrite
+        )
+        try:
+            command.run()
+            return self.response(200, message="OK")
+        except CommandInvalidError as exc:
+            logger.warning("Import Saved Query failed")
+            return self.response_422(message=exc.normalized_messages())
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.exception("Import Saved Query failed")
+            return self.response_500(message=str(exc))
