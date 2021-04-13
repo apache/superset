@@ -36,7 +36,7 @@ import FaveStar from 'src/components/FaveStar';
 import { safeStringify } from 'src/utils/safeStringify';
 import HeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
-import UndoRedoKeylisteners from 'src/dashboard/components/UndoRedoKeylisteners';
+import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import {
