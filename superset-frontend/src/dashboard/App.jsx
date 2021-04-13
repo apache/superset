@@ -25,22 +25,28 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
-import DashboardContainer from './containers/Dashboard';
+import DashboardPage from './containers/DashboardPage';
 import { theme } from '../preamble';
 
 setupApp();
 setupPlugins();
 
-const App = ({ store }) => (
-  <Provider store={store}>
-    <DndProvider backend={HTML5Backend}>
-      <ThemeProvider theme={theme}>
-        <DynamicPluginProvider>
-          <DashboardContainer />
-        </DynamicPluginProvider>
-      </ThemeProvider>
-    </DndProvider>
-  </Provider>
-);
+const App = ({ store }) => {
+  const dashboardIdOrSlug = window.location.pathname.split('/')[3];
+  return (
+    <Provider store={store}>
+      <DndProvider backend={HTML5Backend}>
+        <ThemeProvider theme={theme}>
+          <DynamicPluginProvider>
+            <DashboardPage
+              store={store}
+              dashboardIdOrSlug={dashboardIdOrSlug}
+            />
+          </DynamicPluginProvider>
+        </ThemeProvider>
+      </DndProvider>
+    </Provider>
+  );
+};
 
 export default hot(App);

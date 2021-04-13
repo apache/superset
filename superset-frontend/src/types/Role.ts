@@ -16,12 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../../stylesheets/less/variables.less';
+type Role = {
+  id: number;
+  name: string;
+};
 
-.BootstrapSliderWrapper .slider-selection {
-  background: @gray-bg;
-}
-
-.BootstrapSliderWrapper .slider-handle {
-  background: @gray-light;
-}
+export default Role;

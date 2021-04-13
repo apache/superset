@@ -17,29 +17,13 @@
  * under the License.
  */
 import React from 'react';
-import { styledMount as mount } from 'spec/helpers/theming';
-import { Provider } from 'react-redux';
-import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink';
-import { mockStore } from 'spec/fixtures/mockStore';
+import AntDSlider, {
+  SliderSingleProps,
+  SliderRangeProps,
+} from 'antd/lib/slider';
 
-describe('FilterConfigurationButton', () => {
-  const mockedProps = {
-    createNewOnOpen: false,
-  };
-  it('is valid', () => {
-    expect(
-      React.isValidElement(<FilterConfigurationLink {...mockedProps} />),
-    ).toBe(true);
-  });
-  it('takes in children', () => {
-    const wrapper = mount(
-      <Provider store={mockStore}>
-        <FilterConfigurationLink {...mockedProps}>
-          {' '}
-          <span>Test</span>
-        </FilterConfigurationLink>
-      </Provider>,
-    );
-    expect(wrapper.find('span')).toHaveLength(1);
-  });
-});
+export { SliderSingleProps, SliderRangeProps };
+
+export default function Slider(props: SliderSingleProps | SliderRangeProps) {
+  return <AntDSlider {...props} css={{ marginLeft: 0, marginRight: 0 }} />;
+}
