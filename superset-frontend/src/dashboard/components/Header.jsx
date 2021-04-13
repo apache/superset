@@ -375,6 +375,7 @@ class Header extends React.PureComponent {
     } = this.props;
 
     const userCanEdit = dashboardInfo.dash_edit_perm;
+    const userCanShare = dashboardInfo.dash_share_perm;
     const userCanSaveAs = dashboardInfo.dash_save_perm;
     const refreshLimit =
       dashboardInfo.common.conf.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
@@ -542,6 +543,7 @@ class Header extends React.PureComponent {
             editMode={editMode}
             hasUnsavedChanges={hasUnsavedChanges}
             userCanEdit={userCanEdit}
+            userCanShare={userCanShare}
             userCanSave={userCanSaveAs}
             isLoading={isLoading}
             showPropertiesModal={this.showPropertiesModal}
