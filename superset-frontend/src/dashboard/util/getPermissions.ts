@@ -16,15 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import ReactBootstrapSlider from 'react-bootstrap-slider';
-import 'bootstrap-slider/dist/css/bootstrap-slider.min.css';
-import './BootstrapSliderWrapper.less';
+import memoizeOne from 'memoize-one';
 
-export default function BootstrapSliderWrapper(props) {
-  return (
-    <span className="BootstrapSliderWrapper">
-      <ReactBootstrapSlider {...props} />
-    </span>
-  );
+export default function getPermissions(
+  perm: string,
+  view: string,
+  roles: object,
+) {
+  return memoizeOne(() => {
+    const roleList = Object.entries(roles);
+    if (roleList.length === 0) return false;
+    let bool;
+
+    roleList.forEach(([role, permissions]) => {
+      bool = Boolean(
+        permissions.find(
+          (permission: Array<string>) =>
+            permission[0] === perm && permission[1] === view,
+        ),
+      );
+    });
+    console.log('bool', bool);
+    return bool;
+  });
 }

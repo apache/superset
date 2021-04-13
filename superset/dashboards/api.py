@@ -307,7 +307,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         except DashboardNotFoundError:
             return self.response_404()
 
-    @expose("/<pk>/charts", methods=["GET"])
+    @expose("/<id_or_slug>/charts", methods=["GET"])
     @protect()
     @safe
     @statsd_metrics
@@ -315,7 +315,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_charts",
         log_to_statsd=False,
     )
-    def get_charts(self, pk: int) -> Response:
+    def get_charts(self, id_or_slug: str) -> Response:
         """Gets the chart definitions for a given dashboard
         ---
         get:
@@ -324,8 +324,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
           parameters:
           - in: path
             schema:
-              type: integer
-            name: pk
+              type: string
+            name: id_or_slug
           responses:
             200:
               description: Dashboard chart definitions
@@ -348,8 +348,16 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
         """
         try:
-            charts = DashboardDAO.get_charts_for_dashboard(pk)
+            charts = DashboardDAO.get_charts_for_dashboard(id_or_slug)
             result = [self.chart_entity_response_schema.dump(chart) for chart in charts]
+
+            if is_feature_enabled("REMOVE_SLICE_LEVEL_LABEL_COLORS"):
+                # dashboard metadata has dashboard-level label_colors,
+                # so remove slice-level label_colors from its form_data
+                for chart in result:
+                    form_data = chart.get("form_data")
+                    form_data.pop("label_colors", None)
+
             return self.response(200, result=result)
         except DashboardNotFoundError:
             return self.response_404()

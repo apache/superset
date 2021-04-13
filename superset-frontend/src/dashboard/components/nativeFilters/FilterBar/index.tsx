@@ -30,9 +30,9 @@ import { DataMaskState, DataMaskUnit } from 'src/dataMask/types';
 import { useImmer } from 'use-immer';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { testWithId } from 'src/utils/common';
-import { Filter } from '../types';
+import { Filter } from 'src/dashboard/components/nativeFilters/types';
 import { mapParentFiltersToChildren, TabIds } from './utils';
-import FilterSets from './FilterSets/FilterSets';
+import FilterSets from './FilterSets';
 import {
   useDataMask,
   useFilters,
@@ -142,7 +142,7 @@ const StyledTabs = styled(Tabs)`
   }
 `;
 
-interface FiltersBarProps {
+export interface FiltersBarProps {
   filtersOpen: boolean;
   toggleFiltersBar: any;
   directPathToChild?: string[];

@@ -62,7 +62,7 @@ const FilterSetUnitWrapper = styled.div<{
     `background: ${selected ? theme.colors.primary.light5 : 'transparent'}`};
 `;
 
-type FilterSetsProps = {
+export type FilterSetsProps = {
   disabled: boolean;
   isFilterSetChanged: boolean;
   dataMaskSelected: DataMaskUnit;
@@ -255,6 +255,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
           onClick={(e: MouseEvent<HTMLElement>) =>
             takeFilterSet(filterSet.id, e.target as HTMLElement)
           }
+          key={filterSet.id}
         >
           <FilterSetUnit
             isApplied={filterSet.id === selectedFiltersSetId && !disabled}

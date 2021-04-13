@@ -20,6 +20,7 @@ from unittest import mock
 from uuid import uuid4
 
 import pytest
+from celery.exceptions import SoftTimeLimitExceeded
 
 from superset import db
 from superset.charts.commands.data import ChartDataCommand
@@ -94,6 +95,31 @@ class TestAsyncQueries(SupersetTestCase):
         errors = [{"message": "Error: foo"}]
         mock_update_job.assert_called_once_with(job_metadata, "error", errors=errors)
 
+    @mock.patch.object(ChartDataCommand, "run")
+    @mock.patch.object(async_query_manager, "update_job")
+    def test_soft_timeout_load_chart_data_into_cache(
+        self, mock_update_job, mock_run_command
+    ):
+        async_query_manager.init_app(app)
+        user = security_manager.find_user("gamma")
+        form_data = {}
+        job_metadata = {
+            "channel_id": str(uuid4()),
+            "job_id": str(uuid4()),
+            "user_id": user.id,
+            "status": "pending",
+            "errors": [],
+        }
+        errors = ["A timeout occurred while loading chart data"]
+
+        with pytest.raises(SoftTimeLimitExceeded):
+            with mock.patch.object(
+                async_queries, "ensure_user_is_set",
+            ) as ensure_user_is_set:
+                ensure_user_is_set.side_effect = SoftTimeLimitExceeded()
+                load_chart_data_into_cache(job_metadata, form_data)
+            ensure_user_is_set.assert_called_once_with(user.id, "error", errors=errors)
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.object(async_query_manager, "update_job")
     def test_load_explore_json_into_cache(self, mock_update_job):
@@ -151,3 +177,28 @@ class TestAsyncQueries(SupersetTestCase):
 
         errors = ["The dataset associated with this chart no longer exists"]
         mock_update_job.assert_called_once_with(job_metadata, "error", errors=errors)
+
+    @mock.patch.object(ChartDataCommand, "run")
+    @mock.patch.object(async_query_manager, "update_job")
+    def test_soft_timeout_load_explore_json_into_cache(
+        self, mock_update_job, mock_run_command
+    ):
+        async_query_manager.init_app(app)
+        user = security_manager.find_user("gamma")
+        form_data = {}
+        job_metadata = {
+            "channel_id": str(uuid4()),
+            "job_id": str(uuid4()),
+            "user_id": user.id,
+            "status": "pending",
+            "errors": [],
+        }
+        errors = ["A timeout occurred while loading explore json, error"]
+
+        with pytest.raises(SoftTimeLimitExceeded):
+            with mock.patch.object(
+                async_queries, "ensure_user_is_set",
+            ) as ensure_user_is_set:
+                ensure_user_is_set.side_effect = SoftTimeLimitExceeded()
+                load_explore_json_into_cache(job_metadata, form_data)
+            ensure_user_is_set.assert_called_once_with(user.id, "error", errors=errors)

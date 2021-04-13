@@ -24,7 +24,7 @@ import { APPLY_FILTERS_HINT } from './utils';
 import { useFilterSetNameDuplicated } from './state';
 import { getFilterBarTestId } from '../FilterBar';
 
-type FooterProps = {
+export type FooterProps = {
   filterSetName: string;
   disabled: boolean;
   editMode: boolean;
