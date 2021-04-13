@@ -1,9 +1,8 @@
-# This is the default target, which will be built when 
+# This is the default target, which will be built when
 # you invoke make
 .PHONY: all
-all: install
+all:
 
-# This rule tells make how to build hello from hello.cpp
 install:
 	# Install external dependencies
 	pip install -r requirements/local.txt
@@ -22,8 +21,13 @@ install:
 
 	# Load some data to play with
 	superset load-examples
-    
+
 venv:
 	# Create a virtual environment and activate it (recommended)
 	python3 -m venv venv # setup a python3 virtualenv
 	source venv/bin/activate
+
+pre-commit:
+	# setup pre commit dependencies
+	pip3 install -r requirements/integration.txt
+	pre-commit install

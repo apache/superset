@@ -442,6 +442,11 @@ superset load-examples
 # Note that your page may not have css at this point.
 # See instructions below how to build the front-end assets.
 FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
+
+Or you can install via our Makefile
+
+```bash
+make install
 ```
 
 **Note: the FLASK_APP env var should not need to be set, as it's currently controlled
