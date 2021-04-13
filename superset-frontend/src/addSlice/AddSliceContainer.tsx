@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import Collapse from 'src/common/components/Collapse';
 import Button from 'src/components/Button';
 import Select from 'src/components/Select';
 import { styled, t } from '@superset-ui/core';
@@ -42,21 +41,11 @@ export type AddSliceContainerState = {
 
 const styleSelectContainer = { width: 600, marginBottom: '10px' };
 const StyledContainer = styled.div`
+  border-radius: ${({ theme }) => theme.gridUnit}px;
+  background-color: white;
+  padding: ${({ theme }) => theme.gridUnit * 6}px;
   h3 {
-    margin-left: ${({ theme }) => theme.gridUnit * -6 + -1}px;
-  }
-  .ant-collapse-header {
-    background-color: ${({ theme }) => theme.colors.grayscale.light5};
-  }
-  .ant-collapse-content {
-    margin-top: ${({ theme }) => theme.gridUnit * -5}px;
-    border-top: none;
-  }
-  .ant-collapse
-    > .ant-collapse-item
-    > .ant-collapse-header
-    .ant-collapse-arrow {
-    display: none;
+    padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;
   }
 `;
 
@@ -107,64 +96,61 @@ export default class AddSliceContainer extends React.PureComponent<
   render() {
     return (
       <StyledContainer className="container">
-        <Collapse defaultActiveKey={['1']}>
-          <Collapse.Panel header={<h3>{t('Create a new chart')}</h3>} key="1">
-            <div>
-              <p>{t('Choose a dataset')}</p>
-              <div style={styleSelectContainer}>
-                <Select
-                  clearable={false}
-                  ignoreAccents={false}
-                  name="select-datasource"
-                  onChange={this.changeDatasource}
-                  options={this.props.datasources}
-                  placeholder={t('Choose a dataset')}
-                  value={
-                    this.state.datasourceValue
-                      ? {
-                          value: this.state.datasourceValue,
-                        }
-                      : undefined
-                  }
-                  width={600}
-                />
-              </div>
-              <span className="text-muted">
-                {t(
-                  'If the dataset you are looking for is not available in the list, follow the instructions on how to add it in the Superset tutorial.',
-                )}{' '}
-                <a
-                  href="https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#adding-a-new-table"
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  <i className="fa fa-external-link" />
-                </a>
-              </span>
-            </div>
-            <br />
-            <div>
-              <p>{t('Choose a visualization type')}</p>
-              <VizTypeControl
-                name="select-vis-type"
-                onChange={this.changeVisType}
-                value={this.state.visType}
-                labelType="primary"
-              />
-            </div>
-            <br />
-            <hr />
-            <Button
-              buttonStyle="primary"
-              disabled={this.isBtnDisabled()}
-              onClick={this.gotoSlice}
+        <h3>{t('Create a new chart')}</h3>
+        <div>
+          <p>{t('Choose a dataset')}</p>
+          <div style={styleSelectContainer}>
+            <Select
+              clearable={false}
+              ignoreAccents={false}
+              name="select-datasource"
+              onChange={this.changeDatasource}
+              options={this.props.datasources}
+              placeholder={t('Choose a dataset')}
+              value={
+                this.state.datasourceValue
+                  ? {
+                      value: this.state.datasourceValue,
+                    }
+                  : undefined
+              }
+              width={600}
+            />
+          </div>
+          <span className="text-muted">
+            {t(
+              'If the dataset you are looking for is not available in the list, follow the instructions on how to add it in the Superset tutorial.',
+            )}{' '}
+            <a
+              href="https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#adding-a-new-table"
+              rel="noopener noreferrer"
+              target="_blank"
             >
-              {t('Create new chart')}
-            </Button>
-            <br />
-            <br />
-          </Collapse.Panel>
-        </Collapse>
+              <i className="fa fa-external-link" />
+            </a>
+          </span>
+        </div>
+        <br />
+        <div>
+          <p>{t('Choose a visualization type')}</p>
+          <VizTypeControl
+            name="select-vis-type"
+            onChange={this.changeVisType}
+            value={this.state.visType}
+            labelType="primary"
+          />
+        </div>
+        <br />
+        <hr />
+        <Button
+          buttonStyle="primary"
+          disabled={this.isBtnDisabled()}
+          onClick={this.gotoSlice}
+        >
+          {t('Create new chart')}
+        </Button>
+        <br />
+        <br />
       </StyledContainer>
     );
   }
