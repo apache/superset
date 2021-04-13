@@ -96,6 +96,19 @@ class FilterSet(  # pylint: disable=too-many-instance-attributes
         qry = session.query(FilterSet).filter(id_or_slug_filter(id_or_slug))
         return qry.one_or_none()
 
+    @classmethod
+    def get_by_name(cls, name: str) -> FilterSet:
+        session = db.session()
+        qry = session.query(FilterSet).filter(FilterSet.name == name)
+        return qry.one_or_none()
+
+    @classmethod
+    def get_by_dashboard_id(cls, dashboard_id: int) -> FilterSet:
+        session = db.session()
+        qry = session.query(FilterSet).filter(FilterSet.dashboard_id == dashboard_id)
+        return qry.all()
+
+
 
 def id_or_slug_filter(id_or_slug: str) -> BinaryExpression:
     if id_or_slug.isdigit():

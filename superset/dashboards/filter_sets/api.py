@@ -24,7 +24,7 @@ from marshmallow import ValidationError
 from superset import is_feature_enabled
 from superset.commands.exceptions import ObjectNotFoundError
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
-from superset.dashboards.filter_sets.commands.exceptions import FilterSetForbiddenError, FilterSetUpdateFailedError, FilterSetDeleteFailedError, FilterSetCreateFailedError
+from superset.dashboards.filter_sets.commands.exceptions import FilterSetForbiddenError, FilterSetUpdateFailedError, FilterSetDeleteFailedError, FilterSetCreateFailedError, UserIsNotDashboardOwnerError
 from superset.dashboards.filter_sets.commands.create import CreateFilterSetCommand
 from superset.dashboards.filter_sets.commands.update import UpdateFilterSetCommand
 from superset.dashboards.filter_sets.filters import FilterSetFilter
@@ -82,7 +82,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         rison_data['filters'].append({'col': 'dashboard_id', 'opr': 'eq', 'value': str(dashboard_id)})
         return self.get_list_headless(**kwargs)
 
-    @expose("/<dashboard_id>/filtersets", methods=["POST"])
+    @expose("/<int:dashboard_id>/filtersets", methods=["POST"])
     @protect()
     @safe
     @statsd_metrics
@@ -99,6 +99,8 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
             return self.response(201, id=new_model.id, result=item)
         except ValidationError as error:
             return self.response_400(message=error.messages)
+        except UserIsNotDashboardOwnerError as error:
+            return self.response_403()
         except FilterSetCreateFailedError as error:
             return self.response_400(message=error.message)
         except DashboardNotFoundError:

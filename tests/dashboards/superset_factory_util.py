@@ -112,10 +112,14 @@ def create_slice_to_db(
 
 
 def create_slice(
-    datasource_id: Optional[int], name: Optional[str], owners: Optional[List[User]]
+    datasource_id: Optional[int] = None, datasource: Optional[SqlaTable] = None, name: Optional[str] = None, owners: Optional[List[User]] = None
 ) -> Slice:
     name = name or random_str()
     owners = owners or []
+    datasource_type = 'table'
+    if datasource:
+        return Slice(slice_name=name, table=datasource, owners=owners, datasource_type=datasource_type)
+
     datasource_id = (
         datasource_id or create_datasource_table_to_db(name=name + "_table").id
     )
@@ -123,7 +127,7 @@ def create_slice(
         slice_name=name,
         datasource_id=datasource_id,
         owners=owners,
-        datasource_type="table",
+        datasource_type=datasource_type,
     )
 
 
@@ -141,10 +145,13 @@ def create_datasource_table_to_db(
 def create_datasource_table(
     name: Optional[str] = None,
     db_id: Optional[int] = None,
+    database: Optional[Database] = None,
     owners: Optional[List[User]] = None,
 ) -> SqlaTable:
     name = name or random_str()
     owners = owners or []
+    if database:
+        return SqlaTable(table_name=name, database=database, owners=owners)
     db_id = db_id or create_database_to_db(name=name + "_db").id
     return SqlaTable(table_name=name, database_id=db_id, owners=owners)
 

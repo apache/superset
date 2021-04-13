@@ -47,7 +47,7 @@ class FilterSetDAO(BaseDAO):
         setattr(model, NAME_FIELD, properties[NAME_FIELD])
         setattr(model, JSON_METADATA_FIELD, properties[JSON_METADATA_FIELD])
         setattr(model, DESCRIPTION_FIELD, properties.get(DESCRIPTION_FIELD, None))
-        setattr(model, OWNER_ID_FIELD, properties[OWNER_ID_FIELD])
+        setattr(model, OWNER_ID_FIELD, properties.get(OWNER_ID_FIELD, properties[DASHBOARD_ID_FIELD]))
         setattr(model, OWNER_TYPE_FIELD, properties[OWNER_TYPE_FIELD])
         setattr(model, DASHBOARD_ID_FIELD, properties[DASHBOARD_ID_FIELD])
         try:
