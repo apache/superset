@@ -35,6 +35,7 @@ import Footer from './Footer/Footer';
 import FilterTabs from './FilterTabs';
 import FiltersConfigForm from './FiltersConfigForm/FiltersConfigForm';
 import { useOpenModal, useRemoveCurrentFilter } from './state';
+import { testWithId } from '../../../../utils/common';
 
 export const StyledModalBody = styled.div`
   display: flex;
@@ -48,6 +49,11 @@ export const StyledModalBody = styled.div`
 export const StyledForm = styled(Form)`
   width: 100%;
 `;
+
+export const FILTERS_CONFIG_MODAL_TEST_ID = 'filters-config-modal';
+export const getFiltersConfigModalTestId = testWithId(
+  FILTERS_CONFIG_MODAL_TEST_ID,
+);
 
 export interface FiltersConfigModalProps {
   isOpen: boolean;
