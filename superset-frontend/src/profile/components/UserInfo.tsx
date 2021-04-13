@@ -19,7 +19,6 @@
 import React from 'react';
 import Gravatar from 'react-gravatar';
 import moment from 'moment';
-import Collapse from 'src/common/components/Collapse';
 import { t, styled } from '@superset-ui/core';
 import { UserWithPermissionsAndRoles } from '../../types/bootstrapTypes';
 
@@ -28,21 +27,8 @@ interface UserInfoProps {
 }
 
 const StyledContainer = styled.div`
-  .ant-collapse-header {
-    background-color: ${({ theme }) => theme.colors.grayscale.light5};
-    .header {
-      margin-left: ${({ theme }) => theme.gridUnit * -6}px;
-    }
-  }
-  .ant-collapse-content {
-    margin-top: ${({ theme }) => theme.gridUnit * -5}px;
-    border-top: none;
-  }
-  .ant-collapse
-    > .ant-collapse-item
-    > .ant-collapse-header
-    .ant-collapse-arrow {
-    display: none;
+  .panel {
+    padding: ${({ theme }) => theme.gridUnit * 6}px;
   }
 `;
 
@@ -61,41 +47,35 @@ export default function UserInfo({ user }: UserInfoProps) {
         />
       </a>
       <hr />
-      <Collapse defaultActiveKey={['1']}>
-        <Collapse.Panel
-          header={
-            <div className="header">
-              <h3>
-                <strong>
-                  {user.firstName} {user.lastName}
-                </strong>
-              </h3>
-              <h4 className="username">
-                <i className="fa fa-user-o" /> {user.username}
-              </h4>
-            </div>
-          }
-          key="1"
-        >
-          <hr />
-          <p>
-            <i className="fa fa-clock-o" /> {t('joined')}{' '}
-            {moment(user.createdOn, 'YYYYMMDD').fromNow()}
-          </p>
-          <p className="email">
-            <i className="fa fa-envelope-o" /> {user.email}
-          </p>
-          <p className="roles">
-            <i className="fa fa-lock" /> {Object.keys(user.roles).join(', ')}
-          </p>
-          <p>
-            <i className="fa fa-key" />
-            &nbsp;
-            <span className="text-muted">{t('id:')}</span>&nbsp;
-            <span className="user-id">{user.userId}</span>
-          </p>
-        </Collapse.Panel>
-      </Collapse>
+      <div className="panel">
+        <div className="header">
+          <h3>
+            <strong>
+              {user.firstName} {user.lastName}
+            </strong>
+          </h3>
+          <h4 className="username">
+            <i className="fa fa-user-o" /> {user.username}
+          </h4>
+        </div>
+        <hr />
+        <p>
+          <i className="fa fa-clock-o" /> {t('joined')}{' '}
+          {moment(user.createdOn, 'YYYYMMDD').fromNow()}
+        </p>
+        <p className="email">
+          <i className="fa fa-envelope-o" /> {user.email}
+        </p>
+        <p className="roles">
+          <i className="fa fa-lock" /> {Object.keys(user.roles).join(', ')}
+        </p>
+        <p>
+          <i className="fa fa-key" />
+          &nbsp;
+          <span className="text-muted">{t('id:')}</span>&nbsp;
+          <span className="user-id">{user.userId}</span>
+        </p>
+      </div>
     </StyledContainer>
   );
 }
