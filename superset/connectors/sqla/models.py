@@ -521,6 +521,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         if db_engine_spec.allows_alias_in_select:
             label = db_engine_spec.make_label_compatible(label_expected)
             sqla_col = sqla_col.label(label)
+        sqla_col.key = label_expected
         return sqla_col
 
     def __repr__(self) -> str:
@@ -1094,7 +1095,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             )
 
         select_exprs += metrics_exprs
-        labels_expected = [c.name for c in select_exprs]
+        labels_expected = [c.key for c in select_exprs]
         select_exprs = db_engine_spec.make_select_compatible(
             groupby_exprs_with_timestamp.values(), select_exprs
         )
