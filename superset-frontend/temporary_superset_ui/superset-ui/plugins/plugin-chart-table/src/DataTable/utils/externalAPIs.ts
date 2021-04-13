@@ -25,16 +25,8 @@ export const updateExternalFormData = (
   pageSize: number,
 ) =>
   setDataMask({
-    ownFilters: {
-      extraFormData: {
-        custom_form_data: {
-          row_offset: pageNumber * pageSize,
-          row_limit: pageSize,
-        },
-      },
-      currentState: {
-        currentPage: pageNumber,
-        pageSize,
-      },
+    ownState: {
+      currentPage: pageNumber,
+      pageSize,
     },
   });

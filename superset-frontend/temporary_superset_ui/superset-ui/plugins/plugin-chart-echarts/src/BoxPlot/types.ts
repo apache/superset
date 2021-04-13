@@ -20,6 +20,7 @@ import {
   ChartDataResponseResult,
   ChartProps,
   DataRecordValue,
+  JsonObject,
   QueryFormData,
   SetDataMaskHook,
 } from '@superset-ui/core';
@@ -47,6 +48,7 @@ export const DEFAULT_FORM_DATA: BoxPlotQueryFormData = {
 };
 
 export interface EchartsBoxPlotChartProps extends ChartProps {
+  ownState: JsonObject;
   formData: BoxPlotQueryFormData;
   queriesData: ChartDataResponseResult[];
 }

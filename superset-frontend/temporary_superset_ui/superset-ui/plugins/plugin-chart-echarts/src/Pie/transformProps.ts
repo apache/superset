@@ -77,7 +77,7 @@ export function formatPieLabel({
 }
 
 export default function transformProps(chartProps: EchartsPieChartProps): PieChartTransformedProps {
-  const { formData, height, hooks, ownCurrentState, queriesData, width } = chartProps;
+  const { formData, height, hooks, ownState, queriesData, width } = chartProps;
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 
@@ -146,7 +146,7 @@ export default function transformProps(chartProps: EchartsPieChartProps): PieCha
     };
   });
 
-  const selectedValues = (ownCurrentState.selectedValues || []).reduce(
+  const selectedValues = (ownState.selectedValues || []).reduce(
     (acc: Record<string, number>, selectedValue: string) => {
       const index = transformedData.findIndex(({ name }) => name === selectedValue);
       return {
