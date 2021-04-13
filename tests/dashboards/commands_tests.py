@@ -88,6 +88,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "dashboard_title": "World Bank's Data",
             "description": None,
             "css": None,
+            "published": False,
             "slug": "world_health",
             "uuid": str(example_dashboard.uuid),
             "position": {
@@ -280,6 +281,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "description",
             "css",
             "slug",
+            "published",
             "uuid",
             "position",
             "metadata",
