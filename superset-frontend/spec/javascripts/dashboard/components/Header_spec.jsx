@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import Header from 'src/dashboard/components/Header';
 import EditableTitle from 'src/components/EditableTitle';
 import FaveStar from 'src/components/FaveStar';
@@ -83,7 +83,7 @@ describe('Header', () => {
   };
 
   function setup(overrideProps) {
-    const wrapper = shallow(<Header {...props} {...overrideProps} />);
+    const wrapper = mount(<Header {...props} {...overrideProps} />);
     return wrapper;
   }
 

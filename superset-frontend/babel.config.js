@@ -63,6 +63,7 @@ module.exports = {
             targets: { node: 'current' },
           },
         ],
+        ['@emotion/babel-preset-css-prop'],
       ],
       plugins: ['babel-plugin-dynamic-import-node'],
     },
