@@ -18,25 +18,22 @@
  */
 import memoizeOne from 'memoize-one';
 
-export default function getPermissions(
-  perm: string,
-  view: string,
-  roles: object,
-) {
-  return memoizeOne(() => {
-    const roleList = Object.entries(roles);
-    if (roleList.length === 0) return false;
-    let bool;
+const findPermissions = (perm: string, view: string, roles: object) => {
+  const roleList = Object.entries(roles);
+  if (roleList.length === 0) return false;
+  let bool;
 
-    roleList.forEach(([role, permissions]) => {
-      bool = Boolean(
-        permissions.find(
-          (permission: Array<string>) =>
-            permission[0] === perm && permission[1] === view,
-        ),
-      );
-    });
-    console.log('bool', bool);
-    return bool;
+  roleList.forEach(([role, permissions]) => {
+    bool = Boolean(
+      permissions.find(
+        (permission: Array<string>) =>
+          permission[0] === perm && permission[1] === view,
+      ),
+    );
   });
-}
+  return bool;
+};
+
+const getPermissions = memoizeOne(findPermissions);
+
+export default getPermissions;

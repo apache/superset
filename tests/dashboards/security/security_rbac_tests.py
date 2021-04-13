@@ -27,7 +27,11 @@ from tests.dashboards.superset_factory_util import (
     create_datasource_table_to_db,
     create_slice_to_db,
 )
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.fixtures.public_role import public_role_like_gamma
+from tests.fixtures.query_context import get_query_context
+
+CHART_DATA_URI = "api/v1/chart/data"
 
 
 @mock.patch.dict(
@@ -65,15 +69,25 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # assert
         self.assert_dashboard_view_response(response, dashboard_to_access)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_dashboard_view__user_can_not_access_without_permission(self):
         username = random_str()
         new_role = f"role_{random_str()}"
         self.create_user_with_roles(username, [new_role], should_create_roles=True)
-        dashboard_to_access = create_dashboard_to_db(published=True)
+        slice = (
+            db.session.query(Slice)
+            .filter_by(slice_name="Girl Name Cloud")
+            .one_or_none()
+        )
+        dashboard_to_access = create_dashboard_to_db(published=True, slices=[slice])
         self.login(username)
 
         # act
         response = self.get_dashboard_view_response(dashboard_to_access)
+
+        request_payload = get_query_context("birth_names")
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 401)
 
         # assert
         self.assert403(response)
@@ -98,6 +112,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # post
         revoke_access_to_dashboard(dashboard_to_access, new_role)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_dashboard_view__user_access_with_dashboard_permission(self):
         # arrange
 
@@ -105,9 +120,12 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         new_role = f"role_{random_str()}"
         self.create_user_with_roles(username, [new_role], should_create_roles=True)
 
-        dashboard_to_access = create_dashboard_to_db(
-            published=True, slices=[create_slice_to_db()]
+        slice = (
+            db.session.query(Slice)
+            .filter_by(slice_name="Girl Name Cloud")
+            .one_or_none()
         )
+        dashboard_to_access = create_dashboard_to_db(published=True, slices=[slice])
         self.login(username)
         grant_access_to_dashboard(dashboard_to_access, new_role)
 
@@ -116,6 +134,10 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         # assert
         self.assert_dashboard_view_response(response, dashboard_to_access)
+
+        request_payload = get_query_context("birth_names")
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 200)
 
         # post
         revoke_access_to_dashboard(dashboard_to_access, new_role)
