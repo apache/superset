@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 # Regular expressions to catch custom errors
 TEST_CONNECTION_ACCESS_DENIED_REGEX = re.compile("Adaptive Server connection failed")
-TEXT_CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
+TEST_CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
     r"Adaptive Server is unavailable or does not exist \((?P<hostname>.*?)\)"
     "(?!.*Net-Lib error).*$"
 )
@@ -69,18 +69,18 @@ class MssqlEngineSpec(BaseEngineSpec):
             __('Either the username "%(username)s" or the password is incorrect.'),
             SupersetErrorType.TEST_CONNECTION_ACCESS_DENIED_ERROR,
         ),
-        TEXT_CONNECTION_INVALID_HOSTNAME_REGEX: (
+        TEST_CONNECTION_INVALID_HOSTNAME_REGEX: (
             __('The hostname "%(hostname)s" cannot be resolved.'),
             SupersetErrorType.TEST_CONNECTION_INVALID_HOSTNAME_ERROR,
         ),
         TEST_CONNECTION_PORT_CLOSED_REGEX: (
-            __("Port %(port)s on hostname %(hostname)s refused the connection."),
+            __('Port %(port)s on hostname "%(hostname)s" refused the connection.'),
             SupersetErrorType.TEST_CONNECTION_PORT_CLOSED_ERROR,
         ),
         TEST_CONNECTION_HOST_DOWN_REGEX: (
             __(
-                "The host %(hostname)s might be down, and can't be "
-                "reached on port %(port)s"
+                'The host "%(hostname)s" might be down, and can\'t be '
+                "reached on port %(port)s."
             ),
             SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
         ),

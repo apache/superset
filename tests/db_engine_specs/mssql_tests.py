@@ -196,7 +196,7 @@ Net-Lib error during Connection refused (61)
         assert result == [
             SupersetError(
                 error_type=SupersetErrorType.TEST_CONNECTION_PORT_CLOSED_ERROR,
-                message="Port 12345 on hostname localhost refused the connection.",
+                message='Port 12345 on hostname "localhost" refused the connection.',
                 level=ErrorLevel.ERROR,
                 extra={
                     "engine_name": "Microsoft SQL",
@@ -224,8 +224,8 @@ Net-Lib error during Operation timed out (60)
             SupersetError(
                 error_type=SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
                 message=(
-                    "The host example.com might be down, "
-                    "and can't be reached on port 12345"
+                    'The host "example.com" might be down, '
+                    "and can't be reached on port 12345."
                 ),
                 level=ErrorLevel.ERROR,
                 extra={
@@ -257,8 +257,8 @@ Net-Lib error during Operation timed out (60)
             SupersetError(
                 error_type=SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
                 message=(
-                    "The host 93.184.216.34 might be down, "
-                    "and can't be reached on port 12345"
+                    'The host "93.184.216.34" might be down, '
+                    "and can't be reached on port 12345."
                 ),
                 level=ErrorLevel.ERROR,
                 extra={

@@ -110,13 +110,13 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
             SupersetErrorType.TEST_CONNECTION_INVALID_HOSTNAME_ERROR,
         ),
         TEST_CONNECTION_PORT_CLOSED_REGEX: (
-            __("Port %(port)s on hostname %(hostname)s refused the connection."),
+            __('Port %(port)s on hostname "%(hostname)s" refused the connection.'),
             SupersetErrorType.TEST_CONNECTION_PORT_CLOSED_ERROR,
         ),
         TEST_CONNECTION_HOST_DOWN_REGEX: (
             __(
-                "The host %(hostname)s might be down, and can't be "
-                "reached on port %(port)s"
+                'The host "%(hostname)s" might be down, and can\'t be '
+                "reached on port %(port)s."
             ),
             SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
         ),
