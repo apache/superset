@@ -1132,7 +1132,9 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         return database.get_df("SHOW FUNCTIONS")["Function"].tolist()
 
     @classmethod
-    def extract_errors(cls, ex: Exception) -> List[SupersetError]:
+    def extract_errors(
+        cls, ex: Exception, context: Optional[Dict[str, Any]] = None
+    ) -> List[SupersetError]:
         raw_message = cls._extract_error_message(ex)
 
         column_match = re.search(COLUMN_NOT_RESOLVED_ERROR_REGEX, raw_message)
@@ -1166,7 +1168,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
                 )
             ]
 
-        return super().extract_errors(ex)
+        return super().extract_errors(ex, context)
 
     @classmethod
     def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
