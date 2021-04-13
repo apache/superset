@@ -61,6 +61,8 @@ def increment_id(redis_id: str) -> str:
 
 
 class AsyncQueryManager:
+    # pylint: disable=too-many-instance-attributes
+
     MAX_EVENT_COUNT = 100
     STATUS_PENDING = "pending"
     STATUS_RUNNING = "running"
@@ -75,6 +77,7 @@ class AsyncQueryManager:
         self._stream_limit_firehose: Optional[int]
         self._jwt_cookie_name: str
         self._jwt_cookie_secure: bool = False
+        self._jwt_cookie_domain: Optional[str]
         self._jwt_secret: str
 
     def init_app(self, app: Flask) -> None:
@@ -105,6 +108,7 @@ class AsyncQueryManager:
         ]
         self._jwt_cookie_name = config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"]
         self._jwt_cookie_secure = config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE"]
+        self._jwt_cookie_domain = config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN"]
         self._jwt_secret = config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]
 
         @app.after_request
@@ -133,6 +137,7 @@ class AsyncQueryManager:
                     value=token,
                     httponly=True,
                     secure=self._jwt_cookie_secure,
+                    domain=self._jwt_cookie_domain,
                 )
 
             return response

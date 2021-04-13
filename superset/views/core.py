@@ -800,6 +800,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "slice": slc.data if slc else None,
             "standalone": standalone_mode,
             "user_id": user_id,
+            "user": bootstrap_user_data(g.user, include_perms=True),
             "forced_height": request.args.get("height"),
             "common": common_bootstrap_payload(),
         }
@@ -1811,13 +1812,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if not dashboard:
             abort(404)
 
-        data = dashboard.full_data()
-
         if config["ENABLE_ACCESS_REQUEST"]:
-            for datasource in data["datasources"].values():
+            for datasource in dashboard.datasources:
                 datasource = ConnectorRegistry.get_datasource(
-                    datasource_type=datasource["type"],
-                    datasource_id=datasource["id"],
+                    datasource_type=datasource.type,
+                    datasource_id=datasource.id,
                     session=db.session(),
                 )
                 if datasource and not security_manager.can_access_datasource(
@@ -1836,10 +1835,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         dash_edit_perm = check_ownership(
             dashboard, raise_if_false=False
         ) and security_manager.can_access("can_save_dash", "Superset")
-        dash_save_perm = security_manager.can_access("can_save_dash", "Superset")
-        superset_can_explore = security_manager.can_access("can_explore", "Superset")
-        superset_can_csv = security_manager.can_access("can_csv", "Superset")
-        slice_can_edit = security_manager.can_access("can_edit", "SliceModelView")
         standalone_mode = ReservedUrlParameters.is_standalone_mode()
         edit_mode = (
             request.args.get(utils.ReservedUrlParameters.EDIT_MODE.value) == "true"
@@ -1852,40 +1847,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             edit_mode=edit_mode,
         )
 
-        if is_feature_enabled("REMOVE_SLICE_LEVEL_LABEL_COLORS"):
-            # dashboard metadata has dashboard-level label_colors,
-            # so remove slice-level label_colors from its form_data
-            for slc in data["slices"]:
-                form_data = slc.get("form_data")
-                form_data.pop("label_colors", None)
-
-        url_params = {
-            key: value
-            for key, value in request.args.items()
-            if key not in [param.value for param in utils.ReservedUrlParameters]
-        }
-
         bootstrap_data = {
-            "user_id": g.user.get_id(),
+            "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(),
-            "editMode": edit_mode,
-            "urlParams": url_params,
-            "dashboard_data": {
-                **data["dashboard"],
-                "standalone_mode": standalone_mode,
-                "dash_save_perm": dash_save_perm,
-                "dash_edit_perm": dash_edit_perm,
-                "superset_can_explore": superset_can_explore,
-                "superset_can_csv": superset_can_csv,
-                "slice_can_edit": slice_can_edit,
-            },
-            "datasources": data["datasources"],
         }
-
-        if request.args.get("json") == "true":
-            return json_success(
-                json.dumps(bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser)
-            )
 
         return self.render_template(
             "superset/dashboard.html",

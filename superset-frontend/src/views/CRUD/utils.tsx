@@ -27,7 +27,7 @@ import Chart from 'src/types/Chart';
 import rison from 'rison';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FetchDataConfig } from 'src/components/ListView';
-import { Dashboard, Filters } from './types';
+import { Dashboard, Filters, SavedQueryObject } from './types';
 
 const createFetchResourceMethod = (method: string) => (
   resource: string,
@@ -214,6 +214,16 @@ export function handleBulkDashboardExport(dashboardsToExport: Dashboard[]) {
   return window.location.assign(
     `/api/v1/dashboard/export/?q=${rison.encode(
       dashboardsToExport.map(({ id }) => id),
+    )}`,
+  );
+}
+
+export function handleBulkSavedQueryExport(
+  savedQueriesToExport: SavedQueryObject[],
+) {
+  return window.location.assign(
+    `/api/v1/saved_query/export/?q=${rison.encode(
+      savedQueriesToExport.map(({ id }) => id),
     )}`,
   );
 }

@@ -19,7 +19,7 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
-import { Card, Skeleton, ThinSkeleton } from 'src/common/components';
+import { AntdCard, Skeleton, ThinSkeleton } from 'src/common/components';
 import { Tooltip } from 'src/common/components/Tooltip';
 import ImageLoader, { BackgroundPosition } from './ImageLoader';
 
@@ -29,7 +29,7 @@ const ActionsWrapper = styled.div`
   justify-content: space-between;
 `;
 
-const StyledCard = styled(Card)`
+const StyledCard = styled(AntdCard)`
   border: 1px solid #d9dbe4;
   border-radius: ${({ theme }) => theme.gridUnit}px;
   overflow: hidden;
@@ -198,7 +198,7 @@ function ListViewCard({
       }
     >
       {loading && (
-        <Card.Meta
+        <AntdCard.Meta
           title={
             <>
               <TitleContainer>
@@ -221,7 +221,7 @@ function ListViewCard({
         />
       )}
       {!loading && (
-        <Card.Meta
+        <AntdCard.Meta
           title={
             <TitleContainer>
               <Tooltip title={title}>

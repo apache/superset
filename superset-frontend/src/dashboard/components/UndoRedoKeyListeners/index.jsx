@@ -24,7 +24,7 @@ const propTypes = {
   onRedo: PropTypes.func.isRequired,
 };
 
-class UndoRedoKeylisteners extends React.PureComponent {
+class UndoRedoKeyListeners extends React.PureComponent {
   constructor(props) {
     super(props);
     this.handleKeydown = this.handleKeydown.bind(this);
@@ -59,6 +59,6 @@ class UndoRedoKeylisteners extends React.PureComponent {
   }
 }
 
-UndoRedoKeylisteners.propTypes = propTypes;
+UndoRedoKeyListeners.propTypes = propTypes;
 
-export default UndoRedoKeylisteners;
+export default UndoRedoKeyListeners;

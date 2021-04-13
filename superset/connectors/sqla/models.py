@@ -59,7 +59,11 @@ from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
+from superset.exceptions import (
+    QueryObjectValidationError,
+    SupersetGenericDBErrorException,
+    SupersetSecurityException,
+)
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -645,15 +649,18 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 )
             # TODO(villebro): refactor to use same code that's used by
             #  sql_lab.py:execute_sql_statements
-            with closing(engine.raw_connection()) as conn:
-                cursor = conn.cursor()
-                query = self.database.apply_limit_to_sql(statements[0])
-                db_engine_spec.execute(cursor, query)
-                result = db_engine_spec.fetch_data(cursor, limit=1)
-                result_set = SupersetResultSet(
-                    result, cursor.description, db_engine_spec
-                )
-                cols = result_set.columns
+            try:
+                with closing(engine.raw_connection()) as conn:
+                    cursor = conn.cursor()
+                    query = self.database.apply_limit_to_sql(statements[0])
+                    db_engine_spec.execute(cursor, query)
+                    result = db_engine_spec.fetch_data(cursor, limit=1)
+                    result_set = SupersetResultSet(
+                        result, cursor.description, db_engine_spec
+                    )
+                    cols = result_set.columns
+            except Exception as exc:
+                raise SupersetGenericDBErrorException(message=str(exc))
         else:
             db_dialect = self.database.get_dialect()
             cols = self.database.get_columns(
@@ -876,6 +883,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         if db_engine_spec.allows_alias_in_select:
             label = db_engine_spec.make_label_compatible(label_expected)
             sqla_col = sqla_col.label(label)
+        sqla_col.key = label_expected
         return sqla_col
 
     def make_orderby_compatible(
@@ -1129,7 +1137,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         )
 
         # Expected output columns
-        labels_expected = [c.name for c in select_exprs]
+        labels_expected = [c.key for c in select_exprs]
 
         # Order by columns are "hidden" columns, some databases require them
         # always be present in SELECT if an aggregation function is used

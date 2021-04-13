@@ -57,6 +57,9 @@ class FixedOffsetTimezone(_FixedOffset):
 
 # Regular expressions to catch custom errors
 INVALID_USERNAME_REGEX = re.compile('role "(?P<username>.*?)" does not exist')
+INVALID_PASSWORD_REGEX = re.compile(
+    'password authentication failed for user "(?P<username>.*?)"'
+)
 INVALID_HOSTNAME_REGEX = re.compile(
     'could not translate host name "(?P<hostname>.*?)" to address: '
     "nodename nor servname provided, or not known"
@@ -95,6 +98,10 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         INVALID_USERNAME_REGEX: (
             __('The username "%(username)s" does not exist.'),
             SupersetErrorType.TEST_CONNECTION_INVALID_USERNAME_ERROR,
+        ),
+        INVALID_PASSWORD_REGEX: (
+            __('The password provided for username "%(username)s" is incorrect.'),
+            SupersetErrorType.TEST_CONNECTION_INVALID_PASSWORD_ERROR,
         ),
         INVALID_HOSTNAME_REGEX: (
             __('The hostname "%(hostname)s" cannot be resolved.'),

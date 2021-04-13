@@ -17,29 +17,23 @@
  * under the License.
  */
 import React from 'react';
-import { styledMount as mount } from 'spec/helpers/theming';
-import { Provider } from 'react-redux';
-import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink';
-import { mockStore } from 'spec/fixtures/mockStore';
+import { styled } from '@superset-ui/core';
+import AntdCard, { CardProps as AntdCardProps } from 'antd/lib/card';
 
-describe('FilterConfigurationButton', () => {
-  const mockedProps = {
-    createNewOnOpen: false,
-  };
-  it('is valid', () => {
-    expect(
-      React.isValidElement(<FilterConfigurationLink {...mockedProps} />),
-    ).toBe(true);
-  });
-  it('takes in children', () => {
-    const wrapper = mount(
-      <Provider store={mockStore}>
-        <FilterConfigurationLink {...mockedProps}>
-          {' '}
-          <span>Test</span>
-        </FilterConfigurationLink>
-      </Provider>,
-    );
-    expect(wrapper.find('span')).toHaveLength(1);
-  });
-});
+interface CardProps extends AntdCardProps {
+  padded?: boolean;
+}
+
+const Card = styled(({ padded, ...props }: CardProps) => (
+  <AntdCard {...props} />
+))`
+  background-color: ${({ theme }) => theme.colors.grayscale.light4};
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+
+  .ant-card-body {
+    padding: ${({ padded, theme }) =>
+      padded ? theme.gridUnit * 4 : theme.gridUnit}px;
+  }
+`;
+
+export default Card;

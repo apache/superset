@@ -18,9 +18,10 @@
  */
 /* eslint camelcase: 0 */
 import { t } from '@superset-ui/core';
+import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 import { ChartState } from 'src/explore/types';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
-import { now } from '../modules/dates';
+import { now } from 'src/modules/dates';
 import * as actions from './chartAction';
 
 export const chart: ChartState = {
@@ -192,7 +193,9 @@ export default function chartReducer(
     delete charts[key];
     return charts;
   }
-
+  if (action.type === HYDRATE_DASHBOARD) {
+    return { ...action.data.charts };
+  }
   if (action.type in actionHandlers) {
     return {
       ...charts,

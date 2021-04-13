@@ -18,6 +18,7 @@
 import logging
 from typing import Any, cast, Dict, Optional
 
+from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app, g
 
 from superset import app
@@ -47,9 +48,7 @@ def ensure_user_is_set(user_id: Optional[int]) -> None:
 def load_chart_data_into_cache(
     job_metadata: Dict[str, Any], form_data: Dict[str, Any],
 ) -> None:
-    from superset.charts.commands.data import (
-        ChartDataCommand,
-    )  # load here due to circular imports
+    from superset.charts.commands.data import ChartDataCommand
 
     with app.app_context():  # type: ignore
         try:
@@ -62,6 +61,11 @@ def load_chart_data_into_cache(
             async_query_manager.update_job(
                 job_metadata, async_query_manager.STATUS_DONE, result_url=result_url,
             )
+        except SoftTimeLimitExceeded as exc:
+            logger.warning(
+                "A timeout occurred while loading chart data, error: %s", exc
+            )
+            raise exc
         except Exception as exc:
             # TODO: QueryContext should support SIP-40 style errors
             error = exc.message if hasattr(exc, "message") else str(exc)  # type: ignore # pylint: disable=no-member
@@ -75,7 +79,7 @@ def load_chart_data_into_cache(
 
 
 @celery_app.task(name="load_explore_json_into_cache", soft_time_limit=query_timeout)
-def load_explore_json_into_cache(
+def load_explore_json_into_cache(  # pylint: disable=too-many-locals
     job_metadata: Dict[str, Any],
     form_data: Dict[str, Any],
     response_type: Optional[str] = None,
@@ -106,6 +110,11 @@ def load_explore_json_into_cache(
             async_query_manager.update_job(
                 job_metadata, async_query_manager.STATUS_DONE, result_url=result_url,
             )
+        except SoftTimeLimitExceeded as ex:
+            logger.warning(
+                "A timeout occurred while loading explore json, error: %s", ex
+            )
+            raise ex
         except Exception as exc:
             if isinstance(exc, SupersetVizException):
                 errors = exc.errors  # pylint: disable=no-member

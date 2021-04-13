@@ -6,89 +6,57 @@ index: 1
 version: 1
 ---
 
-## Country Map Tools
+## The Country Map Visualization
 
-This tool is used in slices for visualization number or string by region, province or department of
-your countries. So, if you want to use tools, you need ISO 3166-2 code of region, province or
-department.
+The Country Map visualization allows you to plot lightweight choropleth maps of
+your countries by province, states, or other subdivision types. It does not rely
+on any third-party map services but would require you to provide the
+[ISO-3166-2](https://en.wikipedia.org/wiki/ISO_3166-2) codes of your country's
+top-level subdivisions. Comparing to a province or state's full names, the ISO
+code is less ambiguous and is unique to all regions in the world.
 
-ISO 3166-2 is part of the ISO 3166 standard published by the International Organization for
-Standardization (ISO), and defines codes for identifying the principal subdivisions (e.g., provinces
-or states) of all countries coded in ISO 3166-1
+## Included Maps
 
-The purpose of ISO 3166-2 is to establish an international standard of short and unique alphanumeric
-codes to represent the relevant administrative divisions and dependent territories of all countries
-in a more convenient and less ambiguous form than their full names. Each complete ISO 3166-2 code
-consists of two parts, separated by a hyphen:
-
-The first part is the ISO 3166-1 alpha-2 code of the country; The second part is a string of up to
-three alphanumeric characters, which is usually obtained from national sources and stems from coding
-systems already in use in the country concerned, but may also be developed by the ISO itself.
-
-We can apply these concepts to specify the state of Texas in the country of United States:
-
-```
-US-TX
-```
-
-### Included Codes
-
-The ISO codes for the following countries are included in Superset:
+The Country Maps visualization already ships with the maps for the following countries:
 
 - Belgium
+- Brazil
+- Bulgaria
+- Canada
 - China
 - Egypt
 - France
 - Germany
+- India
+- Iran
+- Italy
 - Japan
+- Korea
 - Liechtenstein
 - Morocco
+- Myanmar
+- Netherlands
+- Portugal
 - Russia
 - Singapore
 - Spain
 - Switzerland
-- United Kingdom
+- Syria
+- Thailand
+- Timorleste
+- UK
 - Ukraine
+- Uruguay
 - USA
+- Zambia
 
-### Adding New Countries
+## Adding a New Country
 
-To add a new country in country map tools, you need to follow the following steps:
+To add a new country to the list, you'd have to edit files in
+[@superset-ui/legacy-plugin-chart-country-map](https://github.com/apache-superset/superset-ui/tree/master/plugins/legacy-plugin-chart-country-map).
 
-- You need shapefiles which contain data of your map. You can get this file on this site:
-  https://www.diva-gis.org/gdata
-- You need to add ISO 3166-2 with column name ISO for all record in your file. It’s important
-  because it’s a norm for mapping your data with geojson file
-- You need to convert shapefile to geojson file. This action can make with ogr2ogr tools:
-  https://www.gdal.org/ogr2ogr.html
-- Put your geojson file in next folder : superset-frontend/src/visualizations/CountryMap/countries
-  with the next name : nameofyourcountries.geojson
-- You can to reduce size of geojson file on this site: https://mapshaper.org/
-- Go in file `superset-frontend/src/explore/controls.jsx`
-- Add your country in component ‘select_country’. Here's an example:
-
-```
-    type: 'SelectControl',
-    label: 'Country Name Type',
-    default: 'France',
-    choices: [
-    'Belgium',
-    'Brazil',
-    'China',
-    'Egypt',
-    'France',
-    'Germany',
-    'Italy',
-    'Japan',
-    'Korea',
-    'Morocco',
-    'Netherlands',
-    'Russia',
-    'Singapore',
-    'Spain',
-    'Uk',
-    'Usa',
-    ].map(s => [s, s]),
-    description: 'The name of country that Superset should display',
-},
-```
+1. Generate a new GeoJSON file for your country following the guide in [this Jupyter notebook](https://github.com/apache-superset/superset-ui/blob/master/plugins/legacy-plugin-chart-country-map/scripts/Country%20Map%20GeoJSON%20Generator.ipynb).
+2. Edit the countries list in [legacy-plugin-chart-country-map/src/countries.js](https://github.com/apache-superset/superset-ui/blob/master/plugins/legacy-plugin-chart-country-map/src/countries.js).
+3. Ping one of the Superset committers to get the `@superset-ui/legacy-plugin-chart-country-map` package published, or
+   publish it under another name yourself.
+4. Update npm dependencies in `superset-frontend/package.json` to install the updated plugin package.

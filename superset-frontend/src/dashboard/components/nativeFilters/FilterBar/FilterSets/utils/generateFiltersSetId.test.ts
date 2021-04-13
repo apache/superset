@@ -16,12 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../../stylesheets/less/variables.less';
+import { generateFiltersSetId } from '.';
 
-.BootstrapSliderWrapper .slider-selection {
-  background: @gray-bg;
-}
-
-.BootstrapSliderWrapper .slider-handle {
-  background: @gray-light;
-}
+test('Should follow the pattern "FILTERS_SET-"', () => {
+  const id = generateFiltersSetId();
+  expect(id.startsWith('FILTERS_SET-', 0)).toBe(true);
+});
