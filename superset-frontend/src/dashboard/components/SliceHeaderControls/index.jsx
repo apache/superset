@@ -189,6 +189,7 @@ class SliceHeaderControls extends React.PureComponent {
       addSuccessToast,
       addDangerToast,
       isFullSize,
+      supersetCanShare,
     } = this.props;
     const crossFilterItems = getChartMetadataRegistry().items;
     const isCrossFilter = Object.entries(crossFilterItems)
@@ -254,7 +255,7 @@ class SliceHeaderControls extends React.PureComponent {
           </Menu.Item>
         )}
 
-        {this.props.supersetCanShare && (
+        {supersetCanShare && (
           <ShareMenuItems
             url={getDashboardUrl(
               window.location.pathname,
