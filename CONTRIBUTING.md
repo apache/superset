@@ -422,7 +422,7 @@ For example, the image referenced above actually lives in `superset-frontend/ima
 
 Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.
 
-Ensure Python versions >3.7, Then proceed with:
+Ensure that you are using Python version ≥3.7, then proceed with:
 
 ```bash
 # Create a virtual environment and activate it (recommended)
