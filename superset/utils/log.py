@@ -121,7 +121,7 @@ class AbstractEventLogger(ABC):
         # Initial try and grab user_id via flask.g.user
         try:
             user_id = g.user.get_id()
-        except Exception as ex:  # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except
             user_id = None
 
         # Whenever a user is not bounded to a session we
