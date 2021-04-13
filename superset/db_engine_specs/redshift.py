@@ -22,22 +22,19 @@ from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import SupersetErrorType
 
 # Regular expressions to catch custom errors
-INVALID_USERNAME_REGEX = re.compile(
-    'FATAL:  password authentication failed for user "(?P<username>.*?)"'
+TEST_CONNECTION_ACCESS_DENIED_REGEX = re.compile(
+    'password authentication failed for user "(?P<username>.*?)"'
 )
-INVALID_PASSWORD_REGEX = re.compile(
-    'FATAL: password authentication failed for user "(?P<username>.*?)"'
-)
-INVALID_HOSTNAME_REGEX = re.compile(
+TEST_CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
     'could not translate host name "(?P<hostname>.*?)" to address: '
     "nodename nor servname provided, or not known"
 )
-CONNECTION_PORT_CLOSED_REGEX = re.compile(
+TEST_CONNECTION_PORT_CLOSED_REGEX = re.compile(
     r"could not connect to server: Connection refused\s+Is the server "
     r'running on host "(?P<hostname>.*?)" (\(.*?\) )?and accepting\s+TCP/IP '
     r"connections on port (?P<port>.*?)\?"
 )
-CONNECTION_HOST_DOWN_REGEX = re.compile(
+TEST_CONNECTION_HOST_DOWN_REGEX = re.compile(
     r"could not connect to server: (?P<reason>.*?)\s+Is the server running on "
     r'host "(?P<hostname>.*?)" (\(.*?\) )?and accepting\s+TCP/IP '
     r"connections on port (?P<port>.*?)\?"
@@ -50,22 +47,22 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec):
     max_column_name_length = 127
 
     custom_errors = {
-        INVALID_USERNAME_REGEX: (
-            __('The username "%(username)s" does not exist.'),
-            SupersetErrorType.TEST_CONNECTION_INVALID_USERNAME_ERROR,
+        TEST_CONNECTION_ACCESS_DENIED_REGEX: (
+            __('Either the username "%(username)s" or the password is incorrect.'),
+            SupersetErrorType.TEST_CONNECTION_ACCESS_DENIED_ERROR,
         ),
-        INVALID_HOSTNAME_REGEX: (
+        TEST_CONNECTION_INVALID_HOSTNAME_REGEX: (
             __('The hostname "%(hostname)s" cannot be resolved.'),
             SupersetErrorType.TEST_CONNECTION_INVALID_HOSTNAME_ERROR,
         ),
-        CONNECTION_PORT_CLOSED_REGEX: (
-            __("Port %(port)s on hostname %(hostname)s refused the connection."),
+        TEST_CONNECTION_PORT_CLOSED_REGEX: (
+            __('Port %(port)s on hostname "%(hostname)s" refused the connection.'),
             SupersetErrorType.TEST_CONNECTION_PORT_CLOSED_ERROR,
         ),
-        CONNECTION_HOST_DOWN_REGEX: (
+        TEST_CONNECTION_HOST_DOWN_REGEX: (
             __(
-                "The host %(hostname)s might be down, and can't be "
-                "reached on port %(port)s"
+                'The host "%(hostname)s" might be down, and can\'t be '
+                "reached on port %(port)s."
             ),
             SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
         ),
