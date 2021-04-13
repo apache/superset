@@ -313,7 +313,17 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
         userId: String(user.userId), // legacy, please use state.user instead
         dash_edit_perm: getPermissions('can_write', 'Dashboard', roles),
         dash_save_perm: getPermissions('can_save_dash', 'Superset', roles),
+        dash_share_perm: getPermissions(
+          'can_share_dashboard',
+          'Superset',
+          roles,
+        ),
         superset_can_explore: getPermissions('can_explore', 'Superset', roles),
+        superset_can_share: getPermissions(
+          'can_share_chart',
+          'Superset',
+          roles,
+        ),
         superset_can_csv: getPermissions('can_csv', 'Superset', roles),
         slice_can_edit: getPermissions('can_slice', 'Superset', roles),
         common: {
