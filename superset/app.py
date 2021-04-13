@@ -549,6 +549,7 @@ class SupersetAppInitializer:
         order to fully init the app
         """
         self.pre_init()
+        # Configuration of logging must be done first to apply the formatter properly
         self.configure_logging()
         self.setup_db()
         self.configure_celery()
