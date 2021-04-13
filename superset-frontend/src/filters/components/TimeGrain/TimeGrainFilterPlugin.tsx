@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, QueryObjectExtras, t, tn } from '@superset-ui/core';
+import { ensureIsArray, ExtraFormData, t, tn } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
 import { Styles, StyledSelect } from '../common';
@@ -36,17 +36,13 @@ export default function PluginFilterTimegrain(
     const resultValue: string[] = ensureIsArray<string>(values);
     const [timeGrain] = resultValue;
 
-    const extras: QueryObjectExtras = {};
+    const extraFormData: ExtraFormData = {};
     if (timeGrain) {
-      extras.time_grain_sqla = timeGrain;
+      extraFormData.time_grain_sqla = timeGrain;
     }
     setValue(resultValue);
     setDataMask({
-      extraFormData: {
-        override_form_data: {
-          extras,
-        },
-      },
+      extraFormData,
       filterState: {
         value: resultValue.length ? resultValue : null,
       },

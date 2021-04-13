@@ -39,9 +39,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
 
     setDataMask({
       extraFormData: {
-        override_form_data: {
-          time_range: timeRange,
-        },
+        time_range: timeRange,
       },
       filterState: { value: timeRange },
     });

@@ -66,6 +66,10 @@ def upgrade():
                 native_filters = data_mask.pop("nativeFilters", {})
                 for filter_id, filter_obj in native_filters.items():
                     changed_filters += 1
+                    appends = filter_obj.pop("append_form_data", {})
+                    filter_obj.update(appends)
+                    overrides = filter_obj.pop("override_form_data", {})
+                    filter_obj.update(overrides)
                     current_state = filter_obj.pop("currentState", {})
                     filter_obj["filterState"] = current_state
                     data_mask[filter_id] = filter_obj

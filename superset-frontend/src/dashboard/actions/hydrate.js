@@ -317,7 +317,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
         metadata.chart_configuration = {};
       }
       if (
-        behaviors.includes(Behavior.CROSS_FILTER) &&
+        behaviors.includes(Behavior.INTERACTIVE_CHART) &&
         !metadata.chart_configuration[chartId]
       ) {
         metadata.chart_configuration[chartId] = {

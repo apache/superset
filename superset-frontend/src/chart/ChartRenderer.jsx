@@ -229,7 +229,7 @@ class ChartRenderer extends React.Component {
         ownState={ownState}
         filterState={filterState}
         hooks={this.hooks}
-        behaviors={[Behavior.CROSS_FILTER]}
+        behaviors={[Behavior.INTERACTIVE_CHART]}
         queriesData={queriesResponse}
         onRenderSuccess={this.handleRenderSuccess}
         onRenderFailure={this.handleRenderFailure}

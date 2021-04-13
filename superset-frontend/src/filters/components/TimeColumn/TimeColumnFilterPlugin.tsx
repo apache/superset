@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, GenericDataType, t, tn } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  ExtraFormData,
+  GenericDataType,
+  t,
+  tn,
+} from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
 import { Styles, StyledSelect } from '../common';
@@ -35,13 +41,13 @@ export default function PluginFilterTimeColumn(
   const handleChange = (value?: string[] | string | null) => {
     const resultValue: string[] = ensureIsArray<string>(value);
     setValue(resultValue);
+    const extraFormData: ExtraFormData = {};
+    if (resultValue.length) {
+      extraFormData.granularity_sqla = resultValue[0];
+    }
 
     setDataMask({
-      extraFormData: {
-        override_form_data: {
-          granularity_sqla: resultValue.length ? resultValue[0] : null,
-        },
-      },
+      extraFormData,
       filterState: {
         value: resultValue.length ? resultValue : null,
       },
