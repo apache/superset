@@ -24,9 +24,9 @@ import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
 import { getInitialMask } from 'src/dataMask/reducer';
 import { DataMaskUnit, DataMaskUnitWithId } from 'src/dataMask/types';
-import FilterConfigurationLink from './FilterConfigurationLink';
-import { useFilters } from './state';
-import { Filter } from '../types';
+import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink';
+import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
+import { Filter } from 'src/dashboard/components/nativeFilters/types';
 
 const TitleArea = styled.h4`
   display: flex;

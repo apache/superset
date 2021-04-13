@@ -67,7 +67,7 @@ describe('HeaderActionsDropdown', () => {
   }
 
   describe('readonly-user', () => {
-    const overrideProps = { userCanSave: false };
+    const overrideProps = { userCanSave: false, userCanShare: false };
 
     it('should render the DropdownButton', () => {
       const { wrapper } = setup(overrideProps);
@@ -89,9 +89,9 @@ describe('HeaderActionsDropdown', () => {
       expect(menu.find(RefreshIntervalModal)).toExist();
     });
 
-    it('should render the ShareMenuItems', () => {
+    it('should not render the ShareMenuItems', () => {
       const { menu } = setup(overrideProps);
-      expect(menu.find(ShareMenuItems)).toExist();
+      expect(menu.find(ShareMenuItems)).not.toExist();
     });
 
     it('should not render the CssEditor', () => {
@@ -101,7 +101,7 @@ describe('HeaderActionsDropdown', () => {
   });
 
   describe('write-user', () => {
-    const overrideProps = { userCanSave: true };
+    const overrideProps = { userCanSave: true, userCanShare: true };
 
     it('should render the DropdownButton', () => {
       const { wrapper } = setup(overrideProps);
@@ -135,7 +135,11 @@ describe('HeaderActionsDropdown', () => {
   });
 
   describe('write-user-with-edit-mode', () => {
-    const overrideProps = { userCanSave: true, editMode: true };
+    const overrideProps = {
+      userCanSave: true,
+      editMode: true,
+      userCanShare: true,
+    };
 
     it('should render the DropdownButton', () => {
       const { wrapper } = setup(overrideProps);

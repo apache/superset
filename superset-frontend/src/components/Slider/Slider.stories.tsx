@@ -17,27 +17,41 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
-import Slider from 'src/components/Slider';
-import ControlHeader from 'src/explore/components/ControlHeader';
+import Slider, { SliderSingleProps } from '.';
 
-const propTypes = {
-  onChange: PropTypes.func,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+export default {
+  title: 'Slider',
+  component: Slider,
 };
 
-const defaultProps = {
-  onChange: () => {},
+export const InteractiveSlider = (args: SliderSingleProps) => (
+  <Slider {...args} style={{ width: 400, height: 400 }} />
+);
+
+InteractiveSlider.args = {
+  min: 0,
+  max: 100,
+  defaultValue: 70,
+  step: 1,
 };
 
-export default function SliderControl(props) {
-  return (
-    <>
-      <ControlHeader {...props} />
-      <Slider {...props} defaultValue={props.default} />
-    </>
-  );
-}
+InteractiveSlider.argTypes = {
+  onChange: { action: 'onChange' },
+  disabled: {
+    control: { type: 'boolean' },
+  },
+  reverse: {
+    control: { type: 'boolean' },
+  },
+  vertical: {
+    control: { type: 'boolean' },
+  },
+};
 
-SliderControl.propTypes = propTypes;
-SliderControl.defaultProps = defaultProps;
+InteractiveSlider.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};

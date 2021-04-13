@@ -85,7 +85,7 @@ function mapStateToProps({
     maxUndoHistoryExceeded: !!dashboardState.maxUndoHistoryExceeded,
     lastModifiedTime: Math.max(
       dashboardState.lastModifiedTime,
-      dashboardInfo.lastModifiedTime,
+      dashboardInfo.last_modified_time,
     ),
     editMode: !!dashboardState.editMode,
     slug: dashboardInfo.slug,
