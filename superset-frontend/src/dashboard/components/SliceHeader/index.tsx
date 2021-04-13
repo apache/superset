@@ -46,6 +46,7 @@ type SliceHeaderProps = {
   annotationError?: object;
   sliceName?: string;
   supersetCanExplore?: boolean;
+  supersetCanShare?: boolean;
   supersetCanCSV?: boolean;
   sliceCanEdit?: boolean;
   componentId: string;
@@ -83,6 +84,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   isExpanded = [],
   sliceName = '',
   supersetCanExplore = false,
+  supersetCanShare = false,
   supersetCanCSV = false,
   sliceCanEdit = false,
   slice,
@@ -172,6 +174,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
               exploreChart={exploreChart}
               exportCSV={exportCSV}
               supersetCanExplore={supersetCanExplore}
+              supersetCanShare={supersetCanShare}
               supersetCanCSV={supersetCanCSV}
               sliceCanEdit={sliceCanEdit}
               componentId={componentId}

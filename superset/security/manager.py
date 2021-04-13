@@ -556,6 +556,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.add_permission_view_menu("all_datasource_access", "all_datasource_access")
         self.add_permission_view_menu("all_database_access", "all_database_access")
         self.add_permission_view_menu("all_query_access", "all_query_access")
+        self.add_permission_view_menu("can_share_dashboard", "Superset")
+        self.add_permission_view_menu("can_share_chart", "Superset")
 
     def create_missing_perms(self) -> None:
         """

@@ -84,6 +84,7 @@ function mapStateToProps(
     editMode: dashboardState.editMode,
     isExpanded: !!dashboardState.expandedSlices[id],
     supersetCanExplore: !!dashboardInfo.superset_can_explore,
+    supersetCanShare: !!dashboardInfo.superset_can_share,
     supersetCanCSV: !!dashboardInfo.superset_can_csv,
     sliceCanEdit: !!dashboardInfo.slice_can_edit,
     ownCurrentState: dataMask.ownFilters?.[id]?.currentState,
