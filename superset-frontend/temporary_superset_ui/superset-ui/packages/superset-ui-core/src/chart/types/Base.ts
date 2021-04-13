@@ -1,4 +1,5 @@
 import { ExtraFormData } from '../../query';
+import { JsonObject } from '../..';
 
 export type HandlerFunction = (...args: unknown[]) => void;
 
@@ -15,25 +16,16 @@ export enum AppSection {
   EMBEDDED = 'EMBEDDED',
 }
 
-export type DataMaskCurrentState = { value?: any; [key: string]: any };
+export type FilterState = { value?: any; [key: string]: any };
 
 export type DataMask = {
-  nativeFilters?: {
-    extraFormData?: ExtraFormData;
-    currentState: DataMaskCurrentState;
-  };
-  crossFilters?: {
-    extraFormData?: ExtraFormData;
-    currentState: DataMaskCurrentState;
-  };
-  ownFilters?: {
-    extraFormData?: ExtraFormData;
-    currentState: { [key: string]: any };
-  };
+  extraFormData?: ExtraFormData;
+  filterState?: FilterState;
+  ownState?: JsonObject;
 };
 
 export type SetDataMaskHook = {
-  ({ nativeFilters, crossFilters, ownFilters }: DataMask): void;
+  ({ filterState, extraFormData, ownState }: DataMask): void;
 };
 
 export interface PlainObject {

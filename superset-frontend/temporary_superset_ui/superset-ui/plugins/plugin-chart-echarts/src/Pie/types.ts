@@ -35,7 +35,6 @@ export type EchartsPieFormData = QueryFormData &
   EchartsLegendFormData & {
     colorScheme?: string;
     currentOwnValue?: string[] | null;
-    currentValue?: string[] | null;
     donut: boolean;
     defaultValue?: string[] | null;
     groupby: string[];

@@ -1,4 +1,4 @@
-import { QueryFormData, QueryContext, SetDataMaskHook } from '../..';
+import { QueryFormData, QueryContext, SetDataMaskHook, JsonObject } from '../..';
 import ChartProps from '../models/ChartProps';
 import { PlainObject } from './Base';
 
@@ -16,6 +16,7 @@ export type BuildQueryFunction<T extends QueryFormData> = (
     extras?: {
       cachedChanges?: any;
     };
+    ownState?: JsonObject;
     hooks?: {
       setDataMask: SetDataMaskHook;
       setCachedChanges: (newChanges: any) => void;

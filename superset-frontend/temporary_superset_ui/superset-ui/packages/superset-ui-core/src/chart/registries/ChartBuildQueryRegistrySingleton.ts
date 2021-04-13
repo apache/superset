@@ -1,4 +1,11 @@
-import { Registry, makeSingleton, OverwritePolicy, QueryContext, SetDataMaskHook } from '../..';
+import {
+  Registry,
+  makeSingleton,
+  OverwritePolicy,
+  QueryContext,
+  SetDataMaskHook,
+  JsonObject,
+} from '../..';
 
 // Ideally this would be <T extends QueryFormData>
 export type BuildQuery<T = any> = (
@@ -7,6 +14,7 @@ export type BuildQuery<T = any> = (
     extras?: {
       cachedChanges?: any;
     };
+    ownState?: JsonObject;
     hooks?: {
       setDataMask: SetDataMaskHook;
       setCachedChanges: (newChanges: any) => void;

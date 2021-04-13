@@ -36,7 +36,7 @@ import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
 export default function transformProps(
   chartProps: EchartsBoxPlotChartProps,
 ): BoxPlotChartTransformedProps {
-  const { width, height, formData, hooks, ownCurrentState, queriesData } = chartProps;
+  const { width, height, formData, hooks, ownState, queriesData } = chartProps;
   const { data = [] } = queriesData[0];
   const { setDataMask = () => {} } = hooks;
   const coltypeMapping = getColtypesMapping(queriesData[0]);
@@ -128,7 +128,7 @@ export default function transformProps(
     };
   }, {});
 
-  const selectedValues = (ownCurrentState.selectedValues || []).reduce(
+  const selectedValues = (ownState.selectedValues || []).reduce(
     (acc: Record<string, number>, selectedValue: string) => {
       const index = transformedData.findIndex(({ name }) => name === selectedValue);
       return {
