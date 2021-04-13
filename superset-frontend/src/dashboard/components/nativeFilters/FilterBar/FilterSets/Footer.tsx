@@ -23,7 +23,7 @@ import { Tooltip } from 'src/common/components/Tooltip';
 import { APPLY_FILTERS_HINT } from './utils';
 import { useFilterSetNameDuplicated } from './state';
 
-type FooterProps = {
+export type FooterProps = {
   filterSetName: string;
   disabled: boolean;
   editMode: boolean;

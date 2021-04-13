@@ -49,7 +49,7 @@ import {
   DASHBOARD_ROOT_DEPTH,
   DashboardStandaloneMode,
 } from 'src/dashboard/util/constants';
-import FilterBar from '../nativeFilters/FilterBar/FilterBar';
+import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
 import { StickyVerticalBar } from '../StickyVerticalBar';
 import { shouldFocusTabs, getRootLevelTabsComponent } from './utils';
 import { useFilters } from '../nativeFilters/FilterBar/state';
