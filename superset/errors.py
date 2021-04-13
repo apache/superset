@@ -165,12 +165,19 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
             ),
         },
     ],
-    SupersetErrorType.TEST_CONNECTION_ACCESS_DENIED_ERROR: [
+    SupersetErrorType.TEST_CONNECTION_INVALID_PASSWORD_ERROR: [
         {
             "code": 1013,
             "message": _(
-                "Issue 1013 - Either the username or " "the password is wrong."
+                "Issue 1013 - The password provided when "
+                "connecting to a database is not valid."
             ),
+        },
+    ],
+    SupersetErrorType.TEST_CONNECTION_ACCESS_DENIED_ERROR: [
+        {
+            "code": 1014,
+            "message": _("Issue 1014 - Either the username or the password is wrong."),
         }
     ],
 }

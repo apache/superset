@@ -41,12 +41,14 @@ from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
 
 # Regular expressions to catch custom errors
-INVALID_ACCESS_REGEX = re.compile(
-    "Access denied for user '(?P<username>.*?)'@'(?P<hostname>.*?)' "
+TEST_CONNECTION_ACCESS_DENIED_REGEX = re.compile(
+    "Access denied for user '(?P<username>.*?)'@'(?P<hostname>.*?)'. "
 )
-INVALID_HOSTNAME_REGEX = re.compile("Unknown MySQL server host '(?P<hostname>.*?)'")
-CONNECTION_HOST_DOWN_REGEX = re.compile(
-    "Can't connect to MySQL server on '(?P<hostname>.*?)'"
+TEST_CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
+    "Unknown MySQL server host '(?P<hostname>.*?)'."
+)
+TEST_CONNECTION_HOST_DOWN_REGEX = re.compile(
+    "Can't connect to MySQL server on '(?P<hostname>.*?)'."
 )
 
 
@@ -105,16 +107,16 @@ class MySQLEngineSpec(BaseEngineSpec):
     type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
 
     custom_errors = {
-        INVALID_ACCESS_REGEX: (
+        TEST_CONNECTION_ACCESS_DENIED_REGEX: (
             __('Either the username "%(username)s" or the password is incorrect.'),
             SupersetErrorType.TEST_CONNECTION_ACCESS_DENIED_ERROR,
         ),
-        INVALID_HOSTNAME_REGEX: (
-            __('Unknown MySQL server host "%(hostname)s"'),
+        TEST_CONNECTION_INVALID_HOSTNAME_REGEX: (
+            __('Unknown MySQL server host "%(hostname)s".'),
             SupersetErrorType.TEST_CONNECTION_INVALID_HOSTNAME_ERROR,
         ),
-        CONNECTION_HOST_DOWN_REGEX: (
-            __("The host %(hostname)s might be down and can't be reached."),
+        TEST_CONNECTION_HOST_DOWN_REGEX: (
+            __('The host "%(hostname)s" might be down and can\'t be reached.'),
             SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
         ),
     }
