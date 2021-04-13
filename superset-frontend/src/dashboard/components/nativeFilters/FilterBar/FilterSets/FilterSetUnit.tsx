@@ -40,7 +40,7 @@ const IconsBlock = styled.div`
   }
 `;
 
-type FilterSetUnitProps = {
+export type FilterSetUnitProps = {
   editMode?: boolean;
   isApplied?: boolean;
   filterSet?: FilterSet;

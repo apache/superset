@@ -87,8 +87,8 @@ export const getAllActiveFilters = ({
   Object.values(dataMask).forEach(({ id: filterId, extraFormData }) => {
     const scope = nativeFilters?.[filterId]?.scope ??
       chartConfiguration?.[filterId]?.crossFilters?.scope ?? {
-        rootPath: [],
-        excluded: [],
+        rootPath: [DASHBOARD_ROOT_ID],
+        excluded: [filterId],
       };
     // Iterate over all roots to find all affected charts
     scope.rootPath.forEach(layoutItemId => {

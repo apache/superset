@@ -298,3 +298,14 @@ psql: error: could not connect to server: Operation timed out
                 extra={"engine_name": "PostgreSQL"},
             )
         ]
+
+        msg = 'FATAL:  password authentication failed for user "postgres"'
+        result = PostgresEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.TEST_CONNECTION_INVALID_PASSWORD_ERROR,
+                message=('The password provided for username "postgres" is incorrect.'),
+                level=ErrorLevel.ERROR,
+                extra={"engine_name": "PostgreSQL"},
+            )
+        ]
