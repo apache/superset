@@ -40,35 +40,31 @@ export default function EchartsPie({
       const groupbyValues = values.map(value => labelMap[value]);
 
       setDataMask({
-        crossFilters: {
-          extraFormData: {
-            append_form_data: {
-              filters:
-                values.length === 0
-                  ? []
-                  : groupby.map((col, idx) => {
-                      const val = groupbyValues.map(v => v[idx]);
-                      if (val === null || val === undefined)
-                        return {
-                          col,
-                          op: 'IS NULL',
-                        };
+        extraFormData: {
+          append_form_data: {
+            filters:
+              values.length === 0
+                ? []
+                : groupby.map((col, idx) => {
+                    const val = groupbyValues.map(v => v[idx]);
+                    if (val === null || val === undefined)
                       return {
                         col,
-                        op: 'IN',
-                        val: val as (string | number | boolean)[],
+                        op: 'IS NULL',
                       };
-                    }),
-            },
-          },
-          currentState: {
-            value: groupbyValues.length ? groupbyValues : null,
+                    return {
+                      col,
+                      op: 'IN',
+                      val: val as (string | number | boolean)[],
+                    };
+                  }),
           },
         },
-        ownFilters: {
-          currentState: {
-            selectedValues: values.length ? values : null,
-          },
+        filterState: {
+          value: groupbyValues.length ? groupbyValues : null,
+        },
+        ownState: {
+          selectedValues: values.length ? values : null,
         },
       });
     },

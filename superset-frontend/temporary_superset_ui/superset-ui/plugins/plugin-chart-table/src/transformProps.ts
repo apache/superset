@@ -185,7 +185,7 @@ const transformProps = (chartProps: TableChartProps): TableChartTransformedProps
     rawFormData: formData,
     queriesData = [],
     initialValues: filters = {},
-    ownCurrentState: serverPaginationData = {},
+    ownState: serverPaginationData = {},
     hooks: { onAddFilter: onChangeFilter, setDataMask = () => {} },
   } = chartProps;
 
