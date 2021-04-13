@@ -176,30 +176,28 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const groupBy = Object.keys(filters);
       const groupByValues = Object.values(filters);
       setDataMask({
-        crossFilters: {
-          extraFormData: {
-            append_form_data: {
-              filters:
-                groupBy.length === 0
-                  ? []
-                  : groupBy.map(col => {
-                      const val = filters?.[col];
-                      if (val === null || val === undefined)
-                        return {
-                          col,
-                          op: 'IS NULL',
-                        };
+        extraFormData: {
+          append_form_data: {
+            filters:
+              groupBy.length === 0
+                ? []
+                : groupBy.map(col => {
+                    const val = filters?.[col];
+                    if (val === null || val === undefined)
                       return {
                         col,
-                        op: 'IN',
-                        val: val as (string | number | boolean)[],
+                        op: 'IS NULL',
                       };
-                    }),
-            },
+                    return {
+                      col,
+                      op: 'IN',
+                      val: val as (string | number | boolean)[],
+                    };
+                  }),
           },
-          currentState: {
-            value: groupByValues.length ? groupByValues : null,
-          },
+        },
+        filterState: {
+          value: groupByValues.length ? groupByValues : null,
         },
       });
     },
