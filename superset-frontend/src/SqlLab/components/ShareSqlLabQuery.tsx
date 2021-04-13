@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t, supersetTheme } from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -43,6 +43,8 @@ function ShareSqlLabQuery({
   queryEditor,
   addDangerToast,
 }: ShareSqlLabQueryPropTypes) {
+  const theme = useTheme();
+
   const getCopyUrlForKvStore = (callback: Function) => {
     const { dbId, title, schema, autorun, sql } = queryEditor;
     const sharedQuery = { dbId, title, schema, autorun, sql };
@@ -87,9 +89,7 @@ function ShareSqlLabQuery({
         <Icon
           name="link"
           color={
-            canShare
-              ? supersetTheme.colors.primary.base
-              : supersetTheme.colors.grayscale.base
+            canShare ? theme.colors.primary.base : theme.colors.grayscale.base
           }
           width={20}
           height={20}
