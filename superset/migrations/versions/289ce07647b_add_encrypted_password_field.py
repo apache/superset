@@ -31,9 +31,7 @@ down_revision = "2929af7925ed"
 
 
 def upgrade():
-    op.add_column(
-        "dbs", sa.Column("password", sa.LargeBinary(), nullable=True)
-    )
+    op.add_column("dbs", sa.Column("password", sa.LargeBinary(), nullable=True))
 
 
 def downgrade():

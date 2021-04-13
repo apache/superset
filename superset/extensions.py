@@ -27,9 +27,9 @@ from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.local import LocalProxy
 
-from superset.utils.enc import EncryptedFieldFactory
 from superset.utils.async_query_manager import AsyncQueryManager
 from superset.utils.cache_manager import CacheManager
+from superset.utils.enc import EncryptedFieldFactory
 from superset.utils.feature_flag_manager import FeatureFlagManager
 from superset.utils.machine_auth import MachineAuthProviderFactory
 
