@@ -454,6 +454,7 @@ dashboard_config = {
     "dashboard_title": "Test dash",
     "description": None,
     "css": "",
+    "published": False,
     "slug": None,
     "uuid": "c4b28c4e-a1fe-4cf8-a5ac-d6f11d6fdd51",
     "position": {

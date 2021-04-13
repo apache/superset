@@ -488,6 +488,96 @@ class TestImportDashboardsCommand(SupersetTestCase):
 
         assert dashboard.dashboard_title == "Test dash"
         assert dashboard.description is None
+        assert dashboard.published is False
+        assert dashboard.css == ""
+        assert dashboard.slug is None
+        assert json.loads(dashboard.position_json) == {
+            "CHART-SVAlICPOSJ": {
+                "children": [],
+                "id": "CHART-SVAlICPOSJ",
+                "meta": {
+                    "chartId": new_chart_id,
+                    "height": 50,
+                    "sliceName": "Number of California Births",
+                    "uuid": "0c23747a-6528-4629-97bf-e4b78d3b9df1",
+                    "width": 4,
+                },
+                "parents": ["ROOT_ID", "GRID_ID", "ROW-dP_CHaK2q"],
+                "type": "CHART",
+            },
+            "DASHBOARD_VERSION_KEY": "v2",
+            "GRID_ID": {
+                "children": ["ROW-dP_CHaK2q"],
+                "id": "GRID_ID",
+                "parents": ["ROOT_ID"],
+                "type": "GRID",
+            },
+            "HEADER_ID": {
+                "id": "HEADER_ID",
+                "meta": {"text": "Test dash"},
+                "type": "HEADER",
+            },
+            "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
+            "ROW-dP_CHaK2q": {
+                "children": ["CHART-SVAlICPOSJ"],
+                "id": "ROW-dP_CHaK2q",
+                "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT"},
+                "parents": ["ROOT_ID", "GRID_ID"],
+                "type": "ROW",
+            },
+        }
+        assert json.loads(dashboard.json_metadata) == {
+            "color_scheme": None,
+            "default_filters": "{}",
+            "expanded_slices": {str(new_chart_id): True},
+            "filter_scopes": {
+                str(new_chart_id): {
+                    "region": {"scope": ["ROOT_ID"], "immune": [new_chart_id]}
+                },
+            },
+            "import_time": 1604342885,
+            "refresh_frequency": 0,
+            "remote_id": 7,
+            "timed_refresh_immune_slices": [new_chart_id],
+        }
+
+        dataset = chart.table
+        assert str(dataset.uuid) == dataset_config["uuid"]
+
+        database = dataset.database
+        assert str(database.uuid) == database_config["uuid"]
+
+        db.session.delete(dashboard)
+        db.session.delete(chart)
+        db.session.delete(dataset)
+        db.session.delete(database)
+        db.session.commit()
+
+    @patch.dict(dashboard_config, {"published": True})
+    def test_import_v1_published_dashboard(self):
+        """Test that we can import a dashboard and it will be published"""
+        contents = {
+            "metadata.yaml": yaml.safe_dump(dashboard_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/imported_chart.yaml": yaml.safe_dump(chart_config),
+            "dashboards/imported_dashboard.yaml": yaml.safe_dump(dashboard_config),
+        }
+        command = v1.ImportDashboardsCommand(contents)
+        command.run()
+
+        dashboard = (
+            db.session.query(Dashboard).filter_by(uuid=dashboard_config["uuid"]).one()
+        )
+
+        assert len(dashboard.slices) == 1
+        chart = dashboard.slices[0]
+        assert str(chart.uuid) == chart_config["uuid"]
+        new_chart_id = chart.id
+
+        assert dashboard.dashboard_title == "Test dash"
+        assert dashboard.description is None
+        assert dashboard.published is True
         assert dashboard.css == ""
         assert dashboard.slug is None
         assert json.loads(dashboard.position_json) == {
