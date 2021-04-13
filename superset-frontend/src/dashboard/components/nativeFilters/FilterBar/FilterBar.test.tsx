@@ -21,15 +21,13 @@ import React from 'react';
 import { render, screen, cleanup } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import userEvent from '@testing-library/user-event';
-import FilterBar, {
-  FILTER_BAR_TEST_ID,
-} from 'src/dashboard/components/nativeFilters/FilterBar/FilterBar';
 import { getMockStore, mockStore } from 'spec/fixtures/mockStore';
 import * as mockCore from '@superset-ui/core';
 import { testWithId } from 'src/utils/common';
 import { FeatureFlag } from 'src/featureFlags';
 import { Preset } from '@superset-ui/core';
 import { TimeFilterPlugin, SelectFilterPlugin } from 'src/filters/components';
+import FilterBar, { FILTER_BAR_TEST_ID } from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 
 // @ts-ignore
@@ -47,9 +45,24 @@ class MainPreset extends Preset {
   }
 }
 
+const getTestId = testWithId(FILTER_BAR_TEST_ID, true);
+const getModalTestId = testWithId(FILTERS_CONFIG_MODAL_TEST_ID, true);
+
+const FILTER_NAME = 'Time filter 1';
+const FILTER_SET_NAME = 'New filter set';
+
+const addFilterFlow = () => {
+  // open filter config modal
+  userEvent.click(screen.getByTestId(getTestId('collapsable')));
+  userEvent.click(screen.getByTestId(getTestId('create-filter')));
+  // select filter
+  userEvent.click(screen.getByText('Select filter'));
+  userEvent.click(screen.getByText('Time filter'));
+  userEvent.type(screen.getByTestId(getModalTestId('name-input')), FILTER_NAME);
+  userEvent.click(screen.getByText('Save'));
+};
+
 describe('FilterBar', () => {
-  const getTestId = testWithId(FILTER_BAR_TEST_ID, true);
-  const getModalTestId = testWithId(FILTERS_CONFIG_MODAL_TEST_ID, true);
   const toggleFiltersBar = jest.fn();
   const closedBarProps = {
     filtersOpen: false,
@@ -70,25 +83,9 @@ describe('FilterBar', () => {
     nativeFilters: { filters: {}, filterSets: {} },
   };
 
-  const FILTER_NAME = 'Time filter 1';
-  const FILTER_SET_NAME = 'New filter set';
-
-  const addFilterFlow = () => {
-    // open filter config modal
-    userEvent.click(screen.getByTestId(getTestId('collapsable')));
-    userEvent.click(screen.getByTestId(getTestId('create-filter')));
-    // select filter
-    userEvent.click(screen.getByText('Select filter'));
-    userEvent.click(screen.getByText('Time filter'));
-    userEvent.type(
-      screen.getByTestId(getModalTestId('name-input')),
-      FILTER_NAME,
-    );
-    userEvent.click(screen.getByText('Save'));
-  };
-
   new MainPreset().register();
   beforeEach(() => {
+    toggleFiltersBar.mockClear();
     // @ts-ignore
     mockCore.makeApi = jest.fn(() => async data => {
       const json = JSON.parse(data.json_metadata);
@@ -150,55 +147,47 @@ describe('FilterBar', () => {
       </Provider>,
     );
 
-  test('should render', () => {
-    const mockedProps = createProps();
-    const { container } = render(setup(mockedProps));
+  it('should render', () => {
+    const { container } = renderWrapper();
     expect(container).toBeInTheDocument();
   });
 
-  test('should render the "Filters" heading', () => {
-    const mockedProps = createProps();
-    render(setup(mockedProps));
+  it('should render the "Filters" heading', () => {
+    renderWrapper();
     expect(screen.getByText('Filters')).toBeInTheDocument();
   });
 
-  test('should render the "Clear all" option', () => {
-    const mockedProps = createProps();
-    render(setup(mockedProps));
+  it('should render the "Clear all" option', () => {
+    renderWrapper();
     expect(screen.getByText('Clear all')).toBeInTheDocument();
   });
 
-  test('should render the "Apply" option', () => {
-    const mockedProps = createProps();
-    render(setup(mockedProps));
+  it('should render the "Apply" option', () => {
+    renderWrapper();
     expect(screen.getByText('Apply')).toBeInTheDocument();
   });
 
-  test('should render the collapse icon', () => {
-    const mockedProps = createProps();
-    render(setup(mockedProps));
+  it('should render the collapse icon', () => {
+    renderWrapper();
     expect(screen.getByRole('img', { name: 'collapse' })).toBeInTheDocument();
   });
 
-  test('should render the filter icon', () => {
-    const mockedProps = createProps();
-    render(setup(mockedProps));
+  it('should render the filter icon', () => {
+    renderWrapper();
     expect(screen.getByRole('img', { name: 'filter' })).toBeInTheDocument();
   });
 
-  test('should render the filter control name', () => {
-    const mockedProps = createProps();
-    render(setup(mockedProps));
+  it('should render the filter control name', () => {
+    renderWrapper();
     expect(screen.getByText('test')).toBeInTheDocument();
   });
 
-  test('should toggle', () => {
-    const mockedProps = createProps();
-    render(setup(mockedProps));
+  it('should toggle', () => {
+    renderWrapper();
     const collapse = screen.getByRole('img', { name: 'collapse' });
-    expect(mockedProps.toggleFiltersBar).not.toHaveBeenCalled();
+    expect(toggleFiltersBar).not.toHaveBeenCalled();
     userEvent.click(collapse);
-    expect(mockedProps.toggleFiltersBar).toHaveBeenCalled();
+    expect(toggleFiltersBar).toHaveBeenCalled();
   });
 
   it('open filter bar', () => {

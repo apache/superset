@@ -29,7 +29,7 @@ import { Filter } from '../../types';
 import { useFilters, useDataMask, useFilterSets } from '../state';
 import Footer from './Footer';
 import FilterSetUnit from './FilterSetUnit';
-import { getFilterBarTestId } from '../FilterBar';
+import { getFilterBarTestId } from '..';
 
 const FilterSetsWrapper = styled.div`
   display: grid;

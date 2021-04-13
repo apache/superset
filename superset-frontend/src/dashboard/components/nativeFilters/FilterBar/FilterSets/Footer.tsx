@@ -22,7 +22,7 @@ import Button from 'src/components/Button';
 import { Tooltip } from 'src/common/components/Tooltip';
 import { APPLY_FILTERS_HINT } from './utils';
 import { useFilterSetNameDuplicated } from './state';
-import { getFilterBarTestId } from '../FilterBar';
+import { getFilterBarTestId } from '..';
 
 export type FooterProps = {
   filterSetName: string;

@@ -23,7 +23,7 @@ import Button from 'src/components/Button';
 import { styled } from '@superset-ui/core';
 import { FilterConfiguration } from 'src/dashboard/components/nativeFilters/types';
 import { FiltersConfigModal } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
-import { getFilterBarTestId } from './FilterBar';
+import { getFilterBarTestId } from '..';
 
 export interface FCBProps {
   createNewOnOpen?: boolean;

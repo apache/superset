@@ -27,7 +27,7 @@ import { DataMaskUnit, DataMaskUnitWithId } from 'src/dataMask/types';
 import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
-import { getFilterBarTestId } from './FilterBar';
+import { getFilterBarTestId } from '..';
 
 const TitleArea = styled.h4`
   display: flex;
