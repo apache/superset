@@ -57,6 +57,7 @@ export { RadioChangeEvent } from 'antd/lib/radio';
 export { TreeProps } from 'antd/lib/tree';
 export { default as Alert, AlertProps } from 'antd/lib/alert';
 export { default as Select, SelectProps } from 'antd/lib/select';
+export { default as List, ListItemProps } from 'antd/lib/list';
 
 export { default as Collapse } from './Collapse';
 export { default as Badge } from 'src/components/Badge';

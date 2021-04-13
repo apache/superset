@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ListGroup, ListGroupItem } from 'react-bootstrap';
+import { List } from 'src/common/components';
 import { connect } from 'react-redux';
 import { t, withTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
@@ -26,6 +26,7 @@ import Popover from 'src/components/Popover';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { runAnnotationQuery } from 'src/chart/chartAction';
+import CustomListItem from 'src/explore/components/controls/CustomListItem';
 
 const AnnotationLayer = AsyncEsmComponent(
   () => import('./AnnotationLayer'),
@@ -164,6 +165,12 @@ class AnnotationLayerControl extends React.PureComponent {
         trigger="click"
         placement="right"
         title={t('Edit annotation layer')}
+        css={theme => ({
+          '&:hover': {
+            cursor: 'pointer',
+            backgroundColor: theme.colors.grayscale.light4,
+          },
+        })}
         content={this.renderPopover(
           i,
           anno,
@@ -172,17 +179,17 @@ class AnnotationLayerControl extends React.PureComponent {
         visible={this.state.popoverVisible[i]}
         onVisibleChange={visible => this.handleVisibleChange(visible, i)}
       >
-        <ListGroupItem>
+        <CustomListItem selectable>
           <span>{anno.name}</span>
           <span style={{ float: 'right' }}>{this.renderInfo(anno)}</span>
-        </ListGroupItem>
+        </CustomListItem>
       </Popover>
     ));
 
     const addLayerPopoverKey = 'add';
     return (
       <div>
-        <ListGroup>
+        <List bordered css={theme => ({ borderRadius: theme.gridUnit })}>
           {annotations}
           <Popover
             trigger="click"
@@ -195,15 +202,15 @@ class AnnotationLayerControl extends React.PureComponent {
               this.handleVisibleChange(visible, addLayerPopoverKey)
             }
           >
-            <ListGroupItem>
+            <CustomListItem selectable>
               <i
                 data-test="add-annotation-layer-button"
                 className="fa fa-plus"
               />{' '}
               &nbsp; {t('Add annotation layer')}
-            </ListGroupItem>
+            </CustomListItem>
           </Popover>
-        </ListGroup>
+        </List>
       </div>
     );
   }

@@ -29,7 +29,7 @@ describe('Annotations', () => {
 
     const layerLabel = 'Goal line';
 
-    cy.get('[data-test=annotation_layers] button').click();
+    cy.get('[data-test=annotation_layers]').click();
 
     cy.get('[data-test="popover-content"]').within(() => {
       cy.get('[data-test=annotation-layer-name-header]')
