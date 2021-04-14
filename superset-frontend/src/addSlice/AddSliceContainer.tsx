@@ -42,7 +42,7 @@ export type AddSliceContainerState = {
 const styleSelectContainer = { width: 600, marginBottom: '10px' };
 const StyledContainer = styled.div`
   border-radius: ${({ theme }) => theme.gridUnit}px;
-  background-color: white;
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
   padding: ${({ theme }) => theme.gridUnit * 6}px;
   h3 {
     padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;
