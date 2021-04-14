@@ -18,8 +18,8 @@
  */
 import React, { FunctionComponent, useState, useEffect } from 'react';
 import cx from 'classnames';
-import { t } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
+import { t, supersetTheme } from '@superset-ui/core';
 import {
   useSingleViewResource,
   testDatabaseConnection,
@@ -267,7 +267,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         activeKey={tabKey}
         onTabClick={tabChange}
       >
-        <StyledRequiredTab tab={<span>{t('Required')}</span>} key="1">
+        <StyledRequiredTab tab={<span>{t('Basic')}</span>} key="1">
           <StyledInputContainer>
             <div className="control-label">
               {t('Display Name')}
@@ -315,7 +315,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               {t(' for more information on how to structure your URI.')}
             </div>
           </StyledInputContainer>
-          <Button onClick={testConnection} cta>
+          <Button
+            onClick={testConnection}
+            cta
+            buttonStyle="link"
+            style={{
+              width: '100%',
+              border: `1px solid ${supersetTheme.colors.primary.base}`,
+            }}
+          >
             {t('Test connection')}
           </Button>
         </StyledRequiredTab>

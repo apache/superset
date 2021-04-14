@@ -1,4 +1,0 @@
-DATABASE_MODAL:
-  SQLALCHEMY_DOCS_URL: "www.preset.io/documentation"
-  SQLALCHEMY_DISPLAY_TEXT: "contact us for more information"
-  test: "alert('test')"
