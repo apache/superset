@@ -55,6 +55,7 @@ const createProps = () => ({
   updateCss: jest.fn(),
   userCanEdit: false,
   userCanSave: false,
+  userCanShare: false,
   lastModifiedTime: 0,
 });
 const editModeOnProps = {
@@ -107,9 +108,7 @@ test('should render the menu items', async () => {
   const mockedProps = createProps();
   render(setup(mockedProps));
   await openDropdown();
-  expect(screen.getAllByRole('menuitem')).toHaveLength(6);
-  expect(screen.getByText('Copy dashboard URL')).toBeInTheDocument();
-  expect(screen.getByText('Share dashboard by email')).toBeInTheDocument();
+  expect(screen.getAllByRole('menuitem')).toHaveLength(4);
   expect(screen.getByText('Refresh dashboard')).toBeInTheDocument();
   expect(screen.getByText('Set auto-refresh interval')).toBeInTheDocument();
   expect(screen.getByText('Download as image')).toBeInTheDocument();
@@ -119,14 +118,24 @@ test('should render the menu items', async () => {
 test('should render the menu items in edit mode', async () => {
   render(setup(editModeOnProps));
   await openDropdown();
-  expect(screen.getAllByRole('menuitem')).toHaveLength(7);
-  expect(screen.getByText('Copy dashboard URL')).toBeInTheDocument();
-  expect(screen.getByText('Share dashboard by email')).toBeInTheDocument();
+  expect(screen.getAllByRole('menuitem')).toHaveLength(5);
   expect(screen.getByText('Refresh dashboard')).toBeInTheDocument();
   expect(screen.getByText('Set auto-refresh interval')).toBeInTheDocument();
   expect(screen.getByText('Set filter mapping')).toBeInTheDocument();
   expect(screen.getByText('Edit dashboard properties')).toBeInTheDocument();
   expect(screen.getByText('Edit CSS')).toBeInTheDocument();
+});
+
+test('should show the share actions', async () => {
+  const mockedProps = createProps();
+  const canShareProps = {
+    ...mockedProps,
+    userCanShare: true,
+  };
+  render(setup(canShareProps));
+  await openDropdown();
+  expect(screen.getByText('Copy dashboard URL')).toBeInTheDocument();
+  expect(screen.getByText('Share dashboard by email')).toBeInTheDocument();
 });
 
 test('should render the "Save Modal" when user can save', async () => {

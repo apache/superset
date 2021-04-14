@@ -31,6 +31,7 @@ const createProps = () => ({
     id: 1,
     dash_edit_perm: false,
     dash_save_perm: false,
+    dash_share_perm: false,
     userId: 1,
     metadata: {},
     common: {
