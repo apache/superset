@@ -77,6 +77,13 @@ const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
+const StyledNavbarRight = styled.div`
+  .navbar-right {
+    display: flex;
+    align-items: center;
+  }
+`;
+
 type Dataset = {
   changed_by_name: string;
   changed_by_url: string;
@@ -552,7 +559,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   return (
     <>
-      <SubMenu {...menuData} />
+      <StyledNavbarRight>
+        <SubMenu {...menuData} />
+      </StyledNavbarRight>
       <AddDatasetModal
         show={datasetAddModalOpen}
         onHide={() => setDatasetAddModalOpen(false)}

@@ -67,6 +67,13 @@ const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
+const StyledNavbarRight = styled.div`
+  .navbar-right {
+    display: flex;
+    align-items: center;
+  }
+`;
+
 function BooleanDisplay({ value }: { value: Boolean }) {
   return value ? <IconCheck /> : <IconCancelX />;
 }
@@ -404,7 +411,9 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
 
   return (
     <>
-      <SubMenu {...menuData} />
+      <StyledNavbarRight>
+        <SubMenu {...menuData} />
+      </StyledNavbarRight>
       <DatabaseModal
         database={currentDatabase}
         show={databaseModalOpen}
