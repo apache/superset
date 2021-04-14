@@ -19,7 +19,7 @@
 import React from 'react';
 import { Row, Col } from 'src/common/components';
 import { Panel } from 'react-bootstrap';
-import Tabs from 'src/common/components/Tabs';
+import Tabs from 'src/components/Tabs';
 import { t } from '@superset-ui/core';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Favorites from './Favorites';
