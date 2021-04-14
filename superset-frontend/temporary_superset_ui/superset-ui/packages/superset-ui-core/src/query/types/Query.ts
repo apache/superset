@@ -19,11 +19,12 @@
  */
 import { DatasourceType } from './Datasource';
 import { BinaryOperator, SetOperator, UnaryOperator } from './Operator';
-import { AppliedTimeExtras, TimeRange } from './Time';
+import { AppliedTimeExtras, TimeRange, TimeRangeEndpoints } from './Time';
 import { AnnotationLayer } from './AnnotationLayer';
 import { QueryFields, QueryFormMetric } from './QueryFormData';
 import { Maybe } from '../../types';
 import { PostProcessingRule } from './PostProcessing';
+import { JsonObject } from '../../connection';
 
 export type QueryObjectFilterClause = {
   col: string;
@@ -50,7 +51,7 @@ export type QueryObjectExtras = Partial<{
   relative_start?: string;
   relative_end?: string;
   time_grain_sqla?: string;
-  time_range_endpoints?: string[];
+  time_range_endpoints?: TimeRangeEndpoints;
   /** WHERE condition */
   where?: string;
 }>;
@@ -128,7 +129,7 @@ export interface QueryObject extends QueryFields, TimeRange, ResidualQueryObject
 
   url_params?: Record<string, string>;
 
-  custom_params?: Record<string, string>;
+  custom_params?: JsonObject;
 
   /** Free-form WHERE SQL: multiple clauses are concatenated by AND */
   where?: string;
@@ -146,7 +147,6 @@ export interface QueryContext {
   /** Response format */
   result_format: string;
   queries: QueryObject[];
-  extra_jwt?: string;
 }
 
 export default {};

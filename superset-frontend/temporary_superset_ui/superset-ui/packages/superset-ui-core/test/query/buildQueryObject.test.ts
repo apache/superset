@@ -25,6 +25,7 @@ import {
   buildQueryObject,
   QueryObject,
 } from '../../src/query';
+import { JsonObject } from '../../lib';
 
 describe('buildQueryObject', () => {
   let query: QueryObject;
@@ -75,15 +76,13 @@ describe('buildQueryObject', () => {
       ],
       where: 'a = b',
       extra_form_data: {
-        append_form_data: {
-          adhoc_filters: [
-            {
-              expressionType: 'SQL',
-              clause: 'WHERE',
-              sqlExpression: '(1 = 1)',
-            },
-          ],
-        },
+        adhoc_filters: [
+          {
+            expressionType: 'SQL',
+            clause: 'WHERE',
+            sqlExpression: '(1 = 1)',
+          },
+        ],
       },
     });
     expect(query.filters).toEqual([
@@ -255,7 +254,7 @@ describe('buildQueryObject', () => {
   });
 
   it('should populate custom_params', () => {
-    const customParams = { customObject: { id: 137, name: 'C-137' } };
+    const customParams: JsonObject = { customObject: { id: 137, name: 'C-137' } };
     query = buildQueryObject({
       datasource: '5__table',
       granularity_sqla: 'ds',

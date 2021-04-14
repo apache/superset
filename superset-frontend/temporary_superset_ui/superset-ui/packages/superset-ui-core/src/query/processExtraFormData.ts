@@ -16,39 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryObject, QueryObjectExtras, SqlaFormData } from './types';
-
-const ALLOWED_OVERRIDES: Record<keyof SqlaFormData, keyof QueryObject> = {
-  granularity: 'granularity',
-  granularity_sqla: 'granularity',
-  time_column: 'time_column',
-  time_grain: 'time_grain',
-  time_range: 'time_range',
-};
-const ALLOWED_EXTRAS_OVERRIDES: (keyof QueryObjectExtras)[] = [
-  'druid_time_origin',
-  'relative_start',
-  'relative_end',
-  'time_grain_sqla',
-  'time_range_endpoints',
-];
+import { ExtraFormDataOverride, QueryObject } from './types';
+import {
+  EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
+  EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
+} from './constants';
 
 export function overrideExtraFormData(
   queryObject: QueryObject,
-  overrideFormData: Partial<QueryObject>,
+  overrideFormData: ExtraFormDataOverride,
 ): QueryObject {
   const overriddenFormData: QueryObject = { ...queryObject };
   const { extras: overriddenExtras = {} } = overriddenFormData;
-  Object.entries(ALLOWED_OVERRIDES).forEach(([key, target]) => {
-    if (key in overrideFormData) {
-      overriddenFormData[target] = overrideFormData[key];
+  Object.entries(EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS).forEach(([key, target]) => {
+    const value = overrideFormData[key as keyof ExtraFormDataOverride];
+    if (value !== undefined) {
+      overriddenFormData[target] = value;
     }
   });
-  const { extras: overrideExtras = {} } = overrideFormData;
-  ALLOWED_EXTRAS_OVERRIDES.forEach(key => {
-    if (key in overrideExtras) {
+  EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS.forEach(key => {
+    if (key in overrideFormData) {
       // @ts-ignore
-      overriddenExtras[key] = overrideExtras[key];
+      overriddenExtras[key] = overrideFormData[key];
     }
   });
   if (Object.keys(overriddenExtras).length > 0) {

@@ -25,7 +25,7 @@ import { AdhocMetric, SavedMetric } from './Metric';
 import { AdhocFilter } from './Filter';
 import { BinaryOperator, SetOperator } from './Operator';
 import { AnnotationLayer } from './AnnotationLayer';
-import { QueryObject } from './Query';
+import { QueryObject, QueryObjectExtras, QueryObjectFilterClause } from './Query';
 import { TimeRange, TimeRangeEndpoints } from './Time';
 import { TimeGranularity } from '../../time-format';
 import { JsonObject } from '../../connection';
@@ -60,7 +60,7 @@ export enum QueryMode {
  * Query form fields related to SQL query and data outputs.
  */
 export interface QueryFields {
-  columns: QueryFormColumn[];
+  columns?: QueryFormColumn[];
   metrics?: QueryFormMetric[];
   orderby?: QueryFormOrderBy[];
 }
@@ -98,14 +98,40 @@ export type QueryFormExtraFilter = {
     }
 );
 
-export type ExtraFormData = {
-  /** params that will be passed to buildQuery and will be appended to request params */
-  append_form_data?: Partial<QueryObject>;
-  /** params that will be passed to buildQuery and will override request params with same name */
-  override_form_data?: Partial<QueryObject>;
-  /** custom params that will be passed to buildQuery and can be used for request customization */
+/** These properties will be appended to those pre-existing in the form data/query object */
+export type ExtraFormDataAppend = {
+  adhoc_filters?: AdhocFilter[];
+  filters?: QueryObjectFilterClause[];
+  /** These properties are for dynamic cross chart interaction */
+  interactive_drilldown?: string[];
+  interactive_groupby?: string[];
+  interactive_highlight?: string[];
+  /** This property can be used to pass non-standard form data between viz components */
   custom_form_data?: JsonObject;
 };
+
+/** These parameters override properties in the extras parameter in the form data/query object.
+ * Not all keys of QueryObjectExtras are supported here to ensure that freeform where and having
+ * filter clauses can't be overridden */
+export type ExtraFormDataOverrideExtras = Pick<
+  QueryObjectExtras,
+  | 'druid_time_origin'
+  | 'relative_start'
+  | 'relative_end'
+  | 'time_grain_sqla'
+  | 'time_range_endpoints'
+>;
+
+/** These parameters override those already present in the form data/query object */
+export type ExtraFormDataOverrideRegular = Partial<Pick<SqlaFormData, 'granularity_sqla'>> &
+  Partial<Pick<DruidFormData, 'granularity'>> &
+  Partial<Pick<BaseFormData, 'time_range'>> &
+  Partial<Pick<QueryObject, 'time_column' | 'time_grain'>>;
+
+/** These parameters override those already present in the form data/query object */
+export type ExtraFormDataOverride = ExtraFormDataOverrideRegular & ExtraFormDataOverrideExtras;
+
+export type ExtraFormData = ExtraFormDataAppend & ExtraFormDataOverride;
 
 // Type signature for formData shared by all viz types
 // It will be gradually filled out as we build out the query object
@@ -131,6 +157,7 @@ export interface BaseFormData extends TimeRange, FormDataResidual {
   /** list of filters */
   adhoc_filters?: AdhocFilter[] | null;
   extra_filters?: QueryFormExtraFilter[] | null;
+  extra_form_data?: ExtraFormData;
   /** order descending */
   order_desc?: boolean;
   /** limit number of time series */
@@ -149,7 +176,6 @@ export interface BaseFormData extends TimeRange, FormDataResidual {
   annotation_layers?: AnnotationLayer[];
   url_params?: Record<string, string>;
   custom_params?: Record<string, string>;
-  extra_jwt?: string;
 }
 
 /**
