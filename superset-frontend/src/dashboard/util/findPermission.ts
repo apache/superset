@@ -20,12 +20,11 @@ import memoizeOne from 'memoize-one';
 
 type UserRoles = Record<string, [string, string][]>;
 
-function findPermissions(perm: string, view: string, roles: UserRoles) {
-  return !!Object.values(roles).some(permissions =>
-    permissions.some(([perm_, view_]) => perm_ === perm && view_ === view),
-  );
-}
+const findPermission = memoizeOne(
+  (perm: string, view: string, roles: UserRoles) =>
+    Object.values(roles).some(permissions =>
+      permissions.some(([perm_, view_]) => perm_ === perm && view_ === view),
+    ),
+);
 
-const getPermissions = memoizeOne(findPermissions);
-
-export default getPermissions;
+export default findPermission;
