@@ -1,6 +1,6 @@
 import 'whatwg-fetch';
 import fetchRetry from 'fetch-retry';
-import { CallApi, Payload, JsonValue } from '../types';
+import { CallApi, Payload, JsonValue, JsonObject } from '../types';
 import { CACHE_AVAILABLE, CACHE_KEY, HTTP_STATUS_NOT_MODIFIED, HTTP_STATUS_OK } from '../constants';
 
 function tryParsePayload(payload: Payload) {
@@ -108,7 +108,7 @@ export default async function callApi({
         // not e.g., 'application/x-www-form-urlencoded'
         const formData: FormData = new FormData();
         Object.keys(payload).forEach(key => {
-          const value = payload[key] as JsonValue;
+          const value = (payload as JsonObject)[key] as JsonValue;
           if (typeof value !== 'undefined') {
             formData.append(key, stringify ? JSON.stringify(value) : String(value));
           }
