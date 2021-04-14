@@ -86,6 +86,13 @@ const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
+const StyledNavbarRight = styled.div`
+  .navbar-right {
+    display: flex;
+    align-items: center;
+  }
+`;
+
 function DashboardList(props: DashboardListProps) {
   const { addDangerToast, addSuccessToast } = props;
 
@@ -499,7 +506,9 @@ function DashboardList(props: DashboardListProps) {
   }
   return (
     <>
-      <SubMenu name={t('Dashboards')} buttons={subMenuButtons} />
+      <StyledNavbarRight>
+        <SubMenu name={t('Dashboards')} buttons={subMenuButtons} />
+      </StyledNavbarRight>
       <ConfirmStatusChange
         title={t('Please confirm')}
         description={t(
