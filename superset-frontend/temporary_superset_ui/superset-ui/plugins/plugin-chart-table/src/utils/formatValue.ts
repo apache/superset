@@ -27,6 +27,7 @@ const xss = new FilterXSS({
     div: ['style', 'class'],
     a: ['style', 'class', 'href', 'title', 'target'],
     img: ['style', 'class', 'src', 'alt', 'title', 'width', 'height'],
+    video: ['autoplay', 'controls', 'loop', 'preload', 'src', 'height', 'width', 'muted'],
   },
   stripIgnoreTag: true,
   css: false,
