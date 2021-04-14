@@ -81,6 +81,7 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
       filterSet &&
       !areObjectsEqual(filters[id], filterSet?.nativeFilters?.[id]);
     const removedFilter = !Object.keys(filters).includes(id);
+    console.log(changedFilter, filters[id], filterSet?.nativeFilters?.[id]);
 
     return (
       <Tooltip

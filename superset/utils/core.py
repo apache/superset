@@ -86,6 +86,11 @@ from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
 from typing_extensions import TypedDict
 
 import _thread  # pylint: disable=C0411
+from superset.constants import (
+    EXTRA_FORM_DATA_APPEND_KEYS,
+    EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
+    EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
+)
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import (
     CertificateException,
@@ -1061,35 +1066,12 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
     Merge extra form data (appends and overrides) into the main payload
     and add applied time extras to the payload.
     """
-    allowed_append_keys = [
-        # these are appended separately to mark them as 'isExtra'
-        # 'adhoc_filters',
-        # 'filters',
-        "interactive_groupby",
-        "interactive_highlight",
-        "interactive_drilldown",
-        "custom_form_data",
-    ]
-    allowed_override_regular_mappings = {
-        "granularity": "granularity",
-        "granularity_sqla": "granularity",
-        "time_column": "time_column",
-        "time_grain": "time_grain",
-        "time_range": "time_range",
-    }
-    allowed_override_extra_keys = [
-        "druid_time_origin",
-        "relative_start",
-        "relative_end",
-        "time_grain_sqla",
-        "time_range_endpoints",
-    ]
-
+    filter_keys = ["filters", "adhoc_filters"]
     extra_form_data = form_data.pop("extra_form_data", {})
     append_filters = extra_form_data.get("filters", None)
 
     # merge append extras
-    for key in allowed_append_keys:
+    for key in [key for key in EXTRA_FORM_DATA_APPEND_KEYS if key not in filter_keys]:
         extra_value = getattr(extra_form_data, key, {})
         form_value = getattr(form_data, key, {})
         form_value.update(extra_value)
@@ -1097,14 +1079,14 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
             form_data["key"] = extra_value
 
     # map regular extras that apply to form data properties
-    for src_key, target_key in allowed_override_regular_mappings.items():
+    for src_key, target_key in EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.items():
         value = extra_form_data.get(src_key)
         if value is not None:
             form_data[target_key] = value
 
     # map extras that apply to form data extra properties
     extras = form_data.get("extras", {})
-    for key in allowed_override_extra_keys:
+    for key in EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS:
         value = extra_form_data.get(key)
         extra = extras.get(key)
         if value and extra:

@@ -17,16 +17,17 @@
 """migrate filter sets to new format
 
 Revision ID: fc3a3a8ff221
-Revises: 134cea61c5e7
+Revises: 085f06488938
 Create Date: 2021-04-12 12:38:03.913514
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "fc3a3a8ff221"
-down_revision = "134cea61c5e7"
+down_revision = "085f06488938"
 
 import json
+from typing import Any, Dict, List
 
 from alembic import op
 from sqlalchemy import Column, Integer, Text
@@ -45,6 +46,15 @@ class Dashboard(Base):
     json_metadata = Column(Text)
 
 
+def _migrate_select_filter(native_filters: List[Dict[str, Any]]) -> None:
+    for _, native_filter in native_filters.items():
+        filter_type = native_filter.get("filterType")
+        if filter_type == "filter_select":
+            control_values = native_filter.get("controlValues", {})
+            value = control_values.get("defaultToFirstItem", False)
+            control_values["defaultToFirstItem"] = value
+
+
 def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
@@ -58,9 +68,18 @@ def upgrade():
     for dashboard in dashboards:
         try:
             json_metadata = json.loads(dashboard.json_metadata)
+
+            # upgrade native select filter metadata
+            native_filters = json_metadata.get("native_filter_configuration", {})
+            _migrate_select_filter(native_filters)
+
             filter_sets = json_metadata.get("filter_sets_configuration", {})
             json_metadata["filter_sets_configuration"] = filter_sets
             for filter_set in filter_sets:
+                # first migrate filters that were created prior to first item option
+                _migrate_select_filter(filter_set.get("nativeFilters", []))
+                print()
+                print(filter_set)
                 changed_filter_sets += 1
                 data_mask = filter_set.get("dataMask", {})
                 native_filters = data_mask.pop("nativeFilters", {})
