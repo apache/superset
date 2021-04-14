@@ -17,14 +17,14 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import Header from 'src/dashboard/components/Header';
 import EditableTitle from 'src/components/EditableTitle';
 import FaveStar from 'src/components/FaveStar';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import HeaderActionsDropdown from 'src/dashboard/components/HeaderActionsDropdown';
 import Button from 'src/components/Button';
-import UndoRedoKeylisteners from 'src/dashboard/components/UndoRedoKeylisteners';
+import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 
 describe('Header', () => {
   const props = {
@@ -83,7 +83,7 @@ describe('Header', () => {
   };
 
   function setup(overrideProps) {
-    const wrapper = shallow(<Header {...props} {...overrideProps} />);
+    const wrapper = mount(<Header {...props} {...overrideProps} />);
     return wrapper;
   }
 
@@ -120,7 +120,7 @@ describe('Header', () => {
 
     it('should not set up undo/redo', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(UndoRedoKeylisteners)).not.toExist();
+      expect(wrapper.find(UndoRedoKeyListeners)).not.toExist();
     });
   });
 
@@ -158,7 +158,7 @@ describe('Header', () => {
 
     it('should not set up undo/redo', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(UndoRedoKeylisteners)).not.toExist();
+      expect(wrapper.find(UndoRedoKeyListeners)).not.toExist();
     });
   });
 
@@ -201,7 +201,7 @@ describe('Header', () => {
 
     it('should set up undo/redo', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(UndoRedoKeylisteners)).toExist();
+      expect(wrapper.find(UndoRedoKeyListeners)).toExist();
     });
   });
 
@@ -238,7 +238,7 @@ describe('Header', () => {
 
     it('should not set up undo/redo', () => {
       const wrapper = setup(overrideProps);
-      expect(wrapper.find(UndoRedoKeylisteners)).not.toExist();
+      expect(wrapper.find(UndoRedoKeyListeners)).not.toExist();
     });
   });
 });

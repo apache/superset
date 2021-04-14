@@ -21,6 +21,7 @@ from datetime import datetime, timedelta
 from typing import Any, Callable, cast, Dict, Iterator, Optional, Type, Union
 from unittest.mock import patch
 
+from flask import current_app
 from freezegun import freeze_time
 
 from superset import security_manager
@@ -194,3 +195,38 @@ class TestEventLogger(unittest.TestCase):
                 "duration": 5558756000,
             }
         ]
+
+    @patch("superset.utils.log.g", spec={})
+    def test_log_with_context_user_null(self, mock_g):
+        class DummyEventLogger(AbstractEventLogger):
+            def __init__(self):
+                self.records = []
+
+            def log(
+                self,
+                user_id: Optional[int],
+                action: str,
+                dashboard_id: Optional[int],
+                duration_ms: Optional[int],
+                slice_id: Optional[int],
+                referrer: Optional[str],
+                *args: Any,
+                **kwargs: Any,
+            ):
+                self.records.append(
+                    {**kwargs, "user_id": user_id, "duration": duration_ms}
+                )
+
+        logger = DummyEventLogger()
+
+        with app.test_request_context():
+            mock_g.side_effect = Exception("oops")
+            logger.log_with_context(
+                action="foo",
+                duration=timedelta(days=64, seconds=29156, microseconds=10),
+                object_ref={"baz": "food"},
+                log_to_statsd=False,
+                payload_override={"engine": "sqllite"},
+            )
+
+        assert logger.records[0]["user_id"] == None

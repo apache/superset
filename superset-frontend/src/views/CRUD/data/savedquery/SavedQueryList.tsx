@@ -25,7 +25,7 @@ import {
   createFetchRelated,
   createFetchDistinct,
   createErrorHandler,
-  handleBulkDashboardExport,
+  handleBulkSavedQueryExport,
 } from 'src/views/CRUD/utils';
 import Popover from 'src/components/Popover';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -306,7 +306,7 @@ function SavedQueryList({
           };
           const handleEdit = () => openInSqlLab(original.id);
           const handleCopy = () => copyQueryLink(original.id);
-          const handleExport = () => handleBulkDashboardExport([original]);
+          const handleExport = () => handleBulkSavedQueryExport([original]);
           const handleDelete = () => setQueryCurrentlyDeleting(original);
 
           const actions = [
@@ -454,7 +454,7 @@ function SavedQueryList({
               key: 'export',
               name: t('Export'),
               type: 'primary',
-              onSelect: handleBulkDashboardExport,
+              onSelect: handleBulkSavedQueryExport,
             });
           }
           return (
