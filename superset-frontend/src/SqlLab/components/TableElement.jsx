@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Card from 'src/common/components/Card';
-import Collapse from 'src/common/components/Collapse';
+import Collapse from 'src/components/Collapse';
 import ButtonGroup from 'src/components/ButtonGroup';
 import shortid from 'shortid';
 import { t, styled } from '@superset-ui/core';

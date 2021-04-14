@@ -36,7 +36,7 @@ import {
 } from '@superset-ui/chart-controls';
 
 import Tabs from 'src/common/components/Tabs';
-import Collapse from 'src/common/components/Collapse';
+import Collapse from 'src/components/Collapse';
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
 

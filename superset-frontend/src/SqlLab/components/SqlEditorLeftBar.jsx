@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Button from 'src/components/Button';
 import { t, styled, css } from '@superset-ui/core';
-import Collapse from 'src/common/components/Collapse';
+import Collapse from 'src/components/Collapse';
 import TableElement from './TableElement';
 import TableSelector from '../../components/TableSelector';
 
