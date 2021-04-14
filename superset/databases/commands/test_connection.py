@@ -45,6 +45,8 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
     def run(self) -> None:
         self.validate()
+
+        raise DatabaseTestConnectionUnexpectedError()
         uri = self._properties.get("sqlalchemy_uri", "")
         if self._model and uri == self._model.safe_sqlalchemy_uri():
             uri = self._model.sqlalchemy_uri_decrypted
