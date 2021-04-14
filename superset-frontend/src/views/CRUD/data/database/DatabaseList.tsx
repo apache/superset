@@ -191,7 +191,15 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
 
     if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
       menuData.buttons.push({
-        name: <Icons.Import />,
+        name: (
+          <Tooltip
+            id="import-tooltip"
+            title={t('Import Database')}
+            placement="bottomRight"
+          >
+            <Icons.Import />
+          </Tooltip>
+        ),
         buttonStyle: 'link',
         onClick: openDatabaseImportModal,
       });

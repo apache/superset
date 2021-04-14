@@ -552,7 +552,15 @@ function ChartList(props: ChartListProps) {
   }
   if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
     subMenuButtons.push({
-      name: <Icons.Import />,
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import Chart')}
+          placement="bottomRight"
+        >
+          <Icons.Import />
+        </Tooltip>
+      ),
       buttonStyle: 'link',
       onClick: openChartImportModal,
     });
