@@ -39,6 +39,9 @@ TEST_CONNECTION_HOST_DOWN_REGEX = re.compile(
     r'host "(?P<hostname>.*?)" (\(.*?\) )?and accepting\s+TCP/IP '
     r"connections on port (?P<port>.*?)\?"
 )
+TEST_CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile(
+    'database "(?P<database>.*?)" does not exist'
+)
 
 
 class RedshiftEngineSpec(PostgresBaseEngineSpec):
@@ -65,6 +68,13 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec):
                 "reached on port %(port)s."
             ),
             SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
+        ),
+        TEST_CONNECTION_UNKNOWN_DATABASE_REGEX: (
+            __(
+                'We were unable to connect to your database named "%(database)s".'
+                " Please verify your database name and try again."
+            ),
+            SupersetErrorType.TEST_CONNECTION_UNKNOWN_DATABASE_ERROR,
         ),
     }
 

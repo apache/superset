@@ -124,7 +124,8 @@ class MySQLEngineSpec(BaseEngineSpec):
         ),
         TEST_CONNECTION_UNKNOWN_DATABASE_REGEX: (
             __(
-                'We were unable to connect to your database named "%(database)s". Please verify your database name and try again.'
+                'We were unable to connect to your database named "%(database)s". '
+                "Please verify your database name and try again."
             ),
             SupersetErrorType.TEST_CONNECTION_UNKNOWN_DATABASE_ERROR,
         ),
