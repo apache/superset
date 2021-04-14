@@ -223,7 +223,18 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
                 error_type=SupersetErrorType.TEST_CONNECTION_INVALID_USERNAME_ERROR,
                 message='The username "testuser" does not exist.',
                 level=ErrorLevel.ERROR,
-                extra={"engine_name": "PostgreSQL"},
+                extra={
+                    "engine_name": "PostgreSQL",
+                    "issue_codes": [
+                        {
+                            "code": 1012,
+                            "message": (
+                                "Issue 1012 - The username provided when "
+                                "connecting to a database is not valid."
+                            ),
+                        },
+                    ],
+                },
             )
         ]
 
@@ -234,7 +245,15 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
                 error_type=SupersetErrorType.TEST_CONNECTION_INVALID_HOSTNAME_ERROR,
                 message='The hostname "locahost" cannot be resolved.',
                 level=ErrorLevel.ERROR,
-                extra={"engine_name": "PostgreSQL"},
+                extra={
+                    "engine_name": "PostgreSQL",
+                    "issue_codes": [
+                        {
+                            "code": 1007,
+                            "message": "Issue 1007 - The hostname provided can't be resolved.",
+                        }
+                    ],
+                },
             )
         ]
 
@@ -252,9 +271,14 @@ could not connect to server: Connection refused
         assert result == [
             SupersetError(
                 error_type=SupersetErrorType.TEST_CONNECTION_PORT_CLOSED_ERROR,
-                message="Port 12345 on hostname localhost refused the connection.",
+                message='Port 12345 on hostname "localhost" refused the connection.',
                 level=ErrorLevel.ERROR,
-                extra={"engine_name": "PostgreSQL"},
+                extra={
+                    "engine_name": "PostgreSQL",
+                    "issue_codes": [
+                        {"code": 1008, "message": "Issue 1008 - The port is closed."}
+                    ],
+                },
             )
         ]
 
@@ -270,11 +294,19 @@ psql: error: could not connect to server: Operation timed out
             SupersetError(
                 error_type=SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
                 message=(
-                    "The host example.com might be down, "
-                    "and can't be reached on port 12345"
+                    'The host "example.com" might be down, '
+                    "and can't be reached on port 12345."
                 ),
                 level=ErrorLevel.ERROR,
-                extra={"engine_name": "PostgreSQL"},
+                extra={
+                    "engine_name": "PostgreSQL",
+                    "issue_codes": [
+                        {
+                            "code": 1009,
+                            "message": "Issue 1009 - The host might be down, and can't be reached on the provided port.",
+                        }
+                    ],
+                },
             )
         ]
 
@@ -291,11 +323,19 @@ psql: error: could not connect to server: Operation timed out
             SupersetError(
                 error_type=SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
                 message=(
-                    "The host 93.184.216.34 might be down, "
-                    "and can't be reached on port 12345"
+                    'The host "93.184.216.34" might be down, '
+                    "and can't be reached on port 12345."
                 ),
                 level=ErrorLevel.ERROR,
-                extra={"engine_name": "PostgreSQL"},
+                extra={
+                    "engine_name": "PostgreSQL",
+                    "issue_codes": [
+                        {
+                            "code": 1009,
+                            "message": "Issue 1009 - The host might be down, and can't be reached on the provided port.",
+                        }
+                    ],
+                },
             )
         ]
 
@@ -306,6 +346,17 @@ psql: error: could not connect to server: Operation timed out
                 error_type=SupersetErrorType.TEST_CONNECTION_INVALID_PASSWORD_ERROR,
                 message=('The password provided for username "postgres" is incorrect.'),
                 level=ErrorLevel.ERROR,
-                extra={"engine_name": "PostgreSQL"},
+                extra={
+                    "engine_name": "PostgreSQL",
+                    "issue_codes": [
+                        {
+                            "code": 1013,
+                            "message": (
+                                "Issue 1013 - The password provided when "
+                                "connecting to a database is not valid."
+                            ),
+                        },
+                    ],
+                },
             )
         ]

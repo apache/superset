@@ -188,6 +188,7 @@ function SavedQueryList({
 
   if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
     subMenuButtons.push({
+<<<<<<< HEAD
       name: (
         <Tooltip
           id="import-tooltip"
@@ -197,6 +198,9 @@ function SavedQueryList({
           <Icons.Import />
         </Tooltip>
       ),
+=======
+      name: <Icons.Import />,
+>>>>>>> 6755083e3adddcb72c7124db5fa2f3100ab13d72
       buttonStyle: 'link',
       onClick: openSavedQueryImportModal,
       'data-test': 'import-button',
