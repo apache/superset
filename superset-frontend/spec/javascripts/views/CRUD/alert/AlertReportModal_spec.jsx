@@ -26,7 +26,7 @@ import AlertReportModal from 'src/views/CRUD/alert/AlertReportModal';
 import Modal from 'src/common/components/Modal';
 import { AsyncSelect, NativeGraySelect as Select } from 'src/components/Select';
 import { Radio } from 'src/common/components/Radio';
-import { Switch } from 'src/common/components/Switch';
+import { Switch } from 'src/components/Switch';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';

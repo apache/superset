@@ -23,7 +23,7 @@ import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 import { styledMount as mount } from 'spec/helpers/theming';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { Switch } from 'src/common/components/Switch';
+import { Switch } from 'src/components/Switch';
 import ListView from 'src/components/ListView';
 import SubMenu from 'src/components/Menu/SubMenu';
 import AlertList from 'src/views/CRUD/alert/AlertList';
