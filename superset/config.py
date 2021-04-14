@@ -181,7 +181,7 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 # Note: the default impl leverages SqlAlchemyUtils' EncryptedType, which defaults
 #  to AES-128 under the covers using the app's SECRET_KEY as key material.
 #
-ENCRYPTED_FIELD_TYPE_ADAPTER = SQLAlchemyUtilsAdapter
+ENCRYPTED_FIELD_TYPE_ADAPTER = SQLAlchemyUtilsAdapter  # pylint: disable=C0103
 
 # The limit of queries fetched for query search
 QUERY_SEARCH_LIMIT = 1000

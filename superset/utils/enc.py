@@ -7,9 +7,6 @@ from sqlalchemy_utils import EncryptedType
 
 
 class AbstractEncryptedFieldAdapter(ABC):
-    def __init__(self) -> None:
-        super().__init__()
-
     @abstractmethod
     def create(
         self,
@@ -29,8 +26,8 @@ class SQLAlchemyUtilsAdapter(AbstractEncryptedFieldAdapter):
     ) -> TypeDecorator:
         if app_config:
             return EncryptedType(*args, app_config["SECRET_KEY"], **kwargs)
-        else:
-            raise Exception("Missing app_config kwarg")
+
+        raise Exception("Missing app_config kwarg")
 
 
 class EncryptedFieldFactory:
@@ -47,5 +44,5 @@ class EncryptedFieldFactory:
     ) -> TypeDecorator:
         if self._concrete_type_adapter:
             return self._concrete_type_adapter.create(self._config, *args, **kwargs)
-        else:
-            raise Exception("App not initialized yet. Please call init_app first")
+
+        raise Exception("App not initialized yet. Please call init_app first")

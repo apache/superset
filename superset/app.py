@@ -76,6 +76,7 @@ class SupersetIndexView(IndexView):
         return redirect("/superset/welcome/")
 
 
+# pylint: disable=R0904
 class SupersetAppInitializer:
     def __init__(self, app: Flask) -> None:
         super().__init__()
