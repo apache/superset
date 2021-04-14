@@ -105,20 +105,28 @@ def create_slice_to_db(
     datasource_id: Optional[int] = None,
     owners: Optional[List[User]] = None,
 ) -> Slice:
-    slice_ = create_slice(datasource_id, name, owners)
+    slice_ = create_slice(datasource_id, name=name, owners=owners)
     insert_model(slice_)
     inserted_slices_ids.append(slice_.id)
     return slice_
 
 
 def create_slice(
-    datasource_id: Optional[int] = None, datasource: Optional[SqlaTable] = None, name: Optional[str] = None, owners: Optional[List[User]] = None
+    datasource_id: Optional[int] = None,
+    datasource: Optional[SqlaTable] = None,
+    name: Optional[str] = None,
+    owners: Optional[List[User]] = None,
 ) -> Slice:
     name = name or random_str()
     owners = owners or []
-    datasource_type = 'table'
+    datasource_type = "table"
     if datasource:
-        return Slice(slice_name=name, table=datasource, owners=owners, datasource_type=datasource_type)
+        return Slice(
+            slice_name=name,
+            table=datasource,
+            owners=owners,
+            datasource_type=datasource_type,
+        )
 
     datasource_id = (
         datasource_id or create_datasource_table_to_db(name=name + "_table").id
@@ -136,7 +144,7 @@ def create_datasource_table_to_db(
     db_id: Optional[int] = None,
     owners: Optional[List[User]] = None,
 ) -> SqlaTable:
-    sqltable = create_datasource_table(name, db_id, owners)
+    sqltable = create_datasource_table(name, db_id, owners=owners)
     insert_model(sqltable)
     inserted_sqltables_ids.append(sqltable.id)
     return sqltable

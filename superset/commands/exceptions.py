@@ -38,7 +38,7 @@ class ObjectNotFoundError(CommandException):
     def __init__(
         self,
         object_type: str,
-        object_id: str = None,
+        object_id: Optional[str] = None,
         exception: Optional[Exception] = None,
     ) -> None:
         super().__init__(

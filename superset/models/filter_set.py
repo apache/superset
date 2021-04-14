@@ -109,7 +109,6 @@ class FilterSet(  # pylint: disable=too-many-instance-attributes
         return qry.all()
 
 
-
 def id_or_slug_filter(id_or_slug: str) -> BinaryExpression:
     if id_or_slug.isdigit():
         return FilterSet.id == int(id_or_slug)

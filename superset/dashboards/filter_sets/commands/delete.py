@@ -48,10 +48,10 @@ class DeleteFilterSetCommand(BaseFilterSetCommand):
         try:
             self.validate_exist_filter_use_cases_set()
         except FilterSetNotFoundError as e:
-            if FilterSetDAO.find_by_id(self._filter_set_id):
+            if FilterSetDAO.find_by_id(self._filter_set_id):  # type: ignore
                 FilterSetForbiddenError(
                     'the filter-set does not related to dashboard "%s"'
-                    % self._dashboard_id
+                    % str(self._dashboard_id)
                 )
             else:
                 raise e

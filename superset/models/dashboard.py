@@ -19,7 +19,7 @@ from __future__ import annotations
 import json
 import logging
 from functools import partial
-from typing import Any, Callable, Dict, List, Set, Union
+from typing import Any, Callable, Collection, Dict, List, Set, Union
 
 import sqlalchemy as sqla
 from flask import g
@@ -166,11 +166,11 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         return f"Dashboard<{self.id or self.slug}>"
 
     @property
-    def filter_sets(self):
+    def filter_sets(self) -> Dict[int, FilterSet]:
         if is_user_admin():
             return self._filter_set
         current_user = g.user.id
-        mapa = {"Dashboard": [], "User": []}
+        mapa: Dict[str, List[Any]] = {"Dashboard": [], "User": []}
         for fs in self._filter_sets:
             mapa[fs.owner_type].append(fs)
         rv = list(
@@ -390,7 +390,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         qry = session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
         return qry.one_or_none()
 
-    def am_i_owner(self):
+    def am_i_owner(self) -> bool:
         if g.user is None or g.user.is_anonymous or not g.user.is_authenticated:
             return False
         else:

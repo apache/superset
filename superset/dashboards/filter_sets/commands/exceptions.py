@@ -29,7 +29,7 @@ from superset.commands.exceptions import (
 
 class FilterSetNotFoundError(ObjectNotFoundError):
     def __init__(
-        self, filterset_id: str = None, exception: Optional[Exception] = None
+        self, filterset_id: Optional[str] = None, exception: Optional[Exception] = None
     ) -> None:
         super().__init__("FilterSet", filterset_id, exception)
 

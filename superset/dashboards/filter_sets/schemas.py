@@ -14,10 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from marshmallow import fields, Schema, ValidationError, post_load
+from typing import Any, Dict
+
+from marshmallow import fields, post_load, Schema, ValidationError
 from marshmallow.validate import Length, OneOf
-from superset.dashboards.filter_sets.consts import USER_OWNER_TYPE, DASHBOARD_OWNER_TYPE, \
-    OWNER_ID_FIELD, OWNER_TYPE_FIELD
+
+from superset.dashboards.filter_sets.consts import (
+    DASHBOARD_OWNER_TYPE,
+    OWNER_ID_FIELD,
+    OWNER_TYPE_FIELD,
+    USER_OWNER_TYPE,
+)
 
 
 class JsonMetadataSchema(Schema):
@@ -26,24 +33,21 @@ class JsonMetadataSchema(Schema):
 
 
 class FilterSetPostSchema(Schema):
-    name = fields.String(
-        required=True,
-        allow_none=False,
-        validate=Length(0, 500),
-    )
-    description = fields.String(
-        allow_none=True,
-        validate=[Length(1, 1000)]
-    )
+    name = fields.String(required=True, allow_none=False, validate=Length(0, 500),)
+    description = fields.String(allow_none=True, validate=[Length(1, 1000)])
     json_metadata = fields.Nested(JsonMetadataSchema, required=True)
 
-    owner_type = fields.String(required=True, validate=OneOf([USER_OWNER_TYPE, DASHBOARD_OWNER_TYPE]))
+    owner_type = fields.String(
+        required=True, validate=OneOf([USER_OWNER_TYPE, DASHBOARD_OWNER_TYPE])
+    )
     owner_id = fields.Int(required=False)
 
     @post_load
-    def validate(self, data, many, **kwargs):
+    def validate(
+        self, data: Dict[str, Any], many: Any, **kwargs: Any
+    ) -> Dict[str, Any]:
         if data[OWNER_TYPE_FIELD] == USER_OWNER_TYPE and OWNER_ID_FIELD not in data:
-            raise ValidationError('owner_id is mandatory when owner_type is User')
+            raise ValidationError("owner_id is mandatory when owner_type is User")
         return data
 
 
@@ -51,12 +55,16 @@ class FilterSetPutSchema(Schema):
     name = fields.String(allow_none=False, validate=Length(0, 500))
     description = fields.String(allow_none=False, validate=[Length(1, 1000)])
     json_metadata = fields.Nested(JsonMetadataSchema, allow_none=False)
-    owner_type = fields.String(allow_none=False, validate=OneOf([USER_OWNER_TYPE, DASHBOARD_OWNER_TYPE]))
+    owner_type = fields.String(
+        allow_none=False, validate=OneOf([USER_OWNER_TYPE, DASHBOARD_OWNER_TYPE])
+    )
 
 
-def validate_pair(first_field, second_field, data):
+def validate_pair(first_field: str, second_field: str, data: Dict[str, Any]) -> None:
     if first_field in data and second_field not in data:
-        raise ValidationError("{} must be included alongside {}".format(first_field, second_field))
+        raise ValidationError(
+            "{} must be included alongside {}".format(first_field, second_field)
+        )
 
 
 class FilterSetMetadataSchema(Schema):
