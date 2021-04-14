@@ -23,7 +23,7 @@ import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { act } from 'react-dom/test-utils';
 import AlertReportModal from 'src/views/CRUD/alert/AlertReportModal';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import { AsyncSelect, NativeGraySelect as Select } from 'src/components/Select';
 import { Radio } from 'src/common/components/Radio';
 import { Switch } from 'src/components/Switch';

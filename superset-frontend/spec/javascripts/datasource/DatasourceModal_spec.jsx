@@ -27,7 +27,7 @@ import sinon from 'sinon';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import DatasourceModal from 'src/datasource/DatasourceModal';
 import DatasourceEditor from 'src/datasource/DatasourceEditor';
 import * as featureFlags from 'src/featureFlags';

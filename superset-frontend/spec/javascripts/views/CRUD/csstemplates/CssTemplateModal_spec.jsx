@@ -22,7 +22,7 @@ import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import CssTemplateModal from 'src/views/CRUD/csstemplates/CssTemplateModal';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { CssEditor } from 'src/components/AsyncAceEditor';
 import { styledMount as mount } from 'spec/helpers/theming';

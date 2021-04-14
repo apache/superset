@@ -22,8 +22,8 @@ import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import Icon from 'src/components/Icon';
-import Modal from 'src/common/components/Modal';
 import { Switch } from 'src/components/Switch';
+import Modal from 'src/components/Modal';
 import { Radio } from 'src/common/components/Radio';
 import { AsyncSelect, NativeGraySelect as Select } from 'src/components/Select';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
