@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import unittest.mock as mock
+from textwrap import dedent
 
 from sqlalchemy import column, table
 from sqlalchemy.dialects import mssql
@@ -24,6 +25,7 @@ from sqlalchemy.types import String, UnicodeText
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils.core import GenericDataType
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
@@ -149,3 +151,154 @@ class TestMssqlEngineSpec(TestDbEngineSpec):
                 original, mssql.dialect()
             )
             self.assertEqual(actual, expected)
+
+    def test_extract_errors(self):
+        """
+        Test that custom error messages are extracted correctly.
+        """
+        msg = dedent(
+            """
+DB-Lib error message 20009, severity 9:
+Unable to connect: Adaptive Server is unavailable or does not exist (locahost)
+            """
+        )
+        result = MssqlEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.TEST_CONNECTION_INVALID_HOSTNAME_ERROR,
+                message='The hostname "locahost" cannot be resolved.',
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Microsoft SQL",
+                    "issue_codes": [
+                        {
+                            "code": 1007,
+                            "message": "Issue 1007 - The hostname provided can't be resolved.",
+                        }
+                    ],
+                },
+            )
+        ]
+
+        msg = dedent(
+            """
+DB-Lib error message 20009, severity 9:
+Unable to connect: Adaptive Server is unavailable or does not exist (localhost)
+Net-Lib error during Connection refused (61)
+DB-Lib error message 20009, severity 9:
+Unable to connect: Adaptive Server is unavailable or does not exist (localhost)
+Net-Lib error during Connection refused (61)
+            """
+        )
+        result = MssqlEngineSpec.extract_errors(
+            Exception(msg), context={"port": 12345, "hostname": "localhost"}
+        )
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.TEST_CONNECTION_PORT_CLOSED_ERROR,
+                message='Port 12345 on hostname "localhost" refused the connection.',
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Microsoft SQL",
+                    "issue_codes": [
+                        {"code": 1008, "message": "Issue 1008 - The port is closed."}
+                    ],
+                },
+            )
+        ]
+
+        msg = dedent(
+            """
+DB-Lib error message 20009, severity 9:
+Unable to connect: Adaptive Server is unavailable or does not exist (example.com)
+Net-Lib error during Operation timed out (60)
+DB-Lib error message 20009, severity 9:
+Unable to connect: Adaptive Server is unavailable or does not exist (example.com)
+Net-Lib error during Operation timed out (60)
+            """
+        )
+        result = MssqlEngineSpec.extract_errors(
+            Exception(msg), context={"port": 12345, "hostname": "example.com"}
+        )
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
+                message=(
+                    'The host "example.com" might be down, '
+                    "and can't be reached on port 12345."
+                ),
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Microsoft SQL",
+                    "issue_codes": [
+                        {
+                            "code": 1009,
+                            "message": "Issue 1009 - The host might be down, and can't be reached on the provided port.",
+                        }
+                    ],
+                },
+            )
+        ]
+
+        msg = dedent(
+            """
+DB-Lib error message 20009, severity 9:
+Unable to connect: Adaptive Server is unavailable or does not exist (93.184.216.34)
+Net-Lib error during Operation timed out (60)
+DB-Lib error message 20009, severity 9:
+Unable to connect: Adaptive Server is unavailable or does not exist (93.184.216.34)
+Net-Lib error during Operation timed out (60)
+            """
+        )
+        result = MssqlEngineSpec.extract_errors(
+            Exception(msg), context={"port": 12345, "hostname": "93.184.216.34"}
+        )
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
+                message=(
+                    'The host "93.184.216.34" might be down, '
+                    "and can't be reached on port 12345."
+                ),
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Microsoft SQL",
+                    "issue_codes": [
+                        {
+                            "code": 1009,
+                            "message": "Issue 1009 - The host might be down, and can't be reached on the provided port.",
+                        }
+                    ],
+                },
+            )
+        ]
+
+        msg = dedent(
+            """
+DB-Lib error message 20018, severity 14:
+General SQL Server error: Check messages from the SQL Server
+DB-Lib error message 20002, severity 9:
+Adaptive Server connection failed (mssqldb.cxiotftzsypc.us-west-2.rds.amazonaws.com)
+DB-Lib error message 20002, severity 9:
+Adaptive Server connection failed (mssqldb.cxiotftzsypc.us-west-2.rds.amazonaws.com)
+            """
+        )
+        result = MssqlEngineSpec.extract_errors(
+            Exception(msg), context={"username": "testuser"}
+        )
+        assert result == [
+            SupersetError(
+                message='Either the username "testuser" or the password is incorrect.',
+                error_type=SupersetErrorType.TEST_CONNECTION_ACCESS_DENIED_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Microsoft SQL",
+                    "issue_codes": [
+                        {
+                            "code": 1014,
+                            "message": "Issue 1014 - Either the username or the password is wrong.",
+                        }
+                    ],
+                },
+            )
+        ]
