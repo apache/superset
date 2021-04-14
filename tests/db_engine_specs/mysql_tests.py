@@ -185,3 +185,22 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
                 },
             )
         ]
+
+        msg = "mysql: Unknown database 'badDB'."
+        result = MySQLEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.TEST_CONNECTION_UNKNOWN_DATABASE_ERROR,
+                message='We were unable to connect to your database named "badDB". Please verify your database name and try again.',
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "MySQL",
+                    "issue_codes": [
+                        {
+                            "code": 10015,
+                            "message": "Issue 1015 - Either the database is spelled incorrectly or does not exist.",
+                        }
+                    ],
+                },
+            )
+        ]
