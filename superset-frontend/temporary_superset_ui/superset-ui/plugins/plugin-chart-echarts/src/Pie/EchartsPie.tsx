@@ -41,24 +41,22 @@ export default function EchartsPie({
 
       setDataMask({
         extraFormData: {
-          append_form_data: {
-            filters:
-              values.length === 0
-                ? []
-                : groupby.map((col, idx) => {
-                    const val = groupbyValues.map(v => v[idx]);
-                    if (val === null || val === undefined)
-                      return {
-                        col,
-                        op: 'IS NULL',
-                      };
+          filters:
+            values.length === 0
+              ? []
+              : groupby.map((col, idx) => {
+                  const val = groupbyValues.map(v => v[idx]);
+                  if (val === null || val === undefined)
                     return {
                       col,
-                      op: 'IN',
-                      val: val as (string | number | boolean)[],
+                      op: 'IS NULL',
                     };
-                  }),
-          },
+                  return {
+                    col,
+                    op: 'IN',
+                    val: val as (string | number | boolean)[],
+                  };
+                }),
         },
         filterState: {
           value: groupbyValues.length ? groupbyValues : null,

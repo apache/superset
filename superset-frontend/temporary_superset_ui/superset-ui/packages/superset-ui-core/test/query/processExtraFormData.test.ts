@@ -70,6 +70,7 @@ describe('overrideExtraFormData', () => {
           time_range: '100 years ago',
         },
         {
+          // @ts-expect-error
           viz_type: 'other custom viz',
         },
       ),
@@ -93,11 +94,7 @@ describe('overrideExtraFormData', () => {
             time_grain_sqla: 'PT1H',
           },
         },
-        {
-          extras: {
-            time_grain_sqla: 'PT2H',
-          },
-        },
+        { time_grain_sqla: 'PT2H' },
       ),
     ).toEqual({
       granularity: 'something',
@@ -120,9 +117,7 @@ describe('overrideExtraFormData', () => {
           time_range: '100 years ago',
         },
         {
-          extras: {
-            time_grain_sqla: 'PT1H',
-          },
+          time_grain_sqla: 'PT1H',
         },
       ),
     ).toEqual({
