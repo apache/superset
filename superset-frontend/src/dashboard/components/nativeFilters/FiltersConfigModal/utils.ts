@@ -141,7 +141,7 @@ export const createHandleSave = (
       }
       return {
         id,
-        controlValues: formInputs.controlValues,
+        controlValues: formInputs.controlValues ?? {},
         name: formInputs.name,
         filterType: formInputs.filterType,
         // for now there will only ever be one target

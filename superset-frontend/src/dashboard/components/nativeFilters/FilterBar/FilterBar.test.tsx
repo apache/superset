@@ -27,6 +27,8 @@ import { testWithId } from 'src/utils/common';
 import { FeatureFlag } from 'src/featureFlags';
 import { Preset } from '@superset-ui/core';
 import { TimeFilterPlugin, SelectFilterPlugin } from 'src/filters/components';
+import { DATE_FILTER_CONTROL_TEST_ID } from 'src/explore/components/controls/DateFilterControl/DateFilterLabel';
+import fetchMock from 'fetch-mock';
 import FilterBar, { FILTER_BAR_TEST_ID } from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 
@@ -47,6 +49,7 @@ class MainPreset extends Preset {
 
 const getTestId = testWithId(FILTER_BAR_TEST_ID, true);
 const getModalTestId = testWithId(FILTERS_CONFIG_MODAL_TEST_ID, true);
+const getDateControlTestId = testWithId(DATE_FILTER_CONTROL_TEST_ID, true);
 
 const FILTER_NAME = 'Time filter 1';
 const FILTER_SET_NAME = 'New filter set';
@@ -86,6 +89,28 @@ describe('FilterBar', () => {
   new MainPreset().register();
   beforeEach(() => {
     toggleFiltersBar.mockClear();
+    fetchMock.get(
+      'http://localhost/api/v1/time_range/?q=%27Last%20day%27',
+      {
+        result: {
+          since: '2021-04-13T00:00:00',
+          until: '2021-04-14T00:00:00',
+          timeRange: 'Last day',
+        },
+      },
+      { overwriteRoutes: true },
+    );
+    fetchMock.get(
+      'http://localhost/api/v1/time_range/?q=%27Last%20week%27',
+      {
+        result: {
+          since: '2021-04-07T00:00:00',
+          until: '2021-04-14T00:00:00',
+          timeRange: 'Last week',
+        },
+      },
+      { overwriteRoutes: true },
+    );
     // @ts-ignore
     mockCore.makeApi = jest.fn(() => async data => {
       const json = JSON.parse(data.json_metadata);
@@ -101,6 +126,7 @@ describe('FilterBar', () => {
               "filterType":"filter_time",
               "targets":[{"datasetId":11,"column":{"name":"color"}}],
               "defaultValue":null,
+              "controlValues":{},
               "cascadeParentIds":[],
               "scope":{"rootPath":["ROOT_ID"],"excluded":[]},
               "isInstant":false
@@ -115,6 +141,7 @@ describe('FilterBar', () => {
                   "filterType":"filter_time",
                   "targets":[{}],
                   "defaultValue":"Last week",
+                  "controlValues":{},
                   "cascadeParentIds":[],
                   "scope":{"rootPath":["ROOT_ID"],"excluded":[]},
                   "isInstant":false
@@ -245,7 +272,7 @@ describe('FilterBar', () => {
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   });
 
-  it('add filter set', async () => {
+  it('add and apply filter set', async () => {
     // @ts-ignore
     global.featureFlags = {
       [FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET]: true,
@@ -286,5 +313,34 @@ describe('FilterBar', () => {
       'data-selected',
       'true',
     );
+
+    // change filter
+    userEvent.click(screen.getByText('All Filters (1)'));
+    expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+    userEvent.click(screen.getAllByText('Last week')[0]);
+    userEvent.click(screen.getByDisplayValue('Last day'));
+    expect(await screen.findByText(/2021-04-13/)).toBeInTheDocument();
+    userEvent.click(screen.getByTestId(getDateControlTestId('apply-button')));
+
+    // apply new filter value
+    expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
+    userEvent.click(screen.getByTestId(getTestId('apply-button')));
+    expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+    expect(await screen.findByText('Last day')).toBeInTheDocument();
+    screen.debug();
+
+    // applying filter set
+    userEvent.click(screen.getByText('Filter Sets (1)'));
+    expect(
+      await screen.findByText('Create new filter set'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(getTestId('filter-set-wrapper')),
+    ).not.toHaveAttribute('data-selected', 'true');
+    userEvent.click(screen.getByTestId(getTestId('filter-set-wrapper')));
+    expect(await screen.findByText('Last week')).toBeInTheDocument();
+    expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
+    userEvent.click(screen.getByTestId(getTestId('apply-button')));
+    expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   });
 });

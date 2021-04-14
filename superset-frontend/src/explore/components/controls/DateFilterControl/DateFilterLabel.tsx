@@ -55,6 +55,7 @@ import {
   CustomFrame,
   AdvancedFrame,
 } from './components';
+import { testWithId } from '../../../../utils/common';
 
 const guessFrame = (timeRange: string): FrameType => {
   if (COMMON_RANGE_VALUES_SET.has(timeRange)) {
@@ -175,6 +176,11 @@ interface DateFilterControlProps {
   value?: string;
   endpoints?: TimeRangeEndpoints;
 }
+
+export const DATE_FILTER_CONTROL_TEST_ID = 'date-filter-control';
+export const getDateFilterControlTestId = testWithId(
+  DATE_FILTER_CONTROL_TEST_ID,
+);
 
 export default function DateFilterLabel(props: DateFilterControlProps) {
   const { value = DEFAULT_TIME_RANGE, endpoints, onChange } = props;
@@ -324,6 +330,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           disabled={!validTimeRange}
           key="apply"
           onClick={onSave}
+          {...getDateFilterControlTestId('apply-button')}
         >
           {t('APPLY')}
         </Button>

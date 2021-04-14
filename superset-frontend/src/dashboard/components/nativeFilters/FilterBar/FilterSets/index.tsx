@@ -98,6 +98,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
     if (isFilterSetChanged) {
       return;
     }
+
     const foundFilterSet = findExistingFilterSet({
       dataMaskSelected,
       filterSetFilterValues,
