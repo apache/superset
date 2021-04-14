@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Col } from 'react-bootstrap';
 import Card from 'src/common/components/Card';
-import { Radio } from 'src/common/components/Radio';
+import { Radio } from 'src/components/Radio';
 import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
 import shortid from 'shortid';
