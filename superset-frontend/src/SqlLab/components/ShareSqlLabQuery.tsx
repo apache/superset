@@ -17,9 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { Tooltip } from 'src/common/components/Tooltip';
-import { t, styled, supersetTheme } from '@superset-ui/core';
-import cx from 'classnames';
+import { t, useTheme } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -41,24 +39,12 @@ interface ShareSqlLabQueryPropTypes {
   addDangerToast: (msg: string) => void;
 }
 
-const Styles = styled.div`
-  .btn-disabled {
-    &,
-    &:hover {
-      cursor: default;
-      background-color: ${supersetTheme.colors.grayscale.light2};
-      color: ${supersetTheme.colors.grayscale.base};
-    }
-  }
-  svg {
-    vertical-align: -${supersetTheme.gridUnit * 1.25}px;
-  }
-`;
-
 function ShareSqlLabQuery({
   queryEditor,
   addDangerToast,
 }: ShareSqlLabQueryPropTypes) {
+  const theme = useTheme();
+
   const getCopyUrlForKvStore = (callback: Function) => {
     const { dbId, title, schema, autorun, sql } = queryEditor;
     const sharedQuery = { dbId, title, schema, autorun, sql };
@@ -94,58 +80,41 @@ function ShareSqlLabQuery({
     return getCopyUrlForSavedQuery(callback);
   };
 
-  const buildButton = () => {
-    const canShare =
-      queryEditor.remoteId ||
-      isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE);
+  const buildButton = (canShare: boolean) => {
+    const tooltip = canShare
+      ? t('Copy query link to your clipboard')
+      : t('Save the query to enable this feature');
     return (
-      <Styles>
-        <Button buttonSize="small" className={cx(!canShare && 'btn-disabled')}>
-          <Icon
-            name="link"
-            color={
-              canShare
-                ? supersetTheme.colors.primary.base
-                : supersetTheme.colors.grayscale.base
-            }
-            width={20}
-            height={20}
-          />{' '}
-          {t('Copy link')}
-        </Button>
-      </Styles>
+      <Button buttonSize="small" tooltip={tooltip} disabled={!canShare}>
+        <Icon
+          name="link"
+          color={
+            canShare ? theme.colors.primary.base : theme.colors.grayscale.base
+          }
+          width={20}
+          height={20}
+        />{' '}
+        {t('Copy link')}
+      </Button>
     );
   };
 
   const canShare =
-    queryEditor.remoteId ||
+    !!queryEditor.remoteId ||
     isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE);
 
   return (
-    <Tooltip
-      id="copy_link"
-      placement="top"
-      overlayStyle={{
-        fontSize: supersetTheme.typography.sizes.s,
-        lineHeight: '1.6',
-        maxWidth: '125px',
-      }}
-      title={
-        canShare
-          ? t('Copy query link to your clipboard')
-          : t('Save the query to enable this feature')
-      }
-    >
+    <>
       {canShare ? (
         <CopyToClipboard
           getText={getCopyUrl}
           wrapped={false}
-          copyNode={buildButton()}
+          copyNode={buildButton(canShare)}
         />
       ) : (
-        buildButton()
+        buildButton(canShare)
       )}
-    </Tooltip>
+    </>
   );
 }
 
