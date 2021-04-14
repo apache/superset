@@ -174,7 +174,7 @@
     "regenerator-runtime": "^0.13.5",
     "rison": "^0.1.1",
     "shortid": "^2.2.6",
-    "urijs": "^1.19.4",
+    "urijs": "^1.19.6",
     "use-immer": "^0.4.2",
     "use-query-params": "^1.1.9"
   },
