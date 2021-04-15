@@ -73,6 +73,7 @@ export default function nativeFilterReducer(
     case HYDRATE_DASHBOARD:
       return {
         filters: action.data.nativeFilters.filters,
+        filterSets: action.data.nativeFilters.filterSets,
       };
     case SAVE_FILTER_SETS:
       return {
