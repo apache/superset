@@ -120,13 +120,6 @@ const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
-const StyledNavbarRight = styled.div`
-  .navbar-right {
-    display: flex;
-    align-items: center;
-  }
-`;
-
 function ChartList(props: ChartListProps) {
   const { addDangerToast, addSuccessToast } = props;
 
@@ -567,9 +560,7 @@ function ChartList(props: ChartListProps) {
   }
   return (
     <>
-      <StyledNavbarRight>
-        <SubMenu name={t('Charts')} buttons={subMenuButtons} />
-      </StyledNavbarRight>
+      <SubMenu name={t('Charts')} buttons={subMenuButtons} />
       {sliceCurrentlyEditing && (
         <PropertiesModal
           onHide={closeChartEditModal}

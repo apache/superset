@@ -33,6 +33,8 @@ const StyledHeader = styled.header`
     margin-right: ${({ theme }) => theme.gridUnit * 3}px;
   }
   .navbar-right {
+    display: flex;
+    align-items: center;
     padding: 8px 0;
     margin-right: 0;
   }
