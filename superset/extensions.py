@@ -29,7 +29,7 @@ from werkzeug.local import LocalProxy
 
 from superset.utils.async_query_manager import AsyncQueryManager
 from superset.utils.cache_manager import CacheManager
-from superset.utils.enc import EncryptedFieldFactory
+from superset.utils.encrypt import EncryptedFieldFactory
 from superset.utils.feature_flag_manager import FeatureFlagManager
 from superset.utils.machine_auth import MachineAuthProviderFactory
 
