@@ -41,18 +41,16 @@ from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
 
 # Regular expressions to catch custom errors
-TEST_CONNECTION_ACCESS_DENIED_REGEX = re.compile(
+CONNECTION_ACCESS_DENIED_REGEX = re.compile(
     "Access denied for user '(?P<username>.*?)'@'(?P<hostname>.*?)'. "
 )
-TEST_CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
+CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
     "Unknown MySQL server host '(?P<hostname>.*?)'."
 )
-TEST_CONNECTION_HOST_DOWN_REGEX = re.compile(
+CONNECTION_HOST_DOWN_REGEX = re.compile(
     "Can't connect to MySQL server on '(?P<hostname>.*?)'."
 )
-TEST_CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile(
-    "Unknown database '(?P<database>.*?)'."
-)
+CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile("Unknown database '(?P<database>.*?)'.")
 
 
 class MySQLEngineSpec(BaseEngineSpec):
@@ -110,24 +108,24 @@ class MySQLEngineSpec(BaseEngineSpec):
     type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
 
     custom_errors = {
-        TEST_CONNECTION_ACCESS_DENIED_REGEX: (
+        CONNECTION_ACCESS_DENIED_REGEX: (
             __('Either the username "%(username)s" or the password is incorrect.'),
-            SupersetErrorType.TEST_CONNECTION_ACCESS_DENIED_ERROR,
+            SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
         ),
-        TEST_CONNECTION_INVALID_HOSTNAME_REGEX: (
+        CONNECTION_INVALID_HOSTNAME_REGEX: (
             __('Unknown MySQL server host "%(hostname)s".'),
-            SupersetErrorType.TEST_CONNECTION_INVALID_HOSTNAME_ERROR,
+            SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
         ),
-        TEST_CONNECTION_HOST_DOWN_REGEX: (
+        CONNECTION_HOST_DOWN_REGEX: (
             __('The host "%(hostname)s" might be down and can\'t be reached.'),
-            SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
+            SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
         ),
-        TEST_CONNECTION_UNKNOWN_DATABASE_REGEX: (
+        CONNECTION_UNKNOWN_DATABASE_REGEX: (
             __(
                 'We were unable to connect to your database named "%(database)s". '
                 "Please verify your database name and try again."
             ),
-            SupersetErrorType.TEST_CONNECTION_UNKNOWN_DATABASE_ERROR,
+            SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
         ),
     }
 
