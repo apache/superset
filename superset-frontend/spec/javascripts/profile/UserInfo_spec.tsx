@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import Gravatar from 'react-gravatar';
-import { Panel } from 'react-bootstrap';
 import { mount } from 'enzyme';
 import UserInfo from 'src/profile/components/UserInfo';
 
@@ -37,7 +36,7 @@ describe('UserInfo', () => {
   });
   it('renders a Panel', () => {
     const wrapper = mount(<UserInfo {...mockedProps} />);
-    expect(wrapper.find(Panel)).toExist();
+    expect(wrapper.find('.panel')).toExist();
   });
   it('renders 5 icons', () => {
     const wrapper = mount(<UserInfo {...mockedProps} />);
