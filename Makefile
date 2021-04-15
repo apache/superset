@@ -1,9 +1,8 @@
-# This is the default target, which will be built when
-# you invoke make
-.PHONY: all
-all:
+.PHONY: install superset venv pre-commit
 
-install:
+install: venv superset pre-commit
+
+superset:
 	# Install external dependencies
 	pip install -r requirements/local.txt
 
