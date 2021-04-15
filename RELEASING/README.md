@@ -126,7 +126,7 @@ Example:
 python changelog.py --previous_version 0.37 --current_version 0.38 changelog
 ```
 
-you can get a list of pull requests with labels started with blocking, risk, hold, revert and security by using the parameter `--risk`.
+You can get a list of pull requests with labels started with blocking, risk, hold, revert and security by using the parameter `--risk`.
 Example:
 ```bash
 python changelog.py --previous_version 0.37 --current_version 0.38 changelog --access_token {GITHUB_TOKEN} --risk
