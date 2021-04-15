@@ -110,7 +110,7 @@ function VizSupportValidation({ vizType }) {
 const nativeFilterGate = behaviors =>
   !behaviors.includes(Behavior.NATIVE_FILTER) ||
   (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
-    behaviors.includes(Behavior.CROSS_FILTER));
+    behaviors.includes(Behavior.INTERACTIVE_CHART));
 
 const VizTypeControl = props => {
   const [showModal, setShowModal] = useState(false);

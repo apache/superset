@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { FC, useMemo, useState } from 'react';
-import { DataMaskUnit } from 'src/dataMask/types';
+import { DataMaskState } from 'src/dataMask/types';
 import { DataMask, styled } from '@superset-ui/core';
 import CascadePopover from '../CascadeFilters/CascadePopover';
 import { buildCascadeFiltersTree } from './utils';
@@ -33,7 +33,7 @@ const Wrapper = styled.div`
 
 type FilterControlsProps = {
   directPathToChild?: string[];
-  dataMaskSelected: DataMaskUnit;
+  dataMaskSelected: DataMaskState;
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
 };
 
@@ -49,7 +49,7 @@ const FilterControls: FC<FilterControlsProps> = ({
   const cascadeFilters = useMemo(() => {
     const filtersWithValue = filterValues.map(filter => ({
       ...filter,
-      currentValue: dataMaskSelected[filter.id]?.currentState?.value,
+      dataMask: dataMaskSelected[filter.id],
     }));
     return buildCascadeFiltersTree(filtersWithValue);
   }, [filterValues, dataMaskSelected]);
