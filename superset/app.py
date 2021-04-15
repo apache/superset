@@ -673,7 +673,7 @@ class SupersetAppInitializer:
             self.config, self.flask_app.debug
         )
 
-    def configure_db_enc(self) -> None:
+    def configure_db_encrypt(self) -> None:
         encrypted_field_factory.init_app(self.flask_app)
 
     def setup_db(self) -> None:

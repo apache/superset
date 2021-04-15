@@ -21,7 +21,7 @@ from sqlalchemy_utils import EncryptedType
 from sqlalchemy_utils.types.encrypted.encrypted_type import StringEncryptedType
 
 from superset.extensions import encrypted_field_factory
-from superset.utils.enc import AbstractEncryptedFieldAdapter, SQLAlchemyUtilsAdapter
+from superset.utils.encrypt import AbstractEncryptedFieldAdapter, SQLAlchemyUtilsAdapter
 from tests.base_tests import SupersetTestCase
 
 
