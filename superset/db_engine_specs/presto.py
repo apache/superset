@@ -51,7 +51,7 @@ from sqlalchemy.types import TypeEngine
 
 from superset import app, cache_manager, is_feature_enabled
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_lab import Query
 from superset.models.sql_types.presto_sql_types import (
@@ -79,7 +79,8 @@ SCHEMA_DOES_NOT_EXIST_REGEX = re.compile(
 )
 CONNECTION_ACCESS_DENIED_REGEX = re.compile("Access Denied: Invalid credentials")
 CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
-    r"Failed to establish a new connection: \[Errno 8\] nodename nor servname provided, or not known"
+    r"Failed to establish a new connection: \[Errno 8\] nodename nor servname "
+    "provided, or not known"
 )
 CONNECTION_HOST_DOWN_REGEX = re.compile(
     r"Failed to establish a new connection: \[Errno 60\] Operation timed out"
