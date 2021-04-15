@@ -22,24 +22,24 @@ from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import SupersetErrorType
 
 # Regular expressions to catch custom errors
-TEST_CONNECTION_ACCESS_DENIED_REGEX = re.compile(
+CONNECTION_ACCESS_DENIED_REGEX = re.compile(
     'password authentication failed for user "(?P<username>.*?)"'
 )
-TEST_CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
+CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
     'could not translate host name "(?P<hostname>.*?)" to address: '
     "nodename nor servname provided, or not known"
 )
-TEST_CONNECTION_PORT_CLOSED_REGEX = re.compile(
+CONNECTION_PORT_CLOSED_REGEX = re.compile(
     r"could not connect to server: Connection refused\s+Is the server "
     r'running on host "(?P<hostname>.*?)" (\(.*?\) )?and accepting\s+TCP/IP '
     r"connections on port (?P<port>.*?)\?"
 )
-TEST_CONNECTION_HOST_DOWN_REGEX = re.compile(
+CONNECTION_HOST_DOWN_REGEX = re.compile(
     r"could not connect to server: (?P<reason>.*?)\s+Is the server running on "
     r'host "(?P<hostname>.*?)" (\(.*?\) )?and accepting\s+TCP/IP '
     r"connections on port (?P<port>.*?)\?"
 )
-TEST_CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile(
+CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile(
     'database "(?P<database>.*?)" does not exist'
 )
 
@@ -50,31 +50,31 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec):
     max_column_name_length = 127
 
     custom_errors = {
-        TEST_CONNECTION_ACCESS_DENIED_REGEX: (
+        CONNECTION_ACCESS_DENIED_REGEX: (
             __('Either the username "%(username)s" or the password is incorrect.'),
-            SupersetErrorType.TEST_CONNECTION_ACCESS_DENIED_ERROR,
+            SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
         ),
-        TEST_CONNECTION_INVALID_HOSTNAME_REGEX: (
+        CONNECTION_INVALID_HOSTNAME_REGEX: (
             __('The hostname "%(hostname)s" cannot be resolved.'),
-            SupersetErrorType.TEST_CONNECTION_INVALID_HOSTNAME_ERROR,
+            SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
         ),
-        TEST_CONNECTION_PORT_CLOSED_REGEX: (
+        CONNECTION_PORT_CLOSED_REGEX: (
             __('Port %(port)s on hostname "%(hostname)s" refused the connection.'),
-            SupersetErrorType.TEST_CONNECTION_PORT_CLOSED_ERROR,
+            SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
         ),
-        TEST_CONNECTION_HOST_DOWN_REGEX: (
+        CONNECTION_HOST_DOWN_REGEX: (
             __(
                 'The host "%(hostname)s" might be down, and can\'t be '
                 "reached on port %(port)s."
             ),
-            SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
+            SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
         ),
-        TEST_CONNECTION_UNKNOWN_DATABASE_REGEX: (
+        CONNECTION_UNKNOWN_DATABASE_REGEX: (
             __(
                 'We were unable to connect to your database named "%(database)s".'
                 " Please verify your database name and try again."
             ),
-            SupersetErrorType.TEST_CONNECTION_UNKNOWN_DATABASE_ERROR,
+            SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
         ),
     }
 

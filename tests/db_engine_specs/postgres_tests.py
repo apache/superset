@@ -220,7 +220,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         result = PostgresEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.TEST_CONNECTION_INVALID_USERNAME_ERROR,
+                error_type=SupersetErrorType.CONNECTION_INVALID_USERNAME_ERROR,
                 message='The username "testuser" does not exist.',
                 level=ErrorLevel.ERROR,
                 extra={
@@ -245,7 +245,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         result = PostgresEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.TEST_CONNECTION_INVALID_HOSTNAME_ERROR,
+                error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
                 message='The hostname "locahost" cannot be resolved.',
                 level=ErrorLevel.ERROR,
                 extra={
@@ -274,7 +274,7 @@ could not connect to server: Connection refused
         result = PostgresEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.TEST_CONNECTION_PORT_CLOSED_ERROR,
+                error_type=SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
                 message='Port 12345 on hostname "localhost" refused the connection.',
                 level=ErrorLevel.ERROR,
                 extra={
@@ -296,7 +296,7 @@ psql: error: could not connect to server: Operation timed out
         result = PostgresEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
+                error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
                 message=(
                     'The host "example.com" might be down, '
                     "and can't be reached on port 12345."
@@ -326,7 +326,7 @@ psql: error: could not connect to server: Operation timed out
         result = PostgresEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
+                error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
                 message=(
                     'The host "93.184.216.34" might be down, '
                     "and can't be reached on port 12345."
@@ -349,7 +349,7 @@ psql: error: could not connect to server: Operation timed out
         result = PostgresEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.TEST_CONNECTION_INVALID_PASSWORD_ERROR,
+                error_type=SupersetErrorType.CONNECTION_INVALID_PASSWORD_ERROR,
                 message=('The password provided for username "postgres" is incorrect.'),
                 level=ErrorLevel.ERROR,
                 extra={
@@ -371,7 +371,7 @@ psql: error: could not connect to server: Operation timed out
         result = PostgresEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.TEST_CONNECTION_UNKNOWN_DATABASE_ERROR,
+                error_type=SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
                 message='We were unable to connect to your database named "badDB".'
                 " Please verify your database name and try again.",
                 level=ErrorLevel.ERROR,

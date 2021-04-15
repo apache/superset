@@ -114,7 +114,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.TEST_CONNECTION_ACCESS_DENIED_ERROR,
+                error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
                 message='Either the username "test" or the password is incorrect.',
                 level=ErrorLevel.ERROR,
                 extra={
@@ -134,7 +134,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.TEST_CONNECTION_INVALID_HOSTNAME_ERROR,
+                error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
                 message='Unknown MySQL server host "badhostname.com".',
                 level=ErrorLevel.ERROR,
                 extra={
@@ -154,7 +154,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
+                error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
                 message='The host "badconnection.com" might be '
                 "down and can't be reached.",
                 level=ErrorLevel.ERROR,
@@ -175,7 +175,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
+                error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
                 message='The host "93.184.216.34" might be down and can\'t be reached.',
                 level=ErrorLevel.ERROR,
                 extra={
@@ -195,7 +195,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.TEST_CONNECTION_UNKNOWN_DATABASE_ERROR,
+                error_type=SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
                 message='We were unable to connect to your database named "badDB".'
                 " Please verify your database name and try again.",
                 level=ErrorLevel.ERROR,

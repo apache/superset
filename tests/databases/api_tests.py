@@ -915,7 +915,7 @@ class TestDatabaseApi(SupersetTestCase):
         mock_build_db.return_value.db_engine_spec.__name__ = "Some name"
         superset_error = SupersetError(
             message='Unable to resolve hostname "locahost".',
-            error_type="TEST_CONNECTION_INVALID_HOSTNAME_ERROR",
+            error_type="CONNECTION_INVALID_HOSTNAME_ERROR",
             level="error",
             extra={
                 "hostname": "locahost",
