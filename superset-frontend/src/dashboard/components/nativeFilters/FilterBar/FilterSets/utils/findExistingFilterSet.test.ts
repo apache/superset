@@ -32,8 +32,8 @@ test('Should find correct filter', () => {
       name: 'name-01',
       nativeFilters: {},
       dataMask: {
-        filterId: { filterState: { value: 'value-1' } },
-        filterId2: { filterState: { value: 'value-2' } },
+        filterId: { id: 'filterId', filterState: { value: 'value-1' } },
+        filterId2: { id: 'filterId2', filterState: { value: 'value-2' } },
       } as any,
     },
   ];
@@ -43,10 +43,8 @@ test('Should find correct filter', () => {
   });
   expect(response).toEqual({
     dataMask: {
-      nativeFilters: {
-        filterId: { currentState: { value: 'value-1' } },
-        filterId2: { currentState: { value: 'value-2' } },
-      },
+      filterId: { id: 'filterId', filterState: { value: 'value-1' } },
+      filterId2: { id: 'filterId2', filterState: { value: 'value-2' } },
     },
     id: 'id-01',
     name: 'name-01',
@@ -62,9 +60,7 @@ test('Should return undefined when nativeFilters has less values', () => {
       name: 'name-01',
       nativeFilters: {},
       dataMask: {
-        nativeFilters: {
-          filterId: { currentState: { value: 'value-1' } },
-        },
+        filterId: { id: 'filterId', filterState: { value: 'value-1' } },
       } as any,
     },
   ];
@@ -77,17 +73,15 @@ test('Should return undefined when nativeFilters has less values', () => {
 
 test('Should return undefined when nativeFilters has different values', () => {
   const dataMaskSelected = createDataMaskSelected();
-  const filterSetFilterValues = [
+  const filterSetFilterValues: FilterSet[] = [
     {
       id: 'id-01',
       name: 'name-01',
       nativeFilters: {},
       dataMask: {
-        nativeFilters: {
-          filterId: { currentState: { value: 'value-1' } },
-          filterId2: { currentState: { value: 'value-1' } },
-        },
-      } as any,
+        filterId: { id: 'filterId', filterState: { value: 'value-1' } },
+        filterId2: { id: 'filterId2', filterState: { value: 'value-1' } },
+      },
     },
   ];
   const response = findExistingFilterSet({
