@@ -53,7 +53,9 @@ class EncryptedFieldFactory:
 
     def init_app(self, app: Flask) -> None:
         self._config = app.config
-        self._concrete_type_adapter = self._config["ENCRYPTED_FIELD_TYPE_ADAPTER"]()
+        self._concrete_type_adapter = self._config[
+            "SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER"
+        ]()
 
     def create(
         self, *args: List[Any], **kwargs: Optional[Dict[str, Any]]
