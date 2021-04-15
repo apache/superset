@@ -20,14 +20,11 @@ import { DataMaskStateWithId } from 'src/dataMask/types';
 import { NativeFiltersState } from 'src/dashboard/reducers/types';
 
 export const mockDataMaskInfo: DataMaskStateWithId = {
-  [DataMaskType.CrossFilters]: {},
-  [DataMaskType.OwnFilters]: {},
-  [DataMaskType.NativeFilters]: {
-    DefaultsID: {
-      id: 'DefaultId',
-      currentState: {
-        value: [],
-      },
+  DefaultsID: {
+    id: 'DefaultId',
+    ownState: {},
+    filterState: {
+      value: [],
     },
   },
 };
@@ -66,16 +63,6 @@ export const nativeFiltersInfo: NativeFiltersState = {
         allowsMultipleValues: true,
         isRequired: false,
       },
-    },
-  },
-};
-
-export const mockDataMaskInfo: DataMaskStateWithId = {
-  DefaultsID: {
-    id: 'DefaultId',
-    ownState: {},
-    filterState: {
-      value: [],
     },
   },
 };

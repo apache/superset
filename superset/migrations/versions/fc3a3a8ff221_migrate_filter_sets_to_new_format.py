@@ -34,10 +34,6 @@ from sqlalchemy import Column, Integer, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
-from superset.constants import (
-    EXTRA_FORM_DATA_APPEND_KEYS,
-    EXTRA_FORM_DATA_OVERRIDE_KEYS,
-)
 
 Base = declarative_base()
 
@@ -48,6 +44,30 @@ class Dashboard(Base):
     __tablename__ = "dashboards"
     id = Column(Integer, primary_key=True)
     json_metadata = Column(Text)
+
+
+# these are copied over from `superset/constants.py` to make sure they stay unchanged
+EXTRA_FORM_DATA_APPEND_KEYS = [
+    "adhoc_filters",
+    "filters",
+    "interactive_groupby",
+    "interactive_highlight",
+    "interactive_drilldown",
+    "custom_form_data",
+]
+
+EXTRA_FORM_DATA_OVERRIDE_KEYS = [
+    "druid_time_origin",
+    "relative_start",
+    "relative_end",
+    "time_grain_sqla",
+    "time_range_endpoints",
+    "granularity",
+    "granularity_sqla",
+    "time_column",
+    "time_grain",
+    "time_range",
+]
 
 
 def _update_select_filters(native_filters: List[Dict[str, Any]]) -> None:
