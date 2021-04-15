@@ -29,15 +29,15 @@ logger = logging.getLogger(__name__)
 
 
 # Regular expressions to catch custom errors
-TEST_CONNECTION_ACCESS_DENIED_REGEX = re.compile("Adaptive Server connection failed")
-TEST_CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
+CONNECTION_ACCESS_DENIED_REGEX = re.compile("Adaptive Server connection failed")
+CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
     r"Adaptive Server is unavailable or does not exist \((?P<hostname>.*?)\)"
     "(?!.*Net-Lib error).*$"
 )
-TEST_CONNECTION_PORT_CLOSED_REGEX = re.compile(
+CONNECTION_PORT_CLOSED_REGEX = re.compile(
     r"Net-Lib error during Connection refused \(61\)"
 )
-TEST_CONNECTION_HOST_DOWN_REGEX = re.compile(
+CONNECTION_HOST_DOWN_REGEX = re.compile(
     r"Net-Lib error during Operation timed out \(60\)"
 )
 
@@ -65,24 +65,24 @@ class MssqlEngineSpec(BaseEngineSpec):
     }
 
     custom_errors = {
-        TEST_CONNECTION_ACCESS_DENIED_REGEX: (
+        CONNECTION_ACCESS_DENIED_REGEX: (
             __('Either the username "%(username)s" or the password is incorrect.'),
-            SupersetErrorType.TEST_CONNECTION_ACCESS_DENIED_ERROR,
+            SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
         ),
-        TEST_CONNECTION_INVALID_HOSTNAME_REGEX: (
+        CONNECTION_INVALID_HOSTNAME_REGEX: (
             __('The hostname "%(hostname)s" cannot be resolved.'),
-            SupersetErrorType.TEST_CONNECTION_INVALID_HOSTNAME_ERROR,
+            SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
         ),
-        TEST_CONNECTION_PORT_CLOSED_REGEX: (
+        CONNECTION_PORT_CLOSED_REGEX: (
             __('Port %(port)s on hostname "%(hostname)s" refused the connection.'),
-            SupersetErrorType.TEST_CONNECTION_PORT_CLOSED_ERROR,
+            SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
         ),
-        TEST_CONNECTION_HOST_DOWN_REGEX: (
+        CONNECTION_HOST_DOWN_REGEX: (
             __(
                 'The host "%(hostname)s" might be down, and can\'t be '
                 "reached on port %(port)s."
             ),
-            SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
+            SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
         ),
     }
 
