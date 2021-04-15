@@ -124,10 +124,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
             SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
         ),
         CONNECTION_UNKNOWN_DATABASE_REGEX: (
-            __(
-                'We were unable to connect to your database named "%(database)s".'
-                " Please verify your database name and try again."
-            ),
+            __('Unable to connect to database "%(database)s".'),
             SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
         ),
     }
