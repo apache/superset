@@ -30,6 +30,7 @@ export default function transformProps(
     width,
     behaviors,
     appSection,
+    filterState,
   } = chartProps;
   const newFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const { setDataMask = () => {} } = hooks;
@@ -41,6 +42,7 @@ export default function transformProps(
   );
 
   return {
+    filterState,
     coltypeMap,
     appSection,
     width,

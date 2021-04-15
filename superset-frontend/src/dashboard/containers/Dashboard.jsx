@@ -66,7 +66,10 @@ function mapStateToProps(state) {
         layout: dashboardLayout.present,
       }),
     },
-    ownDataCharts: dataMask.ownFilters ?? {},
+    ownDataCharts: Object.values(dataMask).reduce(
+      (prev, next) => ({ ...prev, [next.id]: next.ownState }),
+      {},
+    ),
     slices: sliceEntities.slices,
     layout: dashboardLayout.present,
     impressionId,

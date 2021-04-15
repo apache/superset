@@ -53,11 +53,7 @@ const createProps = () => ({
     show_perc: true,
     sort_x_axis: 'alpha_asc',
     sort_y_axis: 'alpha_asc',
-    extra_form_data: {
-      custom_form_data: {},
-      override_form_data: {},
-      append_form_data: {},
-    },
+    extra_form_data: {},
   },
   tableSectionHeight: 156.9,
   chartStatus: 'rendered',

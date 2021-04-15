@@ -161,6 +161,7 @@ const v1ChartDataRequest = async (
   force,
   requestParams,
   setDataMask,
+  ownState,
 ) => {
   const payload = buildV1ChartDataPayload({
     formData,
@@ -168,6 +169,7 @@ const v1ChartDataRequest = async (
     resultFormat,
     force,
     setDataMask,
+    ownState,
   });
 
   // The dashboard id is added to query params for tracking purposes
@@ -205,6 +207,7 @@ export async function getChartDataRequest({
   force = false,
   method = 'POST',
   requestParams = {},
+  ownState = {},
 }) {
   let querySettings = {
     ...requestParams,
@@ -235,6 +238,7 @@ export async function getChartDataRequest({
     force,
     querySettings,
     setDataMask,
+    ownState,
   );
 }
 
@@ -351,6 +355,7 @@ export function exploreJSON(
   key,
   method,
   dashboardId,
+  ownState,
 ) {
   return async dispatch => {
     const logStart = Logger.getTimestamp();
@@ -373,6 +378,7 @@ export function exploreJSON(
       force,
       method,
       requestParams,
+      ownState,
     });
 
     dispatch(chartUpdateStarted(controller, formData, key));
@@ -470,6 +476,7 @@ export function getSavedChart(
   timeout = 60,
   key,
   dashboardId,
+  ownState,
 ) {
   /*
    * Perform a GET request to `/explore_json`.
@@ -481,7 +488,15 @@ export function getSavedChart(
    *  GET  /explore_json?{"chart_id":1,"extra_filters":"..."}
    *
    */
-  return exploreJSON(formData, force, timeout, key, 'GET', dashboardId);
+  return exploreJSON(
+    formData,
+    force,
+    timeout,
+    key,
+    'GET',
+    dashboardId,
+    ownState,
+  );
 }
 
 export const POST_CHART_FORM_DATA = 'POST_CHART_FORM_DATA';
@@ -491,6 +506,7 @@ export function postChartFormData(
   timeout = 60,
   key,
   dashboardId,
+  ownState,
 ) {
   /*
    * Perform a POST request to `/explore_json`.
@@ -498,7 +514,15 @@ export function postChartFormData(
    * This will post the form data to the endpoint, returning a new chart.
    *
    */
-  return exploreJSON(formData, force, timeout, key, 'POST', dashboardId);
+  return exploreJSON(
+    formData,
+    force,
+    timeout,
+    key,
+    'POST',
+    dashboardId,
+    ownState,
+  );
 }
 
 export function redirectSQLLab(formData) {
@@ -537,6 +561,7 @@ export function refreshChart(chartKey, force, dashboardId) {
         timeout,
         chart.id,
         dashboardId,
+        getState().dataMask[chart.id]?.ownState,
       ),
     );
   };

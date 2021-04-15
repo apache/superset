@@ -26,7 +26,7 @@ import Icon from 'src/components/Icon';
 import { Tabs } from 'src/common/components';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { updateDataMask } from 'src/dataMask/actions';
-import { DataMaskState, DataMaskUnit } from 'src/dataMask/types';
+import { DataMaskState } from 'src/dataMask/types';
 import { useImmer } from 'use-immer';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
@@ -150,11 +150,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   directPathToChild,
 }) => {
   const [editFilterSetId, setEditFilterSetId] = useState<string | null>(null);
-  const [dataMaskSelected, setDataMaskSelected] = useImmer<DataMaskUnit>({});
+  const [dataMaskSelected, setDataMaskSelected] = useImmer<DataMaskState>({});
   const [
     lastAppliedFilterData,
     setLastAppliedFilterData,
-  ] = useImmer<DataMaskUnit>({});
+  ] = useImmer<DataMaskState>({});
   const dispatch = useDispatch();
   const filterSets = useFilterSets();
   const filterSetFilterValues = Object.values(filterSets);
@@ -181,9 +181,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         dispatch(updateDataMask(filter.id, dataMask));
       }
 
-      if (dataMask.nativeFilters) {
-        draft[filter.id] = dataMask.nativeFilters;
-      }
+      draft[filter.id] = dataMask;
     });
   };
 
@@ -191,11 +189,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     const filterIds = Object.keys(dataMaskSelected);
     filterIds.forEach(filterId => {
       if (dataMaskSelected[filterId]) {
-        dispatch(
-          updateDataMask(filterId, {
-            nativeFilters: dataMaskSelected[filterId],
-          }),
-        );
+        dispatch(updateDataMask(filterId, dataMaskSelected[filterId]));
       }
     });
     setLastAppliedFilterData(() => dataMaskSelected);

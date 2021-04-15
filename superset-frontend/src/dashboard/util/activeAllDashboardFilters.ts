@@ -85,10 +85,7 @@ export const getAllActiveFilters = ({
   const activeFilters = {};
 
   // Combine native filters with cross filters, because they have similar logic
-  Object.values({
-    ...dataMask.nativeFilters,
-    ...dataMask.crossFilters,
-  }).forEach(({ id: filterId, extraFormData }) => {
+  Object.values(dataMask).forEach(({ id: filterId, extraFormData }) => {
     const scope = nativeFilters?.[filterId]?.scope ??
       chartConfiguration?.[filterId]?.crossFilters?.scope ?? {
         rootPath: [DASHBOARD_ROOT_ID],
