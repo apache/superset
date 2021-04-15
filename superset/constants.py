@@ -126,6 +126,7 @@ EXTRA_FORM_DATA_APPEND_KEYS = [
     "interactive_drilldown",
     "custom_form_data",
 ]
+
 EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS = {
     "granularity": "granularity",
     "granularity_sqla": "granularity",
@@ -133,6 +134,7 @@ EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS = {
     "time_grain": "time_grain",
     "time_range": "time_range",
 }
+
 EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS = [
     "druid_time_origin",
     "relative_start",
@@ -140,3 +142,8 @@ EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS = [
     "time_grain_sqla",
     "time_range_endpoints",
 ]
+
+EXTRA_FORM_DATA_OVERRIDE_KEYS = (
+    list(EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.values())
+    + EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS
+)
