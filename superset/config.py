@@ -45,7 +45,7 @@ from superset.jinja_context import (  # pylint: disable=unused-import
 from superset.stats_logger import DummyStatsLogger
 from superset.typing import CacheConfig
 from superset.utils.core import is_test
-from superset.utils.enc import SQLAlchemyUtilsAdapter
+from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
 

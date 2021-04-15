@@ -553,7 +553,7 @@ class SupersetAppInitializer:
         self.pre_init()
         # Configuration of logging must be done first to apply the formatter properly
         self.configure_logging()
-        self.configure_db_enc()
+        self.configure_db_encrypt()
         self.setup_db()
         self.configure_celery()
         self.setup_event_logger()
