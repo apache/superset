@@ -66,4 +66,4 @@ jobs:
           path: ./packages/superset-ui-demo/storybook-static/
 
       - name: Report code coverage
-        run: curl -s https://codecov.io/bash | bash
+        run: .github/workflows/codecov.sh
