@@ -23,7 +23,6 @@ import * as redux from 'react-redux';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { Provider } from 'react-redux';
 import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
 import Modal from 'src/components/Modal';
@@ -101,18 +100,15 @@ describe('DatabaseModal', () => {
     describe('initial load', () => {
       it('hides the forms from the db when not selected', () => {
         render(
-          <ThemeProvider theme={supersetTheme}>
-            <Provider store={store}>
-              <DatabaseModal
-                show
-                database={{
-                  expose_in_sqllab: false,
-                  allow_ctas: false,
-                  allow_cvas: false,
-                }}
-              />
-            </Provider>
-          </ThemeProvider>,
+          <DatabaseModal
+            show
+            database={{
+              expose_in_sqllab: false,
+              allow_ctas: false,
+              allow_cvas: false,
+            }}
+          />,
+          { useRedux: true },
         );
         // Select Advanced tab
         const advancedTab = screen.getByRole('tab', {
@@ -134,13 +130,7 @@ describe('DatabaseModal', () => {
       });
     });
     it('renders all settings when "Expose in SQL Lab" is checked', () => {
-      render(
-        <ThemeProvider theme={supersetTheme}>
-          <Provider store={store}>
-            <DatabaseModal {...dbProps} />
-          </Provider>
-        </ThemeProvider>,
-      );
+      render(<DatabaseModal {...dbProps} />, { useRedux: true });
 
       // Select Advanced tab
       const advancedTab = screen.getByRole('tab', {
@@ -177,13 +167,7 @@ describe('DatabaseModal', () => {
     });
 
     it('renders the schema field when allowCTAS is checked', () => {
-      render(
-        <ThemeProvider theme={supersetTheme}>
-          <Provider store={store}>
-            <DatabaseModal {...dbProps} />
-          </Provider>
-        </ThemeProvider>,
-      );
+      render(<DatabaseModal {...dbProps} />, { useRedux: true });
 
       // Select Advanced tab
       const advancedTab = screen.getByRole('tab', {
@@ -213,13 +197,7 @@ describe('DatabaseModal', () => {
     });
 
     it('renders the schema field when allowCVAS is checked', () => {
-      render(
-        <ThemeProvider theme={supersetTheme}>
-          <Provider store={store}>
-            <DatabaseModal {...dbProps} />
-          </Provider>
-        </ThemeProvider>,
-      );
+      render(<DatabaseModal {...dbProps} />, { useRedux: true });
 
       // Select Advanced tab
       const advancedTab = screen.getByRole('tab', {
@@ -249,13 +227,7 @@ describe('DatabaseModal', () => {
     });
 
     it('renders the schema field when both allowCTAS and allowCVAS are checked', () => {
-      render(
-        <ThemeProvider theme={supersetTheme}>
-          <Provider store={store}>
-            <DatabaseModal {...dbProps} />
-          </Provider>
-        </ThemeProvider>,
-      );
+      render(<DatabaseModal {...dbProps} />, { useRedux: true });
 
       // Select Advanced tab
       const advancedTab = screen.getByRole('tab', {
