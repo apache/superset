@@ -95,6 +95,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "recipients.id",
         "recipients.recipient_config_json",
         "recipients.type",
+        "report_format",
         "sql",
         "type",
         "validator_config_json",
@@ -140,11 +141,12 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "name",
         "owners",
         "recipients",
+        "report_format",
         "sql",
         "type",
-        "working_timeout",
         "validator_config_json",
         "validator_type",
+        "working_timeout",
     ]
     edit_columns = add_columns
     add_model_schema = ReportSchedulePostSchema()
