@@ -50,6 +50,9 @@ TEST_CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
 TEST_CONNECTION_HOST_DOWN_REGEX = re.compile(
     "Can't connect to MySQL server on '(?P<hostname>.*?)'."
 )
+TEST_CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile(
+    "Unknown database '(?P<database>.*?)'."
+)
 
 
 class MySQLEngineSpec(BaseEngineSpec):
@@ -118,6 +121,13 @@ class MySQLEngineSpec(BaseEngineSpec):
         TEST_CONNECTION_HOST_DOWN_REGEX: (
             __('The host "%(hostname)s" might be down and can\'t be reached.'),
             SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
+        ),
+        TEST_CONNECTION_UNKNOWN_DATABASE_REGEX: (
+            __(
+                'We were unable to connect to your database named "%(database)s". '
+                "Please verify your database name and try again."
+            ),
+            SupersetErrorType.TEST_CONNECTION_UNKNOWN_DATABASE_ERROR,
         ),
     }
 
