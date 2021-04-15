@@ -162,7 +162,6 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
                 error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
                 message='The host "badconnection.com" might be '
                 "down and can't be reached.",
-                level=ErrorLevel.ERROR,
                 extra={
                     "engine_name": "MySQL",
                     "issue_codes": [
