@@ -15,13 +15,31 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import re
 from datetime import datetime
 from typing import Any, List, Optional, Tuple
 
+from flask_babel import gettext as __
+
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
+from superset.errors import SupersetErrorType
 from superset.utils import core as utils
 
 logger = logging.getLogger(__name__)
+
+
+# Regular expressions to catch custom errors
+TEST_CONNECTION_ACCESS_DENIED_REGEX = re.compile("Adaptive Server connection failed")
+TEST_CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
+    r"Adaptive Server is unavailable or does not exist \((?P<hostname>.*?)\)"
+    "(?!.*Net-Lib error).*$"
+)
+TEST_CONNECTION_PORT_CLOSED_REGEX = re.compile(
+    r"Net-Lib error during Connection refused \(61\)"
+)
+TEST_CONNECTION_HOST_DOWN_REGEX = re.compile(
+    r"Net-Lib error during Operation timed out \(60\)"
+)
 
 
 class MssqlEngineSpec(BaseEngineSpec):
@@ -44,6 +62,28 @@ class MssqlEngineSpec(BaseEngineSpec):
         "P1M": "DATEADD(month, DATEDIFF(month, 0, {col}), 0)",
         "P0.25Y": "DATEADD(quarter, DATEDIFF(quarter, 0, {col}), 0)",
         "P1Y": "DATEADD(year, DATEDIFF(year, 0, {col}), 0)",
+    }
+
+    custom_errors = {
+        TEST_CONNECTION_ACCESS_DENIED_REGEX: (
+            __('Either the username "%(username)s" or the password is incorrect.'),
+            SupersetErrorType.TEST_CONNECTION_ACCESS_DENIED_ERROR,
+        ),
+        TEST_CONNECTION_INVALID_HOSTNAME_REGEX: (
+            __('The hostname "%(hostname)s" cannot be resolved.'),
+            SupersetErrorType.TEST_CONNECTION_INVALID_HOSTNAME_ERROR,
+        ),
+        TEST_CONNECTION_PORT_CLOSED_REGEX: (
+            __('Port %(port)s on hostname "%(hostname)s" refused the connection.'),
+            SupersetErrorType.TEST_CONNECTION_PORT_CLOSED_ERROR,
+        ),
+        TEST_CONNECTION_HOST_DOWN_REGEX: (
+            __(
+                'The host "%(hostname)s" might be down, and can\'t be '
+                "reached on port %(port)s."
+            ),
+            SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
+        ),
     }
 
     @classmethod
