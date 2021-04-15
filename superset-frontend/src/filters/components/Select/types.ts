@@ -18,9 +18,10 @@
  */
 import {
   AppSection,
-  ChartProps,
   Behavior,
+  ChartProps,
   DataRecord,
+  FilterState,
   GenericDataType,
   QueryFormData,
   SetDataMaskHook,
@@ -34,7 +35,6 @@ export type SelectValue = (number | string)[] | null;
 
 interface PluginFilterSelectCustomizeProps {
   defaultValue?: SelectValue | typeof FIRST_VALUE;
-  currentValue?: SelectValue | typeof FIRST_VALUE;
   enableEmptyFilter: boolean;
   inverseSelection: boolean;
   multiSelect: boolean;
@@ -58,11 +58,11 @@ export type PluginFilterSelectProps = PluginFilterStylesProps & {
   behaviors: Behavior[];
   appSection: AppSection;
   formData: PluginFilterSelectQueryFormData;
+  filterState: FilterState;
 };
 
 export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {
   defaultValue: null,
-  currentValue: null,
   enableEmptyFilter: false,
   inverseSelection: false,
   defaultToFirstItem: false,

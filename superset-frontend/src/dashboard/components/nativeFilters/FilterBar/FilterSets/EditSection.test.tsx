@@ -27,7 +27,7 @@ const createProps = () => ({
   filterSetId: 'set-id',
   dataMaskSelected: {
     DefaultsID: {
-      currentState: {
+      filterState: {
         value: 'value',
       },
     },

@@ -98,8 +98,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
 }) => {
   // TODO: change to indicator field after it will be implemented
   const crossFilterValue = useSelector<RootState, any>(
-    state =>
-      state.dataMask?.crossFilters?.[slice?.slice_id]?.currentState?.value,
+    state => state.dataMask[slice?.slice_id]?.filterState?.value,
   );
 
   return (

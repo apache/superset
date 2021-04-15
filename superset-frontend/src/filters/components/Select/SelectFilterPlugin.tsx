@@ -18,8 +18,6 @@
  */
 import {
   AppSection,
-  Behavior,
-  DataMask,
   ensureIsArray,
   GenericDataType,
   smartDateDetailedFormatter,
@@ -41,8 +39,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     formData,
     height,
     width,
-    behaviors,
     setDataMask,
+    filterState,
     appSection,
   } = props;
   const {
@@ -50,7 +48,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     enableEmptyFilter,
     multiSelect,
     showSearch,
-    currentValue,
     inverseSelection,
     inputRef,
     defaultToFirstItem,
@@ -100,38 +97,27 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     const emptyFilter =
       enableEmptyFilter && !inverseSelection && selectValue?.length === 0;
 
-    const dataMask = {
+    setDataMask({
       extraFormData: getSelectExtraFormData(
         col,
         selectValue,
         emptyFilter,
         inverseSelection,
       ),
-      currentState: {
+      filterState: {
         // We need to save in state `FIRST_VALUE` as some const and not as REAL value,
         // because when FiltersBar check if all filters initialized it compares `defaultValue` with this value
         // and because REAL value can be unpredictable for users that have different data for same dashboard we use `FIRST_VALUE`
         value: stateValue,
       },
-    };
-
-    const dataMaskObject: DataMask = {};
-    if (behaviors.includes(Behavior.NATIVE_FILTER)) {
-      dataMaskObject.nativeFilters = dataMask;
-    }
-
-    if (behaviors.includes(Behavior.CROSS_FILTER)) {
-      dataMaskObject.crossFilters = dataMask;
-    }
-
-    setDataMask(dataMaskObject);
+    });
   };
 
   useEffect(() => {
     // For currentValue we need set always `FIRST_VALUE` only if we in config modal for `defaultToFirstItem` mode
-    handleChange(forceFirstValue ? FIRST_VALUE : currentValue ?? []);
+    handleChange(forceFirstValue ? FIRST_VALUE : filterState.value ?? []);
   }, [
-    JSON.stringify(currentValue),
+    JSON.stringify(filterState.value),
     defaultToFirstItem,
     multiSelect,
     enableEmptyFilter,

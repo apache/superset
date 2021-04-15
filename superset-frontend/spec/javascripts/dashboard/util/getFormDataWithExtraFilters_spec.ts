@@ -64,14 +64,11 @@ describe('getFormDataWithExtraFilters', () => {
       },
     },
     dataMask: {
-      crossFilters: {},
-      ownFilters: {},
-      nativeFilters: {
-        [filterId]: {
-          id: filterId,
-          extraFormData: {},
-          currentState: {},
-        },
+      [filterId]: {
+        id: filterId,
+        extraFormData: {},
+        filterState: {},
+        ownState: {},
       },
     },
     layout: (dashboardLayout.present as unknown) as {

@@ -22,8 +22,8 @@ import Popover from 'src/components/Popover';
 import Icon from 'src/components/Icon';
 import { Pill } from 'src/dashboard/components/FiltersBadge/Styles';
 import { useSelector } from 'react-redux';
-import { getInitialMask } from 'src/dataMask/reducer';
-import { MaskWithId } from 'src/dataMask/types';
+import { getInitialDataMask } from 'src/dataMask/reducer';
+import { DataMaskWithId } from 'src/dataMask/types';
 import FilterControl from 'src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControl';
 import CascadeFilterControl from 'src/dashboard/components/nativeFilters/FilterBar/CascadeFilters/CascadeFilterControl';
 import { CascadeFilter } from 'src/dashboard/components/nativeFilters/FilterBar/CascadeFilters/types';
@@ -82,9 +82,8 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   directPathToChild,
 }) => {
   const [currentPathToChild, setCurrentPathToChild] = useState<string[]>();
-  const dataMask = useSelector<any, MaskWithId>(
-    state =>
-      state.dataMask.nativeFilters[filter.id] ?? getInitialMask(filter.id),
+  const dataMask = useSelector<any, DataMaskWithId>(
+    state => state.dataMask[filter.id] ?? getInitialDataMask(filter.id),
   );
 
   useEffect(() => {
@@ -98,7 +97,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   const getActiveChildren = useCallback(
     (filter: CascadeFilter): CascadeFilter[] | null => {
       const children = filter.cascadeChildren || [];
-      const currentValue = dataMask.currentState?.value;
+      const currentValue = dataMask.filterState?.value;
 
       const activeChildren = children.flatMap(
         childFilter => getActiveChildren(childFilter) || [],

@@ -22,8 +22,8 @@ import React, { FC } from 'react';
 import Icon from 'src/components/Icon';
 import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
-import { getInitialMask } from 'src/dataMask/reducer';
-import { DataMaskUnit, DataMaskUnitWithId } from 'src/dataMask/types';
+import { getInitialDataMask } from 'src/dataMask/reducer';
+import { DataMaskState, DataMaskStateWithId } from 'src/dataMask/types';
 import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
@@ -58,9 +58,9 @@ const ActionButtons = styled.div`
 type HeaderProps = {
   toggleFiltersBar: (arg0: boolean) => void;
   onApply: () => void;
-  setDataMaskSelected: (arg0: (draft: DataMaskUnit) => void) => void;
-  dataMaskSelected: DataMaskUnit;
-  dataMaskApplied: DataMaskUnitWithId;
+  setDataMaskSelected: (arg0: (draft: DataMaskState) => void) => void;
+  dataMaskSelected: DataMaskState;
+  dataMaskApplied: DataMaskStateWithId;
   isApplyDisabled: boolean;
 };
 
@@ -81,15 +81,15 @@ const Header: FC<HeaderProps> = ({
   const handleClearAll = () => {
     filterValues.forEach(filter => {
       setDataMaskSelected(draft => {
-        draft[filter.id] = getInitialMask(filter.id);
+        draft[filter.id] = getInitialDataMask(filter.id);
       });
     });
   };
 
   const isClearAllDisabled = Object.values(dataMaskApplied).every(
     filter =>
-      dataMaskSelected[filter.id]?.currentState?.value === null ||
-      (!dataMaskSelected[filter.id] && filter.currentState?.value === null),
+      dataMaskSelected[filter.id]?.filterState?.value === null ||
+      (!dataMaskSelected[filter.id] && filter.filterState?.value === null),
   );
 
   return (
