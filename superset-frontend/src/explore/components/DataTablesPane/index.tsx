@@ -110,7 +110,7 @@ export const DataTablesPane = ({
   queryFormData: Record<string, any>;
   tableSectionHeight: number;
   chartStatus: string;
-  ownState: JsonObject;
+  ownState?: JsonObject;
   onCollapseChange: (openPanelName: string) => void;
 }) => {
   const [data, setData] = useState<{

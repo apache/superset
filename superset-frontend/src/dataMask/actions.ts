@@ -18,6 +18,7 @@
  */
 import { DataMask } from '@superset-ui/core';
 import { FilterConfiguration } from '../dashboard/components/nativeFilters/types';
+import { FeatureFlag, isFeatureEnabled } from '../featureFlags';
 
 export const UPDATE_DATA_MASK = 'UPDATE_DATA_MASK';
 export interface UpdateDataMask {
@@ -46,10 +47,14 @@ export function updateDataMask(
   filterId: string,
   dataMask: DataMask,
 ): UpdateDataMask {
+  // Only apply data mask if one of the relevant features is enabled
+  const isFeatureFlagActive =
+    isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) ||
+    isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS);
   return {
     type: UPDATE_DATA_MASK,
     filterId,
-    dataMask,
+    dataMask: isFeatureFlagActive ? dataMask : {},
   };
 }
 

@@ -20,6 +20,7 @@ import { CHART_TYPE } from './componentTypes';
 import { Scope } from '../components/nativeFilters/types';
 import { ActiveFilters, LayoutItem } from '../types';
 import { ChartConfiguration, Filters } from '../reducers/types';
+import { DASHBOARD_ROOT_ID } from './constants';
 import { DataMaskStateWithId } from '../../dataMask/types';
 
 // Looking for affected chart scopes and values
