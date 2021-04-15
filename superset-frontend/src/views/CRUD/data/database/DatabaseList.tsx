@@ -190,7 +190,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
             title={t('Import Database')}
             placement="bottomRight"
           >
-            <Icons.Import />
+            <Icons.Import data-test="import-button" />
           </Tooltip>
         ),
         buttonStyle: 'link',

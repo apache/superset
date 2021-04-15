@@ -187,7 +187,7 @@ function SavedQueryList({
           title={t('Import Saved Query')}
           placement="bottomRight"
         >
-          <Icons.Import />
+          <Icons.Import data-test="import-icon" />
         </Tooltip>
       ),
       buttonStyle: 'link',

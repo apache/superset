@@ -498,7 +498,7 @@ function DashboardList(props: DashboardListProps) {
           title={t('Import Dashboard')}
           placement="bottomRight"
         >
-          <Icons.Import />
+          <Icons.Import data-test="import-button" />
         </Tooltip>
       ),
       buttonStyle: 'link',

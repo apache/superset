@@ -300,6 +300,20 @@ describe('RTL', () => {
     expect(importSavedQueryButton).toBeVisible();
   });
 
+  it('renders an "Import Saved Query" tooltip under import button', async () => {
+    const importButton = screen.getByTestId('import-button');
+    userEvent.hover(importButton);
+
+    screen.logTestingPlaygroundURL();
+
+    await screen.findByRole('tooltip');
+    const importTooltip = screen.getByRole('tooltip', {
+      name: /import saved query/i,
+    });
+
+    expect(importTooltip).toBeInTheDocument();
+  });
+
   it('renders an import model when import button is clicked', async () => {
     // Grab and click import saved query button to reveal modal
     const importSavedQueryButton = screen.getAllByRole('button')[2];
