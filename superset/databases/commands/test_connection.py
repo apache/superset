@@ -93,6 +93,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 "password": url.password,
                 "port": url.port,
                 "username": url.username,
+                "database": url.database,
             }
             errors = database.db_engine_spec.extract_errors(ex, context)
             raise DatabaseTestConnectionFailedError(errors)
