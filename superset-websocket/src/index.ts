@@ -350,6 +350,27 @@ export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
 };
 
 /**
+ * HTTP `request` event handler, called via httpServer
+ */
+export const httpRequest = (
+  request: http.IncomingMessage,
+  response: http.ServerResponse,
+) => {
+  const rawUrl = request.url as string;
+  const method = request.method as string;
+  const headers = request.headers || {};
+  const url = new URL(rawUrl as string, `http://${headers.host}`);
+  if (url.pathname === '/health' && ['GET', 'HEAD'].includes(method)) {
+    response.writeHead(200);
+    response.end('OK');
+  } else {
+    logger.info(`Received unexpected request: ${method} ${rawUrl}`);
+    response.writeHead(404);
+    response.end('Not Found');
+  }
+};
+
+/**
  * HTTP `upgrade` event handler, called via httpServer
  */
 export const httpUpgrade = (
@@ -439,6 +460,7 @@ export const cleanChannel = (channel: string) => {
 if (startServer) {
   // init server event listeners
   wss.on('connection', wsConnection);
+  httpServer.on('request', httpRequest);
   httpServer.on('upgrade', httpUpgrade);
   httpServer.listen(opts.port);
   logger.info(`Server started on port ${opts.port}`);
