@@ -23,7 +23,8 @@ import {
   Behavior,
   CategoricalColorNamespace,
   getChartMetadataRegistry,
-} from '@superset-ui/core';import querystring from 'query-string';
+} from '@superset-ui/core';
+import querystring from 'query-string';
 
 import { chart } from 'src/chart/chartReducer';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
