@@ -36,8 +36,8 @@ export default class PivotTableChartPlugin extends ChartPlugin<PivotTableQueryFo
    */
   constructor() {
     const metadata = new ChartMetadata({
-      description: 'Pivot Table',
-      name: t('Pivot Table'),
+      description: 'Pivot Table - experimental',
+      name: t('Pivot Table v2'),
       thumbnail,
     });
 
