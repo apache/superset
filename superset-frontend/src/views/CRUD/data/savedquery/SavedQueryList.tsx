@@ -35,7 +35,11 @@ import SubMenu, {
   SubMenuProps,
   ButtonProps,
 } from 'src/components/Menu/SubMenu';
-import ListView, { ListViewProps, Filters } from 'src/components/ListView';
+import ListView, {
+  ListViewProps,
+  Filters,
+  FilterOperator,
+} from 'src/components/ListView';
 import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { commonMenuData } from 'src/views/CRUD/data/common';
@@ -401,7 +405,7 @@ function SavedQueryList({
         Header: t('Database'),
         id: 'database',
         input: 'select',
-        operator: 'rel_o_m',
+        operator: FilterOperator.relationOneMany,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'saved_query',
@@ -421,7 +425,7 @@ function SavedQueryList({
         Header: t('Schema'),
         id: 'schema',
         input: 'select',
-        operator: 'eq',
+        operator: FilterOperator.equals,
         unfilteredLabel: 'All',
         fetchSelects: createFetchDistinct(
           'saved_query',
@@ -438,7 +442,7 @@ function SavedQueryList({
         Header: t('Search'),
         id: 'label',
         input: 'search',
-        operator: 'all_text',
+        operator: FilterOperator.allText,
       },
     ],
     [addDangerToast],
