@@ -96,8 +96,9 @@ class BigQueryEngineSpec(BaseEngineSpec):
     custom_errors = {
         CONNECTION_DATABASE_PERMISSIONS_REGEX: (
             __(
-                "We were unable to connect to your database. "
-                + "Please confirm that your service account has the Viewer and Job User roles on the project."
+                "We were unable to connect to your database. Please"
+                "confirm that your service account has the Viewer"
+                "and Job User roles on the project."
             ),
             SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
         ),
