@@ -24,7 +24,7 @@ import {
   ExclamationCircleFilled,
 } from '@ant-design/icons';
 import Popover from 'src/components/Popover';
-import Collapse from 'src/common/components/Collapse';
+import Collapse from 'src/components/Collapse';
 import { Global } from '@emotion/core';
 import Icon from 'src/components/Icon';
 import {
