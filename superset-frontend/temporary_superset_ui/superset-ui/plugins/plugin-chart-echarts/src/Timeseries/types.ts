@@ -57,6 +57,7 @@ export type EchartsTimeseriesFormData = {
   tooltipTimeFormat?: string;
   truncateYAxis: boolean;
   yAxisFormat?: string;
+  yAxisTitle: string;
   xAxisShowMinLabel?: boolean;
   xAxisShowMaxLabel?: boolean;
   xAxisTimeFormat?: string;
@@ -94,4 +95,5 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   zoomable: false,
   richTooltip: true,
   xAxisLabelRotation: 0,
+  yAxisTitle: '',
 };

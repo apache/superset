@@ -26,10 +26,9 @@ import {
   isFormulaAnnotationLayer,
   isIntervalAnnotationLayer,
   isTimeseriesAnnotationLayer,
-  TimeseriesChartDataResponseResult,
 } from '@superset-ui/core';
 import { EChartsOption, SeriesOption } from 'echarts';
-import { DEFAULT_FORM_DATA, EchartsTimeseriesFormData } from './types';
+import { DEFAULT_FORM_DATA, EchartsMixedTimeseriesFormData } from './types';
 import { EchartsProps, ForecastSeriesEnum, ProphetValue } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import { dedupSeries, extractTimeseriesSeries, getLegendProps } from '../utils/series';
@@ -50,64 +49,89 @@ import {
   transformIntervalAnnotation,
   transformSeries,
   transformTimeseriesAnnotation,
-} from './transformers';
+} from '../Timeseries/transformers';
 import { TIMESERIES_CONSTANTS } from '../constants';
 
 export default function transformProps(chartProps: ChartProps): EchartsProps {
   const { width, height, formData, queriesData } = chartProps;
-  const {
-    annotation_data: annotationData_,
-    data = [],
-  } = queriesData[0] as TimeseriesChartDataResponseResult;
+  const { annotation_data: annotationData_, data: data1 = [] } = queriesData[0];
+  const { data: data2 = [] } = queriesData[1];
   const annotationData = annotationData_ || {};
 
   const {
     area,
+    areaB,
     annotationLayers,
     colorScheme,
     contributionMode,
-    forecastEnabled,
     legendOrientation,
     legendType,
     logAxis,
+    logAxisSecondary,
     markerEnabled,
+    markerEnabledB,
     markerSize,
+    markerSizeB,
     opacity,
+    opacityB,
     minorSplitLine,
     seriesType,
+    seriesTypeB,
     showLegend,
     stack,
+    stackB,
     truncateYAxis,
+    tooltipTimeFormat,
     yAxisFormat,
+    yAxisFormatSecondary,
     xAxisShowMinLabel,
     xAxisShowMaxLabel,
     xAxisTimeFormat,
     yAxisBounds,
+    yAxisIndex,
+    yAxisIndexB,
     yAxisTitle,
-    tooltipTimeFormat,
+    yAxisTitleSecondary,
     zoomable,
     richTooltip,
     xAxisLabelRotation,
-  }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+  }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
-  const rebasedData = rebaseTimeseriesDatum(data);
-  const rawSeries = extractTimeseriesSeries(rebasedData, {
-    fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
+  const rawSeriesA = extractTimeseriesSeries(rebaseTimeseriesDatum(data1), {
+    fillNeighborValue: stack ? 0 : undefined,
   });
+  const rawSeriesB = extractTimeseriesSeries(rebaseTimeseriesDatum(data2), {
+    fillNeighborValue: stackB ? 0 : undefined,
+  });
+
   const series: SeriesOption[] = [];
   const formatter = getNumberFormatter(contributionMode ? ',.0%' : yAxisFormat);
+  const formatterSecondary = getNumberFormatter(contributionMode ? ',.0%' : yAxisFormatSecondary);
 
-  rawSeries.forEach(entry => {
+  rawSeriesA.forEach(entry => {
     const transformedSeries = transformSeries(entry, colorScale, {
       area,
-      forecastEnabled,
       markerEnabled,
       markerSize,
       opacity,
       seriesType,
       stack,
       richTooltip,
+      yAxisIndex,
+    });
+    if (transformedSeries) series.push(transformedSeries);
+  });
+  rawSeriesB.forEach(entry => {
+    const transformedSeries = transformSeries(entry, colorScale, {
+      area: areaB,
+      markerEnabled: markerEnabledB,
+      markerSize: markerSizeB,
+      opacity: opacityB,
+      seriesType: seriesTypeB,
+      stack: stackB,
+      richTooltip,
+      yAxisIndex: yAxisIndexB,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
@@ -116,13 +140,13 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     .filter((layer: AnnotationLayer) => layer.show)
     .forEach((layer: AnnotationLayer) => {
       if (isFormulaAnnotationLayer(layer))
-        series.push(transformFormulaAnnotation(layer, data, colorScale));
+        series.push(transformFormulaAnnotation(layer, data1, colorScale));
       else if (isIntervalAnnotationLayer(layer)) {
-        series.push(...transformIntervalAnnotation(layer, data, annotationData, colorScale));
+        series.push(...transformIntervalAnnotation(layer, data1, annotationData, colorScale));
       } else if (isEventAnnotationLayer(layer)) {
-        series.push(...transformEventAnnotation(layer, data, annotationData, colorScale));
+        series.push(...transformEventAnnotation(layer, data1, annotationData, colorScale));
       } else if (isTimeseriesAnnotationLayer(layer)) {
-        series.push(...transformTimeseriesAnnotation(layer, markerSize, data, annotationData));
+        series.push(...transformTimeseriesAnnotation(layer, markerSize, data1, annotationData));
       }
     });
 
@@ -138,13 +162,13 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
   const tooltipFormatter = getTooltipFormatter(tooltipTimeFormat);
   const xAxisFormatter = getXAxisFormatter(xAxisTimeFormat);
 
-  const addYAxisLabelOffset = !!yAxisTitle;
-  const padding = getPadding(showLegend, legendOrientation, addYAxisLabelOffset, zoomable);
+  const addYAxisLabelOffset = !!(yAxisTitle || yAxisTitleSecondary);
+  const chartPadding = getPadding(showLegend, legendOrientation, addYAxisLabelOffset, zoomable);
   const echartOptions: EChartsOption = {
     useUTC: true,
     grid: {
       ...defaultGrid,
-      ...padding,
+      ...chartPadding,
     },
     xAxis: {
       type: 'time',
@@ -155,17 +179,31 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
         rotate: xAxisLabelRotation,
       },
     },
-    yAxis: {
-      ...defaultYAxis,
-      type: logAxis ? 'log' : 'value',
-      min,
-      max,
-      minorTick: { show: true },
-      minorSplitLine: { show: minorSplitLine },
-      axisLabel: { formatter },
-      scale: truncateYAxis,
-      name: yAxisTitle,
-    },
+    yAxis: [
+      {
+        ...defaultYAxis,
+        type: logAxis ? 'log' : 'value',
+        min,
+        max,
+        minorTick: { show: true },
+        minorSplitLine: { show: minorSplitLine },
+        axisLabel: { formatter },
+        scale: truncateYAxis,
+        name: yAxisTitle,
+      },
+      {
+        ...defaultYAxis,
+        type: logAxisSecondary ? 'log' : 'value',
+        min,
+        max,
+        minorTick: { show: true },
+        splitLine: { show: false },
+        minorSplitLine: { show: minorSplitLine },
+        axisLabel: { formatter: formatterSecondary },
+        scale: truncateYAxis,
+        name: yAxisTitleSecondary,
+      },
+    ],
     tooltip: {
       ...defaultTooltip,
       trigger: richTooltip ? 'axis' : 'item',
@@ -194,7 +232,8 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     legend: {
       ...getLegendProps(legendType, legendOrientation, showLegend, zoomable),
       // @ts-ignore
-      data: rawSeries
+      data: rawSeriesA
+        .concat(rawSeriesB)
         .filter(
           entry =>
             extractForecastSeriesContext((entry.name || '') as string).type ===
