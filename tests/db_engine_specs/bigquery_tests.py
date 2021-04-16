@@ -230,17 +230,12 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         result = BigQueryEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                message="Generic Error",
-                error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                message="User does not have bigquery.jobs.create permission in project",
+                error_type=SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={
                     "engine_name": "Google BigQuery",
-                    "issue_codes": [
-                        {
-                            "code": 1002,
-                            "message": "Issue 1002 - The database returned an unexpected error.",
-                        }
-                    ],
+                    "issue_codes": [{"code": 1017, "message": "",}],
                 },
             )
         ]
