@@ -39,6 +39,7 @@ class SupersetErrorType(str, Enum):
     GENERIC_DB_ENGINE_ERROR = "GENERIC_DB_ENGINE_ERROR"
     COLUMN_DOES_NOT_EXIST_ERROR = "COLUMN_DOES_NOT_EXIST_ERROR"
     TABLE_DOES_NOT_EXIST_ERROR = "TABLE_DOES_NOT_EXIST_ERROR"
+    SCHEMA_DOES_NOT_EXIST_ERROR = "SCHEMA_DOES_NOT_EXIST_ERROR"
     CONNECTION_INVALID_USERNAME_ERROR = "CONNECTION_INVALID_USERNAME_ERROR"
     CONNECTION_INVALID_PASSWORD_ERROR = "CONNECTION_INVALID_PASSWORD_ERROR"
     CONNECTION_INVALID_HOSTNAME_ERROR = "CONNECTION_INVALID_HOSTNAME_ERROR"
@@ -116,6 +117,21 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
             ),
         },
     ],
+    SupersetErrorType.SCHEMA_DOES_NOT_EXIST_ERROR: [
+        {
+            "code": 1003,
+            "message": _(
+                "Issue 1003 - There is a syntax error in the SQL query. "
+                "Perhaps there was a misspelling or a typo."
+            ),
+        },
+        {
+            "code": 1016,
+            "message": _(
+                "Issue 1005 - The schema was deleted or renamed in the database."
+            ),
+        },
+    ],
     SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR: [
         {
             "code": 1006,
@@ -132,7 +148,7 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
         },
     ],
     SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR: [
-        {"code": 1008, "message": _("Issue 1008 - The port is closed."),},
+        {"code": 1008, "message": _("Issue 1008 - The port is closed.")},
     ],
     SupersetErrorType.CONNECTION_HOST_DOWN_ERROR: [
         {
