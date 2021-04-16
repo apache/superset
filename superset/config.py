@@ -1179,11 +1179,6 @@ DATASET_HEALTH_CHECK: Optional[Callable[["SqlaTable"], str]] = None
 SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
 SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 
-# Database Connection Config
-TEXT_DATABASE_CONNECTION = {
-    "database_test_connection_unexpected": "Unexpected error occurred, please check your logs for details"
-}
-
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
 # -------------------------------------------------------------------

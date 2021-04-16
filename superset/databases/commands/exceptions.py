@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask import current_app
 from flask_babel import lazy_gettext as _
 from marshmallow.validate import ValidationError
 
@@ -27,8 +26,6 @@ from superset.commands.exceptions import (
     UpdateFailedError,
 )
 from superset.exceptions import SupersetErrorsException
-
-TEXT_DATABASE_CONN = current_app.config["TEXT_DATABASE_CONNECTION"]
 
 
 class DatabaseInvalidError(CommandInvalidError):
@@ -134,7 +131,7 @@ class DatabaseTestConnectionDriverError(CommandInvalidError):
 
 
 class DatabaseTestConnectionUnexpectedError(CommandInvalidError):
-    message = _(TEXT_DATABASE_CONN["database_test_connection_unexpected"])
+    message = _("Unexpected error occurred, please check your logs for details")
 
 
 class DatabaseImportError(ImportFailedError):
