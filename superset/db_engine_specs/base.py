@@ -746,16 +746,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return utils.error_msg_from_exception(ex)
 
     @classmethod
-    def extract_errors(cls, ex: Exception) -> List[SupersetError]:
+    def extract_errors(
+        cls, ex: Exception, context: Optional[Dict[str, Any]] = None
+    ) -> List[SupersetError]:
         raw_message = cls._extract_error_message(ex)
 
+        context = context or {}
         for regex, (message, error_type) in cls.custom_errors.items():
             match = regex.search(raw_message)
             if match:
+                params = {**context, **match.groupdict()}
                 return [
                     SupersetError(
                         error_type=error_type,
-                        message=message % match.groupdict(),
+                        message=message % params,
                         level=ErrorLevel.ERROR,
                         extra={"engine_name": cls.engine_name},
                     )

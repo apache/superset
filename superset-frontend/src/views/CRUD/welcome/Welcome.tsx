@@ -228,7 +228,6 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
               user={user}
               mine={dashboardData}
               showThumbnails={checked}
-              featureFlag={isFeatureEnabled(FeatureFlag.THUMBNAILS)}
             />
           )}
         </Collapse.Panel>
@@ -248,12 +247,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           {!chartData ? (
             <Loading position="inline" />
           ) : (
-            <ChartTable
-              showThumbnails={checked}
-              user={user}
-              mine={chartData}
-              featureFlag={isFeatureEnabled(FeatureFlag.THUMBNAILS)}
-            />
+            <ChartTable showThumbnails={checked} user={user} mine={chartData} />
           )}
         </Collapse.Panel>
       </Collapse>

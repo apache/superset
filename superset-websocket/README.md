@@ -81,6 +81,8 @@ GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://<host>:<port>/"
 
 Note that the WebSocket server must be run on the same hostname (different port) for cookies to be shared between the Flask app and the WebSocket server.
 
+Note also that `localhost` and `127.0.0.1` are not considered the same host. For example, if you're pointing your browser to `localhost:<port>` for Superset, then the WebSocket url will need to be configured as `localhost:<port>`.
+
 The following config values must contain the same values in both the Flask app config and `config.json`:
 ```
 GLOBAL_ASYNC_QUERIES_REDIS_CONFIG
@@ -103,4 +105,20 @@ Running in production:
 npm run build && npm start
 ```
 
-*TODO: containerization*
+## Health check
+
+The WebSocket server supports health checks via one of:
+
+```
+GET /health
+```
+
+OR
+
+```
+HEAD /health
+```
+
+## Containerization
+
+*TODO: containerize websocket server*

@@ -49,6 +49,7 @@ const propTypes = {
   sliceName: PropTypes.string,
   table_name: PropTypes.string,
   form_data: PropTypes.object,
+  ownState: PropTypes.object,
   timeout: PropTypes.number,
   chart: chartPropShape,
 };
@@ -106,6 +107,7 @@ export class ExploreChartHeader extends React.PureComponent {
       true,
       this.props.timeout,
       this.props.chart.id,
+      this.props.ownState,
     );
   }
 

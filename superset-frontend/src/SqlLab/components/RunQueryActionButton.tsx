@@ -25,7 +25,7 @@ import Icon from 'src/components/Icon';
 import {
   DropdownButton,
   DropdownButtonProps,
-} from 'src/common/components/DropdownButton';
+} from 'src/components/DropdownButton';
 
 interface Props {
   allowAsync: boolean;
