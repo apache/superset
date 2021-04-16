@@ -15,12 +15,12 @@ header > nav ul {
 }
 
 header > nav .navbar-right {
-  display: block;
+  display: flex;
   padding-top: 15px !important;
   margin-bottom: -30px !important;
 }
 
-header > nav .navbar-right .btn-primary {
+header > nav .navbar-right [data-type='primary'] {
   display: none;
 }
 
@@ -76,7 +76,7 @@ header > nav .navbar-right .btn-primary {
   text-decoration: none !important;
 }
 
-.list-search-container .dropdown-toggle {
+.list-search-container button.dropdown-toggle {
   top: 20px !important;
 }
 
@@ -163,4 +163,35 @@ body > footer {
 
 .slice_container .filter_box .Select__multi-value__label {
   white-space: initial !important;
+}
+
+.container {
+  width: 100%;
+}
+
+.panel-primary .panel-heading {
+  padding: 15px 15px 0 43px !important;
+}
+
+.list-container .list-add-action {
+  top: -15px !important;
+}
+
+.btn-primary {
+  background-color: rgb(255, 82, 25) !important;
+  border-color: rgb(255, 82, 25) !important;
+}
+
+.btn-primary:hover {
+  background-color: rgb(202, 76, 31) !important;
+  border-color: rgb(202, 76, 31) !important;
+}
+
+.text-primary,
+.text-primary:hover {
+  color: rgb(202, 76, 31) !important;
+}
+
+.navbar-static-top {
+  display: none;
 }

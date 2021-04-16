@@ -39,6 +39,7 @@ jobs:
         push: true
         build-args: |
             NPM_BUILD_CMD=build
+            GIT_AUTH_TOKEN=${{ secrets.TOKEN_REPO }}
         tags: blotout/superset:${{ env.DOCKER_TAG }}
     - name: Comment
       uses: NejcZdovc/comment-pr@v1

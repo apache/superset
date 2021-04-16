@@ -174,6 +174,7 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
                 buttonStyle={btn.buttonStyle}
                 onClick={btn.onClick}
                 data-test={btn['data-test']}
+                data-type={btn.buttonStyle}
               >
                 {btn.name}
               </Button>
