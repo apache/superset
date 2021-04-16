@@ -22,8 +22,12 @@ import {
   AnnotationOpacity,
   CategoricalColorScale,
   EventAnnotationLayer,
+  getTimeFormatter,
   IntervalAnnotationLayer,
   isTimeseriesAnnotationResult,
+  smartDateDetailedFormatter,
+  smartDateFormatter,
+  TimeFormatter,
   TimeseriesAnnotationLayer,
   TimeseriesDataRecord,
 } from '@superset-ui/core';
@@ -41,19 +45,32 @@ import {
   MarkArea2DDataItemOption,
 } from 'echarts/types/src/component/marker/MarkAreaModel';
 import { extractForecastSeriesContext } from '../utils/prophet';
-import { ForecastSeriesEnum } from '../types';
-import { DEFAULT_FORM_DATA, EchartsTimeseriesFormData } from './types';
+import { ForecastSeriesEnum, LegendOrientation } from '../types';
+import { EchartsTimeseriesSeriesType } from './types';
+
 import {
   evalFormula,
   extractRecordAnnotations,
   formatAnnotationLabel,
   parseAnnotationOpacity,
 } from '../utils/annotation';
+import { getChartPadding } from '../utils/series';
+import { TIMESERIES_CONSTANTS } from '../constants';
 
 export function transformSeries(
   series: SeriesOption,
-  formData: EchartsTimeseriesFormData,
   colorScale: CategoricalColorScale,
+  opts: {
+    area?: boolean;
+    forecastEnabled?: boolean;
+    markerEnabled?: boolean;
+    markerSize?: number;
+    opacity?: number;
+    seriesType?: EchartsTimeseriesSeriesType;
+    stack?: boolean;
+    richTooltip?: boolean;
+    yAxisIndex?: number;
+  },
 ): SeriesOption | undefined {
   const { name } = series;
   const {
@@ -65,10 +82,8 @@ export function transformSeries(
     seriesType,
     stack,
     richTooltip,
-  }: EchartsTimeseriesFormData = {
-    ...DEFAULT_FORM_DATA,
-    ...formData,
-  };
+    yAxisIndex = 0,
+  } = opts;
   const forecastSeries = extractForecastSeriesContext(name || '');
   const isConfidenceBand =
     forecastSeries.type === ForecastSeriesEnum.ForecastLower ||
@@ -102,6 +117,7 @@ export function transformSeries(
 
   return {
     ...series,
+    yAxisIndex,
     name: forecastSeries.name,
     itemStyle: {
       color: colorScale(forecastSeries.name),
@@ -265,12 +281,11 @@ export function transformEventAnnotation(
 
 export function transformTimeseriesAnnotation(
   layer: TimeseriesAnnotationLayer,
-  formData: EchartsTimeseriesFormData,
+  markerSize: number,
   data: TimeseriesDataRecord[],
   annotationData: AnnotationData,
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
-  const { markerSize } = formData;
   const { hideLine, name, opacity, showMarkers, style, width } = layer;
   const result = annotationData[name];
   if (isTimeseriesAnnotationResult(result)) {
@@ -291,4 +306,50 @@ export function transformTimeseriesAnnotation(
     });
   }
   return series;
+}
+
+export function getPadding(
+  showLegend: boolean,
+  legendOrientation: LegendOrientation,
+  addYAxisLabelOffset: boolean,
+  zoomable: boolean,
+  margin?: string | number | null,
+): {
+  bottom: number;
+  left: number;
+  right: number;
+  top: number;
+} {
+  const yAxisOffset = addYAxisLabelOffset ? TIMESERIES_CONSTANTS.yAxisLabelTopOffset : 0;
+  return getChartPadding(showLegend, legendOrientation, margin, {
+    top: TIMESERIES_CONSTANTS.gridOffsetTop + yAxisOffset,
+    bottom: zoomable
+      ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable
+      : TIMESERIES_CONSTANTS.gridOffsetBottom,
+    left: TIMESERIES_CONSTANTS.gridOffsetLeft,
+    right:
+      showLegend && legendOrientation === LegendOrientation.Right
+        ? 0
+        : TIMESERIES_CONSTANTS.gridOffsetRight,
+  });
+}
+
+export function getTooltipFormatter(format?: string): TimeFormatter | StringConstructor {
+  if (format === smartDateFormatter.id) {
+    return smartDateDetailedFormatter;
+  }
+  if (format) {
+    return getTimeFormatter(format);
+  }
+  return String;
+}
+
+export function getXAxisFormatter(format?: string): TimeFormatter | StringConstructor | undefined {
+  if (format === smartDateFormatter.id || !format) {
+    return undefined;
+  }
+  if (format) {
+    return getTimeFormatter(format);
+  }
+  return String;
 }

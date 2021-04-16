@@ -427,6 +427,18 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'yAxisTitle',
+            config: {
+              type: 'TextControl',
+              label: t('Primary y-axis title'),
+              renderTrigger: true,
+              default: '',
+              description: t('Title for y-axis'),
+            },
+          },
+        ],
+        [
+          {
             name: 'truncateYAxis',
             config: {
               type: 'CheckboxControl',
