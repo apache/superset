@@ -38,6 +38,7 @@ import SubMenu, {
 import ListView, { ListViewProps, Filters } from 'src/components/ListView';
 import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
+import { Tooltip } from 'src/common/components/Tooltip';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import { SavedQueryObject } from 'src/views/CRUD/types';
 import copyTextToClipboard from 'src/utils/copy';
@@ -180,7 +181,16 @@ function SavedQueryList({
 
   if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
     subMenuButtons.push({
-      name: <Icons.Import />,
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import Saved Query')}
+          placement="bottomRight"
+          data-test="import-tooltip-test"
+        >
+          <Icons.Import data-test="import-icon" />
+        </Tooltip>
+      ),
       buttonStyle: 'link',
       onClick: openSavedQueryImportModal,
       'data-test': 'import-button',
