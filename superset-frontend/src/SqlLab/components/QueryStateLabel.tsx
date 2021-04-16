@@ -17,12 +17,19 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
+import Label from 'src/components/Label';
 
-export default function TabStatusIcon(props) {
-  return <div className={`circle ${props.tabState}`} />;
+import { STATE_TYPE_MAP } from '../constants';
+import { Query } from '../types';
+
+interface QueryStateLabelProps {
+  query: Query;
 }
 
-TabStatusIcon.propTypes = {
-  tabState: PropTypes.string.isRequired,
-};
+export default function QueryStateLabel({ query }: QueryStateLabelProps) {
+  return (
+    <Label className="m-r-3" type={STATE_TYPE_MAP[query.state]}>
+      {query.state}
+    </Label>
+  );
+}

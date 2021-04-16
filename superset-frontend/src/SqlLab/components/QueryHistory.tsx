@@ -17,21 +17,37 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
-import Label from 'src/components/Label';
+import Alert from 'src/components/Alert';
+import { t } from '@superset-ui/core';
 
-import { STATE_TYPE_MAP } from '../constants';
+import QueryTable from './QueryTable';
+import { Query } from '../types';
 
-const propTypes = {
-  query: PropTypes.object.isRequired,
-};
-
-export default function QueryStateLabel({ query }) {
-  const type = STATE_TYPE_MAP[query.state];
-  return (
-    <Label className="m-r-3" type={type}>
-      {query.state}
-    </Label>
-  );
+interface QueryHistoryProps {
+  queries: Query[];
+  actions: Record<string, unknown>;
+  displayLimit: number;
 }
-QueryStateLabel.propTypes = propTypes;
+
+const QueryHistory = (props: QueryHistoryProps) =>
+  props.queries.length > 0 ? (
+    <QueryTable
+      columns={[
+        'state',
+        'started',
+        'duration',
+        'progress',
+        'rows',
+        'sql',
+        'output',
+        'actions',
+      ]}
+      queries={props.queries}
+      actions={props.actions}
+      displayLimit={props.displayLimit}
+    />
+  ) : (
+    <Alert type="info" message={t('No query history yet...')} />
+  );
+
+export default QueryHistory;
