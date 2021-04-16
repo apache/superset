@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
 
 
-INVALID_USER_PERMISSIONS = re.compile(
+CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
     "User does not have bigquery.jobs.create permission in project"
 )
 
@@ -94,11 +94,11 @@ class BigQueryEngineSpec(BaseEngineSpec):
     }
 
     custom_errors = {
-        INVALID_USER_PERMISSIONS: (
+        CONNECTION_DATABASE_PERMISSIONS_REGEX: (
             __(
                 "We were unable to connect to your database. Please confirm that your service account has the Viewer and Job User roles on the project."
             ),
-            SupersetErrorType.TEST_CONNECTION_DATABASE_PERMISSIONS_ERROR,
+            SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
         ),
     }
 
