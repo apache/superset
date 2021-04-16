@@ -181,13 +181,6 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
             "code": 1014,
             "message": _("Issue 1014 - Either the username or the password is wrong."),
         },
-        {
-            "code": 1015,
-            "message": _(
-                "Issue 1015 - Either the database is "
-                "spelled incorrectly or does not exist."
-            ),
-        },
     ],
     SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR: [
         {
@@ -201,7 +194,7 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
     SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR: [
         {
             "code": 1017,
-            "message": _("Issue 1014 - User doesn't have the proper permissions"),
+            "message": _("Issue 1017 - User doesn't have the proper permissions"),
         },
     ],
 }
