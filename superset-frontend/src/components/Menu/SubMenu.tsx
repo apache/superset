@@ -16,33 +16,50 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useState, useEffect } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import { styled } from '@superset-ui/core';
 import cx from 'classnames';
-import { Nav, Navbar } from 'react-bootstrap';
+import { Col, Row } from 'antd';
+import { Menu } from 'src/common/components';
 import Button, { OnClickHandler } from 'src/components/Button';
 
-const StyledHeader = styled.header`
+const StyledHeader = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
-  .navbar {
-    margin-bottom: 0;
-  }
-  .navbar-header .navbar-brand {
+  .header {
     font-weight: ${({ theme }) => theme.typography.weights.bold};
     margin-right: ${({ theme }) => theme.gridUnit * 3}px;
+    text-align: center;
+    font-size: 18px;
+    padding: 20px;
   }
-  .navbar-right {
+  .nav-right {
     padding: 8px 0;
     margin-right: 0;
+    text-align: right;
+    padding: 16px 10px;
   }
-  .navbar-nav {
+  .menu {
+    background-color: white;
+    .ant-menu-horizontal{
+      line-height: inherit;
+      .ant-menu-item {
+        &:hover {
+          border-bottom: none;
+        } 
+      }
+    }
+    .ant-menu {
+      padding: 16px 0px;
+    }
+  }
+  .menu .ant-menu-item {
     li {
       a,
       div {
         font-size: ${({ theme }) => theme.typography.sizes.s}px;
-        padding: ${({ theme }) => theme.gridUnit * 2}px 0;
-        margin: ${({ theme }) => theme.gridUnit * 2}px;
+        //padding: ${({ theme }) => theme.gridUnit * 2}px 0;
+        //margin: ${({ theme }) => theme.gridUnit * 2}px;
         color: ${({ theme }) => theme.colors.secondary.dark1};
 
         a {
@@ -83,6 +100,14 @@ const StyledHeader = styled.header`
   .btn-link {
     padding: 10px 0;
   }
+  .ant-menu-horizontal {
+    border: none;
+  }
+  @media(max-width: 767px) {
+    .header, .nav-right {
+      text-align: left;
+    }
+  }
 `;
 
 type MenuChild = {
@@ -117,9 +142,11 @@ export interface SubMenuProps {
    *  ONLY set usesRouter to true if SubMenu is wrapped in a react-router <Router>;
    *  otherwise, a 'You should not use <Link> outside a <Router>' error will be thrown */
   usesRouter?: boolean;
+  color?: string;
 }
 
-const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
+const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
+  const [showMenu, setMenu] = useState('horizontal');
   let hasHistory = true;
   // If no parent <Router> component exists, useHistory throws an error
   try {
@@ -128,64 +155,88 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
     // If error is thrown, we know not to use <Link> in render
     hasHistory = false;
   }
+
+  useEffect(()=>{
+    function handleResize() {
+      console.log('screenWidth', window.innerWidth);
+      if(window.innerWidth <= 767 ) setMenu('inline')
+      else setMenu('horizontal') 
+    }
+    handleResize();
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  const offset = props.name ? 2: 0;
   return (
     <StyledHeader>
-      <Navbar inverse fluid role="navigation">
-        <Navbar.Header>
-          <Navbar.Brand>{props.name}</Navbar.Brand>
-        </Navbar.Header>
-        <Nav>
-          {props.tabs &&
-            props.tabs.map(tab => {
-              if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
-                return (
-                  <React.Fragment key={tab.label}>
-                    <li
-                      role="tab"
-                      data-test={tab['data-test']}
-                      className={tab.name === props.activeChild ? 'active' : ''}
-                    >
-                      <div>
-                        <Link to={tab.url || ''}>{tab.label}</Link>
-                      </div>
-                    </li>
-                  </React.Fragment>
-                );
-              }
+      <Row className='menu'>
+        {props.name && 
+          <Col md={offset} sm={24}>
+            <div className="header">
+              {props.name}
+            </div>
+          </Col>
+        } 
+        <Col md={16 - offset} sm={24} xs={24}>
+          <Menu 
+            mode={showMenu} 
+            style={{backgroundColor: 'transparent'}}
+            // inlineCollapsed={true}
+          >
+            {props.tabs &&
+              props.tabs.map(tab => {
+                if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
+                  return (
+                    <Menu.Item key={tab.label}>
+                      <li
+                        role="tab"
+                        data-test={tab['data-test']}
+                        className={tab.name === props.activeChild ? 'active' : ''}
+                      >
+                        <div>
+                          <Link to={tab.url || ''}>{tab.label}</Link>
+                        </div>
+                      </li>
+                    </Menu.Item>
+                  );
+                }
 
-              return (
-                <React.Fragment key={tab.label}>
-                  <li
-                    className={cx('no-router', {
-                      active: tab.name === props.activeChild,
-                    })}
-                    role="tab"
-                  >
-                    <a href={tab.url} onClick={tab.onClick}>
-                      {tab.label}
-                    </a>
-                  </li>
-                </React.Fragment>
-              );
-            })}
-        </Nav>
-        <Nav className="navbar-right">
-          {props.buttons?.map((btn, i) => (
-            <React.Fragment key={`${i}`}>
-              <Button
-                buttonStyle={btn.buttonStyle}
-                onClick={btn.onClick}
-                data-test={btn['data-test']}
-              >
-                {btn.name}
-              </Button>
-            </React.Fragment>
-          ))}
-        </Nav>
-      </Navbar>
+                return (
+                  <Menu.Item key={tab.label}>
+                    <li
+                      className={cx('no-router', {
+                        active: tab.name === props.activeChild,
+                      })}
+                      role="tab"
+                    >
+                      <a href={tab.url} onClick={tab.onClick}>
+                        {tab.label}
+                      </a>
+                    </li>
+                  </Menu.Item>
+                );
+              })}
+          </Menu>
+        </Col>
+        <Col md={8} sm={24} xs={24}>
+          <div className="nav-right">
+            {props.buttons?.map((btn, i) => (
+                <Button
+                  key={i}
+                  buttonStyle={btn.buttonStyle}
+                  onClick={btn.onClick}
+                  data-test={btn['data-test']}
+                >
+                  {btn.name}
+                </Button>
+            ))}
+          </div>
+        </Col>
+      </Row>
       {props.children}
     </StyledHeader>
   );
 };
 
-export default SubMenu;
+export default SubMenuComponent;

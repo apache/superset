@@ -1,0 +1,165 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import React from 'react';
+import {  Menu  } from 'src/common/components';
+import { t, styled } from '@superset-ui/core';
+import { Link } from 'react-router-dom';
+import LanguagePicker, { Languages } from './LanguagePicker';
+
+export const dropdownItems = [
+    {
+      label: t('SQL query'),
+      url: '/superset/sqllab',
+      icon: 'fa-fw fa-search',
+    },
+    {
+      label: t('Chart'),
+      url: '/chart/add',
+      icon: 'fa-fw fa-bar-chart',
+    },
+    {
+      label: t('Dashboard'),
+      url: '/dashboard/new',
+      icon: 'fa-fw fa-dashboard',
+    },
+];
+
+const StyledI = styled.div`
+  color: ${({ theme }) => theme.colors.primary.dark1};
+`;
+
+const { SubMenu } = Menu;
+
+const RightMenu = ({ settings, navbarRight, isFrontendRoute}) => ( 
+  <Menu className="navbar-right" mode="horizontal">
+          {!navbarRight.user_is_anonymous && (
+             <SubMenu
+               id="new-dropdown"
+               data-test="new-dropdown"
+               title={<StyledI className="fa fa-plus" />} 
+             >
+             {dropdownItems.map((menu, i) => (
+               <Menu.Item key={i}>
+                 <a href={menu.url}>
+                     <i
+                     data-test={`menu-item-${menu.label}`}
+                     className={`fa ${menu.icon}`}
+                     />{' '}
+                     {menu.label}
+                 </a>
+               </Menu.Item>
+             ))}
+           </SubMenu> 
+          )}
+            <SubMenu title="Settings">
+              {settings.map((section, index) => [
+                <Menu.ItemGroup
+                  key={`${section.label}`}
+                  title={section.label}
+                >
+                  {section.childs?.map(child => {
+                    if (typeof child !== 'string') {
+                      return (
+                        <Menu.Item key={`${child.label}`}>
+                          {isFrontendRoute(child.url) ? (
+                            <Link to={child.url || ''}>{child.label}</Link>
+                          ) : (
+                            <a href={child.url}>{child.label}</a>
+                          )}
+                        </Menu.Item>
+                      );
+                    }
+                    return null;
+                  })}
+                </Menu.ItemGroup>,
+                index < settings.length - 1 && <Menu.Divider />,
+              ])}
+
+              {!navbarRight.user_is_anonymous && [
+                <Menu.Divider key="user-divider" />,
+                <Menu.ItemGroup key="user-section" title={t('User')}>
+                  {navbarRight.user_profile_url && (
+                    <Menu.Item key="profile">
+                      <a href={navbarRight.user_profile_url}>{t('Profile')}</a>
+                    </Menu.Item>
+                  )}
+                  <Menu.Item key="info">
+                    <a href={navbarRight.user_info_url}>{t('Info')}</a>
+                  </Menu.Item>
+                  <Menu.Item key="logout">
+                    <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
+                  </Menu.Item>
+                </Menu.ItemGroup>,
+              ]}
+              {(navbarRight.version_string || navbarRight.version_sha) && [
+                <Menu.Divider key="version-info-divider" />,
+                <Menu.ItemGroup key="about-section" title={t('About')}>
+                  <div className="about-section">
+                    {navbarRight.version_string && (
+                      <li className="version-info">
+                        <span>Version: {navbarRight.version_string}</span>
+                      </li>
+                    )}
+                    {navbarRight.version_sha && (
+                      <li className="version-info">
+                        <span>SHA: {navbarRight.version_sha}</span>
+                      </li>
+                    )}
+                  </div>
+                </Menu.ItemGroup>,
+              ]}
+            </SubMenu>
+          {navbarRight.documentation_url && (
+            <Menu.Item
+              href={navbarRight.documentation_url}
+              target="_blank"
+              title="Documentation"
+            >
+              <i className="fa fa-question" />
+              &nbsp;
+            </Menu.Item>
+          )}
+          {navbarRight.bug_report_url && (
+            <Menu.Item
+              href={navbarRight.bug_report_url}
+              target="_blank"
+              title="Report a Bug"
+            >
+              <i className="fa fa-bug" />
+              &nbsp;
+            </Menu.Item>
+          )}
+          {navbarRight.show_language_picker && (
+            <Menu.Item>
+                <LanguagePicker
+                  locale={navbarRight.locale}
+                  languages={navbarRight.languages}
+                />
+            </Menu.Item>
+          )}
+          {navbarRight.user_is_anonymous && (
+            <Menu.Item href={navbarRight.user_login_url}>
+              <i className="fa fa-fw fa-sign-in" />
+              {t('Login')}
+            </Menu.Item>
+          )}
+        </Menu>
+);
+
+export default RightMenu;
