@@ -79,3 +79,19 @@ export const DEFAULT_LEGEND_FORM_DATA: EchartsLegendFormData = {
 };
 
 export type EventHandlers = Record<string, { (props: any): void }>;
+
+export enum LabelPositionEnum {
+  Top = 'top',
+  Left = 'left',
+  Right = 'right',
+  Bottom = 'bottom',
+  Inside = 'inside',
+  InsideLeft = 'insideLeft',
+  InsideRight = 'insideRight',
+  InsideTop = 'insideTop',
+  InsideBottom = 'insideBottom',
+  InsideTopLeft = 'insideTopLeft',
+  InsideBottomLeft = 'insideBottomLeft',
+  InsideTopRight = 'insideTopRight',
+  InsideBottomRight = 'insideBottomRight',
+}
