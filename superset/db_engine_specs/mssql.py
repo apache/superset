@@ -66,7 +66,10 @@ class MssqlEngineSpec(BaseEngineSpec):
 
     custom_errors = {
         CONNECTION_ACCESS_DENIED_REGEX: (
-            __('Either the username "%(username)s" or the password is incorrect.'),
+            __(
+                'Either the username "%(username)s", password, '
+                'or database name "%(database)s" is incorrect.'
+            ),
             SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
         ),
         CONNECTION_INVALID_HOSTNAME_REGEX: (
