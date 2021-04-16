@@ -95,7 +95,9 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     custom_errors = {
         INVALID_USER_PERMISSIONS: (
-            __("bad permissions"),
+            __(
+                "We were unable to connect to your database. Please confirm that your service account has the Viewer and Job User roles on the project."
+            ),
             SupersetErrorType.TEST_CONNECTION_DATABASE_PERMISSIONS_ERROR,
         ),
     }
