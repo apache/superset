@@ -25,11 +25,11 @@ const modifyElements = () => {
     window.location.pathname === '/annotationlayermodelview/list/' ||
     window.location.pathname.startsWith('/annotationmodelview/')) {
     modifyCheck(() => {
-        const elements = document.querySelectorAll('header nav .navbar-right .btn-primary')
+        const elements = document.querySelectorAll(`header nav .navbar-right [data-type='primary']`)
         if (elements.length === 0) {
           return false
         }
-        elements[0].style.display = 'inline-block'
+        elements[0].style.display = 'inline-flex'
         return true
       })
     return
