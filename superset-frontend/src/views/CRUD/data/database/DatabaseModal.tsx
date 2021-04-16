@@ -195,15 +195,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
 
     const connection = {
-      sqlalchemy_uri: db ? db.sqlalchemy_uri : '',
-      database_name:
-        db && db.database_name.trim().length
-          ? db.database_name.trim()
-          : undefined,
-      impersonate_user: db ? db.impersonate_user || undefined : undefined,
-      extra: db && db.extra && db.extra.length ? db.extra : undefined,
-      encrypted_extra: db ? db.encrypted_extra || undefined : undefined,
-      server_cert: db ? db.server_cert || undefined : undefined,
+      sqlalchemy_uri: db?.sqlalchemy_uri || '',
+      database_name: db?.database_name?.trim() || undefined,
+      impersonate_user: db?.impersonate_user || undefined,
+      extra: db?.extra || undefined,
+      encrypted_extra: db?.encrypted_extra || undefined,
+      server_cert: db?.server_cert || undefined,
     };
 
     testDatabaseConnection(connection, addDangerToast, addSuccessToast);
@@ -219,8 +216,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (isEditMode) {
       // Edit
       const update: DatabaseObject = {
-        database_name: db ? db.database_name.trim() : '',
-        sqlalchemy_uri: db ? db.sqlalchemy_uri : '',
+        database_name: db?.database_name.trim() || '',
+        sqlalchemy_uri: db?.sqlalchemy_uri || '',
         ...db,
       };
 
@@ -229,7 +226,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         delete update.id;
       }
 
-      if (db && db.id) {
+      if (db?.id) {
         updateResource(db.id, update).then(result => {
           if (result) {
             if (onDatabaseAdd) {
@@ -296,12 +293,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const validate = () => {
-    if (
-      db &&
-      db.database_name.trim().length &&
-      db.sqlalchemy_uri &&
-      db.sqlalchemy_uri.length
-    ) {
+    if (db?.database_name?.trim().length && db?.sqlalchemy_uri?.length) {
       setDisableSave(false);
     } else {
       setDisableSave(true);
