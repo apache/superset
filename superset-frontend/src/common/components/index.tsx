@@ -59,7 +59,7 @@ export { default as Alert, AlertProps } from 'antd/lib/alert';
 export { default as Select, SelectProps } from 'antd/lib/select';
 export { default as List, ListItemProps } from 'antd/lib/list';
 
-export { default as Collapse } from './Collapse';
+export { default as Collapse } from 'src/components/Collapse';
 export { default as Badge } from 'src/components/Badge';
 export { default as Card } from './Card';
 export { default as Progress } from 'src/components/ProgressBar';

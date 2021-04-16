@@ -29,7 +29,7 @@ import {
   ControlPanelsContainer,
   ControlPanelsContainerProps,
 } from 'src/explore/components/ControlPanelsContainer';
-import Collapse from 'src/common/components/Collapse';
+import Collapse from 'src/components/Collapse';
 
 describe('ControlPanelsContainer', () => {
   let wrapper;
