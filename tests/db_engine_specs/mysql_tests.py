@@ -124,7 +124,12 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
                             "code": 1014,
                             "message": "Issue 1014 - Either the"
                             " username or the password is wrong.",
-                        }
+                        },
+                        {
+                            "code": 1015,
+                            "message": "Issue 1015 - Either the database is "
+                            "spelled incorrectly or does not exist.",
+                        },
                     ],
                 },
             )

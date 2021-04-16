@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 from textwrap import dedent
-from unittest import mock
 
 from superset.db_engine_specs.redshift import RedshiftEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -39,9 +38,14 @@ class TestRedshiftDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1014,
-                            "message": "Issue 1014 - Either the username or "
-                            "the password is wrong",
-                        }
+                            "message": "Issue 1014 - Either the username "
+                            "or the password is wrong.",
+                        },
+                        {
+                            "code": 1015,
+                            "message": "Issue 1015 - Either the database is "
+                            "spelled incorrectly or does not exist.",
+                        },
                     ],
                 },
             )
