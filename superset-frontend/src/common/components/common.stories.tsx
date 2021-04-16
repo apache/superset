@@ -24,7 +24,6 @@ import { CronPicker, CronError } from 'src/components/CronPicker';
 import Modal from './Modal';
 import Tabs, { EditableTabs } from './Tabs';
 import { Tooltip as AntdTooltip } from './Tooltip';
-import { Switch as AntdSwitch } from './Switch';
 import { Menu, Input, Divider } from '.';
 import { Dropdown } from './Dropdown';
 import InfoTooltip from './InfoTooltip';
@@ -197,14 +196,6 @@ StyledInfoTooltip.argTypes = {
     },
   },
 };
-
-export const Switch = () => (
-  <>
-    <AntdSwitch defaultChecked />
-    <br />
-    <AntdSwitch size="small" defaultChecked />
-  </>
-);
 
 export function StyledCronPicker() {
   // @ts-ignore

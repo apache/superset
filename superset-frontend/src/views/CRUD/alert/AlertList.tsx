@@ -31,7 +31,7 @@ import ListView, {
   ListViewProps,
 } from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import { Switch } from 'src/common/components/Switch';
+import { Switch } from 'src/components/Switch';
 import { DATETIME_WITH_TIME_ZONE } from 'src/constants';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
