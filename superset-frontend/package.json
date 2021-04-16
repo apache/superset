@@ -118,6 +118,7 @@
     "interweave": "^11.2.0",
     "jquery": "^3.5.1",
     "js-levenshtein": "^1.1.6",
+    "js-yaml-loader": "^1.2.2",
     "json-bigint": "^1.0.0",
     "json-stringify-pretty-compact": "^2.0.0",
     "lodash": "^4.17.20",

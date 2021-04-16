@@ -29,8 +29,8 @@ import Tabs from 'src/common/components/Tabs';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import Collapse from 'src/components/Collapse';
+import SupersetText, { SupersetTextType, st } from 'src/utils/textUtils';
 import { DatabaseObject } from './types';
-import { useCommonConf } from './state';
 import {
   StyledModal,
   StyledInputContainer,
@@ -62,7 +62,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [db, setDB] = useState<DatabaseObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
-  const conf = useCommonConf();
 
   const isEditMode = database !== null;
   const defaultExtra =
@@ -240,6 +239,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const expandableModalIsOpen = !!db?.expose_in_sqllab;
   const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
+  const {
+    DATABASE_MODAL: { SQLALCHEMY_DISPLAY_TEXT, SQLALCHEMY_DOCS_URL } = {},
+  }: SupersetTextType = SupersetText;
 
   return (
     <StyledModal
@@ -298,11 +300,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <div className="helper">
               {t('Refer to the ')}
               <a
-                href={conf?.SQLALCHEMY_DOCS_URL ?? ''}
+                href={
+                  SQLALCHEMY_DOCS_URL ??
+                  'https://docs.sqlalchemy.org/en/13/core/engines.html'
+                }
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                {conf?.SQLALCHEMY_DISPLAY_TEXT ?? ''}
+                {st(
+                  'DATABASE_MODAL.SQLALCHEMY_DISPLAY_TEXT',
+                  SQLALCHEMY_DISPLAY_TEXT,
+                  'SQLAlchemy docs',
+                )}
               </a>
               {t(' for more information on how to structure your URI.')}
             </div>
