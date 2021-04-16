@@ -27,29 +27,26 @@ at all. The classes here will use a common interface to specify all this.
 
 The general idea is to use static classes and an inheritance scheme.
 """
-import inspect
-import pkgutil
-from importlib import import_module
-from pathlib import Path
+import logging
 from typing import Dict, Type
+
+from pkg_resources import iter_entry_points
 
 from superset.db_engine_specs.base import BaseEngineSpec
 
+logger = logging.getLogger(__name__)
+
+
 engines: Dict[str, Type[BaseEngineSpec]] = {}
+for spec in iter_entry_points("superset.db_engine_specs"):
+    try:
+        engine = spec.load()
+    except Exception:  # pylint: disable=broad-except
+        logger.warning("Unable to load engine spec: %s", spec)
 
-for (_, name, _) in pkgutil.iter_modules([Path(__file__).parent]):  # type: ignore
-    imported_module = import_module("." + name, package=__name__)
+    names = [engine.engine]
+    if engine.engine_aliases:
+        names.extend(engine.engine_aliases)
 
-    for i in dir(imported_module):
-        attribute = getattr(imported_module, i)
-
-        if (
-            inspect.isclass(attribute)
-            and issubclass(attribute, BaseEngineSpec)
-            and attribute.engine != ""
-        ):
-            engines[attribute.engine] = attribute
-
-            # populate engine alias name to engine dictionary
-            for engine_alias in attribute.engine_aliases or []:
-                engines[engine_alias] = attribute
+    for name in names:
+        engines[name] = engine
