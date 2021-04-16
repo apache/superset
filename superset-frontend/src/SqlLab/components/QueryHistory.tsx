@@ -29,8 +29,8 @@ interface QueryHistoryProps {
   displayLimit: number;
 }
 
-const QueryHistory = (props: QueryHistoryProps) =>
-  props.queries.length > 0 ? (
+const QueryHistory = ({ queries, actions, displayLimit }: QueryHistoryProps) =>
+  queries.length > 0 ? (
     <QueryTable
       columns={[
         'state',
@@ -42,9 +42,9 @@ const QueryHistory = (props: QueryHistoryProps) =>
         'output',
         'actions',
       ]}
-      queries={props.queries}
-      actions={props.actions}
-      displayLimit={props.displayLimit}
+      queries={queries}
+      actions={actions}
+      displayLimit={displayLimit}
     />
   ) : (
     <Alert type="info" message={t('No query history yet...')} />
