@@ -16,17 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as EchartsBoxPlotChartPlugin } from './BoxPlot';
-export { default as EchartsTimeseriesChartPlugin } from './Timeseries';
-export { default as EchartsPieChartPlugin } from './Pie';
-export { default as EchartsGraphChartPlugin } from './Graph';
-export { default as EchartsGaugeChartPlugin } from './Gauge';
-export { default as EchartsRadarChartPlugin } from './Radar';
+import { buildQueryContext, QueryFormData } from '@superset-ui/core';
 
-/**
- * Note: this file exports the default export from EchartsTimeseries.tsx.
- * If you want to export multiple visualization modules, you will need to
- * either add additional plugin folders (similar in structure to ./plugin)
- * OR export multiple instances of `ChartPlugin` extensions in ./plugin/index.ts
- * which in turn load exports from EchartsTimeseries.tsx
- */
+export default function buildQuery(formData: QueryFormData) {
+  const { metric, sort_by_metric } = formData;
+  return buildQueryContext(formData, baseQueryObject => [
+    {
+      ...baseQueryObject,
+      ...(sort_by_metric && { orderby: [[metric, false]] }),
+    },
+  ]);
+}
