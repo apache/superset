@@ -17,21 +17,19 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import Label from 'src/components/Label';
 
 import { STATE_TYPE_MAP } from '../constants';
+import { Query } from '../types';
 
-const propTypes = {
-  query: PropTypes.object.isRequired,
-};
+interface QueryStateLabelProps {
+  query: Query;
+}
 
-export default function QueryStateLabel({ query }) {
-  const type = STATE_TYPE_MAP[query.state];
+export default function QueryStateLabel({ query }: QueryStateLabelProps) {
   return (
-    <Label className="m-r-3" type={type}>
+    <Label className="m-r-3" type={STATE_TYPE_MAP[query.state]}>
       {query.state}
     </Label>
   );
 }
-QueryStateLabel.propTypes = propTypes;

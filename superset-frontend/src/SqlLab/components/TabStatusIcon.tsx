@@ -17,12 +17,13 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 
-export default function TabStatusIcon(props) {
-  return <div className={`circle ${props.tabState}`} />;
+import { QueryState } from '../types';
+
+interface TabStatusIconProps {
+  tabState: QueryState;
 }
 
-TabStatusIcon.propTypes = {
-  tabState: PropTypes.string.isRequired,
-};
+export default function TabStatusIcon({ tabState }: TabStatusIconProps) {
+  return <div className={`circle ${tabState}`} />;
+}
