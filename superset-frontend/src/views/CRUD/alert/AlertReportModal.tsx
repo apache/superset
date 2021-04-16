@@ -23,7 +23,7 @@ import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
-import { Switch } from 'src/common/components/Switch';
+import { Switch } from 'src/components/Switch';
 import { Radio } from 'src/common/components/Radio';
 import { AsyncSelect, NativeGraySelect as Select } from 'src/components/Select';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
