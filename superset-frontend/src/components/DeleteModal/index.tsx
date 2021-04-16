@@ -19,7 +19,7 @@
 import { t, styled } from '@superset-ui/core';
 import React, { useState } from 'react';
 import { FormGroup, FormControl, FormControlProps } from 'react-bootstrap';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import FormLabel from 'src/components/FormLabel';
 
 const StyleFormGroup = styled(FormGroup)`

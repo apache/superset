@@ -21,7 +21,7 @@ import { action } from '@storybook/addon-actions';
 import { withKnobs, boolean, select } from '@storybook/addon-knobs';
 import Button from 'src/components/Button';
 import { CronPicker, CronError } from 'src/components/CronPicker';
-import Modal from './Modal';
+import Modal from 'src/components/Modal';
 import Tabs, { EditableTabs } from './Tabs';
 import { Tooltip as AntdTooltip } from './Tooltip';
 import { Menu, Input, Divider } from '.';

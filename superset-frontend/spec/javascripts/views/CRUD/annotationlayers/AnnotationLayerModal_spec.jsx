@@ -22,7 +22,7 @@ import configureStore from 'redux-mock-store';
 import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import AnnotationLayerModal from 'src/views/CRUD/annotationlayers/AnnotationLayerModal';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
 
