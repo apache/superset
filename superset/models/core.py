@@ -52,11 +52,10 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
-from sqlalchemy_utils import EncryptedType
 
 from superset import app, db_engine_specs, is_feature_enabled
 from superset.db_engine_specs.base import TimeGrain
-from superset.extensions import cache_manager, security_manager
+from superset.extensions import cache_manager, encrypted_field_factory, security_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.tags import FavStarUpdater
 from superset.result_set import SupersetResultSet
@@ -115,7 +114,7 @@ class Database(
     # short unique name, used in permissions
     database_name = Column(String(250), unique=True, nullable=False)
     sqlalchemy_uri = Column(String(1024), nullable=False)
-    password = Column(EncryptedType(String(1024), config["SECRET_KEY"]))
+    password = Column(encrypted_field_factory.create(String(1024)))
     cache_timeout = Column(Integer)
     select_as_create_table_as = Column(Boolean, default=False)
     expose_in_sqllab = Column(Boolean, default=True)
@@ -141,9 +140,9 @@ class Database(
     """
         ),
     )
-    encrypted_extra = Column(EncryptedType(Text, config["SECRET_KEY"]), nullable=True)
+    encrypted_extra = Column(encrypted_field_factory.create(Text), nullable=True)
     impersonate_user = Column(Boolean, default=False)
-    server_cert = Column(EncryptedType(Text, config["SECRET_KEY"]), nullable=True)
+    server_cert = Column(encrypted_field_factory.create(Text), nullable=True)
     export_fields = [
         "database_name",
         "sqlalchemy_uri",
