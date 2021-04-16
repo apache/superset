@@ -20,14 +20,21 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import pandas as pd
+from flask_babel import gettext as __
 from sqlalchemy import literal_column
 from sqlalchemy.sql.expression import ColumnClause
 
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.errors import SupersetErrorType
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
+
+
+INVALID_USER_PERMISSIONS = re.compile(
+    "User does not have bigquery.jobs.create permission in project"
+)
 
 
 class BigQueryEngineSpec(BaseEngineSpec):
@@ -84,6 +91,13 @@ class BigQueryEngineSpec(BaseEngineSpec):
         "P1M": "{func}({col}, MONTH)",
         "P0.25Y": "{func}({col}, QUARTER)",
         "P1Y": "{func}({col}, YEAR)",
+    }
+
+    custom_errors = {
+        INVALID_USER_PERMISSIONS: (
+            __("bad permissions"),
+            SupersetErrorType.TEST_CONNECTION_DATABASE_PERMISSIONS_ERROR,
+        ),
     }
 
     @classmethod

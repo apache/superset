@@ -99,6 +99,12 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 action=f"test_connection_error.{ex.__class__.__name__}",
                 engine=database.db_engine_spec.__name__,
             )
+
+            # check for generic custom errors
+            errors = database.db_engine_spec.extract_errors(ex)
+            if errors:
+                raise DatabaseTestConnectionFailedError(errors)
+
             raise DatabaseTestConnectionUnexpectedError(str(ex))
 
     def validate(self) -> None:
