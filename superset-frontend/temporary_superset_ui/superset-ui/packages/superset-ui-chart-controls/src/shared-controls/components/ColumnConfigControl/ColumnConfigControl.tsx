@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useMemo, useState } from 'react';
-import { ChartDataResponseResult, useTheme, t } from '@superset-ui/core';
+import { ChartDataResponseResult, useTheme, t, GenericDataType } from '@superset-ui/core';
 import ControlHeader from '../../../components/ControlHeader';
 import { ControlComponentProps } from '../types';
 
@@ -31,6 +31,7 @@ export type ColumnConfigControlProps<T extends ColumnConfig> = ControlComponentP
 > & {
   queryResponse?: ChartDataResponseResult;
   configFormLayout?: ColumnConfigFormLayout;
+  appliedColumnNames?: string[];
 };
 
 /**
@@ -43,12 +44,27 @@ const MAX_NUM_COLS = 10;
  */
 export default function ColumnConfigControl<T extends ColumnConfig>({
   queryResponse,
+  appliedColumnNames = [],
   value,
   onChange,
   configFormLayout = DEFAULT_CONFIG_FORM_LAYOUT,
   ...props
 }: ColumnConfigControlProps<T>) {
-  const { colnames, coltypes } = queryResponse || {};
+  const { colnames: _colnames, coltypes: _coltypes } = queryResponse || {};
+  let colnames: string[] = [];
+  let coltypes: GenericDataType[] = [];
+  if (appliedColumnNames.length === 0) {
+    colnames = _colnames || [];
+    coltypes = _coltypes || [];
+  } else {
+    const appliedCol = new Set(appliedColumnNames);
+    _colnames?.forEach((col, idx) => {
+      if (appliedCol.has(col)) {
+        colnames.push(col);
+        coltypes.push(_coltypes?.[idx] as GenericDataType);
+      }
+    });
+  }
   const theme = useTheme();
   const columnConfigs = useMemo(() => {
     const configs: Record<string, ColumnConfigInfo> = {};
