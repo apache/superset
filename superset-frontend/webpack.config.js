@@ -38,6 +38,7 @@ const packageConfig = require('./package.json');
 const APP_DIR = path.resolve(__dirname, './');
 // output dir
 const BUILD_DIR = path.resolve(__dirname, '../superset/static/assets');
+const ROOT_DIR = path.resolve(__dirname, '..');
 
 const {
   mode = 'development',
@@ -286,7 +287,7 @@ const config = {
     },
   },
   resolve: {
-    modules: [APP_DIR, 'node_modules'],
+    modules: [APP_DIR, 'node_modules', ROOT_DIR],
     alias: {
       'react-dom': '@hot-loader/react-dom',
       // Force using absolute import path of some packages in the root node_modules,
@@ -304,7 +305,7 @@ const config = {
         './node_modules/@superset-ui/chart-controls',
       ),
     },
-    extensions: ['.ts', '.tsx', '.js', '.jsx'],
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     symlinks: false,
   },
   context: APP_DIR, // to automatically find tsconfig.json
@@ -437,6 +438,11 @@ const config = {
         options: {
           esModule: false,
         },
+      },
+      {
+        test: /\.ya?ml$/,
+        include: ROOT_DIR,
+        loader: 'js-yaml-loader',
       },
     ],
   },

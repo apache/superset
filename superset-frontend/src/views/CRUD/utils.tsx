@@ -29,6 +29,7 @@ import rison from 'rison';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FetchDataConfig } from 'src/components/ListView';
 import { Dashboard, Filters, SavedQueryObject } from './types';
+import SupersetText from 'src/utils/textUtils';
 
 const createFetchResourceMethod = (method: string) => (
   resource: string,
@@ -159,6 +160,12 @@ export function createErrorHandler(
 ) {
   return async (e: SupersetClientResponse | string) => {
     const parsedError = await getClientErrorObject(e);
+    // Taking the first error returned from the API
+    // const errorType = parsedError?.errors?[0].error_type;
+    const errorType = parsedError.errors[0].error_type;
+    if(errorType in SupersetText.ERRORS) {
+      parsedError.message = SupersetText.ERRORS[errorType]
+    }
     logging.error(e);
     handleErrorFunc(parsedError.message || parsedError.error);
   };
