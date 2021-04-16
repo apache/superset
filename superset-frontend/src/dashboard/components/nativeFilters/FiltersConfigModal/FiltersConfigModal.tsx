@@ -20,7 +20,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { uniq } from 'lodash';
 import { t, styled } from '@superset-ui/core';
 import { Form } from 'src/common/components';
-import { StyledModal } from 'src/common/components/Modal';
+import { StyledModal } from 'src/components/Modal';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { useFilterConfigMap, useFilterConfiguration } from '../state';
 import { FilterRemoval, NativeFiltersForm } from './types';

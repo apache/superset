@@ -22,7 +22,7 @@ import { t, supersetTheme, styled } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import FormLabel from 'src/components/FormLabel';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import Icon from 'src/components/Icon';
 
 const Styles = styled.span`

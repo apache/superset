@@ -22,7 +22,7 @@ import configureStore from 'redux-mock-store';
 import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import AnnotationModal from 'src/views/CRUD/annotation/AnnotationModal';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 import { styledMount as mount } from 'spec/helpers/theming';

@@ -24,7 +24,7 @@ import {
   FormGroup,
   FormControlProps,
 } from 'react-bootstrap';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { OptionsType } from 'react-select/src/types';
 import { AsyncSelect } from 'src/components/Select';

@@ -20,7 +20,7 @@
 import React, { useRef, useState } from 'react';
 import { styled } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import { useComponentDidMount } from 'src/common/hooks/useComponentDidMount';
 import { Omnibar } from './Omnibar';
 import { LOG_ACTIONS_OMNIBAR_TRIGGERED } from '../../logger/LogUtils';

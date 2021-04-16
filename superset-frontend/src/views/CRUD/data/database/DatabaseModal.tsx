@@ -25,7 +25,7 @@ import {
 } from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Icon from 'src/components/Icon';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import Tabs from 'src/common/components/Tabs';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
