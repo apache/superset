@@ -284,11 +284,11 @@ Adaptive Server connection failed (mssqldb.cxiotftzsypc.us-west-2.rds.amazonaws.
             """
         )
         result = MssqlEngineSpec.extract_errors(
-            Exception(msg), context={"username": "testuser"}
+            Exception(msg), context={"username": "testuser", "database": "testdb"}
         )
         assert result == [
             SupersetError(
-                message='Either the username "testuser" or the password is incorrect.',
+                message='Either the username "testuser", password, or database name "testdb" is incorrect.',
                 error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={
@@ -296,8 +296,14 @@ Adaptive Server connection failed (mssqldb.cxiotftzsypc.us-west-2.rds.amazonaws.
                     "issue_codes": [
                         {
                             "code": 1014,
-                            "message": "Issue 1014 - Either the username or the password is wrong.",
-                        }
+                            "message": "Issue 1014 - Either the username or "
+                            "the password is wrong.",
+                        },
+                        {
+                            "code": 1015,
+                            "message": "Issue 1015 - Either the database is "
+                            "spelled incorrectly or does not exist.",
+                        },
                     ],
                 },
             )
