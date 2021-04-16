@@ -226,11 +226,11 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         )
 
     def test_extract_errors(self):
-        msg = "User does not have bigquery.jobs.create permission in project"
+        msg = "User does not have create permission in project"
         result = BigQueryEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                message="User does not have bigquery.jobs.create permission in project",
+                message="User does not have create permission in project",
                 error_type=SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={
