@@ -35,6 +35,7 @@ export const TIMESERIES_CONSTANTS = {
   toolboxRight: 5,
   dataZoomStart: 0,
   dataZoomEnd: 100,
+  yAxisLabelTopOffset: 20,
 };
 
 export const LABEL_POSITION: [LabelPositionEnum, string][] = [
