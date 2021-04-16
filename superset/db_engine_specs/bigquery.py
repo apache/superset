@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
 
 CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
-    "User does not have bigquery.jobs.create permission in project"
+    "User does not have [a-z] permission in project"
 )
 
 
