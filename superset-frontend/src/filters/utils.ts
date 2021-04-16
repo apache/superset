@@ -22,6 +22,7 @@ import {
   NumberFormatter,
   QueryObjectFilterClause,
   TimeFormatter,
+  ExtraFormData,
 } from '@superset-ui/core';
 import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
 
@@ -30,30 +31,30 @@ export const getSelectExtraFormData = (
   value?: null | (string | number)[],
   emptyFilter = false,
   inverseSelection = false,
-) => ({
-  append_form_data: emptyFilter
-    ? {
-        adhoc_filters: [
-          {
-            expressionType: 'SQL',
-            clause: 'WHERE',
-            sqlExpression: '1 = 0',
-          },
-        ],
-      }
-    : {
-        filters:
-          value === undefined || value === null || value.length === 0
-            ? []
-            : [
-                {
-                  col,
-                  op: inverseSelection ? ('NOT IN' as const) : ('IN' as const),
-                  val: value,
-                },
-              ],
+): ExtraFormData => {
+  const extra: ExtraFormData = {};
+  if (emptyFilter) {
+    extra.adhoc_filters = [
+      {
+        expressionType: 'SQL',
+        clause: 'WHERE',
+        sqlExpression: '1 = 0',
       },
-});
+    ];
+  } else {
+    extra.filters =
+      value === undefined || value === null || value.length === 0
+        ? []
+        : [
+            {
+              col,
+              op: inverseSelection ? ('NOT IN' as const) : ('IN' as const),
+              val: value,
+            },
+          ];
+  }
+  return extra;
+};
 
 export const getRangeExtraFormData = (
   col: string,
@@ -69,9 +70,7 @@ export const getRangeExtraFormData = (
   }
 
   return {
-    append_form_data: {
-      filters,
-    },
+    filters,
   };
 };
 

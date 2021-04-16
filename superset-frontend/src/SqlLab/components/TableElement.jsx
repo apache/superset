@@ -18,14 +18,13 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Well } from 'react-bootstrap';
+import Card from 'src/common/components/Card';
 import Collapse from 'src/common/components/Collapse';
 import ButtonGroup from 'src/components/ButtonGroup';
 import shortid from 'shortid';
 import { t, styled } from '@superset-ui/core';
 import { debounce } from 'lodash';
 
-import Fade from 'src/common/components/Fade';
 import { Tooltip } from 'src/common/components/Tooltip';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { IconTooltip } from '../../components/IconTooltip';
@@ -50,6 +49,11 @@ const StyledSpan = styled.span`
     color: ${({ theme }) => theme.colors.primary.dark2};
   }
   cursor: pointer;
+`;
+
+const Fade = styled.div`
+  transition: all ${({ theme }) => theme.transitionTiming}s;
+  opacity: ${props => (props.hovered ? 1 : 0)};
 `;
 
 class TableElement extends React.PureComponent {
@@ -111,14 +115,14 @@ class TableElement extends React.PureComponent {
       );
       latest = latest.join('/');
       header = (
-        <Well bsSize="small">
+        <Card size="small">
           <div>
             <small>
               {t('latest partition:')} {latest}
             </small>{' '}
             {partitionClipBoard}
           </div>
-        </Well>
+        </Card>
       );
     }
     return header;
@@ -215,6 +219,7 @@ class TableElement extends React.PureComponent {
             <Loading position="inline" />
           ) : (
             <Fade
+              data-test="fade"
               hovered={this.state.hovered}
               onClick={e => e.stopPropagation()}
             >

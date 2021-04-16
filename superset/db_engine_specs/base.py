@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=unused-argument
-import dataclasses
 import hashlib
 import json
 import logging
@@ -266,6 +265,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     max_column_name_length = 0
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
+    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType]] = {}
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
@@ -746,15 +746,31 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return utils.error_msg_from_exception(ex)
 
     @classmethod
-    def extract_errors(cls, ex: Exception) -> List[Dict[str, Any]]:
+    def extract_errors(
+        cls, ex: Exception, context: Optional[Dict[str, Any]] = None
+    ) -> List[SupersetError]:
+        raw_message = cls._extract_error_message(ex)
+
+        context = context or {}
+        for regex, (message, error_type) in cls.custom_errors.items():
+            match = regex.search(raw_message)
+            if match:
+                params = {**context, **match.groupdict()}
+                return [
+                    SupersetError(
+                        error_type=error_type,
+                        message=message % params,
+                        level=ErrorLevel.ERROR,
+                        extra={"engine_name": cls.engine_name},
+                    )
+                ]
+
         return [
-            dataclasses.asdict(
-                SupersetError(
-                    error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                    message=cls._extract_error_message(ex),
-                    level=ErrorLevel.ERROR,
-                    extra={"engine_name": cls.engine_name},
-                )
+            SupersetError(
+                error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                message=cls._extract_error_message(ex),
+                level=ErrorLevel.ERROR,
+                extra={"engine_name": cls.engine_name},
             )
         ]
 

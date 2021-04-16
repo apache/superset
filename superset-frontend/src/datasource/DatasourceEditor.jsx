@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Col, Well } from 'react-bootstrap';
+import { Col } from 'react-bootstrap';
+import Card from 'src/common/components/Card';
 import { Radio } from 'src/common/components/Radio';
 import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
@@ -284,7 +285,7 @@ StackedField.propTypes = {
 };
 
 function FormContainer({ children }) {
-  return <Well style={{ marginTop: 20 }}>{children}</Well>;
+  return <Card padded>{children}</Card>;
 }
 
 FormContainer.propTypes = {

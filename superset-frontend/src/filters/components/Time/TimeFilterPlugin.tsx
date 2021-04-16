@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, DataMask, Behavior } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import React, { useState, useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { PluginFilterTimeProps } from './types';
@@ -29,37 +29,25 @@ const TimeFilterStyles = styled(Styles)`
 `;
 
 export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
-  const { formData, setDataMask, width, behaviors } = props;
-  const { defaultValue, currentValue } = formData;
+  const { formData, setDataMask, width, filterState } = props;
+  const { defaultValue } = formData;
 
   const [value, setValue] = useState<string>(defaultValue ?? DEFAULT_VALUE);
 
   const handleTimeRangeChange = (timeRange: string): void => {
     setValue(timeRange);
-    const dataMask = {
+
+    setDataMask({
       extraFormData: {
-        override_form_data: {
-          time_range: timeRange,
-        },
+        time_range: timeRange,
       },
-      currentState: { value: timeRange },
-    };
-
-    const dataMaskObject: DataMask = {};
-    if (behaviors.includes(Behavior.NATIVE_FILTER)) {
-      dataMaskObject.nativeFilters = dataMask;
-    }
-
-    if (behaviors.includes(Behavior.CROSS_FILTER)) {
-      dataMaskObject.crossFilters = dataMask;
-    }
-
-    setDataMask(dataMaskObject);
+      filterState: { value: timeRange },
+    });
   };
 
   useEffect(() => {
-    handleTimeRangeChange(currentValue ?? DEFAULT_VALUE);
-  }, [currentValue]);
+    handleTimeRangeChange(filterState.value ?? DEFAULT_VALUE);
+  }, [filterState.value]);
 
   useEffect(() => {
     handleTimeRangeChange(defaultValue ?? DEFAULT_VALUE);

@@ -31,12 +31,14 @@ from typing import (
     Union,
 )
 
+from flask_babel import gettext as __
 from pytz import _FixedOffset  # type: ignore
 from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.types import String, TypeEngine
 
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
@@ -51,6 +53,32 @@ logger = logging.getLogger()
 # https://github.com/stub42/pytz/blob/b70911542755aeeea7b5a9e066df5e1c87e8f2c8/src/pytz/reference.py#L25
 class FixedOffsetTimezone(_FixedOffset):
     pass
+
+
+# Regular expressions to catch custom errors
+CONNECTION_INVALID_USERNAME_REGEX = re.compile(
+    'role "(?P<username>.*?)" does not exist'
+)
+CONNECTION_INVALID_PASSWORD_REGEX = re.compile(
+    'password authentication failed for user "(?P<username>.*?)"'
+)
+CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
+    'could not translate host name "(?P<hostname>.*?)" to address: '
+    "nodename nor servname provided, or not known"
+)
+CONNECTION_PORT_CLOSED_REGEX = re.compile(
+    r"could not connect to server: Connection refused\s+Is the server "
+    r'running on host "(?P<hostname>.*?)" (\(.*?\) )?and accepting\s+TCP/IP '
+    r"connections on port (?P<port>.*?)\?"
+)
+CONNECTION_HOST_DOWN_REGEX = re.compile(
+    r"could not connect to server: (?P<reason>.*?)\s+Is the server running on "
+    r'host "(?P<hostname>.*?)" (\(.*?\) )?and accepting\s+TCP/IP '
+    r"connections on port (?P<port>.*?)\?"
+)
+CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile(
+    'database "(?P<database>.*?)" does not exist'
+)
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
@@ -69,6 +97,39 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         "P1M": "DATE_TRUNC('month', {col})",
         "P0.25Y": "DATE_TRUNC('quarter', {col})",
         "P1Y": "DATE_TRUNC('year', {col})",
+    }
+
+    custom_errors = {
+        CONNECTION_INVALID_USERNAME_REGEX: (
+            __('The username "%(username)s" does not exist.'),
+            SupersetErrorType.CONNECTION_INVALID_USERNAME_ERROR,
+        ),
+        CONNECTION_INVALID_PASSWORD_REGEX: (
+            __('The password provided for username "%(username)s" is incorrect.'),
+            SupersetErrorType.CONNECTION_INVALID_PASSWORD_ERROR,
+        ),
+        CONNECTION_INVALID_HOSTNAME_REGEX: (
+            __('The hostname "%(hostname)s" cannot be resolved.'),
+            SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+        ),
+        CONNECTION_PORT_CLOSED_REGEX: (
+            __('Port %(port)s on hostname "%(hostname)s" refused the connection.'),
+            SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
+        ),
+        CONNECTION_HOST_DOWN_REGEX: (
+            __(
+                'The host "%(hostname)s" might be down, and can\'t be '
+                "reached on port %(port)s."
+            ),
+            SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+        ),
+        CONNECTION_UNKNOWN_DATABASE_REGEX: (
+            __(
+                'We were unable to connect to your database named "%(database)s".'
+                " Please verify your database name and try again."
+            ),
+            SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+        ),
     }
 
     @classmethod

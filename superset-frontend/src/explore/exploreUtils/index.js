@@ -209,6 +209,7 @@ export const buildV1ChartDataPayload = ({
   resultFormat,
   resultType,
   setDataMask,
+  ownState,
 }) => {
   const buildQuery =
     getChartBuildQueryRegistry().get(formData.viz_type) ??
@@ -226,6 +227,7 @@ export const buildV1ChartDataPayload = ({
       result_type: resultType,
     },
     {
+      ownState,
       hooks: {
         setDataMask,
       },
@@ -266,6 +268,7 @@ export const exportChart = ({
   resultFormat = 'json',
   resultType = 'full',
   force = false,
+  ownState = {},
 }) => {
   let url;
   let payload;
@@ -284,6 +287,7 @@ export const exportChart = ({
       force,
       resultFormat,
       resultType,
+      ownState,
     });
   }
   postForm(url, payload);

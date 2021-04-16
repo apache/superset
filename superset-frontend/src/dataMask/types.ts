@@ -16,29 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ExtraFormData, DataMaskCurrentState } from '@superset-ui/core';
+import { DataMask } from '@superset-ui/core';
 
 export enum DataMaskType {
   NativeFilters = 'nativeFilters',
   CrossFilters = 'crossFilters',
-  OwnFilters = 'ownFilters',
 }
 
-export type Mask = {
-  extraFormData?: ExtraFormData;
-  currentState: DataMaskCurrentState;
-};
-export type DataMaskUnit = { [filterId: string]: Mask };
-export type DataMaskState = {
-  [DataMaskType.NativeFilters]: Mask;
-  [DataMaskType.CrossFilters]: Mask;
-  [DataMaskType.OwnFilters]: Mask;
-};
+export type DataMaskState = { [id: string]: DataMask };
 
-export type MaskWithId = Mask & { id: string };
-export type DataMaskUnitWithId = { [filterId: string]: MaskWithId };
-export type DataMaskStateWithId = {
-  [DataMaskType.NativeFilters]: DataMaskUnitWithId;
-  [DataMaskType.CrossFilters]: DataMaskUnitWithId;
-  [DataMaskType.OwnFilters]: DataMaskUnitWithId;
-};
+export type DataMaskWithId = DataMask & { id: string };
+export type DataMaskStateWithId = { [filterId: string]: DataMaskWithId };

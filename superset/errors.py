@@ -39,8 +39,13 @@ class SupersetErrorType(str, Enum):
     GENERIC_DB_ENGINE_ERROR = "GENERIC_DB_ENGINE_ERROR"
     COLUMN_DOES_NOT_EXIST_ERROR = "COLUMN_DOES_NOT_EXIST_ERROR"
     TABLE_DOES_NOT_EXIST_ERROR = "TABLE_DOES_NOT_EXIST_ERROR"
-    TEST_CONNECTION_PORT_CLOSED_ERROR = "TEST_CONNECTION_PORT_CLOSED_ERROR"
-    TEST_CONNECTION_HOST_DOWN_ERROR = "TEST_CONNECTION_HOST_DOWN_ERROR"
+    CONNECTION_INVALID_USERNAME_ERROR = "CONNECTION_INVALID_USERNAME_ERROR"
+    CONNECTION_INVALID_PASSWORD_ERROR = "CONNECTION_INVALID_PASSWORD_ERROR"
+    CONNECTION_INVALID_HOSTNAME_ERROR = "CONNECTION_INVALID_HOSTNAME_ERROR"
+    CONNECTION_PORT_CLOSED_ERROR = "CONNECTION_PORT_CLOSED_ERROR"
+    CONNECTION_HOST_DOWN_ERROR = "CONNECTION_HOST_DOWN_ERROR"
+    CONNECTION_ACCESS_DENIED_ERROR = "CONNECTION_ACCESS_DENIED_ERROR"
+    CONNECTION_UNKNOWN_DATABASE_ERROR = "CONNECTION_UNKNOWN_DATABASE_ERROR"
 
     # Viz errors
     VIZ_GET_DF_ERROR = "VIZ_GET_DF_ERROR"
@@ -58,7 +63,6 @@ class SupersetErrorType(str, Enum):
 
     # Sql Lab errors
     MISSING_TEMPLATE_PARAMS_ERROR = "MISSING_TEMPLATE_PARAMS_ERROR"
-    TEST_CONNECTION_INVALID_HOSTNAME_ERROR = "TEST_CONNECTION_INVALID_HOSTNAME_ERROR"
 
     # Generic errors
     GENERIC_COMMAND_ERROR = "GENERIC_COMMAND_ERROR"
@@ -121,16 +125,16 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
             ),
         },
     ],
-    SupersetErrorType.TEST_CONNECTION_INVALID_HOSTNAME_ERROR: [
+    SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR: [
         {
             "code": 1007,
             "message": _("Issue 1007 - The hostname provided can't be resolved."),
         },
     ],
-    SupersetErrorType.TEST_CONNECTION_PORT_CLOSED_ERROR: [
+    SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR: [
         {"code": 1008, "message": _("Issue 1008 - The port is closed."),},
     ],
-    SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR: [
+    SupersetErrorType.CONNECTION_HOST_DOWN_ERROR: [
         {
             "code": 1009,
             "message": _(
@@ -152,6 +156,39 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
             "code": 1011,
             "message": _("Issue 1011 - Superset encountered an unexpected error."),
         },
+    ],
+    SupersetErrorType.CONNECTION_INVALID_USERNAME_ERROR: [
+        {
+            "code": 1012,
+            "message": _(
+                "Issue 1012 - The username provided when "
+                "connecting to a database is not valid."
+            ),
+        },
+    ],
+    SupersetErrorType.CONNECTION_INVALID_PASSWORD_ERROR: [
+        {
+            "code": 1013,
+            "message": _(
+                "Issue 1013 - The password provided when "
+                "connecting to a database is not valid."
+            ),
+        },
+    ],
+    SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR: [
+        {
+            "code": 1014,
+            "message": _("Issue 1014 - Either the username or the password is wrong."),
+        }
+    ],
+    SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR: [
+        {
+            "code": 1015,
+            "message": _(
+                "Issue 1015 - Either the database is "
+                "spelled incorrectly or does not exist."
+            ),
+        }
     ],
 }
 

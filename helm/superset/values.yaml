@@ -163,6 +163,12 @@ supersetNode:
             name: '{{ tpl .Values.envFromSecret . }}'
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
 
+  ## Annotations to be added to supersetNode deployment
+  deploymentAnnotations: {}
+
+  ## Annotations to be added to supersetNode pods
+  podAnnotations: {}
+
 ##
 ## Superset worker configuration
 supersetWorker:
@@ -179,6 +185,12 @@ supersetWorker:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
+
+  ## Annotations to be added to supersetWorker deployment
+  deploymentAnnotations: {}
+
+  ## Annotations to be added to supersetWorker pods
+  podAnnotations: {}
 
 ##
 ## Superset beat configuration (to trigger scheduled jobs like reports)
@@ -198,6 +210,12 @@ supersetCeleryBeat:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
+
+  ## Annotations to be added to supersetCeleryBeat deployment
+  deploymentAnnotations: {}
+
+  ## Annotations to be added to supersetCeleryBeat pods
+  podAnnotations: {}
 
 ##
 ## Init job configuration
