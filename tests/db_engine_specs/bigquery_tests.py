@@ -22,6 +22,7 @@ from sqlalchemy import column
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
@@ -223,3 +224,23 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             credentials="account_info",
             if_exists="extra_key",
         )
+
+    def test_extract_errors(self):
+        msg = "User does not have bigquery.jobs.create permission in project"
+        result = BigQueryEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                message="Generic Error",
+                error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Google BigQuery",
+                    "issue_codes": [
+                        {
+                            "code": 1002,
+                            "message": "Issue 1002 - The database returned an unexpected error.",
+                        }
+                    ],
+                },
+            )
+        ]
