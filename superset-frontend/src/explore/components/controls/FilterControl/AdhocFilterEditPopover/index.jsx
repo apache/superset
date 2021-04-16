@@ -70,7 +70,7 @@ export default class AdhocFilterEditPopover extends React.Component {
       adhocFilter: this.props.adhocFilter,
       width: startingWidth,
       height: startingHeight,
-      activeKey: this.props.adhocFilter.expressionType
+      activeKey: this.props.adhocFilter.expressionType,
     };
 
     this.popoverContentRef = React.createRef();
@@ -122,8 +122,8 @@ export default class AdhocFilterEditPopover extends React.Component {
 
   onTabChange(activeKey) {
     this.setState({
-      activeKey
-    })
+      activeKey,
+    });
   }
 
   adjustHeight(heightDifference) {
