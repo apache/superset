@@ -301,7 +301,7 @@ Adaptive Server connection failed (mssqldb.cxiotftzsypc.us-west-2.rds.amazonaws.
                         },
                         {
                             "code": 1015,
-                            "message": "Issue 1015 - The database is "
+                            "message": "Issue 1015 - Either the database is "
                             "spelled incorrectly or does not exist.",
                         },
                     ],

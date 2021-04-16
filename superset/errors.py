@@ -183,7 +183,8 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
         {
             "code": 1015,
             "message": _(
-                "Issue 1015 - The database is " "spelled incorrectly or does not exist."
+                "Issue 1015 - Either the database is "
+                "spelled incorrectly or does not exist."
             ),
         },
     ],
