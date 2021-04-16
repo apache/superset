@@ -229,10 +229,9 @@ describe('RTL', () => {
     const mounted = act(async () => {
       render(
         <QueryParamProvider>
-          <Provider store={store}>
-            <SavedQueryList />
-          </Provider>
+          <SavedQueryList />
         </QueryParamProvider>,
+        { useRedux: true },
       );
     });
 

@@ -188,10 +188,9 @@ describe('RTL', () => {
     const mounted = act(async () => {
       render(
         <QueryParamProvider>
-          <Provider store={store}>
-            <DatabaseList user={mockUser} />
-          </Provider>
+          <DatabaseList user={mockUser} />
         </QueryParamProvider>,
+        { useRedux: true },
       );
     });
 

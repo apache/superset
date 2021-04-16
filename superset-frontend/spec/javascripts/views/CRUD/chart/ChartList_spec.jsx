@@ -167,10 +167,9 @@ describe('RTL', () => {
       const mockedProps = {};
       render(
         <QueryParamProvider>
-          <Provider store={store}>
-            <ChartList {...mockedProps} user={mockUser} />
-          </Provider>
+          <ChartList {...mockedProps} user={mockUser} />
         </QueryParamProvider>,
+        { useRedux: true },
       );
     });
 
