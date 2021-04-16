@@ -293,7 +293,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const validate = () => {
-    if (db?.database_name?.trim().length && db?.sqlalchemy_uri?.length) {
+    if (db?.database_name?.trim() && db?.sqlalchemy_uri) {
       setDisableSave(false);
     } else {
       setDisableSave(true);
