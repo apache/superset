@@ -18,11 +18,17 @@
  */
 import React from 'react';
 import { t, validateNonEmpty, validateInteger } from '@superset-ui/core';
-import { sharedControls, ControlPanelConfig, D3_FORMAT_OPTIONS } from '@superset-ui/chart-controls';
+import {
+  sharedControls,
+  ControlPanelConfig,
+  D3_FORMAT_OPTIONS,
+  sections,
+} from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
+    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
