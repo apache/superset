@@ -67,7 +67,9 @@ class CommandInvalidError(CommandException):
         self._invalid_exceptions.extend(exceptions)
 
     def get_list_classnames(self) -> List[str]:
-        return [ex.__class__.__name__ for ex in self._invalid_exceptions]
+        return list(
+            dict.fromkeys([ex.__class__.__name__ for ex in self._invalid_exceptions])
+        )
 
     def normalized_messages(self) -> Dict[Any, Any]:
         errors: Dict[Any, Any] = {}
