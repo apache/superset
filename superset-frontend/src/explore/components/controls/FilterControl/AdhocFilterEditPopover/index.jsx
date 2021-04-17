@@ -70,7 +70,7 @@ export default class AdhocFilterEditPopover extends React.Component {
       adhocFilter: this.props.adhocFilter,
       width: startingWidth,
       height: startingHeight,
-      activeKey: this.props.adhocFilter.expressionType,
+      activeKey: this.props?.adhocFilter?.expressionType || 'SIMPLE',
     };
 
     this.popoverContentRef = React.createRef();
