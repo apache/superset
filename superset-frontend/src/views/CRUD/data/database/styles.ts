@@ -18,7 +18,7 @@
  */
 
 import { styled } from '@superset-ui/core';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 import Tabs from 'src/common/components/Tabs';
 
@@ -67,17 +67,17 @@ export const StyledModal = styled(Modal)`
     opacity: 1;
   }
 
+  .required {
+    margin-left: ${({ theme }) => theme.gridUnit / 2}px;
+    color: ${({ theme }) => theme.colors.error.base};
+  }
+
   .helper {
     display: block;
     padding: ${({ theme }) => theme.gridUnit}px 0;
     color: ${({ theme }) => theme.colors.grayscale.light1};
     font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
     text-align: left;
-
-    .required {
-      margin-left: ${({ theme }) => theme.gridUnit / 2}px;
-      color: ${({ theme }) => theme.colors.error.base};
-    }
   }
   .ant-modal-title > h4 {
     font-weight: bold;
