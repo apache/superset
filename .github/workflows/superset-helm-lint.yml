@@ -13,6 +13,7 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+          fetch-depth: 0
 
       - name: Set up Helm
         uses: azure/setup-helm@v1

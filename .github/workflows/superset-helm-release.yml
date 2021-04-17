@@ -16,6 +16,7 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+          fetch-depth: 0
 
       - name: Configure Git
         run: |
