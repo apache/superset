@@ -19,10 +19,10 @@ appVersion: "1.0"
 description: Apache Superset is a modern, enterprise-ready business intelligence web application
 name: superset
 maintainers:
-  - name: Chuan-Yen Chiang
-    email: cychiang0823@gmail.com
-    url: https://github.com/cychiang
-version: 0.1.0
+  - name: craig-rueda
+    email: craig@craigrueda.com
+    url: https://github.com/craig-rueda
+version: 0.1.1
 dependencies:
 - name: postgresql
   version: 10.2.0
