@@ -373,4 +373,3 @@ tolerations: []
 
 affinity: {}
 
-dummy: true

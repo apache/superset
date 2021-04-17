@@ -27,7 +27,7 @@ jobs:
           version: v3.5.4
 
       - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.2.0
+        uses: ./.github/actions/chart-releaser-action
         with:
           charts_dir: helm
         env:
