@@ -2,6 +2,7 @@ name: Lint and Test Charts
 
 on:
   pull_request:
+    types: [opened, edited, reopened, synchronize]
     paths:
       - 'helm/**'
 
