@@ -423,7 +423,7 @@ For example, the image referenced above actually lives in `superset-frontend/ima
 Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.  
 You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
 
-Ensure that you are using Python version ≥3.7, then proceed with:
+Ensure that you are using Python version 3.7 or 3.8, then proceed with:
 
 ```bash
 # Create a virtual environment and activate it (recommended)
