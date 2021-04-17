@@ -2,14 +2,13 @@ name: Lint and Test Charts
 
 on:
   pull_request:
-    paths:
-      - 'helm/**'
+    types: [opened, edited, reopened, synchronize]
 
 jobs:
   lint-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
