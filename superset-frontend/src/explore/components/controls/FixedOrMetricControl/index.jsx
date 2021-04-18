@@ -21,11 +21,11 @@ import PropTypes from 'prop-types';
 import { css } from '@emotion/core';
 import { t } from '@superset-ui/core';
 import Label from 'src/components/Label';
-import Collapse from 'src/common/components/Collapse';
-import TextControl from './TextControl';
-import MetricsControl from './MetricControl/MetricsControl';
-import ControlHeader from '../ControlHeader';
-import PopoverSection from '../../../components/PopoverSection';
+import Collapse from 'src/components/Collapse';
+import TextControl from 'src/explore/components/controls/TextControl';
+import MetricsControl from 'src/explore/components/controls/MetricControl/MetricsControl';
+import ControlHeader from 'src/explore/components/ControlHeader';
+import PopoverSection from 'src/components/PopoverSection';
 
 const controlTypes = {
   fixed: 'fix',

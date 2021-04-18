@@ -19,7 +19,7 @@
 import React, { FC } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Collapse, Typography, Tooltip } from 'src/common/components';
-import { DataMaskUnit } from 'src/dataMask/types';
+import { DataMaskState } from 'src/dataMask/types';
 import { CaretDownOutlined } from '@ant-design/icons';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { FilterSet } from 'src/dashboard/reducers/types';
@@ -55,7 +55,7 @@ const StyledCollapse = styled(Collapse)`
 `;
 
 export type FiltersHeaderProps = {
-  dataMask?: DataMaskUnit;
+  dataMask?: DataMaskState;
   filterSet?: FilterSet;
 };
 
@@ -100,7 +100,7 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
             {name}:&nbsp;
           </Typography.Text>
           <Typography.Text delete={removedFilter} mark={changedFilter}>
-            {getFilterValueForDisplay(dataMask?.[id]?.currentState?.value) || (
+            {getFilterValueForDisplay(dataMask?.[id]?.filterState?.value) || (
               <Typography.Text type="secondary">{t('None')}</Typography.Text>
             )}
           </Typography.Text>

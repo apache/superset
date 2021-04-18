@@ -22,7 +22,7 @@ import {
   Filters,
   FilterSets as FilterSetsType,
 } from 'src/dashboard/reducers/types';
-import { DataMaskUnit, DataMaskUnitWithId } from 'src/dataMask/types';
+import { DataMaskState, DataMaskStateWithId } from 'src/dataMask/types';
 import { useEffect, useState } from 'react';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { Filter } from '../types';
@@ -36,10 +36,10 @@ export const useFilters = () =>
   useSelector<any, Filters>(state => state.nativeFilters.filters);
 
 export const useDataMask = () =>
-  useSelector<any, DataMaskUnitWithId>(state => state.dataMask.nativeFilters);
+  useSelector<any, DataMaskStateWithId>(state => state.dataMask);
 
 export const useFiltersInitialisation = (
-  dataMaskSelected: DataMaskUnit,
+  dataMaskSelected: DataMaskState,
   handleApply: () => void,
 ) => {
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
@@ -52,7 +52,7 @@ export const useFiltersInitialisation = (
     const areFiltersInitialized = filterValues.every(filterValue =>
       areObjectsEqual(
         filterValue?.defaultValue,
-        dataMaskSelected[filterValue?.id]?.currentState?.value,
+        dataMaskSelected[filterValue?.id]?.filterState?.value,
       ),
     );
     if (areFiltersInitialized) {
@@ -67,9 +67,9 @@ export const useFiltersInitialisation = (
 };
 
 export const useFilterUpdates = (
-  dataMaskSelected: DataMaskUnit,
-  setDataMaskSelected: (arg0: (arg0: DataMaskUnit) => void) => void,
-  setLastAppliedFilterData: (arg0: (arg0: DataMaskUnit) => void) => void,
+  dataMaskSelected: DataMaskState,
+  setDataMaskSelected: (arg0: (arg0: DataMaskState) => void) => void,
+  setLastAppliedFilterData: (arg0: (arg0: DataMaskState) => void) => void,
 ) => {
   const filters = useFilters();
   const dataMaskApplied = useDataMask();

@@ -195,7 +195,7 @@ class SliceHeaderControls extends React.PureComponent {
     const isCrossFilter = Object.entries(crossFilterItems)
       // @ts-ignore
       .filter(([, { value }]) =>
-        value.behaviors?.includes(Behavior.CROSS_FILTER),
+        value.behaviors?.includes(Behavior.INTERACTIVE_CHART),
       )
       .find(([key]) => key === slice.viz_type);
 

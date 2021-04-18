@@ -19,7 +19,7 @@
 import { Typography, Dropdown, Menu } from 'src/common/components';
 import React, { FC } from 'react';
 import { FilterSet } from 'src/dashboard/reducers/types';
-import { DataMaskUnit } from 'src/dataMask/types';
+import { DataMaskState } from 'src/dataMask/types';
 import { CheckOutlined, EllipsisOutlined } from '@ant-design/icons';
 import { HandlerFunction, styled, supersetTheme, t } from '@superset-ui/core';
 import { Tooltip } from 'src/common/components/Tooltip';
@@ -45,7 +45,7 @@ export type FilterSetUnitProps = {
   isApplied?: boolean;
   filterSet?: FilterSet;
   filterSetName?: string;
-  dataMaskSelected?: DataMaskUnit;
+  dataMaskSelected?: DataMaskState;
   setFilterSetName?: (name: string) => void;
   onDelete?: HandlerFunction;
   onEdit?: HandlerFunction;
@@ -114,7 +114,7 @@ const FilterSetUnit: FC<FilterSetUnitProps> = ({
       </TitleText>
       <FiltersHeader
         filterSet={filterSet}
-        dataMask={filterSet?.dataMask?.nativeFilters ?? dataMaskSelected}
+        dataMask={filterSet?.dataMask ?? dataMaskSelected}
       />
     </>
   );

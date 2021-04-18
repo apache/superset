@@ -24,10 +24,11 @@ from superset.models.reports import ReportRecipients, ReportRecipientType
 @dataclass
 class NotificationContent:
     name: str
-    url: Optional[str] = None  # url to chart/dashboard for this screenshot
+    csv: Optional[bytes] = None  # bytes for csv file
     screenshot: Optional[bytes] = None  # bytes for the screenshot
     text: Optional[str] = None
     description: Optional[str] = ""
+    url: Optional[str] = None  # url to chart/dashboard for this screenshot
 
 
 class BaseNotification:  # pylint: disable=too-few-public-methods

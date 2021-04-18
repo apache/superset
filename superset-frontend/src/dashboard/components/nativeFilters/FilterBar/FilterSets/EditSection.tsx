@@ -22,7 +22,7 @@ import { Typography, Tooltip } from 'src/common/components';
 import { useDispatch } from 'react-redux';
 import Button from 'src/components/Button';
 import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
-import { DataMaskUnit } from 'src/dataMask/types';
+import { DataMaskState } from 'src/dataMask/types';
 import { WarningOutlined } from '@ant-design/icons';
 import { ActionButtons } from './Footer';
 import { useDataMask, useFilters, useFilterSets } from '../state';
@@ -60,7 +60,7 @@ const ActionButton = styled.div<{ disabled?: boolean }>`
 
 export type EditSectionProps = {
   filterSetId: string;
-  dataMaskSelected: DataMaskUnit;
+  dataMaskSelected: DataMaskState;
   onCancel: HandlerFunction;
   disabled: boolean;
 };
@@ -94,7 +94,7 @@ const EditSection: FC<EditSectionProps> = ({
             ...filterSet,
             name: filterSetName,
             nativeFilters: filters,
-            dataMask: { nativeFilters: { ...dataMaskApplied } },
+            dataMask: { ...dataMaskApplied },
           };
           return filterSetId === filterSet.id ? newFilterSet : filterSet;
         }),

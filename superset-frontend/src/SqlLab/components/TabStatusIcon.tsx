@@ -16,6 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.CollectionControl .list-group-item i.fa {
-  padding-top: 5px;
+import React from 'react';
+
+import { QueryState } from '../types';
+
+interface TabStatusIconProps {
+  tabState: QueryState;
+}
+
+export default function TabStatusIcon({ tabState }: TabStatusIconProps) {
+  return <div className={`circle ${tabState}`} />;
 }

@@ -18,19 +18,24 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ListGroup, ListGroupItem } from 'react-bootstrap';
+import { List } from 'src/common/components';
 import shortid from 'shortid';
+import { t, withTheme } from '@superset-ui/core';
 import {
   SortableContainer,
   SortableHandle,
   SortableElement,
   arrayMove,
 } from 'react-sortable-hoc';
-
+import Icon from 'src/components/Icon';
+import {
+  HeaderContainer,
+  AddIconButton,
+} from 'src/explore/components/controls/OptionControls';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import CustomListItem from 'src/explore/components/controls/CustomListItem';
 import controlMap from '..';
-import './CollectionControl.less';
 
 const propTypes = {
   name: PropTypes.string.isRequired,
@@ -51,23 +56,24 @@ const defaultProps = {
   label: null,
   description: null,
   onChange: () => {},
-  placeholder: 'Empty collection',
+  placeholder: t('Empty collection'),
   itemGenerator: () => ({ key: shortid.generate() }),
   keyAccessor: o => o.key,
   value: [],
-  addTooltip: 'Add an item',
+  addTooltip: t('Add an item'),
 };
-const SortableListGroupItem = SortableElement(ListGroupItem);
-const SortableListGroup = SortableContainer(ListGroup);
+const SortableListItem = SortableElement(CustomListItem);
+const SortableList = SortableContainer(List);
 const SortableDragger = SortableHandle(() => (
   <i
     role="img"
+    aria-label="drag"
     className="fa fa-bars text-primary"
     style={{ cursor: 'ns-resize' }}
   />
 ));
 
-export default class CollectionControl extends React.Component {
+class CollectionControl extends React.Component {
   constructor(props) {
     super(props);
     this.onAdd = this.onAdd.bind(this);
@@ -96,59 +102,69 @@ export default class CollectionControl extends React.Component {
     }
     const Control = controlMap[this.props.controlName];
     return (
-      <SortableListGroup
+      <SortableList
         useDragHandle
         lockAxis="y"
         onSortEnd={this.onSortEnd.bind(this)}
+        bordered
+        css={theme => ({
+          borderRadius: theme.gridUnit,
+        })}
       >
         {this.props.value.map((o, i) => {
           // label relevant only for header, not here
           const { label, ...commonProps } = this.props;
           return (
-            <SortableListGroupItem
+            <SortableListItem
               className="clearfix"
+              css={{ justifyContent: 'flex-start' }}
               key={this.props.keyAccessor(o)}
               index={i}
             >
-              <div className="pull-left m-r-5">
-                <SortableDragger />
-              </div>
-              <div className="pull-left">
+              <SortableDragger />
+              <div
+                css={theme => ({
+                  flex: 1,
+                  marginLeft: theme.gridUnit * 2,
+                  marginRight: theme.gridUnit * 2,
+                })}
+              >
                 <Control
                   {...commonProps}
                   {...o}
                   onChange={this.onChange.bind(this, i)}
                 />
               </div>
-              <div className="pull-right">
-                <InfoTooltipWithTrigger
-                  icon="times"
-                  label="remove-item"
-                  tooltip="remove item"
-                  bsStyle="primary"
-                  onClick={this.removeItem.bind(this, i)}
-                />
-              </div>
-            </SortableListGroupItem>
+              <InfoTooltipWithTrigger
+                icon="times"
+                label="remove-item"
+                tooltip={t('Remove item')}
+                bsStyle="primary"
+                onClick={this.removeItem.bind(this, i)}
+              />
+            </SortableListItem>
           );
         })}
-      </SortableListGroup>
+      </SortableList>
     );
   }
 
   render() {
+    const { theme } = this.props;
     return (
       <div data-test="CollectionControl" className="CollectionControl">
-        <ControlHeader {...this.props} />
+        <HeaderContainer>
+          <ControlHeader {...this.props} />
+          <AddIconButton onClick={this.onAdd}>
+            <Icon
+              name="plus-large"
+              width={theme.gridUnit * 3}
+              height={theme.gridUnit * 3}
+              color={theme.colors.grayscale.light5}
+            />
+          </AddIconButton>
+        </HeaderContainer>
         {this.renderList()}
-        <InfoTooltipWithTrigger
-          icon="plus-circle"
-          label="add-item"
-          tooltip={this.props.addTooltip}
-          bsStyle="primary"
-          className="fa-lg"
-          onClick={this.onAdd}
-        />
       </div>
     );
   }
@@ -156,3 +172,5 @@ export default class CollectionControl extends React.Component {
 
 CollectionControl.propTypes = propTypes;
 CollectionControl.defaultProps = defaultProps;
+
+export default withTheme(CollectionControl);
