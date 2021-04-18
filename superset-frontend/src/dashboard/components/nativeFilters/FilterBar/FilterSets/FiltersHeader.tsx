@@ -25,6 +25,7 @@ import { areObjectsEqual } from 'src/reduxUtils';
 import { FilterSet } from 'src/dashboard/reducers/types';
 import { getFilterValueForDisplay } from './utils';
 import { useFilters } from '../state';
+import { getFilterBarTestId } from '../index';
 
 const FilterHeader = styled.div`
   display: flex;
@@ -118,7 +119,11 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
         <CaretDownOutlined rotate={isActive ? 0 : 180} />
       )}
     >
-      <Collapse.Panel header={getFiltersHeader()} key="filters">
+      <Collapse.Panel
+        {...getFilterBarTestId('collapse-filter-set-description')}
+        header={getFiltersHeader()}
+        key="filters"
+      >
         {resultFilters.map(getFilterRow)}
       </Collapse.Panel>
     </StyledCollapse>

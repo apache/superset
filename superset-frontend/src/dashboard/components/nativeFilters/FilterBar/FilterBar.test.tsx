@@ -29,6 +29,7 @@ import { Preset } from '@superset-ui/core';
 import { TimeFilterPlugin, SelectFilterPlugin } from 'src/filters/components';
 import { DATE_FILTER_CONTROL_TEST_ID } from 'src/explore/components/controls/DateFilterControl/DateFilterLabel';
 import fetchMock from 'fetch-mock';
+import { waitFor } from '@testing-library/react';
 import FilterBar, { FILTER_BAR_TEST_ID } from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 
@@ -65,6 +66,39 @@ const addFilterFlow = () => {
   userEvent.click(screen.getByText('Save'));
 };
 
+const addFilterSetFlow = async () => {
+  // add filter set
+  userEvent.click(screen.getByText('Filter Sets (0)'));
+  expect(screen.getByTestId(getTestId('new-filter-set-button'))).toBeDisabled();
+
+  // check description
+  expect(screen.getByText('Filters (1)')).toBeInTheDocument();
+  expect(screen.getByText(FILTER_NAME)).toBeInTheDocument();
+  expect(screen.getAllByText('Last week').length).toBe(2);
+
+  // apply filters
+  userEvent.click(screen.getByTestId(getTestId('apply-button')));
+  expect(screen.getByTestId(getTestId('new-filter-set-button'))).toBeEnabled();
+
+  // create filter set
+  userEvent.click(screen.getByText('Create new filter set'));
+  userEvent.click(screen.getByText('Create'));
+
+  // check filter set created
+  expect(await screen.findByRole('img', { name: 'check' })).toBeInTheDocument();
+  expect(screen.getByTestId(getTestId('filter-set-wrapper'))).toHaveAttribute(
+    'data-selected',
+    'true',
+  );
+};
+
+const changeFilterValue = async () => {
+  userEvent.click(screen.getAllByText('Last week')[0]);
+  userEvent.click(screen.getByDisplayValue('Last day'));
+  expect(await screen.findByText(/2021-04-13/)).toBeInTheDocument();
+  userEvent.click(screen.getByTestId(getDateControlTestId('apply-button')));
+};
+
 describe('FilterBar', () => {
   const toggleFiltersBar = jest.fn();
   const closedBarProps = {
@@ -86,39 +120,13 @@ describe('FilterBar', () => {
     nativeFilters: { filters: {}, filterSets: {} },
   };
 
-  new MainPreset().register();
-  beforeEach(() => {
-    toggleFiltersBar.mockClear();
-    fetchMock.get(
-      'http://localhost/api/v1/time_range/?q=%27Last%20day%27',
-      {
-        result: {
-          since: '2021-04-13T00:00:00',
-          until: '2021-04-14T00:00:00',
-          timeRange: 'Last day',
-        },
-      },
-      { overwriteRoutes: true },
-    );
-    fetchMock.get(
-      'http://localhost/api/v1/time_range/?q=%27Last%20week%27',
-      {
-        result: {
-          since: '2021-04-07T00:00:00',
-          until: '2021-04-14T00:00:00',
-          timeRange: 'Last week',
-        },
-      },
-      { overwriteRoutes: true },
-    );
-    // @ts-ignore
-    mockCore.makeApi = jest.fn(() => async data => {
-      const json = JSON.parse(data.json_metadata);
-      const filterId = json.native_filter_configuration[0].id;
-      return {
-        id: 1234,
-        result: {
-          json_metadata: `{
+  const mockApi = jest.fn(async data => {
+    const json = JSON.parse(data.json_metadata);
+    const filterId = json.native_filter_configuration[0].id;
+    return {
+      id: 1234,
+      result: {
+        json_metadata: `{
             "label_colors":{"Girls":"#FF69B4","Boys":"#ADD8E6","girl":"#FF69B4","boy":"#ADD8E6"},
             "native_filter_configuration":[{
               "id":"${filterId}",
@@ -158,13 +166,43 @@ describe('FilterBar', () => {
               }
             }]
           }`,
+      },
+    };
+  });
+
+  new MainPreset().register();
+  beforeEach(() => {
+    toggleFiltersBar.mockClear();
+    fetchMock.get(
+      'http://localhost/api/v1/time_range/?q=%27Last%20day%27',
+      {
+        result: {
+          since: '2021-04-13T00:00:00',
+          until: '2021-04-14T00:00:00',
+          timeRange: 'Last day',
         },
-      };
-    });
+      },
+      { overwriteRoutes: true },
+    );
+    fetchMock.get(
+      'http://localhost/api/v1/time_range/?q=%27Last%20week%27',
+      {
+        result: {
+          since: '2021-04-07T00:00:00',
+          until: '2021-04-14T00:00:00',
+          timeRange: 'Last week',
+        },
+      },
+      { overwriteRoutes: true },
+    );
+
+    // @ts-ignore
+    mockCore.makeApi = jest.fn(() => mockApi);
   });
 
   afterEach(() => {
     cleanup();
+    jest.clearAllMocks();
   });
 
   const renderWrapper = (props = closedBarProps, state?: object) =>
@@ -284,50 +322,19 @@ describe('FilterBar', () => {
     await screen.findByText('All Filters (1)');
     expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
 
-    // add filter set
-    userEvent.click(screen.getByText('Filter Sets (0)'));
-    expect(
-      screen.getByTestId(getTestId('new-filter-set-button')),
-    ).toBeDisabled();
-
-    // check description
-    expect(screen.getByText('Filters (1)')).toBeInTheDocument();
-    expect(screen.getByText(FILTER_NAME)).toBeInTheDocument();
-    expect(screen.getAllByText('Last week').length).toBe(2);
-
-    // apply filters
-    userEvent.click(screen.getByTestId(getTestId('apply-button')));
-    expect(
-      screen.getByTestId(getTestId('new-filter-set-button')),
-    ).toBeEnabled();
-
-    // create filter set
-    userEvent.click(screen.getByText('Create new filter set'));
-    userEvent.click(screen.getByText('Create'));
-
-    // check filter set created
-    expect(
-      await screen.findByRole('img', { name: 'check' }),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId(getTestId('filter-set-wrapper'))).toHaveAttribute(
-      'data-selected',
-      'true',
-    );
+    await addFilterSetFlow();
 
     // change filter
     userEvent.click(screen.getByText('All Filters (1)'));
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
-    userEvent.click(screen.getAllByText('Last week')[0]);
-    userEvent.click(screen.getByDisplayValue('Last day'));
-    expect(await screen.findByText(/2021-04-13/)).toBeInTheDocument();
-    userEvent.click(screen.getByTestId(getDateControlTestId('apply-button')));
+
+    await changeFilterValue();
+    await waitFor(() => expect(screen.getAllByText('Last day').length).toBe(2));
 
     // apply new filter value
     expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
     userEvent.click(screen.getByTestId(getTestId('apply-button')));
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
-    expect(await screen.findByText('Last day')).toBeInTheDocument();
-    screen.debug();
 
     // applying filter set
     userEvent.click(screen.getByText('Filter Sets (1)'));
@@ -342,5 +349,34 @@ describe('FilterBar', () => {
     expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
     userEvent.click(screen.getByTestId(getTestId('apply-button')));
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+  });
+
+  it('add and edit filter set', async () => {
+    // @ts-ignore
+    global.featureFlags = {
+      [FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET]: true,
+    };
+    renderWrapper(openedBarProps, noFiltersState);
+
+    addFilterFlow();
+
+    await screen.findByText('All Filters (1)');
+    expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
+
+    await addFilterSetFlow();
+
+    userEvent.click(screen.getByTestId(getTestId('filter-set-menu-button')));
+    userEvent.click(screen.getByText('Edit'));
+
+    await changeFilterValue();
+    await waitFor(() => expect(screen.getAllByText('Last day').length).toBe(1));
+
+    // apply new changes and save them
+    expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
+    userEvent.click(screen.getByTestId(getTestId('apply-button')));
+    expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+    expect(screen.getByText('Save')).toBeEnabled();
+    userEvent.click(screen.getByText('Save'));
+    expect(screen.queryByText('Save')).not.toBeInTheDocument();
   });
 });
