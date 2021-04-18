@@ -126,6 +126,12 @@ Example:
 python changelog.py --previous_version 0.37 --current_version 0.38 changelog
 ```
 
+You can get a list of pull requests with labels started with blocking, risk, hold, revert and security by using the parameter `--risk`.
+Example:
+```bash
+python changelog.py --previous_version 0.37 --current_version 0.38 changelog --access_token {GITHUB_TOKEN} --risk
+```
+
 The script will checkout both branches and compare all the PR's, copy the output and paste it on the `CHANGELOG.md`
 
 Then, in `UPDATING.md`, a file that contains a list of notifications around

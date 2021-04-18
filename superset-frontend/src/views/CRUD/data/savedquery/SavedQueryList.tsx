@@ -25,6 +25,7 @@ import {
   createFetchRelated,
   createFetchDistinct,
   createErrorHandler,
+  handleBulkSavedQueryExport,
 } from 'src/views/CRUD/utils';
 import Popover from 'src/components/Popover';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -40,9 +41,24 @@ import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import { SavedQueryObject } from 'src/views/CRUD/types';
 import copyTextToClipboard from 'src/utils/copy';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import ImportModelsModal from 'src/components/ImportModal/index';
+import Icons from 'src/components/Icons';
 import SavedQueryPreviewModal from './SavedQueryPreviewModal';
 
 const PAGE_SIZE = 25;
+const PASSWORDS_NEEDED_MESSAGE = t(
+  'The passwords for the databases below are needed in order to ' +
+    'import them together with the saved queries. Please note that the ' +
+    '"Secure Extra" and "Certificate" sections of ' +
+    'the database configuration are not present in export files, and ' +
+    'should be added manually after the import if they are needed.',
+);
+const CONFIRM_OVERWRITE_MESSAGE = t(
+  'You are importing one or more saved queries that already exist. ' +
+    'Overwriting might cause you to lose some of your work. Are you ' +
+    'sure you want to overwrite?',
+);
 
 interface SavedQueryListProps {
   addDangerToast: (msg: string) => void;
@@ -94,9 +110,26 @@ function SavedQueryList({
     savedQueryCurrentlyPreviewing,
     setSavedQueryCurrentlyPreviewing,
   ] = useState<SavedQueryObject | null>(null);
+  const [importingSavedQuery, showImportModal] = useState<boolean>(false);
+  const [passwordFields, setPasswordFields] = useState<string[]>([]);
+
+  const openSavedQueryImportModal = () => {
+    showImportModal(true);
+  };
+
+  const closeSavedQueryImportModal = () => {
+    showImportModal(false);
+  };
+
+  const handleSavedQueryImport = () => {
+    showImportModal(false);
+    refreshData();
+  };
 
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
+  const canExport =
+    hasPerm('can_read') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
 
   const openNewQuery = () => {
     window.open(`${window.location.origin}/superset/sqllab?new=true`);
@@ -144,6 +177,15 @@ function SavedQueryList({
     onClick: openNewQuery,
     buttonStyle: 'primary',
   });
+
+  if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
+    subMenuButtons.push({
+      name: <Icons.Import />,
+      buttonStyle: 'link',
+      onClick: openSavedQueryImportModal,
+      'data-test': 'import-button',
+    });
+  }
 
   menuData.buttons = subMenuButtons;
 
@@ -229,7 +271,7 @@ function SavedQueryList({
           },
         }: any) => {
           const names = tables.map((table: any) => table.table);
-          const main = names.length > 0 ? names.shift() : '';
+          const main = names?.shift() || '';
 
           if (names.length) {
             return (
@@ -300,12 +342,9 @@ function SavedQueryList({
           const handlePreview = () => {
             handleSavedQueryPreview(original.id);
           };
-          const handleEdit = () => {
-            openInSqlLab(original.id);
-          };
-          const handleCopy = () => {
-            copyQueryLink(original.id);
-          };
+          const handleEdit = () => openInSqlLab(original.id);
+          const handleCopy = () => copyQueryLink(original.id);
+          const handleExport = () => handleBulkSavedQueryExport([original]);
           const handleDelete = () => setQueryCurrentlyDeleting(original);
 
           const actions = [
@@ -316,15 +355,13 @@ function SavedQueryList({
               icon: 'Binoculars',
               onClick: handlePreview,
             },
-            canEdit
-              ? {
-                  label: 'edit-action',
-                  tooltip: t('Edit query'),
-                  placement: 'bottom',
-                  icon: 'Edit',
-                  onClick: handleEdit,
-                }
-              : null,
+            canEdit && {
+              label: 'edit-action',
+              tooltip: t('Edit query'),
+              placement: 'bottom',
+              icon: 'Edit',
+              onClick: handleEdit,
+            },
             {
               label: 'copy-action',
               tooltip: t('Copy query URL'),
@@ -332,15 +369,20 @@ function SavedQueryList({
               icon: 'Copy',
               onClick: handleCopy,
             },
-            canDelete
-              ? {
-                  label: 'delete-action',
-                  tooltip: t('Delete query'),
-                  placement: 'bottom',
-                  icon: 'Trash',
-                  onClick: handleDelete,
-                }
-              : null,
+            canExport && {
+              label: 'export-action',
+              tooltip: t('Export query'),
+              placement: 'bottom',
+              icon: 'Share',
+              onClick: handleExport,
+            },
+            canDelete && {
+              label: 'delete-action',
+              tooltip: t('Delete query'),
+              placement: 'bottom',
+              icon: 'Trash',
+              onClick: handleDelete,
+            },
           ].filter(item => !!item);
 
           return <ActionsBar actions={actions as ActionProps[]} />;
@@ -350,7 +392,7 @@ function SavedQueryList({
         disableSortBy: true,
       },
     ],
-    [canDelete, canEdit, copyQueryLink, handleSavedQueryPreview],
+    [canDelete, canEdit, canExport, copyQueryLink, handleSavedQueryPreview],
   );
 
   const filters: Filters = useMemo(
@@ -436,17 +478,23 @@ function SavedQueryList({
         onConfirm={handleBulkQueryDelete}
       >
         {confirmDelete => {
-          const bulkActions: ListViewProps['bulkActions'] = canDelete
-            ? [
-                {
-                  key: 'delete',
-                  name: t('Delete'),
-                  onSelect: confirmDelete,
-                  type: 'danger',
-                },
-              ]
-            : [];
-
+          const bulkActions: ListViewProps['bulkActions'] = [];
+          if (canDelete) {
+            bulkActions.push({
+              key: 'delete',
+              name: t('Delete'),
+              onSelect: confirmDelete,
+              type: 'danger',
+            });
+          }
+          if (canExport) {
+            bulkActions.push({
+              key: 'export',
+              name: t('Export'),
+              type: 'primary',
+              onSelect: handleBulkSavedQueryExport,
+            });
+          }
           return (
             <ListView<SavedQueryObject>
               className="saved_query-list-view"
@@ -466,6 +514,20 @@ function SavedQueryList({
           );
         }}
       </ConfirmStatusChange>
+
+      <ImportModelsModal
+        resourceName="saved_query"
+        resourceLabel={t('saved query')}
+        passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
+        confirmOverwriteMessage={CONFIRM_OVERWRITE_MESSAGE}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        onModelImport={handleSavedQueryImport}
+        show={importingSavedQuery}
+        onHide={closeSavedQueryImportModal}
+        passwordFields={passwordFields}
+        setPasswordFields={setPasswordFields}
+      />
     </>
   );
 }

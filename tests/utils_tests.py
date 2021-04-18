@@ -911,33 +911,25 @@ class TestUtils(SupersetTestCase):
         }
         merge_extra_form_data(form_data)
         self.assertEqual(
-            form_data,
-            {
-                "time_range": "Last 10 days",
-                "applied_time_extras": {},
-                "adhoc_filters": [],
-            },
+            form_data, {"time_range": "Last 10 days", "adhoc_filters": [],},
         )
 
     def test_merge_extra_filters_with_extras(self):
         form_data = {
             "time_range": "Last 10 days",
             "extra_form_data": {
-                "append_form_data": {
-                    "filters": [{"col": "foo", "op": "IN", "val": ["bar"]}],
-                    "adhoc_filters": [
-                        {
-                            "expressionType": "SQL",
-                            "clause": "WHERE",
-                            "sqlExpression": "1 = 0",
-                        }
-                    ],
-                },
-                "override_form_data": {"time_range": "Last 100 years",},
+                "filters": [{"col": "foo", "op": "IN", "val": ["bar"]}],
+                "adhoc_filters": [
+                    {
+                        "expressionType": "SQL",
+                        "clause": "WHERE",
+                        "sqlExpression": "1 = 0",
+                    }
+                ],
+                "time_range": "Last 100 years",
             },
         }
         merge_extra_form_data(form_data)
-        assert form_data["applied_time_extras"] == {"__time_range": "Last 100 years"}
         adhoc_filters = form_data["adhoc_filters"]
         assert adhoc_filters[0] == {
             "clause": "WHERE",

@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from datetime import datetime, timedelta
 from typing import Any, List, Optional
@@ -26,9 +27,12 @@ from sqlalchemy.orm import Session
 from superset import app
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
-from superset.extensions import feature_flag_manager
+from superset.extensions import feature_flag_manager, machine_auth_provider_factory
 from superset.models.reports import (
+    ReportDataFormat,
     ReportExecutionLog,
+    ReportRecipients,
+    ReportRecipientType,
     ReportSchedule,
     ReportScheduleType,
     ReportState,
@@ -37,6 +41,8 @@ from superset.reports.commands.alert import AlertCommand
 from superset.reports.commands.exceptions import (
     ReportScheduleAlertEndGracePeriodError,
     ReportScheduleAlertGracePeriodError,
+    ReportScheduleCsvFailedError,
+    ReportScheduleCsvTimeout,
     ReportScheduleExecuteUnexpectedError,
     ReportScheduleNotFoundError,
     ReportScheduleNotificationError,
@@ -56,6 +62,7 @@ from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.celery import session_scope
+from superset.utils.csv import get_chart_csv_data
 from superset.utils.screenshots import (
     BaseScreenshot,
     ChartScreenshot,
@@ -126,11 +133,19 @@ class BaseReportState:
         self._session.add(log)
         self._session.commit()
 
-    def _get_url(self, user_friendly: bool = False, **kwargs: Any) -> str:
+    def _get_url(
+        self, user_friendly: bool = False, csv: bool = False, **kwargs: Any
+    ) -> str:
         """
         Get the url for this report schedule: chart or dashboard
         """
         if self._report_schedule.chart:
+            if csv:
+                return get_url_path(
+                    "Superset.explore_json",
+                    csv="true",
+                    form_data=json.dumps({"slice_id": self._report_schedule.chart_id}),
+                )
             return get_url_path(
                 "Superset.slice",
                 user_friendly=user_friendly,
@@ -144,7 +159,7 @@ class BaseReportState:
             **kwargs,
         )
 
-    def _get_screenshot_user(self) -> User:
+    def _get_user(self) -> User:
         user = (
             self._session.query(User)
             .filter(User.username == app.config["THUMBNAIL_SELENIUM_USER"])
@@ -177,10 +192,11 @@ class BaseReportState:
                 window_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
                 thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
             )
-        user = self._get_screenshot_user()
+        user = self._get_user()
         try:
             image_data = screenshot.get_screenshot(user=user)
         except SoftTimeLimitExceeded:
+            logger.warning("A timeout occurred while taking a screenshot.")
             raise ReportScheduleScreenshotTimeout()
         except Exception as ex:
             raise ReportScheduleScreenshotFailedError(
@@ -190,23 +206,50 @@ class BaseReportState:
             raise ReportScheduleScreenshotFailedError()
         return image_data
 
+    def _get_csv_data(self) -> bytes:
+        if self._report_schedule.chart:
+            url = self._get_url(csv=True)
+            auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(
+                self._get_user()
+            )
+        try:
+            csv_data = get_chart_csv_data(url, auth_cookies)
+        except SoftTimeLimitExceeded:
+            raise ReportScheduleCsvTimeout()
+        except Exception as ex:
+            raise ReportScheduleCsvFailedError(f"Failed generating csv {str(ex)}")
+        if not csv_data:
+            raise ReportScheduleCsvFailedError()
+        return csv_data
+
     def _get_notification_content(self) -> NotificationContent:
         """
         Gets a notification content, this is composed by a title and a screenshot
 
         :raises: ReportScheduleScreenshotFailedError
         """
+        csv_data = None
+        error_text = None
         screenshot_data = None
         url = self._get_url(user_friendly=True)
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
             or self._report_schedule.type == ReportScheduleType.REPORT
         ):
-            screenshot_data = self._get_screenshot()
-            if not screenshot_data:
+            if self._report_schedule.report_format == ReportDataFormat.VISUALIZATION:
+                screenshot_data = self._get_screenshot()
+                if not screenshot_data:
+                    error_text = "Unexpected missing screenshot"
+            elif (
+                self._report_schedule.chart
+                and self._report_schedule.report_format == ReportDataFormat.DATA
+            ):
+                csv_data = self._get_csv_data()
+                if not csv_data:
+                    error_text = "Unexpected missing csv file"
+            if error_text:
                 return NotificationContent(
-                    name=self._report_schedule.name,
-                    text="Unexpected missing screenshot",
+                    name=self._report_schedule.name, text=error_text
                 )
 
         if self._report_schedule.chart:
@@ -219,16 +262,25 @@ class BaseReportState:
                 f"{self._report_schedule.name}: "
                 f"{self._report_schedule.dashboard.dashboard_title}"
             )
-        return NotificationContent(name=name, url=url, screenshot=screenshot_data)
+        return NotificationContent(
+            name=name,
+            url=url,
+            screenshot=screenshot_data,
+            description=self._report_schedule.description,
+            csv=csv_data,
+        )
 
-    def _send(self, notification_content: NotificationContent) -> None:
+    @staticmethod
+    def _send(
+        notification_content: NotificationContent, recipients: List[ReportRecipients]
+    ) -> None:
         """
         Sends a notification to all recipients
 
         :raises: ReportScheduleNotificationError
         """
         notification_errors = []
-        for recipient in self._report_schedule.recipients:
+        for recipient in recipients:
             notification = create_notification(recipient, notification_content)
             try:
                 notification.send()
@@ -245,7 +297,7 @@ class BaseReportState:
         :raises: ReportScheduleNotificationError
         """
         notification_content = self._get_notification_content()
-        self._send(notification_content)
+        self._send(notification_content, self._report_schedule.recipients)
 
     def send_error(self, name: str, message: str) -> None:
         """
@@ -254,7 +306,17 @@ class BaseReportState:
         :raises: ReportScheduleNotificationError
         """
         notification_content = NotificationContent(name=name, text=message)
-        self._send(notification_content)
+
+        # filter recipients to recipients who are also owners
+        owner_recipients = [
+            ReportRecipients(
+                type=ReportRecipientType.EMAIL,
+                recipient_config_json=json.dumps({"target": owner.email}),
+            )
+            for owner in self._report_schedule.owners
+        ]
+
+        self._send(notification_content, owner_recipients)
 
     def is_in_grace_period(self) -> bool:
         """
@@ -292,12 +354,17 @@ class BaseReportState:
         """
         Checks if an alert is on a working timeout
         """
+        last_working = ReportScheduleDAO.find_last_entered_working_log(
+            self._report_schedule, session=self._session
+        )
+        if not last_working:
+            return False
         return (
             self._report_schedule.working_timeout is not None
             and self._report_schedule.last_eval_dttm is not None
             and datetime.utcnow()
             - timedelta(seconds=self._report_schedule.working_timeout)
-            > self._report_schedule.last_eval_dttm
+            > last_working.end_dttm
         )
 
     def next(self) -> None:

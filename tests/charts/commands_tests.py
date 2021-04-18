@@ -197,7 +197,7 @@ class TestImportChartsCommand(SupersetTestCase):
         db.session.commit()
 
     def test_import_v1_chart_multiple(self):
-        """Test that a dataset can be imported multiple times"""
+        """Test that a chart can be imported multiple times"""
         contents = {
             "metadata.yaml": yaml.safe_dump(chart_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),

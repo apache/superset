@@ -28,7 +28,7 @@ import { DropDownProps } from 'antd/lib/dropdown';
 export {
   AutoComplete,
   Avatar,
-  Card,
+  Button,
   Checkbox,
   Col,
   DatePicker,
@@ -51,13 +51,18 @@ export {
   Tooltip,
   Input as AntdInput,
 } from 'antd';
+export { Card as AntdCard } from 'antd';
 export { FormInstance } from 'antd/lib/form';
 export { RadioChangeEvent } from 'antd/lib/radio';
 export { TreeProps } from 'antd/lib/tree';
 export { default as Alert, AlertProps } from 'antd/lib/alert';
 export { default as Select, SelectProps } from 'antd/lib/select';
+export { default as List, ListItemProps } from 'antd/lib/list';
 
-export { default as Collapse } from './Collapse';
+export { default as Collapse } from 'src/components/Collapse';
+export { default as Badge } from 'src/components/Badge';
+export { default as Card } from './Card';
+export { default as Progress } from 'src/components/ProgressBar';
 
 export const MenuItem = styled(AntdMenu.Item)`
   > a {

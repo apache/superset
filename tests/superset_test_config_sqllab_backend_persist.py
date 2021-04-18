@@ -21,4 +21,4 @@ from copy import copy
 
 from .superset_test_config import *
 
-DEFAULT_FEATURE_FLAGS = {"SQLLAB_BACKEND_PERSISTENCE": True}
+FEATURE_FLAGS = {"SQLLAB_BACKEND_PERSISTENCE": True}

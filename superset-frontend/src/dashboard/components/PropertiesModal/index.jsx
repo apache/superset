@@ -31,7 +31,7 @@ import {
   CategoricalColorNamespace,
 } from '@superset-ui/core';
 
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import FormLabel from 'src/components/FormLabel';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 
@@ -399,7 +399,7 @@ class PropertiesModal extends React.PureComponent {
             />
             <p className="help-block">
               {t(
-                'Roles is a list which defines access to the dashboard. These roles are always applied in addition to restrictions on dataset level access. If no roles defined then the dashboard is available to all roles.',
+                'Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles defined then the dashboard is available to all roles.',
               )}
             </p>
           </Col>

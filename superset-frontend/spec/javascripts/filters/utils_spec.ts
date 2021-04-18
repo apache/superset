@@ -35,64 +35,56 @@ describe('Filter utils', () => {
   describe('getRangeExtraFormData', () => {
     it('getRangeExtraFormData - col: "testCol", lower: 1, upper: 2', () => {
       expect(getRangeExtraFormData('testCol', 1, 2)).toEqual({
-        append_form_data: {
-          filters: [
-            {
-              col: 'testCol',
-              op: '>=',
-              val: 1,
-            },
-            {
-              col: 'testCol',
-              op: '<=',
-              val: 2,
-            },
-          ],
-        },
+        filters: [
+          {
+            col: 'testCol',
+            op: '>=',
+            val: 1,
+          },
+          {
+            col: 'testCol',
+            op: '<=',
+            val: 2,
+          },
+        ],
       });
     });
     it('getRangeExtraFormData - col: "testCol", lower: 0, upper: 0', () => {
       expect(getRangeExtraFormData('testCol', 0, 0)).toEqual({
-        append_form_data: {
-          filters: [
-            {
-              col: 'testCol',
-              op: '>=',
-              val: 0,
-            },
-            {
-              col: 'testCol',
-              op: '<=',
-              val: 0,
-            },
-          ],
-        },
+        filters: [
+          {
+            col: 'testCol',
+            op: '>=',
+            val: 0,
+          },
+          {
+            col: 'testCol',
+            op: '<=',
+            val: 0,
+          },
+        ],
       });
     });
     it('getRangeExtraFormData - col: "testCol", lower: null, upper: 2', () => {
       expect(getRangeExtraFormData('testCol', null, 2)).toEqual({
-        append_form_data: {
-          filters: [
-            {
-              col: 'testCol',
-              op: '<=',
-              val: 2,
-            },
-          ],
-        },
+        filters: [
+          {
+            col: 'testCol',
+            op: '<=',
+            val: 2,
+          },
+        ],
       });
     });
     it('getRangeExtraFormData - col: "testCol", lower: 1, upper: undefined', () => {
       expect(getRangeExtraFormData('testCol', 1, undefined)).toEqual({
-        append_form_data: {
-          filters: [
-            {
-              col: 'testCol',
-              op: '>=',
-              val: 1,
-            },
-          ],
-        },
+        filters: [
+          {
+            col: 'testCol',
+            op: '>=',
+            val: 1,
+          },
+        ],
       });
     });
   });
@@ -101,68 +93,56 @@ describe('Filter utils', () => {
       expect(
         getSelectExtraFormData('testCol', ['value'], false, false),
       ).toEqual({
-        append_form_data: {
-          filters: [
-            {
-              col: 'testCol',
-              op: 'IN',
-              val: ['value'],
-            },
-          ],
-        },
+        filters: [
+          {
+            col: 'testCol',
+            op: 'IN',
+            val: ['value'],
+          },
+        ],
       });
     });
     it('getSelectExtraFormData - col: "testCol", value: ["value"], emptyFilter: true, inverseSelection: false', () => {
       expect(getSelectExtraFormData('testCol', ['value'], true, false)).toEqual(
         {
-          append_form_data: {
-            adhoc_filters: [
-              {
-                clause: 'WHERE',
-                expressionType: 'SQL',
-                sqlExpression: '1 = 0',
-              },
-            ],
-          },
+          adhoc_filters: [
+            {
+              clause: 'WHERE',
+              expressionType: 'SQL',
+              sqlExpression: '1 = 0',
+            },
+          ],
         },
       );
     });
     it('getSelectExtraFormData - col: "testCol", value: ["value"], emptyFilter: false, inverseSelection: true', () => {
       expect(getSelectExtraFormData('testCol', ['value'], false, true)).toEqual(
         {
-          append_form_data: {
-            filters: [
-              {
-                col: 'testCol',
-                op: 'NOT IN',
-                val: ['value'],
-              },
-            ],
-          },
+          filters: [
+            {
+              col: 'testCol',
+              op: 'NOT IN',
+              val: ['value'],
+            },
+          ],
         },
       );
     });
     it('getSelectExtraFormData - col: "testCol", value: [], emptyFilter: false, inverseSelection: false', () => {
       expect(getSelectExtraFormData('testCol', [], false, false)).toEqual({
-        append_form_data: {
-          filters: [],
-        },
+        filters: [],
       });
     });
     it('getSelectExtraFormData - col: "testCol", value: undefined, emptyFilter: false, inverseSelection: false', () => {
       expect(
         getSelectExtraFormData('testCol', undefined, false, false),
       ).toEqual({
-        append_form_data: {
-          filters: [],
-        },
+        filters: [],
       });
     });
     it('getSelectExtraFormData - col: "testCol", value: null, emptyFilter: false, inverseSelection: false', () => {
       expect(getSelectExtraFormData('testCol', null, false, false)).toEqual({
-        append_form_data: {
-          filters: [],
-        },
+        filters: [],
       });
     });
   });

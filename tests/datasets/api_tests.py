@@ -582,16 +582,15 @@ class TestDatasetApi(SupersetTestCase):
         # Add default dataset
         dataset = self.insert_default_dataset()
         self.login(username="admin")
+        new_col_dict = {
+            "column_name": "new_col",
+            "description": "description",
+            "expression": "expression",
+            "type": "INTEGER",
+            "verbose_name": "New Col",
+        }
         dataset_data = {
-            "columns": [
-                {
-                    "column_name": "new_col",
-                    "description": "description",
-                    "expression": "expression",
-                    "type": "INTEGER",
-                    "verbose_name": "New Col",
-                }
-            ],
+            "columns": [new_col_dict],
             "description": "changed description",
         }
         uri = f"api/v1/dataset/{dataset.id}?override_columns=true"
@@ -600,10 +599,10 @@ class TestDatasetApi(SupersetTestCase):
 
         columns = db.session.query(TableColumn).filter_by(table_id=dataset.id).all()
 
-        assert columns[0].column_name == dataset_data["columns"][0]["column_name"]
-        assert columns[0].description == dataset_data["columns"][0]["description"]
-        assert columns[0].expression == dataset_data["columns"][0]["expression"]
-        assert columns[0].type == dataset_data["columns"][0]["type"]
+        assert new_col_dict["column_name"] in [col.column_name for col in columns]
+        assert new_col_dict["description"] in [col.description for col in columns]
+        assert new_col_dict["expression"] in [col.expression for col in columns]
+        assert new_col_dict["type"] in [col.type for col in columns]
 
         db.session.delete(dataset)
         db.session.commit()

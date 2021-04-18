@@ -1362,8 +1362,10 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
             df2 = self.get_df_payload(query_object, time_compare=option).get("df")
             if df2 is not None and DTTM_ALIAS in df2:
+                dttm_series = df2[DTTM_ALIAS] + delta
+                df2 = df2.drop(DTTM_ALIAS, axis=1)
+                df2 = pd.concat([dttm_series, df2], axis=1)
                 label = "{} offset".format(option)
-                df2[DTTM_ALIAS] += delta
                 df2 = self.process_data(df2)
                 self._extra_chart_data.append((label, df2))
 
@@ -1951,8 +1953,16 @@ class CountryMapViz(BaseViz):
 
     def query_obj(self) -> QueryObjectDict:
         qry = super().query_obj()
-        qry["metrics"] = [self.form_data["metric"]]
-        qry["groupby"] = [self.form_data["entity"]]
+        metric = self.form_data.get("metric")
+        entity = self.form_data.get("entity")
+        if not self.form_data.get("select_country"):
+            raise QueryObjectValidationError("Must specify a country")
+        if not metric:
+            raise QueryObjectValidationError("Must specify a metric")
+        if not entity:
+            raise QueryObjectValidationError("Must provide ISO codes")
+        qry["metrics"] = [metric]
+        qry["groupby"] = [entity]
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:

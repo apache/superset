@@ -22,7 +22,6 @@ import thunk from 'redux-thunk';
 import { createStore, applyMiddleware, compose } from 'redux';
 import { initFeatureFlags } from 'src/featureFlags';
 import { initEnhancer } from '../reduxUtils';
-import getInitialState from './reducers/getInitialState';
 import rootReducer from './reducers/index';
 import logger from '../middleware/loggerMiddleware';
 import App from './App';
@@ -30,10 +29,16 @@ import App from './App';
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
 initFeatureFlags(bootstrapData.common.feature_flags);
-const initState = getInitialState(bootstrapData);
+
+const initialState = {
+  user: bootstrapData.user,
+  common: bootstrapData.common,
+  datasources: bootstrapData.datasources,
+};
+
 const store = createStore(
   rootReducer,
-  initState,
+  initialState,
   compose(applyMiddleware(thunk, logger), initEnhancer(false)),
 );
 

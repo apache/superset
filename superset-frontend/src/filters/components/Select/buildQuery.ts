@@ -22,7 +22,7 @@ import { DEFAULT_FORM_DATA, PluginFilterSelectQueryFormData } from './types';
 export default function buildQuery(formData: PluginFilterSelectQueryFormData) {
   const { sortAscending } = { ...DEFAULT_FORM_DATA, ...formData };
   return buildQueryContext(formData, baseQueryObject => {
-    const { columns, filters = [] } = baseQueryObject;
+    const { columns = [], filters = [] } = baseQueryObject;
     return [
       {
         ...baseQueryObject,

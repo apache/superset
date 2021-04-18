@@ -74,7 +74,7 @@ const createProps = () => ({
   description: null,
   hovered: false,
   itemGenerator: jest.fn(),
-  keyAccessor: jest.fn(),
+  keyAccessor: jest.fn(() => 'hrYAZ5iBH'),
   label: 'Time series columns',
   name: 'column_collection',
   onChange: jest.fn(),
@@ -105,7 +105,7 @@ test('Should have add button', () => {
   render(<CollectionControl {...props} />);
 
   expect(props.onChange).toBeCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'add-item' }));
+  userEvent.click(screen.getByRole('button', { name: 'plus-large' }));
   expect(props.onChange).toBeCalledWith([{ key: 'hrYAZ5iBH' }, undefined]);
 });
 
@@ -121,7 +121,7 @@ test('Should have remove button', () => {
 test('Should have SortableDragger icon', () => {
   const props = createProps();
   render(<CollectionControl {...props} />);
-  expect(screen.getByRole('img')).toBeVisible();
+  expect(screen.getByLabelText('drag')).toBeVisible();
 });
 
 test('Should call Control component', () => {

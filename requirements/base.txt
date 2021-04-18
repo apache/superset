@@ -109,6 +109,8 @@ geographiclib==1.50
 # via geopy
 geopy==2.0.0
 # via apache-superset
+graphlib-backport==1.0.3
+# via apache-superset
 gunicorn==20.0.4
 # via apache-superset
 holidays==0.10.3
