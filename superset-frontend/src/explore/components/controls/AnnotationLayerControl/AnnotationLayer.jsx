@@ -242,8 +242,10 @@ export default class AnnotationLayer extends React.PureComponent {
     return !errors.filter(x => x).length;
   }
 
-  popoverClearWrapper(value, actionMeta, f) {
-    f && f(value);
+  popoverClearWrapper(value, actionMeta, callback) {
+    if (callback) {
+      callback(value);
+    }
     if (actionMeta?.action === 'clear') {
       this.props.onPopoverClear(true);
     }
@@ -534,7 +536,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 options={columns}
                 value={descriptionColumns}
                 onChange={(value, actionMeta) =>
-                  this.popoverClearWrapper(v =>
+                  this.popoverClearWrapper(value, actionMeta, v =>
                     this.setState({ descriptionColumns: v }),
                   )
                 }
