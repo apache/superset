@@ -133,6 +133,12 @@ const buildQuery: BuildQuery<TableChartFormData> = (formData: TableChartFormData
         ...extraQueries,
       ];
     }
+
+    const interactiveGroupBy = formData.extra_form_data?.interactive_groupby;
+    if (interactiveGroupBy && queryObject.columns) {
+      queryObject.columns = [...new Set([...queryObject.columns, ...interactiveGroupBy])];
+    }
+
     return [queryObject, ...extraQueries];
   });
 };
