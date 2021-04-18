@@ -21,7 +21,7 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { getChartMetadataRegistry, ChartMetadata } from '@superset-ui/core';
 import VizTypeControl from 'src/explore/components/controls/VizTypeControl';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 
 const defaultProps = {
   name: 'viz_type',

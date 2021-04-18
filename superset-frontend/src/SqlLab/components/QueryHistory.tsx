@@ -17,12 +17,37 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
+import Alert from 'src/components/Alert';
+import { t } from '@superset-ui/core';
 
-export default function TabStatusIcon(props) {
-  return <div className={`circle ${props.tabState}`} />;
+import QueryTable from './QueryTable';
+import { Query } from '../types';
+
+interface QueryHistoryProps {
+  queries: Query[];
+  actions: Record<string, unknown>;
+  displayLimit: number;
 }
 
-TabStatusIcon.propTypes = {
-  tabState: PropTypes.string.isRequired,
-};
+const QueryHistory = ({ queries, actions, displayLimit }: QueryHistoryProps) =>
+  queries.length > 0 ? (
+    <QueryTable
+      columns={[
+        'state',
+        'started',
+        'duration',
+        'progress',
+        'rows',
+        'sql',
+        'output',
+        'actions',
+      ]}
+      queries={queries}
+      actions={actions}
+      displayLimit={displayLimit}
+    />
+  ) : (
+    <Alert type="info" message={t('No query history yet...')} />
+  );
+
+export default QueryHistory;

@@ -28,7 +28,7 @@ module.exports = {
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.ts'],
   testURL: 'http://localhost',
-  collectCoverageFrom: ['src/**/*.{js,jsx,ts,tsx}'],
+  collectCoverageFrom: ['src/**/*.{js,jsx,ts,tsx}', '!**/*.stories.*'],
   coverageDirectory: '<rootDir>/coverage/',
   transform: {
     '^.+\\.jsx?$': 'babel-jest',

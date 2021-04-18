@@ -30,15 +30,13 @@ from typing import Dict
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy_utils import EncryptedType
 
 
 def upgrade():
     kwargs: Dict[str, str] = {}
     bind = op.get_bind()
     op.add_column(
-        "dbs",
-        sa.Column("server_cert", EncryptedType(sa.Text()), nullable=True, **kwargs),
+        "dbs", sa.Column("server_cert", sa.LargeBinary(), nullable=True, **kwargs),
     )
 
 

@@ -26,7 +26,7 @@ import userEvent from '@testing-library/user-event';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { Provider } from 'react-redux';
 import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import Tabs from 'src/common/components/Tabs';
 import fetchMock from 'fetch-mock';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';

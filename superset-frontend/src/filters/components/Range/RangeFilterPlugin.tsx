@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, DataMask, Behavior } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Slider } from 'src/common/components';
 import { PluginFilterRangeProps } from './types';
@@ -31,12 +31,12 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     width,
     setDataMask,
     inputRef,
-    behaviors,
+    filterState,
   } = props;
   const [row] = data;
   // @ts-ignore
   const { min, max }: { min: number; max: number } = row;
-  const { groupby, currentValue, defaultValue } = formData;
+  const { groupby, defaultValue } = formData;
   const [col = ''] = groupby || [];
   const [value, setValue] = useState<[number, number]>(
     defaultValue ?? [min, max],
@@ -45,23 +45,13 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const handleAfterChange = (value: [number, number]) => {
     const [lower, upper] = value;
     setValue(value);
-    const dataMask = {
+
+    setDataMask({
       extraFormData: getRangeExtraFormData(col, lower, upper),
-      currentState: {
+      filterState: {
         value,
       },
-    };
-
-    const dataMaskObject: DataMask = {};
-    if (behaviors.includes(Behavior.NATIVE_FILTER)) {
-      dataMaskObject.nativeFilters = dataMask;
-    }
-
-    if (behaviors.includes(Behavior.CROSS_FILTER)) {
-      dataMaskObject.crossFilters = dataMask;
-    }
-
-    setDataMask(dataMaskObject);
+    });
   };
 
   const handleChange = (value: [number, number]) => {
@@ -69,8 +59,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   };
 
   useEffect(() => {
-    handleAfterChange(currentValue ?? [min, max]);
-  }, [JSON.stringify(currentValue)]);
+    handleAfterChange(filterState.value ?? [min, max]);
+  }, [JSON.stringify(filterState.value)]);
 
   useEffect(() => {
     handleAfterChange(defaultValue ?? [min, max]);

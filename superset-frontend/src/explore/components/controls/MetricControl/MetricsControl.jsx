@@ -294,7 +294,7 @@ class MetricsControl extends React.PureComponent {
           null,
         )}
         datasource={this.props.datasource}
-        savedMetric={{}}
+        savedMetric={{ metric_name: '', expression: '' }}
         datasourceType={this.props.datasourceType}
         createNew
       >

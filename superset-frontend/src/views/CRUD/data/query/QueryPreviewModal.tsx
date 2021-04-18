@@ -18,7 +18,7 @@
  */
 import React, { useState } from 'react';
 import { styled, t } from '@superset-ui/core';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import cx from 'classnames';
 import Button from 'src/components/Button';
 import withToasts, { ToastProps } from 'src/messageToasts/enhancers/withToasts';

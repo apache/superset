@@ -23,10 +23,7 @@ import {
   JsonObject,
 } from '@superset-ui/core';
 import { ChartQueryPayload, Charts, LayoutItem } from 'src/dashboard/types';
-import {
-  getExtraFormData,
-  mergeExtraFormData,
-} from 'src/dashboard/components/nativeFilters/utils';
+import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { DataMaskStateWithId } from 'src/dataMask/types';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { ChartConfiguration, NativeFiltersState } from '../../reducers/types';
@@ -101,13 +98,6 @@ export default function getFormDataWithExtraFilters({
       ),
     };
   }
-
-  const { extraFormData: newExtra = {} } =
-    dataMask?.ownFilters?.[chart.id] ?? {};
-  extraData.extra_form_data = mergeExtraFormData(
-    extraData?.extra_form_data,
-    newExtra,
-  );
 
   const formData = {
     ...chart.formData,

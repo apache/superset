@@ -44,5 +44,4 @@ jobs:
       - name: Upload code coverage
         if: steps.check.outcome == 'failure'
         working-directory: ./superset-frontend
-        run: |
-          bash <(curl -s https://codecov.io/bash) -c -F javascript
+        run: ../.github/workflows/codecov.sh -c -F javascript
