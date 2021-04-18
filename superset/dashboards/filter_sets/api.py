@@ -73,6 +73,8 @@ logger = logging.getLogger(__name__)
 
 
 class FilterSetRestApi(BaseSupersetModelRestApi):
+    # pylint: disable=W0221
+
     datamodel = SQLAInterface(FilterSet)
     resource_name = "dashboard"
     class_permission_name = FILTER_SET_API_PERMISSIONS_NAME
@@ -162,7 +164,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
-    def put(self, dashboard_id: int, pk: int) -> Response:  # pylint: disable=W0221
+    def put(self, dashboard_id: int, pk: int) -> Response:
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:

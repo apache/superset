@@ -23,7 +23,6 @@ from typing import Any, Dict
 from flask_appbuilder import Model
 from sqlalchemy import Column, ForeignKey, Integer, MetaData, String, Text
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql.elements import BinaryExpression
 from sqlalchemy_utils import generic_relationship
 
 from superset import app, db
