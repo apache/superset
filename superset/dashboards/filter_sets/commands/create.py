@@ -26,6 +26,7 @@ from superset.dashboards.filter_sets.commands.base import BaseFilterSetCommand
 from superset.dashboards.filter_sets.commands.exceptions import (
     FilterSetCreateFailedError,
     UserIsNotDashboardOwnerError,
+    DashboardIdInconsistencyError
 )
 from superset.dashboards.filter_sets.consts import (
     DASHBOARD_ID_FIELD,
@@ -56,7 +57,7 @@ class CreateFilterSetCommand(BaseFilterSetCommand):
                 self._properties.get(OWNER_ID_FIELD, self._dashboard_id)
                 != self._dashboard_id
             ):
-                raise
+                raise DashboardIdInconsistencyError(str(self._dashboard_id))
             if not self.is_user_dashboard_owner():
                 raise UserIsNotDashboardOwnerError(str(self._dashboard_id))
         else:

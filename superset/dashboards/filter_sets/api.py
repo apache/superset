@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any
+from typing import Any, cast, Optional
 
 from flask import g, request, Response
 from flask_appbuilder.api import (
@@ -107,7 +107,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
     def _init_properties(self) -> None:
         super(BaseSupersetModelRestApi, self)._init_properties()  # pylint: disable=E1003
 
-    @expose("/<dashboard_id>/filtersets", methods=["GET"])
+    @expose("/<int:dashboard_id>/filtersets", methods=["GET"])
     @protect()
     @safe
     @permission_name("get")
@@ -122,8 +122,8 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
     @merge_response_func(ModelRestApi.merge_list_columns, API_LIST_COLUMNS_RIS_KEY)
     @merge_response_func(ModelRestApi.merge_list_title, API_LIST_TITLE_RIS_KEY)
     def get_list(self, **kwargs: Any) -> Response:
-        dashboard_id = kwargs.get('dashboard_id')
-        if not DashboardDAO.find_by_id(dashboard_id):
+        dashboard_id: Optional[int] = kwargs.get('dashboard_id', None)
+        if not DashboardDAO.find_by_id(cast(int, dashboard_id)):
             return self.response(404, message="dashboard '%s' not found" % dashboard_id)
         rison_data = kwargs.setdefault("rison", {})
         rison_data.setdefault("filters", [])
@@ -149,7 +149,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
             return self.response(201, id=new_model.id, result=item)
         except ValidationError as error:
             return self.response_400(message=error.messages)
-        except UserIsNotDashboardOwnerError as error:
+        except UserIsNotDashboardOwnerError:
             return self.response_403()
         except FilterSetCreateFailedError as error:
             return self.response_400(message=error.message)

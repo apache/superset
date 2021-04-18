@@ -55,7 +55,7 @@ class BaseFilterSetCommand(BaseCommand):
     def is_user_dashboard_owner(self) -> bool:
         return is_user_admin() or self._dashboard.am_i_owner()
 
-    def validate_exist_filter_use_cases_set(self) -> None:
+    def validate_exist_filter_use_cases_set(self) -> None:  # pylint: disable=C0103
         if self._filter_set_id:
             self._filter_set = self._dashboard.filter_sets.get(
                 self._filter_set_id, None

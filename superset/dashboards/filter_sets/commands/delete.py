@@ -40,18 +40,18 @@ class DeleteFilterSetCommand(BaseFilterSetCommand):
         try:
             self.validate()
             return FilterSetDAO.delete(self._filter_set, commit=True)
-        except DAODeleteFailedError as e:
-            raise FilterSetDeleteFailedError(str(self._filter_set_id), "", e)
+        except DAODeleteFailedError as err:
+            raise FilterSetDeleteFailedError(str(self._filter_set_id), "", err)
 
     def validate(self) -> None:
         super().validate()
         try:
             self.validate_exist_filter_use_cases_set()
-        except FilterSetNotFoundError as e:
+        except FilterSetNotFoundError as err:
             if FilterSetDAO.find_by_id(self._filter_set_id):  # type: ignore
                 FilterSetForbiddenError(
                     'the filter-set does not related to dashboard "%s"'
                     % str(self._dashboard_id)
                 )
             else:
-                raise e
+                raise err
