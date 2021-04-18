@@ -422,7 +422,7 @@ export default class AnnotationLayer extends React.PureComponent {
           options={valueOptions}
           isLoading={isLoadingOptions}
           value={value}
-          onChange={(value, actionMeta) =>
+          onChange={(value, _, actionMeta) =>
             this.popoverClearWrapper(value, actionMeta, this.handleValue)
           }
           validationErrors={!value ? ['Mandatory'] : []}
@@ -505,7 +505,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 validationErrors={!intervalEndColumn ? ['Mandatory'] : []}
                 options={columns}
                 value={intervalEndColumn}
-                onChange={(value, actionMeta) =>
+                onChange={(value, _, actionMeta) =>
                   this.popoverClearWrapper(value, actionMeta, v =>
                     this.setState({ intervalEndColumn: v }),
                   )
@@ -519,7 +519,7 @@ export default class AnnotationLayer extends React.PureComponent {
               description="Pick a title for you annotation."
               options={[{ value: '', label: 'None' }].concat(columns)}
               value={titleColumn}
-              onChange={(value, actionMeta) =>
+              onChange={(value, _, actionMeta) =>
                 this.popoverClearWrapper(value, actionMeta, v =>
                   this.setState({ titleColumn: v }),
                 )
@@ -535,7 +535,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 multi
                 options={columns}
                 value={descriptionColumns}
-                onChange={(value, actionMeta) =>
+                onChange={(value, _, actionMeta) =>
                   this.popoverClearWrapper(value, actionMeta, v =>
                     this.setState({ descriptionColumns: v }),
                   )
@@ -655,7 +655,7 @@ export default class AnnotationLayer extends React.PureComponent {
             { value: 'opacityHigh', label: '0.8' },
           ]}
           value={opacity}
-          onChange={(value, actionMeta) =>
+          onChange={(value, _, actionMeta) =>
             this.popoverClearWrapper(value, actionMeta, v =>
               this.setState({ opacity: v }),
             )
@@ -765,7 +765,7 @@ export default class AnnotationLayer extends React.PureComponent {
                   name="annotation-source-type"
                   options={supportedSourceTypes}
                   value={sourceType}
-                  onChange={(value, actionMeta) =>
+                  onChange={(value, _, actionMeta) =>
                     this.popoverClearWrapper(
                       value,
                       actionMeta,

@@ -126,7 +126,7 @@ export default class SelectControl extends React.PureComponent {
       }
     }
     // will eventually call `exploreReducer`: SET_FIELD_VALUE
-    this.props.onChange(optionValue, actionMeta);
+    this.props.onChange(optionValue, [], actionMeta);
   }
 
   getSelectRef(instance) {
