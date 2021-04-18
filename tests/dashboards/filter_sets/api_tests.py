@@ -16,11 +16,13 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any, Dict, Generator, List, TYPE_CHECKING, Union
+import json
+from functools import reduce
+from typing import Any, Dict, Generator, List, Set, TYPE_CHECKING, Union
 
 import pytest
 from flask import Response
-from functools import reduce
+
 from superset import security_manager as sm
 from superset.dashboards.filter_sets.consts import (
     DASHBOARD_OWNER_TYPE,
@@ -41,7 +43,6 @@ from tests.dashboards.superset_factory_util import (
     create_slice,
 )
 from tests.test_app import app
-import json
 
 if TYPE_CHECKING:
     from flask.testing import FlaskClient
@@ -65,7 +66,7 @@ def test_users() -> Generator[Dict[str, int], None, None]:
         ADMIN_USERNAME_FOR_TEST,
         DASHBOARD_OWNER_USERNAME,
         FILTER_SET_OWNER_USERNAME,
-        REGULAR_USER
+        REGULAR_USER,
     ]
     with app.app_context():
         filter_set_role: Role = security_manager.add_role("filter_set_role")
@@ -107,9 +108,7 @@ def call_create_filter_set(
     return client.post(uri, json=data)
 
 
-def call_get_filter_sets(
-    client: FlaskClient[Any], dashboard_id: int
-) -> Response:
+def call_get_filter_sets(client: FlaskClient[Any], dashboard_id: int) -> Response:
     uri = FILTER_SET_URI.format(dashboard_id=dashboard_id)
     return client.get(uri)
 
@@ -165,41 +164,49 @@ def dashboard_id() -> Generator[int, None, None]:
 
 
 @pytest.fixture
-def filtersets(dashboard_id: int, test_users: Dict[str, int],
-               valid_json_metadata: Dict[str, Any]) -> Generator[
-    Dict[str, List[int]], None, None]:
+def filtersets(
+    dashboard_id: int, test_users: Dict[str, int], valid_json_metadata: Dict[str, Any]
+) -> Generator[Dict[str, List[int]], None, None]:
     try:
         with app.app_context() as ctx:
             session = ctx.app.appbuilder.get_session
-            first_filter_set = FilterSet(name="filter_set_1_of_" + str(dashboard_id),
-                                         dashboard_id=dashboard_id,
-                                         json_metadata=json.dumps(valid_json_metadata),
-                                         owner_id=dashboard_id,
-                                         owner_type='Dashboard')
-            second_filter_set = FilterSet(name="filter_set_2_of_" + str(dashboard_id),
-                                          json_metadata=json.dumps(valid_json_metadata),
-                                          dashboard_id=dashboard_id,
-                                          owner_id=dashboard_id,
-                                          owner_type='Dashboard')
-            third_filter_set = FilterSet(name="filter_set_3_of_" + str(dashboard_id),
-                                         json_metadata=json.dumps(valid_json_metadata),
-                                         dashboard_id=dashboard_id,
-                                         owner_id=test_users[FILTER_SET_OWNER_USERNAME],
-                                         owner_type='User')
-            forth_filter_set = FilterSet(name="filter_set_4_of_" + str(dashboard_id),
-                                         json_metadata=json.dumps(valid_json_metadata),
-                                         dashboard_id=dashboard_id,
-                                         owner_id=test_users[FILTER_SET_OWNER_USERNAME],
-                                         owner_type='User')
+            first_filter_set = FilterSet(
+                name="filter_set_1_of_" + str(dashboard_id),
+                dashboard_id=dashboard_id,
+                json_metadata=json.dumps(valid_json_metadata),
+                owner_id=dashboard_id,
+                owner_type="Dashboard",
+            )
+            second_filter_set = FilterSet(
+                name="filter_set_2_of_" + str(dashboard_id),
+                json_metadata=json.dumps(valid_json_metadata),
+                dashboard_id=dashboard_id,
+                owner_id=dashboard_id,
+                owner_type="Dashboard",
+            )
+            third_filter_set = FilterSet(
+                name="filter_set_3_of_" + str(dashboard_id),
+                json_metadata=json.dumps(valid_json_metadata),
+                dashboard_id=dashboard_id,
+                owner_id=test_users[FILTER_SET_OWNER_USERNAME],
+                owner_type="User",
+            )
+            forth_filter_set = FilterSet(
+                name="filter_set_4_of_" + str(dashboard_id),
+                json_metadata=json.dumps(valid_json_metadata),
+                dashboard_id=dashboard_id,
+                owner_id=test_users[FILTER_SET_OWNER_USERNAME],
+                owner_type="User",
+            )
             session.add(first_filter_set)
             session.add(second_filter_set)
             session.add(third_filter_set)
             session.add(forth_filter_set)
             session.commit()
             yv = {
-            'Dashboard': [first_filter_set.id, second_filter_set.id],
-            FILTER_SET_OWNER_USERNAME: [third_filter_set.id, forth_filter_set.id]
-        }
+                "Dashboard": [first_filter_set.id, second_filter_set.id],
+                FILTER_SET_OWNER_USERNAME: [third_filter_set.id, forth_filter_set.id],
+            }
         yield yv
     except Exception as ex:
         print(str(ex))
@@ -816,12 +823,9 @@ class TestFilterSetsApi:
             assert response.status_code == 403
             assert get_filter_set_by_name(valid_filter_set_data["name"]) is None
 
-
     class TestGet:
         def test_with_dashboard_not_exists__404(
-            self,
-            not_exists_dashboard: int,
-            client: FlaskClient[Any],
+            self, not_exists_dashboard: int, client: FlaskClient[Any],
         ):
             # arrange
             login(client, "admin")
@@ -832,8 +836,9 @@ class TestFilterSetsApi:
             # assert
             assert response.status_code == 404
 
-        def test_dashboards_without_filtersets__200(self, dashboard_id: int,
-                                                    client: FlaskClient[Any]):
+        def test_dashboards_without_filtersets__200(
+            self, dashboard_id: int, client: FlaskClient[Any]
+        ):
             # arrange
             login(client, "admin")
 
@@ -842,42 +847,52 @@ class TestFilterSetsApi:
 
             # assert
             assert response.status_code == 200
-            assert response.is_json and response.json['count'] == 0
+            assert response.is_json and response.json["count"] == 0
 
-
-        def test_when_caller_admin__200(self, dashboard_id: int,
-                                        filtersets: Dict[str, List[int]],
-                                        client: FlaskClient[Any]):
+        def test_when_caller_admin__200(
+            self,
+            dashboard_id: int,
+            filtersets: Dict[str, List[int]],
+            client: FlaskClient[Any],
+        ):
             # arrange
             login(client, "admin")
-            expected_ids = reduce(lambda a, b: a.union(b), filtersets.values(), set())
+            expected_ids: Set[int] = reduce(
+                lambda a, b: a.union(b), filtersets.values(), set()
+            )
 
             # act
             response = call_get_filter_sets(client, dashboard_id)
 
             # assert
             assert response.status_code == 200
-            assert response.is_json and set(response.json['ids']) == expected_ids
+            assert response.is_json and set(response.json["ids"]) == expected_ids
 
         @pytest.mark.ofek
-        def test_when_caller_dashboard_owner__200(self, dashboard_id: int,
-                                        filtersets: Dict[str, List[int]],
-                                        client: FlaskClient[Any]):
+        def test_when_caller_dashboard_owner__200(
+            self,
+            dashboard_id: int,
+            filtersets: Dict[str, List[int]],
+            client: FlaskClient[Any],
+        ):
             # arrange
             login(client, DASHBOARD_OWNER_USERNAME)
-            expected_ids = set(filtersets['Dashboard'])
+            expected_ids = set(filtersets["Dashboard"])
 
             # act
             response = call_get_filter_sets(client, dashboard_id)
 
             # assert
             assert response.status_code == 200
-            assert response.is_json and set(response.json['ids']) == expected_ids
+            assert response.is_json and set(response.json["ids"]) == expected_ids
 
         @pytest.mark.ofek
-        def test_when_caller_filterset_owner__200(self, dashboard_id: int,
-                                        filtersets: Dict[str, List[int]],
-                                        client: FlaskClient[Any]):
+        def test_when_caller_filterset_owner__200(
+            self,
+            dashboard_id: int,
+            filtersets: Dict[str, List[int]],
+            client: FlaskClient[Any],
+        ):
             # arrange
             login(client, FILTER_SET_OWNER_USERNAME)
             expected_ids = set(filtersets[FILTER_SET_OWNER_USERNAME])
@@ -887,22 +902,25 @@ class TestFilterSetsApi:
 
             # assert
             assert response.status_code == 200
-            assert response.is_json and set(response.json['ids']) == expected_ids
+            assert response.is_json and set(response.json["ids"]) == expected_ids
 
         @pytest.mark.ofek
-        def test_when_caller_regular_user__200(self, dashboard_id: int,
-                                        filtersets: Dict[str, List[int]],
-                                        client: FlaskClient[Any]):
+        def test_when_caller_regular_user__200(
+            self,
+            dashboard_id: int,
+            filtersets: Dict[str, List[int]],
+            client: FlaskClient[Any],
+        ):
             # arrange
             login(client, REGULAR_USER)
-            expected_ids = set()
+            expected_ids: Set[int] = set()
 
             # act
             response = call_get_filter_sets(client, dashboard_id)
 
             # assert
             assert response.status_code == 200
-            assert response.is_json and set(response.json['ids']) == expected_ids
+            assert response.is_json and set(response.json["ids"]) == expected_ids
 
     class TestUpdateFilterSet:
         pass
