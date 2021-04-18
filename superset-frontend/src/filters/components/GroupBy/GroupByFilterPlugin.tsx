@@ -25,8 +25,8 @@ import { PluginFilterGroupByProps } from './types';
 const { Option } = Select;
 
 export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
-  const { data, formData, height, width, setDataMask } = props;
-  const { defaultValue, inputRef } = formData;
+  const { data, formData, height, width, setDataMask, filterState } = props;
+  const { defaultValue, inputRef, multiSelect } = formData;
 
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
 
@@ -39,15 +39,20 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
     }
 
     setDataMask({
+      filterState: { value: resultValue.length ? resultValue : null },
       extraFormData,
     });
   };
 
   useEffect(() => {
+    handleChange(filterState.value);
+  }, [JSON.stringify(filterState.value), multiSelect]);
+
+  useEffect(() => {
     handleChange(defaultValue ?? null);
     // I think after Config Modal update some filter it re-creates default value for all other filters
     // so we can process it like this `JSON.stringify` or start to use `Immer`
-  }, [JSON.stringify(defaultValue)]);
+  }, [JSON.stringify(defaultValue), multiSelect]);
 
   const columns = data || [];
   const placeholderText =
@@ -60,6 +65,7 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
         allowClear
         value={value}
         placeholder={placeholderText}
+        mode={multiSelect ? 'multiple' : undefined}
         // @ts-ignore
         onChange={handleChange}
         ref={inputRef}

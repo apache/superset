@@ -29,6 +29,7 @@ import { PluginFilterStylesProps } from '../types';
 interface PluginFilterGroupByCustomizeProps {
   defaultValue?: string[] | null;
   inputRef?: RefObject<HTMLInputElement>;
+  multiSelect: boolean;
 }
 
 export type PluginFilterGroupByQueryFormData = QueryFormData &
@@ -45,4 +46,5 @@ export type PluginFilterGroupByProps = PluginFilterStylesProps & {
 
 export const DEFAULT_FORM_DATA: PluginFilterGroupByCustomizeProps = {
   defaultValue: null,
+  multiSelect: false,
 };

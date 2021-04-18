@@ -16,10 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import { t } from '@superset-ui/core';
+import { DEFAULT_FORM_DATA } from './types';
+
+const { multiSelect } = DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
-  controlPanelSections: [],
+  controlPanelSections: [
+    // @ts-ignore
+    sections.legacyRegularTime,
+    {
+      label: t('UI Configuration'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'multiSelect',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Multiple select'),
+              default: multiSelect,
+              resetConfig: true,
+              renderTrigger: true,
+              description: t('Allow selecting multiple values'),
+            },
+          },
+        ],
+      ],
+    },
+  ],
 };
 
 export default config;
