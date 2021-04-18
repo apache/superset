@@ -116,7 +116,7 @@ describe('FilterBar', () => {
         native_filter_configuration: [],
       },
     },
-    dataMask: { nativeFilters: {} },
+    dataMask: {},
     nativeFilters: { filters: {}, filterSets: {} },
   };
 
@@ -156,12 +156,11 @@ describe('FilterBar', () => {
                 }
               },
               "dataMask":{
-                "nativeFilters":{
-                  "${filterId}":{
-                    "extraFormData":{"override_form_data":{"time_range":"Last week"}},
-                    "currentState":{"value":"Last week"},
-                    "id":"${filterId}"
-                  }
+                "${filterId}":{
+                  "extraFormData":{"override_form_data":{"time_range":"Last week"}},
+                  "filterState":{"value":"Last week"},
+                  "ownState":{},
+                  "id":"${filterId}"
                 }
               }
             }]
