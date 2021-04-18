@@ -525,9 +525,8 @@ class SupersetAppInitializer:
                     icon="fa-cog",
                 )
             appbuilder.add_separator("Data")
-        if feature_flag_manager.is_feature_enabled("DASHBOARD_NATIVE_FILTERS_SET"):
+        if True or feature_flag_manager.is_feature_enabled("DASHBOARD_NATIVE_FILTERS_SET"):
             from superset.dashboards.filter_sets.api import FilterSetRestApi
-
             appbuilder.add_api(FilterSetRestApi)
 
     def init_app_in_ctx(self) -> None:
