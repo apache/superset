@@ -21,7 +21,7 @@ import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 import { styled, t, SupersetClient } from '@superset-ui/core';
 
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 

@@ -24,7 +24,7 @@ import { ReactWrapper } from 'enzyme';
 import Button from 'src/components/Button';
 import { ImportResourceName } from 'src/views/CRUD/types';
 import ImportModelsModal from 'src/components/ImportModal';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});

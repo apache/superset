@@ -51,7 +51,7 @@ from sqlalchemy.types import TypeEngine
 
 from superset import app, cache_manager, is_feature_enabled
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_lab import Query
 from superset.models.sql_types.presto_sql_types import (
@@ -70,8 +70,28 @@ if TYPE_CHECKING:
     # prevent circular imports
     from superset.models.core import Database
 
-COLUMN_NOT_RESOLVED_ERROR_REGEX = "line (.+?): .*Column '(.+?)' cannot be resolved"
-TABLE_DOES_NOT_EXIST_ERROR_REGEX = ".*Table (.+?) does not exist"
+COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
+    "line (?P<location>.+?): .*Column '(?P<column_name>.+?)' cannot be resolved"
+)
+TABLE_DOES_NOT_EXIST_REGEX = re.compile(".*Table (?P<table_name>.+?) does not exist")
+SCHEMA_DOES_NOT_EXIST_REGEX = re.compile(
+    "line (?P<location>.+?): .*Schema '(?P<schema_name>.+?)' does not exist"
+)
+CONNECTION_ACCESS_DENIED_REGEX = re.compile("Access Denied: Invalid credentials")
+CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
+    r"Failed to establish a new connection: \[Errno 8\] nodename nor servname "
+    "provided, or not known"
+)
+CONNECTION_HOST_DOWN_REGEX = re.compile(
+    r"Failed to establish a new connection: \[Errno 60\] Operation timed out"
+)
+CONNECTION_PORT_CLOSED_REGEX = re.compile(
+    r"Failed to establish a new connection: \[Errno 61\] Connection refused"
+)
+CONNECTION_UNKNOWN_DATABASE_ERROR = re.compile(
+    r"line (?P<location>.+?): Catalog '(?P<catalog_name>.+?)' does not exist"
+)
+
 
 QueryStatus = utils.QueryStatus
 config = app.config
@@ -143,6 +163,53 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
         "1969-12-28T00:00:00Z/P1W": "date_add('day', -1, date_trunc('week', "
         "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
+    }
+
+    custom_errors = {
+        COLUMN_DOES_NOT_EXIST_REGEX: (
+            __(
+                'We can\'t seem to resolve the column "%(column_name)s" at '
+                "line %(location)s.",
+            ),
+            SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+        ),
+        TABLE_DOES_NOT_EXIST_REGEX: (
+            __(
+                'The table "%(table_name)s" does not exist. '
+                "A valid table must be used to run this query.",
+            ),
+            SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+        ),
+        SCHEMA_DOES_NOT_EXIST_REGEX: (
+            __(
+                'The schema "%(schema_name)s" does not exist. '
+                "A valid schema must be used to run this query.",
+            ),
+            SupersetErrorType.SCHEMA_DOES_NOT_EXIST_ERROR,
+        ),
+        CONNECTION_ACCESS_DENIED_REGEX: (
+            __('Either the username "%(username)s" or the password is incorrect.'),
+            SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+        ),
+        CONNECTION_INVALID_HOSTNAME_REGEX: (
+            __('The hostname "%(hostname)s" cannot be resolved.'),
+            SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+        ),
+        CONNECTION_HOST_DOWN_REGEX: (
+            __(
+                'The host "%(hostname)s" might be down, and can\'t be '
+                "reached on port %(port)s."
+            ),
+            SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+        ),
+        CONNECTION_PORT_CLOSED_REGEX: (
+            __('Port %(port)s on hostname "%(hostname)s" refused the connection.'),
+            SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
+        ),
+        CONNECTION_UNKNOWN_DATABASE_ERROR: (
+            __('Unable to connect to catalog named "%(catalog_name)s".'),
+            SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+        ),
     }
 
     @classmethod
@@ -1130,45 +1197,6 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         :return: A list of function names useable in the database
         """
         return database.get_df("SHOW FUNCTIONS")["Function"].tolist()
-
-    @classmethod
-    def extract_errors(
-        cls, ex: Exception, context: Optional[Dict[str, Any]] = None
-    ) -> List[SupersetError]:
-        raw_message = cls._extract_error_message(ex)
-
-        column_match = re.search(COLUMN_NOT_RESOLVED_ERROR_REGEX, raw_message)
-        if column_match:
-            return [
-                SupersetError(
-                    error_type=SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
-                    message=__(
-                        'We can\'t seem to resolve the column "%(column_name)s" at '
-                        "line %(location)s.",
-                        column_name=column_match.group(2),
-                        location=column_match.group(1),
-                    ),
-                    level=ErrorLevel.ERROR,
-                    extra={"engine_name": cls.engine_name},
-                )
-            ]
-
-        table_match = re.search(TABLE_DOES_NOT_EXIST_ERROR_REGEX, raw_message)
-        if table_match:
-            return [
-                SupersetError(
-                    error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
-                    message=__(
-                        'The table "%(table_name)s" does not exist. '
-                        "A valid table must be used to run this query.",
-                        table_name=table_match.group(1),
-                    ),
-                    level=ErrorLevel.ERROR,
-                    extra={"engine_name": cls.engine_name},
-                )
-            ]
-
-        return super().extract_errors(ex, context)
 
     @classmethod
     def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:

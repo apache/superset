@@ -59,6 +59,8 @@ import {
   EchartsTimeseriesChartPlugin,
   EchartsGraphChartPlugin,
   EchartsGaugeChartPlugin,
+  EchartsRadarChartPlugin,
+  EchartsMixedTimeseriesChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import {
   SelectFilterPlugin,
@@ -94,6 +96,10 @@ export default class MainPreset extends Preset {
         new FilterBoxChartPlugin().configure({ key: 'filter_box' }),
         new EchartsGaugeChartPlugin().configure({ key: 'gauge_chart' }),
         new EchartsGraphChartPlugin().configure({ key: 'graph_chart' }),
+        new EchartsRadarChartPlugin().configure({ key: 'radar' }),
+        new EchartsMixedTimeseriesChartPlugin().configure({
+          key: 'mixed_timeseries',
+        }),
         new HeatmapChartPlugin().configure({ key: 'heatmap' }),
         new HistogramChartPlugin().configure({ key: 'histogram' }),
         new HorizonChartPlugin().configure({ key: 'horizon' }),

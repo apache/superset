@@ -1362,8 +1362,10 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
             df2 = self.get_df_payload(query_object, time_compare=option).get("df")
             if df2 is not None and DTTM_ALIAS in df2:
+                dttm_series = df2[DTTM_ALIAS] + delta
+                df2 = df2.drop(DTTM_ALIAS, axis=1)
+                df2 = pd.concat([dttm_series, df2], axis=1)
                 label = "{} offset".format(option)
-                df2[DTTM_ALIAS] += delta
                 df2 = self.process_data(df2)
                 self._extra_chart_data.append((label, df2))
 

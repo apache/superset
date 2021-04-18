@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { css } from '@emotion/core';
 import { t } from '@superset-ui/core';
 import Label from 'src/components/Label';
-import Collapse from 'src/common/components/Collapse';
+import Collapse from 'src/components/Collapse';
 import TextControl from 'src/explore/components/controls/TextControl';
 import MetricsControl from 'src/explore/components/controls/MetricControl/MetricsControl';
 import ControlHeader from 'src/explore/components/ControlHeader';

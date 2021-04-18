@@ -20,7 +20,7 @@ import React, { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 
 import Icon from 'src//components/Icon';
-import StyledModal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import { useImportResource } from 'src/views/CRUD/hooks';
 import { ImportResourceName } from 'src/views/CRUD/types';
 
@@ -255,7 +255,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   }
 
   return (
-    <StyledModal
+    <Modal
       name="model"
       className="import-model-modal"
       disablePrimaryButton={
@@ -288,7 +288,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       </StyledInputContainer>
       {renderPasswordFields()}
       {renderOverwriteConfirmation()}
-    </StyledModal>
+    </Modal>
   );
 };
 
