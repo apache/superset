@@ -105,9 +105,10 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         super().__init__()
 
     def _init_properties(self) -> None:
+        # pylint: disable=E1003
         super(
             BaseSupersetModelRestApi, self
-        )._init_properties()  # pylint: disable=E1003
+        )._init_properties()
 
     @expose("/<int:dashboard_id>/filtersets", methods=["GET"])
     @protect()

@@ -33,6 +33,7 @@ class JsonMetadataSchema(Schema):
 
 
 class FilterSetPostSchema(Schema):
+    # pylint: disable=W0613
     name = fields.String(required=True, allow_none=False, validate=Length(0, 500),)
     description = fields.String(allow_none=True, validate=[Length(1, 1000)])
     json_metadata = fields.Nested(JsonMetadataSchema, required=True)
@@ -48,7 +49,7 @@ class FilterSetPostSchema(Schema):
         data: Mapping[Any, Any],
         *,
         many: Any,
-        partial: Any  # pylint: disable=W0613
+        partial: Any
     ) -> Dict[str, Any]:
         if data[OWNER_TYPE_FIELD] == USER_OWNER_TYPE and OWNER_ID_FIELD not in data:
             raise ValidationError("owner_id is mandatory when owner_type is User")
