@@ -124,32 +124,6 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
     @merge_response_func(ModelRestApi.merge_list_title, API_LIST_TITLE_RIS_KEY)
     def get_list(self, **kwargs: Any) -> Response:
         """Gets a dashboard's Filter-sets
-        ---
-        get:
-          description: >-
-            Get a dashboard's Filter-sets
-          parameters:
-          - in: path
-            dashboard_id: id
-            description: Either the id of the dashboard
-          responses:
-            200:
-              description: Filtersets[]
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        $ref: '#/components/schemas/DashboardGetResponseSchema'
-            302:
-              description: Redirects to the current digest
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
         """
         dashboard_id: Optional[int] = kwargs.get("dashboard_id", None)
         if not DashboardDAO.find_by_id(cast(int, dashboard_id)):
@@ -171,44 +145,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
     )
     def post(self, dashboard_id: int) -> Response:  # pylint: disable=W0221
         """Creates a new Dashboard's FilterSet
-                ---
-                post:
-                  description: >-
-                    Create a new Dashboard's Filterset.
-                  requestBody:
-                    description: Filterset schema
-                    required: true
-                    content:
-                      application/json:
-                        schema:
-                          $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
-                  parameters:
-                  - in: path
-                    dashboard_id: id
-                    description: Either the id of the dashboard
-                  responses:
-                    201:
-                      description: Dashboard's FilterSet added
-                      content:
-                        application/json:
-                          schema:
-                            type: object
-                            properties:
-                              id:
-                                type: number
-                              result:
-                                $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
-                    302:
-                      description: Redirects to the current digest
-                    400:
-                      $ref: '#/components/responses/400'
-                    401:
-                      $ref: '#/components/responses/401'
-                    404:
-                      $ref: '#/components/responses/404'
-                    500:
-                      $ref: '#/components/responses/500'
-                """
+        """
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
@@ -234,50 +171,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
     )
     def put(self, dashboard_id: int, pk: int) -> Response:
         """Changes a Dashboard's Filterset
-                ---
-                put:
-                  description: >-
-                    Changes a Dashboard's Filterset.
-                  parameters:
-                  - in: path
-                    dashboard_id: id
-                    description: Either the id of the dashboard
-                  - in: path
-                    schema:
-                      type: integer
-                    name: pk
-                  requestBody:
-                    description: Dashboard schema
-                    required: true
-                    content:
-                      application/json:
-                        schema:
-                          $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
-                  responses:
-                    200:
-                      description: Dashboard changed
-                      content:
-                        application/json:
-                          schema:
-                            type: object
-                            properties:
-                              id:
-                                type: number
-                              result:
-                                $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
-                    400:
-                      $ref: '#/components/responses/400'
-                    401:
-                      $ref: '#/components/responses/401'
-                    403:
-                      $ref: '#/components/responses/403'
-                    404:
-                      $ref: '#/components/responses/404'
-                    422:
-                      $ref: '#/components/responses/422'
-                    500:
-                      $ref: '#/components/responses/500'
-                """
+        """
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
@@ -304,38 +198,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
     )
     def delete(self, dashboard_id: int, pk: int) -> Response:  # pylint: disable=W0221
         """Deletes a Dashboard's FilterSet
-                ---
-                delete:
-                  description: >-
-                    Deletes a Dashboard's FilterSet.
-                  parameters:
-                  - in: path
-                    name: dashboard_id
-                  - in: path
-                    schema:
-                      type: integer
-                    name: pk
-                  responses:
-                    200:
-                      description: Dashboard deleted
-                      content:
-                        application/json:
-                          schema:
-                            type: object
-                            properties:
-                              message:
-                                type: string
-                    401:
-                      $ref: '#/components/responses/401'
-                    403:
-                      $ref: '#/components/responses/403'
-                    404:
-                      $ref: '#/components/responses/404'
-                    422:
-                      $ref: '#/components/responses/422'
-                    500:
-                      $ref: '#/components/responses/500'
-                """
+        """
         try:
             changed_model = DeleteFilterSetCommand(g.user, dashboard_id, pk).run()
             return self.response(200, id=changed_model.id)
