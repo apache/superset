@@ -45,6 +45,7 @@ from superset.jinja_context import (  # pylint: disable=unused-import
 from superset.stats_logger import DummyStatsLogger
 from superset.typing import CacheConfig
 from superset.utils.core import is_test
+from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
 
@@ -171,6 +172,17 @@ SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
 #     return 'secret'
 # SQLALCHEMY_CUSTOM_PASSWORD_STORE = lookup_password
 SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
+
+#
+# The EncryptedFieldTypeAdapter is used whenever we're building SqlAlchemy models
+# which include sensitive fields that should be app-encrypted BEFORE sending
+# to the DB.
+#
+# Note: the default impl leverages SqlAlchemyUtils' EncryptedType, which defaults
+#  to AES-128 under the covers using the app's SECRET_KEY as key material.
+#
+# pylint: disable=C0103
+SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = SQLAlchemyUtilsAdapter
 
 # The limit of queries fetched for query search
 QUERY_SEARCH_LIMIT = 1000

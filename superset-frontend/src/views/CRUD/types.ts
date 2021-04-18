@@ -123,7 +123,12 @@ export enum QueryObjectColumns {
   tracking_url = 'tracking_url',
 }
 
-export type ImportResourceName = 'chart' | 'dashboard' | 'database' | 'dataset';
+export type ImportResourceName =
+  | 'chart'
+  | 'dashboard'
+  | 'database'
+  | 'dataset'
+  | 'saved_query';
 
 export type DatabaseObject = {
   allow_run_async?: boolean;

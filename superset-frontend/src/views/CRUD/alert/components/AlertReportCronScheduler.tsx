@@ -21,8 +21,8 @@ import { t, useTheme } from '@superset-ui/core';
 
 import { Input, AntdInput } from 'src/common/components';
 import { Radio } from 'src/common/components/Radio';
-import { CronPicker, CronError } from 'src/common/components/CronPicker';
-import { StyledInputContainer } from '../AlertReportModal';
+import { CronPicker, CronError } from 'src/components/CronPicker';
+import { StyledInputContainer } from 'src/views/CRUD/alert/AlertReportModal';
 
 interface AlertReportCronSchedulerProps {
   value: string;

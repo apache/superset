@@ -229,8 +229,7 @@ export const selectNativeIndicatorsForChart = (
         layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
       );
       const column = nativeFilter.targets[0]?.column?.name;
-      const dataMaskNativeFilters = dataMask.nativeFilters?.[nativeFilter.id];
-      let value = dataMaskNativeFilters?.currentState?.value ?? null;
+      let value = dataMask[nativeFilter.id]?.filterState?.value ?? null;
       if (!Array.isArray(value) && value !== null) {
         value = [value];
       }
@@ -254,8 +253,7 @@ export const selectNativeIndicatorsForChart = (
         layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
       );
 
-      const dataMaskCrossFilters = dataMask.crossFilters?.[chartConfig.id];
-      let value = dataMaskCrossFilters?.currentState?.value ?? null;
+      let value = dataMask[chartConfig.id]?.filterState?.value ?? null;
       if (!Array.isArray(value) && value !== null) {
         value = [value];
       }

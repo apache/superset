@@ -333,7 +333,7 @@ function ExploreViewContainer(props) {
         reRenderChart();
       }
     }
-  }, [props.controls, props.ownCurrentState]);
+  }, [props.controls, props.ownState]);
 
   const chartIsStale = useMemo(() => {
     if (previousControls) {
@@ -356,11 +356,11 @@ function ExploreViewContainer(props) {
   }, [previousControls, props.controls]);
 
   useEffect(() => {
-    if (props.ownCurrentState !== undefined) {
+    if (props.ownState !== undefined) {
       onQuery();
       reRenderChart();
     }
-  }, [props.ownCurrentState]);
+  }, [props.ownState]);
 
   if (chartIsStale) {
     props.actions.logEvent(LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS);
@@ -557,7 +557,7 @@ function mapStateToProps(state) {
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },
     {
-      ...dataMask?.ownFilters?.[form_data.slice_id]?.extraFormData,
+      ...dataMask[form_data.slice_id]?.ownState,
     },
   );
   const chartKey = Object.keys(charts)[0];
@@ -589,7 +589,7 @@ function mapStateToProps(state) {
     forcedHeight: explore.forced_height,
     chart,
     timeout: explore.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
-    ownCurrentState: dataMask?.ownFilters?.[form_data.slice_id]?.currentState,
+    ownState: dataMask[form_data.slice_id]?.ownState,
     impressionId,
   };
 }

@@ -121,14 +121,12 @@ describe('ShareSqlLabQuery', () => {
           remoteId: undefined,
         },
       };
-      await act(async () => {
-        render(<ShareSqlLabQuery {...updatedProps} />, {
-          wrapper: standardProvider,
-        });
+
+      render(<ShareSqlLabQuery {...updatedProps} />, {
+        wrapper: standardProvider,
       });
-      const button = screen.getByRole('button', { name: /copy link/i });
-      const style = window.getComputedStyle(button);
-      expect(style.color).toBe('rgb(102, 102, 102)');
+      const button = await screen.findByRole('button', { name: /copy link/i });
+      expect(button).toBeDisabled();
     });
   });
 });

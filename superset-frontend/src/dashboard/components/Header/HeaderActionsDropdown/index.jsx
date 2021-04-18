@@ -25,16 +25,16 @@ import { Menu, NoAnimationDropdown } from 'src/common/components';
 import Icon from 'src/components/Icon';
 import { URL_PARAMS } from 'src/constants';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
-import CssEditor from './CssEditor';
-import RefreshIntervalModal from './RefreshIntervalModal';
-import SaveModal from './SaveModal';
-import injectCustomCss from '../util/injectCustomCss';
-import { SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
-import FilterScopeModal from './filterscope/FilterScopeModal';
-import downloadAsImage from '../../utils/downloadAsImage';
-import getDashboardUrl from '../util/getDashboardUrl';
-import { getActiveFilters } from '../util/activeDashboardFilters';
-import { getUrlParam } from '../../utils/urlUtils';
+import CssEditor from 'src/dashboard/components/CssEditor';
+import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
+import SaveModal from 'src/dashboard/components/SaveModal';
+import injectCustomCss from 'src/dashboard/util/injectCustomCss';
+import { SAVE_TYPE_NEWDASHBOARD } from 'src/dashboard/util/constants';
+import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
+import downloadAsImage from 'src/utils/downloadAsImage';
+import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
+import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
+import { getUrlParam } from 'src/utils/urlUtils';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,

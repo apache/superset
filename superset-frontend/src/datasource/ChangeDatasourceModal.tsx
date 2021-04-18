@@ -27,7 +27,7 @@ import { FormControl, FormControlProps } from 'react-bootstrap';
 import Alert from 'src/components/Alert';
 import { SupersetClient, t, styled } from '@superset-ui/core';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
-import StyledModal from 'src/common/components/Modal';
+import StyledModal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import Dataset from 'src/types/Dataset';

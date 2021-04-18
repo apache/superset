@@ -27,7 +27,7 @@ const createProps = () => ({
   setDataMaskSelected: jest.fn(),
   dataMaskSelected: {
     DefaultsID: {
-      currentState: {
+      filterState: {
         value: null,
       },
     },
@@ -35,7 +35,7 @@ const createProps = () => ({
   dataMaskApplied: {
     DefaultsID: {
       id: 'DefaultsID',
-      currentState: {
+      filterState: {
         value: null,
       },
     },

@@ -63,6 +63,60 @@ describe('server', () => {
     server.resetState();
   });
 
+  describe('HTTP requests', () => {
+    test('services health checks', () => {
+      const endMock = jest.fn();
+      const writeHeadMock = jest.fn();
+
+      const request = {
+        url: '/health',
+        method: 'GET',
+        headers: {
+          host: 'example.com',
+        },
+      };
+
+      const response = {
+        writeHead: writeHeadMock,
+        end: endMock,
+      };
+
+      server.httpRequest(request as any, response as any);
+
+      expect(writeHeadMock).toBeCalledTimes(1);
+      expect(writeHeadMock).toHaveBeenLastCalledWith(200);
+
+      expect(endMock).toBeCalledTimes(1);
+      expect(endMock).toHaveBeenLastCalledWith('OK');
+    });
+
+    test('reponds with a 404 otherwise', () => {
+      const endMock = jest.fn();
+      const writeHeadMock = jest.fn();
+
+      const request = {
+        url: '/unsupported',
+        method: 'GET',
+        headers: {
+          host: 'example.com',
+        },
+      };
+
+      const response = {
+        writeHead: writeHeadMock,
+        end: endMock,
+      };
+
+      server.httpRequest(request as any, response as any);
+
+      expect(writeHeadMock).toBeCalledTimes(1);
+      expect(writeHeadMock).toHaveBeenLastCalledWith(404);
+
+      expect(endMock).toBeCalledTimes(1);
+      expect(endMock).toHaveBeenLastCalledWith('Not Found');
+    });
+  });
+
   describe('incrementId', () => {
     test('it increments a valid Redis stream ID', () => {
       expect(server.incrementId('1607477697866-0')).toEqual('1607477697866-1');
