@@ -36,7 +36,7 @@ class FilterSetFilter(BaseFilter):
             return query
         current_user_id = g.user.id
 
-        filter_set_ids_by_dashboard_owners = (
+        filter_set_ids_by_dashboard_owners = (   # pylint: disable=C0103
             query.from_self(FilterSet.id)
             .join(dashboard_user, FilterSet.owner_id == dashboard_user.c.dashboard_id)
             .filter(

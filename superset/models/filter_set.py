@@ -50,15 +50,12 @@ class FilterSet(  # pylint: disable=too-many-instance-attributes
     owner_type = Column(String(255), nullable=False)
     owner_object = generic_relationship(owner_type, owner_id)
 
-    def __init__(self) -> None:
-        super().__init__()
-
     def __repr__(self) -> str:
         return f"FilterSet<{self.name or self.id}>"
 
     @property
     def url(self) -> str:
-        return f"/api/filtersets/{self.slug or self.id}/"
+        return f"/api/filtersets/{self.id}/"
 
     @property
     def sqla_metadata(self) -> None:
@@ -91,9 +88,9 @@ class FilterSet(  # pylint: disable=too-many-instance-attributes
         }
 
     @classmethod
-    def get(cls, id_or_slug: str) -> FilterSet:
+    def get(cls, _id: int) -> FilterSet:
         session = db.session()
-        qry = session.query(FilterSet).filter(id_or_slug_filter(id_or_slug))
+        qry = session.query(FilterSet).filter(_id)
         return qry.one_or_none()
 
     @classmethod
@@ -107,9 +104,3 @@ class FilterSet(  # pylint: disable=too-many-instance-attributes
         session = db.session()
         qry = session.query(FilterSet).filter(FilterSet.dashboard_id == dashboard_id)
         return qry.all()
-
-
-def id_or_slug_filter(id_or_slug: str) -> BinaryExpression:
-    if id_or_slug.isdigit():
-        return FilterSet.id == int(id_or_slug)
-    return FilterSet.slug == id_or_slug

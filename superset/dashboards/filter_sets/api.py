@@ -77,7 +77,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
     resource_name = "dashboard"
     class_permission_name = FILTER_SET_API_PERMISSIONS_NAME
     allow_browser_login = True
-    csrf_exempt = True
+    csrf_exempt = False
     add_exclude_columns = ["id", OWNER_OBJECT_FIELD, DASHBOARD_FIELD]
     add_model_schema = FilterSetPostSchema()
     edit_model_schema = FilterSetPutSchema()
@@ -100,12 +100,10 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
 
     def __init__(self) -> None:
         self.datamodel.get_search_columns_list = lambda: []
-        # if is_feature_enabled("THUMBNAILS"):
-        #     self.include_route_methods = self.include_route_methods | {"thumbnail"}
         super().__init__()
 
     def _init_properties(self) -> None:
-        super(BaseSupersetModelRestApi, self)._init_properties()
+        super(BaseSupersetModelRestApi, self)._init_properties()  # pylint: disable=E1003
 
     @expose("/<dashboard_id>/filtersets", methods=["GET"])
     @protect()
@@ -121,7 +119,8 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
     )
     @merge_response_func(ModelRestApi.merge_list_columns, API_LIST_COLUMNS_RIS_KEY)
     @merge_response_func(ModelRestApi.merge_list_title, API_LIST_TITLE_RIS_KEY)
-    def get_list(self, dashboard_id: int, **kwargs: Any) -> Response:
+    def get_list(self, **kwargs: Any) -> Response:
+        dashboard_id = kwargs.get('dashboard_id')
         if not DashboardDAO.find_by_id(dashboard_id):
             return self.response(404, message="dashboard '%s' not found" % dashboard_id)
         rison_data = kwargs.setdefault("rison", {})
@@ -139,7 +138,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
-    def post(self, dashboard_id: int) -> Response:
+    def post(self, dashboard_id: int) -> Response:  # pylint: disable=W0221
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
@@ -163,7 +162,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
-    def put(self, dashboard_id: int, pk: int) -> Response:
+    def put(self, dashboard_id: int, pk: int) -> Response:  # pylint: disable=W0221
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
@@ -176,9 +175,9 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
             ObjectNotFoundError,
             FilterSetForbiddenError,
             FilterSetUpdateFailedError,
-        ) as e:
-            logger.error(e)
-            return self.response(e.status)
+        ) as err:
+            logger.error(err)
+            return self.response(err.status)
 
     @expose("/<dashboard_id>/filtersets/<pk>", methods=["DELETE"])
     @protect()
@@ -188,7 +187,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
         log_to_statsd=False,
     )
-    def delete(self, dashboard_id: int, pk: int) -> Response:
+    def delete(self, dashboard_id: int, pk: int) -> Response:  # pylint: disable=W0221
         try:
             changed_model = DeleteFilterSetCommand(g.user, dashboard_id, pk).run()
             return self.response(200, id=changed_model.id)
@@ -198,6 +197,6 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
             ObjectNotFoundError,
             FilterSetForbiddenError,
             FilterSetDeleteFailedError,
-        ) as e:
-            logger.error(e)
-            return self.response(e.status)
+        ) as err:
+            logger.error(err)
+            return self.response(err.status)
