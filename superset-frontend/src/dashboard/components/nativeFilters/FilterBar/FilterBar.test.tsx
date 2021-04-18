@@ -295,6 +295,7 @@ describe('FilterBar', () => {
     // @ts-ignore
     global.featureFlags = {
       [FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET]: true,
+      [FeatureFlag.DASHBOARD_NATIVE_FILTERS]: true,
     };
     renderWrapper(openedBarProps, noFiltersState);
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
@@ -354,6 +355,7 @@ describe('FilterBar', () => {
     // @ts-ignore
     global.featureFlags = {
       [FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET]: true,
+      [FeatureFlag.DASHBOARD_NATIVE_FILTERS]: true,
     };
     renderWrapper(openedBarProps, noFiltersState);
 
@@ -371,11 +373,22 @@ describe('FilterBar', () => {
     await waitFor(() => expect(screen.getAllByText('Last day').length).toBe(1));
 
     // apply new changes and save them
+    expect(
+      screen.getByTestId(getTestId('filter-set-edit-save')),
+    ).toBeDisabled();
     expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
     userEvent.click(screen.getByTestId(getTestId('apply-button')));
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
-    expect(screen.getByText('Save')).toBeEnabled();
-    userEvent.click(screen.getByText('Save'));
+
+    expect(screen.getByTestId(getTestId('filter-set-edit-save'))).toBeEnabled();
+    userEvent.click(screen.getByTestId(getTestId('filter-set-edit-save')));
     expect(screen.queryByText('Save')).not.toBeInTheDocument();
+
+    expect(
+      Object.values(
+        JSON.parse(mockApi.mock.calls[2][0].json_metadata)
+          .filter_sets_configuration[0].dataMask as object,
+      )[0]?.filterState?.value,
+    ).toBe('Last day');
   });
 });
