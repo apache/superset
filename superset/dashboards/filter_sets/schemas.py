@@ -45,11 +45,7 @@ class FilterSetPostSchema(Schema):
 
     @post_load
     def validate(
-        self,
-        data: Mapping[Any, Any],
-        *,
-        many: Any,
-        partial: Any
+        self, data: Mapping[Any, Any], *, many: Any, partial: Any
     ) -> Dict[str, Any]:
         if data[OWNER_TYPE_FIELD] == USER_OWNER_TYPE and OWNER_ID_FIELD not in data:
             raise ValidationError("owner_id is mandatory when owner_type is User")
