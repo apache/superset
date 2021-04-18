@@ -197,6 +197,7 @@ def get_filter_set_by_dashboard_id(dashboard_id: int) -> FilterSet:
 def not_exists_user_id() -> int:
     return 99999
 
+
 @pytest.mark.ofek
 class TestFilterSetsApi:
     class TestCreate:

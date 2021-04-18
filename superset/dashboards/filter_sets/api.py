@@ -105,7 +105,9 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         super().__init__()
 
     def _init_properties(self) -> None:
-        super(BaseSupersetModelRestApi, self)._init_properties()  # pylint: disable=E1003
+        super(
+            BaseSupersetModelRestApi, self
+        )._init_properties()  # pylint: disable=E1003
 
     @expose("/<int:dashboard_id>/filtersets", methods=["GET"])
     @protect()
@@ -122,7 +124,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
     @merge_response_func(ModelRestApi.merge_list_columns, API_LIST_COLUMNS_RIS_KEY)
     @merge_response_func(ModelRestApi.merge_list_title, API_LIST_TITLE_RIS_KEY)
     def get_list(self, **kwargs: Any) -> Response:
-        dashboard_id: Optional[int] = kwargs.get('dashboard_id', None)
+        dashboard_id: Optional[int] = kwargs.get("dashboard_id", None)
         if not DashboardDAO.find_by_id(cast(int, dashboard_id)):
             return self.response(404, message="dashboard '%s' not found" % dashboard_id)
         rison_data = kwargs.setdefault("rison", {})

@@ -24,9 +24,9 @@ from flask_appbuilder.security.sqla.models import User
 from superset import security_manager
 from superset.dashboards.filter_sets.commands.base import BaseFilterSetCommand
 from superset.dashboards.filter_sets.commands.exceptions import (
+    DashboardIdInconsistencyError,
     FilterSetCreateFailedError,
     UserIsNotDashboardOwnerError,
-    DashboardIdInconsistencyError
 )
 from superset.dashboards.filter_sets.consts import (
     DASHBOARD_ID_FIELD,

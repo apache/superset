@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, Mapping, cast
+from typing import Any, cast, Dict, Mapping
 
 from marshmallow import fields, post_load, Schema, ValidationError
 from marshmallow.validate import Length, OneOf
@@ -33,7 +33,7 @@ class JsonMetadataSchema(Schema):
 
 
 class FilterSetPostSchema(Schema):
-    name = fields.String(required=True, allow_none=False, validate=Length(0, 500), )
+    name = fields.String(required=True, allow_none=False, validate=Length(0, 500),)
     description = fields.String(allow_none=True, validate=[Length(1, 1000)])
     json_metadata = fields.Nested(JsonMetadataSchema, required=True)
 
@@ -44,7 +44,11 @@ class FilterSetPostSchema(Schema):
 
     @post_load
     def validate(
-        self, data: Mapping[Any, Any], *, many: Any, partial: Any  # pylint: disable=W0613
+        self,
+        data: Mapping[Any, Any],
+        *,
+        many: Any,
+        partial: Any  # pylint: disable=W0613
     ) -> Dict[str, Any]:
         if data[OWNER_TYPE_FIELD] == USER_OWNER_TYPE and OWNER_ID_FIELD not in data:
             raise ValidationError("owner_id is mandatory when owner_type is User")

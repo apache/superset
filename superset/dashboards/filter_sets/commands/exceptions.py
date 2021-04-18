@@ -62,7 +62,10 @@ class FilterSetDeleteFailedError(DeleteFailedError):
 
 
 class UserIsNotDashboardOwnerError(FilterSetCreateFailedError):
-    reason = "cannot create dashboard owner filterset based when the user is not the dashboard owner"
+    reason = (
+        "cannot create dashboard owner filterset based when"
+        " the user is not the dashboard owner"
+    )
 
     def __init__(
         self, dashboard_id: str, exception: Optional[Exception] = None
@@ -71,7 +74,10 @@ class UserIsNotDashboardOwnerError(FilterSetCreateFailedError):
 
 
 class DashboardIdInconsistencyError(FilterSetCreateFailedError):
-    reason = "cannot create dashboard owner filterset based when the ownerid is not the dashboard id"
+    reason = (
+        "cannot create dashboard owner filterset based when the"
+        " ownerid is not the dashboard id"
+    )
 
     def __init__(
         self, dashboard_id: str, exception: Optional[Exception] = None
