@@ -17,13 +17,9 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
-import { t, styled } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import {  Menu as DropdownMenu } from 'src/common/components';
 import { Link } from 'react-router-dom';
-import MenuObject, {
-  MenuObjectProps,
-  MenuObjectChildProps,
-} from './MenuObject';
 import RightMenu from './MenuRight';
 import { Row, Col } from 'antd';
 import  { Languages } from './LanguagePicker';
@@ -60,9 +56,19 @@ export interface MenuProps {
   isFrontendRoute?: (path?: string) => boolean;
 }
 
+interface MenuObjectChildProps {
+  label: string;
+  name?: string;
+  icon: string;
+  index: number;
+  url?: string;
+  isFrontendRoute?: boolean;
+}
 
-//const breakpoints = [767, 992, 1200];
-//export const mq = breakpoints.map(bp => `@media (max-width: ${bp}px)`);
+interface MenuObjectProps extends MenuObjectChildProps {
+  childs?: (MenuObjectChildProps | string)[];
+  isHeader?: boolean;
+}
 
 const StyledHeader = styled.header`
   background-color: white;
@@ -240,7 +246,7 @@ export function Menu({
     childs,
     url,
     index,
-    isFrontendRoute}) => {
+    isFrontendRoute}: MenuObjectProps) => {
     if (url && isFrontendRoute) {
       return( <DropdownMenu.Item key={label} role="presentation">
             <Link role="button" to={url}>

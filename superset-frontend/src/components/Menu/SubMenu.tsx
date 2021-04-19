@@ -29,9 +29,10 @@ const StyledHeader = styled.div`
   .header {
     font-weight: ${({ theme }) => theme.typography.weights.bold};
     margin-right: ${({ theme }) => theme.gridUnit * 3}px;
-    text-align: center;
+    text-align: left;
     font-size: 18px;
     padding: 20px;
+    display: inline-block;
   }
   .nav-right {
     padding: 8px 0;
@@ -53,6 +54,11 @@ const StyledHeader = styled.div`
       padding: 16px 0px;
     }
   }
+
+  .ant-menu-horizontal:not(.ant-menu-dark) > .ant-menu-item {
+    margin: 0 ${({ theme }) => theme.gridUnit + 1 }px; 
+  }
+
   .menu .ant-menu-item {
     li {
       a,
@@ -83,17 +89,6 @@ const StyledHeader = styled.div`
       border-bottom: none;
       border-radius: ${({ theme }) => theme.borderRadius}px;
       margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-    }
-  }
-  .navbar-inverse {
-    .navbar-nav {
-      & > .active > a {
-        background: ${({ theme }) => theme.colors.secondary.light4};
-        &:hover,
-        &:focus {
-          background: ${({ theme }) => theme.colors.secondary.light4};
-        }
-      }
     }
   }
 
@@ -143,10 +138,12 @@ export interface SubMenuProps {
    *  otherwise, a 'You should not use <Link> outside a <Router>' error will be thrown */
   usesRouter?: boolean;
   color?: string;
+  headerSize?: number;
 }
 
 const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
   const [showMenu, setMenu] = useState('horizontal');
+  const { headerSize = 2 } = props;
   let hasHistory = true;
   // If no parent <Router> component exists, useHistory throws an error
   try {
@@ -166,19 +163,19 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
-
-  const offset = props.name ? 2: 0;
+  const offset = props.name ? headerSize : 0; 
   return (
     <StyledHeader>
       <Row className='menu'>
         {props.name && 
-          <Col md={offset} sm={24}>
+          <Col md={offset} xs={24}>
             <div className="header">
               {props.name}
             </div>
           </Col>
-        } 
+        }
         <Col md={16 - offset} sm={24} xs={24}>
+
           <Menu 
             mode={showMenu} 
             style={{backgroundColor: 'transparent'}}
