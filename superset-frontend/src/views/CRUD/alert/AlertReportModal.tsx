@@ -1234,8 +1234,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <span className="required">*</span>
             </StyledSectionTitle>
             <Radio.Group onChange={onContentTypeChange} value={contentType}>
-              <StyledRadio value="dashboard">Dashboard</StyledRadio>
-              <StyledRadio value="chart">Chart</StyledRadio>
+              <StyledRadio value="dashboard">{t('Dashboard')}</StyledRadio>
+              <StyledRadio value="chart">{t('Chart')}</StyledRadio>
             </Radio.Group>
             {formatOptionEnabled && (
               <div className="inline-container">
@@ -1243,8 +1243,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   onChange={onFormatChange}
                   value={reportFormat}
                 >
-                  <StyledRadio value="PNG">Send as PNG</StyledRadio>
-                  <StyledRadio value="CSV">Send as CSV</StyledRadio>
+                  <StyledRadio value="PNG">{t('Send as PNG')}</StyledRadio>
+                  <StyledRadio value="CSV">{t('Send as CSV')}</StyledRadio>
                 </StyledRadioGroup>
               </div>
             )}
