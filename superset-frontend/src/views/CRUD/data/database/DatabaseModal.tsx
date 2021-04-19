@@ -18,7 +18,7 @@
  */
 import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
-import InfoTooltip from 'src/common/components/InfoTooltip';
+import InfoTooltip from 'src/components/InfoTooltip';
 import {
   useSingleViewResource,
   testDatabaseConnection,
