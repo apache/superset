@@ -71,6 +71,8 @@ services:
     volumes: *superset-volumes
     environment:
       CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
+    healthcheck:
+      disable: true
 
   superset-node:
     image: node:14
@@ -89,6 +91,8 @@ services:
     depends_on: *superset-depends-on
     user: "root"
     volumes: *superset-volumes
+    healthcheck:
+      disable: true
 
   superset-worker-beat:
     image: *superset-image
@@ -99,6 +103,8 @@ services:
     depends_on: *superset-depends-on
     user: "root"
     volumes: *superset-volumes
+    healthcheck:
+      disable: true
 
   superset-tests-worker:
     image: *superset-image
@@ -115,6 +121,8 @@ services:
     depends_on: *superset-depends-on
     user: "root"
     volumes: *superset-volumes
+    healthcheck:
+      disable: true
 
 volumes:
   superset_home:
