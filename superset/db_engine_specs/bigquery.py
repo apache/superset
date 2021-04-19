@@ -32,7 +32,9 @@ if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
 
 
-CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile("this is a permissions message")
+CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
+    "(?:^|(?<= ))(403|POST|permission)(?:(?= )|$)"
+)
 
 
 class BigQueryEngineSpec(BaseEngineSpec):
