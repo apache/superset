@@ -2172,7 +2172,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             obj = apply_display_max_row_limit(obj, rows)
 
         return json_success(
-            json.dumps(obj, default=utils.json_iso_dttm_ser, ignore_nan=True)
+            json.dumps(
+                obj, default=utils.json_iso_dttm_ser, ignore_nan=True, encoding=None
+            )
         )
 
     @has_access_api
