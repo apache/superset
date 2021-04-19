@@ -495,7 +495,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       name: (
         <Tooltip
           id="import-tooltip"
-          title={t('Import Dataset')}
+          title={t('Import datasets')}
           placement="bottomRight"
         >
           <Icons.Import data-test="import-button" />

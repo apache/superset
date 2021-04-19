@@ -187,7 +187,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         name: (
           <Tooltip
             id="import-tooltip"
-            title={t('Import Database')}
+            title={t('Import databases')}
             placement="bottomRight"
           >
             <Icons.Import data-test="import-button" />

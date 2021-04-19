@@ -195,7 +195,7 @@ describe('RTL', () => {
 
     await screen.findByRole('tooltip');
     const importTooltip = screen.getByRole('tooltip', {
-      name: /import chart/i,
+      name: 'Import charts',
     });
 
     expect(importTooltip).toBeInTheDocument();

@@ -306,7 +306,7 @@ describe('RTL', () => {
       expect(importButton).toHaveClass('ant-tooltip-open');
       screen.findByTestId('import-tooltip-test');
       const importTooltip = screen.getByRole('tooltip', {
-        name: /import saved query/i,
+        name: 'Import queries',
       });
       expect(importTooltip).toBeInTheDocument();
     });
@@ -319,7 +319,7 @@ describe('RTL', () => {
 
     // Grab and assert that saved query import modal's heading is visible
     const importSavedQueryModalHeading = screen.getByRole('heading', {
-      name: /import saved query/i,
+      name: 'Import queries',
     });
     expect(importSavedQueryModalHeading).toBeVisible();
   });

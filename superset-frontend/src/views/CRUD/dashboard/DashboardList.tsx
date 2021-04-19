@@ -503,7 +503,7 @@ function DashboardList(props: DashboardListProps) {
       name: (
         <Tooltip
           id="import-tooltip"
-          title={t('Import Dashboard')}
+          title={t('Import dashboards')}
           placement="bottomRight"
         >
           <Icons.Import data-test="import-button" />

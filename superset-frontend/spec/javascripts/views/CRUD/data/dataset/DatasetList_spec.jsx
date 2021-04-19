@@ -214,7 +214,7 @@ describe('RTL', () => {
 
     await screen.findByRole('tooltip');
     const importTooltip = screen.getByRole('tooltip', {
-      name: /import dataset/i,
+      name: 'Import datasets',
     });
 
     expect(importTooltip).toBeInTheDocument();

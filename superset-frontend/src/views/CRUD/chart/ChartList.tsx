@@ -556,7 +556,7 @@ function ChartList(props: ChartListProps) {
       name: (
         <Tooltip
           id="import-tooltip"
-          title={t('Import Chart')}
+          title={t('Import charts')}
           placement="bottomRight"
         >
           <Icons.Import data-test="import-button" />

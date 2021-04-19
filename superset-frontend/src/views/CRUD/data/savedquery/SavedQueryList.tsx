@@ -184,7 +184,7 @@ function SavedQueryList({
       name: (
         <Tooltip
           id="import-tooltip"
-          title={t('Import Saved Query')}
+          title={t('Import queries')}
           placement="bottomRight"
           data-test="import-tooltip-test"
         >
@@ -527,7 +527,7 @@ function SavedQueryList({
 
       <ImportModelsModal
         resourceName="saved_query"
-        resourceLabel={t('saved query')}
+        resourceLabel={t('queries')}
         passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
         confirmOverwriteMessage={CONFIRM_OVERWRITE_MESSAGE}
         addDangerToast={addDangerToast}
