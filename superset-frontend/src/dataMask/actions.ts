@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataMaskType, MaskWithId } from './types';
+import { DataMask } from '@superset-ui/core';
 import { FilterConfiguration } from '../dashboard/components/nativeFilters/types';
 import { FeatureFlag, isFeatureEnabled } from '../featureFlags';
 
@@ -24,20 +24,20 @@ export const UPDATE_DATA_MASK = 'UPDATE_DATA_MASK';
 export interface UpdateDataMask {
   type: typeof UPDATE_DATA_MASK;
   filterId: string;
-  [DataMaskType.NativeFilters]?: Omit<MaskWithId, 'id'>;
-  [DataMaskType.CrossFilters]?: Omit<MaskWithId, 'id'>;
-  [DataMaskType.OwnFilters]?: Omit<MaskWithId, 'id'>;
+  dataMask: DataMask;
 }
 
 export const SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE =
   'SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE';
+
 export interface SetDataMaskForFilterConfigComplete {
   type: typeof SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE;
   filterConfig: FilterConfiguration;
-  unitName: DataMaskType;
 }
+
 export const SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL =
   'SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL';
+
 export interface SetDataMaskForFilterConfigFail {
   type: typeof SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL;
   filterConfig: FilterConfiguration;
@@ -45,28 +45,16 @@ export interface SetDataMaskForFilterConfigFail {
 
 export function updateDataMask(
   filterId: string,
-  dataMask: {
-    nativeFilters?: Omit<MaskWithId, 'id'>;
-    crossFilters?: Omit<MaskWithId, 'id'>;
-    ownFilters?: Omit<MaskWithId, 'id'>;
-  },
+  dataMask: DataMask,
 ): UpdateDataMask {
-  const { nativeFilters, crossFilters, ownFilters } = dataMask;
-  const filteredDataMask: {
-    nativeFilters?: Omit<MaskWithId, 'id'>;
-    crossFilters?: Omit<MaskWithId, 'id'>;
-    ownFilters?: Omit<MaskWithId, 'id'>;
-  } = { ownFilters };
-  if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && nativeFilters) {
-    filteredDataMask.nativeFilters = nativeFilters;
-  }
-  if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) && crossFilters) {
-    filteredDataMask.crossFilters = crossFilters;
-  }
+  // Only apply data mask if one of the relevant features is enabled
+  const isFeatureFlagActive =
+    isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) ||
+    isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS);
   return {
     type: UPDATE_DATA_MASK,
     filterId,
-    ...filteredDataMask,
+    dataMask: isFeatureFlagActive ? dataMask : {},
   };
 }
 

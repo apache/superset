@@ -23,6 +23,7 @@ from superset import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.reports import (
+    ReportDataFormat,
     ReportExecutionLog,
     ReportRecipients,
     ReportSchedule,
@@ -47,6 +48,7 @@ def insert_report_schedule(
     last_state: Optional[ReportState] = None,
     grace_period: Optional[int] = None,
     recipients: Optional[List[ReportRecipients]] = None,
+    report_format: Optional[ReportDataFormat] = None,
     logs: Optional[List[ReportExecutionLog]] = None,
 ) -> ReportSchedule:
     owners = owners or []
@@ -70,6 +72,7 @@ def insert_report_schedule(
         recipients=recipients,
         logs=logs,
         last_state=last_state,
+        report_format=report_format,
     )
     db.session.add(report_schedule)
     db.session.commit()

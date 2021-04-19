@@ -21,7 +21,7 @@ import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import Icon from 'src/components/Icon';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { CssEditor } from 'src/components/AsyncAceEditor';
 

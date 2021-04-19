@@ -114,7 +114,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.TEST_CONNECTION_ACCESS_DENIED_ERROR,
+                error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
                 message='Either the username "test" or the password is incorrect.',
                 level=ErrorLevel.ERROR,
                 extra={
@@ -122,8 +122,14 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1014,
-                            "message": "Issue 1014 - Either the username or the password is wrong.",
-                        }
+                            "message": "Issue 1014 - Either the"
+                            " username or the password is wrong.",
+                        },
+                        {
+                            "code": 1015,
+                            "message": "Issue 1015 - Either the database is "
+                            "spelled incorrectly or does not exist.",
+                        },
                     ],
                 },
             )
@@ -133,7 +139,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.TEST_CONNECTION_INVALID_HOSTNAME_ERROR,
+                error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
                 message='Unknown MySQL server host "badhostname.com".',
                 level=ErrorLevel.ERROR,
                 extra={
@@ -141,7 +147,8 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1007,
-                            "message": "Issue 1007 - The hostname provided can't be resolved.",
+                            "message": "Issue 1007 - The hostname"
+                            " provided can't be resolved.",
                         }
                     ],
                 },
@@ -152,15 +159,17 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
-                message='The host "badconnection.com" might be down and can\'t be reached.',
+                error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+                message='The host "badconnection.com" might be '
+                "down and can't be reached.",
                 level=ErrorLevel.ERROR,
                 extra={
                     "engine_name": "MySQL",
                     "issue_codes": [
                         {
                             "code": 1007,
-                            "message": "Issue 1007 - The hostname provided can't be resolved.",
+                            "message": "Issue 1007 - The hostname provided"
+                            " can't be resolved.",
                         }
                     ],
                 },
@@ -171,7 +180,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
+                error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
                 message='The host "93.184.216.34" might be down and can\'t be reached.',
                 level=ErrorLevel.ERROR,
                 extra={
@@ -179,7 +188,27 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 10007,
-                            "message": "Issue 1007 - The hostname provided can't be resolved.",
+                            "message": "Issue 1007 - The hostname provided "
+                            "can't be resolved.",
+                        }
+                    ],
+                },
+            )
+        ]
+
+        msg = "mysql: Unknown database 'badDB'."
+        result = MySQLEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                message='Unable to connect to database "badDB".',
+                error_type=SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "MySQL",
+                    "issue_codes": [
+                        {
+                            "code": 1015,
+                            "message": "Issue 1015 - Either the database is spelled incorrectly or does not exist.",
                         }
                     ],
                 },

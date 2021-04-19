@@ -130,7 +130,8 @@ class DatabaseTestConnectionDriverError(CommandInvalidError):
     message = _("Could not load database driver")
 
 
-class DatabaseTestConnectionUnexpectedError(CommandInvalidError):
+class DatabaseTestConnectionUnexpectedError(SupersetErrorsException):
+    status = 422
     message = _("Unexpected error occurred, please check your logs for details")
 
 

@@ -59,6 +59,8 @@ import {
   EchartsTimeseriesChartPlugin,
   EchartsGraphChartPlugin,
   EchartsGaugeChartPlugin,
+  EchartsRadarChartPlugin,
+  EchartsMixedTimeseriesChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import {
   SelectFilterPlugin,
@@ -67,6 +69,7 @@ import {
   TimeColumnFilterPlugin,
   TimeGrainFilterPlugin,
 } from 'src/filters/components/';
+import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable/TimeTableChartPlugin';
 
@@ -93,6 +96,10 @@ export default class MainPreset extends Preset {
         new FilterBoxChartPlugin().configure({ key: 'filter_box' }),
         new EchartsGaugeChartPlugin().configure({ key: 'gauge_chart' }),
         new EchartsGraphChartPlugin().configure({ key: 'graph_chart' }),
+        new EchartsRadarChartPlugin().configure({ key: 'radar' }),
+        new EchartsMixedTimeseriesChartPlugin().configure({
+          key: 'mixed_timeseries',
+        }),
         new HeatmapChartPlugin().configure({ key: 'heatmap' }),
         new HistogramChartPlugin().configure({ key: 'histogram' }),
         new HorizonChartPlugin().configure({ key: 'horizon' }),
@@ -104,6 +111,7 @@ export default class MainPreset extends Preset {
         new PartitionChartPlugin().configure({ key: 'partition' }),
         new EchartsPieChartPlugin().configure({ key: 'pie' }),
         new PivotTableChartPlugin().configure({ key: 'pivot_table' }),
+        new PivotTableChartPluginV2().configure({ key: 'pivot_table_v2' }),
         new RoseChartPlugin().configure({ key: 'rose' }),
         new SankeyChartPlugin().configure({ key: 'sankey' }),
         new SunburstChartPlugin().configure({ key: 'sunburst' }),

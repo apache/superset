@@ -165,7 +165,7 @@ Unable to connect: Adaptive Server is unavailable or does not exist (locahost)
         result = MssqlEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.TEST_CONNECTION_INVALID_HOSTNAME_ERROR,
+                error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
                 message='The hostname "locahost" cannot be resolved.',
                 level=ErrorLevel.ERROR,
                 extra={
@@ -195,7 +195,7 @@ Net-Lib error during Connection refused (61)
         )
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.TEST_CONNECTION_PORT_CLOSED_ERROR,
+                error_type=SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
                 message='Port 12345 on hostname "localhost" refused the connection.',
                 level=ErrorLevel.ERROR,
                 extra={
@@ -222,7 +222,7 @@ Net-Lib error during Operation timed out (60)
         )
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
+                error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
                 message=(
                     'The host "example.com" might be down, '
                     "and can't be reached on port 12345."
@@ -255,7 +255,7 @@ Net-Lib error during Operation timed out (60)
         )
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
+                error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
                 message=(
                     'The host "93.184.216.34" might be down, '
                     "and can't be reached on port 12345."
@@ -284,20 +284,26 @@ Adaptive Server connection failed (mssqldb.cxiotftzsypc.us-west-2.rds.amazonaws.
             """
         )
         result = MssqlEngineSpec.extract_errors(
-            Exception(msg), context={"username": "testuser"}
+            Exception(msg), context={"username": "testuser", "database": "testdb"}
         )
         assert result == [
             SupersetError(
-                message='Either the username "testuser" or the password is incorrect.',
-                error_type=SupersetErrorType.TEST_CONNECTION_ACCESS_DENIED_ERROR,
+                message='Either the username "testuser", password, or database name "testdb" is incorrect.',
+                error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={
                     "engine_name": "Microsoft SQL",
                     "issue_codes": [
                         {
                             "code": 1014,
-                            "message": "Issue 1014 - Either the username or the password is wrong.",
-                        }
+                            "message": "Issue 1014 - Either the username or "
+                            "the password is wrong.",
+                        },
+                        {
+                            "code": 1015,
+                            "message": "Issue 1015 - Either the database is "
+                            "spelled incorrectly or does not exist.",
+                        },
                     ],
                 },
             )

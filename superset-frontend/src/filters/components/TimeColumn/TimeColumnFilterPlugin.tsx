@@ -17,9 +17,8 @@
  * under the License.
  */
 import {
-  Behavior,
-  DataMask,
   ensureIsArray,
+  ExtraFormData,
   GenericDataType,
   t,
   tn,
@@ -34,41 +33,30 @@ const { Option } = Select;
 export default function PluginFilterTimeColumn(
   props: PluginFilterTimeColumnProps,
 ) {
-  const { behaviors, data, formData, height, width, setDataMask } = props;
-  const { defaultValue, currentValue, inputRef } = formData;
+  const { data, formData, height, width, setDataMask, filterState } = props;
+  const { defaultValue, inputRef } = formData;
 
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
 
   const handleChange = (value?: string[] | string | null) => {
     const resultValue: string[] = ensureIsArray<string>(value);
     setValue(resultValue);
+    const extraFormData: ExtraFormData = {};
+    if (resultValue.length) {
+      extraFormData.granularity_sqla = resultValue[0];
+    }
 
-    const dataMask = {
-      extraFormData: {
-        override_form_data: {
-          granularity_sqla: resultValue.length ? resultValue[0] : null,
-        },
-      },
-      currentState: {
+    setDataMask({
+      extraFormData,
+      filterState: {
         value: resultValue.length ? resultValue : null,
       },
-    };
-
-    const dataMaskObject: DataMask = {};
-    if (behaviors.includes(Behavior.NATIVE_FILTER)) {
-      dataMaskObject.nativeFilters = dataMask;
-    }
-
-    if (behaviors.includes(Behavior.CROSS_FILTER)) {
-      dataMaskObject.crossFilters = dataMask;
-    }
-
-    setDataMask(dataMaskObject);
+    });
   };
 
   useEffect(() => {
-    handleChange(currentValue ?? null);
-  }, [JSON.stringify(currentValue)]);
+    handleChange(filterState.value ?? null);
+  }, [JSON.stringify(filterState.value)]);
 
   useEffect(() => {
     handleChange(defaultValue ?? null);

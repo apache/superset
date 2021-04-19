@@ -21,7 +21,7 @@ import { FormControl } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 import * as sinon from 'sinon';
 import SaveQuery from 'src/SqlLab/components/SaveQuery';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 
 describe('SavedQuery', () => {

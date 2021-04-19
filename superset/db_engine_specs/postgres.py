@@ -56,25 +56,28 @@ class FixedOffsetTimezone(_FixedOffset):
 
 
 # Regular expressions to catch custom errors
-TEST_CONNECTION_INVALID_USERNAME_REGEX = re.compile(
+CONNECTION_INVALID_USERNAME_REGEX = re.compile(
     'role "(?P<username>.*?)" does not exist'
 )
-TEST_CONNECTION_INVALID_PASSWORD_REGEX = re.compile(
+CONNECTION_INVALID_PASSWORD_REGEX = re.compile(
     'password authentication failed for user "(?P<username>.*?)"'
 )
-TEST_CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
+CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
     'could not translate host name "(?P<hostname>.*?)" to address: '
     "nodename nor servname provided, or not known"
 )
-TEST_CONNECTION_PORT_CLOSED_REGEX = re.compile(
+CONNECTION_PORT_CLOSED_REGEX = re.compile(
     r"could not connect to server: Connection refused\s+Is the server "
     r'running on host "(?P<hostname>.*?)" (\(.*?\) )?and accepting\s+TCP/IP '
     r"connections on port (?P<port>.*?)\?"
 )
-TEST_CONNECTION_HOST_DOWN_REGEX = re.compile(
+CONNECTION_HOST_DOWN_REGEX = re.compile(
     r"could not connect to server: (?P<reason>.*?)\s+Is the server running on "
     r'host "(?P<hostname>.*?)" (\(.*?\) )?and accepting\s+TCP/IP '
     r"connections on port (?P<port>.*?)\?"
+)
+CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile(
+    'database "(?P<database>.*?)" does not exist'
 )
 
 
@@ -97,28 +100,32 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     }
 
     custom_errors = {
-        TEST_CONNECTION_INVALID_USERNAME_REGEX: (
+        CONNECTION_INVALID_USERNAME_REGEX: (
             __('The username "%(username)s" does not exist.'),
-            SupersetErrorType.TEST_CONNECTION_INVALID_USERNAME_ERROR,
+            SupersetErrorType.CONNECTION_INVALID_USERNAME_ERROR,
         ),
-        TEST_CONNECTION_INVALID_PASSWORD_REGEX: (
+        CONNECTION_INVALID_PASSWORD_REGEX: (
             __('The password provided for username "%(username)s" is incorrect.'),
-            SupersetErrorType.TEST_CONNECTION_INVALID_PASSWORD_ERROR,
+            SupersetErrorType.CONNECTION_INVALID_PASSWORD_ERROR,
         ),
-        TEST_CONNECTION_INVALID_HOSTNAME_REGEX: (
+        CONNECTION_INVALID_HOSTNAME_REGEX: (
             __('The hostname "%(hostname)s" cannot be resolved.'),
-            SupersetErrorType.TEST_CONNECTION_INVALID_HOSTNAME_ERROR,
+            SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
         ),
-        TEST_CONNECTION_PORT_CLOSED_REGEX: (
+        CONNECTION_PORT_CLOSED_REGEX: (
             __('Port %(port)s on hostname "%(hostname)s" refused the connection.'),
-            SupersetErrorType.TEST_CONNECTION_PORT_CLOSED_ERROR,
+            SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
         ),
-        TEST_CONNECTION_HOST_DOWN_REGEX: (
+        CONNECTION_HOST_DOWN_REGEX: (
             __(
                 'The host "%(hostname)s" might be down, and can\'t be '
                 "reached on port %(port)s."
             ),
-            SupersetErrorType.TEST_CONNECTION_HOST_DOWN_ERROR,
+            SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+        ),
+        CONNECTION_UNKNOWN_DATABASE_REGEX: (
+            __('Unable to connect to database "%(database)s".'),
+            SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
         ),
     }
 

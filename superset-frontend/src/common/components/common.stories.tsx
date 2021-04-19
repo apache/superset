@@ -20,14 +20,13 @@ import React, { useState, useRef, useCallback } from 'react';
 import { action } from '@storybook/addon-actions';
 import { withKnobs, boolean, select } from '@storybook/addon-knobs';
 import Button from 'src/components/Button';
-import Modal from './Modal';
+import { CronPicker, CronError } from 'src/components/CronPicker';
+import Modal from 'src/components/Modal';
 import Tabs, { EditableTabs } from './Tabs';
 import { Tooltip as AntdTooltip } from './Tooltip';
-import { Switch as AntdSwitch } from './Switch';
 import { Menu, Input, Divider } from '.';
 import { Dropdown } from './Dropdown';
 import InfoTooltip from './InfoTooltip';
-import { CronPicker, CronError } from './CronPicker';
 
 export default {
   title: 'Common components',
@@ -197,14 +196,6 @@ StyledInfoTooltip.argTypes = {
     },
   },
 };
-
-export const Switch = () => (
-  <>
-    <AntdSwitch defaultChecked />
-    <br />
-    <AntdSwitch size="small" defaultChecked />
-  </>
-);
 
 export function StyledCronPicker() {
   // @ts-ignore
