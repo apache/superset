@@ -113,7 +113,7 @@ service:
     # cloud.google.com/load-balancer-type: "Internal"
   loadBalancerIP: null
   # loadBalancerSourceRanges:
-  # - 0.0.0.0/0
+  #   - 0.0.0.0/0
 
 ingress:
   enabled: false
