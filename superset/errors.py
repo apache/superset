@@ -217,7 +217,7 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
     SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR: [
         {
             "code": 1017,
-            "message": _("Issue 1017 - User doesn't have the proper permissions"),
+            "message": _("Issue 1017 - User doesn't have the proper permissions."),
         },
     ],
 }
