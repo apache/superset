@@ -621,9 +621,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         kwargs["encoding"] = "utf-8"
         kwargs["iterator"] = True
-        chunks = pd.read_csv(**kwargs)
-        df = pd.concat(chunk for chunk in chunks)
-        return df
+        return pd.read_csv(**kwargs)
 
     @classmethod
     def df_to_sql(cls, df: pd.DataFrame, **kwargs: Any) -> None:
