@@ -32,9 +32,7 @@ if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
 
 
-CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
-    "User does not have [a-z] permission in project"
-)
+CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile("this is a permissions message")
 
 
 class BigQueryEngineSpec(BaseEngineSpec):
@@ -96,8 +94,8 @@ class BigQueryEngineSpec(BaseEngineSpec):
     custom_errors = {
         CONNECTION_DATABASE_PERMISSIONS_REGEX: (
             __(
-                "We were unable to connect to your database. Please"
-                "confirm that your service account has the Viewer"
+                "We were unable to connect to your database. Please "
+                "confirm that your service account has the Viewer "
                 "and Job User roles on the project."
             ),
             SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
