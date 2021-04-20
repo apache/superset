@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/plugin-chart-choropleth-map",
-  "version": "0.17.34",
+  "version": "0.17.36",
   "description": "Superset Chart - Choropleth Map",
   "sideEffects": false,
   "private": true,
@@ -27,7 +27,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/chart-controls": "0.17.34",
+    "@superset-ui/chart-controls": "0.17.36",
     "@superset-ui/core": "0.17.32",
     "@types/d3-geo": "^1.11.1",
     "@types/geojson": "^7946.0.3",
