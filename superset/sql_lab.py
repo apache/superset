@@ -190,10 +190,13 @@ def execute_sql_statement(
     db_engine_spec = database.db_engine_spec
     parsed_query = ParsedQuery(sql_statement)
     sql = parsed_query.stripped()
+    # This is a test to see if the query is being
+    # limited by either the dropdown or the sql.
+    # We are testing to see if more rows exist than the limit.
     if query.limit is None:
-        limited_query = query.limit
+        increased_query = query.limit
     else:
-        limited_query = query.limit + 1
+        increased_query = query.limit + 1
 
     if not db_engine_spec.is_readonly_query(parsed_query) and not database.allow_dml:
         raise SqlLabSecurityException(
@@ -223,7 +226,7 @@ def execute_sql_statement(
             # to test whether there are more rows than the limit.
             # Later, the extra row will be dropped before sending
             # the results back to the user.
-            sql = database.apply_limit_to_sql(sql, limited_query)
+            sql = database.apply_limit_to_sql(sql, increased_query)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
     sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
@@ -252,11 +255,8 @@ def execute_sql_statement(
                 query.id,
                 str(query.to_dict()),
             )
-            # This is a test to see if the query is being
-            # limited by either the dropdown or the sql.
-            # We are testing to see if more rows exist than the limit.
-            data = db_engine_spec.fetch_data(cursor, limited_query)
-            if query.limit is not None and len(data) <= query.limit:
+            data = db_engine_spec.fetch_data(cursor, increased_query)
+            if query.limit is None or len(data) <= query.limit:
                 query.limiting_factor = LimitingFactor.NOT_LIMITED
             else:
                 data = data[:-1]
