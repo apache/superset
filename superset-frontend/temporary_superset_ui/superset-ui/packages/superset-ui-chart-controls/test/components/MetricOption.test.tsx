@@ -83,4 +83,7 @@ describe('MetricOption', () => {
     wrapper = shallow(factory(props));
     expect(wrapper.find('ColumnTypeLabel')).toHaveLength(1);
   });
+  it('shows a Tooltip for the verbose metric name', () => {
+    expect(wrapper.find('Tooltip')).toHaveLength(1);
+  });
 });
