@@ -927,6 +927,8 @@ class TestUtils(SupersetTestCase):
                     }
                 ],
                 "time_range": "Last 100 years",
+                "time_grain_sqla": "PT1M",
+                "relative_start": "now",
             },
         }
         merge_extra_form_data(form_data)
@@ -948,6 +950,8 @@ class TestUtils(SupersetTestCase):
             "subject": "foo",
         }
         assert form_data["time_range"] == "Last 100 years"
+        assert form_data["time_grain_sqla"] == "PT1M"
+        assert form_data["extras"]["relative_start"] == "now"
 
     def test_ssl_certificate_parse(self):
         parsed_certificate = parse_ssl_cert(ssl_certificate)
