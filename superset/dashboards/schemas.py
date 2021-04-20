@@ -126,6 +126,8 @@ class DashboardJSONMetadataSchema(Schema):
     # used for v0 import/export
     import_time = fields.Integer()
     remote_id = fields.Integer()
+    showFilterBadge = fields.Boolean()
+    showCrossFilterBadge = fields.Boolean()
 
 
 class UserSchema(Schema):

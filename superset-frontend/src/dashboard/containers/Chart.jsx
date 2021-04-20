@@ -83,6 +83,8 @@ function mapStateToProps(
     formData,
     editMode: dashboardState.editMode,
     isExpanded: !!dashboardState.expandedSlices[id],
+    showFilterBadge: dashboardInfo.metadata?.showFilterBadge ?? true,
+    showCrossFilterBadge: dashboardInfo.metadata?.showCrossFilterBadge ?? true,
     supersetCanExplore: !!dashboardInfo.superset_can_explore,
     supersetCanShare: !!dashboardInfo.superset_can_share,
     supersetCanCSV: !!dashboardInfo.superset_can_csv,

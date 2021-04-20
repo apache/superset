@@ -50,6 +50,8 @@ type SliceHeaderProps = {
   supersetCanCSV?: boolean;
   sliceCanEdit?: boolean;
   componentId: string;
+  showFilterBadge: boolean;
+  showCrossFilterBadge: boolean;
   dashboardId: number;
   filters: object;
   addSuccessToast: Function;
@@ -90,6 +92,8 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   slice,
   componentId,
   dashboardId,
+  showFilterBadge,
+  showCrossFilterBadge,
   addSuccessToast,
   addDangerToast,
   handleToggleFullSize,
@@ -146,7 +150,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
       <div className="header-controls">
         {!editMode && (
           <>
-            {crossFilterValue && (
+            {crossFilterValue && showCrossFilterBadge && (
               <Tooltip
                 placement="top"
                 title={
@@ -161,7 +165,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 <CrossFilterIcon name="cross-filter-badge" />
               </Tooltip>
             )}
-            <FiltersBadge chartId={slice.slice_id} />
+            {showFilterBadge && <FiltersBadge chartId={slice.slice_id} />}
             <SliceHeaderControls
               slice={slice}
               isCached={isCached}

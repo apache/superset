@@ -37,6 +37,8 @@ jest.mock('src/dashboard/components/SliceHeaderControls', () => ({
       data-slice-can-edit={props.sliceCanEdit}
       data-component-id={props.componentId}
       data-dashboard-id={props.dashboardId}
+      show-filter-badge={props.showFilterBadge}
+      show-cross-filter-badge={props.showCrossFilterBadge}
       data-is-full-size={props.isFullSize}
       data-chart-status={props.chartStatus}
     >
@@ -147,6 +149,8 @@ const createProps = () => ({
   } as unknown) as Slice,
   componentId: 'CHART-aGfmWtliqA',
   dashboardId: 26,
+  showFilterBadge: true,
+  showCrossFilterBadge: true,
   isFullSize: false,
   chartStatus: 'rendered',
   addSuccessToast: jest.fn(),
@@ -326,6 +330,14 @@ test('Correct props to "SliceHeaderControls"', () => {
   expect(screen.getByTestId('SliceHeaderControls')).toHaveAttribute(
     'data-dashboard-id',
     '26',
+  );
+  expect(screen.getByTestId('SliceHeaderControls')).toHaveAttribute(
+    'show-filter-badge',
+    'true',
+  );
+  expect(screen.getByTestId('SliceHeaderControls')).toHaveAttribute(
+    'show-cross-filter-badge',
+    'true',
   );
   expect(screen.getByTestId('SliceHeaderControls')).toHaveAttribute(
     'data-is-cached',
