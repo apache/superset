@@ -18,7 +18,7 @@
  */
 import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
-import InfoTooltip from 'src/common/components/InfoTooltip';
+import InfoTooltip from 'src/components/InfoTooltip';
 import {
   useSingleViewResource,
   testDatabaseConnection,
@@ -484,14 +484,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 onChange={onInputChange}
               />
             </div>
-            {/* ----------
-            
-            🚨 Coming back to this once I figure out what the tooltip should actually say 🚨
-            
-            ---------- */}
             <div className="helper">
               {t(
-                'The metadata_cache_timeout is a cache timeout setting in seconds for metadata fetch of this database. Specify it as "metadata_cache_timeout": {"schema_cache_timeout": 600, "table_cache_timeout": 600}. If unset, cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.',
+                'Duration (in seconds) of the caching timeout for charts of this ' +
+                  'database. A timeout of 0 indicates that the cache never expires. ' +
+                  'Note this defaults to the global timeout if undefined.',
               )}
             </div>
           </StyledInputContainer>
@@ -674,8 +671,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               )}
             </div>
           </StyledInputContainer>
-        </Tabs.TabPane>
-        <Tabs.TabPane tab={<span>{t('Extra')}</span>} key="5">
           <StyledInputContainer>
             <div className="input-container">
               <IndeterminateCheckbox
@@ -705,13 +700,20 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 onChange={onInputChange}
                 labelText={t('Allow data upload')}
               />
+              {/* ----------
+              
+              🚨 Do I need a text/json field for schemas here? 🚨
+              
+              ---------- */}
               <InfoTooltip
                 tooltip={t(
-                  'If selected, please set the schemas allowed for data upload in Extra.',
+                  'If selected, please set the schemas allowed for data upload in Security.',
                 )}
               />
             </div>
           </StyledInputContainer>
+        </Tabs.TabPane>
+        <Tabs.TabPane tab={<span>{t('Other')}</span>} key="5">
           <StyledInputContainer className="extra-container">
             <div className="control-label">{t('Extra')}</div>
             <div className="input-container">

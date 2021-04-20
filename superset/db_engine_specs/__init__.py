@@ -28,28 +28,57 @@ at all. The classes here will use a common interface to specify all this.
 The general idea is to use static classes and an inheritance scheme.
 """
 import inspect
+import logging
 import pkgutil
 from importlib import import_module
 from pathlib import Path
-from typing import Dict, Type
+from typing import Any, Dict, List, Type
+
+from pkg_resources import iter_entry_points
 
 from superset.db_engine_specs.base import BaseEngineSpec
 
-engines: Dict[str, Type[BaseEngineSpec]] = {}
+logger = logging.getLogger(__name__)
 
-for (_, name, _) in pkgutil.iter_modules([Path(__file__).parent]):  # type: ignore
-    imported_module = import_module("." + name, package=__name__)
 
-    for i in dir(imported_module):
-        attribute = getattr(imported_module, i)
+def is_engine_spec(attr: Any) -> bool:
+    return (
+        inspect.isclass(attr)
+        and issubclass(attr, BaseEngineSpec)
+        and attr != BaseEngineSpec
+    )
 
-        if (
-            inspect.isclass(attribute)
-            and issubclass(attribute, BaseEngineSpec)
-            and attribute.engine != ""
-        ):
-            engines[attribute.engine] = attribute
 
-            # populate engine alias name to engine dictionary
-            for engine_alias in attribute.engine_aliases or []:
-                engines[engine_alias] = attribute
+def get_engine_specs() -> Dict[str, Type[BaseEngineSpec]]:
+    engine_specs: List[Type[BaseEngineSpec]] = []
+
+    # load standard engines
+    db_engine_spec_dir = str(Path(__file__).parent)
+    for module_info in pkgutil.iter_modules([db_engine_spec_dir], prefix="."):
+        module = import_module(module_info.name, package=__name__)
+        engine_specs.extend(
+            getattr(module, attr)
+            for attr in module.__dict__
+            if is_engine_spec(getattr(module, attr))
+        )
+
+    # load additional engines from external modules
+    for ep in iter_entry_points("superset.db_engine_specs"):
+        try:
+            engine_spec = ep.load()
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Unable to load engine spec: %s", engine_spec)
+            continue
+        engine_specs.append(engine_spec)
+
+    # build map from name/alias -> spec
+    engine_specs_map: Dict[str, Type[BaseEngineSpec]] = {}
+    for engine_spec in engine_specs:
+        names = [engine_spec.engine]
+        if engine_spec.engine_aliases:
+            names.extend(engine_spec.engine_aliases)
+
+        for name in names:
+            engine_specs_map[name] = engine_spec
+
+    return engine_specs_map
