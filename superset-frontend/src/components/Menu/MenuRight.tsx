@@ -20,7 +20,8 @@ import React from 'react';
 import {  Menu  } from 'src/common/components';
 import { t, styled } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
-import LanguagePicker, { Languages } from './LanguagePicker';
+import LanguagePicker from './LanguagePicker';
+import { NavBarProps, MenuObjectProps } from './Menu';
 
 export const dropdownItems = [
     {
@@ -46,11 +47,17 @@ const StyledI = styled.div`
 
 const { SubMenu } = Menu;
 
-const RightMenu = ({ settings, navbarRight, isFrontendRoute}) => ( 
+interface RightMenuProps {
+  settings: MenuObjectProps[]; 
+  navbarRight: NavBarProps; 
+  isFrontendRoute: (path?: string) => boolean;
+}
+
+const RightMenu = ({ settings, navbarRight, isFrontendRoute}: RightMenuProps ) => ( 
   <Menu className="navbar-right" mode="horizontal">
           {!navbarRight.user_is_anonymous && (
              <SubMenu
-               id="new-dropdown"
+               // id="new-dropdown"
                data-test="new-dropdown"
                title={<StyledI className="fa fa-plus" />} 
              >
@@ -127,21 +134,24 @@ const RightMenu = ({ settings, navbarRight, isFrontendRoute}) => (
             </SubMenu>
           {navbarRight.documentation_url && (
             <Menu.Item
-              href={navbarRight.documentation_url}
-              target="_blank"
               title="Documentation"
             >
-              <i className="fa fa-question" />
-              &nbsp;
+              <a href={navbarRight.documentation_url} target="_blank">
+                <i className="fa fa-question" />
+                &nbsp;
+              </a>
             </Menu.Item>
           )}
           {navbarRight.bug_report_url && (
             <Menu.Item
-              href={navbarRight.bug_report_url}
-              target="_blank"
               title="Report a Bug"
             >
-              <i className="fa fa-bug" />
+              <a 
+                href={navbarRight.bug_report_url}
+                target="_blank"
+              >
+                <i className="fa fa-bug" />
+              </a>
               &nbsp;
             </Menu.Item>
           )}
@@ -154,9 +164,11 @@ const RightMenu = ({ settings, navbarRight, isFrontendRoute}) => (
             </Menu.Item>
           )}
           {navbarRight.user_is_anonymous && (
-            <Menu.Item href={navbarRight.user_login_url}>
-              <i className="fa fa-fw fa-sign-in" />
-              {t('Login')}
+            <Menu.Item>
+              <a href={navbarRight.user_login_url} >
+                <i className="fa fa-fw fa-sign-in" />
+                {t('Login')}
+              </a>
             </Menu.Item>
           )}
         </Menu>

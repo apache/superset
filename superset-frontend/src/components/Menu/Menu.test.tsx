@@ -19,6 +19,7 @@
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import { Menu } from './Menu';
+import { dropdownItems } from './MenuRight';
 
 const mockedProps = {
   data: {
@@ -174,6 +175,14 @@ test('should render the top navbar child menu items', () => {
 
   expect(datasets).toHaveAttribute('href', dataset.url);
   expect(databases).toHaveAttribute('href', database.url);
+});
+
+test('should render the dropdown items', () => {
+  render(<Menu {...mockedProps} />);
+  dropdownItems.forEach(item => {
+    expect(screen.getByText(item.label)).toHaveAttribute('href', item.url);
+    expect(screen.getByTestId(`menu-item-${item.label}`)).toBeInTheDocument();
+  });
 });
 
 test('should render the Settings', () => {

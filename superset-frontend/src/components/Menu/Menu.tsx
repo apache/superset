@@ -18,7 +18,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { styled } from '@superset-ui/core';
-import {  Menu as DropdownMenu } from 'src/common/components';
+import {  Menu as DropdownMenu, MenuMode} from 'src/common/components';
 import { Link } from 'react-router-dom';
 import RightMenu from './MenuRight';
 import { Row, Col } from 'antd';
@@ -31,7 +31,7 @@ interface BrandProps {
   width: string | number;
 }
 
-interface NavBarProps {
+export interface NavBarProps {
   bug_report_url?: string;
   version_string?: string;
   version_sha?: string;
@@ -65,7 +65,7 @@ interface MenuObjectChildProps {
   isFrontendRoute?: boolean;
 }
 
-interface MenuObjectProps extends MenuObjectChildProps {
+export interface MenuObjectProps extends MenuObjectChildProps {
   childs?: (MenuObjectChildProps | string)[];
   isHeader?: boolean;
 }
@@ -187,7 +187,6 @@ const StyledHeader = styled.header`
     &:focus {
       border-bottom: none;
       background-color: transparent;
-      /* background-color: ${({ theme }) => theme.colors.primary.light5}; */
     }
     &:hover {
       color: ${({ theme }) => theme.colors.grayscale.dark1};
@@ -222,17 +221,14 @@ const StyledHeader = styled.header`
 
 const { SubMenu } = DropdownMenu; 
 
-
 export function Menu({
   data: { menu, brand, navbar_right: navbarRight, settings },
   isFrontendRoute = () => false,
 }: MenuProps) {
-  const [showMenu, setMenu] = useState('horizontal');
+  const [showMenu, setMenu] = useState<MenuMode>('horizontal');
 
   useEffect(()=>{
-    console.log('hello??????')
     function handleResize() {
-      console.log('screenWidth', window.innerWidth);
       if(window.innerWidth <= 767 ) setMenu('inline')
       else setMenu('horizontal') 
     }
@@ -286,7 +282,6 @@ export function Menu({
           </SubMenu>
     );
   }
-  console.log({menu})
   return (
     <StyledHeader className="top" id="main-menu">
       <Row>
@@ -312,8 +307,6 @@ export function Menu({
               };
 
               return renderSubMenu(props)
-              // return <MenuObject {...props} key={item.label} index={index + 1} />;
-              
             })}
           </DropdownMenu>
         </Col>

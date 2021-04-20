@@ -21,7 +21,7 @@ import { Link, useHistory } from 'react-router-dom';
 import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 import { Col, Row } from 'antd';
-import { Menu } from 'src/common/components';
+import { Menu, MenuMode } from 'src/common/components';
 import Button, { OnClickHandler } from 'src/components/Button';
 
 const StyledHeader = styled.div`
@@ -142,7 +142,7 @@ export interface SubMenuProps {
 }
 
 const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
-  const [showMenu, setMenu] = useState('horizontal');
+  const [showMenu, setMenu] = useState<MenuMode>('horizontal');
   const { headerSize = 2 } = props;
   let hasHistory = true;
   // If no parent <Router> component exists, useHistory throws an error
