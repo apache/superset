@@ -79,7 +79,12 @@ export interface FiltersConfigFormProps {
   parentFilters: { id: string; title: string }[];
 }
 
-const FILTERS_WITHOUT_COLUMN = ['filter_timegrain', 'filter_timecolumn'];
+// TODO: Need to do with it something
+const FILTERS_WITHOUT_COLUMN = [
+  'filter_timegrain',
+  'filter_timecolumn',
+  'filter_groupby',
+];
 
 /**
  * The configuration form for a specific filter.
