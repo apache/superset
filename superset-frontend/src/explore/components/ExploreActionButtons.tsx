@@ -20,7 +20,7 @@ import React, { useState } from 'react';
 import cx from 'classnames';
 import { t } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import copyTextToClipboard from 'src/utils/copy';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useUrlShortener } from 'src/common/hooks/useUrlShortener';

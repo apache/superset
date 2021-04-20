@@ -28,7 +28,7 @@ import { styled, t } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import { areArraysShallowEqual } from 'src/reduxUtils';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
 import * as Actions from '../actions/sqlLab';
 import SqlEditor from './SqlEditor';

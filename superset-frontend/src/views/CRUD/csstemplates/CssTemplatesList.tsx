@@ -27,7 +27,7 @@ import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import ListView, { ListViewProps, Filters } from 'src/components/ListView';

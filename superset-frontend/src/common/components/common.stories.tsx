@@ -18,13 +18,11 @@
  */
 import React, { useState, useRef, useCallback } from 'react';
 import { action } from '@storybook/addon-actions';
-import { withKnobs, boolean, select } from '@storybook/addon-knobs';
-import Button from 'src/components/Button';
+import { withKnobs, boolean } from '@storybook/addon-knobs';
 import { CronPicker, CronError } from 'src/components/CronPicker';
 import Modal from 'src/components/Modal';
 import InfoTooltip from 'src/components/InfoTooltip';
 import Tabs, { EditableTabs } from './Tabs';
-import { Tooltip as AntdTooltip } from './Tooltip';
 import { Menu, Input, Divider } from '.';
 import { Dropdown } from './Dropdown';
 
@@ -119,34 +117,6 @@ export const TabsWithDropdownMenu = () => (
       Tab 1 Content!
     </Tabs.TabPane>
   </EditableTabs>
-);
-
-export const Tooltip = () => (
-  <AntdTooltip
-    title="This is a Tooltip"
-    trigger={select('Trigger', ['click', 'hover', 'focus'], 'click')}
-    placement={select(
-      'Placement',
-      [
-        'topLeft',
-        'top',
-        'topRight',
-        'leftTop',
-        'left',
-        'leftBottom',
-        'rightTop',
-        'right',
-        'rightBottom',
-        'bottomLeft',
-        'bottom',
-        'bottomRight',
-      ],
-      'topLeft',
-    )}
-    arrowPointAtCenter={boolean('Arrow point at center', false)}
-  >
-    <Button>A button with tooltip</Button>
-  </AntdTooltip>
 );
 
 export const StyledInfoTooltip = (args: any) => {

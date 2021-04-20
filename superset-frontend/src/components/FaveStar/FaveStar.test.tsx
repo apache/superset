@@ -29,7 +29,7 @@ jest.mock('../Icon', () => ({
   ),
 }));
 
-jest.mock('src/common/components/Tooltip', () => ({
+jest.mock('src/components/Tooltip', () => ({
   Tooltip: (props: any) => <div data-test="tooltip" {...props} />,
 }));
 

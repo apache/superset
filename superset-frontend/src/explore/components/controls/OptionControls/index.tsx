@@ -23,7 +23,7 @@ import {
   MetricOption,
   InfoTooltipWithTrigger,
 } from '@superset-ui/chart-controls';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import Icon from 'src/components/Icon';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
