@@ -150,6 +150,7 @@ The password provided when connecting to a database is not valid.
 The user provided a password that is incorrect. Please check that the
 password is typed correctly.
 
+
 ## Issue 1014
 
 ```
@@ -167,7 +168,6 @@ Either the database is spelled incorrectly or does not exist.
 
 Either the database was written incorrectly or it does not exist. Check that it was typed correctly.
 
-
 ## Issue 1016
 
 ```
@@ -175,3 +175,11 @@ The schema was deleted or renamed in the database.
 ```
 
 The schema was either removed or renamed. Check that the schema is typed correctly and exists.
+
+## Issue 1017
+
+```
+The user doesn't have the proper permissions to connect to the database
+```
+
+We were unable to connect to your database. Please confirm that your service account has the Viewer and Job User roles on the project.
