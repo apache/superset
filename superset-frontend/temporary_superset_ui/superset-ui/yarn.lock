@@ -4312,15 +4312,6 @@
     resolve-from "^5.0.0"
     store2 "^2.7.1"
 
-"@superset-ui/chart-controls@0.17.22":
-  version "0.17.22"
-  resolved "https://registry.yarnpkg.com/@superset-ui/chart-controls/-/chart-controls-0.17.22.tgz#4f4f04dc35ddec45d8a797b11f96343f2d278877"
-  integrity sha512-poxug7Wy2jkZhJiulJlISFuhQGt1HbIayoyA48T2JcSsHh/0ybgX8VP3rTCEN/G/txebisfO3P4GW4Zqqcaz2g==
-  dependencies:
-    "@superset-ui/core" "0.17.22"
-    lodash "^4.17.15"
-    prop-types "^15.7.2"
-
 "@superset-ui/commit-config@^0.0.9":
   version "0.0.9"
   resolved "https://registry.yarnpkg.com/@superset-ui/commit-config/-/commit-config-0.0.9.tgz#f0149945185e0908e14fec46bdc1498aa026ada7"
@@ -4334,41 +4325,6 @@
     conventional-changelog-cli "^2.0.12"
     cz-conventional-changelog "^2.1.0"
 
-"@superset-ui/core@0.17.22":
-  version "0.17.22"
-  resolved "https://registry.yarnpkg.com/@superset-ui/core/-/core-0.17.22.tgz#76ac52b1fd77f529567c058199fd7f448050ac69"
-  integrity sha512-TUXvZMAN5IgFF8VUt7NVXG2XWzR2RccVfuySlFLJ+kztcP+d/Jt/Go+dtg2KT7okW/CTY4Co7ifDOhZwk2EGeA==
-  dependencies:
-    "@babel/runtime" "^7.1.2"
-    "@emotion/core" "^10.0.28"
-    "@emotion/styled" "^10.0.27"
-    "@types/d3-format" "^1.3.0"
-    "@types/d3-interpolate" "^1.3.1"
-    "@types/d3-scale" "^2.1.1"
-    "@types/d3-time" "^1.0.9"
-    "@types/d3-time-format" "^2.1.0"
-    "@types/lodash" "^4.14.149"
-    "@types/rison" "0.0.6"
-    "@types/seedrandom" "^2.4.28"
-    "@vx/responsive" "^0.0.199"
-    csstype "^2.6.4"
-    d3-format "^1.3.2"
-    d3-interpolate "^1.4.0"
-    d3-scale "^3.0.0"
-    d3-time "^1.0.10"
-    d3-time-format "^2.2.0"
-    emotion-theming "^10.0.27"
-    fetch-retry "^4.0.1"
-    jed "^1.1.1"
-    lodash "^4.17.11"
-    pretty-ms "^7.0.0"
-    react-error-boundary "^1.2.5"
-    react-markdown "^4.3.1"
-    reselect "^4.0.0"
-    rison "^0.1.1"
-    seedrandom "^3.0.5"
-    whatwg-fetch "^3.0.0"
-
 "@superset-ui/core@file:packages/superset-ui-core/src":
   version "0.0.0"
 
@@ -4381,10 +4337,10 @@
     d3-cloud "^1.2.1"
     prop-types "^15.6.2"
 
-"@superset-ui/react-pivottable@^0.12.4":
-  version "0.12.4"
-  resolved "https://registry.yarnpkg.com/@superset-ui/react-pivottable/-/react-pivottable-0.12.4.tgz#ca6e6adc669ea366d12e1c09404e8347c5c65b37"
-  integrity sha512-yS00r7QlxblDkye6LV5Lum/59YX52tYxjOdv5CVATcidAhFaxHIyhc864odUxMYUoFoWrLWPnQl9FFbPOtBt8A==
+"@superset-ui/react-pivottable@^0.12.5":
+  version "0.12.5"
+  resolved "https://registry.yarnpkg.com/@superset-ui/react-pivottable/-/react-pivottable-0.12.5.tgz#11448d718f4bf3d9421767c18590604dc436ed1f"
+  integrity sha512-9Nmj/sRdc6U/OUWBqfqHAaV05MCmNLt65I/Ar39brpLcaYKWRIYpBcUT3n/HOhCr8ALilnsLdQzzfjjaNAuv5w==
   dependencies:
     immutability-helper "^3.1.1"
     prop-types "^15.7.2"
