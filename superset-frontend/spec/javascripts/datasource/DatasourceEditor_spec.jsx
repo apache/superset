@@ -21,7 +21,7 @@ import { shallow } from 'enzyme';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
-import { Radio } from 'src/common/components/Radio';
+import { Radio } from 'src/components/Radio';
 
 import Icon from 'src/components/Icon';
 import Tabs from 'src/common/components/Tabs';
