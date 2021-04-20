@@ -208,20 +208,6 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         finally:
             self.revoke_public_access_to_table(accessed_table)
 
-    def test_get_dashboard_api_no_data_access(self):
-        """
-        Dashboard API: Test get dashboard without data access
-        """
-        admin = self.get_user("admin")
-        dashboard = create_dashboard_to_db(
-            random_title(), random_slug(), owners=[admin]
-        )
-
-        self.login(username="gamma")
-        uri = DASHBOARD_API_URL_FORMAT.format(dashboard.id)
-        rv = self.client.get(uri)
-        self.assert404(rv)
-
     def test_get_dashboards_api_no_data_access(self):
         """
         Dashboard API: Test get dashboards no data access
