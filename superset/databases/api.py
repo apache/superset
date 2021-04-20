@@ -65,8 +65,6 @@ from superset.databases.schemas import (
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.base import BaseParametersMixin
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException
 from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.typing import FlaskResponse

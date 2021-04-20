@@ -942,6 +942,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param cols: Columns to include in query
         :return: SQL query
         """
+        # pylint: disable=redefined-outer-name
         fields: Union[str, List[Any]] = "*"
         cols = cols or []
         if (show_cols or latest_partition) and not cols:
