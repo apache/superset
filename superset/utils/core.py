@@ -1088,10 +1088,10 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
     extras = form_data.get("extras", {})
     for key in EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS:
         value = extra_form_data.get(key)
-        extra = extras.get(key)
-        if value and extra:
+        if value is not None:
             extras[key] = value
-    form_data.update(extras)
+    if extras:
+        form_data["extras"] = extras
 
     adhoc_filters = form_data.get("adhoc_filters", [])
     form_data["adhoc_filters"] = adhoc_filters
