@@ -564,13 +564,15 @@ class Database(
 
     @property
     def db_engine_spec(self) -> Type[db_engine_specs.BaseEngineSpec]:
-        return db_engine_specs.engines.get(self.backend, db_engine_specs.BaseEngineSpec)
+        engines = db_engine_specs.get_engine_specs()
+        return engines.get(self.backend, db_engine_specs.BaseEngineSpec)
 
     @classmethod
     def get_db_engine_spec_for_backend(
         cls, backend: str
     ) -> Type[db_engine_specs.BaseEngineSpec]:
-        return db_engine_specs.engines.get(backend, db_engine_specs.BaseEngineSpec)
+        engines = db_engine_specs.get_engine_specs()
+        return engines.get(backend, db_engine_specs.BaseEngineSpec)
 
     def grains(self) -> Tuple[TimeGrain, ...]:
         """Defines time granularity database-specific expressions.

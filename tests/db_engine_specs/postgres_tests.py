@@ -20,7 +20,7 @@ from unittest import mock
 from sqlalchemy import column, literal_column
 from sqlalchemy.dialects import postgresql
 
-from superset.db_engine_specs import engines
+from superset.db_engine_specs import get_engine_specs
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
@@ -132,7 +132,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         """
         DB Eng Specs (postgres): Test "postgres" in engine spec
         """
-        self.assertIn("postgres", engines)
+        self.assertIn("postgres", get_engine_specs())
 
     def test_extras_without_ssl(self):
         db = mock.Mock()
