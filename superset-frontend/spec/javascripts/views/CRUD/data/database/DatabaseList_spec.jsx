@@ -22,6 +22,10 @@ import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { Provider } from 'react-redux';
 import { styledMount as mount } from 'spec/helpers/theming';
+import { render, screen, cleanup } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+import { QueryParamProvider } from 'use-query-params';
+import * as featureFlags from 'src/featureFlags';
 
 import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
 import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
@@ -176,5 +180,45 @@ describe('DatabaseList', () => {
     expect(fetchMock.lastCall()[0]).toMatchInlineSnapshot(
       `"http://localhost/api/v1/database/?q=(filters:!((col:expose_in_sqllab,opr:eq,value:!t),(col:allow_run_async,opr:eq,value:!f),(col:database_name,opr:ct,value:fooo)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
     );
+  });
+});
+
+describe('RTL', () => {
+  async function renderAndWait() {
+    const mounted = act(async () => {
+      render(
+        <QueryParamProvider>
+          <DatabaseList user={mockUser} />
+        </QueryParamProvider>,
+        { useRedux: true },
+      );
+    });
+
+    return mounted;
+  }
+
+  let isFeatureEnabledMock;
+  beforeEach(async () => {
+    isFeatureEnabledMock = jest
+      .spyOn(featureFlags, 'isFeatureEnabled')
+      .mockImplementation(() => true);
+    await renderAndWait();
+  });
+
+  afterEach(() => {
+    cleanup();
+    isFeatureEnabledMock.mockRestore();
+  });
+
+  it('renders an "Import Database" tooltip under import button', async () => {
+    const importButton = screen.getByTestId('import-button');
+    userEvent.hover(importButton);
+
+    await screen.findByRole('tooltip');
+    const importTooltip = screen.getByRole('tooltip', {
+      name: 'Import databases',
+    });
+
+    expect(importTooltip).toBeInTheDocument();
   });
 });

@@ -492,7 +492,15 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
     buttonArr.push({
-      name: <Icons.Import />,
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import datasets')}
+          placement="bottomRight"
+        >
+          <Icons.Import data-test="import-button" />
+        </Tooltip>
+      ),
       buttonStyle: 'link',
       onClick: openDatasetImportModal,
     });
