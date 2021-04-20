@@ -23,7 +23,13 @@ import { DataMaskState } from 'src/dataMask/types';
 import { CheckOutlined, EllipsisOutlined } from '@ant-design/icons';
 import { HandlerFunction, styled, supersetTheme, t } from '@superset-ui/core';
 import { Tooltip } from 'src/common/components/Tooltip';
+import Button from 'src/components/Button';
 import FiltersHeader from './FiltersHeader';
+import { getFilterBarTestId } from '..';
+
+const HeaderButton = styled(Button)`
+  padding: 0;
+`;
 
 const TitleText = styled.div`
   display: flex;
@@ -34,9 +40,10 @@ const TitleText = styled.div`
 const IconsBlock = styled.div`
   display: flex;
   justify-content: flex-end;
-  align-items: flex-start;
-  & > * {
-    ${({ theme }) => `padding-left: ${theme.gridUnit * 2}px`};
+  align-items: center;
+  & > *,
+  & > button.superset-button {
+    ${({ theme }) => `margin-left: ${theme.gridUnit * 2}px`};
   }
 `;
 
@@ -102,12 +109,17 @@ const FilterSetUnit: FC<FilterSetUnitProps> = ({
               placement="bottomRight"
               trigger={['click']}
             >
-              <EllipsisOutlined
+              <HeaderButton
                 onClick={e => {
                   e.stopPropagation();
                   e.preventDefault();
                 }}
-              />
+                {...getFilterBarTestId('filter-set-menu-button')}
+                buttonStyle="link"
+                buttonSize="xsmall"
+              >
+                <EllipsisOutlined />
+              </HeaderButton>
             </Dropdown>
           )}
         </IconsBlock>
