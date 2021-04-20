@@ -19,7 +19,7 @@
 import { t, styled } from '@superset-ui/core';
 import React, { FC } from 'react';
 import Button from 'src/components/Button';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import { APPLY_FILTERS_HINT } from './utils';
 import { useFilterSetNameDuplicated } from './state';
 import { getFilterBarTestId } from '..';

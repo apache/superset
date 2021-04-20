@@ -19,7 +19,7 @@
 import React from 'react';
 import { t, supersetTheme } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 
 export interface CertifiedIconProps {
   certifiedBy?: string;

@@ -25,7 +25,7 @@ import DatasourceModal from 'src/datasource/DatasourceModal';
 import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
 import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
 import Icon from 'src/components/Icon';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 
 const defaultProps = {
   name: 'datasource',
