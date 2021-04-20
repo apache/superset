@@ -34,6 +34,7 @@ export type DatabaseObject = {
   // Performance
   cache_timeout?: string;
   allow_run_async?: boolean;
+  metadata_cache_timeout?: number;
 
   // SQL Lab
   expose_in_sqllab?: boolean;
@@ -42,6 +43,7 @@ export type DatabaseObject = {
   allow_dml?: boolean;
   allow_multi_schema_metadata_fetch?: boolean;
   force_ctas_schema?: string;
+  allows_virtual_table_explore?: boolean;
 
   // Security
   encrypted_extra?: string;

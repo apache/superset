@@ -473,6 +473,28 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               />
             </div>
           </StyledInputContainer>
+          <StyledInputContainer>
+            <div className="control-label">{t('Metadata cache timeout')}</div>
+            <div className="input-container">
+              <input
+                type="number"
+                name="metadata_cache_timeout"
+                value={db?.metadata_cache_timeout || ''}
+                placeholder={t('Metadata cache timeout')}
+                onChange={onInputChange}
+              />
+            </div>
+            {/* ----------
+            
+            🚨 Coming back to this once I figure out what the tooltip should actually say 🚨
+            
+            ---------- */}
+            <div className="helper">
+              {t(
+                'The metadata_cache_timeout is a cache timeout setting in seconds for metadata fetch of this database. Specify it as "metadata_cache_timeout": {"schema_cache_timeout": 600, "table_cache_timeout": 600}. If unset, cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.',
+              )}
+            </div>
+          </StyledInputContainer>
         </Tabs.TabPane>
         <Tabs.TabPane tab={<span>{t('SQL Lab settings')}</span>} key="3">
           <StyledInputContainer>
@@ -576,6 +598,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                         'Allow SQL Lab to fetch a list of all tables and all views across all database ' +
                           'schemas. For large data warehouse with thousands of tables, this can be ' +
                           'expensive and put strain on the system.',
+                      )}
+                    />
+                  </div>
+                </StyledInputContainer>
+                <StyledInputContainer>
+                  <div className="input-container">
+                    <IndeterminateCheckbox
+                      id="allows_virtual_table_explore"
+                      indeterminate={false}
+                      checked={!!db?.allows_virtual_table_explore}
+                      onChange={onInputChange}
+                      labelText={t('Allow this database to be explored')}
+                    />
+                    {/* ----------
+                    
+                    🚨 Coming back to this once I figure out what the tooltip should actually say 🚨
+                    
+                    ---------- */}
+                    <InfoTooltip
+                      tooltip={t(
+                        'The allows_virtual_table_explore field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.',
                       )}
                     />
                   </div>

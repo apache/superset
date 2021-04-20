@@ -161,7 +161,7 @@ describe('DatabaseModal', () => {
         .getAllByRole('checkbox')
         .filter(checkbox => !checkbox.checked);
 
-      expect(checkboxes.length).toEqual(4);
+      expect(checkboxes.length).toEqual(5);
     });
 
     it('renders the schema field when allowCTAS is checked', () => {
