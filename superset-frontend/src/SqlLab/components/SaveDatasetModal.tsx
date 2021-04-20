@@ -19,7 +19,7 @@
 
 import React, { FunctionComponent } from 'react';
 import { AutoCompleteProps } from 'antd/lib/auto-complete';
-import { Radio } from 'src/common/components/Radio';
+import { Radio } from 'src/components/Radio';
 import { AutoComplete, Input } from 'src/common/components';
 import StyledModal from 'src/components/Modal';
 import Button from 'src/components/Button';

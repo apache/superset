@@ -20,7 +20,7 @@
 import React from 'react';
 import { FormControl, FormGroup } from 'react-bootstrap';
 import { RadioChangeEvent } from 'src/common/components';
-import { Radio } from 'src/common/components/Radio';
+import { Radio } from 'src/components/Radio';
 import Button from 'src/components/Button';
 import { t, CategoricalColorNamespace, JsonResponse } from '@superset-ui/core';
 
