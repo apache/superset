@@ -4,11 +4,11 @@
 
 1. First, make sure you have run `yarn` and `yarn build` in `superset-ui` or your own plugin repo.
 2. Go to
-   [superset-frontend](https://github.com/apache/incubator-superset/tree/master/superset-frontend),
+   [superset-frontend](https://github.com/apache/superset/tree/master/superset-frontend),
    use `npm link` to create a symlink of the plugin source code in `node_modules`:
 
    ```sh
-   cd incubator-superset/superset-frontend
+   cd superset/superset-frontend
    # npm link ~/path/to/your/plugin
    npm link ../../superset-ui/plugins/plugin-chart-word-cloud
    ```
@@ -24,4 +24,4 @@
 
 ## Deactivate plugins
 
-To deactivate a plugin, simply run `npm install` in `incubator-superset/superset-frontend` again.
+To deactivate a plugin, simply run `npm install` in `superset/superset-frontend` again.
