@@ -125,3 +125,15 @@ export const detectOS = () => {
 
   return 'Unknown OS';
 };
+
+// Using bem standard
+export const testWithId = (prefix, idOnly = false) => id => {
+  if (!id) {
+    return idOnly ? prefix : { 'data-test': prefix };
+  }
+  if (!prefix) {
+    return idOnly ? id : { 'data-test': id };
+  }
+  const newId = `${prefix}__${id}`;
+  return idOnly ? newId : { 'data-test': newId };
+};
