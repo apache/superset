@@ -33,6 +33,8 @@ from sqlalchemy.sql import func
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
+from superset.db_engine_specs.mysql import MySQLEngineSpec
+from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import SupersetError
 from superset.models.core import Database
 from superset.models.reports import ReportSchedule, ReportScheduleType
@@ -613,7 +615,8 @@ class TestDatabaseApi(SupersetTestCase):
         assert "can_read" in data["permissions"]
         assert "can_write" in data["permissions"]
         assert "can_function_names" in data["permissions"]
-        assert len(data["permissions"]) == 3
+        assert "can_available" in data["permissions"]
+        assert len(data["permissions"]) == 4
 
     def test_get_invalid_database_table_metadata(self):
         """
@@ -1245,3 +1248,65 @@ class TestDatabaseApi(SupersetTestCase):
 
         assert rv.status_code == 200
         assert response == {"function_names": ["AVG", "MAX", "SUM"]}
+
+    @mock.patch("superset.databases.api.get_available_engine_specs")
+    @mock.patch("superset.databases.api.app")
+    def test_available(self, app, get_available_engine_specs):
+        app.config = {"PREFERRED_DATABASES": ["postgresql"]}
+        get_available_engine_specs.return_value = [
+            MySQLEngineSpec,
+            PostgresEngineSpec,
+        ]
+
+        self.login(username="admin")
+        uri = "api/v1/database/available/"
+
+        rv = self.client.get(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {
+            "databases": [
+                {
+                    "engine": "postgresql",
+                    "name": "PostgreSQL",
+                    "parameters": {
+                        "properties": {
+                            "database": {
+                                "description": "Database name",
+                                "type": "string",
+                            },
+                            "host": {
+                                "description": "Hostname or IP address",
+                                "type": "string",
+                            },
+                            "password": {
+                                "description": "Password",
+                                "nullable": True,
+                                "type": "string",
+                            },
+                            "port": {
+                                "description": "Database port",
+                                "format": "int32",
+                                "type": "integer",
+                            },
+                            "query": {
+                                "additionalProperties": {},
+                                "description": "Additinal parameters",
+                                "type": "object",
+                            },
+                            "username": {
+                                "description": "Username",
+                                "nullable": True,
+                                "type": "string",
+                            },
+                        },
+                        "required": ["database", "host", "port"],
+                        "type": "object",
+                    },
+                    "preferred": True,
+                    "sqlalchemy_uri_placeholder": "postgresql+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
+                },
+                {"engine": "mysql", "name": "MySQL", "preferred": False},
+            ]
+        }
