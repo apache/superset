@@ -421,7 +421,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                       />
                     </div>
                   </StyledInputContainer>
-                  <StyledInputContainer>
+                  <StyledInputContainer className="mb-0">
                     <div className="input-container">
                       <IndeterminateCheckbox
                         id="allow_multi_schema_metadata_fetch"
@@ -435,6 +435,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                           'Allow SQL Lab to fetch a list of all tables and all views across all database ' +
                             'schemas. For large data warehouse with thousands of tables, this can be ' +
                             'expensive and put strain on the system.',
+                        )}
+                      />
+                    </div>
+                  </StyledInputContainer>
+                  <StyledInputContainer>
+                    <div className="input-container">
+                      <IndeterminateCheckbox
+                        id="allows_virtual_table_explore"
+                        indeterminate={false}
+                        checked={!!db?.allows_virtual_table_explore}
+                        onChange={onInputChange}
+                        labelText={t('Allow this database to be explored')}
+                      />
+                      {/* ----------
+                      
+                      🚨 Coming back to this once I figure out what the tooltip should actually say 🚨
+                      
+                      ---------- */}
+                      <InfoTooltip
+                        tooltip={t(
+                          'The allows_virtual_table_explore field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.',
                         )}
                       />
                     </div>
