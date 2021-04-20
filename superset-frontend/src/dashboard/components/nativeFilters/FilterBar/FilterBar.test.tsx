@@ -21,9 +21,13 @@ import React from 'react';
 import { render, screen, cleanup } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import userEvent from '@testing-library/user-event';
-import { getMockStore, mockStore } from 'spec/fixtures/mockStore';
+import {
+  getMockStore,
+  mockStore,
+  stateWithoutNativeFilters,
+} from 'spec/fixtures/mockStore';
 import * as mockCore from '@superset-ui/core';
-import { testWithId } from 'src/utils/common';
+import { testWithId } from 'src/utils/testUtils';
 import { FeatureFlag } from 'src/featureFlags';
 import { Preset } from '@superset-ui/core';
 import { TimeFilterPlugin, SelectFilterPlugin } from 'src/filters/components';
@@ -48,9 +52,12 @@ class MainPreset extends Preset {
   }
 }
 
-const getTestId = testWithId(FILTER_BAR_TEST_ID, true);
-const getModalTestId = testWithId(FILTERS_CONFIG_MODAL_TEST_ID, true);
-const getDateControlTestId = testWithId(DATE_FILTER_CONTROL_TEST_ID, true);
+const getTestId = testWithId<string>(FILTER_BAR_TEST_ID, true);
+const getModalTestId = testWithId<string>(FILTERS_CONFIG_MODAL_TEST_ID, true);
+const getDateControlTestId = testWithId<string>(
+  DATE_FILTER_CONTROL_TEST_ID,
+  true,
+);
 
 const FILTER_NAME = 'Time filter 1';
 const FILTER_SET_NAME = 'New filter set';
@@ -100,6 +107,7 @@ const changeFilterValue = async () => {
 };
 
 describe('FilterBar', () => {
+  new MainPreset().register();
   const toggleFiltersBar = jest.fn();
   const closedBarProps = {
     filtersOpen: false,
@@ -108,16 +116,6 @@ describe('FilterBar', () => {
   const openedBarProps = {
     filtersOpen: true,
     toggleFiltersBar,
-  };
-  const noFiltersState = {
-    dashboardInfo: {
-      dash_edit_perm: true,
-      metadata: {
-        native_filter_configuration: [],
-      },
-    },
-    dataMask: {},
-    nativeFilters: { filters: {}, filterSets: {} },
   };
 
   const mockApi = jest.fn(async data => {
@@ -169,7 +167,6 @@ describe('FilterBar', () => {
     };
   });
 
-  new MainPreset().register();
   beforeEach(() => {
     toggleFiltersBar.mockClear();
     fetchMock.get(
@@ -265,7 +262,7 @@ describe('FilterBar', () => {
 
   it('no edit filter button by disabled permissions', () => {
     renderWrapper(openedBarProps, {
-      ...noFiltersState,
+      ...stateWithoutNativeFilters,
       dashboardInfo: { metadata: {} },
     });
 
@@ -285,7 +282,7 @@ describe('FilterBar', () => {
   });
 
   it('no filters', () => {
-    renderWrapper(openedBarProps, noFiltersState);
+    renderWrapper(openedBarProps, stateWithoutNativeFilters);
 
     expect(screen.getByTestId(getTestId('clear-button'))).toBeDisabled();
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
@@ -297,7 +294,7 @@ describe('FilterBar', () => {
       [FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET]: true,
       [FeatureFlag.DASHBOARD_NATIVE_FILTERS]: true,
     };
-    renderWrapper(openedBarProps, noFiltersState);
+    renderWrapper(openedBarProps, stateWithoutNativeFilters);
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
 
     addFilterFlow();
@@ -315,7 +312,7 @@ describe('FilterBar', () => {
     global.featureFlags = {
       [FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET]: true,
     };
-    renderWrapper(openedBarProps, noFiltersState);
+    renderWrapper(openedBarProps, stateWithoutNativeFilters);
 
     addFilterFlow();
 
@@ -357,7 +354,7 @@ describe('FilterBar', () => {
       [FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET]: true,
       [FeatureFlag.DASHBOARD_NATIVE_FILTERS]: true,
     };
-    renderWrapper(openedBarProps, noFiltersState);
+    renderWrapper(openedBarProps, stateWithoutNativeFilters);
 
     addFilterFlow();
 

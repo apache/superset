@@ -123,7 +123,7 @@ export const createHandleSave = (
     removedFilters,
     setCurrentFilterId,
   );
-  if (values == null) return;
+  if (values === null) return;
 
   const newFilterConfig: FilterConfiguration = filterIds
     .filter(id => !removedFilters[id])
