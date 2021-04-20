@@ -22,9 +22,9 @@ import { withKnobs, boolean } from '@storybook/addon-knobs';
 import { CronPicker, CronError } from 'src/components/CronPicker';
 import Modal from 'src/components/Modal';
 import InfoTooltip from 'src/components/InfoTooltip';
+import { Dropdown } from 'src/components/Dropdown';
 import Tabs, { EditableTabs } from './Tabs';
 import { Menu, Input, Divider } from '.';
-import { Dropdown } from './Dropdown';
 
 export default {
   title: 'Common components',
