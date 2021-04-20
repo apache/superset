@@ -25,6 +25,10 @@ import * as featureFlags from 'src/featureFlags';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
+import { render, screen, cleanup } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+import { QueryParamProvider } from 'use-query-params';
+import { act } from 'react-dom/test-utils';
 
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DashboardList from 'src/views/CRUD/dashboard/DashboardList';
@@ -170,5 +174,46 @@ describe('DashboardList', () => {
       .simulate('click');
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find(ConfirmStatusChange)).toExist();
+  });
+});
+
+describe('RTL', () => {
+  async function renderAndWait() {
+    const mounted = act(async () => {
+      const mockedProps = {};
+      render(
+        <QueryParamProvider>
+          <DashboardList {...mockedProps} user={mockUser} />
+        </QueryParamProvider>,
+        { useRedux: true },
+      );
+    });
+
+    return mounted;
+  }
+
+  let isFeatureEnabledMock;
+  beforeEach(async () => {
+    isFeatureEnabledMock = jest
+      .spyOn(featureFlags, 'isFeatureEnabled')
+      .mockImplementation(() => true);
+    await renderAndWait();
+  });
+
+  afterEach(() => {
+    cleanup();
+    isFeatureEnabledMock.mockRestore();
+  });
+
+  it('renders an "Import Dashboard" tooltip under import button', async () => {
+    const importButton = screen.getByTestId('import-button');
+    userEvent.hover(importButton);
+
+    await screen.findByRole('tooltip');
+    const importTooltip = screen.getByRole('tooltip', {
+      name: 'Import dashboards',
+    });
+
+    expect(importTooltip).toBeInTheDocument();
   });
 });

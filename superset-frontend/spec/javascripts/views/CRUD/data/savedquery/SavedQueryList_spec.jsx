@@ -22,7 +22,7 @@ import configureStore from 'redux-mock-store';
 import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
-import { render, screen, cleanup } from 'spec/helpers/testing-library';
+import { render, screen, cleanup, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import { act } from 'react-dom/test-utils';
@@ -229,10 +229,9 @@ describe('RTL', () => {
     const mounted = act(async () => {
       render(
         <QueryParamProvider>
-          <Provider store={store}>
-            <SavedQueryList />
-          </Provider>
+          <SavedQueryList />
         </QueryParamProvider>,
+        { useRedux: true },
       );
     });
 
@@ -296,26 +295,39 @@ describe('RTL', () => {
 
   it('renders an import button in the submenu', () => {
     // Grab and assert that import saved query button is visible
-    const importSavedQueryButton = screen.getAllByRole('button')[2];
-    expect(importSavedQueryButton).toBeVisible();
+    const importButton = screen.getByTestId('import-button');
+    expect(importButton).toBeVisible();
+  });
+
+  it('renders an "Import Saved Query" tooltip under import button', async () => {
+    const importButton = screen.getByTestId('import-button');
+    userEvent.hover(importButton);
+    waitFor(() => {
+      expect(importButton).toHaveClass('ant-tooltip-open');
+      screen.findByTestId('import-tooltip-test');
+      const importTooltip = screen.getByRole('tooltip', {
+        name: 'Import queries',
+      });
+      expect(importTooltip).toBeInTheDocument();
+    });
   });
 
   it('renders an import model when import button is clicked', async () => {
     // Grab and click import saved query button to reveal modal
-    const importSavedQueryButton = screen.getAllByRole('button')[2];
-    userEvent.click(importSavedQueryButton);
+    const importButton = screen.getByTestId('import-button');
+    userEvent.click(importButton);
 
     // Grab and assert that saved query import modal's heading is visible
     const importSavedQueryModalHeading = screen.getByRole('heading', {
-      name: /import saved query/i,
+      name: 'Import queries',
     });
     expect(importSavedQueryModalHeading).toBeVisible();
   });
 
   it('imports a saved query', () => {
     // Grab and click import saved query button to reveal modal
-    const importSavedQueryButton = screen.getAllByRole('button')[2];
-    userEvent.click(importSavedQueryButton);
+    const importButton = screen.getByTestId('import-button');
+    userEvent.click(importButton);
 
     // Grab "Choose File" input from import modal
     const chooseFileInput = screen.getByLabelText(/file\*/i);
