@@ -22,6 +22,7 @@ import { t, styled } from '@superset-ui/core';
 import { Form } from 'src/common/components';
 import { StyledModal } from 'src/components/Modal';
 import ErrorBoundary from 'src/components/ErrorBoundary';
+import { testWithId } from 'src/utils/common';
 import { useFilterConfigMap, useFilterConfiguration } from '../state';
 import { FilterRemoval, NativeFiltersForm } from './types';
 import { FilterConfiguration } from '../types';
@@ -48,6 +49,11 @@ export const StyledModalBody = styled.div`
 export const StyledForm = styled(Form)`
   width: 100%;
 `;
+
+export const FILTERS_CONFIG_MODAL_TEST_ID = 'filters-config-modal';
+export const getFiltersConfigModalTestId = testWithId(
+  FILTERS_CONFIG_MODAL_TEST_ID,
+);
 
 export interface FiltersConfigModalProps {
   isOpen: boolean;

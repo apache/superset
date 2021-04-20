@@ -52,12 +52,12 @@ describe('Nativefilters', () => {
 
   it('should show filter bar and allow user to create filters ', () => {
     cy.get('[data-test="filter-bar"]').should('be.visible');
-    cy.get('[data-test="collapse"]').click();
-    cy.get('[data-test="create-filter"]').click();
+    cy.get('[data-test="filter-bar__expand-button"]').click();
+    cy.get('[data-test="filter-bar__create-filter"]').click();
     cy.get('.ant-modal').should('be.visible');
 
     cy.get('.ant-modal')
-      .find('[data-test="name-input"]')
+      .find('[data-test="filters-config-modal__name-input"]')
       .click()
       .type('Country name');
 
@@ -90,14 +90,14 @@ describe('Nativefilters', () => {
   it('should filter dashboard with selected filter value', () => {
     cy.get('[data-test="form-item-value"]').should('be.visible').click();
     cy.get('.ant-select-selection-search').type('Hong Kong{enter}');
-    cy.get('[data-test="filter-apply-button"]').click();
+    cy.get('[data-test="filter-bar__apply-button"]').click();
     cy.get('.treemap').within(() => {
       cy.contains('HKG').should('be.visible');
       cy.contains('USA').should('not.exist');
     });
   });
   xit('default value is respected after revisit', () => {
-    cy.get('[data-test="create-filter"]').click();
+    cy.get('[data-test="filter-bar__create-filter"]').click();
     cy.get('.ant-modal').should('be.visible');
     // TODO: replace with proper wait for filter to finish loading
     cy.wait(1000);
@@ -118,7 +118,7 @@ describe('Nativefilters', () => {
     cy.contains('Sweden');
   });
   it('should allow for deleted filter restore', () => {
-    cy.get('[data-test="create-filter"]').click();
+    cy.get('[data-test="filter-bar__create-filter"]').click();
     cy.get('.ant-modal').should('be.visible');
     cy.get('.ant-tabs-nav-list').within(() => {
       cy.get('.ant-tabs-tab-remove').click();
@@ -132,7 +132,7 @@ describe('Nativefilters', () => {
   });
 
   it('should stop filtering when filter is removed', () => {
-    cy.get('[data-test="create-filter"]').click();
+    cy.get('[data-test="filter-bar__create-filter"]').click();
     cy.get('.ant-modal').should('be.visible');
     cy.get('.ant-tabs-nav-list').within(() => {
       cy.get('.ant-tabs-tab-remove').click();
@@ -149,12 +149,12 @@ describe('Nativefilters', () => {
   describe('Parent Filters', () => {
     it('should allow for creating parent filters ', () => {
       cy.get('[data-test="filter-bar"]').should('be.visible');
-      cy.get('[data-test="collapse"]').click();
-      cy.get('[data-test="create-filter"]').click();
+      cy.get('[data-test="filter-bar__expand-button"]').click();
+      cy.get('[data-test="filter-bar__create-filter"]').click();
       cy.get('.ant-modal').should('be.visible');
 
       cy.get('.ant-modal')
-        .find('[data-test="name-input"]')
+        .find('[data-test="filters-config-modal__name-input"]')
         .click()
         .type('Country name');
 
@@ -180,12 +180,12 @@ describe('Nativefilters', () => {
         .should('be.visible')
         .click();
 
-      cy.get('[data-test="create-filter"]').click();
+      cy.get('[data-test="filter-bar__create-filter"]').click();
       cy.get('.ant-modal').first().should('be.visible');
       cy.get('[data-test=add-filter-button]').first().click();
 
       cy.get('.ant-modal')
-        .find('[data-test="name-input"]')
+        .find('[data-test="filters-config-modal__name-input"]')
         .last()
         .click()
         .type('Region Name');
@@ -250,7 +250,7 @@ describe('Nativefilters', () => {
     });
 
     it('should stop filtering when parent filter is removed', () => {
-      cy.get('[data-test="create-filter"]').click();
+      cy.get('[data-test="filter-bar__create-filter"]').click();
       cy.get('.ant-modal').should('be.visible');
       cy.get('.ant-tabs-nav-list').within(() => {
         cy.get('.ant-tabs-tab-remove').click({ multiple: true });

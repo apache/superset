@@ -43,6 +43,7 @@ import ControlItems from './ControlItems';
 import FilterScope from './FilterScope/FilterScope';
 import RemovedFilter from './RemovedFilter';
 import DefaultValue from './DefaultValue';
+import { getFiltersConfigModalTestId } from '../FiltersConfigModal';
 
 const StyledContainer = styled.div`
   display: flex;
@@ -153,15 +154,15 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
           label={<StyledLabel>{t('Filter name')}</StyledLabel>}
           initialValue={filterToEdit?.name}
           rules={[{ required: !removed, message: t('Name is required') }]}
-          data-test="name-input"
         >
-          <Input />
+          <Input {...getFiltersConfigModalTestId('name-input')} />
         </StyledFormItem>
         <StyledFormItem
           name={['filters', filterId, 'filterType']}
           rules={[{ required: !removed, message: t('Name is required') }]}
           initialValue={filterToEdit?.filterType || 'filter_select'}
           label={<StyledLabel>{t('Filter Type')}</StyledLabel>}
+          {...getFiltersConfigModalTestId('filter-type')}
         >
           <Select
             options={nativeFilterVizTypes.map(filterType => ({
