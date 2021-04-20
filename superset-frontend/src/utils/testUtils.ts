@@ -20,9 +20,9 @@ import { JsonObject } from '@superset-ui/core';
 
 // Using bem standard
 export const testWithId = <T extends string | JsonObject = JsonObject>(
-  prefix: string,
+  prefix?: string,
   idOnly = false,
-) => (id: string): T => {
+) => (id?: string): T => {
   if (!id) {
     return (idOnly ? prefix : { 'data-test': prefix }) as T;
   }
