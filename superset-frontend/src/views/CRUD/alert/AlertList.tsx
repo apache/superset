@@ -24,7 +24,7 @@ import moment from 'moment';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import Button from 'src/components/Button';
 import FacePile from 'src/components/FacePile';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import ListView, {
   FilterOperators,
   Filters,

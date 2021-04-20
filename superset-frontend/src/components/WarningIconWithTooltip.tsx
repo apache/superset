@@ -19,7 +19,7 @@
 import React from 'react';
 import { supersetTheme, SafeMarkdown } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 
 interface WarningIconWithTooltipProps {
   warningMarkdown: string;

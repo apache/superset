@@ -27,7 +27,7 @@ import { Resizable } from 're-resizable';
 
 import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
 import { Global } from '@emotion/core';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import { usePrevious } from 'src/common/hooks/usePrevious';
 import Icon from 'src/components/Icon';
 import {

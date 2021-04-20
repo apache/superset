@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { t, styled, supersetTheme } from '@superset-ui/core';
 
 import { Dropdown, Menu } from 'src/common/components';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import Icon from 'src/components/Icon';
 import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
 import DatasourceModal from 'src/datasource/DatasourceModal';
