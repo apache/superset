@@ -41,7 +41,7 @@ import { Tooltip } from 'src/common/components/Tooltip';
 import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
-import { testWithId } from 'src/utils/common';
+import { testWithId } from 'src/utils/testUtils';
 import { SelectOptionType, FrameType } from './types';
 import {
   COMMON_RANGE_VALUES_SET,
