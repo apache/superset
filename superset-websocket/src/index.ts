@@ -20,10 +20,11 @@ import * as http from 'http';
 import * as net from 'net';
 import WebSocket from 'ws';
 import { v4 as uuidv4 } from 'uuid';
-import winston from 'winston';
 import jwt from 'jsonwebtoken';
 import cookie from 'cookie';
 import Redis from 'ioredis';
+
+import { createLogger } from './logger';
 
 export type StreamResult = [
   recordId: string,
@@ -113,20 +114,11 @@ try {
 Object.assign(opts, config);
 
 // init logger
-const logTransports: Array<winston.transport> = [
-  new winston.transports.Console({ handleExceptions: true }),
-];
-if (opts.logToFile && opts.logFilename) {
-  logTransports.push(
-    new winston.transports.File({
-      filename: opts.logFilename,
-      handleExceptions: true,
-    }),
-  );
-}
-const logger = winston.createLogger({
-  level: opts.logLevel,
-  transports: logTransports,
+const logger = createLogger({
+  silent: environment === 'test',
+  logLevel: opts.logLevel,
+  logToFile: opts.logToFile,
+  logFilename: opts.logFilename,
 });
 
 // enforce JWT secret length
