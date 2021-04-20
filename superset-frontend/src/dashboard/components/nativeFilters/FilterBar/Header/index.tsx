@@ -27,6 +27,7 @@ import { DataMaskState, DataMaskStateWithId } from 'src/dataMask/types';
 import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
+import { getFilterBarTestId } from '..';
 
 const TitleArea = styled.h4`
   display: flex;
@@ -53,6 +54,10 @@ const ActionButtons = styled.div`
   .btn {
     flex: 1;
   }
+`;
+
+const HeaderButton = styled(Button)`
+  padding: 0;
 `;
 
 type HeaderProps = {
@@ -98,14 +103,17 @@ const Header: FC<HeaderProps> = ({
         <span>{t('Filters')}</span>
         {canEdit && (
           <FilterConfigurationLink createNewOnOpen={filterValues.length === 0}>
-            <Icon name="edit" role="button" data-test="create-filter" />
+            <Icon name="edit" data-test="create-filter" />
           </FilterConfigurationLink>
         )}
-        <Icon
-          name="expand"
-          role="button"
+        <HeaderButton
+          {...getFilterBarTestId('collapse-button')}
+          buttonStyle="link"
+          buttonSize="xsmall"
           onClick={() => toggleFiltersBar(false)}
-        />
+        >
+          <Icon name="expand" />
+        </HeaderButton>
       </TitleArea>
       <ActionButtons>
         <Button
@@ -113,7 +121,7 @@ const Header: FC<HeaderProps> = ({
           buttonStyle="tertiary"
           buttonSize="small"
           onClick={handleClearAll}
-          data-test="filter-reset-button"
+          {...getFilterBarTestId('clear-button')}
         >
           {t('Clear all')}
         </Button>
@@ -123,7 +131,7 @@ const Header: FC<HeaderProps> = ({
           htmlType="submit"
           buttonSize="small"
           onClick={onApply}
-          data-test="filter-apply-button"
+          {...getFilterBarTestId('apply-button')}
         >
           {t('Apply')}
         </Button>

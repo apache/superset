@@ -38,7 +38,7 @@ export function getInitialDataMask(id: string): DataMaskWithId {
 
 const dataMaskReducer = produce(
   (draft: DataMaskStateWithId, action: AnyDataMaskAction) => {
-    const oldData = { ...draft };
+    const cleanState = {};
     switch (action.type) {
       case UPDATE_DATA_MASK:
         draft[action.filterId] = {
@@ -46,16 +46,17 @@ const dataMaskReducer = produce(
           ...action.dataMask,
           id: action.filterId,
         };
-        break;
+        return draft;
 
       case SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE:
         (action.filterConfig ?? []).forEach(filter => {
-          draft[filter.id] =
-            oldData[filter.id] ?? getInitialDataMask(filter.id);
+          cleanState[filter.id] =
+            draft[filter.id] ?? getInitialDataMask(filter.id);
         });
-        break;
+        return cleanState;
 
       default:
+        return draft;
     }
   },
   {},

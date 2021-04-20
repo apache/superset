@@ -84,7 +84,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
   getState,
 ) => {
   const { user, common } = getState();
-  const { metadata } = dashboardData;
+  let { metadata } = dashboardData;
   const queryParams = querystring.parse(window.location.search);
   const urlParams = extractUrlParams(queryParams);
   const editMode = queryParams.edit === 'true';
@@ -313,6 +313,10 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
             chartQueries[chartId]?.formData?.viz_type,
           ) ?? {}
         )?.behaviors ?? [];
+
+      if (!metadata) {
+        metadata = {};
+      }
 
       if (!metadata.chart_configuration) {
         metadata.chart_configuration = {};
