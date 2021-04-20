@@ -22,7 +22,7 @@ import { t, styled } from '@superset-ui/core';
 import { Form } from 'src/common/components';
 import { StyledModal } from 'src/components/Modal';
 import ErrorBoundary from 'src/components/ErrorBoundary';
-import { testWithId } from 'src/utils/common';
+import { testWithId } from 'src/utils/testUtils';
 import { useFilterConfigMap, useFilterConfiguration } from '../state';
 import { FilterRemoval, NativeFiltersForm } from './types';
 import { FilterConfiguration } from '../types';
