@@ -791,9 +791,16 @@ CSV_TO_HIVE_UPLOAD_S3_BUCKET = None
 CSV_TO_HIVE_UPLOAD_DIRECTORY = "EXTERNAL_HIVE_TABLES/"
 # Function that creates upload directory dynamically based on the
 # database used, user and schema provided.
-CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC: Callable[
-    ["Database", "models.User", str], Optional[str]
-] = lambda database, user, schema: CSV_TO_HIVE_UPLOAD_DIRECTORY
+def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(
+    database: "Database",
+    user: "models.User",  # pylint: disable=unused-argument
+    schema: Optional[str],
+) -> str:
+    # Note the final empty path enforces a trailing slash.
+    return os.path.join(
+        CSV_TO_HIVE_UPLOAD_DIRECTORY, str(database.id), schema or "", ""
+    )
+
 
 # The namespace within hive where the tables created from
 # uploading CSVs will be stored.
