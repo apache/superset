@@ -187,7 +187,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
             initialValue={{ value: initDatasetId }}
             label={<StyledLabel>{t('Dataset')}</StyledLabel>}
             rules={[{ required: !removed, message: t('Dataset is required') }]}
-            data-test="datasource-input"
+            {...getFiltersConfigModalTestId('datasource-input')}
           >
             <SupersetResourceSelect
               initialId={initDatasetId}

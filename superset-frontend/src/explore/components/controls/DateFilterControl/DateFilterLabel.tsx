@@ -55,7 +55,7 @@ import {
   CustomFrame,
   AdvancedFrame,
 } from './components';
-import { testWithId } from '../../../../utils/common';
+import { testWithId } from 'src/utils/testUtils';
 
 const guessFrame = (timeRange: string): FrameType => {
   if (COMMON_RANGE_VALUES_SET.has(timeRange)) {

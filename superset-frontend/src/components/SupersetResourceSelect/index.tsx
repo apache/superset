@@ -19,12 +19,13 @@
 import React, { useEffect } from 'react';
 import rison from 'rison';
 import { SupersetClient } from '@superset-ui/core';
-import { AsyncSelect } from 'src/components/Select';
+import { AsyncSelect, Select } from 'src/components/Select';
 import {
   ClientErrorObject,
   getClientErrorObject,
 } from 'src/utils/getClientErrorObject';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
+import { getFiltersConfigModalTestId } from '../../dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
 
 export type Value<V> = { value: V; label: string };
 
@@ -94,10 +95,12 @@ export default function SupersetResourceSelect<T, V>({
     return cachedSupersetGet({
       endpoint: `/api/v1/${resource}/?q=${query}`,
     }).then(
-      response =>
-        response.json.result
+      response => {
+        console.log(11111111, response);
+        return response.json.result
           .map(transformItem)
-          .sort((a: Value<V>, b: Value<V>) => a.label.localeCompare(b.label)),
+          .sort((a: Value<V>, b: Value<V>) => a.label.localeCompare(b.label));
+      },
       async badResponse => {
         onError(await getClientErrorObject(badResponse));
         return [];

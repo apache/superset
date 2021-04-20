@@ -35,7 +35,7 @@ import Footer from './Footer/Footer';
 import FilterTabs from './FilterTabs';
 import FiltersConfigForm from './FiltersConfigForm/FiltersConfigForm';
 import { useOpenModal, useRemoveCurrentFilter } from './state';
-import { testWithId } from '../../../../utils/common';
+import { testWithId } from 'src/utils/testUtils';
 
 export const StyledModalBody = styled.div`
   display: flex;
