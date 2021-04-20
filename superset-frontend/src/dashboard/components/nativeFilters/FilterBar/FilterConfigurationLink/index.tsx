@@ -51,7 +51,6 @@ export const FilterConfigurationLink: React.FC<FCBProps> = ({
 
   return (
     <>
-      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <HeaderButton
         {...getFilterBarTestId('create-filter')}
         buttonStyle="link"
