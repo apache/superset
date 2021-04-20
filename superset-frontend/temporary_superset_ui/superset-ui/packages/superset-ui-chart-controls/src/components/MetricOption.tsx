@@ -21,6 +21,7 @@ import { styled, Metric, SafeMarkdown } from '@superset-ui/core';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 import { ColumnTypeLabel } from './ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
+import Tooltip from './Tooltip';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -67,7 +68,9 @@ export function MetricOption({
           details={metric.certification_details}
         />
       )}
-      <span className="option-label">{link}</span>
+      <Tooltip id="metric-name-tooltip" title={verbose} trigger={['hover']} placement="top">
+        <span className="option-label">{link}</span>
+      </Tooltip>
       {metric.description && (
         <InfoTooltipWithTrigger
           className="text-muted"
