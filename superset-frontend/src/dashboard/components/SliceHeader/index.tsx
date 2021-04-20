@@ -18,7 +18,7 @@
  */
 import React, { FC } from 'react';
 import { styled, t } from '@superset-ui/core';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import { useSelector } from 'react-redux';
 import EditableTitle from 'src/components/EditableTitle';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';

@@ -22,7 +22,7 @@ import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { RangePicker } from 'src/components/DatePicker';
 import moment from 'moment';
 import Icon from 'src/components/Icon';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 

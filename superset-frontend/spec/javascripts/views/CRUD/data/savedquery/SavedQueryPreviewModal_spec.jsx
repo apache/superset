@@ -23,7 +23,7 @@ import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
 import SavedQueryPreviewModal from 'src/views/CRUD/data/savedquery/SavedQueryPreviewModal';
 import Button from 'src/components/Button';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { act } from 'react-dom/test-utils';
 

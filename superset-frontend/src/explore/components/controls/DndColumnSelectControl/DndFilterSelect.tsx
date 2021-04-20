@@ -19,7 +19,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { logging, SupersetClient, t, Metric } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import { OPERATORS } from 'src/explore/constants';
 import { OptionSortType } from 'src/explore/types';
 import {

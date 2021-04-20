@@ -11,9 +11,11 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v2
         with:
+          persist-credentials: false
+          submodules: recursive
           fetch-depth: 0
 
       - name: Configure Git
@@ -27,7 +29,7 @@ jobs:
           version: v3.5.4
 
       - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.2.0
+        uses: ./.github/actions/chart-releaser-action
         with:
           charts_dir: helm
         env:
