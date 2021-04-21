@@ -44,6 +44,8 @@ import {
   MarkArea1DDataItemOption,
   MarkArea2DDataItemOption,
 } from 'echarts/types/src/component/marker/MarkAreaModel';
+import { MarkLine1DDataItemOption } from 'echarts/types/src/component/marker/MarkLineModel';
+
 import { extractForecastSeriesContext } from '../utils/prophet';
 import { ForecastSeriesEnum, LegendOrientation } from '../types';
 import { EchartsTimeseriesSeriesType } from './types';
@@ -234,10 +236,12 @@ export function transformEventAnnotation(
     const { name, color, opacity, style, width } = layer;
     const { descriptions, time, title } = annotation;
     const label = formatAnnotationLabel(name, title, descriptions);
-    const eventData = [
+    const eventData: MarkLine1DDataItemOption[] = [
       {
         name: label,
         xAxis: (time as unknown) as number,
+        // TODO: remove when https://github.com/apache/echarts/pull/14693 is released
+        symbolOffset: 0,
       },
     ];
 

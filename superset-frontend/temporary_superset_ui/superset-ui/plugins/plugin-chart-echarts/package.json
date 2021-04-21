@@ -30,7 +30,7 @@
     "@superset-ui/core": "0.17.32",
     "@types/mathjs": "^6.0.7",
     "d3-array": "^1.2.0",
-    "echarts": "^5.0.2",
+    "echarts": "^5.1.0",
     "mathjs": "^8.0.1"
   },
   "peerDependencies": {

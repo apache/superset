@@ -10116,13 +10116,13 @@ ecc-jsbn@~0.1.1:
     jsbn "~0.1.0"
     safer-buffer "^2.1.0"
 
-echarts@^5.0.2:
-  version "5.0.2"
-  resolved "https://registry.yarnpkg.com/echarts/-/echarts-5.0.2.tgz#1726d17a57cf05d62cd0567b4325e1201a56baf6"
-  integrity sha512-En0VYpc96nw2/2AZoBWPHsGi471zMublttj50kfFpYAeR4geup0Tj9iVgEXh7QYZFPnRiruDJEjcB5PXZ+BYzQ==
+echarts@^5.1.0:
+  version "5.1.0"
+  resolved "https://registry.yarnpkg.com/echarts/-/echarts-5.1.0.tgz#768cc585aa092560f48f01b2d52de493aeecd2b0"
+  integrity sha512-/X2nnN5BXW2tuA/Hv9YY279rDfwcXaBAjK9Azi//llshbKyUXXxBknsug21GJRpwTmLZbE8rjjbhchdm01bZtw==
   dependencies:
     tslib "2.0.3"
-    zrender "5.0.4"
+    zrender "5.1.0"
 
 editions@^2.2.0:
   version "2.3.1"
@@ -23645,9 +23645,9 @@ yosay@^2.0.2:
     taketalk "^1.0.0"
     wrap-ansi "^2.0.0"
 
-zrender@5.0.4:
-  version "5.0.4"
-  resolved "https://registry.yarnpkg.com/zrender/-/zrender-5.0.4.tgz#89c355af908b9f64a301b38f751b7951f2c8a95a"
-  integrity sha512-DJpy0yrHYY5CuH6vhb9IINWbjvBUe/56J8aH86Jb7O8rRPAYZ3M2E469Qf5B3EOIfM3o3aUrO5edRQfLJ+l1Qw==
+zrender@5.1.0:
+  version "5.1.0"
+  resolved "https://registry.yarnpkg.com/zrender/-/zrender-5.1.0.tgz#b6a84c3aa7ccc6642ee0519901ca4c0835c4d85e"
+  integrity sha512-c+8VRx52ycbmqwHeHLlo/BAfIHBl/JZNLM6cfDQFgzIH05yb+f5J9F/fbRsP+zGc8dW9XHuhdt8/iqukgMZSeg==
   dependencies:
     tslib "2.0.3"
