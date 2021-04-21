@@ -254,6 +254,7 @@ if feature_flags.get("VERSIONED_EXPORT"):
     )
     def export_dashboards(dashboard_file: Optional[str] = None) -> None:
         """Export dashboards to ZIP file"""
+        print("\nRIGHT WAS CALLED", dashboard_file)
         from superset.dashboards.commands.export import ExportDashboardsCommand
         from superset.models.dashboard import Dashboard
 
@@ -263,6 +264,7 @@ if feature_flags.get("VERSIONED_EXPORT"):
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
         root = f"dashboard_export_{timestamp}"
         dashboard_file = dashboard_file or f"{root}.zip"
+        print("\n\nBETO >>", dashboard_file)
 
         try:
             with ZipFile(dashboard_file, "w") as bundle:
@@ -383,6 +385,7 @@ else:
         dashboard_file: Optional[str], print_stdout: bool = False
     ) -> None:
         """Export dashboards to JSON"""
+        print("\n\nWRONG WAS CALLED", dashboard_file, print_stdout)
         from superset.utils import dashboard_import_export
 
         data = dashboard_import_export.export_dashboards(db.session)
@@ -390,6 +393,7 @@ else:
             print(data)
         if dashboard_file:
             logger.info("Exporting dashboards to %s", dashboard_file)
+            print("\n\nBETO >>", dashboard_file)
             with open(dashboard_file, "w") as data_stream:
                 data_stream.write(data)
 
