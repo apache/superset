@@ -34,6 +34,7 @@ export type DatabaseObject = {
   // Performance
   cache_timeout?: string;
   allow_run_async?: boolean;
+  metadata_cache_timeout?: number;
 
   // SQL Lab
   expose_in_sqllab?: boolean;
@@ -47,6 +48,7 @@ export type DatabaseObject = {
   // Security
   encrypted_extra?: string;
   server_cert?: string;
+  schemas_allowed_for_csv_upload: string;
 
   // Extra
   impersonate_user?: boolean;

@@ -65,9 +65,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const conf = useCommonConf();
 
   const isEditMode = database !== null;
-  const defaultExtra =
-    '{\n  "metadata_params": {},\n  "engine_params": {},' +
-    '\n  "metadata_cache_timeout": {},\n  "schemas_allowed_for_csv_upload": [] \n}';
+  const defaultExtra = '{\n  "metadata_params": {},\n  "engine_params": {} \n}';
 
   // Database fetch logic
   const {
@@ -494,6 +492,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   )}
                 </div>
               </StyledInputContainer>
+              <StyledInputContainer>
+                <div className="control-label">
+                  {t('Metadata cache timeout')}
+                </div>
+                <div className="input-container">
+                  <input
+                    type="number"
+                    name="metadata_cache_timeout"
+                    value={db?.metadata_cache_timeout || ''}
+                    placeholder={t('Metadata cache timeout')}
+                    onChange={onInputChange}
+                  />
+                </div>
+                <div className="helper">
+                  {t(
+                    'Duration (in seconds) of the caching timeout for charts of this ' +
+                      'database. A timeout of 0 indicates that the cache never expires. ' +
+                      'Note this defaults to the global timeout if undefined.',
+                  )}
+                </div>
+              </StyledInputContainer>
               <StyledInputContainer className="mb-0">
                 <div className="input-container">
                   <IndeterminateCheckbox
@@ -571,16 +590,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   )}
                 </div>
               </StyledInputContainer>
-            </Collapse.Panel>
-            <Collapse.Panel
-              header={
-                <div>
-                  <h4>Other</h4>
-                  <p className="helper">Additional settings.</p>
-                </div>
-              }
-              key="4"
-            >
               <StyledInputContainer className="mb-0">
                 <div className="input-container">
                   <IndeterminateCheckbox
@@ -617,6 +626,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   />
                 </div>
               </StyledInputContainer>
+            </Collapse.Panel>
+            <Collapse.Panel
+              header={
+                <div>
+                  <h4>Other</h4>
+                  <p className="helper">Additional settings.</p>
+                </div>
+              }
+              key="4"
+            >
               <StyledInputContainer className="extra-container">
                 <div className="control-label">{t('Extra')}</div>
                 <div className="input-container">
@@ -647,27 +666,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                         '{"schema_cache_timeout": 600, "table_cache_timeout": 600}. If unset, cache ' +
                         'will not be enabled for the functionality. A timeout of 0 indicates that ' +
                         'the cache never expires.',
-                    )}
-                  </div>
-                  <div>
-                    {t(
-                      '3. The schemas_allowed_for_csv_upload is a comma separated list of schemas ' +
-                        'that CSVs are allowed to upload to. Specify it as ' +
-                        '"schemas_allowed_for_csv_upload": ["public", "csv_upload"]. If database ' +
-                        'flavor does not support schema or any schema is allowed to be accessed, ' +
-                        'just leave the list empty.',
-                    )}
-                  </div>
-                  <div>
-                    {t(
-                      "4. The version field is a string specifying this db's version. This " +
-                        'should be used with Presto DBs so that the syntax is correct.',
-                    )}
-                  </div>
-                  <div>
-                    {t(
-                      '5. The allows_virtual_table_explore field is a boolean specifying whether ' +
-                        'or not the Explore button in SQL Lab results is shown.',
                     )}
                   </div>
                 </div>
