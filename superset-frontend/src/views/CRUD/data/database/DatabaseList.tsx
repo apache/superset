@@ -30,7 +30,7 @@ import Icons from 'src/components/Icons';
 import ListView, { FilterOperator, Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import ImportModelsModal from 'src/components/ImportModal/index';
-import DatabaseModal from './DatabaseModal';
+import DatabaseModal from './databaseModal';
 import { DatabaseObject } from './types';
 
 const PAGE_SIZE = 25;
