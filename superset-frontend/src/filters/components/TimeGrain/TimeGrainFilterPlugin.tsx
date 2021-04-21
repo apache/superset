@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, QueryObjectExtras, t, tn } from '@superset-ui/core';
+import { ensureIsArray, ExtraFormData, t, tn } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
 import { Styles, StyledSelect } from '../common';
@@ -27,8 +27,8 @@ const { Option } = Select;
 export default function PluginFilterTimegrain(
   props: PluginFilterTimeGrainProps,
 ) {
-  const { data, formData, height, width, setDataMask } = props;
-  const { defaultValue, currentValue, inputRef } = formData;
+  const { data, formData, height, width, setDataMask, filterState } = props;
+  const { defaultValue, inputRef } = formData;
 
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
 
@@ -36,28 +36,22 @@ export default function PluginFilterTimegrain(
     const resultValue: string[] = ensureIsArray<string>(values);
     const [timeGrain] = resultValue;
 
-    const extras: QueryObjectExtras = {};
+    const extraFormData: ExtraFormData = {};
     if (timeGrain) {
-      extras.time_grain_sqla = timeGrain;
+      extraFormData.time_grain_sqla = timeGrain;
     }
     setValue(resultValue);
     setDataMask({
-      nativeFilters: {
-        extraFormData: {
-          override_form_data: {
-            extras,
-          },
-        },
-        currentState: {
-          value: resultValue.length ? resultValue : null,
-        },
+      extraFormData,
+      filterState: {
+        value: resultValue.length ? resultValue : null,
       },
     });
   };
 
   useEffect(() => {
-    handleChange(currentValue ?? []);
-  }, [JSON.stringify(currentValue)]);
+    handleChange(filterState.value ?? []);
+  }, [JSON.stringify(filterState.value)]);
 
   useEffect(() => {
     handleChange(defaultValue ?? []);

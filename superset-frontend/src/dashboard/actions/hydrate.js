@@ -19,7 +19,11 @@
 /* eslint-disable camelcase */
 import { isString, keyBy } from 'lodash';
 import shortid from 'shortid';
-import { CategoricalColorNamespace } from '@superset-ui/core';
+import {
+  Behavior,
+  CategoricalColorNamespace,
+  getChartMetadataRegistry,
+} from '@superset-ui/core';
 import querystring from 'query-string';
 
 import { chart } from 'src/chart/chartReducer';
@@ -28,7 +32,7 @@ import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/re
 import { getParam } from 'src/modules/utils';
 import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
-import getPermissions from 'src/dashboard/util/getPermissions';
+import findPermission from 'src/dashboard/util/findPermission';
 import {
   DASHBOARD_FILTER_SCOPE_GLOBAL,
   dashboardFilter,
@@ -37,6 +41,7 @@ import {
   DASHBOARD_HEADER_ID,
   GRID_DEFAULT_CHART_WIDTH,
   GRID_COLUMN_COUNT,
+  DASHBOARD_ROOT_ID,
 } from 'src/dashboard/util/constants';
 import {
   DASHBOARD_HEADER_TYPE,
@@ -49,6 +54,7 @@ import getFilterConfigsFromFormdata from 'src/dashboard/util/getFilterConfigsFro
 import getLocationHash from 'src/dashboard/util/getLocationHash';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import { TIME_RANGE } from 'src/visualizations/FilterBox/FilterBox';
+import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 
 const reservedQueryParams = new Set(['standalone', 'edit']);
 
@@ -78,7 +84,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
   getState,
 ) => {
   const { user, common } = getState();
-  const { metadata } = dashboardData;
+  let { metadata } = dashboardData;
   const queryParams = querystring.parse(window.location.search);
   const urlParams = extractUrlParams(queryParams);
   const editMode = queryParams.edit === 'true';
@@ -204,10 +210,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
     }
 
     // build DashboardFilters for interactive filter features
-    if (
-      slice.form_data.viz_type === 'filter_box' ||
-      slice.form_data.viz_type === 'filter_select'
-    ) {
+    if (slice.form_data.viz_type === 'filter_box') {
       const configs = getFilterConfigsFromFormdata(slice.form_data);
       let { columns } = configs;
       const { labels } = configs;
@@ -299,6 +302,42 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
     filterSetsConfig: metadata?.filter_sets_configuration || [],
   });
 
+  if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+    // If user just added cross filter to dashboard it's not saving it scope on server,
+    // so we tweak it until user will update scope and will save it in server
+    Object.values(dashboardLayout.present).forEach(layoutItem => {
+      const chartId = layoutItem.meta?.chartId;
+      const behaviors =
+        (
+          getChartMetadataRegistry().get(
+            chartQueries[chartId]?.formData?.viz_type,
+          ) ?? {}
+        )?.behaviors ?? [];
+
+      if (!metadata) {
+        metadata = {};
+      }
+
+      if (!metadata.chart_configuration) {
+        metadata.chart_configuration = {};
+      }
+      if (
+        behaviors.includes(Behavior.INTERACTIVE_CHART) &&
+        !metadata.chart_configuration[chartId]
+      ) {
+        metadata.chart_configuration[chartId] = {
+          id: chartId,
+          crossFilters: {
+            scope: {
+              rootPath: [DASHBOARD_ROOT_ID],
+              excluded: [chartId], // By default it doesn't affects itself
+            },
+          },
+        };
+      }
+    });
+  }
+
   const { roles } = getState().user;
 
   return dispatch({
@@ -310,22 +349,23 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
       // read-only data
       dashboardInfo: {
         ...dashboardData,
+        metadata,
         userId: String(user.userId), // legacy, please use state.user instead
-        dash_edit_perm: getPermissions('can_write', 'Dashboard', roles),
-        dash_save_perm: getPermissions('can_save_dash', 'Superset', roles),
-        dash_share_perm: getPermissions(
+        dash_edit_perm: findPermission('can_write', 'Dashboard', roles),
+        dash_save_perm: findPermission('can_save_dash', 'Superset', roles),
+        dash_share_perm: findPermission(
           'can_share_dashboard',
           'Superset',
           roles,
         ),
-        superset_can_explore: getPermissions('can_explore', 'Superset', roles),
-        superset_can_share: getPermissions(
+        superset_can_explore: findPermission('can_explore', 'Superset', roles),
+        superset_can_share: findPermission(
           'can_share_chart',
           'Superset',
           roles,
         ),
-        superset_can_csv: getPermissions('can_csv', 'Superset', roles),
-        slice_can_edit: getPermissions('can_slice', 'Superset', roles),
+        superset_can_csv: findPermission('can_csv', 'Superset', roles),
+        slice_can_edit: findPermission('can_slice', 'Superset', roles),
         common: {
           // legacy, please use state.common instead
           flash_messages: common.flash_messages,
@@ -347,7 +387,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
         css: dashboardData.css || '',
         colorNamespace: metadata?.color_namespace || null,
         colorScheme: metadata?.color_scheme || null,
-        editMode: getPermissions('can_write', 'Dashboard', roles) && editMode,
+        editMode: findPermission('can_write', 'Dashboard', roles) && editMode,
         isPublished: dashboardData.published,
         hasUnsavedChanges: false,
         maxUndoHistoryExceeded: false,

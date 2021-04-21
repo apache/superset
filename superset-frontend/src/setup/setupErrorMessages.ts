@@ -52,15 +52,39 @@ export default function setupErrorMessages() {
     ParameterErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(
-    ErrorTypeEnum.TEST_CONNECTION_INVALID_HOSTNAME_ERROR,
+    ErrorTypeEnum.CONNECTION_INVALID_HOSTNAME_ERROR,
     DatabaseErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(
-    ErrorTypeEnum.TEST_CONNECTION_PORT_CLOSED_ERROR,
+    ErrorTypeEnum.CONNECTION_PORT_CLOSED_ERROR,
     DatabaseErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(
-    ErrorTypeEnum.TEST_CONNECTION_HOST_DOWN_ERROR,
+    ErrorTypeEnum.CONNECTION_HOST_DOWN_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.CONNECTION_INVALID_USERNAME_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.CONNECTION_INVALID_PASSWORD_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.CONNECTION_ACCESS_DENIED_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.CONNECTION_UNKNOWN_DATABASE_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.SCHEMA_DOES_NOT_EXIST_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.CONNECTION_DATABASE_PERMISSIONS_ERROR,
     DatabaseErrorMessage,
   );
   setupErrorMessagesExtra();

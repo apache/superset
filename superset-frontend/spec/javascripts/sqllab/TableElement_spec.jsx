@@ -21,7 +21,7 @@ import { mount, shallow } from 'enzyme';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import Collapse from 'src/common/components/Collapse';
+import Collapse from 'src/components/Collapse';
 
 import { IconTooltip } from 'src/components/IconTooltip';
 import TableElement from 'src/SqlLab/components/TableElement';

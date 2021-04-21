@@ -16,22 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
-import Label from 'src/components/Label';
+import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
+import buildQuery from './buildQuery';
+import controlPanel from './controlPanel';
+import transformProps from './transformProps';
+import thumbnail from './images/thumbnail.png';
 
-import { STATE_TYPE_MAP } from '../constants';
+export default class FilterGroupByPlugin extends ChartPlugin {
+  constructor() {
+    const metadata = new ChartMetadata({
+      name: t('Group By'),
+      description: t('Group By filter plugin'),
+      behaviors: [Behavior.INTERACTIVE_CHART, Behavior.NATIVE_FILTER],
+      thumbnail,
+    });
 
-const propTypes = {
-  query: PropTypes.object.isRequired,
-};
-
-export default function QueryStateLabel({ query }) {
-  const type = STATE_TYPE_MAP[query.state];
-  return (
-    <Label className="m-r-3" type={type}>
-      {query.state}
-    </Label>
-  );
+    super({
+      buildQuery,
+      controlPanel,
+      loadChart: () => import('./GroupByFilterPlugin'),
+      metadata,
+      transformProps,
+    });
+  }
 }
-QueryStateLabel.propTypes = propTypes;

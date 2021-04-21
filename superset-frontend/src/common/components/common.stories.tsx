@@ -18,16 +18,13 @@
  */
 import React, { useState, useRef, useCallback } from 'react';
 import { action } from '@storybook/addon-actions';
-import { withKnobs, boolean, select } from '@storybook/addon-knobs';
-import Button from 'src/components/Button';
-import Modal from './Modal';
+import { withKnobs, boolean } from '@storybook/addon-knobs';
+import { CronPicker, CronError } from 'src/components/CronPicker';
+import Modal from 'src/components/Modal';
+import InfoTooltip from 'src/components/InfoTooltip';
+import { Dropdown } from 'src/components/Dropdown';
 import Tabs, { EditableTabs } from './Tabs';
-import { Tooltip as AntdTooltip } from './Tooltip';
-import { Switch as AntdSwitch } from './Switch';
 import { Menu, Input, Divider } from '.';
-import { Dropdown } from './Dropdown';
-import InfoTooltip from './InfoTooltip';
-import { CronPicker, CronError } from './CronPicker';
 
 export default {
   title: 'Common components',
@@ -122,34 +119,6 @@ export const TabsWithDropdownMenu = () => (
   </EditableTabs>
 );
 
-export const Tooltip = () => (
-  <AntdTooltip
-    title="This is a Tooltip"
-    trigger={select('Trigger', ['click', 'hover', 'focus'], 'click')}
-    placement={select(
-      'Placement',
-      [
-        'topLeft',
-        'top',
-        'topRight',
-        'leftTop',
-        'left',
-        'leftBottom',
-        'rightTop',
-        'right',
-        'rightBottom',
-        'bottomLeft',
-        'bottom',
-        'bottomRight',
-      ],
-      'topLeft',
-    )}
-    arrowPointAtCenter={boolean('Arrow point at center', false)}
-  >
-    <Button>A button with tooltip</Button>
-  </AntdTooltip>
-);
-
 export const StyledInfoTooltip = (args: any) => {
   const styles = {
     padding: '100px 0 0 200px',
@@ -197,14 +166,6 @@ StyledInfoTooltip.argTypes = {
     },
   },
 };
-
-export const Switch = () => (
-  <>
-    <AntdSwitch defaultChecked />
-    <br />
-    <AntdSwitch size="small" defaultChecked />
-  </>
-);
 
 export function StyledCronPicker() {
   // @ts-ignore

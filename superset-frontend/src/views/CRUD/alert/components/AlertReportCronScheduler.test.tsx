@@ -20,7 +20,7 @@
 import React from 'react';
 import { ReactWrapper } from 'enzyme';
 import { styledMount as mount } from 'spec/helpers/theming';
-import { CronPicker } from 'src/common/components/CronPicker';
+import { CronPicker } from 'src/components/CronPicker';
 import { Input } from 'src/common/components';
 
 import { AlertReportCronScheduler } from './AlertReportCronScheduler';

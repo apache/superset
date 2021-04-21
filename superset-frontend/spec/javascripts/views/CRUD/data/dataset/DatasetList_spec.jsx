@@ -22,6 +22,10 @@ import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { Provider } from 'react-redux';
 import { styledMount as mount } from 'spec/helpers/theming';
+import { render, screen, cleanup } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+import { QueryParamProvider } from 'use-query-params';
+import * as featureFlags from 'src/featureFlags';
 
 import DatasetList from 'src/views/CRUD/data/dataset/DatasetList';
 import ListView from 'src/components/ListView';
@@ -173,5 +177,46 @@ describe('DatasetList', () => {
     expect(
       wrapper.find('[data-test="bulk-select-copy"]').text(),
     ).toMatchInlineSnapshot(`"3 Selected (2 Physical, 1 Virtual)"`);
+  });
+});
+
+describe('RTL', () => {
+  async function renderAndWait() {
+    const mounted = act(async () => {
+      const mockedProps = {};
+      render(
+        <QueryParamProvider>
+          <DatasetList {...mockedProps} user={mockUser} />
+        </QueryParamProvider>,
+        { useRedux: true },
+      );
+    });
+
+    return mounted;
+  }
+
+  let isFeatureEnabledMock;
+  beforeEach(async () => {
+    isFeatureEnabledMock = jest
+      .spyOn(featureFlags, 'isFeatureEnabled')
+      .mockImplementation(() => true);
+    await renderAndWait();
+  });
+
+  afterEach(() => {
+    cleanup();
+    isFeatureEnabledMock.mockRestore();
+  });
+
+  it('renders an "Import Dataset" tooltip under import button', async () => {
+    const importButton = screen.getByTestId('import-button');
+    userEvent.hover(importButton);
+
+    await screen.findByRole('tooltip');
+    const importTooltip = screen.getByRole('tooltip', {
+      name: 'Import datasets',
+    });
+
+    expect(importTooltip).toBeInTheDocument();
   });
 });

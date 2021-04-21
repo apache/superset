@@ -16,7 +16,7 @@
 # under the License.
 from flask_babel import lazy_gettext as _
 
-from ...dashboards.filters import DashboardFilter
+from ...dashboards.filters import DashboardAccessFilter
 from ..base import check_ownership
 
 
@@ -73,7 +73,7 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
             "visible in the list of all dashboards"
         ),
     }
-    base_filters = [["slice", DashboardFilter, lambda: []]]
+    base_filters = [["slice", DashboardAccessFilter, lambda: []]]
     label_columns = {
         "dashboard_link": _("Dashboard"),
         "dashboard_title": _("Title"),

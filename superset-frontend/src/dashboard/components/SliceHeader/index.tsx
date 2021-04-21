@@ -18,7 +18,7 @@
  */
 import React, { FC } from 'react';
 import { styled, t } from '@superset-ui/core';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import { useSelector } from 'react-redux';
 import EditableTitle from 'src/components/EditableTitle';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
@@ -98,8 +98,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
 }) => {
   // TODO: change to indicator field after it will be implemented
   const crossFilterValue = useSelector<RootState, any>(
-    state =>
-      state.dataMask?.crossFilters?.[slice?.slice_id]?.currentState?.value,
+    state => state.dataMask[slice?.slice_id]?.filterState?.value,
   );
 
   return (

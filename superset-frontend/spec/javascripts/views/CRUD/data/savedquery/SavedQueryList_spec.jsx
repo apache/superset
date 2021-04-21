@@ -22,7 +22,7 @@ import configureStore from 'redux-mock-store';
 import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
-import { render, screen, cleanup } from 'spec/helpers/testing-library';
+import { render, screen, cleanup, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import { act } from 'react-dom/test-utils';
@@ -74,6 +74,42 @@ const mockqueries = [...new Array(3)].map((_, i) => ({
     },
   ],
 }));
+
+// ---------- For import testing ----------
+// Create an one more mocked query than the original mocked query array
+const mockOneMoreQuery = [...new Array(mockqueries.length + 1)].map((_, i) => ({
+  created_by: {
+    id: i,
+    first_name: `user`,
+    last_name: `${i}`,
+  },
+  created_on: `${i}-2020`,
+  database: {
+    database_name: `db ${i}`,
+    id: i,
+  },
+  changed_on_delta_humanized: '1 day ago',
+  db_id: i,
+  description: `SQL for ${i}`,
+  id: i,
+  label: `query ${i}`,
+  schema: 'public',
+  sql: `SELECT ${i} FROM table`,
+  sql_tables: [
+    {
+      catalog: null,
+      schema: null,
+      table: `${i}`,
+    },
+  ],
+}));
+// Grab the last mocked query, to mock import
+const mockNewImportQuery = mockOneMoreQuery.pop();
+// Create a new file out of mocked import query to mock upload
+const mockImportFile = new File(
+  [mockNewImportQuery],
+  'saved_query_import_mock.json',
+);
 
 fetchMock.get(queriesInfoEndpoint, {
   permissions: ['can_write', 'can_read'],
@@ -193,10 +229,9 @@ describe('RTL', () => {
     const mounted = act(async () => {
       render(
         <QueryParamProvider>
-          <Provider store={store}>
-            <SavedQueryList />
-          </Provider>
+          <SavedQueryList />
         </QueryParamProvider>,
+        { useRedux: true },
       );
     });
 
@@ -237,7 +272,7 @@ describe('RTL', () => {
 
   it('renders an export button in the actions bar', async () => {
     // Grab Export action button and mock mouse hovering over it
-    const exportActionButton = screen.getAllByRole('button')[17];
+    const exportActionButton = screen.getAllByRole('button')[18];
     userEvent.hover(exportActionButton);
 
     // Wait for the tooltip to pop up
@@ -252,9 +287,55 @@ describe('RTL', () => {
 
   it('runs handleBulkSavedQueryExport when export is clicked', () => {
     // Grab Export action button and mock mouse clicking it
-    const exportActionButton = screen.getAllByRole('button')[17];
+    const exportActionButton = screen.getAllByRole('button')[18];
     userEvent.click(exportActionButton);
 
     expect(handleBulkSavedQueryExport).toHaveBeenCalled();
+  });
+
+  it('renders an import button in the submenu', () => {
+    // Grab and assert that import saved query button is visible
+    const importButton = screen.getByTestId('import-button');
+    expect(importButton).toBeVisible();
+  });
+
+  it('renders an "Import Saved Query" tooltip under import button', async () => {
+    const importButton = screen.getByTestId('import-button');
+    userEvent.hover(importButton);
+    waitFor(() => {
+      expect(importButton).toHaveClass('ant-tooltip-open');
+      screen.findByTestId('import-tooltip-test');
+      const importTooltip = screen.getByRole('tooltip', {
+        name: 'Import queries',
+      });
+      expect(importTooltip).toBeInTheDocument();
+    });
+  });
+
+  it('renders an import model when import button is clicked', async () => {
+    // Grab and click import saved query button to reveal modal
+    const importButton = screen.getByTestId('import-button');
+    userEvent.click(importButton);
+
+    // Grab and assert that saved query import modal's heading is visible
+    const importSavedQueryModalHeading = screen.getByRole('heading', {
+      name: 'Import queries',
+    });
+    expect(importSavedQueryModalHeading).toBeVisible();
+  });
+
+  it('imports a saved query', () => {
+    // Grab and click import saved query button to reveal modal
+    const importButton = screen.getByTestId('import-button');
+    userEvent.click(importButton);
+
+    // Grab "Choose File" input from import modal
+    const chooseFileInput = screen.getByLabelText(/file\*/i);
+    // Upload mocked import file
+    userEvent.upload(chooseFileInput, mockImportFile);
+
+    expect(chooseFileInput.files[0]).toStrictEqual(mockImportFile);
+    expect(chooseFileInput.files.item(0)).toStrictEqual(mockImportFile);
+    expect(chooseFileInput.files).toHaveLength(1);
   });
 });

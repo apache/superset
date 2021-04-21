@@ -16,8 +16,11 @@
 # under the License.
 from datetime import datetime
 from typing import Optional
+from urllib import parse
 
-from superset.db_engine_specs import BaseEngineSpec
+from sqlalchemy.engine.url import URL
+
+from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
 
 
@@ -56,3 +59,13 @@ class TrinoEngineSpec(BaseEngineSpec):
     @classmethod
     def epoch_to_dttm(cls) -> str:
         return "from_unixtime({col})"
+
+    @classmethod
+    def adjust_database_uri(
+        cls, uri: URL, selected_schema: Optional[str] = None
+    ) -> None:
+        database = uri.database
+        if selected_schema and database:
+            selected_schema = parse.quote(selected_schema, safe="")
+            database = database.split("/")[0] + "/" + selected_schema
+            uri.database = database

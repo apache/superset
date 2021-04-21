@@ -16,13 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
+import {
+  Behavior,
+  DataRecord,
+  FilterState,
+  QueryFormData,
+  SetDataMaskHook,
+} from '@superset-ui/core';
+import { RefObject } from 'react';
+import { PluginFilterStylesProps } from '../types';
 
-export default function TabStatusIcon(props) {
-  return <div className={`circle ${props.tabState}`} />;
+interface PluginFilterGroupByCustomizeProps {
+  defaultValue?: string[] | null;
+  inputRef?: RefObject<HTMLInputElement>;
+  multiSelect: boolean;
 }
 
-TabStatusIcon.propTypes = {
-  tabState: PropTypes.string.isRequired,
+export type PluginFilterGroupByQueryFormData = QueryFormData &
+  PluginFilterStylesProps &
+  PluginFilterGroupByCustomizeProps;
+
+export type PluginFilterGroupByProps = PluginFilterStylesProps & {
+  behaviors: Behavior[];
+  data: DataRecord[];
+  setDataMask: SetDataMaskHook;
+  filterState: FilterState;
+  formData: PluginFilterGroupByQueryFormData;
+};
+
+export const DEFAULT_FORM_DATA: PluginFilterGroupByCustomizeProps = {
+  defaultValue: null,
+  multiSelect: false,
 };

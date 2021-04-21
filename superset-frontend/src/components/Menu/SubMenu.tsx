@@ -34,6 +34,7 @@ const StyledHeader = styled.div`
     padding: ${({ theme }) => theme.gridUnit * 3}px;
     display: inline-block;
   }
+
   .nav-right {
     padding: 8px 0;
     margin-right: 0;

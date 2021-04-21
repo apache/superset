@@ -1139,7 +1139,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     @staticmethod
     def can_access_based_on_dashboard(datasource: "BaseDatasource") -> bool:
         from superset import db
-        from superset.dashboards.filters import DashboardFilter
+        from superset.dashboards.filters import DashboardAccessFilter
         from superset.models.slice import Slice
         from superset.models.dashboard import Dashboard
 
@@ -1150,7 +1150,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .filter(datasource_class.id == datasource.id)
         )
 
-        query = DashboardFilter("id", SQLAInterface(Dashboard, db.session)).apply(
+        query = DashboardAccessFilter("id", SQLAInterface(Dashboard, db.session)).apply(
             query, None
         )
 

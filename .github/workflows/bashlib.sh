@@ -131,12 +131,7 @@ testdata() {
 
 codecov() {
   say "::group::Upload code coverage"
-  local codecovScript="${HOME}/codecov.sh"
-  # download bash script if needed
-  if [[ ! -f "$codecovScript" ]]; then
-    curl -s https://codecov.io/bash >"$codecovScript"
-  fi
-  bash "$codecovScript" "$@"
+  bash ".github/workflows/codecov.sh" "$@"
   say "::endgroup::"
 }
 

@@ -20,11 +20,11 @@ import * as http from 'http';
 import * as net from 'net';
 import WebSocket from 'ws';
 import { v4 as uuidv4 } from 'uuid';
+import jwt from 'jsonwebtoken';
+import cookie from 'cookie';
+import Redis from 'ioredis';
 
-const winston = require('winston');
-const jwt = require('jsonwebtoken');
-const cookie = require('cookie');
-const Redis = require('ioredis');
+import { createLogger } from './logger';
 
 export type StreamResult = [
   recordId: string,
@@ -114,20 +114,11 @@ try {
 Object.assign(opts, config);
 
 // init logger
-const logTransports = [
-  new winston.transports.Console({ handleExceptions: true }),
-];
-if (opts.logToFile && opts.logFilename) {
-  logTransports.push(
-    new winston.transports.File({
-      filename: opts.logFilename,
-      handleExceptions: true,
-    }),
-  );
-}
-const logger = winston.createLogger({
-  level: opts.logLevel,
-  transports: logTransports,
+const logger = createLogger({
+  silent: environment === 'test',
+  logLevel: opts.logLevel,
+  logToFile: opts.logToFile,
+  logFilename: opts.logFilename,
 });
 
 // enforce JWT secret length
@@ -219,7 +210,7 @@ export const fetchRangeFromStream = async ({
   try {
     const reply = await redis.xrange(streamName, startId, endId);
     if (!reply || !reply.length) return;
-    listener(reply);
+    listener(reply as StreamResult[]);
   } catch (e) {
     logger.error(e);
   }
@@ -254,7 +245,7 @@ export const subscribeToGlobalStream = async (
       if (!results.length) {
         continue;
       }
-      listener(results);
+      listener(results as StreamResult[]);
       setLastFirehoseId(results[length - 1][0]);
     } catch (e) {
       logger.error(e);
@@ -284,11 +275,11 @@ export const processStreamResults = (results: StreamResult[]): void => {
  * Returns the JWT payload or throws an error on invalid token.
  */
 const getJwtPayload = (request: http.IncomingMessage): JwtPayload => {
-  const cookies = cookie.parse(request.headers.cookie);
+  const cookies = cookie.parse(request.headers.cookie || '');
   const token = cookies[opts.jwtCookieName];
 
   if (!token) throw new Error('JWT not present');
-  return jwt.verify(token, opts.jwtSecret);
+  return jwt.verify(token, opts.jwtSecret) as JwtPayload;
 };
 
 /**
@@ -347,6 +338,27 @@ export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
       socketInstance.pongTs = Date.now();
     }
   });
+};
+
+/**
+ * HTTP `request` event handler, called via httpServer
+ */
+export const httpRequest = (
+  request: http.IncomingMessage,
+  response: http.ServerResponse,
+) => {
+  const rawUrl = request.url as string;
+  const method = request.method as string;
+  const headers = request.headers || {};
+  const url = new URL(rawUrl as string, `http://${headers.host}`);
+  if (url.pathname === '/health' && ['GET', 'HEAD'].includes(method)) {
+    response.writeHead(200);
+    response.end('OK');
+  } else {
+    logger.info(`Received unexpected request: ${method} ${rawUrl}`);
+    response.writeHead(404);
+    response.end('Not Found');
+  }
 };
 
 /**
@@ -439,6 +451,7 @@ export const cleanChannel = (channel: string) => {
 if (startServer) {
   // init server event listeners
   wss.on('connection', wsConnection);
+  httpServer.on('request', httpRequest);
   httpServer.on('upgrade', httpUpgrade);
   httpServer.listen(opts.port);
   logger.info(`Server started on port ${opts.port}`);

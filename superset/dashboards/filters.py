@@ -57,16 +57,16 @@ class DashboardFavoriteFilter(BaseFavoriteFilter):
     model = Dashboard
 
 
-class DashboardFilter(BaseFilter):
+class DashboardAccessFilter(BaseFilter):
     """
     List dashboards with the following criteria:
         1. Those which the user owns
         2. Those which the user has favorited
         3. Those which have been published (if they have access to at least one slice)
 
-    If the user is an admin show them all dashboards.
+    If the user is an admin then show all dashboards.
     This means they do not get curation but can still sort by "published"
-    if they wish to see those dashboards which are published first
+    if they wish to see those dashboards which are published first.
     """
 
     def apply(self, query: Query, value: Any) -> Query:

@@ -82,6 +82,7 @@ setup(
         "flask-migrate",
         "flask-wtf",
         "geopy",
+        "graphlib-backport",
         "gunicorn>=20.0.2, <20.1",
         "humanize",
         "isodate",
@@ -103,7 +104,7 @@ setup(
         "selenium>=3.141.0",
         "simplejson>=3.15.0",
         "slackclient==2.5.0",  # PINNED! slack changes file upload api in the future versions
-        "sqlalchemy>=1.3.16, <2.0, !=1.3.21",
+        "sqlalchemy>=1.3.16, <1.4, !=1.3.21",
         "sqlalchemy-utils>=0.36.6,<0.37",
         "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
         "typing-extensions>=3.7.4.3,<4",  # needed to support typing.Literal on py37
@@ -132,7 +133,7 @@ setup(
         "exasol": ["sqlalchemy-exasol>=2.1.0, <2.2"],
         "excel": ["xlrd>=1.2.0, <1.3"],
         "firebird": ["sqlalchemy-firebird>=0.7.0, <0.8"],
-        "gsheets": ["shillelagh>=0.2, <0.3"],
+        "gsheets": ["shillelagh[gsheetsapi]>=0.2, <0.3"],
         "hana": ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"],
         "hive": ["pyhive[hive]>=0.6.1", "tableschema", "thrift>=0.11.0, <1.0.0"],
         "impala": ["impyla>0.16.2, <0.17"],
@@ -144,7 +145,7 @@ setup(
         "postgres": ["psycopg2-binary==2.8.5"],
         "presto": ["pyhive[presto]>=0.4.0"],
         "trino": ["sqlalchemy-trino>=0.2"],
-        "prophet": ["fbprophet>=0.7.1, <0.8", "pystan<3.0"],
+        "prophet": ["prophet>=1.0.1, <1.1", "pystan<3.0"],
         "redshift": ["sqlalchemy-redshift>=0.8.1, < 0.9"],
         "snowflake": ["snowflake-sqlalchemy>=1.2.3, <1.3"],
         "teradata": ["sqlalchemy-teradata==0.9.0.dev0"],

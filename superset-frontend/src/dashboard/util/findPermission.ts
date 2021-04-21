@@ -16,6 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.CollectionControl .list-group-item i.fa {
-  padding-top: 5px;
-}
+import memoizeOne from 'memoize-one';
+
+type UserRoles = Record<string, [string, string][]>;
+
+const findPermission = memoizeOne(
+  (perm: string, view: string, roles: UserRoles) =>
+    Object.values(roles).some(permissions =>
+      permissions.some(([perm_, view_]) => perm_ === perm && view_ === view),
+    ),
+);
+
+export default findPermission;

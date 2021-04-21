@@ -16,28 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-unused-expressions */
 import React from 'react';
-import { shallow } from 'enzyme';
+import Label from 'src/components/Label';
 
-import TextControl from 'src/explore/components/controls/TextControl';
-import FixedOrMetricControl from 'src/explore/components/controls/FixedOrMetricControl';
-import MetricsControl from 'src/explore/components/controls/MetricControl/MetricsControl';
+import { STATE_TYPE_MAP } from '../constants';
+import { Query } from '../types';
 
-const defaultProps = {
-  value: {},
-  datasource: {},
-};
+interface QueryStateLabelProps {
+  query: Query;
+}
 
-describe('FixedOrMetricControl', () => {
-  let wrapper;
-
-  beforeEach(() => {
-    wrapper = shallow(<FixedOrMetricControl {...defaultProps} />);
-  });
-
-  it('renders a TextControl and a SelectControl', () => {
-    expect(wrapper.find(TextControl)).toExist();
-    expect(wrapper.find(MetricsControl)).toExist();
-  });
-});
+export default function QueryStateLabel({ query }: QueryStateLabelProps) {
+  return (
+    <Label className="m-r-3" type={STATE_TYPE_MAP[query.state]}>
+      {query.state}
+    </Label>
+  );
+}

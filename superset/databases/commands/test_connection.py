@@ -20,6 +20,7 @@ from typing import Any, Dict, Optional
 
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as _
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
 from superset.commands.base import BaseCommand
@@ -48,6 +49,17 @@ class TestConnectionDatabaseCommand(BaseCommand):
         uri = self._properties.get("sqlalchemy_uri", "")
         if self._model and uri == self._model.safe_sqlalchemy_uri():
             uri = self._model.sqlalchemy_uri_decrypted
+
+        # context for error messages
+        url = make_url(uri)
+        context = {
+            "hostname": url.host,
+            "password": url.password,
+            "port": url.port,
+            "username": url.username,
+            "database": url.database,
+        }
+
         try:
             database = DatabaseDAO.build_db_for_connection_test(
                 server_cert=self._properties.get("server_cert", ""),
@@ -61,7 +73,11 @@ class TestConnectionDatabaseCommand(BaseCommand):
             username = self._actor.username if self._actor is not None else None
             engine = database.get_sqla_engine(user_name=username)
             with closing(engine.raw_connection()) as conn:
-                if not engine.dialect.do_ping(conn):
+                try:
+                    alive = engine.dialect.do_ping(conn)
+                except Exception:  # pylint: disable=broad-except
+                    alive = False
+                if not alive:
                     raise DBAPIError(None, None, None)
 
             # Log succesful connection test with engine
@@ -86,7 +102,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine=database.db_engine_spec.__name__,
             )
             # check for custom errors (wrong username, wrong password, etc)
-            errors = database.db_engine_spec.extract_errors(ex)
+            errors = database.db_engine_spec.extract_errors(ex, context)
             raise DatabaseTestConnectionFailedError(errors)
         except SupersetSecurityException as ex:
             event_logger.log_with_context(
@@ -99,7 +115,8 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 action=f"test_connection_error.{ex.__class__.__name__}",
                 engine=database.db_engine_spec.__name__,
             )
-            raise DatabaseTestConnectionUnexpectedError(str(ex))
+            errors = database.db_engine_spec.extract_errors(ex, context)
+            raise DatabaseTestConnectionUnexpectedError(errors)
 
     def validate(self) -> None:
         database_name = self._properties.get("database_name")

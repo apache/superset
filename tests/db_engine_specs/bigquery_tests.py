@@ -22,6 +22,7 @@ from sqlalchemy import column
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
@@ -223,3 +224,18 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             credentials="account_info",
             if_exists="extra_key",
         )
+
+    def test_extract_errors(self):
+        msg = "403 POST https://bigquery.googleapis.com/bigquery/v2/projects/test-keel-310804/jobs?prettyPrint=false: Access Denied: Project User does not have bigquery.jobs.create permission in project profound-keel-310804"
+        result = BigQueryEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                message="We were unable to connect to your database. Please confirm that your service account has the Viewer and Job User roles on the project.",
+                error_type=SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Google BigQuery",
+                    "issue_codes": [{"code": 1017, "message": "",}],
+                },
+            )
+        ]

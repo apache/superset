@@ -16,24 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import memoizeOne from 'memoize-one';
+import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import { t } from '@superset-ui/core';
+import { DEFAULT_FORM_DATA } from './types';
 
-const findPermissions = (perm: string, view: string, roles: object) => {
-  const roleList = Object.entries(roles);
-  if (roleList.length === 0) return false;
-  let bool;
+const { multiSelect } = DEFAULT_FORM_DATA;
 
-  roleList.forEach(([role, permissions]) => {
-    bool = Boolean(
-      permissions.find(
-        (permission: Array<string>) =>
-          permission[0] === perm && permission[1] === view,
-      ),
-    );
-  });
-  return bool;
+const config: ControlPanelConfig = {
+  controlPanelSections: [
+    // @ts-ignore
+    sections.legacyRegularTime,
+    {
+      label: t('UI Configuration'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'multiSelect',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Multiple select'),
+              default: multiSelect,
+              resetConfig: true,
+              renderTrigger: true,
+              description: t('Allow selecting multiple values'),
+            },
+          },
+        ],
+      ],
+    },
+  ],
 };
 
-const getPermissions = memoizeOne(findPermissions);
-
-export default getPermissions;
+export default config;

@@ -69,9 +69,9 @@ class ReportState(str, enum.Enum):
     GRACE = "On Grace"
 
 
-class ReportEmailFormat(str, enum.Enum):
-    VISUALIZATION = "Visualization"
-    DATA = "Raw data"
+class ReportDataFormat(str, enum.Enum):
+    VISUALIZATION = "PNG"
+    DATA = "CSV"
 
 
 report_schedule_user = Table(
@@ -102,6 +102,7 @@ class ReportSchedule(Model, AuditMixinNullable):
     context_markdown = Column(Text)
     active = Column(Boolean, default=True, index=True)
     crontab = Column(String(1000), nullable=False)
+    report_format = Column(String(50), default=ReportDataFormat.VISUALIZATION)
     sql = Column(Text())
     # (Alerts/Reports) M-O to chart
     chart_id = Column(Integer, ForeignKey("slices.id"), nullable=True)

@@ -34,19 +34,18 @@ import Button from 'src/components/Button';
 import EditableTitle from 'src/components/EditableTitle';
 import FaveStar from 'src/components/FaveStar';
 import { safeStringify } from 'src/utils/safeStringify';
+import HeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
+import PublishedStatus from 'src/dashboard/components/PublishedStatus';
+import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
+import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
-import HeaderActionsDropdown from './HeaderActionsDropdown';
-import PublishedStatus from './PublishedStatus';
-import UndoRedoKeyListeners from './UndoRedoKeyListeners';
-import PropertiesModal from './PropertiesModal';
-
 import {
   UNDO_LIMIT,
   SAVE_TYPE_OVERWRITE,
   DASHBOARD_POSITION_DATA_LIMIT,
-} from '../util/constants';
-import setPeriodicRunner from '../util/setPeriodicRunner';
-import { options as PeriodicRefreshOptions } from './RefreshIntervalModal';
+} from 'src/dashboard/util/constants';
+import setPeriodicRunner from 'src/dashboard/util/setPeriodicRunner';
+import { options as PeriodicRefreshOptions } from 'src/dashboard/components/RefreshIntervalModal';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
