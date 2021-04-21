@@ -123,10 +123,32 @@ ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
 # Dev image...
 ######################################################################
 FROM lean AS dev
+ARG CHROMEDRIVER_VERSION=84.0.4147.30
+ARG CHROME_VERSION=84.0.4147.105-1
 
 COPY ./requirements/*.txt ./docker/requirements-*.txt/ /app/requirements/
 
 USER root
+
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends libnss3
+
+# Install Chrome WebDriver
+RUN mkdir -p /opt/chromedriver-${CHROMEDRIVER_VERSION} && \
+    wget http://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip -O /tmp/chromedriver_linux64.zip && \
+    unzip /tmp/chromedriver_linux64.zip -d /opt/chromedriver-$CHROMEDRIVER_VERSION && \
+    rm /tmp/chromedriver_linux64.zip && \
+    chmod +x /opt/chromedriver-$CHROMEDRIVER_VERSION/chromedriver && \
+    ln -fs /opt/chromedriver-$CHROMEDRIVER_VERSION/chromedriver /usr/local/bin/chromedriver
+
+# Install Google Chrome
+RUN wget http://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_${CHROME_VERSION}_amd64.deb -O /tmp/chrome.deb \
+  && apt-get -y install /tmp/chrome.deb \
+  # Make sure libzstd1 is latest (ID'd as potential vulnerability by Snyk) \
+  && apt-get upgrade -y libzstd1 \
+  && rm /tmp/chrome.deb
+
+
 # Cache everything for dev purposes...
 RUN cd /app \
     && pip install --no-cache -r requirements/docker.txt \
