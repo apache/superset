@@ -6,7 +6,7 @@ labels: "#SIP"
 ---
 
 *Please make sure you are familiar with the SIP process documented*
-(here)[https://github.com/apache/superset/issues/5602]. The SIP number should be the next increment from the [current SIPs](https://github.com/apache/superset/issues?q=is%3Aissue+label%3Asip).
+(here)[https://github.com/apache/superset/issues/5602]. The SIP number should be the next increment from the latest SIP listed [here](https://github.com/apache/superset/issues?q=is%3Aissue+label%3Asip).
 
 ## [SIP-\<number>] Proposal for <title>
 
