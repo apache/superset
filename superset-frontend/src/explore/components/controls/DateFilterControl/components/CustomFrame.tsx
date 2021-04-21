@@ -24,6 +24,9 @@ import { Col, InputNumber, Row } from 'src/common/components';
 import { DatePicker } from 'src/components/DatePicker';
 import { Radio } from 'src/components/Radio';
 import { Select } from 'src/components/Select';
+
+import locale from 'antd/es/date-picker/locale/ru_RU';
+
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
   SINCE_GRAIN_OPTIONS,
@@ -252,6 +255,7 @@ export function CustomFrame(props: FrameComponentProps) {
                     onChange('anchorValue', datetime.format(MOMENT_FORMAT))
                   }
                   allowClear={false}
+                  locale={locale}
                   className="control-anchor-to-datetime"
                 />
               </Col>
