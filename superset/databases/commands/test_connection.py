@@ -73,7 +73,11 @@ class TestConnectionDatabaseCommand(BaseCommand):
             username = self._actor.username if self._actor is not None else None
             engine = database.get_sqla_engine(user_name=username)
             with closing(engine.raw_connection()) as conn:
-                if not engine.dialect.do_ping(conn):
+                try:
+                    alive = engine.dialect.do_ping(conn)
+                except Exception:  # pylint: disable=broad-except
+                    alive = False
+                if not alive:
                     raise DBAPIError(None, None, None)
 
             # Log succesful connection test with engine
