@@ -102,6 +102,9 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
+  const showNativeFilters = useSelector<RootState, boolean>(
+    state => state.dashboardInfo.metadata.showNativeFilters,
+  );
   const editMode = useSelector<RootState, boolean>(
     state => state.dashboardState.editMode,
   );
@@ -112,9 +115,8 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const filters = useFilters();
   const filterValues = Object.values<Filter>(filters);
 
-  const nativeFiltersEnabled = isFeatureEnabled(
-    FeatureFlag.DASHBOARD_NATIVE_FILTERS,
-  );
+  const nativeFiltersEnabled =
+    showNativeFilters && isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS);
 
   const [dashboardFiltersOpen, setDashboardFiltersOpen] = useState(true);
 
