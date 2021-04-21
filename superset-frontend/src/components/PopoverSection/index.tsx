@@ -18,7 +18,7 @@
  */
 import React, { MouseEventHandler, ReactNode } from 'react';
 import { useTheme } from '@superset-ui/core';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import Icon from 'src/components/Icon';
 
 export interface PopoverSectionProps {

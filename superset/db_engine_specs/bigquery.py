@@ -20,14 +20,22 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import pandas as pd
+from flask_babel import gettext as __
 from sqlalchemy import literal_column
 from sqlalchemy.sql.expression import ColumnClause
 
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.errors import SupersetErrorType
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
+
+
+CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
+    "Access Denied: Project User does not have bigquery.jobs.create "
+    + "permission in project (?P<project>.+?)"
+)
 
 
 class BigQueryEngineSpec(BaseEngineSpec):
@@ -84,6 +92,17 @@ class BigQueryEngineSpec(BaseEngineSpec):
         "P1M": "{func}({col}, MONTH)",
         "P0.25Y": "{func}({col}, QUARTER)",
         "P1Y": "{func}({col}, YEAR)",
+    }
+
+    custom_errors = {
+        CONNECTION_DATABASE_PERMISSIONS_REGEX: (
+            __(
+                "We were unable to connect to your database. Please "
+                "confirm that your service account has the Viewer "
+                "and Job User roles on the project."
+            ),
+            SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
+        ),
     }
 
     @classmethod
