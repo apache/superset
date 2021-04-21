@@ -229,7 +229,7 @@ class CsvToDatabaseView(SimpleFormView):
                 sqla_table = SqlaTable(table_name=csv_table.table)
                 sqla_table.database = expore_database
                 sqla_table.database_id = database.id
-                sqla_table.user_id = g.user.id
+                sqla_table.user_id = g.user.get_id()
                 sqla_table.schema = csv_table.schema
                 sqla_table.fetch_metadata()
                 db.session.add(sqla_table)
@@ -381,7 +381,7 @@ class ExcelToDatabaseView(SimpleFormView):
                 sqla_table = SqlaTable(table_name=excel_table.table)
                 sqla_table.database = expore_database
                 sqla_table.database_id = database.id
-                sqla_table.user_id = g.user.id
+                sqla_table.user_id = g.user.get_id()
                 sqla_table.schema = excel_table.schema
                 sqla_table.fetch_metadata()
                 db.session.add(sqla_table)
