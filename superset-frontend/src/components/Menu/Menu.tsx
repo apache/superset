@@ -18,11 +18,12 @@
  */
 import React, { useState, useEffect } from 'react';
 import { styled } from '@superset-ui/core';
-import {  Menu as DropdownMenu, MenuMode} from 'src/common/components';
+import { Menu as DropdownMenu, MenuMode } from 'src/common/components';
 import { Link } from 'react-router-dom';
-import RightMenu from './MenuRight';
 import { Row, Col } from 'antd';
-import  { Languages } from './LanguagePicker';
+import Icon from 'src/components/Icon';
+import RightMenu from './MenuRight';
+import { Languages } from './LanguagePicker';
 
 interface BrandProps {
   path: string;
@@ -73,7 +74,7 @@ export interface MenuObjectProps extends MenuObjectChildProps {
 const StyledHeader = styled.header`
   background-color: white;
   margin-bottom: 2px;
-  border-bottom: 2px solid pink;
+  border-bottom: 2px solid ${({ theme }) => theme.colors.grayscale.light4}px;
   &:nth-last-of-type(2) nav {
     margin-bottom: 2px;
   }
@@ -104,23 +105,30 @@ const StyledHeader = styled.header`
     flex-direction: column;
     justify-content: center;
   }
-  @media(max-width: 767px) {
+  @media (max-width: 767px) {
     .navbar-brand {
       float: none;
     }
-
   }
   .ant-menu-horizontal .ant-menu-item {
     height: 100%;
     line-height: inherit;
-  } 
-  .ant-menu > .ant-menu-item > a
-  {
+  }
+  .ant-menu > .ant-menu-item > a {
     padding: ${({ theme }) => theme.gridUnit * 4}px;
   }
-  @media(max-width: 767px) {
+  @media (max-width: 767px) {
     .ant-menu > .ant-menu-item > a {
       padding: 0px;
+    }
+    .main-nav .ant-menu-submenu-title > svg:nth-child(1) {
+      display: none;
+    }
+    .ant-menu-item-active > a {
+      &:hover {
+        color: ${({ theme }) => theme.colors.primary.base} !important;
+        background-color: transparent !important;
+      }
     }
   }
   .dropdown-header {
@@ -130,11 +138,11 @@ const StyledHeader = styled.header`
   .ant-menu-horizontal:not(.ant-menu-dark) > .ant-menu-submenu,
   .ant-menu-horizontal:not(.ant-menu-dark) > .ant-menu-item {
     margin: 0px;
-    &:hover{
+    &:hover {
       border-bottom: none;
     }
   }
-  .ant-menu-horizontal > .ant-menu-item, 
+  .ant-menu-horizontal > .ant-menu-item,
   .ant-menu-horizontal > .ant-menu-submenu {
     vertical-align: inherit;
     &:hover {
@@ -150,24 +158,53 @@ const StyledHeader = styled.header`
     .ant-menu-submenu-open,
     .ant-menu-submenu-active,
     .ant-menu-submenu,
-    .ant-menu-submenu-horizontal 
-    {
+    .ant-menu-submenu-horizontal {
       color: ${({ theme }) => theme.colors.grayscale.dark1};
       border-bottom: none;
     }
 
     .ant-menu-submenu-open,
-    .ant-menu-submenu-active{
+    .ant-menu-submenu-active {
       background-color: ${({ theme }) => theme.colors.primary.light5};
+      .ant-menu-submenu-title {
+        color: ${({ theme }) => theme.colors.grayscale.dark1};
+        background-color: ${({ theme }) => theme.colors.primary.light5};
+        border-bottom: none;
+        margin: 0;
+        &:after {
+          opacity: 1;
+          width: 100%;
+        }
+      }
+    }
+    .ant-menu-submenu-title {
+      &:after {
+        content: '';
+        position: absolute;
+        bottom: -3px;
+        left: 50%;
+        width: 0;
+        height: 3px;
+        opacity: 0;
+        transform: translateX(-50%);
+        transition: all ${({ theme }) => theme.transitionTiming}s;
+        background-color: ${({ theme }) => theme.colors.primary.base};
+      }
     }
     .ant-menu-submenu-title {
       padding: 0 16px;
+      svg {
+        position: absolute;
+        top: 16px;
+        right: -3px;
+        width: 20px;
+      }
       &:hover {
         color: ${({ theme }) => theme.colors.grayscale.dark1};
-      
       }
     }
   }
+
   .ant-menu-item a {
     color: ${({ theme }) => theme.colors.grayscale.dark1};
     border-bottom: none;
@@ -187,6 +224,9 @@ const StyledHeader = styled.header`
     &:focus {
       border-bottom: none;
       background-color: transparent;
+      @media (max-width: 767px) {
+        background-color: red; //${({ theme }) => theme.colors.primary.light5};
+      }
     }
     &:hover {
       color: ${({ theme }) => theme.colors.grayscale.dark1};
@@ -205,7 +245,7 @@ const StyledHeader = styled.header`
     align-items: center;
   }
 
- .ant-menu {
+  .ant-menu {
     .ant-menu-item-group-title {
       padding-bottom: ${({ theme }) => theme.gridUnit}px;
     }
@@ -219,7 +259,7 @@ const StyledHeader = styled.header`
   }
 `;
 
-const { SubMenu } = DropdownMenu; 
+const { SubMenu } = DropdownMenu;
 
 export function Menu({
   data: { menu, brand, navbar_right: navbarRight, settings },
@@ -227,14 +267,15 @@ export function Menu({
 }: MenuProps) {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
 
-  useEffect(()=>{
+  useEffect(() => {
     function handleResize() {
-      if(window.innerWidth <= 767 ) setMenu('inline')
-      else setMenu('horizontal') 
+      if (window.innerWidth <= 767) {
+        setMenu('inline');
+      } else setMenu('horizontal');
     }
     handleResize();
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const renderSubMenu = ({
@@ -242,54 +283,58 @@ export function Menu({
     childs,
     url,
     index,
-    isFrontendRoute}: MenuObjectProps) => {
+    isFrontendRoute,
+  }: MenuObjectProps) => {
     if (url && isFrontendRoute) {
-      return( <DropdownMenu.Item key={label} role="presentation">
-            <Link role="button" to={url}>
-              {label}
-            </Link>
+      return (
+        <DropdownMenu.Item key={label} role="presentation">
+          <Link role="button" to={url}>
+            {label}
+          </Link>
         </DropdownMenu.Item>
       );
     }
     if (url) {
-      return( 
-          <DropdownMenu.Item key={label}>
-            <a href={url}>
-            {label}
-            </a>
-          </DropdownMenu.Item>
-      )
+      return (
+        <DropdownMenu.Item key={label}>
+          <a href={url}>{label}</a>
+        </DropdownMenu.Item>
+      );
     }
-    return( 
-          <SubMenu key={index} title={label}>
-            {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
-              if (typeof child === 'string' && child === '-') {
-                return <DropdownMenu.Divider key={`$${index1}`} />;
-              }
-              if (typeof child !== 'string') {
-                return (
-                  <DropdownMenu.Item key={`${child.label}`}>
-                    {child.isFrontendRoute ? (
-                      <Link to={child.url || ''}>{child.label}</Link>
-                    ) : (
-                      <a href={child.url}>{child.label}</a>
-                    )}
-                  </DropdownMenu.Item>
-                );
-              }
-              return null;
-            })}
-          </SubMenu>
+    return (
+      <SubMenu key={index} title={label} icon={<Icon name="triangle-down" />}>
+        {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
+          if (typeof child === 'string' && child === '-') {
+            return <DropdownMenu.Divider key={`$${index1}`} />;
+          }
+          if (typeof child !== 'string') {
+            return (
+              <DropdownMenu.Item key={`${child.label}`}>
+                {child.isFrontendRoute ? (
+                  <Link to={child.url || ''}>{child.label}</Link>
+                ) : (
+                  <a href={child.url}>{child.label}</a>
+                )}
+              </DropdownMenu.Item>
+            );
+          }
+          return null;
+        })}
+      </SubMenu>
     );
-  }
+  };
   return (
-    <StyledHeader className="top" id="main-menu">
+    <StyledHeader className="top" id="main-menu" role="navigation">
       <Row>
         <Col lg={19} md={19} sm={24} xs={24}>
           <a className="navbar-brand" href={brand.path}>
             <img width={brand.width} src={brand.icon} alt={brand.alt} />
           </a>
-          <DropdownMenu mode={showMenu} data-test="navbar-top">
+          <DropdownMenu
+            mode={showMenu}
+            data-test="navbar-top"
+            className="main-nav"
+          >
             {menu.map((item, index) => {
               const props = {
                 ...item,
@@ -306,12 +351,16 @@ export function Menu({
                 }),
               };
 
-              return renderSubMenu(props)
+              return renderSubMenu(props);
             })}
           </DropdownMenu>
         </Col>
         <Col lg={5} md={5} sm={24} xs={24}>
-          <RightMenu settings={settings} navbarRight={navbarRight} isFrontendRoute={isFrontendRoute}/> 
+          <RightMenu
+            settings={settings}
+            navbarRight={navbarRight}
+            isFrontendRoute={isFrontendRoute}
+          />
         </Col>
       </Row>
     </StyledHeader>

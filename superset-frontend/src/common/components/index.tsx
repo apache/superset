@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { styled } from '@superset-ui/core';
-import { Dropdown, Menu as AntdMenu, Input as AntdInput, Skeleton} from 'antd';
+import { Dropdown, Menu as AntdMenu, Input as AntdInput, Skeleton } from 'antd';
 import { DropDownProps } from 'antd/lib/dropdown';
 /*
   Antd is re-exported from here so we can override components with Emotion as needed.
@@ -82,9 +82,14 @@ export const MenuItem = styled(AntdMenu.Item)`
     transition-duration: 0s;
   }
 `;
-export declare type MenuMode = 'vertical' | 'vertical-left' | 'vertical-right' | 'horizontal' | 'inline'
+export declare type MenuMode =
+  | 'vertical'
+  | 'vertical-left'
+  | 'vertical-right'
+  | 'horizontal'
+  | 'inline';
 export const Menu = Object.assign(AntdMenu, {
-  Item: MenuItem
+  Item: MenuItem,
 });
 
 export const Input = styled(AntdInput)`

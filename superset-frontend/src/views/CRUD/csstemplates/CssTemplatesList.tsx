@@ -299,7 +299,7 @@ function CssTemplatesList({
 
   return (
     <>
-      <SubMenu {...menuData} />
+      <SubMenu headerSize={8} {...menuData} />
       <CssTemplateModal
         addDangerToast={addDangerToast}
         cssTemplate={currentCssTemplate}

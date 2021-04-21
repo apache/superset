@@ -17,28 +17,29 @@
  * under the License.
  */
 import React from 'react';
-import {  Menu  } from 'src/common/components';
+import { Menu } from 'src/common/components';
 import { t, styled } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
+import Icon from 'src/components/Icon';
 import LanguagePicker from './LanguagePicker';
 import { NavBarProps, MenuObjectProps } from './Menu';
 
 export const dropdownItems = [
-    {
-      label: t('SQL query'),
-      url: '/superset/sqllab',
-      icon: 'fa-fw fa-search',
-    },
-    {
-      label: t('Chart'),
-      url: '/chart/add',
-      icon: 'fa-fw fa-bar-chart',
-    },
-    {
-      label: t('Dashboard'),
-      url: '/dashboard/new',
-      icon: 'fa-fw fa-dashboard',
-    },
+  {
+    label: t('SQL query'),
+    url: '/superset/sqllab',
+    icon: 'fa-fw fa-search',
+  },
+  {
+    label: t('Chart'),
+    url: '/chart/add',
+    icon: 'fa-fw fa-bar-chart',
+  },
+  {
+    label: t('Dashboard'),
+    url: '/dashboard/new',
+    icon: 'fa-fw fa-dashboard',
+  },
 ];
 
 const StyledI = styled.div`
@@ -48,130 +49,124 @@ const StyledI = styled.div`
 const { SubMenu } = Menu;
 
 interface RightMenuProps {
-  settings: MenuObjectProps[]; 
-  navbarRight: NavBarProps; 
+  settings: MenuObjectProps[];
+  navbarRight: NavBarProps;
   isFrontendRoute: (path?: string) => boolean;
 }
 
-const RightMenu = ({ settings, navbarRight, isFrontendRoute}: RightMenuProps ) => ( 
+const RightMenu = ({
+  settings,
+  navbarRight,
+  isFrontendRoute,
+}: RightMenuProps) => (
   <Menu className="navbar-right" mode="horizontal">
-          {!navbarRight.user_is_anonymous && (
-             <SubMenu
-               // id="new-dropdown"
-               data-test="new-dropdown"
-               title={<StyledI className="fa fa-plus" />} 
-             >
-             {dropdownItems.map((menu, i) => (
-               <Menu.Item key={i}>
-                 <a href={menu.url}>
-                     <i
-                     data-test={`menu-item-${menu.label}`}
-                     className={`fa ${menu.icon}`}
-                     />{' '}
-                     {menu.label}
-                 </a>
-               </Menu.Item>
-             ))}
-           </SubMenu> 
-          )}
-            <SubMenu title="Settings">
-              {settings.map((section, index) => [
-                <Menu.ItemGroup
-                  key={`${section.label}`}
-                  title={section.label}
-                >
-                  {section.childs?.map(child => {
-                    if (typeof child !== 'string') {
-                      return (
-                        <Menu.Item key={`${child.label}`}>
-                          {isFrontendRoute(child.url) ? (
-                            <Link to={child.url || ''}>{child.label}</Link>
-                          ) : (
-                            <a href={child.url}>{child.label}</a>
-                          )}
-                        </Menu.Item>
-                      );
-                    }
-                    return null;
-                  })}
-                </Menu.ItemGroup>,
-                index < settings.length - 1 && <Menu.Divider />,
-              ])}
-
-              {!navbarRight.user_is_anonymous && [
-                <Menu.Divider key="user-divider" />,
-                <Menu.ItemGroup key="user-section" title={t('User')}>
-                  {navbarRight.user_profile_url && (
-                    <Menu.Item key="profile">
-                      <a href={navbarRight.user_profile_url}>{t('Profile')}</a>
-                    </Menu.Item>
+    {!navbarRight.user_is_anonymous && (
+      <SubMenu
+        data-test="new-dropdown"
+        title={<StyledI className="fa fa-plus" />}
+        icon={<Icon name="triangle-down" />}
+      >
+        {dropdownItems.map((menu, i) => (
+          <Menu.Item key={i}>
+            <a href={menu.url}>
+              <i
+                data-test={`menu-item-${menu.label}`}
+                className={`fa ${menu.icon}`}
+              />{' '}
+              {menu.label}
+            </a>
+          </Menu.Item>
+        ))}
+      </SubMenu>
+    )}
+    <SubMenu title="Settings" icon={<Icon name="triangle-down" />}>
+      {settings.map((section, index) => [
+        <Menu.ItemGroup key={`${section.label}`} title={section.label}>
+          {section.childs?.map(child => {
+            if (typeof child !== 'string') {
+              return (
+                <Menu.Item key={`${child.label}`}>
+                  {isFrontendRoute(child.url) ? (
+                    <Link to={child.url || ''}>{child.label}</Link>
+                  ) : (
+                    <a href={child.url}>{child.label}</a>
                   )}
-                  <Menu.Item key="info">
-                    <a href={navbarRight.user_info_url}>{t('Info')}</a>
-                  </Menu.Item>
-                  <Menu.Item key="logout">
-                    <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
-                  </Menu.Item>
-                </Menu.ItemGroup>,
-              ]}
-              {(navbarRight.version_string || navbarRight.version_sha) && [
-                <Menu.Divider key="version-info-divider" />,
-                <Menu.ItemGroup key="about-section" title={t('About')}>
-                  <div className="about-section">
-                    {navbarRight.version_string && (
-                      <li className="version-info">
-                        <span>Version: {navbarRight.version_string}</span>
-                      </li>
-                    )}
-                    {navbarRight.version_sha && (
-                      <li className="version-info">
-                        <span>SHA: {navbarRight.version_sha}</span>
-                      </li>
-                    )}
-                  </div>
-                </Menu.ItemGroup>,
-              ]}
-            </SubMenu>
-          {navbarRight.documentation_url && (
-            <Menu.Item
-              title="Documentation"
-            >
-              <a href={navbarRight.documentation_url} target="_blank">
-                <i className="fa fa-question" />
-                &nbsp;
-              </a>
+                </Menu.Item>
+              );
+            }
+            return null;
+          })}
+        </Menu.ItemGroup>,
+        index < settings.length - 1 && <Menu.Divider />,
+      ])}
+
+      {!navbarRight.user_is_anonymous && [
+        <Menu.Divider key="user-divider" />,
+        <Menu.ItemGroup key="user-section" title={t('User')}>
+          {navbarRight.user_profile_url && (
+            <Menu.Item key="profile">
+              <a href={navbarRight.user_profile_url}>{t('Profile')}</a>
             </Menu.Item>
           )}
-          {navbarRight.bug_report_url && (
-            <Menu.Item
-              title="Report a Bug"
-            >
-              <a 
-                href={navbarRight.bug_report_url}
-                target="_blank"
-              >
-                <i className="fa fa-bug" />
-              </a>
-              &nbsp;
-            </Menu.Item>
-          )}
-          {navbarRight.show_language_picker && (
-            <Menu.Item>
-                <LanguagePicker
-                  locale={navbarRight.locale}
-                  languages={navbarRight.languages}
-                />
-            </Menu.Item>
-          )}
-          {navbarRight.user_is_anonymous && (
-            <Menu.Item>
-              <a href={navbarRight.user_login_url} >
-                <i className="fa fa-fw fa-sign-in" />
-                {t('Login')}
-              </a>
-            </Menu.Item>
-          )}
-        </Menu>
+          <Menu.Item key="info">
+            <a href={navbarRight.user_info_url}>{t('Info')}</a>
+          </Menu.Item>
+          <Menu.Item key="logout">
+            <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
+          </Menu.Item>
+        </Menu.ItemGroup>,
+      ]}
+      {(navbarRight.version_string || navbarRight.version_sha) && [
+        <Menu.Divider key="version-info-divider" />,
+        <Menu.ItemGroup key="about-section" title={t('About')}>
+          <div className="about-section">
+            {navbarRight.version_string && (
+              <li className="version-info">
+                <span>Version: {navbarRight.version_string}</span>
+              </li>
+            )}
+            {navbarRight.version_sha && (
+              <li className="version-info">
+                <span>SHA: {navbarRight.version_sha}</span>
+              </li>
+            )}
+          </div>
+        </Menu.ItemGroup>,
+      ]}
+    </SubMenu>
+    {navbarRight.documentation_url && (
+      <Menu.Item title="Documentation">
+        <a href={navbarRight.documentation_url} target="_blank" rel="noreferrer">
+          <i className="fa fa-question" />
+          &nbsp;
+        </a>
+      </Menu.Item>
+    )}
+    {navbarRight.bug_report_url && (
+      <Menu.Item title="Report a Bug">
+        <a href={navbarRight.bug_report_url} target="_blank" rel="noreferrer">
+          <i className="fa fa-bug" />
+        </a>
+        &nbsp;
+      </Menu.Item>
+    )}
+    {navbarRight.show_language_picker && (
+      <Menu.Item>
+        <LanguagePicker
+          locale={navbarRight.locale}
+          languages={navbarRight.languages}
+        />
+      </Menu.Item>
+    )}
+    {navbarRight.user_is_anonymous && (
+      <Menu.Item>
+        <a href={navbarRight.user_login_url}>
+          <i className="fa fa-fw fa-sign-in" />
+          {t('Login')}
+        </a>
+      </Menu.Item>
+    )}
+  </Menu>
 );
 
 export default RightMenu;

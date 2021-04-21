@@ -31,23 +31,24 @@ const StyledHeader = styled.div`
     margin-right: ${({ theme }) => theme.gridUnit * 3}px;
     text-align: left;
     font-size: 18px;
-    padding: 20px;
+    padding: ${({ theme }) => theme.gridUnit * 3}px;
     display: inline-block;
   }
   .nav-right {
     padding: 8px 0;
     margin-right: 0;
     text-align: right;
-    padding: 16px 10px;
+    padding: ${({ theme }) => theme.gridUnit * 3}px
+      ${({ theme }) => theme.gridUnit + 6}px;
   }
   .menu {
     background-color: white;
-    .ant-menu-horizontal{
+    .ant-menu-horizontal {
       line-height: inherit;
       .ant-menu-item {
         &:hover {
           border-bottom: none;
-        } 
+        }
       }
     }
     .ant-menu {
@@ -56,7 +57,7 @@ const StyledHeader = styled.div`
   }
 
   .ant-menu-horizontal:not(.ant-menu-dark) > .ant-menu-item {
-    margin: 0 ${({ theme }) => theme.gridUnit + 1 }px; 
+    margin: 0 ${({ theme }) => theme.gridUnit + 1}px;
   }
 
   .menu .ant-menu-item {
@@ -98,8 +99,9 @@ const StyledHeader = styled.div`
   .ant-menu-horizontal {
     border: none;
   }
-  @media(max-width: 767px) {
-    .header, .nav-right {
+  @media (max-width: 767px) {
+    .header,
+    .nav-right {
       text-align: left;
     }
   }
@@ -153,32 +155,29 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
     hasHistory = false;
   }
 
-  useEffect(()=>{
+  useEffect(() => {
     function handleResize() {
       console.log('screenWidth', window.innerWidth);
-      if(window.innerWidth <= 767 ) setMenu('inline')
-      else setMenu('horizontal') 
+      if (window.innerWidth <= 767) setMenu('inline');
+      else setMenu('horizontal');
     }
     handleResize();
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-  const offset = props.name ? headerSize : 0; 
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  const offset = props.name ? headerSize : 0;
   return (
     <StyledHeader>
-      <Row className='menu'>
-        {props.name && 
+      <Row className="menu" role="navigation">
+        {props.name && (
           <Col md={offset} xs={24}>
-            <div className="header">
-              {props.name}
-            </div>
+            <div className="header">{props.name}</div>
           </Col>
-        }
+        )}
         <Col md={16 - offset} sm={24} xs={24}>
-
-          <Menu 
-            mode={showMenu} 
-            style={{backgroundColor: 'transparent'}}
+          <Menu
+            mode={showMenu}
+            style={{ backgroundColor: 'transparent' }}
             // inlineCollapsed={true}
           >
             {props.tabs &&
@@ -189,7 +188,9 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
                       <li
                         role="tab"
                         data-test={tab['data-test']}
-                        className={tab.name === props.activeChild ? 'active' : ''}
+                        className={
+                          tab.name === props.activeChild ? 'active' : ''
+                        }
                       >
                         <div>
                           <Link to={tab.url || ''}>{tab.label}</Link>
@@ -219,14 +220,14 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
         <Col md={8} sm={24} xs={24}>
           <div className="nav-right">
             {props.buttons?.map((btn, i) => (
-                <Button
-                  key={i}
-                  buttonStyle={btn.buttonStyle}
-                  onClick={btn.onClick}
-                  data-test={btn['data-test']}
-                >
-                  {btn.name}
-                </Button>
+              <Button
+                key={i}
+                buttonStyle={btn.buttonStyle}
+                onClick={btn.onClick}
+                data-test={btn['data-test']}
+              >
+                {btn.name}
+              </Button>
             ))}
           </div>
         </Col>

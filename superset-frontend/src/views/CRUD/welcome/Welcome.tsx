@@ -71,7 +71,7 @@ const WelcomeContainer = styled.div`
       }
     }
     .ant-menu.ant-menu-light.ant-menu-root.ant-menu-horizontal {
-      padding-left: ${({ theme }) => theme.gridUnit * 10}px; 
+      padding-left: ${({ theme }) => theme.gridUnit * 10}px;
     }
     button {
       padding: 3px 21px;
