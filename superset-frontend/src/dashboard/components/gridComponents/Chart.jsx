@@ -225,7 +225,7 @@ export default class Chart extends React.Component {
     exportChart({
       formData: this.props.formData,
       resultType: 'results',
-      resultFormat: 'csv',
+      resultFormat: 'xlsx',
     });
   }
 

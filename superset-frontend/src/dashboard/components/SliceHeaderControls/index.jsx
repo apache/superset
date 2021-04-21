@@ -277,7 +277,7 @@ class SliceHeaderControls extends React.PureComponent {
         </Menu.Item>
 
         {this.props.supersetCanCSV && (
-          <Menu.Item key={MENU_KEYS.EXPORT_CSV}>{t('Export CSV')}</Menu.Item>
+          <Menu.Item key={MENU_KEYS.EXPORT_CSV}>{t('Export Excel')}</Menu.Item>
         )}
         {isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
           isCrossFilter && (

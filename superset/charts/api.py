@@ -30,6 +30,9 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
+from tempfile import NamedTemporaryFile
+import pandas
+
 from superset import is_feature_enabled, thumbnail_cache
 from superset.charts.commands.bulk_delete import BulkDeleteChartCommand
 from superset.charts.commands.create import CreateChartCommand
@@ -495,6 +498,17 @@ class ChartRestApi(BaseSupersetModelRestApi):
             resp = make_response(response_data, 200)
             resp.headers["Content-Type"] = "application/json; charset=utf-8"
             return resp
+        if result_format == ChartDataResultFormat.XLSX:
+            sio = BytesIO()
+            df = pandas.DataFrame(result["queries"][0]["data"])
+            writer = pandas.ExcelWriter(sio, engine='xlsxwriter')
+            df.to_excel(writer, sheet_name="Лист 1", index=None)
+            writer.save()
+
+            sio.seek(0)
+            workbook = sio.getvalue()
+
+            return CsvResponse(workbook, headers=generate_download_headers("xlsx"))
 
         return self.response_400(message=f"Unsupported result_format: {result_format}")
 
