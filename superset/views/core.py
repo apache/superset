@@ -2393,6 +2393,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             # Update saved query if needed
             QueryDAO.update_saved_query_exec_info(query_id)
 
+            # TODO: set LimitingFactor to display?
             payload = json.dumps(
                 apply_display_max_row_limit(data),
                 default=utils.pessimistic_json_iso_dttm_ser,
