@@ -19,8 +19,8 @@
 import {
   buildQueryContext,
   ColumnType,
-  QueryFormData,
 } from '@superset-ui/core';
+import { DEFAULT_FORM_DATA, PluginFilterRangeQueryFormData } from './types';
 
 /**
  * The buildQuery function is used to create an instance of QueryContext that's
@@ -36,14 +36,17 @@ import {
  * it is possible to define post processing operations in the QueryObject, or multiple queries
  * if a viz needs multiple different result sets.
  */
-export default function buildQuery(formData: QueryFormData) {
-  const { groupby } = formData;
+export default function buildQuery(formData: PluginFilterRangeQueryFormData) {
+  const { groupby, applyFetchValuesPredicate } = {
+    ...DEFAULT_FORM_DATA,
+    ...formData,
+  };
   const [column = ''] = groupby || [];
   // @ts-ignore (need update interface Column )
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,
-      apply_fetch_values_predicate: true,
+      apply_fetch_values_predicate: applyFetchValuesPredicate,
       columns: [],
       groupby: [],
       metrics: [

@@ -34,12 +34,13 @@ export const FIRST_VALUE = '__FIRST_VALUE__';
 export type SelectValue = (number | string)[] | null;
 
 interface PluginFilterSelectCustomizeProps {
+  applyFetchValuesPredicate: boolean;
+  defaultToFirstItem: boolean;
   defaultValue?: SelectValue | typeof FIRST_VALUE;
   enableEmptyFilter: boolean;
+  inputRef?: RefObject<HTMLInputElement>;
   inverseSelection: boolean;
   multiSelect: boolean;
-  defaultToFirstItem: boolean;
-  inputRef?: RefObject<HTMLInputElement>;
   sortAscending: boolean;
   sortMetric?: string;
 }
@@ -69,4 +70,5 @@ export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {
   defaultToFirstItem: false,
   multiSelect: true,
   sortAscending: true,
+  applyFetchValuesPredicate: true,
 };

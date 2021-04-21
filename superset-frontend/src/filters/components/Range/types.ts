@@ -27,8 +27,7 @@ import { RefObject } from 'react';
 import { PluginFilterStylesProps } from '../types';
 
 interface PluginFilterSelectCustomizeProps {
-  max?: number;
-  min?: number;
+  applyFetchValuesPredicate: boolean;
 }
 
 export type PluginFilterRangeQueryFormData = QueryFormData &
@@ -42,4 +41,8 @@ export type PluginFilterRangeProps = PluginFilterStylesProps & {
   filterState: FilterState;
   behaviors: Behavior[];
   inputRef: RefObject<any>;
+};
+
+export const DEFAULT_FORM_DATA = {
+  apply_fetch_values_predicate: true,
 };

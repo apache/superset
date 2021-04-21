@@ -22,6 +22,7 @@ import {
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
+import { DEFAULT_FORM_DATA } from './types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -38,6 +39,18 @@ const config: ControlPanelConfig = {
               label: 'Column',
               description:
                 'The numeric column based on which to calculate the range',
+            },
+          },
+        ],
+        [
+          {
+            name: 'applyFetchValuesPredicate',
+            config: {
+              type: 'CheckboxControl',
+              renderTrigger: true,
+              label: t('Apply dataset filter predicate'),
+              default: DEFAULT_FORM_DATA.apply_fetch_values_predicate,
+              description: t('Apply filter predicate if defined in dataset'),
             },
           },
         ],

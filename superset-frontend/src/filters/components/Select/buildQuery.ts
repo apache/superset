@@ -20,7 +20,10 @@ import { buildQueryContext } from '@superset-ui/core';
 import { DEFAULT_FORM_DATA, PluginFilterSelectQueryFormData } from './types';
 
 export default function buildQuery(formData: PluginFilterSelectQueryFormData) {
-  const { sortAscending, sortMetric } = { ...DEFAULT_FORM_DATA, ...formData };
+  const { applyFetchValuesPredicate, sortAscending, sortMetric } = {
+    ...DEFAULT_FORM_DATA,
+    ...formData,
+  };
   return buildQueryContext(formData, baseQueryObject => {
     const { columns = [], filters = [] } = baseQueryObject;
 
@@ -28,7 +31,7 @@ export default function buildQuery(formData: PluginFilterSelectQueryFormData) {
     return [
       {
         ...baseQueryObject,
-        apply_fetch_values_predicate: true,
+        apply_fetch_values_predicate: applyFetchValuesPredicate,
         groupby: columns,
         filters: filters.concat(
           columns.map(column => ({ col: column, op: 'IS NOT NULL' })),

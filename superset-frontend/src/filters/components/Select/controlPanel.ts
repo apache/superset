@@ -26,6 +26,7 @@ const {
   multiSelect,
   defaultToFirstItem,
   sortAscending,
+  applyFetchValuesPredicate,
 } = DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
@@ -106,6 +107,18 @@ const config: ControlPanelConfig = {
               label: t('Inverse selection'),
               default: inverseSelection,
               description: t('Exclude selected values'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'applyFetchValuesPredicate',
+            config: {
+              type: 'CheckboxControl',
+              renderTrigger: true,
+              label: t('Apply dataset filter predicate'),
+              default: applyFetchValuesPredicate,
+              description: t('Apply filter predicate if defined in dataset'),
             },
           },
         ],
