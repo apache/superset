@@ -26,7 +26,7 @@ import Button from 'src/components/Button';
 import FacePile from 'src/components/FacePile';
 import { Tooltip } from 'src/components/Tooltip';
 import ListView, {
-  FilterOperators,
+  FilterOperator,
   Filters,
   ListViewProps,
 } from 'src/components/ListView';
@@ -84,7 +84,7 @@ function AlertList({
     () => [
       {
         id: 'type',
-        operator: FilterOperators.equals,
+        operator: FilterOperator.equals,
         value: isReportEnabled ? 'Report' : 'Alert',
       },
     ],
@@ -373,7 +373,7 @@ function AlertList({
         Header: t('Created by'),
         id: 'created_by',
         input: 'select',
-        operator: FilterOperators.relationOneMany,
+        operator: FilterOperator.relationOneMany,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'report',
@@ -389,7 +389,7 @@ function AlertList({
         Header: t('Status'),
         id: 'last_state',
         input: 'select',
-        operator: FilterOperators.equals,
+        operator: FilterOperator.equals,
         unfilteredLabel: 'Any',
         selects: [
           { label: t(`${AlertState.success}`), value: AlertState.success },
@@ -403,7 +403,7 @@ function AlertList({
         Header: t('Search'),
         id: 'name',
         input: 'search',
-        operator: FilterOperators.contains,
+        operator: FilterOperator.contains,
       },
     ],
     [],
