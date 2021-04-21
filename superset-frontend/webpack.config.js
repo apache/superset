@@ -123,13 +123,13 @@ const plugins = [
 
   // static pages
   new HtmlWebpackPlugin({
-    template: './src/staticPages/404.html',
+    template: './src/assets/staticPages/404.html',
     inject: true,
     chunks: [],
     filename: '404.html',
   }),
   new HtmlWebpackPlugin({
-    template: './src/staticPages/500.html',
+    template: './src/assets/staticPages/500.html',
     inject: true,
     chunks: [],
     filename: '500.html',
@@ -391,7 +391,7 @@ const config = {
       {
         test: /\.png$/,
         issuer: {
-          exclude: /\/src\/staticPages\//,
+          exclude: /\/src\/assets\/staticPages\//,
         },
         loader: 'url-loader',
         options: {
@@ -402,7 +402,7 @@ const config = {
       {
         test: /\.png$/,
         issuer: {
-          test: /\/src\/staticPages\//,
+          test: /\/src\/assets\/staticPages\//,
         },
         loader: 'url-loader',
         options: {

@@ -19,9 +19,10 @@
 import { t, styled } from '@superset-ui/core';
 import React, { FC } from 'react';
 import Button from 'src/components/Button';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import { APPLY_FILTERS_HINT } from './utils';
 import { useFilterSetNameDuplicated } from './state';
+import { getFilterBarTestId } from '..';
 
 export type FooterProps = {
   filterSetName: string;
@@ -90,7 +91,7 @@ const Footer: FC<FooterProps> = ({
                 htmlType="submit"
                 buttonSize="small"
                 onClick={onCreate}
-                data-test="filter-set-create-button"
+                {...getFilterBarTestId('create-filter-set-button')}
               >
                 {t('Create')}
               </Button>
@@ -104,8 +105,8 @@ const Footer: FC<FooterProps> = ({
               disabled={disabled}
               buttonStyle="tertiary"
               buttonSize="small"
-              data-test="filter-set-create-new-button"
               onClick={onEdit}
+              {...getFilterBarTestId('new-filter-set-button')}
             >
               {t('Create new filter set')}
             </Button>

@@ -22,7 +22,9 @@ import pytest
 import pandas as pd
 from sqlalchemy.sql import select
 from tests.test_app import app
-from superset.db_engine_specs.hive import HiveEngineSpec, upload_to_s3
+
+with app.app_context():
+    from superset.db_engine_specs.hive import HiveEngineSpec, upload_to_s3
 from superset.exceptions import SupersetException
 from superset.sql_parse import Table, ParsedQuery
 

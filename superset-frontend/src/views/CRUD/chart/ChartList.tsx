@@ -44,14 +44,14 @@ import ListView, {
   ListViewProps,
   Filters,
   SelectOption,
-  FilterOperators,
+  FilterOperator,
 } from 'src/components/ListView';
 import { getFromLocalStorage } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Chart from 'src/types/Chart';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import ChartCard from './ChartCard';
 
@@ -385,7 +385,7 @@ function ChartList(props: ChartListProps) {
       Header: t('Owner'),
       id: 'owners',
       input: 'select',
-      operator: FilterOperators.relationManyMany,
+      operator: FilterOperator.relationManyMany,
       unfilteredLabel: t('All'),
       fetchSelects: createFetchRelated(
         'chart',
@@ -406,7 +406,7 @@ function ChartList(props: ChartListProps) {
       Header: t('Created by'),
       id: 'created_by',
       input: 'select',
-      operator: FilterOperators.relationOneMany,
+      operator: FilterOperator.relationOneMany,
       unfilteredLabel: t('All'),
       fetchSelects: createFetchRelated(
         'chart',
@@ -427,7 +427,7 @@ function ChartList(props: ChartListProps) {
       Header: t('Viz type'),
       id: 'viz_type',
       input: 'select',
-      operator: FilterOperators.equals,
+      operator: FilterOperator.equals,
       unfilteredLabel: t('All'),
       selects: registry
         .keys()
@@ -451,7 +451,7 @@ function ChartList(props: ChartListProps) {
       Header: t('Dataset'),
       id: 'datasource_id',
       input: 'select',
-      operator: FilterOperators.equals,
+      operator: FilterOperator.equals,
       unfilteredLabel: t('All'),
       fetchSelects: createFetchDatasets(
         createErrorHandler(errMsg =>
@@ -470,7 +470,7 @@ function ChartList(props: ChartListProps) {
       id: 'id',
       urlDisplay: 'favorite',
       input: 'select',
-      operator: FilterOperators.chartIsFav,
+      operator: FilterOperator.chartIsFav,
       unfilteredLabel: t('Any'),
       selects: [
         { label: t('Yes'), value: true },
@@ -481,7 +481,7 @@ function ChartList(props: ChartListProps) {
       Header: t('Search'),
       id: 'slice_name',
       input: 'search',
-      operator: FilterOperators.chartAllText,
+      operator: FilterOperator.chartAllText,
     },
   ];
 
@@ -553,7 +553,15 @@ function ChartList(props: ChartListProps) {
   }
   if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
     subMenuButtons.push({
-      name: <Icons.Import />,
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import charts')}
+          placement="bottomRight"
+        >
+          <Icons.Import data-test="import-button" />
+        </Tooltip>
+      ),
       buttonStyle: 'link',
       onClick: openChartImportModal,
     });

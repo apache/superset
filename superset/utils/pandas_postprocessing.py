@@ -631,14 +631,14 @@ def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
     Fit a prophet model and return a DataFrame with predicted results.
     """
     try:
-        prophet_logger = logging.getLogger("fbprophet.plot")
+        prophet_logger = logging.getLogger("prophet.plot")
 
         prophet_logger.setLevel(logging.CRITICAL)
-        from fbprophet import Prophet  # pylint: disable=import-error
+        from prophet import Prophet  # pylint: disable=import-error
 
         prophet_logger.setLevel(logging.NOTSET)
     except ModuleNotFoundError:
-        raise QueryObjectValidationError(_("`fbprophet` package not installed"))
+        raise QueryObjectValidationError(_("`prophet` package not installed"))
     model = Prophet(
         interval_width=confidence_interval,
         yearly_seasonality=yearly_seasonality,

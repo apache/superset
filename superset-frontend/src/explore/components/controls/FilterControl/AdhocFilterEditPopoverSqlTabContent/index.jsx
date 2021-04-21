@@ -42,6 +42,7 @@ const propTypes = {
     ]),
   ).isRequired,
   height: PropTypes.number.isRequired,
+  activeKey: PropTypes.string.isRequired,
 };
 
 export default class AdhocFilterEditPopoverSqlTabContent extends React.Component {

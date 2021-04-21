@@ -31,7 +31,7 @@ import {
   CategoricalColorNamespace,
 } from '@superset-ui/core';
 
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import FormLabel from 'src/components/FormLabel';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 

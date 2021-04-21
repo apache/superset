@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 
 const propTypes = {
