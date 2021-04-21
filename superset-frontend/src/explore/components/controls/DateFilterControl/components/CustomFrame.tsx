@@ -22,7 +22,7 @@ import { Moment } from 'moment';
 import { isInteger } from 'lodash';
 import { Col, InputNumber, Row } from 'src/common/components';
 import { DatePicker } from 'src/components/DatePicker';
-import { Radio } from 'src/common/components/Radio';
+import { Radio } from 'src/components/Radio';
 import { Select } from 'src/components/Select';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {

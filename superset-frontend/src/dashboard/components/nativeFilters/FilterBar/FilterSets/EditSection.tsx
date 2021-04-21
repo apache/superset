@@ -28,6 +28,7 @@ import { ActionButtons } from './Footer';
 import { useDataMask, useFilters, useFilterSets } from '../state';
 import { APPLY_FILTERS_HINT, findExistingFilterSet } from './utils';
 import { useFilterSetNameDuplicated } from './state';
+import { getFilterBarTestId } from '../index';
 
 const Wrapper = styled.div`
   display: grid;
@@ -156,7 +157,7 @@ const EditSection: FC<EditSectionProps> = ({
               htmlType="submit"
               buttonSize="small"
               onClick={handleSave}
-              data-test="filter-set-edit-save"
+              {...getFilterBarTestId('filter-set-edit-save')}
             >
               {t('Save')}
             </Button>

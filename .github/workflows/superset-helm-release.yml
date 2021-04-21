@@ -1,0 +1,37 @@
+name: Release Charts
+
+on:
+  push:
+    branches:
+      - 'master'
+    paths:
+      - 'helm/**'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Install Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.5.4
+
+      - name: Run chart-releaser
+        uses: ./.github/actions/chart-releaser-action
+        with:
+          charts_dir: helm
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          CR_RELEASE_NAME_TEMPLATE: "superset-helm-chart-{{ .Version }}"

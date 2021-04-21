@@ -24,14 +24,14 @@ import moment from 'moment';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import Button from 'src/components/Button';
 import FacePile from 'src/components/FacePile';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import ListView, {
   FilterOperators,
   Filters,
   ListViewProps,
 } from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import { Switch } from 'src/common/components/Switch';
+import { Switch } from 'src/components/Switch';
 import { DATETIME_WITH_TIME_ZONE } from 'src/constants';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';

@@ -20,7 +20,7 @@ from unittest import mock
 from sqlalchemy import column, literal_column
 from sqlalchemy.dialects import postgresql
 
-from superset.db_engine_specs import engines
+from superset.db_engine_specs import get_engine_specs
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
@@ -132,7 +132,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         """
         DB Eng Specs (postgres): Test "postgres" in engine spec
         """
-        self.assertIn("postgres", engines)
+        self.assertIn("postgres", get_engine_specs())
 
     def test_extras_without_ssl(self):
         db = mock.Mock()
@@ -371,17 +371,18 @@ psql: error: could not connect to server: Operation timed out
         result = PostgresEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
+                message='Unable to connect to database "badDB".',
                 error_type=SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
-                message='We were unable to connect to your database named "badDB".'
-                " Please verify your database name and try again.",
                 level=ErrorLevel.ERROR,
                 extra={
                     "engine_name": "PostgreSQL",
                     "issue_codes": [
                         {
-                            "code": 10015,
-                            "message": "Issue 1015 - Either the database is "
-                            "spelled incorrectly or does not exist.",
+                            "code": 1015,
+                            "message": (
+                                "Issue 1015 - Either the database is spelled "
+                                "incorrectly or does not exist.",
+                            ),
                         }
                     ],
                 },

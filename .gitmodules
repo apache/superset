@@ -30,3 +30,9 @@
 [submodule ".github/actions/comment-on-pr"]
 	path = .github/actions/comment-on-pr
 	url = https://github.com/unsplash/comment-on-pr
+[submodule ".github/actions/chart-testing-action"]
+	path = .github/actions/chart-testing-action
+	url = https://github.com/helm/chart-testing-action
+[submodule ".github/actions/chart-releaser-action"]
+	path = .github/actions/chart-releaser-action
+	url = https://github.com/helm/chart-releaser-action

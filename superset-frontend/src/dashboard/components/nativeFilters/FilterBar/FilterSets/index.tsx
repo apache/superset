@@ -29,6 +29,7 @@ import { Filter } from '../../types';
 import { useFilters, useDataMask, useFilterSets } from '../state';
 import Footer from './Footer';
 import FilterSetUnit from './FilterSetUnit';
+import { getFilterBarTestId } from '..';
 
 const FilterSetsWrapper = styled.div`
   display: grid;
@@ -45,7 +46,7 @@ const FilterSetsWrapper = styled.div`
 
 const FilterSetUnitWrapper = styled.div<{
   onClick?: HandlerFunction;
-  selected?: boolean;
+  'data-selected'?: boolean;
 }>`
   display: grid;
   align-items: center;
@@ -57,7 +58,7 @@ const FilterSetUnitWrapper = styled.div<{
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   padding: ${({ theme }) => `${theme.gridUnit * 3}px ${theme.gridUnit * 2}px`};
   cursor: ${({ onClick }) => (!onClick ? 'auto' : 'pointer')};
-  ${({ theme, selected }) =>
+  ${({ theme, 'data-selected': selected }) =>
     `background: ${selected ? theme.colors.primary.light5 : 'transparent'}`};
 `;
 
@@ -97,6 +98,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
     if (isFilterSetChanged) {
       return;
     }
+
     const foundFilterSet = findExistingFilterSet({
       dataMaskSelected,
       filterSetFilterValues,
@@ -246,7 +248,8 @@ const FilterSets: React.FC<FilterSetsProps> = ({
       )}
       {filterSetFilterValues.map(filterSet => (
         <FilterSetUnitWrapper
-          selected={filterSet.id === selectedFiltersSetId}
+          {...getFilterBarTestId('filter-set-wrapper')}
+          data-selected={filterSet.id === selectedFiltersSetId}
           onClick={(e: MouseEvent<HTMLElement>) =>
             takeFilterSet(filterSet.id, e.target as HTMLElement)
           }

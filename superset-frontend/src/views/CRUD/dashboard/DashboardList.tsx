@@ -34,13 +34,14 @@ import ListView, {
   Filters,
   FilterOperators,
 } from 'src/components/ListView';
+import { getFromLocalStorage } from 'src/utils/localStorageHelpers';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import FacePile from 'src/components/FacePile';
 import Icons from 'src/components/Icons';
 import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import ImportModelsModal from 'src/components/ImportModal/index';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
@@ -452,12 +453,19 @@ function DashboardList(props: DashboardListProps) {
   ];
 
   function renderCard(dashboard: Dashboard) {
+    const { userId } = props.user;
+    const userKey = getFromLocalStorage(userId.toString(), null);
     return (
       <DashboardCard
         dashboard={dashboard}
         hasPerm={hasPerm}
         bulkSelectEnabled={bulkSelectEnabled}
         refreshData={refreshData}
+        showThumbnails={
+          userKey
+            ? userKey.thumbnails
+            : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+        }
         loading={loading}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
@@ -492,7 +500,15 @@ function DashboardList(props: DashboardListProps) {
   }
   if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
     subMenuButtons.push({
-      name: <Icons.Import />,
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import dashboards')}
+          placement="bottomRight"
+        >
+          <Icons.Import data-test="import-button" />
+        </Tooltip>
+      ),
       buttonStyle: 'link',
       onClick: openDashboardImportModal,
     });

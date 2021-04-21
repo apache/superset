@@ -46,11 +46,12 @@ import ListView, {
   SelectOption,
   FilterOperators,
 } from 'src/components/ListView';
+import { getFromLocalStorage } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Chart from 'src/types/Chart';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import ChartCard from './ChartCard';
 
@@ -506,9 +507,16 @@ function ChartList(props: ChartListProps) {
   ];
 
   function renderCard(chart: Chart) {
+    const { userId } = props.user;
+    const userKey = getFromLocalStorage(userId.toString(), null);
     return (
       <ChartCard
         chart={chart}
+        showThumbnails={
+          userKey
+            ? userKey.thumbnails
+            : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+        }
         hasPerm={hasPerm}
         openChartEditModal={openChartEditModal}
         bulkSelectEnabled={bulkSelectEnabled}
@@ -545,7 +553,15 @@ function ChartList(props: ChartListProps) {
   }
   if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
     subMenuButtons.push({
-      name: <Icons.Import />,
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import charts')}
+          placement="bottomRight"
+        >
+          <Icons.Import data-test="import-button" />
+        </Tooltip>
+      ),
       buttonStyle: 'link',
       onClick: openChartImportModal,
     });

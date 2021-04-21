@@ -23,7 +23,7 @@ import { t } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
 import FormLabel from 'src/components/FormLabel';
 import Icon from 'src/components/Icon';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { getShortUrl } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';

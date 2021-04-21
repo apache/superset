@@ -28,7 +28,7 @@ import Split from 'react-split';
 import { t, styled, supersetTheme } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
-import StyledModal from 'src/common/components/Modal';
+import StyledModal from 'src/components/Modal';
 import Mousetrap from 'mousetrap';
 import Button from 'src/components/Button';
 import Timer from 'src/components/Timer';
