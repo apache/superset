@@ -89,7 +89,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
 
     const connection = {
-      sqlalchemy_uri: db ? db.sqlalchemy_uri : '',
+      sqlalchemy_uri: db?.sqlalchemy_uri || '',
       database_name: db?.database_name?.trim() || undefined,
       impersonate_user: db?.impersonate_user || undefined,
       extra: db?.extra || undefined,
@@ -120,7 +120,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         delete update.id;
       }
 
-      if (db && db.id) {
+      if (db?.id) {
         updateResource(db.id, update).then(result => {
           if (result) {
             if (onDatabaseAdd) {
