@@ -17,7 +17,7 @@
 
 .PHONY: install superset venv pre-commit
 
-install: venv superset pre-commit
+install: superset pre-commit
 
 superset:
 	# Install external dependencies
