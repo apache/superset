@@ -42,7 +42,7 @@ import {
   TIME_FILTER_LABELS,
   TIME_FILTER_MAP,
 } from 'src/explore/constants';
-
+import replaceTemplate from '../../utils/filterTemplates';
 import './FilterBox.less';
 
 // a shortcut to a map key, used by many components
@@ -368,6 +368,15 @@ class FilterBox extends React.PureComponent {
       // multiple values are separated by semicolons
       value = isMultiple ? defaultValue.split(';') : defaultValue;
     }
+
+    if (value && value.length > 0) {
+      if (filterConfig.multiple) {
+        value = value.map(replaceTemplate);
+      } else {
+        value = replaceTemplate(value);
+      }
+    }
+
 
     return (
       <OnPasteSelect

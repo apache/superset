@@ -25,6 +25,7 @@ import {
 import { FilterSet, NativeFiltersState } from './types';
 import { FilterConfiguration } from '../components/nativeFilters/types';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
+import replaceTemplate from '../../utils/filterTemplates';
 
 export function getInitialState({
   filterSetsConfig,
@@ -47,6 +48,14 @@ export function getInitialState({
   } else {
     state.filters = prevState?.filters ?? {};
   }
+
+  Object.keys(filters).forEach(filterId => {
+    Object.keys(filters[filterId]).forEach(filterItem => {
+      filters[filterId][filterItem] = filters[filterId][filterItem].map(
+        replaceTemplate,
+      );
+    });
+  });
 
   if (filterSetsConfig) {
     const filterSets = {};
