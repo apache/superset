@@ -590,6 +590,29 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   )}
                 </div>
               </StyledInputContainer>
+              {/* ----------
+              
+              🚨 This (below) looks like it should be a dropdown in Figma,
+              not sure exactly what goes inside. Coming back to this. 🚨
+              
+              ---------- */}
+              <StyledInputContainer>
+                <div className="control-label">
+                  {t('Schemas allowed for CSV upload')}
+                </div>
+                <div className="input-container">
+                  <input
+                    type="text"
+                    name="schemas_allowed_for_csv_upload"
+                    value={db?.schemas_allowed_for_csv_upload || ''}
+                    placeholder={t('Select one or multiple schemas')}
+                    onChange={onInputChange}
+                  />
+                </div>
+                <div className="helper">
+                  {t('A list of schemas that CSVs are allowed to upload to.')}
+                </div>
+              </StyledInputContainer>
               <StyledInputContainer className="mb-0">
                 <div className="input-container">
                   <IndeterminateCheckbox
@@ -641,6 +664,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 <div className="input-container">
                   <StyledJsonEditor
                     name="extra"
+                    /* ----------
+
+                    🚨 Do I need to change 'extra' in the back end
+                    to get this value to display properly? 🚨
+
+                    ---------- */
                     value={db?.extra ?? defaultExtra}
                     placeholder={t('Secure extra')}
                     onChange={(json: string) => onEditorChange(json, 'extra')}
@@ -652,22 +681,41 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   <div>
                     {t('JSON string containing extra configuration elements.')}
                   </div>
+                  {/* ----------
+                  
+                  🚨 Not sure if this helper comment should change, coming back to this. 🚨
+                  
+                  ---------- */}
                   <div>
                     {t(
-                      '1. The engine_params object gets unpacked into the sqlalchemy.create_engine ' +
+                      'The engine_params object gets unpacked into the sqlalchemy.create_engine ' +
                         'call, while the metadata_params gets unpacked into the sqlalchemy.MetaData ' +
                         'call.',
                     )}
                   </div>
-                  <div>
-                    {t(
-                      '2. The metadata_cache_timeout is a cache timeout setting in seconds for ' +
-                        'metadata fetch of this database. Specify it as "metadata_cache_timeout": ' +
-                        '{"schema_cache_timeout": 600, "table_cache_timeout": 600}. If unset, cache ' +
-                        'will not be enabled for the functionality. A timeout of 0 indicates that ' +
-                        'the cache never expires.',
-                    )}
-                  </div>
+                </div>
+              </StyledInputContainer>
+              <StyledInputContainer>
+                <div className="control-label">{t('Version')}</div>
+                <div className="input-container">
+                  <input
+                    type="number"
+                    name="version"
+                    /* ----------
+
+                    🚨 Not sure which part of db I should use for value 🚨
+
+                    ---------- */
+                    // value={db?.version || ''}
+                    placeholder={t('Version number')}
+                    onChange={onInputChange}
+                  />
+                </div>
+                <div className="helper">
+                  {t(
+                    'Specify this database’s version. This should be used with ' +
+                      'Presto databases so that the syntax is correct.',
+                  )}
                 </div>
               </StyledInputContainer>
             </Collapse.Panel>
