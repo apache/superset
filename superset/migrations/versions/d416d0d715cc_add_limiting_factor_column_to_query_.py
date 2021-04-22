@@ -26,7 +26,6 @@ Create Date: 2021-04-16 17:38:40.342260
 revision = "d416d0d715cc"
 down_revision = "19e978e1b9c3"
 
-<<<<<<< HEAD
 import sqlalchemy as sa
 from alembic import op
 
@@ -35,52 +34,9 @@ def upgrade():
     with op.batch_alter_table("query") as batch_op:
         batch_op.add_column(
             sa.Column("limiting_factor", sa.VARCHAR(255), server_default="UNKNOWN",)
-=======
-from enum import Enum
-
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy.dialects import postgresql
-from sqlalchemy.dialects.postgresql.base import PGDialect
-
-limiting_factor = postgresql.ENUM(
-    "DROPDOWN",
-    "QUERY",
-    "NOT_LIMITED",
-    "QUERY_AND_DROPDOWN",
-    "UNKNOWN",
-    name="limitingfactor",
-)
-
-
-def upgrade():
-    bind = op.get_bind()
-    if isinstance(bind.dialect, PGDialect):
-        limiting_factor.create(bind)
-    with op.batch_alter_table("query") as batch_op:
-        batch_op.add_column(
-            sa.Column(
-                "limiting_factor",
-                sa.Enum(
-                    "DROPDOWN",
-                    "QUERY",
-                    "NOT_LIMITED",
-                    "QUERY_AND_DROPDOWN",
-                    "UNKNOWN",
-                    name="limitingfactor",
-                ),
-                server_default="UNKNOWN",
-            )
->>>>>>> with migration
         )
 
 
 def downgrade():
     with op.batch_alter_table("query") as batch_op:
         batch_op.drop_column("limiting_factor")
-<<<<<<< HEAD
-=======
-        bind = op.get_bind()
-    if isinstance(bind.dialect, PGDialect):
-        limiting_factor.drop(bind)
->>>>>>> with migration
