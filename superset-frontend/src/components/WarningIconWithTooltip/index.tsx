@@ -16,27 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../stylesheets/less/variables.less';
+import React from 'react';
+import { useTheme, SafeMarkdown } from '@superset-ui/core';
+import Icon from 'src/components/Icon';
+import { Tooltip } from 'src/components/Tooltip';
 
-.TableSelector .fa-refresh {
-  padding-left: 9px;
+export interface WarningIconWithTooltipProps {
+  warningMarkdown: string;
+  size?: number;
 }
 
-.TableSelector .section {
-  padding-bottom: 5px;
-  display: flex;
-  flex-direction: row;
+function WarningIconWithTooltip({
+  warningMarkdown,
+  size = 24,
+}: WarningIconWithTooltipProps) {
+  const theme = useTheme();
+  return (
+    <Tooltip
+      id="warning-tooltip"
+      title={<SafeMarkdown source={warningMarkdown} />}
+    >
+      <Icon
+        color={theme.colors.alert.base}
+        height={size}
+        width={size}
+        name="alert-solid"
+      />
+    </Tooltip>
+  );
 }
 
-.TableSelector .select {
-  flex-grow: 1;
-}
-
-.TableSelector .divider {
-  border-bottom: 1px solid @gray-bg;
-  margin: 15px 0;
-}
-
-.TableLabel {
-  white-space: nowrap;
-}
+export default WarningIconWithTooltip;
