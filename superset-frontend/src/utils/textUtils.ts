@@ -15,6 +15,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import supersetText from '../../../superset_text.yaml';
 
-export default supersetText || {};
+class ImportError extends Error {}
+
+const loadModule = async () => {
+  let module
+  try {
+    module = await import( /* webpackChunkName: "supersetText" */ '../../../superset_text.yml')
+  } catch (e) {
+    throw new ImportError('Unable to import module ../../../superset_text.yml')
+  }
+  return module.default
+}
+
+export default loadModule() || {};
