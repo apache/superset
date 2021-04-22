@@ -110,6 +110,7 @@ export function getExploreLongUrl(
     const minimalFormData = {
       datasource: formData.datasource,
       viz_type: formData.viz_type,
+      slice_id: formData.slice_id,
     };
     return getExploreLongUrl(minimalFormData, endpointType, false, {
       URL_IS_TOO_LONG_TO_SHARE: null,
