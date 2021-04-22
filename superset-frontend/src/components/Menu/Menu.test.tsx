@@ -159,14 +159,7 @@ test('should render all the top navbar menu items', () => {
   } = mockedProps;
   render(<Menu {...mockedProps} />);
   menu.forEach(item => {
-    const menuItem = screen.getByText(item.label);
-    try {
-      if (!item.childs) {
-        expect(menuItem).toHaveAttribute('href', item.url);
-      }
-    } finally {
-
-    }
+    expect(screen.getByText(item.label)).toBeInTheDocument();
   });
 });
 
