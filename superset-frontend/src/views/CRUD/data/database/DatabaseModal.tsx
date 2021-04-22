@@ -62,6 +62,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [db, setDB] = useState<DatabaseObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
+  const [schemasAllowed, setSchemasAllowed] = useState<string>('');
+  const [metaDataCacheTimeout, setMetaDataCacheTimeout] = useState<string>('');
   const conf = useCommonConf();
 
   const isEditMode = database !== null;
@@ -78,6 +80,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     t('database'),
     addDangerToast,
   );
+
+  // console.log('DBFETCHED', dbFetched);
 
   // Test Connection logic
   const testConnection = () => {
@@ -113,6 +117,28 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         ...db,
       };
 
+      update.extra = `${db?.extra}!`;
+
+      const metaDataParamsStart = update.extra.search('metadata_params') - 1;
+      const metaDataParamsEnd =
+        metaDataParamsStart + update.extra.search(',') - 1;
+      const metaDataParamsSlice = update.extra.slice(
+        metaDataParamsStart,
+        metaDataParamsEnd,
+      );
+      console.log('SLICE', metaDataParamsSlice);
+
+      const engineParamsStart = update.extra.search('engine_params') - 1;
+      const engineParamsEnd = update.extra.search('!');
+      const engineParamsSlice = update.extra.slice(
+        engineParamsStart,
+        engineParamsEnd,
+      );
+
+      update.extra = `{${metaDataParamsSlice}, ${engineParamsSlice}, "metadata_cache_timeout": {${metaDataCacheTimeout}},  "schemas_allowed_for_csv_upload": [${schemasAllowed}]}`;
+
+      console.log('UPDATE_OUT', update);
+
       // Need to clean update object
       if (update.id) {
         delete update.id;
@@ -120,6 +146,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
       if (db?.id) {
         updateResource(db.id, update).then(result => {
+          console.log('DB.ID, UPDATE', db.id, update);
           if (result) {
             if (onDatabaseAdd) {
               onDatabaseAdd();
@@ -155,6 +182,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       data[name] = checked;
     } else {
       data[name] = value;
+    }
+
+    if (name === 'metadata_cache_timeout') {
+      setMetaDataCacheTimeout(value);
+    }
+
+    if (name === 'schemas_allowed_for_csv_upload') {
+      setSchemasAllowed(value);
     }
 
     setDB(data);
@@ -446,14 +481,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                         onChange={onInputChange}
                         labelText={t('Allow this database to be explored')}
                       />
-                      {/* ----------
-                      
-                      🚨 Coming back to this once I figure out what the tooltip should actually say 🚨
-                      
-                      ---------- */}
                       <InfoTooltip
                         tooltip={t(
-                          'The allows_virtual_table_explore field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.',
+                          'When enabled, users are able to visualize SQL Lab results in Explore.',
                         )}
                       />
                     </div>
@@ -500,7 +530,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   <input
                     type="number"
                     name="metadata_cache_timeout"
-                    value={db?.metadata_cache_timeout || ''}
+                    value={metaDataCacheTimeout}
                     placeholder={t('Metadata cache timeout')}
                     onChange={onInputChange}
                   />
@@ -590,12 +620,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   )}
                 </div>
               </StyledInputContainer>
-              {/* ----------
-              
-              🚨 This (below) looks like it should be a dropdown in Figma,
-              not sure exactly what goes inside. Coming back to this. 🚨
-              
-              ---------- */}
               <StyledInputContainer>
                 <div className="control-label">
                   {t('Schemas allowed for CSV upload')}
@@ -604,7 +628,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   <input
                     type="text"
                     name="schemas_allowed_for_csv_upload"
-                    value={db?.schemas_allowed_for_csv_upload || ''}
+                    value={schemasAllowed}
                     placeholder={t('Select one or multiple schemas')}
                     onChange={onInputChange}
                   />
@@ -664,12 +688,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 <div className="input-container">
                   <StyledJsonEditor
                     name="extra"
-                    /* ----------
-
-                    🚨 Do I need to change 'extra' in the back end
-                    to get this value to display properly? 🚨
-
-                    ---------- */
                     value={db?.extra ?? defaultExtra}
                     placeholder={t('Secure extra')}
                     onChange={(json: string) => onEditorChange(json, 'extra')}
@@ -681,11 +699,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   <div>
                     {t('JSON string containing extra configuration elements.')}
                   </div>
-                  {/* ----------
-                  
-                  🚨 Not sure if this helper comment should change, coming back to this. 🚨
-                  
-                  ---------- */}
                   <div>
                     {t(
                       'The engine_params object gets unpacked into the sqlalchemy.create_engine ' +
