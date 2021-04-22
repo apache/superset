@@ -267,7 +267,6 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         unless=lambda: not is_feature_enabled("DASHBOARD_CACHE"),
     )
     def datasets_trimmed_for_slices(self) -> Dict[str, Any]:
-        logger.info(f"called datasets_trimmed_for_slices for {self.slug}")
         datasource_slices = utils.indexed(self.slices, "datasource")
         return {
             # Filter out unneeded fields from the datasource payload
