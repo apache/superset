@@ -49,13 +49,7 @@ class DashboardDAO(BaseDAO):
     @staticmethod
     def get_datasets_for_dashboard(id_or_slug: str) -> List[Any]:
         dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
-        datasource_slices = core.indexed(dashboard.slices, "datasource")
-        data = [
-            datasource.data_for_slices(slices)
-            for datasource, slices in datasource_slices.items()
-            if datasource
-        ]
-        return data
+        return dashboard.datasets_trimmed_for_slices()
 
     @staticmethod
     def get_charts_for_dashboard(id_or_slug: str) -> List[Slice]:

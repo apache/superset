@@ -248,14 +248,8 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
     def full_data(self) -> Dict[str, Any]:
         """Bootstrap data for rendering the dashboard page."""
         slices = self.slices
-        datasource_slices = utils.indexed(slices, "datasource")
         try:
-            datasources = {
-                # Filter out unneeded fields from the datasource payload
-                datasource.uid: datasource.data_for_slices(slices)
-                for datasource, slices in datasource_slices.items()
-                if datasource
-            }
+            datasources = self.datasets_for_slices()
         except (SupersetException, SQLAlchemyError):
             datasources = {}
         return {
@@ -265,6 +259,21 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
             "slices": [slc.data for slc in slices],
             # datasource metadata
             "datasources": datasources,
+        }
+
+    @cache_manager.cache.memoize(
+        # manage cache version manually
+        make_name=lambda fname: f"{fname}-v1.0",
+        unless=lambda: not is_feature_enabled("DASHBOARD_CACHE"),
+    )
+    def datasets_trimmed_for_slices(self) -> Dict[str, Any]:
+        logger.info(f"called datasets_trimmed_for_slices for {self.slug}")
+        datasource_slices = utils.indexed(self.slices, "datasource")
+        return {
+            # Filter out unneeded fields from the datasource payload
+            datasource.uid: datasource.data_for_slices(slices)
+            for datasource, slices in datasource_slices.items()
+            if datasource
         }
 
     @property  # type: ignore
@@ -288,6 +297,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
     @debounce(0.1)
     def clear_cache(self) -> None:
         cache_manager.cache.delete_memoized(Dashboard.full_data, self)
+        cache_manager.cache.delete_memoized(Dashboard.datasets_trimmed_for_slices, self)
 
     @classmethod
     @debounce(0.1)
