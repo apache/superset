@@ -103,7 +103,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     state => state.dashboardLayout.present,
   );
   const showNativeFilters = useSelector<RootState, boolean>(
-    state => state.dashboardInfo.metadata.show_native_filters,
+    state => state.dashboardInfo.metadata?.show_native_filters,
   );
   const editMode = useSelector<RootState, boolean>(
     state => state.dashboardState.editMode,
