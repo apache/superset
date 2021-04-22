@@ -568,7 +568,7 @@ def test_email_chart_report_schedule(
     screenshot_mock, email_mock, create_report_email_chart,
 ):
     """
-    ExecuteReport Command: Test chart email report schedule with
+    ExecuteReport Command: Test chart email report schedule with screenshot
     """
     # setup screenshot mock
     screenshot_mock.return_value = SCREENSHOT_FILE
@@ -594,6 +594,29 @@ def test_email_chart_report_schedule(
         assert smtp_images[list(smtp_images.keys())[0]] == SCREENSHOT_FILE
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_email_chart"
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_email_chart_report_dry_run(
+    screenshot_mock, email_mock, create_report_email_chart,
+):
+    """
+    ExecuteReport Command: Test chart email report schedule dry run
+    """
+    # setup screenshot mock
+    screenshot_mock.return_value = SCREENSHOT_FILE
+    app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = True
+    with freeze_time("2020-01-01T00:00:00Z"):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, create_report_email_chart.id, datetime.utcnow()
+        ).run()
+
+        email_mock.assert_not_called()
+    app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
 
 
 @pytest.mark.usefixtures(
