@@ -23,7 +23,8 @@ const loadModule = async () => {
   try {
     module = await import( /* webpackChunkName: "supersetText" */ '../../../superset_text.yml')
   } catch (e) {
-    throw new ImportError('Unable to import module ../../../superset_text.yml')
+    //throw new ImportError('Unable to import module ../../../superset_text.yml')
+    module = {}
   }
   return module.default
 }
