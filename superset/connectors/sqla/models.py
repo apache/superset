@@ -1278,7 +1278,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             is_timeseries  # pylint: disable=too-many-boolean-expressions
             and timeseries_limit
             and not time_groupby_inline
-            and groupby
+            and groupby_exprs_sans_timestamp
         ):
             if db_engine_spec.allows_joins:
                 # some sql dialects require for order by expressions
