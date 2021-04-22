@@ -123,31 +123,26 @@ ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
 # Dev image...
 ######################################################################
 FROM lean AS dev
-ARG CHROMEDRIVER_VERSION=84.0.4147.30
-ARG CHROME_VERSION=84.0.4147.105-1
+ARG GECKODRIVER_VERSION=v0.28.0
+ARG FIREFOX_VERSION=88.0
 
 COPY ./requirements/*.txt ./docker/requirements-*.txt/ /app/requirements/
 
 USER root
 
 RUN apt-get update -y \
-    && apt-get install -y --no-install-recommends libnss3
+    && apt-get install -y --no-install-recommends libnss3 libdbus-glib-1-2
 
-# Install Chrome WebDriver
-RUN mkdir -p /opt/chromedriver-${CHROMEDRIVER_VERSION} && \
-    wget http://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip -O /tmp/chromedriver_linux64.zip && \
-    unzip /tmp/chromedriver_linux64.zip -d /opt/chromedriver-$CHROMEDRIVER_VERSION && \
-    rm /tmp/chromedriver_linux64.zip && \
-    chmod +x /opt/chromedriver-$CHROMEDRIVER_VERSION/chromedriver && \
-    ln -fs /opt/chromedriver-$CHROMEDRIVER_VERSION/chromedriver /usr/local/bin/chromedriver
+# Install GeckoDriver WebDriver
+RUN wget https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -O /tmp/geckodriver.tar.gz && \
+    tar xvfz /tmp/geckodriver.tar.gz -C /tmp && \
+    mv /tmp/geckodriver /usr/local/bin/geckodriver && \
+    rm /tmp/geckodriver.tar.gz
 
-# Install Google Chrome
-RUN wget http://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_${CHROME_VERSION}_amd64.deb -O /tmp/chrome.deb \
-  && apt-get -y install /tmp/chrome.deb \
-  # Make sure libzstd1 is latest (ID'd as potential vulnerability by Snyk) \
-  && apt-get upgrade -y libzstd1 \
-  && rm /tmp/chrome.deb
-
+# Install Firefox
+RUN wget https://download-installer.cdn.mozilla.net/pub/firefox/releases/${FIREFOX_VERSION}/linux-x86_64/en-US/firefox-${FIREFOX_VERSION}.tar.bz2 -O /opt/firefox.tar.bz2 && \
+    tar xvf /opt/firefox.tar.bz2 -C /opt && \
+    ln -s /opt/firefox/firefox /usr/local/bin/firefox
 
 # Cache everything for dev purposes...
 RUN cd /app \

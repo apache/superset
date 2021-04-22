@@ -91,20 +91,12 @@ class CeleryConfig(object):
 WEBDRIVER_BASEURL = "http://superset:8088/"
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
-WEBDRIVER_TYPE = "chrome"
-WEBDRIVER_OPTION_ARGS = [
-    "--headless",
-    "--no-sandbox",
-    "--disable-dev-shm-usage",
-    "--disable-crash-reporter",
-]
-ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
-
 CELERY_CONFIG = CeleryConfig
 SQLLAB_CTAS_NO_LIMIT = True
 
 FEATURE_FLAGS = {"ALERT_REPORTS": True}
 
+PUBLIC_ROLE_LIKE = "Admin"
 #
 # Optionally import superset_config_docker.py (which will have been included on
 # the PYTHONPATH) in order to allow for local settings to be overridden
