@@ -263,6 +263,13 @@ class QueryStatus(str, Enum):  # pylint: disable=too-few-public-methods
     TIMED_OUT: str = "timed_out"
 
 
+class DashboardStatus(str, Enum):
+    """Dashboard status used for frontend filters"""
+
+    PUBLISHED = "published"
+    DRAFT = "draft"
+
+
 class ReservedUrlParameters(str, Enum):
     """
     Reserved URL parameters that are used internally by Superset. These will not be
