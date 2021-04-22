@@ -242,27 +242,6 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @cache_manager.cache.memoize(
         # manage cache version manually
-        make_name=lambda fname: f"{fname}-v2.1",
-        unless=lambda: not is_feature_enabled("DASHBOARD_CACHE"),
-    )
-    def full_data(self) -> Dict[str, Any]:
-        """Bootstrap data for rendering the dashboard page."""
-        slices = self.slices
-        try:
-            datasources = self.datasets_for_slices()
-        except (SupersetException, SQLAlchemyError):
-            datasources = {}
-        return {
-            # dashboard metadata
-            "dashboard": self.data,
-            # slices metadata
-            "slices": [slc.data for slc in slices],
-            # datasource metadata
-            "datasources": datasources,
-        }
-
-    @cache_manager.cache.memoize(
-        # manage cache version manually
         make_name=lambda fname: f"{fname}-v1.0",
         unless=lambda: not is_feature_enabled("DASHBOARD_CACHE"),
     )
@@ -295,7 +274,6 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @debounce(0.1)
     def clear_cache(self) -> None:
-        cache_manager.cache.delete_memoized(Dashboard.full_data, self)
         cache_manager.cache.delete_memoized(Dashboard.datasets_trimmed_for_slices, self)
 
     @classmethod
