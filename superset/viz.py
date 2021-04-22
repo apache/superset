@@ -2501,7 +2501,11 @@ class BaseDeckGLViz(BaseViz):
         if fd.get("js_columns"):
             gb += fd.get("js_columns") or []
         metrics = self.get_metrics()
-        gb = list(set(gb))
+        # Ensure this value is sorted so that it does not
+        # cause the cache key generation (which hashes the
+        # query object) to generate different keys for values
+        # that should be considered the same.
+        gb = sorted(set(gb))
         if metrics:
             d["groupby"] = gb
             d["metrics"] = metrics
