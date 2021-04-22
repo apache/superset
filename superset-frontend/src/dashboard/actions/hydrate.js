@@ -306,7 +306,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
     metadata = {};
   }
 
-  metadata.showNativeFilters =
+  metadata.show_native_filters =
     dashboardData?.metadata?.show_native_filters ?? true;
 
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {

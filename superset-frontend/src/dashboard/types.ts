@@ -43,7 +43,7 @@ export type Chart = {
 export type DashboardLayout = { [key: string]: LayoutItem };
 export type DashboardLayoutState = { present: DashboardLayout };
 export type DashboardState = { editMode: boolean; directPathToChild: string[] };
-export type DashboardInfo = { metadata: { showNativeFilters: boolean } };
+export type DashboardInfo = { metadata: { show_native_filters: boolean } };
 
 /** Root state of redux */
 export type RootState = {
