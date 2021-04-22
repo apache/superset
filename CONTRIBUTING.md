@@ -446,11 +446,12 @@ FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
 Or you can install via our Makefile
 
 ```bash
-# Create a virtualenv + install pip packages + pre-commit
-$ make install
+# Create a virtual environment and activate it (recommended)
+$ python3 -m venv venv # setup a python3 virtualenv
+$ source venv/bin/activate
 
-# Create venv only
-$ make venv
+# install pip packages + pre-commit
+$ make install
 
 # Install superset pip packages and setup env only
 $ make superset
