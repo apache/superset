@@ -25,7 +25,6 @@ import {
   UPDATE_LAYOUT_COMPONENTS,
   UPDATE_DASHBOARD_FILTERS_SCOPE,
 } from '../actions/dashboardFilters';
-import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 import { DASHBOARD_ROOT_ID } from '../util/constants';
 import getFilterConfigsFromFormdata from '../util/getFilterConfigsFromFormdata';
@@ -162,10 +161,6 @@ export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
 
     return updatedFilters;
   }
-  if (action.type === HYDRATE_DASHBOARD) {
-    return action.data.dashboardFilters;
-  }
-
   if (action.type in actionHandlers) {
     const updatedFilters = {
       ...dashboardFilters,
@@ -173,6 +168,7 @@ export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
         dashboardFilters[action.chartId],
       ),
     };
+
     if (CHANGE_FILTER_VALUE_ACTIONS.includes(action.type)) {
       buildActiveFilters({ dashboardFilters: updatedFilters });
     }

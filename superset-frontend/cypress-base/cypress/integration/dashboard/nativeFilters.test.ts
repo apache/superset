@@ -61,12 +61,9 @@ describe('Nativefilters', () => {
       .click()
       .type('Country name');
 
-    cy.get('.ant-modal')
-      .find('[data-test="datasource-input"]')
-      .click()
-      .type('wb_health_population');
+    cy.get('.ant-modal').find('[data-test="datasource-input"]').click();
 
-    cy.get('.ant-modal [data-test="datasource-input"] .Select__menu')
+    cy.get('[data-test="datasource-input"]')
       .contains('wb_health_population')
       .click();
 
@@ -158,12 +155,9 @@ describe('Nativefilters', () => {
         .click()
         .type('Country name');
 
-      cy.get('.ant-modal')
-        .find('[data-test="datasource-input"]')
-        .click()
-        .type('wb_health_population');
+      cy.get('.ant-modal').find('[data-test="datasource-input"]').click();
 
-      cy.get('.ant-modal [data-test="datasource-input"] .Select__menu')
+      cy.get('[data-test="datasource-input"]')
         .contains('wb_health_population')
         .click();
 
@@ -193,10 +187,9 @@ describe('Nativefilters', () => {
       cy.get('.ant-modal')
         .find('[data-test="datasource-input"]')
         .last()
-        .click()
-        .type('wb_health_population');
+        .click();
 
-      cy.get('.ant-modal [data-test="datasource-input"] .Select__menu')
+      cy.get('[data-test="datasource-input"]')
         .last()
         .contains('wb_health_population')
         .click();

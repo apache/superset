@@ -82,12 +82,12 @@ class DashboardDAO(BaseDAO):
         return data
 
     @staticmethod
-    def get_charts_for_dashboard(id_or_slug: str) -> List[Slice]:
+    def get_charts_for_dashboard(dashboard_id: int) -> List[Slice]:
         query = (
             db.session.query(Dashboard)
             .outerjoin(Slice, Dashboard.slices)
             .outerjoin(Slice.table)
-            .filter(id_or_slug_filter(id_or_slug))
+            .filter(Dashboard.id == dashboard_id)
             .options(contains_eager(Dashboard.slices))
         )
         # Apply dashboard base filters
