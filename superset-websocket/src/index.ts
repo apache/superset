@@ -23,6 +23,7 @@ import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
 import cookie from 'cookie';
 import Redis from 'ioredis';
+import Prometheus from 'prom-client';
 
 import { createLogger } from './logger';
 
@@ -84,6 +85,7 @@ export const opts = {
   logLevel: 'info',
   logToFile: false,
   logFilename: 'app.log',
+  collectDefaultMetrics: true,
   redis: {
     port: 6379,
     host: '127.0.0.1',
@@ -119,6 +121,20 @@ const logger = createLogger({
   logLevel: opts.logLevel,
   logToFile: opts.logToFile,
   logFilename: opts.logFilename,
+});
+
+if (opts.collectDefaultMetrics) {
+  Prometheus.collectDefaultMetrics();
+}
+
+export const clientSendErrorCounter = new Prometheus.Counter({
+  name: 'ws_client_send_error',
+  help: 'Number of times server failed to send event to client',
+});
+
+export const connectedClientCounter = new Prometheus.Counter({
+  name: 'ws_connected_client',
+  help: 'Number of clients connected',
 });
 
 // enforce JWT secret length
@@ -160,6 +176,8 @@ export const trackClient = (
   channel: string,
   socketInstance: SocketInstance,
 ): string => {
+  connectedClientCounter.inc();
+
   const socketId = uuidv4();
   sockets[socketId] = socketInstance;
 
@@ -189,6 +207,7 @@ export const sendToChannel = (channel: string, value: EventValue): void => {
     try {
       socketInstance.ws.send(strData);
     } catch (err) {
+      clientSendErrorCounter.inc();
       logger.debug(`Error sending to socket: ${err}`);
       // check that the connection is still active
       cleanChannel(channel);
@@ -343,7 +362,7 @@ export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
 /**
  * HTTP `request` event handler, called via httpServer
  */
-export const httpRequest = (
+export const httpRequest = async (
   request: http.IncomingMessage,
   response: http.ServerResponse,
 ) => {
@@ -354,6 +373,17 @@ export const httpRequest = (
   if (url.pathname === '/health' && ['GET', 'HEAD'].includes(method)) {
     response.writeHead(200);
     response.end('OK');
+  } else if (url.pathname === '/metrics' && method === 'GET') {
+    try {
+      response.writeHead(200, {
+        'Content-Type': Prometheus.register.contentType,
+      });
+      response.end(await Prometheus.register.metrics());
+    } catch (e) {
+      logger.error(e);
+      response.writeHead(500);
+      response.end(`Error exporting metrics: ${e.message}`);
+    }
   } else {
     logger.info(`Received unexpected request: ${method} ${rawUrl}`);
     response.writeHead(404);

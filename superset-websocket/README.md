@@ -93,6 +93,14 @@ GLOBAL_ASYNC_QUERIES_JWT_SECRET
 
 More info on Superset configuration values for async queries: https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries
 
+## Prometheus monitoring
+
+The application is tracking a couple of metrics using [Prometheus](https://prometheus.io), such as the number of connected clients and the number of failed attempts to send a message to a client.
+
+If `collectDefaultMetrics` is `true` in the configuration file, then Prometheus will also track a number of default metrics as it relates to the node process.
+
+All metrics will be exposed via an HTTP endpoint: `GET /metrics`.
+
 ## Running
 
 Running locally via dev server:
