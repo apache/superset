@@ -185,7 +185,7 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
       ) {
         setNavRightCol(24);
         setNavRightStyle('nav-right-collapse');
-      } 
+      }
     }
     handleResize();
     window.addEventListener('resize', handleResize);
