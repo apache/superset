@@ -51,7 +51,9 @@ def update_id_refs(config: Dict[str, Any], chart_ids: Dict[str, int]) -> Dict[st
 
     # build map old_id => new_id
     old_ids = build_uuid_to_id_map(fixed["position"])
-    id_map = {old_id: chart_ids[uuid] for uuid, old_id in old_ids.items()}
+    id_map = {
+        old_id: chart_ids[uuid] for uuid, old_id in old_ids.items() if uuid in chart_ids
+    }
 
     # fix metadata
     metadata = fixed.get("metadata", {})
@@ -97,6 +99,7 @@ def update_id_refs(config: Dict[str, Any], chart_ids: Dict[str, int]) -> Dict[st
             isinstance(child, dict)
             and child["type"] == "CHART"
             and "uuid" in child["meta"]
+            and child["meta"]["uuid"] in chart_ids
         ):
             child["meta"]["chartId"] = chart_ids[child["meta"]["uuid"]]
 
