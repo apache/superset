@@ -31,10 +31,11 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.models.core import Database
-from superset.models.sql_lab import Query, SavedQuery
+from superset.models.sql_lab import LimitingFactor, Query, SavedQuery
 from superset.result_set import SupersetResultSet
 from superset.sql_lab import (
     execute_sql_statements,
+    execute_sql_statement,
     get_sql_results,
     SqlLabException,
     SqlLabTimeoutException,
@@ -119,7 +120,6 @@ class TestSqlLab(SupersetTestCase):
             )
             assert saved_query_.rows is not None
             assert saved_query_.last_run == datetime.now()
-
             # Rollback changes
             db.session.delete(saved_query_)
             db.session.commit()
@@ -507,18 +507,44 @@ class TestSqlLab(SupersetTestCase):
             "SELECT * FROM birth_names", client_id="sql_limit_2", query_limit=test_limit
         )
         self.assertEqual(len(data["data"]), test_limit)
+
         data = self.run_sql(
             "SELECT * FROM birth_names LIMIT {}".format(test_limit),
             client_id="sql_limit_3",
             query_limit=test_limit + 1,
         )
         self.assertEqual(len(data["data"]), test_limit)
+        self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.QUERY)
+
         data = self.run_sql(
             "SELECT * FROM birth_names LIMIT {}".format(test_limit + 1),
             client_id="sql_limit_4",
             query_limit=test_limit,
         )
         self.assertEqual(len(data["data"]), test_limit)
+        self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.DROPDOWN)
+
+        data = self.run_sql(
+            "SELECT * FROM birth_names LIMIT {}".format(test_limit),
+            client_id="sql_limit_5",
+            query_limit=test_limit,
+        )
+        self.assertEqual(len(data["data"]), test_limit)
+        self.assertEqual(
+            data["query"]["limitingFactor"], LimitingFactor.QUERY_AND_DROPDOWN
+        )
+
+        data = self.run_sql(
+            "SELECT * FROM birth_names", client_id="sql_limit_6", query_limit=10000,
+        )
+        self.assertEqual(len(data["data"]), 1200)
+        self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.NOT_LIMITED)
+
+        data = self.run_sql(
+            "SELECT * FROM birth_names", client_id="sql_limit_7", query_limit=1200,
+        )
+        self.assertEqual(len(data["data"]), 1200)
+        self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.NOT_LIMITED)
 
     def test_query_api_filter(self) -> None:
         """

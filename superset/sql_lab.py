@@ -256,6 +256,7 @@ def execute_sql_statement(
             if query.limit is None or len(data) <= query.limit:
                 query.limiting_factor = LimitingFactor.NOT_LIMITED
             else:
+                # returning 1 row less then the query.limit
                 data = data[:-1]
 
     except SoftTimeLimitExceeded as ex:
