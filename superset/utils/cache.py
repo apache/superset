@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import hashlib
-import json
 import logging
 from datetime import datetime, timedelta
 from functools import wraps
@@ -30,20 +28,15 @@ from superset.extensions import cache_manager
 from superset.models.cache import CacheKey
 from superset.stats_logger import BaseStatsLogger
 from superset.utils.core import json_int_dttm_ser
+from superset.utils.hashing import md5_sha_from_dict
 
 config = app.config  # type: ignore
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 
-# TODO: DRY up cache key code
-def json_dumps(obj: Any, sort_keys: bool = False) -> str:
-    return json.dumps(obj, default=json_int_dttm_ser, sort_keys=sort_keys)
-
-
 def generate_cache_key(values_dict: Dict[str, Any], key_prefix: str = "") -> str:
-    json_data = json_dumps(values_dict, sort_keys=True)
-    hash_str = hashlib.md5(json_data.encode("utf-8")).hexdigest()
+    hash_str = md5_sha_from_dict(values_dict, default=json_int_dttm_ser)
     return f"{key_prefix}{hash_str}"
 
 
