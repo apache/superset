@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { supersetTheme, SafeMarkdown } from '@superset-ui/core';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 
 interface WarningIconWithTooltipProps {
@@ -28,19 +28,13 @@ interface WarningIconWithTooltipProps {
 
 function WarningIconWithTooltip({
   warningMarkdown,
-  size = 24,
 }: WarningIconWithTooltipProps) {
   return (
     <Tooltip
       id="warning-tooltip"
       title={<SafeMarkdown source={warningMarkdown} />}
     >
-      <Icon
-        color={supersetTheme.colors.alert.base}
-        height={size}
-        width={size}
-        name="alert-solid"
-      />
+      <Icons.AlertSolid iconColor={supersetTheme.colors.alert.base} />
     </Tooltip>
   );
 }

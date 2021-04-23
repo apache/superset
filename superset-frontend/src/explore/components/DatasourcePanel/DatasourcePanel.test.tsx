@@ -160,5 +160,7 @@ test('should render a warning', () => {
       },
     }),
   );
-  expect(screen.getByTestId('alert-solid')).toBeInTheDocument();
+  expect(
+    screen.getByRole('img', { name: 'alert-solid' }),
+  ).toBeInTheDocument();
 });

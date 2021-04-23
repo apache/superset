@@ -34,7 +34,7 @@ const Icon = styled(EnhancedIcon)<IconType>`
     iconSize ? `${theme.typography.sizes[iconSize]}px` : '24px'};
 `;
 
-export const renderIcon = (
+export const render = (
   SVGComponent:
     | React.ComponentClass<
         CustomIconComponentProps | React.SVGProps<SVGSVGElement>,
@@ -42,8 +42,7 @@ export const renderIcon = (
       >
     | React.FunctionComponent<
         CustomIconComponentProps | React.SVGProps<SVGSVGElement>
-      >
-    | undefined,
+      >,
   props: IconType,
 ) => <Icon component={SVGComponent} {...props} />;
 

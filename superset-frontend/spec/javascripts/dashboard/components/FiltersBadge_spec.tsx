@@ -31,6 +31,7 @@ import {
 import { sliceId } from 'spec/fixtures/mockChartQueries';
 import { dashboardFilters } from 'spec/fixtures/mockDashboardFilters';
 import { dashboardWithFilter } from 'spec/fixtures/mockDashboardLayout';
+import Icons from 'src/components/Icons';
 
 describe('FiltersBadge', () => {
   // there's this bizarre "active filters" thing
@@ -128,7 +129,7 @@ describe('FiltersBadge', () => {
       ).toHaveText('1');
       // to look at the shape of the wrapper use:
       // console.log(wrapper.dive().debug())
-      expect(wrapper.dive().find('Icon[name="alert-solid"]')).toExist();
+      expect(wrapper.dive().find(Icons.AlertSolid)).toExist();
     });
   });
 
@@ -207,7 +208,7 @@ describe('FiltersBadge', () => {
       expect(
         wrapper.dive().find('[data-test="incompatible-filter-count"]'),
       ).toHaveText('1');
-      expect(wrapper.dive().find('Icon[name="alert-solid"]')).toExist();
+      expect(wrapper.dive().find(Icons.AlertSolid)).toExist();
     });
   });
 });

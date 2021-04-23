@@ -20,7 +20,7 @@ import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { supersetTheme } from '@superset-ui/core';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
 import Popover from '.';
 
@@ -50,9 +50,7 @@ test('it should not render a title or content when not visible', () => {
 test('renders with icon child', () => {
   render(
     <Popover content="Content sample" title="Popover title">
-      <Icon name="alert" role="img">
-        Click me
-      </Icon>
+      <Icons.Alert>Click me</Icons.Alert>
     </Popover>,
   );
   expect(screen.getByRole('img')).toBeInTheDocument();

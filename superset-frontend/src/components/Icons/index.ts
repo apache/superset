@@ -145,140 +145,539 @@ import { ReactComponent as XLargeIcon } from 'images/icons/x-large.svg';
 import { ReactComponent as XSmallIcon } from 'images/icons/x-small.svg';
 
 import AntdEnhancedIcons from './AntdEnhanced';
-import { renderIcon } from './Icon';
+import { render } from './Icon';
 import IconType from './IconType';
 
 export default {
   ...AntdEnhancedIcons,
-  Alert: (props: IconType) => renderIcon(AlertIcon, props),
-  AlertSolid: (props: IconType) => renderIcon(AlertSolidIcon, props),
-  AlertSolidSmall: (props: IconType) => renderIcon(AlertSolidSmallIcon, props),
-  Binoculars: (props: IconType) => renderIcon(BinocularsIcon, props),
-  Bolt: (props: IconType) => renderIcon(BoltIcon, props),
-  BoltSmall: (props: IconType) => renderIcon(BoltSmallIcon, props),
-  BoltSmallRun: (props: IconType) => renderIcon(BoltSmallRunIcon, props),
-  Calendar: (props: IconType) => renderIcon(CalendarIcon, props),
-  Cancel: (props: IconType) => renderIcon(CancelIcon, props),
-  CancelSolid: (props: IconType) => renderIcon(CancelSolidIcon, props),
-  CancelX: (props: IconType) => renderIcon(CancelXIcon, props),
-  CardView: (props: IconType) => renderIcon(CardViewIcon, props),
-  Cards: (props: IconType) => renderIcon(CardsIcon, props),
-  CardsLocked: (props: IconType) => renderIcon(CardsLockedIcon, props),
-  CaretDown: (props: IconType) => renderIcon(CaretDownIcon, props),
-  CaretLeft: (props: IconType) => renderIcon(CaretLeftIcon, props),
-  CaretRight: (props: IconType) => renderIcon(CaretRightIcon, props),
-  CaretUp: (props: IconType) => renderIcon(CaretUpIcon, props),
-  Certified: (props: IconType) => renderIcon(CertifiedIcon, props),
-  Check: (props: IconType) => renderIcon(CheckIcon, props),
-  CheckboxHalf: (props: IconType) => renderIcon(CheckboxHalfIcon, props),
-  CheckboxOff: (props: IconType) => renderIcon(CheckboxOffIcon, props),
-  CheckboxOn: (props: IconType) => renderIcon(CheckboxOnIcon, props),
-  CircleCheck: (props: IconType) => renderIcon(CircleCheckIcon, props),
-  CircleCheckSolid: (props: IconType) =>
-    renderIcon(CircleCheckSolidIcon, props),
-  Circle: (props: IconType) => renderIcon(CircleIcon, props),
-  Clock: (props: IconType) => renderIcon(ClockIcon, props),
-  Close: (props: IconType) => renderIcon(CloseIcon, props),
-  Code: (props: IconType) => renderIcon(CodeIcon, props),
-  Cog: (props: IconType) => renderIcon(CogIcon, props),
-  Collapse: (props: IconType) => renderIcon(CollapseIcon, props),
-  ColorPalette: (props: IconType) => renderIcon(ColorPaletteIcon, props),
-  Components: (props: IconType) => renderIcon(ComponentsIcon, props),
-  Copy: (props: IconType) => renderIcon(CopyIcon, props),
-  CursorTarget: (props: IconType) => renderIcon(CursorTargeIcon, props),
-  Database: (props: IconType) => renderIcon(DatabaseIcon, props),
-  DatasetPhysical: (props: IconType) => renderIcon(DatasetPhysicalIcon, props),
+  Alert: (props: IconType) =>
+    render(AlertIcon, {
+      'aria-label': 'alert',
+      ...props,
+    }),
+  AlertSolid: (props: IconType) =>
+    render(AlertSolidIcon, {
+      'aria-label': 'alert-solid',
+      ...props,
+    }),
+  AlertSolidSmall: (props: IconType) =>
+    render(AlertSolidSmallIcon, {
+      'aria-label': 'alert-solid-small',
+      viewBox: '-6 -6 24 24',
+      ...props,
+    }),
+  Binoculars: (props: IconType) =>
+    render(BinocularsIcon, {
+      'aria-label': 'binoculars',
+      ...props,
+    }),
+  Bolt: (props: IconType) =>
+    render(BoltIcon, {
+      'aria-label': 'bolt',
+      ...props,
+    }),
+  BoltSmall: (props: IconType) =>
+    render(BoltSmallIcon, {
+      'aria-label': 'bolt-small',
+      ...props,
+    }),
+  BoltSmallRun: (props: IconType) =>
+    render(BoltSmallRunIcon, {
+      'aria-label': 'bolt-small-run',
+      ...props,
+    }),
+  Calendar: (props: IconType) =>
+    render(CalendarIcon, {
+      'aria-label': 'calendar',
+      ...props,
+    }),
+  Cancel: (props: IconType) =>
+    render(CancelIcon, {
+      'aria-label': 'cancel',
+      ...props,
+    }),
+  CancelSolid: (props: IconType) =>
+    render(CancelSolidIcon, {
+      'aria-label': 'cancel-solid',
+      ...props,
+    }),
+  CancelX: (props: IconType) =>
+    render(CancelXIcon, {
+      'aria-label': 'cancel-x',
+      ...props,
+    }),
+  CardView: (props: IconType) =>
+    render(CardViewIcon, {
+      'aria-label': 'card-view',
+      ...props,
+    }),
+  Cards: (props: IconType) =>
+    render(CardsIcon, {
+      'aria-label': 'cards',
+      ...props,
+    }),
+  CardsLocked: (props: IconType) =>
+    render(CardsLockedIcon, {
+      'aria-label': 'cards-locked',
+      ...props,
+    }),
+  CaretDown: (props: IconType) =>
+    render(CaretDownIcon, {
+      'aria-label': 'caret-down',
+      ...props,
+    }),
+  CaretLeft: (props: IconType) =>
+    render(CaretLeftIcon, {
+      'aria-label': 'caret-left',
+      ...props,
+    }),
+  CaretRight: (props: IconType) =>
+    render(CaretRightIcon, {
+      'aria-label': 'caret-right',
+      ...props,
+    }),
+  CaretUp: (props: IconType) =>
+    render(CaretUpIcon, {
+      'aria-label': 'caret-up',
+      ...props,
+    }),
+  Certified: (props: IconType) =>
+    render(CertifiedIcon, {
+      'aria-label': 'certified',
+      ...props,
+    }),
+  Check: (props: IconType) =>
+    render(CheckIcon, {
+      'aria-label': 'check',
+      ...props,
+    }),
+  CheckboxHalf: (props: IconType) =>
+    render(CheckboxHalfIcon, {
+      'aria-label': 'checkbox-half',
+      ...props,
+    }),
+  CheckboxOff: (props: IconType) =>
+    render(CheckboxOffIcon, {
+      'aria-label': 'calendar',
+      ...props,
+    }),
+  CheckboxOn: (props: IconType) => render(CheckboxOnIcon, {
+      'aria-label': 'checkbox-on',
+      ...props,
+    }),
+  CircleCheck: (props: IconType) => render(CircleCheckIcon, {
+      'aria-label': 'circle-check',
+      ...props,
+    }),
+  CircleCheckSolid: (props: IconType) => render(CircleCheckSolidIcon, {
+      'aria-label': 'circle-check-solid',
+      ...props,
+    }),
+  Circle: (props: IconType) => render(CircleIcon, {
+      'aria-label': 'circle',
+      ...props,
+    }),
+  Clock: (props: IconType) => render(ClockIcon, {
+      'aria-label': 'clock',
+      ...props,
+    }),
+  Close: (props: IconType) => render(CloseIcon, {
+      'aria-label': 'close',
+      ...props,
+    }),
+  Code: (props: IconType) => render(CodeIcon, {
+      'aria-label': 'code',
+      ...props,
+    }),
+  Cog: (props: IconType) => render(CogIcon, {
+      'aria-label': 'cog',
+      ...props,
+    }),
+  Collapse: (props: IconType) => render(CollapseIcon, {
+      'aria-label': 'collapse',
+      ...props,
+    }),
+  ColorPalette: (props: IconType) => render(ColorPaletteIcon, {
+      'aria-label': 'color-palette',
+      ...props,
+    }),
+  Components: (props: IconType) => render(ComponentsIcon, {
+      'aria-label': 'components',
+      ...props,
+    }),
+  Copy: (props: IconType) => render(CopyIcon, {
+      'aria-label': 'copy',
+      ...props,
+    }),
+  CursorTarget: (props: IconType) => render(CursorTargeIcon, {
+      'aria-label': 'cursor-target',
+      ...props,
+    }),
+  Database: (props: IconType) => render(DatabaseIcon, {
+      'aria-label': 'database',
+      ...props,
+    }),
+  DatasetPhysical: (props: IconType) => render(DatasetPhysicalIcon, {
+      'aria-label': 'dataset-physical',
+      ...props,
+    }),
   DatasetVirtualGreyscale: (props: IconType) =>
-    renderIcon(DatasetVirtualGreyscaleIcon, props),
-  DatasetVirtual: (props: IconType) => renderIcon(DatasetVirtualIcon, props),
-  Download: (props: IconType) => renderIcon(DownloadIcon, props),
-  EditAlt: (props: IconType) => renderIcon(EditAltIcon, props),
-  Edit: (props: IconType) => renderIcon(EditIcon, props),
-  Email: (props: IconType) => renderIcon(EmailIcon, props),
-  Error: (props: IconType) => renderIcon(ErrorIcon, props),
-  ErrorSolid: (props: IconType) => renderIcon(ErrorSolidIcon, props),
-  ErrorSolidSmall: (props: IconType) => renderIcon(ErrorSolidSmallIcon, props),
-  Exclamation: (props: IconType) => renderIcon(ExclamationIcon, props),
-  Expand: (props: IconType) => renderIcon(ExpandIcon, props),
-  Eye: (props: IconType) => renderIcon(EyeIcon, props),
-  EyeSlash: (props: IconType) => renderIcon(EyeSlashIcon, props),
-  FavoriteSelected: (props: IconType) =>
-    renderIcon(FavoriteSelectedIcon, props),
+    render(DatasetVirtualGreyscaleIcon, {
+      'aria-label': 'dataset-virtual-greyscale',
+      ...props,
+    }),
+  DatasetVirtual: (props: IconType) => render(DatasetVirtualIcon, {
+      'aria-label': 'dataset-virtual',
+      ...props,
+    }),
+  Download: (props: IconType) => render(DownloadIcon, {
+      'aria-label': 'download',
+      ...props,
+    }),
+  EditAlt: (props: IconType) => render(EditAltIcon, {
+      'aria-label': 'edit-alt',
+      ...props,
+    }),
+  Edit: (props: IconType) => render(EditIcon, {
+      'aria-label': 'edit',
+      ...props,
+    }),
+  Email: (props: IconType) => render(EmailIcon, {
+      'aria-label': 'email',
+      ...props,
+    }),
+  Error: (props: IconType) => render(ErrorIcon, {
+      'aria-label': 'error',
+      ...props,
+    }),
+  ErrorSolid: (props: IconType) => render(ErrorSolidIcon, {
+      'aria-label': 'error-solid',
+      ...props,
+    }),
+  ErrorSolidSmall: (props: IconType) => render(ErrorSolidSmallIcon, {
+      'aria-label': 'error-solid-small',
+      ...props,
+    }),
+  Exclamation: (props: IconType) => render(ExclamationIcon, {
+      'aria-label': 'exclamation',
+      ...props,
+    }),
+  Expand: (props: IconType) => render(ExpandIcon, {
+      'aria-label': 'expand',
+      ...props,
+    }),
+  Eye: (props: IconType) => render(EyeIcon, {
+      'aria-label': 'eye',
+      ...props,
+    }),
+  EyeSlash: (props: IconType) => render(EyeSlashIcon, {
+      'aria-label': 'eye-slash',
+      ...props,
+    }),
+  FavoriteSelected: (props: IconType) => render(FavoriteSelectedIcon, {
+      'aria-label': 'favorite-selected',
+      ...props,
+    }),
   FavoriteSmallSelected: (props: IconType) =>
-    renderIcon(FavoriteSmallSelectedIcon, props),
+    render(FavoriteSmallSelectedIcon, {
+      'aria-label': 'favorite-small-selected',
+      ...props,
+    }),
   FavoriteUnselected: (props: IconType) =>
-    renderIcon(FavoriteUnselectedIcon, props),
-  FieldABCIcon: (props: IconType) => renderIcon(FieldABCIcon, props),
-  FieldBoolean: (props: IconType) => renderIcon(FieldBooleanIcon, props),
-  FieldDate: (props: IconType) => renderIcon(FieldDateIcon, props),
-  FieldDerived: (props: IconType) => renderIcon(FieldDerivedIcon, props),
-  FieldNum: (props: IconType) => renderIcon(FieldNumIcon, props),
-  FieldStruct: (props: IconType) => renderIcon(FieldStructIcon, props),
-  File: (props: IconType) => renderIcon(FileIcon, props),
-  Filter: (props: IconType) => renderIcon(FilterIcon, props),
-  FilterSmall: (props: IconType) => renderIcon(FilterSmallIcon, props),
-  Folder: (props: IconType) => renderIcon(FolderIcon, props),
-  Full: (props: IconType) => renderIcon(FullIcon, props),
-  Function: (props: IconType) => renderIcon(FunctionIcon, props),
-  Gear: (props: IconType) => renderIcon(GearIcon, props),
-  Grid: (props: IconType) => renderIcon(GridIcon, props),
-  Image: (props: IconType) => renderIcon(ImageIcon, props),
-  Import: (props: IconType) => renderIcon(ImportIcon, props),
-  Info: (props: IconType) => renderIcon(InfoIcon, props),
-  InfoSolid: (props: IconType) => renderIcon(InfoSolidIcon, props),
-  InfoSolidSmall: (props: IconType) => renderIcon(InfoSolidSmallIcon, props),
-  Join: (props: IconType) => renderIcon(JoinIcon, props),
-  Keyboard: (props: IconType) => renderIcon(KeyboardIcon, props),
-  Layers: (props: IconType) => renderIcon(LayersIcon, props),
-  Lightbulb: (props: IconType) => renderIcon(LightbulbIcon, props),
-  Link: (props: IconType) => renderIcon(LinkIcon, props),
-  List: (props: IconType) => renderIcon(ListIcon, props),
-  ListView: (props: IconType) => renderIcon(ListViewIcon, props),
-  Location: (props: IconType) => renderIcon(LocationIcon, props),
-  LockLocked: (props: IconType) => renderIcon(LockLockedIcon, props),
-  LockUnlocked: (props: IconType) => renderIcon(LockUnlockedIcon, props),
-  Map: (props: IconType) => renderIcon(MapIcon, props),
-  Message: (props: IconType) => renderIcon(MessageIcon, props),
-  Minus: (props: IconType) => renderIcon(MinusIcon, props),
-  MinusSolid: (props: IconType) => renderIcon(MinusSolidIcon, props),
-  MoreHoriz: (props: IconType) => renderIcon(MoreHorizIcon, props),
-  Move: (props: IconType) => renderIcon(MoveIcon, props),
-  NavCharts: (props: IconType) => renderIcon(NavChartsIcon, props),
-  NavDashboard: (props: IconType) => renderIcon(NavDashboardIcon, props),
-  NavData: (props: IconType) => renderIcon(NavDataIcon, props),
-  NavExplore: (props: IconType) => renderIcon(NavExploreIcon, props),
-  NavHome: (props: IconType) => renderIcon(NavHomeIcon, props),
-  NavLab: (props: IconType) => renderIcon(NavLabIcon, props),
-  Note: (props: IconType) => renderIcon(NoteIcon, props),
-  Offline: (props: IconType) => renderIcon(OfflineIcon, props),
-  Paperclip: (props: IconType) => renderIcon(PaperclipIcon, props),
-  Placeholder: (props: IconType) => renderIcon(PlaceholderIcon, props),
-  Plus: (props: IconType) => renderIcon(PlusIcon, props),
-  PlusLarge: (props: IconType) => renderIcon(PlusLargeIcon, props),
-  PlusSmall: (props: IconType) => renderIcon(PlusSmallIcon, props),
-  PlusSolid: (props: IconType) => renderIcon(PlusSolidIcon, props),
-  Queued: (props: IconType) => renderIcon(QueuedIcon, props),
-  Refresh: (props: IconType) => renderIcon(RefreshIcon, props),
-  Running: (props: IconType) => renderIcon(RunningIcon, props),
-  Save: (props: IconType) => renderIcon(SaveIcon, props),
-  SQL: (props: IconType) => renderIcon(SQLIcon, props),
-  Search: (props: IconType) => renderIcon(SearchIcon, props),
-  Server: (props: IconType) => renderIcon(ServerIcon, props),
-  Share: (props: IconType) => renderIcon(ShareIcon, props),
-  Slack: (props: IconType) => renderIcon(SlackIcon, props),
-  SortAsc: (props: IconType) => renderIcon(SortAscIcon, props),
-  SortDesc: (props: IconType) => renderIcon(SortDescIcon, props),
-  Sort: (props: IconType) => renderIcon(SortIcon, props),
-  Table: (props: IconType) => renderIcon(TableIcon, props),
-  Tag: (props: IconType) => renderIcon(TagIcon, props),
-  Trash: (props: IconType) => renderIcon(TrashIcon, props),
-  TriangleChange: (props: IconType) => renderIcon(TriangleChangeIcon, props),
-  TriangleDown: (props: IconType) => renderIcon(TriangleDownIcon, props),
-  TriangleUp: (props: IconType) => renderIcon(TriangleUpIcon, props),
-  UpLevel: (props: IconType) => renderIcon(UpLevelIcon, props),
-  User: (props: IconType) => renderIcon(UserIcon, props),
-  Warning: (props: IconType) => renderIcon(WarningIcon, props),
-  WarningSolid: (props: IconType) => renderIcon(WarningSolidIcon, props),
-  XLarge: (props: IconType) => renderIcon(XLargeIcon, props),
-  XSmall: (props: IconType) => renderIcon(XSmallIcon, props),
+    render(FavoriteUnselectedIcon, {
+      'aria-label': 'favorite-unselected',
+      ...props,
+    }),
+  FieldABCIcon: (props: IconType) => render(FieldABCIcon, {
+      'aria-label': 'field-ABC',
+      ...props,
+    }),
+  FieldBoolean: (props: IconType) => render(FieldBooleanIcon, {
+      'aria-label': 'field-boolean',
+      ...props,
+    }),
+  FieldDate: (props: IconType) => render(FieldDateIcon, {
+      'aria-label': 'field-date',
+      ...props,
+    }),
+  FieldDerived: (props: IconType) => render(FieldDerivedIcon, {
+      'aria-label': 'field-derived',
+      ...props,
+    }),
+  FieldNum: (props: IconType) => render(FieldNumIcon, {
+      'aria-label': 'field-num',
+      ...props,
+    }),
+  FieldStruct: (props: IconType) => render(FieldStructIcon, {
+      'aria-label': 'field-struct',
+      ...props,
+    }),
+  File: (props: IconType) => render(FileIcon, {
+      'aria-label': 'file',
+      ...props,
+    }),
+  Filter: (props: IconType) => render(FilterIcon, {
+      'aria-label': 'filter',
+      ...props,
+    }),
+  FilterSmall: (props: IconType) => render(FilterSmallIcon, {
+      'aria-label': 'filter-small',
+      ...props,
+    }),
+  Folder: (props: IconType) => render(FolderIcon, {
+      'aria-label': 'folder',
+      ...props,
+    }),
+  Full: (props: IconType) => render(FullIcon, {
+      'aria-label': 'full',
+      ...props,
+    }),
+  Function: (props: IconType) => render(FunctionIcon, {
+      'aria-label': 'function',
+      ...props,
+    }),
+  Gear: (props: IconType) => render(GearIcon, {
+      'aria-label': 'gear',
+      ...props,
+    }),
+  Grid: (props: IconType) => render(GridIcon, {
+      'aria-label': 'grid',
+      ...props,
+    }),
+  Image: (props: IconType) => render(ImageIcon, {
+      'aria-label': 'image',
+      ...props,
+    }),
+  Import: (props: IconType) => render(ImportIcon, {
+      'aria-label': 'import',
+      ...props,
+    }),
+  Info: (props: IconType) => render(InfoIcon, {
+      'aria-label': 'info',
+      ...props,
+    }),
+  InfoSolid: (props: IconType) => render(InfoSolidIcon, {
+      'aria-label': 'info-solid',
+      ...props,
+    }),
+  InfoSolidSmall: (props: IconType) => render(InfoSolidSmallIcon, {
+      'aria-label': 'info-solid-small',
+      ...props,
+    }),
+  Join: (props: IconType) => render(JoinIcon, {
+      'aria-label': 'join',
+      ...props,
+    }),
+  Keyboard: (props: IconType) => render(KeyboardIcon, {
+      'aria-label': 'keyboard',
+      ...props,
+    }),
+  Layers: (props: IconType) => render(LayersIcon, {
+      'aria-label': 'layers',
+      ...props,
+    }),
+  Lightbulb: (props: IconType) => render(LightbulbIcon, {
+      'aria-label': 'light-bulb',
+      ...props,
+    }),
+  Link: (props: IconType) => render(LinkIcon, {
+      'aria-label': 'link',
+      ...props,
+    }),
+  List: (props: IconType) => render(ListIcon, {
+      'aria-label': 'list',
+      ...props,
+    }),
+  ListView: (props: IconType) => render(ListViewIcon, {
+      'aria-label': 'list-view',
+      ...props,
+    }),
+  Location: (props: IconType) => render(LocationIcon, {
+      'aria-label': 'location',
+      ...props,
+    }),
+  LockLocked: (props: IconType) => render(LockLockedIcon, {
+      'aria-label': 'lock-locked',
+      ...props,
+    }),
+  LockUnlocked: (props: IconType) => render(LockUnlockedIcon, {
+      'aria-label': 'lock-unlocked',
+      ...props,
+    }),
+  Map: (props: IconType) => render(MapIcon, {
+      'aria-label': 'map',
+      ...props,
+    }),
+  Message: (props: IconType) => render(MessageIcon, {
+      'aria-label': 'message',
+      ...props,
+    }),
+  Minus: (props: IconType) => render(MinusIcon, {
+      'aria-label': 'minus',
+      ...props,
+    }),
+  MinusSolid: (props: IconType) => render(MinusSolidIcon, {
+      'aria-label': 'minus-solid',
+      ...props,
+    }),
+  MoreHoriz: (props: IconType) => render(MoreHorizIcon, {
+      'aria-label': 'more-horiz',
+      ...props,
+    }),
+  Move: (props: IconType) => render(MoveIcon, {
+      'aria-label': 'move',
+      ...props,
+    }),
+  NavCharts: (props: IconType) => render(NavChartsIcon, {
+      'aria-label': 'nav-charts',
+      ...props,
+    }),
+  NavDashboard: (props: IconType) => render(NavDashboardIcon, {
+      'aria-label': 'nav-dashboard',
+      ...props,
+    }),
+  NavData: (props: IconType) => render(NavDataIcon, {
+      'aria-label': 'nav-data',
+      ...props,
+    }),
+  NavExplore: (props: IconType) => render(NavExploreIcon, {
+      'aria-label': 'nav-explore',
+      ...props,
+    }),
+  NavHome: (props: IconType) => render(NavHomeIcon, {
+      'aria-label': 'nav-home',
+      ...props,
+    }),
+  NavLab: (props: IconType) => render(NavLabIcon, {
+      'aria-label': 'nav-lab',
+      ...props,
+    }),
+  Note: (props: IconType) => render(NoteIcon, {
+      'aria-label': 'note',
+      ...props,
+    }),
+  Offline: (props: IconType) => render(OfflineIcon, {
+      'aria-label': 'offline',
+      ...props,
+    }),
+  Paperclip: (props: IconType) => render(PaperclipIcon, {
+      'aria-label': 'paperclip',
+      ...props,
+    }),
+  Placeholder: (props: IconType) => render(PlaceholderIcon, {
+      'aria-label': 'placeholder',
+      ...props,
+    }),
+  Plus: (props: IconType) => render(PlusIcon, {
+      'aria-label': 'plus',
+      ...props,
+    }),
+  PlusLarge: (props: IconType) => render(PlusLargeIcon, {
+      'aria-label': 'plus-large',
+      ...props,
+    }),
+  PlusSmall: (props: IconType) => render(PlusSmallIcon, {
+      'aria-label': 'plus-small',
+      ...props,
+    }),
+  PlusSolid: (props: IconType) => render(PlusSolidIcon, {
+      'aria-label': 'plus-solid',
+      ...props,
+    }),
+  Queued: (props: IconType) => render(QueuedIcon, {
+      'aria-label': 'queued',
+      ...props,
+    }),
+  Refresh: (props: IconType) => render(RefreshIcon, {
+      'aria-label': 'refresh',
+      ...props,
+    }),
+  Running: (props: IconType) => render(RunningIcon, {
+      'aria-label': 'running',
+      ...props,
+    }),
+  Save: (props: IconType) => render(SaveIcon, {
+      'aria-label': 'save',
+      ...props,
+    }),
+  SQL: (props: IconType) => render(SQLIcon, {
+      'aria-label': 'sql',
+      ...props,
+    }),
+  Search: (props: IconType) => render(SearchIcon, {
+      'aria-label': 'search',
+      ...props,
+    }),
+  Server: (props: IconType) => render(ServerIcon, {
+      'aria-label': 'server',
+      ...props,
+    }),
+  Share: (props: IconType) => render(ShareIcon, {
+      'aria-label': 'share',
+      ...props,
+    }),
+  Slack: (props: IconType) => render(SlackIcon, {
+      'aria-label': 'slack',
+      ...props,
+    }),
+  SortAsc: (props: IconType) => render(SortAscIcon, {
+      'aria-label': 'sort-asc',
+      ...props,
+    }),
+  SortDesc: (props: IconType) => render(SortDescIcon, {
+      'aria-label': 'sort-desc',
+      ...props,
+    }),
+  Sort: (props: IconType) => render(SortIcon, {
+      'aria-label': 'sort',
+      ...props,
+    }),
+  Table: (props: IconType) => render(TableIcon, {
+      'aria-label': 'table',
+      ...props,
+    }),
+  Tag: (props: IconType) => render(TagIcon, {
+      'aria-label': 'tag',
+      ...props,
+    }),
+  Trash: (props: IconType) => render(TrashIcon, {
+      'aria-label': 'trash',
+      ...props,
+    }),
+  TriangleChange: (props: IconType) => render(TriangleChangeIcon, {
+      'aria-label': 'triangle-change',
+      ...props,
+    }),
+  TriangleDown: (props: IconType) => render(TriangleDownIcon, {
+      'aria-label': 'triangle-down',
+      ...props,
+    }),
+  TriangleUp: (props: IconType) => render(TriangleUpIcon, {
+      'aria-label': 'triangle-up',
+      ...props,
+    }),
+  UpLevel: (props: IconType) => render(UpLevelIcon, {
+      'aria-label': 'up-level',
+      ...props,
+    }),
+  User: (props: IconType) => render(UserIcon, {
+      'aria-label': 'user',
+      ...props,
+    }),
+  Warning: (props: IconType) => render(WarningIcon, {
+      'aria-label': 'warning',
+      ...props,
+    }),
+  WarningSolid: (props: IconType) => render(WarningSolidIcon, {
+      'aria-label': 'warning-solid',
+      ...props,
+    }),
+  XLarge: (props: IconType) => render(XLargeIcon, {
+      'aria-label': 'x-large',
+      ...props,
+    }),
+  XSmall: (props: IconType) => render(XSmallIcon, {
+      'aria-label': 'x-small',
+      ...props,
+    }),
 };
