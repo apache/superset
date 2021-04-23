@@ -53,7 +53,7 @@ class DashboardDAO(BaseDAO):
 
     @staticmethod
     def get_charts_for_dashboard(id_or_slug: str) -> List[Slice]:
-        return DashboardDAO.get_by_id_or_slug(id_or_slug).slices
+        return DashboardDAO.get_by_id_or_slug(id_or_slug).slices_cached()
 
     @staticmethod
     def validate_slug_uniqueness(slug: str) -> bool:
