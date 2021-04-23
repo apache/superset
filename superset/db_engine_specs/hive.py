@@ -84,6 +84,10 @@ class HiveEngineSpec(PrestoEngineSpec):
     allows_alias_to_source_column = True
     allows_hidden_ordeby_agg = False
 
+    # When running `SHOW FUNCTIONS`, what is the name of the column with the
+    # function names?
+    _show_functions_column = "tab_name"
+
     # pylint: disable=line-too-long
     _time_grain_expressions = {
         None: "{col}",
@@ -530,7 +534,23 @@ class HiveEngineSpec(PrestoEngineSpec):
         :param database: The database to get functions for
         :return: A list of function names useable in the database
         """
-        return database.get_df("SHOW FUNCTIONS")["tab_name"].tolist()
+        df = database.get_df("SHOW FUNCTIONS")
+        if cls._show_functions_column in df:
+            return df[cls._show_functions_column].tolist()
+
+        columns = df.columns.values.tolist()
+        logger.error(
+            "Payload from `SHOW FUNCTIONS` has the incorrect format. "
+            "Expected column `%s`, found: %s.",
+            cls._show_functions_column,
+            ", ".join(columns),
+        )
+        # if the results have a single column, use that
+        if len(columns) == 1:
+            return df[columns[0]].tolist()
+
+        # otherwise, return no function names to prevent errors
+        return []
 
     @classmethod
     def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
