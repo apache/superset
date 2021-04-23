@@ -243,14 +243,6 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         make_name=lambda fname: f"{fname}-v1.0",
         unless=lambda: not is_feature_enabled("DASHBOARD_CACHE"),
     )
-    def slices_cached(self) -> List[Slice]:
-        return self.slices
-
-    @cache_manager.cache.memoize(
-        # manage cache version manually
-        make_name=lambda fname: f"{fname}-v1.0",
-        unless=lambda: not is_feature_enabled("DASHBOARD_CACHE"),
-    )
     def datasets_trimmed_for_slices(self) -> Dict[str, Any]:
         datasource_slices = utils.indexed(self.slices, "datasource")
         return {
@@ -280,7 +272,6 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @debounce(0.1)
     def clear_cache(self) -> None:
-        cache_manager.cache.delete_memoized(Dashboard.slices_cached, self)
         cache_manager.cache.delete_memoized(Dashboard.datasets_trimmed_for_slices, self)
 
     @classmethod
