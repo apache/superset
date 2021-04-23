@@ -47,7 +47,7 @@ const FilterValue: React.FC<FilterProps> = ({
   directPathToChild,
   onFilterSelectionChange,
 }) => {
-  const { id, targets, filterType } = filter;
+  const { id, targets, filterType, adhoc_filters } = filter;
   const cascadingFilters = useCascadingFilters(id);
   const [state, setState] = useState<ChartDataResponseResult[]>([]);
   const [error, setError] = useState<string>('');
@@ -68,6 +68,7 @@ const FilterValue: React.FC<FilterProps> = ({
       cascadingFilters,
       groupby,
       inputRef,
+      adhoc_filters,
     });
     if (!areObjectsEqual(formData, newFormData)) {
       setFormData(newFormData);

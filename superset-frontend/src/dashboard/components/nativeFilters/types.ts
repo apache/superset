@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { DataMask } from '@superset-ui/core';
+import { AdhocFilter, DataMask } from '@superset-ui/core';
 
 export interface Column {
   name: string;
@@ -54,6 +54,7 @@ export interface Filter {
   controlValues: {
     [key: string]: any;
   };
+  adhoc_filters?: AdhocFilter[];
 }
 
 export type FilterConfiguration = Filter[];

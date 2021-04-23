@@ -21,12 +21,15 @@ import {
   t,
   getChartMetadataRegistry,
   Behavior,
+  AdhocFilter,
 } from '@superset-ui/core';
+import { ColumnMeta } from '@superset-ui/chart-controls';
 import { FormInstance } from 'antd/lib/form';
 import React, { useCallback } from 'react';
 import { Checkbox, Form, Input, Typography } from 'src/common/components';
 import { Select } from 'src/components/Select';
 import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
+import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import { addDangerToast } from 'src/messageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { ColumnSelect } from './ColumnSelect';
@@ -62,7 +65,7 @@ export const StyledCheckboxFormItem = styled(Form.Item)`
 
 export const StyledLabel = styled.span`
   color: ${({ theme }) => theme.colors.grayscale.base};
-  font-size: ${({ theme }) => theme.typography.sizes.s};
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
   text-transform: uppercase;
 `;
 
@@ -231,6 +234,27 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
               />
             </StyledFormItem>
           )}
+          <StyledFormItem
+            name={['filters', filterId, 'adhoc_filters']}
+            initialValue={filterToEdit?.adhoc_filters}
+          >
+            <AdhocFilterControl
+              columns={
+                formFilter.dataset?.columns?.filter(
+                  (c: ColumnMeta) => c.filterable,
+                ) || []
+              }
+              savedMetrics={formFilter.dataset?.metrics || []}
+              datasource={formFilter.dataset}
+              onChange={(filters: AdhocFilter[]) => {
+                setNativeFilterFieldValues(form, filterId, {
+                  adhoc_filters: filters,
+                });
+                forceUpdate();
+              }}
+              label={<StyledLabel>{t('Adhoc filters')}</StyledLabel>}
+            />
+          </StyledFormItem>
         </>
       )}
       {hasFilledDataset && (
