@@ -192,12 +192,13 @@ const StyledHeader = styled.header`
       }
     }
     .ant-menu-submenu-title {
-      padding: 0 ${({ theme }) => theme.gridUnit * 6}px 0 ${({ theme }) => theme.gridUnit * 3}px;
+      padding: 0 ${({ theme }) => theme.gridUnit * 6}px 0
+        ${({ theme }) => theme.gridUnit * 3}px;
       svg {
         position: absolute;
-        top: ${({ theme }) => theme.gridUnit * 4 }px;
-        right: ${({ theme }) => theme.gridUnit }px;
-        width: ${({ theme }) => theme.gridUnit * 6 }px;
+        top: ${({ theme }) => theme.gridUnit * 4}px;
+        right: ${({ theme }) => theme.gridUnit}px;
+        width: ${({ theme }) => theme.gridUnit * 6}px;
       }
       &:hover {
         color: ${({ theme }) => theme.colors.grayscale.dark1};
