@@ -21,8 +21,8 @@ from typing import Any, Callable, Optional
 from flask import g
 from flask_babel import lazy_gettext as _
 
+from superset import security_manager
 from superset.models.core import Database
-from superset.sql_parse import Table
 from superset.utils.core import parse_js_uri_path_item
 from superset.views.base_api import BaseSupersetModelRestApi
 
@@ -50,8 +50,8 @@ def check_datasource_access(f: Callable[..., Any]) -> Callable[..., Any]:
                 f"database_not_found_{self.__class__.__name__}.select_star"
             )
             return self.response_404()
-        if not self.appbuilder.sm.can_access_table(
-            database, Table(table_name_parsed, schema_name_parsed)
+        if not security_manager.get_datasources_accessible_by_user(
+            database, [table_name_parsed], schema_name_parsed,
         ):
             self.stats_logger.incr(
                 f"permisssion_denied_{self.__class__.__name__}.select_star"
