@@ -2257,7 +2257,11 @@ class MapboxViz(BaseViz):
             if fd.get("point_radius") != "Auto":
                 d["columns"].append(fd.get("point_radius"))
 
-            d["columns"] = list(set(d["columns"]))
+            # Ensure this value is sorted so that it does not
+            # cause the cache key generation (which hashes the
+            # query object) to generate different keys for values
+            # that should be considered the same.
+            d["columns"] = sorted(set(d["columns"]))
         else:
             # Ensuring columns chosen are all in group by
             if (
