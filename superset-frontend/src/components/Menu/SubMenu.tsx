@@ -33,7 +33,7 @@ const StyledHeader = styled.div`
     font-size: 18px;
     padding: ${({ theme }) => theme.gridUnit * 3}px;
     display: inline-block;
-    line-height: ${({ theme }) => theme.gridUnit * 9}px;  
+    line-height: ${({ theme }) => theme.gridUnit * 9}px;
   }
   .nav-right {
     display: flex;
@@ -153,8 +153,8 @@ export interface SubMenuProps {
 
 const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
-  const [navRightStyle, setNavRightStyle] = useState('nav-right')
-  const [navRightCol, setNavRightCol] = useState(8)
+  const [navRightStyle, setNavRightStyle] = useState('nav-right');
+  const [navRightCol, setNavRightCol] = useState(8);
 
   const { headerSize = 2 } = props;
   let hasHistory = true;
@@ -171,15 +171,21 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
       if (window.innerWidth <= 767) setMenu('inline');
       else setMenu('horizontal');
 
-      if(props.buttons && props.buttons.length >= 3 && window.innerWidth >= 795){
-        setNavRightCol(8)
-        setNavRightStyle('nav-right')
-      } else if(props.buttons && props.buttons.length >= 3 && window.innerWidth <=795) { 
-        setNavRightCol(24) 
-        setNavRightStyle('nav-right-collapse')
-      } else {
-        return;
-      }
+      if (
+        props.buttons &&
+        props.buttons.length >= 3 &&
+        window.innerWidth >= 795
+      ) {
+        setNavRightCol(8);
+        setNavRightStyle('nav-right');
+      } else if (
+        props.buttons &&
+        props.buttons.length >= 3 &&
+        window.innerWidth <= 795
+      ) {
+        setNavRightCol(24);
+        setNavRightStyle('nav-right-collapse');
+      } 
     }
     handleResize();
     window.addEventListener('resize', handleResize);
@@ -197,10 +203,7 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
           </Col>
         )}
         <Col md={16 - offset} sm={24} xs={24}>
-          <Menu
-            mode={showMenu}
-            style={{ backgroundColor: 'transparent' }}
-          >
+          <Menu mode={showMenu} style={{ backgroundColor: 'transparent' }}>
             {props.tabs &&
               props.tabs.map(tab => {
                 if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
