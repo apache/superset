@@ -142,7 +142,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   ]);
 
   const placeholderText =
-    (data || []).length === 0
+    data.length === 0
       ? t('No data')
       : tn('%s option', '%s options', data.length, data.length);
   return (
@@ -155,14 +155,14 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         showSearch={showSearch}
         mode={multiSelect ? 'multiple' : undefined}
         placeholder={placeholderText}
-        onSearch={val => setCurrentSuggestionSearch(val)}
+        onSearch={setCurrentSuggestionSearch}
         onSelect={clearSuggestionSearch}
         onBlur={clearSuggestionSearch}
         // @ts-ignore
         onChange={handleChange}
         ref={inputRef}
       >
-        {(data || []).map(row => {
+        {data.map(row => {
           const [value] = groupby.map(col => row[col]);
           return (
             // @ts-ignore
@@ -172,7 +172,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           );
         })}
         {currentSuggestionSearch &&
-          !(values || []).some(
+          !ensureIsArray(values).some(
             suggestion => suggestion === currentSuggestionSearch,
           ) && (
             <Option value={currentSuggestionSearch}>
