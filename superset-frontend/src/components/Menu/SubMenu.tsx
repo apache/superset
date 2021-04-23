@@ -33,14 +33,22 @@ const StyledHeader = styled.div`
     font-size: 18px;
     padding: ${({ theme }) => theme.gridUnit * 3}px;
     display: inline-block;
+    line-height: ${({ theme }) => theme.gridUnit * 9}px;  
   }
-
   .nav-right {
-    padding: 8px 0;
+    display: flex;
+    align-items: center;
+    padding: 14px 0;
     margin-right: 0;
-    text-align: right;
-    padding: ${({ theme }) => theme.gridUnit * 3}px
-      ${({ theme }) => theme.gridUnit + 6}px;
+    float: right;
+  }
+  .nav-right-collapse {
+    display: flex;
+    align-items: center;
+    padding: 14px 0;
+    margin-right: 0;
+    float: left;
+    padding-left: 10px;
   }
   .menu {
     background-color: white;
@@ -66,8 +74,6 @@ const StyledHeader = styled.div`
       a,
       div {
         font-size: ${({ theme }) => theme.typography.sizes.s}px;
-        //padding: ${({ theme }) => theme.gridUnit * 2}px 0;
-        //margin: ${({ theme }) => theme.gridUnit * 2}px;
         color: ${({ theme }) => theme.colors.secondary.dark1};
 
         a {
@@ -103,7 +109,8 @@ const StyledHeader = styled.div`
   @media (max-width: 767px) {
     .header,
     .nav-right {
-      text-align: left;
+      float: left;
+      padding-left: ${({ theme }) => theme.gridUnit * 2}px;
     }
   }
 `;
@@ -146,6 +153,9 @@ export interface SubMenuProps {
 
 const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
+  const [navRightStyle, setNavRightStyle] = useState('nav-right')
+  const [navRightCol, setNavRightCol] = useState(8)
+
   const { headerSize = 2 } = props;
   let hasHistory = true;
   // If no parent <Router> component exists, useHistory throws an error
@@ -158,15 +168,26 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
 
   useEffect(() => {
     function handleResize() {
-      console.log('screenWidth', window.innerWidth);
       if (window.innerWidth <= 767) setMenu('inline');
       else setMenu('horizontal');
+
+      if(props.buttons && props.buttons.length >= 3 && window.innerWidth >= 795){
+        setNavRightCol(8)
+        setNavRightStyle('nav-right')
+      } else if(props.buttons && props.buttons.length >= 3 && window.innerWidth <=795) { 
+        setNavRightCol(24) 
+        setNavRightStyle('nav-right-collapse')
+      } else {
+        return;
+      }
     }
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [props.buttons]);
+
   const offset = props.name ? headerSize : 0;
+
   return (
     <StyledHeader>
       <Row className="menu" role="navigation">
@@ -179,7 +200,6 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
           <Menu
             mode={showMenu}
             style={{ backgroundColor: 'transparent' }}
-            // inlineCollapsed={true}
           >
             {props.tabs &&
               props.tabs.map(tab => {
@@ -218,8 +238,8 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
               })}
           </Menu>
         </Col>
-        <Col md={8} sm={24} xs={24}>
-          <div className="nav-right">
+        <Col lg={8} md={navRightCol} sm={24} xs={24}>
+          <div className={navRightStyle}>
             {props.buttons?.map((btn, i) => (
               <Button
                 key={i}
