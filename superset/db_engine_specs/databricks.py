@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.o
+
 from superset.db_engine_specs.hive import HiveEngineSpec
 
 
@@ -21,3 +22,4 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
     engine = "databricks"
     engine_name = "Databricks Hive"
     driver = "pyhive"
+    _show_functions_column = "function"
