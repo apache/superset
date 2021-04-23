@@ -16,17 +16,19 @@
  * under the License.
  */
 
-class ImportError extends Error {}
-
-const loadModule = async () => {
-  let module
+/* eslint-disable global-require */
+const loadModule = () => {
+  let module;
   try {
-    module = await import( /* webpackChunkName: "supersetText" */ '../../../superset_text.yml')
+    // eslint-disable-next-line import/no-unresolved
+    // @ts-ignore
+    module = require('../../../superset_text');
   } catch (e) {
-    //throw new ImportError('Unable to import module ../../../superset_text.yml')
-    module = {}
+    module = {};
   }
-  return module.default
-}
+  return module;
+};
 
-export default loadModule() || {};
+const supersetText = loadModule();
+
+export default supersetText;
