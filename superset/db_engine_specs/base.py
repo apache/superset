@@ -30,6 +30,7 @@ from typing import (
     NamedTuple,
     Optional,
     Pattern,
+    Set,
     Tuple,
     Type,
     TYPE_CHECKING,
@@ -38,18 +39,22 @@ from typing import (
 
 import pandas as pd
 import sqlparse
+from apispec import APISpec
+from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import g
 from flask_babel import gettext as __, lazy_gettext as _
+from marshmallow import fields, Schema
 from sqlalchemy import column, DateTime, select, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Compiled, Dialect
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.engine.url import URL
+from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom
 from sqlalchemy.types import String, TypeEngine, UnicodeText
+from typing_extensions import TypedDict
 
 from superset import app, security_manager, sql_parse
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -150,7 +155,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     """
 
     engine = "base"  # str as defined in sqlalchemy.engine.engine
-    engine_aliases: Optional[Tuple[str]] = None
+    engine_aliases: Set[str] = set()
     engine_name: Optional[
         str
     ] = None  # used for user messages, overridden in child classes
@@ -937,6 +942,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param cols: Columns to include in query
         :return: SQL query
         """
+        # pylint: disable=redefined-outer-name
         fields: Union[str, List[Any]] = "*"
         cols = cols or []
         if (show_cols or latest_partition) and not cols:
@@ -1293,3 +1299,90 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 sqla_type=column_type, generic_type=generic_type, is_dttm=is_dttm
             )
         return None
+
+
+# schema for adding a database by providing parameters instead of the
+# full SQLAlchemy URI
+class BaseParametersSchema(Schema):
+    username = fields.String(allow_none=True, description=__("Username"))
+    password = fields.String(allow_none=True, description=__("Password"))
+    host = fields.String(required=True, description=__("Hostname or IP address"))
+    port = fields.Integer(required=True, description=__("Database port"))
+    database = fields.String(required=True, description=__("Database name"))
+    query = fields.Dict(
+        keys=fields.Str(), values=fields.Raw(), description=__("Additinal parameters")
+    )
+
+
+class BaseParametersType(TypedDict, total=False):
+    username: Optional[str]
+    password: Optional[str]
+    host: str
+    port: int
+    database: str
+    query: Dict[str, Any]
+
+
+class BaseParametersMixin:
+
+    """
+    Mixin for configuring DB engine specs via a dictionary.
+
+    With this mixin the SQLAlchemy engine can be configured through
+    individual parameters, instead of the full SQLAlchemy URI. This
+    mixin is for the most common pattern of URI:
+
+        drivername://user:password@host:port/dbname[?key=value&key=value...]
+
+    """
+
+    # schema describing the parameters used to configure the DB
+    parameters_schema = BaseParametersSchema()
+
+    # recommended driver name for the DB engine spec
+    drivername = ""
+
+    # placeholder with the SQLAlchemy URI template
+    sqlalchemy_uri_placeholder = (
+        "drivername://user:password@host:port/dbname[?key=value&key=value...]"
+    )
+
+    @classmethod
+    def build_sqlalchemy_url(cls, parameters: BaseParametersType) -> str:
+        return str(
+            URL(
+                cls.drivername,
+                username=parameters.get("username"),
+                password=parameters.get("password"),
+                host=parameters["host"],
+                port=parameters["port"],
+                database=parameters["database"],
+                query=parameters.get("query", {}),
+            )
+        )
+
+    @classmethod
+    def get_parameters_from_uri(cls, uri: str) -> BaseParametersType:
+        url = make_url(uri)
+        return {
+            "username": url.username,
+            "password": url.password,
+            "host": url.host,
+            "port": url.port,
+            "database": url.database,
+            "query": url.query,
+        }
+
+    @classmethod
+    def parameters_json_schema(cls) -> Any:
+        """
+        Return configuration parameters as OpenAPI.
+        """
+        spec = APISpec(
+            title="Database Parameters",
+            version="1.0.0",
+            openapi_version="3.0.2",
+            plugins=[MarshmallowPlugin()],
+        )
+        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
+        return spec.to_dict()["components"]["schemas"][cls.__name__]
