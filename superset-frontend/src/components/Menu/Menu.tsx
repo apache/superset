@@ -173,7 +173,7 @@ const StyledHeader = styled.header`
         margin: 0;
         &:after {
           opacity: 1;
-          width: 100%;
+          width: 99%;
         }
       }
     }
@@ -192,12 +192,12 @@ const StyledHeader = styled.header`
       }
     }
     .ant-menu-submenu-title {
-      padding: 0 16px;
+      padding: 0 ${({ theme }) => theme.gridUnit * 6}px 0 ${({ theme }) => theme.gridUnit * 3}px;
       svg {
         position: absolute;
-        top: 16px;
-        right: -3px;
-        width: 20px;
+        top: ${({ theme }) => theme.gridUnit * 4 }px;
+        right: ${({ theme }) => theme.gridUnit }px;
+        width: ${({ theme }) => theme.gridUnit * 6 }px;
       }
       &:hover {
         color: ${({ theme }) => theme.colors.grayscale.dark1};
@@ -256,6 +256,10 @@ const StyledHeader = styled.header`
       margin: ${({ theme }) => theme.gridUnit}px 0
         ${({ theme }) => theme.gridUnit * 2}px;
     }
+  }
+  .ant-menu-submenu-popup {
+    border-radius: 0px !important;
+    background-color: red !important;
   }
 `;
 

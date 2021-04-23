@@ -136,7 +136,11 @@ const RightMenu = ({
     </SubMenu>
     {navbarRight.documentation_url && (
       <Menu.Item title="Documentation">
-        <a href={navbarRight.documentation_url} target="_blank" rel="noreferrer">
+        <a
+          href={navbarRight.documentation_url}
+          target="_blank"
+          rel="noreferrer"
+        >
           <i className="fa fa-question" />
           &nbsp;
         </a>
