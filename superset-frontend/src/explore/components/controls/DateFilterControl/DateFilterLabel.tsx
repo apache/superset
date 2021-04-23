@@ -28,7 +28,11 @@ import {
 import {
   buildTimeRangeString,
   formatTimeRange,
-} from 'src/explore/dateFilterUtils';
+  COMMON_RANGE_VALUES_SET,
+  CALENDAR_RANGE_VALUES_SET,
+  FRAME_OPTIONS,
+  customTimeRangeDecode,
+} from 'src/explore/components/controls/DateFilterControl/utils';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -43,12 +47,7 @@ import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { testWithId } from 'src/utils/testUtils';
 import { SelectOptionType, FrameType } from './types';
-import {
-  COMMON_RANGE_VALUES_SET,
-  CALENDAR_RANGE_VALUES_SET,
-  FRAME_OPTIONS,
-  customTimeRangeDecode,
-} from './utils';
+
 import {
   CommonFrame,
   CalendarFrame,
