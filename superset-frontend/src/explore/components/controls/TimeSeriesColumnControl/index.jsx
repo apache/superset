@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col, FormControl } from 'react-bootstrap';
+import { Row, Col } from 'src/common/components';
+import { FormControl } from 'react-bootstrap';
 import Popover from 'src/components/Popover';
 import Select from 'src/components/Select';
 import { t } from '@superset-ui/core';
@@ -128,7 +129,7 @@ export default class TimeSeriesColumnControl extends React.Component {
   formRow(label, tooltip, ttLabel, control) {
     return (
       <Row style={{ marginTop: '5px' }}>
-        <Col md={5}>
+        <Col xs={24} md={10}>
           {`${label} `}
           <InfoTooltipWithTrigger
             placement="top"
@@ -136,7 +137,9 @@ export default class TimeSeriesColumnControl extends React.Component {
             label={ttLabel}
           />
         </Col>
-        <Col md={7}>{control}</Col>
+        <Col xs={24} md={14}>
+          {control}
+        </Col>
       </Row>
     );
   }

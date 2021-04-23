@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col, FormControl } from 'react-bootstrap';
+import { Row, Col } from 'src/common/components';
+import { FormControl } from 'react-bootstrap';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
 import { AsyncSelect } from 'src/components/Select';
@@ -323,8 +324,8 @@ class PropertiesModal extends React.PureComponent {
   getRowsWithoutRoles() {
     const { values, isDashboardLoaded } = this.state;
     return (
-      <Row>
-        <Col md={6}>
+      <Row gutter={16}>
+        <Col xs={24} md={12}>
           <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
           <FormLabel htmlFor="owners">{t('Owners')}</FormLabel>
           <AsyncSelect
@@ -344,7 +345,7 @@ class PropertiesModal extends React.PureComponent {
             )}
           </p>
         </Col>
-        <Col md={6}>
+        <Col xs={24} md={12}>
           <h3 style={{ marginTop: '1em' }}>{t('Colors')}</h3>
           <ColorSchemeControlWrapper
             onChange={this.onColorSchemeChange}
@@ -360,12 +361,12 @@ class PropertiesModal extends React.PureComponent {
     return (
       <>
         <Row>
-          <Col md={12}>
+          <Col xs={24} md={24}>
             <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
           </Col>
         </Row>
-        <Row>
-          <Col md={6}>
+        <Row gutter={16}>
+          <Col xs={24} md={12}>
             <FormLabel htmlFor="owners">{t('Owners')}</FormLabel>
             <AsyncSelect
               name="owners"
@@ -384,7 +385,7 @@ class PropertiesModal extends React.PureComponent {
               )}
             </p>
           </Col>
-          <Col md={6}>
+          <Col xs={24} md={12}>
             <FormLabel htmlFor="roles">{t('Roles')}</FormLabel>
             <AsyncSelect
               name="roles"
@@ -405,7 +406,7 @@ class PropertiesModal extends React.PureComponent {
           </Col>
         </Row>
         <Row>
-          <Col md={6}>
+          <Col xs={24} md={12}>
             <ColorSchemeControlWrapper
               onChange={this.onColorSchemeChange}
               colorScheme={values.colorScheme}
@@ -454,12 +455,12 @@ class PropertiesModal extends React.PureComponent {
       >
         <form data-test="dashboard-edit-properties-form" onSubmit={this.submit}>
           <Row>
-            <Col md={12}>
+            <Col xs={24} md={24}>
               <h3>{t('Basic information')}</h3>
             </Col>
           </Row>
-          <Row>
-            <Col md={6}>
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
               <FormLabel htmlFor="embed-height">{t('Title')}</FormLabel>
               <FormControl
                 data-test="dashboard-title-input"
@@ -471,7 +472,7 @@ class PropertiesModal extends React.PureComponent {
                 disabled={!isDashboardLoaded}
               />
             </Col>
-            <Col md={6}>
+            <Col xs={24} md={12}>
               <FormLabel htmlFor="embed-height">{t('URL slug')}</FormLabel>
               <FormControl
                 name="slug"
@@ -490,7 +491,7 @@ class PropertiesModal extends React.PureComponent {
             ? this.getRowsWithRoles()
             : this.getRowsWithoutRoles()}
           <Row>
-            <Col md={12}>
+            <Col xs={24} md={24}>
               <h3 style={{ marginTop: '1em' }}>
                 <Button buttonStyle="link" onClick={this.toggleAdvanced}>
                   <i
