@@ -164,7 +164,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
     @property
     def table_names(self) -> str:
         # pylint: disable=no-member
-        return ", ".join(str(s.datasource.full_name) for s in self.slices)
+        return ", ".join(str(s.datasource.full_name) for s in self.slices_cached())
 
     @property
     def url(self) -> str:
@@ -172,11 +172,11 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @property
     def datasources(self) -> Set[BaseDatasource]:
-        return {slc.datasource for slc in self.slices}
+        return {slc.datasource for slc in self.slices_cached()}
 
     @property
     def charts(self) -> List[BaseDatasource]:
-        return [slc.chart for slc in self.slices]
+        return [slc.chart for slc in self.slices_cached()]
 
     @property
     def sqla_metadata(self) -> None:
@@ -235,7 +235,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
             "dashboard_title": self.dashboard_title,
             "published": self.published,
             "slug": self.slug,
-            "slices": [slc.data for slc in self.slices],
+            "slices": [slc.data for slc in self.slices_cached()],
             "position_json": positions,
             "last_modified_time": self.changed_on.replace(microsecond=0).timestamp(),
         }
@@ -254,7 +254,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         unless=lambda: not is_feature_enabled("DASHBOARD_CACHE"),
     )
     def datasets_trimmed_for_slices(self) -> Dict[str, Any]:
-        datasource_slices = utils.indexed(self.slices, "datasource")
+        datasource_slices = utils.indexed(self.slices_cached(), "datasource")
         return {
             # Filter out unneeded fields from the datasource payload
             datasource.uid: datasource.data_for_slices(slices)
