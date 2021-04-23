@@ -226,7 +226,7 @@ const StyledHeader = styled.header`
       border-bottom: none;
       background-color: transparent;
       @media (max-width: 767px) {
-        background-color: red; //${({ theme }) => theme.colors.primary.light5};
+        background-color: ${({ theme }) => theme.colors.primary.light5};
       }
     }
     &:hover {
