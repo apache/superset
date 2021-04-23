@@ -17,14 +17,9 @@
  * under the License.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Row,
-  Col,
-  FormControl,
-  FormGroup,
-  FormControlProps,
-} from 'react-bootstrap';
 import Modal from 'src/components/Modal';
+import { Row, Col } from 'src/common/components';
+import { FormControl, FormGroup, FormControlProps } from 'react-bootstrap';
 import Button from 'src/components/Button';
 import { OptionsType } from 'react-select/src/types';
 import { AsyncSelect } from 'src/components/Select';
@@ -192,8 +187,8 @@ export default function PropertiesModal({
       wrapProps={{ 'data-test': 'properties-edit-modal' }}
     >
       <form onSubmit={onSubmit}>
-        <Row>
-          <Col md={6}>
+        <Row gutter={16}>
+          <Col xs={24} md={12}>
             <h3>{t('Basic information')}</h3>
             <FormGroup>
               <FormLabel htmlFor="name" required>
@@ -232,7 +227,7 @@ export default function PropertiesModal({
               </p>
             </FormGroup>
           </Col>
-          <Col md={6}>
+          <Col xs={24} md={12}>
             <h3>{t('Configuration')}</h3>
             <FormGroup>
               <FormLabel htmlFor="cacheTimeout">{t('Cache timeout')}</FormLabel>
