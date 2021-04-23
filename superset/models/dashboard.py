@@ -243,14 +243,14 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         make_name=lambda fname: f"{fname}-v1.0",
         unless=lambda: not is_feature_enabled("DASHBOARD_CACHE"),
     )
-    def datasets_trimmed_for_slices(self) -> Dict[str, Any]:
+    def datasets_trimmed_for_slices(self) -> List[Dict[str, Any]]:
         datasource_slices = utils.indexed(self.slices, "datasource")
-        return {
+        return [
             # Filter out unneeded fields from the datasource payload
-            datasource.uid: datasource.data_for_slices(slices)
+            datasource.data_for_slices(slices)
             for datasource, slices in datasource_slices.items()
             if datasource
-        }
+        ]
 
     @property  # type: ignore
     def params(self) -> str:  # type: ignore
