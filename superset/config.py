@@ -1064,6 +1064,18 @@ SQL_VALIDATORS_BY_ENGINE = {
     "postgresql": "PostgreSQLValidator",
 }
 
+# A list of preferred databases, in order. These databases will be
+# displayed prominently in the "Add Database" dialog. You should
+# use the "engine" attribute of the corresponding DB engine spec in
+# `superset/db_engine_specs/`.
+PREFERRED_DATABASES: List[str] = [
+    # "postgresql",
+    # "presto",
+    # "mysql",
+    # "sqlite",
+    # etc.
+]
+
 # Do you want Talisman enabled?
 TALISMAN_ENABLED = False
 # If you want Talisman, how do you want it configured??
