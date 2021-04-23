@@ -72,6 +72,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       ? firstItem
       : initSelectValue,
   );
+  const [currentSuggestionSearch, setCurrentSuggestionSearch] = useState('');
+
+  const clearSuggestionSearch = () => {
+    setCurrentSuggestionSearch('');
+  };
 
   const [col] = groupby;
   const datatype: GenericDataType = coltypeMap[col];
@@ -150,6 +155,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         showSearch={showSearch}
         mode={multiSelect ? 'multiple' : undefined}
         placeholder={placeholderText}
+        onSearch={val => setCurrentSuggestionSearch(val)}
+        onSelect={clearSuggestionSearch}
+        onBlur={clearSuggestionSearch}
         // @ts-ignore
         onChange={handleChange}
         ref={inputRef}
@@ -163,6 +171,14 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             </Option>
           );
         })}
+        {currentSuggestionSearch &&
+          !(values || []).some(
+            suggestion => suggestion === currentSuggestionSearch,
+          ) && (
+            <Option value={currentSuggestionSearch}>
+              {currentSuggestionSearch}
+            </Option>
+          )}
       </StyledSelect>
     </Styles>
   );
