@@ -14,21 +14,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
--r development.in
--r integration.in
-docker
-flask-testing
-freezegun
-ipdb
-# pinning ipython as pip-compile-multi was bringing higher version
-# of the ipython that was not found in CI
-ipython==7.16.1
-openapi-spec-validator
-openpyxl
-parameterized
-pyfakefs
-pyhive[presto]>=0.6.3
-pylint
-pytest
-pytest-cov
-statsd
+
+.PHONY: install superset venv pre-commit
+
+install: superset pre-commit
+
+superset:
+	# Install external dependencies
+	pip install -r requirements/local.txt
+
+	# Install Superset in editable (development) mode
+	pip install -e .
+
+	# Create an admin user in your metadata database
+	superset fab create-admin
+
+	# Initialize the database
+	superset db upgrade
+
+	# Create default roles and permissions
+	superset init
+
+	# Load some data to play with
+	superset load-examples
+
+venv:
+	# Create a virtual environment and activate it (recommended)
+	python3 -m venv venv # setup a python3 virtualenv
+	source venv/bin/activate
+
+pre-commit:
+	# setup pre commit dependencies
+	pip3 install -r requirements/integration.txt
+	pre-commit install

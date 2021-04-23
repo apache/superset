@@ -18,7 +18,8 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col, FormControl } from 'react-bootstrap';
+import { Row, Col } from 'src/common/components';
+import { FormControl } from 'react-bootstrap';
 import { Behavior, t, getChartMetadataRegistry } from '@superset-ui/core';
 import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
 import Modal from 'src/components/Modal';
@@ -44,7 +45,6 @@ const defaultProps = {
 
 const registry = getChartMetadataRegistry();
 
-const IMAGE_PER_ROW = 6;
 const DEFAULT_ORDER = [
   'line',
   'big_number',
@@ -190,19 +190,6 @@ const VizTypeControl = props => {
     )
     .filter(entry => entry.value.name.toLowerCase().includes(filterString));
 
-  const rows = [];
-  for (let i = 0; i <= filteredTypes.length; i += IMAGE_PER_ROW) {
-    rows.push(
-      <Row data-test="viz-row" key={`row-${i}`}>
-        {filteredTypes.slice(i, i + IMAGE_PER_ROW).map(entry => (
-          <Col md={12 / IMAGE_PER_ROW} key={`grid-col-${entry.key}`}>
-            {renderItem(entry)}
-          </Col>
-        ))}
-      </Row>,
-    );
-  }
-
   return (
     <div>
       <ControlHeader {...props} />
@@ -242,7 +229,13 @@ const VizTypeControl = props => {
             onChange={changeSearch}
           />
         </div>
-        {rows}
+        <Row data-test="viz-row" gutter={16}>
+          {filteredTypes.map(entry => (
+            <Col xs={12} sm={8} md={6} lg={4} key={`grid-col-${entry.key}`}>
+              {renderItem(entry)}
+            </Col>
+          ))}
+        </Row>
       </Modal>
     </div>
   );

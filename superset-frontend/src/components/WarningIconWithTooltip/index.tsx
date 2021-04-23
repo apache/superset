@@ -17,11 +17,11 @@
  * under the License.
  */
 import React from 'react';
-import { supersetTheme, SafeMarkdown } from '@superset-ui/core';
+import { useTheme, SafeMarkdown } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 
-interface WarningIconWithTooltipProps {
+export interface WarningIconWithTooltipProps {
   warningMarkdown: string;
   size?: number;
 }
@@ -29,12 +29,13 @@ interface WarningIconWithTooltipProps {
 function WarningIconWithTooltip({
   warningMarkdown,
 }: WarningIconWithTooltipProps) {
+  const theme = useTheme();
   return (
     <Tooltip
       id="warning-tooltip"
       title={<SafeMarkdown source={warningMarkdown} />}
     >
-      <Icons.AlertSolid iconColor={supersetTheme.colors.alert.base} />
+      <Icons.AlertSolid iconColor={theme.colors.alert.base} />
     </Tooltip>
   );
 }

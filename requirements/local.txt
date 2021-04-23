@@ -6,7 +6,270 @@
 #    pip-compile-multi
 #
 -r development.txt
--e file:.                 # via -r requirements/base.in
+-e file:.
+# via -r requirements/base.in
+# via slackclient
+# via flask-migrate
+# via kombu
+# via flask-appbuilder
+# via aiohttp
+# via
+#   aiohttp
+#   jsonschema
+# via flask-babel
+# via apache-superset
+# via celery
+# via apache-superset
+# via tabulator
+# via
+#   boto3
+#   s3transfer
+# via flask-compress
+# via tableschema
+# via apache-superset
+# via apache-superset
+# via requests
+# via cryptography
+# via
+#   aiohttp
+#   requests
+#   tabulator
+# via
+#   apache-superset
+#   flask
+#   flask-appbuilder
+#   tableschema
+#   tabulator
+# via
+#   apache-superset
+#   flask-appbuilder
+# via apache-superset
+# via holidays
+# via apache-superset
+# via apache-superset
+# via apache-superset
+# via retry
+# via python3-openid
+# via pygithub
+# via email-validator
+# via flask-appbuilder
+# via openpyxl
+# via apache-superset
+# via flask-appbuilder
+# via apache-superset
+# via apache-superset
+# via -r requirements/development.in
+# via flask-appbuilder
+# via flask-appbuilder
+# via apache-superset
+# via flask-appbuilder
+# via
+#   flask-appbuilder
+#   flask-migrate
+# via apache-superset
+# via
+#   apache-superset
+#   flask-appbuilder
+# via
+#   apache-superset
+#   flask-appbuilder
+#   flask-babel
+#   flask-caching
+#   flask-compress
+#   flask-cors
+#   flask-jwt-extended
+#   flask-login
+#   flask-migrate
+#   flask-openid
+#   flask-sqlalchemy
+#   flask-wtf
+# via pyhive
+# via geopy
+# via apache-superset
+# via apache-superset
+# via apache-superset
+# via apache-superset
+# via
+#   email-validator
+#   requests
+#   yarl
+# via tabulator
+# via -r requirements/base.in
+# via
+#   apache-superset
+#   tableschema
+# via
+#   flask
+#   flask-wtf
+# via openpyxl
+# via
+#   flask
+#   flask-babel
+# via
+#   boto3
+#   botocore
+# via tabulator
+# via
+#   flask-appbuilder
+#   tableschema
+# via celery
+# via holidays
+# via tabulator
+# via alembic
+# via apache-superset
+# via
+#   jinja2
+#   mako
+#   wtforms
+# via flask-appbuilder
+# via flask-appbuilder
+# via
+#   flask-appbuilder
+#   marshmallow-enum
+#   marshmallow-sqlalchemy
+# via apache-superset
+# via
+#   aiohttp
+#   yarl
+# via -r requirements/development.in
+# via croniter
+# via
+#   pandas
+#   pyarrow
+# via tabulator
+# via bleach
+# via apache-superset
+# via apache-superset
+# via apache-superset
+# via apache-superset
+# via -r requirements/development.in
+# via apache-superset
+# via flask-appbuilder
+# via -r requirements/development.in
+# via retry
+# via apache-superset
+# via cffi
+# via -r requirements/development.in
+# via -r requirements/development.in
+# via -r requirements/development.in
+# via
+#   apache-superset
+#   flask-appbuilder
+#   flask-jwt-extended
+#   pygithub
+# via convertdate
+# via
+#   apache-superset
+#   packaging
+# via
+#   -r requirements/base.in
+#   jsonschema
+# via
+#   alembic
+#   apache-superset
+#   botocore
+#   croniter
+#   flask-appbuilder
+#   holidays
+#   pandas
+#   pyhive
+#   tableschema
+# via apache-superset
+# via alembic
+# via apache-superset
+# via flask-openid
+# via
+#   babel
+#   celery
+#   convertdate
+#   flask-babel
+#   pandas
+# via
+#   apache-superset
+#   apispec
+# via apache-superset
+# via
+#   pydruid
+#   pygithub
+#   tableschema
+#   tabulator
+# via apache-superset
+# via tableschema
+# via boto3
+# via
+#   pyhive
+#   thrift-sasl
+# via apache-superset
+# via apache-superset
+# via
+#   bleach
+#   cryptography
+#   flask-cors
+#   flask-jwt-extended
+#   flask-talisman
+#   holidays
+#   isodate
+#   jsonlines
+#   jsonschema
+#   linear-tsv
+#   packaging
+#   pathlib2
+#   polyline
+#   prison
+#   pyrsistent
+#   python-dateutil
+#   sasl
+#   sqlalchemy-utils
+#   tableschema
+#   tabulator
+#   thrift
+#   thrift-sasl
+#   wtforms-json
+# via apache-superset
+# via
+#   apache-superset
+#   flask-appbuilder
+# via
+#   alembic
+#   apache-superset
+#   flask-appbuilder
+#   flask-sqlalchemy
+#   marshmallow-sqlalchemy
+#   sqlalchemy-utils
+#   tabulator
+# via apache-superset
+# via -r requirements/development.in
+# via tableschema
+# via pyhive
+# via
+#   -r requirements/development.in
+#   pyhive
+#   thrift-sasl
+# via
+#   aiohttp
+#   apache-superset
+# via
+#   tableschema
+#   tabulator
+# via
+#   botocore
+#   requests
+#   selenium
+# via
+#   amqp
+#   celery
+# via bleach
+# via
+#   flask
+#   flask-jwt-extended
+# via deprecated
+# via apache-superset
+# via
+#   flask-wtf
+#   wtforms-json
+# via tabulator
+# via aiohttp
+# via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

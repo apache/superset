@@ -16,27 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../stylesheets/less/variables.less';
+import React from 'react';
+import WarningIconWithTooltip, { WarningIconWithTooltipProps } from '.';
 
-.TableSelector .fa-refresh {
-  padding-left: 9px;
-}
+export default {
+  title: 'WarningIconWithTooltip',
+  component: WarningIconWithTooltip,
+};
 
-.TableSelector .section {
-  padding-bottom: 5px;
-  display: flex;
-  flex-direction: row;
-}
+export const InteractiveWarningIcon = (args: WarningIconWithTooltipProps) => (
+  <div css={{ margin: 40 }}>
+    <WarningIconWithTooltip {...args} />
+  </div>
+);
 
-.TableSelector .select {
-  flex-grow: 1;
-}
+InteractiveWarningIcon.args = {
+  warningMarkdown: 'Markdown example',
+  size: 20,
+};
 
-.TableSelector .divider {
-  border-bottom: 1px solid @gray-bg;
-  margin: 15px 0;
-}
-
-.TableLabel {
-  white-space: nowrap;
-}
+InteractiveWarningIcon.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};

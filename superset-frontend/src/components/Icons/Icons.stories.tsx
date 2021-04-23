@@ -17,67 +17,78 @@
  * under the License.
  */
 import React from 'react';
-import { withKnobs, select } from '@storybook/addon-knobs';
 import { styled, supersetTheme } from '@superset-ui/core';
 import Icons from '.';
+import IconType from './IconType';
 import Icon from './Icon';
 
 export default {
   title: 'Icons',
   component: Icon,
-  decorators: [withKnobs],
 };
 
-const palette = {};
+const palette = { Default: null };
 Object.entries(supersetTheme.colors).forEach(([familyName, family]) => {
   Object.entries(family).forEach(([colorName, colorValue]) => {
     palette[`${familyName} / ${colorName}`] = colorValue;
   });
 });
 
-const colorKnob = {
-  label: 'Color',
-  options: {
-    Default: null,
-    ...palette,
-  },
-  defaultValue: null,
-};
-
 const IconSet = styled.div`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, 200px);
+  grid-auto-rows: 100px;
 `;
 
 const IconBlock = styled.div`
-  flex-grow: 0;
-  flex-shrink: 0;
-  flex-basis: 10%;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: ${({ theme }) => theme.gridUnit * 2}px;
-  div {
-    white-space: nowrap;
-    font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  }
 `;
 
-export const SupersetIcon = () => (
+export const InteractiveIcons = ({
+  showNames,
+  ...rest
+}: IconType & { showNames: boolean }) => (
   <IconSet>
     {Object.keys(Icons).map(k => {
       const IconComponent = Icons[k];
       return (
         <IconBlock key={k}>
-          <IconComponent
-            iconColor={select(
-              colorKnob.label,
-              colorKnob.options,
-              colorKnob.defaultValue,
-              colorKnob.groupId,
-            )}
-          />
+          <IconComponent {...rest} />
+          {showNames && k}
         </IconBlock>
       );
     })}
   </IconSet>
 );
+
+InteractiveIcons.argTypes = {
+  showNames: {
+    name: 'Show names',
+    defaultValue: true,
+    control: { type: 'boolean' },
+  },
+  iconSize: {
+    defaultValue: 'xl',
+    control: { type: 'inline-radio' },
+  },
+  iconColor: {
+    defaultValue: null,
+    control: { type: 'select', options: palette },
+  },
+  theme: {
+    table: {
+      disable: true,
+    },
+  },
+};
+
+InteractiveIcons.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};

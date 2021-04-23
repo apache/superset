@@ -956,6 +956,9 @@ ALERT_REPORTS_WORKING_TIME_OUT_LAG = 10
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = 1
+# If set to true no notification is sent, the worker will just log a message.
+# Useful for debugging
+ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
 
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
@@ -1060,6 +1063,18 @@ SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",
     "postgresql": "PostgreSQLValidator",
 }
+
+# A list of preferred databases, in order. These databases will be
+# displayed prominently in the "Add Database" dialog. You should
+# use the "engine" attribute of the corresponding DB engine spec in
+# `superset/db_engine_specs/`.
+PREFERRED_DATABASES: List[str] = [
+    # "postgresql",
+    # "presto",
+    # "mysql",
+    # "sqlite",
+    # etc.
+]
 
 # Do you want Talisman enabled?
 TALISMAN_ENABLED = False
