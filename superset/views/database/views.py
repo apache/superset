@@ -18,6 +18,7 @@ import os
 import tempfile
 from typing import TYPE_CHECKING
 
+import pandas as pd
 from flask import flash, g, redirect
 from flask_appbuilder import expose, SimpleFormView
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -149,55 +150,44 @@ class CsvToDatabaseView(SimpleFormView):
             flash(message, "danger")
             return redirect("/csvtodatabaseview/form")
 
-        uploaded_tmp_file_path = tempfile.NamedTemporaryFile(
-            dir=app.config["UPLOAD_FOLDER"],
-            suffix=os.path.splitext(form.csv_file.data.filename)[1].lower(),
-            delete=False,
-        ).name
-
         try:
-            utils.ensure_path_exists(config["UPLOAD_FOLDER"])
-            upload_stream_write(form.csv_file.data, uploaded_tmp_file_path)
-
-            con = form.data.get("con")
-            database = (
-                db.session.query(models.Database).filter_by(id=con.data.get("id")).one()
+            df = pd.concat(
+                pd.read_csv(
+                    chunksize=1000,
+                    encoding="utf-8",
+                    filepath_or_buffer=form.csv_file.data,
+                    header=form.header.data if form.header.data else 0,
+                    index_col=form.index_col.data,
+                    infer_datetime_format=form.infer_datetime_format.data,
+                    iterator=True,
+                    keep_default_na=not form.null_values.data,
+                    mangle_dupe_cols=form.mangle_dupe_cols.data,
+                    na_values=form.null_values.data if form.null_values.data else None,
+                    nrows=form.nrows.data,
+                    parse_dates=form.parse_dates.data,
+                    sep=form.sep.data,
+                    skip_blank_lines=form.skip_blank_lines.data,
+                    skipinitialspace=form.skipinitialspace.data,
+                    skiprows=form.skiprows.data,
+                )
             )
 
-            # More can be found here:
-            # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html
-            csv_to_df_kwargs = {
-                "sep": form.sep.data,
-                "header": form.header.data if form.header.data else 0,
-                "index_col": form.index_col.data,
-                "mangle_dupe_cols": form.mangle_dupe_cols.data,
-                "skipinitialspace": form.skipinitialspace.data,
-                "skiprows": form.skiprows.data,
-                "nrows": form.nrows.data,
-                "skip_blank_lines": form.skip_blank_lines.data,
-                "parse_dates": form.parse_dates.data,
-                "infer_datetime_format": form.infer_datetime_format.data,
-                "chunksize": 1000,
-            }
-            if form.null_values.data:
-                csv_to_df_kwargs["na_values"] = form.null_values.data
-                csv_to_df_kwargs["keep_default_na"] = False
+            database = (
+                db.session.query(models.Database)
+                .filter_by(id=form.data.get("con").data.get("id"))
+                .one()
+            )
 
-            # More can be found here:
-            # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_sql.html
-            df_to_sql_kwargs = {
-                "name": csv_table.table,
-                "if_exists": form.if_exists.data,
-                "index": form.index.data,
-                "index_label": form.index_label.data,
-                "chunksize": 1000,
-            }
-            database.db_engine_spec.create_table_from_csv(
-                uploaded_tmp_file_path,
-                csv_table,
+            database.db_engine_spec.df_to_sql(
                 database,
-                csv_to_df_kwargs,
-                df_to_sql_kwargs,
+                csv_table,
+                df,
+                to_sql_kwargs={
+                    "chunksize": 1000,
+                    "if_exists": form.if_exists.data,
+                    "index": form.index.data,
+                    "index_label": form.index_label.data,
+                },
             )
 
             # Connect table to the database that should be used for exploration.
@@ -236,10 +226,6 @@ class CsvToDatabaseView(SimpleFormView):
             db.session.commit()
         except Exception as ex:  # pylint: disable=broad-except
             db.session.rollback()
-            try:
-                os.remove(uploaded_tmp_file_path)
-            except OSError:
-                pass
             message = _(
                 'Unable to upload CSV file "%(filename)s" to table '
                 '"%(table_name)s" in database "%(db_name)s". '
@@ -254,7 +240,6 @@ class CsvToDatabaseView(SimpleFormView):
             stats_logger.incr("failed_csv_upload")
             return redirect("/csvtodatabaseview/form")
 
-        os.remove(uploaded_tmp_file_path)
         # Go back to welcome page / splash screen
         message = _(
             'CSV file "%(csv_filename)s" uploaded to table "%(table_name)s" in '
@@ -316,40 +301,34 @@ class ExcelToDatabaseView(SimpleFormView):
             utils.ensure_path_exists(config["UPLOAD_FOLDER"])
             upload_stream_write(form.excel_file.data, uploaded_tmp_file_path)
 
-            con = form.data.get("con")
-            database = (
-                db.session.query(models.Database).filter_by(id=con.data.get("id")).one()
+            df = pd.read_excel(
+                header=form.header.data if form.header.data else 0,
+                index_col=form.index_col.data,
+                io=form.excel_file.data,
+                keep_default_na=not form.null_values.data,
+                mangle_dupe_cols=form.mangle_dupe_cols.data,
+                na_values=form.null_values.data if form.null_values.data else None,
+                parse_dates=form.parse_dates.data,
+                skiprows=form.skiprows.data,
+                sheet_name=form.sheet_name.data if form.sheet_name.data else 0,
             )
 
-            # some params are not supported by pandas.read_excel (e.g. chunksize).
-            # More can be found here:
-            # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_excel.html
-            excel_to_df_kwargs = {
-                "header": form.header.data if form.header.data else 0,
-                "index_col": form.index_col.data,
-                "mangle_dupe_cols": form.mangle_dupe_cols.data,
-                "skiprows": form.skiprows.data,
-                "nrows": form.nrows.data,
-                "sheet_name": form.sheet_name.data if form.sheet_name.data else 0,
-                "parse_dates": form.parse_dates.data,
-            }
-            if form.null_values.data:
-                excel_to_df_kwargs["na_values"] = form.null_values.data
-                excel_to_df_kwargs["keep_default_na"] = False
+            database = (
+                db.session.query(models.Database)
+                .filter_by(id=form.data.get("con").data.get("id"))
+                .one()
+            )
 
-            df_to_sql_kwargs = {
-                "name": excel_table.table,
-                "if_exists": form.if_exists.data,
-                "index": form.index.data,
-                "index_label": form.index_label.data,
-                "chunksize": 1000,
-            }
-            database.db_engine_spec.create_table_from_excel(
-                uploaded_tmp_file_path,
-                excel_table,
+            database.db_engine_spec.df_to_sql(
                 database,
-                excel_to_df_kwargs,
-                df_to_sql_kwargs,
+                excel_table,
+                df,
+                to_sql_kwargs={
+                    "chunksize": 1000,
+                    "if_exists": form.if_exists.data,
+                    "index": form.index.data,
+                    "index_label": form.index_label.data,
+                },
             )
 
             # Connect table to the database that should be used for exploration.
@@ -388,10 +367,6 @@ class ExcelToDatabaseView(SimpleFormView):
             db.session.commit()
         except Exception as ex:  # pylint: disable=broad-except
             db.session.rollback()
-            try:
-                os.remove(uploaded_tmp_file_path)
-            except OSError:
-                pass
             message = _(
                 'Unable to upload Excel file "%(filename)s" to table '
                 '"%(table_name)s" in database "%(db_name)s". '
@@ -406,7 +381,6 @@ class ExcelToDatabaseView(SimpleFormView):
             stats_logger.incr("failed_excel_upload")
             return redirect("/exceltodatabaseview/form")
 
-        os.remove(uploaded_tmp_file_path)
         # Go back to welcome page / splash screen
         message = _(
             'Excel file "%(excel_filename)s" uploaded to table "%(table_name)s" in '
