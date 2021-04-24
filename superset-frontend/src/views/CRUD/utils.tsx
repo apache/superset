@@ -161,6 +161,7 @@ export function createErrorHandler(
   return async (e: SupersetClientResponse | string) => {
     const parsedError = await getClientErrorObject(e);
     // Taking the first error returned from the API
+    // @ts-ignore
     const errorType = parsedError.errors[0].error_type;
     const config = await SupersetText
     if(errorType in config.ERRORS) {
