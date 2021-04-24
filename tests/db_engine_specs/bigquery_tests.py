@@ -23,6 +23,7 @@ from sqlalchemy import column
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.sql_parse import Table
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
@@ -166,21 +167,23 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             [{"name": "partition", "column_names": ["dttm"], "unique": False}],
         )
 
-    def test_df_to_sql(self):
+    @mock.patch("superset.db_engine_specs.bigquery.BigQueryEngineSpec.get_engine")
+    def test_df_to_sql(self, mock_get_engine):
         """
         DB Eng Specs (bigquery): Test DataFrame to SQL contract
         """
         # test missing google.oauth2 dependency
         sys.modules["pandas_gbq"] = mock.MagicMock()
         df = DataFrame()
+        database = mock.MagicMock()
         self.assertRaisesRegexp(
             Exception,
             "Could not import libraries",
             BigQueryEngineSpec.df_to_sql,
-            df,
-            con="some_connection",
-            schema="schema",
-            name="name",
+            database=database,
+            table=Table(table="name", schema="schema"),
+            df=df,
+            to_sql_kwargs={},
         )
 
         invalid_kwargs = [
@@ -191,15 +194,17 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             {"name": "some_name", "schema": "some_schema"},
             {"con": "some_con", "schema": "some_schema"},
         ]
-        # Test check for missing required kwargs (name, schema, con)
+        # Test check for missing schema.
         sys.modules["google.oauth2"] = mock.MagicMock()
         for invalid_kwarg in invalid_kwargs:
             self.assertRaisesRegexp(
                 Exception,
-                "name, schema and con need to be defined in kwargs",
+                "The table schema must be defined",
                 BigQueryEngineSpec.df_to_sql,
-                df,
-                **invalid_kwarg,
+                database=database,
+                table=Table(table="name"),
+                df=df,
+                to_sql_kwargs=invalid_kwarg,
             )
 
         import pandas_gbq
@@ -209,12 +214,15 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         service_account.Credentials.from_service_account_info = mock.MagicMock(
             return_value="account_info"
         )
-        connection = mock.Mock()
-        connection.engine.url.host = "google-host"
-        connection.dialect.credentials_info = "secrets"
+
+        mock_get_engine.return_value.url.host = "google-host"
+        mock_get_engine.return_value.dialect.credentials_info = "secrets"
 
         BigQueryEngineSpec.df_to_sql(
-            df, con=connection, schema="schema", name="name", if_exists="extra_key"
+            database=database,
+            table=Table(table="name", schema="schema"),
+            df=df,
+            to_sql_kwargs={"if_exists": "extra_key"},
         )
 
         pandas_gbq.to_gbq.assert_called_with(

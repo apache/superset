@@ -134,13 +134,14 @@ def upload_excel(
     return get_resp(test_client, "/exceltodatabaseview/form", data=form_data)
 
 
-def mock_upload_to_s3(f: str, p: str, t: Table) -> str:
-    """ HDFS is used instead of S3 for the unit tests.
+def mock_upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
+    """
+    HDFS is used instead of S3 for the unit tests.
 
-    :param f: filepath
-    :param p: unused parameter
-    :param t: table that will be created
-    :return: hdfs path to the directory with external table files
+    :param filename: The file to upload
+    :param upload_prefix: The S3 prefix
+    :param table: The table that will be created
+    :returns: The HDFS path to the directory with external table files
     """
     # only needed for the hive tests
     import docker
@@ -148,11 +149,11 @@ def mock_upload_to_s3(f: str, p: str, t: Table) -> str:
     client = docker.from_env()
     container = client.containers.get("namenode")
     # docker mounted volume that contains csv uploads
-    src = os.path.join("/tmp/superset_uploads", os.path.basename(f))
+    src = os.path.join("/tmp/superset_uploads", os.path.basename(filename))
     # hdfs destination for the external tables
-    dest_dir = os.path.join("/tmp/external/superset_uploads/", str(t))
+    dest_dir = os.path.join("/tmp/external/superset_uploads/", str(table))
     container.exec_run(f"hdfs dfs -mkdir -p {dest_dir}")
-    dest = os.path.join(dest_dir, os.path.basename(f))
+    dest = os.path.join(dest_dir, os.path.basename(filename))
     container.exec_run(f"hdfs dfs -put {src} {dest}")
     # hive external table expectes a directory for the location
     return dest_dir
@@ -279,23 +280,13 @@ def test_import_csv(setup_csv_upload, create_csv_files):
     # make sure that john and empty string are replaced with None
     engine = get_upload_db().get_sqla_engine()
     data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
-    if utils.backend() == "hive":
-        # Be aware that hive only uses first value from the null values list.
-        # It is hive database engine limitation.
-        # TODO(bkyryliuk): preprocess csv file for hive upload to match default engine capabilities.
-        assert data == [("john", 1, "x"), ("paul", 2, None)]
-    else:
-        assert data == [(None, 1, "x"), ("paul", 2, None)]
+    assert data == [(None, 1, "x"), ("paul", 2, None)]
 
     # default null values
     upload_csv(CSV_FILENAME2, CSV_UPLOAD_TABLE, extra={"if_exists": "replace"})
     # make sure that john and empty string are replaced with None
     data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
-    if utils.backend() == "hive":
-        # By default hive does not convert values to null vs other databases.
-        assert data == [("john", 1, "x"), ("paul", 2, "")]
-    else:
-        assert data == [("john", 1, "x"), ("paul", 2, None)]
+    assert data == [("john", 1, "x"), ("paul", 2, None)]
 
 
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)

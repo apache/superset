@@ -17,12 +17,16 @@
 import logging
 import os
 import re
+import tempfile
 import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 from urllib import parse
 
+import numpy as np
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 from flask import g
 from sqlalchemy import Column, text
 from sqlalchemy.engine.base import Engine
@@ -54,6 +58,15 @@ hive_poll_interval = conf.get("HIVE_POLL_INTERVAL")
 
 
 def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
+    """
+    Upload the file to S3.
+
+    :param filename: The file to upload
+    :param upload_prefix: The S3 prefix
+    :param table: The table that will be created
+    :returns: The S3 location of the table
+    """
+
     # Optional dependency
     import boto3  # pylint: disable=import-error
 
@@ -156,89 +169,37 @@ class HiveEngineSpec(PrestoEngineSpec):
             return []
 
     @classmethod
-    def get_create_table_stmt(  # pylint: disable=too-many-arguments
+    def df_to_sql(
         cls,
-        table: Table,
-        schema_definition: str,
-        location: str,
-        delim: str,
-        header_line_count: Optional[int],
-        null_values: Optional[List[str]],
-    ) -> text:
-        tblproperties = []
-        # available options:
-        # https://cwiki.apache.org/confluence/display/Hive/LanguageManual+DDL
-        # TODO(bkyryliuk): figure out what to do with the skip rows field.
-        params: Dict[str, str] = {
-            "delim": delim,
-            "location": location,
-        }
-        if header_line_count is not None and header_line_count >= 0:
-            header_line_count += 1
-            tblproperties.append("'skip.header.line.count'=:header_line_count")
-            params["header_line_count"] = str(header_line_count)
-        if null_values:
-            # hive only supports 1 value for the null format
-            tblproperties.append("'serialization.null.format'=:null_value")
-            params["null_value"] = null_values[0]
-
-        if tblproperties:
-            tblproperties_stmt = f"tblproperties ({', '.join(tblproperties)})"
-            sql = f"""CREATE TABLE {str(table)} ( {schema_definition} )
-                ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
-                STORED AS TEXTFILE LOCATION :location
-                {tblproperties_stmt}"""
-        else:
-            sql = f"""CREATE TABLE {str(table)} ( {schema_definition} )
-                ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
-                STORED AS TEXTFILE LOCATION :location"""
-        return sql, params
-
-    @classmethod
-    def create_table_from_csv(  # pylint: disable=too-many-arguments, too-many-locals
-        cls,
-        filename: str,
-        table: Table,
         database: "Database",
-        csv_to_df_kwargs: Dict[str, Any],
-        df_to_sql_kwargs: Dict[str, Any],
+        table: Table,
+        df: pd.DataFrame,
+        to_sql_kwargs: Dict[str, Any],
     ) -> None:
-        """Uploads a csv file and creates a superset datasource in Hive."""
-        if_exists = df_to_sql_kwargs["if_exists"]
-        if if_exists == "append":
+        """
+        Upload data from a Pandas DataFrame to a database.
+
+        The data is stored via the binary Parquet format which is both less problematic
+        and more performant than a text file. More specifically storing a table as a
+        CSV text file has severe limitations including the fact that the Hive CSV SerDe
+        does not support multiline fields.
+
+        Note this method does not create metadata for the table.
+
+        :param database: The database to upload the data to
+        :param: table The table to upload the data to
+        :param df: The dataframe with data to be uploaded
+        :param to_sql_kwargs: The kwargs to be passed to pandas.DataFrame.to_sql` method
+        """
+
+        engine = cls.get_engine(database)
+
+        if to_sql_kwargs["if_exists"] == "append":
             raise SupersetException("Append operation not currently supported")
 
-        def convert_to_hive_type(col_type: str) -> str:
-            """maps tableschema's types to hive types"""
-            tableschema_to_hive_types = {
-                "boolean": "BOOLEAN",
-                "integer": "BIGINT",
-                "number": "DOUBLE",
-                "string": "STRING",
-            }
-            return tableschema_to_hive_types.get(col_type, "STRING")
+        if to_sql_kwargs["if_exists"] == "fail":
 
-        upload_prefix = config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"](
-            database, g.user, table.schema
-        )
-
-        # Optional dependency
-        from tableschema import (  # pylint: disable=import-error
-            Table as TableSchemaTable,
-        )
-
-        hive_table_schema = TableSchemaTable(filename).infer()
-        column_name_and_type = []
-        for column_info in hive_table_schema["fields"]:
-            column_name_and_type.append(
-                "`{}` {}".format(
-                    column_info["name"], convert_to_hive_type(column_info["type"])
-                )
-            )
-        schema_definition = ", ".join(column_name_and_type)
-
-        # ensure table doesn't already exist
-        if if_exists == "fail":
+            # Ensure table doesn't already exist.
             if table.schema:
                 table_exists = not database.get_df(
                     f"SHOW TABLES IN {table.schema} LIKE '{table.table}'"
@@ -247,24 +208,47 @@ class HiveEngineSpec(PrestoEngineSpec):
                 table_exists = not database.get_df(
                     f"SHOW TABLES LIKE '{table.table}'"
                 ).empty
+
             if table_exists:
                 raise SupersetException("Table already exists")
-
-        engine = cls.get_engine(database)
-
-        if if_exists == "replace":
+        elif to_sql_kwargs["if_exists"] == "replace":
             engine.execute(f"DROP TABLE IF EXISTS {str(table)}")
-        location = upload_to_s3(filename, upload_prefix, table)
-        sql, params = cls.get_create_table_stmt(
-            table,
-            schema_definition,
-            location,
-            csv_to_df_kwargs["sep"].encode().decode("unicode_escape"),
-            int(csv_to_df_kwargs.get("header", 0)),
-            csv_to_df_kwargs.get("na_values"),
+
+        def _get_hive_type(dtype: np.dtype) -> str:
+            hive_type_by_dtype = {
+                np.dtype("bool"): "BOOLEAN",
+                np.dtype("float64"): "DOUBLE",
+                np.dtype("int64"): "BIGINT",
+                np.dtype("object"): "STRING",
+            }
+
+            return hive_type_by_dtype.get(dtype, "STRING")
+
+        schema_definition = ", ".join(
+            f"`{name}` {_get_hive_type(dtype)}" for name, dtype in df.dtypes.items()
         )
-        engine = cls.get_engine(database)
-        engine.execute(text(sql), **params)
+
+        with tempfile.NamedTemporaryFile(
+            dir=config["UPLOAD_FOLDER"], suffix=".parquet"
+        ) as file:
+            pq.write_table(pa.Table.from_pandas(df), where=file.name)
+
+            engine.execute(
+                text(
+                    f"""
+                    CREATE TABLE {str(table)} ({schema_definition})
+                    STORED AS PARQUET
+                    LOCATION :location
+                    """
+                ),
+                location=upload_to_s3(
+                    filename=file.name,
+                    upload_prefix=config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"](
+                        database, g.user, table.schema
+                    ),
+                    table=table,
+                ),
+            )
 
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
