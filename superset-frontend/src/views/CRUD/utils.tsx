@@ -28,8 +28,8 @@ import Chart from 'src/types/Chart';
 import rison from 'rison';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FetchDataConfig } from 'src/components/ListView';
-import { Dashboard, Filters, SavedQueryObject } from './types';
 import SupersetText from 'src/utils/textUtils';
+import { Dashboard, Filters, SavedQueryObject } from './types';
 
 const createFetchResourceMethod = (method: string) => (
   resource: string,
