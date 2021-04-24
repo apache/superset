@@ -150,41 +150,33 @@ class CsvToDatabaseView(SimpleFormView):
             flash(message, "danger")
             return redirect("/csvtodatabaseview/form")
 
-        uploaded_tmp_file_path = tempfile.NamedTemporaryFile(
-            dir=app.config["UPLOAD_FOLDER"],
-            suffix=os.path.splitext(form.csv_file.data.filename)[1].lower(),
-            delete=False,
-        ).name
-
         try:
-            utils.ensure_path_exists(app.config["UPLOAD_FOLDER"])
-            upload_stream_write(form.csv_file.data, uploaded_tmp_file_path)
+            df = pd.concat(
+                pd.read_csv(
+                    chunksize=1000,
+                    encoding="utf-8",
+                    filepath_or_buffer=form.csv_file.data,
+                    header=form.header.data if form.header.data else 0,
+                    index_col=form.index_col.data,
+                    infer_datetime_format=form.infer_datetime_format.data,
+                    iterator=True,
+                    keep_default_na=not form.null_values.data,
+                    mangle_dupe_cols=form.mangle_dupe_cols.data,
+                    na_values=form.null_values.data if form.null_values.data else None,
+                    nrows=form.nrows.data,
+                    parse_dates=form.parse_dates.data,
+                    sep=form.sep.data,
+                    skip_blank_lines=form.skip_blank_lines.data,
+                    skipinitialspace=form.skipinitialspace.data,
+                    skiprows=form.skiprows.data,
+                )
+            )
 
-            con = form.data.get("con")
             database = (
-                db.session.query(models.Database).filter_by(id=con.data.get("id")).one()
+                db.session.query(models.Database)
+                .filter_by(id=form.data.get("con").data.get("id"))
+                .one()
             )
-
-            chunks = pd.read_csv(
-                uploaded_tmp_file_path,
-                chunksize=1000,
-                encoding="utf-8",
-                header=form.header.data if form.header.data else 0,
-                index_col=form.index_col.data,
-                infer_datetime_format=form.infer_datetime_format.data,
-                iterator=True,
-                keep_default_na=not form.null_values.data,
-                mangle_dupe_cols=form.mangle_dupe_cols.data,
-                na_values=form.null_values.data if form.null_values.data else None,
-                nrows=form.nrows.data,
-                parse_dates=form.parse_dates.data,
-                sep=form.sep.data,
-                skip_blank_lines=form.skip_blank_lines.data,
-                skipinitialspace=form.skipinitialspace.data,
-                skiprows=form.skiprows.data,
-            )
-
-            df = pd.concat(chunks)
 
             database.db_engine_spec.df_to_sql(
                 database,
@@ -234,10 +226,6 @@ class CsvToDatabaseView(SimpleFormView):
             db.session.commit()
         except Exception as ex:  # pylint: disable=broad-except
             db.session.rollback()
-            try:
-                os.remove(uploaded_tmp_file_path)
-            except OSError:
-                pass
             message = _(
                 'Unable to upload CSV file "%(filename)s" to table '
                 '"%(table_name)s" in database "%(db_name)s". '
@@ -252,7 +240,6 @@ class CsvToDatabaseView(SimpleFormView):
             stats_logger.incr("failed_csv_upload")
             return redirect("/csvtodatabaseview/form")
 
-        os.remove(uploaded_tmp_file_path)
         # Go back to welcome page / splash screen
         message = _(
             'CSV file "%(csv_filename)s" uploaded to table "%(table_name)s" in '
@@ -314,21 +301,22 @@ class ExcelToDatabaseView(SimpleFormView):
             utils.ensure_path_exists(config["UPLOAD_FOLDER"])
             upload_stream_write(form.excel_file.data, uploaded_tmp_file_path)
 
-            con = form.data.get("con")
-            database = (
-                db.session.query(models.Database).filter_by(id=con.data.get("id")).one()
-            )
-
             df = pd.read_excel(
                 header=form.header.data if form.header.data else 0,
                 index_col=form.index_col.data,
-                io=uploaded_tmp_file_path,
+                io=form.excel_file.data,
                 keep_default_na=not form.null_values.data,
                 mangle_dupe_cols=form.mangle_dupe_cols.data,
                 na_values=form.null_values.data if form.null_values.data else None,
                 parse_dates=form.parse_dates.data,
                 skiprows=form.skiprows.data,
                 sheet_name=form.sheet_name.data if form.sheet_name.data else 0,
+            )
+
+            database = (
+                db.session.query(models.Database)
+                .filter_by(id=form.data.get("con").data.get("id"))
+                .one()
             )
 
             database.db_engine_spec.df_to_sql(
@@ -379,10 +367,6 @@ class ExcelToDatabaseView(SimpleFormView):
             db.session.commit()
         except Exception as ex:  # pylint: disable=broad-except
             db.session.rollback()
-            try:
-                os.remove(uploaded_tmp_file_path)
-            except OSError:
-                pass
             message = _(
                 'Unable to upload Excel file "%(filename)s" to table '
                 '"%(table_name)s" in database "%(db_name)s". '
@@ -397,7 +381,6 @@ class ExcelToDatabaseView(SimpleFormView):
             stats_logger.incr("failed_excel_upload")
             return redirect("/exceltodatabaseview/form")
 
-        os.remove(uploaded_tmp_file_path)
         # Go back to welcome page / splash screen
         message = _(
             'Excel file "%(excel_filename)s" uploaded to table "%(table_name)s" in '
