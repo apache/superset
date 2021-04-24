@@ -20,9 +20,8 @@
 const loadModule = () => {
   let module;
   try {
-    // eslint-disable-next-line import/no-unresolved
     // @ts-ignore
-    module = require('../../../superset_text');
+    module = require('../../../superset_text'); // eslint-disable-line import/no-unresolved
   } catch (e) {
     module = {};
   }
