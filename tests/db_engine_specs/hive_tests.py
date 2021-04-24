@@ -173,7 +173,7 @@ def test_create_table_from_csv_append() -> None:
 
 @mock.patch(
     "superset.db_engine_specs.hive.config",
-    {**app.config, "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC": lambda *args: True},
+    {**app.config, "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC": lambda *args: ""},
 )
 @mock.patch("superset.db_engine_specs.hive.g", spec={})
 @mock.patch("tableschema.Table")
@@ -190,7 +190,7 @@ def test_create_table_from_csv_if_exists_fail(mock_table, mock_g):
 
 @mock.patch(
     "superset.db_engine_specs.hive.config",
-    {**app.config, "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC": lambda *args: True},
+    {**app.config, "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC": lambda *args: ""},
 )
 @mock.patch("superset.db_engine_specs.hive.g", spec={})
 @mock.patch("tableschema.Table")
@@ -211,7 +211,7 @@ def test_create_table_from_csv_if_exists_fail_with_schema(mock_table, mock_g):
 
 @mock.patch(
     "superset.db_engine_specs.hive.config",
-    {**app.config, "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC": lambda *args: True},
+    {**app.config, "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC": lambda *args: ""},
 )
 @mock.patch("superset.db_engine_specs.hive.g", spec={})
 @mock.patch("tableschema.Table")
@@ -239,7 +239,7 @@ def test_create_table_from_csv_if_exists_replace(mock_upload_to_s3, mock_table, 
 
 @mock.patch(
     "superset.db_engine_specs.hive.config",
-    {**app.config, "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC": lambda *args: True},
+    {**app.config, "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC": lambda *args: ""},
 )
 @mock.patch("superset.db_engine_specs.hive.g", spec={})
 @mock.patch("tableschema.Table")
@@ -345,6 +345,22 @@ def test_is_readonly():
     assert is_readonly("EXPLAIN SELECT 1")
     assert is_readonly("SELECT 1")
     assert is_readonly("WITH (SELECT 1) bla SELECT * from bla")
+
+
+@pytest.mark.parametrize(
+    "schema,upload_prefix",
+    [("foo", "EXTERNAL_HIVE_TABLES/1/foo/"), (None, "EXTERNAL_HIVE_TABLES/1/")],
+)
+def test_s3_upload_prefix(schema: str, upload_prefix: str) -> None:
+    mock_database = mock.MagicMock()
+    mock_database.id = 1
+
+    assert (
+        app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"](
+            database=mock_database, user=mock.MagicMock(), schema=schema
+        )
+        == upload_prefix
+    )
 
 
 def test_upload_to_s3_no_bucket_path():
