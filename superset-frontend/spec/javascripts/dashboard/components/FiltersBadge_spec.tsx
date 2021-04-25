@@ -31,7 +31,7 @@ import {
 import { sliceId } from 'spec/fixtures/mockChartQueries';
 import { dashboardFilters } from 'spec/fixtures/mockDashboardFilters';
 import { dashboardWithFilter } from 'spec/fixtures/mockDashboardLayout';
-import { FeatureFlag } from '../../../../src/featureFlags';
+import { FeatureFlag } from 'src/featureFlags';
 
 describe('FiltersBadge', () => {
   // there's this bizarre "active filters" thing
