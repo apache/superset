@@ -23,14 +23,14 @@ Create Date: 2021-04-25 09:11:34.909313
 """
 
 # revision identifiers, used by Alembic.
-revision = '4fad8b8b566d'
-down_revision = '19e978e1b9c3'
+revision = "4fad8b8b566d"
+down_revision = "19e978e1b9c3"
 
 import json
 from typing import Any, Dict, Iterable
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy import Column, Integer, Text
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -46,14 +46,15 @@ class Dashboard(Base):
     id = Column(Integer, primary_key=True)
     json_metadata = Column(Text)
 
+
 def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
     dashboards = (
         session.query(Dashboard)
-            .filter(Dashboard.json_metadata.notlike('%"show_native_filters"%'))
-            .all()
+        .filter(Dashboard.json_metadata.notlike('%"show_native_filters"%'))
+        .all()
     )
 
     changed_filters = 0
@@ -79,8 +80,8 @@ def downgrade():
 
     dashboards = (
         session.query(Dashboard)
-            .filter(Dashboard.json_metadata.like('%"show_native_filters"%'))
-            .all()
+        .filter(Dashboard.json_metadata.like('%"show_native_filters"%'))
+        .all()
     )
 
     changed_filters = 0
