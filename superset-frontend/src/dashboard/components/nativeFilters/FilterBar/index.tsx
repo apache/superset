@@ -19,7 +19,7 @@
 
 /* eslint-disable no-param-reassign */
 import { HandlerFunction, styled, t } from '@superset-ui/core';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import cx from 'classnames';
 import Icon from 'src/components/Icon';
@@ -31,6 +31,7 @@ import { useImmer } from 'use-immer';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { testWithId } from 'src/utils/testUtils';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
+import { setFiltersInitialized } from 'src/dashboard/actions/nativeFilters';
 import { mapParentFiltersToChildren, TabIds } from './utils';
 import FilterSets from './FilterSets';
 import {
@@ -202,6 +203,12 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     dataMaskSelected,
     handleApply,
   );
+
+  useEffect(() => {
+    if (isInitialized) {
+      dispatch(setFiltersInitialized());
+    }
+  }, [dispatch, isInitialized]);
 
   useFilterUpdates(
     dataMaskSelected,

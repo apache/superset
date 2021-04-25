@@ -30,6 +30,7 @@ export const mockDataMaskInfo: DataMaskStateWithId = {
 };
 
 export const nativeFiltersInfo: NativeFiltersState = {
+  isInitialized: true,
   filterSets: {
     'set-id': {
       id: 'DefaultsID',
