@@ -30,7 +30,6 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FetchDataConfig } from 'src/components/ListView';
 import SupersetText from 'src/utils/textUtils';
 import { Dashboard, Filters, SavedQueryObject } from './types';
-import supersetText from 'src/utils/textUtils';
 
 const createFetchResourceMethod = (method: string) => (
   resource: string,
