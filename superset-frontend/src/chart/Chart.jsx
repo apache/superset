@@ -49,6 +49,7 @@ const propTypes = {
   timeout: PropTypes.number,
   vizType: PropTypes.string.isRequired,
   triggerRender: PropTypes.bool,
+  isFiltersInitialized: PropTypes.bool,
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
@@ -120,6 +121,13 @@ class Chart extends React.PureComponent {
   }
 
   runQuery() {
+    if (
+      this.props.dashboardId && // we on dashboard screen
+      isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
+      !this.props.isFiltersInitialized
+    ) {
+      return;
+    }
     if (this.props.chartId > 0 && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)) {
       // Load saved chart with a GET request
       this.props.actions.getSavedChart(
