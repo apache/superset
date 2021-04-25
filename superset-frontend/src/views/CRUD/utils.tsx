@@ -163,13 +163,15 @@ export function createErrorHandler(
     const parsedError = await getClientErrorObject(e);
     // Taking the first error returned from the API
     // @ts-ignore
-    const errorsArray = parsedError?.errors
+    const errorsArray = parsedError?.errors;
     const config = await SupersetText;
-    if (errorsArray &&
-        errorsArray.length &&
-        config &&
-        config.ERRORS &&
-        errorsArray[0].error_type in config.ERRORS) {
+    if (
+      errorsArray &&
+      errorsArray.length &&
+      config &&
+      config.ERRORS &&
+      errorsArray[0].error_type in config.ERRORS
+    ) {
       parsedError.message = config.ERRORS[errorsArray[0].error_type];
     }
     logging.error(e);
