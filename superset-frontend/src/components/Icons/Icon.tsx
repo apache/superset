@@ -17,10 +17,9 @@
  * under the License.
  */
 
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import AntdIcon from '@ant-design/icons';
 import { styled } from '@superset-ui/core';
-import { CustomIconComponentProps } from '@ant-design/icons/lib/components/Icon';
 import IconType from './IconType';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -34,16 +33,31 @@ const Icon = styled(EnhancedIcon)<IconType>`
     iconSize ? `${theme.typography.sizes[iconSize]}px` : '24px'};
 `;
 
-export const render = (
-  SVGComponent:
-    | React.ComponentClass<
-        CustomIconComponentProps | React.SVGProps<SVGSVGElement>,
-        any
-      >
-    | React.FunctionComponent<
-        CustomIconComponentProps | React.SVGProps<SVGSVGElement>
-      >,
-  props: IconType,
-) => <Icon component={SVGComponent} {...props} />;
+interface LazyIconProps extends IconType {
+  path: string;
+}
+
+export const LazyIcon = (props: LazyIconProps) => {
+  const { path } = props;
+  const [loaded, setLoaded] = useState(false);
+  const ImportedSVG = useRef<React.FC<React.SVGProps<SVGSVGElement>>>();
+  const name = path.replace('_', '-');
+
+  useEffect(() => {
+    const importIcon = async (): Promise<void> => {
+      ImportedSVG.current = (
+        await import(
+          `!!@svgr/webpack?-svgo,+titleProp,+ref!images/icons/${path}.svg`
+        )
+      ).default;
+      setLoaded(true);
+    };
+    importIcon();
+  }, [path, ImportedSVG]);
+
+  return loaded ? (
+    <Icon component={ImportedSVG.current} aria-label={name} {...props} />
+  ) : null;
+};
 
 export default Icon;

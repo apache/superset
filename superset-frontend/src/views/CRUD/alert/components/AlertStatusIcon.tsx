@@ -16,14 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, supersetTheme } from '@superset-ui/core';
+import { t, supersetTheme, withTheme } from '@superset-ui/core';
 import React from 'react';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { AlertState } from '../types';
 
-function getStatusColor(status: string, isReportEnabled: boolean) {
-  const theme = supersetTheme;
+function getStatusColor(
+  status: string,
+  isReportEnabled: boolean,
+  theme: typeof supersetTheme,
+) {
   switch (status) {
     case AlertState.working:
       return theme.colors.primary.base;
@@ -94,11 +97,14 @@ export default function AlertStatusIcon({
       lastStateConfig.status = AlertState.noop;
   }
   const Icon = lastStateConfig.icon;
+  const AlertIcon = withTheme(({ theme }) => (
+    <Icon
+      iconColor={getStatusColor(lastStateConfig.status, isReportEnabled, theme)}
+    />
+  ));
   return (
     <Tooltip title={lastStateConfig.label} placement="bottomLeft">
-      <Icon
-        iconColor={getStatusColor(lastStateConfig.status, isReportEnabled)}
-      />
+      <AlertIcon />
     </Tooltip>
   );
 }
