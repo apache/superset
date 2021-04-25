@@ -19,7 +19,7 @@
 import React from 'react';
 import { useTheme, t } from '@superset-ui/core';
 
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import { ClassNames } from '@emotion/core';
 
 const TIME_PICKER_HELPER = (

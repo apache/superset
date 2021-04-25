@@ -16,27 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../stylesheets/less/variables.less';
+import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
+import buildQuery from './buildQuery';
+import controlPanel from './controlPanel';
+import transformProps from './transformProps';
+import thumbnail from './images/thumbnail.png';
 
-.TableSelector .fa-refresh {
-  padding-left: 9px;
-}
+export default class FilterGroupByPlugin extends ChartPlugin {
+  constructor() {
+    const metadata = new ChartMetadata({
+      name: t('Group By'),
+      description: t('Group By filter plugin'),
+      behaviors: [Behavior.INTERACTIVE_CHART, Behavior.NATIVE_FILTER],
+      thumbnail,
+    });
 
-.TableSelector .section {
-  padding-bottom: 5px;
-  display: flex;
-  flex-direction: row;
-}
-
-.TableSelector .select {
-  flex-grow: 1;
-}
-
-.TableSelector .divider {
-  border-bottom: 1px solid @gray-bg;
-  margin: 15px 0;
-}
-
-.TableLabel {
-  white-space: nowrap;
+    super({
+      buildQuery,
+      controlPanel,
+      loadChart: () => import('./GroupByFilterPlugin'),
+      metadata,
+      transformProps,
+    });
+  }
 }

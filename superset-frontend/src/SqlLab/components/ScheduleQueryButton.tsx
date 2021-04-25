@@ -18,7 +18,8 @@
  */
 import React, { FunctionComponent, useState } from 'react';
 import Form, { FormProps, FormValidation } from 'react-jsonschema-form';
-import { Col, FormControl, FormGroup, Row } from 'react-bootstrap';
+import { Row, Col } from 'src/common/components';
+import { FormControl, FormGroup } from 'react-bootstrap';
 import { t, styled } from '@superset-ui/core';
 import * as chrono from 'chrono-node';
 import ModalTrigger from 'src/components/ModalTrigger';
@@ -140,7 +141,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
   const renderModalBody = () => (
     <FormGroup>
       <StyledRow>
-        <Col md={12}>
+        <Col xs={24}>
           <FormLabel className="control-label" htmlFor="embed-height">
             {t('Label')}
           </FormLabel>
@@ -153,7 +154,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
         </Col>
       </StyledRow>
       <StyledRow>
-        <Col md={12}>
+        <Col xs={24}>
           <FormLabel className="control-label" htmlFor="embed-height">
             {t('Description')}
           </FormLabel>
@@ -166,7 +167,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
         </Col>
       </StyledRow>
       <Row>
-        <Col md={12}>
+        <Col xs={24}>
           <div className="json-schema">
             <Form
               schema={getJSONSchema()}
@@ -179,7 +180,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
       </Row>
       {scheduleQueryWarning && (
         <Row>
-          <Col md={12}>
+          <Col xs={24}>
             <small>{scheduleQueryWarning}</small>
           </Col>
         </Row>

@@ -20,7 +20,7 @@ import React from 'react';
 import { shallow } from 'enzyme';
 
 import Label from 'src/components/Label';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import RowCountLabel from 'src/explore/components/RowCountLabel';
 
 describe('RowCountLabel', () => {

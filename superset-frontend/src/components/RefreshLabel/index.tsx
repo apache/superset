@@ -18,7 +18,7 @@
  */
 import React, { MouseEventHandler } from 'react';
 import { SupersetTheme } from '@superset-ui/core';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import Icon, { IconProps } from 'src/components/Icon';
 
 export interface RefreshLabelProps {

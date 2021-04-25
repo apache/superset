@@ -35,9 +35,14 @@ import SubMenu, {
   SubMenuProps,
   ButtonProps,
 } from 'src/components/Menu/SubMenu';
-import ListView, { ListViewProps, Filters } from 'src/components/ListView';
+import ListView, {
+  ListViewProps,
+  Filters,
+  FilterOperator,
+} from 'src/components/ListView';
 import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
+import { Tooltip } from 'src/components/Tooltip';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import { SavedQueryObject } from 'src/views/CRUD/types';
 import copyTextToClipboard from 'src/utils/copy';
@@ -180,7 +185,16 @@ function SavedQueryList({
 
   if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
     subMenuButtons.push({
-      name: <Icons.Import />,
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import queries')}
+          placement="bottomRight"
+          data-test="import-tooltip-test"
+        >
+          <Icons.Import data-test="import-icon" />
+        </Tooltip>
+      ),
       buttonStyle: 'link',
       onClick: openSavedQueryImportModal,
       'data-test': 'import-button',
@@ -401,7 +415,7 @@ function SavedQueryList({
         Header: t('Database'),
         id: 'database',
         input: 'select',
-        operator: 'rel_o_m',
+        operator: FilterOperator.relationOneMany,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'saved_query',
@@ -421,7 +435,7 @@ function SavedQueryList({
         Header: t('Schema'),
         id: 'schema',
         input: 'select',
-        operator: 'eq',
+        operator: FilterOperator.equals,
         unfilteredLabel: 'All',
         fetchSelects: createFetchDistinct(
           'saved_query',
@@ -438,7 +452,7 @@ function SavedQueryList({
         Header: t('Search'),
         id: 'label',
         input: 'search',
-        operator: 'all_text',
+        operator: FilterOperator.allText,
       },
     ],
     [addDangerToast],
@@ -517,7 +531,7 @@ function SavedQueryList({
 
       <ImportModelsModal
         resourceName="saved_query"
-        resourceLabel={t('saved query')}
+        resourceLabel={t('queries')}
         passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
         confirmOverwriteMessage={CONFIRM_OVERWRITE_MESSAGE}
         addDangerToast={addDangerToast}

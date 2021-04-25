@@ -1241,7 +1241,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         """
         Chart data API: Ensure prophet post transformation works
         """
-        pytest.importorskip("fbprophet")
+        pytest.importorskip("prophet")
         self.login(username="admin")
         request_payload = get_query_context("birth_names")
         time_grain = "P1Y"

@@ -23,7 +23,6 @@ import * as redux from 'react-redux';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { Provider } from 'react-redux';
 import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
 import Modal from 'src/components/Modal';
@@ -87,9 +86,9 @@ describe('DatabaseModal', () => {
     it('renders a Tabs menu', () => {
       expect(wrapper.find(Tabs)).toExist();
     });
-    it('renders five TabPanes', () => {
-      expect(wrapper.find(Tabs.TabPane)).toExist();
-      expect(wrapper.find(Tabs.TabPane)).toHaveLength(5);
+    it('renders two TabPanes', () => {
+      expect(wrapper.find('.ant-tabs-tab')).toExist();
+      expect(wrapper.find('.ant-tabs-tab')).toHaveLength(2);
     });
     it('renders input elements for Connection section', () => {
       expect(wrapper.find('input[name="database_name"]')).toExist();
@@ -101,22 +100,24 @@ describe('DatabaseModal', () => {
     describe('initial load', () => {
       it('hides the forms from the db when not selected', () => {
         render(
-          <ThemeProvider theme={supersetTheme}>
-            <Provider store={store}>
-              <DatabaseModal
-                show
-                database={{
-                  expose_in_sqllab: false,
-                  allow_ctas: false,
-                  allow_cvas: false,
-                }}
-              />
-            </Provider>
-          </ThemeProvider>,
+          <DatabaseModal
+            show
+            database={{
+              expose_in_sqllab: false,
+              allow_ctas: false,
+              allow_cvas: false,
+            }}
+          />,
+          { useRedux: true },
         );
-        // Select SQL Lab settings tab
+        // Select Advanced tab
+        const advancedTab = screen.getByRole('tab', {
+          name: /advanced/i,
+        });
+        userEvent.click(advancedTab);
+        // Select SQL Lab tab
         const sqlLabSettingsTab = screen.getByRole('tab', {
-          name: /sql lab settings/i,
+          name: /sql lab/i,
         });
         userEvent.click(sqlLabSettingsTab);
 
@@ -129,21 +130,22 @@ describe('DatabaseModal', () => {
       });
     });
     it('renders all settings when "Expose in SQL Lab" is checked', () => {
-      render(
-        <ThemeProvider theme={supersetTheme}>
-          <Provider store={store}>
-            <DatabaseModal {...dbProps} />
-          </Provider>
-        </ThemeProvider>,
-      );
+      render(<DatabaseModal {...dbProps} />, { useRedux: true });
 
-      // Select SQL Lab settings tab
+      // Select Advanced tab
+      const advancedTab = screen.getByRole('tab', {
+        name: /advanced/i,
+      });
+      userEvent.click(advancedTab);
+
+      // Select SQL Lab tab
       const sqlLabSettingsTab = screen.getByRole('tab', {
-        name: /sql lab settings/i,
+        name: /sql lab/i,
       });
 
       userEvent.click(sqlLabSettingsTab);
-      // Grab all SQL Lab Settings by their labels
+
+      // Grab all SQL Lab settings by their labels
       // const exposeInSqlLab = screen.getByText('Expose in SQL Lab');
       const exposeInSqlLab = screen.getByRole('checkbox', {
         name: /expose in sql lab/i,
@@ -165,17 +167,17 @@ describe('DatabaseModal', () => {
     });
 
     it('renders the schema field when allowCTAS is checked', () => {
-      render(
-        <ThemeProvider theme={supersetTheme}>
-          <Provider store={store}>
-            <DatabaseModal {...dbProps} />
-          </Provider>
-        </ThemeProvider>,
-      );
+      render(<DatabaseModal {...dbProps} />, { useRedux: true });
 
-      // Select SQL Lab settings tab
+      // Select Advanced tab
+      const advancedTab = screen.getByRole('tab', {
+        name: /advanced/i,
+      });
+      userEvent.click(advancedTab);
+
+      // Select SQL Lab tab
       const sqlLabSettingsTab = screen.getByRole('tab', {
-        name: /sql lab settings/i,
+        name: /sql lab/i,
       });
       userEvent.click(sqlLabSettingsTab);
       // Grab CTAS & schema field by their labels
@@ -195,17 +197,17 @@ describe('DatabaseModal', () => {
     });
 
     it('renders the schema field when allowCVAS is checked', () => {
-      render(
-        <ThemeProvider theme={supersetTheme}>
-          <Provider store={store}>
-            <DatabaseModal {...dbProps} />
-          </Provider>
-        </ThemeProvider>,
-      );
+      render(<DatabaseModal {...dbProps} />, { useRedux: true });
 
-      // Select SQL Lab settings tab
+      // Select Advanced tab
+      const advancedTab = screen.getByRole('tab', {
+        name: /advanced/i,
+      });
+      userEvent.click(advancedTab);
+
+      // Select SQL Lab tab
       const sqlLabSettingsTab = screen.getByRole('tab', {
-        name: /sql lab settings/i,
+        name: /sql lab/i,
       });
       userEvent.click(sqlLabSettingsTab);
       // Grab CVAS by it's label & schema field
@@ -225,17 +227,17 @@ describe('DatabaseModal', () => {
     });
 
     it('renders the schema field when both allowCTAS and allowCVAS are checked', () => {
-      render(
-        <ThemeProvider theme={supersetTheme}>
-          <Provider store={store}>
-            <DatabaseModal {...dbProps} />
-          </Provider>
-        </ThemeProvider>,
-      );
+      render(<DatabaseModal {...dbProps} />, { useRedux: true });
 
-      // Select SQL Lab settings tab
+      // Select Advanced tab
+      const advancedTab = screen.getByRole('tab', {
+        name: /advanced/i,
+      });
+      userEvent.click(advancedTab);
+
+      // Select SQL Lab tab
       const sqlLabSettingsTab = screen.getByRole('tab', {
-        name: /sql lab settings/i,
+        name: /sql lab/i,
       });
       userEvent.click(sqlLabSettingsTab);
       // Grab CTAS and CVAS by their labels, & schema field

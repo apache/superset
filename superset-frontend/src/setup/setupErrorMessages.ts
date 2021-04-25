@@ -83,5 +83,9 @@ export default function setupErrorMessages() {
     ErrorTypeEnum.SCHEMA_DOES_NOT_EXIST_ERROR,
     DatabaseErrorMessage,
   );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.CONNECTION_DATABASE_PERMISSIONS_ERROR,
+    DatabaseErrorMessage,
+  );
   setupErrorMessagesExtra();
 }
