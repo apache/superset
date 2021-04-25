@@ -30,6 +30,7 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FetchDataConfig } from 'src/components/ListView';
 import SupersetText from 'src/utils/textUtils';
 import { Dashboard, Filters, SavedQueryObject } from './types';
+import supersetText from 'src/utils/textUtils';
 
 const createFetchResourceMethod = (method: string) => (
   resource: string,
@@ -162,10 +163,14 @@ export function createErrorHandler(
     const parsedError = await getClientErrorObject(e);
     // Taking the first error returned from the API
     // @ts-ignore
-    const errorType = parsedError.errors[0].error_type;
+    const errorsArray = parsedError?.errors
     const config = await SupersetText;
-    if (errorType in config.ERRORS) {
-      parsedError.message = config.ERRORS[errorType];
+    if (errorsArray &&
+        errorsArray.length &&
+        config &&
+        config.ERRORS &&
+        errorsArray[0].error_type in config.ERRORS) {
+      parsedError.message = config.ERRORS[errorsArray[0].error_type];
     }
     logging.error(e);
     handleErrorFunc(parsedError.message || parsedError.error);
