@@ -65,6 +65,14 @@ export interface SetFilterSetsConfigFail {
   type: typeof SET_FILTER_SETS_CONFIG_FAIL;
   filterSetsConfig: FilterSet[];
 }
+export const SET_FILTERS_INITIALIZED = 'SET_FILTERS_INITIALIZED';
+export interface SetFiltersInitialized {
+  type: typeof SET_FILTERS_INITIALIZED;
+}
+
+export const setFiltersInitialized = (): SetFiltersInitialized => ({
+  type: SET_FILTERS_INITIALIZED,
+});
 
 export const setFilterConfiguration = (
   filterConfig: FilterConfiguration,
@@ -192,5 +200,6 @@ export type AnyFilterAction =
   | SetFilterSetsConfigBegin
   | SetFilterSetsConfigComplete
   | SetFilterSetsConfigFail
+  | SetFiltersInitialized
   | SaveFilterSets
   | SetBooststapData;
