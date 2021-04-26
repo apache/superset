@@ -999,7 +999,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if not cls.get_allow_cost_estimate(extra):
             raise Exception("Database does not support cost estimation")
 
-        user_name = g.user.username if g.user else None
+        user_name = g.user.username if g.user and hasattr(g.user, "username") else None
         parsed_query = sql_parse.ParsedQuery(sql)
         statements = parsed_query.get_statements()
 
