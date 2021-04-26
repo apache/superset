@@ -256,7 +256,11 @@ def execute_sql_statement(
             if query.limit is None or len(data) <= query.limit:
                 query.limiting_factor = LimitingFactor.NOT_LIMITED
             else:
+<<<<<<< HEAD
                 # returning 1 row less then increased limit
+=======
+                # return 1 row less than increased_query
+>>>>>>> Update superset/sql_lab.py
                 data = data[:-1]
 
     except SoftTimeLimitExceeded as ex:
