@@ -332,9 +332,8 @@ class ParsedQuery:
                 break
         _, limit = statement.token_next(idx=limit_pos)
         # Override the limit only when it exceeds the configured value.
-        if (
-            limit.ttype == sqlparse.tokens.Literal.Number.Integer
-            and (force or new_limit < int(limit.value))
+        if limit.ttype == sqlparse.tokens.Literal.Number.Integer and (
+            force or new_limit < int(limit.value)
         ):
             limit.value = new_limit
         elif limit.is_group:
