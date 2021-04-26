@@ -19,7 +19,6 @@ import unittest
 import uuid
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
-import hashlib
 import json
 import os
 import re
@@ -71,6 +70,7 @@ from superset.utils.core import (
     zlib_decompress,
 )
 from superset.utils import schema
+from superset.utils.hashing import md5_sha_from_str
 from superset.views.utils import (
     build_extra_filters,
     get_form_data,
@@ -960,7 +960,7 @@ class TestUtils(SupersetTestCase):
 
     def test_ssl_certificate_file_creation(self):
         path = create_ssl_cert_file(ssl_certificate)
-        expected_filename = hashlib.md5(ssl_certificate.encode("utf-8")).hexdigest()
+        expected_filename = md5_sha_from_str(ssl_certificate)
         self.assertIn(expected_filename, path)
         self.assertTrue(os.path.exists(path))
 
