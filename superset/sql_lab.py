@@ -103,8 +103,10 @@ def handle_query_error(
 def get_query_backoff_handler(details: Dict[Any, Any]) -> None:
     query_id = details["kwargs"]["query_id"]
     logger.error("Query with id `%s` could not be retrieved", str(query_id))
-    stats_logger.incr("error_attempting_orm_query_{}".format(details["tries"] - 1))
-    logger.error("Query %s: Sleeping for a sec before retrying...", str(query_id))
+    stats_logger.incr(
+        "error_attempting_orm_query_{}".format(details["tries"] - 1))
+    logger.error(
+        "Query %s: Sleeping for a sec before retrying...", str(query_id))
 
 
 def get_query_giveup_handler(_: Any) -> None:
@@ -221,6 +223,7 @@ def execute_sql_statement(
     sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
 
     try:
+        query.executed_sql = sql
         if log_query:
             log_query(
                 query.database.sqlalchemy_uri,
@@ -231,7 +234,6 @@ def execute_sql_statement(
                 security_manager,
                 log_params,
             )
-        query.executed_sql = sql
         session.commit()
         with stats_timing("sqllab.query.time_executing_query", stats_logger):
             logger.debug("Query %d: Running query: %s", query.id, sql)
@@ -318,7 +320,8 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
     """Executes the sql query returns the results."""
     if store_results and start_time:
         # only asynchronous queries
-        stats_logger.timing("sqllab.query.time_pending", now_as_float() - start_time)
+        stats_logger.timing("sqllab.query.time_pending",
+                            now_as_float() - start_time)
 
     query = get_query(query_id, session)
     payload: Dict[str, Any] = dict(query_id=query_id)
@@ -334,11 +337,13 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
     if not db_engine_spec.run_multiple_statements_as_one:
         statements = parsed_query.get_statements()
         logger.info(
-            "Query %s: Executing %i statement(s)", str(query_id), len(statements)
+            "Query %s: Executing %i statement(s)", str(
+                query_id), len(statements)
         )
     else:
         statements = [rendered_query]
-        logger.info("Query %s: Executing query as a single statement", str(query_id))
+        logger.info(
+            "Query %s: Executing query as a single statement", str(query_id))
 
     logger.info("Query %s: Set query to 'running'", str(query_id))
     query.status = QueryStatus.RUNNING
@@ -455,7 +460,8 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
     if store_results and results_backend:
         key = str(uuid.uuid4())
         logger.info(
-            "Query %s: Storing results in results backend, key: %s", str(query_id), key
+            "Query %s: Storing results in results backend, key: %s", str(
+                query_id), key
         )
         with stats_timing("sqllab.query.results_backend_write", stats_logger):
             with stats_timing(
@@ -470,9 +476,11 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
 
             compressed = zlib_compress(serialized_payload)
             logger.debug(
-                "*** serialized payload size: %i", getsizeof(serialized_payload)
+                "*** serialized payload size: %i", getsizeof(
+                    serialized_payload)
             )
-            logger.debug("*** compressed payload size: %i", getsizeof(compressed))
+            logger.debug("*** compressed payload size: %i",
+                         getsizeof(compressed))
             results_backend.set(key, compressed, cache_timeout)
         query.results_key = key
 
