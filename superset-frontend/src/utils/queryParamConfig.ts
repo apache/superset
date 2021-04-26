@@ -20,8 +20,11 @@ import { QueryParamConfig } from 'use-query-params';
 
 // Query parameters intended for use with the use-query-params hook
 
-/** A query param config for Superset's  */
-export const TruthyParam: QueryParamConfig<boolean, any> = {
+/** A query param config for Superset's specific boolean query param implementation.
+ * See also:
+ * https://github.com/apache/superset/blob/d7fc2031b12c040a4655b329de085aa0cf30d911/superset/utils/core.py#L283
+ */
+export const SupersetTruthyParam: QueryParamConfig<boolean, any> = {
   encode: (data?: any | null) => (data ? 'true' : undefined),
   decode: (dataStr?: string | string[]) =>
     dataStr !== 'false' && dataStr !== '0',

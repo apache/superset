@@ -17,29 +17,29 @@
  * under the License.
  */
 
-import { TruthyParam } from './queryParamConfig';
+import { SupersetTruthyParam } from './queryParamConfig';
 
 describe('url utils', () => {
   describe('TruthyParam', () => {
     // The behavior specified by this test is intended to preserve
     // specific url parameters behavior.
     it('decodes "true" to true', () => {
-      expect(TruthyParam.decode('true')).toEqual(true);
+      expect(SupersetTruthyParam.decode('true')).toEqual(true);
     });
     it('decodes "1" to true', () => {
-      expect(TruthyParam.decode('1')).toEqual(true);
+      expect(SupersetTruthyParam.decode('1')).toEqual(true);
     });
     it('decodes "false" to false', () => {
-      expect(TruthyParam.decode('false')).toEqual(false);
+      expect(SupersetTruthyParam.decode('false')).toEqual(false);
     });
     it('decodes "0" to false', () => {
-      expect(TruthyParam.decode('0')).toEqual(false);
+      expect(SupersetTruthyParam.decode('0')).toEqual(false);
     });
     it('encodes true', () => {
-      expect(TruthyParam.encode(true)).toEqual('true');
+      expect(SupersetTruthyParam.encode(true)).toEqual('true');
     });
     it('encodes false', () => {
-      expect(TruthyParam.encode(false)).toEqual('false');
+      expect(SupersetTruthyParam.encode(false)).toEqual('false');
     });
   });
 });
