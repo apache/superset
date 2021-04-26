@@ -38,6 +38,7 @@ export interface NativeFiltersFormItem {
   };
   isInstant: boolean;
   adhoc_filters?: AdhocFilter[];
+  time_range?: string;
 }
 
 export interface NativeFiltersForm {

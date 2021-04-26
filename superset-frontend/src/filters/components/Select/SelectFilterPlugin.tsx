@@ -52,6 +52,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     inputRef,
     defaultToFirstItem,
     adhocFilters,
+    timeRange,
   } = formData;
 
   const forceFirstValue =
@@ -110,6 +111,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         emptyFilter,
         inverseSelection,
         adhocFilters,
+        timeRange,
       ),
       filterState: {
         // We need to save in state `FIRST_VALUE` as some const and not as REAL value,

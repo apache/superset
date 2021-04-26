@@ -30,6 +30,7 @@ import { Checkbox, Form, Input, Typography } from 'src/common/components';
 import { Select } from 'src/components/Select';
 import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
+import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { addDangerToast } from 'src/messageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { ColumnSelect } from './ColumnSelect';
@@ -88,6 +89,7 @@ const FILTERS_WITHOUT_COLUMN = [
   'filter_timecolumn',
   'filter_groupby',
 ];
+const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
 
 /**
  * The configuration form for a specific filter.
@@ -121,6 +123,10 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
   const hasFilledDataset =
     !hasDataset ||
     (formFilter?.dataset?.value && (formFilter?.column || !hasColumn));
+
+  const hasAdditionalFilters = FILTERS_WITH_ADHOC_FILTERS.includes(
+    formFilter?.filterType,
+  );
 
   useBackendFormUpdate(form, filterId, filterToEdit, hasDataset, hasColumn);
 
@@ -234,27 +240,46 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
               />
             </StyledFormItem>
           )}
-          <StyledFormItem
-            name={['filters', filterId, 'adhoc_filters']}
-            initialValue={filterToEdit?.adhoc_filters}
-          >
-            <AdhocFilterControl
-              columns={
-                formFilter.dataset?.columns?.filter(
-                  (c: ColumnMeta) => c.filterable,
-                ) || []
-              }
-              savedMetrics={formFilter.dataset?.metrics || []}
-              datasource={formFilter.dataset}
-              onChange={(filters: AdhocFilter[]) => {
-                setNativeFilterFieldValues(form, filterId, {
-                  adhoc_filters: filters,
-                });
-                forceUpdate();
-              }}
-              label={<StyledLabel>{t('Adhoc filters')}</StyledLabel>}
-            />
-          </StyledFormItem>
+          {hasAdditionalFilters && (
+            <>
+              <StyledFormItem
+                name={['filters', filterId, 'adhoc_filters']}
+                initialValue={filterToEdit?.adhoc_filters}
+              >
+                <AdhocFilterControl
+                  columns={
+                    formFilter.dataset?.columns?.filter(
+                      (c: ColumnMeta) => c.filterable,
+                    ) || []
+                  }
+                  savedMetrics={formFilter.dataset?.metrics || []}
+                  datasource={formFilter.dataset}
+                  onChange={(filters: AdhocFilter[]) => {
+                    setNativeFilterFieldValues(form, filterId, {
+                      adhoc_filters: filters,
+                    });
+                    forceUpdate();
+                  }}
+                  label={<StyledLabel>{t('Adhoc filters')}</StyledLabel>}
+                />
+              </StyledFormItem>
+              <StyledFormItem
+                name={['filters', filterId, 'time_range']}
+                label={<StyledLabel>{t('Time picker')}</StyledLabel>}
+                initialValue={filterToEdit?.time_range || 'No filter'}
+              >
+                <DateFilterControl
+                  name="time_range"
+                  onChange={timeRange => {
+                    setNativeFilterFieldValues(form, filterId, {
+                      time_range: timeRange,
+                    });
+                    forceUpdate();
+                  }}
+                />
+              </StyledFormItem>
+            </>
+          )}
         </>
       )}
       {hasFilledDataset && (

@@ -33,6 +33,7 @@ export const getSelectExtraFormData = (
   emptyFilter = false,
   inverseSelection = false,
   adhocFilters?: AdhocFilter[],
+  timeRange?: string,
 ): ExtraFormData => {
   const extra: ExtraFormData = {};
   if (emptyFilter) {
@@ -55,6 +56,7 @@ export const getSelectExtraFormData = (
             },
           ];
     extra.adhoc_filters = adhocFilters;
+    extra.time_range = timeRange;
   }
   return extra;
 };
@@ -64,6 +66,7 @@ export const getRangeExtraFormData = (
   lower?: number | null,
   upper?: number | null,
   adhocFilters?: AdhocFilter[],
+  timeRange?: string,
 ) => {
   const filters: QueryObjectFilterClause[] = [];
   if (lower !== undefined && lower !== null) {
@@ -76,6 +79,7 @@ export const getRangeExtraFormData = (
   return {
     filters,
     adhoc_filters: adhocFilters,
+    time_range: timeRange,
   };
 };
 

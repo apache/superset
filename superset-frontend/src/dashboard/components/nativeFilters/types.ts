@@ -55,6 +55,7 @@ export interface Filter {
     [key: string]: any;
   };
   adhoc_filters?: AdhocFilter[];
+  time_range?: string;
 }
 
 export type FilterConfiguration = Filter[];

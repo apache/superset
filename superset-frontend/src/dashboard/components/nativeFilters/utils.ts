@@ -39,12 +39,14 @@ export const getFormData = ({
   controlValues,
   filterType,
   adhoc_filters,
+  time_range,
 }: Partial<Filter> & {
   datasetId?: number;
   inputRef?: RefObject<HTMLInputElement>;
   cascadingFilters?: object;
   groupby?: string;
   adhoc_filters?: AdhocFilter[];
+  time_range?: string;
 }): Partial<QueryFormData> => {
   const otherProps: { datasource?: string; groupby?: string[] } = {};
   if (datasetId) {
@@ -64,7 +66,7 @@ export const getFormData = ({
     row_limit: 10000,
     showSearch: true,
     defaultValue,
-    time_range: 'No filter',
+    time_range,
     time_range_endpoints: ['inclusive', 'exclusive'],
     url_params: {},
     viz_type: filterType,

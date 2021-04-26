@@ -142,6 +142,7 @@ export const createHandleSave = (
       return {
         id,
         adhoc_filters: formInputs.adhoc_filters,
+        time_range: formInputs.time_range,
         controlValues: formInputs.controlValues ?? {},
         name: formInputs.name,
         filterType: formInputs.filterType,
