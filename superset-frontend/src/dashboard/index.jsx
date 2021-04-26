@@ -33,7 +33,6 @@ initFeatureFlags(bootstrapData.common.feature_flags);
 const initialState = {
   user: bootstrapData.user,
   common: bootstrapData.common,
-  datasources: bootstrapData.datasources,
 };
 
 const store = createStore(

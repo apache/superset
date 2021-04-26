@@ -57,6 +57,12 @@ const DashboardList = lazy(
       /* webpackChunkName: "DashboardList" */ 'src/views/CRUD/dashboard/DashboardList'
     ),
 );
+const DashboardPage = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "DashboardPage" */ 'src/dashboard/containers/DashboardPage'
+    ),
+);
 const DatabaseList = lazy(
   () =>
     import(
@@ -103,6 +109,10 @@ export const routes: Routes = [
   {
     path: '/dashboard/list/',
     Component: DashboardList,
+  },
+  {
+    path: '/superset/dashboard/:idOrSlug/',
+    Component: DashboardPage,
   },
   {
     path: '/chart/list/',

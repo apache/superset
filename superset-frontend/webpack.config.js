@@ -205,7 +205,7 @@ const config = {
     preamble: PREAMBLE,
     addSlice: addPreamble('/src/addSlice/index.tsx'),
     explore: addPreamble('/src/explore/index.jsx'),
-    dashboard: addPreamble('/src/dashboard/index.jsx'),
+    // dashboard: addPreamble('/src/dashboard/index.jsx'),
     sqllab: addPreamble('/src/SqlLab/index.tsx'),
     crudViews: addPreamble('/src/views/index.tsx'),
     menu: addPreamble('src/views/menu.tsx'),

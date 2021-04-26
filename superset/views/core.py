@@ -1853,11 +1853,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         }
 
         return self.render_template(
-            "superset/dashboard.html",
-            entry="dashboard",
+            "superset/crud_views.html",
+            entry="crudViews",
+            # entry="dashboard",
             standalone_mode=standalone_mode,
-            title=dashboard.dashboard_title,
-            custom_css=dashboard.css,
+            # title=dashboard.dashboard_title,
+            # custom_css=dashboard.css,
             bootstrap_data=json.dumps(
                 bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
             ),

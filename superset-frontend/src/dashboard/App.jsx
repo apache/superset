@@ -38,10 +38,7 @@ const App = ({ store }) => {
       <DndProvider backend={HTML5Backend}>
         <ThemeProvider theme={theme}>
           <DynamicPluginProvider>
-            <DashboardPage
-              store={store}
-              dashboardIdOrSlug={dashboardIdOrSlug}
-            />
+            <DashboardPage dashboardIdOrSlug={dashboardIdOrSlug} />
           </DynamicPluginProvider>
         </ThemeProvider>
       </DndProvider>
