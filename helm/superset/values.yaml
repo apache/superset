@@ -105,6 +105,8 @@ image:
   repository: apache/superset
   tag: latest
   pullPolicy: IfNotPresent
+  # pullSecrets:
+  #   - name: docker-registry
 
 service:
   type: ClusterIP
