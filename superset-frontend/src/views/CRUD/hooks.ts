@@ -205,7 +205,7 @@ export function useListViewResource<D extends object = any>(
 interface SingleViewResourceState<D extends object = any> {
   loading: boolean;
   resource: D | null;
-  error: string | Record<string, string[]> | null;
+  error: string | Record<string, string[] | string> | null;
 }
 
 export function useSingleViewResource<D extends object = any>(
@@ -241,7 +241,7 @@ export function useSingleViewResource<D extends object = any>(
             });
             return json.result;
           },
-          createErrorHandler((errMsg: Record<string, string[]>) => {
+          createErrorHandler((errMsg: Record<string, string[] | string>) => {
             handleErrorMsg(
               t(
                 'An error occurred while fetching %ss: %s',
@@ -282,7 +282,7 @@ export function useSingleViewResource<D extends object = any>(
             });
             return json.id;
           },
-          createErrorHandler((errMsg: Record<string, string[]>) => {
+          createErrorHandler((errMsg: Record<string, string[] | string>) => {
             handleErrorMsg(
               t(
                 'An error occurred while creating %ss: %s',
@@ -396,19 +396,21 @@ export function useImportResource(
     payload.includes('already exists and `overwrite=true` was not passed');
 
   const getPasswordsNeeded = (
-    errMsg: Record<string, Record<string, string[]>>,
+    errMsg: Record<string, Record<string, string[] | string>>,
   ) =>
     Object.entries(errMsg)
       .filter(([, validationErrors]) => isNeedsPassword(validationErrors))
       .map(([fileName]) => fileName);
 
-  const getAlreadyExists = (errMsg: Record<string, Record<string, string[]>>) =>
+  const getAlreadyExists = (
+    errMsg: Record<string, Record<string, string[] | string>>,
+  ) =>
     Object.entries(errMsg)
       .filter(([, validationErrors]) => isAlreadyExists(validationErrors))
       .map(([fileName]) => fileName);
 
   const hasTerminalValidation = (
-    errMsg: Record<string, Record<string, string[]>>,
+    errMsg: Record<string, Record<string, string[] | string>>,
   ) =>
     Object.values(errMsg).some(
       validationErrors =>
@@ -636,7 +638,7 @@ export const testDatabaseConnection = (
     () => {
       addSuccessToast(t('Connection looks good!'));
     },
-    createErrorHandler((errMsg: Record<string, string[]> | string) => {
+    createErrorHandler((errMsg: Record<string, string[] | string> | string) => {
       handleErrorMsg(t(`${t('ERROR: ')}${parsedErrorMessage(errMsg)}`));
     }),
   );
