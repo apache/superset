@@ -36,7 +36,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const [row] = data;
   // @ts-ignore
   const { min, max }: { min: number; max: number } = row;
-  const { groupby, defaultValue, adhocFilters, timeRange } = formData;
+  const { groupby, defaultValue } = formData;
   const [col = ''] = groupby || [];
   const [value, setValue] = useState<[number, number]>(
     defaultValue ?? [min, max],
@@ -47,13 +47,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     setValue(value);
 
     setDataMask({
-      extraFormData: getRangeExtraFormData(
-        col,
-        lower,
-        upper,
-        adhocFilters,
-        timeRange,
-      ),
+      extraFormData: getRangeExtraFormData(col, lower, upper),
       filterState: {
         value,
       },

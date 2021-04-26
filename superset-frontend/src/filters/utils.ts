@@ -23,7 +23,6 @@ import {
   QueryObjectFilterClause,
   TimeFormatter,
   ExtraFormData,
-  AdhocFilter,
 } from '@superset-ui/core';
 import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
 
@@ -32,8 +31,6 @@ export const getSelectExtraFormData = (
   value?: null | (string | number)[],
   emptyFilter = false,
   inverseSelection = false,
-  adhocFilters?: AdhocFilter[],
-  timeRange?: string,
 ): ExtraFormData => {
   const extra: ExtraFormData = {};
   if (emptyFilter) {
@@ -55,8 +52,6 @@ export const getSelectExtraFormData = (
               val: value,
             },
           ];
-    extra.adhoc_filters = adhocFilters;
-    extra.time_range = timeRange;
   }
   return extra;
 };
@@ -65,8 +60,6 @@ export const getRangeExtraFormData = (
   col: string,
   lower?: number | null,
   upper?: number | null,
-  adhocFilters?: AdhocFilter[],
-  timeRange?: string,
 ) => {
   const filters: QueryObjectFilterClause[] = [];
   if (lower !== undefined && lower !== null) {
@@ -78,8 +71,6 @@ export const getRangeExtraFormData = (
 
   return {
     filters,
-    adhoc_filters: adhocFilters,
-    time_range: timeRange,
   };
 };
 
