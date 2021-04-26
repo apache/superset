@@ -243,16 +243,13 @@ export function Menu({
                 <DropdownMenu.Divider key="version-info-divider" />,
                 <DropdownMenu.ItemGroup key="about-section" title={t('About')}>
                   <div className="about-section">
-                    {navbarRight.version_string && (
-                      <li className="version-info">
-                        <span>Version: {navbarRight.version_string}</span>
-                      </li>
-                    )}
-                    {navbarRight.version_sha && (
-                      <li className="version-info">
-                        <span>SHA: {navbarRight.version_sha}</span>
-                      </li>
-                    )}
+                    <li className="version-info">
+                      <span>Версия: {navbarRight.version_string}</span>
+                    </li>
+
+                    <li className="version-info">
+                      <span>Доработано компанией <a href={"https://h-labs.ru"}>H-Labs</a></span>
+                    </li>
                   </div>
                 </DropdownMenu.ItemGroup>,
               ]}

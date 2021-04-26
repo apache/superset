@@ -21,7 +21,9 @@
       "Row level security": ["Безопасность на уровне строк"],
       "Security": ["Безопасность"],
       "Import Dashboards": ["Импорт Отчетов"],
-      "SQL Editor": ["Редактор SQL"],
+      "SQL Editor": [" SQL"],
+      "Last viewed": ["Просмотрено"],
+      "Last modified": ["Отредактировано"],
       "SQL Lab": ["SQL Лаборатория"],
       "Saved Queries": ["Сохраненные запросы"],
       "Query History": ["История запросов"],
@@ -2063,7 +2065,7 @@
       "Delete Layer?": ["Удалить все?"],
       "Are you sure you want to delete the selected layers?": [""],
       "Are you sure you want to delete": [""],
-      "Last modified %s": ["Изменено"],
+      "Last modified %s": ["Изменено %s"],
       "The passwords for the databases below are needed in order to import them together with the charts. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed.": [
         ""
       ],
@@ -2094,7 +2096,7 @@
       "css": [""],
       "CSS templates": ["Шаблоны CSS"],
       "There was an issue deleting the selected templates: %s": [""],
-      "Last modified by %s": ["Изменено"],
+      "Last modified by %s": ["Изменено %s"],
       "CSS template": ["Шаблоны CSS"],
       "This action will permanently delete the template.": [""],
       "Delete Template?": ["Шаблоны CSS"],
@@ -2117,7 +2119,8 @@
       "An error occurred while fetching dashboard created by values: %s": [
         "Произошла ошибка при получении метаданных из таблицы"
       ],
-      "Unpublished": [""],
+      "Unpublished": ["Неопубликовано"],
+      "published": ["Опубликовано"],
       "Are you sure you want to delete the selected dashboards?": [""],
       "Sorry, your browser does not support copying.": [
         "Извините, Ваш браузер не поддерживание копирование. Используйте сочетание клавиш [CTRL + C] для WIN или [CMD + C] для MAC"

@@ -126,8 +126,8 @@ const getEntityUrl = (entity: ActivityObject) => {
 
 const getEntityLastActionOn = (entity: ActivityObject) => {
   // translation keys for last action on
-  const LAST_VIEWED = `Last viewed %s`;
-  const LAST_MODIFIED = `Last modified %s`;
+  const LAST_VIEWED = `${t('Last viewed')} %s`;
+  const LAST_MODIFIED = `${t('Last modified')} %s`;
 
   // for Recent viewed items
   if ('time_delta_humanized' in entity) {

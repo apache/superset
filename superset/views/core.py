@@ -1392,6 +1392,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 item_url = slc.slice_url
                 item_title = slc.chart
 
+            _t = humanize.i18n.activate("ru_RU")
             payload.append(
                 {
                     "action": log.action,
