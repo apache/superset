@@ -19,11 +19,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Nav, Navbar, NavItem } from 'react-bootstrap';
-import { useQueryParam } from 'use-query-params';
 import { t, styled } from '@superset-ui/core';
 
 import { Menu as DropdownMenu } from 'src/common/components';
 import NavDropdown from 'src/components/NavDropdown';
+import { getUrlParam } from 'src/utils/urlUtils';
 
 import MenuObject, {
   MenuObjectProps,
@@ -31,7 +31,6 @@ import MenuObject, {
 } from './MenuObject';
 import LanguagePicker, { Languages } from './LanguagePicker';
 import NewMenu from './NewMenu';
-import { getUrlParam } from 'src/utils/urlUtils';
 
 interface BrandProps {
   path: string;
