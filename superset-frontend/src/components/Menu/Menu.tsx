@@ -24,7 +24,6 @@ import { t, styled } from '@superset-ui/core';
 
 import { Menu as DropdownMenu } from 'src/common/components';
 import NavDropdown from 'src/components/NavDropdown';
-import { TruthyParam } from 'src/utils/queryParamConfig';
 
 import MenuObject, {
   MenuObjectProps,
@@ -32,6 +31,7 @@ import MenuObject, {
 } from './MenuObject';
 import LanguagePicker, { Languages } from './LanguagePicker';
 import NewMenu from './NewMenu';
+import { getUrlParam } from 'src/utils/urlUtils';
 
 interface BrandProps {
   path: string;
@@ -162,8 +162,9 @@ export function Menu({
   isFrontendRoute = () => false,
 }: MenuProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [standalone] = useQueryParam('standalone', TruthyParam);
 
+  // would useQueryParam here but not all apps provide a router context
+  const standalone = getUrlParam('standalone', 'boolean');
   if (standalone) return <></>;
 
   return (
