@@ -97,6 +97,7 @@ export type Filters = {
 };
 
 export type NativeFiltersState = {
+  isInitialized: boolean;
   filters: Filters;
   filterSets: FilterSets;
 };

@@ -17,32 +17,28 @@
  * under the License.
  */
 import React from 'react';
-import { supersetTheme, SafeMarkdown } from '@superset-ui/core';
-import Icon from 'src/components/Icon';
-import { Tooltip } from 'src/components/Tooltip';
+import WarningIconWithTooltip, { WarningIconWithTooltipProps } from '.';
 
-interface WarningIconWithTooltipProps {
-  warningMarkdown: string;
-  size?: number;
-}
+export default {
+  title: 'WarningIconWithTooltip',
+  component: WarningIconWithTooltip,
+};
 
-function WarningIconWithTooltip({
-  warningMarkdown,
-  size = 24,
-}: WarningIconWithTooltipProps) {
-  return (
-    <Tooltip
-      id="warning-tooltip"
-      title={<SafeMarkdown source={warningMarkdown} />}
-    >
-      <Icon
-        color={supersetTheme.colors.alert.base}
-        height={size}
-        width={size}
-        name="alert-solid"
-      />
-    </Tooltip>
-  );
-}
+export const InteractiveWarningIcon = (args: WarningIconWithTooltipProps) => (
+  <div css={{ margin: 40 }}>
+    <WarningIconWithTooltip {...args} />
+  </div>
+);
 
-export default WarningIconWithTooltip;
+InteractiveWarningIcon.args = {
+  warningMarkdown: 'Markdown example',
+  size: 20,
+};
+
+InteractiveWarningIcon.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};

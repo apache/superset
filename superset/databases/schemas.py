@@ -21,12 +21,14 @@ from typing import Any, Dict
 
 from flask import current_app
 from flask_babel import lazy_gettext as _
-from marshmallow import fields, Schema, validates_schema
+from marshmallow import fields, pre_load, Schema, validates_schema
 from marshmallow.validate import Length, ValidationError
 from sqlalchemy import MetaData
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError
 
+from superset.db_engine_specs import get_engine_specs
+from superset.db_engine_specs.base import BaseParametersMixin
 from superset.exceptions import CertificateException, SupersetSecurityException
 from superset.models.core import PASSWORD_MASK
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
@@ -207,7 +209,72 @@ def extra_validator(value: str) -> str:
     return value
 
 
-class DatabasePostSchema(Schema):
+class DatabaseParametersSchemaMixin:
+    """
+    Allow SQLAlchemy URI to be passed as separate parameters.
+
+    This mixing is a first step in allowing the users to test, create and
+    edit databases without having to know how to write a SQLAlchemy URI.
+    Instead, each databases defines the parameters that it takes (eg,
+    username, password, host, etc.) and the SQLAlchemy URI is built from
+    these parameters.
+
+    When using this mixin make sure that `sqlalchemy_uri` is not required.
+    """
+
+    parameters = fields.Dict(
+        keys=fields.Str(),
+        values=fields.Raw(),
+        description="DB-specific parameters for configuration",
+    )
+
+    # pylint: disable=no-self-use, unused-argument
+    @pre_load
+    def build_sqlalchemy_uri(
+        self, data: Dict[str, Any], **kwargs: Any
+    ) -> Dict[str, Any]:
+        """
+        Build SQLAlchemy URI from separate parameters.
+
+        This is used for databases that support being configured by individual
+        parameters (eg, username, password, host, etc.), instead of requiring
+        the constructed SQLAlchemy URI to be passed.
+        """
+        parameters = data.pop("parameters", None)
+        if parameters:
+            if "engine" not in parameters:
+                raise ValidationError(
+                    [
+                        _(
+                            "An engine must be specified when passing "
+                            "individual parameters to a database."
+                        )
+                    ]
+                )
+            engine = parameters["engine"]
+
+            engine_specs = get_engine_specs()
+            if engine not in engine_specs:
+                raise ValidationError(
+                    [_('Engine "%(engine)s" is not a valid engine.', engine=engine,)]
+                )
+            engine_spec = engine_specs[engine]
+            if not issubclass(engine_spec, BaseParametersMixin):
+                raise ValidationError(
+                    [
+                        _(
+                            'Engine spec "%(engine_spec)s" does not support '
+                            "being configured via individual parameters.",
+                            engine_spec=engine_spec.__name__,
+                        )
+                    ]
+                )
+
+            data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_url(parameters)
+        return data
+
+
+class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     database_name = fields.String(
         description=database_name_description, required=True, validate=Length(1, 250),
     )
@@ -242,12 +309,11 @@ class DatabasePostSchema(Schema):
     )
     sqlalchemy_uri = fields.String(
         description=sqlalchemy_uri_description,
-        required=True,
         validate=[Length(1, 1024), sqlalchemy_uri_validator],
     )
 
 
-class DatabasePutSchema(Schema):
+class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
     database_name = fields.String(
         description=database_name_description, allow_none=True, validate=Length(1, 250),
     )
@@ -282,12 +348,11 @@ class DatabasePutSchema(Schema):
     )
     sqlalchemy_uri = fields.String(
         description=sqlalchemy_uri_description,
-        allow_none=True,
         validate=[Length(0, 1024), sqlalchemy_uri_validator],
     )
 
 
-class DatabaseTestConnectionSchema(Schema):
+class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
     database_name = fields.String(
         description=database_name_description, allow_none=True, validate=Length(1, 250),
     )
@@ -305,7 +370,6 @@ class DatabaseTestConnectionSchema(Schema):
     )
     sqlalchemy_uri = fields.String(
         description=sqlalchemy_uri_description,
-        required=True,
         validate=[Length(1, 1024), sqlalchemy_uri_validator],
     )
 

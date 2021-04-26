@@ -25,7 +25,7 @@ from marshmallow import ValidationError
 
 from superset.charts.filters import ChartFilter
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.dashboards.filters import DashboardFilter
+from superset.dashboards.filters import DashboardAccessFilter
 from superset.databases.filters import DatabaseFilter
 from superset.models.reports import ReportSchedule
 from superset.reports.commands.bulk_delete import BulkDeleteReportScheduleCommand
@@ -170,7 +170,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     allowed_rel_fields = {"owners", "chart", "dashboard", "database", "created_by"}
     filter_rel_fields = {
         "chart": [["id", ChartFilter, lambda: []]],
-        "dashboard": [["id", DashboardFilter, lambda: []]],
+        "dashboard": [["id", DashboardAccessFilter, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
     }
     text_field_rel_fields = {

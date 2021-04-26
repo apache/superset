@@ -37,7 +37,7 @@ from superset.databases.commands.export import ExportDatabasesCommand
 from superset.databases.commands.importers.v1 import ImportDatabasesCommand
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.schemas import DatabaseTestConnectionSchema
-from superset.errors import SupersetError
+from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.utils.core import backend, get_example_database
@@ -546,6 +546,31 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
                 "Unexpected error occurred, please check your logs for details"
             )
         mock_event_logger.assert_called()
+
+    @mock.patch("superset.databases.dao.Database.get_sqla_engine")
+    @mock.patch(
+        "superset.databases.commands.test_connection.event_logger.log_with_context"
+    )
+    def test_connection_do_ping_exception(
+        self, mock_event_logger, mock_get_sqla_engine
+    ):
+        """Test to make sure do_ping exceptions gets captured"""
+        database = get_example_database()
+        mock_get_sqla_engine.return_value.dialect.do_ping.side_effect = Exception(
+            "An error has occurred!"
+        )
+        db_uri = database.sqlalchemy_uri_decrypted
+        json_payload = {"sqlalchemy_uri": db_uri}
+        command_without_db_name = TestConnectionDatabaseCommand(
+            security_manager.find_user("admin"), json_payload
+        )
+
+        with pytest.raises(DatabaseTestConnectionFailedError) as excinfo:
+            command_without_db_name.run()
+        assert (
+            excinfo.value.errors[0].error_type
+            == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
+        )
 
     @mock.patch("superset.databases.dao.Database.get_sqla_engine")
     @mock.patch(

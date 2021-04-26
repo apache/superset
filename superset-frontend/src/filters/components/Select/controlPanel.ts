@@ -75,7 +75,7 @@ const config: ControlPanelConfig = {
               default: enableEmptyFilter,
               renderTrigger: true,
               description: t(
-                'When selection is empty, should an always false filter event be emitted',
+                'When selection is empty, an always false filter event be emitted',
               ),
             },
           },

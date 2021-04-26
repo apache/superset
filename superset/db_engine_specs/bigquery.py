@@ -26,6 +26,7 @@ from sqlalchemy.sql.expression import ColumnClause
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
+from superset.sql_parse import Table
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -228,16 +229,26 @@ class BigQueryEngineSpec(BaseEngineSpec):
         return "TIMESTAMP_MILLIS({col})"
 
     @classmethod
-    def df_to_sql(cls, df: pd.DataFrame, **kwargs: Any) -> None:
+    def df_to_sql(
+        cls,
+        database: "Database",
+        table: Table,
+        df: pd.DataFrame,
+        to_sql_kwargs: Dict[str, Any],
+    ) -> None:
         """
-        Upload data from a Pandas DataFrame to BigQuery. Calls
-        `DataFrame.to_gbq()` which requires `pandas_gbq` to be installed.
+        Upload data from a Pandas DataFrame to a database.
 
-        :param df: Dataframe with data to be uploaded
-        :param kwargs: kwargs to be passed to to_gbq() method. Requires that `schema`,
-        `name` and `con` are present in kwargs. `name` and `schema` are combined
-         and passed to `to_gbq()` as `destination_table`.
+        Calls `pandas_gbq.DataFrame.to_gbq` which requires `pandas_gbq` to be installed.
+
+        Note this method does not create metadata for the table.
+
+        :param database: The database to upload the data to
+        :param table: The table to upload the data to
+        :param df: The dataframe with data to be uploaded
+        :param to_sql_kwargs: The kwargs to be passed to pandas.DataFrame.to_sql` method
         """
+
         try:
             import pandas_gbq
             from google.oauth2 import service_account
@@ -248,22 +259,25 @@ class BigQueryEngineSpec(BaseEngineSpec):
                 "to upload data to BigQuery"
             )
 
-        if not ("name" in kwargs and "schema" in kwargs and "con" in kwargs):
-            raise Exception("name, schema and con need to be defined in kwargs")
+        if not table.schema:
+            raise Exception("The table schema must be defined")
 
-        gbq_kwargs = {}
-        gbq_kwargs["project_id"] = kwargs["con"].engine.url.host
-        gbq_kwargs["destination_table"] = f"{kwargs.pop('schema')}.{kwargs.pop('name')}"
+        engine = cls.get_engine(database)
+        to_gbq_kwargs = {"destination_table": str(table), "project_id": engine.url.host}
 
-        # add credentials if they are set on the SQLAlchemy Dialect:
-        creds = kwargs["con"].dialect.credentials_info
+        # Add credentials if they are set on the SQLAlchemy dialect.
+        creds = engine.dialect.credentials_info
+
         if creds:
-            credentials = service_account.Credentials.from_service_account_info(creds)
-            gbq_kwargs["credentials"] = credentials
+            to_gbq_kwargs[
+                "credentials"
+            ] = service_account.Credentials.from_service_account_info(creds)
 
-        # Only pass through supported kwargs
+        # Only pass through supported kwargs.
         supported_kwarg_keys = {"if_exists"}
+
         for key in supported_kwarg_keys:
-            if key in kwargs:
-                gbq_kwargs[key] = kwargs[key]
-        pandas_gbq.to_gbq(df, **gbq_kwargs)
+            if key in to_sql_kwargs:
+                to_gbq_kwargs[key] = to_sql_kwargs[key]
+
+        pandas_gbq.to_gbq(df, **to_gbq_kwargs)

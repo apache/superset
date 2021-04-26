@@ -32,8 +32,9 @@ import logging
 import pkgutil
 from importlib import import_module
 from pathlib import Path
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, List, Set, Type
 
+import sqlalchemy.databases
 from pkg_resources import iter_entry_points
 
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -67,7 +68,7 @@ def get_engine_specs() -> Dict[str, Type[BaseEngineSpec]]:
         try:
             engine_spec = ep.load()
         except Exception:  # pylint: disable=broad-except
-            logger.warning("Unable to load engine spec: %s", engine_spec)
+            logger.warning("Unable to load Superset DB engine spec: %s", engine_spec)
             continue
         engine_specs.append(engine_spec)
 
@@ -82,3 +83,23 @@ def get_engine_specs() -> Dict[str, Type[BaseEngineSpec]]:
             engine_specs_map[name] = engine_spec
 
     return engine_specs_map
+
+
+def get_available_engine_specs() -> List[Type[BaseEngineSpec]]:
+    # native SQLAlchemy dialects
+    backends: Set[str] = {
+        getattr(sqlalchemy.databases, attr).dialect.name
+        for attr in sqlalchemy.databases.__all__
+    }
+
+    # installed 3rd-party dialects
+    for ep in iter_entry_points("sqlalchemy.dialects"):
+        try:
+            dialect = ep.load()
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Unable to load SQLAlchemy dialect: %s", dialect)
+        else:
+            backends.add(dialect.name)
+
+    engine_specs = get_engine_specs()
+    return [engine_specs[backend] for backend in backends if backend in engine_specs]
