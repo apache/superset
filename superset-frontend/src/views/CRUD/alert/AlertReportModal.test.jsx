@@ -255,9 +255,9 @@ describe('AlertReportModal', () => {
     expect(addWrapper.find('input[name="threshold"]')).toExist();
   });
 
-  it('renders four radio buttons', () => {
+  it('renders two radio buttons', () => {
     expect(wrapper.find(Radio)).toExist();
-    expect(wrapper.find(Radio)).toHaveLength(4);
+    expect(wrapper.find(Radio)).toHaveLength(2);
   });
 
   it('renders input element for working timeout', () => {

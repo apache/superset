@@ -23,7 +23,6 @@ import { CSSTransition } from 'react-transition-group';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-import { Form } from 'react-bootstrap';
 import Split from 'react-split';
 import { t, styled, supersetTheme } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
@@ -57,8 +56,14 @@ import {
   setActiveSouthPaneTab,
   updateSavedQuery,
   validateQuery,
-} from '../actions/sqlLab';
-
+} from 'src/SqlLab/actions/sqlLab';
+import {
+  STATE_TYPE_MAP,
+  SQL_EDITOR_GUTTER_HEIGHT,
+  SQL_EDITOR_GUTTER_MARGIN,
+  SQL_TOOLBAR_HEIGHT,
+} from 'src/SqlLab/constants';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import TemplateParamsEditor from './TemplateParamsEditor';
 import ConnectedSouthPane from './SouthPane/state';
 import SaveQuery from './SaveQuery';
@@ -67,14 +72,7 @@ import EstimateQueryCostButton from './EstimateQueryCostButton';
 import ShareSqlLabQuery from './ShareSqlLabQuery';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
-import {
-  STATE_TYPE_MAP,
-  SQL_EDITOR_GUTTER_HEIGHT,
-  SQL_EDITOR_GUTTER_MARGIN,
-  SQL_TOOLBAR_HEIGHT,
-} from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
-import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 
 const LIMIT_DROPDOWN = [10, 100, 1000, 10000, 100000];
 const SQL_EDITOR_PADDING = 10;
@@ -114,7 +112,7 @@ const StyledToolbar = styled.div`
     margin-block-end: 0;
   }
 
-  .leftItems form,
+  .leftItems,
   .rightItems {
     display: flex;
     align-items: center;
@@ -599,62 +597,60 @@ class SqlEditor extends React.PureComponent {
     return (
       <StyledToolbar className="sql-toolbar" id="js-sql-toolbar">
         <div className="leftItems">
-          <Form inline>
-            <span>
-              <RunQueryActionButton
-                allowAsync={
-                  this.props.database
-                    ? this.props.database.allow_run_async
-                    : false
-                }
-                queryState={this.props.latestQuery?.state}
-                runQuery={this.runQuery}
-                selectedText={qe.selectedText}
-                stopQuery={this.stopQuery}
-                sql={this.state.sql}
-                overlayCreateAsMenu={showMenu ? runMenuBtn : null}
-              />
-            </span>
-            {isFeatureEnabled(FeatureFlag.ESTIMATE_QUERY_COST) &&
-              this.props.database &&
-              this.props.database.allows_cost_estimate && (
-                <span>
-                  <EstimateQueryCostButton
-                    dbId={qe.dbId}
-                    schema={qe.schema}
-                    sql={qe.sql}
-                    getEstimate={this.getQueryCostEstimate}
-                    queryCostEstimate={qe.queryCostEstimate}
-                    selectedText={qe.selectedText}
-                    tooltip={t('Estimate the cost before running a query')}
-                  />
-                </span>
-              )}
-            <span>
-              <LimitSelectStyled>
-                <Dropdown overlay={this.renderQueryLimit()} trigger="click">
-                  <a onClick={e => e.preventDefault()}>
-                    <span>LIMIT:</span>
-                    <span>
-                      {this.convertToNumWithSpaces(
-                        this.props.queryEditor.queryLimit ||
-                          this.props.defaultQueryLimit,
-                      )}
-                    </span>
-                    <Icon name="triangle-down" />
-                  </a>
-                </Dropdown>
-              </LimitSelectStyled>
-            </span>
-            {this.props.latestQuery && (
-              <Timer
-                startTime={this.props.latestQuery.startDttm}
-                endTime={this.props.latestQuery.endDttm}
-                state={STATE_TYPE_MAP[this.props.latestQuery.state]}
-                isRunning={this.props.latestQuery.state === 'running'}
-              />
+          <span>
+            <RunQueryActionButton
+              allowAsync={
+                this.props.database
+                  ? this.props.database.allow_run_async
+                  : false
+              }
+              queryState={this.props.latestQuery?.state}
+              runQuery={this.runQuery}
+              selectedText={qe.selectedText}
+              stopQuery={this.stopQuery}
+              sql={this.state.sql}
+              overlayCreateAsMenu={showMenu ? runMenuBtn : null}
+            />
+          </span>
+          {isFeatureEnabled(FeatureFlag.ESTIMATE_QUERY_COST) &&
+            this.props.database &&
+            this.props.database.allows_cost_estimate && (
+              <span>
+                <EstimateQueryCostButton
+                  dbId={qe.dbId}
+                  schema={qe.schema}
+                  sql={qe.sql}
+                  getEstimate={this.getQueryCostEstimate}
+                  queryCostEstimate={qe.queryCostEstimate}
+                  selectedText={qe.selectedText}
+                  tooltip={t('Estimate the cost before running a query')}
+                />
+              </span>
             )}
-          </Form>
+          <span>
+            <LimitSelectStyled>
+              <Dropdown overlay={this.renderQueryLimit()} trigger="click">
+                <a onClick={e => e.preventDefault()}>
+                  <span>LIMIT:</span>
+                  <span>
+                    {this.convertToNumWithSpaces(
+                      this.props.queryEditor.queryLimit ||
+                        this.props.defaultQueryLimit,
+                    )}
+                  </span>
+                  <Icon name="triangle-down" />
+                </a>
+              </Dropdown>
+            </LimitSelectStyled>
+          </span>
+          {this.props.latestQuery && (
+            <Timer
+              startTime={this.props.latestQuery.startDttm}
+              endTime={this.props.latestQuery.endDttm}
+              state={STATE_TYPE_MAP[this.props.latestQuery.state]}
+              isRunning={this.props.latestQuery.state === 'running'}
+            />
+          )}
         </div>
         <div className="rightItems">
           <span>
