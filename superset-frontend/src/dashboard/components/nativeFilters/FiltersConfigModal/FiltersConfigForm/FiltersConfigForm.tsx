@@ -267,7 +267,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
               </StyledFormItem>
               <StyledFormItem
                 name={['filters', filterId, 'time_range']}
-                label={<StyledLabel>{t('Time picker')}</StyledLabel>}
+                label={<StyledLabel>{t('Time range')}</StyledLabel>}
                 initialValue={filterToEdit?.time_range || 'No filter'}
               >
                 <DateFilterControl
