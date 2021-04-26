@@ -110,7 +110,7 @@ export const opts = {
 const startServer = process.argv[2] === 'start';
 const configFile =
   environment === 'test' ? '../config.test.json' : '../config.json';
-let config = {} as typeof opts;
+let config = {};
 try {
   config = require(configFile);
 } catch (err) {
@@ -128,9 +128,7 @@ const logger = createLogger({
 });
 
 export const statsd = new StatsD({
-  host: opts.statsd.host,
-  port: opts.statsd.port,
-  globalTags: opts.statsd.globalTags,
+  ...opts.statsd,
   errorHandler: (e: Error) => {
     logger.error(e);
   },

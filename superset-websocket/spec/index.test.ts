@@ -54,11 +54,6 @@ const streamReturnValue: server.StreamResult[] = [
     ],
   ],
 ];
-const metricsResponse = `
-# HELP ws_connected_client Number of clients connected
-# TYPE ws_connected_client counter
-ws_connected_client 47
-`;
 
 import * as server from '../src/index';
 import { statsd } from '../src/index';
@@ -77,7 +72,7 @@ describe('server', () => {
   });
 
   describe('HTTP requests', () => {
-    test('services health checks', async () => {
+    test('services health checks', () => {
       const endMock = jest.fn();
       const writeHeadMock = jest.fn();
 
@@ -94,7 +89,7 @@ describe('server', () => {
         end: endMock,
       };
 
-      await server.httpRequest(request as any, response as any);
+      server.httpRequest(request as any, response as any);
 
       expect(writeHeadMock).toBeCalledTimes(1);
       expect(writeHeadMock).toHaveBeenLastCalledWith(200);
@@ -103,7 +98,7 @@ describe('server', () => {
       expect(endMock).toHaveBeenLastCalledWith('OK');
     });
 
-    test('reponds with a 404 when not found', async () => {
+    test('reponds with a 404 when not found', () => {
       const endMock = jest.fn();
       const writeHeadMock = jest.fn();
 
@@ -120,7 +115,7 @@ describe('server', () => {
         end: endMock,
       };
 
-      await server.httpRequest(request as any, response as any);
+      server.httpRequest(request as any, response as any);
 
       expect(writeHeadMock).toBeCalledTimes(1);
       expect(writeHeadMock).toHaveBeenLastCalledWith(404);
