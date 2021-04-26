@@ -107,14 +107,10 @@ def get_notification_error_sent_count(report_schedule: ReportSchedule) -> int:
 def assert_log(state: str, error_message: Optional[str] = None):
     db.session.commit()
     logs = (
-        db.session.query(ReportExecutionLog)
-        .order_by(ReportExecutionLog.start_dttm.desc())
-        .all()
+        db.session.query(ReportExecutionLog).all()
     )
-    if state == ReportState.WORKING:
-        assert len(logs) == 2
-    # On error we send an email
     if state == ReportState.ERROR:
+        # On error we send an email
         assert len(logs) == 3
     else:
         assert len(logs) == 2
