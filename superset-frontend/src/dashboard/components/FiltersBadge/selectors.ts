@@ -23,6 +23,7 @@ import {
   NativeFiltersState,
 } from 'src/dashboard/reducers/types';
 import { DataMaskStateWithId, DataMaskType } from 'src/dataMask/types';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { Layout } from '../../types';
 import { getTreeCheckedItems } from '../nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/utils';
 
@@ -220,57 +221,62 @@ export const selectNativeIndicatorsForChart = (
     return IndicatorStatus.Unset;
   };
 
-  const nativeFilterIndicators = Object.values(nativeFilters.filters).map(
-    nativeFilter => {
-      const isAffectedByScope = getTreeCheckedItems(
-        nativeFilter.scope,
-        dashboardLayout,
-      ).some(
-        layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
-      );
-      const column = nativeFilter.targets[0]?.column?.name;
-      let value = dataMask[nativeFilter.id]?.filterState?.value ?? null;
-      if (!Array.isArray(value) && value !== null) {
-        value = [value];
-      }
-      return {
-        column,
-        name: nativeFilter.name,
-        path: [nativeFilter.id],
-        status: getStatus({ value, isAffectedByScope, column }),
-        value,
-      };
-    },
-  );
-
-  const crossFilterIndicators = Object.values(chartConfiguration).map(
-    chartConfig => {
-      const scope = chartConfig?.crossFilters?.scope;
-      const isAffectedByScope = getTreeCheckedItems(
-        scope,
-        dashboardLayout,
-      ).some(
-        layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
-      );
-
-      let value = dataMask[chartConfig.id]?.filterState?.value ?? null;
-      if (!Array.isArray(value) && value !== null) {
-        value = [value];
-      }
-      return {
-        name: Object.values(dashboardLayout).find(
-          layoutItem => layoutItem?.meta?.chartId === chartConfig.id,
-        )?.meta?.sliceName as string,
-        path: [`${chartConfig.id}`],
-        status: getStatus({
+  let nativeFilterIndicators: any = [];
+  if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)) {
+    nativeFilterIndicators = Object.values(nativeFilters.filters).map(
+      nativeFilter => {
+        const isAffectedByScope = getTreeCheckedItems(
+          nativeFilter.scope,
+          dashboardLayout,
+        ).some(
+          layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
+        );
+        const column = nativeFilter.targets[0]?.column?.name;
+        let value = dataMask[nativeFilter.id]?.filterState?.value ?? null;
+        if (!Array.isArray(value) && value !== null) {
+          value = [value];
+        }
+        return {
+          column,
+          name: nativeFilter.name,
+          path: [nativeFilter.id],
+          status: getStatus({ value, isAffectedByScope, column }),
           value,
-          isAffectedByScope,
-          type: DataMaskType.CrossFilters,
-        }),
-        value,
-      };
-    },
-  );
+        };
+      },
+    );
+  }
 
+  let crossFilterIndicators: any = [];
+  if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+    crossFilterIndicators = Object.values(chartConfiguration)
+      .map(chartConfig => {
+        const scope = chartConfig?.crossFilters?.scope;
+        const isAffectedByScope = getTreeCheckedItems(
+          scope,
+          dashboardLayout,
+        ).some(
+          layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
+        );
+
+        let value = dataMask[chartConfig.id]?.filterState?.value ?? null;
+        if (!Array.isArray(value) && value !== null) {
+          value = [value];
+        }
+        return {
+          name: Object.values(dashboardLayout).find(
+            layoutItem => layoutItem?.meta?.chartId === chartConfig.id,
+          )?.meta?.sliceName as string,
+          path: [`${chartConfig.id}`],
+          status: getStatus({
+            value,
+            isAffectedByScope,
+            type: DataMaskType.CrossFilters,
+          }),
+          value,
+        };
+      })
+      .filter(filter => filter.status === IndicatorStatus.CrossFilterApplied);
+  }
   return crossFilterIndicators.concat(nativeFilterIndicators);
 };
