@@ -113,9 +113,6 @@ def assert_log(state: str, error_message: Optional[str] = None):
     )
     if state == ReportState.WORKING:
         assert len(logs) == 2
-        assert logs[1].error_message == error_message
-        assert logs[1].state == state
-        return
     # On error we send an email
     if state == ReportState.ERROR:
         assert len(logs) == 3
