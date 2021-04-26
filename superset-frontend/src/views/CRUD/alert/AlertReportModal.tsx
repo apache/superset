@@ -314,6 +314,15 @@ export const StyledInputContainer = styled.div`
   }
 `;
 
+const StyledRadio = styled(Radio)`
+  display: block;
+  line-height: ${({ theme }) => theme.gridUnit * 7}px;
+`;
+
+const StyledRadioGroup = styled(Radio.Group)`
+  margin-left: ${({ theme }) => theme.gridUnit * 5.5}px;
+`;
+
 // Notification Method components
 const StyledNotificationAddButton = styled.div`
   color: ${({ theme }) => theme.colors.primary.dark1};
@@ -1224,18 +1233,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <h4>{t('Message content')}</h4>
               <span className="required">*</span>
             </StyledSectionTitle>
-            <div className="inline-container add-margin">
-              <Radio.Group onChange={onContentTypeChange} value={contentType}>
-                <Radio value="dashboard">Dashboard</Radio>
-                <Radio value="chart">Chart</Radio>
-              </Radio.Group>
-            </div>
+            <Radio.Group onChange={onContentTypeChange} value={contentType}>
+              <StyledRadio value="dashboard">{t('Dashboard')}</StyledRadio>
+              <StyledRadio value="chart">{t('Chart')}</StyledRadio>
+            </Radio.Group>
             {formatOptionEnabled && (
-              <div className="inline-container add-margin">
-                <Radio.Group onChange={onFormatChange} value={reportFormat}>
-                  <Radio value="PNG">PNG</Radio>
-                  <Radio value="CSV">CSV</Radio>
-                </Radio.Group>
+              <div className="inline-container">
+                <StyledRadioGroup
+                  onChange={onFormatChange}
+                  value={reportFormat}
+                >
+                  <StyledRadio value="PNG">{t('Send as PNG')}</StyledRadio>
+                  <StyledRadio value="CSV">{t('Send as CSV')}</StyledRadio>
+                </StyledRadioGroup>
               </div>
             )}
             <AsyncSelect
