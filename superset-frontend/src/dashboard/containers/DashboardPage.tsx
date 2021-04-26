@@ -44,6 +44,13 @@ const DashboardPage: FC = () => {
   const error = [dashboardResource, chartsResource, datasetsResource].find(
     resource => resource.status === ResourceStatus.ERROR,
   )?.error;
+
+  useEffect(() => {
+    if (dashboardResource.result) {
+      document.title = dashboardResource.result.dashboard_title;
+    }
+  }, [dashboardResource.result]);
+
   useEffect(() => {
     if (
       wasLoading &&
