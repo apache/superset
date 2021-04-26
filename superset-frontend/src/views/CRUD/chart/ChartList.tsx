@@ -542,7 +542,7 @@ function ChartList(props: ChartListProps) {
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {t('Chart1')}
+          <i className="fa fa-plus" /> {t('Chart')}
         </>
       ),
       buttonStyle: 'primary',
