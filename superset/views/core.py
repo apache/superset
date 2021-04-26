@@ -1067,8 +1067,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             views = [vn for vn in views if substr_parsed in get_datasource_label(vn)]
 
         if not schema_parsed and database.default_schemas:
-            user_schema = g.user.email.split("@")[0]
-            valid_schemas = set(database.default_schemas + [user_schema])
+            user_schemas = (
+                [g.user.email.split("@")[0]] if hasattr(g.user, "email") else []
+            )
+            valid_schemas = set(database.default_schemas + user_schemas)
 
             tables = [tn for tn in tables if tn.schema in valid_schemas]
             views = [vn for vn in views if vn.schema in valid_schemas]
@@ -1261,7 +1263,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             database.set_sqlalchemy_uri(uri)
             database.db_engine_spec.mutate_db_for_connection_test(database)
 
-            username = g.user.username if g.user is not None else None
+            username = (
+                g.user.username if g.user and hasattr(g.user, "username") else None
+            )
             engine = database.get_sqla_engine(user_name=username)
 
             with closing(engine.raw_connection()) as conn:
@@ -1515,7 +1519,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     ) -> FlaskResponse:
         """List of slices a user owns, created, modified or faved"""
         if not user_id:
-            user_id = g.user.id
+            user_id = g.user.get_id()
 
         owner_ids_query = (
             db.session.query(Slice.id)
@@ -1567,7 +1571,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     ) -> FlaskResponse:
         """List of slices created by this user"""
         if not user_id:
-            user_id = g.user.id
+            user_id = g.user.get_id()
         qry = (
             db.session.query(Slice)
             .filter(or_(Slice.created_by_fk == user_id, Slice.changed_by_fk == user_id))
@@ -1595,7 +1599,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     ) -> FlaskResponse:
         """Favorite slices for a user"""
         if not user_id:
-            user_id = g.user.id
+            user_id = g.user.get_id()
         qry = (
             db.session.query(Slice, FavStar.dttm)
             .join(
@@ -1779,8 +1783,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         edit_perm = is_owner(dash, g.user) or admin_role in get_user_roles()
         if not edit_perm:
+            username = g.user.username if hasattr(g.user, "username") else "user"
             return json_error_response(
-                f'ERROR: "{g.user.username}" cannot alter '
+                f'ERROR: "{username}" cannot alter '
                 f'dashboard "{dash.dashboard_title}"',
                 status=403,
             )
@@ -2304,7 +2309,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 rendered_query,
                 return_results=False,
                 store_results=not query.select_as_cta,
-                user_name=g.user.username if g.user else None,
+                user_name=g.user.username
+                if g.user and hasattr(g.user, "username")
+                else None,
                 start_time=now_as_float(),
                 expand_data=expand_data,
                 log_params=log_params,
@@ -2376,7 +2383,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     rendered_query,
                     return_results=True,
                     store_results=store_results,
-                    user_name=g.user.username if g.user else None,
+                    user_name=g.user.username
+                    if g.user and hasattr(g.user, "username")
+                    else None,
                     expand_data=expand_data,
                     log_params=log_params,
                 )
