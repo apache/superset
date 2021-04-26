@@ -130,6 +130,9 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
     // If error is thrown, we know not to use <Link> in render
     hasHistory = false;
   }
+
+  console.log(props.buttons);
+
   return (
     <StyledHeader>
       <Navbar inverse fluid role="navigation">

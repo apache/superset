@@ -7,29 +7,30 @@
         "plural_forms": "nplurals=1; plural=0",
         "lang": "ru"
       },
-      "Home": [""],
+      "Home": ["Домашняя страница"],
       "Annotation Layers": ["Слои аннотаций"],
       "Manage": ["Управление"],
       "Databases": ["Базы данных"],
-      "Data": ["БД"],
-      "Datasets": ["Базы данных"],
+      "Data": ["Данные"],
+      "Datasets": ["Датасеты"],
       "Charts": ["Графики"],
       "Dashboards": ["Отчёты"],
-      "Plugins": [""],
+      "Plugins": ["Плагины"],
       "CSS Templates": ["Шаблоны CSS"],
-      "Row level security": [""],
+      "row level security": ["безопасность на уровне строк"],
+      "Row level security": ["Безопасность на уровне строк"],
       "Security": ["Безопасность"],
       "Import Dashboards": ["Импорт Отчетов"],
       "SQL Editor": ["Редактор SQL"],
-      "SQL Lab": ["Лаборатория"],
+      "SQL Lab": ["SQL Лаборатория"],
       "Saved Queries": ["Сохраненные запросы"],
       "Query History": ["История запросов"],
       "Upload a CSV": ["Загрузить CSV"],
-      "Upload Excel": [""],
+      "Upload Excel": ["Загрузить Excel"],
       "Action Log": ["Журнал Действий"],
       "Dashboard Emails": ["Отчёты"],
       "Chart Email Schedules": [""],
-      "Alerts": [""],
+      "Alerts": ["Предупреждени"],
       "Alerts & Reports": [""],
       "Access requests": ["Запросы доступа"],
       "Druid Datasources": ["Источники Данных Druid"],
@@ -231,7 +232,7 @@
       "`row_limit` must be greater than or equal to 1": [""],
       "`row_offset` must be greater than or equal to 0": [""],
       "There are associated alerts or reports: %s,": [""],
-      "Database does not exist": [""],
+      "base does not exist": [""],
       "Dashboards do not exist": ["Отчёты"],
       "Datasource type is required when datasource_id is given": [""],
       "Chart parameters are invalid.": [""],
@@ -360,7 +361,7 @@
       "SQL Expression": ["Выражение SQL"],
       "D3 Format": ["Формат D3"],
       "Extra": ["Дополнительные параметры"],
-      "Row level security filter": [""],
+      "Row level security filter": ["Фильтр по безопасности на уровне строк"],
       "Show Row level security filter": [""],
       "Add Row level security filter": [""],
       "Edit Row level security filter": [""],
@@ -408,14 +409,14 @@
       "Duration (in seconds) of the caching timeout for this table. A timeout of 0 indicates that the cache never expires. Note this defaults to the database timeout if undefined.": [
         ""
       ],
-      "Database": ["БД"],
+      "Database": ["База данных"],
       "Last Changed": ["Последнее изменение"],
       "Schema": ["Схема"],
       "Offset": ["Смещение"],
       "Table Name": ["Имя Таблицы"],
       "Fetch Values Predicate": ["Извлечь Значения Предиката"],
       "Main Datetime Column": ["Основной столбец с датой"],
-      "SQL Lab View": ["Лаборатория"],
+      "SQL Lab View": ["SQL Лаборатория"],
       "Template parameters": ["Параметры шаблона"],
       "The table was created. As part of this two-phase configuration process, you should now click the edit button by the new table to configure it.": [
         "Таблица была создана. Нажмите на кнопку редактирования напротив новой таблицы, чтобы настроить её."
@@ -573,11 +574,11 @@
       ],
       "[Alert] %(label)s": ["Подписи маркеров"],
       "New": [""],
-      "SQL Query": ["Сохранить запрос"],
+      "SQL Query": ["SQL Запрос"],
       "Chart": ["График"],
       "Dashboard": ["Отчёт"],
       "Profile": ["Профиль"],
-      "Info": [""],
+      "Info": ["Информация"],
       "Logout": ["Выход из системы"],
       "Login": ["Вход в систему"],
       "Record Count": ["Количество записей"],
@@ -877,6 +878,8 @@
         "Символ, который интерпретируется как десятичная точка."
       ],
       "Dataframe Index": ["Индекс"],
+      "Write the user first name or names": ["Укажите имя пользователя"],
+      "Write the user last name": ["Укажите фамилию пользователя"],
       "Write dataframe index as a column.": [
         "Записывайте индекс данных в виде столбца."
       ],
@@ -1308,7 +1311,7 @@
       "delete": ["Удалить"],
       "Type \"%s\" to confirm": [""],
       "DELETE": [""],
-      "Click to edit": ["нажмите для изменения заголовка"],
+      "Click to edit": ["нажмите для изменения"],
       "You don't have the rights to alter this title.": [
         "Недостаточно прав для изменения заголовка."
       ],
@@ -1327,7 +1330,7 @@
       "Share dashboard": ["Сохранить отчёт"],
       "This may be triggered by:": [""],
       "Please reach out to the Chart Owner for assistance.": [""],
-      "Chart Owner: %s": ["Параметры диаграммы"],
+      "Chart Owner: %s": ["Владелец графика"],
       "%s Error": ["Ошибка"],
       "See more": [""],
       "See less": [""],
@@ -1345,18 +1348,18 @@
       ],
       "Timeout error": [""],
       "Cell content": ["Созданный контент"],
-      "The import was successful": ["Неудачно"],
+      "The import was successful": ["Импорт успешно завершен"],
       "OVERWRITE": [""],
       "Overwrite": ["Перезаписать диаграмму %s"],
       "Import": ["Импорт"],
-      "Import %s": ["Импорт"],
+      "Import %s": ["Импорт %s"],
       "Last Updated %s": [""],
       "%s Selected": ["Выполнить выбранный запрос"],
       "Deselect all": ["Выберите базу данных"],
       "%s-%s of %s": [""],
-      "Settings": ["Настройки Geojson "],
-      "About": [""],
-      "SQL query": ["Сохранить запрос"],
+      "Settings": ["Настройки"],
+      "About": ["О Superset"],
+      "SQL query": ["SQL запрос"],
       "There is not enough space for this component. Try decreasing its width, or increasing the destination width.": [
         ""
       ],
@@ -1633,7 +1636,7 @@
       "One or many metrics to display": [
         "Выберите один или несколько показателей для отображения"
       ],
-      "Dataset": ["БД"],
+      "Dataset": ["Датасет"],
       "Visualization type": ["Тип диаграммы"],
       "The type of visualization to display": [
         "Выберите необходимый тип диаграммы"
@@ -1728,7 +1731,7 @@
       "The description can be displayed as widget headers in the dashboard view. Supports markdown.": [
         ""
       ],
-      "Configuration": ["Доля"],
+      "Configuration": ["Конфигурация"],
       "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.": [
         "Продолжительность (в секундах) таймаута кэширования для этого графика."
       ],
@@ -2126,7 +2129,7 @@
       "You are importing one or more databases that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
         ""
       ],
-      "database": ["БД"],
+      "database": ["база данных"],
       "An error occurred while fetching database related data: %s": [
         "Произошла ошибка при получении метаданных из таблицы"
       ],
@@ -2161,7 +2164,7 @@
       "Operate the database in asynchronous mode, meaning that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.": [
         ""
       ],
-      "SQL Lab settings": ["Лаборатория"],
+      "SQL Lab settings": ["SQL Лаборатория"],
       "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...)": [
         "Позволяет пользователям запускать инструкции (UPDATE, DELETE, CREATE, …) без SELECT в редакторе SQL"
       ],
@@ -2273,35 +2276,35 @@
       "Delete Query?": ["Выполнить выбранный запрос"],
       "Are you sure you want to delete the selected queries?": [""],
       "Query name": ["Страна"],
-      "Edited": ["Редактировать"],
-      "Created": ["Дата создания"],
-      "Viewed": [""],
-      "Examples": [""],
-      "Mine": [""],
+      "Edited": ["По дате редактирования"],
+      "Created": ["По дате создания"],
+      "Viewed": ["По дате просмотра"],
+      "Examples": ["Примеры"],
+      "Mine": ["Мои"],
       "Recently viewed charts, dashboards, and saved queries will appear here": [
-        ""
+        "Недавное просмотренные графики, отчеты и сохраненные запросы появятся здесь"
       ],
       "Recently created charts, dashboards, and saved queries will appear here": [
-        ""
+        "Недавное созданные графики, отчеты и сохраненные запросы появятся здесь"
       ],
       "Recent example charts, dashboards, and saved queries will appear here": [
-        ""
+        "Недавное графики, отчеты и сохраненные запросы из примеров появятся здесь"
       ],
       "Recently edited charts, dashboards, and saved queries will appear here": [
-        ""
+        "Недавное отредактированные графики, отчеты и сохраненные запросы появятся здесь"
       ],
       "${tableName\n                        .split('')\n                        .slice(0, tableName.length - 1)\n                        .join('')}\n                    ": [
         ""
       ],
       "You don't have any favorites yet!": ["У вас нет прав на "],
-      "SQL Lab queries": ["Лаборатория"],
+      "SQL Lab queries": ["SQL Лаборатория"],
       "${tableName}": ["Имя Таблицы"],
       "query": ["Запрос"],
-      "Share": [""],
-      "Last run %s": [""],
-      "Recents": [""],
-      "Select start and end date": ["Выберите дату начала"],
-      "Type or Select [%s]": ["Выбрать [%s]"],
+      "Share": ["поделиться"],
+      "Last run %s": ["Последний запуск %s"],
+      "Recents": ["Недавние отчеты:"],
+      "Select start and end date": ["Выберите дату начала и окончания"],
+      "Type or Select [%s]": ["Выберите [%s]"],
       "Filter box": ["Фильтр"],
       "Filters configuration": ["Изменение настроек таблицы"],
       "Filter configuration for the filter box": [""],

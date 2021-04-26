@@ -287,7 +287,7 @@ const SavedQueries = ({
             },
           },
           {
-            name: 'View All »',
+            name: 'Показать все »',
             buttonStyle: 'link',
             onClick: () => {
               window.location.href = '/savedqueryview/list';

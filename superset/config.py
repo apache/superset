@@ -288,7 +288,7 @@ PUBLIC_ROLE_LIKE: Optional[str] = None
 # Babel config for translations
 # ---------------------------------------------------
 # Setup default language
-BABEL_DEFAULT_LOCALE = "en"
+BABEL_DEFAULT_LOCALE = "ru"
 # Your application default translation path
 BABEL_DEFAULT_FOLDER = "superset/translations"
 # The allowed translation for you app
@@ -307,7 +307,7 @@ LANGUAGES = {
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
-LANGUAGES = {}
+LANGUAGES = {"ru": {"flag": "ru", "name": "Russian"}, "en": {"flag": "us", "name": "English"}}
 
 # ---------------------------------------------------
 # Feature flags
@@ -388,7 +388,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(
     {
-        k[len("SUPERSET_FEATURE_") :]: bool(strtobool(v))
+        k[len("SUPERSET_FEATURE_"):]: bool(strtobool(v))
         for k, v in os.environ.items()
         if re.search(r"^SUPERSET_FEATURE_\w+", k)
     }

@@ -17,17 +17,17 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
-import { Moment } from 'moment';
-import { isInteger } from 'lodash';
-import { Col, InputNumber, Row } from 'src/common/components';
-import { DatePicker } from 'src/components/DatePicker';
-import { Radio } from 'src/components/Radio';
-import { Select } from 'src/components/Select';
+import {t} from '@superset-ui/core';
+import {Moment} from 'moment';
+import {isInteger} from 'lodash';
+import {Col, InputNumber, Row} from 'src/common/components';
+import {DatePicker} from 'src/components/DatePicker';
+import {Radio} from 'src/components/Radio';
+import {Select} from 'src/components/Select';
 
 import locale from 'antd/es/date-picker/locale/ru_RU';
 
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import {InfoTooltipWithTrigger} from '@superset-ui/chart-controls';
 import {
   SINCE_GRAIN_OPTIONS,
   SINCE_MODE_OPTIONS,
@@ -46,7 +46,8 @@ import {
 } from 'src/explore/components/controls/DateFilterControl/types';
 
 export function CustomFrame(props: FrameComponentProps) {
-  const { customRange, matchedFlag } = customTimeRangeDecode(props.value);
+  const {customRange, matchedFlag} = customTimeRangeDecode(props.value);
+  const locale_ru = locale;
   if (!matchedFlag) {
     props.onChange(customTimeRangeEncode(customRange));
   }
@@ -61,7 +62,7 @@ export function CustomFrame(props: FrameComponentProps) {
     untilGrainValue,
     anchorValue,
     anchorMode,
-  } = { ...customRange };
+  } = {...customRange};
 
   function onChange(control: CustomRangeKey, value: string) {
     props.onChange(
@@ -107,7 +108,7 @@ export function CustomFrame(props: FrameComponentProps) {
       );
     }
   }
-
+  
   return (
     <div data-test="custom-frame">
       <div className="section-title">{t('Configure custom time range')}</div>
@@ -138,6 +139,8 @@ export function CustomFrame(props: FrameComponentProps) {
                   onChange('sinceDatetime', datetime.format(MOMENT_FORMAT))
                 }
                 allowClear={false}
+                locale={locale_ru}
+
               />
             </Row>
           )}
@@ -196,6 +199,8 @@ export function CustomFrame(props: FrameComponentProps) {
                   onChange('untilDatetime', datetime.format(MOMENT_FORMAT))
                 }
                 allowClear={false}
+                locale={locale_ru}
+
               />
             </Row>
           )}
@@ -255,7 +260,7 @@ export function CustomFrame(props: FrameComponentProps) {
                     onChange('anchorValue', datetime.format(MOMENT_FORMAT))
                   }
                   allowClear={false}
-                  locale={locale}
+                  locale={locale_ru}
                   className="control-anchor-to-datetime"
                 />
               </Col>
