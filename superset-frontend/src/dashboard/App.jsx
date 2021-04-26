@@ -27,7 +27,6 @@ import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
 import DashboardPage from './containers/DashboardPage';
 import { theme } from '../preamble';
-import '../explore/main.less';
 
 setupApp();
 setupPlugins();

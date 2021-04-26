@@ -48,6 +48,8 @@ import FilterScope from './FilterScope/FilterScope';
 import RemovedFilter from './RemovedFilter';
 import DefaultValue from './DefaultValue';
 import { getFiltersConfigModalTestId } from '../FiltersConfigModal';
+// TODO: move styles from AdhocFilterControl to emotion and delete this ./main.less
+import './main.less';
 
 const StyledContainer = styled.div`
   display: flex;
