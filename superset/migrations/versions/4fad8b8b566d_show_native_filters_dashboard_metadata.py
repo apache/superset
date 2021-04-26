@@ -31,12 +31,21 @@ from typing import Any, Dict, Iterable
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import Column, Integer, Text
+from sqlalchemy import Column, Integer, Text, String, ForeignKey, Table
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 
 from superset import db
 
 Base = declarative_base()
+
+dashboard_slices = Table(
+    "dashboard_slices",
+    Base.metadata,
+    Column("id", Integer, primary_key=True),
+    Column("dashboard_id", Integer, ForeignKey("dashboards.id")),
+    Column("slice_id", Integer, ForeignKey("slices.id")),
+)
 
 
 class Dashboard(Base):
@@ -45,6 +54,13 @@ class Dashboard(Base):
     __tablename__ = "dashboards"
     id = Column(Integer, primary_key=True)
     json_metadata = Column(Text)
+    slices = relationship("Slice", secondary=dashboard_slices, backref="dashboards")
+
+class Slice(Base):
+    __tablename__ = "slices"
+
+    id = Column(Integer, primary_key=True)
+    viz_type = Column(String(250))
 
 
 def upgrade():
@@ -53,18 +69,20 @@ def upgrade():
 
     dashboards = (
         session.query(Dashboard)
-        .filter(Dashboard.json_metadata.notlike('%"show_native_filters"%'))
+        .outerjoin(Slice, Dashboard.slices)
+        .filter(Slice.viz_type == "filter_box")
         .all()
     )
 
     changed_filters = 0
     for dashboard in dashboards:
         try:
-            json_metadata = json.loads(dashboard.json_metadata)
+
+            json_metadata = json.loads(dashboard.json_metadata) if dashboard.json_metadata else {}
 
             json_metadata["show_native_filters"] = False
 
-            dashboard.json_metadata = json.dumps(json_metadata, sort_keys=True)
+            dashboard.json_metadata = json.dumps(json_metadata, sort_keys=True,indent=True)
 
         except Exception as e:
             print(f"Parsing json_metadata for dashboard {dashboard.id} failed.")
