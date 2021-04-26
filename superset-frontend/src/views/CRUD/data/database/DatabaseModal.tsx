@@ -117,6 +117,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
       update.extra = `${db?.extra}!`;
 
+      // metadata_params slice
       const metaDataParamsStart = update.extra.search('metadata_params') - 1;
       const metaDataParamsEnd =
         metaDataParamsStart + update.extra.search(',') - 1;
@@ -125,6 +126,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         metaDataParamsEnd,
       );
 
+      // engine_params slice
       const engineParamsStart = update.extra.search('engine_params') - 1;
       const engineParamsEnd = update.extra.search('!') - 1;
       const engineParamsSlice = update.extra.slice(
@@ -132,7 +134,28 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         engineParamsEnd,
       );
 
-      update.extra = `{${metaDataParamsSlice}, ${engineParamsSlice}, "metadata_cache_timeout": {${metaDataCacheTimeout}},  "schemas_allowed_for_csv_upload": [${schemasAllowed}]}`;
+      // metadata_cache_timeout slice
+      const metaDataCacheTimeoutSlice = `"metadata_cache_timeout": {${metaDataCacheTimeout}}`;
+
+      // schemas_allowed_for_csv_upload slice
+      const schemasAllowedSlice = `"schemas_allowed_for_csv_upload": [${schemasAllowed}]`;
+
+      console.log('BEFORE', update.extra, metaDataCacheTimeout, schemasAllowed);
+
+      update.extra = '';
+
+      console.log('DURING', update.extra);
+
+      update.extra = `{${metaDataParamsSlice}, ${engineParamsSlice}, ${metaDataCacheTimeoutSlice},  ${schemasAllowedSlice}}`;
+
+      console.log(
+        'AFTER',
+        update.extra,
+        'AFTER MDCT',
+        metaDataCacheTimeout,
+        'AFTER SA',
+        schemasAllowed,
+      );
 
       // Need to clean update object
       if (update.id) {
