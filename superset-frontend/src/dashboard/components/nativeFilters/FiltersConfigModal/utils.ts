@@ -152,6 +152,7 @@ export const createHandleSave = (
           : [],
         scope: formInputs.scope,
         isInstant: formInputs.isInstant,
+        sortMetric: formInputs.sortMetric,
       };
     });
 

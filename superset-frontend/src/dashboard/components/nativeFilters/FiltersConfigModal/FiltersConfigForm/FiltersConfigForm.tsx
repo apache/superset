@@ -21,14 +21,20 @@ import {
   t,
   getChartMetadataRegistry,
   Behavior,
+  JsonResponse,
+  SupersetApiError,
 } from '@superset-ui/core';
 import { FormInstance } from 'antd/lib/form';
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Metric } from '@superset-ui/chart-controls';
 import { Checkbox, Form, Input, Typography } from 'src/common/components';
 import { Select } from 'src/components/Select';
-import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
+import SupersetResourceSelect, {
+  cachedSupersetGet,
+} from 'src/components/SupersetResourceSelect';
 import { addDangerToast } from 'src/messageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
+import SelectControl from 'src/explore/components/controls/SelectControl';
 import { ColumnSelect } from './ColumnSelect';
 import { NativeFiltersForm } from '../types';
 import {
@@ -98,6 +104,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
   form,
   parentFilters,
 }) => {
+  const [metrics, setMetrics] = useState<Metric[]>([]);
   const forceUpdate = useForceUpdate();
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
 
@@ -115,16 +122,33 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
   const hasColumn =
     hasDataset && !FILTERS_WITHOUT_COLUMN.includes(formFilter?.filterType);
 
+  const datasetId = formFilter?.dataset?.value;
+
+  useEffect(() => {
+    if (datasetId) {
+      cachedSupersetGet({
+        endpoint: `/api/v1/dataset/${datasetId}`,
+      })
+        .then((response: JsonResponse) => {
+          setMetrics(response.json?.result?.metrics);
+        })
+        .catch((response: SupersetApiError) => {
+          addDangerToast(response.message);
+        });
+    }
+  }, [datasetId]);
+
+  const hasMetrics = hasColumn && !!metrics.length;
+
   const hasFilledDataset =
-    !hasDataset ||
-    (formFilter?.dataset?.value && (formFilter?.column || !hasColumn));
+    !hasDataset || (datasetId && (formFilter?.column || !hasColumn));
 
   useBackendFormUpdate(form, filterId, filterToEdit, hasDataset, hasColumn);
 
   const initDatasetId = filterToEdit?.targets[0]?.datasetId;
   const initColumn = filterToEdit?.targets[0]?.column?.name;
   const newFormData = getFormData({
-    datasetId: formFilter?.dataset?.value,
+    datasetId,
     groupby: hasColumn ? formFilter?.column : undefined,
     defaultValue: formFilter?.defaultValue,
     ...formFilter,
@@ -203,7 +227,6 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
               onError={onDatasetSelectError}
               onChange={e => {
                 // We need reset column when dataset changed
-                const datasetId = formFilter?.dataset?.value;
                 if (datasetId && e?.value !== datasetId) {
                   setNativeFilterFieldValues(form, filterId, {
                     column: null,
@@ -226,7 +249,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
               <ColumnSelect
                 form={form}
                 filterId={filterId}
-                datasetId={formFilter?.dataset?.value}
+                datasetId={datasetId}
                 onChange={forceUpdate}
               />
             </StyledFormItem>
@@ -297,6 +320,32 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
         form={form}
         forceUpdate={forceUpdate}
       />
+      {hasMetrics && (
+        <StyledFormItem
+          // don't show the column select unless we have a dataset
+          // style={{ display: datasetId == null ? undefined : 'none' }}
+          name={['filters', filterId, 'sortMetric']}
+          initialValue={filterToEdit?.sortMetric}
+          label={<StyledLabel>{t('Sort Metric')}</StyledLabel>}
+          data-test="field-input"
+        >
+          <SelectControl
+            form={form}
+            filterId={filterId}
+            name="sortMetric"
+            options={metrics.map((metric: Metric) => ({
+              value: metric.metric_name,
+              label: metric.metric_name,
+            }))}
+            onChange={(value: string | null): void => {
+              setNativeFilterFieldValues(form, filterId, {
+                sortMetric: value,
+              });
+              forceUpdate();
+            }}
+          />
+        </StyledFormItem>
+      )}
       <FilterScope
         updateFormValues={(values: any) =>
           setNativeFilterFieldValues(form, filterId, values)

@@ -54,6 +54,7 @@ export interface Filter {
   controlValues: {
     [key: string]: any;
   };
+  sortMetric?: string | null;
 }
 
 export type FilterConfiguration = Filter[];

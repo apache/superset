@@ -37,6 +37,7 @@ export const getFormData = ({
   defaultValue,
   controlValues,
   filterType,
+  sortMetric,
 }: Partial<Filter> & {
   datasetId?: number;
   inputRef?: RefObject<HTMLInputElement>;
@@ -65,6 +66,7 @@ export const getFormData = ({
     time_range_endpoints: ['inclusive', 'exclusive'],
     url_params: {},
     viz_type: filterType,
+    sortMetric,
     inputRef,
   };
 };

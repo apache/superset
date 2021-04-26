@@ -35,6 +35,7 @@ export interface NativeFiltersFormItem {
     value: string;
     label: string;
   };
+  sortMetric: string | null;
   isInstant: boolean;
 }
 
