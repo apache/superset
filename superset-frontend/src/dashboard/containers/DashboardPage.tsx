@@ -29,6 +29,7 @@ import { ResourceStatus } from 'src/common/hooks/apiResources/apiResources';
 import { usePrevious } from 'src/common/hooks/usePrevious';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import DashboardContainer from 'src/dashboard/containers/Dashboard';
+import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 
 const DashboardPage: FC = () => {
   const dispatch = useDispatch();
@@ -65,6 +66,7 @@ const DashboardPage: FC = () => {
           datasetsResource.result,
         ),
       );
+      injectCustomCss(dashboardResource.result.css);
       setLoaded(true);
     }
   }, [
