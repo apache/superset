@@ -108,7 +108,7 @@ export function CustomFrame(props: FrameComponentProps) {
       );
     }
   }
-  
+
   return (
     <div data-test="custom-frame">
       <div className="section-title">{t('Configure custom time range')}</div>
