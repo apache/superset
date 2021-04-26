@@ -22,16 +22,26 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { ThemeProvider } from '@superset-ui/core';
+import { CacheProvider } from '@emotion/core';
+import createCache from '@emotion/cache';
 import Menu from 'src/components/Menu/Menu';
-import { theme } from '../preamble';
+import { theme } from 'src/preamble';
 
 const container = document.getElementById('app');
 const bootstrapJson = container?.getAttribute('data-bootstrap') ?? '{}';
 const bootstrap = JSON.parse(bootstrapJson);
 const menu = { ...bootstrap.common.menu_data };
+
+const emotionCache = createCache({
+  key: 'menu',
+});
+
 const app = (
-  <ThemeProvider theme={theme}>
-    <Menu data={menu} />
-  </ThemeProvider>
+  <CacheProvider value={emotionCache}>
+    <ThemeProvider theme={theme}>
+      <Menu data={menu} />
+    </ThemeProvider>
+  </CacheProvider>
 );
+
 ReactDOM.render(app, document.getElementById('app-menu'));
