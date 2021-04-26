@@ -32,6 +32,7 @@ import { sliceId } from 'spec/fixtures/mockChartQueries';
 import { dashboardFilters } from 'spec/fixtures/mockDashboardFilters';
 import { dashboardWithFilter } from 'spec/fixtures/mockDashboardLayout';
 import Icons from 'src/components/Icons';
+import { FeatureFlag } from 'src/featureFlags';
 
 describe('FiltersBadge', () => {
   // there's this bizarre "active filters" thing
@@ -159,6 +160,10 @@ describe('FiltersBadge', () => {
     });
 
     it('shows the indicator when filters have been applied', () => {
+      // @ts-ignore
+      global.featureFlags = {
+        [FeatureFlag.DASHBOARD_NATIVE_FILTERS]: true,
+      };
       const store = getMockStoreWithNativeFilters();
       // start with basic dashboard state, dispatch an event to simulate query completion
       store.dispatch({
@@ -183,6 +188,10 @@ describe('FiltersBadge', () => {
     });
 
     it("shows a warning when there's a rejected filter", () => {
+      // @ts-ignore
+      global.featureFlags = {
+        [FeatureFlag.DASHBOARD_NATIVE_FILTERS]: true,
+      };
       const store = getMockStoreWithNativeFilters();
       // start with basic dashboard state, dispatch an event to simulate query completion
       store.dispatch({

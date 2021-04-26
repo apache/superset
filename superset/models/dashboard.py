@@ -38,7 +38,6 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import relationship, sessionmaker, subqueryload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.session import object_session
@@ -49,7 +48,6 @@ from superset import app, ConnectorRegistry, db, is_feature_enabled, security_ma
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.druid.models import DruidColumn, DruidMetric
 from superset.connectors.sqla.models import SqlMetric, TableColumn
-from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
@@ -242,30 +240,17 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @cache_manager.cache.memoize(
         # manage cache version manually
-        make_name=lambda fname: f"{fname}-v2.1",
+        make_name=lambda fname: f"{fname}-v1.0",
         unless=lambda: not is_feature_enabled("DASHBOARD_CACHE"),
     )
-    def full_data(self) -> Dict[str, Any]:
-        """Bootstrap data for rendering the dashboard page."""
-        slices = self.slices
-        datasource_slices = utils.indexed(slices, "datasource")
-        try:
-            datasources = {
-                # Filter out unneeded fields from the datasource payload
-                datasource.uid: datasource.data_for_slices(slices)
-                for datasource, slices in datasource_slices.items()
-                if datasource
-            }
-        except (SupersetException, SQLAlchemyError):
-            datasources = {}
-        return {
-            # dashboard metadata
-            "dashboard": self.data,
-            # slices metadata
-            "slices": [slc.data for slc in slices],
-            # datasource metadata
-            "datasources": datasources,
-        }
+    def datasets_trimmed_for_slices(self) -> List[Dict[str, Any]]:
+        datasource_slices = utils.indexed(self.slices, "datasource")
+        return [
+            # Filter out unneeded fields from the datasource payload
+            datasource.data_for_slices(slices)
+            for datasource, slices in datasource_slices.items()
+            if datasource
+        ]
 
     @property  # type: ignore
     def params(self) -> str:  # type: ignore
@@ -287,7 +272,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @debounce(0.1)
     def clear_cache(self) -> None:
-        cache_manager.cache.delete_memoized(Dashboard.full_data, self)
+        cache_manager.cache.delete_memoized(Dashboard.datasets_trimmed_for_slices, self)
 
     @classmethod
     @debounce(0.1)
