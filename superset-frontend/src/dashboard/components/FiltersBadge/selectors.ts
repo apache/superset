@@ -249,8 +249,8 @@ export const selectNativeIndicatorsForChart = (
 
   let crossFilterIndicators: any = [];
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
-    crossFilterIndicators = Object.values(chartConfiguration).map(
-      chartConfig => {
+    crossFilterIndicators = Object.values(chartConfiguration)
+      .map(chartConfig => {
         const scope = chartConfig?.crossFilters?.scope;
         const isAffectedByScope = getTreeCheckedItems(
           scope,
@@ -275,8 +275,8 @@ export const selectNativeIndicatorsForChart = (
           }),
           value,
         };
-      },
-    );
+      })
+      .filter(filter => filter.status === IndicatorStatus.CrossFilterApplied);
   }
   return crossFilterIndicators.concat(nativeFilterIndicators);
 };
