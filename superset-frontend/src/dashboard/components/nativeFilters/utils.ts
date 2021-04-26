@@ -44,12 +44,19 @@ export const getFormData = ({
   cascadingFilters?: object;
   groupby?: string;
 }): Partial<QueryFormData> => {
-  const otherProps: { datasource?: string; groupby?: string[] } = {};
+  const otherProps: {
+    datasource?: string;
+    groupby?: string[];
+    sortMetric?: string;
+  } = {};
   if (datasetId) {
     otherProps.datasource = `${datasetId}__table`;
   }
   if (groupby) {
     otherProps.groupby = [groupby];
+  }
+  if (sortMetric) {
+    otherProps.sortMetric = sortMetric;
   }
   return {
     ...controlValues,
@@ -66,7 +73,6 @@ export const getFormData = ({
     time_range_endpoints: ['inclusive', 'exclusive'],
     url_params: {},
     viz_type: filterType,
-    sortMetric,
     inputRef,
   };
 };

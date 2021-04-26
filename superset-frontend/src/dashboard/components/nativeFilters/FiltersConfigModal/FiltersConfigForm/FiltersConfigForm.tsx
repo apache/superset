@@ -338,10 +338,12 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
               label: metric.verbose_name ?? metric.metric_name,
             }))}
             onChange={(value: string | null): void => {
-              setNativeFilterFieldValues(form, filterId, {
-                sortMetric: value,
-              });
-              forceUpdate();
+              if (value !== undefined) {
+                setNativeFilterFieldValues(form, filterId, {
+                  sortMetric: value,
+                });
+                forceUpdate();
+              }
             }}
           />
         </StyledFormItem>
