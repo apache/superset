@@ -335,7 +335,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
             name="sortMetric"
             options={metrics.map((metric: Metric) => ({
               value: metric.metric_name,
-              label: metric.metric_name,
+              label: metric.verbose_name ?? metric.metric_name,
             }))}
             onChange={(value: string | null): void => {
               setNativeFilterFieldValues(form, filterId, {
