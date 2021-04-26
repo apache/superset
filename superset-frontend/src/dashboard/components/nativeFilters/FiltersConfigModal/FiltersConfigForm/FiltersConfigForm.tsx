@@ -111,7 +111,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
 }) => {
   const forceUpdate = useForceUpdate();
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
-  const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>({});
+  const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
     // @ts-ignore
@@ -276,8 +276,8 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
                       (c: ColumnMeta) => c.filterable,
                     ) || []
                   }
-                  savedMetrics={datasetDetails?.dataset?.metrics || []}
-                  datasource={datasetDetails?.dataset}
+                  savedMetrics={datasetDetails?.metrics || []}
+                  datasource={datasetDetails}
                   onChange={(filters: AdhocFilter[]) => {
                     setNativeFilterFieldValues(form, filterId, {
                       adhoc_filters: filters,
