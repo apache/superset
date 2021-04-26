@@ -47,13 +47,13 @@ test('it should not render a title or content when not visible', () => {
   expect(title).not.toBeInTheDocument();
 });
 
-test('renders with icon child', () => {
+test('renders with icon child', async () => {
   render(
     <Popover content="Content sample" title="Popover title">
       <Icons.Alert>Click me</Icons.Alert>
     </Popover>,
   );
-  expect(screen.getByRole('img')).toBeInTheDocument();
+  expect(await screen.findByRole('img')).toBeInTheDocument();
 });
 
 test('fires an event when visibility is changed', async () => {

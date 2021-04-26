@@ -20,44 +20,49 @@
 import React, { useEffect, useRef, useState } from 'react';
 import AntdIcon from '@ant-design/icons';
 import { styled } from '@superset-ui/core';
+import { ReactComponent as TransparentIcon } from 'images/icons/transparent.svg';
 import IconType from './IconType';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const EnhancedIcon = ({ iconColor, iconSize, ...rest }: IconType) => (
+const AntdIconComponent = ({ iconColor, iconSize, ...rest }: IconType) => (
   <AntdIcon viewBox={rest.viewBox || '0 0 24 24'} {...rest} />
 );
 
-const Icon = styled(EnhancedIcon)<IconType>`
+const StyledIcon = styled(AntdIconComponent)<IconType>`
   ${({ iconColor }) => iconColor && `color: ${iconColor};`};
   font-size: ${({ iconSize, theme }) =>
     iconSize ? `${theme.typography.sizes[iconSize]}px` : '24px'};
 `;
 
-interface LazyIconProps extends IconType {
+interface IconProps extends IconType {
   path: string;
 }
 
-export const LazyIcon = (props: LazyIconProps) => {
-  const { path } = props;
-  const [loaded, setLoaded] = useState(false);
+export const Icon = (props: IconProps) => {
+  const { path, ...iconProps } = props;
+  const [, setLoaded] = useState(false);
   const ImportedSVG = useRef<React.FC<React.SVGProps<SVGSVGElement>>>();
   const name = path.replace('_', '-');
 
   useEffect(() => {
-    const importIcon = async (): Promise<void> => {
+    async function importIcon(): Promise<void> {
       ImportedSVG.current = (
         await import(
           `!!@svgr/webpack?-svgo,+titleProp,+ref!images/icons/${path}.svg`
         )
       ).default;
       setLoaded(true);
-    };
+    }
     importIcon();
   }, [path, ImportedSVG]);
 
-  return loaded ? (
-    <Icon component={ImportedSVG.current} aria-label={name} {...props} />
-  ) : null;
+  return (
+    <StyledIcon
+      component={ImportedSVG.current || TransparentIcon}
+      aria-label={name}
+      {...iconProps}
+    />
+  );
 };
 
-export default Icon;
+export default StyledIcon;
