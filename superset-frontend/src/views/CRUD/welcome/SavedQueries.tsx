@@ -277,8 +277,7 @@ const SavedQueries = ({
           {
             name: (
               <>
-                <i className="fa fa-plus" />
-                SQL Query
+                <i className="fa fa-plus"/> {t('SQL query')}
               </>
             ),
             buttonStyle: 'tertiary',

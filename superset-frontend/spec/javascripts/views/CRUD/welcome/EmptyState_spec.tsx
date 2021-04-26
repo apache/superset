@@ -23,42 +23,42 @@ import EmptyState from 'src/views/CRUD/welcome/EmptyState';
 describe('EmptyState', () => {
   const variants = [
     {
-      tab: 'Favorite',
+      tab: 'Избранное',
       tableName: 'DASHBOARDS',
     },
     {
-      tab: 'Mine',
+      tab: 'Мои',
       tableName: 'DASHBOARDS',
     },
     {
-      tab: 'Favorite',
+      tab: 'Избранное',
       tableName: 'CHARTS',
     },
     {
-      tab: 'Mine',
+      tab: 'Мои',
       tableName: 'CHARTS',
     },
     {
-      tab: 'Favorite',
+      tab: 'Избранное',
       tableName: 'SAVED_QUERIES',
     },
     {
-      tab: 'Mine',
+      tab: 'Мои',
       tableName: 'SAVED_QUEREIS',
     },
   ];
   const recents = [
     {
-      tab: 'Viewed',
-      tableName: 'RECENTS',
+      tab: 'Просмотренные',
+      tableName: 'недавние',
     },
     {
-      tab: 'Edited',
-      tableName: 'RECENTS',
+      tab: 'Измененные',
+      tableName: 'недавние',
     },
     {
-      tab: 'Created',
-      tableName: 'RECENTS',
+      tab: 'Созданные',
+      tableName: 'недавние',
     },
   ];
   variants.forEach(variant => {
@@ -66,14 +66,15 @@ describe('EmptyState', () => {
       const wrapper = mount(<EmptyState {...variant} />);
       expect(wrapper).toExist();
       const textContainer = wrapper.find('.ant-empty-description');
+      console.log("variant", variant, '111111111111111111111111111111');
       expect(textContainer.text()).toEqual(
-        variant.tab === 'Favorite'
-          ? "You don't have any favorites yet!"
-          : `No ${
+        variant.tab === 'Избранное'
+          ? "У вас пока нет избранных"
+          : `Нет ${
               variant.tableName === 'SAVED_QUERIES'
-                ? 'saved queries'
+                ? 'сохраненных запросов'
                 : variant.tableName.toLowerCase()
-            } yet`,
+            }`,
       );
       expect(wrapper.find('button')).toHaveLength(1);
     });
