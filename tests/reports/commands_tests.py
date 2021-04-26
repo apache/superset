@@ -106,7 +106,11 @@ def get_notification_error_sent_count(report_schedule: ReportSchedule) -> int:
 
 def assert_log(state: str, error_message: Optional[str] = None):
     db.session.commit()
-    logs = db.session.query(ReportExecutionLog).all()
+    logs = (
+        db.session.query(ReportExecutionLog)
+        .order_by(ReportExecutionLog.start_dttm.desc())
+        .all()
+    )
     if state == ReportState.WORKING:
         assert len(logs) == 2
         assert logs[1].error_message == error_message
