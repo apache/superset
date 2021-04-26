@@ -16,7 +16,8 @@
 # under the License.
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -53,6 +54,70 @@ class DashboardDAO(BaseDAO):
     @staticmethod
     def get_charts_for_dashboard(id_or_slug: str) -> List[Slice]:
         return DashboardDAO.get_by_id_or_slug(id_or_slug).slices
+
+    @staticmethod
+    def get_dashboard_changed_on(
+        id_or_slug_or_dashboard: Union[str, Dashboard]
+    ) -> datetime:
+        """
+        Get latest changed datetime for a dashboard.
+
+        :param id_or_slug_or_dashboard: A dashboard or the ID or slug of the dashboard.
+        :returns: The datetime the dashboard was last changed.
+        """
+
+        dashboard = (
+            DashboardDAO.get_by_id_or_slug(id_or_slug_or_dashboard)
+            if isinstance(id_or_slug_or_dashboard, str)
+            else id_or_slug_or_dashboard
+        )
+        return dashboard.changed_on
+
+    @staticmethod
+    def get_dashboard_and_slices_changed_on(  # pylint: disable=invalid-name
+        id_or_slug_or_dashboard: Union[str, Dashboard]
+    ) -> datetime:
+        """
+        Get latest changed datetime for a dashboard. The change could be a dashboard
+        metadata change, or a change to one of its dependent slices.
+
+        :param id_or_slug_or_dashboard: A dashboard or the ID or slug of the dashboard.
+        :returns: The datetime the dashboard was last changed.
+        """
+
+        dashboard = (
+            DashboardDAO.get_by_id_or_slug(id_or_slug_or_dashboard)
+            if isinstance(id_or_slug_or_dashboard, str)
+            else id_or_slug_or_dashboard
+        )
+        dashboard_changed_on = DashboardDAO.get_dashboard_changed_on(dashboard)
+        slices_changed_on = max([slc.changed_on for slc in dashboard.slices])
+        # drop microseconds in datetime to match with last_modified header
+        return max(dashboard_changed_on, slices_changed_on).replace(microsecond=0)
+
+    @staticmethod
+    def get_dashboard_and_datasets_changed_on(  # pylint: disable=invalid-name
+        id_or_slug_or_dashboard: Union[str, Dashboard]
+    ) -> datetime:
+        """
+        Get latest changed datetime for a dashboard. The change could be a dashboard
+        metadata change, a change to one of its dependent datasets.
+
+        :param id_or_slug_or_dashboard: A dashboard or the ID or slug of the dashboard.
+        :returns: The datetime the dashboard was last changed.
+        """
+
+        dashboard = (
+            DashboardDAO.get_by_id_or_slug(id_or_slug_or_dashboard)
+            if isinstance(id_or_slug_or_dashboard, str)
+            else id_or_slug_or_dashboard
+        )
+        dashboard_changed_on = DashboardDAO.get_dashboard_changed_on(dashboard)
+        datasources_changed_on = max(
+            [datasource.changed_on for datasource in dashboard.datasources]
+        )
+        # drop microseconds in datetime to match with last_modified header
+        return max(dashboard_changed_on, datasources_changed_on).replace(microsecond=0)
 
     @staticmethod
     def validate_slug_uniqueness(slug: str) -> bool:
