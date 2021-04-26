@@ -39,13 +39,18 @@ interface ListViewResourceState<D extends object = any> {
 }
 
 const parsedErrorMessage = (
-  errorMessage: Record<string, string[]> | string,
+  errorMessage: Record<string, string[] | string> | string,
 ) => {
   if (typeof errorMessage === 'string') {
     return errorMessage;
   }
   return Object.entries(errorMessage)
-    .map(([key, value]) => `(${key}) ${value.join(', ')}`)
+    .map(([key, value]) => {
+      if (Array.isArray(value)) {
+        return `(${key}) ${value.join(', ')}`;
+      }
+      return `(${key}) ${value}`;
+    })
     .join('\n');
 };
 
