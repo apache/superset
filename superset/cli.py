@@ -801,10 +801,11 @@ def alert() -> None:
 @with_appcontext
 def update_api_docs() -> None:
     """Regenerate the openapi.json file in docs"""
+    from os import path
+
     from apispec import APISpec
     from apispec.ext.marshmallow import MarshmallowPlugin
     from flask_appbuilder.api import BaseApi
-    from os import path
 
     superset_dir = path.abspath(path.dirname(__file__))
     openapi_json = path.join(

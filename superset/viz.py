@@ -21,6 +21,7 @@ These objects represent the backend of all the visualizations that
 Superset can render.
 """
 import copy
+import dataclasses
 import inspect
 import logging
 import math
@@ -79,9 +80,6 @@ from superset.utils.core import (
 from superset.utils.date_parser import get_since_until, parse_past_timedelta
 from superset.utils.dates import datetime_to_epoch
 from superset.utils.hashing import md5_sha_from_str
-
-import dataclasses  # isort:skip
-
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
