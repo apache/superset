@@ -31,7 +31,7 @@ from typing import Any, Dict, Iterable
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import Column, Integer, Text, String, ForeignKey, Table
+from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -56,6 +56,7 @@ class Dashboard(Base):
     json_metadata = Column(Text)
     slices = relationship("Slice", secondary=dashboard_slices, backref="dashboards")
 
+
 class Slice(Base):
     __tablename__ = "slices"
 
@@ -78,11 +79,15 @@ def upgrade():
     for dashboard in dashboards:
         try:
 
-            json_metadata = json.loads(dashboard.json_metadata) if dashboard.json_metadata else {}
+            json_metadata = (
+                json.loads(dashboard.json_metadata) if dashboard.json_metadata else {}
+            )
 
             json_metadata["show_native_filters"] = False
 
-            dashboard.json_metadata = json.dumps(json_metadata, sort_keys=True,indent=True)
+            dashboard.json_metadata = json.dumps(
+                json_metadata, sort_keys=True, indent=True
+            )
 
         except Exception as e:
             print(f"Parsing json_metadata for dashboard {dashboard.id} failed.")
