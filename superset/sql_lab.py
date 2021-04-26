@@ -175,7 +175,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
             return handle_query_error(str(ex), query, session)
 
 
-# pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments, too-many-locals
 def execute_sql_statement(
     sql_statement: str,
     query: Query,
@@ -256,20 +256,8 @@ def execute_sql_statement(
             if query.limit is None or len(data) <= query.limit:
                 query.limiting_factor = LimitingFactor.NOT_LIMITED
             else:
-<<<<<<< HEAD
-                # returning 1 row less then increased limit
-=======
                 # return 1 row less than increased_query
->>>>>>> Update superset/sql_lab.py
                 data = data[:-1]
-
-    except SoftTimeLimitExceeded as ex:
-        logger.error("Query %d: Time limit exceeded", query.id)
-        logger.debug("Query %d: %s", query.id, ex)
-        raise SqlLabTimeoutException(
-            "SQL Lab timeout. This environment's policy is to kill queries "
-            "after {} seconds.".format(SQLLAB_TIMEOUT)
-        )
     except Exception as ex:
         logger.error("Query %d: %s", query.id, type(ex))
         logger.debug("Query %d: %s", query.id, ex)
