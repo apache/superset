@@ -22,13 +22,17 @@ import {
   getChartMetadataRegistry,
   Behavior,
   AdhocFilter,
+  JsonResponse,
+  SupersetApiError,
 } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { FormInstance } from 'antd/lib/form';
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Checkbox, Form, Input, Typography } from 'src/common/components';
 import { Select } from 'src/components/Select';
-import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
+import SupersetResourceSelect, {
+  cachedSupersetGet,
+} from 'src/components/SupersetResourceSelect';
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { addDangerToast } from 'src/messageToasts/actions';
@@ -107,7 +111,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
 }) => {
   const forceUpdate = useForceUpdate();
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
-
+  const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>({});
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
     // @ts-ignore
@@ -122,9 +126,28 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
   const hasColumn =
     hasDataset && !FILTERS_WITHOUT_COLUMN.includes(formFilter?.filterType);
 
+  const datasetId = formFilter?.dataset?.value;
+
+  useEffect(() => {
+    if (datasetId && hasColumn) {
+      cachedSupersetGet({
+        endpoint: `/api/v1/dataset/${datasetId}`,
+      })
+        .then((response: JsonResponse) => {
+          const dataset = response.json?.result;
+          // modify the response to fit structure expected by AdhocFilterControl
+          dataset.type = dataset.datasource_type;
+          dataset.filter_select = true;
+          setDatasetDetails(dataset);
+        })
+        .catch((response: SupersetApiError) => {
+          addDangerToast(response.message);
+        });
+    }
+  }, [datasetId, hasColumn]);
+
   const hasFilledDataset =
-    !hasDataset ||
-    (formFilter?.dataset?.value && (formFilter?.column || !hasColumn));
+    !hasDataset || (datasetId && (formFilter?.column || !hasColumn));
 
   const hasAdditionalFilters = FILTERS_WITH_ADHOC_FILTERS.includes(
     formFilter?.filterType,
@@ -135,7 +158,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
   const initDatasetId = filterToEdit?.targets[0]?.datasetId;
   const initColumn = filterToEdit?.targets[0]?.column?.name;
   const newFormData = getFormData({
-    datasetId: formFilter?.dataset?.value,
+    datasetId,
     groupby: hasColumn ? formFilter?.column : undefined,
     defaultValue: formFilter?.defaultValue,
     ...formFilter,
@@ -214,7 +237,6 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
               onError={onDatasetSelectError}
               onChange={e => {
                 // We need reset column when dataset changed
-                const datasetId = formFilter?.dataset?.value;
                 if (datasetId && e?.value !== datasetId) {
                   setNativeFilterFieldValues(form, filterId, {
                     column: null,
@@ -237,7 +259,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
               <ColumnSelect
                 form={form}
                 filterId={filterId}
-                datasetId={formFilter?.dataset?.value}
+                datasetId={datasetId}
                 onChange={forceUpdate}
               />
             </StyledFormItem>
@@ -250,12 +272,12 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
               >
                 <AdhocFilterControl
                   columns={
-                    formFilter.dataset?.columns?.filter(
+                    datasetDetails?.columns?.filter(
                       (c: ColumnMeta) => c.filterable,
                     ) || []
                   }
-                  savedMetrics={formFilter.dataset?.metrics || []}
-                  datasource={formFilter.dataset}
+                  savedMetrics={datasetDetails?.dataset?.metrics || []}
+                  datasource={datasetDetails?.dataset}
                   onChange={(filters: AdhocFilter[]) => {
                     setNativeFilterFieldValues(form, filterId, {
                       adhoc_filters: filters,

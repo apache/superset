@@ -62,7 +62,4 @@ type DatasetSelectValue = {
 export const datasetToSelectOption = (item: any): DatasetSelectValue => ({
   value: item.id,
   label: item.table_name,
-  type: item.datasource_type,
-  filter_select: true,
-  ...item,
 });
