@@ -126,17 +126,17 @@ const buildQuery: BuildQuery<TableChartFormData> = (formData: TableChartFormData
       });
     }
 
+    const interactiveGroupBy = formData.extra_form_data?.interactive_groupby;
+    if (interactiveGroupBy && queryObject.columns && queryMode === QueryMode.aggregate) {
+      queryObject.columns = [...new Set([...queryObject.columns, ...interactiveGroupBy])];
+    }
+
     if (formData.server_pagination) {
       return [
         { ...queryObject },
         { ...queryObject, row_limit: 0, row_offset: 0, post_processing: [], is_rowcount: true },
         ...extraQueries,
       ];
-    }
-
-    const interactiveGroupBy = formData.extra_form_data?.interactive_groupby;
-    if (interactiveGroupBy && queryObject.columns) {
-      queryObject.columns = [...new Set([...queryObject.columns, ...interactiveGroupBy])];
     }
 
     return [queryObject, ...extraQueries];
