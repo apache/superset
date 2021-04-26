@@ -81,8 +81,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     addDangerToast,
   );
 
-  // console.log('DBFETCHED', dbFetched);
-
   // Test Connection logic
   const testConnection = () => {
     if (!db || !db.sqlalchemy_uri || !db.sqlalchemy_uri.length) {
@@ -126,18 +124,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         metaDataParamsStart,
         metaDataParamsEnd,
       );
-      console.log('SLICE', metaDataParamsSlice);
 
       const engineParamsStart = update.extra.search('engine_params') - 1;
-      const engineParamsEnd = update.extra.search('!');
+      const engineParamsEnd = update.extra.search('!') - 1;
       const engineParamsSlice = update.extra.slice(
         engineParamsStart,
         engineParamsEnd,
       );
 
       update.extra = `{${metaDataParamsSlice}, ${engineParamsSlice}, "metadata_cache_timeout": {${metaDataCacheTimeout}},  "schemas_allowed_for_csv_upload": [${schemasAllowed}]}`;
-
-      console.log('UPDATE_OUT', update);
 
       // Need to clean update object
       if (update.id) {
@@ -146,7 +141,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
       if (db?.id) {
         updateResource(db.id, update).then(result => {
-          console.log('DB.ID, UPDATE', db.id, update);
           if (result) {
             if (onDatabaseAdd) {
               onDatabaseAdd();
