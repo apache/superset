@@ -18,13 +18,14 @@
  */
 import React from 'react';
 import Button from 'src/components/Button';
-import { Empty } from 'src/common/components';
-import { t, styled } from '@superset-ui/core';
+import {Empty} from 'src/common/components';
+import {t, styled} from '@superset-ui/core';
 
 interface EmptyStateProps {
   tableName: string;
   tab?: string;
 }
+
 const EmptyContainer = styled.div`
   min-height: 200px;
   display: flex;
@@ -34,12 +35,12 @@ const EmptyContainer = styled.div`
 const ButtonContainer = styled.div`
   Button {
     svg {
-      color: ${({ theme }) => theme.colors.grayscale.light5};
+      color: ${({theme}) => theme.colors.grayscale.light5};
     }
   }
 `;
 
-export default function EmptyState({ tableName, tab }: EmptyStateProps) {
+export default function EmptyState({tableName, tab}: EmptyStateProps) {
   const mineRedirects = {
     DASHBOARDS: '/dashboard/new',
     CHARTS: '/chart/add',
@@ -57,11 +58,11 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
     SAVED_QUERIES: 'empty-queries.svg',
   };
   const mine = (
-    <span>{`No ${
+    <span>{`Отсутствуют ${
       tableName === 'SAVED_QUERIES'
         ? t('saved queries')
         : t(`${tableName.toLowerCase()}`)
-    } yet`}</span>
+      }`}</span>
   );
   const recent = (
     <span className="no-recents">
@@ -106,13 +107,13 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
                   window.location = mineRedirects[tableName];
                 }}
               >
-                <i className="fa fa-plus" />
+                <i className="fa fa-plus"/>
                 {tableName === 'SAVED_QUERIES'
                   ? t('SQL query')
                   : t(`${tableName
-                      .split('')
-                      .slice(0, tableName.length - 1)
-                      .join('')}
+                    .split('')
+                    .slice(0, tableName.length - 1)
+                    .join('')}
                     `)}
               </Button>
             </ButtonContainer>
@@ -138,10 +139,11 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
             window.location = favRedirects[tableName];
           }}
         >
-          See all{' '}
-          {tableName === 'SAVED_QUERIES'
+          {`${t('See all')}
+          ${tableName === 'SAVED_QUERIES'
             ? t('SQL Lab queries')
-            : t(`${tableName}`)}
+            : t(tableName.toLowerCase())
+            }`}
         </Button>
       </Empty>
     </EmptyContainer>

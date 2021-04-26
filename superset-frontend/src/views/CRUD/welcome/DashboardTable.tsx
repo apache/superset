@@ -155,7 +155,7 @@ function DashboardTable({
             name: (
               <>
                 <i className="fa fa-plus" />
-                Dashboard
+                {t("Dashboard")}
               </>
             ),
             buttonStyle: 'tertiary',

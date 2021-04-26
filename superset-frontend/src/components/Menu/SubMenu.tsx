@@ -131,8 +131,6 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
     hasHistory = false;
   }
 
-  console.log(props.buttons);
-
   return (
     <StyledHeader>
       <Navbar inverse fluid role="navigation">

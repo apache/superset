@@ -172,9 +172,7 @@ function SavedQueryList({
   subMenuButtons.push({
     name: (
       <>
-        {/*<i className="fa fa-plus"/> {t('SQL query')}*/}
-        {'12213132131233'}
-
+        <i className="fa fa-plus"/> {t('SQL query')}
       </>
     ),
     onClick: openNewQuery,

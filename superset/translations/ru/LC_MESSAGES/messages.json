@@ -14,6 +14,7 @@
       "Data": ["Данные"],
       "Datasets": ["Датасеты"],
       "Charts": ["Графики"],
+      "charts": ["графики"],
       "Dashboards": ["Отчёты"],
       "Plugins": ["Плагины"],
       "CSS Templates": ["Шаблоны CSS"],
@@ -351,6 +352,7 @@
         "Задать тип данных. В некоторых случаях может потребоваться ввести тип вручную для столбцов, которые формируются специальными запросами. В большинстве случаев изменять содержимое этого поля не обязательно."
       ],
       "Table": ["Таблица"],
+      "See all": ["Посмотреть все"],
       "Expression": ["Выражение SQL"],
       "Is temporal": ["Содержит дату /время"],
       "Datetime Format": ["Формат Datetime"],
@@ -2281,6 +2283,7 @@
       "Viewed": ["По дате просмотра"],
       "Examples": ["Примеры"],
       "Mine": ["Мои"],
+      "saved queries": ["сохраненные запросы"],
       "Recently viewed charts, dashboards, and saved queries will appear here": [
         "Недавное просмотренные графики, отчеты и сохраненные запросы появятся здесь"
       ],
@@ -2296,8 +2299,8 @@
       "${tableName\n                        .split('')\n                        .slice(0, tableName.length - 1)\n                        .join('')}\n                    ": [
         ""
       ],
-      "You don't have any favorites yet!": ["У вас нет прав на "],
-      "SQL Lab queries": ["SQL Лаборатория"],
+      "You don't have any favorites yet!": ["У вас пока нет избранных!"],
+      "SQL Lab queries": ["Запросы SQL Лаборатории"],
       "${tableName}": ["Имя Таблицы"],
       "query": ["Запрос"],
       "Share": ["поделиться"],
