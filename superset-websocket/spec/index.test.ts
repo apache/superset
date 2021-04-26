@@ -23,7 +23,6 @@ import { describe, expect, test, beforeEach, afterEach } from '@jest/globals';
 import * as http from 'http';
 import * as net from 'net';
 import WebSocket from 'ws';
-import Prometheus from 'prom-client';
 
 // NOTE: these mock variables needs to start with "mock" due to
 // calls to `jest.mock` being hoisted to the top of the file.
@@ -62,41 +61,22 @@ ws_connected_client 47
 `;
 
 import * as server from '../src/index';
-import { clientSendErrorCounter, connectedClientCounter } from '../src/index';
+import { statsd } from '../src/index';
 
 describe('server', () => {
-  let clientSendErrorCounterMock: jest.SpyInstance;
-  let connectedClientCounterMock: jest.SpyInstance;
+  let statsdIncrementMock: jest.SpyInstance;
 
   beforeEach(() => {
     mockRedisXrange.mockClear();
     server.resetState();
-    clientSendErrorCounterMock = jest
-      .spyOn(clientSendErrorCounter, 'inc')
-      .mockReturnValue();
-    connectedClientCounterMock = jest
-      .spyOn(connectedClientCounter, 'inc')
-      .mockReturnValue();
+    statsdIncrementMock = jest.spyOn(statsd, 'increment').mockReturnValue();
   });
 
   afterEach(() => {
-    clientSendErrorCounterMock.mockRestore();
-    connectedClientCounterMock.mockRestore();
+    statsdIncrementMock.mockRestore();
   });
 
   describe('HTTP requests', () => {
-    let metricsMock: jest.SpyInstance;
-
-    beforeEach(() => {
-      metricsMock = jest
-        .spyOn(Prometheus.register, 'metrics')
-        .mockResolvedValue(metricsResponse);
-    });
-
-    afterEach(() => {
-      metricsMock.mockRestore();
-    });
-
     test('services health checks', async () => {
       const endMock = jest.fn();
       const writeHeadMock = jest.fn();
@@ -121,35 +101,6 @@ describe('server', () => {
 
       expect(endMock).toBeCalledTimes(1);
       expect(endMock).toHaveBeenLastCalledWith('OK');
-    });
-
-    test('exporting metrics', async () => {
-      const endMock = jest.fn();
-      const writeHeadMock = jest.fn();
-
-      const request = {
-        url: '/metrics',
-        method: 'GET',
-        headers: {
-          host: 'example.com',
-        },
-      };
-
-      const response = {
-        writeHead: writeHeadMock,
-        end: endMock,
-      };
-
-      await server.httpRequest(request as any, response as any);
-
-      expect(writeHeadMock).toBeCalledTimes(1);
-      expect(writeHeadMock).toHaveBeenLastCalledWith(200, {
-        'Content-Type': 'text/plain; version=0.0.4; charset=utf-8',
-      });
-
-      expect(metricsMock).toBeCalledTimes(1);
-      expect(endMock).toBeCalledTimes(1);
-      expect(endMock).toHaveBeenLastCalledWith(metricsResponse);
     });
 
     test('reponds with a 404 when not found', async () => {
@@ -230,11 +181,17 @@ describe('server', () => {
       const ws = new wsMock('localhost');
       const sendMock = jest.spyOn(ws, 'send');
       const socketInstance = { ws: ws, channel: channelId, pongTs: Date.now() };
-      server.trackClient(channelId, socketInstance);
 
-      expect(clientSendErrorCounterMock).toBeCalledTimes(0);
+      expect(statsdIncrementMock).toBeCalledTimes(0);
+      server.trackClient(channelId, socketInstance);
+      expect(statsdIncrementMock).toBeCalledTimes(1);
+      expect(statsdIncrementMock).toHaveBeenNthCalledWith(
+        1,
+        'ws_connected_client',
+      );
+
       server.processStreamResults(streamReturnValue);
-      expect(clientSendErrorCounterMock).toBeCalledTimes(0);
+      expect(statsdIncrementMock).toBeCalledTimes(1);
 
       const message1 = `{"id":"1615426152415-0","channel_id":"${channelId}","job_id":"c9b99965-8f1e-4ce5-aa43-d6fc94d6a510","user_id":"1","status":"done","errors":[],"result_url":"/superset/explore_json/data/ejr-37281682b1282cdb8f25e0de0339b386"}`;
       const message2 = `{"id":"1615426152516-0","channel_id":"${channelId}","job_id":"f1e5bb1f-f2f1-4f21-9b2f-c9b91dcc9b59","user_id":"1","status":"done","errors":[],"result_url":"/api/v1/chart/data/qc-64e8452dc9907dd77746cb75a19202de"}`;
@@ -246,9 +203,9 @@ describe('server', () => {
       const ws = new wsMock('localhost');
       const sendMock = jest.spyOn(ws, 'send');
 
-      expect(clientSendErrorCounterMock).toBeCalledTimes(0);
+      expect(statsdIncrementMock).toBeCalledTimes(0);
       server.processStreamResults(streamReturnValue);
-      expect(clientSendErrorCounterMock).toBeCalledTimes(0);
+      expect(statsdIncrementMock).toBeCalledTimes(0);
 
       expect(sendMock).not.toHaveBeenCalled();
     });
@@ -260,11 +217,21 @@ describe('server', () => {
       });
       const cleanChannelMock = jest.spyOn(server, 'cleanChannel');
       const socketInstance = { ws: ws, channel: channelId, pongTs: Date.now() };
-      server.trackClient(channelId, socketInstance);
 
-      expect(clientSendErrorCounterMock).toBeCalledTimes(0);
+      expect(statsdIncrementMock).toBeCalledTimes(0);
+      server.trackClient(channelId, socketInstance);
+      expect(statsdIncrementMock).toBeCalledTimes(1);
+      expect(statsdIncrementMock).toHaveBeenNthCalledWith(
+        1,
+        'ws_connected_client',
+      );
+
       server.processStreamResults(streamReturnValue);
-      expect(clientSendErrorCounterMock).toBeCalledTimes(1);
+      expect(statsdIncrementMock).toBeCalledTimes(2);
+      expect(statsdIncrementMock).toHaveBeenNthCalledWith(
+        2,
+        'ws_client_send_error',
+      );
 
       expect(sendMock).toHaveBeenCalled();
       expect(cleanChannelMock).toHaveBeenCalledWith(channelId);
@@ -441,16 +408,6 @@ describe('server', () => {
         listener: server.processStreamResults,
       });
       expect(wsEventMock).toHaveBeenCalledWith('pong', expect.any(Function));
-    });
-  });
-
-  describe('trackClient', () => {
-    test('counts connected clients', () => {
-      const ws = new wsMock('localhost');
-      const socketInstance = { ws: ws, channel: channelId, pongTs: Date.now() };
-      expect(connectedClientCounterMock).toBeCalledTimes(0);
-      server.trackClient(channelId, socketInstance);
-      expect(connectedClientCounterMock).toBeCalledTimes(1);
     });
   });
 

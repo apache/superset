@@ -23,7 +23,7 @@ import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
 import cookie from 'cookie';
 import Redis from 'ioredis';
-import Prometheus from 'prom-client';
+import StatsD from 'hot-shots';
 
 import { createLogger } from './logger';
 
@@ -85,7 +85,11 @@ export const opts = {
   logLevel: 'info',
   logToFile: false,
   logFilename: 'app.log',
-  collectDefaultMetrics: true,
+  statsd: {
+    host: '127.0.0.1',
+    port: 8125,
+    globalTags: [],
+  },
   redis: {
     port: 6379,
     host: '127.0.0.1',
@@ -106,7 +110,7 @@ export const opts = {
 const startServer = process.argv[2] === 'start';
 const configFile =
   environment === 'test' ? '../config.test.json' : '../config.json';
-let config = {};
+let config = {} as typeof opts;
 try {
   config = require(configFile);
 } catch (err) {
@@ -123,18 +127,13 @@ const logger = createLogger({
   logFilename: opts.logFilename,
 });
 
-if (opts.collectDefaultMetrics) {
-  Prometheus.collectDefaultMetrics();
-}
-
-export const clientSendErrorCounter = new Prometheus.Counter({
-  name: 'ws_client_send_error',
-  help: 'Number of times server failed to send event to client',
-});
-
-export const connectedClientCounter = new Prometheus.Counter({
-  name: 'ws_connected_client',
-  help: 'Number of clients connected',
+export const statsd = new StatsD({
+  host: opts.statsd.host,
+  port: opts.statsd.port,
+  globalTags: opts.statsd.globalTags,
+  errorHandler: (e: Error) => {
+    logger.error(e);
+  },
 });
 
 // enforce JWT secret length
@@ -176,7 +175,7 @@ export const trackClient = (
   channel: string,
   socketInstance: SocketInstance,
 ): string => {
-  connectedClientCounter.inc();
+  statsd.increment('ws_connected_client');
 
   const socketId = uuidv4();
   sockets[socketId] = socketInstance;
@@ -207,7 +206,7 @@ export const sendToChannel = (channel: string, value: EventValue): void => {
     try {
       socketInstance.ws.send(strData);
     } catch (err) {
-      clientSendErrorCounter.inc();
+      statsd.increment('ws_client_send_error');
       logger.debug(`Error sending to socket: ${err}`);
       // check that the connection is still active
       cleanChannel(channel);
@@ -362,7 +361,7 @@ export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
 /**
  * HTTP `request` event handler, called via httpServer
  */
-export const httpRequest = async (
+export const httpRequest = (
   request: http.IncomingMessage,
   response: http.ServerResponse,
 ) => {
@@ -373,17 +372,6 @@ export const httpRequest = async (
   if (url.pathname === '/health' && ['GET', 'HEAD'].includes(method)) {
     response.writeHead(200);
     response.end('OK');
-  } else if (url.pathname === '/metrics' && method === 'GET') {
-    try {
-      response.writeHead(200, {
-        'Content-Type': Prometheus.register.contentType,
-      });
-      response.end(await Prometheus.register.metrics());
-    } catch (e) {
-      logger.error(e);
-      response.writeHead(500);
-      response.end(`Error exporting metrics: ${e.message}`);
-    }
   } else {
     logger.info(`Received unexpected request: ${method} ${rawUrl}`);
     response.writeHead(404);
