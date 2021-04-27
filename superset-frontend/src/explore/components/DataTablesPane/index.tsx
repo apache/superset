@@ -19,7 +19,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { JsonObject, styled, t } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
-import Tabs from 'src/common/components/Tabs';
+import Tabs from 'src/components/Tabs';
 import Loading from 'src/components/Loading';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import { getChartDataRequest } from 'src/chart/chartAction';
