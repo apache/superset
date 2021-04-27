@@ -28,7 +28,10 @@ import {
 import { triggerQuery } from '../../chart/chartAction';
 import { logEvent } from '../../logger/actions';
 import { getActiveFilters } from '../util/activeDashboardFilters';
-import { getAllActiveFilters } from '../util/activeAllDashboardFilters';
+import {
+  getAllActiveFilters,
+  getRelevantDataMask,
+} from '../util/activeAllDashboardFilters';
 
 function mapStateToProps(state) {
   const {
@@ -62,14 +65,11 @@ function mapStateToProps(state) {
         // eslint-disable-next-line camelcase
         chartConfiguration: dashboardInfo.metadata?.chart_configuration,
         nativeFilters: nativeFilters.filters,
-        dataMask,
+        dataMask: getRelevantDataMask(dataMask, 'isApplied'),
         layout: dashboardLayout.present,
       }),
     },
-    ownDataCharts: Object.values(dataMask).reduce(
-      (prev, next) => ({ ...prev, [next.id]: next.ownState }),
-      {},
-    ),
+    ownDataCharts: getRelevantDataMask(dataMask, 'ownState', 'ownState'),
     slices: sliceEntities.slices,
     layout: dashboardLayout.present,
     impressionId,

@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { DataMaskStateWithId } from 'src/dataMask/types';
 import { CHART_TYPE } from './componentTypes';
 import { Scope } from '../components/nativeFilters/types';
 import { ActiveFilters, LayoutItem } from '../types';
 import { ChartConfiguration, Filters } from '../reducers/types';
 import { DASHBOARD_ROOT_ID } from './constants';
-import { DataMaskStateWithId } from '../../dataMask/types';
 
 // Looking for affected chart scopes and values
 export const findAffectedCharts = ({
@@ -70,6 +70,18 @@ export const findAffectedCharts = ({
     }),
   );
 };
+
+export const getRelevantDataMask = (
+  dataMask: DataMaskStateWithId,
+  filterBy: string,
+  prop?: string,
+) =>
+  Object.values(dataMask)
+    .filter(item => item[filterBy])
+    .reduce(
+      (prev, next) => ({ ...prev, [next.id]: prop ? next[prop] : next }),
+      {},
+    );
 
 export const getAllActiveFilters = ({
   chartConfiguration,
