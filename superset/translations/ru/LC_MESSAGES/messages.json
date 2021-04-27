@@ -1382,8 +1382,8 @@
       ],
       "Visualization": ["Тип диаграммы"],
       "Data source": ["Источник данных"],
-      "Added": [""],
-      "Components": [""],
+      "Added": ["Добавлен"],
+      "Components": ["Компоненты"],
       "Any color palette selected here will override the colors applied to this dashboard's individual charts": [
         ""
       ],
@@ -1408,7 +1408,7 @@
       "Check out this dashboard: ": ["Отладка отчёта: %s"],
       "Refresh dashboard": ["Обновить отчет"],
       "Set auto-refresh interval": ["Установить интервал автообновления"],
-      "Set filter mapping": [""],
+      "Set filter mapping": ["Установить распределение фильтров"],
       "Edit dashboard properties": ["Редактировать свойства отчёта"],
       "Edit CSS": ["Редактировать CSS"],
       "Download as image": ["Сохранить как изображение"],
@@ -1445,6 +1445,7 @@
       ],
       "This dashboard is published. Click to make it a draft.": ["Этот отчет опубликован. Нажмите сюда, чтобы сделать его черновиком"],
       "Draft": ["Черновик"],
+      "draft": ["черновик"],
       "Don't refresh": ["Не обновлять"],
       "10 seconds": ["10 секунд"],
       "30 seconds": ["30 секунд"],
@@ -1501,7 +1502,7 @@
         ""
       ],
       "Delete dashboard tab?": ["Сохранить отчёт"],
-      "Divider": ["Делитель"],
+      "Divider": ["Разделитель"],
       "Header": ["Строка заголовков"],
       "Row": ["Ряд"],
       "Tabs": ["Вкладки"],
@@ -1678,7 +1679,7 @@
       "Limits the number of time series that get displayed. A sub query (or an extra phase where sub queries are not supported) is applied to limit the number of time series that get fetched and displayed. This feature is useful when grouping by high cardinality dimension(s).": [
         "Ограничивает количество отображаемых временных рядов."
       ],
-      "Sort by": ["Сортировка"],
+      "Sort by": ["Сортировать по"],
       "Metric used to define the top series": [
         "Показатель, используемый для определения какие временные ряды будут отображаться при ограничении количества выводимых рядов"
       ],
@@ -1744,16 +1745,16 @@
       "Limit reached": ["Достигнут предел"],
       "**Select** a dashboard OR **create** a new one": [""],
       "Please enter a chart name": ["Введите имя отчёта"],
-      "Save chart": ["Круговая диаграмма"],
+      "Save chart": ["Сохранить график"],
       "Save & go to dashboard": ["Сохранить и перейти к отчёту"],
-      "Save as new chart": ["Сохранить отчёт"],
-      "Save (Overwrite)": ["Сохраненные запросы"],
-      "Save as ...": ["Сохранить как"],
-      "Chart name": ["Тип графика"],
-      "Add to dashboard": ["Добавить в новый отчёт"],
-      "Display configuration": ["Неверная конфигурация широты и долготы."],
+      "Save as new chart": ["Сохранить как новый график"],
+      "Save (Overwrite)": ["Сохранить (перезаписать)"],
+      "Save as ...": ["Сохранить как ..."],
+      "Chart name": ["Название графика"],
+      "Add to dashboard": ["Добавить в отчёт"],
+      "Display configuration": ["Отобразить конфигурацию"],
       "Configure your how you overlay is displayed here.": [""],
-      "Style": ["Стиль Карты"],
+      "Style": ["Стиль"],
       "Opacity": ["Прозрачность"],
       "Color": ["Цвет"],
       "Line width": ["Толщина линии"],
@@ -1763,7 +1764,7 @@
       "Hide layer": ["Скрыть панель инструментов"],
       "Choose the annotation layer type": ["Добавить слой аннотации"],
       "Annotation layer type": ["Слои аннотаций"],
-      "Remove": [""],
+      "Remove": ["Удалить"],
       "Edit annotation layer": ["Добавить слой аннотации"],
       "Add annotation layer": ["Добавить слой аннотации"],
       "`Min` value should be numeric or empty": [
@@ -1907,7 +1908,7 @@
       "Defines a rolling window function to apply, works along with the [Periods] text box": [
         "Одна из функций (Rolling) библиотеки Pandas, которая определяет способ агрегации данных."
       ],
-      "Periods": ["Период"],
+      "Periods": ["Периоды"],
       "Defines the size of the rolling window function, relative to the time granularity selected": [
         "Одна из функций (Rolling) библиотеки Pandas, которая определяет период, к которому применяется функция агрегации."
       ],
@@ -2393,7 +2394,10 @@
       "Pivot Table": ["Сводная таблица"],
       "Time column": ["Столбец с датой и временем"],
       "Filter box": ["Фильтр"],
-      "Table": ["Таблица"]
+      "Table": ["Таблица"],
+
+      "Recent": ["Недавние"],
+      "Vis type": ["Тип визуализации"]
     }
   }
 }
