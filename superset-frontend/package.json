@@ -64,6 +64,7 @@
     "@ant-design/icons": "^4.2.2",
     "@babel/runtime-corejs3": "^7.12.5",
     "@data-ui/sparkline": "^0.0.84",
+    "@emotion/cache": "^11.1.3",
     "@emotion/core": "^10.0.35",
     "@superset-ui/chart-controls": "^0.17.36",
     "@superset-ui/core": "^0.17.32",
