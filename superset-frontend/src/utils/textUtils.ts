@@ -1,5 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
+/* Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
  * regarding copyright ownership.  The ASF licenses this file
@@ -16,27 +15,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../stylesheets/less/variables.less';
 
-.TableSelector .fa-refresh {
-  padding-left: 9px;
-}
+/* eslint-disable global-require */
+const loadModule = () => {
+  let module;
+  try {
+    // @ts-ignore
+    module = require('../../../superset_text'); // eslint-disable-line import/no-unresolved
+  } catch (e) {
+    module = {};
+  }
+  return module;
+};
 
-.TableSelector .section {
-  padding-bottom: 5px;
-  display: flex;
-  flex-direction: row;
-}
+const supersetText = loadModule();
 
-.TableSelector .select {
-  flex-grow: 1;
-}
-
-.TableSelector .divider {
-  border-bottom: 1px solid @gray-bg;
-  margin: 15px 0;
-}
-
-.TableLabel {
-  white-space: nowrap;
-}
+export default supersetText;

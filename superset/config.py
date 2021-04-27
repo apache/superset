@@ -409,7 +409,7 @@ FEATURE_FLAGS: Dict[str, bool] = {}
 # from flask import g, request
 # def GET_FEATURE_FLAGS_FUNC(feature_flags_dict: Dict[str, bool]) -> Dict[str, bool]:
 #     if hasattr(g, "user") and g.user.is_active:
-#         feature_flags_dict['some_feature'] = g.user and g.user.id == 5
+#         feature_flags_dict['some_feature'] = g.user and g.user.get_id() == 5
 #     return feature_flags_dict
 GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] = None
 
@@ -791,9 +791,16 @@ CSV_TO_HIVE_UPLOAD_S3_BUCKET = None
 CSV_TO_HIVE_UPLOAD_DIRECTORY = "EXTERNAL_HIVE_TABLES/"
 # Function that creates upload directory dynamically based on the
 # database used, user and schema provided.
-CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC: Callable[
-    ["Database", "models.User", str], Optional[str]
-] = lambda database, user, schema: CSV_TO_HIVE_UPLOAD_DIRECTORY
+def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(
+    database: "Database",
+    user: "models.User",  # pylint: disable=unused-argument
+    schema: Optional[str],
+) -> str:
+    # Note the final empty path enforces a trailing slash.
+    return os.path.join(
+        CSV_TO_HIVE_UPLOAD_DIRECTORY, str(database.id), schema or "", ""
+    )
+
 
 # The namespace within hive where the tables created from
 # uploading CSVs will be stored.
@@ -956,6 +963,9 @@ ALERT_REPORTS_WORKING_TIME_OUT_LAG = 10
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = 1
+# If set to true no notification is sent, the worker will just log a message.
+# Useful for debugging
+ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
 
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
@@ -1060,6 +1070,18 @@ SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",
     "postgresql": "PostgreSQLValidator",
 }
+
+# A list of preferred databases, in order. These databases will be
+# displayed prominently in the "Add Database" dialog. You should
+# use the "engine" attribute of the corresponding DB engine spec in
+# `superset/db_engine_specs/`.
+PREFERRED_DATABASES: List[str] = [
+    # "postgresql",
+    # "presto",
+    # "mysql",
+    # "sqlite",
+    # etc.
+]
 
 # Do you want Talisman enabled?
 TALISMAN_ENABLED = False

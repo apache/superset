@@ -76,7 +76,9 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             """,
             description=self._content.description or "",
             url=self._content.url,
-            img_tag=f'<img src="cid:{msgid}">' if self._content.screenshot else "",
+            img_tag='<img src="cid:{}">'.format(msgid)
+            if self._content.screenshot
+            else "",
         )
         if self._content.screenshot:
             image = {msgid: self._content.screenshot}

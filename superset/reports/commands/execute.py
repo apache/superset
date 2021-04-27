@@ -270,9 +270,10 @@ class BaseReportState:
             csv=csv_data,
         )
 
-    @staticmethod
     def _send(
-        notification_content: NotificationContent, recipients: List[ReportRecipients]
+        self,
+        notification_content: NotificationContent,
+        recipients: List[ReportRecipients],
     ) -> None:
         """
         Sends a notification to all recipients
@@ -283,7 +284,14 @@ class BaseReportState:
         for recipient in recipients:
             notification = create_notification(recipient, notification_content)
             try:
-                notification.send()
+                if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
+                    logger.info(
+                        "Would send notification for alert %s, to %s",
+                        self._report_schedule.name,
+                        recipient.recipient_config_json,
+                    )
+                else:
+                    notification.send()
             except NotificationError as ex:
                 # collect notification errors but keep processing them
                 notification_errors.append(str(ex))

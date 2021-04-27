@@ -35,8 +35,8 @@ import {
   InfoTooltipWithTrigger,
 } from '@superset-ui/chart-controls';
 
-import Tabs from 'src/common/components/Tabs';
 import Collapse from 'src/components/Collapse';
+import Tabs from 'src/components/Tabs';
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
 
