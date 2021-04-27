@@ -33,7 +33,7 @@ export type DatabaseObject = {
 
   // Performance
   cache_timeout?: string;
-  metadata_cache_timeout?: number;
+  metadata_cache_timeout?: {};
   allow_run_async?: boolean;
 
   // SQL Lab

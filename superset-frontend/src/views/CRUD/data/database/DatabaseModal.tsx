@@ -62,8 +62,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [db, setDB] = useState<DatabaseObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
-  const [schemasAllowed, setSchemasAllowed] = useState<string>('');
-  const [metaDataCacheTimeout, setMetaDataCacheTimeout] = useState<string>('');
+  const [schemasAllowed, setSchemasAllowed] = useState<string>('[]');
+  const [metaDataCacheTimeout, setMetaDataCacheTimeout] = useState<string>(
+    '{}',
+  );
   const conf = useCommonConf();
 
   const isEditMode = database !== null;
@@ -115,47 +117,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         ...db,
       };
 
-      update.extra = `${db?.extra}!`;
-
-      // metadata_params slice
-      const metaDataParamsStart = update.extra.search('metadata_params') - 1;
-      const metaDataParamsEnd =
-        metaDataParamsStart + update.extra.search(',') - 1;
-      const metaDataParamsSlice = update.extra.slice(
-        metaDataParamsStart,
-        metaDataParamsEnd,
-      );
-
-      // engine_params slice
-      const engineParamsStart = update.extra.search('engine_params') - 1;
-      const engineParamsEnd = update.extra.search('!') - 1;
-      const engineParamsSlice = update.extra.slice(
-        engineParamsStart,
-        engineParamsEnd,
-      );
-
-      // metadata_cache_timeout slice
-      const metaDataCacheTimeoutSlice = `"metadata_cache_timeout": {${metaDataCacheTimeout}}`;
-
-      // schemas_allowed_for_csv_upload slice
-      const schemasAllowedSlice = `"schemas_allowed_for_csv_upload": [${schemasAllowed}]`;
-
-      console.log('BEFORE', update.extra, metaDataCacheTimeout, schemasAllowed);
-
-      update.extra = '';
-
-      console.log('DURING', update.extra);
-
-      update.extra = `{${metaDataParamsSlice}, ${engineParamsSlice}, ${metaDataCacheTimeoutSlice},  ${schemasAllowedSlice}}`;
-
-      console.log(
-        'AFTER',
-        update.extra,
-        'AFTER MDCT',
-        metaDataCacheTimeout,
-        'AFTER SA',
-        schemasAllowed,
-      );
+      // Parse 'extra' field
+      const extraParsed = JSON.parse(update?.extra || defaultExtra);
+      // Add cache_timeout and schema values
+      extraParsed.metadata_cache_timeout = metaDataCacheTimeout;
+      extraParsed.schemas_allowed_for_csv_upload = schemasAllowed;
+      // Re-stringify
+      update.extra = JSON.stringify(extraParsed);
 
       // Need to clean update object
       if (update.id) {
@@ -255,6 +223,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
       fetchResource(id)
         .then(() => {
+          // Altering 'extra' JSON before returning it to 'extra' text field
+          if (dbFetched && dbFetched.extra) {
+            // Parse 'extra' field
+            const extraParsed = JSON.parse(dbFetched.extra || defaultExtra);
+            // Remove metadata_cache_timeout and schemas_allowed_for_csv_upload
+            delete extraParsed.metadata_cache_timeout;
+            delete extraParsed.schemas_allowed_for_csv_upload;
+            // Re-stringify and add back to dbFetched object
+            dbFetched.extra = JSON.stringify(extraParsed);
+          }
           setDB(dbFetched);
         })
         .catch(e =>
