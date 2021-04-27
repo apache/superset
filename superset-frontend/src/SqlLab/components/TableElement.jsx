@@ -19,13 +19,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Card from 'src/common/components/Card';
-import Collapse from 'src/common/components/Collapse';
+import Collapse from 'src/components/Collapse';
 import ButtonGroup from 'src/components/ButtonGroup';
 import shortid from 'shortid';
 import { t, styled } from '@superset-ui/core';
 import { debounce } from 'lodash';
 
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { IconTooltip } from '../../components/IconTooltip';
 import ColumnElement from './ColumnElement';

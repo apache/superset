@@ -20,11 +20,12 @@
 # development environments. Also note that superset_config_docker.py is imported
 # as a final step as a means to override "defaults" configured here
 #
-
 import logging
 import os
+from datetime import timedelta
 
 from cachelib.file import FileSystemCache
+from celery.schedules import crontab
 
 logger = logging.getLogger()
 
@@ -70,13 +71,31 @@ RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
 
 class CeleryConfig(object):
     BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
-    CELERY_IMPORTS = ("superset.sql_lab",)
+    CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks")
     CELERY_RESULT_BACKEND = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_RESULTS_DB}"
-    CELERY_ANNOTATIONS = {"tasks.add": {"rate_limit": "10/s"}}
-    CELERY_TASK_PROTOCOL = 1
+    CELERYD_LOG_LEVEL = "DEBUG"
+    CELERYD_PREFETCH_MULTIPLIER = 1
+    CELERY_ACKS_LATE = False
+    CELERYBEAT_SCHEDULE = {
+        "reports.scheduler": {
+            "task": "reports.scheduler",
+            "schedule": crontab(minute="*", hour="*"),
+        },
+        "reports.prune_log": {
+            "task": "reports.prune_log",
+            "schedule": crontab(minute=10, hour=0),
+        },
+    }
 
 
 CELERY_CONFIG = CeleryConfig
+
+FEATURE_FLAGS = {"ALERT_REPORTS": True}
+ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
+WEBDRIVER_BASEURL = "http://superset:8088/"
+# The base URL for the email report hyperlinks.
+WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
+
 SQLLAB_CTAS_NO_LIMIT = True
 
 #

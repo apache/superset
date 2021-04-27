@@ -17,16 +17,24 @@
  * under the License.
  */
 import React from 'react';
+<<<<<<< HEAD
 import { Col, Row } from 'antd';
 import Tabs from 'src/common/components/Tabs';
 import { t, styled } from '@superset-ui/core';
 
+=======
+import { Row, Col } from 'src/common/components';
+import { Panel } from 'react-bootstrap';
+import Tabs from 'src/common/components/Tabs';
+import { t } from '@superset-ui/core';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+>>>>>>> 4fbb57256844f6a4021c8af90d9e5464a222257d
 import Favorites from './Favorites';
 import UserInfo from './UserInfo';
 import Security from './Security';
 import RecentActivity from './RecentActivity';
 import CreatedContent from './CreatedContent';
-import { UserWithPermissionsAndRoles } from '../../types/bootstrapTypes';
+import { Tab } from 'react-bootstrap';
 
 interface AppProps {
   user: UserWithPermissionsAndRoles;
@@ -43,13 +51,12 @@ const StyledPanel = styled.div`
 export default function App({ user }: AppProps) {
   return (
     <div className="container app">
-      <Row>
-        <Col sm={24} md={6}>
+      <Row gutter={16}>
+        <Col xs={24} md={6}>
           <UserInfo user={user} />
         </Col>
-          <Col sm={24} md={18}>
-
-        <StyledPanel>
+        <Col xs={24} md={18}>
+          <StyledPanel>
             <Tabs centered>
               <Tabs.TabPane
                 key="1"
@@ -89,12 +96,11 @@ export default function App({ user }: AppProps) {
                   </div>
                 }
               >
-                <Security user={user} />
+                    <Security user={user} />
               </Tabs.TabPane>
             </Tabs>
-
-        </StyledPanel>
-          </Col>
+          </StyledPanel>
+        </Col>
       </Row>
     </div>
   );

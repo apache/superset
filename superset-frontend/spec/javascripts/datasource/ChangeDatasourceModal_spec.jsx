@@ -24,7 +24,7 @@ import thunk from 'redux-thunk';
 import { act } from 'react-dom/test-utils';
 import sinon from 'sinon';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import mockDatasource from 'spec/fixtures/mockDatasource';

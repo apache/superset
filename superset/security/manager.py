@@ -434,7 +434,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             view_menu_names = (
                 base_query.join(assoc_user_role)
                 .join(self.user_model)
-                .filter(self.user_model.id == g.user.id)
+                .filter(self.user_model.id == g.user.get_id())
                 .filter(self.permission_model.name == permission_name)
             ).all()
             return {s.name for s in view_menu_names}
@@ -1044,7 +1044,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             user_roles = (
                 self.get_session.query(assoc_user_role.c.role_id)
-                .filter(assoc_user_role.c.user_id == g.user.id)
+                .filter(assoc_user_role.c.user_id == g.user.get_id())
                 .subquery()
             )
             regular_filter_roles = (
@@ -1139,7 +1139,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     @staticmethod
     def can_access_based_on_dashboard(datasource: "BaseDatasource") -> bool:
         from superset import db
-        from superset.dashboards.filters import DashboardFilter
+        from superset.dashboards.filters import DashboardAccessFilter
         from superset.models.slice import Slice
         from superset.models.dashboard import Dashboard
 
@@ -1150,7 +1150,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .filter(datasource_class.id == datasource.id)
         )
 
-        query = DashboardFilter("id", SQLAInterface(Dashboard, db.session)).apply(
+        query = DashboardAccessFilter("id", SQLAInterface(Dashboard, db.session)).apply(
             query, None
         )
 

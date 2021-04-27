@@ -64,11 +64,13 @@ export default class AdhocFilterEditPopover extends React.Component {
     this.onMouseUp = this.onMouseUp.bind(this);
     this.onAdhocFilterChange = this.onAdhocFilterChange.bind(this);
     this.adjustHeight = this.adjustHeight.bind(this);
+    this.onTabChange = this.onTabChange.bind(this);
 
     this.state = {
       adhocFilter: this.props.adhocFilter,
       width: startingWidth,
       height: startingHeight,
+      activeKey: this.props?.adhocFilter?.expressionType || 'SIMPLE',
     };
 
     this.popoverContentRef = React.createRef();
@@ -118,6 +120,12 @@ export default class AdhocFilterEditPopover extends React.Component {
     document.removeEventListener('mousemove', this.onMouseMove);
   }
 
+  onTabChange(activeKey) {
+    this.setState({
+      activeKey,
+    });
+  }
+
   adjustHeight(heightDifference) {
     this.setState(state => ({ height: state.height + heightDifference }));
   }
@@ -154,6 +162,7 @@ export default class AdhocFilterEditPopover extends React.Component {
           data-test="adhoc-filter-edit-tabs"
           style={{ minHeight: this.state.height, width: this.state.width }}
           allowOverflow
+          onChange={this.onTabChange}
         >
           <Tabs.TabPane
             className="adhoc-filter-edit-tab"
@@ -185,6 +194,7 @@ export default class AdhocFilterEditPopover extends React.Component {
                   onChange={this.onAdhocFilterChange}
                   options={this.props.options}
                   height={this.state.height}
+                  activeKey={this.state.activeKey}
                 />
               ) : (
                 <div className="custom-sql-disabled-message">

@@ -56,11 +56,73 @@ const streamReturnValue: server.StreamResult[] = [
 ];
 
 import * as server from '../src/index';
+import { statsd } from '../src/index';
 
 describe('server', () => {
+  let statsdIncrementMock: jest.SpyInstance;
+
   beforeEach(() => {
     mockRedisXrange.mockClear();
     server.resetState();
+    statsdIncrementMock = jest.spyOn(statsd, 'increment').mockReturnValue();
+  });
+
+  afterEach(() => {
+    statsdIncrementMock.mockRestore();
+  });
+
+  describe('HTTP requests', () => {
+    test('services health checks', () => {
+      const endMock = jest.fn();
+      const writeHeadMock = jest.fn();
+
+      const request = {
+        url: '/health',
+        method: 'GET',
+        headers: {
+          host: 'example.com',
+        },
+      };
+
+      const response = {
+        writeHead: writeHeadMock,
+        end: endMock,
+      };
+
+      server.httpRequest(request as any, response as any);
+
+      expect(writeHeadMock).toBeCalledTimes(1);
+      expect(writeHeadMock).toHaveBeenLastCalledWith(200);
+
+      expect(endMock).toBeCalledTimes(1);
+      expect(endMock).toHaveBeenLastCalledWith('OK');
+    });
+
+    test('reponds with a 404 when not found', () => {
+      const endMock = jest.fn();
+      const writeHeadMock = jest.fn();
+
+      const request = {
+        url: '/unsupported',
+        method: 'GET',
+        headers: {
+          host: 'example.com',
+        },
+      };
+
+      const response = {
+        writeHead: writeHeadMock,
+        end: endMock,
+      };
+
+      server.httpRequest(request as any, response as any);
+
+      expect(writeHeadMock).toBeCalledTimes(1);
+      expect(writeHeadMock).toHaveBeenLastCalledWith(404);
+
+      expect(endMock).toBeCalledTimes(1);
+      expect(endMock).toHaveBeenLastCalledWith('Not Found');
+    });
   });
 
   describe('incrementId', () => {
@@ -114,9 +176,17 @@ describe('server', () => {
       const ws = new wsMock('localhost');
       const sendMock = jest.spyOn(ws, 'send');
       const socketInstance = { ws: ws, channel: channelId, pongTs: Date.now() };
+
+      expect(statsdIncrementMock).toBeCalledTimes(0);
       server.trackClient(channelId, socketInstance);
+      expect(statsdIncrementMock).toBeCalledTimes(1);
+      expect(statsdIncrementMock).toHaveBeenNthCalledWith(
+        1,
+        'ws_connected_client',
+      );
 
       server.processStreamResults(streamReturnValue);
+      expect(statsdIncrementMock).toBeCalledTimes(1);
 
       const message1 = `{"id":"1615426152415-0","channel_id":"${channelId}","job_id":"c9b99965-8f1e-4ce5-aa43-d6fc94d6a510","user_id":"1","status":"done","errors":[],"result_url":"/superset/explore_json/data/ejr-37281682b1282cdb8f25e0de0339b386"}`;
       const message2 = `{"id":"1615426152516-0","channel_id":"${channelId}","job_id":"f1e5bb1f-f2f1-4f21-9b2f-c9b91dcc9b59","user_id":"1","status":"done","errors":[],"result_url":"/api/v1/chart/data/qc-64e8452dc9907dd77746cb75a19202de"}`;
@@ -128,7 +198,9 @@ describe('server', () => {
       const ws = new wsMock('localhost');
       const sendMock = jest.spyOn(ws, 'send');
 
+      expect(statsdIncrementMock).toBeCalledTimes(0);
       server.processStreamResults(streamReturnValue);
+      expect(statsdIncrementMock).toBeCalledTimes(0);
 
       expect(sendMock).not.toHaveBeenCalled();
     });
@@ -140,9 +212,21 @@ describe('server', () => {
       });
       const cleanChannelMock = jest.spyOn(server, 'cleanChannel');
       const socketInstance = { ws: ws, channel: channelId, pongTs: Date.now() };
+
+      expect(statsdIncrementMock).toBeCalledTimes(0);
       server.trackClient(channelId, socketInstance);
+      expect(statsdIncrementMock).toBeCalledTimes(1);
+      expect(statsdIncrementMock).toHaveBeenNthCalledWith(
+        1,
+        'ws_connected_client',
+      );
 
       server.processStreamResults(streamReturnValue);
+      expect(statsdIncrementMock).toBeCalledTimes(2);
+      expect(statsdIncrementMock).toHaveBeenNthCalledWith(
+        2,
+        'ws_client_send_error',
+      );
 
       expect(sendMock).toHaveBeenCalled();
       expect(cleanChannelMock).toHaveBeenCalledWith(channelId);

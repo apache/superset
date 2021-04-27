@@ -449,6 +449,22 @@ superset load-examples
 # Note that your page may not have css at this point.
 # See instructions below how to build the front-end assets.
 FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
+
+Or you can install via our Makefile
+
+```bash
+# Create a virtual environment and activate it (recommended)
+$ python3 -m venv venv # setup a python3 virtualenv
+$ source venv/bin/activate
+
+# install pip packages + pre-commit
+$ make install
+
+# Install superset pip packages and setup env only
+$ make superset
+
+# Setup pre-commit only
+$ make pre-commit
 ```
 
 **Note: the FLASK_APP env var should not need to be set, as it's currently controlled
@@ -1121,7 +1137,7 @@ Submissions will be considered for submission (or removal) on a case-by-case bas
 1. Generate the migration file
 
    ```bash
-   superset db migrate -m 'add_metadata_column_to_annotation_model.py'
+   superset db migrate -m 'add_metadata_column_to_annotation_model'
    ```
 
    This will generate a file in `migrations/version/{SHA}_this_will_be_in_the_migration_filename.py`.

@@ -116,7 +116,10 @@ class BaseFavoriteFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         if security_manager.current_user is None:
             return query
         users_favorite_query = db.session.query(FavStar.obj_id).filter(
-            and_(FavStar.user_id == g.user.id, FavStar.class_name == self.class_name)
+            and_(
+                FavStar.user_id == g.user.get_id(),
+                FavStar.class_name == self.class_name,
+            )
         )
         if value:
             return query.filter(and_(self.model.id.in_(users_favorite_query)))

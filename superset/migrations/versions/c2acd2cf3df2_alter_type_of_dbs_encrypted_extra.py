@@ -39,7 +39,7 @@ def upgrade():
             batch_op.alter_column(
                 "encrypted_extra",
                 existing_type=sa.Text(),
-                type_=EncryptedType(sa.Text()),
+                type_=sa.LargeBinary(),
                 postgresql_using="encrypted_extra::bytea",
                 existing_nullable=True,
             )
@@ -49,7 +49,7 @@ def upgrade():
                 "dbs",
                 "encrypted_extra",
                 existing_type=sa.Text(),
-                type_=EncryptedType(sa.Text()),
+                type_=sa.LargeBinary(),
                 existing_nullable=True,
             )
 
@@ -58,7 +58,7 @@ def downgrade():
     with op.batch_alter_table("dbs") as batch_op:
         batch_op.alter_column(
             "encrypted_extra",
-            existing_type=EncryptedType(sa.Text()),
+            existing_type=sa.LargeBinary(),
             type_=sa.Text(),
             existing_nullable=True,
         )

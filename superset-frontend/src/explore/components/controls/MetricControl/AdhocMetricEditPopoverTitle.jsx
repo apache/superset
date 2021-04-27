@@ -20,7 +20,7 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 import PropTypes from 'prop-types';
 import { FormControl } from 'react-bootstrap';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 
 const propTypes = {
   title: PropTypes.shape({

@@ -43,6 +43,7 @@ import ControlItems from './ControlItems';
 import FilterScope from './FilterScope/FilterScope';
 import RemovedFilter from './RemovedFilter';
 import DefaultValue from './DefaultValue';
+import { getFiltersConfigModalTestId } from '../FiltersConfigModal';
 
 const StyledContainer = styled.div`
   display: flex;
@@ -78,7 +79,12 @@ export interface FiltersConfigFormProps {
   parentFilters: { id: string; title: string }[];
 }
 
-const FILTERS_WITHOUT_COLUMN = ['filter_timegrain', 'filter_timecolumn'];
+// TODO: Need to do with it something
+const FILTERS_WITHOUT_COLUMN = [
+  'filter_timegrain',
+  'filter_timecolumn',
+  'filter_groupby',
+];
 
 /**
  * The configuration form for a specific filter.
@@ -153,15 +159,15 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
           label={<StyledLabel>{t('Filter name')}</StyledLabel>}
           initialValue={filterToEdit?.name}
           rules={[{ required: !removed, message: t('Name is required') }]}
-          data-test="name-input"
         >
-          <Input />
+          <Input {...getFiltersConfigModalTestId('name-input')} />
         </StyledFormItem>
         <StyledFormItem
           name={['filters', filterId, 'filterType']}
           rules={[{ required: !removed, message: t('Name is required') }]}
           initialValue={filterToEdit?.filterType || 'filter_select'}
           label={<StyledLabel>{t('Filter Type')}</StyledLabel>}
+          {...getFiltersConfigModalTestId('filter-type')}
         >
           <Select
             options={nativeFilterVizTypes.map(filterType => ({
@@ -186,7 +192,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
             initialValue={{ value: initDatasetId }}
             label={<StyledLabel>{t('Dataset')}</StyledLabel>}
             rules={[{ required: !removed, message: t('Dataset is required') }]}
-            data-test="datasource-input"
+            {...getFiltersConfigModalTestId('datasource-input')}
           >
             <SupersetResourceSelect
               initialId={initDatasetId}
@@ -261,9 +267,9 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
       >
         {(hasFilledDataset || !hasDataset) && (
           <DefaultValue
-            setDataMask={({ nativeFilters }) => {
+            setDataMask={({ filterState }) => {
               setNativeFilterFieldValues(form, filterId, {
-                defaultValue: nativeFilters?.currentState?.value,
+                defaultValue: filterState?.value,
               });
               forceUpdate();
             }}

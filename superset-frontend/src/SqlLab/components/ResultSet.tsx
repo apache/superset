@@ -506,7 +506,9 @@ export default class ResultSet extends React.PureComponent<
     const limitReached = results?.displayLimitReached;
     return (
       <ReturnedRows>
-        {!limitReached && <span>{t(`%s rows returned`, rows)}</span>}
+        {!limitReached && (
+          <Alert type="warning" message={t(`%s rows returned`, rows)} />
+        )}
         {limitReached && (
           <Alert
             type="warning"

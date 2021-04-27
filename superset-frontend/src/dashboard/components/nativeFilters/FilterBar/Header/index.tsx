@@ -22,11 +22,12 @@ import React, { FC } from 'react';
 import Icon from 'src/components/Icon';
 import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
-import { getInitialMask } from 'src/dataMask/reducer';
-import { DataMaskUnit, DataMaskUnitWithId } from 'src/dataMask/types';
+import { getInitialDataMask } from 'src/dataMask/reducer';
+import { DataMaskState, DataMaskStateWithId } from 'src/dataMask/types';
 import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
+import { getFilterBarTestId } from '..';
 
 const TitleArea = styled.h4`
   display: flex;
@@ -55,12 +56,16 @@ const ActionButtons = styled.div`
   }
 `;
 
+const HeaderButton = styled(Button)`
+  padding: 0;
+`;
+
 type HeaderProps = {
   toggleFiltersBar: (arg0: boolean) => void;
   onApply: () => void;
-  setDataMaskSelected: (arg0: (draft: DataMaskUnit) => void) => void;
-  dataMaskSelected: DataMaskUnit;
-  dataMaskApplied: DataMaskUnitWithId;
+  setDataMaskSelected: (arg0: (draft: DataMaskState) => void) => void;
+  dataMaskSelected: DataMaskState;
+  dataMaskApplied: DataMaskStateWithId;
   isApplyDisabled: boolean;
 };
 
@@ -81,15 +86,15 @@ const Header: FC<HeaderProps> = ({
   const handleClearAll = () => {
     filterValues.forEach(filter => {
       setDataMaskSelected(draft => {
-        draft[filter.id] = getInitialMask(filter.id);
+        draft[filter.id] = getInitialDataMask(filter.id);
       });
     });
   };
 
   const isClearAllDisabled = Object.values(dataMaskApplied).every(
     filter =>
-      dataMaskSelected[filter.id]?.currentState?.value === null ||
-      (!dataMaskSelected[filter.id] && filter.currentState?.value === null),
+      dataMaskSelected[filter.id]?.filterState?.value === null ||
+      (!dataMaskSelected[filter.id] && filter.filterState?.value === null),
   );
 
   return (
@@ -98,14 +103,17 @@ const Header: FC<HeaderProps> = ({
         <span>{t('Filters')}</span>
         {canEdit && (
           <FilterConfigurationLink createNewOnOpen={filterValues.length === 0}>
-            <Icon name="edit" role="button" data-test="create-filter" />
+            <Icon name="edit" data-test="create-filter" />
           </FilterConfigurationLink>
         )}
-        <Icon
-          name="expand"
-          role="button"
+        <HeaderButton
+          {...getFilterBarTestId('collapse-button')}
+          buttonStyle="link"
+          buttonSize="xsmall"
           onClick={() => toggleFiltersBar(false)}
-        />
+        >
+          <Icon name="expand" />
+        </HeaderButton>
       </TitleArea>
       <ActionButtons>
         <Button
@@ -113,7 +121,7 @@ const Header: FC<HeaderProps> = ({
           buttonStyle="tertiary"
           buttonSize="small"
           onClick={handleClearAll}
-          data-test="filter-reset-button"
+          {...getFilterBarTestId('clear-button')}
         >
           {t('Clear all')}
         </Button>
@@ -123,7 +131,7 @@ const Header: FC<HeaderProps> = ({
           htmlType="submit"
           buttonSize="small"
           onClick={onApply}
-          data-test="filter-apply-button"
+          {...getFilterBarTestId('apply-button')}
         >
           {t('Apply')}
         </Button>

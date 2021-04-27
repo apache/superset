@@ -16,23 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataMaskStateWithId, DataMaskType } from 'src/dataMask/types';
+import { DataMaskStateWithId } from 'src/dataMask/types';
 import { NativeFiltersState } from 'src/dashboard/reducers/types';
 
 export const mockDataMaskInfo: DataMaskStateWithId = {
-  [DataMaskType.CrossFilters]: {},
-  [DataMaskType.OwnFilters]: {},
-  [DataMaskType.NativeFilters]: {
-    DefaultsID: {
-      id: 'DefaultId',
-      currentState: {
-        value: [],
-      },
+  DefaultsID: {
+    id: 'DefaultId',
+    ownState: {},
+    filterState: {
+      value: [],
     },
   },
 };
 
 export const nativeFiltersInfo: NativeFiltersState = {
+  isInitialized: true,
   filterSets: {
     'set-id': {
       id: 'DefaultsID',

@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/core';
-import { Radio } from 'src/common/components/Radio';
+import { Radio } from 'src/components/Radio';
 import {
   COMMON_RANGE_OPTIONS,
   COMMON_RANGE_SET,

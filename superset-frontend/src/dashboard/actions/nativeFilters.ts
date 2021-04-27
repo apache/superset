@@ -19,10 +19,7 @@
 
 import { makeApi } from '@superset-ui/core';
 import { Dispatch } from 'redux';
-import {
-  Filter,
-  FilterConfiguration,
-} from 'src/dashboard/components/nativeFilters/types';
+import { FilterConfiguration } from 'src/dashboard/components/nativeFilters/types';
 import { DataMaskType, DataMaskStateWithId } from 'src/dataMask/types';
 import {
   SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
@@ -30,7 +27,12 @@ import {
 } from 'src/dataMask/actions';
 import { HYDRATE_DASHBOARD } from './hydrate';
 import { dashboardInfoChanged } from './dashboardInfo';
-import { DashboardInfo, FilterSet } from '../reducers/types';
+import {
+  DashboardInfo,
+  Filters,
+  FilterSet,
+  FilterSets,
+} from '../reducers/types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
 export interface SetFilterConfigBegin {
@@ -63,6 +65,14 @@ export interface SetFilterSetsConfigFail {
   type: typeof SET_FILTER_SETS_CONFIG_FAIL;
   filterSetsConfig: FilterSet[];
 }
+export const SET_FILTERS_INITIALIZED = 'SET_FILTERS_INITIALIZED';
+export interface SetFiltersInitialized {
+  type: typeof SET_FILTERS_INITIALIZED;
+}
+
+export const setFiltersInitialized = (): SetFiltersInitialized => ({
+  type: SET_FILTERS_INITIALIZED,
+});
 
 export const setFilterConfiguration = (
   filterConfig: FilterConfiguration,
@@ -111,7 +121,8 @@ export const setFilterConfiguration = (
 
 type BootstrapData = {
   nativeFilters: {
-    filters: Filter;
+    filters: Filters;
+    filterSets: FilterSets;
     filtersState: object;
   };
 };
@@ -189,5 +200,6 @@ export type AnyFilterAction =
   | SetFilterSetsConfigBegin
   | SetFilterSetsConfigComplete
   | SetFilterSetsConfigFail
+  | SetFiltersInitialized
   | SaveFilterSets
   | SetBooststapData;

@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=unused-argument
-import hashlib
 import json
 import logging
 import re
@@ -30,6 +29,7 @@ from typing import (
     NamedTuple,
     Optional,
     Pattern,
+    Set,
     Tuple,
     Type,
     TYPE_CHECKING,
@@ -38,18 +38,22 @@ from typing import (
 
 import pandas as pd
 import sqlparse
+from apispec import APISpec
+from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import g
 from flask_babel import gettext as __, lazy_gettext as _
+from marshmallow import fields, Schema
 from sqlalchemy import column, DateTime, select, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Compiled, Dialect
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.engine.url import URL
+from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom
 from sqlalchemy.types import String, TypeEngine, UnicodeText
+from typing_extensions import TypedDict
 
 from superset import app, security_manager, sql_parse
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -58,6 +62,7 @@ from superset.models.sql_types.base import literal_dttm_type_factory
 from superset.sql_parse import ParsedQuery, Table
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
+from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
     # prevent circular imports
@@ -150,7 +155,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     """
 
     engine = "base"  # str as defined in sqlalchemy.engine.engine
-    engine_aliases: Optional[Tuple[str]] = None
+    engine_aliases: Set[str] = set()
     engine_name: Optional[
         str
     ] = None  # used for user messages, overridden in child classes
@@ -613,50 +618,41 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         parsed_query = sql_parse.ParsedQuery(sql)
         return parsed_query.set_or_update_query_limit(limit)
 
-    @staticmethod
-    def csv_to_df(**kwargs: Any) -> pd.DataFrame:
-        """Read csv into Pandas DataFrame
-        :param kwargs: params to be passed to DataFrame.read_csv
-        :return: Pandas DataFrame containing data from csv
-        """
-        kwargs["encoding"] = "utf-8"
-        kwargs["iterator"] = True
-        chunks = pd.read_csv(**kwargs)
-        df = pd.concat(chunk for chunk in chunks)
-        return df
-
     @classmethod
-    def df_to_sql(cls, df: pd.DataFrame, **kwargs: Any) -> None:
-        """Upload data from a Pandas DataFrame to a database. For
-        regular engines this calls the DataFrame.to_sql() method. Can be
-        overridden for engines that don't work well with to_sql(), e.g.
-        BigQuery.
-        :param df: Dataframe with data to be uploaded
-        :param kwargs: kwargs to be passed to to_sql() method
-        """
-        df.to_sql(**kwargs)
-
-    @classmethod
-    def create_table_from_csv(  # pylint: disable=too-many-arguments
+    def df_to_sql(
         cls,
-        filename: str,
-        table: Table,
         database: "Database",
-        csv_to_df_kwargs: Dict[str, Any],
-        df_to_sql_kwargs: Dict[str, Any],
+        table: Table,
+        df: pd.DataFrame,
+        to_sql_kwargs: Dict[str, Any],
     ) -> None:
         """
-        Create table from contents of a csv. Note: this method does not create
-        metadata for the table.
+        Upload data from a Pandas DataFrame to a database.
+
+        For regular engines this calls the `pandas.DataFrame.to_sql` method. Can be
+        overridden for engines that don't work well with this method, e.g. Hive and
+        BigQuery.
+
+        Note this method does not create metadata for the table.
+
+        :param database: The database to upload the data to
+        :param table: The table to upload the data to
+        :param df: The dataframe with data to be uploaded
+        :param to_sql_kwargs: The kwargs to be passed to pandas.DataFrame.to_sql` method
         """
-        df = cls.csv_to_df(filepath_or_buffer=filename, **csv_to_df_kwargs)
+
         engine = cls.get_engine(database)
+        to_sql_kwargs["name"] = table.table
+
         if table.schema:
-            # only add schema when it is preset and non empty
-            df_to_sql_kwargs["schema"] = table.schema
+
+            # Only add schema when it is preset and non empty.
+            to_sql_kwargs["schema"] = table.schema
+
         if engine.dialect.supports_multivalues_insert:
-            df_to_sql_kwargs["method"] = "multi"
-        cls.df_to_sql(df=df, con=engine, **df_to_sql_kwargs)
+            to_sql_kwargs["method"] = "multi"
+
+        df.to_sql(con=engine, **to_sql_kwargs)
 
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
@@ -668,28 +664,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: The SQL expression
         """
         return None
-
-    @classmethod
-    def create_table_from_excel(  # pylint: disable=too-many-arguments
-        cls,
-        filename: str,
-        table: Table,
-        database: "Database",
-        excel_to_df_kwargs: Dict[str, Any],
-        df_to_sql_kwargs: Dict[str, Any],
-    ) -> None:
-        """
-        Create table from contents of a excel. Note: this method does not create
-        metadata for the table.
-        """
-        df = pd.read_excel(io=filename, **excel_to_df_kwargs)
-        engine = cls.get_engine(database)
-        if table.schema:
-            # only add schema when it is preset and non empty
-            df_to_sql_kwargs["schema"] = table.schema
-        if engine.dialect.supports_multivalues_insert:
-            df_to_sql_kwargs["method"] = "multi"
-        cls.df_to_sql(df=df, con=engine, **df_to_sql_kwargs)
 
     @classmethod
     def get_all_datasource_names(
@@ -746,16 +720,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return utils.error_msg_from_exception(ex)
 
     @classmethod
-    def extract_errors(cls, ex: Exception) -> List[SupersetError]:
+    def extract_errors(
+        cls, ex: Exception, context: Optional[Dict[str, Any]] = None
+    ) -> List[SupersetError]:
         raw_message = cls._extract_error_message(ex)
 
+        context = context or {}
         for regex, (message, error_type) in cls.custom_errors.items():
             match = regex.search(raw_message)
             if match:
+                params = {**context, **match.groupdict()}
                 return [
                     SupersetError(
                         error_type=error_type,
-                        message=message % match.groupdict(),
+                        message=message % params,
                         level=ErrorLevel.ERROR,
                         extra={"engine_name": cls.engine_name},
                     )
@@ -933,6 +911,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param cols: Columns to include in query
         :return: SQL query
         """
+        # pylint: disable=redefined-outer-name
         fields: Union[str, List[Any]] = "*"
         cols = cols or []
         if (show_cols or latest_partition) and not cols:
@@ -1020,7 +999,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if not cls.get_allow_cost_estimate(extra):
             raise Exception("Database does not support cost estimation")
 
-        user_name = g.user.username if g.user else None
+        user_name = g.user.username if g.user and hasattr(g.user, "username") else None
         parsed_query = sql_parse.ParsedQuery(sql)
         statements = parsed_query.get_statements()
 
@@ -1166,7 +1145,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param label: Expected expression label
         :return: Truncated label
         """
-        label = hashlib.md5(label.encode("utf-8")).hexdigest()
+        label = md5_sha_from_str(label)
         # truncate hash if it exceeds max length
         if cls.max_column_name_length and len(label) > cls.max_column_name_length:
             label = label[: cls.max_column_name_length]
@@ -1289,3 +1268,90 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 sqla_type=column_type, generic_type=generic_type, is_dttm=is_dttm
             )
         return None
+
+
+# schema for adding a database by providing parameters instead of the
+# full SQLAlchemy URI
+class BaseParametersSchema(Schema):
+    username = fields.String(allow_none=True, description=__("Username"))
+    password = fields.String(allow_none=True, description=__("Password"))
+    host = fields.String(required=True, description=__("Hostname or IP address"))
+    port = fields.Integer(required=True, description=__("Database port"))
+    database = fields.String(required=True, description=__("Database name"))
+    query = fields.Dict(
+        keys=fields.Str(), values=fields.Raw(), description=__("Additinal parameters")
+    )
+
+
+class BaseParametersType(TypedDict, total=False):
+    username: Optional[str]
+    password: Optional[str]
+    host: str
+    port: int
+    database: str
+    query: Dict[str, Any]
+
+
+class BaseParametersMixin:
+
+    """
+    Mixin for configuring DB engine specs via a dictionary.
+
+    With this mixin the SQLAlchemy engine can be configured through
+    individual parameters, instead of the full SQLAlchemy URI. This
+    mixin is for the most common pattern of URI:
+
+        drivername://user:password@host:port/dbname[?key=value&key=value...]
+
+    """
+
+    # schema describing the parameters used to configure the DB
+    parameters_schema = BaseParametersSchema()
+
+    # recommended driver name for the DB engine spec
+    drivername = ""
+
+    # placeholder with the SQLAlchemy URI template
+    sqlalchemy_uri_placeholder = (
+        "drivername://user:password@host:port/dbname[?key=value&key=value...]"
+    )
+
+    @classmethod
+    def build_sqlalchemy_url(cls, parameters: BaseParametersType) -> str:
+        return str(
+            URL(
+                cls.drivername,
+                username=parameters.get("username"),
+                password=parameters.get("password"),
+                host=parameters["host"],
+                port=parameters["port"],
+                database=parameters["database"],
+                query=parameters.get("query", {}),
+            )
+        )
+
+    @classmethod
+    def get_parameters_from_uri(cls, uri: str) -> BaseParametersType:
+        url = make_url(uri)
+        return {
+            "username": url.username,
+            "password": url.password,
+            "host": url.host,
+            "port": url.port,
+            "database": url.database,
+            "query": url.query,
+        }
+
+    @classmethod
+    def parameters_json_schema(cls) -> Any:
+        """
+        Return configuration parameters as OpenAPI.
+        """
+        spec = APISpec(
+            title="Database Parameters",
+            version="1.0.0",
+            openapi_version="3.0.2",
+            plugins=[MarshmallowPlugin()],
+        )
+        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
+        return spec.to_dict()["components"]["schemas"][cls.__name__]

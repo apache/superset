@@ -17,8 +17,8 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { styled, t } from '@superset-ui/core';
-import Collapse from 'src/common/components/Collapse';
+import { JsonObject, styled, t } from '@superset-ui/core';
+import Collapse from 'src/components/Collapse';
 import Tabs from 'src/common/components/Tabs';
 import Loading from 'src/components/Loading';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
@@ -105,10 +105,12 @@ export const DataTablesPane = ({
   tableSectionHeight,
   onCollapseChange,
   chartStatus,
+  ownState,
 }: {
   queryFormData: Record<string, any>;
   tableSectionHeight: number;
   chartStatus: string;
+  ownState?: JsonObject;
   onCollapseChange: (openPanelName: string) => void;
 }) => {
   const [data, setData] = useState<{
@@ -142,6 +144,7 @@ export const DataTablesPane = ({
         formData: queryFormData,
         resultFormat: 'json',
         resultType,
+        ownState,
       })
         .then(response => {
           // Only displaying the first query is currently supported

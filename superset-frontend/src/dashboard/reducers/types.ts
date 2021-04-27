@@ -85,7 +85,7 @@ export type FilterSet = {
   id: string;
   name: string;
   nativeFilters: Filters;
-  dataMask: Partial<DataMaskStateWithId>;
+  dataMask: DataMaskStateWithId;
 };
 
 export type FilterSets = {
@@ -97,6 +97,7 @@ export type Filters = {
 };
 
 export type NativeFiltersState = {
+  isInitialized: boolean;
   filters: Filters;
   filterSets: FilterSets;
 };
