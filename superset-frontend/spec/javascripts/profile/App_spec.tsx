@@ -17,10 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { Col, Row } from 'react-bootstrap';
+import { Row, Col } from 'src/common/components';
 import { shallow } from 'enzyme';
 import App from 'src/profile/components/App';
-import Tabs from 'src/common/components/Tabs';
+import Tabs from 'src/components/Tabs';
 
 import { user } from './fixtures';
 

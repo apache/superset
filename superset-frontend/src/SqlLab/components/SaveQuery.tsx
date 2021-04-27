@@ -17,7 +17,8 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { FormControl, FormGroup, Row, Col } from 'react-bootstrap';
+import { Row, Col } from 'src/common/components';
+import { FormControl, FormGroup } from 'react-bootstrap';
 import { t, supersetTheme, styled } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
@@ -114,7 +115,7 @@ export default function SaveQuery({
   const renderModalBody = () => (
     <FormGroup bsSize="small">
       <Row>
-        <Col md={12}>
+        <Col xs={24}>
           <small>
             <FormLabel htmlFor="embed-height">{t('Name')}</FormLabel>
           </small>
@@ -123,7 +124,7 @@ export default function SaveQuery({
       </Row>
       <br />
       <Row>
-        <Col md={12}>
+        <Col xs={24}>
           <small>
             <FormLabel htmlFor="embed-height">{t('Description')}</FormLabel>
           </small>
@@ -140,7 +141,7 @@ export default function SaveQuery({
           <br />
           <div>
             <Row>
-              <Col md={12}>
+              <Col xs={24}>
                 <small>{saveQueryWarning}</small>
               </Col>
             </Row>

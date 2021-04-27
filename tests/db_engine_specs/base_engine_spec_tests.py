@@ -19,7 +19,7 @@ from unittest import mock
 
 import pytest
 
-from superset.db_engine_specs import engines
+from superset.db_engine_specs import get_engine_specs
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
     builtin_time_grains,
@@ -189,7 +189,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
     def test_engine_time_grain_validity(self):
         time_grains = set(builtin_time_grains.keys())
         # loop over all subclasses of BaseEngineSpec
-        for engine in engines.values():
+        for engine in get_engine_specs().values():
             if engine is not BaseEngineSpec:
                 # make sure time grain functions have been defined
                 self.assertGreater(len(engine.get_time_grain_expressions()), 0)
@@ -254,8 +254,8 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         )
 
     def test_get_time_grain_with_unkown_values(self):
-        """ Should concatenate from configs and then sort in the proper order
-        putting unknown patterns at the end """
+        """Should concatenate from configs and then sort in the proper order
+        putting unknown patterns at the end"""
         app.config["TIME_GRAIN_ADDON_EXPRESSIONS"] = {
             "mysql": {"PT2H": "foo", "weird": "foo", "PT12H": "foo",}
         }

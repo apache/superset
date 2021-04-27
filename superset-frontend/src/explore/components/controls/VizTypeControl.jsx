@@ -18,15 +18,15 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col, FormControl } from 'react-bootstrap';
+import { Input, Row, Col } from 'src/common/components';
 import { Behavior, t, getChartMetadataRegistry } from '@superset-ui/core';
 import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
-import { Tooltip } from 'src/common/components/Tooltip';
 import Modal from 'src/components/Modal';
+import { Tooltip } from 'src/components/Tooltip';
 import Label from 'src/components/Label';
-import ControlHeader from '../ControlHeader';
+import ControlHeader from 'src/explore/components/ControlHeader';
 import './VizTypeControl.less';
-import { FeatureFlag, isFeatureEnabled } from '../../../featureFlags';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 
 const propTypes = {
   description: PropTypes.string,
@@ -44,7 +44,6 @@ const defaultProps = {
 
 const registry = getChartMetadataRegistry();
 
-const IMAGE_PER_ROW = 6;
 const DEFAULT_ORDER = [
   'line',
   'big_number',
@@ -119,7 +118,7 @@ const VizTypeControl = props => {
 
   useEffect(() => {
     if (showModal) {
-      searchRef?.current?.focus();
+      setTimeout(() => searchRef?.current?.focus(), 200);
     }
   }, [showModal]);
 
@@ -134,12 +133,6 @@ const VizTypeControl = props => {
 
   const changeSearch = event => {
     setFilter(event.target.value);
-  };
-
-  const focusSearch = () => {
-    if (searchRef) {
-      searchRef.focus();
-    }
   };
 
   const renderItem = entry => {
@@ -190,19 +183,6 @@ const VizTypeControl = props => {
     )
     .filter(entry => entry.value.name.toLowerCase().includes(filterString));
 
-  const rows = [];
-  for (let i = 0; i <= filteredTypes.length; i += IMAGE_PER_ROW) {
-    rows.push(
-      <Row data-test="viz-row" key={`row-${i}`}>
-        {filteredTypes.slice(i, i + IMAGE_PER_ROW).map(entry => (
-          <Col md={12 / IMAGE_PER_ROW} key={`grid-col-${entry.key}`}>
-            {renderItem(entry)}
-          </Col>
-        ))}
-      </Row>,
-    );
-  }
-
   return (
     <div>
       <ControlHeader {...props} />
@@ -225,24 +205,27 @@ const VizTypeControl = props => {
       <Modal
         show={showModal}
         onHide={toggleModal}
-        onEnter={focusSearch}
         title={t('Select a visualization type')}
         responsive
         hideFooter
         forceRender
       >
         <div className="viztype-control-search-box">
-          <FormControl
-            inputRef={ref => {
-              searchRef.current = ref;
-            }}
+          <Input
+            ref={searchRef}
             type="text"
             value={filter}
             placeholder={t('Search')}
             onChange={changeSearch}
           />
         </div>
-        {rows}
+        <Row data-test="viz-row" gutter={16}>
+          {filteredTypes.map(entry => (
+            <Col xs={12} sm={8} md={6} lg={4} key={`grid-col-${entry.key}`}>
+              {renderItem(entry)}
+            </Col>
+          ))}
+        </Row>
       </Modal>
     </div>
   );

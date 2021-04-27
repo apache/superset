@@ -24,7 +24,7 @@ import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import Icon from 'src/components/Icon';
 import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
-import { Radio } from 'src/common/components/Radio';
+import { Radio } from 'src/components/Radio';
 import { AsyncSelect, NativeGraySelect as Select } from 'src/components/Select';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -114,7 +114,7 @@ const RETENTION_OPTIONS = [
 
 const DEFAULT_RETENTION = 90;
 const DEFAULT_WORKING_TIMEOUT = 3600;
-const DEFAULT_CRON_VALUE = '* * * * *'; // every minute
+const DEFAULT_CRON_VALUE = '0 * * * *'; // every hour
 const DEFAULT_ALERT = {
   active: true,
   crontab: DEFAULT_CRON_VALUE,
@@ -312,6 +312,15 @@ export const StyledInputContainer = styled.div`
   .input-label {
     margin-left: 10px;
   }
+`;
+
+const StyledRadio = styled(Radio)`
+  display: block;
+  line-height: ${({ theme }) => theme.gridUnit * 7}px;
+`;
+
+const StyledRadioGroup = styled(Radio.Group)`
+  margin-left: ${({ theme }) => theme.gridUnit * 5.5}px;
 `;
 
 // Notification Method components
@@ -1224,18 +1233,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <h4>{t('Message content')}</h4>
               <span className="required">*</span>
             </StyledSectionTitle>
-            <div className="inline-container add-margin">
-              <Radio.Group onChange={onContentTypeChange} value={contentType}>
-                <Radio value="dashboard">Dashboard</Radio>
-                <Radio value="chart">Chart</Radio>
-              </Radio.Group>
-            </div>
+            <Radio.Group onChange={onContentTypeChange} value={contentType}>
+              <StyledRadio value="dashboard">{t('Dashboard')}</StyledRadio>
+              <StyledRadio value="chart">{t('Chart')}</StyledRadio>
+            </Radio.Group>
             {formatOptionEnabled && (
-              <div className="inline-container add-margin">
-                <Radio.Group onChange={onFormatChange} value={reportFormat}>
-                  <Radio value="PNG">PNG</Radio>
-                  <Radio value="CSV">CSV</Radio>
-                </Radio.Group>
+              <div className="inline-container">
+                <StyledRadioGroup
+                  onChange={onFormatChange}
+                  value={reportFormat}
+                >
+                  <StyledRadio value="PNG">{t('Send as PNG')}</StyledRadio>
+                  <StyledRadio value="CSV">{t('Send as CSV')}</StyledRadio>
+                </StyledRadioGroup>
               </div>
             )}
             <AsyncSelect

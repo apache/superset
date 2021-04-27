@@ -437,11 +437,11 @@ class TestDashboard(SupersetTestCase):
         self.test_save_dash("alpha")
 
     @pytest.mark.usefixtures("load_energy_table_with_slice", "load_dashboard")
-    def test_users_can_view_published_dashboard(self):
+    def test_users_can_list_published_dashboard(self):
         self.login("alpha")
         resp = self.get_resp("/api/v1/dashboard/")
-        self.assertNotIn(f"/superset/dashboard/{pytest.hidden_dash_slug}/", resp)
-        self.assertIn(f"/superset/dashboard/{pytest.published_dash_slug}/", resp)
+        assert f"/superset/dashboard/{pytest.hidden_dash_slug}/" not in resp
+        assert f"/superset/dashboard/{pytest.published_dash_slug}/" in resp
 
     def test_users_can_view_own_dashboard(self):
         user = security_manager.find_user("gamma")

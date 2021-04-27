@@ -20,11 +20,12 @@ import * as http from 'http';
 import * as net from 'net';
 import WebSocket from 'ws';
 import { v4 as uuidv4 } from 'uuid';
+import jwt from 'jsonwebtoken';
+import cookie from 'cookie';
+import Redis from 'ioredis';
+import StatsD from 'hot-shots';
 
-const winston = require('winston');
-const jwt = require('jsonwebtoken');
-const cookie = require('cookie');
-const Redis = require('ioredis');
+import { createLogger } from './logger';
 
 export type StreamResult = [
   recordId: string,
@@ -84,6 +85,11 @@ export const opts = {
   logLevel: 'info',
   logToFile: false,
   logFilename: 'app.log',
+  statsd: {
+    host: '127.0.0.1',
+    port: 8125,
+    globalTags: [],
+  },
   redis: {
     port: 6379,
     host: '127.0.0.1',
@@ -114,20 +120,18 @@ try {
 Object.assign(opts, config);
 
 // init logger
-const logTransports = [
-  new winston.transports.Console({ handleExceptions: true }),
-];
-if (opts.logToFile && opts.logFilename) {
-  logTransports.push(
-    new winston.transports.File({
-      filename: opts.logFilename,
-      handleExceptions: true,
-    }),
-  );
-}
-const logger = winston.createLogger({
-  level: opts.logLevel,
-  transports: logTransports,
+const logger = createLogger({
+  silent: environment === 'test',
+  logLevel: opts.logLevel,
+  logToFile: opts.logToFile,
+  logFilename: opts.logFilename,
+});
+
+export const statsd = new StatsD({
+  ...opts.statsd,
+  errorHandler: (e: Error) => {
+    logger.error(e);
+  },
 });
 
 // enforce JWT secret length
@@ -169,6 +173,8 @@ export const trackClient = (
   channel: string,
   socketInstance: SocketInstance,
 ): string => {
+  statsd.increment('ws_connected_client');
+
   const socketId = uuidv4();
   sockets[socketId] = socketInstance;
 
@@ -198,6 +204,7 @@ export const sendToChannel = (channel: string, value: EventValue): void => {
     try {
       socketInstance.ws.send(strData);
     } catch (err) {
+      statsd.increment('ws_client_send_error');
       logger.debug(`Error sending to socket: ${err}`);
       // check that the connection is still active
       cleanChannel(channel);
@@ -219,7 +226,7 @@ export const fetchRangeFromStream = async ({
   try {
     const reply = await redis.xrange(streamName, startId, endId);
     if (!reply || !reply.length) return;
-    listener(reply);
+    listener(reply as StreamResult[]);
   } catch (e) {
     logger.error(e);
   }
@@ -254,7 +261,7 @@ export const subscribeToGlobalStream = async (
       if (!results.length) {
         continue;
       }
-      listener(results);
+      listener(results as StreamResult[]);
       setLastFirehoseId(results[length - 1][0]);
     } catch (e) {
       logger.error(e);
@@ -284,11 +291,11 @@ export const processStreamResults = (results: StreamResult[]): void => {
  * Returns the JWT payload or throws an error on invalid token.
  */
 const getJwtPayload = (request: http.IncomingMessage): JwtPayload => {
-  const cookies = cookie.parse(request.headers.cookie);
+  const cookies = cookie.parse(request.headers.cookie || '');
   const token = cookies[opts.jwtCookieName];
 
   if (!token) throw new Error('JWT not present');
-  return jwt.verify(token, opts.jwtSecret);
+  return jwt.verify(token, opts.jwtSecret) as JwtPayload;
 };
 
 /**

@@ -20,7 +20,7 @@ from unittest import mock
 from sqlalchemy import column, literal_column
 from sqlalchemy.dialects import postgresql
 
-from superset.db_engine_specs import engines
+from superset.db_engine_specs import get_engine_specs
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
@@ -132,7 +132,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         """
         DB Eng Specs (postgres): Test "postgres" in engine spec
         """
-        self.assertIn("postgres", engines)
+        self.assertIn("postgres", get_engine_specs())
 
     def test_extras_without_ssl(self):
         db = mock.Mock()
@@ -388,3 +388,44 @@ psql: error: could not connect to server: Operation timed out
                 },
             )
         ]
+
+
+def test_base_parameters_mixin():
+    parameters = {
+        "username": "username",
+        "password": "password",
+        "host": "localhost",
+        "port": 5432,
+        "database": "dbname",
+        "query": {"foo": "bar"},
+    }
+    sqlalchemy_uri = PostgresEngineSpec.build_sqlalchemy_url(parameters)
+    assert (
+        sqlalchemy_uri
+        == "postgresql+psycopg2://username:password@localhost:5432/dbname?foo=bar"
+    )
+
+    parameters_from_uri = PostgresEngineSpec.get_parameters_from_uri(sqlalchemy_uri)
+    assert parameters_from_uri == parameters
+
+    json_schema = PostgresEngineSpec.parameters_json_schema()
+    assert json_schema == {
+        "type": "object",
+        "properties": {
+            "host": {"type": "string", "description": "Hostname or IP address"},
+            "username": {"type": "string", "nullable": True, "description": "Username"},
+            "password": {"type": "string", "nullable": True, "description": "Password"},
+            "database": {"type": "string", "description": "Database name"},
+            "query": {
+                "type": "object",
+                "description": "Additinal parameters",
+                "additionalProperties": {},
+            },
+            "port": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Database port",
+            },
+        },
+        "required": ["database", "host", "port"],
+    }

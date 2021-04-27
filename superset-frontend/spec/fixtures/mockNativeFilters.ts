@@ -21,6 +21,7 @@ import { NativeFiltersState } from 'src/dashboard/reducers/types';
 import { DataMaskStateWithId } from '../../src/dataMask/types';
 
 export const nativeFilters: NativeFiltersState = {
+  isInitialized: true,
   filterSets: {},
   filters: {
     'NATIVE_FILTER-e7Q8zKixx': {
@@ -114,6 +115,7 @@ export const extraFormData: ExtraFormData = {
 export const NATIVE_FILTER_ID = 'NATIVE_FILTER-p4LImrSgA';
 
 export const singleNativeFiltersState = {
+  isInitialized: true,
   filters: {
     [NATIVE_FILTER_ID]: {
       id: [NATIVE_FILTER_ID],

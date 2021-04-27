@@ -47,6 +47,7 @@ class SupersetErrorType(str, Enum):
     CONNECTION_HOST_DOWN_ERROR = "CONNECTION_HOST_DOWN_ERROR"
     CONNECTION_ACCESS_DENIED_ERROR = "CONNECTION_ACCESS_DENIED_ERROR"
     CONNECTION_UNKNOWN_DATABASE_ERROR = "CONNECTION_UNKNOWN_DATABASE_ERROR"
+    CONNECTION_DATABASE_PERMISSIONS_ERROR = "CONNECTION_DATABASE_PERMISSIONS_ERROR"
 
     # Viz errors
     VIZ_GET_DF_ERROR = "VIZ_GET_DF_ERROR"
@@ -212,6 +213,12 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
                 "spelled incorrectly or does not exist."
             ),
         }
+    ],
+    SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR: [
+        {
+            "code": 1017,
+            "message": _("Issue 1017 - User doesn't have the proper permissions."),
+        },
     ],
 }
 

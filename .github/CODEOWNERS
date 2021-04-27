@@ -1,3 +1,8 @@
 # Notify all committers of DB migration changes, per SIP-59
 # https://github.com/apache/superset/issues/13351
 /superset/migrations/ @apache/superset-committers
+
+# Notify Preset team when ephemeral env settings are changed
+.github/workflows/ecs-task-definition.json @robdiciuccio @craig-rueda @benjreinhart
+.github/workflows/docker-ephemeral-env.yml @robdiciuccio @craig-rueda @benjreinhart
+.github/workflows/ephemeral*.yml @robdiciuccio @craig-rueda @benjreinhart

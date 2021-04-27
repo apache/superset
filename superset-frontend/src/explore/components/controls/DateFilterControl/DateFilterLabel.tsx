@@ -28,7 +28,11 @@ import {
 import {
   buildTimeRangeString,
   formatTimeRange,
-} from 'src/explore/dateFilterUtils';
+  COMMON_RANGE_VALUES_SET,
+  CALENDAR_RANGE_VALUES_SET,
+  FRAME_OPTIONS,
+  customTimeRangeDecode,
+} from 'src/explore/components/controls/DateFilterControl/utils';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -37,18 +41,13 @@ import Popover from 'src/components/Popover';
 import { Divider } from 'src/common/components';
 import Icon from 'src/components/Icon';
 import { Select } from 'src/components/Select';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
-
+import { testWithId } from 'src/utils/testUtils';
 import { SelectOptionType, FrameType } from './types';
-import {
-  COMMON_RANGE_VALUES_SET,
-  CALENDAR_RANGE_VALUES_SET,
-  FRAME_OPTIONS,
-  customTimeRangeDecode,
-} from './utils';
+
 import {
   CommonFrame,
   CalendarFrame,
@@ -175,6 +174,11 @@ interface DateFilterControlProps {
   value?: string;
   endpoints?: TimeRangeEndpoints;
 }
+
+export const DATE_FILTER_CONTROL_TEST_ID = 'date-filter-control';
+export const getDateFilterControlTestId = testWithId(
+  DATE_FILTER_CONTROL_TEST_ID,
+);
 
 export default function DateFilterLabel(props: DateFilterControlProps) {
   const { value = DEFAULT_TIME_RANGE, endpoints, onChange } = props;
@@ -324,6 +328,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           disabled={!validTimeRange}
           key="apply"
           onClick={onSave}
+          {...getDateFilterControlTestId('apply-button')}
         >
           {t('APPLY')}
         </Button>

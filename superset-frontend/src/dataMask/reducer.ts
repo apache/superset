@@ -26,6 +26,8 @@ import {
   SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
   UPDATE_DATA_MASK,
 } from './actions';
+import { NATIVE_FILTER_PREFIX } from '../dashboard/components/nativeFilters/FiltersConfigModal/utils';
+import { Filter } from '../dashboard/components/nativeFilters/types';
 
 export function getInitialDataMask(id: string): DataMaskWithId {
   return {
@@ -33,29 +35,38 @@ export function getInitialDataMask(id: string): DataMaskWithId {
     extraFormData: {},
     filterState: {},
     ownState: {},
+    isApplied: false,
   };
 }
 
 const dataMaskReducer = produce(
   (draft: DataMaskStateWithId, action: AnyDataMaskAction) => {
-    const oldData = { ...draft };
+    const cleanState = {};
     switch (action.type) {
       case UPDATE_DATA_MASK:
         draft[action.filterId] = {
+          ...getInitialDataMask(action.filterId),
           ...draft[action.filterId],
           ...action.dataMask,
-          id: action.filterId,
+          isApplied: true,
         };
-        break;
+        return draft;
 
       case SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE:
-        (action.filterConfig ?? []).forEach(filter => {
-          draft[filter.id] =
-            oldData[filter.id] ?? getInitialDataMask(filter.id);
+        (action.filterConfig ?? []).forEach((filter: Filter) => {
+          cleanState[filter.id] =
+            draft[filter.id] ?? getInitialDataMask(filter.id);
         });
-        break;
+        // Get back all other non-native filters
+        Object.values(draft).forEach(filter => {
+          if (!String(filter?.id).startsWith(NATIVE_FILTER_PREFIX)) {
+            cleanState[filter?.id] = filter;
+          }
+        });
+        return cleanState;
 
       default:
+        return draft;
     }
   },
   {},
