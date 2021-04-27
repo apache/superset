@@ -1914,7 +1914,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 "Can't find User '%(name)s', please ask your admin " "to create one.",
                 name=user_name,
             )
-            logger.error(err_msg)
+            logger.error(err_msg, exc_info=True)
             return json_error_response(err_msg)
         cluster = (
             db.session.query(DruidCluster)
@@ -1926,7 +1926,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 "Can't find DruidCluster with cluster_name = " "'%(name)s'",
                 name=cluster_name,
             )
-            logger.error(err_msg)
+            logger.error(err_msg, exc_info=True)
             return json_error_response(err_msg)
         try:
             DruidDatasource.sync_to_db_from_config(druid_config, user, cluster)
@@ -2492,7 +2492,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             query_id = query.id
             session.commit()  # shouldn't be necessary
         except SQLAlchemyError as ex:
-            logger.error("Errors saving query details %s", str(ex))
+            logger.error("Errors saving query details %s", str(ex), exc_info=True)
             session.rollback()
             raise Exception(_("Query record was not created as expected."))
         if not query_id:

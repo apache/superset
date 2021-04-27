@@ -837,7 +837,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             # It's expected that some dialects don't implement the comment method
             pass
         except Exception as ex:  # pylint: disable=broad-except
-            logger.error("Unexpected error while fetching table comment")
+            logger.error("Unexpected error while fetching table comment", exc_info=True)
             logger.exception(ex)
         return comment
 
@@ -1219,7 +1219,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             try:
                 extra = json.loads(database.extra)
             except json.JSONDecodeError as ex:
-                logger.error(ex)
+                logger.error(ex, exc_info=True)
                 raise ex
         return extra
 
