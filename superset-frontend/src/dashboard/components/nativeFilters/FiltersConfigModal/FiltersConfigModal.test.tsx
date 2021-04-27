@@ -140,7 +140,7 @@ describe('FilterConfigModal', () => {
     jest.clearAllMocks();
   });
 
-  it('Create Select Filter (with datasource and columns) with specific filter scope', async () => {
+  it.skip('Create Select Filter (with datasource and columns) with specific filter scope', async () => {
     renderWrapper();
 
     const FILTER_NAME = 'Select Filter 1';
