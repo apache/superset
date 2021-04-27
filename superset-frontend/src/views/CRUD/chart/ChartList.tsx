@@ -22,10 +22,10 @@ import {
   t,
   styled,
 } from '@superset-ui/core';
-import React, { useMemo, useState } from 'react';
+import React, {useMemo, useState} from 'react';
 import rison from 'rison';
-import { uniqBy } from 'lodash';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import {uniqBy} from 'lodash';
+import {isFeatureEnabled, FeatureFlag} from 'src/featureFlags';
 import {
   createFetchRelated,
   createErrorHandler,
@@ -38,7 +38,7 @@ import {
   useChartEditModal,
 } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import SubMenu, {SubMenuProps} from 'src/components/Menu/SubMenu';
 import FaveStar from 'src/components/FaveStar';
 import ListView, {
   ListViewProps,
@@ -46,27 +46,27 @@ import ListView, {
   SelectOption,
   FilterOperators,
 } from 'src/components/ListView';
-import { getFromLocalStorage } from 'src/utils/localStorageHelpers';
+import {getFromLocalStorage} from 'src/utils/localStorageHelpers';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Chart from 'src/types/Chart';
-import { Tooltip } from 'src/components/Tooltip';
+import {Tooltip} from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import ChartCard from './ChartCard';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
   'The passwords for the databases below are needed in order to ' +
-    'import them together with the charts. Please note that the ' +
-    '"Secure Extra" and "Certificate" sections of ' +
-    'the database configuration are not present in export files, and ' +
-    'should be added manually after the import if they are needed.',
+  'import them together with the charts. Please note that the ' +
+  '"Secure Extra" and "Certificate" sections of ' +
+  'the database configuration are not present in export files, and ' +
+  'should be added manually after the import if they are needed.',
 );
 const CONFIRM_OVERWRITE_MESSAGE = t(
   'You are importing one or more charts that already exist. ' +
-    'Overwriting might cause you to lose some of your work. Are you ' +
-    'sure you want to overwrite?',
+  'Overwriting might cause you to lose some of your work. Are you ' +
+  'sure you want to overwrite?',
 );
 
 const registry = getChartMetadataRegistry();
@@ -78,7 +78,7 @@ const createFetchDatasets = (handleError: (err: Response) => void) => async (
 ) => {
   // add filters if filterValue
   const filters = filterValue
-    ? { filters: [{ col: 'table_name', opr: 'sw', value: filterValue }] }
+    ? {filters: [{col: 'table_name', opr: 'sw', value: filterValue}]}
     : {};
   try {
     const queryParams = rison.encode({
@@ -86,17 +86,17 @@ const createFetchDatasets = (handleError: (err: Response) => void) => async (
       keys: ['none'],
       order_column: 'table_name',
       order_direction: 'asc',
-      ...(pageIndex ? { page: pageIndex } : {}),
-      ...(pageSize ? { page_size: pageSize } : {}),
+      ...(pageIndex ? {page: pageIndex} : {}),
+      ...(pageSize ? {page_size: pageSize} : {}),
       ...filters,
     });
 
-    const { json = {} } = await SupersetClient.get({
+    const {json = {}} = await SupersetClient.get({
       endpoint: `/api/v1/dataset/?q=${queryParams}`,
     });
 
     const datasets = json?.result?.map(
-      ({ table_name: tableName, id }: { table_name: string; id: number }) => ({
+      ({table_name: tableName, id}: { table_name: string; id: number }) => ({
         label: tableName,
         value: id,
       }),
@@ -118,15 +118,15 @@ interface ChartListProps {
 }
 
 const Actions = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({theme}) => theme.colors.grayscale.base};
 `;
 
 function IsCyrillic(ch: string) {
-    return /^[\u0400-\u04FF ]+$/.test(ch);
+  return /^[\u0400-\u04FF ]+$/.test(ch);
 };
 
 function ChartList(props: ChartListProps) {
-  const { addDangerToast, addSuccessToast } = props;
+  const {addDangerToast, addSuccessToast} = props;
 
   const {
     state: {
@@ -177,15 +177,15 @@ function ChartList(props: ChartListProps) {
   const canDelete = hasPerm('can_write');
   const canExport =
     hasPerm('can_read') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
-  const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
+  const initialSort = [{id: 'changed_on_delta_humanized', desc: true}];
 
   function handleBulkChartDelete(chartsToDelete: Chart[]) {
     SupersetClient.delete({
       endpoint: `/api/v1/chart/?q=${rison.encode(
-        chartsToDelete.map(({ id }) => id),
+        chartsToDelete.map(({id}) => id),
       )}`,
     }).then(
-      ({ json = {} }) => {
+      ({json = {}}) => {
         refreshData();
         addSuccessToast(json.message);
       },
@@ -201,10 +201,10 @@ function ChartList(props: ChartListProps) {
     () => [
       {
         Cell: ({
-          row: {
-            original: { id },
-          },
-        }: any) => (
+                 row: {
+                   original: {id},
+                 },
+               }: any) => (
           <FaveStar
             itemId={id}
             saveFaveStar={saveFavoriteStatus}
@@ -218,10 +218,10 @@ function ChartList(props: ChartListProps) {
       },
       {
         Cell: ({
-          row: {
-            original: { url, slice_name: sliceName },
-          },
-        }: any) => (
+                 row: {
+                   original: {url, slice_name: sliceName},
+                 },
+               }: any) => (
           <a href={url} data-test={`${sliceName}-list-chart-title`}>
             {sliceName}
           </a>
@@ -231,23 +231,23 @@ function ChartList(props: ChartListProps) {
       },
       {
         Cell: ({
-          row: {
-            original: { viz_type: vizType },
-          },
-        }: any) => registry.get(vizType)?.name || vizType,
+                 row: {
+                   original: {viz_type: vizType},
+                 },
+               }: any) => registry.get(vizType)?.name || vizType,
         Header: t('Visualization type'),
         accessor: 'viz_type',
         size: 'xxl',
       },
       {
         Cell: ({
-          row: {
-            original: {
-              datasource_name_text: dsNameTxt,
-              datasource_url: dsUrl,
-            },
-          },
-        }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
+                 row: {
+                   original: {
+                     datasource_name_text: dsNameTxt,
+                     datasource_url: dsUrl,
+                   },
+                 },
+               }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
         Header: t('Dataset'),
         accessor: 'datasource_id',
         disableSortBy: true,
@@ -255,23 +255,23 @@ function ChartList(props: ChartListProps) {
       },
       {
         Cell: ({
-          row: {
-            original: {
-              changed_by_name: changedByName,
-              changed_by_url: changedByUrl,
-            },
-          },
-        }: any) => <a href={changedByUrl}>{changedByName}</a>,
+                 row: {
+                   original: {
+                     changed_by_name: changedByName,
+                     changed_by_url: changedByUrl,
+                   },
+                 },
+               }: any) => <a href={changedByUrl}>{changedByName}</a>,
         Header: t('Modified by'),
         accessor: 'changed_by.first_name',
         size: 'xl',
       },
       {
         Cell: ({
-          row: {
-            original: { changed_on_delta_humanized: changedOn },
-          },
-        }: any) => <span className="no-wrap">{changedOn}</span>,
+                 row: {
+                   original: {changed_on_delta_humanized: changedOn},
+                 },
+               }: any) => <span className="no-wrap">{changedOn}</span>,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
@@ -283,10 +283,10 @@ function ChartList(props: ChartListProps) {
       },
       {
         Cell: ({
-          row: {
-            original: { created_by: createdBy },
-          },
-        }: any) =>
+                 row: {
+                   original: {created_by: createdBy},
+                 },
+               }: any) =>
           createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
         Header: t('Created by'),
         accessor: 'created_by',
@@ -294,7 +294,7 @@ function ChartList(props: ChartListProps) {
         size: 'xl',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({row: {original}}: any) => {
           const handleDelete = () =>
             handleChartDelete(
               original,
@@ -334,7 +334,7 @@ function ChartList(props: ChartListProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icons.Trash />
+                        <Icons.Trash/>
                       </span>
                     </Tooltip>
                   )}
@@ -352,7 +352,7 @@ function ChartList(props: ChartListProps) {
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.Share />
+                    <Icons.Share/>
                   </span>
                 </Tooltip>
               )}
@@ -368,7 +368,7 @@ function ChartList(props: ChartListProps) {
                     className="action-button"
                     onClick={openEditModal}
                   >
-                    <Icons.EditAlt data-test="edit-alt" />
+                    <Icons.EditAlt data-test="edit-alt"/>
                   </span>
                 </Tooltip>
               )}
@@ -436,17 +436,17 @@ function ChartList(props: ChartListProps) {
       unfilteredLabel: t('All'),
       selects: registry
         .keys()
-        .map(k => ({ label: registry.get(k)?.name || k, value: k }))
+        .map(k => ({label: registry.get(k)?.name || k, value: k}))
         .sort((a, b) => {
           if (!a.label || !b.label) {
             return 0;
           }
 
-          if (IsCyrillic(a.label[0]) && !IsCyrillic(b.label[0])){
-              return -1;
+          if (IsCyrillic(a.label[0]) && !IsCyrillic(b.label[0])) {
+            return -1;
           }
-          if (IsCyrillic(b.label[0]) && !IsCyrillic(a.label[0])){
-              return 1;
+          if (IsCyrillic(b.label[0]) && !IsCyrillic(a.label[0])) {
+            return 1;
           }
 
           if (a.label > b.label) {
@@ -485,8 +485,8 @@ function ChartList(props: ChartListProps) {
       operator: FilterOperators.chartIsFav,
       unfilteredLabel: t('Any'),
       selects: [
-        { label: t('Yes'), value: true },
-        { label: t('No'), value: false },
+        {label: t('Yes'), value: true},
+        {label: t('No'), value: false},
       ],
     },
     {
@@ -519,7 +519,7 @@ function ChartList(props: ChartListProps) {
   ];
 
   function renderCard(chart: Chart) {
-    const { userId } = props.user;
+    const {userId} = props.user;
     const userKey = getFromLocalStorage(userId.toString(), null);
     return (
       <ChartCard
@@ -541,6 +541,7 @@ function ChartList(props: ChartListProps) {
       />
     );
   }
+
   const subMenuButtons: SubMenuProps['buttons'] = [];
   if (canDelete || canExport) {
     subMenuButtons.push({
@@ -554,7 +555,7 @@ function ChartList(props: ChartListProps) {
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {t('Chart')}
+          <i className="fa fa-plus"/> {t('Chart')}
         </>
       ),
       buttonStyle: 'primary',
@@ -571,7 +572,7 @@ function ChartList(props: ChartListProps) {
           title={t('Import charts')}
           placement="bottomRight"
         >
-          <Icons.Import data-test="import-button" />
+          <Icons.Import data-test="import-button"/>
         </Tooltip>
       ),
       buttonStyle: 'link',
@@ -580,7 +581,7 @@ function ChartList(props: ChartListProps) {
   }
   return (
     <>
-      <SubMenu name={t('Charts')} buttons={subMenuButtons} />
+      <SubMenu name={t('Charts')} buttons={subMenuButtons}/>
       {sliceCurrentlyEditing && (
         <PropertiesModal
           onHide={closeChartEditModal}

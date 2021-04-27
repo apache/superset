@@ -19,7 +19,9 @@
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/core';
+import { t,   getChartMetadataRegistry, } from '@superset-ui/core';
+
+const registry = getChartMetadataRegistry();
 
 const propTypes = {
   datasourceUrl: PropTypes.string,
@@ -67,7 +69,7 @@ function AddSliceCard({
           </div>
           <div className="item">
             <span>{t('Visualization')} </span>
-            <span>{visType}</span>
+            <span>{registry.get(visType)?.name || visType}</span>
           </div>
           <div className="item">
             <span>{t('Data source')} </span>
