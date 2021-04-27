@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-x-superset-image: &superset-image apache/superset:latest
+x-superset-image: &superset-image apache/superset:latest-dev
 x-superset-depends-on: &superset-depends-on
   - db
   - redis
@@ -26,7 +26,7 @@ x-superset-volumes: &superset-volumes
 version: "3.7"
 services:
   redis:
-    image: redis:6.2
+    image: redis:latest
     container_name: superset_cache
     restart: unless-stopped
     volumes:
