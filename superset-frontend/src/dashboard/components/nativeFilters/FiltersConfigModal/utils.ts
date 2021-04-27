@@ -197,7 +197,9 @@ export const createHandleTabEdit = (
   }
 };
 
-export const generateFilterId = () => `NATIVE_FILTER-${shortid.generate()}`;
+export const NATIVE_FILTER_PREFIX = 'NATIVE_FILTER-';
+export const generateFilterId = () =>
+  `${NATIVE_FILTER_PREFIX}${shortid.generate()}`;
 
 export const getFilterIds = (config: FilterConfiguration) =>
   config.map(filter => filter.id);
