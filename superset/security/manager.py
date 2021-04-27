@@ -195,7 +195,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("menu_access", "SQL Lab"),
         ("menu_access", "SQL Editor"),
         ("menu_access", "Saved Queries"),
-        ("menu_access", "Query History"),
+        ("menu_access", "Query Search"),
     }
 
     data_access_permissions = (
