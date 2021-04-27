@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import Dashboard from '../components/Dashboard';
@@ -32,8 +32,9 @@ import {
   getAllActiveFilters,
   getRelevantDataMask,
 } from '../util/activeAllDashboardFilters';
+import { RootState } from '../types';
 
-function mapStateToProps(state) {
+function mapStateToProps(state: RootState) {
   const {
     datasources,
     sliceEntities,
@@ -76,7 +77,7 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: Dispatch) {
   return {
     actions: bindActionCreators(
       {

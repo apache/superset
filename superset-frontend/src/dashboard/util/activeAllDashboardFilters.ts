@@ -17,6 +17,7 @@
  * under the License.
  */
 import { DataMaskStateWithId } from 'src/dataMask/types';
+import { JsonObject } from '@superset-ui/core';
 import { CHART_TYPE } from './componentTypes';
 import { Scope } from '../components/nativeFilters/types';
 import { ActiveFilters, LayoutItem } from '../types';
@@ -75,7 +76,7 @@ export const getRelevantDataMask = (
   dataMask: DataMaskStateWithId,
   filterBy: string,
   prop?: string,
-) =>
+): JsonObject | DataMaskStateWithId =>
   Object.values(dataMask)
     .filter(item => item[filterBy])
     .reduce(
@@ -104,7 +105,7 @@ export const getAllActiveFilters = ({
         excluded: [filterId],
       };
     // Iterate over all roots to find all affected charts
-    scope.rootPath.forEach(layoutItemId => {
+    scope.rootPath.forEach((layoutItemId: string | number) => {
       layout[layoutItemId].children.forEach((child: string) => {
         // Need exclude from affected charts, charts that located in scope `excluded`
         findAffectedCharts({
