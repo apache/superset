@@ -151,7 +151,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         For example, "SELECT 1 FROM default.mytable" becomes "EXPLAIN (TYPE
         VALIDATE) SELECT 1 FROM default.mytable.
         """
-        user_name = g.user.username if g.user else None
+        user_name = g.user.username if g.user and hasattr(g.user, "username") else None
         parsed_query = ParsedQuery(sql)
         statements = parsed_query.get_statements()
 

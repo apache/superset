@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { EditableTabs } from 'src/common/components/Tabs';
 import { Dropdown } from 'src/components/Dropdown';
+import { EditableTabs } from 'src/components/Tabs';
 import { Menu } from 'src/common/components';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
