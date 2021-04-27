@@ -152,7 +152,9 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
     published = Column(Boolean, default=False)
     roles = relationship(security_manager.role_model, secondary=DashboardRoles)
-    _filter_sets = relationship(FilterSet, back_populates="dashboard")
+    _filter_sets = relationship(
+        "FilterSet", back_populates="dashboard", cascade="all, delete"
+    )
     export_fields = [
         "dashboard_title",
         "position_json",
@@ -167,6 +169,10 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @property
     def filter_sets(self) -> Dict[int, FilterSet]:
+        return {fs.id: fs for fs in self._filter_sets}
+
+    @property
+    def filter_sets_lst(self) -> Dict[int, FilterSet]:
         if is_user_admin():
             return self._filter_sets
         current_user = g.user.id

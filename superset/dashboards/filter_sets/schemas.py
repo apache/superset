@@ -35,7 +35,9 @@ class JsonMetadataSchema(Schema):
 class FilterSetPostSchema(Schema):
     # pylint: disable=W0613
     name = fields.String(required=True, allow_none=False, validate=Length(0, 500),)
-    description = fields.String(allow_none=True, validate=[Length(1, 1000)])
+    description = fields.String(
+        required=False, allow_none=True, validate=[Length(1, 1000)]
+    )
     json_metadata = fields.Nested(JsonMetadataSchema, required=True)
 
     owner_type = fields.String(
@@ -53,11 +55,13 @@ class FilterSetPostSchema(Schema):
 
 
 class FilterSetPutSchema(Schema):
-    name = fields.String(allow_none=False, validate=Length(0, 500))
-    description = fields.String(allow_none=False, validate=[Length(1, 1000)])
-    json_metadata = fields.Nested(JsonMetadataSchema, allow_none=False)
+    name = fields.String(required=False, allow_none=False, validate=Length(0, 500))
+    description = fields.String(
+        required=False, allow_none=False, validate=[Length(1, 1000)]
+    )
+    json_metadata = fields.Nested(JsonMetadataSchema, required=False, allow_none=False)
     owner_type = fields.String(
-        allow_none=False, validate=OneOf([USER_OWNER_TYPE, DASHBOARD_OWNER_TYPE])
+        allow_none=False, required=False, validate=OneOf([DASHBOARD_OWNER_TYPE])
     )
 
 

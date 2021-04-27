@@ -38,7 +38,7 @@ def upgrade():
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.VARCHAR(500), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("json_metadata", sa.Text(), nullable=False),
+        sa.Column("json_metadata", sa.JSON(), nullable=False),
         sa.Column("owner_id", sa.Integer(), nullable=False),
         sa.Column("owner_type", sa.VARCHAR(255), nullable=False),
         sa.Column(

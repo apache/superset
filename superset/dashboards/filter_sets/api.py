@@ -45,6 +45,7 @@ from superset.dashboards.filter_sets.commands.exceptions import (
     FilterSetCreateFailedError,
     FilterSetDeleteFailedError,
     FilterSetForbiddenError,
+    FilterSetNotFoundError,
     FilterSetUpdateFailedError,
     UserIsNotDashboardOwnerError,
 )
@@ -123,7 +124,8 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
     @merge_response_func(ModelRestApi.merge_list_columns, API_LIST_COLUMNS_RIS_KEY)
     @merge_response_func(ModelRestApi.merge_list_title, API_LIST_TITLE_RIS_KEY)
     def get_list(self, **kwargs: Any) -> Response:
-        """Gets a dashboard's Filter-sets
+        """
+            Gets a dashboard's Filter-sets
         """
         dashboard_id: Optional[int] = kwargs.get("dashboard_id", None)
         if not DashboardDAO.find_by_id(cast(int, dashboard_id)):
@@ -144,7 +146,8 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def post(self, dashboard_id: int) -> Response:  # pylint: disable=W0221
-        """Creates a new Dashboard's FilterSet
+        """
+            Creates a new Dashboard's FilterSet
         """
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
@@ -161,7 +164,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         except DashboardNotFoundError:
             return self.response_404()
 
-    @expose("/<dashboard_id>/filtersets/<pk>", methods=["PUT"])
+    @expose("/<int:dashboard_id>/filtersets/<int:pk>", methods=["PUT"])
     @protect()
     @safe
     @statsd_metrics
@@ -170,7 +173,8 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def put(self, dashboard_id: int, pk: int) -> Response:
-        """Changes a Dashboard's Filterset
+        """
+            Changes a Dashboard's Filterset
         """
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
@@ -188,7 +192,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
             logger.error(err)
             return self.response(err.status)
 
-    @expose("/<dashboard_id>/filtersets/<pk>", methods=["DELETE"])
+    @expose("/<int:dashboard_id>/filtersets/<int:pk>", methods=["DELETE"])
     @protect()
     @safe
     @statsd_metrics
@@ -197,13 +201,16 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def delete(self, dashboard_id: int, pk: int) -> Response:  # pylint: disable=W0221
-        """Deletes a Dashboard's FilterSet
+        """
+            Deletes a Dashboard's FilterSet
         """
         try:
             changed_model = DeleteFilterSetCommand(g.user, dashboard_id, pk).run()
             return self.response(200, id=changed_model.id)
         except ValidationError as error:
             return self.response_400(message=error.messages)
+        except FilterSetNotFoundError:
+            return self.response(200)
         except (
             ObjectNotFoundError,
             FilterSetForbiddenError,

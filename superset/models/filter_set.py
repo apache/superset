@@ -16,12 +16,11 @@
 # under the License.
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any, Dict
 
 from flask_appbuilder import Model
-from sqlalchemy import Column, ForeignKey, Integer, MetaData, String, Text
+from sqlalchemy import Column, ForeignKey, Integer, JSON, MetaData, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils import generic_relationship
 
@@ -42,7 +41,7 @@ class FilterSet(  # pylint: disable=too-many-instance-attributes
     id = Column(Integer, primary_key=True)
     name = Column(String(500), nullable=False, unique=True)
     description = Column(Text, nullable=True)
-    json_metadata = Column(Text, nullable=False)
+    json_metadata = Column(JSON, nullable=False)
     dashboard_id = Column(Integer, ForeignKey("dashboards.id"))
     dashboard = relationship("Dashboard", back_populates="_filter_sets")
     owner_id = Column(Integer, nullable=False)
@@ -74,16 +73,15 @@ class FilterSet(  # pylint: disable=too-many-instance-attributes
             return ""
         return f"/superset/profile/{self.changed_by.username}"
 
-    @property
-    def data(self) -> Dict[str, Any]:
-        json_metadata = self.json_metadata
-        if json_metadata:
-            json_metadata = json.loads(json_metadata)
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "id": self.id,
-            "metadata": json_metadata,
             "name": self.name,
-            "last_modified_time": self.changed_on.replace(microsecond=0).timestamp(),
+            "description": self.description,
+            "json_metadata": self.json_metadata,
+            "dashboard_id": self.dashboard_id,
+            "owner_type": self.owner_type,
+            "owner_id": self.owner_id,
         }
 
     @classmethod

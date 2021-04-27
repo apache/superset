@@ -25,7 +25,7 @@ from superset.dashboards.filter_sets.commands.base import BaseFilterSetCommand
 from superset.dashboards.filter_sets.commands.exceptions import (
     FilterSetUpdateFailedError,
 )
-from superset.dashboards.filter_sets.consts import DASHBOARD_ID_FIELD
+from superset.dashboards.filter_sets.consts import OWNER_ID_FIELD, OWNER_TYPE_FIELD
 from superset.dashboards.filter_sets.dao import FilterSetDAO
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,11 @@ class UpdateFilterSetCommand(BaseFilterSetCommand):
     def run(self) -> Model:
         try:
             self.validate()
-            self._properties[DASHBOARD_ID_FIELD] = self._dashboard_id
+            if (
+                OWNER_TYPE_FIELD in self._properties
+                and self._properties[OWNER_TYPE_FIELD] == "Dashboard"
+            ):
+                self._properties[OWNER_ID_FIELD] = self._dashboard_id
             return FilterSetDAO.update(self._filter_set, self._properties, commit=True)
         except DAOUpdateFailedError as err:
             raise FilterSetUpdateFailedError(str(self._filter_set_id), "", err)
