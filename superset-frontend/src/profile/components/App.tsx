@@ -17,24 +17,15 @@
  * under the License.
  */
 import React from 'react';
-<<<<<<< HEAD
-import { Col, Row } from 'antd';
-import Tabs from 'src/common/components/Tabs';
 import { t, styled } from '@superset-ui/core';
-
-=======
 import { Row, Col } from 'src/common/components';
-import { Panel } from 'react-bootstrap';
 import Tabs from 'src/common/components/Tabs';
-import { t } from '@superset-ui/core';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
->>>>>>> 4fbb57256844f6a4021c8af90d9e5464a222257d
 import Favorites from './Favorites';
 import UserInfo from './UserInfo';
 import Security from './Security';
 import RecentActivity from './RecentActivity';
 import CreatedContent from './CreatedContent';
-import { Tab } from 'react-bootstrap';
 
 interface AppProps {
   user: UserWithPermissionsAndRoles;
