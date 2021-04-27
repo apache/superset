@@ -240,8 +240,6 @@ export function transformEventAnnotation(
       {
         name: label,
         xAxis: (time as unknown) as number,
-        // TODO: remove when https://github.com/apache/echarts/pull/14693 is released
-        symbolOffset: 0,
       },
     ];
 
