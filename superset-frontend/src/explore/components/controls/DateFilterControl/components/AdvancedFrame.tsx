@@ -55,7 +55,7 @@ export function AdvancedFrame(props: FrameComponentProps) {
   return (
     <>
       <div className="section-title">
-        {t('Configure Advanced Time Range ')}
+        {t('Configure Advanced Time Range')}
         <DateFunctionTooltip placement="rightBottom">
           <i className="fa fa-info-circle text-muted" />
         </DateFunctionTooltip>

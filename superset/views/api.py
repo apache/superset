@@ -98,5 +98,5 @@ class Api(BaseSupersetView):
             }
             return self.json_response({"result": result})
         except (ValueError, TimeRangeParseFailError, TimeRangeUnclearError) as error:
-            error_msg = {"message": f"Unexpected time range: {error}"}
+            error_msg = {"message": f"Ошибка в фильтре по времени: {error}"}
             return self.json_response(error_msg, 400)
