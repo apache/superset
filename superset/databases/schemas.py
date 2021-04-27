@@ -213,9 +213,9 @@ class DatabaseParametersSchemaMixin:
     """
     Allow SQLAlchemy URI to be passed as separate parameters.
 
-    This mixing is a first step in allowing the users to test, create and
+    This mixin is a first step in allowing the users to test, create and
     edit databases without having to know how to write a SQLAlchemy URI.
-    Instead, each databases defines the parameters that it takes (eg,
+    Instead, each database defines the parameters that it takes (eg,
     username, password, host, etc.) and the SQLAlchemy URI is built from
     these parameters.
 
@@ -223,7 +223,7 @@ class DatabaseParametersSchemaMixin:
     """
 
     parameters = fields.Dict(
-        keys=fields.Str(),
+        keys=fields.String(),
         values=fields.Raw(),
         description="DB-specific parameters for configuration",
     )
@@ -270,8 +270,32 @@ class DatabaseParametersSchemaMixin:
                     ]
                 )
 
-            data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_url(parameters)
+            data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(parameters)
         return data
+
+
+class DatabaseValidateParametersSchema(Schema):
+    engine = fields.String(required=True, description="SQLAlchemy engine to use")
+    parameters = fields.Dict(
+        keys=fields.String(),
+        values=fields.Raw(),
+        description="DB-specific parameters for configuration",
+    )
+    database_name = fields.String(
+        description=database_name_description, allow_none=True, validate=Length(1, 250),
+    )
+    impersonate_user = fields.Boolean(description=impersonate_user_description)
+    extra = fields.String(description=extra_description, validate=extra_validator)
+    encrypted_extra = fields.String(
+        description=encrypted_extra_description,
+        validate=encrypted_extra_validator,
+        allow_none=True,
+    )
+    server_cert = fields.String(
+        description=server_cert_description,
+        allow_none=True,
+        validate=server_cert_validator,
+    )
 
 
 class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
