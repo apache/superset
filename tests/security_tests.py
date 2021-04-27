@@ -843,7 +843,7 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("menu_access", "SQL Lab"), sql_lab_set)
         self.assertIn(("menu_access", "SQL Editor"), sql_lab_set)
         self.assertIn(("menu_access", "Saved Queries"), sql_lab_set)
-        self.assertIn(("menu_access", "Query History"), sql_lab_set)
+        self.assertIn(("menu_access", "Query Search"), sql_lab_set)
 
         self.assert_cannot_alpha(sql_lab_set)
 
