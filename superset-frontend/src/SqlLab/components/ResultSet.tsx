@@ -103,6 +103,10 @@ const MonospaceDiv = styled.div`
 const ReturnedRows = styled.div`
   font-size: 13px;
   line-height: 24px;
+  .limitMessage {
+    color: ${({ theme }) => theme.colors.secondary.light1};
+    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  }
 `;
 const ResultSetControls = styled.div`
   display: flex;
@@ -502,21 +506,76 @@ export default class ResultSet extends React.PureComponent<
   }
 
   renderRowsReturned() {
-    const { results, rows, queryLimit } = this.props.query;
+    const { results, rows, queryLimit, limitingFactor } = this.props.query;
     const limitReached = results?.displayLimitReached;
+    let limitMessage;
+    const appContainer = document.getElementById('app');
+    const bootstrapData = JSON.parse(
+      appContainer?.getAttribute('data-bootstrap') || '{}',
+    );
+    const isAdmin = bootstrapData.user?.roles?.hasOwnProperty('Admin');
+    const defaultDropwdown =
+      limitingFactor === 'DROPDOWN' && queryLimit === 1000;
+    const adminWarning = isAdmin
+      ? ' by the configuration DISPLAY_MAX_ROWS'
+      : null;
+    if (limitingFactor === 'QUERY' && this.props.csv) {
+      limitMessage = (
+        <span className="limitMessage">
+          {t(
+            `The number of rows displayed is limited to %s by the query`,
+            rows,
+          )}
+        </span>
+      );
+    } else if (limitingFactor === 'DROPDOWN' && !defaultDropwdown) {
+      limitMessage = (
+        <span className="limitMessage">
+          {t(
+            `The number of rows displayed is limited to %s by the limit dropdown`,
+            rows,
+          )}
+        </span>
+      );
+    } else if (limitingFactor === 'QUERY_AND_DROPDOWN') {
+      limitMessage = (
+        <span className="limitMessage">
+          {t(
+            `The number of rows displayed is limited to %s by the query limit dropdown`,
+            rows,
+          )}
+        </span>
+      );
+    }
     return (
       <ReturnedRows>
-        {!limitReached && (
-          <Alert type="warning" message={t(`%s rows returned`, rows)} />
+        {!limitReached && !defaultDropwdown && (
+          <span>
+            {t(`%s rows returned`, rows)} {limitMessage}
+          </span>
+        )}
+        {!limitReached && defaultDropwdown && (
+          <Alert
+            closable={false}
+            type="warning"
+            message={t(`%s rows returned`, rows)}
+            description={t(
+              `The number of rows displayed is limited to %s by the dropdown`,
+              rows,
+            )}
+          />
         )}
         {limitReached && (
           <Alert
+            closable={false}
             type="warning"
-            message={t(
-              `The number of results displayed is limited to %s. Please add
+            message={t(`%s rows returned`, rows)}
+            description={t(
+              `The number of results displayed is limited to %s%s. Please add
             additional limits/filters or download to csv to see more rows up to
-            the %s limit.`,
+            the %s limit. %s`,
               rows,
+              adminWarning,
               queryLimit,
             )}
           />
