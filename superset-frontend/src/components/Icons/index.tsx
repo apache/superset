@@ -20,7 +20,7 @@
 import React from 'react';
 import _ from 'lodash';
 import AntdEnhancedIcons from './AntdEnhanced';
-import { Icon } from './Icon';
+import Icon from './Icon';
 import IconType from './IconType';
 
 const iconFilePaths = [

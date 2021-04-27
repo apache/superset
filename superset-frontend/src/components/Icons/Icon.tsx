@@ -28,7 +28,7 @@ const AntdIconComponent = ({ iconColor, iconSize, ...rest }: IconType) => (
   <AntdIcon viewBox={rest.viewBox || '0 0 24 24'} {...rest} />
 );
 
-const StyledIcon = styled(AntdIconComponent)<IconType>`
+export const StyledIcon = styled(AntdIconComponent)<IconType>`
   ${({ iconColor }) => iconColor && `color: ${iconColor};`};
   font-size: ${({ iconSize, theme }) =>
     iconSize
@@ -73,4 +73,4 @@ export const Icon = (props: IconProps) => {
   );
 };
 
-export default StyledIcon;
+export default Icon;
