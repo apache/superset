@@ -71,16 +71,17 @@ describe('ChartHolder', () => {
 
   it('toggle full size', async () => {
     renderWrapper();
-    // @ts-ignore
-    let chart = screen.getByTestId('slice-container')?.firstChild?.style;
+
+    let chart = (screen.getByTestId('slice-container')
+      .firstChild as HTMLElement).style;
     expect(chart?.width).toBe('900px');
     expect(chart?.height).toBe('26px');
 
     userEvent.click(screen.getByRole('button'));
     userEvent.click(screen.getByText('Maximize chart'));
 
-    // @ts-ignore
-    chart = screen.getByTestId('slice-container')?.firstChild?.style;
+    chart = (screen.getByTestId('slice-container').firstChild as HTMLElement)
+      .style;
     await waitFor(() => expect(chart?.width).toBe('992px'));
     expect(chart?.height).toBe('714px');
   });
