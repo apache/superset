@@ -20,7 +20,15 @@ import emotionStyled, { CreateStyled } from '@emotion/styled';
 import { useTheme as useThemeBasic } from 'emotion-theming';
 
 export { ThemeProvider, withTheme } from 'emotion-theming';
-export { css, InterpolationWithTheme } from '@emotion/core';
+export {
+  CacheProvider,
+  ClassNames,
+  css,
+  Global,
+  InterpolationWithTheme,
+  SerializedStyles,
+} from '@emotion/core';
+export { default as createCache } from '@emotion/cache';
 
 export function useTheme() {
   const theme = useThemeBasic<SupersetTheme>();
