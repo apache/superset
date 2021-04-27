@@ -20,7 +20,7 @@
 import { styled } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
-import Tabs from 'src/common/components/Tabs';
+import Tabs from 'src/components/Tabs';
 
 const CTAS_CVAS_SCHEMA_FORM_HEIGHT = 102;
 const EXPOSE_IN_SQLLAB_FORM_HEIGHT = CTAS_CVAS_SCHEMA_FORM_HEIGHT + 52;
