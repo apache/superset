@@ -34,6 +34,7 @@ from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.tags import ChartUpdater
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils import core as utils
+from superset.utils.hashing import md5_sha_from_str
 from superset.utils.urls import get_url_path
 from superset.viz import BaseViz, viz_types  # type: ignore
 
@@ -202,7 +203,7 @@ class Slice(
         """
         Returns a MD5 HEX digest that makes this dashboard unique
         """
-        return utils.md5_hex(self.params or "")
+        return md5_sha_from_str(self.params or "")
 
     @property
     def thumbnail_url(self) -> str:

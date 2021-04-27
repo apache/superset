@@ -27,7 +27,7 @@ import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-import ListView, { Filters } from 'src/components/ListView';
+import ListView, { FilterOperator, Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import DatabaseModal from './DatabaseModal';
@@ -374,7 +374,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         Header: t('Expose in SQL Lab'),
         id: 'expose_in_sqllab',
         input: 'select',
-        operator: 'eq',
+        operator: FilterOperator.equals,
         unfilteredLabel: 'All',
         selects: [
           { label: 'Yes', value: true },
@@ -393,7 +393,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         ),
         id: 'allow_run_async',
         input: 'select',
-        operator: 'eq',
+        operator: FilterOperator.equals,
         unfilteredLabel: 'All',
         selects: [
           { label: 'Yes', value: true },
@@ -404,7 +404,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         Header: t('Search'),
         id: 'database_name',
         input: 'search',
-        operator: 'ct',
+        operator: FilterOperator.contains,
       },
     ],
     [],

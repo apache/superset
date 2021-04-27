@@ -52,8 +52,8 @@ from superset.dashboards.commands.importers.dispatcher import ImportDashboardsCo
 from superset.dashboards.commands.update import UpdateDashboardCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.filters import (
+    DashboardAccessFilter,
     DashboardFavoriteFilter,
-    DashboardFilter,
     DashboardTitleOrSlugFilter,
     FilterRelatedRoles,
 )
@@ -105,6 +105,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     list_columns = [
         "id",
         "published",
+        "status",
         "slug",
         "url",
         "css",
@@ -153,13 +154,13 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     search_columns = (
         "created_by",
+        "changed_by",
         "dashboard_title",
         "id",
         "owners",
-        "roles",
         "published",
+        "roles",
         "slug",
-        "changed_by",
     )
     search_filters = {
         "dashboard_title": [DashboardTitleOrSlugFilter],
@@ -173,7 +174,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     dashboard_get_response_schema = DashboardGetResponseSchema()
     dashboard_dataset_schema = DashboardDatasetSchema()
 
-    base_filters = [["slice", DashboardFilter, lambda: []]]
+    base_filters = [["id", DashboardAccessFilter, lambda: []]]
 
     order_rel_fields = {
         "slices": ("slice_name", "asc"),
@@ -825,7 +826,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         dashboards = DashboardDAO.find_by_ids(requested_ids)
         if not dashboards:
             return self.response_404()
-        favorited_dashboard_ids = DashboardDAO.favorited_ids(dashboards, g.user.id)
+        favorited_dashboard_ids = DashboardDAO.favorited_ids(
+            dashboards, g.user.get_id()
+        )
         res = [
             {"id": request_id, "value": request_id in favorited_dashboard_ids}
             for request_id in requested_ids

@@ -30,6 +30,12 @@ CTAS_SCHEMA_NAME = "sqllab_test_db"
 ADMIN_SCHEMA_NAME = "admin_database"
 
 
+@pytest.fixture
+def app_context():
+    with app.app_context():
+        yield
+
+
 @pytest.fixture(autouse=True, scope="session")
 def setup_sample_data() -> Any:
     with app.app_context():

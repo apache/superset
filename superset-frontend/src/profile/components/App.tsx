@@ -17,16 +17,16 @@
  * under the License.
  */
 import React from 'react';
-import { Col, Row, Panel } from 'react-bootstrap';
+import { Row, Col } from 'src/common/components';
+import { Panel } from 'react-bootstrap';
 import Tabs from 'src/common/components/Tabs';
 import { t } from '@superset-ui/core';
-
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Favorites from './Favorites';
 import UserInfo from './UserInfo';
 import Security from './Security';
 import RecentActivity from './RecentActivity';
 import CreatedContent from './CreatedContent';
-import { UserWithPermissionsAndRoles } from '../../types/bootstrapTypes';
 
 interface AppProps {
   user: UserWithPermissionsAndRoles;
@@ -35,11 +35,11 @@ interface AppProps {
 export default function App({ user }: AppProps) {
   return (
     <div className="container app">
-      <Row>
-        <Col md={3}>
+      <Row gutter={16}>
+        <Col xs={24} md={6}>
           <UserInfo user={user} />
         </Col>
-        <Col md={9}>
+        <Col xs={24} md={18}>
           <Tabs centered>
             <Tabs.TabPane
               key="1"
