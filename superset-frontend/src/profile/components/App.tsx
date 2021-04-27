@@ -87,7 +87,7 @@ export default function App({ user }: AppProps) {
                   </div>
                 }
               >
-                    <Security user={user} />
+                <Security user={user} />
               </Tabs.TabPane>
             </Tabs>
           </StyledPanel>
