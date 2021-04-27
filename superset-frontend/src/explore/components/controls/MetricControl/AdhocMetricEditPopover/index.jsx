@@ -20,7 +20,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
-import Tabs from 'src/common/components/Tabs';
+import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
 import { NativeSelect as Select } from 'src/components/Select';
 import { styled, t } from '@superset-ui/core';

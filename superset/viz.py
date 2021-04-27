@@ -2069,6 +2069,9 @@ class FilterBoxViz(BaseViz):
             qry["groupby"] = [col]
             metric = flt.get("metric")
             qry["metrics"] = [metric] if metric else []
+            asc = flt.get("asc")
+            if metric and asc is not None:
+                qry["orderby"] = [(metric, asc)]
             QueryContext(
                 datasource={"id": self.datasource.id, "type": self.datasource.type},
                 queries=[qry],

@@ -23,7 +23,7 @@ import sinon from 'sinon';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 
-import { LineEditableTabs } from 'src/common/components/Tabs';
+import { LineEditableTabs } from 'src/components/Tabs';
 import { Modal } from 'src/common/components';
 import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
