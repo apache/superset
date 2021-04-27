@@ -20,6 +20,7 @@ import { ChartProps, JsonObject } from '@superset-ui/core';
 import { chart } from 'src/chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
 import { DataMaskStateWithId } from '../dataMask/types';
+import { NativeFiltersState } from './reducers/types';
 
 export type ChartReducerInitialState = typeof chart;
 
@@ -53,6 +54,9 @@ export type RootState = {
   dashboardFilters: {};
   dashboardState: DashboardState;
   dataMask: DataMaskStateWithId;
+  dashboardInfo: JsonObject;
+  impressionId: string;
+  nativeFilters: NativeFiltersState;
 };
 
 /** State of dashboardLayout in redux */
