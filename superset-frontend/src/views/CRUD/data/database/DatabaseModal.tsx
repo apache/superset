@@ -25,7 +25,7 @@ import {
   testDatabaseConnection,
 } from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import Tabs from 'src/common/components/Tabs';
+import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import Collapse from 'src/components/Collapse';

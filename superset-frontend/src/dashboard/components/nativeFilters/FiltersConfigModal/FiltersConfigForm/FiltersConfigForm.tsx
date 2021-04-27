@@ -21,12 +21,21 @@ import {
   t,
   getChartMetadataRegistry,
   Behavior,
+  AdhocFilter,
+  JsonResponse,
+  SupersetApiError,
 } from '@superset-ui/core';
+import { ColumnMeta, DatasourceMeta } from '@superset-ui/chart-controls';
 import { FormInstance } from 'antd/lib/form';
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { Checkbox, Form, Input, Typography } from 'src/common/components';
 import { Select } from 'src/components/Select';
-import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
+import SupersetResourceSelect, {
+  cachedSupersetGet,
+} from 'src/components/SupersetResourceSelect';
+import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
+import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { addDangerToast } from 'src/messageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { ColumnSelect } from './ColumnSelect';
@@ -44,6 +53,8 @@ import FilterScope from './FilterScope/FilterScope';
 import RemovedFilter from './RemovedFilter';
 import DefaultValue from './DefaultValue';
 import { getFiltersConfigModalTestId } from '../FiltersConfigModal';
+// TODO: move styles from AdhocFilterControl to emotion and delete this ./main.less
+import './main.less';
 
 const StyledContainer = styled.div`
   display: flex;
@@ -62,7 +73,7 @@ export const StyledCheckboxFormItem = styled(Form.Item)`
 
 export const StyledLabel = styled.span`
   color: ${({ theme }) => theme.colors.grayscale.base};
-  font-size: ${({ theme }) => theme.typography.sizes.s};
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
   text-transform: uppercase;
 `;
 
@@ -85,6 +96,7 @@ const FILTERS_WITHOUT_COLUMN = [
   'filter_timecolumn',
   'filter_groupby',
 ];
+const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
 
 /**
  * The configuration form for a specific filter.
@@ -100,7 +112,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
 }) => {
   const forceUpdate = useForceUpdate();
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
-
+  const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
     // @ts-ignore
@@ -109,22 +121,56 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
     )
     .map(([key]) => key);
 
+  const loadedDatasets = useSelector<any, DatasourceMeta>(
+    ({ datasources }) => datasources,
+  );
+
   // @ts-ignore
   const hasDataset = !!nativeFilterItems[formFilter?.filterType]?.value
     ?.datasourceCount;
   const hasColumn =
     hasDataset && !FILTERS_WITHOUT_COLUMN.includes(formFilter?.filterType);
 
+  const datasetId = formFilter?.dataset?.value;
+
+  useEffect(() => {
+    if (datasetId && hasColumn) {
+      cachedSupersetGet({
+        endpoint: `/api/v1/dataset/${datasetId}`,
+      })
+        .then((response: JsonResponse) => {
+          const dataset = response.json?.result;
+          // modify the response to fit structure expected by AdhocFilterControl
+          dataset.type = dataset.datasource_type;
+          dataset.filter_select = true;
+          setDatasetDetails(dataset);
+        })
+        .catch((response: SupersetApiError) => {
+          addDangerToast(response.message);
+        });
+    }
+  }, [datasetId, hasColumn]);
+
   const hasFilledDataset =
-    !hasDataset ||
-    (formFilter?.dataset?.value && (formFilter?.column || !hasColumn));
+    !hasDataset || (datasetId && (formFilter?.column || !hasColumn));
+
+  const hasAdditionalFilters = FILTERS_WITH_ADHOC_FILTERS.includes(
+    formFilter?.filterType,
+  );
 
   useBackendFormUpdate(form, filterId, filterToEdit, hasDataset, hasColumn);
 
-  const initDatasetId = filterToEdit?.targets[0]?.datasetId;
+  const defaultDatasetSelectOptions = Object.values(loadedDatasets).map(
+    datasetToSelectOption,
+  );
+  const initialDatasetId =
+    filterToEdit?.targets[0]?.datasetId ??
+    (defaultDatasetSelectOptions.length === 1
+      ? defaultDatasetSelectOptions[0].value
+      : undefined);
   const initColumn = filterToEdit?.targets[0]?.column?.name;
   const newFormData = getFormData({
-    datasetId: formFilter?.dataset?.value,
+    datasetId,
     groupby: hasColumn ? formFilter?.column : undefined,
     defaultValue: formFilter?.defaultValue,
     ...formFilter,
@@ -189,21 +235,23 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
         <>
           <StyledFormItem
             name={['filters', filterId, 'dataset']}
-            initialValue={{ value: initDatasetId }}
+            initialValue={{ value: initialDatasetId }}
             label={<StyledLabel>{t('Dataset')}</StyledLabel>}
             rules={[{ required: !removed, message: t('Dataset is required') }]}
             {...getFiltersConfigModalTestId('datasource-input')}
           >
             <SupersetResourceSelect
-              initialId={initDatasetId}
+              initialId={initialDatasetId}
               resource="dataset"
               searchColumn="table_name"
               transformItem={datasetToSelectOption}
               isMulti={false}
               onError={onDatasetSelectError}
+              defaultOptions={Object.values(loadedDatasets).map(
+                datasetToSelectOption,
+              )}
               onChange={e => {
                 // We need reset column when dataset changed
-                const datasetId = formFilter?.dataset?.value;
                 if (datasetId && e?.value !== datasetId) {
                   setNativeFilterFieldValues(form, filterId, {
                     column: null,
@@ -226,10 +274,50 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
               <ColumnSelect
                 form={form}
                 filterId={filterId}
-                datasetId={formFilter?.dataset?.value}
+                datasetId={datasetId}
                 onChange={forceUpdate}
               />
             </StyledFormItem>
+          )}
+          {hasAdditionalFilters && (
+            <>
+              <StyledFormItem
+                name={['filters', filterId, 'adhoc_filters']}
+                initialValue={filterToEdit?.adhoc_filters}
+              >
+                <AdhocFilterControl
+                  columns={
+                    datasetDetails?.columns?.filter(
+                      (c: ColumnMeta) => c.filterable,
+                    ) || []
+                  }
+                  savedMetrics={datasetDetails?.metrics || []}
+                  datasource={datasetDetails}
+                  onChange={(filters: AdhocFilter[]) => {
+                    setNativeFilterFieldValues(form, filterId, {
+                      adhoc_filters: filters,
+                    });
+                    forceUpdate();
+                  }}
+                  label={<StyledLabel>{t('Adhoc filters')}</StyledLabel>}
+                />
+              </StyledFormItem>
+              <StyledFormItem
+                name={['filters', filterId, 'time_range']}
+                label={<StyledLabel>{t('Time range')}</StyledLabel>}
+                initialValue={filterToEdit?.time_range || 'No filter'}
+              >
+                <DateFilterControl
+                  name="time_range"
+                  onChange={timeRange => {
+                    setNativeFilterFieldValues(form, filterId, {
+                      time_range: timeRange,
+                    });
+                    forceUpdate();
+                  }}
+                />
+              </StyledFormItem>
+            </>
           )}
         </>
       )}
