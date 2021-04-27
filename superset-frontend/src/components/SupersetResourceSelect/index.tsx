@@ -37,6 +37,7 @@ export interface SupersetResourceSelectProps<T = unknown, V = string> {
   resource?: string; // e.g. "dataset", "dashboard/related/owners"
   transformItem?: (item: T) => Value<V>;
   onError: (error: ClientErrorObject) => void;
+  defaultOptions?: { value: number; label: string }[] | boolean;
 }
 
 /**
@@ -69,6 +70,7 @@ export default function SupersetResourceSelect<T, V>({
   searchColumn,
   transformItem,
   onError,
+  defaultOptions = true,
 }: SupersetResourceSelectProps<T, V>) {
   useEffect(() => {
     if (initialId == null) return;
@@ -111,7 +113,7 @@ export default function SupersetResourceSelect<T, V>({
       onChange={onChange}
       isMulti={isMulti}
       loadOptions={loadOptions}
-      defaultOptions // load options on render
+      defaultOptions={defaultOptions} // true - load options on render
       cacheOptions
       filterOption={null} // options are filtered at the api
     />
