@@ -507,7 +507,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
             sio.seek(0)
             workbook = sio.getvalue()
-
             return CsvResponse(workbook, headers=generate_download_headers("xlsx"))
 
         return self.response_400(message=f"Unsupported result_format: {result_format}")
