@@ -21,9 +21,9 @@
 // eg, backend rendered views
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { ThemeProvider } from '@superset-ui/core';
 import { CacheProvider } from '@emotion/core';
 import createCache from '@emotion/cache';
+import { ThemeProvider } from '@superset-ui/core';
 import Menu from 'src/components/Menu/Menu';
 import { theme } from 'src/preamble';
 
@@ -37,6 +37,7 @@ const emotionCache = createCache({
 });
 
 const app = (
+  // @ts-ignore: emotion types defs are incompatible between core and cache
   <CacheProvider value={emotionCache}>
     <ThemeProvider theme={theme}>
       <Menu data={menu} />
