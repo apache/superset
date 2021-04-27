@@ -125,7 +125,6 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
     ({ datasources }) => datasources,
   );
 
-  console.log({ loadedDatasets });
   // @ts-ignore
   const hasDataset = !!nativeFilterItems[formFilter?.filterType]?.value
     ?.datasourceCount;
