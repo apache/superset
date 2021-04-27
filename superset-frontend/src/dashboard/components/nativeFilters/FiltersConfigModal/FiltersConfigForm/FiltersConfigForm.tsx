@@ -25,9 +25,10 @@ import {
   JsonResponse,
   SupersetApiError,
 } from '@superset-ui/core';
-import { ColumnMeta } from '@superset-ui/chart-controls';
+import { ColumnMeta, DatasourceMeta } from '@superset-ui/chart-controls';
 import { FormInstance } from 'antd/lib/form';
 import React, { useCallback, useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { Checkbox, Form, Input, Typography } from 'src/common/components';
 import { Select } from 'src/components/Select';
 import SupersetResourceSelect, {
@@ -120,6 +121,10 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
     )
     .map(([key]) => key);
 
+  const loadedDatasets = useSelector<any, DatasourceMeta>(
+    ({ datasources }) => datasources,
+  );
+
   // @ts-ignore
   const hasDataset = !!nativeFilterItems[formFilter?.filterType]?.value
     ?.datasourceCount;
@@ -155,7 +160,14 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
 
   useBackendFormUpdate(form, filterId, filterToEdit, hasDataset, hasColumn);
 
-  const initDatasetId = filterToEdit?.targets[0]?.datasetId;
+  const defaultDatasetSelectOptions = Object.values(loadedDatasets).map(
+    datasetToSelectOption,
+  );
+  const initialDatasetId =
+    filterToEdit?.targets[0]?.datasetId ??
+    (defaultDatasetSelectOptions.length === 1
+      ? defaultDatasetSelectOptions[0].value
+      : undefined);
   const initColumn = filterToEdit?.targets[0]?.column?.name;
   const newFormData = getFormData({
     datasetId,
@@ -223,18 +235,21 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
         <>
           <StyledFormItem
             name={['filters', filterId, 'dataset']}
-            initialValue={{ value: initDatasetId }}
+            initialValue={{ value: initialDatasetId }}
             label={<StyledLabel>{t('Dataset')}</StyledLabel>}
             rules={[{ required: !removed, message: t('Dataset is required') }]}
             {...getFiltersConfigModalTestId('datasource-input')}
           >
             <SupersetResourceSelect
-              initialId={initDatasetId}
+              initialId={initialDatasetId}
               resource="dataset"
               searchColumn="table_name"
               transformItem={datasetToSelectOption}
               isMulti={false}
               onError={onDatasetSelectError}
+              defaultOptions={Object.values(loadedDatasets).map(
+                datasetToSelectOption,
+              )}
               onChange={e => {
                 // We need reset column when dataset changed
                 if (datasetId && e?.value !== datasetId) {
