@@ -42,7 +42,7 @@ interface IconProps extends IconType {
 
 export const Icon = (props: IconProps) => {
   const { filePath, ...iconProps } = props;
-  const [loaded, setLoaded] = useState(false);
+  const [, setLoaded] = useState(false);
   const ImportedSVG = useRef<React.FC<React.SVGProps<SVGSVGElement>>>();
   const name = filePath.replace('_', '-');
 
@@ -58,17 +58,11 @@ export const Icon = (props: IconProps) => {
     importIcon();
   }, [filePath, ImportedSVG]);
 
-  return loaded ? (
+  return (
     <StyledIcon
-      component={ImportedSVG.current}
+      component={ImportedSVG.current || TransparentIcon}
       aria-label={name}
       {...iconProps}
-    />
-  ) : (
-    <StyledIcon
-      component={TransparentIcon}
-      aria-label={name}
-      iconSize={props.iconSize}
     />
   );
 };
