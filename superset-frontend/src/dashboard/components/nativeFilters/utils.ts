@@ -23,6 +23,7 @@ import {
   Behavior,
   EXTRA_FORM_DATA_APPEND_KEYS,
   EXTRA_FORM_DATA_OVERRIDE_KEYS,
+  AdhocFilter,
 } from '@superset-ui/core';
 import { Charts } from 'src/dashboard/types';
 import { RefObject } from 'react';
@@ -37,11 +38,15 @@ export const getFormData = ({
   defaultValue,
   controlValues,
   filterType,
+  adhoc_filters,
+  time_range,
 }: Partial<Filter> & {
   datasetId?: number;
   inputRef?: RefObject<HTMLInputElement>;
   cascadingFilters?: object;
   groupby?: string;
+  adhoc_filters?: AdhocFilter[];
+  time_range?: string;
 }): Partial<QueryFormData> => {
   const otherProps: { datasource?: string; groupby?: string[] } = {};
   if (datasetId) {
@@ -53,7 +58,7 @@ export const getFormData = ({
   return {
     ...controlValues,
     ...otherProps,
-    adhoc_filters: [],
+    adhoc_filters: adhoc_filters ?? [],
     extra_filters: [],
     extra_form_data: cascadingFilters,
     granularity_sqla: 'ds',
@@ -61,7 +66,7 @@ export const getFormData = ({
     row_limit: 10000,
     showSearch: true,
     defaultValue,
-    time_range: 'No filter',
+    time_range,
     time_range_endpoints: ['inclusive', 'exclusive'],
     url_params: {},
     viz_type: filterType,
