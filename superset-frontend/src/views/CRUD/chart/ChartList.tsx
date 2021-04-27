@@ -121,6 +121,10 @@ const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
+function IsCyrillic(ch: string) {
+    return /^[\u0400-\u04FF ]+$/.test(ch);
+};
+
 function ChartList(props: ChartListProps) {
   const { addDangerToast, addSuccessToast } = props;
 
@@ -380,6 +384,7 @@ function ChartList(props: ChartListProps) {
     [canEdit, canDelete, canExport, favoriteStatus],
   );
 
+
   const filters: Filters = [
     {
       Header: t('Owner'),
@@ -435,6 +440,13 @@ function ChartList(props: ChartListProps) {
         .sort((a, b) => {
           if (!a.label || !b.label) {
             return 0;
+          }
+
+          if (IsCyrillic(a.label[0]) && !IsCyrillic(b.label[0])){
+              return -1;
+          }
+          if (IsCyrillic(b.label[0]) && !IsCyrillic(a.label[0])){
+              return 1;
           }
 
           if (a.label > b.label) {

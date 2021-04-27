@@ -24,6 +24,7 @@
       "Import Dashboards": ["Импорт Отчетов"],
       "SQL Editor": [" SQL"],
       "Last viewed": ["Просмотрено"],
+      "me": ["я"],
       "Last modified": ["Отредактировано"],
       "SQL Lab": ["SQL Лаборатория"],
       "Saved Queries": ["Сохраненные запросы"],
@@ -86,7 +87,6 @@
       "When using 'Group By' you are limited to use a single metric": [
         "При использовании поля [Группировка] вы не ограничены использованием одного среза"
       ],
-      "Pivot Table": ["Сводная таблица"],
       "Please choose at least one 'Group by' field ": [
         "Выберите хотя бы один срез в поле [Группировка]"
       ],
@@ -96,18 +96,13 @@
       "Group By' and 'Columns' can't overlap": [
         "Нельзя использовать один и тот же срез в двух полях"
       ],
-      "Treemap": ["Дерево"],
-      "Calendar Heatmap": [""],
-      "Bubble Chart": ["Пузырьковая диаграмма"],
+
       "Please use 3 different metric labels": [
         "Пожалуйста, выберите разные срезы данных для левой и правой оси"
       ],
       "Pick a metric for x, y and size": ["Выберите срез для X, Y и размер"],
-      "Bullet Chart": [""],
       "Pick a metric to display": ["Выберите показатель для отображения"],
-      "Big Number with Trendline": [""],
       "Pick a metric!": ["Выберите показатель!"],
-      "Big Number": [""],
       "Time Series - Line Chart": [""],
       "Pick a time granularity for your time series": [
         "Выберите период для временных рядов"
@@ -126,7 +121,7 @@
       "Time Series - Period Pivot": [""],
       "Time Series - Percent Change": [""],
       "Time Series - Stacked": [""],
-      "Histogram": ["Гистограмма"],
+
       "Must have at least one numeric column specified": [
         "Должен быть указан хотя бы один числовой столбец"
       ],
@@ -149,12 +144,7 @@
       "Pick exactly 2 columns to 'Group By'": [
         "Выберите ровно два столбца в поле [Группировка]"
       ],
-      "Country Map": ["Карта Стран"],
-      "World Map": ["Карта Мира"],
-      "Filters": ["Фильтры"],
       "Invalid filter configuration, please select a column": [""],
-      "Parallel Coordinates": [""],
-      "Heatmap": [""],
       "Horizon Charts": [""],
       "Mapbox": [""],
       "[Longitude] and [Latitude] must be set": [
@@ -189,7 +179,6 @@
       "Choose either fields to [Group By] and [Metrics] and/or [Percentage Metrics], or [Columns], not both": [
         "Выберите срез данных в полях [Показатели] или [Столбцы], но не в обоих одновременно"
       ],
-      "Box Plot": [""],
       "Distribution - NVD3 - Pie Chart": [""],
       "iFrame": [""],
       "Deleted %(num)d annotation layer": ["Добавить слой аннотации"],
@@ -353,7 +342,6 @@
       "The data type that was inferred by the database. It may be necessary to input a type manually for expression-defined columns in some cases. In most case users should not need to alter this.": [
         "Задать тип данных. В некоторых случаях может потребоваться ввести тип вручную для столбцов, которые формируются специальными запросами. В большинстве случаев изменять содержимое этого поля не обязательно."
       ],
-      "Table": ["Таблица"],
       "See all": ["Посмотреть все"],
       "dashboards": ["отчеты"],
       "slice": ["график"],
@@ -624,7 +612,7 @@
       "Invalid longitude/latitude": ["Долгота и Широта [Конец]"],
       "Invalid geodetic string": [""],
       "`fbprophet` package not installed": [""],
-      "Time grain missing": ["Период времени"],
+      "Time grain missing": ["Период времени отсутствует"],
       "Unsupported time grain: %(time_grain)s": [""],
       "Periods must be a positive integer value": [""],
       "Confidence interval must be between 0 and 1 (exclusive)": [""],
@@ -824,7 +812,7 @@
       ],
       "Title": ["Заголовок"],
       "Slug": ["Читаемый URL"],
-      "Published": [""],
+      "Published": ["Опубликовано"],
       "Position JSON": ["Позиция JSON"],
       "CSS": ["CSS"],
       "Underlying Tables": ["Базовые таблицы"],
@@ -1338,7 +1326,8 @@
       "Force refresh table list": ["Принудительное обновление данных"],
       "See table schema": ["Выберите схему (%s)"],
       "%s%s": [""],
-      "Share dashboard": ["Сохранить отчёт"],
+      "Share dashboard": ["Поделиться отчётом"],
+      "Share dashboard by email": ["Поделиться отчётом по email"],
       "This may be triggered by:": [""],
       "Please reach out to the Chart Owner for assistance.": [""],
       "Chart Owner: %s": ["Владелец графика"],
@@ -1382,7 +1371,7 @@
       "There was an issue favoriting this dashboard.": [
         "К сожалению, произошла ошибка при сохранения этого отчета "
       ],
-      "This dashboard is now ${nowPublished}": [""],
+      "This dashboard is now ${nowPublished}": ["Этот отчет теперь"],
       "You do not have permissions to edit this dashboard.": [
         "У вас нет разрешений на доступ к источнику данных: %(name)s."
       ],
@@ -1417,13 +1406,13 @@
       ],
       "Superset dashboard": ["Сохранить отчёт"],
       "Check out this dashboard: ": ["Отладка отчёта: %s"],
-      "Refresh dashboard": ["отчёт"],
-      "Set auto-refresh interval": ["Интервал обновления"],
+      "Refresh dashboard": ["Обновить отчет"],
+      "Set auto-refresh interval": ["Установить интервал автообновления"],
       "Set filter mapping": [""],
       "Edit dashboard properties": ["Редактировать свойства отчёта"],
       "Edit CSS": ["Редактировать CSS"],
-      "Download as image": [""],
-      "Toggle fullscreen": [""],
+      "Download as image": ["Сохранить как изображение"],
+      "Toggle fullscreen": ["Переключение полноэкранного режима"],
       "There is no chart definition associated with this component, could it have been deleted?": [
         ""
       ],
@@ -1437,7 +1426,7 @@
       "Apply": ["Применить"],
       "Dashboard properties": ["Редактировать свойства отчёта"],
       "Basic information": ["Дополнительные метаданные"],
-      "URL slug": ["Читаемый URL"],
+      "URL slug": ["URL"],
       "A readable URL for your dashboard": [
         "Получить читаемый URL-адрес для отчёта"
       ],
@@ -1449,26 +1438,26 @@
       "Advanced": ["Дополнительно"],
       "JSON metadata": ["Параметры JSON"],
       "This dashboard is not published, it will not show up in the list of dashboards. Click here to publish this dashboard.": [
-        ""
+        "Этот отчет не опубликован, он не будет отображается в списке отчетов. Нажмите сюда для публикации отчета"
       ],
       "This dashboard is not published which means it will not show up in the list of dashboards. Favorite it to see it there or access it by using the URL directly.": [
-        ""
+        "Этот отчет не опубликован, это значит, он не отображается в списке отчетов. Добавьте его в избранное, чтобы видеть его там или обращайтесь к нему напрямую по ссылке."
       ],
-      "This dashboard is published. Click to make it a draft.": [""],
-      "Draft": [""],
+      "This dashboard is published. Click to make it a draft.": ["Этот отчет опубликован. Нажмите сюда, чтобы сделать его черновиком"],
+      "Draft": ["Черновик"],
       "Don't refresh": ["Не обновлять"],
       "10 seconds": ["10 секунд"],
       "30 seconds": ["30 секунд"],
       "1 minute": ["1 минута"],
       "5 minutes": ["5 минут"],
       "30 minutes": ["10 минут"],
-      "1 hour": ["час"],
-      "6 hours": ["час"],
-      "12 hours": ["час"],
-      "24 hours": ["час"],
+      "1 hour": ["1 час"],
+      "6 hours": ["6 часов"],
+      "12 hours": ["12 часов"],
+      "24 hours": ["24 часа"],
       "Refresh interval": ["Интервал обновления"],
-      "Refresh frequency": ["Частота"],
-      "Are you sure you want to proceed?": [""],
+      "Refresh frequency": ["Частота обновления"],
+      "Are you sure you want to proceed?": ["Вы уверены, что хотите продолжить?"],
       "Save for this session": [""],
       "You must pick a name for the new dashboard": [
         "Вы должны выбрать имя для нового отчёта"
@@ -1483,59 +1472,61 @@
       "One ore more annotation layers failed loading.": [
         "Один или несколько слоев аннотации не удалось загрузить."
       ],
-      "Cached %s": [""],
-      "Fetched %s": [""],
-      "Minimize chart": ["Круговая диаграмма"],
-      "Maximize chart": ["Круговая диаграмма"],
-      "Force refresh": ["Принудительное обновление"],
+      "Cached %s": ["Закеширован %s"],
+      "Fetched %s": ["Получен %s"],
+      "Minimize chart": ["Уменьшить график"],
+      "Maximize chart": ["Увеличить график"],
+      "Force refresh": ["Принудительно обновить"],
       "Toggle chart description": ["Переключить описание графика"],
-      "View chart in Explore": ["Перезаписать диаграмму %s"],
-      "Share chart": ["Обзор графика"],
-      "Export CSV": ["Export CSV"],
-      "Applied Filters (%d)": ["Добавить фильтр"],
+      "View chart in Explore": ["Обзор графика"],
+      "Share chart": ["Поделиться графиком"],
+      "Share chart by email": ["Поделиться графиком по email"],
+      "Export CSV": ["Экспорт CSV"],
+      "Export Excel": ["Экспорт Excel"],
+      "Applied Filters (%d)": ["Примененные фильтр (%d)"],
       "Incompatible Filters (%d)": [""],
-      "Unset Filters (%d)": ["Фильтр результатов"],
+      "Unset Filters (%d)": ["Непримененные фильтры (%d)"],
       "Search...": ["Поиск"],
-      "No filter is selected.": [""],
-      "Editing 1 filter:": [""],
+      "No filter is selected.": ["Ни один фильтр не выбран."],
+      "Editing 1 filter:": ["Редактироваине 1 фильтра:"],
       "Batch editing %d filters:": [""],
       "Configure filter scopes": [""],
       "There are no filters in this dashboard.": [
         "К сожалению, произошла ошибка при сохранения этого отчета "
       ],
-      "Expand all": [""],
-      "Collapse all": [""],
+      "Expand all": ["Развернуть все"],
+      "Collapse all": ["Свернуть все"],
       "This markdown component has an error.": [""],
       "This markdown component has an error. Please revert your recent changes.": [
         ""
       ],
       "Delete dashboard tab?": ["Сохранить отчёт"],
-      "Divider": [""],
+      "Divider": ["Делитель"],
       "Header": ["Строка заголовков"],
-      "Row": [""],
-      "Tabs": [""],
+      "Row": ["Ряд"],
+      "Tabs": ["Вкладки"],
       "Preview": ["Предпросмотр %s"],
-      "Yes, cancel": [""],
-      "Keep editing": [""],
+      "Yes, cancel": ["Да, отменить"],
+      "Keep editing": ["Продолжить редкатирование"],
       "Select parent filters": ["Выберите дату окончания"],
       "Reset all": ["Сбросить текущее состояние"],
       "You have removed this filter.": [""],
       "Restore filter": ["Фильтр результатов"],
       "Filter name": ["Значение фильтра"],
-      "Name is required": [""],
+      "Name is required": ["Требуется название"],
       "Datasource is required": ["Источники данных"],
-      "Field": [""],
+      "Field": ["Поле"],
       "Parent filter": ["Временной фильтр"],
       "None": [""],
       "Apply changes instantly": [""],
       "Allow multiple selections": [""],
       "Inverse selection": [""],
       "Required": [""],
-      "Are you sure you want to cancel?": [""],
-      "will not be saved.": [""],
+      "Are you sure you want to cancel?": ["Вы уверены, что хотите отменить?"],
+      "will not be saved.": ["не будет сохранён"],
       "Filter configuration and scoping": ["Фильтруемые срезы"],
       "Add filter": ["Добавить фильтр"],
-      "(Removed)": [""],
+      "(Removed)": ["(Удален)"],
       "Undo?": [""],
       "Scoping": [""],
       "Apply to all panels": [""],
@@ -1550,7 +1541,7 @@
       "Changing the dataset may break the chart if the chart relies on columns or metadata that does not exist in the target dataset": [
         ""
       ],
-      "dataset": [""],
+      "dataset": ["датасет"],
       "Change dataset": ["Выберите источник данных"],
       "Warning!": ["Предупреждающее сообщение"],
       "Search / Filter": ["Поиск / Фильтр"],
@@ -1619,23 +1610,21 @@
       "Person or group that has certified this metric": [""],
       "Certification details": [""],
       "Details of the certification": [""],
-      "Be careful.": [""],
+      "Be careful.": ["Будте осторожны."],
       "Changing these settings will affect all charts using this dataset, including charts owned by other people.": [
         ""
       ],
       "Source": ["Источник"],
       "Sync columns from source": [""],
-      "Calculated columns": ["Дубликаты"],
+      "Calculated columns": ["Посчитанные колонки"],
       "The dataset has been saved": ["Источник данных, похоже, был удален"],
       "The dataset configuration exposed here\n                affects all the charts using this dataset.\n                Be mindful that changing settings\n                here may affect other charts\n                in undesirable ways.": [
         ""
       ],
       "Are you sure you want to save and apply changes?": [""],
-      "Confirm save": [""],
+      "Confirm save": ["Подтвердить сохранение"],
       "Edit Dataset ": ["Редактировать Базу Данных"],
       "Use legacy datasource editor": [""],
-      "Time range": ["Период времени"],
-      "Time column": ["Столбец с датой"],
       "Time grain": ["Период времени"],
       "Origin": ["Источник"],
       "Time granularity": ["Временной интервал"],
@@ -1978,7 +1967,7 @@
       "Actions": ["Действия"],
       "Bulk select": ["Множественный выбор"],
       "No %s yet": [""],
-      "Created by": ["Дата создания"],
+      "Created by": ["Создано"],
       "An error occurred while fetching created by values: %s": [
         "Произошла ошибка при построении графика: %s"
       ],
@@ -2284,8 +2273,10 @@
       "There was an issue previewing the selected query %s": [""],
       "Link Copied!": ["Копирование завершено"],
       "There was an issue deleting the selected queries: %s": [""],
-      "Edit query": ["Пустой запрос?"],
-      "Copy query URL": ["Пустой запрос?"],
+      "Edit query": ["Редактировать запрос"],
+      "Copy query URL": ["Скопировать ссылку на запрос"],
+      "Copy chart URL": ["Скопировать ссылку на график"],
+      "Copy dashboard URL": ["Скопировать ссылку на отчет"],
       "Delete query": ["Удалить"],
       "This action will permanently delete the saved query.": [""],
       "Delete Query?": ["Выполнить выбранный запрос"],
@@ -2321,7 +2312,6 @@
       "Recents": ["Недавние отчеты:"],
       "Select start and end date": ["Выберите дату начала и окончания"],
       "Type or Select [%s]": ["Выберите [%s]"],
-      "Filter box": ["Фильтр"],
       "Filters configuration": ["Изменение настроек таблицы"],
       "Filter configuration for the filter box": [""],
       "Date filter": ["Временной фильтр"],
@@ -2346,7 +2336,64 @@
       ],
       "Limit selector values": [""],
       "These filters apply to the values available in the dropdowns": [""],
-      "Time-series Table": ["Таблица временных рядов"]
+      "Area Chart": ["Диаграмма с областями"],
+      "Bar Chart": ["Столбчатая диаграма"],
+      "Big Number": ["Большое число"],
+      "Big Number with Trendline": ["Большое число с трендом"],
+      "Box Plot": ["Ящик с усами"],
+      "Bullet Chart": ["Маркированная диаграмма"],
+      "Calendar Heatmap": ["Тепловая карта календаря"],
+      "Chord Diagram": ["Аккордовая диаграмма"],
+      "Dual Line Chart": ["Двухлинейная диаграмма"],
+      "Event Flow": ["Поток событий"],
+      "Gauge Chart": ["Диаграмма датчика"],
+      "Graph Chart": ["Граф"],
+      "Group By": ["Группировка"],
+      "Heatmap": ["Тепловая карта"],
+      "Horizon Chart": ["Горизонтальная диаграмма"],
+      "Line Chart": ["График"],
+      "MapBox": ["Карта"],
+      "Mixed timeseries chart": ["Смешанные временные ряды"],
+      "Multiple Line Charts": ["График с несколькими линиями"],
+      "Nightingale Rose Chart": ["Диаграмма соловьиной розы"],
+      "Paired t-test Table": ["Таблица парных t-критериев"],
+      "Parallel Coordinates": ["График параллельных координат"],
+      "Partition Chart": ["Диаграмма разделов"],
+      "Pie Chart": ["Круговая диаграмма"],
+      "Pivot Table v2": ["Сводная таблица v2"],
+      "Radar Chart": ["График - радар"],
+      "Range filter": ["Фильтр диапазона"],
+      "Sankey Diagram": ["Диаграмма Санкей"],
+      "Select filter": ["Фильтр - выбор"],
+      "Sunburst Chart": ["Диаграма Sunburst"],
+      "Time filter": ["Фильтр по времени"],
+      "Time-series Bar Chart": ["Столбчатый график временных рядов"],
+      "Time-series Chart": ["График временных рядов"],
+      "Time-series Table": ["Таблица временных рядов"],
+
+      "Time-series Percent Change": ["Процентное изменение во временных рядах"],
+      "Time-series Period Pivot": ["Сводный график по временным рядам"],
+      "Word Cloud": ["Облако слов"],
+      "deck.gl 3D Hexagon": [""],
+      "deck.gl Arc": [""],
+      "deck.gl Geojson": [""],
+      "deck.gl Grid": [""],
+      "deck.gl Multiple Layers": [""],
+      "deck.gl Path": [""],
+      "deck.gl Polygon": [""],
+      "deck.gl Scatterplot": [""],
+      "deck.gl Screen Grid": [""],
+      "Histogram": ["Гистограмма"],
+      "Country Map": ["Карта Стран"],
+      "World Map": ["Карта Мира"],
+      "Filters": ["Фильтры"],
+      "Treemap": ["Дерево"],
+      "Bubble Chart": ["Пузырьковая диаграмма"],
+      "Time range": ["Период времени"],
+      "Pivot Table": ["Сводная таблица"],
+      "Time column": ["Столбец с датой и временем"],
+      "Filter box": ["Фильтр"],
+      "Table": ["Таблица"]
     }
   }
 }
