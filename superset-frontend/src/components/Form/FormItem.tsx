@@ -17,25 +17,29 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
-import cx from 'classnames';
-import { FormLabel } from 'src/components/Form';
+import Form, { FormItemProps } from 'antd/lib/form';
+import { styled } from '@superset-ui/core';
 
-const propTypes = {
-  label: PropTypes.string.isRequired,
-  isSelected: PropTypes.bool.isRequired,
-};
+const StyledItem = styled(Form.Item)`
+  .ant-form-item-label > label {
+    text-transform: uppercase;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
+    color: ${({ theme }) => theme.colors.grayscale.base};
 
-export default function FilterFieldItem({ label, isSelected }) {
-  return (
-    <span
-      className={cx('filter-field-item filter-container', {
-        'is-selected': isSelected,
-      })}
-    >
-      <FormLabel htmlFor={label}>{label}</FormLabel>
-    </span>
-  );
+    &.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
+      &::before {
+        display: none;
+      }
+      &::after {
+        display: inline-block;
+        color: ${({ theme }) => theme.colors.error.base};
+        font-size: ${({ theme }) => theme.typography.sizes.m}px;
+        content: '*';
+      }
+    }
+  }
+`;
+
+export default function FormItem(props: FormItemProps) {
+  return <StyledItem {...props} />;
 }
-
-FilterFieldItem.propTypes = propTypes;

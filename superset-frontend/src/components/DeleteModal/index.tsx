@@ -20,7 +20,7 @@ import { t, styled } from '@superset-ui/core';
 import React, { useState } from 'react';
 import { FormGroup, FormControl, FormControlProps } from 'react-bootstrap';
 import Modal from 'src/components/Modal';
-import FormLabel from 'src/components/FormLabel';
+import { FormLabel } from 'src/components/Form';
 
 const StyleFormGroup = styled(FormGroup)`
   padding-top: 8px;
