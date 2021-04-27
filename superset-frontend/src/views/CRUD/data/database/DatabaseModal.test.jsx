@@ -98,6 +98,51 @@ describe('DatabaseModal', () => {
 
   describe('RTL', () => {
     describe('initial load', () => {
+      it('visually renders first screen of DatabaseModal', () => {
+        render(<DatabaseModal {...dbProps} />, { useRedux: true });
+
+        // ----- Elements -----
+        const closeButton = screen.getByRole('button', { name: /close/i });
+        const editHeading = screen.getByRole('heading', {
+          name: /edit database/i,
+        });
+        const basicTab = screen.getByRole('tab', { name: /basic/i });
+        const advancedTab = screen.getByRole('tab', { name: /advanced/i });
+        const displayNameLabel = screen.getByText(/display name/i);
+        const displayNameTextbox = screen.getByTestId('database-name-test');
+        const displayNameHelperText = screen.getByText(
+          /pick a name to help you identify this database\./i,
+        );
+        const sqlalchemyUriLabel = screen.getByText(/sqlalchemy uri/i);
+        const sqlalchemyUriTextbox = screen.getByTestId('sqlalchemy-uri-test');
+        const sqlalchemyUriHelperText = screen.getByText(
+          /refer to the for more information on how to structure your uri\./i,
+        );
+        const testConnectionButton = screen.getByRole('button', {
+          name: /test connection/i,
+        });
+        const cancelButton = screen.getByRole('button', { name: /cancel/i });
+        const saveButton = screen.getByRole('button', { name: /save/i });
+
+        // ----- Assertions -----
+        expect(closeButton).toBeVisible();
+        expect(editHeading).toBeVisible();
+        expect(basicTab).toBeVisible();
+        expect(advancedTab).toBeVisible();
+        expect(displayNameLabel).toBeVisible();
+        expect(displayNameTextbox).toBeVisible();
+        expect(displayNameHelperText).toBeVisible();
+        expect(sqlalchemyUriLabel).toBeVisible();
+        expect(sqlalchemyUriTextbox).toBeVisible();
+        expect(sqlalchemyUriHelperText).toBeVisible();
+        expect(testConnectionButton).toBeVisible();
+        expect(cancelButton).toBeVisible();
+        expect(saveButton).toBeVisible();
+
+        screen.debug(saveButton);
+
+        // screen.logTestingPlaygroundURL();
+      });
       it('hides the forms from the db when not selected', () => {
         render(
           <DatabaseModal

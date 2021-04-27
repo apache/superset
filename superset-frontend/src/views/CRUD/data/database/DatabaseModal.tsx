@@ -62,7 +62,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [db, setDB] = useState<DatabaseObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
-  const [schemasAllowed, setSchemasAllowed] = useState<string>('[]');
+  const [schemasAllowed, setSchemasAllowed] = useState<string>('');
   const [metaDataCacheTimeout, setMetaDataCacheTimeout] = useState<string>(
     '{}',
   );
@@ -231,7 +231,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             delete extraParsed.metadata_cache_timeout;
             delete extraParsed.schemas_allowed_for_csv_upload;
             // Re-stringify and add back to dbFetched object
-            dbFetched.extra = JSON.stringify(extraParsed);
+            dbFetched.extra = JSON.stringify(extraParsed, null, '  ');
           }
           setDB(dbFetched);
         })
@@ -300,6 +300,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 value={db?.database_name || ''}
                 placeholder={t('Name your dataset')}
                 onChange={onInputChange}
+                data-test="database-name-test"
               />
             </div>
             <div className="helper">
@@ -321,6 +322,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   'dialect+driver://username:password@host:port/database',
                 )}
                 onChange={onInputChange}
+                data-test="sqlalchemy-uri-test"
               />
             </div>
             <div className="helper">
