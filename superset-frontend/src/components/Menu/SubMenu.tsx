@@ -39,7 +39,7 @@ const StyledHeader = styled.div`
     display: flex;
     align-items: center;
     padding: 14px 0;
-    margin-right: 0;
+    margin-right: ${({ theme }) => theme.gridUnit * 3}px;
     float: right;
   }
   .nav-right-collapse {
@@ -61,7 +61,7 @@ const StyledHeader = styled.div`
       }
     }
     .ant-menu {
-      padding: 16px 0px;
+      padding: ${({ theme }) => theme.gridUnit * 4}px 0px;
     }
   }
 
