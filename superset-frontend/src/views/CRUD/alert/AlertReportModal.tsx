@@ -114,7 +114,7 @@ const RETENTION_OPTIONS = [
 
 const DEFAULT_RETENTION = 90;
 const DEFAULT_WORKING_TIMEOUT = 3600;
-const DEFAULT_CRON_VALUE = '* * * * *'; // every minute
+const DEFAULT_CRON_VALUE = '0 * * * *'; // every hour
 const DEFAULT_ALERT = {
   active: true,
   crontab: DEFAULT_CRON_VALUE,
