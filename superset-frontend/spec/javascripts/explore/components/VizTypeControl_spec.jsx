@@ -22,6 +22,7 @@ import { shallow } from 'enzyme';
 import { getChartMetadataRegistry, ChartMetadata } from '@superset-ui/core';
 import VizTypeControl from 'src/explore/components/controls/VizTypeControl';
 import Modal from 'src/components/Modal';
+import { Input } from 'src/common/components';
 
 const defaultProps = {
   name: 'viz_type',
@@ -65,7 +66,7 @@ describe('VizTypeControl', () => {
   });
   it('filters images based on text input', () => {
     expect(wrapper.find('img')).toHaveLength(2);
-    wrapper.find('FormControl').simulate('change', {
+    wrapper.find(Input).simulate('change', {
       target: {
         value: 'vis2',
       },

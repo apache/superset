@@ -23,7 +23,7 @@ import { shallow } from 'enzyme';
 import Button from 'src/components/Button';
 
 import ErrorBoundary from 'src/components/ErrorBoundary';
-import Tabs from 'src/common/components/Tabs';
+import Tabs from 'src/components/Tabs';
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,

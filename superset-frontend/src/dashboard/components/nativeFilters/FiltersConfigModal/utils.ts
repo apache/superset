@@ -141,6 +141,8 @@ export const createHandleSave = (
       }
       return {
         id,
+        adhoc_filters: formInputs.adhoc_filters,
+        time_range: formInputs.time_range,
         controlValues: formInputs.controlValues ?? {},
         name: formInputs.name,
         filterType: formInputs.filterType,
@@ -198,7 +200,9 @@ export const createHandleTabEdit = (
   }
 };
 
-export const generateFilterId = () => `NATIVE_FILTER-${shortid.generate()}`;
+export const NATIVE_FILTER_PREFIX = 'NATIVE_FILTER-';
+export const generateFilterId = () =>
+  `${NATIVE_FILTER_PREFIX}${shortid.generate()}`;
 
 export const getFilterIds = (config: FilterConfiguration) =>
   config.map(filter => filter.id);

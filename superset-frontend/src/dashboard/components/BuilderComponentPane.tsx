@@ -18,7 +18,7 @@
  */
 /* eslint-env browser */
 import React from 'react';
-import Tabs from 'src/common/components/Tabs';
+import Tabs from 'src/components/Tabs';
 import { StickyContainer, Sticky } from 'react-sticky';
 import { ParentSize } from '@vx/responsive';
 

@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import hashlib
 import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
@@ -28,6 +27,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
 from superset.sql_parse import Table
 from superset.utils import core as utils
+from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
@@ -141,7 +141,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
         :param label: Expected expression label
         :return: Conditionally mutated label
         """
-        label_hashed = "_" + hashlib.md5(label.encode("utf-8")).hexdigest()
+        label_hashed = "_" + md5_sha_from_str(label)
 
         # if label starts with number, add underscore as first character
         label_mutated = "_" + label if re.match(r"^\d", label) else label
@@ -163,7 +163,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
         :param label: expected expression label
         :return: truncated label
         """
-        return "_" + hashlib.md5(label.encode("utf-8")).hexdigest()
+        return "_" + md5_sha_from_str(label)
 
     @classmethod
     def normalize_indexes(cls, indexes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

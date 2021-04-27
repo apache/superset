@@ -26,7 +26,7 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
 import Modal from 'src/components/Modal';
-import Tabs from 'src/common/components/Tabs';
+import Tabs from 'src/components/Tabs';
 import fetchMock from 'fetch-mock';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { initialState } from 'spec/javascripts/sqllab/fixtures';

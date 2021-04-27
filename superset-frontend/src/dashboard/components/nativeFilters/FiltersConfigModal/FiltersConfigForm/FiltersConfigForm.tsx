@@ -21,17 +21,20 @@ import {
   t,
   getChartMetadataRegistry,
   Behavior,
+  AdhocFilter,
   JsonResponse,
   SupersetApiError,
 } from '@superset-ui/core';
+import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
 import { FormInstance } from 'antd/lib/form';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Metric } from '@superset-ui/chart-controls';
 import { Checkbox, Form, Input, Typography } from 'src/common/components';
 import { Select } from 'src/components/Select';
 import SupersetResourceSelect, {
   cachedSupersetGet,
 } from 'src/components/SupersetResourceSelect';
+import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
+import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { addDangerToast } from 'src/messageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import SelectControl from 'src/explore/components/controls/SelectControl';
@@ -50,6 +53,8 @@ import FilterScope from './FilterScope/FilterScope';
 import RemovedFilter from './RemovedFilter';
 import DefaultValue from './DefaultValue';
 import { getFiltersConfigModalTestId } from '../FiltersConfigModal';
+// TODO: move styles from AdhocFilterControl to emotion and delete this ./main.less
+import './main.less';
 
 const StyledContainer = styled.div`
   display: flex;
@@ -68,7 +73,7 @@ export const StyledCheckboxFormItem = styled(Form.Item)`
 
 export const StyledLabel = styled.span`
   color: ${({ theme }) => theme.colors.grayscale.base};
-  font-size: ${({ theme }) => theme.typography.sizes.s};
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
   text-transform: uppercase;
 `;
 
@@ -91,6 +96,7 @@ const FILTERS_WITHOUT_COLUMN = [
   'filter_timecolumn',
   'filter_groupby',
 ];
+const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
 
 /**
  * The configuration form for a specific filter.
@@ -107,7 +113,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const forceUpdate = useForceUpdate();
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
-
+  const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
     // @ts-ignore
@@ -125,23 +131,32 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
   const datasetId = formFilter?.dataset?.value;
 
   useEffect(() => {
-    if (datasetId) {
+    if (datasetId && hasColumn) {
       cachedSupersetGet({
         endpoint: `/api/v1/dataset/${datasetId}`,
       })
         .then((response: JsonResponse) => {
           setMetrics(response.json?.result?.metrics);
+          const dataset = response.json?.result;
+          // modify the response to fit structure expected by AdhocFilterControl
+          dataset.type = dataset.datasource_type;
+          dataset.filter_select = true;
+          setDatasetDetails(dataset);
         })
         .catch((response: SupersetApiError) => {
           addDangerToast(response.message);
         });
     }
-  }, [datasetId]);
+  }, [datasetId, hasColumn]);
 
   const hasMetrics = hasColumn && !!metrics.length;
 
   const hasFilledDataset =
     !hasDataset || (datasetId && (formFilter?.column || !hasColumn));
+
+  const hasAdditionalFilters = FILTERS_WITH_ADHOC_FILTERS.includes(
+    formFilter?.filterType,
+  );
 
   useBackendFormUpdate(form, filterId, filterToEdit, hasDataset, hasColumn);
 
@@ -253,6 +268,46 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
                 onChange={forceUpdate}
               />
             </StyledFormItem>
+          )}
+          {hasAdditionalFilters && (
+            <>
+              <StyledFormItem
+                name={['filters', filterId, 'adhoc_filters']}
+                initialValue={filterToEdit?.adhoc_filters}
+              >
+                <AdhocFilterControl
+                  columns={
+                    datasetDetails?.columns?.filter(
+                      (c: ColumnMeta) => c.filterable,
+                    ) || []
+                  }
+                  savedMetrics={datasetDetails?.metrics || []}
+                  datasource={datasetDetails}
+                  onChange={(filters: AdhocFilter[]) => {
+                    setNativeFilterFieldValues(form, filterId, {
+                      adhoc_filters: filters,
+                    });
+                    forceUpdate();
+                  }}
+                  label={<StyledLabel>{t('Adhoc filters')}</StyledLabel>}
+                />
+              </StyledFormItem>
+              <StyledFormItem
+                name={['filters', filterId, 'time_range']}
+                label={<StyledLabel>{t('Time range')}</StyledLabel>}
+                initialValue={filterToEdit?.time_range || 'No filter'}
+              >
+                <DateFilterControl
+                  name="time_range"
+                  onChange={timeRange => {
+                    setNativeFilterFieldValues(form, filterId, {
+                      time_range: timeRange,
+                    });
+                    forceUpdate();
+                  }}
+                />
+              </StyledFormItem>
+            </>
           )}
         </>
       )}
