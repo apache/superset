@@ -53,6 +53,10 @@ spec:
         app: {{ template "superset.name" . }}-worker
         release: {{ .Release.Name }}
     spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
       {{- if .Values.supersetWorker.initContainers }}
@@ -62,7 +66,7 @@ spec:
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
           command: {{  tpl (toJson .Values.supersetWorker.command) . }}
           env:
             - name: "SUPERSET_PORT"

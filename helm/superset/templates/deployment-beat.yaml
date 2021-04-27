@@ -55,6 +55,10 @@ spec:
         app: {{ template "superset.name" . }}-celerybeat
         release: {{ .Release.Name }}
     spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
       {{- if .Values.supersetCeleryBeat.initContainers }}
@@ -64,7 +68,7 @@ spec:
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
           command: {{  tpl (toJson .Values.supersetCeleryBeat.command) . }}
           env:
             - name: "SUPERSET_PORT"

@@ -104,7 +104,10 @@ extraConfigMountPath: "/app/configs"
 image:
   repository: apache/superset
   tag: latest
-  pullPolicy: IfNotPresent
+
+# these two options are applied globally except init container
+imagepullPolicy: IfNotPresent
+imagePullSecrets: []
 
 service:
   type: ClusterIP
@@ -158,6 +161,7 @@ supersetNode:
     - name: wait-for-postgres
       image: busybox:latest
       imagePullPolicy: IfNotPresent
+      imagePullSecrets: []
       envFrom:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
@@ -181,6 +185,7 @@ supersetWorker:
     - name: wait-for-postgres
       image: busybox:latest
       imagePullPolicy: IfNotPresent
+      imagePullSecrets: []
       envFrom:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
@@ -206,6 +211,7 @@ supersetCeleryBeat:
     - name: wait-for-postgres
       image: busybox:latest
       imagePullPolicy: IfNotPresent
+      imagePullSecrets: []
       envFrom:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
@@ -246,6 +252,7 @@ init:
     - name: wait-for-postgres
       image: busybox:latest
       imagePullPolicy: IfNotPresent
+      imagePullSecrets: []
       envFrom:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
