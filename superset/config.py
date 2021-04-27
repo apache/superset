@@ -626,7 +626,7 @@ SQL_MAX_ROW = 100000
 # Maximum number of rows displayed in SQL Lab UI
 # Is set to avoid out of memory/localstorage issues in browsers. Does not affect
 # exported CSVs
-DISPLAY_MAX_ROW = 10000
+DISPLAY_MAX_ROW = 100
 
 # Default row limit for SQL Lab queries. Is overridden by setting a new limit in
 # the SQL Lab UI

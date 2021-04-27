@@ -61,6 +61,16 @@ const StyledPane = styled.div`
     height: 100%;
     display: flex;
     flex-direction: column;
+    .scrollable {
+      overflow-y: auto;
+    }
+  }
+  .ant-tabs-tabpane {
+    display: flex;
+    flex-direction: column;
+    .scrollable {
+      overflow-y: auto;
+    }
   }
   .tab-content {
     .alert {
@@ -147,15 +157,17 @@ export default function SouthPane({
         tab={t('Preview: `%s`', decodeURIComponent(query.tableName))}
         key={query.id}
       >
-        <ResultSet
-          query={query}
-          visualize={false}
-          csv={false}
-          actions={actions}
-          cache
-          height={innerTabContentHeight}
-          displayLimit={displayLimit}
-        />
+        <div className="scrollable">
+          <ResultSet
+            query={query}
+            visualize={false}
+            csv={false}
+            actions={actions}
+            cache
+            height={innerTabContentHeight}
+            displayLimit={displayLimit}
+          />
+        </div>
       </Tabs.TabPane>
     ));
   return offline ? (

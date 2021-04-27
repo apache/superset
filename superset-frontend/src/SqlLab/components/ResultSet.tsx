@@ -613,16 +613,20 @@ export default class ResultSet extends React.PureComponent<
           : [];
         return (
           <>
-            {this.renderControls()}
-            {this.renderRowsReturned()}
-            {sql}
-            <FilterableTable
-              data={data}
-              orderedColumnKeys={results.columns.map(col => col.name)}
-              height={height}
-              filterText={this.state.searchText}
-              expandedColumns={expandedColumns}
-            />
+            <div>
+              {this.renderControls()}
+              {this.renderRowsReturned()}
+              {sql}
+            </div>
+            <div className="scrollable">
+              <FilterableTable
+                data={data}
+                orderedColumnKeys={results.columns.map(col => col.name)}
+                height={height}
+                filterText={this.state.searchText}
+                expandedColumns={expandedColumns}
+              />
+            </div>
           </>
         );
       }
