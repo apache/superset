@@ -185,16 +185,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     ACCESSIBLE_PERMS = {"can_userinfo", "resetmypassword"}
 
     SQLLAB_PERMISSION_VIEWS = {
-        ("menu_access", "SQL Lab"),
-        ("menu_access", "SQL Editor"),
-        ("menu_access", "Saved Queries"),
-        ("menu_access", "Query History"),
+        ("can_csv", "Superset"),
+        ("can_read", "SavedQuery"),
+        ("can_read", "Database"),
         ("can_sql_json", "Superset"),
         ("can_sqllab_viz", "Superset"),
         ("can_sqllab_table_viz", "Superset"),
         ("can_sqllab", "Superset"),
-        ("can_read", "SavedQuery"),
-        ("can_read", "Database"),
+        ("menu_access", "SQL Lab"),
+        ("menu_access", "SQL Editor"),
+        ("menu_access", "Saved Queries"),
+        ("menu_access", "Query History"),
     }
 
     data_access_permissions = (
