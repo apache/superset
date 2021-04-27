@@ -38,6 +38,7 @@ export const getFormData = ({
   defaultValue,
   controlValues,
   filterType,
+  sortMetric,
   adhoc_filters,
   time_range,
 }: Partial<Filter> & {
@@ -48,12 +49,19 @@ export const getFormData = ({
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
 }): Partial<QueryFormData> => {
-  const otherProps: { datasource?: string; groupby?: string[] } = {};
+  const otherProps: {
+    datasource?: string;
+    groupby?: string[];
+    sortMetric?: string;
+  } = {};
   if (datasetId) {
     otherProps.datasource = `${datasetId}__table`;
   }
   if (groupby) {
     otherProps.groupby = [groupby];
+  }
+  if (sortMetric) {
+    otherProps.sortMetric = sortMetric;
   }
   return {
     ...controlValues,
