@@ -54,7 +54,7 @@ export interface SupersetResourceSelectProps<T = unknown, V = string> {
 
 const localCache = new Map<string, any>();
 
-const cachedSupersetGet = cacheWrapper(
+export const cachedSupersetGet = cacheWrapper(
   SupersetClient.get,
   localCache,
   ({ endpoint }) => endpoint || '',

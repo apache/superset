@@ -112,6 +112,8 @@ export const useBackendFormUpdate = (
     formFilter?.filterType,
     formFilter?.column,
     formFilter?.dataset?.value,
+    JSON.stringify(formFilter?.adhoc_filters),
+    formFilter?.time_range,
     filterId,
   ]);
 };
