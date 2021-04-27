@@ -59,8 +59,8 @@ const dataMaskReducer = produce(
         });
         // Get back all other non-native filters
         Object.values(draft).forEach(filter => {
-          if (!String(filter.id).startsWith(NATIVE_FILTER_PREFIX)) {
-            cleanState[filter.id] = filter;
+          if (!String(filter?.id).startsWith(NATIVE_FILTER_PREFIX)) {
+            cleanState[filter?.id] = filter;
           }
         });
         return cleanState;
