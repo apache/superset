@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import Dashboard from '../components/Dashboard';
@@ -28,9 +28,13 @@ import {
 import { triggerQuery } from '../../chart/chartAction';
 import { logEvent } from '../../logger/actions';
 import { getActiveFilters } from '../util/activeDashboardFilters';
-import { getAllActiveFilters } from '../util/activeAllDashboardFilters';
+import {
+  getAllActiveFilters,
+  getRelevantDataMask,
+} from '../util/activeAllDashboardFilters';
+import { RootState } from '../types';
 
-function mapStateToProps(state) {
+function mapStateToProps(state: RootState) {
   const {
     datasources,
     sliceEntities,
@@ -62,21 +66,18 @@ function mapStateToProps(state) {
         // eslint-disable-next-line camelcase
         chartConfiguration: dashboardInfo.metadata?.chart_configuration,
         nativeFilters: nativeFilters.filters,
-        dataMask,
+        dataMask: getRelevantDataMask(dataMask, 'isApplied'),
         layout: dashboardLayout.present,
       }),
     },
-    ownDataCharts: Object.values(dataMask).reduce(
-      (prev, next) => ({ ...prev, [next.id]: next.ownState }),
-      {},
-    ),
+    ownDataCharts: getRelevantDataMask(dataMask, 'ownState', 'ownState'),
     slices: sliceEntities.slices,
     layout: dashboardLayout.present,
     impressionId,
   };
 }
 
-function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch: Dispatch) {
   return {
     actions: bindActionCreators(
       {
