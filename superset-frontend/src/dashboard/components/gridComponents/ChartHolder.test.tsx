@@ -26,7 +26,7 @@ import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import userEvent from '@testing-library/user-event';
-import { act, waitFor } from '@testing-library/react';
+import { waitFor } from '@testing-library/react';
 import { ChartHolder } from './index';
 import { CHART_TYPE, ROW_TYPE } from '../../util/componentTypes';
 
