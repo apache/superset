@@ -32,7 +32,7 @@ import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import CrossFilterScopingModal from 'src/dashboard/components/CrossFilterScopingModal/CrossFilterScopingModal';
-import { FullscreenExitOutlined } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
@@ -297,7 +297,7 @@ class SliceHeaderControls extends React.PureComponent {
           onClose={() => this.setState({ showCrossFilterScopingModal: false })}
         />
         {isFullSize && (
-          <FullscreenExitOutlined
+          <Icons.FullscreenExitOutlined
             style={{ fontSize: 22 }}
             onClick={() => {
               this.props.handleToggleFullSize();

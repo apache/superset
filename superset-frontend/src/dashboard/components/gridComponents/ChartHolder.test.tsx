@@ -19,12 +19,9 @@
 
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import { Provider } from 'react-redux';
-import { getMockStore, mockStore } from 'spec/fixtures/mockStore';
+import mockState from 'spec/fixtures/mockState';
 import { sliceId as chartId } from 'spec/fixtures/mockChartQueries';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import userEvent from '@testing-library/user-event';
 import { waitFor } from '@testing-library/react';
 import { ChartHolder } from './index';
@@ -65,19 +62,17 @@ describe('ChartHolder', () => {
     dashboardId: 123,
   };
 
-  const renderWrapper = (props = defaultProps, state?: object) =>
-    render(
-      <Provider store={state ? getMockStore(state) : mockStore}>
-        <DndProvider backend={HTML5Backend}>
-          <ChartHolder {...props} />
-        </DndProvider>
-      </Provider>,
-    );
+  const renderWrapper = (props = defaultProps, state = mockState) =>
+    render(<ChartHolder {...props} />, {
+      useRedux: true,
+      initialState: state,
+      useDnd: true,
+    });
 
   it('toggle full size', async () => {
     renderWrapper();
     // @ts-ignore
-    let chart = screen.getByTestId('slice-container')?.firstChild?.style;
+    let chart = screen.getByTestId('slice-container').firstChild.style!;
     expect(chart?.width).toBe('900px');
     expect(chart?.height).toBe('26px');
 
@@ -85,7 +80,7 @@ describe('ChartHolder', () => {
     userEvent.click(screen.getByText('Maximize chart'));
 
     // @ts-ignore
-    chart = screen.getByTestId('slice-container')?.firstChild?.style;
+    chart = screen.getByTestId('slice-container').firstChild.style!;
     await waitFor(() => expect(chart?.width).toBe('992px'));
     expect(chart?.height).toBe('714px');
   });
