@@ -224,7 +224,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       fetchResource(id)
         .then(() => {
           // Altering 'extra' JSON before returning it to 'extra' text field
-          if (dbFetched && dbFetched.extra) {
+          if (dbFetched?.extra) {
             // Parse 'extra' field
             const extraParsed = JSON.parse(dbFetched.extra || defaultExtra);
             // Remove metadata_cache_timeout and schemas_allowed_for_csv_upload
