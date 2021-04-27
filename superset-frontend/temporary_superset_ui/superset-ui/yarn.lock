@@ -10116,10 +10116,10 @@ ecc-jsbn@~0.1.1:
     jsbn "~0.1.0"
     safer-buffer "^2.1.0"
 
-echarts@^5.1.0:
-  version "5.1.0"
-  resolved "https://registry.yarnpkg.com/echarts/-/echarts-5.1.0.tgz#768cc585aa092560f48f01b2d52de493aeecd2b0"
-  integrity sha512-/X2nnN5BXW2tuA/Hv9YY279rDfwcXaBAjK9Azi//llshbKyUXXxBknsug21GJRpwTmLZbE8rjjbhchdm01bZtw==
+echarts@^5.1.1:
+  version "5.1.1"
+  resolved "https://registry.yarnpkg.com/echarts/-/echarts-5.1.1.tgz#b186f162f017c555cfd67b12ede6762bdc3ddfda"
+  integrity sha512-b3nP8M9XwZM2jISuA+fP0EuJv8lcfgWrinel185Npy8bE/UhXTDIPJcqgQOCWdvk0c5CeT6Dsm1xBjmJXAGlxQ==
   dependencies:
     tslib "2.0.3"
     zrender "5.1.0"
