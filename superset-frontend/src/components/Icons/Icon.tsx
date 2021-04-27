@@ -31,36 +31,44 @@ const AntdIconComponent = ({ iconColor, iconSize, ...rest }: IconType) => (
 const StyledIcon = styled(AntdIconComponent)<IconType>`
   ${({ iconColor }) => iconColor && `color: ${iconColor};`};
   font-size: ${({ iconSize, theme }) =>
-    iconSize ? `${theme.typography.sizes[iconSize]}px` : '24px'};
+    iconSize
+      ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
+      : '24px'};
 `;
 
 interface IconProps extends IconType {
-  path: string;
+  filePath: string;
 }
 
 export const Icon = (props: IconProps) => {
-  const { path, ...iconProps } = props;
-  const [, setLoaded] = useState(false);
+  const { filePath, ...iconProps } = props;
+  const [loaded, setLoaded] = useState(false);
   const ImportedSVG = useRef<React.FC<React.SVGProps<SVGSVGElement>>>();
-  const name = path.replace('_', '-');
+  const name = filePath.replace('_', '-');
 
   useEffect(() => {
     async function importIcon(): Promise<void> {
       ImportedSVG.current = (
         await import(
-          `!!@svgr/webpack?-svgo,+titleProp,+ref!images/icons/${path}.svg`
+          `!!@svgr/webpack?-svgo,+titleProp,+ref!images/icons/${filePath}.svg`
         )
       ).default;
       setLoaded(true);
     }
     importIcon();
-  }, [path, ImportedSVG]);
+  }, [filePath, ImportedSVG]);
 
-  return (
+  return loaded ? (
     <StyledIcon
-      component={ImportedSVG.current || TransparentIcon}
+      component={ImportedSVG.current}
       aria-label={name}
       {...iconProps}
+    />
+  ) : (
+    <StyledIcon
+      component={TransparentIcon}
+      aria-label={name}
+      iconSize={props.iconSize}
     />
   );
 };
