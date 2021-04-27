@@ -140,7 +140,7 @@ describe('FilterConfigModal', () => {
     jest.clearAllMocks();
   });
 
-  // TODO: fix flakiness and re-enable
+  // TODO: fix and unskip
   it.skip('Create Select Filter (with datasource and columns) with specific filter scope', async () => {
     renderWrapper();
 
