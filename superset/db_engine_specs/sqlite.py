@@ -86,7 +86,7 @@ class SqliteEngineSpec(BaseEngineSpec):
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
         tt = target_type.upper()
-        if tt == utils.TemporalType.TEXT:
+        if tt in (utils.TemporalType.TEXT, utils.TemporalType.DATETIME):
             return f"""'{dttm.isoformat(sep=" ", timespec="microseconds")}'"""
         return None
 

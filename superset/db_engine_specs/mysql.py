@@ -19,6 +19,7 @@ from datetime import datetime
 from typing import Any, Callable, Dict, Match, Optional, Pattern, Tuple, Union
 from urllib import parse
 
+from flask_babel import gettext as __
 from sqlalchemy.dialects.mysql import (
     BIT,
     DECIMAL,
@@ -35,8 +36,21 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.types import TypeEngine
 
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.errors import SupersetErrorType
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
+
+# Regular expressions to catch custom errors
+CONNECTION_ACCESS_DENIED_REGEX = re.compile(
+    "Access denied for user '(?P<username>.*?)'@'(?P<hostname>.*?)'. "
+)
+CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
+    "Unknown MySQL server host '(?P<hostname>.*?)'."
+)
+CONNECTION_HOST_DOWN_REGEX = re.compile(
+    "Can't connect to MySQL server on '(?P<hostname>.*?)'."
+)
+CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile("Unknown database '(?P<database>.*?)'.")
 
 
 class MySQLEngineSpec(BaseEngineSpec):
@@ -92,6 +106,25 @@ class MySQLEngineSpec(BaseEngineSpec):
     }
 
     type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
+
+    custom_errors = {
+        CONNECTION_ACCESS_DENIED_REGEX: (
+            __('Either the username "%(username)s" or the password is incorrect.'),
+            SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+        ),
+        CONNECTION_INVALID_HOSTNAME_REGEX: (
+            __('Unknown MySQL server host "%(hostname)s".'),
+            SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+        ),
+        CONNECTION_HOST_DOWN_REGEX: (
+            __('The host "%(hostname)s" might be down and can\'t be reached.'),
+            SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+        ),
+        CONNECTION_UNKNOWN_DATABASE_REGEX: (
+            __('Unable to connect to database "%(database)s".'),
+            SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+        ),
+    }
 
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:

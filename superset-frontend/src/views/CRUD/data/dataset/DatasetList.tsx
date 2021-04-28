@@ -33,7 +33,11 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DatasourceModal from 'src/datasource/DatasourceModal';
 import DeleteModal from 'src/components/DeleteModal';
-import ListView, { ListViewProps, Filters } from 'src/components/ListView';
+import ListView, {
+  ListViewProps,
+  Filters,
+  FilterOperator,
+} from 'src/components/ListView';
 import SubMenu, {
   SubMenuProps,
   ButtonProps,
@@ -41,12 +45,13 @@ import SubMenu, {
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import FacePile from 'src/components/FacePile';
-import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
+import CertifiedIcon from 'src/components/CertifiedIcon';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import AddDatasetModal from './AddDatasetModal';
 
 const PAGE_SIZE = 25;
@@ -236,16 +241,21 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           const titleLink = <a href={exploreURL}>{datasetTitle}</a>;
           try {
             const parsedExtra = JSON.parse(extra);
-            return parsedExtra?.certification ? (
+            return (
               <FlexRowContainer>
-                <CertifiedIconWithTooltip
-                  certifiedBy={parsedExtra.certification.certified_by}
-                  details={parsedExtra.certification.details}
-                />
+                {parsedExtra?.certification && (
+                  <CertifiedIcon
+                    certifiedBy={parsedExtra.certification.certified_by}
+                    details={parsedExtra.certification.details}
+                  />
+                )}
+                {parsedExtra?.warning_markdown && (
+                  <WarningIconWithTooltip
+                    warningMarkdown={parsedExtra.warning_markdown}
+                  />
+                )}
                 {titleLink}
               </FlexRowContainer>
-            ) : (
-              titleLink
             );
           } catch {
             return titleLink;
@@ -303,7 +313,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {
         Cell: ({
           row: {
-            original: { owners = [], table_name: tableName },
+            original: { owners = [] },
           },
         }: any) => <FacePile users={owners} />,
         Header: t('Owners'),
@@ -392,7 +402,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Owner'),
         id: 'owners',
         input: 'select',
-        operator: 'rel_m_m',
+        operator: FilterOperator.relationManyMany,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'dataset',
@@ -411,7 +421,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Database'),
         id: 'database',
         input: 'select',
-        operator: 'rel_o_m',
+        operator: FilterOperator.relationManyMany,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'dataset',
@@ -426,7 +436,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Schema'),
         id: 'schema',
         input: 'select',
-        operator: 'eq',
+        operator: FilterOperator.equals,
         unfilteredLabel: 'All',
         fetchSelects: createFetchDistinct(
           'dataset',
@@ -441,7 +451,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Type'),
         id: 'sql',
         input: 'select',
-        operator: 'dataset_is_null_or_empty',
+        operator: FilterOperator.datasetIsNullOrEmpty,
         unfilteredLabel: 'All',
         selects: [
           { label: 'Virtual', value: false },
@@ -452,7 +462,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Search'),
         id: 'dataset_name',
         input: 'search',
-        operator: 'ct',
+        operator: FilterOperator.contains,
       },
     ],
     [],
@@ -487,7 +497,15 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
     buttonArr.push({
-      name: <Icons.Import />,
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import datasets')}
+          placement="bottomRight"
+        >
+          <Icons.Import data-test="import-button" />
+        </Tooltip>
+      ),
       buttonStyle: 'link',
       onClick: openDatasetImportModal,
     });

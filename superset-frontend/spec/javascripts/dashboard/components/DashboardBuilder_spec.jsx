@@ -18,7 +18,7 @@
  */
 import { Provider } from 'react-redux';
 import React from 'react';
-import { shallow, mount } from 'enzyme';
+import { mount } from 'enzyme';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import { ParentSize } from '@vx/responsive';
@@ -27,25 +27,23 @@ import { Sticky, StickyContainer } from 'react-sticky';
 import { TabContainer, TabContent, TabPane } from 'react-bootstrap';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
-import DashboardBuilder from 'src/dashboard/components/DashboardBuilder';
+import DashboardBuilder from 'src/dashboard/components/DashboardBuilder/DashboardBuilder';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import * as dashboardStateActions from 'src/dashboard/actions/dashboardState';
-
 import {
   dashboardLayout as undoableDashboardLayout,
   dashboardLayoutWithTabs as undoableDashboardLayoutWithTabs,
 } from 'spec/fixtures/mockDashboardLayout';
-
-import { mockStore, mockStoreWithTabs } from 'spec/fixtures/mockStore';
-
-const dashboardLayout = undoableDashboardLayout.present;
-const layoutWithTabs = undoableDashboardLayoutWithTabs.present;
+import { mockStoreWithTabs, storeWithState } from 'spec/fixtures/mockStore';
+import mockState from 'spec/fixtures/mockState';
+import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
+
+jest.mock('src/dashboard/actions/dashboardState');
 
 describe('DashboardBuilder', () => {
   let favStarStub;
@@ -61,31 +59,25 @@ describe('DashboardBuilder', () => {
     favStarStub.restore();
   });
 
-  const props = {
-    dashboardLayout,
-    deleteTopLevelTabs() {},
-    editMode: false,
-    showBuilderPane() {},
-    setColorSchemeAndUnsavedChanges() {},
-    colorScheme: undefined,
-    handleComponentDrop() {},
-    setDirectPathToChild: sinon.spy(),
-    setMountedTab() {},
-  };
-
-  function setup(overrideProps, useProvider = false, store = mockStore) {
-    const builder = <DashboardBuilder {...props} {...overrideProps} />;
-    return useProvider
-      ? mount(
-          <Provider store={store}>
-            <DndProvider backend={HTML5Backend}>{builder}</DndProvider>
-          </Provider>,
-          {
-            wrappingComponent: ThemeProvider,
-            wrappingComponentProps: { theme: supersetTheme },
-          },
-        )
-      : shallow(builder);
+  function setup(overrideState = {}, overrideStore) {
+    const store =
+      overrideStore ??
+      storeWithState({
+        ...mockState,
+        dashboardLayout: undoableDashboardLayout,
+        ...overrideState,
+      });
+    return mount(
+      <Provider store={store}>
+        <DndProvider backend={HTML5Backend}>
+          <DashboardBuilder />
+        </DndProvider>
+      </Provider>,
+      {
+        wrappingComponent: ThemeProvider,
+        wrappingComponentProps: { theme: supersetTheme },
+      },
+    );
   }
 
   it('should render a StickyContainer with class "dashboard"', () => {
@@ -96,28 +88,28 @@ describe('DashboardBuilder', () => {
   });
 
   it('should add the "dashboard--editing" class if editMode=true', () => {
-    const wrapper = setup({ editMode: true });
-    const stickyContainer = wrapper.find(StickyContainer);
+    const wrapper = setup({ dashboardState: { editMode: true } });
+    const stickyContainer = wrapper.find(StickyContainer).first();
     expect(stickyContainer.prop('className')).toBe(
       'dashboard dashboard--editing',
     );
   });
 
   it('should render a DragDroppable DashboardHeader', () => {
-    const wrapper = setup(null, true);
+    const wrapper = setup();
     expect(wrapper.find(DashboardHeader)).toExist();
   });
 
   it('should render a Sticky top-level Tabs if the dashboard has tabs', () => {
     const wrapper = setup(
-      { dashboardLayout: layoutWithTabs },
-      true,
+      { dashboardLayout: undoableDashboardLayoutWithTabs },
       mockStoreWithTabs,
     );
     const sticky = wrapper.find(Sticky);
     const dashboardComponent = sticky.find(DashboardComponent);
 
-    const tabChildren = layoutWithTabs.TABS_ID.children;
+    const tabChildren =
+      undoableDashboardLayoutWithTabs.present.TABS_ID.children;
     expect(sticky).toHaveLength(1);
     expect(dashboardComponent).toHaveLength(1 + tabChildren.length); // tab + tabs
     expect(dashboardComponent.at(0).prop('id')).toBe('TABS_ID');
@@ -127,57 +119,65 @@ describe('DashboardBuilder', () => {
   });
 
   it('should render a TabContainer and TabContent', () => {
-    const wrapper = setup({ dashboardLayout: layoutWithTabs });
-    const parentSize = wrapper.find(ParentSize).dive();
+    const wrapper = setup({ dashboardLayout: undoableDashboardLayoutWithTabs });
+    const parentSize = wrapper.find(ParentSize);
     expect(parentSize.find(TabContainer)).toHaveLength(1);
     expect(parentSize.find(TabContent)).toHaveLength(1);
   });
 
   it('should set animation=true, mountOnEnter=true, and unmounOnExit=false on TabContainer for perf', () => {
-    const wrapper = setup({ dashboardLayout: layoutWithTabs });
-    const tabProps = wrapper.find(ParentSize).dive().find(TabContainer).props();
+    const wrapper = setup({ dashboardLayout: undoableDashboardLayoutWithTabs });
+    const tabProps = wrapper.find(ParentSize).find(TabContainer).props();
     expect(tabProps.animation).toBe(true);
     expect(tabProps.mountOnEnter).toBe(true);
     expect(tabProps.unmountOnExit).toBe(false);
   });
 
-  it('should render a TabPane and DashboardGrid for each Tab', () => {
-    const wrapper = setup({ dashboardLayout: layoutWithTabs });
-    const parentSize = wrapper.find(ParentSize).dive();
-
-    const expectedCount = layoutWithTabs.TABS_ID.children.length;
+  it('should render a TabPane and DashboardGrid for first Tab', () => {
+    const wrapper = setup({ dashboardLayout: undoableDashboardLayoutWithTabs });
+    const parentSize = wrapper.find(ParentSize);
+    const expectedCount =
+      undoableDashboardLayoutWithTabs.present.TABS_ID.children.length;
     expect(parentSize.find(TabPane)).toHaveLength(expectedCount);
-    expect(parentSize.find(DashboardGrid)).toHaveLength(expectedCount);
+    expect(parentSize.find(TabPane).first().find(DashboardGrid)).toHaveLength(
+      1,
+    );
+  });
+
+  it('should render a TabPane and DashboardGrid for second Tab', () => {
+    const wrapper = setup({
+      dashboardLayout: undoableDashboardLayoutWithTabs,
+      dashboardState: {
+        ...mockState,
+        directPathToChild: [DASHBOARD_ROOT_ID, 'TABS_ID', 'TAB_ID2'],
+      },
+    });
+    const parentSize = wrapper.find(ParentSize);
+    const expectedCount =
+      undoableDashboardLayoutWithTabs.present.TABS_ID.children.length;
+    expect(parentSize.find(TabPane)).toHaveLength(expectedCount);
+    expect(parentSize.find(TabPane).at(1).find(DashboardGrid)).toHaveLength(1);
+  });
+
+  it('should render a BuilderComponentPane if editMode=false and user selects "Insert Components" pane', () => {
+    const wrapper = setup();
+    expect(wrapper.find(BuilderComponentPane)).not.toExist();
   });
 
   it('should render a BuilderComponentPane if editMode=true and user selects "Insert Components" pane', () => {
-    const wrapper = setup();
-    expect(wrapper.find(BuilderComponentPane)).not.toExist();
-
-    wrapper.setProps({
-      ...props,
-      editMode: true,
-    });
-    expect(wrapper.find(BuilderComponentPane)).toExist();
-  });
-
-  it('should render a BuilderComponentPane if editMode=true and user selects "Colors" pane', () => {
-    const wrapper = setup();
-    expect(wrapper.find(BuilderComponentPane)).not.toExist();
-
-    wrapper.setProps({
-      ...props,
-      editMode: true,
-    });
+    const wrapper = setup({ dashboardState: { editMode: true } });
     expect(wrapper.find(BuilderComponentPane)).toExist();
   });
 
   it('should change redux state if a top-level Tab is clicked', () => {
-    const wrapper = setup(
-      { dashboardLayout: layoutWithTabs },
-      true,
-      mockStoreWithTabs,
-    );
+    dashboardStateActions.setDirectPathToChild = jest.fn(arg0 => ({
+      type: 'type',
+      arg0,
+    }));
+    const wrapper = setup({
+      ...mockStoreWithTabs,
+      dashboardLayout: undoableDashboardLayoutWithTabs,
+    });
 
     expect(wrapper.find(TabContainer).prop('activeKey')).toBe(0);
 
@@ -186,6 +186,10 @@ describe('DashboardBuilder', () => {
       .at(1)
       .simulate('click');
 
-    expect(props.setDirectPathToChild.callCount).toBe(1);
+    expect(dashboardStateActions.setDirectPathToChild).toHaveBeenCalledWith([
+      'ROOT_ID',
+      'TABS_ID',
+      'TAB_ID2',
+    ]);
   });
 });

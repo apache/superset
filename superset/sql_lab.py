@@ -159,6 +159,15 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 expand_data=expand_data,
                 log_params=log_params,
             )
+        except SoftTimeLimitExceeded as ex:
+            logger.warning("Query %d: Time limit exceeded", query_id)
+            logger.debug("Query %d: %s", query_id, ex)
+            raise SqlLabTimeoutException(
+                _(
+                    "SQL Lab timeout. This environment's policy is to kill queries "
+                    "after {} seconds.".format(SQLLAB_TIMEOUT)
+                )
+            )
         except Exception as ex:  # pylint: disable=broad-except
             logger.debug("Query %d: %s", query_id, ex)
             stats_logger.incr("error_sqllab_unhandled")
@@ -237,14 +246,6 @@ def execute_sql_statement(
                 str(query.to_dict()),
             )
             data = db_engine_spec.fetch_data(cursor, query.limit)
-
-    except SoftTimeLimitExceeded as ex:
-        logger.error("Query %d: Time limit exceeded", query.id)
-        logger.debug("Query %d: %s", query.id, ex)
-        raise SqlLabTimeoutException(
-            "SQL Lab timeout. This environment's policy is to kill queries "
-            "after {} seconds.".format(SQLLAB_TIMEOUT)
-        )
     except Exception as ex:
         logger.error("Query %d: %s", query.id, type(ex))
         logger.debug("Query %d: %s", query.id, ex)

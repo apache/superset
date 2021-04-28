@@ -17,6 +17,8 @@
  * under the License.
  */
 
+import { AdhocFilter, DataMask } from '@superset-ui/core';
+
 export interface Column {
   name: string;
   displayName?: string;
@@ -37,12 +39,10 @@ export interface Target {
   // clarityColumns?: Column[];
 }
 
-export type FilterValue = string | number | (string | number)[] | null;
-
 export interface Filter {
   cascadeParentIds: string[];
-  defaultValue: FilterValue;
-  currentValue?: FilterValue;
+  defaultValue: any;
+  dataMask?: DataMask;
   isInstant: boolean;
   id: string; // randomly generated at filter creation
   name: string;
@@ -54,6 +54,9 @@ export interface Filter {
   controlValues: {
     [key: string]: any;
   };
+  sortMetric?: string | null;
+  adhoc_filters?: AdhocFilter[];
+  time_range?: string;
 }
 
 export type FilterConfiguration = Filter[];

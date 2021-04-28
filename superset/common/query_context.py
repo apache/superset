@@ -35,6 +35,7 @@ from superset.exceptions import (
 )
 from superset.extensions import cache_manager, security_manager
 from superset.stats_logger import BaseStatsLogger
+from superset.utils import csv
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
     ChartDataResultFormat,
@@ -129,7 +130,7 @@ class QueryContext:
             if self.enforce_numerical_metrics:
                 self.df_metrics_to_num(df, query_object)
 
-            df.replace([np.inf, -np.inf], np.nan)
+            df.replace([np.inf, -np.inf], np.nan, inplace=True)
             df = query_object.exec_post_processing(df)
 
         return {
@@ -151,7 +152,9 @@ class QueryContext:
     def get_data(self, df: pd.DataFrame,) -> Union[str, List[Dict[str, Any]]]:
         if self.result_format == ChartDataResultFormat.CSV:
             include_index = not isinstance(df.index, pd.RangeIndex)
-            result = df.to_csv(index=include_index, **config["CSV_EXPORT"])
+            result = csv.df_to_escaped_csv(
+                df, index=include_index, **config["CSV_EXPORT"]
+            )
             return result or ""
 
         return df.to_dict(orient="records")
@@ -345,7 +348,7 @@ class QueryContext:
                     col
                     for col in query_obj.columns
                     + query_obj.groupby
-                    + get_column_names_from_metrics(query_obj.metrics)
+                    + get_column_names_from_metrics(query_obj.metrics or [])
                     if col not in self.datasource.column_names and col != DTTM_ALIAS
                 ]
                 if invalid_columns:

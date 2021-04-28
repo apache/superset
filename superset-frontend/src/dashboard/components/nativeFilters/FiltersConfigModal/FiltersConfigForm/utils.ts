@@ -26,12 +26,12 @@ export const useForceUpdate = () => {
   return React.useCallback(() => updateState({}), []);
 };
 
-export const setFilterFieldValues = (
+export const setNativeFilterFieldValues = (
   form: FormInstance,
   filterId: string,
   values: object,
 ) => {
-  const formFilters = form.getFieldValue('filters');
+  const formFilters = form.getFieldValue('filters') || {};
   form.setFieldsValue({
     filters: {
       ...formFilters,

@@ -21,7 +21,11 @@ import React from 'react';
 import { styled } from '@superset-ui/core';
 import cls from 'classnames';
 
-export type PositionOption = 'normal' | 'inline' | 'floating';
+export type PositionOption =
+  | 'floating'
+  | 'inline'
+  | 'inline-centered'
+  | 'normal';
 export interface Props {
   position?: PositionOption;
   className?: string;
@@ -36,6 +40,11 @@ const LoaderImg = styled.img`
   &.inline {
     margin: 0px;
     width: 30px;
+  }
+  &.inline-centered {
+    margin: 0 auto;
+    width: 30px;
+    display: block;
   }
   &.floating {
     padding: 0;

@@ -18,11 +18,17 @@
 import logging
 from typing import Any, cast, Dict, Optional
 
-from flask import current_app
+from celery.exceptions import SoftTimeLimitExceeded
+from flask import current_app, g
 
 from superset import app
 from superset.exceptions import SupersetVizException
-from superset.extensions import async_query_manager, cache_manager, celery_app
+from superset.extensions import (
+    async_query_manager,
+    cache_manager,
+    celery_app,
+    security_manager,
+)
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.views.utils import get_datasource_info, get_viz
 
@@ -32,16 +38,21 @@ query_timeout = current_app.config[
 ]  # TODO: new config key
 
 
+def ensure_user_is_set(user_id: Optional[int]) -> None:
+    user_is_set = hasattr(g, "user") and g.user is not None
+    if not user_is_set and user_id is not None:
+        g.user = security_manager.get_user_by_id(user_id)
+
+
 @celery_app.task(name="load_chart_data_into_cache", soft_time_limit=query_timeout)
 def load_chart_data_into_cache(
     job_metadata: Dict[str, Any], form_data: Dict[str, Any],
 ) -> None:
-    from superset.charts.commands.data import (
-        ChartDataCommand,
-    )  # load here due to circular imports
+    from superset.charts.commands.data import ChartDataCommand
 
     with app.app_context():  # type: ignore
         try:
+            ensure_user_is_set(job_metadata.get("user_id"))
             command = ChartDataCommand()
             command.set_query_context(form_data)
             result = command.run(cache=True)
@@ -50,6 +61,11 @@ def load_chart_data_into_cache(
             async_query_manager.update_job(
                 job_metadata, async_query_manager.STATUS_DONE, result_url=result_url,
             )
+        except SoftTimeLimitExceeded as exc:
+            logger.warning(
+                "A timeout occurred while loading chart data, error: %s", exc
+            )
+            raise exc
         except Exception as exc:
             # TODO: QueryContext should support SIP-40 style errors
             error = exc.message if hasattr(exc, "message") else str(exc)  # type: ignore # pylint: disable=no-member
@@ -63,7 +79,7 @@ def load_chart_data_into_cache(
 
 
 @celery_app.task(name="load_explore_json_into_cache", soft_time_limit=query_timeout)
-def load_explore_json_into_cache(
+def load_explore_json_into_cache(  # pylint: disable=too-many-locals
     job_metadata: Dict[str, Any],
     form_data: Dict[str, Any],
     response_type: Optional[str] = None,
@@ -72,6 +88,7 @@ def load_explore_json_into_cache(
     with app.app_context():  # type: ignore
         cache_key_prefix = "ejr-"  # ejr: explore_json request
         try:
+            ensure_user_is_set(job_metadata.get("user_id"))
             datasource_id, datasource_type = get_datasource_info(None, None, form_data)
 
             viz_obj = get_viz(
@@ -93,6 +110,11 @@ def load_explore_json_into_cache(
             async_query_manager.update_job(
                 job_metadata, async_query_manager.STATUS_DONE, result_url=result_url,
             )
+        except SoftTimeLimitExceeded as ex:
+            logger.warning(
+                "A timeout occurred while loading explore json, error: %s", ex
+            )
+            raise ex
         except Exception as exc:
             if isinstance(exc, SupersetVizException):
                 errors = exc.errors  # pylint: disable=no-member

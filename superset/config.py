@@ -25,10 +25,12 @@ import importlib.util
 import json
 import logging
 import os
+import re
 import sys
 from collections import OrderedDict
 from datetime import date
-from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING
+from distutils.util import strtobool
+from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
 from cachelib.base import BaseCache
 from celery.schedules import crontab
@@ -43,6 +45,7 @@ from superset.jinja_context import (  # pylint: disable=unused-import
 from superset.stats_logger import DummyStatsLogger
 from superset.typing import CacheConfig
 from superset.utils.core import is_test
+from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
 
@@ -51,6 +54,9 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla import models  # pylint: disable=unused-import
 
+    from superset.connectors.sqla.models import (  # pylint: disable=unused-import
+        SqlaTable,
+    )
     from superset.models.core import Database  # pylint: disable=unused-import
 
 # Realtime stats logger, a StatsD implementation exists
@@ -114,6 +120,9 @@ VERSION_STRING = _try_json_readversion(VERSION_INFO_FILE) or _try_json_readversi
 VERSION_SHA_LENGTH = 8
 VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE, VERSION_SHA_LENGTH)
 
+# default viz used in chart explorer
+DEFAULT_VIZ_TYPE = "table"
+
 ROW_LIMIT = 50000
 VIZ_ROW_LIMIT = 10000
 # max rows retreieved when requesting samples from datasource in explore view
@@ -163,6 +172,17 @@ SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
 #     return 'secret'
 # SQLALCHEMY_CUSTOM_PASSWORD_STORE = lookup_password
 SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
+
+#
+# The EncryptedFieldTypeAdapter is used whenever we're building SqlAlchemy models
+# which include sensitive fields that should be app-encrypted BEFORE sending
+# to the DB.
+#
+# Note: the default impl leverages SqlAlchemyUtils' EncryptedType, which defaults
+#  to AES-128 under the covers using the app's SECRET_KEY as key material.
+#
+# pylint: disable=C0103
+SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = SQLAlchemyUtilsAdapter
 
 # The limit of queries fetched for query search
 QUERY_SEARCH_LIMIT = 1000
@@ -293,7 +313,7 @@ LANGUAGES = {}
 # Feature flags
 # ---------------------------------------------------
 # Feature flags that are set by default go here. Their values can be
-# overwritten by those specified under FEATURE_FLAGS in super_config.py
+# overwritten by those specified under FEATURE_FLAGS in superset_config.py
 # For example, DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False } here
 # and FEATURE_FLAGS = { 'BAR': True, 'BAZ': True } in superset_config.py
 # will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
@@ -306,9 +326,19 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "CLIENT_CACHE": False,
     "DISABLE_DATASET_SOURCE_EDIT": False,
     "DYNAMIC_PLUGINS": False,
+    # For some security concerns, you may need to enforce CSRF protection on
+    # all query request to explore_json endpoint. In Superset, we use
+    # `flask-csrf <https://sjl.bitbucket.io/flask-csrf/>`_ add csrf protection
+    # for all POST requests, but this protection doesn't apply to GET method.
+    # When ENABLE_EXPLORE_JSON_CSRF_PROTECTION is set to true, your users cannot
+    # make GET request to explore_json. explore_json accepts both GET and POST request.
+    # See `PR 7935 <https://github.com/apache/superset/pull/7935>`_ for more details.
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
     "ENABLE_TEMPLATE_PROCESSING": False,
     "KV_STORE": False,
+    # When this feature is enabled, nested types in Presto will be
+    # expanded into extra columns and/or arrays. This is experimental,
+    # and doesn't work with all nested types.
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
     "THUMBNAILS": False,
@@ -339,20 +369,30 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # by that custom datasource access. So we are assuming a default security config,
     # a custom security config could potentially give access to setting filters on
     # tables that users do not have access to.
-    "ROW_LEVEL_SECURITY": False,
+    "ROW_LEVEL_SECURITY": True,
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
     # Enable experimental feature to search for other dashboards
     "OMNIBAR": False,
     "DASHBOARD_RBAC": False,
     "ENABLE_EXPLORE_DRAG_AND_DROP": False,
+    # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
+    # with screenshot and link
+    # Disables ALERTS_ATTACH_REPORTS, the system DOES NOT generate screenshot
+    # for report with type 'alert' and sends email and slack message with only link;
+    # for report with type 'report' still send with email and slack message with
+    # screenshot and link
+    "ALERTS_ATTACH_REPORTS": True,
 }
 
-# Set the default view to card/grid view if thumbnail support is enabled.
-# Setting LISTVIEWS_DEFAULT_CARD_VIEW to False will force the default view to
-# always be the table layout
-if DEFAULT_FEATURE_FLAGS["THUMBNAILS"]:
-    DEFAULT_FEATURE_FLAGS["LISTVIEWS_DEFAULT_CARD_VIEW"] = True
+# Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
+DEFAULT_FEATURE_FLAGS.update(
+    {
+        k[len("SUPERSET_FEATURE_") :]: bool(strtobool(v))
+        for k, v in os.environ.items()
+        if re.search(r"^SUPERSET_FEATURE_\w+", k)
+    }
+)
 
 # This is merely a default.
 FEATURE_FLAGS: Dict[str, bool] = {}
@@ -369,7 +409,7 @@ FEATURE_FLAGS: Dict[str, bool] = {}
 # from flask import g, request
 # def GET_FEATURE_FLAGS_FUNC(feature_flags_dict: Dict[str, bool]) -> Dict[str, bool]:
 #     if hasattr(g, "user") and g.user.is_active:
-#         feature_flags_dict['some_feature'] = g.user and g.user.id == 5
+#         feature_flags_dict['some_feature'] = g.user and g.user.get_id() == 5
 #     return feature_flags_dict
 GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] = None
 
@@ -701,7 +741,7 @@ ESTIMATE_QUERY_COST = False
 #
 #     return out
 #
-# DEFAULT_FEATURE_FLAGS = {
+# FEATURE_FLAGS = {
 #     "ESTIMATE_QUERY_COST": True,
 #     "QUERY_COST_FORMATTERS_BY_ENGINE": {"postgresql": postgres_query_cost_formatter},
 # }
@@ -751,9 +791,16 @@ CSV_TO_HIVE_UPLOAD_S3_BUCKET = None
 CSV_TO_HIVE_UPLOAD_DIRECTORY = "EXTERNAL_HIVE_TABLES/"
 # Function that creates upload directory dynamically based on the
 # database used, user and schema provided.
-CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC: Callable[
-    ["Database", "models.User", str], Optional[str]
-] = lambda database, user, schema: CSV_TO_HIVE_UPLOAD_DIRECTORY
+def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(
+    database: "Database",
+    user: "models.User",  # pylint: disable=unused-argument
+    schema: Optional[str],
+) -> str:
+    # Note the final empty path enforces a trailing slash.
+    return os.path.join(
+        CSV_TO_HIVE_UPLOAD_DIRECTORY, str(database.id), schema or "", ""
+    )
+
 
 # The namespace within hive where the tables created from
 # uploading CSVs will be stored.
@@ -909,11 +956,22 @@ ENABLE_ALERTS = False
 # Used for Alerts/Reports (Feature flask ALERT_REPORTS) to set the size for the
 # sliding cron window size, should be synced with the celery beat config minus 1 second
 ALERT_REPORTS_CRON_WINDOW_SIZE = 59
+ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
+# if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
+# Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
+ALERT_REPORTS_WORKING_TIME_OUT_LAG = 10
+# if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
+# Equal to working timeout + ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG
+ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = 1
+# If set to true no notification is sent, the worker will just log a message.
+# Useful for debugging
+ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
+
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
 
-# Slack API token for the superset reports
-SLACK_API_TOKEN = None
+# Slack API token for the superset reports, either string or callable
+SLACK_API_TOKEN: Optional[Union[Callable[[], str], str]] = None
 SLACK_PROXY = None
 
 # If enabled, certain features are run in debug mode
@@ -1013,6 +1071,18 @@ SQL_VALIDATORS_BY_ENGINE = {
     "postgresql": "PostgreSQLValidator",
 }
 
+# A list of preferred databases, in order. These databases will be
+# displayed prominently in the "Add Database" dialog. You should
+# use the "engine" attribute of the corresponding DB engine spec in
+# `superset/db_engine_specs/`.
+PREFERRED_DATABASES: List[str] = [
+    # "postgresql",
+    # "presto",
+    # "mysql",
+    # "sqlite",
+    # etc.
+]
+
 # Do you want Talisman enabled?
 TALISMAN_ENABLED = False
 # If you want Talisman, how do you want it configured??
@@ -1095,19 +1165,49 @@ GLOBAL_ASYNC_QUERIES_REDIS_CONFIG = {
     "host": "127.0.0.1",
     "password": "",
     "db": 0,
+    "ssl": False,
 }
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX = "async-events-"
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT = 1000
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE = 1000000
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME = "async-token"
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
+GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN = None
 GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"
 GLOBAL_ASYNC_QUERIES_TRANSPORT = "polling"
 GLOBAL_ASYNC_QUERIES_POLLING_DELAY = 500
+GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 
-# It's possible to add a dataset health check logic which is specific to your system.
-# It will get executed each time when user open a chart's explore view.
-DATASET_HEALTH_CHECK = None
+# A SQL dataset health check. Note if enabled it is strongly advised that the callable
+# be memoized to aid with performance, i.e.,
+#
+#    @cache_manager.cache.memoize(timeout=0)
+#    def DATASET_HEALTH_CHECK(datasource: SqlaTable) -> Optional[str]:
+#        if (
+#            datasource.sql and
+#            len(sql_parse.ParsedQuery(datasource.sql, strip_comments=True).tables) == 1
+#        ):
+#            return (
+#                "This virtual dataset queries only one table and therefore could be "
+#                "replaced by querying the table directly."
+#            )
+#
+#        return None
+#
+# Within the FLASK_APP_MUTATOR callable, i.e., once the application and thus cache have
+# been initialized it is also necessary to add the following logic to blow the cache for
+# all datasources if the callback function changed.
+#
+#    def FLASK_APP_MUTATOR(app: Flask) -> None:
+#        name = "DATASET_HEALTH_CHECK"
+#        func = app.config[name]
+#        code = func.uncached.__code__.co_code
+#
+#        if cache_manager.cache.get(name) != code:
+#            cache_manager.cache.delete_memoized(func)
+#            cache_manager.cache.set(name, code, timeout=0)
+#
+DATASET_HEALTH_CHECK: Optional[Callable[["SqlaTable"], str]] = None
 
 # SQLalchemy link doc reference
 SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"

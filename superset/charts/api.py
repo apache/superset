@@ -65,7 +65,7 @@ from superset.charts.schemas import (
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
+from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
@@ -484,12 +484,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         if result_format == ChartDataResultFormat.CSV:
             # return the first result
             data = result["queries"][0]["data"]
-            return CsvResponse(
-                data,
-                status=200,
-                headers=generate_download_headers("csv"),
-                mimetype="application/csv",
-            )
+            return CsvResponse(data, headers=generate_download_headers("csv"))
 
         if result_format == ChartDataResultFormat.JSON:
             response_data = simplejson.dumps(
@@ -505,7 +500,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     @expose("/data", methods=["POST"])
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
@@ -576,9 +570,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
                     "Request is incorrect: %(error)s", error=error.normalized_messages()
                 )
             )
-        except SupersetSecurityException:
-
-            return self.response_401()
 
         # TODO: support CSV, SQL query and other non-JSON types
         if (
@@ -599,7 +590,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     @expose("/data/<cache_key>", methods=["GET"])
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
@@ -649,9 +639,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_400(
                 message=_("Request is incorrect: %(error)s", error=error.messages)
             )
-        except SupersetSecurityException as exc:
-            logger.info(exc)
-            return self.response_401()
 
         return self.get_data_response(command, True)
 
@@ -969,7 +956,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         charts = ChartDAO.find_by_ids(requested_ids)
         if not charts:
             return self.response_404()
-        favorited_chart_ids = ChartDAO.favorited_ids(charts, g.user.id)
+        favorited_chart_ids = ChartDAO.favorited_ids(charts, g.user.get_id())
         res = [
             {"id": request_id, "value": request_id in favorited_chart_ids}
             for request_id in requested_ids

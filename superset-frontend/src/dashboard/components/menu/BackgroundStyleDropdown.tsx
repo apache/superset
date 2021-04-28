@@ -19,11 +19,11 @@
 import React from 'react';
 import cx from 'classnames';
 
-import backgroundStyleOptions from '../../util/backgroundStyleOptions';
+import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import PopoverDropdown, {
   OptionProps,
   OnChangeHandler,
-} from './PopoverDropdown';
+} from 'src/components/PopoverDropdown';
 
 interface BackgroundStyleDropdownProps {
   id: string;

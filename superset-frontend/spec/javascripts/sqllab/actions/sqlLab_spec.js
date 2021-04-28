@@ -173,7 +173,7 @@ describe('async actions', () => {
 
       fetchMock.get(
         fetchQueryEndpoint,
-        { throws: { error: 'error text' } },
+        { throws: { message: 'error text' } },
         { overwriteRoutes: true },
       );
 
@@ -238,7 +238,7 @@ describe('async actions', () => {
 
       fetchMock.post(
         runQueryEndpoint,
-        { throws: { error: 'error text' } },
+        { throws: { message: 'error text' } },
         { overwriteRoutes: true },
       );
 
@@ -249,6 +249,29 @@ describe('async actions', () => {
           expectedActionTypes,
         );
       });
+    });
+  });
+
+  describe('reRunQuery', () => {
+    let stub;
+    beforeEach(() => {
+      stub = sinon.stub(shortid, 'generate').returns('abcd');
+    });
+    afterEach(() => {
+      stub.restore();
+    });
+
+    it('creates new query with a new id', () => {
+      const id = 'id';
+      const state = {
+        sqlLab: {
+          tabHistory: [id],
+          queryEditors: [{ id, title: 'Dummy query editor' }],
+        },
+      };
+      const store = mockStore(state);
+      store.dispatch(actions.reRunQuery(query));
+      expect(store.getActions()[0].query.id).toEqual('abcd');
     });
   });
 

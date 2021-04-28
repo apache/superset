@@ -65,11 +65,13 @@ const propTypes = {
   isExpanded: PropTypes.bool.isRequired,
   isCached: PropTypes.bool,
   supersetCanExplore: PropTypes.bool.isRequired,
+  supersetCanShare: PropTypes.bool.isRequired,
   supersetCanCSV: PropTypes.bool.isRequired,
   sliceCanEdit: PropTypes.bool.isRequired,
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
-  ownCurrentState: PropTypes.object,
+  ownState: PropTypes.object,
+  filterState: PropTypes.object,
 };
 
 const defaultProps = {
@@ -256,11 +258,13 @@ export default class Chart extends React.Component {
       toggleExpandSlice,
       timeout,
       supersetCanExplore,
+      supersetCanShare,
       supersetCanCSV,
       sliceCanEdit,
       addSuccessToast,
       addDangerToast,
-      ownCurrentState,
+      ownState,
+      filterState,
       handleToggleFullSize,
       isFullSize,
     } = this.props;
@@ -288,7 +292,13 @@ export default class Chart extends React.Component {
         })
       : {};
     return (
-      <div className="chart-slice">
+      <div
+        className="chart-slice"
+        data-test="chart-grid-component"
+        data-test-chart-id={id}
+        data-test-viz-type={slice.viz_type}
+        data-test-chart-name={slice.slice_name}
+      >
         <SliceHeader
           innerRef={this.setHeaderRef}
           slice={slice}
@@ -305,6 +315,7 @@ export default class Chart extends React.Component {
           updateSliceName={updateSliceName}
           sliceName={sliceName}
           supersetCanExplore={supersetCanExplore}
+          supersetCanShare={supersetCanShare}
           supersetCanCSV={supersetCanCSV}
           sliceCanEdit={sliceCanEdit}
           componentId={componentId}
@@ -362,7 +373,8 @@ export default class Chart extends React.Component {
             dashboardId={dashboardId}
             initialValues={initialValues}
             formData={formData}
-            ownCurrentState={ownCurrentState}
+            ownState={ownState}
+            filterState={filterState}
             queriesResponse={chart.queriesResponse}
             timeout={timeout}
             triggerQuery={chart.triggerQuery}

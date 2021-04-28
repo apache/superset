@@ -8,7 +8,7 @@ version: 1
 
 ## Running on Kubernetes
 
-Running on Kubernetes is supported with the provided [Helm](helm.sh/) chart included in the Github repository under [helm/superset](https://github.com/apache/superset/tree/master/helm/superset).
+Running on Kubernetes is supported with the provided [Helm](https://helm.sh/) chart found in the official [Superset helm repository](https://apache.github.io/superset/index.yaml).
 
 ### Prerequisites
 
@@ -16,6 +16,20 @@ Running on Kubernetes is supported with the provided [Helm](helm.sh/) chart incl
 * Helm installed
 
 ### Running
+
+1. Add the Superset helm repository
+
+```sh
+helm repo add superset https://apache.github.io/superset
+"superset" has been added to your repositories
+```
+
+1. View charts in repo
+```sh
+helm search repo superset
+NAME                    CHART VERSION   APP VERSION     DESCRIPTION
+superset/superset       0.1.1           1.0             Apache Superset is a modern, enterprise-ready b...
+```
 
 1. Configure your setting overrides
 
@@ -29,8 +43,7 @@ More info down below on some important overrides you might need.
 1. Install and run
 
 ```sh
-# From the root of the repository
-helm upgrade --install --values my-values.yaml my-superset helm/superset
+helm upgrade --install --values my-values.yaml superset superset/superset
 ```
 
 You should see various pods popping up, such as:

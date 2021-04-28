@@ -142,8 +142,8 @@ class ExtraCache:
 
         if hasattr(g, "user") and g.user:
             if add_to_cache_keys:
-                self.cache_key_wrapper(g.user.id)
-            return g.user.id
+                self.cache_key_wrapper(g.user.get_id())
+            return g.user.get_id()
         return None
 
     def current_username(self, add_to_cache_keys: bool = True) -> Optional[str]:
@@ -154,7 +154,7 @@ class ExtraCache:
         :returns: The username
         """
 
-        if g.user:
+        if g.user and hasattr(g.user, "username"):
             if add_to_cache_keys:
                 self.cache_key_wrapper(g.user.username)
             return g.user.username

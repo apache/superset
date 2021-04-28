@@ -25,7 +25,7 @@ import { debounce } from 'lodash';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { ConfigEditor } from 'src/components/AsyncAceEditor';
 import { FAST_DEBOUNCE } from 'src/constants';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 
 const StyledConfigEditor = styled(ConfigEditor)`
   &.ace_editor {

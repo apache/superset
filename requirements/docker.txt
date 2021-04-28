@@ -6,12 +6,207 @@
 #    pip-compile-multi
 #
 -r base.txt
--e file:.                 # via -r requirements/base.in
-gevent==20.9.0            # via -r requirements/docker.in
-greenlet==0.4.17          # via gevent
-psycopg2-binary==2.8.6    # via -r requirements/docker.in
-zope.event==4.5.0         # via gevent
-zope.interface==5.1.2     # via gevent
+-e file:.
+# via -r requirements/base.in
+# via slackclient
+# via flask-migrate
+# via kombu
+# via flask-appbuilder
+# via aiohttp
+# via
+#   aiohttp
+#   jsonschema
+# via flask-babel
+# via apache-superset
+# via celery
+# via apache-superset
+# via flask-compress
+# via apache-superset
+# via apache-superset
+# via cryptography
+# via aiohttp
+# via
+#   apache-superset
+#   flask
+#   flask-appbuilder
+# via
+#   apache-superset
+#   flask-appbuilder
+# via apache-superset
+# via holidays
+# via apache-superset
+# via apache-superset
+# via apache-superset
+# via retry
+# via python3-openid
+# via email-validator
+# via flask-appbuilder
+# via apache-superset
+# via flask-appbuilder
+# via apache-superset
+# via apache-superset
+# via flask-appbuilder
+# via flask-appbuilder
+# via apache-superset
+# via flask-appbuilder
+# via
+#   flask-appbuilder
+#   flask-migrate
+# via apache-superset
+# via
+#   apache-superset
+#   flask-appbuilder
+# via
+#   apache-superset
+#   flask-appbuilder
+#   flask-babel
+#   flask-caching
+#   flask-compress
+#   flask-jwt-extended
+#   flask-login
+#   flask-migrate
+#   flask-openid
+#   flask-sqlalchemy
+#   flask-wtf
+# via geopy
+# via apache-superset
+gevent==20.9.0
+# via -r requirements/docker.in
+greenlet==0.4.17
+# via gevent
+# via apache-superset
+# via apache-superset
+# via apache-superset
+# via
+#   email-validator
+#   yarl
+# via -r requirements/base.in
+# via apache-superset
+# via
+#   flask
+#   flask-wtf
+# via
+#   flask
+#   flask-babel
+# via flask-appbuilder
+# via celery
+# via holidays
+# via alembic
+# via apache-superset
+# via
+#   jinja2
+#   mako
+#   wtforms
+# via flask-appbuilder
+# via flask-appbuilder
+# via
+#   flask-appbuilder
+#   marshmallow-enum
+#   marshmallow-sqlalchemy
+# via apache-superset
+# via
+#   aiohttp
+#   yarl
+# via croniter
+# via
+#   pandas
+#   pyarrow
+# via bleach
+# via apache-superset
+# via apache-superset
+# via apache-superset
+# via apache-superset
+# via apache-superset
+# via flask-appbuilder
+psycopg2-binary==2.8.6
+# via -r requirements/docker.in
+# via retry
+# via apache-superset
+# via cffi
+# via
+#   apache-superset
+#   flask-appbuilder
+#   flask-jwt-extended
+# via convertdate
+# via
+#   apache-superset
+#   packaging
+# via
+#   -r requirements/base.in
+#   jsonschema
+# via
+#   alembic
+#   apache-superset
+#   croniter
+#   flask-appbuilder
+#   holidays
+#   pandas
+# via apache-superset
+# via alembic
+# via apache-superset
+# via flask-openid
+# via
+#   babel
+#   celery
+#   convertdate
+#   flask-babel
+#   pandas
+# via
+#   apache-superset
+#   apispec
+# via apache-superset
+# via apache-superset
+# via apache-superset
+# via apache-superset
+# via
+#   bleach
+#   cryptography
+#   flask-jwt-extended
+#   flask-talisman
+#   holidays
+#   isodate
+#   jsonschema
+#   packaging
+#   pathlib2
+#   polyline
+#   prison
+#   pyrsistent
+#   python-dateutil
+#   sqlalchemy-utils
+#   wtforms-json
+# via apache-superset
+# via
+#   apache-superset
+#   flask-appbuilder
+# via
+#   alembic
+#   apache-superset
+#   flask-appbuilder
+#   flask-sqlalchemy
+#   marshmallow-sqlalchemy
+#   sqlalchemy-utils
+# via apache-superset
+# via
+#   aiohttp
+#   apache-superset
+# via selenium
+# via
+#   amqp
+#   celery
+# via bleach
+# via
+#   flask
+#   flask-jwt-extended
+# via apache-superset
+# via
+#   flask-wtf
+#   wtforms-json
+# via aiohttp
+# via importlib-metadata
+zope.event==4.5.0
+# via gevent
+zope.interface==5.1.2
+# via gevent
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

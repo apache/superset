@@ -34,6 +34,9 @@ from superset.stats_logger import BaseStatsLogger
 
 def collect_request_payload() -> Dict[str, Any]:
     """Collect log payload identifiable from request context"""
+    if not request:
+        return {}
+
     payload: Dict[str, Any] = {
         "path": request.path,
         **request.form.to_dict(),
@@ -111,15 +114,26 @@ class AbstractEventLogger(ABC):
     ) -> None:
         from superset.views.core import get_form_data
 
-        referrer = request.referrer[:1000] if request.referrer else None
+        referrer = request.referrer[:1000] if request and request.referrer else None
 
         duration_ms = int(duration.total_seconds() * 1000) if duration else None
 
+        # Initial try and grab user_id via flask.g.user
         try:
             user_id = g.user.get_id()
-        except Exception as ex:  # pylint: disable=broad-except
-            logging.warning(ex)
+        except Exception:  # pylint: disable=broad-except
             user_id = None
+
+        # Whenever a user is not bounded to a session we
+        # need to add them back before logging to capture user_id
+        if user_id is None:
+            try:
+                session = current_app.appbuilder.get_session
+                session.add(g.user)
+                user_id = g.user.get_id()
+            except Exception as ex:  # pylint: disable=broad-except
+                logging.warning(ex)
+                user_id = None
 
         payload = collect_request_payload()
         if object_ref:

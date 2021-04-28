@@ -32,7 +32,7 @@ import {
   AddControlLabel,
   HeaderContainer,
   LabelsContainer,
-} from 'src/explore/components/OptionControls';
+} from 'src/explore/components/controls/OptionControls';
 import columnType from './columnType';
 import MetricDefinitionOption from './MetricDefinitionOption';
 import MetricDefinitionValue from './MetricDefinitionValue';
@@ -294,7 +294,7 @@ class MetricsControl extends React.PureComponent {
           null,
         )}
         datasource={this.props.datasource}
-        savedMetric={{}}
+        savedMetric={{ metric_name: '', expression: '' }}
         datasourceType={this.props.datasourceType}
         createNew
       >

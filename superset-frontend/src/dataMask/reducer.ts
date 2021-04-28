@@ -20,66 +20,56 @@
 /* eslint-disable no-param-reassign */
 // <- When we work with Immer, we need reassign, so disabling lint
 import produce from 'immer';
-import { MaskWithId, DataMaskType, DataMaskStateWithId } from './types';
+import { DataMaskStateWithId, DataMaskWithId } from './types';
 import {
   AnyDataMaskAction,
   SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
   UPDATE_DATA_MASK,
-  UpdateDataMask,
 } from './actions';
+import { NATIVE_FILTER_PREFIX } from '../dashboard/components/nativeFilters/FiltersConfigModal/utils';
+import { Filter } from '../dashboard/components/nativeFilters/types';
 
-export function getInitialMask(id: string): MaskWithId {
+export function getInitialDataMask(id: string): DataMaskWithId {
   return {
     id,
     extraFormData: {},
-    currentState: {},
+    filterState: {},
+    ownState: {},
+    isApplied: false,
   };
 }
 
-const setUnitDataMask = (
-  unitName: DataMaskType,
-  action: UpdateDataMask,
-  dataMaskState: DataMaskStateWithId,
-) => {
-  if (action[unitName]) {
-    dataMaskState[unitName][action.filterId] = {
-      ...dataMaskState[unitName][action.filterId],
-      ...action[unitName],
-      id: action.filterId,
-    };
-  }
-};
-
-const emptyDataMask = {
-  [DataMaskType.NativeFilters]: {},
-  [DataMaskType.CrossFilters]: {},
-  [DataMaskType.OwnFilters]: {},
-};
-
 const dataMaskReducer = produce(
   (draft: DataMaskStateWithId, action: AnyDataMaskAction) => {
+    const cleanState = {};
     switch (action.type) {
       case UPDATE_DATA_MASK:
-        Object.values(DataMaskType).forEach(unitName =>
-          setUnitDataMask(unitName, action, draft),
-        );
-        break;
+        draft[action.filterId] = {
+          ...getInitialDataMask(action.filterId),
+          ...draft[action.filterId],
+          ...action.dataMask,
+          isApplied: true,
+        };
+        return draft;
 
       case SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE:
-        Object.values(DataMaskType).forEach(unitName => {
-          draft[unitName] = emptyDataMask[unitName];
+        (action.filterConfig ?? []).forEach((filter: Filter) => {
+          cleanState[filter.id] =
+            draft[filter.id] ?? getInitialDataMask(filter.id);
         });
-        (action.filterConfig ?? []).forEach(filter => {
-          draft[DataMaskType.NativeFilters][filter.id] =
-            draft[DataMaskType.NativeFilters][filter.id] ??
-            getInitialMask(filter.id);
+        // Get back all other non-native filters
+        Object.values(draft).forEach(filter => {
+          if (!String(filter?.id).startsWith(NATIVE_FILTER_PREFIX)) {
+            cleanState[filter?.id] = filter;
+          }
         });
-        break;
+        return cleanState;
 
       default:
+        return draft;
     }
   },
-  emptyDataMask,
+  {},
 );
 
 export default dataMaskReducer;

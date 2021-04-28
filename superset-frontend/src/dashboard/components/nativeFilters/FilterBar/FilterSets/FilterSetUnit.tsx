@@ -19,11 +19,17 @@
 import { Typography, Dropdown, Menu } from 'src/common/components';
 import React, { FC } from 'react';
 import { FilterSet } from 'src/dashboard/reducers/types';
-import { DataMaskUnit } from 'src/dataMask/types';
+import { DataMaskState } from 'src/dataMask/types';
 import { CheckOutlined, EllipsisOutlined } from '@ant-design/icons';
 import { HandlerFunction, styled, supersetTheme, t } from '@superset-ui/core';
+import Button from 'src/components/Button';
+import { Tooltip } from 'src/components/Tooltip';
 import FiltersHeader from './FiltersHeader';
-import { Filter } from '../../types';
+import { getFilterBarTestId } from '..';
+
+const HeaderButton = styled(Button)`
+  padding: 0;
+`;
 
 const TitleText = styled.div`
   display: flex;
@@ -34,43 +40,50 @@ const TitleText = styled.div`
 const IconsBlock = styled.div`
   display: flex;
   justify-content: flex-end;
-  align-items: flex-start;
-  & > * {
-    ${({ theme }) => `padding-left: ${theme.gridUnit * 2}px`};
+  align-items: center;
+  & > *,
+  & > button.superset-button {
+    ${({ theme }) => `margin-left: ${theme.gridUnit * 2}px`};
   }
 `;
 
-type FilterSetUnitProps = {
-  filters: Filter[];
+export type FilterSetUnitProps = {
   editMode?: boolean;
   isApplied?: boolean;
   filterSet?: FilterSet;
   filterSetName?: string;
-  dataMaskApplied?: DataMaskUnit;
+  dataMaskSelected?: DataMaskState;
   setFilterSetName?: (name: string) => void;
   onDelete?: HandlerFunction;
   onEdit?: HandlerFunction;
+  onRebuild?: HandlerFunction;
 };
 
 const FilterSetUnit: FC<FilterSetUnitProps> = ({
-  filters,
   editMode,
   setFilterSetName,
   onDelete,
   onEdit,
   filterSetName,
-  dataMaskApplied,
+  dataMaskSelected,
   filterSet,
   isApplied,
+  onRebuild,
 }) => {
   const menu = (
     <Menu>
       <Menu.Item onClick={onEdit}>{t('Edit')}</Menu.Item>
+      <Menu.Item onClick={onRebuild}>
+        <Tooltip placement="right" title={t('Remove invalid filters')}>
+          {t('Rebuild')}
+        </Tooltip>
+      </Menu.Item>
       <Menu.Item onClick={onDelete} danger>
         {t('Delete')}
       </Menu.Item>
     </Menu>
   );
+
   return (
     <>
       <TitleText>
@@ -96,20 +109,24 @@ const FilterSetUnit: FC<FilterSetUnitProps> = ({
               placement="bottomRight"
               trigger={['click']}
             >
-              <EllipsisOutlined
+              <HeaderButton
                 onClick={e => {
                   e.stopPropagation();
                   e.preventDefault();
                 }}
-              />
+                {...getFilterBarTestId('filter-set-menu-button')}
+                buttonStyle="link"
+                buttonSize="xsmall"
+              >
+                <EllipsisOutlined />
+              </HeaderButton>
             </Dropdown>
           )}
         </IconsBlock>
       </TitleText>
       <FiltersHeader
-        expanded={!filterSet}
-        dataMask={filterSet?.dataMask?.nativeFilters ?? dataMaskApplied}
-        filters={filters}
+        filterSet={filterSet}
+        dataMask={filterSet?.dataMask ?? dataMaskSelected}
       />
     </>
   );

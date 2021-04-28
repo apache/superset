@@ -17,23 +17,42 @@
  * under the License.
  */
 import {
-  styled,
-  t,
-  getChartMetadataRegistry,
+  AdhocFilter,
   Behavior,
+  ChartDataResponseResult,
+  getChartMetadataRegistry,
+  JsonResponse,
+  styled,
+  SupersetApiError,
+  t,
 } from '@superset-ui/core';
+import {
+  ColumnMeta,
+  DatasourceMeta,
+  Metric,
+} from '@superset-ui/chart-controls';
 import { FormInstance } from 'antd/lib/form';
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { Checkbox, Form, Input, Typography } from 'src/common/components';
 import { Select } from 'src/components/Select';
-import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
+import SupersetResourceSelect, {
+  cachedSupersetGet,
+} from 'src/components/SupersetResourceSelect';
+import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
+import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { addDangerToast } from 'src/messageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
+import SelectControl from 'src/explore/components/controls/SelectControl';
+import Button from 'src/components/Button';
+import { getChartDataRequest } from 'src/chart/chartAction';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { ColumnSelect } from './ColumnSelect';
 import { NativeFiltersForm } from '../types';
 import {
   datasetToSelectOption,
-  setFilterFieldValues,
+  setNativeFilterFieldValues,
   useForceUpdate,
 } from './utils';
 import { useBackendFormUpdate } from './state';
@@ -43,6 +62,9 @@ import ControlItems from './ControlItems';
 import FilterScope from './FilterScope/FilterScope';
 import RemovedFilter from './RemovedFilter';
 import DefaultValue from './DefaultValue';
+import { getFiltersConfigModalTestId } from '../FiltersConfigModal';
+// TODO: move styles from AdhocFilterControl to emotion and delete this ./main.less
+import './main.less';
 
 const StyledContainer = styled.div`
   display: flex;
@@ -61,7 +83,7 @@ export const StyledCheckboxFormItem = styled(Form.Item)`
 
 export const StyledLabel = styled.span`
   color: ${({ theme }) => theme.colors.grayscale.base};
-  font-size: ${({ theme }) => theme.typography.sizes.s};
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
   text-transform: uppercase;
 `;
 
@@ -78,7 +100,13 @@ export interface FiltersConfigFormProps {
   parentFilters: { id: string; title: string }[];
 }
 
-const FILTERS_WITH_ONLY_DATASOURCE = ['filter_timegrain', 'filter_timecolumn'];
+// TODO: Need to do with it something
+const FILTERS_WITHOUT_COLUMN = [
+  'filter_timegrain',
+  'filter_timecolumn',
+  'filter_groupby',
+];
+const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
 
 /**
  * The configuration form for a specific filter.
@@ -92,8 +120,23 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
   form,
   parentFilters,
 }) => {
+  const [metrics, setMetrics] = useState<Metric[]>([]);
   const forceUpdate = useForceUpdate();
-  const formFilter = (form.getFieldValue('filters') || {})[filterId];
+  const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
+
+  // make sure the formFilter is populated
+  if (!form.getFieldValue('filters')) {
+    setNativeFilterFieldValues(form, filterId, filterToEdit || {});
+    forceUpdate();
+  }
+  const formFilter = form.getFieldValue('filters')[filterId];
+
+  useEffect(() => {
+    setNativeFilterFieldValues(form, filterId, {
+      defaultValue: filterToEdit?.defaultValue,
+    });
+    forceUpdate();
+  }, [form, forceUpdate, filterId, filterToEdit?.defaultValue]);
 
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
@@ -103,23 +146,108 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
     )
     .map(([key]) => key);
 
+  const loadedDatasets = useSelector<any, DatasourceMeta>(
+    ({ datasources }) => datasources,
+  );
+
   // @ts-ignore
-  const hasDatasource = !!nativeFilterItems[formFilter?.filterType]?.value
+  const hasDataset = !!nativeFilterItems[formFilter?.filterType]?.value
     ?.datasourceCount;
   const hasColumn =
-    hasDatasource &&
-    !FILTERS_WITH_ONLY_DATASOURCE.includes(formFilter?.filterType);
+    hasDataset && !FILTERS_WITHOUT_COLUMN.includes(formFilter?.filterType);
 
-  const hasFilledDatasource =
-    !hasDatasource ||
-    (formFilter?.dataset?.value && (formFilter?.column || !hasColumn));
+  const datasetId = formFilter?.dataset?.value;
 
-  useBackendFormUpdate(form, filterId, filterToEdit, hasDatasource, hasColumn);
+  useEffect(() => {
+    if (datasetId && hasColumn) {
+      cachedSupersetGet({
+        endpoint: `/api/v1/dataset/${datasetId}`,
+      })
+        .then((response: JsonResponse) => {
+          setMetrics(response.json?.result?.metrics);
+          const dataset = response.json?.result;
+          // modify the response to fit structure expected by AdhocFilterControl
+          dataset.type = dataset.datasource_type;
+          dataset.filter_select = true;
+          setDatasetDetails(dataset);
+        })
+        .catch((response: SupersetApiError) => {
+          addDangerToast(response.message);
+        });
+    }
+  }, [datasetId, hasColumn]);
 
-  const initDatasetId = filterToEdit?.targets[0]?.datasetId;
+  const hasMetrics = hasColumn && !!metrics.length;
+
+  const hasFilledDataset =
+    !hasDataset || (datasetId && (formFilter?.column || !hasColumn));
+
+  const hasAdditionalFilters = FILTERS_WITH_ADHOC_FILTERS.includes(
+    formFilter?.filterType,
+  );
+
+  const isDataDirty = formFilter?.isDataDirty ?? true;
+
+  useBackendFormUpdate(form, filterId);
+
+  const refreshHandler = () => {
+    if (!hasDataset || !formFilter?.dataset?.value) {
+      forceUpdate();
+      return;
+    }
+    const formData = getFormData({
+      datasetId: formFilter?.dataset?.value,
+      groupby: formFilter?.column,
+      defaultValue: formFilter?.defaultValue,
+      ...formFilter,
+    });
+    setNativeFilterFieldValues(form, filterId, {
+      defaultValueQueriesData: null,
+      isDataDirty: false,
+    });
+    forceUpdate();
+    getChartDataRequest({
+      formData,
+      force: false,
+      requestParams: { dashboardId: 0 },
+    }).then(response => {
+      if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+        // deal with getChartDataRequest transforming the response data
+        const result = 'result' in response ? response.result[0] : response;
+        waitForAsyncData(result)
+          .then((asyncResult: ChartDataResponseResult[]) => {
+            setNativeFilterFieldValues(form, filterId, {
+              defaultValueQueriesData: asyncResult,
+            });
+            forceUpdate();
+          })
+          .catch((error: ClientErrorObject) => {
+            // TODO: show error once this logic is moved into new NativeFilter
+            //  component
+            console.error(
+              error.message || error.error || t('Check configuration'),
+            );
+          });
+      } else {
+        setNativeFilterFieldValues(form, filterId, {
+          defaultValueQueriesData: response.result,
+        });
+        forceUpdate();
+      }
+    });
+  };
+
+  const defaultDatasetSelectOptions = Object.values(loadedDatasets).map(
+    datasetToSelectOption,
+  );
+  const initialDatasetId =
+    filterToEdit?.targets[0]?.datasetId ??
+    (defaultDatasetSelectOptions.length === 1
+      ? defaultDatasetSelectOptions[0].value
+      : undefined);
   const initColumn = filterToEdit?.targets[0]?.column?.name;
   const newFormData = getFormData({
-    datasetId: formFilter?.dataset?.value,
+    datasetId,
     groupby: hasColumn ? formFilter?.column : undefined,
     defaultValue: formFilter?.defaultValue,
     ...formFilter,
@@ -154,15 +282,15 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
           label={<StyledLabel>{t('Filter name')}</StyledLabel>}
           initialValue={filterToEdit?.name}
           rules={[{ required: !removed, message: t('Name is required') }]}
-          data-test="name-input"
         >
-          <Input />
+          <Input {...getFiltersConfigModalTestId('name-input')} />
         </StyledFormItem>
         <StyledFormItem
           name={['filters', filterId, 'filterType']}
           rules={[{ required: !removed, message: t('Name is required') }]}
           initialValue={filterToEdit?.filterType || 'filter_select'}
           label={<StyledLabel>{t('Filter Type')}</StyledLabel>}
+          {...getFiltersConfigModalTestId('filter-type')}
         >
           <Select
             options={nativeFilterVizTypes.map(filterType => ({
@@ -171,7 +299,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
               label: nativeFilterItems[filterType]?.value.name,
             }))}
             onChange={({ value }: { value: string }) => {
-              setFilterFieldValues(form, filterId, {
+              setNativeFilterFieldValues(form, filterId, {
                 filterType: value,
                 defaultValue: null,
               });
@@ -180,29 +308,30 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
           />
         </StyledFormItem>
       </StyledContainer>
-      {hasDatasource && (
+      {hasDataset && (
         <>
           <StyledFormItem
             name={['filters', filterId, 'dataset']}
-            initialValue={{ value: initDatasetId }}
-            label={<StyledLabel>{t('Datasource')}</StyledLabel>}
-            rules={[
-              { required: !removed, message: t('Datasource is required') },
-            ]}
-            data-test="datasource-input"
+            initialValue={{ value: initialDatasetId }}
+            label={<StyledLabel>{t('Dataset')}</StyledLabel>}
+            rules={[{ required: !removed, message: t('Dataset is required') }]}
+            {...getFiltersConfigModalTestId('datasource-input')}
           >
             <SupersetResourceSelect
-              initialId={initDatasetId}
+              initialId={initialDatasetId}
               resource="dataset"
               searchColumn="table_name"
               transformItem={datasetToSelectOption}
               isMulti={false}
               onError={onDatasetSelectError}
+              defaultOptions={Object.values(loadedDatasets).map(
+                datasetToSelectOption,
+              )}
               onChange={e => {
                 // We need reset column when dataset changed
-                const datasetId = formFilter?.dataset?.value;
                 if (datasetId && e?.value !== datasetId) {
-                  setFilterFieldValues(form, filterId, {
+                  setNativeFilterFieldValues(form, filterId, {
+                    defaultValue: null,
                     column: null,
                   });
                 }
@@ -223,14 +352,60 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
               <ColumnSelect
                 form={form}
                 filterId={filterId}
-                datasetId={formFilter?.dataset?.value}
-                onChange={forceUpdate}
+                datasetId={datasetId}
+                onChange={e => {
+                  // We need reset default value when when column changed
+                  setNativeFilterFieldValues(form, filterId, {
+                    defaultValue: null,
+                  });
+                  forceUpdate();
+                }}
               />
             </StyledFormItem>
           )}
+          {hasAdditionalFilters && (
+            <>
+              <StyledFormItem
+                name={['filters', filterId, 'adhoc_filters']}
+                initialValue={filterToEdit?.adhoc_filters}
+              >
+                <AdhocFilterControl
+                  columns={
+                    datasetDetails?.columns?.filter(
+                      (c: ColumnMeta) => c.filterable,
+                    ) || []
+                  }
+                  savedMetrics={datasetDetails?.metrics || []}
+                  datasource={datasetDetails}
+                  onChange={(filters: AdhocFilter[]) => {
+                    setNativeFilterFieldValues(form, filterId, {
+                      adhoc_filters: filters,
+                    });
+                    forceUpdate();
+                  }}
+                  label={<StyledLabel>{t('Adhoc filters')}</StyledLabel>}
+                />
+              </StyledFormItem>
+              <StyledFormItem
+                name={['filters', filterId, 'time_range']}
+                label={<StyledLabel>{t('Time range')}</StyledLabel>}
+                initialValue={filterToEdit?.time_range || 'No filter'}
+              >
+                <DateFilterControl
+                  name="time_range"
+                  onChange={timeRange => {
+                    setNativeFilterFieldValues(form, filterId, {
+                      time_range: timeRange,
+                    });
+                    forceUpdate();
+                  }}
+                />
+              </StyledFormItem>
+            </>
+          )}
         </>
       )}
-      {hasFilledDatasource && (
+      {hasFilledDataset && (
         <CleanFormItem
           name={['filters', filterId, 'defaultValueFormData']}
           hidden
@@ -256,18 +431,39 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
           isClearable
         />
       </StyledFormItem>
-      <DefaultValue
-        forceUpdate={forceUpdate}
-        filterId={filterId}
-        hasFilledDatasource={hasFilledDatasource}
-        hasDatasource={hasDatasource}
-        filterToEdit={filterToEdit}
-        form={form}
-        formData={newFormData}
-      />
+      <StyledContainer>
+        <StyledFormItem className="bottom" label={<StyledLabel />}>
+          {hasDataset && hasFilledDataset && (
+            <Button onClick={refreshHandler}>
+              {isDataDirty ? t('Populate') : t('Refresh')}
+            </Button>
+          )}
+        </StyledFormItem>
+        <StyledFormItem
+          name={['filters', filterId, 'defaultValue']}
+          initialValue={filterToEdit?.defaultValue}
+          data-test="default-input"
+          label={<StyledLabel>{t('Default Value')}</StyledLabel>}
+        >
+          {!isDataDirty && (hasFilledDataset || !hasDataset) && (
+            <DefaultValue
+              setDataMask={({ filterState }) => {
+                setNativeFilterFieldValues(form, filterId, {
+                  defaultValue: filterState?.value,
+                });
+                forceUpdate();
+              }}
+              filterId={filterId}
+              hasDataset={hasDataset}
+              form={form}
+              formData={newFormData}
+            />
+          )}
+        </StyledFormItem>
+      </StyledContainer>
       <StyledCheckboxFormItem
         name={['filters', filterId, 'isInstant']}
-        initialValue={filterToEdit?.isInstant}
+        initialValue={filterToEdit?.isInstant || false}
         valuePropName="checked"
         colon={false}
       >
@@ -282,10 +478,43 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
         form={form}
         forceUpdate={forceUpdate}
       />
+      {hasMetrics && (
+        <StyledFormItem
+          // don't show the column select unless we have a dataset
+          // style={{ display: datasetId == null ? undefined : 'none' }}
+          name={['filters', filterId, 'sortMetric']}
+          initialValue={filterToEdit?.sortMetric}
+          label={<StyledLabel>{t('Sort Metric')}</StyledLabel>}
+          data-test="field-input"
+        >
+          <SelectControl
+            form={form}
+            filterId={filterId}
+            name="sortMetric"
+            options={metrics.map((metric: Metric) => ({
+              value: metric.metric_name,
+              label: metric.verbose_name ?? metric.metric_name,
+            }))}
+            onChange={(value: string | null): void => {
+              if (value !== undefined) {
+                setNativeFilterFieldValues(form, filterId, {
+                  sortMetric: value,
+                });
+                forceUpdate();
+              }
+            }}
+          />
+        </StyledFormItem>
+      )}
       <FilterScope
-        filterId={filterId}
-        filterToEdit={filterToEdit}
-        form={form}
+        updateFormValues={(values: any) =>
+          setNativeFilterFieldValues(form, filterId, values)
+        }
+        pathToFormValue={['filters', filterId]}
+        forceUpdate={forceUpdate}
+        scope={filterToEdit?.scope}
+        formScope={formFilter?.scope}
+        formScoping={formFilter?.scoping}
       />
     </>
   );

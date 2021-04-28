@@ -51,7 +51,7 @@ const links = [
     'join our monthly virtual meetups and register for any upcoming events',
   ],
   [
-    'https://github.com/apache/superset/blob/master/INTHEWILD.md',
+    'https://github.com/apache/superset/blob/master/RESOURCES/INTHEWILD.md',
     'Organizations',
     'a list of some of the organizations using Superset in production',
   ],

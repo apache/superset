@@ -25,8 +25,14 @@ import {
   SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
   SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL,
 } from 'src/dataMask/actions';
+import { HYDRATE_DASHBOARD } from './hydrate';
 import { dashboardInfoChanged } from './dashboardInfo';
-import { FilterSet } from '../reducers/types';
+import {
+  DashboardInfo,
+  Filters,
+  FilterSet,
+  FilterSets,
+} from '../reducers/types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
 export interface SetFilterConfigBegin {
@@ -59,11 +65,14 @@ export interface SetFilterSetsConfigFail {
   type: typeof SET_FILTER_SETS_CONFIG_FAIL;
   filterSetsConfig: FilterSet[];
 }
-
-interface DashboardInfo {
-  id: number;
-  json_metadata: string;
+export const SET_FILTERS_INITIALIZED = 'SET_FILTERS_INITIALIZED';
+export interface SetFiltersInitialized {
+  type: typeof SET_FILTERS_INITIALIZED;
 }
+
+export const setFiltersInitialized = (): SetFiltersInitialized => ({
+  type: SET_FILTERS_INITIALIZED,
+});
 
 export const setFilterConfiguration = (
   filterConfig: FilterConfiguration,
@@ -87,7 +96,7 @@ export const setFilterConfiguration = (
     const response = await updateDashboard({
       json_metadata: JSON.stringify({
         ...metadata,
-        filter_configuration: filterConfig,
+        native_filter_configuration: filterConfig,
       }),
     });
     dispatch(
@@ -101,6 +110,7 @@ export const setFilterConfiguration = (
     });
     dispatch({
       type: SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
+      unitName: DataMaskType.NativeFilters,
       filterConfig,
     });
   } catch (err) {
@@ -108,6 +118,19 @@ export const setFilterConfiguration = (
     dispatch({ type: SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL, filterConfig });
   }
 };
+
+type BootstrapData = {
+  nativeFilters: {
+    filters: Filters;
+    filterSets: FilterSets;
+    filtersState: object;
+  };
+};
+
+export interface SetBooststapData {
+  type: typeof HYDRATE_DASHBOARD;
+  data: BootstrapData;
+}
 
 export const setFilterSetsConfiguration = (
   filterSetsConfig: FilterSet[],
@@ -177,4 +200,6 @@ export type AnyFilterAction =
   | SetFilterSetsConfigBegin
   | SetFilterSetsConfigComplete
   | SetFilterSetsConfigFail
-  | SaveFilterSets;
+  | SetFiltersInitialized
+  | SaveFilterSets
+  | SetBooststapData;

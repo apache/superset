@@ -264,7 +264,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             schema:
               type: integer
             name: pk
-          - in: path
+          - in: query
             schema:
               type: bool
             name: override_columns
@@ -316,6 +316,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             changed_model = UpdateDatasetCommand(
                 g.user, pk, item, override_columns
             ).run()
+            if override_columns:
+                RefreshDatasetCommand(g.user, pk).run()
             response = self.response(200, id=changed_model.id, result=item)
         except DatasetNotFoundError:
             response = self.response_404()
@@ -668,7 +670,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                       description: JSON map of passwords for each file
                       type: string
                     overwrite:
-                      description: overwrite existing databases?
+                      description: overwrite existing datasets?
                       type: bool
           responses:
             200:
@@ -716,5 +718,5 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             logger.warning("Import dataset failed")
             return self.response_422(message=exc.normalized_messages())
         except DatasetImportError as exc:
-            logger.exception("Import dataset failed")
+            logger.error("Import dataset failed")
             return self.response_500(message=str(exc))

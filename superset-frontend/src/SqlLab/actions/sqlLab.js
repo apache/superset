@@ -352,6 +352,13 @@ export function runQuery(query) {
   };
 }
 
+export function reRunQuery(query) {
+  // run Query with a new id
+  return function (dispatch) {
+    dispatch(runQuery({ ...query, id: shortid.generate() }));
+  };
+}
+
 export function validateQuery(query) {
   return function (dispatch) {
     dispatch(startQueryValidation(query));
@@ -980,10 +987,7 @@ export function mergeTable(table, query) {
 function getTableMetadata(table, query, dispatch) {
   return SupersetClient.get({
     endpoint: encodeURI(
-      `/api/v1/database/${query.dbId}/table/` +
-        `${encodeURIComponent(table.name)}/${encodeURIComponent(
-          table.schema,
-        )}/`,
+      `/api/v1/database/${query.dbId}/table/${table.name}/${table.schema}/`,
     ),
   })
     .then(({ json }) => {
@@ -1064,7 +1068,7 @@ export function addTable(query, tableName, schemaName) {
         ...table,
         isMetadataLoading: true,
         isExtraMetadataLoading: true,
-        expanded: false,
+        expanded: true,
       }),
     );
 

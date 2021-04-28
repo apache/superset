@@ -145,10 +145,12 @@ export const findFilterScope = (
   };
 };
 
-export const getDefaultScopeValue = () => ({
+export const getDefaultScopeValue = (chartId?: number): Scope => ({
   rootPath: [DASHBOARD_ROOT_ID],
-  excluded: [],
+  excluded: chartId ? [chartId] : [],
 });
 
-export const isScopingAll = (scope: Scope) =>
-  !scope || (scope.rootPath[0] === DASHBOARD_ROOT_ID && !scope.excluded.length);
+export const isScopingAll = (scope: Scope, chartId?: number) =>
+  !scope ||
+  (scope.rootPath[0] === DASHBOARD_ROOT_ID &&
+    !scope.excluded.filter(item => item !== chartId).length);

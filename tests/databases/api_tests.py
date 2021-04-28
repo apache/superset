@@ -17,6 +17,7 @@
 # isort:skip_file
 # pylint: disable=invalid-name, no-self-use, too-many-public-methods, too-many-arguments
 """Unit tests for Superset"""
+import dataclasses
 import json
 from io import BytesIO
 from unittest import mock
@@ -26,10 +27,15 @@ import prison
 import pytest
 import yaml
 
+from sqlalchemy.engine.url import make_url
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.sql import func
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
+from superset.db_engine_specs.mysql import MySQLEngineSpec
+from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.errors import SupersetError
 from superset.models.core import Database
 from superset.models.reports import ReportSchedule, ReportScheduleType
 from superset.utils.core import get_example_database, get_main_database
@@ -609,7 +615,8 @@ class TestDatabaseApi(SupersetTestCase):
         assert "can_read" in data["permissions"]
         assert "can_write" in data["permissions"]
         assert "can_function_names" in data["permissions"]
-        assert len(data["permissions"]) == 3
+        assert "can_available" in data["permissions"]
+        assert len(data["permissions"]) == 4
 
     def test_get_invalid_database_table_metadata(self):
         """
@@ -819,7 +826,21 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "message": "Could not load database driver: BaseEngineSpec",
+            "errors": [
+                {
+                    "message": "Could not load database driver: BaseEngineSpec",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": "Issue 1010 - Superset encountered an error while running a command.",
+                            }
+                        ]
+                    },
+                }
+            ]
         }
         self.assertEqual(response, expected_response)
 
@@ -834,7 +855,21 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "message": "Could not load database driver: MssqlEngineSpec",
+            "errors": [
+                {
+                    "message": "Could not load database driver: MssqlEngineSpec",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": "Issue 1010 - Superset encountered an error while running a command.",
+                            }
+                        ]
+                    },
+                }
+            ]
         }
         self.assertEqual(response, expected_response)
 
@@ -865,6 +900,57 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(response, expected_response)
 
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
+
+    @mock.patch(
+        "superset.databases.commands.test_connection.DatabaseDAO.build_db_for_connection_test",
+    )
+    @mock.patch("superset.databases.commands.test_connection.event_logger",)
+    def test_test_connection_failed_invalid_hostname(
+        self, mock_event_logger, mock_build_db
+    ):
+        """
+        Database API: Test test connection failed due to invalid hostname
+        """
+        msg = 'psql: error: could not translate host name "locahost" to address: nodename nor servname provided, or not known'
+        mock_build_db.return_value.set_sqlalchemy_uri.side_effect = DBAPIError(
+            msg, None, None
+        )
+        mock_build_db.return_value.db_engine_spec.__name__ = "Some name"
+        superset_error = SupersetError(
+            message='Unable to resolve hostname "locahost".',
+            error_type="CONNECTION_INVALID_HOSTNAME_ERROR",
+            level="error",
+            extra={
+                "hostname": "locahost",
+                "issue_codes": [
+                    {
+                        "code": 1007,
+                        "message": (
+                            "Issue 1007 - The hostname provided can't be resolved."
+                        ),
+                    }
+                ],
+            },
+        )
+        mock_build_db.return_value.db_engine_spec.extract_errors.return_value = [
+            superset_error
+        ]
+
+        self.login("admin")
+        data = {
+            "sqlalchemy_uri": "postgres://username:password@locahost:12345/db",
+            "database_name": "examples",
+            "impersonate_user": False,
+            "server_cert": None,
+        }
+        url = "api/v1/database/test_connection"
+        rv = self.post_assert_metric(url, data, "test_connection")
+
+        assert rv.status_code == 422
+        assert rv.headers["Content-Type"] == "application/json; charset=utf-8"
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"errors": [dataclasses.asdict(superset_error)]}
+        assert response == expected_response
 
     @pytest.mark.usefixtures(
         "load_unicode_dashboard_with_position",
@@ -1162,3 +1248,65 @@ class TestDatabaseApi(SupersetTestCase):
 
         assert rv.status_code == 200
         assert response == {"function_names": ["AVG", "MAX", "SUM"]}
+
+    @mock.patch("superset.databases.api.get_available_engine_specs")
+    @mock.patch("superset.databases.api.app")
+    def test_available(self, app, get_available_engine_specs):
+        app.config = {"PREFERRED_DATABASES": ["postgresql"]}
+        get_available_engine_specs.return_value = [
+            MySQLEngineSpec,
+            PostgresEngineSpec,
+        ]
+
+        self.login(username="admin")
+        uri = "api/v1/database/available/"
+
+        rv = self.client.get(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {
+            "databases": [
+                {
+                    "engine": "postgresql",
+                    "name": "PostgreSQL",
+                    "parameters": {
+                        "properties": {
+                            "database": {
+                                "description": "Database name",
+                                "type": "string",
+                            },
+                            "host": {
+                                "description": "Hostname or IP address",
+                                "type": "string",
+                            },
+                            "password": {
+                                "description": "Password",
+                                "nullable": True,
+                                "type": "string",
+                            },
+                            "port": {
+                                "description": "Database port",
+                                "format": "int32",
+                                "type": "integer",
+                            },
+                            "query": {
+                                "additionalProperties": {},
+                                "description": "Additinal parameters",
+                                "type": "object",
+                            },
+                            "username": {
+                                "description": "Username",
+                                "nullable": True,
+                                "type": "string",
+                            },
+                        },
+                        "required": ["database", "host", "port"],
+                        "type": "object",
+                    },
+                    "preferred": True,
+                    "sqlalchemy_uri_placeholder": "postgresql+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
+                },
+                {"engine": "mysql", "name": "MySQL", "preferred": False},
+            ]
+        }

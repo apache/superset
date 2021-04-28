@@ -381,5 +381,96 @@ describe('getFilterScopeFromNodesTree', () => {
         immune: [105, 103, 102, 101, 108, 104],
       });
     });
+
+    it('exclude nested sub-tab', () => {
+      // another layout for test:
+      // - filter_109
+      // - chart_106
+      // - Tab 1
+      //   - Nested_Tab1
+      //     - chart_101
+      //     - chart_102
+      //   - Nested_Tab2
+      //     - chart_103
+      //     - chart_104
+      const nodes3 = [
+        {
+          label: 'All dashboard',
+          type: 'ROOT',
+          value: 'ROOT_ID',
+          children: [
+            {
+              label: 'Time Filter',
+              showCheckbox: true,
+              type: 'CHART',
+              value: 109,
+            },
+            {
+              label: "World's Pop Growth",
+              showCheckbox: true,
+              type: 'CHART',
+              value: 106,
+            },
+            {
+              label: 'Row Tab 1',
+              type: 'TAB',
+              value: 'TAB-w5Fp904Rs',
+              children: [
+                {
+                  label: 'Nested Tab 1',
+                  type: 'TAB',
+                  value: 'TAB-E4mJaZ-uQM',
+                  children: [
+                    {
+                      value: 104,
+                      label: 'Rural Breakdown',
+                      type: 'CHART',
+                      showCheckbox: true,
+                    },
+                    {
+                      value: 103,
+                      label: '% Rural',
+                      type: 'CHART',
+                      showCheckbox: true,
+                    },
+                  ],
+                },
+                {
+                  value: 'TAB-rLYu-Cryu',
+                  label: 'Nested Tab 2',
+                  type: 'TAB',
+                  children: [
+                    {
+                      value: 102,
+                      label: 'Most Populated Countries',
+                      type: 'CHART',
+                      showCheckbox: true,
+                    },
+                    {
+                      value: 101,
+                      label: "World's Population",
+                      type: 'CHART',
+                      showCheckbox: true,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ];
+
+      const checkedChartIds = [103, 104, 106];
+      expect(
+        getFilterScopeFromNodesTree({
+          filterKey: '109___time_range',
+          nodes: nodes3,
+          checkedChartIds,
+        }),
+      ).toEqual({
+        scope: ['ROOT_ID'],
+        immune: [102, 101],
+      });
+    });
   });
 });

@@ -19,11 +19,25 @@
 
 import componentTypes from 'src/dashboard/util/componentTypes';
 import { DataMaskStateWithId } from 'src/dataMask/types';
-import { Filter } from '../components/nativeFilters/types';
+import { Filter, Scope } from '../components/nativeFilters/types';
 
 export enum Scoping {
-  all,
-  specific,
+  All = 'All',
+  Specific = 'Specific',
+}
+
+export type ChartConfiguration = {
+  [chartId: number]: {
+    id: number;
+    crossFilters: {
+      scope: Scope;
+    };
+  };
+};
+
+export interface DashboardInfo {
+  id: number;
+  json_metadata: string;
 }
 
 /** Chart state of redux */
@@ -70,7 +84,8 @@ export type LayoutItem = {
 export type FilterSet = {
   id: string;
   name: string;
-  dataMask: Partial<DataMaskStateWithId>;
+  nativeFilters: Filters;
+  dataMask: DataMaskStateWithId;
 };
 
 export type FilterSets = {
@@ -82,6 +97,7 @@ export type Filters = {
 };
 
 export type NativeFiltersState = {
+  isInitialized: boolean;
   filters: Filters;
   filterSets: FilterSets;
 };

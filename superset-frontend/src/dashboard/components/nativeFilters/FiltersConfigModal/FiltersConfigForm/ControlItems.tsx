@@ -16,12 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CustomControlItem } from '@superset-ui/chart-controls';
+import {
+  CustomControlItem,
+  InfoTooltipWithTrigger,
+} from '@superset-ui/chart-controls';
 import React, { FC } from 'react';
 import { Checkbox } from 'src/common/components';
 import { FormInstance } from 'antd/lib/form';
 import { getChartControlPanelRegistry } from '@superset-ui/core';
-import { getControlItems, setFilterFieldValues } from './utils';
+import { getControlItems, setNativeFilterFieldValues } from './utils';
 import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
 import { StyledCheckboxFormItem } from './FiltersConfigForm';
 import { Filter } from '../../types';
@@ -69,15 +72,23 @@ const ControlItems: FC<ControlItemsProps> = ({
             <Checkbox
               onChange={() => {
                 if (!controlItem.config.resetConfig) {
+                  forceUpdate();
                   return;
                 }
-                setFilterFieldValues(form, filterId, {
+                setNativeFilterFieldValues(form, filterId, {
                   defaultValue: null,
                 });
                 forceUpdate();
               }}
             >
-              {controlItem.config.label}
+              {controlItem.config.label}{' '}
+              {controlItem.config.description && (
+                <InfoTooltipWithTrigger
+                  placement="top"
+                  label={controlItem.config.name}
+                  tooltip={controlItem.config.description}
+                />
+              )}
             </Checkbox>
           </StyledCheckboxFormItem>
         ))}

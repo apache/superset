@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { isFunction } from 'lodash';
 import { Select } from 'src/components/Select';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import ControlHeader from '../ControlHeader';
 
 import './ColorSchemeControl.less';

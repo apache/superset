@@ -16,37 +16,45 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryObjectFilterClause } from '@superset-ui/core';
+import {
+  DataRecordValue,
+  GenericDataType,
+  NumberFormatter,
+  QueryObjectFilterClause,
+  TimeFormatter,
+  ExtraFormData,
+} from '@superset-ui/core';
+import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
 
 export const getSelectExtraFormData = (
   col: string,
   value?: null | (string | number)[],
   emptyFilter = false,
   inverseSelection = false,
-) => ({
-  append_form_data: emptyFilter
-    ? {
-        adhoc_filters: [
-          {
-            expressionType: 'SQL',
-            clause: 'WHERE',
-            sqlExpression: '1 = 0',
-          },
-        ],
-      }
-    : {
-        filters:
-          value === undefined || value === null || value.length === 0
-            ? []
-            : [
-                {
-                  col,
-                  op: inverseSelection ? ('NOT IN' as const) : ('IN' as const),
-                  val: value,
-                },
-              ],
+): ExtraFormData => {
+  const extra: ExtraFormData = {};
+  if (emptyFilter) {
+    extra.adhoc_filters = [
+      {
+        expressionType: 'SQL',
+        clause: 'WHERE',
+        sqlExpression: '1 = 0',
       },
-});
+    ];
+  } else {
+    extra.filters =
+      value === undefined || value === null || value.length === 0
+        ? []
+        : [
+            {
+              col,
+              op: inverseSelection ? ('NOT IN' as const) : ('IN' as const),
+              val: value,
+            },
+          ];
+  }
+  return extra;
+};
 
 export const getRangeExtraFormData = (
   col: string,
@@ -62,8 +70,50 @@ export const getRangeExtraFormData = (
   }
 
   return {
-    append_form_data: {
-      filters,
-    },
+    filters,
   };
 };
+
+export interface DataRecordValueFormatter {
+  (value: DataRecordValue, dtype: GenericDataType): string;
+}
+
+export function getDataRecordFormatter({
+  timeFormatter,
+  numberFormatter,
+}: {
+  timeFormatter?: TimeFormatter;
+  numberFormatter?: NumberFormatter;
+} = {}): DataRecordValueFormatter {
+  return (value, dtype) => {
+    if (value === null || value === undefined) {
+      return NULL_STRING;
+    }
+    if (typeof value === 'boolean') {
+      return value ? TRUE_STRING : FALSE_STRING;
+    }
+    if (dtype === GenericDataType.BOOLEAN) {
+      try {
+        return JSON.parse(String(value).toLowerCase())
+          ? TRUE_STRING
+          : FALSE_STRING;
+      } catch {
+        return FALSE_STRING;
+      }
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (timeFormatter && dtype === GenericDataType.TEMPORAL) {
+      return timeFormatter(value);
+    }
+    if (
+      numberFormatter &&
+      typeof value === 'number' &&
+      dtype === GenericDataType.NUMERIC
+    ) {
+      return numberFormatter(value);
+    }
+    return String(value);
+  };
+}

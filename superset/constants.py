@@ -117,3 +117,33 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "get_charts": "read",
     "get_datasets": "read",
 }
+
+EXTRA_FORM_DATA_APPEND_KEYS = {
+    "adhoc_filters",
+    "filters",
+    "interactive_groupby",
+    "interactive_highlight",
+    "interactive_drilldown",
+    "custom_form_data",
+}
+
+EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS = {
+    "granularity": "granularity",
+    "granularity_sqla": "granularity",
+    "time_column": "time_column",
+    "time_grain": "time_grain",
+    "time_range": "time_range",
+    "druid_time_origin": "druid_time_origin",
+    "time_grain_sqla": "time_grain_sqla",
+    "time_range_endpoints": "time_range_endpoints",
+}
+
+EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS = {
+    "relative_start",
+    "relative_end",
+}
+
+EXTRA_FORM_DATA_OVERRIDE_KEYS = (
+    set(EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.values())
+    | EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS
+)

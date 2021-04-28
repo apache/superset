@@ -18,7 +18,7 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 from zipfile import ZipFile
 
 from flask import g, request, Response, send_file
@@ -27,7 +27,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
-from superset import event_logger
+from superset import app, event_logger
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
@@ -41,7 +41,6 @@ from superset.databases.commands.exceptions import (
     DatabaseImportError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
-    DatabaseTestConnectionFailedError,
     DatabaseUpdateFailedError,
 )
 from superset.databases.commands.export import ExportDatabasesCommand
@@ -64,6 +63,8 @@ from superset.databases.schemas import (
     TableMetadataResponseSchema,
 )
 from superset.databases.utils import get_table_metadata
+from superset.db_engine_specs import get_available_engine_specs
+from superset.db_engine_specs.base import BaseParametersMixin
 from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.typing import FlaskResponse
@@ -85,6 +86,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "test_connection",
         "related_objects",
         "function_names",
+        "available",
     }
     resource_name = "database"
     class_permission_name = "Database"
@@ -557,7 +559,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/test_connection", methods=["POST"])
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
@@ -603,11 +604,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
-        try:
-            TestConnectionDatabaseCommand(g.user, item).run()
-            return self.response(200, message="OK")
-        except DatabaseTestConnectionFailedError as ex:
-            return self.response_422(message=str(ex))
+        TestConnectionDatabaseCommand(g.user, item).run()
+        return self.response(200, message="OK")
 
     @expose("/<int:pk>/related_objects/", methods=["GET"])
     @protect()
@@ -802,7 +800,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             logger.warning("Import database failed")
             return self.response_422(message=exc.normalized_messages())
         except DatabaseImportError as exc:
-            logger.exception("Import database failed")
+            logger.error("Import database failed")
             return self.response_500(message=str(exc))
 
     @expose("/<int:pk>/function_names/", methods=["GET"])
@@ -827,7 +825,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
               type: integer
           responses:
             200:
-            200:
               description: Query result
               content:
                 application/json:
@@ -844,3 +841,67 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         if not database:
             return self.response_404()
         return self.response(200, function_names=database.function_names,)
+
+    @expose("/available/", methods=["GET"])
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".available",
+        log_to_statsd=False,
+    )
+    def available(self) -> Response:
+        """Return names of databases currently available
+        ---
+        get:
+          description:
+            Get names of databases currently available
+          responses:
+            200:
+              description: Database names
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          description: Name of the database
+                          type: string
+                        preferred:
+                          description: Is the database preferred?
+                          type: bool
+                        sqlalchemy_uri_placeholder:
+                          description: Example placeholder for the SQLAlchemy URI
+                          type: string
+                        parameters:
+                          description: JSON schema defining the needed parameters
+            400:
+              $ref: '#/components/responses/400'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        preferred_databases: List[str] = app.config.get("PREFERRED_DATABASES", [])
+        available_databases = []
+        for engine_spec in get_available_engine_specs():
+            payload: Dict[str, Any] = {
+                "name": engine_spec.engine_name,
+                "engine": engine_spec.engine,
+                "preferred": engine_spec.engine in preferred_databases,
+            }
+
+            if issubclass(engine_spec, BaseParametersMixin):
+                payload["parameters"] = engine_spec.parameters_json_schema()
+                payload[
+                    "sqlalchemy_uri_placeholder"
+                ] = engine_spec.sqlalchemy_uri_placeholder
+
+            available_databases.append(payload)
+
+        available_databases.sort(
+            key=lambda payload: preferred_databases.index(payload["engine"])
+            if payload["engine"] in preferred_databases
+            else len(preferred_databases)
+        )
+
+        return self.response(200, databases=available_databases)

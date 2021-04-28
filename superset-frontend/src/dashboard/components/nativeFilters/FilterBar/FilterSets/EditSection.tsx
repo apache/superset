@@ -16,17 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, useMemo } from 'react';
+import React, { FC, useMemo, useState } from 'react';
 import { HandlerFunction, styled, t } from '@superset-ui/core';
 import { Typography, Tooltip } from 'src/common/components';
 import { useDispatch } from 'react-redux';
 import Button from 'src/components/Button';
 import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
-import { DataMaskUnit } from 'src/dataMask/types';
+import { DataMaskState } from 'src/dataMask/types';
 import { WarningOutlined } from '@ant-design/icons';
 import { ActionButtons } from './Footer';
-import { useDataMask, useFilterSets } from '../state';
+import { useDataMask, useFilters, useFilterSets } from '../state';
 import { APPLY_FILTERS_HINT, findExistingFilterSet } from './utils';
+import { useFilterSetNameDuplicated } from './state';
+import { getFilterBarTestId } from '../index';
 
 const Wrapper = styled.div`
   display: grid;
@@ -57,9 +59,9 @@ const ActionButton = styled.div<{ disabled?: boolean }>`
   }
 `;
 
-type EditSectionProps = {
+export type EditSectionProps = {
   filterSetId: string;
-  dataMaskSelected: DataMaskUnit;
+  dataMaskSelected: DataMaskState;
   onCancel: HandlerFunction;
   disabled: boolean;
 };
@@ -73,14 +75,27 @@ const EditSection: FC<EditSectionProps> = ({
   const dataMaskApplied = useDataMask();
   const dispatch = useDispatch();
   const filterSets = useFilterSets();
+  const filters = useFilters();
   const filterSetFilterValues = Object.values(filterSets);
+
+  const [filterSetName, setFilterSetName] = useState(
+    filterSets[filterSetId].name,
+  );
+
+  const isFilterSetNameDuplicated = useFilterSetNameDuplicated(
+    filterSetName,
+    filterSets[filterSetId].name,
+  );
+
   const handleSave = () => {
     dispatch(
       setFilterSetsConfiguration(
         filterSetFilterValues.map(filterSet => {
           const newFilterSet = {
             ...filterSet,
-            dataMask: { nativeFilters: { ...dataMaskApplied } },
+            name: filterSetName,
+            nativeFilters: filters,
+            dataMask: { ...dataMaskApplied },
           };
           return filterSetId === filterSet.id ? newFilterSet : filterSet;
         }),
@@ -92,20 +107,30 @@ const EditSection: FC<EditSectionProps> = ({
   const foundFilterSet = useMemo(
     () =>
       findExistingFilterSet({
-        dataMaskApplied,
         dataMaskSelected,
         filterSetFilterValues,
       }),
-    [dataMaskApplied, dataMaskSelected, filterSetFilterValues],
+    [dataMaskSelected, filterSetFilterValues],
   );
 
   const isDuplicateFilterSet =
     foundFilterSet && foundFilterSet.id !== filterSetId;
 
+  const resultDisabled =
+    disabled || isDuplicateFilterSet || isFilterSetNameDuplicated;
+
   return (
     <Wrapper>
       <Title strong>{t('Editing filter set:')}</Title>
-      <Title>{filterSets[filterSetId].name}</Title>
+      <Title
+        editable={{
+          editing: true,
+          icon: <span />,
+          onChange: setFilterSetName,
+        }}
+      >
+        {filterSetName}
+      </Title>
       <ActionButtons>
         <Button
           ghost
@@ -117,20 +142,22 @@ const EditSection: FC<EditSectionProps> = ({
           {t('Cancel')}
         </Button>
         <Tooltip
-          placement="top"
+          placement="right"
           title={
+            (isFilterSetNameDuplicated &&
+              t('Filter set with this name already exists')) ||
             (isDuplicateFilterSet && t('Filter set already exists')) ||
             (disabled && APPLY_FILTERS_HINT)
           }
         >
-          <ActionButton disabled={disabled || isDuplicateFilterSet}>
+          <ActionButton disabled={resultDisabled}>
             <Button
-              disabled={disabled || isDuplicateFilterSet}
+              disabled={resultDisabled}
               buttonStyle="primary"
               htmlType="submit"
               buttonSize="small"
               onClick={handleSave}
-              data-test="filter-set-edit-save"
+              {...getFilterBarTestId('filter-set-edit-save')}
             >
               {t('Save')}
             </Button>

@@ -6,38 +6,301 @@
 #    pip-compile-multi
 #
 -r base.txt
--e file:.                 # via -r requirements/base.in
-boto3==1.16.10            # via tabulator
-botocore==1.19.10         # via boto3, s3transfer
-cached-property==1.5.2    # via tableschema
-certifi==2020.6.20        # via requests
-deprecated==1.2.11        # via pygithub
-et-xmlfile==1.0.1         # via openpyxl
-flask-cors==3.0.9         # via -r requirements/development.in
-future==0.18.2            # via pyhive
-ijson==3.1.2.post0        # via tabulator
-jdcal==1.4.1              # via openpyxl
-jmespath==0.10.0          # via boto3, botocore
-jsonlines==1.2.0          # via tabulator
-linear-tsv==1.1.0         # via tabulator
-mysqlclient==1.4.2.post1  # via -r requirements/development.in
-openpyxl==3.0.5           # via tabulator
-pillow==7.2.0             # via -r requirements/development.in
-psycopg2-binary==2.8.5    # via -r requirements/development.in
-pydruid==0.6.1            # via -r requirements/development.in
-pygithub==1.54.1          # via -r requirements/development.in
-pyhive[hive]==0.6.3       # via -r requirements/development.in
-requests==2.24.0          # via pydruid, pygithub, tableschema, tabulator
-rfc3986==1.4.0            # via tableschema
-s3transfer==0.3.3         # via boto3
-sasl==0.2.1               # via pyhive, thrift-sasl
-tableschema==1.20.0       # via -r requirements/development.in
-tabulator==1.52.5         # via tableschema
-thrift-sasl==0.4.2        # via pyhive
-thrift==0.13.0            # via -r requirements/development.in, pyhive, thrift-sasl
-unicodecsv==0.14.1        # via tableschema, tabulator
-wrapt==1.12.1             # via deprecated
-xlrd==1.2.0               # via tabulator
+-e file:.
+# via -r requirements/base.in
+# via slackclient
+# via flask-migrate
+# via kombu
+# via flask-appbuilder
+# via aiohttp
+# via
+#   aiohttp
+#   jsonschema
+# via flask-babel
+# via apache-superset
+# via celery
+# via apache-superset
+boto3==1.16.10
+# via tabulator
+botocore==1.19.10
+# via
+#   boto3
+#   s3transfer
+# via flask-compress
+cached-property==1.5.2
+# via tableschema
+# via apache-superset
+# via apache-superset
+certifi==2020.6.20
+# via requests
+# via cryptography
+# via
+#   aiohttp
+#   requests
+#   tabulator
+# via
+#   apache-superset
+#   flask
+#   flask-appbuilder
+#   tableschema
+#   tabulator
+# via
+#   apache-superset
+#   flask-appbuilder
+# via apache-superset
+# via holidays
+# via apache-superset
+# via apache-superset
+# via apache-superset
+# via retry
+# via python3-openid
+deprecated==1.2.11
+# via pygithub
+# via email-validator
+# via flask-appbuilder
+et-xmlfile==1.0.1
+# via openpyxl
+# via apache-superset
+# via flask-appbuilder
+# via apache-superset
+# via apache-superset
+flask-cors==3.0.9
+# via -r requirements/development.in
+# via flask-appbuilder
+# via flask-appbuilder
+# via apache-superset
+# via flask-appbuilder
+# via
+#   flask-appbuilder
+#   flask-migrate
+# via apache-superset
+# via
+#   apache-superset
+#   flask-appbuilder
+# via
+#   apache-superset
+#   flask-appbuilder
+#   flask-babel
+#   flask-caching
+#   flask-compress
+#   flask-cors
+#   flask-jwt-extended
+#   flask-login
+#   flask-migrate
+#   flask-openid
+#   flask-sqlalchemy
+#   flask-wtf
+future==0.18.2
+# via pyhive
+# via geopy
+# via apache-superset
+# via apache-superset
+# via apache-superset
+# via apache-superset
+# via
+#   email-validator
+#   requests
+#   yarl
+ijson==3.1.2.post0
+# via tabulator
+# via -r requirements/base.in
+# via
+#   apache-superset
+#   tableschema
+# via
+#   flask
+#   flask-wtf
+jdcal==1.4.1
+# via openpyxl
+# via
+#   flask
+#   flask-babel
+jmespath==0.10.0
+# via
+#   boto3
+#   botocore
+jsonlines==1.2.0
+# via tabulator
+# via
+#   flask-appbuilder
+#   tableschema
+# via celery
+# via holidays
+linear-tsv==1.1.0
+# via tabulator
+# via alembic
+# via apache-superset
+# via
+#   jinja2
+#   mako
+#   wtforms
+# via flask-appbuilder
+# via flask-appbuilder
+# via
+#   flask-appbuilder
+#   marshmallow-enum
+#   marshmallow-sqlalchemy
+# via apache-superset
+# via
+#   aiohttp
+#   yarl
+mysqlclient==1.4.2.post1
+# via -r requirements/development.in
+# via croniter
+# via
+#   pandas
+#   pyarrow
+openpyxl==3.0.5
+# via tabulator
+# via bleach
+# via apache-superset
+# via apache-superset
+# via apache-superset
+# via apache-superset
+pillow==7.2.0
+# via -r requirements/development.in
+# via apache-superset
+# via flask-appbuilder
+psycopg2-binary==2.8.5
+# via -r requirements/development.in
+# via retry
+# via apache-superset
+# via cffi
+pydruid==0.6.1
+# via -r requirements/development.in
+pygithub==1.54.1
+# via -r requirements/development.in
+pyhive[hive]==0.6.3
+# via -r requirements/development.in
+# via
+#   apache-superset
+#   flask-appbuilder
+#   flask-jwt-extended
+#   pygithub
+# via convertdate
+# via
+#   apache-superset
+#   packaging
+# via
+#   -r requirements/base.in
+#   jsonschema
+# via
+#   alembic
+#   apache-superset
+#   botocore
+#   croniter
+#   flask-appbuilder
+#   holidays
+#   pandas
+#   pyhive
+#   tableschema
+# via apache-superset
+# via alembic
+# via apache-superset
+# via flask-openid
+# via
+#   babel
+#   celery
+#   convertdate
+#   flask-babel
+#   pandas
+# via
+#   apache-superset
+#   apispec
+# via apache-superset
+requests==2.24.0
+# via
+#   pydruid
+#   pygithub
+#   tableschema
+#   tabulator
+# via apache-superset
+rfc3986==1.4.0
+# via tableschema
+s3transfer==0.3.3
+# via boto3
+sasl==0.2.1
+# via
+#   pyhive
+#   thrift-sasl
+# via apache-superset
+# via apache-superset
+# via
+#   bleach
+#   cryptography
+#   flask-cors
+#   flask-jwt-extended
+#   flask-talisman
+#   holidays
+#   isodate
+#   jsonlines
+#   jsonschema
+#   linear-tsv
+#   packaging
+#   pathlib2
+#   polyline
+#   prison
+#   pyrsistent
+#   python-dateutil
+#   sasl
+#   sqlalchemy-utils
+#   tableschema
+#   tabulator
+#   thrift
+#   thrift-sasl
+#   wtforms-json
+# via apache-superset
+# via
+#   apache-superset
+#   flask-appbuilder
+# via
+#   alembic
+#   apache-superset
+#   flask-appbuilder
+#   flask-sqlalchemy
+#   marshmallow-sqlalchemy
+#   sqlalchemy-utils
+#   tabulator
+# via apache-superset
+tableschema==1.20.0
+# via -r requirements/development.in
+tabulator==1.52.5
+# via tableschema
+thrift-sasl==0.4.2
+# via pyhive
+thrift==0.13.0
+# via
+#   -r requirements/development.in
+#   pyhive
+#   thrift-sasl
+# via
+#   aiohttp
+#   apache-superset
+unicodecsv==0.14.1
+# via
+#   tableschema
+#   tabulator
+# via
+#   botocore
+#   requests
+#   selenium
+# via
+#   amqp
+#   celery
+# via bleach
+# via
+#   flask
+#   flask-jwt-extended
+wrapt==1.12.1
+# via deprecated
+# via apache-superset
+# via
+#   flask-wtf
+#   wtforms-json
+xlrd==1.2.0
+# via tabulator
+# via aiohttp
+# via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

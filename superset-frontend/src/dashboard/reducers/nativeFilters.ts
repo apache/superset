@@ -21,9 +21,11 @@ import {
   SAVE_FILTER_SETS,
   SET_FILTER_CONFIG_COMPLETE,
   SET_FILTER_SETS_CONFIG_COMPLETE,
+  SET_FILTERS_INITIALIZED,
 } from 'src/dashboard/actions/nativeFilters';
 import { FilterSet, NativeFiltersState } from './types';
 import { FilterConfiguration } from '../components/nativeFilters/types';
+import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 export function getInitialState({
   filterSetsConfig,
@@ -34,7 +36,9 @@ export function getInitialState({
   filterConfig?: FilterConfiguration;
   state?: NativeFiltersState;
 }): NativeFiltersState {
-  const state: Partial<NativeFiltersState> = {};
+  const state: Partial<NativeFiltersState> = {
+    isInitialized: prevState?.isInitialized,
+  };
 
   const filters = {};
   if (filterConfig) {
@@ -62,6 +66,7 @@ export function getInitialState({
 
 export default function nativeFilterReducer(
   state: NativeFiltersState = {
+    isInitialized: false,
     filters: {},
     filterSets: {},
   },
@@ -69,6 +74,11 @@ export default function nativeFilterReducer(
 ) {
   const { filterSets } = state;
   switch (action.type) {
+    case HYDRATE_DASHBOARD:
+      return {
+        filters: action.data.nativeFilters.filters,
+        filterSets: action.data.nativeFilters.filterSets,
+      };
     case SAVE_FILTER_SETS:
       return {
         ...state,
@@ -84,6 +94,12 @@ export default function nativeFilterReducer(
 
     case SET_FILTER_CONFIG_COMPLETE:
       return getInitialState({ filterConfig: action.filterConfig, state });
+
+    case SET_FILTERS_INITIALIZED:
+      return {
+        ...state,
+        isInitialized: true,
+      };
 
     case SET_FILTER_SETS_CONFIG_COMPLETE:
       return getInitialState({

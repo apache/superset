@@ -421,7 +421,7 @@ class TestSqlaTableModel(SupersetTestCase):
         tbl = self.get_table_by_name("birth_names")
         query_obj = dict(
             groupby=[],
-            metrics=[],
+            metrics=None,
             filter=[],
             is_timeseries=False,
             columns=["name"],
