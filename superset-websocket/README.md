@@ -64,6 +64,8 @@ npm install
 
 Copy `config.example.json` to `config.json` and adjust the values for your environment.
 
+Configuration via environment variables is also supported which can be helpful in certain contexts, e.g., deployment. `src/config.ts` can be consulted to see the full list of supported values.
+
 ## Superset Configuration
 
 Configure the Superset Flask app to enable global async queries (in `superset_config.py`):
