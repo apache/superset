@@ -25,6 +25,7 @@ import { t, styled } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import Label from 'src/components/Label';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import QueryHistory from '../QueryHistory';
 import ResultSet from '../ResultSet';
 import {
@@ -49,6 +50,7 @@ interface SouthPanePropTypes {
   databases: Record<string, any>;
   offline?: boolean;
   displayLimit: number;
+  user: UserWithPermissionsAndRoles;
 }
 
 const StyledPane = styled.div`
@@ -93,13 +95,13 @@ export default function SouthPane({
   databases,
   offline = false,
   displayLimit,
+  user,
 }: SouthPanePropTypes) {
   const innerTabContentHeight = height - TAB_HEIGHT;
   const southPaneRef = createRef<HTMLDivElement>();
   const switchTab = (id: string) => {
     actions.setActiveSouthPaneTab(id);
   };
-
   const renderOfflineStatus = () => (
     <Label className="m-r-3" type={STATE_TYPE_MAP[STATUS_OPTIONS.offline]}>
       {STATUS_OPTIONS.offline}
@@ -137,6 +139,7 @@ export default function SouthPane({
             search
             query={latestQuery}
             actions={actions}
+            user={user}
             height={innerTabContentHeight}
             database={databases[latestQuery.dbId]}
             displayLimit={displayLimit}

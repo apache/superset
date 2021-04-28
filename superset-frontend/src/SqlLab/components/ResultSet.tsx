@@ -30,6 +30,7 @@ import { debounce } from 'lodash';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { put as updateDatset } from 'src/api/dataset';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Loading from '../../components/Loading';
 import ExploreCtasResultsButton from './ExploreCtasResultsButton';
 import ExploreResultsButton from './ExploreResultsButton';
@@ -75,6 +76,7 @@ interface ResultSetProps {
   search?: boolean;
   showSql?: boolean;
   visualize?: boolean;
+  user?: UserWithPermissionsAndRoles;
 }
 
 interface ResultSetState {
@@ -325,12 +327,7 @@ export default class ResultSet extends React.PureComponent<
   getUserDatasets = async (searchText = '') => {
     // Making sure that autocomplete input has a value before rendering the dropdown
     // Transforming the userDatasetsOwned data for SaveModalComponent)
-    const appContainer = document.getElementById('app');
-    const bootstrapData = JSON.parse(
-      appContainer?.getAttribute('data-bootstrap') || '{}',
-    );
-
-    if (bootstrapData.user && bootstrapData.user.userId) {
+    if (this.props.user && this.props.user.userId) {
       const queryParams = rison.encode({
         filters: [
           {
@@ -341,7 +338,7 @@ export default class ResultSet extends React.PureComponent<
           {
             col: 'owners',
             opr: 'rel_m_m',
-            value: bootstrapData.user.userId,
+            value: this.props.user.userId,
           },
         ],
         order_column: 'changed_on_delta_humanized',
@@ -509,13 +506,10 @@ export default class ResultSet extends React.PureComponent<
     const { results, rows, queryLimit, limitingFactor } = this.props.query;
     const limitReached = results?.displayLimitReached;
     let limitMessage;
-    const appContainer = document.getElementById('app');
-    const bootstrapData = JSON.parse(
-      appContainer?.getAttribute('data-bootstrap') || '{}',
-    );
-    const isAdmin = bootstrapData.user?.roles?.hasOwnProperty('Admin');
-    const defaultDropwdown =
-      limitingFactor === 'DROPDOWN' && queryLimit === 1000;
+    const isAdmin = this.props.user?.roles.hasOwnProperty('Admin');
+    const defaultDropdownLimit = queryLimit === 1000;
+    const defaultDropdown =
+      limitingFactor === 'DROPDOWN' && defaultDropdownLimit;
     const adminWarning = isAdmin
       ? ' by the configuration DISPLAY_MAX_ROWS'
       : null;
@@ -528,7 +522,7 @@ export default class ResultSet extends React.PureComponent<
           )}
         </span>
       );
-    } else if (limitingFactor === 'DROPDOWN' && !defaultDropwdown) {
+    } else if (limitingFactor === 'DROPDOWN' && !defaultDropdown) {
       limitMessage = (
         <span className="limitMessage">
           {t(
@@ -549,12 +543,12 @@ export default class ResultSet extends React.PureComponent<
     }
     return (
       <ReturnedRows>
-        {!limitReached && !defaultDropwdown && (
+        {!limitReached && !defaultDropdown && (
           <span>
             {t(`%s rows returned`, rows)} {limitMessage}
           </span>
         )}
-        {!limitReached && defaultDropwdown && (
+        {!limitReached && defaultDropdown && (
           <Alert
             closable={false}
             type="warning"
