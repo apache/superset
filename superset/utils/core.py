@@ -98,7 +98,7 @@ from superset.exceptions import (
 )
 from superset.typing import FlaskResponse, FormData, Metric
 from superset.utils.dates import datetime_to_epoch, EPOCH
-from superset.utils.hashing import md5_sha_from_str
+from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
 
 try:
     from pydruid.utils.having import Having
@@ -1046,7 +1046,6 @@ def to_adhoc(
     result = {
         "clause": clause.upper(),
         "expressionType": expression_type,
-        "filterOptionName": str(uuid.uuid4()),
         "isExtra": bool(filt.get("isExtra")),
     }
 
@@ -1060,6 +1059,9 @@ def to_adhoc(
         )
     elif expression_type == "SQL":
         result.update({"sqlExpression": filt.get(clause)})
+
+    deterministic_name = md5_sha_from_dict(result)
+    result["filterOptionName"] = deterministic_name
 
     return result
 
