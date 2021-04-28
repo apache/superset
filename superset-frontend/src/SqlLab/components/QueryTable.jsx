@@ -22,7 +22,7 @@ import moment from 'moment';
 import Card from 'src/components/Card';
 import ProgressBar from 'src/components/ProgressBar';
 import Label from 'src/components/Label';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
@@ -52,6 +52,12 @@ const openQuery = id => {
   const url = `/superset/sqllab?queryId=${id}`;
   window.open(url);
 };
+const StyledButton = styled(Button)`
+  position: static;
+`;
+const StyledSQLCard = styled(Card)`
+  position: static;
+`;
 
 const QueryTable = props => {
   const columns = useMemo(
@@ -102,22 +108,22 @@ const QueryTable = props => {
           </div>
         );
         q.user = (
-          <Button
+          <StyledButton
             buttonSize="small"
             buttonStyle="link"
             onClick={() => props.onUserClicked(q.userId)}
           >
             {q.user}
-          </Button>
+          </StyledButton>
         );
         q.db = (
-          <Button
+          <StyledButton
             buttonSize="small"
             buttonStyle="link"
             onClick={() => props.onDbClicked(q.dbId)}
           >
             {q.db}
-          </Button>
+          </StyledButton>
         );
         q.started = moment(q.startDttm).format('HH:mm:ss');
         q.querylink = (
@@ -131,14 +137,14 @@ const QueryTable = props => {
           </Button>
         );
         q.sql = (
-          <Card>
+          <StyledSQLCard>
             <HighlightedSql
               sql={q.sql}
               rawSql={q.executedSql}
               shrink
               maxWidth={60}
             />
-          </Card>
+          </StyledSQLCard>
         );
         if (q.resultsKey) {
           q.output = (
