@@ -664,4 +664,9 @@ exports.createPages = ({ actions }) => {
     toPath: '/docs/miscellaneous/issue-codes#issue-1005',
     isPermanent: true,
   });
+  createRedirect({
+    fromPath: '/docs/installation/email-reports',
+    toPath: '/docs/installation/alerts-reports',
+    isPermanent: true,
+  });
 };

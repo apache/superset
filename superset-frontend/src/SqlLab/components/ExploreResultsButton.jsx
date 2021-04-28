@@ -21,7 +21,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { Alert } from 'react-bootstrap';
+import Alert from 'src/components/Alert';
 import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import shortid from 'shortid';
@@ -102,25 +102,32 @@ class ExploreResultsButton extends React.PureComponent {
 
   renderTimeoutWarning() {
     return (
-      <Alert bsStyle="warning">
-        {t(
-          'This query took %s seconds to run, ',
-          Math.round(this.getQueryDuration()),
-        ) +
-          t(
-            'and the explore view times out at %s seconds ',
-            this.props.timeout,
-          ) +
-          t(
-            'following this flow will most likely lead to your query timing out. ',
-          ) +
-          t(
-            'We recommend your summarize your data further before following that flow. ',
-          ) +
-          t('If activated you can use the ')}
-        <strong>CREATE TABLE AS </strong>
-        {t('feature to store a summarized data set that you can then explore.')}
-      </Alert>
+      <Alert
+        type="warning"
+        message={
+          <>
+            {t(
+              'This query took %s seconds to run, ',
+              Math.round(this.getQueryDuration()),
+            ) +
+              t(
+                'and the explore view times out at %s seconds ',
+                this.props.timeout,
+              ) +
+              t(
+                'following this flow will most likely lead to your query timing out. ',
+              ) +
+              t(
+                'We recommend your summarize your data further before following that flow. ',
+              ) +
+              t('If activated you can use the ')}
+            <strong>CREATE TABLE AS </strong>
+            {t(
+              'feature to store a summarized data set that you can then explore.',
+            )}
+          </>
+        }
+      />
     );
   }
 

@@ -47,6 +47,7 @@ const propTypes = {
   table_name: PropTypes.string,
   vizType: PropTypes.string.isRequired,
   form_data: PropTypes.object,
+  ownState: PropTypes.object,
   standalone: PropTypes.number,
   timeout: PropTypes.number,
   refreshOverlayVisible: PropTypes.bool,
@@ -118,7 +119,7 @@ const ExploreChartPanel = props => {
     refreshMode: 'debounce',
     refreshRate: 300,
   });
-  const { width: chartWidth, ref: chartRef } = useResizeDetector({
+  const { width: chartPanelWidth, ref: chartPanelRef } = useResizeDetector({
     refreshMode: 'debounce',
     refreshRate: 300,
   });
@@ -183,11 +184,13 @@ const ExploreChartPanel = props => {
   const renderChart = useCallback(() => {
     const { chart } = props;
     const newHeight = calcSectionHeight(splitSizes[0]) - CHART_PANEL_PADDING;
+    const chartWidth = chartPanelWidth - CHART_PANEL_PADDING;
     return (
       chartWidth > 0 && (
         <ChartContainer
           width={Math.floor(chartWidth)}
           height={newHeight}
+          ownState={props.ownState}
           annotationData={chart.annotationData}
           chartAlert={chart.chartAlert}
           chartStackTrace={chart.chartStackTrace}
@@ -198,7 +201,6 @@ const ExploreChartPanel = props => {
           errorMessage={props.errorMessage}
           formData={props.form_data}
           onQuery={props.onQuery}
-          owners={props?.slice?.owners}
           queriesResponse={chart.queriesResponse}
           refreshOverlayVisible={props.refreshOverlayVisible}
           setControlValue={props.actions.setControlValue}
@@ -208,16 +210,20 @@ const ExploreChartPanel = props => {
         />
       )
     );
-  }, [calcSectionHeight, chartWidth, props, splitSizes]);
+  }, [calcSectionHeight, chartPanelWidth, props, splitSizes]);
 
   const panelBody = useMemo(
-    () => <div className="panel-body">{renderChart()}</div>,
-    [renderChart],
+    () => (
+      <div className="panel-body" ref={chartPanelRef}>
+        {renderChart()}
+      </div>
+    ),
+    [chartPanelRef, renderChart],
   );
 
   const standaloneChartBody = useMemo(
-    () => <div ref={chartRef}>{renderChart()}</div>,
-    [chartRef, renderChart],
+    () => <div ref={chartPanelRef}>{renderChart()}</div>,
+    [chartPanelRef, renderChart],
   );
 
   if (props.standalone) {
@@ -232,11 +238,11 @@ const ExploreChartPanel = props => {
 
   const header = (
     <ConnectedExploreChartHeader
+      ownState={props.ownState}
       actions={props.actions}
       addHistory={props.addHistory}
       can_overwrite={props.can_overwrite}
       can_download={props.can_download}
-      chartHeight={props.height}
       isStarred={props.isStarred}
       slice={props.slice}
       sliceName={props.sliceName}
@@ -252,7 +258,7 @@ const ExploreChartPanel = props => {
   });
 
   return (
-    <Styles className="panel panel-default chart-container" ref={chartRef}>
+    <Styles className="panel panel-default chart-container" ref={chartPanelRef}>
       <div className="panel-heading" ref={headerRef}>
         {header}
       </div>
@@ -269,6 +275,7 @@ const ExploreChartPanel = props => {
         >
           {panelBody}
           <DataTablesPane
+            ownState={props.ownState}
             queryFormData={props.chart.latestQueryFormData}
             tableSectionHeight={tableSectionHeight}
             onCollapseChange={onCollapseChange}

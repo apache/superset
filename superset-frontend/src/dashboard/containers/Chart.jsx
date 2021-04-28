@@ -26,7 +26,7 @@ import {
 } from '../actions/dashboardState';
 import { updateComponents } from '../actions/dashboardLayout';
 import { changeFilter } from '../actions/dashboardFilters';
-import { addDangerToast } from '../../messageToasts/actions';
+import { addSuccessToast, addDangerToast } from '../../messageToasts/actions';
 import { refreshChart } from '../../chart/chartAction';
 import { logEvent } from '../../logger/actions';
 import {
@@ -44,6 +44,7 @@ function mapStateToProps(
     dashboardInfo,
     dashboardState,
     dashboardLayout,
+    dataMask,
     datasources,
     sliceEntities,
     nativeFilters,
@@ -60,12 +61,15 @@ function mapStateToProps(
   const formData = getFormDataWithExtraFilters({
     layout: dashboardLayout.present,
     chart,
+    // eslint-disable-next-line camelcase
+    chartConfiguration: dashboardInfo.metadata?.chart_configuration,
     charts: chartQueries,
     filters: getAppliedFilterValues(id),
     colorScheme,
     colorNamespace,
     sliceId: id,
     nativeFilters,
+    dataMask,
   });
 
   formData.dashboardId = dashboardInfo.id;
@@ -80,8 +84,11 @@ function mapStateToProps(
     editMode: dashboardState.editMode,
     isExpanded: !!dashboardState.expandedSlices[id],
     supersetCanExplore: !!dashboardInfo.superset_can_explore,
+    supersetCanShare: !!dashboardInfo.superset_can_share,
     supersetCanCSV: !!dashboardInfo.superset_can_csv,
     sliceCanEdit: !!dashboardInfo.slice_can_edit,
+    ownState: dataMask[id]?.ownState,
+    filterState: dataMask[id]?.filterState,
   };
 }
 
@@ -89,6 +96,7 @@ function mapDispatchToProps(dispatch) {
   return bindActionCreators(
     {
       updateComponents,
+      addSuccessToast,
       addDangerToast,
       toggleExpandSlice,
       changeFilter,

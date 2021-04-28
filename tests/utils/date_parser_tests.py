@@ -88,8 +88,16 @@ class TestDateParser(SupersetTestCase):
         expected = datetime(2016, 6, 7), datetime(2016, 11, 7)
         self.assertEqual(result, expected)
 
+        result = get_since_until("Last 1 month")
+        expected = datetime(2016, 10, 7), datetime(2016, 11, 7)
+        self.assertEqual(result, expected)
+
         result = get_since_until("Next 5 months")
         expected = datetime(2016, 11, 7), datetime(2017, 4, 7)
+        self.assertEqual(result, expected)
+
+        result = get_since_until("Next 1 month")
+        expected = datetime(2016, 11, 7), datetime(2016, 12, 7)
         self.assertEqual(result, expected)
 
         result = get_since_until(since="5 days")

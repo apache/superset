@@ -19,6 +19,7 @@ import inspect
 from flask import Markup
 from flask_babel import lazy_gettext as _
 from sqlalchemy import MetaData
+from sqlalchemy.engine.url import make_url
 
 from superset import app, security_manager
 from superset.databases.filters import DatabaseFilter
@@ -205,7 +206,7 @@ class DatabaseMixin:
 
     def _pre_add_update(self, database: Database) -> None:
         if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
-            check_sqlalchemy_uri(database.sqlalchemy_uri)
+            check_sqlalchemy_uri(make_url(database.sqlalchemy_uri))
         self.check_extra(database)
         self.check_encrypted_extra(database)
         if database.server_cert:

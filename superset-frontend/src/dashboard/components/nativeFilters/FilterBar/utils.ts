@@ -1,6 +1,3 @@
-import { Filter } from '../types';
-import { CascadeFilter } from './types';
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,6 +17,13 @@ import { CascadeFilter } from './types';
  * under the License.
  */
 
+import { Filter } from '../types';
+
+export enum TabIds {
+  AllFilters = 'allFilters',
+  FilterSets = 'filterSets',
+}
+
 export function mapParentFiltersToChildren(
   filters: Filter[],
 ): { [id: string]: Filter[] } {
@@ -34,20 +38,4 @@ export function mapParentFiltersToChildren(
     }
   });
   return cascadeChildren;
-}
-
-export function buildCascadeFiltersTree(filters: Filter[]): CascadeFilter[] {
-  const cascadeChildren = mapParentFiltersToChildren(filters);
-
-  const getCascadeFilter = (filter: Filter): CascadeFilter => {
-    const children = cascadeChildren[filter.id] || [];
-    return {
-      ...filter,
-      cascadeChildren: children.map(getCascadeFilter),
-    };
-  };
-
-  return filters
-    .filter(filter => !filter.cascadeParentIds?.length)
-    .map(getCascadeFilter);
 }

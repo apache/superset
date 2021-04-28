@@ -18,7 +18,8 @@
  */
 import { combineReducers } from 'redux';
 
-import charts from '../../chart/chartReducer';
+import charts from 'src/chart/chartReducer';
+import dataMask from 'src/dataMask/reducer';
 import dashboardInfo from './dashboardInfo';
 import dashboardState from './dashboardState';
 import dashboardFilters from './dashboardFilters';
@@ -31,10 +32,13 @@ import messageToasts from '../../messageToasts/reducers';
 const impressionId = (state = '') => state;
 
 export default combineReducers({
+  user: (state = null) => state,
+  common: (state = null) => state,
   charts,
   datasources,
   dashboardInfo,
   dashboardFilters,
+  dataMask,
   nativeFilters,
   dashboardState,
   dashboardLayout,

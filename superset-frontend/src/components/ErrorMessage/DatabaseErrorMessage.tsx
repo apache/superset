@@ -46,7 +46,9 @@ function DatabaseErrorMessage({
         {t('This may be triggered by:')}
         <br />
         {extra.issue_codes
-          .map<React.ReactNode>(issueCode => <IssueCode {...issueCode} />)
+          .map<React.ReactNode>(issueCode => (
+            <IssueCode {...issueCode} key={issueCode.code} />
+          ))
           .reduce((prev, curr) => [prev, <br />, curr])}
       </p>
       {isVisualization && extra.owners && (

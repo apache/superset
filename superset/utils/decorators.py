@@ -19,7 +19,7 @@ from functools import wraps
 from typing import Any, Callable, Dict, Iterator, Union
 
 from contextlib2 import contextmanager
-from flask import Response
+from flask import current_app, Response
 
 from superset import is_feature_enabled
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
@@ -87,15 +87,12 @@ def check_dashboard_access(
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(f)
         def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
-            from superset.models.dashboard import (
-                Dashboard,
-                raise_for_dashboard_access,
-            )
+            from superset.models.dashboard import Dashboard
 
             dashboard = Dashboard.get(str(kwargs["dashboard_id_or_slug"]))
             if is_feature_enabled("DASHBOARD_RBAC"):
                 try:
-                    raise_for_dashboard_access(dashboard)
+                    current_app.appbuilder.sm.raise_for_dashboard_access(dashboard)
                 except DashboardAccessDeniedError as ex:
                     return on_error(self, ex)
                 except Exception as exception:

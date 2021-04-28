@@ -21,7 +21,14 @@ from typing import List, Optional, Set
 from urllib import parse
 
 import sqlparse
-from sqlparse.sql import Identifier, IdentifierList, remove_quotes, Token, TokenList
+from sqlparse.sql import (
+    Identifier,
+    IdentifierList,
+    Parenthesis,
+    remove_quotes,
+    Token,
+    TokenList,
+)
 from sqlparse.tokens import Keyword, Name, Punctuation, String, Whitespace
 from sqlparse.utils import imt
 
@@ -56,6 +63,19 @@ def _extract_limit_from_query(statement: TokenList) -> Optional[int]:
             if token and token.ttype == sqlparse.tokens.Literal.Number.Integer:
                 return int(token.value)
     return None
+
+
+def strip_comments_from_sql(statement: str) -> str:
+    """
+    Strips comments from a SQL statement, does a simple test first
+    to avoid always instantiating the expensive ParsedQuery constructor
+
+    This is useful for engines that don't support comments
+
+    :param statement: A string with the SQL statement
+    :return: SQL statement without comments
+    """
+    return ParsedQuery(statement).strip_comments() if "--" in statement else statement
 
 
 @dataclass(eq=True, frozen=True)
@@ -149,6 +169,9 @@ class ParsedQuery:
 
     def stripped(self) -> str:
         return self.sql.strip(" \t\n;")
+
+    def strip_comments(self) -> str:
+        return sqlparse.format(self.stripped(), strip_comments=True)
 
     def get_statements(self) -> List[str]:
         """Returns a list of SQL statements as strings, stripped"""
@@ -262,7 +285,9 @@ class ParsedQuery:
         table_name_preceding_token = False
 
         for item in token.tokens:
-            if item.is_group and not self._is_identifier(item):
+            if item.is_group and (
+                not self._is_identifier(item) or isinstance(item.tokens[0], Parenthesis)
+            ):
                 self._extract_from_token(item)
 
             if item.ttype in Keyword and (
@@ -275,7 +300,6 @@ class ParsedQuery:
             if item.ttype in Keyword:
                 table_name_preceding_token = False
                 continue
-
             if table_name_preceding_token:
                 if isinstance(item, Identifier):
                     self._process_tokenlist(item)

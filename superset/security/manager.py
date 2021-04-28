@@ -22,6 +22,7 @@ from typing import Any, Callable, cast, List, Optional, Set, Tuple, TYPE_CHECKIN
 
 from flask import current_app, g
 from flask_appbuilder import Model
+from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
     assoc_permissionview_role,
@@ -55,11 +56,11 @@ if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.connectors.base.models import BaseDatasource
     from superset.connectors.druid.models import DruidCluster
+    from superset.models.dashboard import Dashboard
     from superset.models.core import Database
     from superset.models.sql_lab import Query
     from superset.sql_parse import Table
     from superset.viz import BaseViz
-
 
 logger = logging.getLogger(__name__)
 
@@ -433,7 +434,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             view_menu_names = (
                 base_query.join(assoc_user_role)
                 .join(self.user_model)
-                .filter(self.user_model.id == g.user.id)
+                .filter(self.user_model.id == g.user.get_id())
                 .filter(self.permission_model.name == permission_name)
             ).all()
             return {s.name for s in view_menu_names}
@@ -555,6 +556,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.add_permission_view_menu("all_datasource_access", "all_datasource_access")
         self.add_permission_view_menu("all_database_access", "all_database_access")
         self.add_permission_view_menu("all_query_access", "all_query_access")
+        self.add_permission_view_menu("can_share_dashboard", "Superset")
+        self.add_permission_view_menu("can_share_chart", "Superset")
 
     def create_missing_perms(self) -> None:
         """
@@ -922,7 +925,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     )
                 )
 
-    def raise_for_access(  # pylint: disable=too-many-arguments,too-many-branches
+    def raise_for_access(
+        # pylint: disable=too-many-arguments,too-many-branches,
+        # pylint: disable=too-many-locals
         self,
         database: Optional["Database"] = None,
         datasource: Optional["BaseDatasource"] = None,
@@ -993,9 +998,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             assert datasource
 
+            from superset.extensions import feature_flag_manager
+
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
+                or (
+                    feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC")
+                    and self.can_access_based_on_dashboard(datasource)
+                )
             ):
                 raise SupersetSecurityException(
                     self.get_datasource_access_error_object(datasource)
@@ -1033,7 +1044,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             user_roles = (
                 self.get_session.query(assoc_user_role.c.role_id)
-                .filter(assoc_user_role.c.user_id == g.user.id)
+                .filter(assoc_user_role.c.user_id == g.user.get_id())
                 .subquery()
             )
             regular_filter_roles = (
@@ -1097,3 +1108,51 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ids = [f.id for f in self.get_rls_filters(table)]
         ids.sort()  # Combinations rather than permutations
         return ids
+
+    @staticmethod
+    def raise_for_dashboard_access(dashboard: "Dashboard") -> None:
+        """
+        Raise an exception if the user cannot access the dashboard.
+
+        :param dashboard: Dashboard the user wants access to
+        :raises DashboardAccessDeniedError: If the user cannot access the resource
+        """
+        from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
+        from superset.views.base import get_user_roles, is_user_admin
+        from superset.views.utils import is_owner
+        from superset import is_feature_enabled
+
+        if is_feature_enabled("DASHBOARD_RBAC"):
+            has_rbac_access = any(
+                dashboard_role.id in [user_role.id for user_role in get_user_roles()]
+                for dashboard_role in dashboard.roles
+            )
+            can_access = (
+                is_user_admin()
+                or is_owner(dashboard, g.user)
+                or (dashboard.published and has_rbac_access)
+            )
+
+            if not can_access:
+                raise DashboardAccessDeniedError()
+
+    @staticmethod
+    def can_access_based_on_dashboard(datasource: "BaseDatasource") -> bool:
+        from superset import db
+        from superset.dashboards.filters import DashboardAccessFilter
+        from superset.models.slice import Slice
+        from superset.models.dashboard import Dashboard
+
+        datasource_class = type(datasource)
+        query = (
+            db.session.query(datasource_class)
+            .join(Slice.table)
+            .filter(datasource_class.id == datasource.id)
+        )
+
+        query = DashboardAccessFilter("id", SQLAInterface(Dashboard, db.session)).apply(
+            query, None
+        )
+
+        exists = db.session.query(query.exists()).scalar()
+        return exists

@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { CSSProperties } from 'react';
+import React, { CSSProperties, Children, ReactElement } from 'react';
 import { kebabCase } from 'lodash';
 import { mix } from 'polished';
 import cx from 'classnames';
-import { Button as AntdButton } from 'src/common/components';
+import { Button as AntdButton } from 'antd';
 import { useTheme } from '@superset-ui/core';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 
 export type OnClickHandler = React.MouseEventHandler<HTMLElement>;
 
@@ -30,6 +30,7 @@ export interface ButtonProps {
   id?: string;
   className?: string;
   tooltip?: string;
+  ghost?: boolean;
   placement?:
     | 'bottom'
     | 'left'
@@ -144,11 +145,22 @@ export default function Button(props: ButtonProps) {
     colorHover = primary.base;
   }
 
+  const element = children as ReactElement;
+
+  let renderedChildren = [];
+  if (element && element.type === React.Fragment) {
+    renderedChildren = Children.toArray(element.props.children);
+  } else {
+    renderedChildren = Children.toArray(children);
+  }
+
+  const firstChildMargin = renderedChildren.length > 1 ? theme.gridUnit * 2 : 0;
+
   const button = (
     <AntdButton
       href={disabled ? undefined : href}
       disabled={disabled}
-      className={cx(className, { cta: !!cta })}
+      className={cx(className, 'superset-button', { cta: !!cta })}
       css={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -188,13 +200,12 @@ export default function Button(props: ButtonProps) {
           backgroundColor: backgroundColorDisabled,
           borderColor: borderColorDisabled,
         },
-        'i:first-of-type, svg:first-of-type': {
-          marginRight: theme.gridUnit * 2,
-          padding: `0 ${theme.gridUnit * 2} 0 0`,
+        marginLeft: 0,
+        '& + .superset-button': {
+          marginLeft: theme.gridUnit * 2,
         },
-        marginLeft: theme.gridUnit * 2,
-        '&:first-of-type': {
-          marginLeft: 0,
+        '& :first-of-type': {
+          marginRight: firstChildMargin,
         },
       }}
       {...restProps}

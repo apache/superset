@@ -19,11 +19,11 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import contains_eager
 
+from superset import security_manager
 from superset.dao.base import BaseDAO
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
-from superset.dashboards.filters import DashboardFilter
+from superset.dashboards.filters import DashboardAccessFilter
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
@@ -35,21 +35,24 @@ logger = logging.getLogger(__name__)
 
 class DashboardDAO(BaseDAO):
     model_cls = Dashboard
-    base_filter = DashboardFilter
+    base_filter = DashboardAccessFilter
 
     @staticmethod
-    def get_charts_for_dashboard(dashboard_id: int) -> List[Slice]:
-        query = (
-            db.session.query(Dashboard)
-            .outerjoin(Slice, Dashboard.slices)
-            .outerjoin(Slice.table)
-            .filter(Dashboard.id == dashboard_id)
-            .options(contains_eager(Dashboard.slices))
-        )
-        dashboard = query.one_or_none()
+    def get_by_id_or_slug(id_or_slug: str) -> Dashboard:
+        dashboard = Dashboard.get(id_or_slug)
         if not dashboard:
             raise DashboardNotFoundError()
-        return dashboard.slices
+        security_manager.raise_for_dashboard_access(dashboard)
+        return dashboard
+
+    @staticmethod
+    def get_datasets_for_dashboard(id_or_slug: str) -> List[Any]:
+        dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
+        return dashboard.datasets_trimmed_for_slices()
+
+    @staticmethod
+    def get_charts_for_dashboard(id_or_slug: str) -> List[Slice]:
+        return DashboardDAO.get_by_id_or_slug(id_or_slug).slices
 
     @staticmethod
     def validate_slug_uniqueness(slug: str) -> bool:

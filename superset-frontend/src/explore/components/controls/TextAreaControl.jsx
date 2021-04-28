@@ -22,11 +22,12 @@ import { FormGroup, FormControl } from 'react-bootstrap';
 import { debounce } from 'lodash';
 import { t } from '@superset-ui/core';
 
+import { FAST_DEBOUNCE } from 'src/constants';
 import Button from 'src/components/Button';
 import { TextAreaEditor } from 'src/components/AsyncAceEditor';
 import ModalTrigger from 'src/components/ModalTrigger';
 
-import ControlHeader from '../ControlHeader';
+import ControlHeader from 'src/explore/components/ControlHeader';
 
 const propTypes = {
   name: PropTypes.string,
@@ -63,7 +64,7 @@ export default class TextAreaControl extends React.Component {
     super();
     this.onAceChangeDebounce = debounce(value => {
       this.onAceChange(value);
-    }, 300);
+    }, FAST_DEBOUNCE);
   }
 
   onControlChange(event) {

@@ -16,100 +16,170 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import {
+  AppSection,
+  ensureIsArray,
+  GenericDataType,
+  smartDateDetailedFormatter,
+  t,
+  tn,
+} from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
-import { PluginFilterSelectProps } from './types';
-import { PluginFilterStylesProps } from '../types';
-import { getSelectExtraFormData } from '../../utils';
-
-const Styles = styled.div<PluginFilterStylesProps>`
-  height: ${({ height }) => height};
-  width: ${({ width }) => width};
-`;
+import { FIRST_VALUE, PluginFilterSelectProps, SelectValue } from './types';
+import { StyledSelect, Styles } from '../common';
+import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
 
 const { Option } = Select;
 
 export default function PluginFilterSelect(props: PluginFilterSelectProps) {
-  const { data, formData, height, width, setExtraFormData } = props;
+  const {
+    coltypeMap,
+    data,
+    formData,
+    height,
+    width,
+    setDataMask,
+    filterState,
+    appSection,
+  } = props;
   const {
     defaultValue,
     enableEmptyFilter,
     multiSelect,
     showSearch,
-    currentValue,
     inverseSelection,
     inputRef,
+    defaultToFirstItem,
   } = formData;
 
-  const [values, setValues] = useState<(string | number)[]>(defaultValue ?? []);
+  const forceFirstValue =
+    appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem;
 
-  let { groupby = [] } = formData;
-  groupby = Array.isArray(groupby) ? groupby : [groupby];
+  const groupby = ensureIsArray<string>(formData.groupby);
+  // Correct initial value for Ant Select
+  const initSelectValue: SelectValue =
+    // `defaultValue` can be `FIRST_VALUE` if `defaultToFirstItem` is checked, so need convert it to correct value for Select
+    defaultValue === FIRST_VALUE ? [] : defaultValue ?? [];
 
-  const handleChange = (
-    value?: (number | string)[] | number | string | null,
-  ) => {
-    let resultValue: (number | string)[];
-    // Works only with arrays even for single select
-    if (!Array.isArray(value)) {
-      resultValue = value ? [value] : [];
-    } else {
-      resultValue = value;
+  const firstItem: SelectValue = data[0]
+    ? (groupby.map(col => data[0][col]) as string[]) ?? initSelectValue
+    : initSelectValue;
+
+  // If we are in config modal we always need show empty select for `defaultToFirstItem`
+  const [values, setValues] = useState<SelectValue>(
+    defaultToFirstItem && appSection !== AppSection.FILTER_CONFIG_MODAL
+      ? firstItem
+      : initSelectValue,
+  );
+  const [currentSuggestionSearch, setCurrentSuggestionSearch] = useState('');
+
+  const clearSuggestionSearch = () => {
+    setCurrentSuggestionSearch('');
+  };
+
+  const [col] = groupby;
+  const datatype: GenericDataType = coltypeMap[col];
+  const labelFormatter = getDataRecordFormatter({
+    timeFormatter: smartDateDetailedFormatter,
+  });
+
+  const handleChange = (value?: SelectValue | number | string) => {
+    let selectValue: (number | string)[] = ensureIsArray<number | string>(
+      value,
+    );
+    let stateValue: SelectValue | typeof FIRST_VALUE = selectValue.length
+      ? selectValue
+      : null;
+
+    if (value === FIRST_VALUE) {
+      selectValue = forceFirstValue ? [] : firstItem;
+      stateValue = FIRST_VALUE;
     }
-    setValues(resultValue);
-    const [col] = groupby;
+
+    setValues(selectValue);
+
     const emptyFilter =
-      enableEmptyFilter && !inverseSelection && resultValue?.length === 0;
-    setExtraFormData({
+      enableEmptyFilter && !inverseSelection && selectValue?.length === 0;
+
+    setDataMask({
       extraFormData: getSelectExtraFormData(
         col,
-        resultValue,
+        selectValue,
         emptyFilter,
         inverseSelection,
       ),
-      currentState: {
-        value: resultValue.length ? resultValue : null,
+      filterState: {
+        // We need to save in state `FIRST_VALUE` as some const and not as REAL value,
+        // because when FiltersBar check if all filters initialized it compares `defaultValue` with this value
+        // and because REAL value can be unpredictable for users that have different data for same dashboard we use `FIRST_VALUE`
+        value: stateValue,
       },
     });
   };
 
   useEffect(() => {
-    handleChange(currentValue ?? []);
-  }, [JSON.stringify(currentValue)]);
+    // For currentValue we need set always `FIRST_VALUE` only if we in config modal for `defaultToFirstItem` mode
+    handleChange(forceFirstValue ? FIRST_VALUE : filterState.value ?? []);
+  }, [
+    JSON.stringify(filterState.value),
+    defaultToFirstItem,
+    multiSelect,
+    enableEmptyFilter,
+    inverseSelection,
+  ]);
 
   useEffect(() => {
-    handleChange(defaultValue ?? []);
-    // I think after Config Modal update some filter it re-creates default value for all other filters
-    // so we can process it like this `JSON.stringify` or start to use `Immer`
-  }, [JSON.stringify(defaultValue)]);
+    // If we have `defaultToFirstItem` mode it means that default value always `FIRST_VALUE`
+    handleChange(defaultToFirstItem ? FIRST_VALUE : defaultValue);
+  }, [
+    JSON.stringify(defaultValue),
+    JSON.stringify(firstItem),
+    defaultToFirstItem,
+    multiSelect,
+    enableEmptyFilter,
+    inverseSelection,
+  ]);
 
   const placeholderText =
-    (data || []).length === 0
-      ? 'No data'
-      : `${data.length} option${data.length > 1 ? 's' : 0}`;
+    data.length === 0
+      ? t('No data')
+      : tn('%s option', '%s options', data.length, data.length);
   return (
     <Styles height={height} width={width}>
-      <Select
-        allowClear
+      <StyledSelect
+        allowClear={!enableEmptyFilter}
+        // @ts-ignore
         value={values}
+        disabled={forceFirstValue}
         showSearch={showSearch}
-        style={{ width: '100%' }}
         mode={multiSelect ? 'multiple' : undefined}
         placeholder={placeholderText}
+        onSearch={setCurrentSuggestionSearch}
+        onSelect={clearSuggestionSearch}
+        onBlur={clearSuggestionSearch}
         // @ts-ignore
         onChange={handleChange}
         ref={inputRef}
       >
-        {(data || []).map(row => {
-          const option = `${groupby.map(col => row[col])[0]}`;
+        {data.map(row => {
+          const [value] = groupby.map(col => row[col]);
           return (
-            <Option key={option} value={option}>
-              {option}
+            // @ts-ignore
+            <Option key={`${value}`} value={value}>
+              {labelFormatter(value, datatype)}
             </Option>
           );
         })}
-      </Select>
+        {currentSuggestionSearch &&
+          !ensureIsArray(values).some(
+            suggestion => suggestion === currentSuggestionSearch,
+          ) && (
+            <Option value={currentSuggestionSearch}>
+              {currentSuggestionSearch}
+            </Option>
+          )}
+      </StyledSelect>
     </Styles>
   );
 }

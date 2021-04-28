@@ -22,18 +22,29 @@ import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import Icon from 'src/components/Icon';
-import Modal from 'src/common/components/Modal';
-import { Switch } from 'src/common/components/Switch';
-import { GraySelect as Select } from 'src/common/components/Select';
-import { Radio } from 'src/common/components/Radio';
-import { AsyncSelect } from 'src/components/Select';
+import { Switch } from 'src/components/Switch';
+import Modal from 'src/components/Modal';
+import { Radio } from 'src/components/Radio';
+import { AsyncSelect, NativeGraySelect as Select } from 'src/components/Select';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Owner from 'src/types/Owner';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
-import { AlertObject, Operator, Recipient, MetaObject } from './types';
+import { NotificationMethod } from './components/NotificationMethod';
+
+import {
+  AlertObject,
+  ChartObject,
+  DashboardObject,
+  DatabaseObject,
+  MetaObject,
+  Operator,
+  Recipient,
+} from './types';
 
 const SELECT_PAGE_SIZE = 2000; // temporary fix for paginated query
+const TIMEOUT_MIN = 1;
 
 type SelectValue = {
   value: string;
@@ -50,7 +61,7 @@ interface AlertReportModalProps {
 }
 
 const NOTIFICATION_METHODS: NotificationMethod[] = ['Email', 'Slack'];
-
+const DEFAULT_NOTIFICATION_FORMAT = 'PNG';
 const CONDITIONS = [
   {
     label: t('< (Smaller than)'),
@@ -103,7 +114,20 @@ const RETENTION_OPTIONS = [
 
 const DEFAULT_RETENTION = 90;
 const DEFAULT_WORKING_TIMEOUT = 3600;
-const DEFAULT_CRON_VALUE = '* * * * *'; // every minute
+const DEFAULT_CRON_VALUE = '0 * * * *'; // every hour
+const DEFAULT_ALERT = {
+  active: true,
+  crontab: DEFAULT_CRON_VALUE,
+  log_retention: DEFAULT_RETENTION,
+  working_timeout: DEFAULT_WORKING_TIMEOUT,
+  name: '',
+  owners: [],
+  recipients: [],
+  sql: '',
+  validator_config_json: {},
+  validator_type: '',
+  grace_period: undefined,
+};
 
 const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
@@ -290,6 +314,15 @@ export const StyledInputContainer = styled.div`
   }
 `;
 
+const StyledRadio = styled(Radio)`
+  display: block;
+  line-height: ${({ theme }) => theme.gridUnit * 7}px;
+`;
+
+const StyledRadioGroup = styled(Radio.Group)`
+  margin-left: ${({ theme }) => theme.gridUnit * 5.5}px;
+`;
+
 // Notification Method components
 const StyledNotificationAddButton = styled.div`
   color: ${({ theme }) => theme.colors.primary.dark1};
@@ -302,33 +335,6 @@ const StyledNotificationAddButton = styled.div`
   &.disabled {
     color: ${({ theme }) => theme.colors.grayscale.light1};
     cursor: default;
-  }
-`;
-
-const StyledNotificationMethod = styled.div`
-  margin-bottom: 10px;
-
-  .input-container {
-    textarea {
-      height: auto;
-    }
-  }
-
-  .inline-container {
-    margin-bottom: 10px;
-
-    .input-container {
-      margin-left: 10px;
-    }
-
-    > div {
-      margin: 0;
-    }
-
-    .delete-button {
-      margin-left: 10px;
-      padding-top: 3px;
-    }
   }
 `;
 
@@ -371,116 +377,6 @@ type NotificationSetting = {
   options: NotificationMethod[];
 };
 
-interface NotificationMethodProps {
-  setting?: NotificationSetting | null;
-  index: number;
-  onUpdate?: (index: number, updatedSetting: NotificationSetting) => void;
-  onRemove?: (index: number) => void;
-}
-
-const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
-  setting = null,
-  index,
-  onUpdate,
-  onRemove,
-}) => {
-  const { method, recipients, options } = setting || {};
-  const [recipientValue, setRecipientValue] = useState<string>(
-    recipients || '',
-  );
-
-  if (!setting) {
-    return null;
-  }
-
-  const onMethodChange = (method: NotificationMethod) => {
-    // Since we're swapping the method, reset the recipients
-    setRecipientValue('');
-
-    if (onUpdate) {
-      const updatedSetting = {
-        ...setting,
-        method,
-        recipients: '',
-      };
-
-      onUpdate(index, updatedSetting);
-    }
-  };
-
-  const onRecipientsChange = (
-    event: React.ChangeEvent<HTMLTextAreaElement>,
-  ) => {
-    const { target } = event;
-
-    setRecipientValue(target.value);
-
-    if (onUpdate) {
-      const updatedSetting = {
-        ...setting,
-        recipients: target.value,
-      };
-
-      onUpdate(index, updatedSetting);
-    }
-  };
-
-  // Set recipients
-  if (!!recipients && recipientValue !== recipients) {
-    setRecipientValue(recipients);
-  }
-
-  const methodOptions = (options || []).map((method: NotificationMethod) => (
-    <Select.Option key={method} value={method}>
-      {t(method)}
-    </Select.Option>
-  ));
-
-  return (
-    <StyledNotificationMethod>
-      <div className="inline-container">
-        <StyledInputContainer>
-          <div className="input-container">
-            <Select
-              onChange={onMethodChange}
-              placeholder="Select Delivery Method"
-              defaultValue={method}
-              value={method}
-            >
-              {methodOptions}
-            </Select>
-          </div>
-        </StyledInputContainer>
-        {method !== undefined && !!onRemove ? (
-          <span
-            role="button"
-            tabIndex={0}
-            className="delete-button"
-            onClick={() => onRemove(index)}
-          >
-            <Icon name="trash" />
-          </span>
-        ) : null}
-      </div>
-      {method !== undefined ? (
-        <StyledInputContainer>
-          <div className="control-label">{t(method)}</div>
-          <div className="input-container">
-            <textarea
-              name="recipients"
-              value={recipientValue}
-              onChange={onRecipientsChange}
-            />
-          </div>
-          <div className="helper">
-            {t('Recipients are separated by "," or ";"')}
-          </div>
-        </StyledInputContainer>
-      ) : null}
-    </StyledNotificationMethod>
-  );
-};
-
 const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   addDangerToast,
   onAdd,
@@ -496,6 +392,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   ] = useState<Partial<AlertObject> | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [contentType, setContentType] = useState<string>('dashboard');
+  const [reportFormat, setReportFormat] = useState<string>(
+    DEFAULT_NOTIFICATION_FORMAT,
+  );
 
   // Dropdown options
   const [conditionNotNull, setConditionNotNull] = useState<boolean>(false);
@@ -504,6 +403,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [chartOptions, setChartOptions] = useState<MetaObject[]>([]);
 
   const isEditMode = alert !== null;
+  const formatOptionEnabled =
+    contentType === 'chart' &&
+    (isFeatureEnabled(FeatureFlag.ALERTS_ATTACH_REPORTS) || isReport);
 
   const [
     notificationAddState,
@@ -563,6 +465,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     clearError();
     setIsHidden(true);
     onHide();
+    setNotificationSettings([]);
+    setCurrentAlert({ ...DEFAULT_ALERT });
+    setNotificationAddState('active');
   };
 
   const onSave = () => {
@@ -587,16 +492,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       validator_config_json: conditionNotNull
         ? {}
         : currentAlert?.validator_config_json,
-      chart: contentType === 'chart' ? currentAlert?.chart?.value : undefined,
+      chart: contentType === 'chart' ? currentAlert?.chart?.value : null,
       dashboard:
-        contentType === 'dashboard'
-          ? currentAlert?.dashboard?.value
-          : undefined,
+        contentType === 'dashboard' ? currentAlert?.dashboard?.value : null,
       database: currentAlert?.database?.value,
       owners: (currentAlert?.owners || []).map(
         owner => (owner as MetaObject).value,
       ),
       recipients,
+      report_format:
+        contentType === 'dashboard'
+          ? DEFAULT_NOTIFICATION_FORMAT
+          : reportFormat || DEFAULT_NOTIFICATION_FORMAT,
     };
 
     if (data.recipients && !data.recipients.length) {
@@ -814,6 +721,23 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState(target.name, target.value);
   };
 
+  const onTimeoutVerifyChange = (
+    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+  ) => {
+    const { target } = event;
+    const value = +target.value;
+
+    // Need to make sure grace period is not lower than TIMEOUT_MIN
+    if (value === 0) {
+      updateAlertState(target.name, null);
+    } else {
+      updateAlertState(
+        target.name,
+        value ? Math.max(value, TIMEOUT_MIN) : value,
+      );
+    }
+  };
+
   const onSQLChange = (value: string) => {
     updateAlertState('sql', value || '');
   };
@@ -828,10 +752,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const onDashboardChange = (dashboard: SelectValue) => {
     updateAlertState('dashboard', dashboard || undefined);
+    updateAlertState('chart', null);
   };
 
   const onChartChange = (chart: SelectValue) => {
     updateAlertState('chart', chart || undefined);
+    updateAlertState('dashboard', null);
   };
 
   const onActiveSwitch = (checked: boolean) => {
@@ -870,6 +796,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const { target } = event;
 
     setContentType(target.value);
+  };
+
+  const onFormatChange = (event: any) => {
+    const { target } = event;
+
+    setReportFormat(target.value);
   };
 
   // Make sure notification settings has the required info
@@ -935,19 +867,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       !isEditMode &&
       (!currentAlert || currentAlert.id || (isHidden && show))
     ) {
-      setCurrentAlert({
-        active: true,
-        crontab: DEFAULT_CRON_VALUE,
-        log_retention: DEFAULT_RETENTION,
-        working_timeout: DEFAULT_WORKING_TIMEOUT,
-        name: '',
-        owners: [],
-        recipients: [],
-        sql: '',
-        validator_config_json: {},
-        validator_type: '',
-      });
-
+      setCurrentAlert({ ...DEFAULT_ALERT });
       setNotificationSettings([]);
       setNotificationAddState('active');
     }
@@ -956,19 +876,29 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   useEffect(() => {
     if (resource) {
       // Add notification settings
-      const settings = (resource.recipients || []).map(setting => ({
-        method: setting.type as NotificationMethod,
-        // @ts-ignore: Type not assignable
-        recipients:
+      const settings = (resource.recipients || []).map(setting => {
+        const config =
           typeof setting.recipient_config_json === 'string'
-            ? (JSON.parse(setting.recipient_config_json) || {}).target
-            : setting.recipient_config_json,
-        options: NOTIFICATION_METHODS as NotificationMethod[], // Need better logic for this
-      }));
+            ? JSON.parse(setting.recipient_config_json)
+            : {};
+        return {
+          method: setting.type as NotificationMethod,
+          // @ts-ignore: Type not assignable
+          recipients: config.target || setting.recipient_config_json,
+          options: NOTIFICATION_METHODS as NotificationMethod[], // Need better logic for this
+        };
+      });
 
       setNotificationSettings(settings);
+      setNotificationAddState(
+        settings.length === NOTIFICATION_METHODS.length ? 'hidden' : 'active',
+      );
       setContentType(resource.chart ? 'chart' : 'dashboard');
-
+      setReportFormat(
+        resource.chart
+          ? resource.report_format || DEFAULT_NOTIFICATION_FORMAT
+          : DEFAULT_NOTIFICATION_FORMAT,
+      );
       const validatorConfig =
         typeof resource.validator_config_json === 'string'
           ? JSON.parse(resource.validator_config_json)
@@ -979,16 +909,21 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       setCurrentAlert({
         ...resource,
         chart: resource.chart
-          ? getChartData(resource.chart) || { value: resource.chart.id }
+          ? getChartData(resource.chart) || {
+              value: (resource.chart as ChartObject).id,
+              label: (resource.chart as ChartObject).slice_name,
+            }
           : undefined,
         dashboard: resource.dashboard
           ? getDashboardData(resource.dashboard) || {
-              value: resource.dashboard.id,
+              value: (resource.dashboard as DashboardObject).id,
+              label: (resource.dashboard as DashboardObject).dashboard_title,
             }
           : undefined,
         database: resource.database
           ? getSourceData(resource.database) || {
-              value: resource.database.id,
+              value: (resource.database as DatabaseObject).id,
+              label: (resource.database as DatabaseObject).database_name,
             }
           : undefined,
         owners: (resource.owners || []).map(owner => ({
@@ -1089,7 +1024,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               {t('Owners')}
               <span className="required">*</span>
             </div>
-            <div className="input-container">
+            <div data-test="owners-select" className="input-container">
               <AsyncSelect
                 name="owners"
                 isMulti
@@ -1267,10 +1202,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <div className="input-container">
                 <input
                   type="number"
+                  min="1"
                   name="working_timeout"
-                  value={currentAlert ? currentAlert.working_timeout : ''}
+                  value={currentAlert?.working_timeout || ''}
                   placeholder={t('Time in seconds')}
-                  onChange={onTextChange}
+                  onChange={onTimeoutVerifyChange}
                 />
                 <span className="input-label">seconds</span>
               </div>
@@ -1281,10 +1217,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <div className="input-container">
                   <input
                     type="number"
+                    min="1"
                     name="grace_period"
-                    value={currentAlert ? currentAlert.grace_period : ''}
+                    value={currentAlert?.grace_period || ''}
                     placeholder={t('Time in seconds')}
-                    onChange={onTextChange}
+                    onChange={onTimeoutVerifyChange}
                   />
                   <span className="input-label">seconds</span>
                 </div>
@@ -1296,12 +1233,21 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <h4>{t('Message content')}</h4>
               <span className="required">*</span>
             </StyledSectionTitle>
-            <div className="inline-container add-margin">
-              <Radio.Group onChange={onContentTypeChange} value={contentType}>
-                <Radio value="dashboard">Dashboard</Radio>
-                <Radio value="chart">Chart</Radio>
-              </Radio.Group>
-            </div>
+            <Radio.Group onChange={onContentTypeChange} value={contentType}>
+              <StyledRadio value="dashboard">{t('Dashboard')}</StyledRadio>
+              <StyledRadio value="chart">{t('Chart')}</StyledRadio>
+            </Radio.Group>
+            {formatOptionEnabled && (
+              <div className="inline-container">
+                <StyledRadioGroup
+                  onChange={onFormatChange}
+                  value={reportFormat}
+                >
+                  <StyledRadio value="PNG">{t('Send as PNG')}</StyledRadio>
+                  <StyledRadio value="CSV">{t('Send as CSV')}</StyledRadio>
+                </StyledRadioGroup>
+              </div>
+            )}
             <AsyncSelect
               className={
                 contentType === 'chart'
@@ -1346,19 +1292,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <h4>{t('Notification method')}</h4>
               <span className="required">*</span>
             </StyledSectionTitle>
-            <NotificationMethod
-              setting={notificationSettings[0]}
-              index={0}
-              onUpdate={updateNotificationSetting}
-              onRemove={removeNotificationSetting}
-            />
-            <NotificationMethod
-              setting={notificationSettings[1]}
-              index={1}
-              onUpdate={updateNotificationSetting}
-              onRemove={removeNotificationSetting}
-            />
+            {notificationSettings.map((notificationSetting, i) => (
+              <NotificationMethod
+                setting={notificationSetting}
+                index={i}
+                onUpdate={updateNotificationSetting}
+                onRemove={removeNotificationSetting}
+              />
+            ))}
             <NotificationMethodAdd
+              data-test="notification-add"
               status={notificationAddState}
               onClick={onNotificationAdd}
             />

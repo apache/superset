@@ -83,7 +83,7 @@ describe('Tabs', () => {
       const title = wrapper.find(EditableTitle);
       expect(title).toHaveLength(1);
       expect(title.find('.editable-title')).toHaveText(
-        props.component.meta.text,
+        props.component.meta.defaultText,
       );
     });
 

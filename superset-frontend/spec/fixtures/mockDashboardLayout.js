@@ -119,6 +119,7 @@ export const dashboardLayoutWithTabs = {
       parents: ['ROOT_ID', 'TABS_ID'],
       meta: {
         text: 'tab1',
+        defaultText: 'tab1',
       },
     },
 
@@ -129,6 +130,7 @@ export const dashboardLayoutWithTabs = {
       parents: ['ROOT_ID', 'TABS_ID'],
       meta: {
         text: 'tab2',
+        defaultText: 'tab2',
       },
     },
 

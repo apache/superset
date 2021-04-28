@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from decimal import Decimal
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
@@ -577,7 +578,7 @@ def contribution(
     :return: DataFrame with contributions.
     """
     contribution_df = df.copy()
-    numeric_df = contribution_df.select_dtypes(include="number")
+    numeric_df = contribution_df.select_dtypes(include=["number", Decimal])
     # verify column selections
     if columns:
         numeric_columns = numeric_df.columns.tolist()
@@ -630,14 +631,14 @@ def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
     Fit a prophet model and return a DataFrame with predicted results.
     """
     try:
-        prophet_logger = logging.getLogger("fbprophet.plot")
+        prophet_logger = logging.getLogger("prophet.plot")
 
         prophet_logger.setLevel(logging.CRITICAL)
-        from fbprophet import Prophet  # pylint: disable=import-error
+        from prophet import Prophet  # pylint: disable=import-error
 
         prophet_logger.setLevel(logging.NOTSET)
     except ModuleNotFoundError:
-        raise QueryObjectValidationError(_("`fbprophet` package not installed"))
+        raise QueryObjectValidationError(_("`prophet` package not installed"))
     model = Prophet(
         interval_width=confidence_interval,
         yearly_seasonality=yearly_seasonality,

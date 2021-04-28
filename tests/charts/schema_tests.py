@@ -48,7 +48,7 @@ class TestSchema(SupersetTestCase):
         self.assertEqual(query_object.row_offset, 200)
 
         # too low limit and offset
-        payload["queries"][0]["row_limit"] = 0
+        payload["queries"][0]["row_limit"] = -1
         payload["queries"][0]["row_offset"] = -1
         with self.assertRaises(ValidationError) as context:
             _ = ChartDataQueryContextSchema().load(payload)

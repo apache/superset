@@ -14,13 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from textwrap import dedent
 from unittest import mock
 
 from sqlalchemy import column, literal_column
 from sqlalchemy.dialects import postgresql
 
-from superset.db_engine_specs import engines
+from superset.db_engine_specs import get_engine_specs
 from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
 from tests.fixtures.certificates import ssl_certificate
 from tests.fixtures.database import default_db_extra
@@ -109,7 +111,12 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
             "TO_TIMESTAMP('2019-01-02 03:04:05.678900', 'YYYY-MM-DD HH24:MI:SS.US')",
         )
 
-        self.assertEqual(PostgresEngineSpec.convert_dttm("DATETIME", dttm), None)
+        self.assertEqual(
+            PostgresEngineSpec.convert_dttm("DATETIME", dttm),
+            "TO_TIMESTAMP('2019-01-02 03:04:05.678900', 'YYYY-MM-DD HH24:MI:SS.US')",
+        )
+
+        self.assertEqual(PostgresEngineSpec.convert_dttm("TIME", dttm), None)
 
     def test_empty_dbapi_cursor_description(self):
         """
@@ -125,7 +132,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         """
         DB Eng Specs (postgres): Test "postgres" in engine spec
         """
-        self.assertIn("postgres", engines)
+        self.assertIn("postgres", get_engine_specs())
 
     def test_extras_without_ssl(self):
         db = mock.Mock()
@@ -166,7 +173,9 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         )
         sql = "SELECT * FROM birth_names"
         results = PostgresEngineSpec.estimate_statement_cost(sql, cursor)
-        self.assertEqual(results, {"Start-up cost": 0.00, "Total cost": 1537.91,})
+        self.assertEqual(
+            results, {"Start-up cost": 0.00, "Total cost": 1537.91,},
+        )
 
     def test_estimate_statement_invalid_syntax(self):
         """
@@ -202,3 +211,221 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
                 {"Start-up cost": "10.0", "Total cost": "1537.0",},
             ],
         )
+
+    def test_extract_errors(self):
+        """
+        Test that custom error messages are extracted correctly.
+        """
+        msg = 'psql: error: FATAL:  role "testuser" does not exist'
+        result = PostgresEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.CONNECTION_INVALID_USERNAME_ERROR,
+                message='The username "testuser" does not exist.',
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "PostgreSQL",
+                    "issue_codes": [
+                        {
+                            "code": 1012,
+                            "message": (
+                                "Issue 1012 - The username provided when "
+                                "connecting to a database is not valid."
+                            ),
+                        },
+                    ],
+                },
+            )
+        ]
+
+        msg = (
+            'psql: error: could not translate host name "locahost" to address: '
+            "nodename nor servname provided, or not known"
+        )
+        result = PostgresEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+                message='The hostname "locahost" cannot be resolved.',
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "PostgreSQL",
+                    "issue_codes": [
+                        {
+                            "code": 1007,
+                            "message": "Issue 1007 - The hostname provided "
+                            "can't be resolved.",
+                        }
+                    ],
+                },
+            )
+        ]
+
+        msg = dedent(
+            """
+psql: error: could not connect to server: Connection refused
+        Is the server running on host "localhost" (::1) and accepting
+        TCP/IP connections on port 12345?
+could not connect to server: Connection refused
+        Is the server running on host "localhost" (127.0.0.1) and accepting
+        TCP/IP connections on port 12345?
+            """
+        )
+        result = PostgresEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
+                message='Port 12345 on hostname "localhost" refused the connection.',
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "PostgreSQL",
+                    "issue_codes": [
+                        {"code": 1008, "message": "Issue 1008 - The port is closed."}
+                    ],
+                },
+            )
+        ]
+
+        msg = dedent(
+            """
+psql: error: could not connect to server: Operation timed out
+        Is the server running on host "example.com" (93.184.216.34) and accepting
+        TCP/IP connections on port 12345?
+            """
+        )
+        result = PostgresEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+                message=(
+                    'The host "example.com" might be down, '
+                    "and can't be reached on port 12345."
+                ),
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "PostgreSQL",
+                    "issue_codes": [
+                        {
+                            "code": 1009,
+                            "message": "Issue 1009 - The host might be down, "
+                            "and can't be reached on the provided port.",
+                        }
+                    ],
+                },
+            )
+        ]
+
+        # response with IP only
+        msg = dedent(
+            """
+psql: error: could not connect to server: Operation timed out
+        Is the server running on host "93.184.216.34" and accepting
+        TCP/IP connections on port 12345?
+            """
+        )
+        result = PostgresEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+                message=(
+                    'The host "93.184.216.34" might be down, '
+                    "and can't be reached on port 12345."
+                ),
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "PostgreSQL",
+                    "issue_codes": [
+                        {
+                            "code": 1009,
+                            "message": "Issue 1009 - The host might be down, "
+                            "and can't be reached on the provided port.",
+                        }
+                    ],
+                },
+            )
+        ]
+
+        msg = 'FATAL:  password authentication failed for user "postgres"'
+        result = PostgresEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.CONNECTION_INVALID_PASSWORD_ERROR,
+                message=('The password provided for username "postgres" is incorrect.'),
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "PostgreSQL",
+                    "issue_codes": [
+                        {
+                            "code": 1013,
+                            "message": (
+                                "Issue 1013 - The password provided when "
+                                "connecting to a database is not valid."
+                            ),
+                        },
+                    ],
+                },
+            )
+        ]
+
+        msg = 'database "badDB" does not exist'
+        result = PostgresEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                message='Unable to connect to database "badDB".',
+                error_type=SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "PostgreSQL",
+                    "issue_codes": [
+                        {
+                            "code": 1015,
+                            "message": (
+                                "Issue 1015 - Either the database is spelled "
+                                "incorrectly or does not exist.",
+                            ),
+                        }
+                    ],
+                },
+            )
+        ]
+
+
+def test_base_parameters_mixin():
+    parameters = {
+        "username": "username",
+        "password": "password",
+        "host": "localhost",
+        "port": 5432,
+        "database": "dbname",
+        "query": {"foo": "bar"},
+    }
+    sqlalchemy_uri = PostgresEngineSpec.build_sqlalchemy_url(parameters)
+    assert (
+        sqlalchemy_uri
+        == "postgresql+psycopg2://username:password@localhost:5432/dbname?foo=bar"
+    )
+
+    parameters_from_uri = PostgresEngineSpec.get_parameters_from_uri(sqlalchemy_uri)
+    assert parameters_from_uri == parameters
+
+    json_schema = PostgresEngineSpec.parameters_json_schema()
+    assert json_schema == {
+        "type": "object",
+        "properties": {
+            "host": {"type": "string", "description": "Hostname or IP address"},
+            "username": {"type": "string", "nullable": True, "description": "Username"},
+            "password": {"type": "string", "nullable": True, "description": "Password"},
+            "database": {"type": "string", "description": "Database name"},
+            "query": {
+                "type": "object",
+                "description": "Additinal parameters",
+                "additionalProperties": {},
+            },
+            "port": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Database port",
+            },
+        },
+        "required": ["database", "host", "port"],
+    }

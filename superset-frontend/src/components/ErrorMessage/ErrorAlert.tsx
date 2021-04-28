@@ -19,7 +19,7 @@
 import React, { useState, ReactNode } from 'react';
 import { styled, supersetTheme, t } from '@superset-ui/core';
 import { noOp } from 'src/utils/common';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 
 import Icon from '../Icon';
@@ -103,7 +103,7 @@ export default function ErrorAlert({
   const isExpandable = ['explore', 'sqllab'].includes(source);
 
   return (
-    <ErrorAlertDiv level={level}>
+    <ErrorAlertDiv level={level} role="alert">
       <div className="top-row">
         <LeftSideContent>
           <Icon

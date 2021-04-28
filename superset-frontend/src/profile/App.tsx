@@ -22,12 +22,13 @@ import thunk from 'redux-thunk';
 import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import { Provider } from 'react-redux';
 import { ThemeProvider } from '@superset-ui/core';
-import App from './components/App';
-import messageToastReducer from '../messageToasts/reducers';
-import { initEnhancer } from '../reduxUtils';
-import setupApp from '../setup/setupApp';
+import App from 'src/profile/components/App';
+import messageToastReducer from 'src/messageToasts/reducers';
+import { initEnhancer } from 'src/reduxUtils';
+import setupApp from 'src/setup/setupApp';
 import './main.less';
-import { theme } from '../preamble';
+import { theme } from 'src/preamble';
+import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 
 setupApp();
 
@@ -48,6 +49,7 @@ const Application = () => (
   <Provider store={store}>
     <ThemeProvider theme={theme}>
       <App user={bootstrap.user} />
+      <ToastPresenter />
     </ThemeProvider>
   </Provider>
 );

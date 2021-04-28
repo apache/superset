@@ -43,16 +43,20 @@ const generateFileStem = (description: string, date = new Date()) =>
  * @param selector css selector of the parent element which should be turned into image
  * @param description name or a short description of what is being printed.
  *   Value will be normalized, and a date as well as a file extension will be added.
- * @param backgroundColor background color to apply to screenshot document
+ * @param domToImageOptions dom-to-image Options object.
+ * @param isExactSelector if false, searches for the closest ancestor that matches selector.
  * @returns event handler
  */
 export default function downloadAsImage(
   selector: string,
   description: string,
   domToImageOptions: Options = {},
+  isExactSelector = false,
 ) {
   return (event: SyntheticEvent) => {
-    const elementToPrint = event.currentTarget.closest(selector);
+    const elementToPrint = isExactSelector
+      ? document.querySelector(selector)
+      : event.currentTarget.closest(selector);
 
     if (!elementToPrint) {
       return addWarningToast(
@@ -64,6 +68,10 @@ export default function downloadAsImage(
       .toJpeg(elementToPrint, {
         quality: 0.95,
         bgcolor: GRAY_BACKGROUND_COLOR,
+        // Mapbox controls are loaded from different origin, causing CORS error
+        // See https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toDataURL#exceptions
+        filter: (node: Element) =>
+          node.className !== 'mapboxgl-control-container',
         ...domToImageOptions,
       })
       .then(dataUrl => {
@@ -71,6 +79,9 @@ export default function downloadAsImage(
         link.download = `${generateFileStem(description)}.jpg`;
         link.href = dataUrl;
         link.click();
+      })
+      .catch(e => {
+        console.error('Creating image failed', e);
       });
   };
 }

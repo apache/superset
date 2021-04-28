@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import Popover from 'src/common/components/Popover';
+import Popover from 'src/components/Popover';
 import { decimal2sexagesimal } from 'geolib';
 
 import Label from 'src/components/Label';

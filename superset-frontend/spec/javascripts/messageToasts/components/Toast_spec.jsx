@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Alert } from 'react-bootstrap';
 import React from 'react';
 import { mount } from 'enzyme';
 import Toast from 'src/messageToasts/components/Toast';
@@ -31,20 +30,19 @@ const props = {
 const setup = overrideProps => mount(<Toast {...props} {...overrideProps} />);
 
 describe('Toast', () => {
-  it('should render an Alert', () => {
+  it('should render', () => {
     const wrapper = setup();
-    expect(wrapper.find(Alert)).toExist();
+    expect(wrapper.find('[data-test="toast-container"]')).toExist();
   });
 
-  it('should render toastText within the alert', () => {
+  it('should render toastText within the div', () => {
     const wrapper = setup();
-    const alert = wrapper.find(Alert);
-
-    expect(alert.childAt(0).childAt(1).text()).toBe(props.toast.text);
+    const container = wrapper.find('[data-test="toast-container"]');
+    expect(container.hostNodes().childAt(1).text()).toBe(props.toast.text);
   });
 
-  it('should call onCloseToast upon alert dismissal', async () => {
-    await act(
+  it('should call onCloseToast upon toast dismissal', async () =>
+    act(
       () =>
         new Promise(done => {
           const onCloseToast = id => {
@@ -53,13 +51,7 @@ describe('Toast', () => {
           };
 
           const wrapper = setup({ onCloseToast });
-          const handleClosePress = wrapper.find('[label="Close alert"]').props()
-            .onClick;
-
-          const alertProps = wrapper.find(Alert).props();
-          expect(alertProps.onDismiss).toBe(handleClosePress);
-          handleClosePress(); // there is a timeout for onCloseToast to be called
+          wrapper.find('[data-test="close-button"]').props().onClick();
         }),
-    );
-  });
+    ));
 });

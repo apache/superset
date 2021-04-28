@@ -49,13 +49,6 @@ Create chart name and version as used by the chart label.
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
-{{- define "superset-bootstrap" }}
-#!/bin/sh
-
-pip install {{ range .Values.additionalRequirements }}{{ . }} {{ end }}
-
-{{ end -}}
-
 {{- define "superset-config" }}
 import os
 from cachelib.redis import RedisCache
@@ -70,8 +63,8 @@ CACHE_CONFIG = {
       'CACHE_KEY_PREFIX': 'superset_',
       'CACHE_REDIS_HOST': env('REDIS_HOST'),
       'CACHE_REDIS_PORT': env('REDIS_PORT'),
-      'CACHE_REDIS_DB': 1,
-      'CACHE_REDIS_URL': f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/1"
+      'CACHE_REDIS_PASSWORD': env('REDIS_PASSWORD'),
+      'CACHE_REDIS_DB': env('REDIS_DB', 1),
 }
 DATA_CACHE_CONFIG = CACHE_CONFIG
 
@@ -102,7 +95,7 @@ RESULTS_BACKEND = RedisCache(
 # Overrides
 {{- range $key, $value := .Values.configOverrides }}
 # {{ $key }}
-{{ $value }}
+{{ tpl $value $ }}
 {{- end }}
 {{- end }}
 

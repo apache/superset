@@ -18,40 +18,36 @@
  */
 import { styled } from '@superset-ui/core';
 import React, { useState, useEffect } from 'react';
-import DateFilterControl from 'src/explore/components/controls/DateFilterControl/DateFilterControl';
-import { PluginFilterStylesProps } from '../types';
+import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { PluginFilterTimeProps } from './types';
+import { Styles } from '../common';
 
 const DEFAULT_VALUE = 'Last week';
 
-const Styles = styled.div<PluginFilterStylesProps>`
-  height: ${({ height }) => height}px;
-  width: ${({ width }) => width}px;
+const TimeFilterStyles = styled(Styles)`
   overflow-x: scroll;
 `;
 
 export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
-  const { formData, setExtraFormData, width } = props;
-  const { defaultValue, currentValue } = formData;
+  const { formData, setDataMask, width, filterState } = props;
+  const { defaultValue } = formData;
 
   const [value, setValue] = useState<string>(defaultValue ?? DEFAULT_VALUE);
 
   const handleTimeRangeChange = (timeRange: string): void => {
-    setExtraFormData({
-      // @ts-ignore
-      extraFormData: {
-        override_form_data: {
-          time_range: timeRange,
-        },
-      },
-      currentState: { value: timeRange },
-    });
     setValue(timeRange);
+
+    setDataMask({
+      extraFormData: {
+        time_range: timeRange,
+      },
+      filterState: { value: timeRange },
+    });
   };
 
   useEffect(() => {
-    handleTimeRangeChange(currentValue ?? DEFAULT_VALUE);
-  }, [currentValue]);
+    handleTimeRangeChange(filterState.value ?? DEFAULT_VALUE);
+  }, [filterState.value]);
 
   useEffect(() => {
     handleTimeRangeChange(defaultValue ?? DEFAULT_VALUE);
@@ -59,12 +55,12 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
 
   return (
     // @ts-ignore
-    <Styles width={width}>
+    <TimeFilterStyles width={width}>
       <DateFilterControl
         value={value}
         name="time_range"
         onChange={handleTimeRangeChange}
       />
-    </Styles>
+    </TimeFilterStyles>
   );
 }

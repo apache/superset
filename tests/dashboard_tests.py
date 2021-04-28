@@ -20,20 +20,21 @@ from datetime import datetime
 import json
 import unittest
 from random import random
-from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import pytest
 from flask import escape, url_for
 from sqlalchemy import func
 
-from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_position
 from tests.test_app import app
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.fixtures.energy_dashboard import load_energy_table_with_slice
+from tests.fixtures.public_role import public_role_like_gamma
+from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_position
 from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 
 from .base_tests import SupersetTestCase
@@ -127,23 +128,8 @@ class TestDashboard(SupersetTestCase):
         dash_count_before = db.session.query(func.count(Dashboard.id)).first()[0]
         url = "/dashboard/new/"
         resp = self.get_resp(url)
-        self.assertIn("[ untitled dashboard ]", resp)
         dash_count_after = db.session.query(func.count(Dashboard.id)).first()[0]
         self.assertEqual(dash_count_before + 1, dash_count_after)
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_dashboard_modes(self):
-        self.login(username="admin")
-        dash = db.session.query(Dashboard).filter_by(slug="births").first()
-        url = dash.url
-        if dash.url.find("?") == -1:
-            url += "?"
-        else:
-            url += "&"
-        resp = self.get_resp(url + "edit=true&standalone=true")
-        self.assertIn("editMode&#34;: true", resp)
-        self.assertIn("standalone_mode&#34;: true", resp)
-        self.assertIn('<body class="standalone">', resp)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_save_dash(self, username="admin"):
@@ -188,9 +174,6 @@ class TestDashboard(SupersetTestCase):
         new_url = updatedDash.url
         self.assertIn("world_health", new_url)
         self.assertNotIn("preselect_filters", new_url)
-
-        resp = self.get_resp(new_url)
-        self.assertIn("North America", resp)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_save_dash_with_invalid_filters(self, username="admin"):
@@ -378,6 +361,7 @@ class TestDashboard(SupersetTestCase):
         self.assertEqual(len(data["slices"]), origin_slices_length - 1)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("public_role_like_gamma")
     def test_public_user_dashboard_access(self):
         table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
 
@@ -406,8 +390,6 @@ class TestDashboard(SupersetTestCase):
         resp = self.get_resp("/api/v1/dashboard/")
         self.assertIn("/superset/dashboard/births/", resp)
 
-        self.assertIn("Births", self.get_resp("/superset/dashboard/births/"))
-
         # Confirm that public doesn't have access to other datasets.
         resp = self.get_resp("/api/v1/chart/")
         self.assertNotIn("wb_health_population", resp)
@@ -419,6 +401,7 @@ class TestDashboard(SupersetTestCase):
         self.revoke_public_access_to_table(table)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("public_role_like_gamma")
     def test_dashboard_with_created_by_can_be_accessed_by_public_users(self):
         self.logout()
         table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
@@ -454,10 +437,11 @@ class TestDashboard(SupersetTestCase):
         self.test_save_dash("alpha")
 
     @pytest.mark.usefixtures("load_energy_table_with_slice", "load_dashboard")
-    def test_users_can_view_published_dashboard(self):
+    def test_users_can_list_published_dashboard(self):
+        self.login("alpha")
         resp = self.get_resp("/api/v1/dashboard/")
-        self.assertNotIn(f"/superset/dashboard/{pytest.hidden_dash_slug}/", resp)
-        self.assertIn(f"/superset/dashboard/{pytest.published_dash_slug}/", resp)
+        assert f"/superset/dashboard/{pytest.hidden_dash_slug}/" not in resp
+        assert f"/superset/dashboard/{pytest.published_dash_slug}/" in resp
 
     def test_users_can_view_own_dashboard(self):
         user = security_manager.find_user("gamma")

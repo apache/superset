@@ -23,6 +23,15 @@ export type Column = {
   name: string;
 };
 
+export type QueryState =
+  | 'stopped'
+  | 'failed'
+  | 'pending'
+  | 'running'
+  | 'scheduled'
+  | 'success'
+  | 'timed_out';
+
 export type Query = {
   cached: boolean;
   ctas: boolean;
@@ -38,6 +47,7 @@ export type Query = {
   link?: string;
   progress: number;
   results: {
+    displayLimitReached: boolean;
     columns: Column[];
     data: Record<string, unknown>[];
     expanded_columns: Column[];
@@ -47,17 +57,12 @@ export type Query = {
   schema: string;
   sql: string;
   sqlEditorId: string;
-  state:
-    | 'stopped'
-    | 'failed'
-    | 'pending'
-    | 'running'
-    | 'scheduled'
-    | 'success'
-    | 'timed_out';
+  state: QueryState;
   tab: string | null;
   tempSchema: string | null;
   tempTable: string;
   trackingUrl: string | null;
   templateParams: any;
+  rows: number;
+  queryLimit: number;
 };

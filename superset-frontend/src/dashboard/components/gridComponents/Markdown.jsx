@@ -18,14 +18,11 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import ReactMarkdown from 'react-markdown';
-import htmlParser from 'react-markdown/plugins/html-parser';
 
 import cx from 'classnames';
-import { t } from '@superset-ui/core';
+import { t, SafeMarkdown } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
@@ -79,14 +76,6 @@ const MARKDOWN_PLACE_HOLDER = `# ✨Markdown
 Click here to edit [markdown](https://bit.ly/1dQOfRK)`;
 
 const MARKDOWN_ERROR_MESSAGE = t('This markdown component has an error.');
-
-function isSafeMarkup(node) {
-  if (node.type === 'html') {
-    return /href="(javascript|vbscript|file):.*"/gim.test(node.value) === false;
-  }
-
-  return true;
-}
 
 class Markdown extends React.PureComponent {
   constructor(props) {
@@ -257,7 +246,7 @@ class Markdown extends React.PureComponent {
         showGutter={false}
         editorProps={{ $blockScrolling: true }}
         value={
-          // thisl allows "select all => delete" to give an empty editor
+          // this allows "select all => delete" to give an empty editor
           typeof this.state.markdownSource === 'string'
             ? this.state.markdownSource
             : MARKDOWN_PLACE_HOLDER
@@ -271,21 +260,14 @@ class Markdown extends React.PureComponent {
 
   renderPreviewMode() {
     const { hasError } = this.state;
+
     return (
-      <ReactMarkdown
+      <SafeMarkdown
         source={
           hasError
             ? MARKDOWN_ERROR_MESSAGE
             : this.state.markdownSource || MARKDOWN_PLACE_HOLDER
         }
-        escapeHtml={isFeatureEnabled(FeatureFlag.ESCAPE_MARKDOWN_HTML)}
-        skipHtml={!isFeatureEnabled(FeatureFlag.DISPLAY_MARKDOWN_HTML)}
-        allowNode={isSafeMarkup}
-        astPlugins={[
-          htmlParser({
-            isValidNode: node => node.type !== 'script',
-          }),
-        ]}
       />
     );
   }

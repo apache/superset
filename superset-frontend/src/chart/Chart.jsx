@@ -18,16 +18,16 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { Alert } from 'react-bootstrap';
-import { styled, logging } from '@superset-ui/core';
+import Alert from 'src/components/Alert';
+import { styled, logging, t } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
-import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
+import Button from 'src/components/Button';
 import Loading from '../components/Loading';
-import RefreshChartOverlay from '../components/RefreshChartOverlay';
-import ErrorMessageWithStackTrace from '../components/ErrorMessage/ErrorMessageWithStackTrace';
 import ErrorBoundary from '../components/ErrorBoundary';
 import ChartRenderer from './ChartRenderer';
+import { ChartErrorMessage } from './ChartErrorMessage';
+import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -43,15 +43,13 @@ const propTypes = {
   // formData contains chart's own filter parameter
   // and merged with extra filter that current dashboard applying
   formData: PropTypes.object.isRequired,
-  height: PropTypes.number,
   width: PropTypes.number,
+  height: PropTypes.number,
   setControlValue: PropTypes.func,
   timeout: PropTypes.number,
   vizType: PropTypes.string.isRequired,
   triggerRender: PropTypes.bool,
-  owners: PropTypes.arrayOf(
-    PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  ),
+  isFiltersInitialized: PropTypes.bool,
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
@@ -65,6 +63,7 @@ const propTypes = {
   onQuery: PropTypes.func,
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
+  ownState: PropTypes.object,
 };
 
 const BLANK = {};
@@ -90,6 +89,17 @@ const Styles = styled.div`
   }
 `;
 
+const RefreshOverlayWrapper = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
 class Chart extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -111,6 +121,13 @@ class Chart extends React.PureComponent {
   }
 
   runQuery() {
+    if (
+      this.props.dashboardId && // we on dashboard screen
+      isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
+      !this.props.isFiltersInitialized
+    ) {
+      return;
+    }
     if (this.props.chartId > 0 && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)) {
       // Load saved chart with a GET request
       this.props.actions.getSavedChart(
@@ -119,6 +136,7 @@ class Chart extends React.PureComponent {
         this.props.timeout,
         this.props.chartId,
         this.props.dashboardId,
+        this.props.ownState,
       );
     } else {
       // Create chart with POST request
@@ -128,6 +146,7 @@ class Chart extends React.PureComponent {
         this.props.timeout,
         this.props.chartId,
         this.props.dashboardId,
+        this.props.ownState,
       );
     }
   }
@@ -152,17 +171,13 @@ class Chart extends React.PureComponent {
   }
 
   renderErrorMessage(queryResponse) {
-    const { chartAlert, chartStackTrace, dashboardId, owners } = this.props;
+    const { chartId, chartAlert, chartStackTrace, dashboardId } = this.props;
 
     const error = queryResponse?.errors?.[0];
-    if (error) {
-      const extra = error.extra || {};
-      extra.owners = owners;
-      error.extra = extra;
-    }
     const message = chartAlert || queryResponse?.message;
     return (
-      <ErrorMessageWithStackTrace
+      <ChartErrorMessage
+        chartId={chartId}
         error={error}
         subtitle={message}
         copyText={message}
@@ -175,7 +190,6 @@ class Chart extends React.PureComponent {
 
   render() {
     const {
-      width,
       height,
       chartAlert,
       chartStatus,
@@ -193,9 +207,11 @@ class Chart extends React.PureComponent {
     }
     if (errorMessage) {
       return (
-        <Alert data-test="alert-warning" bsStyle="warning">
-          {errorMessage}
-        </Alert>
+        <Alert
+          data-test="alert-warning"
+          message={errorMessage}
+          type="warning"
+        />
       );
     }
 
@@ -217,11 +233,11 @@ class Chart extends React.PureComponent {
           </div>
 
           {!isLoading && !chartAlert && isFaded && (
-            <RefreshChartOverlay
-              width={width}
-              height={height}
-              onQuery={onQuery}
-            />
+            <RefreshOverlayWrapper>
+              <Button onClick={onQuery} buttonStyle="primary">
+                {t('Run query')}
+              </Button>
+            </RefreshOverlayWrapper>
           )}
 
           {isLoading && <Loading />}

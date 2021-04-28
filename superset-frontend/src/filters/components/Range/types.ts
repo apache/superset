@@ -17,9 +17,11 @@
  * under the License.
  */
 import {
+  Behavior,
   DataRecord,
+  FilterState,
   QueryFormData,
-  SetExtraFormDataHook,
+  SetDataMaskHook,
 } from '@superset-ui/core';
 import { RefObject } from 'react';
 import { PluginFilterStylesProps } from '../types';
@@ -36,6 +38,8 @@ export type PluginFilterRangeQueryFormData = QueryFormData &
 export type PluginFilterRangeProps = PluginFilterStylesProps & {
   data: DataRecord[];
   formData: PluginFilterRangeQueryFormData;
-  setExtraFormData: SetExtraFormDataHook;
+  setDataMask: SetDataMaskHook;
+  filterState: FilterState;
+  behaviors: Behavior[];
   inputRef: RefObject<any>;
 };

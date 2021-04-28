@@ -104,6 +104,7 @@ module.exports = {
         'no-mixed-operators': 0,
         'no-multi-assign': 0,
         'no-multi-spaces': 0,
+        'no-nested-ternary': 0,
         'no-prototype-builtins': 0,
         'no-restricted-properties': 0,
         'no-restricted-imports': [
@@ -188,6 +189,7 @@ module.exports = {
         ],
         'jest/consistent-test-it': 'error',
         'no-only-tests/no-only-tests': 'error',
+        '@typescript-eslint/no-non-null-assertion': 0,
       },
     },
   ],
@@ -225,6 +227,7 @@ module.exports = {
     'no-mixed-operators': 0,
     'no-multi-assign': 0,
     'no-multi-spaces': 0,
+    'no-nested-ternary': 0,
     'no-prototype-builtins': 0,
     'no-restricted-properties': 0,
     'no-restricted-imports': [

@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from unittest.mock import MagicMock
+
 from sqlalchemy import column
 
 from superset.db_engine_specs.elasticsearch import (
@@ -54,3 +56,15 @@ class TestElasticSearchDbEngineSpec(TestDbEngineSpec):
         for original, expected in test_cases.items():
             actual = OpenDistroEngineSpec.make_label_compatible(column(original).name)
             self.assertEqual(actual, expected)
+
+    def test_opendistro_strip_comments(self):
+        """
+        DB Eng Specs (opendistro): Test execute sql strip comments
+        """
+        mock_cursor = MagicMock()
+        mock_cursor.execute.return_value = []
+
+        OpenDistroEngineSpec.execute(
+            mock_cursor, "-- some comment \nSELECT 1\n --other comment"
+        )
+        mock_cursor.execute.assert_called_once_with("SELECT 1\n")

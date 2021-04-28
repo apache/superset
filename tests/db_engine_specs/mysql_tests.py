@@ -20,6 +20,7 @@ from sqlalchemy.dialects import mysql
 from sqlalchemy.dialects.mysql import DATE, NVARCHAR, TEXT, VARCHAR
 
 from superset.db_engine_specs.mysql import MySQLEngineSpec
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils.core import GenericDataType
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
@@ -89,18 +90,9 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
             ("TIME", GenericDataType.TEMPORAL),
         )
 
-        for type_expectation in type_expectations:
-            type_str = type_expectation[0]
-            col_type = type_expectation[1]
-            assert MySQLEngineSpec.is_db_column_type_match(
-                type_str, GenericDataType.NUMERIC
-            ) is (col_type == GenericDataType.NUMERIC)
-            assert MySQLEngineSpec.is_db_column_type_match(
-                type_str, GenericDataType.STRING
-            ) is (col_type == GenericDataType.STRING)
-            assert MySQLEngineSpec.is_db_column_type_match(
-                type_str, GenericDataType.TEMPORAL
-            ) is (col_type == GenericDataType.TEMPORAL)
+        for type_str, col_type in type_expectations:
+            column_spec = MySQLEngineSpec.get_column_spec(type_str)
+            assert column_spec.generic_type == col_type
 
     def test_extract_error_message(self):
         from MySQLdb._exceptions import OperationalError
@@ -113,3 +105,112 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
         exception = OperationalError(123, message)
         extracted_message = MySQLEngineSpec._extract_error_message(exception)
         assert extracted_message == message
+
+    def test_extract_errors(self):
+        """
+        Test that custom error messages are extracted correctly.
+        """
+        msg = "mysql: Access denied for user 'test'@'testuser.com'. "
+        result = MySQLEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+                message='Either the username "test" or the password is incorrect.',
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "MySQL",
+                    "issue_codes": [
+                        {
+                            "code": 1014,
+                            "message": "Issue 1014 - Either the"
+                            " username or the password is wrong.",
+                        },
+                        {
+                            "code": 1015,
+                            "message": "Issue 1015 - Either the database is "
+                            "spelled incorrectly or does not exist.",
+                        },
+                    ],
+                },
+            )
+        ]
+
+        msg = "mysql: Unknown MySQL server host 'badhostname.com'. "
+        result = MySQLEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+                message='Unknown MySQL server host "badhostname.com".',
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "MySQL",
+                    "issue_codes": [
+                        {
+                            "code": 1007,
+                            "message": "Issue 1007 - The hostname"
+                            " provided can't be resolved.",
+                        }
+                    ],
+                },
+            )
+        ]
+
+        msg = "mysql: Can't connect to MySQL server on 'badconnection.com'."
+        result = MySQLEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+                message='The host "badconnection.com" might be '
+                "down and can't be reached.",
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "MySQL",
+                    "issue_codes": [
+                        {
+                            "code": 1007,
+                            "message": "Issue 1007 - The hostname provided"
+                            " can't be resolved.",
+                        }
+                    ],
+                },
+            )
+        ]
+
+        msg = "mysql: Can't connect to MySQL server on '93.184.216.34'."
+        result = MySQLEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+                message='The host "93.184.216.34" might be down and can\'t be reached.',
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "MySQL",
+                    "issue_codes": [
+                        {
+                            "code": 10007,
+                            "message": "Issue 1007 - The hostname provided "
+                            "can't be resolved.",
+                        }
+                    ],
+                },
+            )
+        ]
+
+        msg = "mysql: Unknown database 'badDB'."
+        result = MySQLEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                message='Unable to connect to database "badDB".',
+                error_type=SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "MySQL",
+                    "issue_codes": [
+                        {
+                            "code": 1015,
+                            "message": "Issue 1015 - Either the database is spelled incorrectly or does not exist.",
+                        }
+                    ],
+                },
+            )
+        ]

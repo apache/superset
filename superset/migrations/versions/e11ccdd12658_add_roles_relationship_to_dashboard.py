@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """add roles relationship to dashboard
+
 Revision ID: e11ccdd12658
 Revises: 260bf0649a77
 Create Date: 2021-01-14 19:12:43.406230

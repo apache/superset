@@ -26,9 +26,12 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import { IconName } from 'src/components/Icon';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import ListView, { ListViewProps, Filters } from 'src/components/ListView';
+import ListView, {
+  ListViewProps,
+  Filters,
+  FilterOperator,
+} from 'src/components/ListView';
 import Button from 'src/components/Button';
 import DeleteModal from 'src/components/DeleteModal';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -230,7 +233,7 @@ function AnnotationLayersList({
                   label: 'edit-action',
                   tooltip: t('Edit template'),
                   placement: 'bottom',
-                  icon: 'edit' as IconName,
+                  icon: 'Edit',
                   onClick: handleEdit,
                 }
               : null,
@@ -239,7 +242,7 @@ function AnnotationLayersList({
                   label: 'delete-action',
                   tooltip: t('Delete template'),
                   placement: 'bottom',
-                  icon: 'trash' as IconName,
+                  icon: 'Trash',
                   onClick: handleDelete,
                 }
               : null,
@@ -287,7 +290,7 @@ function AnnotationLayersList({
         Header: t('Created by'),
         id: 'created_by',
         input: 'select',
-        operator: 'rel_o_m',
+        operator: FilterOperator.relationOneMany,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'annotation_layer',
@@ -306,7 +309,7 @@ function AnnotationLayersList({
         Header: t('Search'),
         id: 'name',
         input: 'search',
-        operator: 'ct',
+        operator: FilterOperator.contains,
       },
     ],
     [],
@@ -334,6 +337,11 @@ function AnnotationLayersList({
     window.location.href = `/annotationmodelview/${id}/annotation`;
   };
 
+  const onModalHide = () => {
+    refreshData();
+    setAnnotationLayerModalOpen(false);
+  };
+
   return (
     <>
       <SubMenu name={t('Annotation layers')} buttons={subMenuButtons} />
@@ -341,7 +349,7 @@ function AnnotationLayersList({
         addDangerToast={addDangerToast}
         layer={currentAnnotationLayer}
         onLayerAdd={onLayerAdd}
-        onHide={() => setAnnotationLayerModalOpen(false)}
+        onHide={onModalHide}
         show={annotationLayerModalOpen}
       />
       {layerCurrentlyDeleting && (

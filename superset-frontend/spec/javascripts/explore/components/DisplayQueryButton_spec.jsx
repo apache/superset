@@ -17,10 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { mount } from 'enzyme';
+import { mount, shallow } from 'enzyme';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import { Menu } from 'src/common/components';
-import ModalTrigger from 'src/components/ModalTrigger';
+import { Dropdown, Menu } from 'src/common/components';
 import { DisplayQueryButton } from 'src/explore/components/DisplayQueryButton';
 
 describe('DisplayQueryButton', () => {
@@ -43,14 +42,16 @@ describe('DisplayQueryButton', () => {
       true,
     );
   });
-  it('renders a dropdown', () => {
+  it('renders a dropdown with 3 itens', () => {
     const wrapper = mount(<DisplayQueryButton {...defaultProps} />, {
       wrappingComponent: ThemeProvider,
       wrappingComponentProps: {
         theme: supersetTheme,
       },
     });
-    expect(wrapper.find(ModalTrigger)).toHaveLength(1);
-    expect(wrapper.find(Menu.Item)).toHaveLength(3);
+    const dropdown = wrapper.find(Dropdown);
+    const menu = shallow(<div>{dropdown.prop('overlay')}</div>);
+    const menuItems = menu.find(Menu.Item);
+    expect(menuItems).toHaveLength(3);
   });
 });

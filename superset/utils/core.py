@@ -19,7 +19,6 @@ import collections
 import decimal
 import errno
 import functools
-import hashlib
 import json
 import logging
 import os
@@ -82,9 +81,15 @@ from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
-from sqlalchemy.types import TEXT, TypeDecorator
+from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
+from typing_extensions import TypedDict
 
 import _thread  # pylint: disable=C0411
+from superset.constants import (
+    EXTRA_FORM_DATA_APPEND_KEYS,
+    EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
+    EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
+)
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import (
     CertificateException,
@@ -93,6 +98,7 @@ from superset.exceptions import (
 )
 from superset.typing import FlaskResponse, FormData, Metric
 from superset.utils.dates import datetime_to_epoch, EPOCH
+from superset.utils.hashing import md5_sha_from_str
 
 try:
     from pydruid.utils.having import Having
@@ -100,7 +106,7 @@ except ImportError:
     pass
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.base.models import BaseColumn, BaseDatasource
     from superset.models.core import Database
 
 
@@ -147,6 +153,10 @@ class GenericDataType(IntEnum):
     STRING = 1
     TEMPORAL = 2
     BOOLEAN = 3
+    # ARRAY = 4     # Mapping all the complex data types to STRING for now
+    # JSON = 5      # and leaving these as a reminder.
+    # MAP = 6
+    # ROW = 7
 
 
 class ChartDataResultFormat(str, Enum):
@@ -163,10 +173,17 @@ class ChartDataResultType(str, Enum):
     Chart data response type
     """
 
+    COLUMNS = "columns"
     FULL = "full"
     QUERY = "query"
     RESULTS = "results"
     SAMPLES = "samples"
+    TIMEGRAINS = "timegrains"
+
+
+class DatasourceDict(TypedDict):
+    type: str
+    id: int
 
 
 class ExtraFiltersTimeColumnType(str, Enum):
@@ -246,6 +263,13 @@ class QueryStatus(str, Enum):  # pylint: disable=too-few-public-methods
     TIMED_OUT: str = "timed_out"
 
 
+class DashboardStatus(str, Enum):
+    """Dashboard status used for frontend filters"""
+
+    PUBLISHED = "published"
+    DRAFT = "draft"
+
+
 class ReservedUrlParameters(str, Enum):
     """
     Reserved URL parameters that are used internally by Superset. These will not be
@@ -296,6 +320,18 @@ class TemporalType(str, Enum):
     TEXT = "TEXT"
     TIME = "TIME"
     TIMESTAMP = "TIMESTAMP"
+
+
+class ColumnTypeSource(Enum):
+    GET_TABLE = 1
+    CURSOR_DESCRIPION = 2
+
+
+class ColumnSpec(NamedTuple):
+    sqla_type: Union[TypeEngine, str]
+    generic_type: GenericDataType
+    is_dttm: bool
+    python_date_format: Optional[str] = None
 
 
 try:
@@ -406,6 +442,10 @@ def parse_js_uri_path_item(
 def cast_to_num(value: Optional[Union[float, int, str]]) -> Optional[Union[float, int]]:
     """Casts a value to an int/float
 
+    >>> cast_to_num('1 ')
+    1.0
+    >>> cast_to_num(' 2')
+    2.0
     >>> cast_to_num('5')
     5
     >>> cast_to_num('5.2')
@@ -442,10 +482,6 @@ def list_minus(l: List[Any], minus: List[Any]) -> List[Any]:
     [1, 3]
     """
     return [o for o in l if o not in minus]
-
-
-def md5_hex(data: str) -> str:
-    return hashlib.md5(data.encode()).hexdigest()
 
 
 class DashboardEncoder(json.JSONEncoder):
@@ -950,7 +986,7 @@ def send_mime_email(
             smtp.starttls()
         if smtp_user and smtp_password:
             smtp.login(smtp_user, smtp_password)
-        logger.info("Sent an email to %s", str(e_to))
+        logger.debug("Sent an email to %s", str(e_to))
         smtp.sendmail(e_from, e_to, mime_msg.as_string())
         smtp.quit()
     else:
@@ -1033,31 +1069,40 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
     Merge extra form data (appends and overrides) into the main payload
     and add applied time extras to the payload.
     """
-    time_extras = {
-        "time_range": "__time_range",
-        "granularity_sqla": "__time_col",
-        "time_grain_sqla": "__time_grain",
-        "druid_time_origin": "__time_origin",
-        "granularity": "__granularity",
-    }
-    applied_time_extras = form_data.get("applied_time_extras", {})
-    form_data["applied_time_extras"] = applied_time_extras
+    filter_keys = ["filters", "adhoc_filters"]
     extra_form_data = form_data.pop("extra_form_data", {})
-    append_form_data = extra_form_data.pop("append_form_data", {})
-    append_filters = append_form_data.get("filters", None)
-    override_form_data = extra_form_data.pop("override_form_data", {})
-    for key, value in override_form_data.items():
-        form_data[key] = value
-        # mark as temporal overrides as applied time extras
-        time_extra = time_extras.get(key)
-        if time_extra:
-            applied_time_extras[time_extra] = value
+    append_filters = extra_form_data.get("filters", None)
+
+    # merge append extras
+    for key in [key for key in EXTRA_FORM_DATA_APPEND_KEYS if key not in filter_keys]:
+        extra_value = getattr(extra_form_data, key, {})
+        form_value = getattr(form_data, key, {})
+        form_value.update(extra_value)
+        if form_value:
+            form_data["key"] = extra_value
+
+    # map regular extras that apply to form data properties
+    for src_key, target_key in EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.items():
+        value = extra_form_data.get(src_key)
+        if value is not None:
+            form_data[target_key] = value
+
+    # map extras that apply to form data extra properties
+    extras = form_data.get("extras", {})
+    for key in EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS:
+        value = extra_form_data.get(key)
+        if value is not None:
+            extras[key] = value
+    if extras:
+        form_data["extras"] = extras
 
     adhoc_filters = form_data.get("adhoc_filters", [])
     form_data["adhoc_filters"] = adhoc_filters
+    append_adhoc_filters = extra_form_data.get("adhoc_filters", [])
+    adhoc_filters.extend({"isExtra": True, **fltr} for fltr in append_adhoc_filters)
     if append_filters:
         adhoc_filters.extend(
-            [to_adhoc({"isExtra": True, **fltr}) for fltr in append_filters if fltr]
+            to_adhoc({"isExtra": True, **fltr}) for fltr in append_filters if fltr
         )
 
 
@@ -1207,7 +1252,7 @@ def backend() -> str:
 
 
 def is_adhoc_metric(metric: Metric) -> bool:
-    return isinstance(metric, dict)
+    return isinstance(metric, dict) and "expressionType" in metric
 
 
 def get_metric_name(metric: Metric) -> str:
@@ -1332,7 +1377,7 @@ def create_ssl_cert_file(certificate: str) -> str:
     :return: The path to the certificate file
     :raises CertificateException: If certificate is not valid/unparseable
     """
-    filename = f"{hashlib.md5(certificate.encode('utf-8')).hexdigest()}.crt"
+    filename = f"{md5_sha_from_str(certificate)}.crt"
     cert_dir = current_app.config["SSL_CERT_PATH"]
     path = cert_dir if cert_dir else tempfile.gettempdir()
     path = os.path.join(path, filename)
@@ -1490,6 +1535,15 @@ def extract_dataframe_dtypes(df: pd.DataFrame) -> List[GenericDataType]:
     return generic_types
 
 
+def extract_column_dtype(col: "BaseColumn") -> GenericDataType:
+    if col.is_temporal:
+        return GenericDataType.TEMPORAL
+    if col.is_numeric:
+        return GenericDataType.NUMERIC
+    # TODO: add check for boolean data type when proper support is added
+    return GenericDataType.STRING
+
+
 def indexed(
     items: List[Any], key: Union[str, Callable[[Any], Any]]
 ) -> Dict[Any, List[Any]]:
@@ -1582,15 +1636,30 @@ def find_duplicates(items: Iterable[InputType]) -> List[InputType]:
     return [item for item, count in collections.Counter(items).items() if count > 1]
 
 
+def remove_duplicates(
+    items: Iterable[InputType], key: Optional[Callable[[InputType], Any]] = None
+) -> List[InputType]:
+    """Remove duplicate items in an iterable."""
+    if not key:
+        return list(dict.fromkeys(items).keys())
+    seen = set()
+    result = []
+    for item in items:
+        item_key = key(item)
+        if item_key not in seen:
+            seen.add(item_key)
+            result.append(item)
+    return result
+
+
 def normalize_dttm_col(
     df: pd.DataFrame,
     timestamp_format: Optional[str],
     offset: int,
     time_shift: Optional[timedelta],
-) -> pd.DataFrame:
+) -> None:
     if DTTM_ALIAS not in df.columns:
-        return df
-    df = df.copy()
+        return
     if timestamp_format in ("epoch_s", "epoch_ms"):
         dttm_col = df[DTTM_ALIAS]
         if is_numeric_dtype(dttm_col):
@@ -1610,4 +1679,3 @@ def normalize_dttm_col(
         df[DTTM_ALIAS] += timedelta(hours=offset)
     if time_shift is not None:
         df[DTTM_ALIAS] += time_shift
-    return df

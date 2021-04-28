@@ -19,10 +19,10 @@
 import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
-import { RangePicker } from 'src/common/components/DatePicker';
+import { RangePicker } from 'src/components/DatePicker';
 import moment from 'moment';
 import Icon from 'src/components/Icon';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 
@@ -111,9 +111,24 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
     addDangerToast,
   );
 
+  const resetAnnotation = () => {
+    // Reset annotation
+    setCurrentAnnotation({
+      short_descr: '',
+      start_dttm: '',
+      end_dttm: '',
+      json_metadata: '',
+      long_descr: '',
+    });
+  };
+
   // Functions
   const hide = () => {
     setIsHidden(true);
+
+    // Reset annotation
+    resetAnnotation();
+
     onHide();
   };
 
@@ -127,7 +142,12 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
         delete currentAnnotation.changed_by;
         delete currentAnnotation.changed_on_delta_humanized;
         delete currentAnnotation.layer;
-        updateResource(update_id, currentAnnotation).then(() => {
+        updateResource(update_id, currentAnnotation).then(response => {
+          // No response on error
+          if (!response) {
+            return;
+          }
+
           if (onAnnotationAdd) {
             onAnnotationAdd();
           }
@@ -137,7 +157,11 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       }
     } else if (currentAnnotation) {
       // Create
-      createResource(currentAnnotation).then(() => {
+      createResource(currentAnnotation).then(response => {
+        if (!response) {
+          return;
+        }
+
         if (onAnnotationAdd) {
           onAnnotationAdd();
         }
@@ -206,32 +230,32 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   };
 
   // Initialize
-  if (
-    isEditMode &&
-    (!currentAnnotation ||
-      !currentAnnotation.id ||
-      (annotation && annotation.id !== currentAnnotation.id) ||
-      (isHidden && show))
-  ) {
-    if (annotation && annotation.id !== null && !loading) {
-      const id = annotation.id || 0;
+  useEffect(() => {
+    if (
+      isEditMode &&
+      (!currentAnnotation ||
+        !currentAnnotation.id ||
+        (annotation && annotation.id !== currentAnnotation.id) ||
+        (isHidden && show))
+    ) {
+      if (annotation && annotation.id !== null && !loading) {
+        const id = annotation.id || 0;
 
-      fetchResource(id).then(() => {
-        setCurrentAnnotation(resource);
-      });
+        fetchResource(id);
+      }
+    } else if (
+      !isEditMode &&
+      (!currentAnnotation || currentAnnotation.id || (isHidden && show))
+    ) {
+      resetAnnotation();
     }
-  } else if (
-    !isEditMode &&
-    (!currentAnnotation || currentAnnotation.id || (isHidden && show))
-  ) {
-    setCurrentAnnotation({
-      short_descr: '',
-      start_dttm: '',
-      end_dttm: '',
-      json_metadata: '',
-      long_descr: '',
-    });
-  }
+  }, [annotation]);
+
+  useEffect(() => {
+    if (resource) {
+      setCurrentAnnotation(resource);
+    }
+  }, [resource]);
 
   // Validation
   useEffect(() => {
@@ -287,14 +311,13 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
           <span className="required">*</span>
         </div>
         <RangePicker
-          format="YYYY-MM-DD hh:mm a"
+          format="YYYY-MM-DD HH:mm"
           onChange={onDateChange}
           showTime={{ format: 'hh:mm a' }}
           use12Hours
           value={
-            currentAnnotation &&
-            (currentAnnotation?.start_dttm.length ||
-              currentAnnotation?.end_dttm.length)
+            currentAnnotation?.start_dttm?.length ||
+            currentAnnotation?.end_dttm?.length
               ? [
                   moment(currentAnnotation.start_dttm),
                   moment(currentAnnotation.end_dttm),

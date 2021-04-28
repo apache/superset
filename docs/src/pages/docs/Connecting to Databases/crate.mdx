@@ -1,0 +1,25 @@
+---
+name: CrateDB
+menu: Connecting to Databases
+route: /docs/databases/cratedb
+index: 30
+version: 1
+---
+
+## CrateDB
+
+The recommended connector library for CrateDB is
+[crate](https://pypi.org/project/crate/).
+You need to install the extras as well for this library.
+We recommend adding something like the following
+text to your requirements file:
+
+```
+crate[sqlalchemy]==0.26.0
+```
+
+The expected connection string is formatted as follows:
+
+```
+crate://crate@127.0.0.1:4200
+```

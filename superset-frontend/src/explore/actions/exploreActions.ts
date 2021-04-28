@@ -99,7 +99,7 @@ export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
 export function setControlValue(
   controlName: string,
   value: any,
-  validationErrors: any[],
+  validationErrors?: any[],
 ) {
   return { type: SET_FIELD_VALUE, controlName, value, validationErrors };
 }
@@ -107,11 +107,6 @@ export function setControlValue(
 export const SET_EXPLORE_CONTROLS = 'UPDATE_EXPLORE_CONTROLS';
 export function setExploreControls(formData: QueryFormData) {
   return { type: SET_EXPLORE_CONTROLS, formData };
-}
-
-export const REMOVE_CONTROL_PANEL_ALERT = 'REMOVE_CONTROL_PANEL_ALERT';
-export function removeControlPanelAlert() {
-  return { type: REMOVE_CONTROL_PANEL_ALERT };
 }
 
 export const UPDATE_CHART_TITLE = 'UPDATE_CHART_TITLE';
@@ -154,7 +149,6 @@ export const exploreActions = {
   saveFaveStar,
   setControlValue,
   setExploreControls,
-  removeControlPanelAlert,
   updateChartTitle,
   createNewSlice,
   sliceUpdated,

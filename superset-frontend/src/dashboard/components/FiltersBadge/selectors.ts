@@ -18,14 +18,20 @@
  */
 import { TIME_FILTER_MAP } from 'src/explore/constants';
 import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
-import { NativeFiltersState } from 'src/dashboard/reducers/types';
-import { getTreeCheckedItems } from '../nativeFilters/FilterConfigModal/utils';
+import {
+  ChartConfiguration,
+  NativeFiltersState,
+} from 'src/dashboard/reducers/types';
+import { DataMaskStateWithId, DataMaskType } from 'src/dataMask/types';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { Layout } from '../../types';
+import { getTreeCheckedItems } from '../nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/utils';
 
 export enum IndicatorStatus {
   Unset = 'UNSET',
   Applied = 'APPLIED',
   Incompatible = 'INCOMPATIBLE',
+  CrossFilterApplied = 'CROSS_FILTER_APPLIED',
 }
 
 const TIME_GRANULARITY_FIELDS = new Set(Object.values(TIME_FILTER_MAP));
@@ -51,7 +57,7 @@ const selectIndicatorValue = (
   columnKey: string,
   filter: Filter,
   datasource: Datasource,
-): string[] => {
+): any => {
   const values = filter.columns[columnKey];
   const arrValues = Array.isArray(values) ? values : [values];
 
@@ -131,9 +137,9 @@ const getRejectedColumns = (chart: any): Set<string> =>
 export type Indicator = {
   column?: string;
   name: string;
-  value: string[];
-  status: IndicatorStatus;
-  path: string[];
+  value?: any;
+  status?: IndicatorStatus;
+  path?: string[];
 };
 
 // inspects redux state to find what the filter indicators should be shown for a given chart
@@ -173,52 +179,104 @@ export const selectIndicatorsForChart = (
 
 export const selectNativeIndicatorsForChart = (
   nativeFilters: NativeFiltersState,
+  dataMask: DataMaskStateWithId,
   chartId: number,
   charts: any,
   dashboardLayout: Layout,
+  chartConfiguration: ChartConfiguration = {},
 ): Indicator[] => {
   const chart = charts[chartId];
 
   const appliedColumns = getAppliedColumns(chart);
   const rejectedColumns = getRejectedColumns(chart);
 
-  const getStatus = (
-    value: string[],
-    isAffectedByScope: boolean,
-    column?: string,
-  ): IndicatorStatus => {
-    if (!column && isAffectedByScope) {
+  const getStatus = ({
+    value,
+    isAffectedByScope,
+    column,
+    type = DataMaskType.NativeFilters,
+  }: {
+    value: any;
+    isAffectedByScope: boolean;
+    column?: string;
+    type?: DataMaskType;
+  }): IndicatorStatus => {
+    // a filter is only considered unset if it's value is null
+    const hasValue = value !== null;
+    if (!isAffectedByScope) {
+      return IndicatorStatus.Unset;
+    }
+    if (type === DataMaskType.CrossFilters && hasValue) {
+      return IndicatorStatus.CrossFilterApplied;
+    }
+    if (!column && hasValue) {
       // Filter without datasource
       return IndicatorStatus.Applied;
     }
     if (column && rejectedColumns.has(column))
       return IndicatorStatus.Incompatible;
-    if (column && appliedColumns.has(column) && value.length > 0) {
+    if (column && appliedColumns.has(column) && hasValue) {
       return IndicatorStatus.Applied;
     }
     return IndicatorStatus.Unset;
   };
 
-  const indicators = Object.values(nativeFilters.filters).map(nativeFilter => {
-    const isAffectedByScope = getTreeCheckedItems(
-      nativeFilter.scope,
-      dashboardLayout,
-    ).some(
-      layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
+  let nativeFilterIndicators: any = [];
+  if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)) {
+    nativeFilterIndicators = Object.values(nativeFilters.filters).map(
+      nativeFilter => {
+        const isAffectedByScope = getTreeCheckedItems(
+          nativeFilter.scope,
+          dashboardLayout,
+        ).some(
+          layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
+        );
+        const column = nativeFilter.targets[0]?.column?.name;
+        let value = dataMask[nativeFilter.id]?.filterState?.value ?? null;
+        if (!Array.isArray(value) && value !== null) {
+          value = [value];
+        }
+        return {
+          column,
+          name: nativeFilter.name,
+          path: [nativeFilter.id],
+          status: getStatus({ value, isAffectedByScope, column }),
+          value,
+        };
+      },
     );
-    const column = nativeFilter.targets[0]?.column?.name;
-    const filterState = nativeFilters.filtersState[nativeFilter.id];
-    let value = filterState?.currentState?.value ?? [];
-    if (!Array.isArray(value)) {
-      value = [value];
-    }
-    return {
-      column,
-      name: nativeFilter.name,
-      path: [nativeFilter.id],
-      status: getStatus(value, isAffectedByScope, column),
-      value,
-    };
-  });
-  return indicators;
+  }
+
+  let crossFilterIndicators: any = [];
+  if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+    crossFilterIndicators = Object.values(chartConfiguration)
+      .map(chartConfig => {
+        const scope = chartConfig?.crossFilters?.scope;
+        const isAffectedByScope = getTreeCheckedItems(
+          scope,
+          dashboardLayout,
+        ).some(
+          layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
+        );
+
+        let value = dataMask[chartConfig.id]?.filterState?.value ?? null;
+        if (!Array.isArray(value) && value !== null) {
+          value = [value];
+        }
+        return {
+          name: Object.values(dashboardLayout).find(
+            layoutItem => layoutItem?.meta?.chartId === chartConfig.id,
+          )?.meta?.sliceName as string,
+          path: [`${chartConfig.id}`],
+          status: getStatus({
+            value,
+            isAffectedByScope,
+            type: DataMaskType.CrossFilters,
+          }),
+          value,
+        };
+      })
+      .filter(filter => filter.status === IndicatorStatus.CrossFilterApplied);
+  }
+  return crossFilterIndicators.concat(nativeFilterIndicators);
 };

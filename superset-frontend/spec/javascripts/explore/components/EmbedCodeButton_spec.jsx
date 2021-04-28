@@ -19,7 +19,7 @@
 import React from 'react';
 import { shallow, mount } from 'enzyme';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import Popover from 'src/common/components/Popover';
+import Popover from 'src/components/Popover';
 import sinon from 'sinon';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
@@ -86,8 +86,12 @@ describe('EmbedCodeButton', () => {
     const stub = sinon
       .stub(exploreUtils, 'getURIDirectory')
       .callsFake(() => 'endpoint_url');
-    const wrapper = mount(<EmbedCodeButton {...defaultProps} />);
-    wrapper.setState({
+    const wrapper = mount(
+      <ThemeProvider theme={supersetTheme}>
+        <EmbedCodeButton {...defaultProps} />
+      </ThemeProvider>,
+    );
+    wrapper.find(EmbedCodeButton).setState({
       height: '1000',
       width: '2000',
       shortUrlId: 100,
@@ -104,7 +108,9 @@ describe('EmbedCodeButton', () => {
       }${DashboardStandaloneMode.HIDE_NAV}&height=1000"\n` +
       `>\n` +
       `</iframe>`;
-    expect(wrapper.instance().generateEmbedHTML()).toBe(embedHTML);
+    expect(wrapper.find(EmbedCodeButton).instance().generateEmbedHTML()).toBe(
+      embedHTML,
+    );
     stub.restore();
   });
 });

@@ -17,11 +17,11 @@
  * under the License.
  */
 import React, { FunctionComponent, useState, useRef } from 'react';
-import { Alert } from 'react-bootstrap';
+import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 import { styled, t, SupersetClient } from '@superset-ui/core';
 
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
@@ -49,6 +49,10 @@ const StyledDatasourceModal = styled(Modal)`
   .modal-footer {
     flex: 0 1 auto;
   }
+
+  .ant-modal-body {
+    overflow: visible;
+  }
 `;
 
 interface DatasourceModalProps {
@@ -61,15 +65,17 @@ interface DatasourceModalProps {
 }
 
 function buildMetricExtraJsonObject(metric: Record<string, unknown>) {
-  if (metric?.certified_by || metric?.certification_details) {
-    return JSON.stringify({
-      certification: {
-        certified_by: metric?.certified_by ?? null,
-        details: metric?.certification_details ?? null,
-      },
-    });
-  }
-  return null;
+  const certification =
+    metric?.certified_by || metric?.certification_details
+      ? {
+          certified_by: metric?.certified_by,
+          details: metric?.certification_details,
+        }
+      : undefined;
+  return JSON.stringify({
+    certification,
+    warning_markdown: metric?.warning_markdown,
+  });
 }
 
 const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
@@ -138,22 +144,21 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     setErrors(err);
   };
 
-  const closeDialog = () => {
-    dialog.current?.destroy();
-  };
-
   const renderSaveDialog = () => (
     <div>
-      <Alert bsStyle="warning" className="pointer" onClick={closeDialog}>
-        <div>
-          <i className="fa fa-exclamation-triangle" />{' '}
-          {t(`The dataset configuration exposed here
+      <Alert
+        css={theme => ({
+          marginTop: theme.gridUnit * 4,
+          marginBottom: theme.gridUnit * 4,
+        })}
+        type="warning"
+        showIcon
+        message={t(`The dataset configuration exposed here
                 affects all the charts using this dataset.
                 Be mindful that changing settings
                 here may affect other charts
                 in undesirable ways.`)}
-        </div>
-      </Alert>
+      />
       {t('Are you sure you want to save and apply changes?')}
     </div>
   );

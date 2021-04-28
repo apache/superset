@@ -17,56 +17,95 @@
  * under the License.
  */
 import {
-  SET_EXTRA_FORM_DATA,
   AnyFilterAction,
+  SAVE_FILTER_SETS,
   SET_FILTER_CONFIG_COMPLETE,
+  SET_FILTER_SETS_CONFIG_COMPLETE,
+  SET_FILTERS_INITIALIZED,
 } from 'src/dashboard/actions/nativeFilters';
-import { NativeFiltersState, NativeFilterState } from './types';
+import { FilterSet, NativeFiltersState } from './types';
 import { FilterConfiguration } from '../components/nativeFilters/types';
+import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
-export function getInitialFilterState(id: string): NativeFilterState {
-  return {
-    id,
-    extraFormData: {},
+export function getInitialState({
+  filterSetsConfig,
+  filterConfig,
+  state: prevState,
+}: {
+  filterSetsConfig?: FilterSet[];
+  filterConfig?: FilterConfiguration;
+  state?: NativeFiltersState;
+}): NativeFiltersState {
+  const state: Partial<NativeFiltersState> = {
+    isInitialized: prevState?.isInitialized,
   };
-}
 
-export function getInitialState(
-  filterConfig: FilterConfiguration,
-  prevFiltersState: { [filterId: string]: NativeFilterState },
-): NativeFiltersState {
   const filters = {};
-  const filtersState = {};
-  const state = { filters, filtersState };
-  filterConfig.forEach(filter => {
-    const { id } = filter;
-    filters[id] = filter;
-    filtersState[id] = prevFiltersState?.[id] || getInitialFilterState(id);
-  });
-  return state;
+  if (filterConfig) {
+    filterConfig.forEach(filter => {
+      const { id } = filter;
+      filters[id] = filter;
+    });
+    state.filters = filters;
+  } else {
+    state.filters = prevState?.filters ?? {};
+  }
+
+  if (filterSetsConfig) {
+    const filterSets = {};
+    filterSetsConfig.forEach(filtersSet => {
+      const { id } = filtersSet;
+      filterSets[id] = filtersSet;
+    });
+    state.filterSets = filterSets;
+  } else {
+    state.filterSets = prevState?.filterSets ?? {};
+  }
+  return state as NativeFiltersState;
 }
 
 export default function nativeFilterReducer(
-  state: NativeFiltersState = { filters: {}, filtersState: {} },
+  state: NativeFiltersState = {
+    isInitialized: false,
+    filters: {},
+    filterSets: {},
+  },
   action: AnyFilterAction,
 ) {
-  const { filters, filtersState } = state;
+  const { filterSets } = state;
   switch (action.type) {
-    case SET_EXTRA_FORM_DATA:
+    case HYDRATE_DASHBOARD:
       return {
-        filters,
-        filtersState: {
-          ...filtersState,
-          [action.filterId]: {
-            ...filtersState[action.filterId],
-            extraFormData: action.extraFormData,
-            currentState: action.currentState,
+        filters: action.data.nativeFilters.filters,
+        filterSets: action.data.nativeFilters.filterSets,
+      };
+    case SAVE_FILTER_SETS:
+      return {
+        ...state,
+        filterSets: {
+          ...filterSets,
+          [action.filtersSetId]: {
+            id: action.filtersSetId,
+            name: action.name,
+            dataMask: action.dataMask,
           },
         },
       };
 
     case SET_FILTER_CONFIG_COMPLETE:
-      return getInitialState(action.filterConfig, filtersState);
+      return getInitialState({ filterConfig: action.filterConfig, state });
+
+    case SET_FILTERS_INITIALIZED:
+      return {
+        ...state,
+        isInitialized: true,
+      };
+
+    case SET_FILTER_SETS_CONFIG_COMPLETE:
+      return getInitialState({
+        filterSetsConfig: action.filterSetsConfig,
+        state,
+      });
 
     // TODO handle SET_FILTER_CONFIG_FAIL action
     default:

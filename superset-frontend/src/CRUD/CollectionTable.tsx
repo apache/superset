@@ -20,6 +20,7 @@ import React, { ReactNode } from 'react';
 import shortid from 'shortid';
 import { t, styled } from '@superset-ui/core';
 import Button from 'src/components/Button';
+import Icons from 'src/components/Icons';
 import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
 import './crud.less';
@@ -251,13 +252,18 @@ export default class CRUDCollection extends React.PureComponent<
     }
     if (allowDeletes) {
       tds.push(
-        <td key="__actions" data-test="crud-delete-option">
-          <i
-            {...{ 'data-test': 'crud-delete-icon' }}
-            role="button"
+        <td
+          key="__actions"
+          data-test="crud-delete-option"
+          className="text-primary"
+        >
+          <Icons.Trash
             aria-label="Delete item"
+            className="pointer"
+            data-test="crud-delete-icon"
+            iconSize="m"
+            role="button"
             tabIndex={0}
-            className="fa fa-trash text-primary pointer"
             onClick={this.deleteItem.bind(this, record.id)}
           />
         </td>,

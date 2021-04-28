@@ -38,16 +38,19 @@ import {
  */
 export default function buildQuery(formData: QueryFormData) {
   const { groupby } = formData;
-  const [column] = groupby || [];
+  const [column = ''] = groupby || [];
+  // @ts-ignore (need update interface Column )
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,
+      apply_fetch_values_predicate: true,
+      columns: [],
       groupby: [],
       metrics: [
         {
           aggregate: 'MIN',
           column: {
-            columnName: column,
+            column_name: column,
             id: 1,
             type: ColumnType.FLOAT,
           },
@@ -58,7 +61,7 @@ export default function buildQuery(formData: QueryFormData) {
         {
           aggregate: 'MAX',
           column: {
-            columnName: column,
+            column_name: column,
             id: 2,
             type: ColumnType.FLOAT,
           },

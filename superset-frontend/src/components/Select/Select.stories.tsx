@@ -28,7 +28,7 @@ const OPTIONS = [
 ];
 
 export default {
-  title: 'Select component',
+  title: 'Select',
   argTypes: {
     options: {
       type: 'select',
@@ -92,6 +92,14 @@ SelectGallery.args = {
   options: OPTIONS,
 };
 
+SelectGallery.story = {
+  parameters: {
+    knobs: {
+      disabled: true,
+    },
+  },
+};
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const InteractiveSelect = (args: any) => {
   const [{ value, multi, clearable, placeholder }, updateArgs] = useArgs();
@@ -124,4 +132,12 @@ InteractiveSelect.args = {
   options: OPTIONS,
   clearable: false,
   placeholder: "I'm interactive",
+};
+
+InteractiveSelect.story = {
+  parameters: {
+    knobs: {
+      disabled: true,
+    },
+  },
 };

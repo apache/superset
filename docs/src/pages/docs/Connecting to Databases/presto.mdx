@@ -13,7 +13,9 @@ The [pyhive](https://pypi.org/project/PyHive/) library is the recommended way to
 The expected connection string is formatted as follows:
 
 ```
-hive://hive@{hostname}:{port}/{database}
+presto://{hostname}:{port}/{database}
+e.g.
+presto://presto.example.com:8080/hive
 ```
 
 By default Superset assumes the most recent version of Presto is being used when querying the

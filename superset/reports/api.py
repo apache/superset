@@ -25,7 +25,7 @@ from marshmallow import ValidationError
 
 from superset.charts.filters import ChartFilter
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.dashboards.filters import DashboardFilter
+from superset.dashboards.filters import DashboardAccessFilter
 from superset.databases.filters import DatabaseFilter
 from superset.models.reports import ReportSchedule
 from superset.reports.commands.bulk_delete import BulkDeleteReportScheduleCommand
@@ -72,30 +72,34 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
 
     show_columns = [
         "id",
-        "name",
-        "type",
-        "description",
-        "context_markdown",
         "active",
-        "crontab",
         "chart.id",
+        "chart.slice_name",
+        "context_markdown",
+        "crontab",
+        "dashboard.dashboard_title",
         "dashboard.id",
+        "database.database_name",
         "database.id",
-        "owners.id",
-        "owners.first_name",
-        "owners.last_name",
+        "description",
+        "grace_period",
         "last_eval_dttm",
         "last_state",
         "last_value",
         "last_value_row_json",
-        "validator_type",
-        "validator_config_json",
         "log_retention",
-        "grace_period",
+        "name",
+        "owners.first_name",
+        "owners.id",
+        "owners.last_name",
         "recipients.id",
-        "recipients.type",
         "recipients.recipient_config_json",
+        "recipients.type",
+        "report_format",
         "sql",
+        "type",
+        "validator_config_json",
+        "validator_type",
         "working_timeout",
     ]
     show_select_columns = show_columns + [
@@ -137,11 +141,12 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "name",
         "owners",
         "recipients",
+        "report_format",
         "sql",
         "type",
-        "working_timeout",
         "validator_config_json",
         "validator_type",
+        "working_timeout",
     ]
     edit_columns = add_columns
     add_model_schema = ReportSchedulePostSchema()
@@ -165,7 +170,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     allowed_rel_fields = {"owners", "chart", "dashboard", "database", "created_by"}
     filter_rel_fields = {
         "chart": [["id", ChartFilter, lambda: []]],
-        "dashboard": [["id", DashboardFilter, lambda: []]],
+        "dashboard": [["id", DashboardAccessFilter, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
     }
     text_field_rel_fields = {

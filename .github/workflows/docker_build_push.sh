@@ -76,5 +76,5 @@ else
   # Login and push
   docker logout
   docker login --username "${DOCKERHUB_USER}" --password "${DOCKERHUB_TOKEN}"
-  docker push "${REPO_NAME}"
+  docker push --all-tags "${REPO_NAME}"
 fi

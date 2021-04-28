@@ -18,13 +18,12 @@
 import json
 import logging
 from io import IOBase
-from typing import cast, Optional, Union
+from typing import Optional, Union
 
 from flask_babel import gettext as __
 from retry.api import retry
 from slack import WebClient
 from slack.errors import SlackApiError, SlackClientError
-from slack.web.slack_response import SlackResponse
 
 from superset import app
 from superset.models.reports import ReportRecipientType
@@ -44,46 +43,65 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_channel(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]
 
-    def _get_body(self) -> str:
+    @staticmethod
+    def _error_template(name: str, description: str, text: str) -> str:
         return __(
             """
             *%(name)s*\n
+            %(description)s\n
+            Error: %(text)s
+            """,
+            name=name,
+            description=description,
+            text=text,
+        )
+
+    def _get_body(self) -> str:
+        if self._content.text:
+            return self._error_template(
+                self._content.name, self._content.description or "", self._content.text
+            )
+        return __(
+            """
+            *%(name)s*\n
+            %(description)s\n
             <%(url)s|Explore in Superset>
             """,
             name=self._content.name,
-            url=self._content.screenshot.url,
+            description=self._content.description or "",
+            url=self._content.url,
         )
 
-    def _get_inline_screenshot(self) -> Optional[Union[str, IOBase, bytes]]:
-        return self._content.screenshot.image
+    def _get_inline_file(self) -> Optional[Union[str, IOBase, bytes]]:
+        if self._content.csv:
+            return self._content.csv
+        if self._content.screenshot:
+            return self._content.screenshot
+        return None
 
     @retry(SlackApiError, delay=10, backoff=2, tries=5)
     def send(self) -> None:
-        file = self._get_inline_screenshot()
+        file = self._get_inline_file()
+        title = self._content.name
         channel = self._get_channel()
         body = self._get_body()
-
+        file_type = "csv" if self._content.csv else "png"
         try:
-            client = WebClient(
-                token=app.config["SLACK_API_TOKEN"], proxy=app.config["SLACK_PROXY"]
-            )
+            token = app.config["SLACK_API_TOKEN"]
+            if callable(token):
+                token = token()
+            client = WebClient(token=token, proxy=app.config["SLACK_PROXY"])
             # files_upload returns SlackResponse as we run it in sync mode.
             if file:
-                response = cast(
-                    SlackResponse,
-                    client.files_upload(
-                        channels=channel,
-                        file=file,
-                        initial_comment=body,
-                        title="subject",
-                    ),
+                client.files_upload(
+                    channels=channel,
+                    file=file,
+                    initial_comment=body,
+                    title=title,
+                    filetype=file_type,
                 )
-                assert response["file"], str(response)  # the uploaded file
             else:
-                response = cast(
-                    SlackResponse, client.chat_postMessage(channel=channel, text=body),
-                )
-                assert response["message"]["text"], str(response)
+                client.chat_postMessage(channel=channel, text=body)
             logger.info("Report sent to slack")
         except SlackClientError as ex:
             raise NotificationError(ex)

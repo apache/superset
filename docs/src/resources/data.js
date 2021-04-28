@@ -48,7 +48,7 @@ export const pmc = [
     image: 'https://github.com/dpgaspar.png',
   },
   {
-    name: 'Erik Ritker',
+    name: 'Erik Ritter',
     github: 'https://github.com/etr2460',
     image: 'https://github.com/etr2460.png',
   },
@@ -214,6 +214,16 @@ export const Databases = [
     title: 'SQLite',
     href: 'https://www.sqlite.org/index.html',
     imgName: 'sqllite.png',
+  },
+  {
+    title: 'Trino',
+    href: 'https://trino.io/',
+    imgName: 'trino2.jpg',
+  },
+  {
+    title: 'Rockset',
+    href: 'https://rockset.com/',
+    imgName: 'rockset.png',
   },
   {
     title: 'Vertica',

@@ -21,7 +21,7 @@ import { t, styled } from '@superset-ui/core';
 import { Menu } from 'src/common/components';
 import NavDropdown from 'src/components/NavDropdown';
 
-const dropdownItems = [
+export const dropdownItems = [
   {
     label: t('SQL query'),
     url: '/superset/sqllab',

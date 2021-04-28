@@ -25,9 +25,9 @@ import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
-import TooltipWrapper from 'src/components/TooltipWrapper';
-import Icon from 'src/components/Icon';
-import ListView, { Filters } from 'src/components/ListView';
+import { Tooltip } from 'src/components/Tooltip';
+import Icons from 'src/components/Icons';
+import ListView, { FilterOperator, Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import DatabaseModal from './DatabaseModal';
@@ -55,12 +55,20 @@ interface DatabaseListProps {
   addSuccessToast: (msg: string) => void;
 }
 
-const IconBlack = styled(Icon)`
+const IconCheck = styled(Icons.Check)`
   color: ${({ theme }) => theme.colors.grayscale.dark1};
 `;
 
+const IconCancelX = styled(Icons.CancelX)`
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+`;
+
+const Actions = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.base};
+`;
+
 function BooleanDisplay({ value }: { value: Boolean }) {
-  return value ? <IconBlack name="check" /> : <IconBlack name="cancel-x" />;
+  return value ? <IconCheck /> : <IconCancelX />;
 }
 
 function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
@@ -176,7 +184,15 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
 
     if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
       menuData.buttons.push({
-        name: <Icon name="import" />,
+        name: (
+          <Tooltip
+            id="import-tooltip"
+            title={t('Import databases')}
+            placement="bottomRight"
+          >
+            <Icons.Import data-test="import-button" />
+          </Tooltip>
+        ),
         buttonStyle: 'link',
         onClick: openDatabaseImportModal,
       });
@@ -205,13 +221,13 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       {
         accessor: 'allow_run_async',
         Header: (
-          <TooltipWrapper
-            label="allow-run-async-header"
-            tooltip={t('Asynchronous query execution')}
+          <Tooltip
+            id="allow-run-async-header-tooltip"
+            title={t('Asynchronous query execution')}
             placement="top"
           >
             <span>{t('AQE')}</span>
-          </TooltipWrapper>
+          </Tooltip>
         ),
         Cell: ({
           row: {
@@ -223,13 +239,13 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       {
         accessor: 'allow_dml',
         Header: (
-          <TooltipWrapper
-            label="allow-dml-header"
-            tooltip={t('Allow data manipulation language')}
+          <Tooltip
+            id="allow-dml-header-tooltip"
+            title={t('Allow data manipulation language')}
             placement="top"
           >
             <span>{t('DML')}</span>
-          </TooltipWrapper>
+          </Tooltip>
         ),
         Cell: ({
           row: {
@@ -289,7 +305,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
             return null;
           }
           return (
-            <span className="actions">
+            <Actions className="actions">
               {canDelete && (
                 <span
                   role="button"
@@ -298,19 +314,19 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
                   data-test="database-delete"
                   onClick={handleDelete}
                 >
-                  <TooltipWrapper
-                    label="delete-action"
-                    tooltip={t('Delete database')}
+                  <Tooltip
+                    id="delete-action-tooltip"
+                    title={t('Delete database')}
                     placement="bottom"
                   >
-                    <Icon name="trash" />
-                  </TooltipWrapper>
+                    <Icons.Trash />
+                  </Tooltip>
                 </span>
               )}
               {canExport && (
-                <TooltipWrapper
-                  label="export-action"
-                  tooltip={t('Export')}
+                <Tooltip
+                  id="export-action-tooltip"
+                  title={t('Export')}
                   placement="bottom"
                 >
                   <span
@@ -319,14 +335,14 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icon name="share" />
+                    <Icons.Share />
                   </span>
-                </TooltipWrapper>
+                </Tooltip>
               )}
               {canEdit && (
-                <TooltipWrapper
-                  label="edit-action"
-                  tooltip={t('Edit')}
+                <Tooltip
+                  id="edit-action-tooltip"
+                  title={t('Edit')}
                   placement="bottom"
                 >
                   <span
@@ -336,11 +352,11 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icon name="edit-alt" />
+                    <Icons.EditAlt data-test="edit-alt" />
                   </span>
-                </TooltipWrapper>
+                </Tooltip>
               )}
-            </span>
+            </Actions>
           );
         },
         Header: t('Actions'),
@@ -358,7 +374,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         Header: t('Expose in SQL Lab'),
         id: 'expose_in_sqllab',
         input: 'select',
-        operator: 'eq',
+        operator: FilterOperator.equals,
         unfilteredLabel: 'All',
         selects: [
           { label: 'Yes', value: true },
@@ -367,17 +383,17 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       },
       {
         Header: (
-          <TooltipWrapper
-            label="allow-run-async-filter-header"
-            tooltip={t('Asynchronous query execution')}
+          <Tooltip
+            id="allow-run-async-filter-header-tooltip"
+            title={t('Asynchronous query execution')}
             placement="top"
           >
             <span>{t('AQE')}</span>
-          </TooltipWrapper>
+          </Tooltip>
         ),
         id: 'allow_run_async',
         input: 'select',
-        operator: 'eq',
+        operator: FilterOperator.equals,
         unfilteredLabel: 'All',
         selects: [
           { label: 'Yes', value: true },
@@ -388,7 +404,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         Header: t('Search'),
         id: 'database_name',
         input: 'search',
-        operator: 'ct',
+        operator: FilterOperator.contains,
       },
     ],
     [],

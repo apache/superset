@@ -209,10 +209,21 @@ const TimeTable = ({
             .reduce((a, b) => a + b);
       } else if (column.colType === 'avg') {
         // Average over the last {timeLag}
-        v =
-          reversedEntries
-            .map((k, i) => (i < column.timeLag ? k[valueField] : 0))
-            .reduce((a, b) => a + b) / column.timeLag;
+        v = null;
+        if (reversedEntries.length > 0) {
+          const stats = reversedEntries.slice(undefined, column.timeLag).reduce(
+            function ({ count, sum }, entry) {
+              return entry[valueField] !== undefined &&
+                entry[valueField] !== null
+                ? { count: count + 1, sum: sum + entry[valueField] }
+                : { count, sum };
+            },
+            { count: 0, sum: 0 },
+          );
+          if (stats.count > 0) {
+            v = stats.sum / stats.count;
+          }
+        }
       }
 
       const color = colorFromBounds(v, column.bounds);

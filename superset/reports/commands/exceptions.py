@@ -112,6 +112,10 @@ class ReportScheduleScreenshotFailedError(CommandException):
     message = _("Report Schedule execution failed when generating a screenshot.")
 
 
+class ReportScheduleCsvFailedError(CommandException):
+    message = _("Report Schedule execution failed when generating a csv.")
+
+
 class ReportScheduleExecuteUnexpectedError(CommandException):
     message = _("Report Schedule execution got an unexpected error.")
 
@@ -153,6 +157,18 @@ class AlertQueryInvalidTypeError(CommandException):
 
 class AlertQueryError(CommandException):
     message = _("Alert found an error while executing a query.")
+
+
+class AlertQueryTimeout(CommandException):
+    message = _("A timeout occurred while executing the query.")
+
+
+class ReportScheduleScreenshotTimeout(CommandException):
+    message = _("A timeout occurred while taking a screenshot.")
+
+
+class ReportScheduleCsvTimeout(CommandException):
+    message = _("A timeout occurred while generating a csv.")
 
 
 class ReportScheduleAlertGracePeriodError(CommandException):

@@ -28,7 +28,10 @@ import {
 } from './mockDashboardLayout';
 import { sliceId } from './mockChartQueries';
 import { dashboardFilters } from './mockDashboardFilters';
-import { nativeFilters } from './mockNativeFilters';
+import { nativeFilters, dataMaskWith2Filters } from './mockNativeFilters';
+
+export const storeWithState = state =>
+  createStore(rootReducer, state, compose(applyMiddleware(thunk)));
 
 export const getMockStore = overrideState =>
   createStore(
@@ -74,6 +77,7 @@ export const getMockStoreWithFilters = () =>
   createStore(rootReducer, {
     ...mockState,
     dashboardFilters,
+    dataMask: dataMaskWith2Filters,
     charts: {
       ...mockState.charts,
       [sliceIdWithAppliedFilter]: {
@@ -99,6 +103,7 @@ export const getMockStoreWithNativeFilters = () =>
   createStore(rootReducer, {
     ...mockState,
     nativeFilters,
+    dataMask: dataMaskWith2Filters,
     charts: {
       ...mockState.charts,
       [sliceIdWithAppliedFilter]: {
@@ -119,3 +124,34 @@ export const getMockStoreWithNativeFilters = () =>
       },
     },
   });
+
+export const stateWithoutNativeFilters = {
+  ...mockState,
+  charts: {
+    ...mockState.charts,
+    [sliceIdWithAppliedFilter]: {
+      ...mockState.charts[sliceId],
+      queryResponse: {
+        status: 'success',
+        applied_filters: [{ column: 'region' }],
+        rejected_filters: [],
+      },
+    },
+    [sliceIdWithRejectedFilter]: {
+      ...mockState.charts[sliceId],
+      queryResponse: {
+        status: 'success',
+        applied_filters: [],
+        rejected_filters: [{ column: 'region', reason: 'not_in_datasource' }],
+      },
+    },
+  },
+  dashboardInfo: {
+    dash_edit_perm: true,
+    metadata: {
+      native_filter_configuration: [],
+    },
+  },
+  dataMask: {},
+  nativeFilters: { filters: {}, filterSets: {} },
+};

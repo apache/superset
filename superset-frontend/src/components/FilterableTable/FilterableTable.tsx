@@ -30,11 +30,10 @@ import {
   Table,
 } from 'react-virtualized';
 import { getMultipleTextDimensions, t, styled } from '@superset-ui/core';
-
+import { Tooltip } from 'src/components/Tooltip';
 import Button from '../Button';
 import CopyToClipboard from '../CopyToClipboard';
 import ModalTrigger from '../ModalTrigger';
-import TooltipWrapper from '../TooltipWrapper';
 
 function safeJsonObjectParse(
   data: unknown,
@@ -85,7 +84,7 @@ const JSON_TREE_THEME = {
 
 const StyledFilterableTable = styled.div`
   overflow-x: auto;
-  margin-top: ${({ theme }) => theme.gridUnit * 12}px;
+  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 // when more than MAX_COLUMNS_FOR_TABLE are returned, switch from table to grid view
@@ -358,14 +357,14 @@ export default class FilterableTable extends PureComponent<
         ? 'header-style-disabled'
         : 'header-style';
     return (
-      <TooltipWrapper label="header" tooltip={label}>
+      <Tooltip id="header-tooltip" title={label}>
         <div className={className}>
           {label}
           {sortBy === dataKey && (
             <SortIndicator sortDirection={sortDirection} />
           )}
         </div>
-      </TooltipWrapper>
+      </Tooltip>
     );
   }
 
@@ -384,7 +383,7 @@ export default class FilterableTable extends PureComponent<
         ? 'header-style-disabled'
         : 'header-style';
     return (
-      <TooltipWrapper key={key} label="header" tooltip={label}>
+      <Tooltip key={key} id="header-tooltip" title={label}>
         <div
           style={{
             ...style,
@@ -397,7 +396,7 @@ export default class FilterableTable extends PureComponent<
         >
           {label}
         </div>
-      </TooltipWrapper>
+      </Tooltip>
     );
   }
 

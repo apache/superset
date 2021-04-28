@@ -61,7 +61,7 @@ class CreateDatasetCommand(BaseCommand):
                 )
             db.session.commit()
         except (SQLAlchemyError, DAOCreateFailedError) as ex:
-            logger.exception(ex)
+            logger.warning(ex, exc_info=True)
             db.session.rollback()
             raise DatasetCreateFailedError()
         return dataset

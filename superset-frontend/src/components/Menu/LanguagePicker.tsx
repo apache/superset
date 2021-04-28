@@ -51,6 +51,7 @@ export default function LanguagePicker({
           <i className={`flag ${languages[locale].flag}`} />
         </span>
       }
+      data-test="language-picker"
     >
       <Menu
         onSelect={({ key }) => {

@@ -33,7 +33,12 @@ from superset.errors import ErrorLevel, SupersetErrorType
 from superset.models.core import Database
 from superset.models.sql_lab import Query, SavedQuery
 from superset.result_set import SupersetResultSet
-from superset.sql_lab import execute_sql_statements, SqlLabException
+from superset.sql_lab import (
+    execute_sql_statements,
+    get_sql_results,
+    SqlLabException,
+    SqlLabTimeoutException,
+)
 from superset.sql_parse import CtasMethod
 from superset.utils.core import (
     datetime_to_epoch,
@@ -253,7 +258,7 @@ class TestSqlLab(SupersetTestCase):
         # Not logged in, should error out
         resp = self.client.get("/superset/queries/0")
         # Redirects to the login page
-        self.assertEqual(403, resp.status_code)
+        self.assertEqual(401, resp.status_code)
 
         # Admin sees queries
         self.login("admin")
@@ -286,7 +291,7 @@ class TestSqlLab(SupersetTestCase):
         self.logout()
         resp = self.client.get("/superset/queries/0")
         # Redirects to the login page
-        self.assertEqual(403, resp.status_code)
+        self.assertEqual(401, resp.status_code)
 
     def test_search_query_on_db_id(self):
         self.run_some_queries()
@@ -792,4 +797,27 @@ class TestSqlLab(SupersetTestCase):
             "query with a single SELECT statement. Please make "
             "sure your query has only a SELECT statement. Then, "
             "try running your query again."
+        )
+
+    @mock.patch("superset.sql_lab.get_query")
+    @mock.patch("superset.sql_lab.execute_sql_statement")
+    def test_get_sql_results_soft_time_limit(
+        self, mock_execute_sql_statement, mock_get_query
+    ):
+        from celery.exceptions import SoftTimeLimitExceeded
+
+        sql = """
+            -- comment
+            SET @value = 42;
+            SELECT @value AS foo;
+            -- comment
+        """
+        mock_get_query.side_effect = SoftTimeLimitExceeded()
+        with pytest.raises(SqlLabTimeoutException) as excinfo:
+            get_sql_results(
+                1, sql, return_results=True, store_results=False,
+            )
+        assert (
+            str(excinfo.value)
+            == "SQL Lab timeout. This environment's policy is to kill queries after 21600 seconds."
         )

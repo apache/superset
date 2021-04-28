@@ -141,6 +141,7 @@ class TabStateView(BaseSupersetView):
             schema=query_editor.get("schema"),
             sql=query_editor.get("sql", "SELECT ..."),
             query_limit=query_editor.get("queryLimit"),
+            hide_left_bar=query_editor.get("hideLeftBar"),
         )
         (
             db.session.query(TabState)
@@ -296,4 +297,4 @@ class SqlLab(BaseSupersetView):
     @has_access
     def my_queries(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """Assigns a list of found users to the given role."""
-        return redirect("/savedqueryview/list/?_flt_0_user={}".format(g.user.id))
+        return redirect("/savedqueryview/list/?_flt_0_user={}".format(g.user.get_id()))

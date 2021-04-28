@@ -33,6 +33,7 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
     time_secondary_columns = True
     allows_joins = False
     allows_subqueries = True
+    allows_sql_comments = False
 
     _time_grain_expressions = {
         None: "{col}",
@@ -69,6 +70,7 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     time_secondary_columns = True
     allows_joins = False
     allows_subqueries = True
+    allows_sql_comments = False
 
     _time_grain_expressions = {
         None: "{col}",

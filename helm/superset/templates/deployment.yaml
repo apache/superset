@@ -23,6 +23,10 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+{{- if .Values.supersetNode.deploymentAnnotations }}
+  annotations:
+    {{ toYaml .Values.supersetNode.deploymentAnnotations | nindent 4 }}
+{{- end }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -35,19 +39,25 @@ spec:
         # Force reload on config changes
         checksum/superset_config.py: {{ include "superset-config" . | sha256sum }}
         checksum/superset_init.sh: {{ tpl .Values.init.initscript . | sha256sum }}
-        checksum/superset_bootstrap.sh: {{ include "superset-bootstrap" . | sha256sum }}
+        checksum/superset_bootstrap.sh: {{ tpl .Values.bootstrapScript . | sha256sum }}
         checksum/connections: {{ .Values.supersetNode.connections | toYaml | sha256sum }}
         checksum/extraConfigs: {{ .Values.extraConfigs | toYaml | sha256sum }}
+        checksum/extraSecrets: {{ .Values.extraSecrets | toYaml | sha256sum }}
+        checksum/extraSecretEnv: {{ .Values.extraSecretEnv | toYaml | sha256sum }}
+        checksum/configOverrides: {{ .Values.configOverrides | toYaml | sha256sum }}
         {{- if .Values.supersetNode.forceReload }}
-        # Optionally force the thing to reload unconditionally
+        # Optionally force the thing to reload
         force-reload: {{ randAlphaNum 5 | quote }}
-       {{- end }}
+        {{- end }}
+      {{- if .Values.supersetNode.podAnnotations }}
+        {{ toYaml .Values.supersetNode.podAnnotations | nindent 8 }}
+      {{- end }}
       labels:
         app: {{ template "superset.name" . }}
         release: {{ .Release.Name }}
     spec:
       securityContext:
-        runAsUser: 0 # Needed in order to allow pip install to work in bootstrap
+        runAsUser: {{ .Values.runAsUser }}
       {{- if .Values.supersetNode.initContainers }}
       initContainers:
       {{-  tpl (toYaml .Values.supersetNode.initContainers) . | nindent 6 }}
@@ -73,6 +83,11 @@ spec:
             - name: superset-config
               mountPath: {{ .Values.configMountPath | quote }}
               readOnly: true
+          {{- if .Values.extraConfigs }}
+            - name: superset-extra-config
+              mountPath: {{ .Values.extraConfigMountPath | quote }}
+              readOnly: true
+          {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
@@ -95,3 +110,8 @@ spec:
         - name: superset-config
           secret:
             secretName: {{ tpl .Values.configFromSecret . }}
+        {{- if .Values.extraConfigs }}
+        - name: superset-extra-config
+          configMap:
+            name: {{ template "superset.fullname" . }}-extra-config
+        {{- end }}

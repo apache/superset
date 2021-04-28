@@ -18,10 +18,13 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
+import { styledMount } from 'spec/helpers/theming';
+import { Provider } from 'react-redux';
 import sinon from 'sinon';
-import { Alert } from 'react-bootstrap';
-import ProgressBar from 'src/common/components/ProgressBar';
-
+import Alert from 'src/components/Alert';
+import ProgressBar from 'src/components/ProgressBar';
+import configureStore from 'redux-mock-store';
+import thunk from 'redux-thunk';
 import FilterableTable from 'src/components/FilterableTable/FilterableTable';
 import ExploreResultsButton from 'src/SqlLab/components/ExploreResultsButton';
 import ResultSet from 'src/SqlLab/components/ResultSet';
@@ -33,15 +36,21 @@ import {
   queries,
   runningQuery,
   stoppedQuery,
+  initialState,
 } from './fixtures';
+
+const mockStore = configureStore([thunk]);
+const store = mockStore(initialState);
 
 describe('ResultSet', () => {
   const clearQuerySpy = sinon.spy();
   const fetchQuerySpy = sinon.spy();
+  const reRunQuerySpy = sinon.spy();
   const mockedProps = {
     actions: {
       clearQueryResults: clearQuerySpy,
       fetchQueryResults: fetchQuerySpy,
+      reRunQuery: reRunQuerySpy,
     },
     cache: true,
     query: queries[0],
@@ -76,6 +85,29 @@ describe('ResultSet', () => {
     const wrapper = shallow(<ResultSet {...mockedProps} />);
     expect(wrapper.find(FilterableTable)).toExist();
   });
+  describe('componentDidMount', () => {
+    const propsWithError = {
+      ...mockedProps,
+      query: { ...queries[0], errorMessage: 'Your session timed out' },
+    };
+    let spy;
+    beforeEach(() => {
+      reRunQuerySpy.resetHistory();
+      spy = sinon.spy(ResultSet.prototype, 'componentDidMount');
+    });
+    afterEach(() => {
+      spy.restore();
+    });
+    it('should call reRunQuery if timed out', () => {
+      shallow(<ResultSet {...propsWithError} />);
+      expect(reRunQuerySpy.callCount).toBe(1);
+    });
+
+    it('should not call reRunQuery if no error', () => {
+      shallow(<ResultSet {...mockedProps} />);
+      expect(reRunQuerySpy.callCount).toBe(0);
+    });
+  });
   describe('UNSAFE_componentWillReceiveProps', () => {
     const wrapper = shallow(<ResultSet {...mockedProps} />);
     let spy;
@@ -105,17 +137,18 @@ describe('ResultSet', () => {
       expect(wrapper.find(ExploreResultsButton)).toExist();
     });
     it('should render empty results', () => {
-      const wrapper = shallow(<ResultSet {...mockedProps} />);
-      const emptyResults = {
-        ...queries[0],
-        results: {
-          data: [],
-        },
+      const props = {
+        ...mockedProps,
+        query: { ...mockedProps.query, results: { data: [] } },
       };
-      wrapper.setProps({ query: emptyResults });
+      const wrapper = styledMount(
+        <Provider store={store}>
+          <ResultSet {...props} />
+        </Provider>,
+      );
       expect(wrapper.find(FilterableTable)).not.toExist();
       expect(wrapper.find(Alert)).toExist();
-      expect(wrapper.find(Alert).shallow().text()).toBe(
+      expect(wrapper.find(Alert).render().text()).toBe(
         'The query returned no data',
       );
     });

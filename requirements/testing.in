@@ -26,6 +26,7 @@ ipython==7.16.1
 openapi-spec-validator
 openpyxl
 parameterized
+pyfakefs
 pyhive[presto]>=0.6.3
 pylint
 pytest

@@ -23,10 +23,11 @@ import React, {
   useEffect,
   useCallback,
 } from 'react';
-import { Alert, FormControl, FormControlProps } from 'react-bootstrap';
+import { FormControl, FormControlProps } from 'react-bootstrap';
+import Alert from 'src/components/Alert';
 import { SupersetClient, t, styled } from '@superset-ui/core';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
-import StyledModal from 'src/common/components/Modal';
+import StyledModal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import Dataset from 'src/types/Dataset';
@@ -246,9 +247,14 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       <>
         {!confirmChange && (
           <>
-            <Alert bsStyle="warning">
-              <strong>{t('Warning!')}</strong> {CHANGE_WARNING_MSG}
-            </Alert>
+            <Alert
+              type="warning"
+              message={
+                <>
+                  <strong>{t('Warning!')}</strong> {CHANGE_WARNING_MSG}
+                </>
+              }
+            />
             <div>
               <FormControl
                 inputRef={ref => {

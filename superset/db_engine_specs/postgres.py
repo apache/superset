@@ -18,14 +18,30 @@ import json
 import logging
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Match,
+    Optional,
+    Pattern,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+)
 
+from flask_babel import gettext as __
 from pytz import _FixedOffset  # type: ignore
+from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
+from sqlalchemy.types import String, TypeEngine
 
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, BaseParametersMixin
+from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
+from superset.utils.core import ColumnSpec, GenericDataType
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
@@ -37,6 +53,32 @@ logger = logging.getLogger()
 # https://github.com/stub42/pytz/blob/b70911542755aeeea7b5a9e066df5e1c87e8f2c8/src/pytz/reference.py#L25
 class FixedOffsetTimezone(_FixedOffset):
     pass
+
+
+# Regular expressions to catch custom errors
+CONNECTION_INVALID_USERNAME_REGEX = re.compile(
+    'role "(?P<username>.*?)" does not exist'
+)
+CONNECTION_INVALID_PASSWORD_REGEX = re.compile(
+    'password authentication failed for user "(?P<username>.*?)"'
+)
+CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
+    'could not translate host name "(?P<hostname>.*?)" to address: '
+    "nodename nor servname provided, or not known"
+)
+CONNECTION_PORT_CLOSED_REGEX = re.compile(
+    r"could not connect to server: Connection refused\s+Is the server "
+    r'running on host "(?P<hostname>.*?)" (\(.*?\) )?and accepting\s+TCP/IP '
+    r"connections on port (?P<port>.*?)\?"
+)
+CONNECTION_HOST_DOWN_REGEX = re.compile(
+    r"could not connect to server: (?P<reason>.*?)\s+Is the server running on "
+    r'host "(?P<hostname>.*?)" (\(.*?\) )?and accepting\s+TCP/IP '
+    r"connections on port (?P<port>.*?)\?"
+)
+CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile(
+    'database "(?P<database>.*?)" does not exist'
+)
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
@@ -57,6 +99,36 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         "P1Y": "DATE_TRUNC('year', {col})",
     }
 
+    custom_errors = {
+        CONNECTION_INVALID_USERNAME_REGEX: (
+            __('The username "%(username)s" does not exist.'),
+            SupersetErrorType.CONNECTION_INVALID_USERNAME_ERROR,
+        ),
+        CONNECTION_INVALID_PASSWORD_REGEX: (
+            __('The password provided for username "%(username)s" is incorrect.'),
+            SupersetErrorType.CONNECTION_INVALID_PASSWORD_ERROR,
+        ),
+        CONNECTION_INVALID_HOSTNAME_REGEX: (
+            __('The hostname "%(hostname)s" cannot be resolved.'),
+            SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+        ),
+        CONNECTION_PORT_CLOSED_REGEX: (
+            __('Port %(port)s on hostname "%(hostname)s" refused the connection.'),
+            SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
+        ),
+        CONNECTION_HOST_DOWN_REGEX: (
+            __(
+                'The host "%(hostname)s" might be down, and can\'t be '
+                "reached on port %(port)s."
+            ),
+            SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+        ),
+        CONNECTION_UNKNOWN_DATABASE_REGEX: (
+            __('Unable to connect to database "%(database)s".'),
+            SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+        ),
+    }
+
     @classmethod
     def fetch_data(
         cls, cursor: Any, limit: Optional[int] = None
@@ -71,11 +143,32 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         return "(timestamp 'epoch' + {col} * interval '1 second')"
 
 
-class PostgresEngineSpec(PostgresBaseEngineSpec):
+class PostgresEngineSpec(PostgresBaseEngineSpec, BaseParametersMixin):
     engine = "postgresql"
-    engine_aliases = ("postgres",)
+    engine_aliases = {"postgres"}
+
+    drivername = "postgresql+psycopg2"
+    sqlalchemy_uri_placeholder = (
+        "postgresql+psycopg2://user:password@host:port/dbname[?key=value&key=value...]"
+    )
+
     max_column_name_length = 63
     try_remove_schema_from_table_name = False
+
+    column_type_mappings = (
+        (
+            re.compile(r"^double precision", re.IGNORECASE),
+            DOUBLE_PRECISION(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^array.*", re.IGNORECASE),
+            lambda match: ARRAY(int(match[2])) if match[2] else String(),
+            utils.GenericDataType.STRING,
+        ),
+        (re.compile(r"^json.*", re.IGNORECASE), JSON(), utils.GenericDataType.STRING,),
+        (re.compile(r"^enum.*", re.IGNORECASE), ENUM(), utils.GenericDataType.STRING,),
+    )
 
     @classmethod
     def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
@@ -116,7 +209,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
-        if tt == utils.TemporalType.TIMESTAMP:
+        if "TIMESTAMP" in tt or "DATETIME" in tt:
             dttm_formatted = dttm.isoformat(sep=" ", timespec="microseconds")
             return f"""TO_TIMESTAMP('{dttm_formatted}', 'YYYY-MM-DD HH24:MI:SS.US')"""
         return None
@@ -144,3 +237,26 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
             engine_params["connect_args"] = connect_args
             extra["engine_params"] = engine_params
         return extra
+
+    @classmethod
+    def get_column_spec(  # type: ignore
+        cls,
+        native_type: Optional[str],
+        source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
+        column_type_mappings: Tuple[
+            Tuple[
+                Pattern[str],
+                Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
+                GenericDataType,
+            ],
+            ...,
+        ] = column_type_mappings,
+    ) -> Union[ColumnSpec, None]:
+
+        column_spec = super().get_column_spec(native_type)
+        if column_spec:
+            return column_spec
+
+        return super().get_column_spec(
+            native_type, column_type_mappings=column_type_mappings
+        )

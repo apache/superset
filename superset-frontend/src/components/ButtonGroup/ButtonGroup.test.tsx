@@ -18,33 +18,38 @@
  */
 
 import React from 'react';
-import { ReactWrapper } from 'enzyme';
-import { styledMount as mount } from 'spec/helpers/theming';
+import { render, screen } from 'spec/helpers/testing-library';
 import Button from 'src/components/Button';
 import ButtonGroup from '.';
 
-describe('ButtonGroup', () => {
-  let wrapper: ReactWrapper;
+test('renders 1 button', () => {
+  render(
+    <ButtonGroup>
+      <Button>Button</Button>
+    </ButtonGroup>,
+  );
+  expect(screen.getByRole('group')).toBeInTheDocument();
+});
 
-  it('renders 1 button', () => {
-    expect(
-      React.isValidElement(
-        <ButtonGroup>
-          <Button>Button</Button>
-        </ButtonGroup>,
-      ),
-    ).toBe(true);
-  });
+test('renders 3 buttons', () => {
+  render(
+    <ButtonGroup>
+      <Button>Button</Button>
+      <Button>Button</Button>
+      <Button>Button</Button>
+    </ButtonGroup>,
+  );
 
-  it('renders 3 buttons', () => {
-    wrapper = mount(
-      <ButtonGroup>
-        <Button>Button</Button>
-        <Button>Button</Button>
-        <Button>Button</Button>
-      </ButtonGroup>,
-    );
+  expect(screen.getByRole('group').children.length).toEqual(3);
+});
 
-    expect(wrapper.find(Button).length).toEqual(3);
-  });
+test('renders with custom class', () => {
+  const customClass = 'custom-class';
+  render(
+    <ButtonGroup className={customClass}>
+      <Button>Button</Button>
+    </ButtonGroup>,
+  );
+
+  expect(screen.getByRole('group')).toHaveClass(customClass);
 });

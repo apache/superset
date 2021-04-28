@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { EditableTabs } from 'src/common/components/Tabs';
-import { Dropdown } from 'src/common/components/Dropdown';
+import { Dropdown } from 'src/components/Dropdown';
+import { EditableTabs } from 'src/components/Tabs';
 import { Menu } from 'src/common/components';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -28,7 +28,7 @@ import { styled, t } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import { areArraysShallowEqual } from 'src/reduxUtils';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
 import * as Actions from '../actions/sqlLab';
 import SqlEditor from './SqlEditor';
@@ -81,7 +81,6 @@ class TabbedSqlEditors extends React.PureComponent {
       sqlLabUrl,
       queriesArray: [],
       dataPreviewQueries: [],
-      hideLeftBar: false,
     };
     this.removeQueryEditor = this.removeQueryEditor.bind(this);
     this.renameTab = this.renameTab.bind(this);
@@ -312,8 +311,8 @@ class TabbedSqlEditors extends React.PureComponent {
     this.props.actions.cloneQueryToNewTab(qe, false);
   }
 
-  toggleLeftBar() {
-    this.setState(prevState => ({ hideLeftBar: !prevState.hideLeftBar }));
+  toggleLeftBar(qe) {
+    this.props.actions.toggleLeftBar(qe);
   }
 
   render() {
@@ -347,11 +346,11 @@ class TabbedSqlEditors extends React.PureComponent {
             </div>
             {t('Rename tab')}
           </Menu.Item>
-          <Menu.Item key="3" onClick={this.toggleLeftBar}>
+          <Menu.Item key="3" onClick={() => this.toggleLeftBar(qe)}>
             <div className="icon-container">
               <i className="fa fa-cogs" />
             </div>
-            {this.state.hideLeftBar ? t('Expand tool bar') : t('Hide tool bar')}
+            {qe.hideLeftBar ? t('Expand tool bar') : t('Hide tool bar')}
           </Menu.Item>
           <Menu.Item
             key="4"
@@ -393,7 +392,7 @@ class TabbedSqlEditors extends React.PureComponent {
             latestQuery={latestQuery}
             database={database}
             actions={this.props.actions}
-            hideLeftBar={this.state.hideLeftBar}
+            hideLeftBar={qe.hideLeftBar}
             defaultQueryLimit={this.props.defaultQueryLimit}
             maxRow={this.props.maxRow}
             displayLimit={this.props.displayLimit}

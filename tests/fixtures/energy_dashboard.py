@@ -141,16 +141,17 @@ def _get_energy_slices():
         },
         {
             "slice_title": "Energy Force Layout",
-            "viz_type": "directed_force",
+            "viz_type": "graph_chart",
             "params": {
-                "charge": "-500",
-                "collapsed_fieldsets": "",
-                "groupby": ["source", "target"],
-                "link_length": "200",
+                "source": "source",
+                "target": "target",
+                "edgeLength": 400,
+                "repulsion": 1000,
+                "layout": "force",
                 "metric": "sum__value",
                 "row_limit": "5000",
                 "slice_name": "Force",
-                "viz_type": "directed_force",
+                "viz_type": "graph_chart",
             },
         },
         {

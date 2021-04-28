@@ -28,15 +28,15 @@ import {
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import { Popover } from 'src/common/components';
+import Popover from 'src/components/Popover';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import ListView, {
   Filters,
-  FilterOperators,
+  FilterOperator,
   ListViewProps,
 } from 'src/components/ListView';
 import Icon, { IconName } from 'src/components/Icon';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
@@ -340,7 +340,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         Header: t('Database'),
         id: 'database',
         input: 'select',
-        operator: FilterOperators.relationOneMany,
+        operator: FilterOperator.relationOneMany,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'query',
@@ -357,7 +357,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         Header: t('State'),
         id: 'status',
         input: 'select',
-        operator: FilterOperators.equals,
+        operator: FilterOperator.equals,
         unfilteredLabel: 'All',
         fetchSelects: createFetchDistinct(
           'query',
@@ -374,7 +374,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         Header: t('User'),
         id: 'user',
         input: 'select',
-        operator: FilterOperators.relationOneMany,
+        operator: FilterOperator.relationOneMany,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'query',
@@ -391,13 +391,13 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         Header: t('Time range'),
         id: 'start_time',
         input: 'datetime_range',
-        operator: FilterOperators.between,
+        operator: FilterOperator.between,
       },
       {
         Header: t('Search by query text'),
         id: 'sql',
         input: 'search',
-        operator: FilterOperators.contains,
+        operator: FilterOperator.contains,
       },
     ],
     [addDangerToast],

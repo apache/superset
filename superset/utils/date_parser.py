@@ -85,7 +85,7 @@ def parse_human_datetime(human_readable: str) -> datetime:
         parsed_dttm, parsed_flags = cal.parseDT(human_readable)
         # 0 == not parsed at all
         if parsed_flags == 0:
-            logger.exception(ex)
+            logger.debug(ex)
             raise TimeRangeParseFailError(human_readable)
         # when time is not extracted, we 'reset to midnight'
         if parsed_flags & 2 == 0:
@@ -210,11 +210,11 @@ def get_since_until(
                 lambda unit: f"DATEADD(DATETIME('{_relative_start}'), -1, {unit})",
             ),
             (
-                r"^last\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s$",
+                r"^last\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s?$",
                 lambda delta, unit: f"DATEADD(DATETIME('{_relative_start}'), -{int(delta)}, {unit})",  # pylint: disable=line-too-long
             ),
             (
-                r"^next\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s$",
+                r"^next\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s?$",
                 lambda delta, unit: f"DATEADD(DATETIME('{_relative_end}'), {int(delta)}, {unit})",  # pylint: disable=line-too-long
             ),
             (

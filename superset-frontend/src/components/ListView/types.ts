@@ -37,28 +37,6 @@ export interface CardSortSelectOption {
   value: any;
 }
 
-type FilterOperator =
-  | 'sw'
-  | 'ew'
-  | 'ct'
-  | 'eq'
-  | 'nsw'
-  | 'new'
-  | 'nct'
-  | 'neq'
-  | 'gt'
-  | 'lt'
-  | 'rel_m_m'
-  | 'rel_o_m'
-  | 'title_or_slug'
-  | 'name_or_description'
-  | 'all_text'
-  | 'chart_all_text'
-  | 'dataset_is_null_or_empty'
-  | 'between'
-  | 'dashboard_is_favorite'
-  | 'chart_is_favorite';
-
 export interface Filter {
   Header: ReactNode;
   id: string;
@@ -104,7 +82,7 @@ export interface InternalFilter extends FilterValue {
   Header?: string;
 }
 
-export enum FilterOperators {
+export enum FilterOperator {
   startsWith = 'sw',
   endsWith = 'ew',
   contains = 'ct',

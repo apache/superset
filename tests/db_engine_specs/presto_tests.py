@@ -23,8 +23,9 @@ from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.sql import select
 
 from superset.db_engine_specs.presto import PrestoEngineSpec
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql_parse import ParsedQuery
-from superset.utils.core import DatasourceName
+from superset.utils.core import DatasourceName, GenericDataType
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
@@ -535,30 +536,37 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         self.assertEqual(actual_expanded_cols, expected_expanded_cols)
 
     def test_get_sqla_column_type(self):
-        sqla_type = PrestoEngineSpec.get_sqla_column_type("varchar(255)")
-        assert isinstance(sqla_type, types.VARCHAR)
-        assert sqla_type.length == 255
+        column_spec = PrestoEngineSpec.get_column_spec("varchar(255)")
+        assert isinstance(column_spec.sqla_type, types.VARCHAR)
+        assert column_spec.sqla_type.length == 255
+        self.assertEqual(column_spec.generic_type, GenericDataType.STRING)
 
-        sqla_type = PrestoEngineSpec.get_sqla_column_type("varchar")
-        assert isinstance(sqla_type, types.String)
-        assert sqla_type.length is None
+        column_spec = PrestoEngineSpec.get_column_spec("varchar")
+        assert isinstance(column_spec.sqla_type, types.String)
+        assert column_spec.sqla_type.length is None
+        self.assertEqual(column_spec.generic_type, GenericDataType.STRING)
 
-        sqla_type = PrestoEngineSpec.get_sqla_column_type("char(10)")
-        assert isinstance(sqla_type, types.CHAR)
-        assert sqla_type.length == 10
+        column_spec = PrestoEngineSpec.get_column_spec("char(10)")
+        assert isinstance(column_spec.sqla_type, types.CHAR)
+        assert column_spec.sqla_type.length == 10
+        self.assertEqual(column_spec.generic_type, GenericDataType.STRING)
 
-        sqla_type = PrestoEngineSpec.get_sqla_column_type("char")
-        assert isinstance(sqla_type, types.CHAR)
-        assert sqla_type.length is None
+        column_spec = PrestoEngineSpec.get_column_spec("char")
+        assert isinstance(column_spec.sqla_type, types.CHAR)
+        assert column_spec.sqla_type.length is None
+        self.assertEqual(column_spec.generic_type, GenericDataType.STRING)
 
-        sqla_type = PrestoEngineSpec.get_sqla_column_type("integer")
-        assert isinstance(sqla_type, types.Integer)
+        column_spec = PrestoEngineSpec.get_column_spec("integer")
+        assert isinstance(column_spec.sqla_type, types.Integer)
+        self.assertEqual(column_spec.generic_type, GenericDataType.NUMERIC)
 
-        sqla_type = PrestoEngineSpec.get_sqla_column_type("time")
-        assert isinstance(sqla_type, types.Time)
+        column_spec = PrestoEngineSpec.get_column_spec("time")
+        assert issubclass(column_spec.sqla_type, types.Time)
+        self.assertEqual(column_spec.generic_type, GenericDataType.TEMPORAL)
 
-        sqla_type = PrestoEngineSpec.get_sqla_column_type("timestamp")
-        assert isinstance(sqla_type, types.TIMESTAMP)
+        column_spec = PrestoEngineSpec.get_column_spec("timestamp")
+        assert issubclass(column_spec.sqla_type, types.TIMESTAMP)
+        self.assertEqual(column_spec.generic_type, GenericDataType.TEMPORAL)
 
         sqla_type = PrestoEngineSpec.get_sqla_column_type(None)
         assert sqla_type is None
@@ -821,6 +829,193 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         exception = Exception("Err message")
         result = PrestoEngineSpec._extract_error_message(exception)
         assert result == "Err message"
+
+    def test_extract_errors(self):
+        msg = "Generic Error"
+        result = PrestoEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                message="Generic Error",
+                error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Presto",
+                    "issue_codes": [
+                        {
+                            "code": 1002,
+                            "message": "Issue 1002 - The database returned an unexpected error.",
+                        }
+                    ],
+                },
+            )
+        ]
+
+        msg = "line 1:8: Column 'bogus' cannot be resolved"
+        result = PrestoEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                message='We can\'t seem to resolve the column "bogus" at line 1:8.',
+                error_type=SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Presto",
+                    "issue_codes": [
+                        {
+                            "code": 1003,
+                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                        },
+                        {
+                            "code": 1004,
+                            "message": "Issue 1004 - The column was deleted or renamed in the database.",
+                        },
+                    ],
+                },
+            )
+        ]
+
+        msg = "line 1:15: Table 'tpch.tiny.region2' does not exist"
+        result = PrestoEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                message="The table \"'tpch.tiny.region2'\" does not exist. A valid table must be used to run this query.",
+                error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Presto",
+                    "issue_codes": [
+                        {
+                            "code": 1003,
+                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                        },
+                        {
+                            "code": 1005,
+                            "message": "Issue 1005 - The table was deleted or renamed in the database.",
+                        },
+                    ],
+                },
+            )
+        ]
+
+        msg = "line 1:15: Schema 'tin' does not exist"
+        result = PrestoEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                message='The schema "tin" does not exist. A valid schema must be used to run this query.',
+                error_type=SupersetErrorType.SCHEMA_DOES_NOT_EXIST_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Presto",
+                    "issue_codes": [
+                        {
+                            "code": 1003,
+                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                        },
+                        {
+                            "code": 1016,
+                            "message": "Issue 1005 - The schema was deleted or renamed in the database.",
+                        },
+                    ],
+                },
+            )
+        ]
+
+        msg = b"Access Denied: Invalid credentials"
+        result = PrestoEngineSpec.extract_errors(Exception(msg), {"username": "alice"})
+        assert result == [
+            SupersetError(
+                message='Either the username "alice" or the password is incorrect.',
+                error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Presto",
+                    "issue_codes": [
+                        {
+                            "code": 1014,
+                            "message": "Issue 1014 - Either the username or the password is wrong.",
+                        }
+                    ],
+                },
+            )
+        ]
+
+        msg = "Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known"
+        result = PrestoEngineSpec.extract_errors(
+            Exception(msg), {"hostname": "badhost"}
+        )
+        assert result == [
+            SupersetError(
+                message='The hostname "badhost" cannot be resolved.',
+                error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Presto",
+                    "issue_codes": [
+                        {
+                            "code": 1007,
+                            "message": "Issue 1007 - The hostname provided can't be resolved.",
+                        }
+                    ],
+                },
+            )
+        ]
+
+        msg = "Failed to establish a new connection: [Errno 60] Operation timed out"
+        result = PrestoEngineSpec.extract_errors(
+            Exception(msg), {"hostname": "badhost", "port": 12345}
+        )
+        assert result == [
+            SupersetError(
+                message='The host "badhost" might be down, and can\'t be reached on port 12345.',
+                error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Presto",
+                    "issue_codes": [
+                        {
+                            "code": 1009,
+                            "message": "Issue 1009 - The host might be down, and can't be reached on the provided port.",
+                        }
+                    ],
+                },
+            )
+        ]
+
+        msg = "Failed to establish a new connection: [Errno 61] Connection refused"
+        result = PrestoEngineSpec.extract_errors(
+            Exception(msg), {"hostname": "badhost", "port": 12345}
+        )
+        assert result == [
+            SupersetError(
+                message='Port 12345 on hostname "badhost" refused the connection.',
+                error_type=SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Presto",
+                    "issue_codes": [
+                        {"code": 1008, "message": "Issue 1008 - The port is closed."}
+                    ],
+                },
+            )
+        ]
+
+        msg = "line 1:15: Catalog 'wrong' does not exist"
+        result = PrestoEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                message='Unable to connect to catalog named "wrong".',
+                error_type=SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Presto",
+                    "issue_codes": [
+                        {
+                            "code": 1015,
+                            "message": "Issue 1015 - Either the database is spelled incorrectly or does not exist.",
+                        }
+                    ],
+                },
+            )
+        ]
 
 
 def test_is_readonly():

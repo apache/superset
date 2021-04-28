@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
+import { mockStore } from 'spec/fixtures/mockStore';
 import ExploreActionButtons from 'src/explore/components/ExploreActionButtons';
 
 describe('ExploreActionButtons', () => {
@@ -35,8 +36,10 @@ describe('ExploreActionButtons', () => {
     ).toBe(true);
   });
 
-  it('should render 5 children/buttons', () => {
-    const wrapper = shallow(<ExploreActionButtons {...defaultProps} />);
-    expect(wrapper.children()).toHaveLength(5);
+  it('should render 6 children/buttons', () => {
+    const wrapper = shallow(
+      <ExploreActionButtons {...defaultProps} store={mockStore} />,
+    );
+    expect(wrapper.dive().children()).toHaveLength(6);
   });
 });

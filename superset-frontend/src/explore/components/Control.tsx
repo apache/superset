@@ -19,7 +19,8 @@
 import React, { ReactNode } from 'react';
 import { ControlType } from '@superset-ui/chart-controls';
 import { JsonValue, QueryFormData } from '@superset-ui/core';
-import { ExploreActions } from '../actions/exploreActions';
+import ErrorBoundary from 'src/components/ErrorBoundary';
+import { ExploreActions } from 'src/explore/actions/exploreActions';
 import controlMap from './controls';
 
 import './Control.less';
@@ -70,6 +71,9 @@ export default class Control extends React.PureComponent<
     const { type, hidden } = this.props;
     if (!type) return null;
     const ControlComponent = typeof type === 'string' ? controlMap[type] : type;
+    if (!ControlComponent) {
+      return `Unknown controlType: ${type}`;
+    }
     return (
       <div
         className="Control"
@@ -78,11 +82,13 @@ export default class Control extends React.PureComponent<
         onMouseEnter={this.onMouseEnter}
         onMouseLeave={this.onMouseLeave}
       >
-        <ControlComponent
-          onChange={this.onChange}
-          hovered={this.state.hovered}
-          {...this.props}
-        />
+        <ErrorBoundary>
+          <ControlComponent
+            onChange={this.onChange}
+            hovered={this.state.hovered}
+            {...this.props}
+          />
+        </ErrorBoundary>
       </div>
     );
   }

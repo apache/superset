@@ -57,6 +57,7 @@ describe('Chart', () => {
     changeFilter() {},
     setFocusedFilterField() {},
     unsetFocusedFilterField() {},
+    addSuccessToast() {},
     addDangerToast() {},
     componentId: 'test',
     dashboardId: 111,

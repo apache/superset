@@ -17,9 +17,19 @@
 import logging
 import time
 import unittest
+from datetime import datetime, timedelta
+from typing import Any, Callable, cast, Dict, Iterator, Optional, Type, Union
 from unittest.mock import patch
 
-from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
+from flask import current_app
+from freezegun import freeze_time
+
+from superset import security_manager
+from superset.utils.log import (
+    AbstractEventLogger,
+    DBEventLogger,
+    get_event_logger_from_cfg_value,
+)
 from tests.test_app import app
 
 
@@ -101,3 +111,122 @@ class TestEventLogger(unittest.TestCase):
                 ],
             )
             self.assertGreaterEqual(payload["duration_ms"], 100)
+
+    @patch("superset.utils.log.g", spec={})
+    @freeze_time("Jan 14th, 2020", auto_tick_seconds=15)
+    def test_context_manager_log(self, mock_g):
+        class DummyEventLogger(AbstractEventLogger):
+            def __init__(self):
+                self.records = []
+
+            def log(
+                self,
+                user_id: Optional[int],
+                action: str,
+                dashboard_id: Optional[int],
+                duration_ms: Optional[int],
+                slice_id: Optional[int],
+                referrer: Optional[str],
+                *args: Any,
+                **kwargs: Any,
+            ):
+                self.records.append(
+                    {**kwargs, "user_id": user_id, "duration": duration_ms}
+                )
+
+        logger = DummyEventLogger()
+
+        with app.test_request_context():
+            mock_g.user = security_manager.find_user("gamma")
+            with logger(action="foo", engine="bar"):
+                pass
+
+        assert logger.records == [
+            {
+                "records": [{"path": "/", "engine": "bar"}],
+                "user_id": "2",
+                "duration": 15000.0,
+            }
+        ]
+
+    @patch("superset.utils.log.g", spec={})
+    def test_context_manager_log_with_context(self, mock_g):
+        class DummyEventLogger(AbstractEventLogger):
+            def __init__(self):
+                self.records = []
+
+            def log(
+                self,
+                user_id: Optional[int],
+                action: str,
+                dashboard_id: Optional[int],
+                duration_ms: Optional[int],
+                slice_id: Optional[int],
+                referrer: Optional[str],
+                *args: Any,
+                **kwargs: Any,
+            ):
+                self.records.append(
+                    {**kwargs, "user_id": user_id, "duration": duration_ms}
+                )
+
+        logger = DummyEventLogger()
+
+        with app.test_request_context():
+            mock_g.user = security_manager.find_user("gamma")
+            logger.log_with_context(
+                action="foo",
+                duration=timedelta(days=64, seconds=29156, microseconds=10),
+                object_ref={"baz": "food"},
+                log_to_statsd=False,
+                payload_override={"engine": "sqllite"},
+            )
+
+        assert logger.records == [
+            {
+                "records": [
+                    {
+                        "path": "/",
+                        "object_ref": {"baz": "food"},
+                        "payload_override": {"engine": "sqllite"},
+                    }
+                ],
+                "user_id": "2",
+                "duration": 5558756000,
+            }
+        ]
+
+    @patch("superset.utils.log.g", spec={})
+    def test_log_with_context_user_null(self, mock_g):
+        class DummyEventLogger(AbstractEventLogger):
+            def __init__(self):
+                self.records = []
+
+            def log(
+                self,
+                user_id: Optional[int],
+                action: str,
+                dashboard_id: Optional[int],
+                duration_ms: Optional[int],
+                slice_id: Optional[int],
+                referrer: Optional[str],
+                *args: Any,
+                **kwargs: Any,
+            ):
+                self.records.append(
+                    {**kwargs, "user_id": user_id, "duration": duration_ms}
+                )
+
+        logger = DummyEventLogger()
+
+        with app.test_request_context():
+            mock_g.side_effect = Exception("oops")
+            logger.log_with_context(
+                action="foo",
+                duration=timedelta(days=64, seconds=29156, microseconds=10),
+                object_ref={"baz": "food"},
+                log_to_statsd=False,
+                payload_override={"engine": "sqllite"},
+            )
+
+        assert logger.records[0]["user_id"] == None
