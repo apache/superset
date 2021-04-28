@@ -17,13 +17,12 @@
  * under the License.
  */
 import React, { FunctionComponent, useState } from 'react';
-import Form, { FormProps, FormValidation } from 'react-jsonschema-form';
-import { Row, Col } from 'src/common/components';
-import { FormControl, FormGroup } from 'react-bootstrap';
+import SchemaForm, { FormProps, FormValidation } from 'react-jsonschema-form';
+import { Row, Col, Input, TextArea } from 'src/common/components';
 import { t, styled } from '@superset-ui/core';
 import * as chrono from 'chrono-node';
 import ModalTrigger from 'src/components/ModalTrigger';
-import { FormLabel } from 'src/components/Form';
+import { Form, FormItem } from 'src/components/Form';
 import './ScheduleQueryButton.less';
 import Button from 'src/components/Button';
 
@@ -139,42 +138,52 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
   };
 
   const renderModalBody = () => (
-    <FormGroup>
+    <Form layout="vertical">
       <StyledRow>
         <Col xs={24}>
-          <FormLabel className="control-label" htmlFor="embed-height">
-            {t('Label')}
-          </FormLabel>
-          <FormControl
-            type="text"
-            placeholder={t('Label for your query')}
-            value={label}
-            onChange={(event: any) => setLabel(event.target?.value)}
-          />
+          <FormItem label={t('Label')}>
+            <Input
+              type="text"
+              placeholder={t('Label for your query')}
+              value={label}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                setLabel(event.target.value)
+              }
+            />
+          </FormItem>
         </Col>
       </StyledRow>
       <StyledRow>
         <Col xs={24}>
-          <FormLabel className="control-label" htmlFor="embed-height">
-            {t('Description')}
-          </FormLabel>
-          <FormControl
-            componentClass="textarea"
-            placeholder={t('Write a description for your query')}
-            value={description}
-            onChange={(event: any) => setDescription(event.target?.value)}
-          />
+          <FormItem label={t('Description')}>
+            <TextArea
+              rows={4}
+              placeholder={t('Write a description for your query')}
+              value={description}
+              onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
+                setDescription(event.target.value)
+              }
+            />
+          </FormItem>
         </Col>
       </StyledRow>
       <Row>
         <Col xs={24}>
           <div className="json-schema">
-            <Form
+            <SchemaForm
               schema={getJSONSchema()}
               uiSchema={getUISchema}
               onSubmit={onScheduleSubmit}
               validate={getValidator()}
-            />
+            >
+              <Button
+                buttonStyle="primary"
+                htmlType="submit"
+                css={{ float: 'right' }}
+              >
+                Submit
+              </Button>
+            </SchemaForm>
           </div>
         </Col>
       </Row>
@@ -185,7 +194,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
           </Col>
         </Row>
       )}
-    </FormGroup>
+    </Form>
   );
 
   return (

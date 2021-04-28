@@ -350,7 +350,7 @@ class PropertiesModal extends React.PureComponent {
           <ColorSchemeControlWrapper
             onChange={this.onColorSchemeChange}
             colorScheme={values.colorScheme}
-            labelMargin={8}
+            labelMargin={4}
           />
         </Col>
       </Row>
@@ -413,7 +413,7 @@ class PropertiesModal extends React.PureComponent {
             <ColorSchemeControlWrapper
               onChange={this.onColorSchemeChange}
               colorScheme={values.colorScheme}
-              labelMargin={8}
+              labelMargin={4}
             />
           </Col>
         </Row>
