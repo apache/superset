@@ -8,13 +8,16 @@ version: 1
 
 ## Install Database Drivers
 
-Superset requires a Python DB-API database driver and a SQLAlchemy dialect to be installed for each datastore you want to connect to.
+Superset requires a Python DB-API database driver and a SQLAlchemy
+dialect to be installed for each datastore you want to connect to.
 
-You can read more [here](/docs/databases/dockeradddrivers) about how to install new database drivers into your Superset configuration.
+You can read more [here](/docs/databases/dockeradddrivers) about how to
+install new database drivers into your Superset configuration.
 
 ### Supported Databases and Dependencies
 
-Superset does not ship bundled with connectivity to databases, except for SQLite, which is part of the Python standard library. You’ll need to install the required packages for the database you want to use as your metadata database as well as the packages needed to connect to the databases you want to access through Superset.
+Superset does not ship bundled with connectivity to databases, except for SQLite,
+which is part of the Python standard library. You’ll need to install the required packages for the database you want to use as your metadata database as well as the packages needed to connect to the databases you want to access through Superset.
 
 A list of some of the recommended packages.
 
@@ -32,7 +35,7 @@ A list of some of the recommended packages.
 |[Apache Spark SQL](/docs/databases/spark-sql)|```pip install pyhive```|```hive://hive@{hostname}:{port}/{database}```
 |[Azure MS SQL](/docs/databases/sql-server)|```pip install pymssql``` |```mssql+pymssql://UserName@presetSQL:TestPassword@presetSQL.database.windows.net:1433/TestSchema```
 |[Big Query](/docs/databases/bigquery)|```pip install pybigquery```|```bigquery://{project_id}```|
-|[ClickHouse](/docs/databases/clickhouse)|```pip install sqlalchemy-clickhouse```|```clickhouse://{username}:{password}@{hostname}:{port}/{database}```|
+|[ClickHouse](/docs/databases/clickhouse)|```pip install clickhouse-driver==0.2.0 && pip install clickhouse-sqlalchemy==0.1.6```|```clickhouse+native://{username}:{password}@{hostname}:{port}/{database}```|
 |[CockroachDB](/docs/databases/cockroachdb)|```pip install cockroachdb```|```cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable```|
 |[Dremio](/docs/databases/dremio)|```pip install sqlalchemy_dremio```|```dremio://user:pwd@host:31010/```|
 |[Elasticsearch](/docs/databases/elasticsearch)|```pip install elasticsearch-dbapi```|```elasticsearch+http://{user}:{password}@{host}:9200/```|
