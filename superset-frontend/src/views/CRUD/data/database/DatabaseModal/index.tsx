@@ -248,14 +248,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         // don't pass parameters if using the sqlalchemy uri
         delete update.parameters;
       }
-      updateResource(db.id as number, update as DatabaseObject).then(result => {
-        if (result) {
-          if (onDatabaseAdd) {
-            onDatabaseAdd();
-          }
-          onClose();
+      const result = await updateResource(
+        db.id as number,
+        update as DatabaseObject,
+      );
+      if (result) {
+        if (onDatabaseAdd) {
+          onDatabaseAdd();
         }
-      });
+        onClose();
+      }
     } else if (db) {
       // Create
       const dbId = await createResource(update as DatabaseObject);
