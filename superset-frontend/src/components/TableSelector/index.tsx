@@ -130,6 +130,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   datasetName,
   tableNameSticky = true,
 }) => {
+  console.log("props ", datasetName)
   const [currentSchema, setCurrentSchema] = useState<string | undefined>(
     schema,
   );
@@ -265,17 +266,18 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     fetchTables(dbId, currentSchema, force);
   }
 
-  function changeDatasetName(datasetOption){
-    setDatasetName(datasetOption.target.value)
+  function changeDatasetName(newDatasetName){
+    console.log("name ", newDatasetName)
+    setDatasetName(newDatasetName)
     onSelectionChange({
       dbId,
       schema,
       tableName,
-      datasetName: currentDatasetName,
+      datasetName: newDatasetName,
     });
 
     if (onDatasetNameChange){
-      onDatasetNameChange(datasetOption.target.value)
+      onDatasetNameChange(newDatasetName)
     }
   }
 
