@@ -509,6 +509,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     value={db?.cache_timeout || ''}
                     placeholder={t('Chart cache timeout')}
                     onChange={onInputChange}
+                    data-test="cache-timeout-test"
                   />
                 </div>
                 <div className="helper">
@@ -530,13 +531,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     value={metaDataCacheTimeout}
                     placeholder={t('Metadata cache timeout')}
                     onChange={onInputChange}
+                    data-test="metadata-cache-timeout-test"
                   />
                 </div>
                 <div className="helper">
                   {t(
-                    'Duration (in seconds) of the caching timeout for charts of this ' +
-                      'database. A timeout of 0 indicates that the cache never expires. ' +
-                      'Note this defaults to the global timeout if undefined.',
+                    'The metadata_cache_timeout is a cache timeout setting in seconds for ' +
+                      'metadata fetch of this database. Specify it as "metadata_cache_timeout": ' +
+                      '{"schema_cache_timeout": 600, "table_cache_timeout": 600}. If unset, cache ' +
+                      'will not be enabled for the functionality. A timeout of 0 indicates that ' +
+                      'the cache never expires.',
                   )}
                 </div>
               </StyledInputContainer>
@@ -573,7 +577,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             >
               <StyledInputContainer>
                 <div className="control-label">{t('Secure extra')}</div>
-                <div className="input-container">
+                <div
+                  className="input-container"
+                  data-test="secure-extra-editor-test"
+                >
                   <StyledJsonEditor
                     name="encrypted_extra"
                     value={db?.encrypted_extra || ''}
@@ -608,6 +615,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     value={db?.server_cert || ''}
                     placeholder={t('Root certificate')}
                     onChange={onTextChange}
+                    data-test="root-certificate-test"
                   />
                 </div>
                 <div className="helper">
@@ -681,8 +689,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               key="4"
             >
               <StyledInputContainer className="extra-container">
-                <div className="control-label">{t('Extra')}</div>
-                <div className="input-container">
+                <div
+                  className="control-label"
+                  data-test="extra-editor-label-test"
+                >
+                  {t('Extra')}
+                </div>
+                <div className="input-container" data-test="extra-editor-test">
                   <StyledJsonEditor
                     name="extra"
                     value={db?.extra ?? defaultExtra}
@@ -706,8 +719,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 </div>
               </StyledInputContainer>
               <StyledInputContainer>
-                <div className="control-label">{t('Version')}</div>
-                <div className="input-container">
+                <div className="control-label" data-test="version-label-test">
+                  {t('Version')}
+                </div>
+                <div
+                  className="input-container"
+                  data-test="version-spinbutton-test"
+                >
                   <input
                     type="number"
                     name="version"
