@@ -29,12 +29,22 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import {
   testDatabaseConnection,
   useSingleViewResource,
+  useAvailableDatabases,
 } from 'src/views/CRUD/hooks';
 import { useCommonConf } from 'src/views/CRUD/data/database/state';
 import { DatabaseObject } from 'src/views/CRUD/data/database/types';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
-import { StyledBasicTab, StyledModal } from './styles';
+import DatabaseConnectionForm, {
+  FormFieldOrder,
+} from './DatabaseConnectionForm';
+import {
+  StyledBasicTab,
+  StyledModal,
+  StyledFormModal,
+  StyledForm,
+  StyledFormHeader,
+} from './styles';
 
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
@@ -134,6 +144,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
   >(dbReducer, null);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
+  const [availableDbs, getAvailableDbs] = useAvailableDatabases();
+  const [selectedDb, setSelectedDb] = useState<string | null>(null);
   const conf = useCommonConf();
 
   const isEditMode = !!databaseId;
@@ -230,6 +242,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   useEffect(() => {
     if (show) {
       setTabKey(DEFAULT_TAB_KEY);
+      getAvailableDbs();
+      setSelectedDb('postgresql');
     }
     if (databaseId && show) {
       fetchDB();
@@ -251,6 +265,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const tabChange = (key: string) => {
     setTabKey(key);
   };
+
+  const dbModel =
+    availableDbs?.databases?.find(
+      (db: { engine: string }) => db.engine === selectedDb,
+    ) || {};
 
   return isEditMode || useSqlAlchemyForm ? (
     <StyledModal
@@ -289,7 +308,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             />
           ) : (
             <div>
-              <p>TODO: db form</p>
+              <p>TODO: form</p>
             </div>
           )}
         </StyledBasicTab>
@@ -318,7 +337,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       </Tabs>
     </StyledModal>
   ) : (
-    <StyledModal
+    <StyledFormModal
       name="database"
       className="database-modal"
       disablePrimaryButton={disableSave}
@@ -330,10 +349,25 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       show={show}
       title={<h4>{t('Connect a database')}</h4>}
     >
-      <div>
-        <p>TODO: db form</p>
-      </div>
-    </StyledModal>
+      <StyledFormHeader>
+        <h4>Enter the required {dbModel.name} credentials</h4>
+        <p className="helper">
+          Need help? Learn more about connecting to {dbModel.name}
+        </p>
+      </StyledFormHeader>
+      <StyledForm>
+        {dbModel.parameters &&
+          FormFieldOrder.filter((key: string) =>
+            Object.keys(dbModel.parameters.properties).includes(key),
+          ).map(field => (
+            <DatabaseConnectionForm
+              key={field}
+              field={field}
+              required={dbModel.parameters?.required.includes(field)}
+            />
+          ))}
+      </StyledForm>
+    </StyledFormModal>
   );
 };
 

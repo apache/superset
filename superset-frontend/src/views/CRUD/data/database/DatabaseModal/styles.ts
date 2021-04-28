@@ -28,6 +28,23 @@ const EXPOSE_ALL_FORM_HEIGHT = EXPOSE_IN_SQLLAB_FORM_HEIGHT + 102;
 
 const anticonHeight = 12;
 
+export const StyledFormHeader = styled.header`
+  border-bottom: ${({ theme }) => `${theme.gridUnit * 0.25}px solid
+    ${theme.colors.grayscale.light2};`}
+  padding-left: ${({ theme }) => theme.gridUnit * 4}px;
+  padding-right: ${({ theme }) => theme.gridUnit * 4}px;
+  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  .helper {
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+  }
+  h4 {
+    color: ${({ theme }) => theme.colors.grayscale.dark2};
+    font-weight: bold;
+    font-size: ${({ theme }) => theme.typography.sizes.l}px;
+  }
+`;
+
 export const StyledModal = styled(Modal)`
   .ant-collapse {
     .ant-collapse-header {
@@ -81,6 +98,43 @@ export const StyledModal = styled(Modal)`
   }
   .ant-modal-title > h4 {
     font-weight: bold;
+  }
+`;
+export const StyledFormModal = styled(Modal)`
+  .ant-modal-body {
+    padding-left: 0;
+    padding-right: 0;
+  }
+`;
+export const StyledForm = styled.div`
+  overflow-y: scroll;
+  padding-left: ${({ theme }) => theme.gridUnit * 4}px;
+  padding-right: ${({ theme }) => theme.gridUnit * 4}px;
+  .form-group {
+    margin-bottom: ${({ theme }) => theme.gridUnit * 8}px;
+    &-w-50 {
+      display: inline-block;
+      width: ${({ theme }) => `calc(50% - ${theme.gridUnit * 4}px)`};
+      & + .form-group-w-50 {
+        margin-left: ${({ theme }) => theme.gridUnit * 8}px;
+      }
+    }
+    .text-danger {
+      color: ${({ theme }) => theme.colors.error.base};
+      font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+      strong {
+        font-weight: normal;
+      }
+    }
+  }
+  .control-label {
+    color: ${({ theme }) => theme.colors.grayscale.dark1};
+    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+  }
+  .helper {
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    margin-top: ${({ theme }) => theme.gridUnit * 1.5}px;
   }
 `;
 
