@@ -18,17 +18,12 @@
  */
 import emotionStyled, { CreateStyled } from '@emotion/styled';
 import { useTheme as useThemeBasic } from 'emotion-theming';
+import createCache from '@emotion/cache';
 
 export { ThemeProvider, withTheme } from 'emotion-theming';
-export {
-  CacheProvider,
-  ClassNames,
-  css,
-  Global,
-  InterpolationWithTheme,
-  SerializedStyles,
-} from '@emotion/core';
-export { default as createCache } from '@emotion/cache';
+export { ClassNames, Global, InterpolationWithTheme, SerializedStyles } from '@emotion/core';
+export { CacheProvider, jsx, css } from '@emotion/react';
+export { createCache };
 
 export function useTheme() {
   const theme = useThemeBasic<SupersetTheme>();
