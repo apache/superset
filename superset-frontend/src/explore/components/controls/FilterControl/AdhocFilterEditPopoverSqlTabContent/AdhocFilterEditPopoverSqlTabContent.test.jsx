@@ -20,7 +20,6 @@
 import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import { FormGroup } from 'react-bootstrap';
 
 import AdhocFilter, {
   EXPRESSION_TYPES,
@@ -50,7 +49,7 @@ function setup(overrides) {
 describe('AdhocFilterEditPopoverSqlTabContent', () => {
   it('renders the sql tab form', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(FormGroup)).toHaveLength(2);
+    expect(wrapper).toExist();
   });
 
   it('passes the new clause to onChange after onSqlExpressionClauseChange', () => {
