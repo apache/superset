@@ -59,20 +59,24 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
   const [currentTableName, setTableName] = useState('');
   const [datasourceId, setDatasourceId] = useState<number>(0);
   const [disableSave, setDisableSave] = useState(true);
+  const [currentDatasetName, setDatasetName] = useState('');
 
   const onChange = ({
     dbId,
     schema,
     tableName,
+    datasetName
   }: {
     dbId: number;
     schema: string;
     tableName: string;
+    datasetName: string;
   }) => {
     setDatasourceId(dbId);
     setDisableSave(isNil(dbId) || isEmpty(tableName));
     setSchema(schema);
     setTableName(tableName);
+    setDatasetName(datasetName);
   };
 
   const onSave = () => {
@@ -82,6 +86,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
         database: datasourceId,
         ...(currentSchema ? { schema: currentSchema } : {}),
         table_name: currentTableName,
+        dataset_name: currentDatasetName
       }),
       headers: { 'Content-Type': 'application/json' },
     })
@@ -127,6 +132,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
           onChange={onChange}
           schema={currentSchema}
           tableName={currentTableName}
+          datasetName = {currentDatasetName}
         />
       </TableSelectorContainer>
     </Modal>

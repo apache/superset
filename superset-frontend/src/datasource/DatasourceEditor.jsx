@@ -316,6 +316,7 @@ class DatasourceEditor extends React.PureComponent {
       datasourceType: props.datasource.sql
         ? DATASOURCE_TYPES.virtual.key
         : DATASOURCE_TYPES.physical.key,
+      datasourceName: props.datasource.dataset_name
     };
 
     this.onChange = this.onChange.bind(this);
@@ -777,6 +778,7 @@ class DatasourceEditor extends React.PureComponent {
                       schema={datasource.schema}
                       sqlLabMode={false}
                       tableName={datasource.table_name}
+                      datasetName={datasource.dataset_name}
                       onSchemaChange={
                         this.state.isEditMode
                           ? schema =>
@@ -794,6 +796,9 @@ class DatasourceEditor extends React.PureComponent {
                           ? table =>
                               this.onDatasourcePropChange('table_name', table)
                           : undefined
+                      }
+                      onDatasetNameChange={
+                        this.state.isEditMode ? name => this.onDatasourcePropChange('dataset_name', name): undefined
                       }
                       readOnly={!this.state.isEditMode}
                     />

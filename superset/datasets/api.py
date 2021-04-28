@@ -111,6 +111,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "schema",
         "sql",
         "table_name",
+        "dataset_name",
     ]
     list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
     order_columns = [
@@ -145,6 +146,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "datasource_type",
         "url",
         "extra",
+        "dataset_name",
     ]
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()

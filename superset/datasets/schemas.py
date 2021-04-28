@@ -71,6 +71,7 @@ class DatasetPostSchema(Schema):
     schema = fields.String(validate=Length(0, 250))
     table_name = fields.String(required=True, allow_none=False, validate=Length(1, 250))
     owners = fields.List(fields.Integer())
+    dataset_name = fields.String(validate=Length(1, 250))
 
 
 class DatasetPutSchema(Schema):

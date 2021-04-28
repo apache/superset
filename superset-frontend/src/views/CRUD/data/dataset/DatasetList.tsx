@@ -91,6 +91,7 @@ type Dataset = {
   owners: Array<Owner>;
   schema: string;
   table_name: string;
+  dataset_name: string;
 };
 
 interface DatasetListProps {
@@ -227,7 +228,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: {
               extra,
-              table_name: datasetTitle,
+              dataset_name: datasetTitle,
               explore_url: exploreURL,
             },
           },
@@ -251,7 +252,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           }
         },
         Header: t('Name'),
-        accessor: 'table_name',
+        accessor: 'dataset_name',
       },
       {
         Cell: ({
@@ -449,7 +450,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Header: t('Search'),
-        id: 'table_name',
+        id: 'dataset_name',
         input: 'search',
         operator: 'ct',
       },

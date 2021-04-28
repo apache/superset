@@ -567,14 +567,17 @@ class ChartRestApi(BaseSupersetModelRestApi):
             query_context = command.set_query_context(json_body)
             command.validate()
         except QueryObjectValidationError as error:
+
             return self.response_400(message=error.message)
         except ValidationError as error:
+
             return self.response_400(
                 message=_(
                     "Request is incorrect: %(error)s", error=error.normalized_messages()
                 )
             )
         except SupersetSecurityException:
+
             return self.response_401()
 
         # TODO: support CSV, SQL query and other non-JSON types

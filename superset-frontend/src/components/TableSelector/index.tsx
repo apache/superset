@@ -26,6 +26,7 @@ import { styled, SupersetClient, t } from '@superset-ui/core';
 import { AsyncSelect, CreatableSelect, Select } from 'src/components/Select';
 
 import FormLabel from 'src/components/FormLabel';
+import TextControl from 'src/explore/components/controls/TextControl';
 
 import DatabaseSelector from 'src/components/DatabaseSelector';
 import RefreshLabel from 'src/components/RefreshLabel';
@@ -92,16 +93,19 @@ interface TableSelectorProps {
     dbId: number;
     schema?: string;
     tableName?: string;
+    datasetName?:string;
   }) => void;
   onDbChange?: (db: any) => void;
   onSchemaChange?: (arg0?: any) => {};
   onSchemasLoad?: () => void;
   onTableChange?: (tableName: string, schema: string) => void;
+  onDatasetNameChange?: (datasetName: string) => void;
   onTablesLoad?: (options: Array<any>) => {};
   readOnly?: boolean;
   schema?: string;
   sqlLabMode?: boolean;
   tableName?: string;
+  datasetName?:string;
   tableNameSticky?: boolean;
 }
 
@@ -117,11 +121,13 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   onSchemaChange,
   onSchemasLoad,
   onTableChange,
+  onDatasetNameChange,
   onTablesLoad,
   readOnly = false,
   schema,
   sqlLabMode = true,
   tableName,
+  datasetName,
   tableNameSticky = true,
 }) => {
   const [currentSchema, setCurrentSchema] = useState<string | undefined>(
@@ -129,6 +135,9 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   );
   const [currentTableName, setCurrentTableName] = useState<string | undefined>(
     tableName,
+  );
+  const [currentDatasetName, setDatasetName] = useState<string | undefined>(
+    datasetName,
   );
   const [tableLoading, setTableLoading] = useState(false);
   const [tableOptions, setTableOptions] = useState([]);
@@ -186,15 +195,18 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     dbId,
     schema,
     tableName,
+    datasetName
   }: {
     dbId: number;
     schema?: string;
     tableName?: string;
+    datasetName? :string
   }) {
     setCurrentTableName(tableName);
     setCurrentSchema(schema);
+    setDatasetName(datasetName)
     if (onChange) {
-      onChange({ dbId, schema, tableName });
+      onChange({ dbId, schema, tableName,  datasetName});
     }
   }
 
@@ -251,6 +263,20 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       tableName: undefined,
     });
     fetchTables(dbId, currentSchema, force);
+  }
+
+  function changeDatasetName(datasetOption){
+    setDatasetName(datasetOption.target.value)
+    onSelectionChange({
+      dbId,
+      schema,
+      tableName,
+      datasetName: currentDatasetName,
+    });
+
+    if (onDatasetNameChange){
+      onDatasetNameChange(datasetOption.target.value)
+    }
   }
 
   function renderTableOption(option: any) {
@@ -385,6 +411,14 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     );
   }
 
+  function renderDatasetNameInput(){
+    return (
+      <div className="section">
+        <TextControl disabled={readOnly} onChange={changeDatasetName} value={currentDatasetName} />
+      </div>
+    );
+  }
+
   return (
     <TableSelectorWrapper>
       {renderDatabaseSelector()}
@@ -392,6 +426,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       {sqlLabMode && renderSeeTableLabel()}
       {formMode && <FieldTitle>{t('Table')}</FieldTitle>}
       {renderTableSelect()}
+      {formMode && <FieldTitle>{t('Dataset name')}</FieldTitle>}
+      {renderDatasetNameInput()}
     </TableSelectorWrapper>
   );
 };

@@ -264,6 +264,7 @@ class BaseDatasource(
             "owners": [owner.id for owner in self.owners],
             "verbose_map": verbose_map,
             "select_star": self.select_star,
+            "dataset_name": self.dataset_name,
         }
 
     def data_for_slices(self, slices: List[Slice]) -> Dict[str, Any]:
