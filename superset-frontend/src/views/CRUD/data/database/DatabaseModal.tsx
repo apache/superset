@@ -66,6 +66,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [metaDataCacheTimeout, setMetaDataCacheTimeout] = useState<string>(
     '{}',
   );
+  const [constQueryEnabled, setConstQueryEnabled] = useState<boolean>(false);
+  const [versionNumber, setVersionNumber] = useState<string>('');
   const conf = useCommonConf();
 
   const isEditMode = database !== null;
@@ -119,9 +121,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
       // Parse 'extra' field
       const extraParsed = JSON.parse(update?.extra || defaultExtra);
-      // Add cache_timeout and schema values
+      // Add cache timeout, schema, and cost enabled values
       extraParsed.metadata_cache_timeout = metaDataCacheTimeout;
       extraParsed.schemas_allowed_for_csv_upload = schemasAllowed;
+      /* ----------
+
+      🚨 This returns 400 (BAD REQUEST), where in DatabaseObject should cost_query_enabled and version go? 🚨
+
+      ---------- */
+      extraParsed.cost_query_enabled = constQueryEnabled;
+      extraParsed.version = versionNumber;
       // Re-stringify
       update.extra = JSON.stringify(extraParsed);
 
@@ -175,6 +184,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
     if (name === 'schemas_allowed_for_csv_upload') {
       setSchemasAllowed(value);
+    }
+
+    if (name === 'cost_query_enabled') {
+      setConstQueryEnabled(checked);
+    }
+
+    if (name === 'version') {
+      setVersionNumber(value);
     }
 
     setDB(data);
@@ -469,6 +486,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                       />
                     </div>
                   </StyledInputContainer>
+                  <StyledInputContainer className="mb-0">
+                    <div className="input-container">
+                      <IndeterminateCheckbox
+                        id="cost_query_enabled"
+                        indeterminate={false}
+                        checked={constQueryEnabled}
+                        onChange={onInputChange}
+                        labelText={t('Enable query cost estimation')}
+                      />
+                      <InfoTooltip
+                        tooltip={t(
+                          /* ----------
+
+                          🚨 Coming back to this when I figure out what this tooltip should be 🚨
+
+                          ---------- */
+                          'When enabled, users are able to visualize SQL Lab results in Explore.',
+                        )}
+                      />
+                    </div>
+                  </StyledInputContainer>
                   <StyledInputContainer>
                     <div className="input-container">
                       <IndeterminateCheckbox
@@ -734,7 +772,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     🚨 Not sure which part of db I should use for value 🚨
 
                     ---------- */
-                    // value={db?.version || ''}
+                    value={versionNumber}
                     placeholder={t('Version number')}
                     onChange={onInputChange}
                   />

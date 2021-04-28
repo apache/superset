@@ -233,6 +233,12 @@ describe('DatabaseModal', () => {
         const allowMultiSchemaMdFetchText = screen.getByText(
           /allow multi schema metadata fetch/i,
         );
+        const enableQueryCostCheckbox = screen.getByRole('checkbox', {
+          name: /enable query cost estimation/i,
+        }).parentElement;
+        const enableQueryCostLabel = screen.getByText(
+          /enable query cost estimation/i,
+        );
         const allowDbExploreCheckbox = screen.getByRole('checkbox', {
           name: /allow this database to be explored/i,
         }).parentElement;
@@ -272,6 +278,8 @@ describe('DatabaseModal', () => {
         expect(allowDmlText).toBeVisible();
         expect(allowMultiSchemaMdFetchCheckbox).toBeVisible();
         expect(allowMultiSchemaMdFetchText).toBeVisible();
+        expect(enableQueryCostCheckbox).toBeVisible();
+        expect(enableQueryCostLabel).toBeVisible();
         expect(allowDbExploreCheckbox).toBeVisible();
         expect(allowDbExploreText).toBeVisible();
 
@@ -590,7 +598,7 @@ describe('DatabaseModal', () => {
         .getAllByRole('checkbox')
         .filter(checkbox => !checkbox.checked);
 
-      expect(checkboxes.length).toEqual(5);
+      expect(checkboxes.length).toEqual(6);
     });
 
     it('renders the schema field when allowCTAS is checked', () => {
