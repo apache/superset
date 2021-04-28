@@ -123,6 +123,6 @@ test('Clickin on checkbox when resetConfig:flase', () => {
   expect(props.forceUpdate).not.toBeCalled();
   expect(setNativeFilterFieldValues).not.toBeCalled();
   userEvent.click(screen.getByRole('checkbox'));
-  expect(props.forceUpdate).not.toBeCalled();
+  expect(props.forceUpdate).toBeCalled();
   expect(setNativeFilterFieldValues).not.toBeCalled();
 });
