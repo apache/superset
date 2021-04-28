@@ -28,6 +28,7 @@ import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/Filt
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
 import { getFilterBarTestId } from '..';
+import { RootState } from '../../../../types';
 
 const TitleArea = styled.h4`
   display: flex;
@@ -79,7 +80,7 @@ const Header: FC<HeaderProps> = ({
 }) => {
   const filters = useFilters();
   const filterValues = Object.values<Filter>(filters);
-  const canEdit = useSelector<any, boolean>(
+  const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
 
