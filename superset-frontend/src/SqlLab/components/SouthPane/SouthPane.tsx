@@ -167,6 +167,7 @@ export default function SouthPane({
             csv={false}
             actions={actions}
             cache
+            user={user}
             height={innerTabContentHeight}
             displayLimit={displayLimit}
           />

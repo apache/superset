@@ -76,7 +76,7 @@ interface ResultSetProps {
   search?: boolean;
   showSql?: boolean;
   visualize?: boolean;
-  user?: UserWithPermissionsAndRoles;
+  user: UserWithPermissionsAndRoles;
 }
 
 interface ResultSetState {

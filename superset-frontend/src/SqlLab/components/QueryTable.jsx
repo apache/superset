@@ -23,7 +23,7 @@ import Card from 'src/components/Card';
 import ProgressBar from 'src/components/ProgressBar';
 import Label from 'src/components/Label';
 import { t } from '@superset-ui/core';
-
+import { useSelector } from 'react-redux';
 import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
 import { fDuration } from 'src/modules/dates';
@@ -63,6 +63,8 @@ const QueryTable = props => {
       })),
     [props.columns],
   );
+
+  const user = useSelector(({ sqlLab: { user } }) => user);
 
   const data = useMemo(() => {
     const restoreSql = query => {
@@ -153,6 +155,7 @@ const QueryTable = props => {
               modalBody={
                 <ResultSet
                   showSql
+                  user={user}
                   query={query}
                   actions={props.actions}
                   height={400}
