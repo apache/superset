@@ -32,7 +32,7 @@ import dashboardLayout from 'src/dashboard/reducers/undoableDashboardLayout';
 
 // Some reducers don't do anything, and redux is just used to reference the initial "state".
 // This may change later, as the client application takes on more responsibilities.
-const noopReducer = <STATE = any>(initialState: STATE) => (
+const noopReducer = <STATE = unknown>(initialState: STATE) => (
   state: STATE = initialState,
 ) => state;
 
@@ -54,8 +54,8 @@ const dashboardReducers = {
 
 const rootReducer = combineReducers({
   messageToasts: messageToastReducer,
-  common: noopReducer(bootstrap.common),
-  user: noopReducer(bootstrap.user),
+  common: noopReducer(bootstrap.common || {}),
+  user: noopReducer(bootstrap.user || {}),
   impressionId: noopReducer(''),
   ...dashboardReducers,
 });
