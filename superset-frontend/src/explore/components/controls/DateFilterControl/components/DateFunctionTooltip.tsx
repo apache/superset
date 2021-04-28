@@ -17,10 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { useTheme, t } from '@superset-ui/core';
+import { ClassNames, useTheme, t } from '@superset-ui/core';
 
 import { Tooltip } from 'src/components/Tooltip';
-import { ClassNames } from '@emotion/core';
 
 const TIME_PICKER_HELPER = (
   <>

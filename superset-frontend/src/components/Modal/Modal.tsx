@@ -18,10 +18,9 @@
  */
 import React from 'react';
 import { isNil } from 'lodash';
-import { styled, SupersetThemeProps, t } from '@superset-ui/core';
+import { styled, SupersetThemeProps, t, css } from '@superset-ui/core';
 import { Modal as BaseModal } from 'src/common/components';
 import Button from 'src/components/Button';
-import { css } from '@emotion/core';
 
 interface ModalProps {
   className?: string;

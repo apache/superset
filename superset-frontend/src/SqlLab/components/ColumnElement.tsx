@@ -18,8 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ClassNames } from '@emotion/core';
-import { styled, useTheme } from '@superset-ui/core';
+import { styled, useTheme, ClassNames } from '@superset-ui/core';
 
 import { Tooltip } from 'src/components/Tooltip';
 
