@@ -29,7 +29,6 @@ import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import Collapse from 'src/components/Collapse';
-import { css } from '@emotion/core';
 import { DatabaseObject } from './types';
 import { useCommonConf } from './state';
 import {
@@ -38,6 +37,7 @@ import {
   StyledJsonEditor,
   StyledExpandableForm,
   StyledRequiredTab,
+  no_margin_bottom,
 } from './styles';
 
 interface DatabaseModalProps {
@@ -50,10 +50,6 @@ interface DatabaseModalProps {
 }
 
 const DEFAULT_TAB_KEY = '1';
-
-const no_margin_bottom = css`
-  margin-bottom: 0;
-`;
 
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   addDangerToast,

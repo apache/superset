@@ -18,6 +18,7 @@
  */
 
 import { styled } from '@superset-ui/core';
+import { css } from '@emotion/core';
 import Modal from 'src/components/Modal';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 import Tabs from 'src/components/Tabs';
@@ -200,4 +201,8 @@ export const StyledRequiredTab = styled(Tabs.TabPane)`
   padding-left: ${({ theme }) => theme.gridUnit * 4}px;
   padding-right: ${({ theme }) => theme.gridUnit * 4}px;
   margin-top: ${({ theme }) => theme.gridUnit * 4}px;
+`;
+
+export const no_margin_bottom = css`
+  margin-bottom: 0;
 `;
