@@ -116,6 +116,11 @@ module.exports = {
                 message:
                   'Please import Ant components from the index of common/components',
               },
+              {
+                name: '@emotion/core',
+                message:
+                  'Please import Emotion components from @superset-ui/core',
+              },
             ],
           },
         ],
