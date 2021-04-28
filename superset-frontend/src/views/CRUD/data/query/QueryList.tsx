@@ -287,7 +287,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
           row: {
             original: { user },
           },
-        }: any) => `${user.first_name} ${user.last_name}`,
+        }: any) => (user ? `${user.first_name} ${user.last_name}` : ''),
       },
       {
         accessor: QueryObjectColumns.user,
