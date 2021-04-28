@@ -18,7 +18,7 @@
  */
 import rison from 'rison';
 import { useState, useEffect, useCallback } from 'react';
-import { makeApi, SupersetClient, t } from '@superset-ui/core';
+import { makeApi, SupersetClient, t, JsonObject } from '@superset-ui/core';
 
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import { FetchDataConfig } from 'src/components/ListView';
@@ -277,7 +277,7 @@ export function useSingleViewResource<D extends object = any>(
         .then(
           ({ json = {} }) => {
             updateState({
-              resource: json.result,
+              resource: { id: json.id, ...json.result },
               error: null,
             });
             return json.id;
@@ -643,3 +643,17 @@ export const testDatabaseConnection = (
     }),
   );
 };
+
+export function useAvailableDatabases() {
+  const [availableDbs, setAvailableDbs] = useState<JsonObject | null>(null);
+
+  const getAvailable = useCallback(() => {
+    SupersetClient.get({
+      endpoint: `/api/v1/database/available`,
+    }).then(({ json }) => {
+      setAvailableDbs(json);
+    });
+  }, [setAvailableDbs]);
+
+  return [availableDbs, getAvailable] as const;
+}

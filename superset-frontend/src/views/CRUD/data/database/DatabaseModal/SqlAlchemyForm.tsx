@@ -45,7 +45,7 @@ const SqlAlchemyTab = ({
           type="text"
           name="database_name"
           value={db?.database_name || ''}
-          placeholder={t('Name your dataset')}
+          placeholder={t('Name your database')}
           onChange={onInputChange}
         />
       </div>
@@ -71,15 +71,15 @@ const SqlAlchemyTab = ({
         />
       </div>
       <div className="helper">
-        {t('Refer to the ')}
+        {t('Refer to the')}{' '}
         <a
           href={conf?.SQLALCHEMY_DOCS_URL ?? ''}
           target="_blank"
           rel="noopener noreferrer"
         >
           {conf?.SQLALCHEMY_DISPLAY_TEXT ?? ''}
-        </a>
-        {t(' for more information on how to structure your URI.')}
+        </a>{' '}
+        {t('for more information on how to structure your URI.')}
       </div>
     </StyledInputContainer>
     <Button
