@@ -181,10 +181,6 @@ export const formStyles = (theme: SupersetTheme) => css`
     font-size: ${theme.typography.sizes.s - 1}px;
     margin-top: ${theme.gridUnit * 1.5}px;
   }
-  .ant-modal-body {
-    padding-top: 0;
-    margin-bottom: 0;
-  }
   .ant-tabs-content-holder {
     overflow: auto;
     max-height: 475px;
