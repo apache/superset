@@ -120,7 +120,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       };
 
       // Parse 'extra' field
-      const extraParsed = JSON.parse(update?.extra || defaultExtra);
+      const extraParsed = JSON.parse(db?.extra || defaultExtra);
       // Add cache timeout, schema, and cost enabled values
       extraParsed.metadata_cache_timeout = metaDataCacheTimeout;
       extraParsed.schemas_allowed_for_csv_upload = schemasAllowed;
@@ -247,6 +247,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             // Remove metadata_cache_timeout and schemas_allowed_for_csv_upload
             delete extraParsed.metadata_cache_timeout;
             delete extraParsed.schemas_allowed_for_csv_upload;
+            delete extraParsed.cost_query_enabled;
+            delete extraParsed.version;
             // Re-stringify and add back to dbFetched object
             dbFetched.extra = JSON.stringify(extraParsed, null, '  ');
           }
