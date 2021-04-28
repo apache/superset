@@ -34,6 +34,9 @@ You can require SSL by adding `?sslmode=require` at the end:
 postgresql://{username}:{password}@{host}:{port}/{database}?sslmode=require
 ```
 
+You can read about the other SSL modes that Postgres supports in
+[Table 31-1 from this documentation](https://www.postgresql.org/docs/9.1/libpq-ssl.html).
+
 More information about PostgreSQL connection options can be found in the
 [SQLAlchemy docs](https://docs.sqlalchemy.org/en/13/dialects/postgresql.html#module-sqlalchemy.dialects.postgresql.psycopg2)
 and the
