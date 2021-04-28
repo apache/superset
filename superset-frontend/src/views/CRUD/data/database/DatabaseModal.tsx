@@ -29,6 +29,7 @@ import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import Collapse from 'src/components/Collapse';
+import { css } from '@emotion/core';
 import { DatabaseObject } from './types';
 import { useCommonConf } from './state';
 import {
@@ -49,6 +50,10 @@ interface DatabaseModalProps {
 }
 
 const DEFAULT_TAB_KEY = '1';
+
+const no_margin_bottom = css`
+  margin-bottom: 0;
+`;
 
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   addDangerToast,
@@ -121,14 +126,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
       // Parse 'extra' field
       const extraParsed = JSON.parse(db?.extra || defaultExtra);
-      // Add cache timeout, schema, and cost enabled values
+      // Add values back to extra field
       extraParsed.metadata_cache_timeout = metaDataCacheTimeout;
       extraParsed.schemas_allowed_for_csv_upload = schemasAllowed;
-      /* ----------
-
-      🚨 This returns 400 (BAD REQUEST), where in DatabaseObject should cost_query_enabled and version go? 🚨
-
-      ---------- */
       extraParsed.cost_query_enabled = constQueryEnabled;
       extraParsed.version = versionNumber;
       // Re-stringify
@@ -244,7 +244,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           if (dbFetched?.extra) {
             // Parse 'extra' field
             const extraParsed = JSON.parse(dbFetched.extra || defaultExtra);
-            // Remove metadata_cache_timeout and schemas_allowed_for_csv_upload
+            // Remove values from extra
             delete extraParsed.metadata_cache_timeout;
             delete extraParsed.schemas_allowed_for_csv_upload;
             delete extraParsed.cost_query_enabled;
@@ -381,7 +381,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               }
               key="1"
             >
-              <StyledInputContainer className="mb-0">
+              <StyledInputContainer css={{ ...no_margin_bottom }}>
                 <div className="input-container">
                   <IndeterminateCheckbox
                     id="expose_in_sqllab"
@@ -400,7 +400,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     'ctas-open': createAsOpen,
                   })}
                 >
-                  <StyledInputContainer className="mb-0">
+                  <StyledInputContainer css={{ ...no_margin_bottom }}>
                     <div className="input-container">
                       <IndeterminateCheckbox
                         id="allow_ctas"
@@ -416,7 +416,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                       />
                     </div>
                   </StyledInputContainer>
-                  <StyledInputContainer className="mb-0">
+                  <StyledInputContainer css={{ ...no_margin_bottom }}>
                     <div className="input-container">
                       <IndeterminateCheckbox
                         id="allow_cvas"
@@ -454,7 +454,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                       </div>
                     </StyledInputContainer>
                   </StyledInputContainer>
-                  <StyledInputContainer className="mb-0">
+                  <StyledInputContainer css={{ ...no_margin_bottom }}>
                     <div className="input-container">
                       <IndeterminateCheckbox
                         id="allow_dml"
@@ -470,7 +470,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                       />
                     </div>
                   </StyledInputContainer>
-                  <StyledInputContainer className="mb-0">
+                  <StyledInputContainer css={{ ...no_margin_bottom }}>
                     <div className="input-container">
                       <IndeterminateCheckbox
                         id="allow_multi_schema_metadata_fetch"
@@ -488,7 +488,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                       />
                     </div>
                   </StyledInputContainer>
-                  <StyledInputContainer className="mb-0">
+                  <StyledInputContainer css={{ ...no_margin_bottom }}>
                     <div className="input-container">
                       <IndeterminateCheckbox
                         id="cost_query_enabled"
@@ -499,12 +499,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                       />
                       <InfoTooltip
                         tooltip={t(
-                          /* ----------
-
-                          🚨 Coming back to this when I figure out what this tooltip should be 🚨
-
-                          ---------- */
-                          'When enabled, users are able to visualize SQL Lab results in Explore.',
+                          'For Presto and Postgres, shows a button to compute cost before running a query.',
                         )}
                       />
                     </div>
@@ -584,7 +579,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   )}
                 </div>
               </StyledInputContainer>
-              <StyledInputContainer className="mb-0">
+              <StyledInputContainer css={{ ...no_margin_bottom }}>
                 <div className="input-container">
                   <IndeterminateCheckbox
                     id="allow_run_async"
@@ -682,7 +677,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   {t('A list of schemas that CSVs are allowed to upload to.')}
                 </div>
               </StyledInputContainer>
-              <StyledInputContainer className="mb-0">
+              <StyledInputContainer css={{ ...no_margin_bottom }}>
                 <div className="input-container">
                   <IndeterminateCheckbox
                     id="impersonate_user"
@@ -702,7 +697,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   />
                 </div>
               </StyledInputContainer>
-              <StyledInputContainer className="mb-0">
+              <StyledInputContainer css={{ ...no_margin_bottom }}>
                 <div className="input-container">
                   <IndeterminateCheckbox
                     id="allow_csv_upload"

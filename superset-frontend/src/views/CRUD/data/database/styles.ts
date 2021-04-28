@@ -86,9 +86,7 @@ export const StyledModal = styled(Modal)`
 
 export const StyledInputContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit * 6}px;
-  &.mb-0 {
-    margin-bottom: 0;
-  }
+
   &.mb-8 {
     margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
   }
@@ -153,6 +151,7 @@ export const StyledInputContainer = styled.div`
       margin-right: ${({ theme }) => theme.gridUnit * 3}px;
     }
   }
+
   &.expandable {
     height: 0;
     overflow: hidden;
@@ -163,6 +162,7 @@ export const StyledInputContainer = styled.div`
     .control-label {
       margin-bottom: 0;
     }
+
     &.open {
       height: ${CTAS_CVAS_SCHEMA_FORM_HEIGHT}px;
       padding-right: ${({ theme }) => theme.gridUnit * 5}px;
