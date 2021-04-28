@@ -40,7 +40,7 @@ import pandas as pd
 import sqlparse
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
-from flask import g
+from flask import current_app, g
 from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
 from sqlalchemy import column, DateTime, select, types
@@ -55,7 +55,7 @@ from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom
 from sqlalchemy.types import String, TypeEngine, UnicodeText
 from typing_extensions import TypedDict
 
-from superset import app, security_manager, sql_parse
+from superset import security_manager, sql_parse
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
 from superset.models.sql_types.base import literal_dttm_type_factory
@@ -80,7 +80,6 @@ class TimeGrain(NamedTuple):  # pylint: disable=too-few-public-methods
 
 
 QueryStatus = utils.QueryStatus
-config = app.config
 
 builtin_time_grains: Dict[Optional[str], str] = {
     None: __("Original value"),
@@ -369,7 +368,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         ret_list = []
         time_grains = builtin_time_grains.copy()
-        time_grains.update(config["TIME_GRAIN_ADDONS"])
+        time_grains.update(current_app.config["TIME_GRAIN_ADDONS"])
         for duration, func in cls.get_time_grain_expressions().items():
             if duration in time_grains:
                 name = time_grains[duration]
@@ -448,9 +447,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         # TODO: use @memoize decorator or similar to avoid recomputation on every call
         time_grain_expressions = cls._time_grain_expressions.copy()
-        grain_addon_expressions = config["TIME_GRAIN_ADDON_EXPRESSIONS"]
+        grain_addon_expressions = current_app.config["TIME_GRAIN_ADDON_EXPRESSIONS"]
         time_grain_expressions.update(grain_addon_expressions.get(cls.engine, {}))
-        denylist: List[str] = config["TIME_GRAIN_DENYLIST"]
+        denylist: List[str] = current_app.config["TIME_GRAIN_DENYLIST"]
         for key in denylist:
             time_grain_expressions.pop(key)
 
@@ -977,7 +976,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         parsed_query = ParsedQuery(statement)
         sql = parsed_query.stripped()
-        sql_query_mutator = config["SQL_QUERY_MUTATOR"]
+        sql_query_mutator = current_app.config["SQL_QUERY_MUTATOR"]
         if sql_query_mutator:
             sql = sql_query_mutator(sql, user_name, security_manager, database)
 
