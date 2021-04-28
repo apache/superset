@@ -41,6 +41,7 @@ interface PluginFilterSelectCustomizeProps {
   defaultToFirstItem: boolean;
   inputRef?: RefObject<HTMLInputElement>;
   sortAscending: boolean;
+  sortMetric?: string;
 }
 
 export type PluginFilterSelectQueryFormData = QueryFormData &

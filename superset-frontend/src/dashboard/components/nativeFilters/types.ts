@@ -54,6 +54,7 @@ export interface Filter {
   controlValues: {
     [key: string]: any;
   };
+  sortMetric?: string | null;
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
 }
