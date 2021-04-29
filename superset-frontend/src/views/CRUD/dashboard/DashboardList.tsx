@@ -18,6 +18,7 @@
  */
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import React, { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import rison from 'rison';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
@@ -47,7 +48,6 @@ import ImportModelsModal from 'src/components/ImportModal/index';
 import Dashboard from 'src/dashboard/containers/Dashboard';
 import DashboardCard from './DashboardCard';
 import { DashboardStatus } from './types';
-import { Link } from 'react-router-dom';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
