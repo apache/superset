@@ -135,7 +135,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
             )
         ]
 
-        msg = "mysql: Unknown MySQL server host 'badhostname.com' "
+        msg = "mysql: Unknown MySQL server host 'badhostname.com'"
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
