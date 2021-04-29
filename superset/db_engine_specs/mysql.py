@@ -50,7 +50,7 @@ CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
 CONNECTION_HOST_DOWN_REGEX = re.compile(
     "Can't connect to MySQL server on '(?P<hostname>.*?)'"
 )
-CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile("Unknown database '(?P<database>.*?)'.")
+CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile("Unknown database '(?P<database>.*?)'")
 
 
 class MySQLEngineSpec(BaseEngineSpec):
