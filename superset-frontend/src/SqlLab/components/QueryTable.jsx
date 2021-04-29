@@ -19,7 +19,7 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import Card from 'src/common/components/Card';
+import Card from 'src/components/Card';
 import ProgressBar from 'src/components/ProgressBar';
 import Label from 'src/components/Label';
 import { t } from '@superset-ui/core';
