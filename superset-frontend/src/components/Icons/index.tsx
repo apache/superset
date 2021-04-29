@@ -23,7 +23,7 @@ import AntdEnhancedIcons from './AntdEnhanced';
 import Icon from './Icon';
 import IconType from './IconType';
 
-const iconFilePaths = [
+const IconFileNames = [
   'alert',
   'alert_solid',
   'alert_solid_small',
@@ -153,10 +153,10 @@ const iconFilePaths = [
 ];
 
 const iconOverrides: Record<string, React.FC> = {};
-iconFilePaths.forEach(filePath => {
-  const keyName = _.startCase(filePath).replace(/ /g, '');
+IconFileNames.forEach(fileName => {
+  const keyName = _.startCase(fileName).replace(/ /g, '');
   iconOverrides[keyName] = (props: IconType) => (
-    <Icon filePath={filePath} {...props} />
+    <Icon fileName={fileName} {...props} />
   );
 });
 

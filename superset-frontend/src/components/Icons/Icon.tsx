@@ -37,26 +37,26 @@ export const StyledIcon = styled(AntdIconComponent)<IconType>`
 `;
 
 interface IconProps extends IconType {
-  filePath: string;
+  fileName: string;
 }
 
 export const Icon = (props: IconProps) => {
-  const { filePath, ...iconProps } = props;
+  const { fileName, ...iconProps } = props;
   const [, setLoaded] = useState(false);
   const ImportedSVG = useRef<React.FC<React.SVGProps<SVGSVGElement>>>();
-  const name = filePath.replace('_', '-');
+  const name = fileName.replace('_', '-');
 
   useEffect(() => {
     async function importIcon(): Promise<void> {
       ImportedSVG.current = (
         await import(
-          `!!@svgr/webpack?-svgo,+titleProp,+ref!images/icons/${filePath}.svg`
+          `!!@svgr/webpack?-svgo,+titleProp,+ref!images/icons/${fileName}.svg`
         )
       ).default;
       setLoaded(true);
     }
     importIcon();
-  }, [filePath, ImportedSVG]);
+  }, [fileName, ImportedSVG]);
 
   return (
     <StyledIcon
