@@ -21,7 +21,6 @@ import {
   SAVE_FILTER_SETS,
   SET_FILTER_CONFIG_COMPLETE,
   SET_FILTER_SETS_CONFIG_COMPLETE,
-  SET_FILTERS_INITIALIZED,
 } from 'src/dashboard/actions/nativeFilters';
 import { FilterSet, NativeFiltersState } from './types';
 import { FilterConfiguration } from '../components/nativeFilters/types';
@@ -36,9 +35,7 @@ export function getInitialState({
   filterConfig?: FilterConfiguration;
   state?: NativeFiltersState;
 }): NativeFiltersState {
-  const state: Partial<NativeFiltersState> = {
-    isInitialized: prevState?.isInitialized,
-  };
+  const state: Partial<NativeFiltersState> = {};
 
   const filters = {};
   if (filterConfig) {

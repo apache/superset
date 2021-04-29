@@ -20,7 +20,7 @@
 /* eslint-disable no-param-reassign */
 // <- When we work with Immer, we need reassign, so disabling lint
 import produce from 'immer';
-import { FeatureFlag } from '@superset-ui/core';
+import { DataMask, FeatureFlag } from '@superset-ui/core';
 import { DataMaskStateWithId, DataMaskWithId } from './types';
 import {
   AnyDataMaskAction,
@@ -35,15 +35,22 @@ import {
 import { HYDRATE_DASHBOARD } from '../dashboard/actions/hydrate';
 import { isFeatureEnabled } from '../featureFlags';
 
+export function getInitialDataMask(id?: string): DataMask;
 export function getInitialDataMask(id: string): DataMaskWithId {
+  let otherProps = {};
+  if (id) {
+    otherProps = {
+      id,
+    };
+  }
   return {
-    id,
+    ...otherProps,
     extraFormData: {},
     filterState: {
       value: null,
     },
     ownState: {},
-  };
+  } as DataMaskWithId;
 }
 
 function fillNativeFilters(
@@ -82,6 +89,7 @@ const dataMaskReducer = produce(
       case HYDRATE_DASHBOARD:
         if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
           Object.keys(
+            // @ts-ignore
             action.data.dashboardInfo?.metadata?.chart_configuration,
           ).forEach(id => {
             cleanState[id] = {
@@ -90,6 +98,7 @@ const dataMaskReducer = produce(
           });
         }
         fillNativeFilters(
+          // @ts-ignore
           action.data.dashboardInfo?.metadata?.native_filter_configuration ??
             [],
           cleanState,

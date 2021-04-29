@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { isFeatureEnabled, t } from '@superset-ui/core';
+import { isFeatureEnabled, t, FeatureFlag } from '@superset-ui/core';
 
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
@@ -43,13 +43,10 @@ import '../stylesheets/index.less';
 import getLocationHash from '../util/getLocationHash';
 import isDashboardEmpty from '../util/isDashboardEmpty';
 import { getAffectedOwnDataCharts } from '../util/charts/getOwnDataCharts';
-import { setFiltersInitialized } from '../actions/nativeFilters';
-import { FeatureFlag } from '../../featureFlags';
 
 const propTypes = {
   actions: PropTypes.shape({
     addSliceToDashboard: PropTypes.func.isRequired,
-    setFiltersInitialized: PropTypes.func.isRequired,
     removeSliceFromDashboard: PropTypes.func.isRequired,
     triggerQuery: PropTypes.func.isRequired,
     logEvent: PropTypes.func.isRequired,

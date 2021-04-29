@@ -168,7 +168,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
       dataMask: Object.keys(newFilters).reduce(
         (prev, nextFilterId) => ({
           ...prev,
-          [nextFilterId]: filterSet.dataMask?.nativeFilters?.[nextFilterId],
+          [nextFilterId]: filterSet.dataMask?.[nextFilterId],
         }),
         {},
       ),

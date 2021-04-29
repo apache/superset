@@ -18,9 +18,7 @@
  */
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
-
 import Dashboard from '../components/Dashboard';
-
 import {
   addSliceToDashboard,
   removeSliceFromDashboard,
@@ -33,7 +31,6 @@ import {
   getRelevantDataMask,
 } from '../util/activeAllDashboardFilters';
 import { RootState } from '../types';
-import { setFiltersInitialized } from '../actions/nativeFilters';
 
 function mapStateToProps(state: RootState) {
   const {
@@ -86,7 +83,6 @@ function mapDispatchToProps(dispatch: Dispatch) {
         addSliceToDashboard,
         removeSliceFromDashboard,
         triggerQuery,
-        setFiltersInitialized,
         logEvent,
       },
       dispatch,

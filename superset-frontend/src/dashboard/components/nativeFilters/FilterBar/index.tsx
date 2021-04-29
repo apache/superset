@@ -19,25 +19,20 @@
 
 /* eslint-disable no-param-reassign */
 import { HandlerFunction, styled, t } from '@superset-ui/core';
-import React, { useEffect, useMemo, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import React, { useMemo, useState } from 'react';
+import { useDispatch } from 'react-redux';
 import cx from 'classnames';
 import Icon from 'src/components/Icon';
 import { Tabs } from 'src/common/components';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { updateDataMask } from 'src/dataMask/actions';
-import {
-  DataMaskState,
-  DataMaskStateWithId,
-  DataMaskWithId,
-} from 'src/dataMask/types';
+import { DataMaskState, DataMaskStateWithId } from 'src/dataMask/types';
 import { useImmer } from 'use-immer';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { testWithId } from 'src/utils/testUtils';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
-import { setFiltersInitialized } from 'src/dashboard/actions/nativeFilters';
 import {
-  getOnlyExtraFormData,
+  getOnlyFilterState,
   mapParentFiltersToChildren,
   TabIds,
 } from './utils';
@@ -46,13 +41,11 @@ import {
   useNativeFiltersDataMask,
   useFilters,
   useFilterSets,
-  useFiltersInitialisation,
   useFilterUpdates,
 } from './state';
 import EditSection from './FilterSets/EditSection';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
-import { RootState } from '../../../types';
 
 const BAR_WIDTH = `250px`;
 
@@ -208,11 +201,12 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);
 
   const dataSelectedValues = Object.values(dataMaskSelected);
+  const dataAppliedValues = Object.values(dataMaskApplied);
   const isApplyDisabled =
     areObjectsEqual(
-      getOnlyExtraFormData(dataMaskSelected),
-      getOnlyExtraFormData(dataMaskApplied),
-    ) || !dataSelectedValues.length;
+      getOnlyFilterState(dataMaskSelected),
+      getOnlyFilterState(dataMaskApplied),
+    ) || dataSelectedValues.length !== dataAppliedValues.length;
 
   return (
     <BarWrapper {...getFilterBarTestId()} className={cx({ open: filtersOpen })}>
