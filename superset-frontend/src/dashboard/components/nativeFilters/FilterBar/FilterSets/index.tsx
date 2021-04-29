@@ -26,7 +26,7 @@ import { Filters, FilterSet, FilterSets } from 'src/dashboard/reducers/types';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { findExistingFilterSet, generateFiltersSetId } from './utils';
 import { Filter } from '../../types';
-import { useFilters, useDataMask, useFilterSets } from '../state';
+import { useFilters, useNativeFiltersDataMask, useFilterSets } from '../state';
 import Footer from './Footer';
 import FilterSetUnit from './FilterSetUnit';
 import { getFilterBarTestId } from '..';
@@ -85,7 +85,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
   const dispatch = useDispatch();
   const [filterSetName, setFilterSetName] = useState(DEFAULT_FILTER_SET_NAME);
   const [editMode, setEditMode] = useState(false);
-  const dataMaskApplied = useDataMask();
+  const dataMaskApplied = useNativeFiltersDataMask();
   const filterSets = useFilterSets();
   const filterSetFilterValues = Object.values(filterSets);
   const filters = useFilters();

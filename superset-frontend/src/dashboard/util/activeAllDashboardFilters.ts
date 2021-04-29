@@ -20,7 +20,7 @@ import { DataMaskStateWithId } from 'src/dataMask/types';
 import { JsonObject } from '@superset-ui/core';
 import { CHART_TYPE } from './componentTypes';
 import { Scope } from '../components/nativeFilters/types';
-import { ActiveFilters, LayoutItem } from '../types';
+import { ActiveFilters, Layout, LayoutItem } from '../types';
 import { ChartConfiguration, Filters } from '../reducers/types';
 import { DASHBOARD_ROOT_ID } from './constants';
 
@@ -32,6 +32,7 @@ export const findAffectedCharts = ({
   activeFilters,
   filterId,
   extraFormData,
+  filterState,
 }: {
   child: string;
   layout: { [key: string]: LayoutItem };
@@ -39,6 +40,7 @@ export const findAffectedCharts = ({
   activeFilters: ActiveFilters;
   filterId: string;
   extraFormData: any;
+  filterState: any;
 }) => {
   const chartId = layout[child]?.meta?.chartId;
   if (layout[child].type === CHART_TYPE) {
@@ -56,7 +58,7 @@ export const findAffectedCharts = ({
     }
     // Add not excluded chart scopes(to know what charts refresh) and values(refresh only if its value changed)
     activeFilters[filterId].scope.push(chartId);
-    activeFilters[filterId].values.push(extraFormData);
+    activeFilters[filterId].values.push(filterState); // instead of extraFormData to do proper comparison when decide what charts to refresh
     return;
   }
   // If child is not chart, recursive iterate over its children
@@ -68,17 +70,17 @@ export const findAffectedCharts = ({
       activeFilters,
       filterId,
       extraFormData,
+      filterState,
     }),
   );
 };
 
 export const getRelevantDataMask = (
   dataMask: DataMaskStateWithId,
-  filterBy: string,
-  prop?: string,
+  prop: string,
 ): JsonObject | DataMaskStateWithId =>
   Object.values(dataMask)
-    .filter(item => item[filterBy])
+    .filter(item => item[prop])
     .reduce(
       (prev, next) => ({ ...prev, [next.id]: prop ? next[prop] : next }),
       {},
@@ -93,31 +95,34 @@ export const getAllActiveFilters = ({
   chartConfiguration: ChartConfiguration;
   dataMask: DataMaskStateWithId;
   nativeFilters: Filters;
-  layout: { [key: string]: LayoutItem };
+  layout: Layout;
 }): ActiveFilters => {
   const activeFilters = {};
 
   // Combine native filters with cross filters, because they have similar logic
-  Object.values(dataMask).forEach(({ id: filterId, extraFormData }) => {
-    const scope = nativeFilters?.[filterId]?.scope ??
-      chartConfiguration?.[filterId]?.crossFilters?.scope ?? {
-        rootPath: [DASHBOARD_ROOT_ID],
-        excluded: [filterId],
-      };
-    // Iterate over all roots to find all affected charts
-    scope.rootPath.forEach((layoutItemId: string | number) => {
-      layout[layoutItemId].children.forEach((child: string) => {
-        // Need exclude from affected charts, charts that located in scope `excluded`
-        findAffectedCharts({
-          child,
-          layout,
-          scope,
-          activeFilters,
-          filterId,
-          extraFormData,
+  Object.values(dataMask).forEach(
+    ({ id: filterId, extraFormData, filterState }) => {
+      const scope = nativeFilters?.[filterId]?.scope ??
+        chartConfiguration?.[filterId]?.crossFilters?.scope ?? {
+          rootPath: [DASHBOARD_ROOT_ID],
+          excluded: [filterId],
+        };
+      // Iterate over all roots to find all affected charts
+      scope.rootPath.forEach((layoutItemId: string | number) => {
+        layout[layoutItemId].children.forEach((child: string) => {
+          // Need exclude from affected charts, charts that located in scope `excluded`
+          findAffectedCharts({
+            child,
+            layout,
+            scope,
+            activeFilters,
+            filterId,
+            extraFormData,
+            filterState,
+          });
         });
       });
-    });
-  });
+    },
+  );
   return activeFilters;
 };

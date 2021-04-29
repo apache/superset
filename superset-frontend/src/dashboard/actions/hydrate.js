@@ -54,7 +54,9 @@ import getFilterConfigsFromFormdata from 'src/dashboard/util/getFilterConfigsFro
 import getLocationHash from 'src/dashboard/util/getLocationHash';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import { TIME_RANGE } from 'src/visualizations/FilterBox/FilterBox';
+import { setDataMaskForFilterConfigComplete } from 'src/dataMask/actions';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
+import { setFiltersInitialized } from './nativeFilters';
 
 const reservedQueryParams = new Set(['standalone', 'edit']);
 

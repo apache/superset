@@ -59,7 +59,6 @@ export type RootState = {
   dashboardState: DashboardState;
   dashboardInfo: DashboardInfo;
   dataMask: DataMaskStateWithId;
-  dashboardInfo: JsonObject;
   impressionId: string;
   nativeFilters: NativeFiltersState;
 };

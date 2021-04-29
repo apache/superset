@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/core';
+import { isFeatureEnabled, t } from '@superset-ui/core';
 
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
@@ -43,10 +43,13 @@ import '../stylesheets/index.less';
 import getLocationHash from '../util/getLocationHash';
 import isDashboardEmpty from '../util/isDashboardEmpty';
 import { getAffectedOwnDataCharts } from '../util/charts/getOwnDataCharts';
+import { setFiltersInitialized } from '../actions/nativeFilters';
+import { FeatureFlag } from '../../featureFlags';
 
 const propTypes = {
   actions: PropTypes.shape({
     addSliceToDashboard: PropTypes.func.isRequired,
+    setFiltersInitialized: PropTypes.func.isRequired,
     removeSliceFromDashboard: PropTypes.func.isRequired,
     triggerQuery: PropTypes.func.isRequired,
     logEvent: PropTypes.func.isRequired,
@@ -56,6 +59,7 @@ const propTypes = {
   charts: PropTypes.objectOf(chartPropShape).isRequired,
   slices: PropTypes.objectOf(slicePropShape).isRequired,
   activeFilters: PropTypes.object.isRequired,
+  chartConfiguration: PropTypes.object.isRequired,
   datasources: PropTypes.object.isRequired,
   ownDataCharts: PropTypes.object.isRequired,
   layout: PropTypes.object.isRequired,
@@ -120,6 +124,11 @@ class Dashboard extends React.PureComponent {
       };
     }
     window.addEventListener('visibilitychange', this.onVisibilityChange);
+    this.applyCharts();
+  }
+
+  componentDidUpdate() {
+    this.applyCharts();
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -147,11 +156,20 @@ class Dashboard extends React.PureComponent {
     }
   }
 
-  componentDidUpdate() {
+  applyCharts() {
     const { hasUnsavedChanges, editMode } = this.props.dashboardState;
 
     const { appliedFilters, appliedOwnDataCharts } = this;
-    const { activeFilters, ownDataCharts } = this.props;
+    const { activeFilters, ownDataCharts, chartConfiguration } = this.props;
+    if (
+      isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+      !chartConfiguration
+    ) {
+      // For a first loading we need to wait for cross filters charts data loaded to get all active filters
+      // for correct comparing  of filters to avoid unnecessary requests
+      return;
+    }
+
     if (
       !editMode &&
       (!areObjectsEqual(appliedOwnDataCharts, ownDataCharts) ||

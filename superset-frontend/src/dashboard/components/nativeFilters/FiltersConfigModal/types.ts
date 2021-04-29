@@ -32,7 +32,7 @@ export interface NativeFiltersFormItem {
     [key: string]: any;
   };
   defaultValue: any;
-  dataMask: DataMask;
+  defaultDataMask: DataMask;
   parentFilter: {
     value: string;
     label: string;

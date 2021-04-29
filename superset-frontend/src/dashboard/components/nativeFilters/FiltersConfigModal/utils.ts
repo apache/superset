@@ -148,8 +148,8 @@ export const createHandleSave = (
         filterType: formInputs.filterType,
         // for now there will only ever be one target
         targets: [target],
-        defaultValue: formInputs.defaultValue || null,
-        dataMask: formInputs.dataMask || null,
+        defaultValue: formInputs.defaultValue ?? null,
+        defaultDataMask: formInputs.defaultDataMask ?? null,
         cascadeParentIds: formInputs.parentFilter
           ? [formInputs.parentFilter.value]
           : [],

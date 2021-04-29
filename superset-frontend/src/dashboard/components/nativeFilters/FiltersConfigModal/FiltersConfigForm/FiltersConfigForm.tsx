@@ -134,7 +134,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
   useEffect(() => {
     setNativeFilterFieldValues(form, filterId, {
       defaultValue: filterToEdit?.defaultValue,
-      dataMask: filterToEdit?.dataMask,
+      defaultDataMask: filterToEdit?.defaultDataMask,
     });
     forceUpdate();
   }, [form, forceUpdate, filterId, filterToEdit?.defaultValue]);
@@ -301,7 +301,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
               setNativeFilterFieldValues(form, filterId, {
                 filterType: value,
                 defaultValue: null,
-                dataMask: null,
+                defaultDataMask: null,
               });
               forceUpdate();
             }}
@@ -332,7 +332,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
                 if (datasetId && e?.value !== datasetId) {
                   setNativeFilterFieldValues(form, filterId, {
                     defaultValue: null,
-                    dataMask: null,
+                    defaultDataMask: null,
                     column: null,
                   });
                 }
@@ -358,7 +358,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
                   // We need reset default value when when column changed
                   setNativeFilterFieldValues(form, filterId, {
                     defaultValue: null,
-                    dataMask: null,
+                    defaultDataMask: null,
                   });
                   forceUpdate();
                 }}
@@ -441,6 +441,11 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
             </Button>
           )}
         </StyledFormItem>
+        <CleanFormItem
+          name={['filters', filterId, 'defaultDataMask']}
+          hidden
+          initialValue={filterToEdit?.defaultDataMask}
+        />
         <StyledFormItem
           name={['filters', filterId, 'defaultValue']}
           initialValue={filterToEdit?.defaultValue}
@@ -452,7 +457,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
               setDataMask={dataMask => {
                 setNativeFilterFieldValues(form, filterId, {
                   defaultValue: dataMask?.filterState?.value,
-                  dataMask,
+                  defaultDataMask: dataMask,
                 });
                 forceUpdate();
               }}

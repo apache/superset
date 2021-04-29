@@ -33,6 +33,7 @@ import {
   getRelevantDataMask,
 } from '../util/activeAllDashboardFilters';
 import { RootState } from '../types';
+import { setFiltersInitialized } from '../actions/nativeFilters';
 
 function mapStateToProps(state: RootState) {
   const {
@@ -66,11 +67,12 @@ function mapStateToProps(state: RootState) {
         // eslint-disable-next-line camelcase
         chartConfiguration: dashboardInfo.metadata?.chart_configuration,
         nativeFilters: nativeFilters.filters,
-        dataMask: getRelevantDataMask(dataMask, 'isApplied'),
+        dataMask,
         layout: dashboardLayout.present,
       }),
     },
-    ownDataCharts: getRelevantDataMask(dataMask, 'ownState', 'ownState'),
+    chartConfiguration: dashboardInfo.metadata?.chart_configuration,
+    ownDataCharts: getRelevantDataMask(dataMask, 'ownState'),
     slices: sliceEntities.slices,
     layout: dashboardLayout.present,
     impressionId,
@@ -84,6 +86,7 @@ function mapDispatchToProps(dispatch: Dispatch) {
         addSliceToDashboard,
         removeSliceFromDashboard,
         triggerQuery,
+        setFiltersInitialized,
         logEvent,
       },
       dispatch,
