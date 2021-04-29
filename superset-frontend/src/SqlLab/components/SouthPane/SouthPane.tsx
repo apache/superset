@@ -160,18 +160,16 @@ export default function SouthPane({
         tab={t('Preview: `%s`', decodeURIComponent(query.tableName))}
         key={query.id}
       >
-        <div className="scrollable">
-          <ResultSet
-            query={query}
-            visualize={false}
-            csv={false}
-            actions={actions}
-            cache
-            user={user}
-            height={innerTabContentHeight}
-            displayLimit={displayLimit}
-          />
-        </div>
+        <ResultSet
+          query={query}
+          visualize={false}
+          csv={false}
+          actions={actions}
+          cache
+          user={user}
+          height={innerTabContentHeight}
+          displayLimit={displayLimit}
+        />
       </Tabs.TabPane>
     ));
   return offline ? (
