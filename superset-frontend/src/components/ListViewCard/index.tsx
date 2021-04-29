@@ -144,6 +144,10 @@ interface LinkProps {
   to: string;
 }
 
+const AnchorLink: React.FC<LinkProps> = ({ to, children }) => (
+  <a href={to}>{children}</a>
+);
+
 interface CardProps {
   title?: React.ReactNode;
   url?: string;
@@ -162,10 +166,6 @@ interface CardProps {
   cover?: React.ReactNode | null;
 }
 
-const ALink: React.FC<LinkProps> = ({ to, children }) => {
-  return <a href={to}>{children}</a>;
-};
-
 function ListViewCard({
   title,
   url,
@@ -182,7 +182,7 @@ function ListViewCard({
   imgPosition = 'top',
   cover,
 }: CardProps) {
-  const Link = url && linkComponent ? linkComponent : ALink;
+  const Link = url && linkComponent ? linkComponent : AnchorLink;
   return (
     <StyledCard
       data-test="styled-card"
