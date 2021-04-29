@@ -19,9 +19,10 @@
 import { CHART_LIST } from '../chart_list/chart_list.helper';
 import { DASHBOARD_LIST } from '../dashboard_list/dashboard_list.helper';
 
+// TODO: fix flaky init logic and re-enable
 const milliseconds = new Date().getTime();
 const dashboard = `Test Dashboard${milliseconds}`;
-describe('Nativefilters', () => {
+xdescribe('Nativefilters', () => {
   before(() => {
     cy.login();
     cy.visit(DASHBOARD_LIST);

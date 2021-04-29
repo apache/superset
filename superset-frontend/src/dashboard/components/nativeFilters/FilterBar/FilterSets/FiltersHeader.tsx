@@ -80,7 +80,9 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
   const getFilterRow = ({ id, name }: { id: string; name: string }) => {
     const changedFilter =
       filterSet &&
-      !areObjectsEqual(filters[id], filterSet?.nativeFilters?.[id]);
+      !areObjectsEqual(filters[id], filterSet?.nativeFilters?.[id], {
+        ignoreUndefined: true,
+      });
     const removedFilter = !Object.keys(filters).includes(id);
 
     return (

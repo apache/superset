@@ -19,7 +19,7 @@
 import React, { createRef } from 'react';
 import shortid from 'shortid';
 import Alert from 'src/components/Alert';
-import Tabs from 'src/common/components/Tabs';
+import Tabs from 'src/components/Tabs';
 import { t, styled } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
