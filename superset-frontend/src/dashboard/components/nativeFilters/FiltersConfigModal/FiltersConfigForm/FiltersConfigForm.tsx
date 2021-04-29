@@ -123,7 +123,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const forceUpdate = useForceUpdate();
   const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
-  const formFilter = form.getFieldValue('filters')?.[filterId];
+  const formFilter = form.getFieldValue('filters')?.[filterId] || {};
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
     // @ts-ignore
