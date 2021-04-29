@@ -127,14 +127,14 @@ const QueryTable = props => {
         );
         q.started = moment(q.startDttm).format('HH:mm:ss');
         q.querylink = (
-          <Button
+          <StyledButton
             buttonSize="small"
             buttonStyle="link"
             onClick={() => openQuery(q.queryId)}
           >
             <i className="fa fa-external-link m-r-3" />
             {t('Edit')}
-          </Button>
+          </StyledButton>
         );
         q.sql = (
           <StyledSQLCard>

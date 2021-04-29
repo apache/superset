@@ -43,7 +43,7 @@ import { exploreChart } from '../../explore/exploreUtils';
 import { CtasEnum } from '../actions/sqlLab';
 import { Query } from '../types';
 
-const SEARCH_HEIGHT = 45;
+const SEARCH_HEIGHT = 50;
 
 enum DatasetRadioState {
   SAVE_NEW = 1,
@@ -666,11 +666,9 @@ export default class ResultSet extends React.PureComponent<
           : [];
         return (
           <>
-            <div>
-              {this.renderControls()}
-              {this.renderRowsReturned()}
-              {sql}
-            </div>
+            {this.renderControls()}
+            {this.renderRowsReturned()}
+            {sql}
             <FilterableTable
               data={data}
               orderedColumnKeys={results.columns.map(col => col.name)}
