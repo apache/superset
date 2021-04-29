@@ -45,11 +45,4 @@ export const useBackendFormUpdate = (
     forceUpdate,
     filterId,
   ]);
-
-  useEffect(() => {
-    setNativeFilterFieldValues(form, filterId, {
-      defaultValue: formFilter?.defaultValue,
-    });
-    forceUpdate();
-  }, [form, formFilter?.defaultValue, forceUpdate, filterId]);
 };
