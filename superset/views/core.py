@@ -2754,7 +2754,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return self.dashboard(dashboard_id_or_slug=str(welcome_dashboard_id))
 
         payload = {
-            "user": bootstrap_user_data(g.user),
+            "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(),
         }
 

@@ -47,6 +47,7 @@ import ImportModelsModal from 'src/components/ImportModal/index';
 import Dashboard from 'src/dashboard/containers/Dashboard';
 import DashboardCard from './DashboardCard';
 import { DashboardStatus } from './types';
+import { Link } from 'react-router-dom';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -210,7 +211,7 @@ function DashboardList(props: DashboardListProps) {
           row: {
             original: { url, dashboard_title: dashboardTitle },
           },
-        }: any) => <a href={url}>{dashboardTitle}</a>,
+        }: any) => <Link to={url}>{dashboardTitle}</Link>,
         Header: t('Title'),
         accessor: 'dashboard_title',
       },
