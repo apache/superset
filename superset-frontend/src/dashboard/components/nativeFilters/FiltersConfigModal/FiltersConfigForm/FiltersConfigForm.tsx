@@ -433,7 +433,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
           data-test="default-input"
           label={<StyledLabel>{t('Default Value')}</StyledLabel>}
         >
-          {!isDataDirty && (hasFilledDataset || !hasDataset) && (
+          {(!hasDataset || (!isDataDirty && hasFilledDataset)) && (
             <DefaultValue
               setDataMask={({ filterState }) => {
                 setNativeFilterFieldValues(form, filterId, {
