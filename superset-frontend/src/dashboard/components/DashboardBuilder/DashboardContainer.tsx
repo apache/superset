@@ -19,8 +19,8 @@
 // ParentSize uses resize observer so the dashboard will update size
 // when its container size changes, due to e.g., builder side panel opening
 import { ParentSize } from '@vx/responsive';
-import { TabContainer, TabContent, TabPane } from 'react-bootstrap';
-import React, { FC, SyntheticEvent, useEffect, useState } from 'react';
+import Tabs from 'src/components/Tabs';
+import React, { FC, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
@@ -33,13 +33,9 @@ import { getRootLevelTabIndex } from './utils';
 
 type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
-  handleChangeTab: (event: SyntheticEvent<TabContainer, Event>) => void;
 };
 
-const DashboardContainer: FC<DashboardContainerProps> = ({
-  topLevelTabs,
-  handleChangeTab,
-}) => {
+const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
@@ -58,6 +54,9 @@ const DashboardContainer: FC<DashboardContainerProps> = ({
     ? topLevelTabs.children
     : [DASHBOARD_GRID_ID];
 
+  const min = Math.min(tabIndex, childIds.length - 1);
+  const activeKey = min === 0 ? DASHBOARD_GRID_ID : min.toString();
+
   return (
     <div className="grid-container" data-test="grid-container">
       <ParentSize>
@@ -68,35 +67,29 @@ const DashboardContainer: FC<DashboardContainerProps> = ({
             the entire dashboard upon adding/removing top-level tabs, which would otherwise
             happen because of React's diffing algorithm
           */
-          <TabContainer
+          <Tabs
             id={DASHBOARD_GRID_ID}
-            activeKey={Math.min(tabIndex, childIds.length - 1)}
-            onSelect={handleChangeTab}
-            // @ts-ignore
-            animation
-            mountOnEnter
-            unmountOnExit={false}
+            activeKey={activeKey}
+            renderTabBar={() => <></>}
+            fullWidth={false}
           >
-            <TabContent>
-              {childIds.map((id, index) => (
-                // Matching the key of the first TabPane irrespective of topLevelTabs
-                // lets us keep the same React component tree when !!topLevelTabs changes.
-                // This avoids expensive mounts/unmounts of the entire dashboard.
-                <TabPane
-                  key={index === 0 ? DASHBOARD_GRID_ID : id}
-                  eventKey={index}
-                >
-                  <DashboardGrid
-                    gridComponent={dashboardLayout[id]}
-                    // see isValidChild for why tabs do not increment the depth of their children
-                    depth={DASHBOARD_ROOT_DEPTH + 1} // (topLevelTabs ? 0 : 1)}
-                    width={width}
-                    isComponentVisible={index === tabIndex}
-                  />
-                </TabPane>
-              ))}
-            </TabContent>
-          </TabContainer>
+            {childIds.map((id, index) => (
+              // Matching the key of the first TabPane irrespective of topLevelTabs
+              // lets us keep the same React component tree when !!topLevelTabs changes.
+              // This avoids expensive mounts/unmounts of the entire dashboard.
+              <Tabs.TabPane
+                key={index === 0 ? DASHBOARD_GRID_ID : index.toString()}
+              >
+                <DashboardGrid
+                  gridComponent={dashboardLayout[id]}
+                  // see isValidChild for why tabs do not increment the depth of their children
+                  depth={DASHBOARD_ROOT_DEPTH + 1} // (topLevelTabs ? 0 : 1)}
+                  width={width}
+                  isComponentVisible={index === tabIndex}
+                />
+              </Tabs.TabPane>
+            ))}
+          </Tabs>
         )}
       </ParentSize>
     </div>

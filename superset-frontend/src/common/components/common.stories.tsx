@@ -18,13 +18,11 @@
  */
 import React, { useState, useRef, useCallback } from 'react';
 import { action } from '@storybook/addon-actions';
-import { withKnobs, boolean } from '@storybook/addon-knobs';
+import { withKnobs } from '@storybook/addon-knobs';
 import { CronPicker, CronError } from 'src/components/CronPicker';
 import Modal from 'src/components/Modal';
 import InfoTooltip from 'src/components/InfoTooltip';
-import { Dropdown } from 'src/components/Dropdown';
-import Tabs, { EditableTabs } from 'src/components/Tabs';
-import { Menu, Input, Divider } from '.';
+import { Input, Divider } from '.';
 
 export default {
   title: 'Common components',
@@ -43,80 +41,6 @@ export const StyledModal = () => (
   >
     <div>hi!</div>
   </Modal>
-);
-
-export const StyledTabs = () => (
-  <Tabs
-    defaultActiveKey="1"
-    centered={boolean('Center tabs', false)}
-    fullWidth={boolean('Full width', true)}
-  >
-    <Tabs.TabPane
-      tab="Tab 1"
-      key="1"
-      disabled={boolean('Tab 1 disabled', false)}
-    >
-      Tab 1 Content!
-    </Tabs.TabPane>
-    <Tabs.TabPane
-      tab="Tab 2"
-      key="2"
-      disabled={boolean('Tab 2 disabled', false)}
-    >
-      Tab 2 Content!
-    </Tabs.TabPane>
-  </Tabs>
-);
-
-export const StyledEditableTabs = () => (
-  <EditableTabs
-    defaultActiveKey="1"
-    centered={boolean('Center tabs', false)}
-    fullWidth={boolean('Full width', true)}
-  >
-    <Tabs.TabPane
-      tab="Tab 1"
-      key="1"
-      disabled={boolean('Tab 1 disabled', false)}
-    >
-      Tab 1 Content!
-    </Tabs.TabPane>
-    <Tabs.TabPane
-      tab="Tab 2"
-      key="2"
-      disabled={boolean('Tab 2 disabled', false)}
-    >
-      Tab 2 Content!
-    </Tabs.TabPane>
-  </EditableTabs>
-);
-
-export const TabsWithDropdownMenu = () => (
-  <EditableTabs
-    defaultActiveKey="1"
-    centered={boolean('Center tabs', false)}
-    fullWidth={boolean('Full width', true)}
-  >
-    <Tabs.TabPane
-      tab={
-        <>
-          <Dropdown
-            overlay={
-              <Menu>
-                <Menu.Item key="1">Item 1</Menu.Item>
-                <Menu.Item key="2">Item 2</Menu.Item>
-              </Menu>
-            }
-          />
-          Tab with dropdown menu
-        </>
-      }
-      key="1"
-      disabled={boolean('Tab 1 disabled', false)}
-    >
-      Tab 1 Content!
-    </Tabs.TabPane>
-  </EditableTabs>
 );
 
 export const StyledInfoTooltip = (args: any) => {
