@@ -251,7 +251,6 @@ export const OptionControlLabel = ({
     return <Tooltip title={label}>{label}</Tooltip>;
   };
 
-  console.log('index', isFunction)
   const getOptionControlContent = () => (
     <OptionControlContainer
       withCaret={withCaret}
@@ -266,7 +265,7 @@ export const OptionControlLabel = ({
         <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
       </CloseContainer>
       <Label data-test="control-label">
-        {true && <Icons.Function name="function" viewBox="0 0 16 11" />}
+        {isFunction && <Icons.FunctionX viewBox="0 0 16 11" iconSize='l' />}
         {getLabelContent()}
       </Label>
       {isExtra && (
