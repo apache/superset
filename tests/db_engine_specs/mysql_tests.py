@@ -196,7 +196,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
             )
         ]
 
-        msg = "mysql: Unknown database 'badDB'.ß"
+        msg = "mysql: Unknown database 'badDB'"
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
