@@ -124,19 +124,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
   const forceUpdate = useForceUpdate();
   const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
 
-  // make sure the formFilter is populated
-  if (!form.getFieldValue('filters')) {
-    setNativeFilterFieldValues(form, filterId, filterToEdit || {});
-    forceUpdate();
-  }
-  const formFilter = form.getFieldValue('filters')[filterId];
-
-  useEffect(() => {
-    setNativeFilterFieldValues(form, filterId, {
-      defaultValue: filterToEdit?.defaultValue,
-    });
-    forceUpdate();
-  }, [form, forceUpdate, filterId, filterToEdit?.defaultValue]);
+  const formFilter = form.getFieldValue('filters')?.[filterId] || {};
 
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
