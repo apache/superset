@@ -99,7 +99,7 @@ class TableElement extends React.PureComponent {
       let partitionQuery;
       let partitionClipBoard;
       if (table.partitions.partitionQuery) {
-        ({ partitionQuery } = table.partitions.partitionQuery);
+        ({ partitionQuery } = table.partitions);
         const tt = t('Copy partition query to clipboard');
         partitionClipBoard = (
           <CopyToClipboard
