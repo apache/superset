@@ -23,7 +23,7 @@ import { Modal as BaseModal } from 'src/common/components';
 import Button from 'src/components/Button';
 import { css } from '@emotion/core';
 
-interface ModalProps {
+export interface ModalProps {
   className?: string;
   children: React.ReactNode;
   disablePrimaryButton?: boolean;
