@@ -110,7 +110,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
         """
         Test that custom error messages are extracted correctly.
         """
-        msg = "mysql: Access denied for user 'test'@'testuser.com' "
+        msg = "mysql: Access denied for user 'test'@'testuser.com'"
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
