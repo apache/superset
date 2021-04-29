@@ -23,6 +23,7 @@ import { t, styled, supersetTheme } from '@superset-ui/core';
 import { Dropdown, Menu } from 'src/common/components';
 import { Tooltip } from 'src/components/Tooltip';
 import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
 import DatasourceModal from 'src/datasource/DatasourceModal';
 import { postForm } from 'src/explore/exploreUtils';
@@ -202,10 +203,7 @@ class DatasourceControl extends React.PureComponent {
           )}
           {healthCheckMessage && (
             <Tooltip title={healthCheckMessage}>
-              <Icon
-                name="alert-solid"
-                color={supersetTheme.colors.warning.base}
-              />
+              <Icons.AlertSolid iconColor={supersetTheme.colors.warning.base} />
             </Tooltip>
           )}
           {extra?.warning_markdown && ( // eslint-disable-line camelcase
