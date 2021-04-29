@@ -24,7 +24,7 @@ import {
   InfoTooltipWithTrigger,
 } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/components/Tooltip';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 
@@ -251,6 +251,7 @@ export const OptionControlLabel = ({
     return <Tooltip title={label}>{label}</Tooltip>;
   };
 
+  console.log('index', isFunction)
   const getOptionControlContent = () => (
     <OptionControlContainer
       withCaret={withCaret}
@@ -262,10 +263,10 @@ export const OptionControlLabel = ({
         data-test="remove-control-button"
         onClick={onRemove}
       >
-        <Icon name="x-small" color={theme.colors.grayscale.light1} />
+        <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
       </CloseContainer>
       <Label data-test="control-label">
-        {isFunction && <Icon name="function" viewBox="0 0 16 11" />}
+        {true && <Icons.Function name="function" viewBox="0 0 16 11" />}
         {getLabelContent()}
       </Label>
       {isExtra && (
@@ -281,7 +282,7 @@ export const OptionControlLabel = ({
       )}
       {withCaret && (
         <CaretContainer>
-          <Icon name="caret-right" color={theme.colors.grayscale.light1} />
+          <Icons.CaretRight iconColor={theme.colors.grayscale.light1} />
         </CaretContainer>
       )}
     </OptionControlContainer>
