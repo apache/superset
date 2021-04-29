@@ -111,6 +111,48 @@ const VerticalDotsTrigger = () => (
   </VerticalDotsContainer>
 );
 
+function exportTableToExcel(tables, filename = ''){
+    let downloadLink;
+    const dataType = 'application/vnd.ms-excel';
+    let table;
+    if (tables.length === 2){
+        table = tables[0].cloneNode(true);
+        const secTable = tables[1].cloneNode(true);
+        table.appendChild(secTable.children[1]);
+    }
+    else{
+      if(tables.length === 1){
+        table = tables[0];
+      }
+    }
+
+    const tableHTML = table.outerHTML.replace(/ /g, '%20');
+
+    // Specify file name
+    filename = filename?filename+'.xls':'excel_data.xls';
+
+    // Create download link element
+    downloadLink = document.createElement("a");
+
+    document.body.appendChild(downloadLink);
+
+    if(navigator.msSaveOrOpenBlob){
+        var blob = new Blob(['\ufeff', tableHTML], {
+            type: dataType
+        });
+        navigator.msSaveOrOpenBlob( blob, filename);
+    }else{
+        // Create a link to the file
+        downloadLink.href = 'data:' + dataType + ', ' + tableHTML;
+
+        // Setting the file name
+        downloadLink.download = filename;
+
+        //triggering the function
+        downloadLink.click();
+    }
+}
+
 class SliceHeaderControls extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -279,6 +321,13 @@ class SliceHeaderControls extends React.PureComponent {
         {this.props.supersetCanCSV && (
           <Menu.Item key={MENU_KEYS.EXPORT_CSV}>{t('Export Excel')}</Menu.Item>
         )}
+        {['pivot_table_v2', 'table'].includes(this.props.slice.viz_type) ?
+          <Menu.Item onClick={() => {
+            const father = document.querySelectorAll(`[data-test-chart-id="${this.props.slice.slice_id}"]`)[0];
+            const tables = father.querySelectorAll('table');
+            exportTableToExcel(tables, `${this.props.slice.slice_name}.xlsx`);
+          }
+          }>{t('Export current table')}</Menu.Item> : null}
         {isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
           isCrossFilter && (
             <Menu.Item key={MENU_KEYS.CROSS_FILTER_SCOPING}>
