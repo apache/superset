@@ -276,8 +276,8 @@ class BaseSupersetView(BaseView):
             "common": common_bootstrap_payload(),
         }
         return self.render_template(
-            "superset/crud_views.html",
-            entry="crudViews",
+            "superset/spa.html",
+            entry="spa",
             bootstrap_data=json.dumps(
                 payload, default=utils.pessimistic_json_iso_dttm_ser
             ),
@@ -438,8 +438,8 @@ class SupersetModelView(ModelView):
             "common": common_bootstrap_payload(),
         }
         return self.render_template(
-            "superset/crud_views.html",
-            entry="crudViews",
+            "superset/spa.html",
+            entry="spa",
             bootstrap_data=json.dumps(
                 payload, default=utils.pessimistic_json_iso_dttm_ser
             ),

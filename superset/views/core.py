@@ -1853,12 +1853,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         }
 
         return self.render_template(
-            "superset/crud_views.html",
-            entry="crudViews",
-            # entry="dashboard",
-            standalone_mode=standalone_mode,
-            # title=dashboard.dashboard_title,
-            # custom_css=dashboard.css,
+            "superset/spa.html",
+            entry="spa",
             bootstrap_data=json.dumps(
                 bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
             ),
@@ -2764,8 +2760,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         }
 
         return self.render_template(
-            "superset/crud_views.html",
-            entry="crudViews",
+            "superset/spa.html",
+            entry="spa",
             bootstrap_data=json.dumps(
                 payload, default=utils.pessimistic_json_iso_dttm_ser
             ),
