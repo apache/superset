@@ -52,7 +52,8 @@ const dashboardReducers = {
   sliceEntities,
 };
 
-const rootReducer = combineReducers({
+// exported for tests
+export const rootReducer = combineReducers({
   messageToasts: messageToastReducer,
   common: noopReducer(bootstrap.common || {}),
   user: noopReducer(bootstrap.user || {}),
