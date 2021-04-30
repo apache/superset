@@ -32,7 +32,7 @@ interface AppProps {
 }
 
 const StyledTabPane = styled(Tabs.TabPane)`
-  background-color: white;
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
   padding: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
