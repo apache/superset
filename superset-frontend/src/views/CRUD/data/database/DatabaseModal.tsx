@@ -55,14 +55,14 @@ const DEFAULT_TAB_KEY = '1';
 const StyledDBModal = styled(StyledModal)`
   .ant-alert {
     margin-top: ${({ theme }) => theme.gridUnit * 4}px;
-    color: #325D7E;
-    border: 1px solid #66BCFE;
+    color: #325d7e;
+    border: 1px solid #66bcfe;
     font-size: 13px;
     padding: 15px;
   }
 
   .ant-alert-message {
-    color: #325D7E;
+    color: #325d7e;
     font-weight: bold;
   }
 
@@ -294,16 +294,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       show={show}
       title={<h4>{isEditMode ? t('Edit database') : t('Add database')}</h4>}
     >
-      <Header>
-        <HeaderTitle>Enter Primary Credentials</HeaderTitle>
-        <HeaderSubtitle>
-          Need help? Learn how to connect your database{' '}
-          <a href="https://superset.apache.org/docs/databases/installing-database-drivers">
-            here
-          </a>
-          .
-        </HeaderSubtitle>
-      </Header>
+      {isEditMode && (
+        <Header>
+          <HeaderTitle>Enter Primary Credentials</HeaderTitle>
+          <HeaderSubtitle>
+            Need help? Learn how to connect your database{' '}
+            <a href="https://superset.apache.org/docs/databases/installing-database-drivers">
+              here
+            </a>
+            .
+          </HeaderSubtitle>
+        </Header>
+      )}
       <Tabs
         defaultActiveKey={DEFAULT_TAB_KEY}
         activeKey={tabKey}
