@@ -244,8 +244,11 @@ export function Menu({
               {(navbarRight.version_string || navbarRight.version_sha) && [
                 <DropdownMenu.Divider key="version-info-divider"/>,
                 <DropdownMenu.ItemGroup key="about-section" title={t('About')}>
-                  <div>
-                    <span>Доработано компанией <a href={"https://h-labs.ru"}>H-Labs</a></span>
+                  <div style={{ padding: '2em', fontSize: '10px' }}>
+                    <span>
+                      Доработано компанией{' '}
+                      <a href={'https://h-labs.ru'}>H-Labs</a>
+                    </span>
                   </div>
                 </DropdownMenu.ItemGroup>,
               ]}
