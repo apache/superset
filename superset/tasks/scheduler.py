@@ -83,7 +83,9 @@ def execute(report_schedule_id: int, scheduled_dttm: str) -> None:
             task_id, report_schedule_id, scheduled_dttm_,
         ).run()
     except ReportScheduleUnexpectedError as ex:
-        logger.error("An unexpected occurred while executing the report: %s", ex)
+        logger.error(
+            "An unexpected occurred while executing the report: %s", ex, exc_info=True
+        )
     except CommandException as ex:
         logger.info("Report state: %s", ex)
 
@@ -95,4 +97,8 @@ def prune_log() -> None:
     except SoftTimeLimitExceeded as ex:
         logger.warning("A timeout occurred while pruning report schedule logs: %s", ex)
     except CommandException as ex:
-        logger.error("An exception occurred while pruning report schedule logs: %s", ex)
+        logger.error(
+            "An exception occurred while pruning report schedule logs: %s",
+            ex,
+            exc_info=True,
+        )
