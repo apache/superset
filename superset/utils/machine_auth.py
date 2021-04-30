@@ -42,8 +42,8 @@ class MachineAuthProvider:
 
     def authenticate_webdriver(self, driver: WebDriver, user: "User",) -> WebDriver:
         """
-            Default AuthDriverFuncType type that sets a session cookie flask-login style
-            :return: The WebDriver passed in (fluent)
+        Default AuthDriverFuncType type that sets a session cookie flask-login style
+        :return: The WebDriver passed in (fluent)
         """
         # Short-circuit this method if we have an override configured
         if self._auth_webdriver_func_override:

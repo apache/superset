@@ -429,7 +429,7 @@ def is_slice_in_container(
 
 
 def is_owner(obj: Union[Dashboard, Slice], user: User) -> bool:
-    """ Check if user is owner of the slice """
+    """Check if user is owner of the slice"""
     return obj and user in obj.owners
 
 

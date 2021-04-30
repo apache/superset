@@ -50,7 +50,7 @@ class ReportScheduleType(str, enum.Enum):
 
 
 class ReportScheduleValidatorType(str, enum.Enum):
-    """ Validator types for alerts """
+    """Validator types for alerts"""
 
     NOT_NULL = "not null"
     OPERATOR = "operator"

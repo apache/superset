@@ -194,7 +194,7 @@ def load_examples(
     only_metadata: bool = False,
     force: bool = False,
 ) -> None:
-    """Loads a set of Slices and Dashboards and a supporting dataset """
+    """Loads a set of Slices and Dashboards and a supporting dataset"""
     load_examples_run(load_test_data, load_big_data, only_metadata, force)
 
 
@@ -210,7 +210,7 @@ def load_examples(
     help="Create the DB if it doesn't exist",
 )
 def set_database_uri(database_name: str, uri: str, skip_create: bool) -> None:
-    """Updates a database connection URI """
+    """Updates a database connection URI"""
     utils.get_or_create_db(database_name, uri, not skip_create)
 
 

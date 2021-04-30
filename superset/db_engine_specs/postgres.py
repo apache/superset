@@ -82,7 +82,7 @@ CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile(
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
-    """ Abstract class for Postgres 'like' databases """
+    """Abstract class for Postgres 'like' databases"""
 
     engine = ""
     engine_name = "PostgreSQL"

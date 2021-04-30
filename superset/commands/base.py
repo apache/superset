@@ -20,7 +20,7 @@ from typing import Any
 
 class BaseCommand(ABC):
     """
-        Base class for all Command like Superset Logic objects
+    Base class for all Command like Superset Logic objects
     """
 
     @abstractmethod

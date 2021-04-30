@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
 
 class ConnectorRegistry:
-    """ Central Registry for all available datasource engines"""
+    """Central Registry for all available datasource engines"""
 
     sources: Dict[str, Type["BaseDatasource"]] = {}
 
