@@ -149,6 +149,7 @@ const StyledHeader = styled.header`
     .about-section {
       margin: ${({ theme }) => theme.gridUnit}px 0
         ${({ theme }) => theme.gridUnit * 2}px;
+      height: fit-content;
     }
   }
 `;
@@ -159,6 +160,7 @@ export function Menu({
 }: MenuProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
+  console.log(menu, brand, navbarRight, settings);
   return (
     <StyledHeader className="top" id="main-menu">
       <Navbar inverse fluid staticTop role="navigation">
