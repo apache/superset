@@ -112,8 +112,7 @@ const VerticalDotsTrigger = () => (
 );
 
 function exportTableToExcel(tables, filename = ''){
-    let downloadLink;
-    const dataType = 'application/vnd.ms-excel';
+    const dataType = 'application/vnd.ms-excel; charset=UTF-8';
     let table;
     if (tables.length === 2){
         table = tables[0].cloneNode(true);
@@ -126,32 +125,32 @@ function exportTableToExcel(tables, filename = ''){
       }
     }
 
-    const tableHTML = table.outerHTML.replace(/ /g, '%20');
+    const tableHTML = table.outerHTML;//.replace(/ /g, '%20');
 
-    // Specify file name
-    filename = filename?filename+'.xls':'excel_data.xls';
+    let uri = 'data:application/vnd.ms-excel;base64,'
+            , template = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><meta http-equiv="content-type" content="application/vnd.ms-excel; charset=UTF-8"><head><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>{worksheet}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>' + tableHTML + '</body></html>'
+            , base64 = function (s) { return window.btoa(unescape(encodeURIComponent(s))) }
+            , format = function (s, c) { return s.replace(/{(\w+)}/g, function (m, p) { return c[p]; }) };
 
     // Create download link element
-    downloadLink = document.createElement("a");
+    let downloadLink = document.createElement("a");
+    let ctx = { worksheet: 'Лист', table: tableHTML};
+    downloadLink.href = uri + base64(format(template, ctx));
+    downloadLink.download = (filename||"exportedTable") + ".xls";
 
     document.body.appendChild(downloadLink);
-
-    if(navigator.msSaveOrOpenBlob){
-        var blob = new Blob(['\ufeff', tableHTML], {
-            type: dataType
-        });
-        navigator.msSaveOrOpenBlob( blob, filename);
-    }else{
-        // Create a link to the file
-        downloadLink.href = 'data:' + dataType + ', ' + tableHTML;
-
-        // Setting the file name
-        downloadLink.download = filename;
-
-        //triggering the function
-        downloadLink.click();
-    }
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
 }
+
+function exportExcel(tableText, filename, worksheetName) {
+
+
+
+
+        // window.location.href = uri + base64(format(template, ctx));
+
+    }
 
 class SliceHeaderControls extends React.PureComponent {
   constructor(props) {
@@ -325,7 +324,7 @@ class SliceHeaderControls extends React.PureComponent {
           <Menu.Item onClick={() => {
             const father = document.querySelectorAll(`[data-test-chart-id="${this.props.slice.slice_id}"]`)[0];
             const tables = father.querySelectorAll('table');
-            exportTableToExcel(tables, `${this.props.slice.slice_name}.xlsx`);
+            exportTableToExcel(tables, `${this.props.slice.slice_name}`);
           }
           }>{t('Export current table')}</Menu.Item> : null}
         {isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
