@@ -16,17 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import { t, styled } from '@superset-ui/core';
-import { Nav, Navbar, NavItem } from 'react-bootstrap';
+import React, {useState} from 'react';
+import {t, styled} from '@superset-ui/core';
+import {Nav, Navbar, NavItem} from 'react-bootstrap';
 import NavDropdown from 'src/components/NavDropdown';
-import { Menu as DropdownMenu } from 'src/common/components';
-import { Link } from 'react-router-dom';
+import {Menu as DropdownMenu} from 'src/common/components';
+import {Link} from 'react-router-dom';
 import MenuObject, {
   MenuObjectProps,
   MenuObjectChildProps,
 } from './MenuObject';
-import LanguagePicker, { Languages } from './LanguagePicker';
+import LanguagePicker, {Languages} from './LanguagePicker';
 import NewMenu from './NewMenu';
 
 interface BrandProps {
@@ -75,12 +75,12 @@ const StyledHeader = styled.header`
   }
 
   .version-info {
-    padding: ${({ theme }) => theme.gridUnit * 1.5}px
-      ${({ theme }) => theme.gridUnit * 4}px
-      ${({ theme }) => theme.gridUnit * 1.5}px
-      ${({ theme }) => theme.gridUnit * 7}px;
-    color: ${({ theme }) => theme.colors.grayscale.base};
-    font-size: ${({ theme }) => theme.typography.sizes.xs}px;
+    padding: ${({theme}) => theme.gridUnit * 1.5}px
+      ${({theme}) => theme.gridUnit * 4}px
+      ${({theme}) => theme.gridUnit * 1.5}px
+      ${({theme}) => theme.gridUnit * 7}px;
+    color: ${({theme}) => theme.colors.grayscale.base};
+    font-size: ${({theme}) => theme.typography.sizes.xs}px;
 
     div {
       white-space: nowrap;
@@ -94,7 +94,7 @@ const StyledHeader = styled.header`
   }
 
   .nav > li > a {
-    padding: ${({ theme }) => theme.gridUnit * 4}px;
+    padding: ${({theme}) => theme.gridUnit * 4}px;
   }
   .dropdown-header {
     text-transform: uppercase;
@@ -102,9 +102,9 @@ const StyledHeader = styled.header`
   }
 
   .navbar-inverse .navbar-nav li a {
-    color: ${({ theme }) => theme.colors.grayscale.dark1};
+    color: ${({theme}) => theme.colors.grayscale.dark1};
     border-bottom: none;
-    transition: background-color ${({ theme }) => theme.transitionTiming}s;
+    transition: background-color ${({theme}) => theme.transitionTiming}s;
     &:after {
       content: '';
       position: absolute;
@@ -114,17 +114,17 @@ const StyledHeader = styled.header`
       height: 3px;
       opacity: 0;
       transform: translateX(-50%);
-      transition: all ${({ theme }) => theme.transitionTiming}s;
-      background-color: ${({ theme }) => theme.colors.primary.base};
+      transition: all ${({theme}) => theme.transitionTiming}s;
+      background-color: ${({theme}) => theme.colors.primary.base};
     }
     &:focus {
       border-bottom: none;
       background-color: transparent;
-      /* background-color: ${({ theme }) => theme.colors.primary.light5}; */
+      /* background-color: ${({theme}) => theme.colors.primary.light5}; */
     }
     &:hover {
-      color: ${({ theme }) => theme.colors.grayscale.dark1};
-      background-color: ${({ theme }) => theme.colors.primary.light5};
+      color: ${({theme}) => theme.colors.grayscale.dark1};
+      background-color: ${({theme}) => theme.colors.primary.light5};
       border-bottom: none;
       margin: 0;
       &:after {
@@ -141,23 +141,23 @@ const StyledHeader = styled.header`
 
   .ant-menu {
     .ant-menu-item-group-title {
-      padding-bottom: ${({ theme }) => theme.gridUnit}px;
+      padding-bottom: ${({theme}) => theme.gridUnit}px;
     }
     .ant-menu-item {
-      margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-bottom: ${({theme}) => theme.gridUnit * 2}px;
     }
     .about-section {
-      margin: ${({ theme }) => theme.gridUnit}px 0
-        ${({ theme }) => theme.gridUnit * 2}px;
+      margin: ${({theme}) => theme.gridUnit}px 0
+        ${({theme}) => theme.gridUnit * 2}px;
       height: fit-content;
     }
   }
 `;
 
 export function Menu({
-  data: { menu, brand, navbar_right: navbarRight, settings },
-  isFrontendRoute = () => false,
-}: MenuProps) {
+                       data: {menu, brand, navbar_right: navbarRight, settings},
+                       isFrontendRoute = () => false,
+                     }: MenuProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   console.log(menu, brand, navbarRight, settings);
@@ -167,10 +167,10 @@ export function Menu({
         <Navbar.Header>
           <Navbar.Brand>
             <a className="navbar-brand" href={brand.path}>
-              <img width={brand.width} src={brand.icon} alt={brand.alt} />
+              <img width={brand.width} src={brand.icon} alt={brand.alt}/>
             </a>
           </Navbar.Brand>
-          <Navbar.Toggle />
+          <Navbar.Toggle/>
         </Navbar.Header>
         <Nav data-test="navbar-top">
           {menu.map((item, index) => {
@@ -188,11 +188,11 @@ export function Menu({
                 };
               }),
             };
-            return <MenuObject {...props} key={item.label} index={index + 1} />;
+            return <MenuObject {...props} key={item.label} index={index + 1}/>;
           })}
         </Nav>
         <Nav className="navbar-right">
-          {!navbarRight.user_is_anonymous && <NewMenu />}
+          {!navbarRight.user_is_anonymous && <NewMenu/>}
           <NavDropdown
             id="settings-dropdown"
             title={t('Settings')}
@@ -222,11 +222,11 @@ export function Menu({
                     return null;
                   })}
                 </DropdownMenu.ItemGroup>,
-                index < settings.length - 1 && <DropdownMenu.Divider />,
+                index < settings.length - 1 && <DropdownMenu.Divider/>,
               ])}
 
               {!navbarRight.user_is_anonymous && [
-                <DropdownMenu.Divider key="user-divider" />,
+                <DropdownMenu.Divider key="user-divider"/>,
                 <DropdownMenu.ItemGroup key="user-section" title={t('User')}>
                   {navbarRight.user_profile_url && (
                     <DropdownMenu.Item key="profile">
@@ -242,16 +242,10 @@ export function Menu({
                 </DropdownMenu.ItemGroup>,
               ]}
               {(navbarRight.version_string || navbarRight.version_sha) && [
-                <DropdownMenu.Divider key="version-info-divider" />,
+                <DropdownMenu.Divider key="version-info-divider"/>,
                 <DropdownMenu.ItemGroup key="about-section" title={t('About')}>
-                  <div className="about-section">
-                    <li className="version-info">
-                      <span>Версия: {navbarRight.version_string}</span>
-                    </li>
-
-                    <li className="version-info">
-                      <span>Доработано компанией <a href={"https://h-labs.ru"}>H-Labs</a></span>
-                    </li>
+                  <div>
+                    <span>Доработано компанией <a href={"https://h-labs.ru"}>H-Labs</a></span>
                   </div>
                 </DropdownMenu.ItemGroup>,
               ]}
@@ -263,7 +257,7 @@ export function Menu({
               target="_blank"
               title="Documentation"
             >
-              <i className="fa fa-question" />
+              <i className="fa fa-question"/>
               &nbsp;
             </NavItem>
           )}
@@ -273,7 +267,7 @@ export function Menu({
               target="_blank"
               title="Report a Bug"
             >
-              <i className="fa fa-bug" />
+              <i className="fa fa-bug"/>
               &nbsp;
             </NavItem>
           )}
@@ -285,7 +279,7 @@ export function Menu({
           )}
           {navbarRight.user_is_anonymous && (
             <NavItem href={navbarRight.user_login_url}>
-              <i className="fa fa-fw fa-sign-in" />
+              <i className="fa fa-fw fa-sign-in"/>
               {t('Login')}
             </NavItem>
           )}
@@ -296,7 +290,7 @@ export function Menu({
 }
 
 // transform the menu data to reorganize components
-export default function MenuWrapper({ data, ...rest }: MenuProps) {
+export default function MenuWrapper({data, ...rest}: MenuProps) {
   const newMenuData = {
     ...data,
   };
