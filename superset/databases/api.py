@@ -243,7 +243,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=str(ex))
         except DatabaseCreateFailedError as ex:
             logger.error(
-                "Error creating model %s: %s", self.__class__.__name__, str(ex)
+                "Error creating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -320,7 +323,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=str(ex))
         except DatabaseUpdateFailedError as ex:
             logger.error(
-                "Error updating model %s: %s", self.__class__.__name__, str(ex)
+                "Error updating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -373,7 +379,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=str(ex))
         except DatabaseDeleteFailedError as ex:
             logger.error(
-                "Error deleting model %s: %s", self.__class__.__name__, str(ex)
+                "Error deleting model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -800,7 +809,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             logger.warning("Import database failed")
             return self.response_422(message=exc.normalized_messages())
         except DatabaseImportError as exc:
-            logger.error("Import database failed")
+            logger.error("Import database failed", exc_info=True)
             return self.response_500(message=str(exc))
 
     @expose("/<int:pk>/function_names/", methods=["GET"])

@@ -360,7 +360,7 @@ def flasher(msg: str, severity: str = "message") -> None:
         flash(msg, severity)
     except RuntimeError:
         if severity == "danger":
-            logger.error(msg)
+            logger.error(msg, exc_info=True)
         else:
             logger.info(msg)
 
@@ -753,7 +753,7 @@ def validate_json(obj: Union[bytes, bytearray, str]) -> None:
         try:
             json.loads(obj)
         except Exception as ex:
-            logger.error("JSON is not valid %s", str(ex))
+            logger.error("JSON is not valid %s", str(ex), exc_info=True)
             raise SupersetException("JSON is not valid")
 
 
@@ -769,7 +769,7 @@ class SigalrmTimeout:
     def handle_timeout(  # pylint: disable=unused-argument
         self, signum: int, frame: Any
     ) -> None:
-        logger.error("Process timed out")
+        logger.error("Process timed out", exc_info=True)
         raise SupersetTimeoutException(
             error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
             message=self.error_message,
