@@ -21,6 +21,7 @@ import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import {
+  ensureIsArray,
   t,
   styled,
   getChartControlPanelRegistry,
@@ -31,8 +32,10 @@ import {
   ControlPanelSectionConfig,
   ControlState,
   CustomControlItem,
+  DatasourceMeta,
   ExpandedControlItem,
   InfoTooltipWithTrigger,
+  sections,
 } from '@superset-ui/chart-controls';
 
 import Collapse from 'src/components/Collapse';
@@ -102,29 +105,111 @@ const ControlPanelsTabs = styled(Tabs)`
   }
 `;
 
-export class ControlPanelsContainer extends React.Component<ControlPanelsContainerProps> {
+type ControlPanelsContainerState = {
+  expandedQuerySections: string[];
+  expandedCustomizeSections: string[];
+  querySections: ControlPanelSectionConfig[];
+  customizeSections: ControlPanelSectionConfig[];
+};
+
+const isTimeSection = (section: ControlPanelSectionConfig): boolean =>
+  !!section.label &&
+  (sections.legacyRegularTime.label === section.label ||
+    sections.legacyTimeseriesTime.label === section.label);
+
+const hasTimeColumn = (datasource: DatasourceMeta): boolean =>
+  datasource?.columns?.some(c => c.is_dttm) ||
+  datasource.type === DatasourceType.Druid;
+
+const sectionsToExpand = (sections: ControlPanelSectionConfig[]) =>
+  sections.reduce(
+    (acc, section) =>
+      section.expanded ? [...acc, String(section.label)] : acc,
+    [] as string[],
+  );
+
+export class ControlPanelsContainer extends React.Component<
+  ControlPanelsContainerProps,
+  ControlPanelsContainerState
+> {
   // trigger updates to the component when async plugins load
   static contextType = PluginContext;
 
   constructor(props: ControlPanelsContainerProps) {
     super(props);
+    this.state = {
+      expandedQuerySections: [],
+      expandedCustomizeSections: [],
+      querySections: [],
+      customizeSections: [],
+    };
     this.renderControl = this.renderControl.bind(this);
     this.renderControlPanelSection = this.renderControlPanelSection.bind(this);
   }
 
-  sectionsToRender(): ExpandedControlPanelSectionConfig[] {
-    return getSectionsToRender(
-      this.props.form_data.viz_type,
-      this.props.datasource_type,
-    );
+  componentDidUpdate(prevProps: ControlPanelsContainerProps) {
+    if (
+      this.props.form_data.datasource !== prevProps.form_data.datasource ||
+      this.props.form_data.viz_type !== prevProps.form_data.viz_type
+    ) {
+      this.refreshSections();
+    }
   }
 
-  sectionsToExpand(sections: ControlPanelSectionConfig[]) {
-    return sections.reduce(
-      (acc, section) =>
-        section.expanded ? [...acc, String(section.label)] : acc,
-      [] as string[],
+  componentDidMount() {
+    this.refreshSections();
+  }
+
+  refreshSections() {
+    const {
+      exploreState: { datasource },
+    } = this.props;
+
+    const querySections: ControlPanelSectionConfig[] = [];
+    const customizeSections: ControlPanelSectionConfig[] = [];
+
+    getSectionsToRender(
+      this.props.form_data.viz_type,
+      this.props.datasource_type,
+    ).forEach(origSection => {
+      let section = origSection;
+      // skip time section if no time column present in datasource
+      if (isTimeSection(section)) {
+        section = { ...section, expanded: hasTimeColumn(datasource) };
+      }
+      // if at least one control in the section is not `renderTrigger`
+      // or asks to be displayed at the Data tab
+      if (
+        section.tabOverride === 'data' ||
+        section.controlSetRows.some(rows =>
+          rows.some(
+            control =>
+              control &&
+              typeof control === 'object' &&
+              'config' in control &&
+              control.config &&
+              (!control.config.renderTrigger ||
+                control.config.tabOverride === 'data'),
+          ),
+        )
+      ) {
+        querySections.push(section);
+      } else {
+        customizeSections.push(section);
+      }
+    });
+    const expandedQuerySections: string[] = sectionsToExpand(querySections);
+    const expandedCustomizeSections: string[] = sectionsToExpand(
+      customizeSections,
     );
+
+    this.setState({
+      expandedQuerySections,
+      expandedCustomizeSections,
+      querySections,
+      customizeSections,
+    });
+    return sections;
   }
 
   renderControl({ name, config }: CustomControlItem) {
@@ -260,36 +345,7 @@ export class ControlPanelsContainer extends React.Component<ControlPanelsContain
       return <Loading />;
     }
 
-    const querySectionsToRender: ExpandedControlPanelSectionConfig[] = [];
-    const displaySectionsToRender: ExpandedControlPanelSectionConfig[] = [];
-    this.sectionsToRender().forEach(section => {
-      // if at least one control in the section is not `renderTrigger`
-      // or asks to be displayed at the Data tab
-      if (
-        section.tabOverride === 'data' ||
-        section.controlSetRows.some(rows =>
-          rows.some(
-            control =>
-              control &&
-              typeof control === 'object' &&
-              'config' in control &&
-              control.config &&
-              (!control.config.renderTrigger ||
-                control.config.tabOverride === 'data'),
-          ),
-        )
-      ) {
-        querySectionsToRender.push(section);
-      } else {
-        displaySectionsToRender.push(section);
-      }
-    });
-
-    const showCustomizeTab = displaySectionsToRender.length > 0;
-    const expandedQuerySections = this.sectionsToExpand(querySectionsToRender);
-    const expandedCustomSections = this.sectionsToExpand(
-      displaySectionsToRender,
-    );
+    const showCustomizeTab = this.state.customizeSections.length > 0;
     return (
       <Styles>
         <ControlPanelsTabs
@@ -300,22 +356,34 @@ export class ControlPanelsContainer extends React.Component<ControlPanelsContain
           <Tabs.TabPane key="query" tab={t('Data')}>
             <Collapse
               bordered
-              defaultActiveKey={expandedQuerySections}
+              activeKey={this.state.expandedQuerySections}
               expandIconPosition="right"
+              onChange={selection => {
+                this.setState({
+                  expandedQuerySections: ensureIsArray(selection),
+                });
+              }}
               ghost
             >
-              {querySectionsToRender.map(this.renderControlPanelSection)}
+              {this.state.querySections.map(this.renderControlPanelSection)}
             </Collapse>
           </Tabs.TabPane>
           {showCustomizeTab && (
             <Tabs.TabPane key="display" tab={t('Customize')}>
               <Collapse
                 bordered
-                defaultActiveKey={expandedCustomSections}
+                activeKey={this.state.expandedCustomizeSections}
                 expandIconPosition="right"
+                onChange={selection => {
+                  this.setState({
+                    expandedCustomizeSections: ensureIsArray(selection),
+                  });
+                }}
                 ghost
               >
-                {displaySectionsToRender.map(this.renderControlPanelSection)}
+                {this.state.customizeSections.map(
+                  this.renderControlPanelSection,
+                )}
               </Collapse>
             </Tabs.TabPane>
           )}
