@@ -569,7 +569,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return {}
 
     @classmethod
-    def apply_limit_to_sql(cls, sql: str, limit: int, database: "Database") -> str:
+    def apply_limit_to_sql(
+        cls, sql: str, limit: int, database: "Database", force: bool = False
+    ) -> str:
         """
         Alters the SQL statement to apply a LIMIT clause
 
@@ -590,7 +592,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         if cls.limit_method == LimitMethod.FORCE_LIMIT:
             parsed_query = sql_parse.ParsedQuery(sql)
-            sql = parsed_query.set_or_update_query_limit(limit)
+            sql = parsed_query.set_or_update_query_limit(limit, force=force)
 
         return sql
 

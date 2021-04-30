@@ -65,4 +65,5 @@ export type Query = {
   templateParams: any;
   rows: number;
   queryLimit: number;
+  limitingFactor: string;
 };
