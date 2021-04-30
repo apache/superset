@@ -102,9 +102,13 @@ def handle_query_error(
 
 def get_query_backoff_handler(details: Dict[Any, Any]) -> None:
     query_id = details["kwargs"]["query_id"]
-    logger.error("Query with id `%s` could not be retrieved", str(query_id))
+    logger.error(
+        "Query with id `%s` could not be retrieved", str(query_id), exc_info=True
+    )
     stats_logger.incr("error_attempting_orm_query_{}".format(details["tries"] - 1))
-    logger.error("Query %s: Sleeping for a sec before retrying...", str(query_id))
+    logger.error(
+        "Query %s: Sleeping for a sec before retrying...", str(query_id), exc_info=True
+    )
 
 
 def get_query_giveup_handler(_: Any) -> None:
@@ -247,7 +251,7 @@ def execute_sql_statement(
             )
             data = db_engine_spec.fetch_data(cursor, query.limit)
     except Exception as ex:
-        logger.error("Query %d: %s", query.id, type(ex))
+        logger.error("Query %d: %s", query.id, type(ex), exc_info=True)
         logger.debug("Query %d: %s", query.id, ex)
         raise SqlLabException(db_engine_spec.extract_error_message(ex))
 
