@@ -439,8 +439,10 @@ class Database(
             cols=cols,
         )
 
-    def apply_limit_to_sql(self, sql: str, limit: int = 1000) -> str:
-        return self.db_engine_spec.apply_limit_to_sql(sql, limit, self)
+    def apply_limit_to_sql(
+        self, sql: str, limit: int = 1000, force: bool = False
+    ) -> str:
+        return self.db_engine_spec.apply_limit_to_sql(sql, limit, self, force=force)
 
     def safe_sqlalchemy_uri(self) -> str:
         return self.sqlalchemy_uri
