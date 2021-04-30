@@ -90,7 +90,7 @@ from superset.models.core import Database, FavStar, Log
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
-from superset.models.sql_lab import Query, TabState
+from superset.models.sql_lab import LimitingFactor, Query, TabState
 from superset.models.user_attributes import UserAttribute
 from superset.queries.dao import QueryDAO
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
@@ -2393,6 +2393,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             # Update saved query if needed
             QueryDAO.update_saved_query_exec_info(query_id)
 
+            # TODO: set LimitingFactor to display?
             payload = json.dumps(
                 apply_display_max_row_limit(data),
                 default=utils.pessimistic_json_iso_dttm_ser,
@@ -2548,6 +2549,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if not (config.get("SQLLAB_CTAS_NO_LIMIT") and select_as_cta):
             # set LIMIT after template processing
             limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), limit]
+            if limits[0] is None or limits[0] > limits[1]:
+                query.limiting_factor = LimitingFactor.DROPDOWN
+            elif limits[1] > limits[0]:
+                query.limiting_factor = LimitingFactor.QUERY
+            else:  # limits[0] == limits[1]
+                query.limiting_factor = LimitingFactor.QUERY_AND_DROPDOWN
             query.limit = min(lim for lim in limits if lim is not None)
 
         # Flag for whether or not to expand data
@@ -2571,7 +2578,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/csv/<client_id>")
-    def csv(self, client_id: str) -> FlaskResponse:  # pylint: disable=no-self-use
+    def csv(  # pylint: disable=no-self-use,too-many-locals
+        self, client_id: str
+    ) -> FlaskResponse:
         """Download the query results as csv."""
         logger.info("Exporting CSV file [%s]", client_id)
         query = db.session.query(Query).filter_by(client_id=client_id).one()
@@ -2599,8 +2608,21 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             logger.info("Using pandas to convert to CSV")
         else:
             logger.info("Running a query to turn into CSV")
-            sql = query.select_sql or query.executed_sql
-            df = query.database.get_df(sql, query.schema)
+            if query.select_sql:
+                sql = query.select_sql
+                limit = None
+            else:
+                sql = query.executed_sql
+                limit = ParsedQuery(sql).limit
+            if limit is not None and query.limiting_factor in {
+                LimitingFactor.QUERY,
+                LimitingFactor.DROPDOWN,
+                LimitingFactor.QUERY_AND_DROPDOWN,
+            }:
+                # remove extra row from `increased_limit`
+                limit -= 1
+            df = query.database.get_df(sql, query.schema)[:limit]
+
         csv_data = csv.df_to_escaped_csv(df, index=False, **config["CSV_EXPORT"])
         quoted_csv_name = parse.quote(query.name)
         response = CsvResponse(

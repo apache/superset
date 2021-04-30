@@ -81,6 +81,19 @@ class TestDbEngineSpecs(TestDbEngineSpec):
             "SELECT * FROM (SELECT * FROM a LIMIT 10) LIMIT 1000",
         )
 
+    def test_limit_query_without_force(self):
+        self.sql_limit_regex(
+            "SELECT * FROM a LIMIT 10", "SELECT * FROM a LIMIT 10", limit=11,
+        )
+
+    def test_limit_query_with_force(self):
+        self.sql_limit_regex(
+            "SELECT * FROM a LIMIT 10",
+            "SELECT * FROM a LIMIT 11",
+            limit=11,
+            force=True,
+        )
+
     def test_limit_with_expr(self):
         self.sql_limit_regex(
             """
