@@ -36,7 +36,7 @@ from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
 from superset.extensions import celery_app
 from superset.models.core import Database
-from superset.models.sql_lab import Query
+from superset.models.sql_lab import LimitingFactor, Query
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import CtasMethod, ParsedQuery
 from superset.utils.celery import session_scope
@@ -179,7 +179,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
             return handle_query_error(str(ex), query, session)
 
 
-# pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments, too-many-locals
 def execute_sql_statement(
     sql_statement: str,
     query: Query,
@@ -194,6 +194,10 @@ def execute_sql_statement(
     db_engine_spec = database.db_engine_spec
     parsed_query = ParsedQuery(sql_statement)
     sql = parsed_query.stripped()
+    # This is a test to see if the query is being
+    # limited by either the dropdown or the sql.
+    # We are testing to see if more rows exist than the limit.
+    increased_limit = None if query.limit is None else query.limit + 1
 
     if not db_engine_spec.is_readonly_query(parsed_query) and not database.allow_dml:
         raise SqlLabSecurityException(
@@ -219,11 +223,14 @@ def execute_sql_statement(
         if SQL_MAX_ROW and (not query.limit or query.limit > SQL_MAX_ROW):
             query.limit = SQL_MAX_ROW
         if query.limit:
-            sql = database.apply_limit_to_sql(sql, query.limit)
+            # We are fetching one more than the requested limit in order
+            # to test whether there are more rows than the limit.
+            # Later, the extra row will be dropped before sending
+            # the results back to the user.
+            sql = database.apply_limit_to_sql(sql, increased_limit, force=True)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
     sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
-
     try:
         if log_query:
             log_query(
@@ -249,7 +256,12 @@ def execute_sql_statement(
                 query.id,
                 str(query.to_dict()),
             )
-            data = db_engine_spec.fetch_data(cursor, query.limit)
+            data = db_engine_spec.fetch_data(cursor, increased_limit)
+            if query.limit is None or len(data) <= query.limit:
+                query.limiting_factor = LimitingFactor.NOT_LIMITED
+            else:
+                # return 1 row less than increased_query
+                data = data[:-1]
     except Exception as ex:
         logger.error("Query %d: %s", query.id, type(ex), exc_info=True)
         logger.debug("Query %d: %s", query.id, ex)
