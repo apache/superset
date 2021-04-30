@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState, FC } from 'react';
+import React, { useEffect, useState, FC, Suspense } from 'react';
 import { useDispatch } from 'react-redux';
 import { useParams } from 'react-router-dom';
 import Loading from 'src/components/Loading';
@@ -28,8 +28,12 @@ import {
 import { ResourceStatus } from 'src/common/hooks/apiResources/apiResources';
 import { usePrevious } from 'src/common/hooks/usePrevious';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
-import DashboardContainer from 'src/dashboard/containers/Dashboard';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
+
+const importDashboardContainer = () =>
+  import('src/dashboard/containers/Dashboard');
+
+const DashboardContainer = React.lazy(importDashboardContainer);
 
 const DashboardPage: FC = () => {
   const dispatch = useDispatch();
@@ -45,6 +49,11 @@ const DashboardPage: FC = () => {
   const error = [dashboardResource, chartsResource, datasetsResource].find(
     resource => resource.status === ResourceStatus.ERROR,
   )?.error;
+
+  useEffect(() => {
+    // get a headstart on importing since we know we'll need it
+    importDashboardContainer();
+  }, []);
 
   useEffect(() => {
     if (dashboardResource.result) {
@@ -80,7 +89,11 @@ const DashboardPage: FC = () => {
   if (error) throw error; // caught in error boundary
 
   if (!isLoaded) return <Loading />;
-  return <DashboardContainer />;
+  return (
+    <Suspense fallback={<Loading />}>
+      <DashboardContainer />
+    </Suspense>
+  );
 };
 
 export default DashboardPage;
