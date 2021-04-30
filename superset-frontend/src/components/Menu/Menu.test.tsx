@@ -181,14 +181,29 @@ test('should render the top navbar child menu items', async () => {
 
 test('should render the dropdown items', async () => {
   render(<Menu {...notanonProps} />);
-  const dropdown = await screen.getByTestId('new-dropdown-icon');
+  const dropdown = screen.getByTestId('new-dropdown-icon');
   userEvent.hover(dropdown);
-  expect(await screen.findByText(dropdownItems[0].label)).toHaveAttribute('href', dropdownItems[0].url);
-  expect(await screen.getByTestId(`menu-item-${dropdownItems[0].label}`)).toBeInTheDocument();
-  expect(await screen.findByText(dropdownItems[1].label)).toHaveAttribute('href', dropdownItems[1].url);
-  expect(await screen.getByTestId(`menu-item-${dropdownItems[1].label}`)).toBeInTheDocument();
-  expect(await screen.findByText(dropdownItems[2].label)).toHaveAttribute('href', dropdownItems[2].url);
-  expect(await screen.getByTestId(`menu-item-${dropdownItems[2].label}`)).toBeInTheDocument();
+  expect(await screen.findByText(dropdownItems[0].label)).toHaveAttribute(
+    'href',
+    dropdownItems[0].url,
+  );
+  expect(
+    screen.getByTestId(`menu-item-${dropdownItems[0].label}`),
+  ).toBeInTheDocument();
+  expect(await screen.findByText(dropdownItems[1].label)).toHaveAttribute(
+    'href',
+    dropdownItems[1].url,
+  );
+  expect(
+    screen.getByTestId(`menu-item-${dropdownItems[1].label}`),
+  ).toBeInTheDocument();
+  expect(await screen.findByText(dropdownItems[2].label)).toHaveAttribute(
+    'href',
+    dropdownItems[2].url,
+  );
+  expect(
+    screen.getByTestId(`menu-item-${dropdownItems[2].label}`),
+  ).toBeInTheDocument();
 });
 
 test('should render the Settings', async () => {
@@ -285,10 +300,8 @@ test('should render the Documentation link when available', async () => {
       navbar_right: { documentation_url },
     },
   } = mockedProps;
-​
   render(<Menu {...mockedProps} />);
   userEvent.hover(screen.getByText('Settings'));
-​
   const doc = await screen.findByTitle('Documentation');
   expect(doc.firstChild).toHaveAttribute('href', documentation_url);
 });
