@@ -18,17 +18,17 @@
  */
 import React from 'react';
 import { css, styled } from '@superset-ui/core';
-import { Tabs as AntdTabs } from 'src/common/components';
+import AntDTabs, { TabsProps as AntDTabsProps } from 'antd/lib/tabs';
 import Icon from 'src/components/Icon';
 
-interface TabsProps {
+export interface TabsProps extends AntDTabsProps {
   fullWidth?: boolean;
   allowOverflow?: boolean;
 }
 
 const notForwardedProps = ['fullWidth', 'allowOverflow'];
 
-const StyledTabs = styled(AntdTabs, {
+const StyledTabs = styled(AntDTabs, {
   shouldForwardProp: prop => !notForwardedProps.includes(prop),
 })<TabsProps>`
   overflow: ${({ allowOverflow }) => (allowOverflow ? 'visible' : 'hidden')};
@@ -96,7 +96,7 @@ const StyledTabs = styled(AntdTabs, {
   }
 `;
 
-const StyledTabPane = styled(AntdTabs.TabPane)``;
+const StyledTabPane = styled(AntDTabs.TabPane)``;
 
 const Tabs = Object.assign(StyledTabs, {
   TabPane: StyledTabPane,
@@ -104,6 +104,7 @@ const Tabs = Object.assign(StyledTabs, {
 
 Tabs.defaultProps = {
   fullWidth: true,
+  animated: true,
 };
 
 const StyledEditableTabs = styled(StyledTabs)`

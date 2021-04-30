@@ -22,6 +22,7 @@ import AntdIcon from '@ant-design/icons';
 type AntdIconType = typeof AntdIcon.defaultProps;
 type IconType = AntdIconType & {
   iconColor?: string;
+  twoToneColor?: string;
   iconSize?: 's' | 'm' | 'l' | 'xl' | 'xxl';
 };
 

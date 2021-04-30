@@ -22,7 +22,7 @@ import Button from 'src/components/Button';
 import { styled, t } from '@superset-ui/core';
 
 import ErrorBoundary from 'src/components/ErrorBoundary';
-import Tabs from 'src/common/components/Tabs';
+import Tabs from 'src/components/Tabs';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
 import AdhocFilter, {
   EXPRESSION_TYPES,

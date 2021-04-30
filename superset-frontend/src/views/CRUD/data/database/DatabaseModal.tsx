@@ -19,15 +19,14 @@
 import React, { FunctionComponent, useState, useEffect } from 'react';
 import cx from 'classnames';
 import InfoTooltip from 'src/components/InfoTooltip';
-import { t, supersetTheme } from '@superset-ui/core';
+import { t, supersetTheme, styled } from '@superset-ui/core';
 import {
   useSingleViewResource,
   testDatabaseConnection,
 } from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import Tabs from 'src/common/components/Tabs';
+import Tabs from 'src/components/Tabs';
 import { Alert } from 'src/common/components';
-import { styled } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import Collapse from 'src/components/Collapse';
