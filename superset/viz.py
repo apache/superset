@@ -509,7 +509,8 @@ class BaseViz:
                 except Exception as ex:
                     logger.exception(ex)
                     logger.error(
-                        "Error reading cache: " + utils.error_msg_from_exception(ex)
+                        "Error reading cache: " + utils.error_msg_from_exception(ex),
+                        exc_info=True,
                     )
                 logger.info("Serving from cache")
 
