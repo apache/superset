@@ -394,7 +394,7 @@ psql: error: could not connect to server: Operation timed out
         assert result == [
             SupersetError(
                 error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
-                message="Either the username or the password is incorrect.",
+                message="Please re-enter the password.",
                 level=ErrorLevel.ERROR,
                 extra={
                     "engine_name": "PostgreSQL",
