@@ -55,7 +55,7 @@ export default function App({ user }: AppProps) {
             >
               <Favorites user={user} />
             </StyledTabPane>
-            <StyledTabPane                
+            <StyledTabPane
               key="2"
               tab={
                 <div>
