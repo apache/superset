@@ -2614,7 +2614,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             else:
                 sql = query.executed_sql
                 limit = ParsedQuery(sql).limit
-            if limit is not None:
+            if query.limiting_factor in {
+                LimitingFactor.QUERY,
+                LimitingFactor.DROPDOWN,
+                LimitingFactor.QUERY_AND_DROPDOWN,
+            }:
+                # remove extra row from `increased_limit`
                 limit -= 1
             df = query.database.get_df(sql, query.schema)[:limit]
 
