@@ -40,7 +40,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
-from superset.extensions import cache_manager
+from superset.extensions import cache_manager, security_manager
 from superset.legacy import update_time_range
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -87,20 +87,15 @@ def get_permissions(
     if not user.roles:
         raise AttributeError("User object does not have roles")
 
-    roles = {}
+    roles = defaultdict(list)
     permissions = defaultdict(set)
+
     for role in user.roles:
-        perms = set()
-        for perm in role.permissions:
-            if perm.permission and perm.view_menu:
-                perms.add((perm.permission.name, perm.view_menu.name))
-                if perm.permission.name in ("datasource_access", "database_access"):
-                    permissions[perm.permission.name].add(perm.view_menu.name)
-        roles[role.name] = [
-            [perm.permission.name, perm.view_menu.name]
-            for perm in role.permissions
-            if perm.permission and perm.view_menu
-        ]
+        permissions_ = security_manager.get_role_permissions(role)
+        for permission in permissions_:
+            if permission[0] in ("datasource_access", "database_access"):
+                permissions[permission[0]].add(permission[1])
+            roles[role.name].append([permission[0], permission[1]])
 
     return roles, permissions
 
