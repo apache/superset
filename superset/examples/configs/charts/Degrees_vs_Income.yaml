@@ -1,0 +1,82 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: Degrees vs Income
+viz_type: box_plot
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator: '1'
+    expressionType: SIMPLE
+    filterOptionName: filter_s1jzmdwgeg_p3er4w56uy
+    isExtra: false
+    isNew: false
+    operator: ==
+    sqlExpression: null
+    subject: is_software_dev
+  - clause: WHERE
+    comparator: '200000'
+    expressionType: SIMPLE
+    filterOptionName: filter_ojzq4njnuog_zj0dux944z
+    isExtra: false
+    isNew: false
+    operator: <=
+    sqlExpression: null
+    subject: last_yr_income
+  color_scheme: supersetColors
+  columns: []
+  datasource: 42__table
+  granularity_sqla: time_start
+  groupby:
+  - school_degree
+  metrics:
+  - aggregate: SUM
+    column:
+      column_name: last_yr_income
+      description: null
+      expression: null
+      filterable: true
+      groupby: true
+      id: 1589
+      is_dttm: false
+      python_date_format: null
+      type: DOUBLE PRECISION
+      verbose_name: null
+    expressionType: SIMPLE
+    hasCustomLabel: false
+    isNew: false
+    label: SUM(last_yr_income)
+    optionName: metric_bgqj8nnvz8k_07w8bbh1bc6q
+    sqlExpression: null
+  number_format: SMART_NUMBER
+  queryFields:
+    columns: groupby
+    groupby: groupby
+    metrics: metrics
+  slice_id: 1376
+  time_grain_sqla: null
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  url_params: {}
+  viz_type: box_plot
+  whiskerOptions: Tukey
+  x_ticks_layout: "45\xB0"
+cache_timeout: null
+uuid: 02f546ae-1bf4-bd26-8bc2-14b9279c8a62
+version: 1.0.0
+dataset_uuid: d95a2865-53ce-1f82-a53d-8e3c89331469

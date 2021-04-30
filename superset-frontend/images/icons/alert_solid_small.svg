@@ -1,0 +1,22 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M11.335 8.735L7.30998 1.735C7.04507 1.26004 6.54382 0.965683 5.99998 0.965683C5.45614 0.965683 4.9549 1.26004 4.68998 1.735L0.689984 8.735C0.416009 9.19706 0.410037 9.77036 0.674327 10.238C0.938617 10.7057 1.43282 10.9963 1.96998 11H10.03C10.5716 11.0053 11.0741 10.7182 11.3445 10.2489C11.6149 9.77957 11.6113 9.20091 11.335 8.735Z" fill="currentColor"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M5.5 4.5C5.5 4.22386 5.72386 4 6 4C6.27614 4 6.5 4.22386 6.5 4.5V6.5C6.5 6.77614 6.27614 7 6 7C5.72386 7 5.5 6.77614 5.5 6.5V4.5ZM5.5 8.5C5.5 8.22386 5.72386 8 6 8C6.27614 8 6.5 8.22386 6.5 8.5C6.5 8.77614 6.27614 9 6 9C5.72386 9 5.5 8.77614 5.5 8.5Z" fill="white"/>
+</svg>

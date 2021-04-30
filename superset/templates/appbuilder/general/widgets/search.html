@@ -1,0 +1,75 @@
+{#
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+#}
+{% import 'appbuilder/general/lib.html' as lib %}
+
+<div class="list-search-container">
+    <form id="filter_form" class="form-search" method="get">
+        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+        <i class="fa fa-filter text-primary" aria-hidden="true"></i> {{_("Filter List")}}
+        </button>
+
+        <ul class="dropdown-menu">
+            {% for col in include_cols %}
+            <li><a href="javascript:void(0)" name={{col}} class="filter btn" onclick="return false;">
+                {{ label_columns[col] }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+        <div class="filters-container">
+            <table class="table table-responsive table-hover filters">
+
+            </table>
+            <div class="filter-action" style="display:none">
+            <button type="submit" class="btn btn-sm btn-primary" id="search-action">
+                {{_("Search")}}&nbsp;&nbsp;<i class="fa fa-search"></i>
+            </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    (function($) {
+        function checkSearchButton() {
+            var hasFilter = $('.filters tr').length;
+            if (hasFilter) {
+                $('.filters a.remove-filter').off('click', checkSearchButton);
+                $('.filters a.remove-filter').on('click', checkSearchButton);
+                $('.filter-action').toggle(true);
+            } else {
+                $('.filter-action').toggle(true);
+                $('.filter-action > button').html('{{_("Refresh")}}&nbsp;&nbsp;<i class="fa fa-refresh"></i>');
+            }
+        }
+
+        $('a.btn.remove-filter').on('click', checkSearchButton);
+        $(document).ready(function() {
+            checkSearchButton();
+        });
+
+        var filter = new AdminFilters(
+            '#filter_form',
+            {{ label_columns | tojson | safe }},
+            {{ form_fields | tojson | safe }},
+            {{ search_filters | tojson | safe }},
+            {{ active_filters | tojson | safe }}
+        );
+    })(jQuery);
+
+</script>

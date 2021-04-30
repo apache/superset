@@ -1,0 +1,259 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+/* eslint-env browser */
+import React from 'react';
+import PropTypes from 'prop-types';
+import { List } from 'react-virtualized';
+import SearchInput, { createFilter } from 'react-search-input';
+import { t } from '@superset-ui/core';
+
+import { Select } from 'src/common/components';
+import AddSliceCard from './AddSliceCard';
+import AddSliceDragPreview from './dnd/AddSliceDragPreview';
+import DragDroppable from './dnd/DragDroppable';
+import Loading from '../../components/Loading';
+import { CHART_TYPE, NEW_COMPONENT_SOURCE_TYPE } from '../util/componentTypes';
+import { NEW_CHART_ID, NEW_COMPONENTS_SOURCE_ID } from '../util/constants';
+import { slicePropShape } from '../util/propShapes';
+
+const propTypes = {
+  fetchAllSlices: PropTypes.func.isRequired,
+  isLoading: PropTypes.bool.isRequired,
+  slices: PropTypes.objectOf(slicePropShape).isRequired,
+  lastUpdated: PropTypes.number.isRequired,
+  errorMessage: PropTypes.string,
+  userId: PropTypes.string.isRequired,
+  selectedSliceIds: PropTypes.arrayOf(PropTypes.number),
+  editMode: PropTypes.bool,
+  height: PropTypes.number,
+};
+
+const defaultProps = {
+  selectedSliceIds: [],
+  editMode: false,
+  errorMessage: '',
+  height: window.innerHeight,
+};
+
+const KEYS_TO_FILTERS = ['slice_name', 'viz_type', 'datasource_name'];
+const KEYS_TO_SORT = {
+  slice_name: 'Name',
+  viz_type: 'Vis type',
+  datasource_name: 'Dataset',
+  changed_on: 'Recent',
+};
+
+const DEFAULT_SORT_KEY = 'changed_on';
+
+const MARGIN_BOTTOM = 16;
+const SIDEPANE_HEADER_HEIGHT = 30;
+const SLICE_ADDER_CONTROL_HEIGHT = 64;
+const DEFAULT_CELL_HEIGHT = 112;
+
+class SliceAdder extends React.Component {
+  static sortByComparator(attr) {
+    const desc = attr === 'changed_on' ? -1 : 1;
+
+    return (a, b) => {
+      if (a[attr] < b[attr]) {
+        return -1 * desc;
+      }
+      if (a[attr] > b[attr]) {
+        return 1 * desc;
+      }
+      return 0;
+    };
+  }
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      filteredSlices: [],
+      searchTerm: '',
+      sortBy: DEFAULT_SORT_KEY,
+      selectedSliceIdsSet: new Set(props.selectedSliceIds),
+    };
+    this.rowRenderer = this.rowRenderer.bind(this);
+    this.searchUpdated = this.searchUpdated.bind(this);
+    this.handleKeyPress = this.handleKeyPress.bind(this);
+    this.handleSelect = this.handleSelect.bind(this);
+  }
+
+  componentDidMount() {
+    this.slicesRequest = this.props.fetchAllSlices(this.props.userId);
+  }
+
+  UNSAFE_componentWillReceiveProps(nextProps) {
+    const nextState = {};
+    if (nextProps.lastUpdated !== this.props.lastUpdated) {
+      nextState.filteredSlices = Object.values(nextProps.slices)
+        .filter(createFilter(this.state.searchTerm, KEYS_TO_FILTERS))
+        .sort(SliceAdder.sortByComparator(this.state.sortBy));
+    }
+
+    if (nextProps.selectedSliceIds !== this.props.selectedSliceIds) {
+      nextState.selectedSliceIdsSet = new Set(nextProps.selectedSliceIds);
+    }
+
+    if (Object.keys(nextState).length) {
+      this.setState(nextState);
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.slicesRequest && this.slicesRequest.abort) {
+      this.slicesRequest.abort();
+    }
+  }
+
+  getFilteredSortedSlices(searchTerm, sortBy) {
+    return Object.values(this.props.slices)
+      .filter(createFilter(searchTerm, KEYS_TO_FILTERS))
+      .sort(SliceAdder.sortByComparator(sortBy));
+  }
+
+  handleKeyPress(ev) {
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+
+      this.searchUpdated(ev.target.value);
+    }
+  }
+
+  searchUpdated(searchTerm) {
+    this.setState(prevState => ({
+      searchTerm,
+      filteredSlices: this.getFilteredSortedSlices(
+        searchTerm,
+        prevState.sortBy,
+      ),
+    }));
+  }
+
+  handleSelect(sortBy) {
+    this.setState(prevState => ({
+      sortBy,
+      filteredSlices: this.getFilteredSortedSlices(
+        prevState.searchTerm,
+        sortBy,
+      ),
+    }));
+  }
+
+  rowRenderer({ key, index, style }) {
+    const { filteredSlices, selectedSliceIdsSet } = this.state;
+    const cellData = filteredSlices[index];
+    const isSelected = selectedSliceIdsSet.has(cellData.slice_id);
+    const type = CHART_TYPE;
+    const id = NEW_CHART_ID;
+
+    const meta = {
+      chartId: cellData.slice_id,
+      sliceName: cellData.slice_name,
+    };
+    return (
+      <DragDroppable
+        key={key}
+        component={{ type, id, meta }}
+        parentComponent={{
+          id: NEW_COMPONENTS_SOURCE_ID,
+          type: NEW_COMPONENT_SOURCE_TYPE,
+        }}
+        index={index}
+        depth={0}
+        disableDragDrop={isSelected}
+        editMode={this.props.editMode}
+        // we must use a custom drag preview within the List because
+        // it does not seem to work within a fixed-position container
+        useEmptyDragPreview
+        // List library expect style props here
+        // actual style should be applied to nested AddSliceCard component
+        style={{}}
+      >
+        {({ dragSourceRef }) => (
+          <AddSliceCard
+            innerRef={dragSourceRef}
+            style={style}
+            sliceName={cellData.slice_name}
+            lastModified={cellData.changed_on_humanized}
+            visType={cellData.viz_type}
+            datasourceUrl={cellData.datasource_url}
+            datasourceName={cellData.datasource_name}
+            isSelected={isSelected}
+          />
+        )}
+      </DragDroppable>
+    );
+  }
+
+  render() {
+    const slicesListHeight =
+      this.props.height -
+      SIDEPANE_HEADER_HEIGHT -
+      SLICE_ADDER_CONTROL_HEIGHT -
+      MARGIN_BOTTOM;
+    return (
+      <div className="slice-adder-container">
+        <div className="controls">
+          <SearchInput
+            placeholder={t('Filter your charts')}
+            className="search-input"
+            onChange={this.searchUpdated}
+            onKeyPress={this.handleKeyPress}
+            data-test="dashboard-charts-filter-search-input"
+          />
+          <Select
+            id="slice-adder-sortby"
+            defaultValue={DEFAULT_SORT_KEY}
+            onChange={this.handleSelect}
+          >
+            {Object.entries(KEYS_TO_SORT).map(([key, label]) => (
+              <Select.Option key={key} value={key}>
+                Sort by {label}
+              </Select.Option>
+            ))}
+          </Select>
+        </div>
+        {this.props.isLoading && <Loading />}
+        {!this.props.isLoading && this.state.filteredSlices.length > 0 && (
+          <List
+            width={376}
+            height={slicesListHeight}
+            rowCount={this.state.filteredSlices.length}
+            rowHeight={DEFAULT_CELL_HEIGHT}
+            rowRenderer={this.rowRenderer}
+            searchTerm={this.state.searchTerm}
+            sortBy={this.state.sortBy}
+            selectedSliceIds={this.props.selectedSliceIds}
+          />
+        )}
+        {this.props.errorMessage && (
+          <div className="error-message">{this.props.errorMessage}</div>
+        )}
+        {/* Drag preview is just a single fixed-position element */}
+        <AddSliceDragPreview slices={this.state.filteredSlices} />
+      </div>
+    );
+  }
+}
+
+SliceAdder.propTypes = propTypes;
+SliceAdder.defaultProps = defaultProps;
+
+export default SliceAdder;

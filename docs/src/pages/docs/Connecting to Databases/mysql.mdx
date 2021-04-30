@@ -1,0 +1,23 @@
+---
+name: MySQL
+menu: Connecting to Databases
+route: /docs/databases/mysql
+index: 19
+version: 1
+---
+
+## MySQL
+
+The recommended connector library for MySQL is [mysql-connector-python](https://pypi.org/project/mysql-connector-python/).
+
+Here's the connection string:
+
+```
+mysql+mysqlconnector://{username}:{password}@{host}/{database}
+```
+
+Host:
+- For Localhost or Docker running Linux: `localhost` or `127.0.0.1`
+- For On Prem: IP address or Host name
+- For Docker running in OSX: `docker.for.mac.host.internal`
+Port: `3306` by default

@@ -1,0 +1,217 @@
+---
+name: Building Custom Viz Plugins
+menu: Installation and Configuration
+route: /docs/installation/building-custom-viz-plugins
+index: 11
+version: 1
+---
+
+This is a tutorial to help you build a "Hello World" viz plugin. The intent is to provide a basic
+scaffolding to build any sort of data visualization, using any viz libary you'd like (e.g. ECharts,
+AntV, HighCharts, VX, and D3.).
+
+You can build the Hello World plugin by running a [Yeoman](https://yeoman.io/) generator, which
+takes a few simple options, and provides this plugin scaffolding.
+
+## Getting Set Up
+
+### Install Yeoman and the Superset Package Generator
+
+This Hello World plugin we'll be building is generated automatically with
+[Yeoman](https://yeoman.io/). Let's first get that installed by opening up a terminal and installing
+both the `yo` module and the
+[superset package generator](https://github.com/apache-superset/superset-ui/tree/master/packages/generator-superset)
+(`v0.14.7`) to create the new plugin.
+
+```
+npm install -g yo @superset-ui/generator-superset
+```
+
+### Install Superset
+
+There are
+[complete instructions](https://github.com/apache/superset#installation-and-configuration)
+available on the [Superset Github repository](https://github.com/apache/superset). In a
+nutshell, the easiest way is to:
+
+1. Have a Mac or linux-based machine
+2. Install [Docker](https://docs.docker.com/get-docker/)
+3. Clone [the repository](https://github.com/apache/superset) to your computer
+4. Use your terminal to `cd` into the `superset` directory
+5. Run `docker-compose up`
+6. Open _another_ terminal, and `cd` into `superset/superset-frontend`
+7. Run `npm install` to load up all the npm packages.
+8. Run `npm run dev-server` to spin up the Webpack hot-reloading server
+9. Wait for it to build, and then open your browser to `http://localhost:9000` and log in with
+   `admin`/`admin`. You're off to the races! (Note: we'll be restarting this later)
+
+### Install Superset-UI
+
+1. Clone [the `superset-ui` repository](https://github.com/apache-superset/superset-ui) to your
+   computer. It can sit in the same parent directory as your `superset` repo
+2. Use your terminal to `cd` into `superset-ui`
+3. Run `yarn install` and wait for all the packages to get installed
+
+## Build Your "Hello, World"
+
+### ~~Write~~ _generate_ some code!
+
+1. Using your terminal, `cd` into your local `superset-ui` repo folder and then into the `plugins`
+   subdirectory.
+2. Make a new directory for your plugin, i.e. `mkdir plugin-chart-hello-world`. **Note:** we
+   _highly_ recommend following the `plugin-chart-your-plugin-name` pattern.
+3. Now `cd plugin-chart-hello-world`
+4. Finally, run `yo @superset-ui/superset`
+5. Select `Create superset-ui chart plugin package` on the following screen:
+
+<img src="/images/plugin-1-yeoman-select.png" />{' '}
+
+6. Give it a name (in our case, go with the default, based on the folder name):
+
+   <img src="/images/plugin-2-yeoman-package-name.png" />
+
+7. Give it a description (again, default is fine!)
+
+   <img src="/images/plugin-3-yeoman-description.png" />{' '}
+
+8. Choose which type of React component you want to make (Class, or Function component).
+
+   <img src="/images/plugin-4-yeoman-component-type.png" />{' '}
+
+9. Select whether you'd like your visualization to be timeseries-based or not
+
+   <img src="/images/plugin-5-yeoman-timeseries.png" />{' '}
+
+10. Select whether or not you want to include badges at the top of your README file (really only
+    needed if you intend to contribute your plugin to the `superset-ui` repo).
+
+    <img src="/images/plugin-6-yeoman-badges.png" />{' '}
+
+11. Admire all the files the generator has created for you. Note that EACH of these is chock full of
+    comments about what they're for, and how best to use them.
+
+    <img src="/images/plugin-7-yeoman-files.png" />{' '}
+
+### Add your Plugin to Superset (with NPM Link)
+
+Now, we want to see this thing actually RUN! To do that, we'll add your package to Superset and
+embrace the magic power of `npm link` to see it in-situ, without needing to **build** the plugin, or
+open any PRs on Github.
+
+1. Add your package to the `package.json` file in `superset/superset-frontend`.
+
+   <img src="/images/plugin-8-package-json.png" />{' '}
+
+Note: Do _not_ run `npm install`... explanation below.
+
+2. Add your plugin to the `MainPreset.js` file (located in
+   `superset/superset-frontend/src/visualizations/presets/MainPreset.js`) in two places,
+   alongside the other plugins.
+
+   <img src="/images/plugin-9-mainpreset-import.png" />{' '}
+
+   {' '}
+   <img src="/images/plugin-9-mainpreset-register.png" />
+
+3. Open a terminal window to `superset/superset-frontend`. If you did the Install Superset
+   steps above, you may still have webpack running there, and you can just stop it with `ctrol-c`.
+   If not, just open a new window and or `cd` to that directory path.
+
+4) Use `npm link` to symlink plugin, using a relative path to `superset-ui` and your plugin folder,
+   e.g. `npm link ../../superset-ui/plugins/plugin-chart-hello-world`.
+
+5. Restart your webpack dev server with `npm run dev-server`. You'll know it worked if you see a
+   line stating
+   `[Superset Plugin] Use symlink source for @superset-ui/plugin-chart-hello-world @ ^0.0.0`.
+
+**NOTE:** If/when you do an `npm install` that erases the symlink generated by `npm link`, so you'll
+have to redo those steps.
+
+**NOTE:** Dynamic import is a work in progress. We hope you won't even need to DO this soon. We'll
+be blogging again when that day comes, we assure you. In short, we have a goal to make editing
+`package.json` and `MainPreset.js` unnecessary, so all the code changes are made in ONE repo.
+
+### See it with your own eyes!
+
+You should now be able to go to the Explore view in your local Superset and add a new chart! You'll
+see your new plugin when you go to select your viz type.
+
+<img src="/images/plugin-10-hello-thumbnail.png" />{' '}
+
+Now you can load up some data, and you'll see it appear in the plugin!
+
+<img src="/images/plugin-11-explore-view.png" />{' '}
+
+The plugin also outputs three things to your browser's console:
+
+- `formData`, a.k.a. everything sent into your viz from the controls
+- `props`, as output from the `transformProps` file for your plugin's consumption
+- The actual HTML element, which your plugin has hooks into for any necessary DOM maniupluation
+
+<img src="/images/plugin-12-console-logs.png" />{' '}
+
+## Make it Your Own
+
+Now you're free to run wild with your new plugin! Here are a few places to start digging in:
+
+### Read the comments and docs
+
+Take a look through the full file tree of the plugin. The Readme gives details for the job of each
+file. EACH of these files has been annotated with extensive comments of what the file is for, and
+the basics of what you can do with it.
+
+### Take control!
+
+The plugin includes a couple of example controls, but you can certainly continue to add as many as
+you need to. The comments/documentation within the controls file is a start, but we recommend
+looking at existing `superset-ui` plugins for more examples of how you can implement controls to
+enhance your queries, work with your data, and change your visualization's display.
+
+### Build the perfect query
+
+The `buildQuery` file where your plugin actually fetches data from the Superset backend. This file
+builds he query "context" for your plugin. For a simple plugin, this file needn't do much. There are
+a couple changes that need to be made for a timeseries plugin, thus the option in the Yeoman
+generator.
+
+This file also allows you to add various post-processing operations, to have the Superset backend
+process your data in various ways (pivoting, etc), but that's a whole other topic we'll cover
+separately in the near future.
+
+### Style with Emotion
+
+Each of these methods lets you add custom CSS styles using Emotion 👩‍🎤(a CSS-in-JS approach) which
+has access to Superset's burgeoning set of theme variables, and also automatically scopes the styles
+to your plugin, so they don't "leak" to other areas of Superset.
+
+In the Hello World plugin, we've included a few example Theme variables (`colors`, `gridUnit`s, and
+typographic weights/sizes). We'll be continuing to add more variables to this theme file as we
+continue to push Superset (and the viz plugins) toward the standards of the Superset redesign (see
+[SIP-34](https://github.com/apache/superset/issues/8976))
+
+### Give it a thumbnail
+
+Because come on... that's the fun part, right?
+
+### Build it!
+
+In this tutorial, you built your plugin in the `superset-ui` repo. This means you can use the
+built-in build scripts that the repo provides. With your terminal of choice, simply `cd` into the
+root directory of `supeset-ui` and run `yarn build`. This will kick off a build of ALL the Superset
+plugins and packages, including yours.
+
+### Test early, test often!
+
+The Hello World plugin includes some basic Jest tests to act as a starting point to add unit tests
+to your plugin. These do a quick sanity check that the plugin actually loads correctly, and then run
+through the basics of making sure that your controls are properly respected by modifying the
+resulting data and/or props of the plugin. Running `yarn test` from the root directory of
+`superset-ui` will run all the tests for plugins/packages, including your Hello World.
+
+### Deploying Custom Visualization to Production
+
+To deploy plugins to a production environment, you must have additional code
+inside Superset that includes the npm packages of your plugins so they can be installed in the frontend.
+
+
+One option is to build your Dockerfile so it contains your custom visualization packages.

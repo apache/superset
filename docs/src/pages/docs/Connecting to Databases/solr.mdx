@@ -1,0 +1,18 @@
+---
+name: Apache Solr
+menu: Connecting to Databases
+route: /docs/databases/solr
+index: 10
+version: 1
+---
+
+## Apache Solr
+
+The [sqlalchemy-solr](https://pypi.org/project/sqlalchemy-solr/) library provides a
+Python / SQLAlchemy interface to Apache Solr.
+
+The connection string for Solr looks like this:
+
+```
+solr://{username}:{password}@{host}:{port}/{server_path}/{collection}[/?use_ssl=true|false]
+```

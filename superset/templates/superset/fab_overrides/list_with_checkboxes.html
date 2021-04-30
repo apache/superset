@@ -1,0 +1,99 @@
+{#
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+#}
+{% import 'appbuilder/general/lib.html' as lib %}
+{% extends 'appbuilder/general/widgets/base_list.html' %}
+
+
+    {% block begin_content scoped %}
+        <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+    {% endblock %}
+
+    {% block begin_loop_header scoped %}
+        <thead>
+        <tr>
+        {% if actions %}
+        <th class="action_checkboxes">
+            <input id="check_all" class="action_check_all" name="check_all" type="checkbox">
+        </th>
+        {% endif %}
+
+        {% if can_show or can_edit or can_delete %}
+            <th class="col-md-1 col-lg-1 col-sm-1" ></th>
+        {% endif %}
+
+        {% for item in include_columns %}
+            {% if item in order_columns %}
+                {% set res = item | get_link_order(modelview_name) %}
+                    {% if res == 2 %}
+                    <th><a href={{ item | link_order(modelview_name) }}>{{label_columns.get(item)}}
+                    <i class="fa fa-chevron-up pull-right"></i></a></th>
+                {% elif res == 1 %}
+                    <th><a href={{ item | link_order(modelview_name) }}>{{label_columns.get(item)}}
+                    <i class="fa fa-chevron-down pull-right"></i></a></th>
+                {% else %}
+                    <th><a href={{ item | link_order(modelview_name) }}>{{label_columns.get(item)}}
+                    <i class="fa fa-arrows-v pull-right"></i></a></th>
+                {% endif %}
+            {% else %}
+                <th>{{label_columns.get(item)}}</th>
+            {% endif %}
+        {% endfor %}
+        </tr>
+        </thead>
+    {% endblock %}
+
+    {% block begin_loop_values %}
+        {% for item in value_columns %}
+            {% set pk = pks[loop.index-1] %}
+            <tr>
+                {% if actions %}
+                <td>
+                    <input id="{{pk}}" class="action_check" name="rowid" value="{{pk}}" type="checkbox">
+                </td>
+                {% endif %}
+                {% if can_show or can_edit or can_delete %}
+                    <td><center>
+                    {{ lib.btn_crud(can_show, can_edit, can_delete, pk, modelview_name, filters) }}
+                    </center></td>
+                {% endif %}
+                {% for value in include_columns %}
+                    <td>
+                    {% if item[value].__class__.__name__ == 'bool' %}
+                      <input
+                          class="form-control"
+                          type="checkbox"
+                          data-toggle="tooltip" rel="tooltip" title="{{_('Use the edit buttom to change this field')}}"
+                          {{'checked' if item[value] }}
+                          name="{{ '{}__{}'.format(pk, value) }}"
+                          id="{{ '{}__{}'.format(pk, value) }}"
+                          disabled readonly/>
+                    {% else %}
+                      {{ item[value] }}
+                    {% endif %}
+                    </td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+    {% endblock %}
+
+    {% block end_content scoped %}
+        </table>
+        </div>
+    {% endblock %}
