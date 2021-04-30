@@ -289,10 +289,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       height="600px"
       onHandledPrimaryAction={onSave}
       onHide={hide}
-      primaryButtonName={isEditMode ? t('Save') : t('Add')}
+      primaryButtonName={isEditMode ? t('Save') : t('Connect')}
       width="500px"
       show={show}
-      title={<h4>{isEditMode ? t('Edit database') : t('Add database')}</h4>}
+      title={<h4>{isEditMode ? t('Edit database') : t('Connect a Database')}</h4>}
     >
       {!isEditMode && (
         <Header>
