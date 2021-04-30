@@ -26,6 +26,8 @@ import {
 } from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Tabs from 'src/common/components/Tabs';
+import { Alert } from 'src/common/components';
+import { styled } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import Collapse from 'src/components/Collapse';
@@ -49,6 +51,44 @@ interface DatabaseModalProps {
 }
 
 const DEFAULT_TAB_KEY = '1';
+
+const StyledDBModal = styled(StyledModal)`
+  .ant-alert {
+    margin-top: ${({ theme }) => theme.gridUnit * 4}px;
+    color: #325D7E;
+    border: 1px solid #66BCFE;
+    font-size: 13px;
+    padding: 15px;
+  }
+
+  .ant-alert-message {
+    color: #325D7E;
+    font-weight: bold;
+  }
+
+  .ant-modal-body {
+    padding-top: 0;
+  }
+`;
+
+const Header = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: ${({ theme }) => theme.gridUnit * 4}px;
+  margin-bottom: 16px;
+`;
+
+const HeaderTitle = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.dark1} !important;
+  font-weight: bold;
+  font-size: ${({ theme }) => theme.typography.sizes.l}px;
+`;
+
+const HeaderSubtitle = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.dark1} !important;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+`;
 
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   addDangerToast,
@@ -242,7 +282,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
 
   return (
-    <StyledModal
+    <StyledDBModal
       name="database"
       className="database-modal"
       disablePrimaryButton={disableSave}
@@ -254,6 +294,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       show={show}
       title={<h4>{isEditMode ? t('Edit database') : t('Add database')}</h4>}
     >
+      <Header>
+        <HeaderTitle>Enter Primary Credentials</HeaderTitle>
+        <HeaderSubtitle>
+          Need help? Learn how to connect your database{' '}
+          <a href="https://superset.apache.org/docs/databases/installing-database-drivers">
+            here
+          </a>
+          .
+        </HeaderSubtitle>
+      </Header>
       <Tabs
         defaultActiveKey={DEFAULT_TAB_KEY}
         activeKey={tabKey}
@@ -318,6 +368,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           >
             {t('Test connection')}
           </Button>
+          <Alert
+            message="Additional fields may be required"
+            description="Select databases require additional fields to be completed in the next step to successfully connect the database. Learn what requirements your databases has here"
+            type="info"
+            showIcon
+          />
         </StyledRequiredTab>
         <Tabs.TabPane tab={<span>{t('Advanced')}</span>} key="2">
           <Collapse expandIconPosition="right" accordion>
@@ -655,7 +711,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           </Collapse>
         </Tabs.TabPane>
       </Tabs>
-    </StyledModal>
+    </StyledDBModal>
   );
 };
 
