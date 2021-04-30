@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, cleanup } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Menu } from './Menu';
 import { dropdownItems } from './MenuRight';
@@ -131,6 +131,8 @@ const notanonProps = {
     },
   },
 };
+
+afterEach(cleanup);
 
 test('should render', () => {
   const { container } = render(<Menu {...mockedProps} />);
