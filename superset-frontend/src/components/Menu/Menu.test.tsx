@@ -17,11 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen, waitFor, cleanup } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Menu } from './Menu';
 import { dropdownItems } from './MenuRight';
-import { debug } from 'webpack';
 
 const mockedProps = {
   data: {
@@ -133,8 +132,6 @@ const notanonProps = {
   },
 };
 
-afterEach(cleanup)
-
 test('should render', () => {
   const { container } = render(<Menu {...mockedProps} />);
   expect(container).toBeInTheDocument();
@@ -182,11 +179,22 @@ test('should render the top navbar child menu items', async () => {
   expect(databases).toHaveAttribute('href', database.url);
 });
 
+test('should render the dropdown items', async () => {
+  render(<Menu {...notanonProps} />);
+  const dropdown = await screen.getByTestId('new-dropdown-icon');
+  userEvent.hover(dropdown);
+  expect(await screen.findByText(dropdownItems[0].label)).toHaveAttribute('href', dropdownItems[0].url);
+  expect(await screen.getByTestId(`menu-item-${dropdownItems[0].label}`)).toBeInTheDocument();
+  expect(await screen.findByText(dropdownItems[1].label)).toHaveAttribute('href', dropdownItems[1].url);
+  expect(await screen.getByTestId(`menu-item-${dropdownItems[1].label}`)).toBeInTheDocument();
+  expect(await screen.findByText(dropdownItems[2].label)).toHaveAttribute('href', dropdownItems[2].url);
+  expect(await screen.getByTestId(`menu-item-${dropdownItems[2].label}`)).toBeInTheDocument();
+});
+
 test('should render the Settings', async () => {
   render(<Menu {...mockedProps} />);
   const settings = await screen.findByText('Settings');
   expect(settings).toBeInTheDocument();
-  userEvent.hover(screen.getByText('Settings'));
 });
 
 test('should render the Settings menu item', async () => {

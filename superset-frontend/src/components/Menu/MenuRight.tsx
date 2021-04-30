@@ -63,7 +63,7 @@ const RightMenu = ({
     {!navbarRight.user_is_anonymous && (
       <SubMenu
         data-test="new-dropdown"
-        title={<StyledI className="fa fa-plus" />}
+        title={<StyledI data-test="new-dropdown-icon" className="fa fa-plus" />}
         icon={<Icon name="triangle-down" />}
       >
         {dropdownItems.map((menu, i) => (
