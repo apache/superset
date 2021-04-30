@@ -37,9 +37,9 @@ const translations: Partial<Record<Locale, typeof en>> = {
     'Show Cell Bars': ['为指标添加条状图背景'],
     'page_size.show': ['每页显示'],
     'page_size.all': ['全部'],
-    'page_size.entries': ['条'],
-    'table.previous_page': ['以前的'],
-    'table.next_page': ['下一個'],
+    'page_size.entries': ['上一页'],
+    'table.previous_page': ['上一页'],
+    'table.next_page': ['下一页'],
     'search.num_records': ['%s条记录...'],
   },
 };

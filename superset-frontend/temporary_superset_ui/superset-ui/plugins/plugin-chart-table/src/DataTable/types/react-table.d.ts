@@ -19,6 +19,7 @@ import {
   UseSortByHooks,
   Renderer,
   HeaderProps,
+  TableFooterProps,
 } from 'react-table';
 
 import { UseStickyState, UseStickyTableOptions, UseStickyInstanceProps } from '../hooks/useSticky';
@@ -64,6 +65,7 @@ declare module 'react-table' {
     // must define as a new property because it's not possible to override
     // the existing `Header` renderer option
     Header?: Renderer<TableSortByToggleProps & HeaderProps<D>>;
+    Footer?: Renderer<TableFooterProps<D>>;
   }
 
   export interface ColumnInstance<D extends object>

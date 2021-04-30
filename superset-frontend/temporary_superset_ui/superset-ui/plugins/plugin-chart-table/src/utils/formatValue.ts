@@ -44,7 +44,12 @@ function formatValue(
   formatter: DataColumnMeta['formatter'],
   value: DataRecordValue,
 ): [boolean, string] {
-  if (value === null || typeof value === 'undefined') {
+  // render undefined as empty string
+  if (value === undefined) {
+    return [false, ''];
+  }
+  // render null as `N/A`
+  if (value === null) {
     return [false, 'N/A'];
   }
   if (formatter) {

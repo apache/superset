@@ -247,24 +247,28 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [filters, handleChange, isActiveFilterValue],
   );
 
+  const getSharedStyle = (column: DataColumnMeta): CSSProperties => {
+    const { isNumeric, config = {} } = column;
+    const textAlign = config.horizontalAlign
+      ? config.horizontalAlign
+      : isNumeric
+      ? 'right'
+      : 'left';
+    return {
+      textAlign,
+    };
+  };
+
   const getColumnConfigs = useCallback(
     (column: DataColumnMeta, i: number): ColumnWithLooseAccessor<D> => {
-      const { key, label, dataType, isMetric, config = {} } = column;
-      const isNumber = dataType === GenericDataType.NUMERIC;
-      const isFilter = !isNumber && emitFilter;
-      const textAlign = config.horizontalAlign
-        ? config.horizontalAlign
-        : isNumber
-        ? 'right'
-        : 'left';
+      const { key, label, isNumeric, dataType, isMetric, config = {} } = column;
+      const isFilter = !isNumeric && emitFilter;
       const columnWidth = Number.isNaN(Number(config.columnWidth))
         ? config.columnWidth
         : Number(config.columnWidth);
 
       // inline style for both th and td cell
-      const sharedStyle: CSSProperties = {
-        textAlign,
-      };
+      const sharedStyle: CSSProperties = getSharedStyle(column);
 
       const alignPositiveNegative =
         config.alignPositiveNegative === undefined ? defaultAlignPN : config.alignPositiveNegative;
@@ -287,7 +291,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         // typing is incorrect in current version of `@types/react-table`
         // so we ask TS not to check.
         accessor: ((datum: D) => datum[key]) as never,
-        Cell: ({ value }: { column: ColumnInstance<D>; value: DataRecordValue }) => {
+        Cell: ({ value }: { value: DataRecordValue }) => {
           const [isHtml, text] = formatColumnValue(column, value);
           const html = isHtml ? { __html: text } : undefined;
           const cellProps = {
@@ -343,6 +347,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             <SortIcon column={col} />
           </th>
         ),
+        Footer: totals ? (
+          i === 0 ? (
+            <th>{t('Totals')}</th>
+          ) : (
+            <td style={sharedStyle}>
+              <strong>{formatColumnValue(column, totals[key])[1]}</strong>
+            </td>
+          )
+        ) : undefined,
         sortDescFirst: sortDesc,
         sortType: getSortTypeByDataType(dataType),
       };
@@ -357,6 +370,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       showCellBars,
       sortDesc,
       toggleFilter,
+      totals,
     ],
   );
 
@@ -366,37 +380,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     updateExternalFormData(setDataMask, pageNumber, pageSize);
   };
 
-  const totalsFormatted =
-    totals &&
-    columnsMeta
-      .filter(column => Object.keys(totals).includes(column.key))
-      .reduce(
-        (acc: { value: string; className: string }[], column) => [
-          ...acc,
-          {
-            value: formatColumnValue(column, totals[column.key])[1],
-            className: column.dataType === GenericDataType.NUMERIC ? 'dt-metric' : '',
-          },
-        ],
-        [],
-      );
-
-  const totalsHeaderSpan =
-    totalsFormatted &&
-    columnsMeta.filter(column => !column.isPercentMetric).length - totalsFormatted.length;
-
   return (
     <Styles>
       <DataTable<D>
         columns={columns}
-        totals={totalsFormatted}
-        totalsHeaderSpan={totalsHeaderSpan}
         data={data}
         rowCount={rowCount}
         tableClassName="table table-striped table-condensed"
         pageSize={pageSize}
         serverPaginationData={serverPaginationData}
         pageSizeOptions={pageSizeOptions}
+        width={width}
         height={height}
         serverPagination={serverPagination}
         onServerPaginationChange={handleServerPaginationChange}

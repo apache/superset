@@ -146,6 +146,7 @@ const processColumns = memoizeOne(function processColumns(props: TableChartProps
         key,
         label,
         dataType,
+        isNumeric: dataType === GenericDataType.NUMERIC,
         isMetric,
         isPercentMetric,
         formatter,
