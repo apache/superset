@@ -85,6 +85,10 @@ const StyledHeader = styled.header`
     div {
       white-space: nowrap;
     }
+    
+    p {
+      white-space: nowrap;
+    }
   }
 
   .navbar-brand {
@@ -149,7 +153,7 @@ const StyledHeader = styled.header`
     .about-section {
       margin: ${({ theme }) => theme.gridUnit}px 0
         ${({ theme }) => theme.gridUnit * 2}px;
-      height: fit-content;
+      min-width: 200px;
     }
   }
 `;
@@ -160,7 +164,6 @@ export function Menu({
 }: MenuProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  console.log(menu, brand, navbarRight, settings);
   return (
     <StyledHeader className="top" id="main-menu">
       <Navbar inverse fluid staticTop role="navigation">
@@ -250,7 +253,7 @@ export function Menu({
                     </li>
 
                     <li className="version-info">
-                      <span>Доработано компанией <a href={"https://h-labs.ru"}>H-Labs</a></span>
+                      <p>Доработано компанией <a href={"https://h-labs.ru"}>H-Labs</a></p>
                     </li>
                   </div>
                 </DropdownMenu.ItemGroup>,
