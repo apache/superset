@@ -61,7 +61,7 @@ export { default as List, ListItemProps } from 'antd/lib/list';
 
 export { default as Collapse } from 'src/components/Collapse';
 export { default as Badge } from 'src/components/Badge';
-export { default as Card } from './Card';
+export { default as Card } from 'src/components/Card';
 export { default as Progress } from 'src/components/ProgressBar';
 
 export const MenuItem = styled(AntdMenu.Item)`
