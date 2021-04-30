@@ -37,4 +37,5 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_column("tables", "dataset_name")
+    with op.batch_alter_table("tables") as batch_op:
+        batch_op.drop_column("dataset_name")
