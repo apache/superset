@@ -367,7 +367,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
             data-test="time-range-trigger"
             onClick={onOpen}
           >
-            {actualTimeRange}
+            {t(actualTimeRange)}
           </Label>
         </Tooltip>
       </StyledPopover>

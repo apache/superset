@@ -1486,8 +1486,8 @@
       "Share chart by email": ["Поделиться графиком по email"],
       "Export CSV": ["Экспорт CSV"],
       "Export Excel": ["Экспорт Excel"],
-      "Applied Filters (%d)": ["Примененные фильтр (%d)"],
-      "Incompatible Filters (%d)": [""],
+      "Applied Filters (%d)": ["Примененные фильтры (%d)"],
+      "Incompatible Filters (%d)": ["Несовместимые фильтры (%d)"],
       "Unset Filters (%d)": ["Непримененные фильтры (%d)"],
       "Search...": ["Поиск"],
       "No filter is selected.": ["Ни один фильтр не выбран."],
@@ -1629,6 +1629,18 @@
       "Edit Dataset ": ["Редактировать Базу Данных"],
       "Use legacy datasource editor": [""],
       "Time grain": ["Период времени"],
+      "Second": ["1 секунда"],
+      "Minute": ["1 минута"],
+      "5 minute": ["5 минут"],
+      "10 minute": ["10 минут"],
+      "15 minute": ["15 минут"],
+      "Half hour": ["30 минут"],
+      "Hour": ["Час"],
+      "Day": ["День"],
+      "Week": ["Неделя"],
+      "Month": ["Месяц"],
+      "Quarter": ["Квартал"],
+      "Year": ["Год"],
       "Origin": ["Источник"],
       "Time granularity": ["Временной интервал"],
       "A reference to the [Time] configuration, taking granularity into account": [
@@ -1672,7 +1684,12 @@
       "The time granularity for the visualization. This applies a date transformation to alter your time column and defines a new time granularity. The options here are defined on a per database engine basis in the Superset source code.": [
         "Группировка по периоду времени - день, месяц, год, … и т.д"
       ],
-      "Last week": ["неделя"],
+      "Last week": ["Последняя неделя"],
+      "Last month": ["Последний месяц"],
+      "Last year": ["Последний год"],
+      "Last day": ["Последние сутки"],
+      "Last quarter": ["Последний квартал"],
+      "col": ["значение"],
       "The time range for the visualization. All relative times, e.g. \"Last month\", \"Last 7 days\", \"now\", etc. are evaluated on the server using the server's local time (sans timezone). All tooltips and placeholder times are expressed in UTC (sans timezone). The timestamps are then evaluated by the database using the engine's local timezone. Note one can explicitly set the timezone per the ISO 8601 format if specifying either the start and/or end time.": [
         ""
       ],
