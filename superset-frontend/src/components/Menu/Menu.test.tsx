@@ -17,10 +17,11 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen, cleanup } from 'spec/helpers/testing-library';
+import { render, screen, waitFor, cleanup } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Menu } from './Menu';
 import { dropdownItems } from './MenuRight';
+import { debug } from 'webpack';
 
 const mockedProps = {
   data: {
@@ -132,7 +133,7 @@ const notanonProps = {
   },
 };
 
-afterEach(cleanup);
+afterEach(cleanup)
 
 test('should render', () => {
   const { container } = render(<Menu {...mockedProps} />);
@@ -179,16 +180,6 @@ test('should render the top navbar child menu items', async () => {
 
   expect(datasets).toHaveAttribute('href', dataset.url);
   expect(databases).toHaveAttribute('href', database.url);
-});
-
-test('should render the dropdown items', () => {
-  render(<Menu {...mockedProps} />);
-  dropdownItems.forEach(item => {
-    setTimeout(() => {
-      expect(screen.getByText(item.label)).toHaveAttribute('href', item.url);
-      expect(screen.getByTestId(`menu-item-${item.label}`)).toBeInTheDocument();
-    }, 10);
-  });
 });
 
 test('should render the Settings', async () => {
@@ -286,17 +277,15 @@ test('should render the Documentation link when available', async () => {
       navbar_right: { documentation_url },
     },
   } = mockedProps;
-
+​
   render(<Menu {...mockedProps} />);
   userEvent.hover(screen.getByText('Settings'));
-
-  setTimeout(() => {
-    const doc = screen.getByTitle('Documentation');
-    expect(doc).toHaveAttribute('href', documentation_url);
-  }, 10);
+​
+  const doc = await screen.findByTitle('Documentation');
+  expect(doc.firstChild).toHaveAttribute('href', documentation_url);
 });
 
-test('should render the Bug Report link when available', () => {
+test('should render the Bug Report link when available', async () => {
   const {
     data: {
       navbar_right: { bug_report_url },
@@ -304,10 +293,8 @@ test('should render the Bug Report link when available', () => {
   } = mockedProps;
 
   render(<Menu {...mockedProps} />);
-  setTimeout(() => {
-    const bugReport = screen.getByTitle('Report a Bug');
-    expect(bugReport).toHaveAttribute('href', bug_report_url);
-  }, 10);
+  const bugReport = await screen.findByTitle('Report a Bug');
+  expect(bugReport.firstChild).toHaveAttribute('href', bug_report_url);
 });
 
 test('should render the Login link when user is anonymous', () => {
