@@ -2614,7 +2614,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             else:
                 sql = query.executed_sql
                 limit = ParsedQuery(sql).limit
-            if query.limiting_factor in {
+            if limit is not None and query.limiting_factor in {
                 LimitingFactor.QUERY,
                 LimitingFactor.DROPDOWN,
                 LimitingFactor.QUERY_AND_DROPDOWN,
