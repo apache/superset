@@ -193,9 +193,9 @@ test('should render the dropdown items', () => {
 
 test('should render the Settings', async () => {
   render(<Menu {...mockedProps} />);
-    const settings = await screen.findByText('Settings');
-    expect(settings).toBeInTheDocument();
-    userEvent.hover(screen.getByText('Settings'));
+  const settings = await screen.findByText('Settings');
+  expect(settings).toBeInTheDocument();
+  userEvent.hover(screen.getByText('Settings'));
 });
 
 test('should render the Settings menu item', async () => {
@@ -238,7 +238,7 @@ test('should render the user actions when user is not anonymous', async () => {
   expect(user).toBeInTheDocument();
 
   const info = await screen.findByText('Info');
-  const logout = await  screen.findByText('Logout');
+  const logout = await screen.findByText('Logout');
 
   expect(info).toHaveAttribute('href', user_info_url);
   expect(logout).toHaveAttribute('href', user_logout_url);
@@ -274,7 +274,7 @@ test('should render the About section and version_string or sha when available',
   userEvent.hover(screen.getByText('Settings'));
   const about = await screen.findByText('About');
   const version = await screen.findByText(`Version: ${version_string}`);
-  const sha = await screen.findByText(`SHA: ${version_sha}`); 
+  const sha = await screen.findByText(`SHA: ${version_sha}`);
   expect(about).toBeInTheDocument();
   expect(version).toBeInTheDocument();
   expect(sha).toBeInTheDocument();
