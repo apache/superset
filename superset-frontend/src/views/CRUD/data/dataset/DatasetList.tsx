@@ -420,7 +420,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Database'),
         id: 'database',
         input: 'select',
-        operator: FilterOperator.relationManyMany,
+        operator: FilterOperator.relationOneMany,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'dataset',
