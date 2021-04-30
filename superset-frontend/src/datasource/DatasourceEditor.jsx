@@ -49,7 +49,7 @@ import CollectionTable from 'src/CRUD/CollectionTable';
 import Fieldset from 'src/CRUD/Fieldset';
 import Field from 'src/CRUD/Field';
 
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import Icons from 'src/components/Icons';
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 import shortid from 'shortid';
-import { ToastType, ToastMeta } from '../types';
+import { ToastType, ToastMeta } from './types';
 
 type ToastOptions = Partial<Omit<ToastMeta, 'id' | 'toastType' | 'text'>>;
 

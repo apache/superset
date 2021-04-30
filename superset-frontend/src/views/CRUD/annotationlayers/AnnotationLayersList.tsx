@@ -24,7 +24,7 @@ import { Link, useHistory } from 'react-router-dom';
 import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import ListView, {

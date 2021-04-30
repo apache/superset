@@ -27,7 +27,7 @@ import {
   createErrorHandler,
 } from 'src/views/CRUD/utils';
 import Popover from 'src/components/Popover';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import handleResourceExport from 'src/utils/export';
