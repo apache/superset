@@ -2282,7 +2282,7 @@
       "Duration: %s": [""],
       "Tab name": ["Имя Таблицы"],
       "TABLES": [""],
-      "Rows": ["Игнорировать"],
+      "Rows": ["Строки"],
       "Open query in SQL Lab": ["Открыть в SQL редакторе"],
       "An error occurred while fetching database values: %s": [
         "Произошла ошибка при создании источника данных"
