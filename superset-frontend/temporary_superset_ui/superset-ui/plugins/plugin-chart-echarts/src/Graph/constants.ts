@@ -25,8 +25,6 @@ export const DEFAULT_GRAPH_SERIES_OPTION: GraphSeriesOption = {
     initLayout: 'circular',
     layoutAnimation: true,
   },
-  edgeSymbol: ['circle', 'arrow'],
-  edgeSymbolSize: [10, 10],
   label: {
     show: true,
     position: 'right',
@@ -43,27 +41,17 @@ export const DEFAULT_GRAPH_SERIES_OPTION: GraphSeriesOption = {
   },
   emphasis: {
     focus: 'adjacency',
-    lineStyle: {
-      width: 10,
-    },
   },
   animation: true,
   animationDuration: 500,
   animationEasing: 'cubicOut',
   lineStyle: { color: 'source', curveness: 0.1 },
   select: {
-    itemStyle: { borderWidth: 3 },
+    itemStyle: { borderWidth: 3, opacity: 1 },
     label: { fontWeight: 'bolder' },
   },
   // Ref: https://echarts.apache.org/en/option.html#series-graph.data.tooltip.formatter
   //   - b: data name
   //   - c: data value
   tooltip: { formatter: '{b}: {c}' },
-};
-
-export const NORMALIZATION_LIMITS = {
-  minNodeSize: 10,
-  maxNodeSize: 60,
-  minEdgeWidth: 0.5,
-  maxEdgeWidth: 8,
 };
