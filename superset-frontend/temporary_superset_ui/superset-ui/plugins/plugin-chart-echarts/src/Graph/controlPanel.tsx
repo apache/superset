@@ -123,6 +123,24 @@ const controlPanel: ControlPanelConfig = {
         ],
         [
           {
+            name: 'edgeSymbol',
+            config: {
+              type: 'SelectControl',
+              renderTrigger: true,
+              label: t('Edge symbols'),
+              description: t('Symbol of two ends of edge line'),
+              default: DEFAULT_FORM_DATA.edgeSymbol,
+              choices: [
+                ['none,none', t('None -> None')],
+                ['none,arrow', t('None -> Arrow')],
+                ['circle,arrow', t('Circle -> Arrow')],
+                ['circle,circle', t('Circle -> Circle')],
+              ],
+            },
+          },
+        ],
+        [
+          {
             name: 'draggable',
             config: {
               type: 'CheckboxControl',
@@ -181,6 +199,34 @@ const controlPanel: ControlPanelConfig = {
               isInt: true,
               default: DEFAULT_FORM_DATA.showSymbolThreshold,
               description: t('Minimum value for label to be displayed on graph.'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'baseNodeSize',
+            config: {
+              type: 'TextControl',
+              label: t('Node size'),
+              renderTrigger: true,
+              isFloat: true,
+              default: DEFAULT_FORM_DATA.baseNodeSize,
+              description: t(
+                'Median node size, the largest node will be 4 times larger than the smallest',
+              ),
+            },
+          },
+          {
+            name: 'baseEdgeWidth',
+            config: {
+              type: 'TextControl',
+              label: t('Edge width'),
+              renderTrigger: true,
+              isFloat: true,
+              default: DEFAULT_FORM_DATA.baseEdgeWidth,
+              description: t(
+                'Median edge width, the thickest edge will be 4 times thicker than the thinnest.',
+              ),
             },
           },
         ],
