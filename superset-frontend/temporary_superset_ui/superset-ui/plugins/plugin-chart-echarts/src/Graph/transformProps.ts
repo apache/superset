@@ -30,43 +30,88 @@ import {
   EchartsGraphFormData,
   EChartGraphNode,
   DEFAULT_FORM_DATA as DEFAULT_GRAPH_FORM_DATA,
+  EdgeSymbol,
 } from './types';
-import { DEFAULT_GRAPH_SERIES_OPTION, NORMALIZATION_LIMITS } from './constants';
+import { DEFAULT_GRAPH_SERIES_OPTION } from './constants';
 import { EchartsProps } from '../types';
 import { getChartPadding, getLegendProps } from '../utils/series';
+
+type EdgeWithStyles = GraphEdgeItemOption & {
+  lineStyle: Exclude<GraphEdgeItemOption['lineStyle'], undefined>;
+  emphasis: Exclude<GraphEdgeItemOption['emphasis'], undefined>;
+  select: Exclude<GraphEdgeItemOption['select'], undefined>;
+};
+
+function verifyEdgeSymbol(symbol: string): EdgeSymbol {
+  if (symbol === 'none' || symbol === 'circle' || symbol === 'arrow') {
+    return symbol;
+  }
+  return 'none';
+}
+
+function parseEdgeSymbol(symbols?: string | null): [EdgeSymbol, EdgeSymbol] {
+  const [start, end] = (symbols || '').split(',');
+  return [verifyEdgeSymbol(start), verifyEdgeSymbol(end)];
+}
+
+/**
+ * Emphasized edge width with a min and max.
+ */
+function getEmphasizedEdgeWidth(width: number) {
+  return Math.max(5, Math.min(width * 2, 20));
+}
 
 /**
  * Normalize node size, edge width, and apply label visibility thresholds.
  */
 function normalizeStyles(
   nodes: EChartGraphNode[],
-  links: GraphEdgeItemOption[],
+  links: EdgeWithStyles[],
   {
+    baseNodeSize,
+    baseEdgeWidth,
     showSymbolThreshold,
   }: {
+    baseNodeSize: number;
+    baseEdgeWidth: number;
     showSymbolThreshold?: number;
   },
 ) {
+  const minNodeSize = baseNodeSize * 0.5;
+  const maxNodeSize = baseNodeSize * 2;
+  const minEdgeWidth = baseEdgeWidth * 0.5;
+  const maxEdgeWidth = baseEdgeWidth * 2;
   const [nodeMinValue, nodeMaxValue] = d3Extent(nodes, x => x.value) as [number, number];
+
   const nodeSpread = nodeMaxValue - nodeMinValue;
   nodes.forEach(node => {
     // eslint-disable-next-line no-param-reassign
-    node.symbolSize =
-      (((node.value - nodeMinValue) / nodeSpread) * NORMALIZATION_LIMITS.maxNodeSize || 0) +
-      NORMALIZATION_LIMITS.minNodeSize;
+    node.symbolSize = (((node.value - nodeMinValue) / nodeSpread) * maxNodeSize || 0) + minNodeSize;
     // eslint-disable-next-line no-param-reassign
     node.label = {
       ...node.label,
       show: showSymbolThreshold ? node.value > showSymbolThreshold : true,
     };
   });
+
   const [linkMinValue, linkMaxValue] = d3Extent(links, x => x.value) as [number, number];
   const linkSpread = linkMaxValue - linkMinValue;
   links.forEach(link => {
+    const lineWidth =
+      ((link.value! - linkMinValue) / linkSpread) * maxEdgeWidth || 0 + minEdgeWidth;
     // eslint-disable-next-line no-param-reassign
-    link.lineStyle!.width =
-      ((link.value! - linkMinValue) / linkSpread) * NORMALIZATION_LIMITS.maxEdgeWidth ||
-      0 + NORMALIZATION_LIMITS.minEdgeWidth;
+    link.lineStyle.width = lineWidth;
+    // eslint-disable-next-line no-param-reassign
+    link.emphasis.lineStyle = {
+      ...link.emphasis.lineStyle,
+      width: getEmphasizedEdgeWidth(lineWidth),
+    };
+    // eslint-disable-next-line no-param-reassign
+    link.select.lineStyle = {
+      ...link.select.lineStyle,
+      width: getEmphasizedEdgeWidth(lineWidth * 0.8),
+      opacity: 1,
+    };
   });
 }
 
@@ -122,6 +167,9 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     legendOrientation,
     legendType,
     showLegend,
+    baseEdgeWidth,
+    baseNodeSize,
+    edgeSymbol,
   }: EchartsGraphFormData = { ...DEFAULT_GRAPH_FORM_DATA, ...formData };
 
   const metricLabel = getMetricLabel(metric);
@@ -129,7 +177,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
   const nodes: { [name: string]: number } = {};
   const categories: Set<string> = new Set();
   const echartNodes: EChartGraphNode[] = [];
-  const echartLinks: GraphEdgeItemOption[] = [];
+  const echartLinks: EdgeWithStyles[] = [];
 
   /**
    * Get the node id of an existing node,
@@ -183,10 +231,12 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
       target: targetNode.id,
       value,
       lineStyle: {},
+      emphasis: {},
+      select: {},
     });
   });
 
-  normalizeStyles(echartNodes, echartLinks, { showSymbolThreshold });
+  normalizeStyles(echartNodes, echartLinks, { showSymbolThreshold, baseEdgeWidth, baseNodeSize });
 
   const categoryList = [...categories];
 
@@ -202,8 +252,8 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
       links: echartLinks,
       roam,
       draggable,
-      edgeSymbol: DEFAULT_GRAPH_SERIES_OPTION.edgeSymbol,
-      edgeSymbolSize: DEFAULT_GRAPH_SERIES_OPTION.edgeSymbolSize,
+      edgeSymbol: parseEdgeSymbol(edgeSymbol),
+      edgeSymbolSize: baseEdgeWidth * 2,
       selectedMode,
       ...getChartPadding(showLegend, legendOrientation, legendMargin),
       animation: DEFAULT_GRAPH_SERIES_OPTION.animation,
