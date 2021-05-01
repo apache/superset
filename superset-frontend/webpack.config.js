@@ -296,6 +296,7 @@ const config = {
       // module after imported, which will not be available everywhere if two
       // different copies of the same module are imported in different places.
       '@emotion/core': path.resolve(APP_DIR, './node_modules/@emotion/core'),
+      '@emotion/cache': path.resolve(APP_DIR, './node_modules/@emotion/cache'),
       '@superset-ui/core': path.resolve(
         APP_DIR,
         './node_modules/@superset-ui/core',
