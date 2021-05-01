@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/plugin-chart-word-cloud",
-  "version": "0.17.40",
+  "version": "0.17.41",
   "description": "Superset Chart Plugin - Word Cloud",
   "sideEffects": [
     "*.css"
@@ -28,7 +28,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/chart-controls": "0.17.40",
+    "@superset-ui/chart-controls": "0.17.41",
     "@superset-ui/core": "0.17.40",
     "@types/d3-cloud": "^1.2.1",
     "@types/d3-scale": "^2.0.2",
