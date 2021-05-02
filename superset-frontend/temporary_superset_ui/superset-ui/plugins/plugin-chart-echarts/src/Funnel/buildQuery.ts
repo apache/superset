@@ -16,20 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  EchartsBoxPlotChartPlugin,
-  EchartsPieChartPlugin,
-  EchartsTimeseriesChartPlugin,
-  EchartsGraphChartPlugin,
-  EchartsFunnelChartPlugin,
-} from '../src';
+import { buildQueryContext, QueryFormData } from '@superset-ui/core';
 
-describe('@superset-ui/plugin-chart-echarts', () => {
-  it('exists', () => {
-    expect(EchartsBoxPlotChartPlugin).toBeDefined();
-    expect(EchartsPieChartPlugin).toBeDefined();
-    expect(EchartsTimeseriesChartPlugin).toBeDefined();
-    expect(EchartsGraphChartPlugin).toBeDefined();
-    expect(EchartsFunnelChartPlugin).toBeDefined();
-  });
-});
+export default function buildQuery(formData: QueryFormData) {
+  return buildQueryContext(formData, baseQueryObject => [
+    {
+      ...baseQueryObject,
+    },
+  ]);
+}
