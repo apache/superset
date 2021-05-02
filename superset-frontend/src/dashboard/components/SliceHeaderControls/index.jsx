@@ -32,6 +32,7 @@ import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import CrossFilterScopingModal from 'src/dashboard/components/CrossFilterScopingModal/CrossFilterScopingModal';
+import Icons from 'src/components/Icons';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
@@ -295,6 +296,14 @@ class SliceHeaderControls extends React.PureComponent {
           isOpen={this.state.showCrossFilterScopingModal}
           onClose={() => this.setState({ showCrossFilterScopingModal: false })}
         />
+        {isFullSize && (
+          <Icons.FullscreenExitOutlined
+            style={{ fontSize: 22 }}
+            onClick={() => {
+              this.props.handleToggleFullSize();
+            }}
+          />
+        )}
         <NoAnimationDropdown
           overlay={menu}
           trigger={['click']}
