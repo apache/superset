@@ -61,7 +61,8 @@ export const getRangeExtraFormData = (
   const filters: QueryObjectFilterClause[] = [];
   if (lower !== undefined && lower !== null) {
     filters.push({ col, op: '>=', val: lower });
-  } else if (upper !== undefined && upper !== null) {
+  }
+  if (upper !== undefined && upper !== null) {
     filters.push({ col, op: '<=', val: upper });
   }
 

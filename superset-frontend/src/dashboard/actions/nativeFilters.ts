@@ -91,6 +91,7 @@ export const setFilterConfiguration = (
         native_filter_configuration: filterConfig,
       }),
     });
+    console.log(JSON.parse(response.result.json_metadata));
     dispatch(
       dashboardInfoChanged({
         metadata: JSON.parse(response.result.json_metadata),

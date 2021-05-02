@@ -139,7 +139,7 @@ describe('FilterBar', () => {
               "name":"${FILTER_NAME}",
               "filterType":"filter_time",
               "targets":[{"datasetId":11,"column":{"name":"color"}}],
-              "defaultValue":null,
+              "defaultMask":{"filterState":null},
               "controlValues":{},
               "cascadeParentIds":[],
               "scope":{"rootPath":["ROOT_ID"],"excluded":[]},
@@ -154,7 +154,7 @@ describe('FilterBar', () => {
                   "name":"${FILTER_NAME}",
                   "filterType":"filter_time",
                   "targets":[{}],
-                  "defaultValue":"Last week",
+                  "defaultMask":{"filterState":"Last week"},
                   "controlValues":{},
                   "cascadeParentIds":[],
                   "scope":{"rootPath":["ROOT_ID"],"excluded":[]},
@@ -331,7 +331,7 @@ describe('FilterBar', () => {
     await addFilterSetFlow();
 
     // change filter
-    userEvent.click(screen.getByText('All Filters (1)'));
+    userEvent.click(await screen.findByText('All Filters (1)'));
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
 
     await changeFilterValue();
