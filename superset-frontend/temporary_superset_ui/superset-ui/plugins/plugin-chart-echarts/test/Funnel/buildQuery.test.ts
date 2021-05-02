@@ -16,20 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  EchartsBoxPlotChartPlugin,
-  EchartsPieChartPlugin,
-  EchartsTimeseriesChartPlugin,
-  EchartsGraphChartPlugin,
-  EchartsFunnelChartPlugin,
-} from '../src';
+import buildQuery from '../../src/Funnel/buildQuery';
 
-describe('@superset-ui/plugin-chart-echarts', () => {
-  it('exists', () => {
-    expect(EchartsBoxPlotChartPlugin).toBeDefined();
-    expect(EchartsPieChartPlugin).toBeDefined();
-    expect(EchartsTimeseriesChartPlugin).toBeDefined();
-    expect(EchartsGraphChartPlugin).toBeDefined();
-    expect(EchartsFunnelChartPlugin).toBeDefined();
+describe('Funnel buildQuery', () => {
+  const formData = {
+    datasource: '5__table',
+    granularity_sqla: 'ds',
+    metric: 'foo',
+    groupby: ['bar'],
+    viz_type: 'my_chart',
+  };
+
+  it('should build query fields from form data', () => {
+    const queryContext = buildQuery(formData);
+    const [query] = queryContext.queries;
+    expect(query.metrics).toEqual(['foo']);
+    expect(query.columns).toEqual(['bar']);
   });
 });
