@@ -41,7 +41,7 @@ export function mapParentFiltersToChildren(
   return cascadeChildren;
 }
 
-export const getOnlyFilterState = (data: DataMaskStateWithId) =>
+export const getOnlyExtraFormData = (data: DataMaskStateWithId) =>
   Object.values(data).reduce(
     (prev, next) => ({ ...prev, [next.id]: next.filterState }),
     {},

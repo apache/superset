@@ -32,7 +32,7 @@ import { areObjectsEqual } from 'src/reduxUtils';
 import { testWithId } from 'src/utils/testUtils';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
 import {
-  getOnlyFilterState,
+  getOnlyExtraFormData,
   mapParentFiltersToChildren,
   TabIds,
 } from './utils';
@@ -204,8 +204,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const dataAppliedValues = Object.values(dataMaskApplied);
   const isApplyDisabled =
     areObjectsEqual(
-      getOnlyFilterState(dataMaskSelected),
-      getOnlyFilterState(dataMaskApplied),
+      getOnlyExtraFormData(dataMaskSelected),
+      getOnlyExtraFormData(dataMaskApplied),
     ) || dataSelectedValues.length !== dataAppliedValues.length;
 
   return (

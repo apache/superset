@@ -169,8 +169,12 @@ class Dashboard extends React.PureComponent {
 
     if (
       !editMode &&
-      (!areObjectsEqual(appliedOwnDataCharts, ownDataCharts) ||
-        !areObjectsEqual(appliedFilters, activeFilters))
+      (!areObjectsEqual(appliedOwnDataCharts, ownDataCharts, {
+        ignoreUndefined: true,
+      }) ||
+        !areObjectsEqual(appliedFilters, activeFilters, {
+          ignoreUndefined: true,
+        }))
     ) {
       this.applyFilters();
     }
@@ -238,6 +242,9 @@ class Dashboard extends React.PureComponent {
           !areObjectsEqual(
             appliedFilters[filterKey].values,
             activeFilters[filterKey].values,
+            {
+              ignoreUndefined: true,
+            },
           )
         ) {
           affectedChartIds.push(...activeFilters[filterKey].scope);

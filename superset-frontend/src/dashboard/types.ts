@@ -95,7 +95,7 @@ export type LayoutItem = {
 
 type ActiveFilter = {
   scope: number[];
-  values: any[];
+  values: JsonObject;
 };
 
 export type ActiveFilters = {
