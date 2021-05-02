@@ -22,7 +22,6 @@ import React, { FC, SyntheticEvent, useEffect, useState } from 'react';
 import { Sticky, StickyContainer } from 'react-sticky';
 import { TabContainer } from 'react-bootstrap';
 import { JsonObject, styled } from '@superset-ui/core';
-
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
@@ -31,13 +30,12 @@ import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
-
 import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { URL_PARAMS } from 'src/constants';
 import { useDispatch, useSelector } from 'react-redux';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { DashboardLayout, RootState } from 'src/dashboard/types';
+import { ChartsState, DashboardLayout, RootState } from 'src/dashboard/types';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import {
   deleteTopLevelTabs,
@@ -99,6 +97,7 @@ const StyledDashboardContent = styled.div<{ dashboardFiltersOpen: boolean }>`
 
 const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const dispatch = useDispatch();
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
@@ -114,11 +113,22 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
+  const charts = useSelector<RootState, ChartsState>(state => state.charts);
+
+  useEffect(() => {
+    const isAllChartsLoaded = Object.values(charts).every(
+      ({ chartStatus }) => chartStatus !== 'loading',
+    );
+    if (isAllChartsLoaded) {
+      setIsInitialized(true);
+    }
+  }, [charts]);
 
   const filters = useFilters();
   const filterValues = Object.values<Filter>(filters);
 
   const nativeFiltersEnabled =
+    isInitialized &&
     showNativeFilters &&
     isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
     (canEdit || (!canEdit && filterValues.length !== 0));
