@@ -109,7 +109,11 @@ const FILTERS_WITHOUT_COLUMN = [
   'filter_timecolumn',
   'filter_groupby',
 ];
-const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range', 'filter_groupby'];
+const FILTERS_WITH_ADHOC_FILTERS = [
+  'filter_select',
+  'filter_range',
+  'filter_groupby',
+];
 
 /**
  * The configuration form for a specific filter.
