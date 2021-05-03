@@ -83,19 +83,10 @@ function dbReducer(
   state: Partial<DatabaseObject> | null,
   action: DBReducerActionType,
 ): Partial<DatabaseObject> | null {
-  if (!state) {
-    if (
-      action.type === ActionType.fetched ||
-      action.type === ActionType.initialLoad
-    ) {
-      return action.payload;
-    }
-    return null;
-  }
   const trimmedState = {
-    ...state,
-    database_name: state.database_name?.trim() || '',
-    sqlalchemy_uri: state.sqlalchemy_uri || '',
+    ...(state || {}),
+    database_name: state?.database_name?.trim() || '',
+    sqlalchemy_uri: state?.sqlalchemy_uri || '',
   };
 
   switch (action.type) {
