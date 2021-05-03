@@ -98,6 +98,7 @@ const StyledHeader = styled.div`
       border-bottom: none;
       border-radius: ${({ theme }) => theme.borderRadius}px;
       margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+      text-decoration: none;
     }
   }
 

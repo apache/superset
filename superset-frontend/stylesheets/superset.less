@@ -582,3 +582,35 @@ hr {
   background-image: url('../images/icons/error_solid_small_red.svg') !important;
   background-position: -2px center !important;
 }
+
+// Ant-d overrides since these are injected as inline styles and can't
+// be overrided in emotion
+.ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light.ant-menu-submenu-placement-bottomLeft {
+  top: 51px !important;
+  margin-left: -2px !important;
+  @media (max-width: 767px) {
+    top: 269px !important;
+  }
+  & > .ant-menu {
+    border-radius: 0px !important;
+  }
+}
+
+.ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light {
+  top: 51px !important;
+  border-radius: 0px !important;
+  @media (max-width: 767px) {
+    top: 269px !important;
+  }
+}
+
+.about-section .version-info {
+  padding: 6px 16px 6px 28px;
+  color: rgb(102, 102, 102);
+  font-size: 10px;
+  line-height: 10px;
+}
+
+.ant-dropdown.ant-dropdown-placement-bottomRight {
+    top: 133px !important;
+}
