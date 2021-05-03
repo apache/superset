@@ -20,23 +20,57 @@
 /* eslint-disable no-param-reassign */
 // <- When we work with Immer, we need reassign, so disabling lint
 import produce from 'immer';
+import { DataMask, FeatureFlag } from '@superset-ui/core';
+import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
+import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
+import { isFeatureEnabled } from 'src/featureFlags';
 import { DataMaskStateWithId, DataMaskWithId } from './types';
 import {
   AnyDataMaskAction,
   SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
   UPDATE_DATA_MASK,
 } from './actions';
-import { NATIVE_FILTER_PREFIX } from '../dashboard/components/nativeFilters/FiltersConfigModal/utils';
-import { Filter } from '../dashboard/components/nativeFilters/types';
+import {
+  Filter,
+  FilterConfiguration,
+} from '../dashboard/components/nativeFilters/types';
 
+export function getInitialDataMask(id?: string): DataMask;
 export function getInitialDataMask(id: string): DataMaskWithId {
+  let otherProps = {};
+  if (id) {
+    otherProps = {
+      id,
+    };
+  }
   return {
-    id,
+    ...otherProps,
     extraFormData: {},
-    filterState: {},
+    filterState: {
+      value: null,
+    },
     ownState: {},
-    isApplied: false,
-  };
+  } as DataMaskWithId;
+}
+
+function fillNativeFilters(
+  data: FilterConfiguration,
+  cleanState: DataMaskStateWithId,
+  draft: DataMaskStateWithId,
+) {
+  data.forEach((filter: Filter) => {
+    cleanState[filter.id] = {
+      ...getInitialDataMask(filter.id), // take initial data
+      ...filter.defaultDataMask, // if something new came from BE - take it
+      ...draft[filter.id], // keep local filter data
+    };
+  });
+  // Get back all other non-native filters
+  Object.values(draft).forEach(filter => {
+    if (!String(filter?.id).startsWith(NATIVE_FILTER_PREFIX)) {
+      cleanState[filter?.id] = filter;
+    }
+  });
 }
 
 const dataMaskReducer = produce(
@@ -48,21 +82,31 @@ const dataMaskReducer = produce(
           ...getInitialDataMask(action.filterId),
           ...draft[action.filterId],
           ...action.dataMask,
-          isApplied: true,
         };
         return draft;
-
+      // TODO: update hydrate to .ts
+      // @ts-ignore
+      case HYDRATE_DASHBOARD:
+        if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+          Object.keys(
+            // @ts-ignore
+            action.data.dashboardInfo?.metadata?.chart_configuration,
+          ).forEach(id => {
+            cleanState[id] = {
+              ...getInitialDataMask(id), // take initial data
+            };
+          });
+        }
+        fillNativeFilters(
+          // @ts-ignore
+          action.data.dashboardInfo?.metadata?.native_filter_configuration ??
+            [],
+          cleanState,
+          draft,
+        );
+        return cleanState;
       case SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE:
-        (action.filterConfig ?? []).forEach((filter: Filter) => {
-          cleanState[filter.id] =
-            draft[filter.id] ?? getInitialDataMask(filter.id);
-        });
-        // Get back all other non-native filters
-        Object.values(draft).forEach(filter => {
-          if (!String(filter?.id).startsWith(NATIVE_FILTER_PREFIX)) {
-            cleanState[filter?.id] = filter;
-          }
-        });
+        fillNativeFilters(action.filterConfig ?? [], cleanState, draft);
         return cleanState;
 
       default:
