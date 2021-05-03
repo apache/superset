@@ -400,7 +400,7 @@ def show_command_errors(ex: CommandException) -> FlaskResponse:
 # Catch-all, to ensure all errors from the backend conform to SIP-40
 @superset_app.errorhandler(Exception)
 def show_unexpected_exception(ex: Exception) -> FlaskResponse:
-    logger.warning(ex)
+    logger.exception(ex)
     return json_errors_response(
         errors=[
             SupersetError(
