@@ -86,10 +86,9 @@ class TestDashboardDAO(SupersetTestCase):
         session = db.session()
         dashboard = session.query(Dashboard).filter_by(slug="world_health").first()
 
-        assert dashboard.changed_on == DashboardDAO.get_dashboard_changed_on(dashboard)
-        assert dashboard.changed_on == DashboardDAO.get_dashboard_changed_on(
-            "world_health"
-        )
+        changed_on = dashboard.changed_on.replace(microsecond=0)
+        assert changed_on == DashboardDAO.get_dashboard_changed_on(dashboard)
+        assert changed_on == DashboardDAO.get_dashboard_changed_on("world_health")
 
         old_changed_on = dashboard.changed_on
 
@@ -104,7 +103,14 @@ class TestDashboardDAO(SupersetTestCase):
         DashboardDAO.set_dash_metadata(dashboard, data)
         session.merge(dashboard)
         session.commit()
-        assert old_changed_on < DashboardDAO.get_dashboard_changed_on(dashboard)
+        new_changed_on = DashboardDAO.get_dashboard_changed_on(dashboard)
+        assert old_changed_on.replace(microsecond=0) < new_changed_on
+        assert new_changed_on == DashboardDAO.get_dashboard_and_datasets_changed_on(
+            dashboard
+        )
+        assert new_changed_on == DashboardDAO.get_dashboard_and_slices_changed_on(
+            dashboard
+        )
 
         DashboardDAO.set_dash_metadata(dashboard, original_data)
         session.merge(dashboard)
