@@ -127,7 +127,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (formData: TableChartFormData
     }
 
     const interactiveGroupBy = formData.extra_form_data?.interactive_groupby;
-    if (interactiveGroupBy && queryObject.columns && queryMode === QueryMode.aggregate) {
+    if (interactiveGroupBy && queryObject.columns) {
       queryObject.columns = [...new Set([...queryObject.columns, ...interactiveGroupBy])];
     }
 
