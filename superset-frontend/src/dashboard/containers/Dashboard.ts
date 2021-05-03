@@ -18,9 +18,7 @@
  */
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
-
 import Dashboard from '../components/Dashboard';
-
 import {
   addSliceToDashboard,
   removeSliceFromDashboard,
@@ -66,11 +64,12 @@ function mapStateToProps(state: RootState) {
         // eslint-disable-next-line camelcase
         chartConfiguration: dashboardInfo.metadata?.chart_configuration,
         nativeFilters: nativeFilters.filters,
-        dataMask: getRelevantDataMask(dataMask, 'isApplied'),
+        dataMask,
         layout: dashboardLayout.present,
       }),
     },
-    ownDataCharts: getRelevantDataMask(dataMask, 'ownState', 'ownState'),
+    chartConfiguration: dashboardInfo.metadata?.chart_configuration,
+    ownDataCharts: getRelevantDataMask(dataMask, 'ownState'),
     slices: sliceEntities.slices,
     layout: dashboardLayout.present,
     impressionId,

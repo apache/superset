@@ -20,7 +20,7 @@ import { DataMaskStateWithId } from 'src/dataMask/types';
 import { JsonObject } from '@superset-ui/core';
 import { CHART_TYPE } from './componentTypes';
 import { Scope } from '../components/nativeFilters/types';
-import { ActiveFilters, LayoutItem } from '../types';
+import { ActiveFilters, Layout, LayoutItem } from '../types';
 import { ChartConfiguration, Filters } from '../reducers/types';
 import { DASHBOARD_ROOT_ID } from './constants';
 
@@ -51,12 +51,11 @@ export const findAffectedCharts = ({
       // eslint-disable-next-line no-param-reassign
       activeFilters[filterId] = {
         scope: [],
-        values: [],
+        values: extraFormData,
       };
     }
     // Add not excluded chart scopes(to know what charts refresh) and values(refresh only if its value changed)
     activeFilters[filterId].scope.push(chartId);
-    activeFilters[filterId].values.push(extraFormData);
     return;
   }
   // If child is not chart, recursive iterate over its children
@@ -74,11 +73,10 @@ export const findAffectedCharts = ({
 
 export const getRelevantDataMask = (
   dataMask: DataMaskStateWithId,
-  filterBy: string,
-  prop?: string,
+  prop: string,
 ): JsonObject | DataMaskStateWithId =>
   Object.values(dataMask)
-    .filter(item => item[filterBy])
+    .filter(item => item[prop])
     .reduce(
       (prev, next) => ({ ...prev, [next.id]: prop ? next[prop] : next }),
       {},
@@ -93,7 +91,7 @@ export const getAllActiveFilters = ({
   chartConfiguration: ChartConfiguration;
   dataMask: DataMaskStateWithId;
   nativeFilters: Filters;
-  layout: { [key: string]: LayoutItem };
+  layout: Layout;
 }): ActiveFilters => {
   const activeFilters = {};
 

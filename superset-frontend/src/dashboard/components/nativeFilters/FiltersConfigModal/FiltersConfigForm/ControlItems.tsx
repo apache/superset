@@ -76,7 +76,7 @@ const ControlItems: FC<ControlItemsProps> = ({
                   return;
                 }
                 setNativeFilterFieldValues(form, filterId, {
-                  defaultValue: null,
+                  defaultDataMask: null,
                 });
                 forceUpdate();
               }}

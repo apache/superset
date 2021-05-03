@@ -18,6 +18,7 @@
  */
 import { FormInstance } from 'antd/lib/form';
 import shortid from 'shortid';
+import { getInitialDataMask } from 'src/dataMask/reducer';
 import { FilterRemoval, NativeFiltersForm } from './types';
 import { Filter, FilterConfiguration, Target } from '../types';
 
@@ -148,7 +149,7 @@ export const createHandleSave = (
         filterType: formInputs.filterType,
         // for now there will only ever be one target
         targets: [target],
-        defaultValue: formInputs.defaultValue || null,
+        defaultDataMask: formInputs.defaultDataMask ?? getInitialDataMask(),
         cascadeParentIds: formInputs.parentFilter
           ? [formInputs.parentFilter.value]
           : [],

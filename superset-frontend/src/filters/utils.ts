@@ -41,17 +41,14 @@ export const getSelectExtraFormData = (
         sqlExpression: '1 = 0',
       },
     ];
-  } else {
-    extra.filters =
-      value === undefined || value === null || value.length === 0
-        ? []
-        : [
-            {
-              col,
-              op: inverseSelection ? ('NOT IN' as const) : ('IN' as const),
-              val: value,
-            },
-          ];
+  } else if (value !== undefined && value !== null && value.length !== 0) {
+    extra.filters = [
+      {
+        col,
+        op: inverseSelection ? ('NOT IN' as const) : ('IN' as const),
+        val: value,
+      },
+    ];
   }
   return extra;
 };
@@ -69,9 +66,11 @@ export const getRangeExtraFormData = (
     filters.push({ col, op: '<=', val: upper });
   }
 
-  return {
-    filters,
-  };
+  return filters.length
+    ? {
+        filters,
+      }
+    : {};
 };
 
 export interface DataRecordValueFormatter {

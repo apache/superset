@@ -167,7 +167,7 @@ describe('Dashboard', () => {
         ...OVERRIDE_FILTERS,
         [NATIVE_FILTER_ID]: {
           scope: [230],
-          values: [extraFormData],
+          values: extraFormData,
         },
       });
     });
