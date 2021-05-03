@@ -21,7 +21,9 @@ import { DataMask } from '@superset-ui/core';
 import { Filter } from '../../types';
 
 export interface FilterProps {
-  filter: Filter;
+  filter: Filter & {
+    dataMask?: DataMask;
+  };
   icon?: React.ReactElement;
   directPathToChild?: string[];
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
