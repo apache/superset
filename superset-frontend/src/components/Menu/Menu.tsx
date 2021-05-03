@@ -174,7 +174,7 @@ const StyledHeader = styled.header`
         margin: 0;
         &:after {
           opacity: 1;
-          width: 99%;
+          width: calc(100% - 1);
         }
       }
     }
