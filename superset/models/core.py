@@ -16,13 +16,13 @@
 # under the License.
 # pylint: disable=line-too-long,unused-argument,ungrouped-imports
 """A collection of ORM sqlalchemy models for Superset"""
+import enum
 import json
 import logging
 import textwrap
 from contextlib import closing
 from copy import deepcopy
 from datetime import datetime
-from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
 
 import numpy
@@ -36,6 +36,7 @@ from sqlalchemy import (
     Column,
     create_engine,
     DateTime,
+    Enum,
     ForeignKey,
     Integer,
     MetaData,
@@ -99,6 +100,11 @@ class CssTemplate(Model, AuditMixinNullable):
     css = Column(Text, default="")
 
 
+class ConfigurationMethod(str, enum.Enum):
+    SQLALCHEMY_URI = "SQLALCHEMY_URI"
+    DYNAMIC_FORM = "DYNAMIC_FORM"
+
+
 class Database(
     Model, AuditMixinNullable, ImportExportMixin
 ):  # pylint: disable=too-many-public-methods
@@ -118,6 +124,9 @@ class Database(
     cache_timeout = Column(Integer)
     select_as_create_table_as = Column(Boolean, default=False)
     expose_in_sqllab = Column(Boolean, default=True)
+    configuration_method = Column(
+        Enum(ConfigurationMethod), server_default=ConfigurationMethod.SQLALCHEMY_URI
+    )
     allow_run_async = Column(Boolean, default=False)
     allow_csv_upload = Column(Boolean, default=False)
     allow_ctas = Column(Boolean, default=False)
@@ -207,6 +216,7 @@ class Database(
             "id": self.id,
             "name": self.database_name,
             "backend": self.backend,
+            "configurationMethod": self.configuration_method,
             "allow_multi_schema_metadata_fetch": self.allow_multi_schema_metadata_fetch,
             "allows_subquery": self.allows_subquery,
             "allows_cost_estimate": self.allows_cost_estimate,
@@ -722,7 +732,7 @@ class Log(Model):  # pylint: disable=too-few-public-methods
     referrer = Column(String(1024))
 
 
-class FavStarClassName(str, Enum):
+class FavStarClassName(str, enum.Enum):
     CHART = "slice"
     DASHBOARD = "Dashboard"
 

@@ -104,6 +104,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "expose_in_sqllab",
         "allow_run_async",
         "allow_csv_upload",
+        "configuration_method",
         "allow_ctas",
         "allow_cvas",
         "allow_dml",

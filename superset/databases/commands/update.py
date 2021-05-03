@@ -32,7 +32,7 @@ from superset.databases.commands.exceptions import (
 )
 from superset.databases.dao import DatabaseDAO
 from superset.extensions import db, security_manager
-from superset.models.core import Database
+from superset.models.core import ConfigurationMethod, Database
 
 logger = logging.getLogger(__name__)
 
@@ -75,11 +75,20 @@ class UpdateDatabaseCommand(BaseCommand):
         if not self._model:
             raise DatabaseNotFoundError()
         database_name: Optional[str] = self._properties.get("database_name")
+        configuration_method: Optional[str] = self._properties.get(
+            "configuration_method"
+        )
         if database_name:
             # Check database_name uniqueness
             if not DatabaseDAO.validate_update_uniqueness(
                 self._model_id, database_name
             ):
+                exceptions.append(DatabaseExistsValidationError())
+        if configuration_method:
+            if ConfigurationMethod(configuration_method) not in {
+                ConfigurationMethod.SQLALCHEMY_URI,
+                ConfigurationMethod.DYNAMIC_FORM,
+            }:
                 exceptions.append(DatabaseExistsValidationError())
         if exceptions:
             exception = DatabaseInvalidError()
