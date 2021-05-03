@@ -95,7 +95,9 @@ class CsvToDatabaseForm(DynamicForm):
         validators=[
             FileRequired(),
             FileAllowed(
-                config["ALLOWED_EXTENSIONS"].intersection(config["CSV_EXTENSIONS"]),
+                config["ALLOWED_EXTENSIONS"].intersection(
+                    config["CSV_EXTENSIONS"].union(config["OTHER_EXTENSIONS"])
+                ),
                 _(
                     "Only the following file extensions are allowed: "
                     "%(allowed_extensions)s",
@@ -162,6 +164,15 @@ class CsvToDatabaseForm(DynamicForm):
     mangle_dupe_cols = BooleanField(
         _("Mangle Duplicate Columns"),
         description=_('Specify duplicate columns as "X.0, X.1".'),
+    )
+    usecols = JsonListField(
+        _("Use Columns"),
+        default=None,
+        description=_(
+            "Json list of the column names that should be read. "
+            "If not None, only these columns will be read from the file."
+        ),
+        validators=[Optional()],
     )
     skipinitialspace = BooleanField(
         _("Skip Initial Space"), description=_("Skip spaces after delimiter.")

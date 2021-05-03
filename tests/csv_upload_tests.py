@@ -43,6 +43,7 @@ CSV_UPLOAD_DATABASE = "csv_explore_db"
 CSV_FILENAME1 = "testCSV1.csv"
 CSV_FILENAME2 = "testCSV2.csv"
 EXCEL_FILENAME = "testExcel.xlsx"
+PARQUET_FILENAME = "testParquet.parquet"
 
 EXCEL_UPLOAD_TABLE = "excel_upload"
 CSV_UPLOAD_TABLE = "csv_upload"
@@ -88,6 +89,12 @@ def create_csv_files():
     yield
     os.remove(CSV_FILENAME1)
     os.remove(CSV_FILENAME2)
+
+
+def create_parquet_files():
+    pd.DataFrame({"a": ["john", "paul"], "b": [1, 2]}).to_parquet(PARQUET_FILENAME)
+    yield
+    os.remove(PARQUET_FILENAME)
 
 
 @pytest.fixture()
@@ -327,4 +334,48 @@ def test_import_excel(setup_csv_upload, create_excel_files):
         .execute(f"SELECT * from {EXCEL_UPLOAD_TABLE}")
         .fetchall()
     )
+    assert data == [(0, "john", 1), (1, "paul", 2)]
+
+
+@mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
+def test_import_parquet(setup_csv_upload, create_parquet_files):
+    if utils.backend() == "hive":
+        pytest.skip("Hive doesn't allow parquet upload.")
+
+    success_msg = (
+        f'CSV file "{PARQUET_FILENAME}" uploaded to table "{CSV_UPLOAD_TABLE}"'
+    )
+
+    # initial upload with fail mode
+    resp = upload_csv(PARQUET_FILENAME, CSV_UPLOAD_TABLE)
+    assert success_msg in resp
+
+    # upload again with fail mode; should fail
+    fail_msg = (
+        f'Unable to upload CSV file "{PARQUET_FILENAME}" to table "{CSV_UPLOAD_TABLE}"'
+    )
+    resp = upload_csv(PARQUET_FILENAME, CSV_UPLOAD_TABLE)
+    assert fail_msg in resp
+
+    if utils.backend() != "hive":
+        # upload again with append mode
+        resp = upload_csv(
+            PARQUET_FILENAME, CSV_UPLOAD_TABLE, extra={"if_exists": "append"}
+        )
+        assert success_msg in resp
+
+    # upload again with replace mode
+    resp = upload_csv(
+        PARQUET_FILENAME, CSV_UPLOAD_TABLE, extra={"if_exists": "replace"}
+    )
+    assert success_msg in resp
+
+    # make sure that john and empty string are replaced with None
+    data = (
+        get_upload_db()
+        .get_sqla_engine()
+        .execute(f"SELECT * from {CSV_UPLOAD_TABLE}")
+        .fetchall()
+    )
+    print(data)
     assert data == [(0, "john", 1), (1, "paul", 2)]

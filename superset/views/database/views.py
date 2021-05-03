@@ -128,6 +128,32 @@ class CsvToDatabaseView(SimpleFormView):
     def form_post(self, form: CsvToDatabaseForm) -> Response:
         database = form.con.data
         csv_table = Table(table=form.name.data, schema=form.schema.data)
+        file_type = form.csv_file.data.filename.split(".")[-1]
+        if file_type == "parquet":
+            read = pd.read_parquet
+            kwargs = {
+                "columns": form.usecols.data,
+            }
+        else:
+            read = pd.read_csv
+            kwargs = {
+                "chunksize": 1000,
+                "encoding": "utf-8",
+                "header": form.header.data if form.header.data else 0,
+                "index_col": form.index_col.data,
+                "infer_datetime_format": form.infer_datetime_format.data,
+                "iterator": True,
+                "keep_default_na": not form.null_values.data,
+                "mangle_dupe_cols": form.mangle_dupe_cols.data,
+                "usecols": form.usecols.data,
+                "na_values": form.null_values.data if form.null_values.data else None,
+                "nrows": form.nrows.data,
+                "parse_dates": form.parse_dates.data,
+                "sep": form.sep.data,
+                "skip_blank_lines": form.skip_blank_lines.data,
+                "skipinitialspace": form.skipinitialspace.data,
+                "skiprows": form.skiprows.data,
+            }
 
         if not schema_allows_csv_upload(database, csv_table.schema):
             message = _(
@@ -151,26 +177,8 @@ class CsvToDatabaseView(SimpleFormView):
             return redirect("/csvtodatabaseview/form")
 
         try:
-            df = pd.concat(
-                pd.read_csv(
-                    chunksize=1000,
-                    encoding="utf-8",
-                    filepath_or_buffer=form.csv_file.data,
-                    header=form.header.data if form.header.data else 0,
-                    index_col=form.index_col.data,
-                    infer_datetime_format=form.infer_datetime_format.data,
-                    iterator=True,
-                    keep_default_na=not form.null_values.data,
-                    mangle_dupe_cols=form.mangle_dupe_cols.data,
-                    na_values=form.null_values.data if form.null_values.data else None,
-                    nrows=form.nrows.data,
-                    parse_dates=form.parse_dates.data,
-                    sep=form.sep.data,
-                    skip_blank_lines=form.skip_blank_lines.data,
-                    skipinitialspace=form.skipinitialspace.data,
-                    skiprows=form.skiprows.data,
-                )
-            )
+            chunks = read(form.csv_file.data, **kwargs)
+            df = pd.concat(chunks) if isinstance(chunks, list) else chunks
 
             database = (
                 db.session.query(models.Database)
