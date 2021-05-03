@@ -276,7 +276,7 @@ export function Menu({
       } else setMenu('horizontal');
     }
     handleResize();
-    const windowResize = debounce(()=> handleResize(), 10);
+    const windowResize = debounce(() => handleResize(), 10);
     window.addEventListener('resize', windowResize);
     return () => window.removeEventListener('resize', windowResize);
   }, []);
