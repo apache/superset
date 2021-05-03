@@ -36,6 +36,7 @@ export interface NativeFiltersFormItem {
     value: string;
     label: string;
   };
+  sortMetric: string | null;
   isInstant: boolean;
   adhoc_filters?: AdhocFilter[];
   time_range?: string;

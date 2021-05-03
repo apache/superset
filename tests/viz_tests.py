@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-import uuid
 from datetime import date, datetime, timezone
 import logging
 from math import nan
@@ -1179,9 +1178,7 @@ class TestBaseDeckGLViz(SupersetTestCase):
         with self.assertRaises(SpatialException):
             test_viz_deckgl.parse_coordinates("fldkjsalkj,fdlaskjfjadlksj")
 
-    @patch("superset.utils.core.uuid.uuid4")
-    def test_filter_nulls(self, mock_uuid4):
-        mock_uuid4.return_value = uuid.UUID("12345678123456781234567812345678")
+    def test_filter_nulls(self):
         test_form_data = {
             "latlong_key": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
             "delimited_key": {"type": "delimited", "lonlatCol": "lonlat"},
@@ -1194,7 +1191,7 @@ class TestBaseDeckGLViz(SupersetTestCase):
                 {
                     "clause": "WHERE",
                     "expressionType": "SIMPLE",
-                    "filterOptionName": "12345678-1234-5678-1234-567812345678",
+                    "filterOptionName": "bfa3a42a6f3de3c781b7d4f8e8d6613d",
                     "comparator": "",
                     "operator": "IS NOT NULL",
                     "subject": "lat",
@@ -1203,7 +1200,7 @@ class TestBaseDeckGLViz(SupersetTestCase):
                 {
                     "clause": "WHERE",
                     "expressionType": "SIMPLE",
-                    "filterOptionName": "12345678-1234-5678-1234-567812345678",
+                    "filterOptionName": "2d35d87b57c6f1a5ae139f1a6b0cbd0a",
                     "comparator": "",
                     "operator": "IS NOT NULL",
                     "subject": "lon",
@@ -1214,7 +1211,7 @@ class TestBaseDeckGLViz(SupersetTestCase):
                 {
                     "clause": "WHERE",
                     "expressionType": "SIMPLE",
-                    "filterOptionName": "12345678-1234-5678-1234-567812345678",
+                    "filterOptionName": "89cc0fafe39a4eabc5df2cd52e4d6514",
                     "comparator": "",
                     "operator": "IS NOT NULL",
                     "subject": "lonlat",
@@ -1225,7 +1222,7 @@ class TestBaseDeckGLViz(SupersetTestCase):
                 {
                     "clause": "WHERE",
                     "expressionType": "SIMPLE",
-                    "filterOptionName": "12345678-1234-5678-1234-567812345678",
+                    "filterOptionName": "fa734d9a7bab254a53b41540d46cdb6c",
                     "comparator": "",
                     "operator": "IS NOT NULL",
                     "subject": "geo",

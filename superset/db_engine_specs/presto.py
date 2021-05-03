@@ -39,6 +39,7 @@ from urllib import parse
 
 import pandas as pd
 import simplejson as json
+from flask import current_app
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import Column, literal_column, types
 from sqlalchemy.engine.base import Engine
@@ -49,7 +50,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 from sqlalchemy.types import TypeEngine
 
-from superset import app, cache_manager, is_feature_enabled
+from superset import cache_manager, is_feature_enabled
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetTemplateException
@@ -94,7 +95,6 @@ CONNECTION_UNKNOWN_DATABASE_ERROR = re.compile(
 
 
 QueryStatus = utils.QueryStatus
-config = app.config
 logger = logging.getLogger(__name__)
 
 
@@ -940,7 +940,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         """Updates progress information"""
         query_id = query.id
         poll_interval = query.database.connect_args.get(
-            "poll_interval", config["PRESTO_POLL_INTERVAL"]
+            "poll_interval", current_app.config["PRESTO_POLL_INTERVAL"]
         )
         logger.info("Query %i: Polling the cursor for progress", query_id)
         polled = cursor.poll()

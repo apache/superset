@@ -1,5 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
+/* Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
  * regarding copyright ownership.  The ASF licenses this file
@@ -16,5 +15,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export default 'SvgrURL';
-export const ReactComponent = 'svg';
+
+/* eslint-disable global-require */
+const loadModule = () => {
+  let module;
+  try {
+    // @ts-ignore
+    module = require('../../../superset_text'); // eslint-disable-line import/no-unresolved
+  } catch (e) {
+    module = {};
+  }
+  return module;
+};
+
+const supersetText = loadModule();
+
+export default supersetText;
