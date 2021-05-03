@@ -25,5 +25,5 @@ export enum DataMaskType {
 
 export type DataMaskState = { [id: string]: DataMask };
 
-export type DataMaskWithId = { id: string; isApplied?: boolean } & DataMask;
+export type DataMaskWithId = { id: string } & DataMask;
 export type DataMaskStateWithId = { [filterId: string]: DataMaskWithId };

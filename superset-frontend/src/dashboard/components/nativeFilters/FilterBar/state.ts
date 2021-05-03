@@ -22,10 +22,14 @@ import {
   Filters,
   FilterSets as FilterSetsType,
 } from 'src/dashboard/reducers/types';
-import { DataMaskState, DataMaskStateWithId } from 'src/dataMask/types';
-import { useEffect, useState } from 'react';
-import { areObjectsEqual } from 'src/reduxUtils';
-import { Filter } from '../types';
+import {
+  DataMaskState,
+  DataMaskStateWithId,
+  DataMaskWithId,
+} from 'src/dataMask/types';
+import { useEffect } from 'react';
+import { RootState } from 'src/dashboard/types';
+import { NATIVE_FILTER_PREFIX } from '../FiltersConfigModal/utils';
 
 export const useFilterSets = () =>
   useSelector<any, FilterSetsType>(
@@ -35,44 +39,27 @@ export const useFilterSets = () =>
 export const useFilters = () =>
   useSelector<any, Filters>(state => state.nativeFilters.filters);
 
-export const useDataMask = () =>
-  useSelector<any, DataMaskStateWithId>(state => state.dataMask);
+export const useNativeFiltersDataMask = () => {
+  const dataMask = useSelector<RootState, DataMaskStateWithId>(
+    state => state.dataMask,
+  );
 
-export const useFiltersInitialisation = (
-  dataMaskSelected: DataMaskState,
-  handleApply: () => void,
-) => {
-  const [isInitialized, setIsInitialized] = useState<boolean>(false);
-  const filters = useFilters();
-  const filterValues = Object.values<Filter>(filters);
-  useEffect(() => {
-    if (isInitialized) {
-      return;
-    }
-    const areFiltersInitialized = filterValues.every(filterValue =>
-      areObjectsEqual(
-        filterValue?.defaultValue,
-        dataMaskSelected[filterValue?.id]?.filterState?.value,
-      ),
-    );
-    if (areFiltersInitialized) {
-      handleApply();
-      setIsInitialized(true);
-    }
-  }, [filterValues, dataMaskSelected, isInitialized]);
-
-  return {
-    isInitialized,
-  };
+  return Object.values(dataMask)
+    .filter((item: DataMaskWithId) =>
+      String(item.id).startsWith(NATIVE_FILTER_PREFIX),
+    )
+    .reduce(
+      (prev, next: DataMaskWithId) => ({ ...prev, [next.id]: next }),
+      {},
+    ) as DataMaskStateWithId;
 };
 
 export const useFilterUpdates = (
   dataMaskSelected: DataMaskState,
   setDataMaskSelected: (arg0: (arg0: DataMaskState) => void) => void,
-  setLastAppliedFilterData: (arg0: (arg0: DataMaskState) => void) => void,
 ) => {
   const filters = useFilters();
-  const dataMaskApplied = useDataMask();
+  const dataMaskApplied = useNativeFiltersDataMask();
 
   useEffect(() => {
     // Remove deleted filters from local state
@@ -83,18 +70,5 @@ export const useFilterUpdates = (
         });
       }
     });
-    Object.keys(dataMaskApplied).forEach(appliedId => {
-      if (!filters[appliedId]) {
-        setLastAppliedFilterData(draft => {
-          delete draft[appliedId];
-        });
-      }
-    });
-  }, [
-    dataMaskApplied,
-    dataMaskSelected,
-    filters,
-    setDataMaskSelected,
-    setLastAppliedFilterData,
-  ]);
+  }, [dataMaskApplied, dataMaskSelected, filters, setDataMaskSelected]);
 };

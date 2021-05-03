@@ -19,31 +19,38 @@
 
 /* eslint-disable no-param-reassign */
 import { HandlerFunction, styled, t } from '@superset-ui/core';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import cx from 'classnames';
 import Icon from 'src/components/Icon';
 import { Tabs } from 'src/common/components';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { updateDataMask } from 'src/dataMask/actions';
-import { DataMaskState } from 'src/dataMask/types';
+import {
+  DataMaskState,
+  DataMaskStateWithId,
+  DataMaskWithId,
+} from 'src/dataMask/types';
 import { useImmer } from 'use-immer';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { testWithId } from 'src/utils/testUtils';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
-import { setFiltersInitialized } from 'src/dashboard/actions/nativeFilters';
-import { mapParentFiltersToChildren, TabIds } from './utils';
+import {
+  getOnlyExtraFormData,
+  mapParentFiltersToChildren,
+  TabIds,
+} from './utils';
 import FilterSets from './FilterSets';
 import {
-  useDataMask,
+  useNativeFiltersDataMask,
   useFilters,
   useFilterSets,
-  useFiltersInitialisation,
   useFilterUpdates,
 } from './state';
 import EditSection from './FilterSets/EditSection';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
+import { getInitialDataMask } from '../../../../dataMask/reducer';
 
 const BAR_WIDTH = `250px`;
 
@@ -155,18 +162,16 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   directPathToChild,
 }) => {
   const [editFilterSetId, setEditFilterSetId] = useState<string | null>(null);
-  const [dataMaskSelected, setDataMaskSelected] = useImmer<DataMaskState>({});
-  const [
-    lastAppliedFilterData,
-    setLastAppliedFilterData,
-  ] = useImmer<DataMaskState>({});
+  const [dataMaskSelected, setDataMaskSelected] = useImmer<DataMaskStateWithId>(
+    {},
+  );
   const dispatch = useDispatch();
   const filterSets = useFilterSets();
   const filterSetFilterValues = Object.values(filterSets);
   const [tab, setTab] = useState(TabIds.AllFilters);
   const filters = useFilters();
   const filterValues = Object.values<Filter>(filters);
-  const dataMaskApplied = useDataMask();
+  const dataMaskApplied: DataMaskStateWithId = useNativeFiltersDataMask();
   const [isFilterSetChanged, setIsFilterSetChanged] = useState(false);
   const cascadeChildren = useMemo(
     () => mapParentFiltersToChildren(filterValues),
@@ -185,7 +190,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         dispatch(updateDataMask(filter.id, dataMask));
       }
 
-      draft[filter.id] = dataMask;
+      draft[filter.id] = {
+        ...(getInitialDataMask(filter.id) as DataMaskWithId),
+        ...dataMask,
+      };
     });
   };
 
@@ -196,29 +204,18 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         dispatch(updateDataMask(filterId, dataMaskSelected[filterId]));
       }
     });
-    setLastAppliedFilterData(() => dataMaskSelected);
   };
 
-  const { isInitialized } = useFiltersInitialisation(
-    dataMaskSelected,
-    handleApply,
-  );
+  useFilterUpdates(dataMaskSelected, setDataMaskSelected);
 
-  useEffect(() => {
-    if (isInitialized) {
-      dispatch(setFiltersInitialized());
-    }
-  }, [dispatch, isInitialized]);
-
-  useFilterUpdates(
-    dataMaskSelected,
-    setDataMaskSelected,
-    setLastAppliedFilterData,
-  );
-
+  const dataSelectedValues = Object.values(dataMaskSelected);
+  const dataAppliedValues = Object.values(dataMaskApplied);
   const isApplyDisabled =
-    !isInitialized || areObjectsEqual(dataMaskSelected, lastAppliedFilterData);
-
+    areObjectsEqual(
+      getOnlyExtraFormData(dataMaskSelected),
+      getOnlyExtraFormData(dataMaskApplied),
+      { ignoreUndefined: true },
+    ) || dataSelectedValues.length !== dataAppliedValues.length;
   return (
     <BarWrapper {...getFilterBarTestId()} className={cx({ open: filtersOpen })}>
       <CollapsedBar
