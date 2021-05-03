@@ -33,10 +33,12 @@ from alembic import op
 def upgrade():
     with op.batch_alter_table("dbs") as batch_op:
         batch_op.add_column(
-            sa.Column("save_option", sa.VARCHAR(255), server_default="SQL_ALCHEMY")
+            sa.Column(
+                "configuration_method", sa.VARCHAR(255), server_default="SQLALCHEMY_URI"
+            )
         )
 
 
 def downgrade():
     with op.batch_alter_table("dbs") as batch_op:
-        batch_op.drop_column("save_option")
+        batch_op.drop_column("configuration_method")
