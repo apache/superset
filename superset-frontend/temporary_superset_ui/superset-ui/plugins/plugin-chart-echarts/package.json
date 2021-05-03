@@ -31,6 +31,7 @@
     "@types/mathjs": "^6.0.7",
     "d3-array": "^1.2.0",
     "echarts": "^5.1.1",
+    "lodash": "^4.17.15",
     "mathjs": "^8.0.1"
   },
   "peerDependencies": {
