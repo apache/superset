@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, JsonObject } from '@superset-ui/core';
+import { ChartProps, ExtraFormData, JsonObject } from '@superset-ui/core';
 import { chart } from 'src/chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
 import { DataMaskStateWithId } from '../dataMask/types';
@@ -95,7 +95,7 @@ export type LayoutItem = {
 
 type ActiveFilter = {
   scope: number[];
-  values: any[];
+  values: ExtraFormData;
 };
 
 export type ActiveFilters = {

@@ -42,7 +42,14 @@ export interface SetDataMaskForFilterConfigFail {
   type: typeof SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL;
   filterConfig: FilterConfiguration;
 }
-
+export function setDataMaskForFilterConfigComplete(
+  filterConfig: FilterConfiguration,
+): SetDataMaskForFilterConfigComplete {
+  return {
+    type: SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
+    filterConfig,
+  };
+}
 export function updateDataMask(
   filterId: string,
   dataMask: DataMask,
