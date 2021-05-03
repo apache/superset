@@ -62,7 +62,10 @@ import ControlItems from './ControlItems';
 import FilterScope from './FilterScope/FilterScope';
 import RemovedFilter from './RemovedFilter';
 import DefaultValue from './DefaultValue';
-import { getFiltersConfigModalTestId } from '../FiltersConfigModal';
+import {
+  CASCADING_FILTERS,
+  getFiltersConfigModalTestId,
+} from '../FiltersConfigModal';
 // TODO: move styles from AdhocFilterControl to emotion and delete this ./main.less
 import './main.less';
 
@@ -171,6 +174,8 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
   const hasAdditionalFilters = FILTERS_WITH_ADHOC_FILTERS.includes(
     formFilter?.filterType,
   );
+
+  const isCascadingFilter = CASCADING_FILTERS.includes(formFilter?.filterType);
 
   const isDataDirty = formFilter?.isDataDirty ?? true;
 
@@ -401,20 +406,22 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
         hidden
         initialValue={null}
       />
-      <StyledFormItem
-        name={['filters', filterId, 'parentFilter']}
-        label={<StyledLabel>{t('Parent filter')}</StyledLabel>}
-        initialValue={parentFilterOptions.find(
-          ({ value }) => value === filterToEdit?.cascadeParentIds[0],
-        )}
-        data-test="parent-filter-input"
-      >
-        <Select
-          placeholder={t('None')}
-          options={parentFilterOptions}
-          isClearable
-        />
-      </StyledFormItem>
+      {isCascadingFilter && (
+        <StyledFormItem
+          name={['filters', filterId, 'parentFilter']}
+          label={<StyledLabel>{t('Parent filter')}</StyledLabel>}
+          initialValue={parentFilterOptions.find(
+            ({ value }) => value === filterToEdit?.cascadeParentIds[0],
+          )}
+          data-test="parent-filter-input"
+        >
+          <Select
+            placeholder={t('None')}
+            options={parentFilterOptions}
+            isClearable
+          />
+        </StyledFormItem>
+      )}
       <StyledContainer>
         <StyledFormItem className="bottom" label={<StyledLabel />}>
           {hasDataset && hasFilledDataset && (
@@ -429,7 +436,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
           data-test="default-input"
           label={<StyledLabel>{t('Default Value')}</StyledLabel>}
         >
-          {!isDataDirty && (hasFilledDataset || !hasDataset) && (
+          {(!hasDataset || (!isDataDirty && hasFilledDataset)) && (
             <DefaultValue
               setDataMask={dataMask => {
                 setNativeFilterFieldValues(form, filterId, {

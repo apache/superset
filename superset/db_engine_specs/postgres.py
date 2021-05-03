@@ -62,6 +62,7 @@ CONNECTION_INVALID_USERNAME_REGEX = re.compile(
 CONNECTION_INVALID_PASSWORD_REGEX = re.compile(
     'password authentication failed for user "(?P<username>.*?)"'
 )
+CONNECTION_INVALID_PASSWORD_NEEDED_REGEX = re.compile("no password supplied")
 CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
     'could not translate host name "(?P<hostname>.*?)" to address: '
     "nodename nor servname provided, or not known"
@@ -107,6 +108,10 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         CONNECTION_INVALID_PASSWORD_REGEX: (
             __('The password provided for username "%(username)s" is incorrect.'),
             SupersetErrorType.CONNECTION_INVALID_PASSWORD_ERROR,
+        ),
+        CONNECTION_INVALID_PASSWORD_NEEDED_REGEX: (
+            __("Please re-enter the password."),
+            SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
         ),
         CONNECTION_INVALID_HOSTNAME_REGEX: (
             __('The hostname "%(hostname)s" cannot be resolved.'),

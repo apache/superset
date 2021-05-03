@@ -26,7 +26,11 @@ import Icon from 'src/components/Icon';
 import { Tabs } from 'src/common/components';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { updateDataMask } from 'src/dataMask/actions';
-import { DataMaskState, DataMaskStateWithId } from 'src/dataMask/types';
+import {
+  DataMaskState,
+  DataMaskStateWithId,
+  DataMaskWithId,
+} from 'src/dataMask/types';
 import { useImmer } from 'use-immer';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { testWithId } from 'src/utils/testUtils';
@@ -46,6 +50,7 @@ import {
 import EditSection from './FilterSets/EditSection';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
+import { getInitialDataMask } from '../../../../dataMask/reducer';
 
 const BAR_WIDTH = `250px`;
 
@@ -185,7 +190,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         dispatch(updateDataMask(filter.id, dataMask));
       }
 
-      draft[filter.id] = { ...dataMask, id: filter.id };
+      draft[filter.id] = {
+        ...(getInitialDataMask(filter.id) as DataMaskWithId),
+        ...dataMask,
+      };
     });
   };
 
@@ -206,8 +214,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     areObjectsEqual(
       getOnlyExtraFormData(dataMaskSelected),
       getOnlyExtraFormData(dataMaskApplied),
+      { ignoreUndefined: true },
     ) || dataSelectedValues.length !== dataAppliedValues.length;
-
   return (
     <BarWrapper {...getFilterBarTestId()} className={cx({ open: filtersOpen })}>
       <CollapsedBar

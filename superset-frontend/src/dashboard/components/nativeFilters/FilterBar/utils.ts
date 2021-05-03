@@ -43,6 +43,6 @@ export function mapParentFiltersToChildren(
 
 export const getOnlyExtraFormData = (data: DataMaskStateWithId) =>
   Object.values(data).reduce(
-    (prev, next) => ({ ...prev, [next.id]: next.filterState }),
+    (prev, next) => ({ ...prev, [next.id]: next.extraFormData }),
     {},
   );

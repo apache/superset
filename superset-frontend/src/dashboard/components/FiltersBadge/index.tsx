@@ -19,6 +19,7 @@
 import React from 'react';
 import cx from 'classnames';
 import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import DetailsPanelPopover from './DetailsPanel';
 import { Pill } from './Styles';
 import { Indicator } from './selectors';
@@ -77,7 +78,7 @@ const FiltersBadge = ({
         {incompatibleIndicators.length ? (
           <>
             {' '}
-            <Icon name="alert-solid" />
+            <Icons.AlertSolid />
             <span data-test="incompatible-filter-count">
               {incompatibleIndicators.length}
             </span>

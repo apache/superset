@@ -119,9 +119,9 @@ class WebDriverProxy:
             logger.info("Taking a PNG screenshot or url %s", url)
             img = element.screenshot_as_png
         except TimeoutException:
-            logger.error("Selenium timed out requesting url %s", url)
+            logger.error("Selenium timed out requesting url %s", url, exc_info=True)
         except WebDriverException as ex:
-            logger.error(ex)
+            logger.error(ex, exc_info=True)
             # Some webdrivers do not support screenshots for elements.
             # In such cases, take a screenshot of the entire page.
             img = driver.screenshot()  # pylint: disable=no-member
