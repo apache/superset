@@ -18,6 +18,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { styled } from '@superset-ui/core';
+import { debounce } from 'lodash';
 import { Menu as DropdownMenu, MenuMode } from 'src/common/components';
 import { Link } from 'react-router-dom';
 import { Row, Col } from 'antd';
@@ -258,10 +259,6 @@ const StyledHeader = styled.header`
         ${({ theme }) => theme.gridUnit * 2}px;
     }
   }
-  .ant-menu-submenu-popup {
-    border-radius: 0px !important;
-    background-color: red !important;
-  }
 `;
 
 const { SubMenu } = DropdownMenu;
@@ -279,8 +276,9 @@ export function Menu({
       } else setMenu('horizontal');
     }
     handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const windowResize = debounce(()=> handleResize(), 10);
+    window.addEventListener('resize', windowResize);
+    return () => window.removeEventListener('resize', windowResize);
   }, []);
 
   const renderSubMenu = ({

@@ -20,6 +20,7 @@ import React, { ReactNode, useState, useEffect } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import { styled } from '@superset-ui/core';
 import cx from 'classnames';
+import { debounce } from 'lodash';
 import { Col, Row } from 'antd';
 import { Menu, MenuMode } from 'src/common/components';
 import Button, { OnClickHandler } from 'src/components/Button';
@@ -188,8 +189,9 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
       }
     }
     handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const resize = debounce(handleResize, 10);
+    window.addEventListener('resize', resize);
+    return () => window.removeEventListener('resize', resize);
   }, [props.buttons]);
 
   const offset = props.name ? headerSize : 0;
