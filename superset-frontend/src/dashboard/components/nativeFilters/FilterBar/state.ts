@@ -28,8 +28,8 @@ import {
   DataMaskWithId,
 } from 'src/dataMask/types';
 import { useEffect } from 'react';
+import { RootState } from 'src/dashboard/types';
 import { NATIVE_FILTER_PREFIX } from '../FiltersConfigModal/utils';
-import { RootState } from '../../../types';
 
 export const useFilterSets = () =>
   useSelector<any, FilterSetsType>(

@@ -18,9 +18,9 @@
  */
 import { FormInstance } from 'antd/lib/form';
 import shortid from 'shortid';
+import { getInitialDataMask } from 'src/dataMask/reducer';
 import { FilterRemoval, NativeFiltersForm } from './types';
 import { Filter, FilterConfiguration, Target } from '../types';
-import { getInitialDataMask } from '../../../../dataMask/reducer';
 
 export const REMOVAL_DELAY_SECS = 5;
 

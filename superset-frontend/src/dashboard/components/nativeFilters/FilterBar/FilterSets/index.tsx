@@ -111,7 +111,9 @@ const FilterSets: React.FC<FilterSetsProps> = ({
     filterSet?: FilterSet,
   ) =>
     !filterValues.find(filter => filter?.id === id) ||
-    !areObjectsEqual(filters[id], filterSet?.nativeFilters?.[id]);
+    !areObjectsEqual(filters[id], filterSet?.nativeFilters?.[id], {
+      ignoreUndefined: true,
+    });
 
   const takeFilterSet = (id: string, target?: HTMLElement) => {
     const ignoreSelectorHeader = 'ant-collapse-header';
@@ -137,13 +139,15 @@ const FilterSets: React.FC<FilterSetsProps> = ({
 
     const filterSet = filterSets[id];
 
-    Object.values(filterSet?.dataMask ?? []).forEach(dataMask => {
-      const { extraFormData, filterState, id } = dataMask as DataMaskWithId;
-      if (isFilterMissingOrContainsInvalidMetadata(id, filterSet)) {
-        return;
-      }
-      onFilterSelectionChange({ id }, { extraFormData, filterState });
-    });
+    (Object.values(filterSet?.dataMask) ?? []).forEach(
+      (dataMask: DataMaskWithId) => {
+        const { extraFormData, filterState, id } = dataMask;
+        if (isFilterMissingOrContainsInvalidMetadata(id, filterSet)) {
+          return;
+        }
+        onFilterSelectionChange({ id }, { extraFormData, filterState });
+      },
+    );
   };
 
   const handleRebuild = (id: string) => {
