@@ -94,7 +94,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
     }
   };
 
-  if (!colnames) return null;
+  if (!colnames || colnames.length === 0) return null;
 
   const needShowMoreButton = colnames.length > MAX_NUM_COLS + 2;
   const cols = needShowMoreButton && !showAllColumns ? colnames.slice(0, MAX_NUM_COLS) : colnames;
