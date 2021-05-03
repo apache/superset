@@ -27,6 +27,7 @@ import {
 } from '@superset-ui/core';
 import { EChartsOption, GaugeSeriesOption } from 'echarts';
 import { GaugeDataItemOption } from 'echarts/types/src/chart/gauge/GaugeSeries';
+import range from 'lodash/range';
 import { parseNumbersList } from '../utils/controls';
 import {
   DEFAULT_FORM_DATA as DEFAULT_GAUGE_FORM_DATA,
@@ -99,6 +100,11 @@ export default function transformProps(chartProps: ChartProps) {
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const normalizer = maxVal;
   const axisLineWidth = calculateAxisLineWidth(data, fontSize, overlap);
+  const axisLabels = range(minVal, maxVal, (maxVal - minVal) / splitNumber);
+  const axisLabelLength = Math.max(
+    ...axisLabels.map(label => numberFormatter(label).length).concat([1]),
+  );
+  const formatValue = (value: number) => valueFormatter.replace('{value}', numberFormatter(value));
   const axisTickLength = FONT_SIZE_MULTIPLIERS.axisTickLength * fontSize;
   const splitLineLength = FONT_SIZE_MULTIPLIERS.splitLineLength * fontSize;
   const titleOffsetFromTitle = FONT_SIZE_MULTIPLIERS.titleOffsetFromTitle * fontSize;
@@ -128,8 +134,6 @@ export default function transformProps(chartProps: ChartProps) {
     },
   }));
 
-  const formatValue = (value: number) => valueFormatter.replace('{value}', numberFormatter(value));
-
   const progress = {
     show: showProgress,
     overlap,
@@ -155,8 +159,12 @@ export default function transformProps(chartProps: ChartProps) {
   const axisLabel = {
     distance:
       axisLineWidth -
-      FONT_SIZE_MULTIPLIERS.axisLabelDistance * fontSize -
+      FONT_SIZE_MULTIPLIERS.axisLabelDistance *
+        fontSize *
+        FONT_SIZE_MULTIPLIERS.axisLabelLength *
+        axisLabelLength -
       (showSplitLine ? splitLineLength : 0) -
+      (showAxisTick ? axisTickLength : 0) -
       OFFSETS.ticksFromLine,
     fontSize,
     formatter: numberFormatter,
