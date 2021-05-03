@@ -84,7 +84,6 @@ const addFilterFlow = () => {
 const addFilterSetFlow = async () => {
   // add filter set
   userEvent.click(screen.getByText('Filter Sets (0)'));
-  expect(screen.getByTestId(getTestId('new-filter-set-button'))).toBeDisabled();
 
   // check description
   expect(screen.getByText('Filters (1)')).toBeInTheDocument();
@@ -92,7 +91,6 @@ const addFilterSetFlow = async () => {
   expect(screen.getAllByText('Last week').length).toBe(2);
 
   // apply filters
-  userEvent.click(screen.getByTestId(getTestId('apply-button')));
   expect(screen.getByTestId(getTestId('new-filter-set-button'))).toBeEnabled();
 
   // create filter set
@@ -139,7 +137,7 @@ describe('FilterBar', () => {
               "name":"${FILTER_NAME}",
               "filterType":"filter_time",
               "targets":[{"datasetId":11,"column":{"name":"color"}}],
-              "defaultValue":null,
+              "defaultDataMask":{"filterState":{"value":null}},
               "controlValues":{},
               "cascadeParentIds":[],
               "scope":{"rootPath":["ROOT_ID"],"excluded":[]},
@@ -154,7 +152,7 @@ describe('FilterBar', () => {
                   "name":"${FILTER_NAME}",
                   "filterType":"filter_time",
                   "targets":[{}],
-                  "defaultValue":"Last week",
+                  "defaultDataMask":{"filterState":{"value":"Last week"},"extraFormData":{"time_range":"Last week"}},
                   "controlValues":{},
                   "cascadeParentIds":[],
                   "scope":{"rootPath":["ROOT_ID"],"excluded":[]},
@@ -163,7 +161,7 @@ describe('FilterBar', () => {
               },
               "dataMask":{
                 "${filterId}":{
-                  "extraFormData":{"override_form_data":{"time_range":"Last week"}},
+                  "extraFormData":{"time_range":"Last week"},
                   "filterState":{"value":"Last week"},
                   "ownState":{},
                   "id":"${filterId}"
@@ -308,10 +306,6 @@ describe('FilterBar', () => {
     addFilterFlow();
 
     await screen.findByText('All Filters (1)');
-
-    // apply filter
-    expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
-    userEvent.click(screen.getByTestId(getTestId('apply-button')));
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   });
 
@@ -319,6 +313,7 @@ describe('FilterBar', () => {
   it.skip('add and apply filter set', async () => {
     // @ts-ignore
     global.featureFlags = {
+      [FeatureFlag.DASHBOARD_NATIVE_FILTERS]: true,
       [FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET]: true,
     };
     renderWrapper(openedBarProps, stateWithoutNativeFilters);
@@ -326,21 +321,23 @@ describe('FilterBar', () => {
     addFilterFlow();
 
     await screen.findByText('All Filters (1)');
-    expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
 
     await addFilterSetFlow();
 
     // change filter
-    userEvent.click(screen.getByText('All Filters (1)'));
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
 
     await changeFilterValue();
     await waitFor(() => expect(screen.getAllByText('Last day').length).toBe(2));
 
     // apply new filter value
-    expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
+    await waitFor(() =>
+      expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled(),
+    );
     userEvent.click(screen.getByTestId(getTestId('apply-button')));
-    expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+    await waitFor(() =>
+      expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled(),
+    );
 
     // applying filter set
     userEvent.click(screen.getByText('Filter Sets (1)'));
@@ -357,7 +354,6 @@ describe('FilterBar', () => {
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   });
 
-  // TODO: fix flakiness and re-enable
   it.skip('add and edit filter set', async () => {
     // @ts-ignore
     global.featureFlags = {
@@ -369,7 +365,6 @@ describe('FilterBar', () => {
     addFilterFlow();
 
     await screen.findByText('All Filters (1)');
-    expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
 
     await addFilterSetFlow();
 
