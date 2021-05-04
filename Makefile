@@ -48,10 +48,10 @@ pre-commit:
 	pip3 install -r requirements/integration.txt
 	pre-commit install
 
-prettier: py-prettier js-prettier
+format: py-prettier js-prettier
 
-py-prettier:
+py-format:
 	python -m black superset
 
-js-prettier:
+js-format:
 	cd superset-frontend; npm run prettier
