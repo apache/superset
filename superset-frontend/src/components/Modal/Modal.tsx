@@ -18,10 +18,10 @@
  */
 import React from 'react';
 import { isNil } from 'lodash';
-import { styled, SupersetThemeProps, t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
+import { css } from '@emotion/react';
 import { Modal as BaseModal } from 'src/common/components';
 import Button from 'src/components/Button';
-import { css } from '@emotion/core';
 
 interface ModalProps {
   className?: string;
@@ -45,7 +45,7 @@ interface ModalProps {
   closable?: boolean;
 }
 
-interface StyledModalProps extends SupersetThemeProps {
+interface StyledModalProps {
   maxWidth?: string;
   responsive?: boolean;
   height?: string;
