@@ -1,0 +1,51 @@
+# Docker
+
+# Build and push an image to Azure Container Registry
+# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
+
+
+trigger:
+- master
+
+resources:
+- repo: self
+
+variables:
+  # Container registry service connection established during pipeline creation
+  dockerRegistryServiceConnection: '0f6808c3-1749-435d-b894-32e5c4d8e77b'
+  imageRepository: 'cccs/superset'
+  containerRegistry: 'uchimera.azurecr.io'
+  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
+  tag: '$(Build.BuildId)'
+  buildTimestamp: $[format('{0:yyyyMMddHHmmss}', pipeline.startTime)]
+
+  # Agent VM image name
+  vmImageName: 'ubuntu-latest'
+
+stages:
+- stage: Build
+  displayName: Build and push stage
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - checkout: self
+
+    - bash: |
+        BRANCH_NAME=`echo "$SYSTEM_PULLREQUEST_SOURCEBRANCH $BUILD_SOURCEBRANCH" | sed -r 's/^\s*(refs\/heads\/)?(\S*).*$/\2/' | sed 's/\//_/g'`
+        echo "##vso[task.setvariable variable=BRANCH_NAME]$BRANCH_NAME"
+
+    - task: Docker@2
+      displayName: Build and push an image to container registry
+      inputs:
+        command: buildAndPush
+        repository: cccs/superset
+        dockerfile: $(dockerfilePath)
+        containerRegistry: $(dockerRegistryServiceConnection)
+        tags: |
+          $(BRANCH_NAME)
+          $(BRANCH_NAME)_$(buildTimestamp)_b$(Build.BuildId)
+
+
