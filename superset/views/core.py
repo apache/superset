@@ -462,6 +462,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         form_data, slc = get_form_data(slice_id, use_slice_data=True)
         if not slc:
             return json_error_response("The slice does not exist")
+
+        if not slc.datasource:
+            return json_error_response("The slice's datasource does not exist")
+
         try:
             viz_obj = get_viz(
                 datasource_type=slc.datasource.type,
@@ -1708,6 +1712,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         if extra_filters
                         else get_dashboard_extra_filters(slc.id, dashboard_id)
                     )
+
+                if not slc.datasource:
+                    raise Exception("Slice's datasource does not exist")
 
                 obj = get_viz(
                     datasource_type=slc.datasource.type,
