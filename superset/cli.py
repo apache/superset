@@ -732,9 +732,15 @@ def load_test_users_run() -> None:
         gamma_sqllab_role = sm.add_role("gamma_sqllab")
         sm.add_permission_role(gamma_sqllab_role, examples_pv)
 
+        gamma_no_csv_role = sm.add_role("gamma_no_csv")
+        sm.add_permission_role(gamma_no_csv_role, examples_pv)
+
         for role in ["Gamma", "sql_lab"]:
             for perm in sm.find_role(role).permissions:
                 sm.add_permission_role(gamma_sqllab_role, perm)
+
+                if str(perm) != "can csv on Superset":
+                    sm.add_permission_role(gamma_no_csv_role, perm)
 
         users = (
             ("admin", "Admin"),
@@ -742,6 +748,7 @@ def load_test_users_run() -> None:
             ("gamma2", "Gamma"),
             ("gamma_sqllab", "gamma_sqllab"),
             ("alpha", "Alpha"),
+            ("gamma_no_csv", "gamma_no_csv"),
         )
         for username, role in users:
             user = sm.find_user(username)
