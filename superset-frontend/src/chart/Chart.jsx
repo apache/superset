@@ -214,6 +214,7 @@ class Chart extends React.PureComponent {
         showMessage={false}
       >
         <Styles
+          data-ui-anchor="chart"
           className="chart-container"
           data-test="chart-container"
           height={height}
