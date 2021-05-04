@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/demo",
-  "version": "0.17.42",
+  "version": "0.17.43",
   "description": "Storybook for Superset UI ✨",
   "private": true,
   "main": "index.js",
@@ -53,7 +53,7 @@
     "@superset-ui/legacy-plugin-chart-partition": "0.17.42",
     "@superset-ui/legacy-plugin-chart-pivot-table": "0.17.42",
     "@superset-ui/legacy-plugin-chart-rose": "0.17.42",
-    "@superset-ui/legacy-plugin-chart-sankey": "0.17.42",
+    "@superset-ui/legacy-plugin-chart-sankey": "0.17.43",
     "@superset-ui/legacy-plugin-chart-sankey-loop": "0.17.42",
     "@superset-ui/legacy-plugin-chart-sunburst": "0.17.42",
     "@superset-ui/legacy-plugin-chart-time-table": "0.17.42",
