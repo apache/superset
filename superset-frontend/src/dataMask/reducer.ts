@@ -61,8 +61,8 @@ function fillNativeFilters(
   data.forEach((filter: Filter) => {
     cleanState[filter.id] = {
       ...getInitialDataMask(filter.id), // take initial data
-      ...filter.defaultDataMask, // if something new came from BE - take it
       ...draft[filter.id], // keep local filter data
+      ...filter.defaultDataMask, // if something new came from BE - take it
     };
   });
   // Get back all other non-native filters
