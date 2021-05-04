@@ -97,13 +97,15 @@ const TitleContainer = styled.div`
   }
 `;
 
-const TitleLink = styled.a`
-  color: ${({ theme }) => theme.colors.grayscale.dark1} !important;
-  overflow: hidden;
-  text-overflow: ellipsis;
+const TitleLink = styled.span`
+  & a {
+    color: ${({ theme }) => theme.colors.grayscale.dark1} !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
 
-  & + .title-right {
-    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+    & + .title-right {
+      margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+    }
   }
 `;
 
@@ -137,9 +139,19 @@ const SkeletonActions = styled(Skeleton.Button)`
 `;
 
 const paragraphConfig = { rows: 1, width: 150 };
+
+interface LinkProps {
+  to: string;
+}
+
+const AnchorLink: React.FC<LinkProps> = ({ to, children }) => (
+  <a href={to}>{children}</a>
+);
+
 interface CardProps {
   title?: React.ReactNode;
   url?: string;
+  linkComponent?: React.ComponentType<LinkProps>;
   imgURL?: string;
   imgFallbackURL?: string;
   imgPosition?: BackgroundPosition;
@@ -157,6 +169,7 @@ interface CardProps {
 function ListViewCard({
   title,
   url,
+  linkComponent,
   titleRight,
   imgURL,
   imgFallbackURL,
@@ -169,13 +182,14 @@ function ListViewCard({
   imgPosition = 'top',
   cover,
 }: CardProps) {
+  const Link = url && linkComponent ? linkComponent : AnchorLink;
   return (
     <StyledCard
       data-test="styled-card"
       cover={
         cover || (
           <Cover>
-            <a href={url}>
+            <Link to={url!}>
               <div className="gradient-container">
                 <ImageLoader
                   src={imgURL || ''}
@@ -184,7 +198,7 @@ function ListViewCard({
                   position={imgPosition}
                 />
               </div>
-            </a>
+            </Link>
             <CoverFooter className="cover-footer">
               {!loading && coverLeft && (
                 <CoverFooterLeft>{coverLeft}</CoverFooterLeft>
@@ -225,7 +239,9 @@ function ListViewCard({
           title={
             <TitleContainer>
               <Tooltip title={title}>
-                <TitleLink href={url}>{title}</TitleLink>
+                <TitleLink>
+                  <Link to={url!}>{title}</Link>
+                </TitleLink>
               </Tooltip>
               {titleRight && <div className="title-right"> {titleRight}</div>}
               <div className="card-actions" data-test="card-actions">
