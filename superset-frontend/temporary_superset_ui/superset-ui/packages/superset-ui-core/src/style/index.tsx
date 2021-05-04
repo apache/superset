@@ -20,7 +20,13 @@ import emotionStyled from '@emotion/styled';
 import { useTheme as useThemeBasic } from '@emotion/react';
 import createCache from '@emotion/cache';
 
-export { ThemeProvider, CacheProvider as EmotionCacheProvider, withTheme } from '@emotion/react';
+export {
+  css,
+  jsx,
+  ThemeProvider,
+  CacheProvider as EmotionCacheProvider,
+  withTheme,
+} from '@emotion/react';
 export { default as createEmotionCache } from '@emotion/cache';
 
 declare module '@emotion/react' {
