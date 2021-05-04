@@ -38,7 +38,7 @@ import {
   Switch,
   Input,
 } from 'src/common/components';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { detectOS } from 'src/utils/common';
 import {
   addQueryEditor,
@@ -638,7 +638,7 @@ class SqlEditor extends React.PureComponent {
                         this.props.defaultQueryLimit,
                     )}
                   </span>
-                  <Icon name="triangle-down" />
+                  <Icons.TriangleDown  iconColor={supersetTheme.colors.grayscale.base}/>
                 </a>
               </Dropdown>
             </LimitSelectStyled>
@@ -666,7 +666,7 @@ class SqlEditor extends React.PureComponent {
             <ShareSqlLabQuery queryEditor={qe} />
           </span>
           <Dropdown overlay={this.renderDropdown()} trigger="click">
-            <Icon name="more-horiz" />
+            <Icons.MoreHoriz iconColor={supersetTheme.colors.grayscale.base} />
           </Dropdown>
         </div>
       </StyledToolbar>
