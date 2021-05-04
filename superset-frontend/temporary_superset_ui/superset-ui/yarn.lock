@@ -4391,10 +4391,10 @@
     d3-cloud "^1.2.1"
     prop-types "^15.6.2"
 
-"@superset-ui/react-pivottable@^0.12.5":
-  version "0.12.5"
-  resolved "https://registry.yarnpkg.com/@superset-ui/react-pivottable/-/react-pivottable-0.12.5.tgz#11448d718f4bf3d9421767c18590604dc436ed1f"
-  integrity sha512-9Nmj/sRdc6U/OUWBqfqHAaV05MCmNLt65I/Ar39brpLcaYKWRIYpBcUT3n/HOhCr8ALilnsLdQzzfjjaNAuv5w==
+"@superset-ui/react-pivottable@^0.12.6":
+  version "0.12.6"
+  resolved "https://registry.yarnpkg.com/@superset-ui/react-pivottable/-/react-pivottable-0.12.6.tgz#c1d62a71e5f729381f8be0b1653b9a9e353d3dc3"
+  integrity sha512-2+81WL4ocv4VFzgkj3wOBcEgejnJfsJ2D08kMvFfeBt6fhqC35nkendeZMAjl4bFBmzSJIFS6H+agjoeOUyq5A==
   dependencies:
     immutability-helper "^3.1.1"
     prop-types "^15.7.2"
