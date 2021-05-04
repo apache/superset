@@ -26,7 +26,7 @@ import { debounce } from 'lodash';
 import { Resizable } from 're-resizable';
 
 import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
-import { Global } from '@emotion/core';
+import { Global } from '@emotion/react';
 import { Tooltip } from 'src/components/Tooltip';
 import { usePrevious } from 'src/common/hooks/usePrevious';
 import Icon from 'src/components/Icon';

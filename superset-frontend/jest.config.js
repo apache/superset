@@ -35,6 +35,7 @@ module.exports = {
     '^.+\\.tsx?$': 'ts-jest',
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
+  snapshotSerializers: ['@emotion/jest/enzyme-serializer'],
   globals: {
     'ts-jest': {
       babelConfig: true,
