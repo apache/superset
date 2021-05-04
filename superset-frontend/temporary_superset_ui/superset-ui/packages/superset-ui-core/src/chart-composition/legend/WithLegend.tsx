@@ -1,7 +1,5 @@
 import React, { CSSProperties, ReactNode, PureComponent } from 'react';
 import { ParentSize } from '@vx/responsive';
-// eslint-disable-next-line import/no-unresolved
-import { FlexDirectionProperty } from 'csstype';
 
 const defaultProps = {
   className: '',
@@ -38,7 +36,7 @@ const CHART_STYLE_BASE: CSSProperties = {
 class WithLegend extends PureComponent<Props, {}> {
   static defaultProps = defaultProps;
 
-  getContainerDirection(): FlexDirectionProperty {
+  getContainerDirection(): CSSProperties['flexDirection'] {
     const { position } = this.props;
 
     if (position === 'left') {

@@ -12,7 +12,7 @@
   "include": [
     "src/**/*",
     "types/**/*",
-    "../../types/**/*"
+    "../../types/**/*",
   ],
   "references": [
     {
