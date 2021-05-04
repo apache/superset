@@ -119,7 +119,11 @@ def memoized_func(
 
 
 def etag_cache(
-    cache: Cache = cache_manager.cache, max_age: Optional[Union[int, float]] = None,
+    cache: Cache = cache_manager.cache,
+    get_last_modified: Optional[Callable[..., datetime]] = None,
+    max_age: Optional[Union[int, float]] = None,
+    raise_for_access: Optional[Callable[..., Any]] = None,
+    skip: Optional[Callable[..., bool]] = None,
 ) -> Callable[..., Any]:
     """
     A decorator for caching views and handling etag conditional requests.
@@ -139,10 +143,19 @@ def etag_cache(
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> ETagResponseMixin:
+            # Check if the user can access the resource
+            if raise_for_access:
+                try:
+                    raise_for_access(*args, **kwargs)
+                except Exception:  # pylint: disable=broad-except
+                    # If there's no access, bypass the cache and let the function
+                    # handle the response.
+                    return f(*args, **kwargs)
+
             # for POST requests we can't set cache headers, use the response
             # cache nor use conditional requests; this will still use the
             # dataframe cache in `superset/viz.py`, though.
-            if request.method == "POST":
+            if request.method == "POST" or (skip and skip(*args, **kwargs)):
                 return f(*args, **kwargs)
 
             response = None
@@ -161,13 +174,37 @@ def etag_cache(
                     raise
                 logger.exception("Exception possibly due to cache backend.")
 
+            # Check if the cache is stale. Default the content_changed_time to now
+            # if we don't know when it was last modified.
+            content_changed_time = datetime.utcnow()
+            if get_last_modified:
+                content_changed_time = get_last_modified(*args, **kwargs)
+                if (
+                    response
+                    and response.last_modified
+                    and response.last_modified.timestamp()
+                    < content_changed_time.timestamp()
+                ):
+                    # Bypass the cache if the response is stale
+                    response = None
+
             # if no response was cached, compute it using the wrapped function
             if response is None:
                 response = f(*args, **kwargs)
 
                 # add headers for caching: Last Modified, Expires and ETag
-                response.cache_control.public = True
-                response.last_modified = datetime.utcnow()
+                # always revalidate the cache if we're checking permissions or
+                # if the response was modified
+                if get_last_modified or raise_for_access:
+                    # `Cache-Control: no-cache` asks the browser to always store
+                    # the cache, but also must validate it with the server.
+                    response.cache_control.no_cache = True
+                else:
+                    # `Cache-Control: Public` asks the browser to always store
+                    # the cache.
+                    response.cache_control.public = True
+
+                response.last_modified = content_changed_time
                 expiration = max_age or ONE_YEAR  # max_age=0 also means far future
                 response.expires = response.last_modified + timedelta(
                     seconds=expiration

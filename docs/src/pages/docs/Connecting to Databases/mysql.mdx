@@ -8,21 +8,16 @@ version: 1
 
 ## MySQL
 
-The recommended connector library for MySQL is [mysqlclient](https://pypi.org/project/mysqlclient/).
+The recommended connector library for MySQL is [mysql-connector-python](https://pypi.org/project/mysql-connector-python/).
 
-Set up the Connection String using the following settings:
+Here's the connection string:
 
-User Name: UserName
-Password: DBPassword
-Database Host:
-- For Localhost or docker running Linux: localhost or 127.0.0.1
+```
+mysql+mysqlconnector://{username}:{password}@{host}/{database}
+```
+
+Host:
+- For Localhost or Docker running Linux: `localhost` or `127.0.0.1`
 - For On Prem: IP address or Host name
-- For AWS Endpoint
-- For Docker running in OSX: docker.for.mac.host.internal
-Database Name: Database Name
-Port: default 3306
-
-Connection String
-```
-mysql://<UserName>:<DBPassword>@<Database Host>/<Database Name>
-```
+- For Docker running in OSX: `docker.for.mac.host.internal`
+Port: `3306` by default

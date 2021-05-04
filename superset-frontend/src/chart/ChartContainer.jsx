@@ -37,9 +37,4 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export default connect(
-  ({ nativeFilters }) => ({
-    isFiltersInitialized: nativeFilters?.isInitialized,
-  }),
-  mapDispatchToProps,
-)(Chart);
+export default connect(null, mapDispatchToProps)(Chart);

@@ -25,7 +25,7 @@ import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters'
 import { DataMaskState } from 'src/dataMask/types';
 import { WarningOutlined } from '@ant-design/icons';
 import { ActionButtons } from './Footer';
-import { useDataMask, useFilters, useFilterSets } from '../state';
+import { useNativeFiltersDataMask, useFilters, useFilterSets } from '../state';
 import { APPLY_FILTERS_HINT, findExistingFilterSet } from './utils';
 import { useFilterSetNameDuplicated } from './state';
 import { getFilterBarTestId } from '../index';
@@ -72,7 +72,7 @@ const EditSection: FC<EditSectionProps> = ({
   dataMaskSelected,
   disabled,
 }) => {
-  const dataMaskApplied = useDataMask();
+  const dataMaskApplied = useNativeFiltersDataMask();
   const dispatch = useDispatch();
   const filterSets = useFilterSets();
   const filters = useFilters();

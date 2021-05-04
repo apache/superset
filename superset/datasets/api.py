@@ -239,7 +239,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=ex.normalized_messages())
         except DatasetCreateFailedError as ex:
             logger.error(
-                "Error creating model %s: %s", self.__class__.__name__, str(ex)
+                "Error creating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -325,7 +328,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             response = self.response_422(message=ex.normalized_messages())
         except DatasetUpdateFailedError as ex:
             logger.error(
-                "Error updating model %s: %s", self.__class__.__name__, str(ex)
+                "Error updating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             response = self.response_422(message=str(ex))
         return response
@@ -379,7 +385,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except DatasetDeleteFailedError as ex:
             logger.error(
-                "Error deleting model %s: %s", self.__class__.__name__, str(ex)
+                "Error deleting model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -512,7 +521,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except DatasetRefreshFailedError as ex:
             logger.error(
-                "Error refreshing dataset %s: %s", self.__class__.__name__, str(ex)
+                "Error refreshing dataset %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -716,5 +728,5 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             logger.warning("Import dataset failed")
             return self.response_422(message=exc.normalized_messages())
         except DatasetImportError as exc:
-            logger.error("Import dataset failed")
+            logger.error("Import dataset failed", exc_info=True)
             return self.response_500(message=str(exc))
