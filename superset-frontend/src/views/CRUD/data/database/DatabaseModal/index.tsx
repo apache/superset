@@ -42,7 +42,7 @@ interface DatabaseModalProps {
   onDatabaseAdd?: (database?: DatabaseObject) => void; // TODO: should we add a separate function for edit?
   onHide: () => void;
   show: boolean;
-  database?: DatabaseObject | null; // If included, will go into edit mode
+  databaseId: number | undefined; // If included, will go into edit mode
 }
 
 enum ActionType {
@@ -112,9 +112,12 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.initialLoad:
-    case ActionType.fetched:
       return {
         ...trimmedState,
+        ...action.payload,
+      };
+    case ActionType.fetched:
+      return {
         ...action.payload,
       };
     case ActionType.reset:
@@ -131,15 +134,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   onDatabaseAdd,
   onHide,
   show,
-  database = null,
+  databaseId,
 }) => {
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
-  >(dbReducer, database);
+  >(dbReducer, { id: databaseId });
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const conf = useCommonConf();
 
-  const isEditMode = database !== null;
+  const isEditMode = !!databaseId;
   const useSqlAlchemyForm = true; // TODO: set up logic
   const hasConnectedDb = false; // TODO: set up logic
 
@@ -216,9 +219,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   // Initialize
   const fetchDB = () => {
-    if (isEditMode && database?.id) {
+    if (isEditMode && databaseId) {
       if (!dbLoading) {
-        const id = database.id || 0;
+        const id = databaseId || 0;
 
         fetchResource(id).catch(e =>
           addDangerToast(
@@ -233,36 +236,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   useEffect(() => {
-    if (database) {
+    if (databaseId) {
       setDB({
         type: ActionType.initialLoad,
-        payload: database,
+        payload: { id: databaseId },
       });
     }
     if (show) {
       setTabKey(DEFAULT_TAB_KEY);
     }
-    if (database && show) {
+    if (databaseId && show) {
       fetchDB();
     }
-  }, [show, database]);
+  }, [show, databaseId]);
 
   useEffect(() => {
     // TODO: can we include these values in the original fetch?
     if (dbFetched) {
-      const {
-        extra,
-        impersonate_user,
-        server_cert,
-        sqlalchemy_uri,
-      } = dbFetched;
       setDB({
         type: ActionType.fetched,
         payload: {
-          extra,
-          impersonate_user,
-          server_cert,
-          sqlalchemy_uri,
+          ...dbFetched,
         },
       });
     }
