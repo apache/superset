@@ -41,6 +41,7 @@ import mockDatasource, {
 import FilterBar, { FILTER_BAR_TEST_ID } from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 
+jest.useFakeTimers();
 // @ts-ignore
 mockCore.makeApi = jest.fn();
 
