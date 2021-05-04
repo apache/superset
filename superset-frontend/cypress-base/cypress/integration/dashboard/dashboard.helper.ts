@@ -37,6 +37,15 @@ export const WORLD_HEALTH_CHARTS = [
   { name: 'Box plot', viz: 'box_plot' },
 ] as const;
 
+export const VIDEO_GAME_SALES_CHARTS = [
+  { name: 'Global Sales per Console', viz: 'area' },
+  { name: 'Top 10 Games (by Global Sales)', viz: 'table' },
+  { name: 'Publishers of Top 25 Games', viz: 'pie' },
+  { name: 'Top 10 Consoles, by # of Hit Games', viz: 'treemap' },
+  { name: 'Popular Genres Across Platforms', viz: 'heatmap' },
+  { name: 'Top 10 Games: Proportion of Sales in Markets', viz: 'dist_bar' },
+];
+
 /** Used to specify charts expected by the test suite */
 export interface ChartSpec {
   name: string;
