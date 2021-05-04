@@ -20,18 +20,16 @@ import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import * as redux from 'react-redux';
-import fetchMock from 'fetch-mock';
-import userEvent from '@testing-library/user-event';
-import { Provider } from 'react-redux';
-
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { initialState } from 'spec/javascripts/sqllab/fixtures';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { render, screen } from 'spec/helpers/testing-library';
-
+import userEvent from '@testing-library/user-event';
+import { Provider } from 'react-redux';
+import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
 import Modal from 'src/components/Modal';
 import Tabs from 'src/components/Tabs';
-import DatabaseModal from './index';
+import fetchMock from 'fetch-mock';
+import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import { initialState } from 'spec/javascripts/sqllab/fixtures';
 
 // store needed for withToasts(DatabaseModal)
 const mockStore = configureStore([thunk]);
@@ -76,8 +74,8 @@ describe('DatabaseModal', () => {
     it('renders a Modal', () => {
       expect(wrapper.find(Modal)).toExist();
     });
-    it('renders "Connect a database" header when no database is included', () => {
-      expect(wrapper.find('h4').text()).toEqual('Connect a database');
+    it('renders "Add database" header when no database is included', () => {
+      expect(wrapper.find('h4').text()).toEqual('Add database');
     });
     it('renders "Edit database" header when database prop is included', () => {
       const editWrapper = mount(<DatabaseModal store={store} {...dbProps} />);
@@ -154,7 +152,10 @@ describe('DatabaseModal', () => {
       });
 
       // While 'Expose in SQL Lab' is checked, all settings should display
-      expect(exposeInSqlLab).toBeChecked();
+      expect(exposeInSqlLab).not.toBeChecked();
+
+      // When clicked, "Expose in SQL Lab" becomes unchecked
+      userEvent.click(exposeInSqlLab);
 
       // While checked make sure all checkboxes are showing
       expect(exposeInSqlLab).toBeChecked();
