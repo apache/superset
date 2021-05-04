@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import React, {
   FunctionComponent,
   useEffect,
@@ -35,7 +35,16 @@ import { useCommonConf } from 'src/views/CRUD/data/database/state';
 import { DatabaseObject } from 'src/views/CRUD/data/database/types';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
-import { StyledBasicTab, StyledModal } from './styles';
+import {
+  StyledBasicTab,
+  StyledModal,
+  EditHeader,
+  EditHeaderTitle,
+  EditHeaderSubtitle,
+  CreateHeader,
+  CreateHeaderSubtitle,
+  CreateHeaderTitle,
+} from './styles';
 
 const DOCUMENTATION_LINK =
   'https://superset.apache.org/docs/databases/installing-database-drivers';
@@ -126,70 +135,72 @@ function dbReducer(
 
 const DEFAULT_TAB_KEY = '1';
 
-const StyledDBModal = styled(StyledModal)`
-  .ant-alert {
-    color: ${({ theme }) => theme.colors.info.dark2};
-    border: 1px solid ${({ theme }) => theme.colors.info.base};
-    font-size: ${({ theme }) => theme.gridUnit * 3}px;
-    padding: ${({ theme }) => theme.gridUnit * 4}px;
-    margin: ${({ theme }) => theme.gridUnit * 4}px;
-  }
-  .ant-alert-with-description {
-    .ant-alert-message,
-    .alert-with-description {
-      color: ${({ theme }) => theme.colors.info.dark2};
-      font-weight: bold;
-    }
-  }
-  .ant-modal-body {
-    padding-top: 0;
-  }
-`;
+// //move this to styles.ts -> StleyModal
+// const StyledDBModal = styled(StyledModal)`
+//   .ant-alert {
+//     color: ${({ theme }) => theme.colors.info.dark2};
+//     border: 1px solid ${({ theme }) => theme.colors.info.base};
+//     font-size: ${({ theme }) => theme.gridUnit * 3}px;
+//     padding: ${({ theme }) => theme.gridUnit * 4}px;
+//     margin: ${({ theme }) => theme.gridUnit * 4}px;
+//   }
+//   .ant-alert-with-description {
+//     .ant-alert-message,
+//     .alert-with-description {
+//       color: ${({ theme }) => theme.colors.info.dark2};
+//       font-weight: bold;
+//     }
+//   }
+//   .ant-modal-body {
+//     padding-top: 0;
+//   }
+// `;
 
-const EditHeader = styled.div`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: ${({ theme }) => theme.gridUnit * 1}px;
-  margin: ${({ theme }) => theme.gridUnit * 4}px
-    ${({ theme }) => theme.gridUnit * 4}px
-    ${({ theme }) => theme.gridUnit * 9}px;
-`;
+// copy paste these components over
+// const EditHeader = styled.div`
+//   display: flex;
+//   flex-direction: column;
+//   justify-content: center;
+//   padding: ${({ theme }) => theme.gridUnit * 1}px;
+//   margin: ${({ theme }) => theme.gridUnit * 4}px
+//     ${({ theme }) => theme.gridUnit * 4}px
+//     ${({ theme }) => theme.gridUnit * 9}px;
+// `;
 
-const CreateHeader = styled.div`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: ${({ theme }) => theme.gridUnit * 1}px;
-  margin: ${({ theme }) => theme.gridUnit * 4}px
-    ${({ theme }) => theme.gridUnit * 4}px
-    ${({ theme }) => theme.gridUnit * 9}px;
-`;
+// const CreateHeader = styled.div`
+//   display: flex;
+//   flex-direction: column;
+//   justify-content: center;
+//   padding: ${({ theme }) => theme.gridUnit * 1}px;
+//   margin: ${({ theme }) => theme.gridUnit * 4}px
+//     ${({ theme }) => theme.gridUnit * 4}px
+//     ${({ theme }) => theme.gridUnit * 9}px;
+// `;
 
-const CreateHeaderTitle = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-  font-weight: bold;
-  font-size: ${({ theme }) => theme.typography.sizes.l}px;
-  padding: ${({ theme }) => theme.gridUnit * 1}px;
-`;
+// const CreateHeaderTitle = styled.div`
+//   color: ${({ theme }) => theme.colors.grayscale.dark1};
+//   font-weight: bold;
+//   font-size: ${({ theme }) => theme.typography.sizes.l}px;
+//   padding: ${({ theme }) => theme.gridUnit * 1}px;
+// `;
 
-const CreateHeaderSubtitle = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  padding: ${({ theme }) => theme.gridUnit * 1}px;
-`;
+// const CreateHeaderSubtitle = styled.div`
+//   color: ${({ theme }) => theme.colors.grayscale.dark1};
+//   font-size: ${({ theme }) => theme.typography.sizes.s}px;
+//   padding: ${({ theme }) => theme.gridUnit * 1}px;
+// `;
 
-const EditHeaderTitle = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.light1};
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  text-transform: uppercase;
-`;
+// const EditHeaderTitle = styled.div`
+//   color: ${({ theme }) => theme.colors.grayscale.light1};
+//   font-size: ${({ theme }) => theme.typography.sizes.s}px;
+//   text-transform: uppercase;
+// `;
 
-const EditHeaderSubtitle = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-  font-size: ${({ theme }) => theme.typography.sizes.xl}px;
-  font-weight: bold;
-`;
+// const EditHeaderSubtitle = styled.div`
+//   color: ${({ theme }) => theme.colors.grayscale.dark1};
+//   font-size: ${({ theme }) => theme.typography.sizes.xl}px;
+//   font-weight: bold;
+// `;
 
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   addDangerToast,
@@ -322,7 +333,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   return isEditMode || useSqlAlchemyForm ? (
-    <StyledDBModal
+    <StyledModal
       name="database"
       className="database-modal"
       disablePrimaryButton={disableSave}
@@ -336,7 +347,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
       }
     >
-      {!isEditMode && (
+      {isEditMode ? (
+        <EditHeader>
+          <EditHeaderTitle>{database?.backend}</EditHeaderTitle>
+          <EditHeaderSubtitle>{database?.database_name}</EditHeaderSubtitle>
+        </EditHeader>
+      ) : (
         <CreateHeader>
           <CreateHeaderTitle>Enter Primary Credentials</CreateHeaderTitle>
           <CreateHeaderSubtitle>
@@ -351,12 +367,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             .
           </CreateHeaderSubtitle>
         </CreateHeader>
-      )}
-      {isEditMode && (
-        <EditHeader>
-          <EditHeaderTitle>{database?.backend}</EditHeaderTitle>
-          <EditHeaderSubtitle>{database?.database_name}</EditHeaderSubtitle>
-        </EditHeader>
       )}
       <Tabs
         defaultActiveKey={DEFAULT_TAB_KEY}
@@ -427,9 +437,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         type="info"
         showIcon
       />
-    </StyledDBModal>
+    </StyledModal>
   ) : (
-    <StyledDBModal
+    <StyledModal
       name="database"
       className="database-modal"
       disablePrimaryButton={disableSave}
@@ -444,7 +454,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       <div>
         <p>TODO: db form</p>
       </div>
-    </StyledDBModal>
+    </StyledModal>
   );
 };
 

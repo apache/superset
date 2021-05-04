@@ -82,6 +82,24 @@ export const StyledModal = styled(Modal)`
   .ant-modal-title > h4 {
     font-weight: bold;
   }
+
+  .ant-alert {
+    color: ${({ theme }) => theme.colors.info.dark2};
+    border: 1px solid ${({ theme }) => theme.colors.info.base};
+    font-size: ${({ theme }) => theme.gridUnit * 3}px;
+    padding: ${({ theme }) => theme.gridUnit * 4}px;
+    margin: ${({ theme }) => theme.gridUnit * 4}px;
+  }
+  .ant-alert-with-description {
+    .ant-alert-message,
+    .alert-with-description {
+      color: ${({ theme }) => theme.colors.info.dark2};
+      font-weight: bold;
+    }
+  }
+  .ant-modal-body {
+    padding-top: 0;
+  }
 `;
 
 export const StyledInputContainer = styled.div`
@@ -200,4 +218,49 @@ export const StyledBasicTab = styled(Tabs.TabPane)`
   padding-left: ${({ theme }) => theme.gridUnit * 4}px;
   padding-right: ${({ theme }) => theme.gridUnit * 4}px;
   margin-top: ${({ theme }) => theme.gridUnit * 4}px;
+`;
+
+export const EditHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: ${({ theme }) => theme.gridUnit * 1}px;
+  margin: ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 9}px;
+`;
+
+export const CreateHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: ${({ theme }) => theme.gridUnit * 1}px;
+  margin: ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 9}px;
+`;
+
+export const CreateHeaderTitle = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  font-weight: bold;
+  font-size: ${({ theme }) => theme.typography.sizes.l}px;
+  padding: ${({ theme }) => theme.gridUnit * 1}px;
+`;
+
+export const CreateHeaderSubtitle = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  padding: ${({ theme }) => theme.gridUnit * 1}px;
+`;
+
+export const EditHeaderTitle = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.light1};
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  text-transform: uppercase;
+`;
+
+export const EditHeaderSubtitle = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  font-size: ${({ theme }) => theme.typography.sizes.xl}px;
+  font-weight: bold;
 `;
