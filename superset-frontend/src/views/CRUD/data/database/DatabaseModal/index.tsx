@@ -304,7 +304,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
       }
     >
-    {!isEditMode && (
+      {!isEditMode && (
         <Header>
           <HeaderTitle>Enter Primary Credentials</HeaderTitle>
           <HeaderSubtitle>
