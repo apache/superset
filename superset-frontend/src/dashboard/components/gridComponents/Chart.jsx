@@ -168,7 +168,7 @@ export default class Chart extends React.Component {
     // refresh chart when user toggles the description.
     // fix for https://github.com/apache/superset/issues/12643
     if (prevProps.isExpanded !== this.props.isExpanded) {
-      this.forceRefresh();
+      this.forceUpdate();
     }
   }
 
