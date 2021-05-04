@@ -92,12 +92,6 @@
       "path": "plugins/legacy-preset-chart-nvd3/test"
     },
     {
-      "path": "plugins/plugin-chart-choropleth-map"
-    },
-    {
-      "path": "plugins/plugin-chart-choropleth-map/test"
-    },
-    {
       "path": "plugins/plugin-chart-echarts"
     },
     {
