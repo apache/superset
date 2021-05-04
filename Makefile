@@ -48,7 +48,7 @@ pre-commit:
 	pip3 install -r requirements/integration.txt
 	pre-commit install
 
-format: py-prettier js-prettier
+format: py-format js-format
 
 py-format:
 	python -m black superset
