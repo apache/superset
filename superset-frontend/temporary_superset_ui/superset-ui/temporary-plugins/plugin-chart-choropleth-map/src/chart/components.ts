@@ -1,3 +1,4 @@
+/// <reference types="@superset-ui/core/node_modules/@emotion/styled" />
 import { styled, supersetTheme } from '@superset-ui/core';
 
 export const PADDING = supersetTheme.gridUnit * 4;
