@@ -93,7 +93,7 @@
     "@superset-ui/legacy-preset-chart-nvd3": "^0.17.41",
     "@superset-ui/plugin-chart-echarts": "^0.17.41",
     "@superset-ui/plugin-chart-pivot-table": "^0.17.41",
-    "@superset-ui/plugin-chart-table": "^0.17.41",
+    "@superset-ui/plugin-chart-table": "^0.17.42",
     "@superset-ui/plugin-chart-word-cloud": "^0.17.41",
     "@superset-ui/preset-chart-xy": "^0.17.41",
     "@vx/responsive": "^0.0.195",
