@@ -1849,7 +1849,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         dash_edit_perm = check_ownership(
             dashboard, raise_if_false=False
         ) and security_manager.can_access("can_save_dash", "Superset")
-        standalone_mode = ReservedUrlParameters.is_standalone_mode()
         edit_mode = (
             request.args.get(utils.ReservedUrlParameters.EDIT_MODE.value) == "true"
         )
@@ -1867,11 +1866,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         }
 
         return self.render_template(
-            "superset/dashboard.html",
-            entry="dashboard",
-            standalone_mode=standalone_mode,
-            title=dashboard.dashboard_title,
-            custom_css=dashboard.css,
+            "superset/spa.html",
+            entry="spa",
             bootstrap_data=json.dumps(
                 bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
             ),
@@ -2798,13 +2794,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return self.dashboard(dashboard_id_or_slug=str(welcome_dashboard_id))
 
         payload = {
-            "user": bootstrap_user_data(g.user),
+            "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(),
         }
 
         return self.render_template(
-            "superset/crud_views.html",
-            entry="crudViews",
+            "superset/spa.html",
+            entry="spa",
             bootstrap_data=json.dumps(
                 payload, default=utils.pessimistic_json_iso_dttm_ser
             ),

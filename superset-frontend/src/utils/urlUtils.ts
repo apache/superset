@@ -40,7 +40,11 @@ export function getUrlParam(paramName: string, type: UrlParamType): unknown {
         return Number(urlParam);
       }
       return null;
-    // TODO: process other types when needed
+    case 'boolean':
+      if (!urlParam) {
+        return null;
+      }
+      return urlParam !== 'false' && urlParam !== '0';
     default:
       return urlParam;
   }
