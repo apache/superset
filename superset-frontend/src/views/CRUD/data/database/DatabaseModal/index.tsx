@@ -125,11 +125,11 @@ const DEFAULT_TAB_KEY = '1';
 
 const StyledDBModal = styled(StyledModal)`
   .ant-alert {
-    margin-top: ${({ theme }) => theme.gridUnit * 4}px;
     color: #325d7e;
     border: 1px solid #66bcfe;
     font-size: 13px;
     padding: 15px;
+    margin: ${({ theme }) => theme.gridUnit * 4}px;
   }
   .ant-alert-message {
     color: #325d7e;
@@ -140,23 +140,49 @@ const StyledDBModal = styled(StyledModal)`
   }
 `;
 
-const Header = styled.div`
+const EditHeader = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
-  margin-bottom: 16px;
+  padding: ${({ theme }) => theme.gridUnit * 1}px;
+  margin: ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 9}px;
 `;
 
-const HeaderTitle = styled.div`
+const CreateHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: ${({ theme }) => theme.gridUnit * 1}px;
+  margin: ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 9}px;
+`;
+
+const CreateHeaderTitle = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark1} !important;
   font-weight: bold;
   font-size: ${({ theme }) => theme.typography.sizes.l}px;
+  padding: ${({ theme }) => theme.gridUnit * 1}px;
 `;
 
-const HeaderSubtitle = styled.div`
+const CreateHeaderSubtitle = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark1} !important;
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  padding: ${({ theme }) => theme.gridUnit * 1}px;
+`;
+
+const EditHeaderTitle = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.light1} !important;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  text-transform: uppercase;
+`;
+
+const EditHeaderSubtitle = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.dark1} !important;
+  font-size: ${({ theme }) => theme.typography.sizes.xl}px;
+  font-weight: bold;
 `;
 
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
@@ -305,16 +331,22 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     >
       {!isEditMode && (
-        <Header>
-          <HeaderTitle>Enter Primary Credentials</HeaderTitle>
-          <HeaderSubtitle>
+        <CreateHeader>
+          <CreateHeaderTitle>Enter Primary Credentials</CreateHeaderTitle>
+          <CreateHeaderSubtitle>
             Need help? Learn how to connect your database{' '}
             <a href="https://superset.apache.org/docs/databases/installing-database-drivers">
               here
             </a>
             .
-          </HeaderSubtitle>
-        </Header>
+          </CreateHeaderSubtitle>
+        </CreateHeader>
+      )}
+      {isEditMode && (
+        <EditHeader>
+          <EditHeaderTitle>{database?.backend}</EditHeaderTitle>
+          <EditHeaderSubtitle>{database?.database_name}</EditHeaderSubtitle>
+        </EditHeader>
       )}
       <Tabs
         defaultActiveKey={DEFAULT_TAB_KEY}
