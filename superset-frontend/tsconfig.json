@@ -33,7 +33,12 @@
     "sourceMap": true,
     "strictNullChecks": true,
     "suppressImplicitAnyIndexErrors": true,
-    "target": "esnext"
+    "target": "esnext",
+    "types": [
+      "@emotion/react/types/css-prop",
+      "jest",
+      "@testing-library/jest-dom"
+    ]
   },
   "include": [
     "./src/**/*",

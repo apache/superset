@@ -23,9 +23,15 @@ import { styled } from '@superset-ui/core';
 import { ReactComponent as TransparentIcon } from 'images/icons/transparent.svg';
 import IconType from './IconType';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const AntdIconComponent = ({ iconColor, iconSize, ...rest }: IconType) => (
-  <AntdIcon viewBox={rest.viewBox || '0 0 24 24'} {...rest} />
+const AntdIconComponent = ({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  iconColor,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  iconSize,
+  viewBox,
+  ...rest
+}: Omit<IconType, 'ref' | 'css'>) => (
+  <AntdIcon viewBox={viewBox || '0 0 24 24'} {...rest} />
 );
 
 export const StyledIcon = styled(AntdIconComponent)<IconType>`

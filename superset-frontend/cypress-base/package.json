@@ -11,7 +11,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@cypress/code-coverage": "^3.9.2",
-    "@superset-ui/core": "^0.17.18",
+    "@superset-ui/core": "^0.17.42",
     "react-dom": "^16.13.0",
     "rison": "^0.1.1",
     "shortid": "^2.2.15"
