@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
@@ -36,6 +36,7 @@ export default class PivotTableChartPlugin extends ChartPlugin<PivotTableQueryFo
    */
   constructor() {
     const metadata = new ChartMetadata({
+      behaviors: [Behavior.INTERACTIVE_CHART],
       description: 'Pivot Table - experimental',
       name: t('Pivot Table v2'),
       thumbnail,
