@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   formatSelectOptions,
@@ -247,6 +247,22 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)
+          ? [
+              {
+                name: 'emitFilter',
+                config: {
+                  type: 'CheckboxControl',
+                  label: t('Enable emitting filters'),
+                  renderTrigger: true,
+                  default: false,
+                  description: t(
+                    'Whether to apply filter to dashboards when table cells are clicked',
+                  ),
+                },
+              },
+            ]
+          : [],
       ],
     },
   ],
