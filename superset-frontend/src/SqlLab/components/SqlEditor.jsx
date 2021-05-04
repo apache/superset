@@ -638,7 +638,9 @@ class SqlEditor extends React.PureComponent {
                         this.props.defaultQueryLimit,
                     )}
                   </span>
-                  <Icons.TriangleDown  iconColor={supersetTheme.colors.grayscale.base}/>
+                  <Icons.TriangleDown
+                    iconColor={supersetTheme.colors.grayscale.base}
+                  />
                 </a>
               </Dropdown>
             </LimitSelectStyled>
