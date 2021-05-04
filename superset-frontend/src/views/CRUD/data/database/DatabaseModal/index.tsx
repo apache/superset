@@ -50,7 +50,6 @@ enum ActionType {
   inputChange,
   editorChange,
   fetched,
-  initialLoad,
   reset,
 }
 
@@ -72,7 +71,7 @@ type DBReducerActionType =
       payload: DBReducerPayloadType;
     }
   | {
-      type: ActionType.fetched | ActionType.initialLoad;
+      type: ActionType.fetched;
       payload: Partial<DatabaseObject>;
     }
   | {
@@ -111,11 +110,6 @@ function dbReducer(
         ...trimmedState,
         [action.payload.name]: action.payload.value,
       };
-    case ActionType.initialLoad:
-      return {
-        ...trimmedState,
-        ...action.payload,
-      };
     case ActionType.fetched:
       return {
         ...action.payload,
@@ -138,7 +132,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 }) => {
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
-  >(dbReducer, { id: databaseId });
+  >(dbReducer, null);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const conf = useCommonConf();
 
@@ -184,19 +178,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const onSave = () => {
     if (isEditMode) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { id, ...update }: DatabaseObject = { ...(db as DatabaseObject) };
-
-      if (db?.id) {
-        updateResource(db.id, update).then(result => {
+      // databaseId will not be null if isEditMode is true
+      // db will have at least a database_name and  sqlalchemy_uri
+      // in order for the button to not be disabled
+      updateResource(databaseId as number, db as DatabaseObject).then(
+        result => {
           if (result) {
             if (onDatabaseAdd) {
               onDatabaseAdd();
             }
             onClose();
           }
-        });
-      }
+        },
+      );
     } else if (db) {
       // Create
       db.database_name = db?.database_name?.trim();
@@ -221,9 +215,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const fetchDB = () => {
     if (isEditMode && databaseId) {
       if (!dbLoading) {
-        const id = databaseId || 0;
-
-        fetchResource(id).catch(e =>
+        fetchResource(databaseId).catch(e =>
           addDangerToast(
             t(
               'Sorry there was an error fetching database information: %s',
@@ -236,12 +228,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   useEffect(() => {
-    if (databaseId) {
-      setDB({
-        type: ActionType.initialLoad,
-        payload: { id: databaseId },
-      });
-    }
     if (show) {
       setTabKey(DEFAULT_TAB_KEY);
     }
