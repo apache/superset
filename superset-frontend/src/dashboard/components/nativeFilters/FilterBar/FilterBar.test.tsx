@@ -245,9 +245,11 @@ describe('FilterBar', () => {
     expect(screen.getByRole('img', { name: 'filter' })).toBeInTheDocument();
   });
 
-  it('should render the filter control name', () => {
+  it('should render the filter control name', async () => {
     renderWrapper();
-    expect(screen.getByText('test')).toBeInTheDocument();
+    expect(
+      await screen.findByText('test', {}, { timeout: 2000 }),
+    ).toBeInTheDocument();
   });
 
   it('should toggle', () => {
