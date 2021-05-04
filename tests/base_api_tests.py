@@ -211,13 +211,15 @@ class ApiOwnersTestCaseMixin:
         rv = self.client.get(uri)
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
-        assert 3 == response["count"]
+        assert 4 == response["count"]
         sorted_results = sorted(response["result"], key=lambda value: value["text"])
         expected_results = [
             {"text": "gamma user", "value": 2},
             {"text": "gamma2 user", "value": 3},
+            {"text": "gamma_no_csv user", "value": 6},
             {"text": "gamma_sqllab user", "value": 4},
         ]
+        # TODO Check me
         assert expected_results == sorted_results
 
     def test_get_ids_related_owners(self):
