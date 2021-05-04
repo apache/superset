@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
@@ -104,9 +105,11 @@ describe('DashboardList', () => {
 
   const mockedProps = {};
   const wrapper = mount(
-    <Provider store={store}>
-      <DashboardList {...mockedProps} user={mockUser} />
-    </Provider>,
+    <MemoryRouter>
+      <Provider store={store}>
+        <DashboardList {...mockedProps} user={mockUser} />
+      </Provider>
+    </MemoryRouter>,
   );
 
   beforeAll(async () => {
@@ -182,9 +185,11 @@ describe('RTL', () => {
     const mounted = act(async () => {
       const mockedProps = {};
       render(
-        <QueryParamProvider>
-          <DashboardList {...mockedProps} user={mockUser} />
-        </QueryParamProvider>,
+        <MemoryRouter>
+          <QueryParamProvider>
+            <DashboardList {...mockedProps} user={mockUser} />
+          </QueryParamProvider>
+        </MemoryRouter>,
         { useRedux: true },
       );
     });
