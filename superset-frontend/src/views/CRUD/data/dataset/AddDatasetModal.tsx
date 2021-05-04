@@ -17,10 +17,10 @@
  * under the License.
  */
 import React, { FunctionComponent, useState } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { isEmpty, isNil } from 'lodash';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import Modal from 'src/components/Modal';
 import TableSelector from 'src/components/TableSelector';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -39,7 +39,7 @@ interface DatasetModalProps {
   show: boolean;
 }
 
-const StyledIcon = styled(Icon)`
+const StyledIcon = styled(Icons.WarningSolid)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
 `;
 
@@ -64,6 +64,8 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
     t('dataset'),
     addDangerToast,
   );
+
+  const theme = useTheme();
 
   const onChange = ({
     dbId,
@@ -107,7 +109,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
       show={show}
       title={
         <>
-          <StyledIcon name="warning-solid" />
+          <StyledIcon iconColor={theme.colors.grayscale.base}/>
           {t('Add dataset')}
         </>
       }
