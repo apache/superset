@@ -164,6 +164,14 @@ export default class Chart extends React.Component {
     clearTimeout(this.resizeTimeout);
   }
 
+  componentDidUpdate(prevProps) {
+    // refresh chart when user toggles the description.
+    // fix for https://github.com/apache/superset/issues/12643
+    if (prevProps.isExpanded !== this.props.isExpanded) {
+      this.forceRefresh();
+    }
+  }
+
   getChartHeight() {
     const headerHeight = this.getHeaderHeight();
     const descriptionHeight =
