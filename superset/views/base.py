@@ -272,12 +272,12 @@ class BaseSupersetView(BaseView):
 
     def render_app_template(self) -> FlaskResponse:
         payload = {
-            "user": bootstrap_user_data(g.user),
+            "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(),
         }
         return self.render_template(
-            "superset/crud_views.html",
-            entry="crudViews",
+            "superset/spa.html",
+            entry="spa",
             bootstrap_data=json.dumps(
                 payload, default=utils.pessimistic_json_iso_dttm_ser
             ),
@@ -434,12 +434,12 @@ class SupersetModelView(ModelView):
 
     def render_app_template(self) -> FlaskResponse:
         payload = {
-            "user": bootstrap_user_data(g.user),
+            "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(),
         }
         return self.render_template(
-            "superset/crud_views.html",
-            entry="crudViews",
+            "superset/spa.html",
+            entry="spa",
             bootstrap_data=json.dumps(
                 payload, default=utils.pessimistic_json_iso_dttm_ser
             ),
