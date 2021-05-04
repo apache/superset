@@ -128,14 +128,14 @@ const DEFAULT_TAB_KEY = '1';
 
 const StyledDBModal = styled(StyledModal)`
   .ant-alert {
-    color: #325d7e;
-    border: 1px solid #66bcfe;
-    font-size: 13px;
-    padding: 15px;
+    color: ${({ theme }) => theme.colors.info.dark2};
+    border: 1px solid ${({ theme }) => theme.colors.info.base};
+    font-size: ${({ theme }) => theme.gridUnit * 3}px;
+    padding: ${({ theme }) => theme.gridUnit * 4}px;
     margin: ${({ theme }) => theme.gridUnit * 4}px;
   }
   .ant-alert-message {
-    color: #325d7e;
+    color: ${({ theme }) => theme.colors.info.dark2}
     font-weight: bold;
   }
   .ant-modal-body {
