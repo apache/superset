@@ -35,7 +35,7 @@ import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { URL_PARAMS } from 'src/constants';
 import { useDispatch, useSelector } from 'react-redux';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { ChartsState, DashboardLayout, RootState } from 'src/dashboard/types';
+import { DashboardLayout, RootState } from 'src/dashboard/types';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import {
   deleteTopLevelTabs,
@@ -97,7 +97,6 @@ const StyledDashboardContent = styled.div<{ dashboardFiltersOpen: boolean }>`
 
 const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const dispatch = useDispatch();
-  const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
@@ -113,22 +112,11 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
-  const charts = useSelector<RootState, ChartsState>(state => state.charts);
-
-  useEffect(() => {
-    const isAllChartsLoaded = Object.values(charts).every(
-      ({ chartStatus }) => chartStatus !== 'loading',
-    );
-    if (isAllChartsLoaded) {
-      setIsInitialized(true);
-    }
-  }, [charts]);
 
   const filters = useFilters();
   const filterValues = Object.values<Filter>(filters);
 
   const nativeFiltersEnabled =
-    isInitialized &&
     showNativeFilters &&
     isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
     (canEdit || (!canEdit && filterValues.length !== 0));
