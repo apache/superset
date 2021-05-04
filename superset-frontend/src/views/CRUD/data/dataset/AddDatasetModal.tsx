@@ -109,7 +109,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
       show={show}
       title={
         <>
-          <StyledIcon iconColor={theme.colors.grayscale.base}/>
+          <StyledIcon iconColor={theme.colors.grayscale.base} />
           {t('Add dataset')}
         </>
       }
