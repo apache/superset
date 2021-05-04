@@ -34,7 +34,11 @@
     "strictNullChecks": true,
     "suppressImplicitAnyIndexErrors": true,
     "target": "esnext",
-    "types": ["@emotion/react/types/css-prop", "jest", "jsdom"]
+    "types": [
+      "@emotion/react/types/css-prop",
+      "jest",
+      "@testing-library/jest-dom"
+    ]
   },
   "include": [
     "./src/**/*",
