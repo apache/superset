@@ -134,9 +134,12 @@ const StyledDBModal = styled(StyledModal)`
     padding: ${({ theme }) => theme.gridUnit * 4}px;
     margin: ${({ theme }) => theme.gridUnit * 4}px;
   }
-  .ant-alert-message {
-    color: ${({ theme }) => theme.colors.info.dark2}
-    font-weight: bold;
+  .ant-alert-with-description {
+    .ant-alert-message,
+    .alert-with-description {
+      color: ${({ theme }) => theme.colors.info.dark2};
+      font-weight: bold;
+    }
   }
   .ant-modal-body {
     padding-top: 0;
@@ -164,26 +167,26 @@ const CreateHeader = styled.div`
 `;
 
 const CreateHeaderTitle = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark1} !important;
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
   font-weight: bold;
   font-size: ${({ theme }) => theme.typography.sizes.l}px;
   padding: ${({ theme }) => theme.gridUnit * 1}px;
 `;
 
 const CreateHeaderSubtitle = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark1} !important;
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   padding: ${({ theme }) => theme.gridUnit * 1}px;
 `;
 
 const EditHeaderTitle = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.light1} !important;
+  color: ${({ theme }) => theme.colors.grayscale.light1};
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   text-transform: uppercase;
 `;
 
 const EditHeaderSubtitle = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark1} !important;
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
   font-size: ${({ theme }) => theme.typography.sizes.xl}px;
   font-weight: bold;
 `;
