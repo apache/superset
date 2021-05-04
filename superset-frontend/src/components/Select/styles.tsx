@@ -17,8 +17,8 @@
  * under the License.
  */
 import React, { CSSProperties, ComponentType, ReactNode } from 'react';
-import { css, SerializedStyles, ClassNames } from '@emotion/core';
-import { SupersetTheme } from '@superset-ui/core';
+import { SerializedStyles } from '@emotion/react';
+import { SupersetTheme, css } from '@superset-ui/core';
 import {
   Styles,
   Theme,
@@ -345,18 +345,14 @@ export const DEFAULT_COMPONENTS: SelectComponentsType = {
     );
   },
   Option: ({ children, innerProps, data, ...props }) => (
-    <ClassNames>
-      {({ css }) => (
-        <Option
-          {...props}
-          data={data}
-          className={css(data && data.style ? data.style : null)}
-          innerProps={innerProps}
-        >
-          {children}
-        </Option>
-      )}
-    </ClassNames>
+    <Option
+      {...props}
+      data={data}
+      css={data?.style ? data.style : null}
+      innerProps={innerProps}
+    >
+      {children}
+    </Option>
   ),
   ClearIndicator: props => (
     <ClearIndicator {...props}>

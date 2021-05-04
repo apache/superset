@@ -29,7 +29,7 @@ export interface TabsProps extends AntDTabsProps {
 const notForwardedProps = ['fullWidth', 'allowOverflow'];
 
 const StyledTabs = styled(AntDTabs, {
-  shouldForwardProp: prop => !notForwardedProps.includes(prop),
+  shouldForwardProp: prop => !notForwardedProps.includes(String(prop)),
 })<TabsProps>`
   overflow: ${({ allowOverflow }) => (allowOverflow ? 'visible' : 'hidden')};
 
