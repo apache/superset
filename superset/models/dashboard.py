@@ -171,7 +171,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @property
     def datasources(self) -> Set[BaseDatasource]:
-        return {slc.datasource for slc in self.slices}
+        return {slc.datasource for slc in self.slices if slc.datasource}
 
     @property
     def charts(self) -> List[BaseDatasource]:
