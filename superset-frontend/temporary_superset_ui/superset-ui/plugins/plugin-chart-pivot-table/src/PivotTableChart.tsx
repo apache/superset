@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { styled, AdhocMetric, getNumberFormatter } from '@superset-ui/core';
+import React, { useCallback } from 'react';
+import { styled, AdhocMetric, getNumberFormatter, DataRecordValue } from '@superset-ui/core';
 // @ts-ignore
 import PivotTable from '@superset-ui/react-pivottable/PivotTable';
 // @ts-ignore
 import { sortAs, aggregatorTemplates } from '@superset-ui/react-pivottable/Utilities';
 import '@superset-ui/react-pivottable/pivottable.css';
-import { PivotTableProps, PivotTableStylesProps } from './types';
+import { FilterType, PivotTableProps, PivotTableStylesProps, SelectedFiltersType } from './types';
 
 const Styles = styled.div<PivotTableStylesProps>`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
@@ -33,38 +33,7 @@ const Styles = styled.div<PivotTableStylesProps>`
   }
 `;
 
-// TODO: remove eslint-disable when click callbacks are implemented
-/* eslint-disable @typescript-eslint/no-unused-vars */
-const clickCellCallback = (
-  e: MouseEvent,
-  value: number,
-  filters: Record<string, any>,
-  pivotData: Record<string, any>,
-) => {
-  // TODO: Implement a callback
-};
-
-const clickColumnHeaderCallback = (
-  e: MouseEvent,
-  value: string,
-  filters: Record<string, any>,
-  pivotData: Record<string, any>,
-  isSubtotal: boolean,
-  isGrandTotal: boolean,
-) => {
-  // TODO: Implement a callback
-};
-
-const clickRowHeaderCallback = (
-  e: MouseEvent,
-  value: string,
-  filters: Record<string, any>,
-  pivotData: Record<string, any>,
-  isSubtotal: boolean,
-  isGrandTotal: boolean,
-) => {
-  // TODO: Implement a callback
-};
+const METRIC_KEY = 'metric';
 
 export default function PivotTableChart(props: PivotTableProps) {
   const {
@@ -84,6 +53,9 @@ export default function PivotTableChart(props: PivotTableProps) {
     colTotals,
     rowTotals,
     valueFormat,
+    emitFilter,
+    setDataMask,
+    selectedFilters,
   } = props;
 
   const adaptiveFormatter = getNumberFormatter(valueFormat);
@@ -118,7 +90,7 @@ export default function PivotTableChart(props: PivotTableProps) {
       ...acc,
       ...metricNames.map((name: string) => ({
         ...record,
-        metric: name,
+        [METRIC_KEY]: name,
         value: record[name],
       })),
     ],
@@ -126,8 +98,83 @@ export default function PivotTableChart(props: PivotTableProps) {
   );
 
   const [rows, cols] = transposePivot
-    ? [groupbyColumns, ['metric', ...groupbyRows]]
-    : [groupbyRows, ['metric', ...groupbyColumns]];
+    ? [groupbyColumns, [METRIC_KEY, ...groupbyRows]]
+    : [groupbyRows, [METRIC_KEY, ...groupbyColumns]];
+
+  const handleChange = useCallback(
+    (filters: SelectedFiltersType) => {
+      const groupBy = Object.keys(filters);
+      setDataMask({
+        extraFormData: {
+          filters:
+            groupBy.length === 0
+              ? undefined
+              : groupBy.map(col => {
+                  const val = filters?.[col];
+                  if (val === null || val === undefined)
+                    return {
+                      col,
+                      op: 'IS NULL',
+                    };
+                  return {
+                    col,
+                    op: 'IN',
+                    val: val as (string | number | boolean)[],
+                  };
+                }),
+        },
+        filterState: {
+          selectedFilters: filters && Object.keys(filters).length ? filters : null,
+        },
+        ownState: {
+          selectedFilters: filters && Object.keys(filters).length ? filters : null,
+        },
+      });
+    },
+    [setDataMask],
+  );
+
+  const isActiveFilterValue = useCallback(
+    (key: string, val: DataRecordValue) => !!selectedFilters && selectedFilters[key]?.includes(val),
+    [selectedFilters],
+  );
+
+  const toggleFilter = useCallback(
+    (
+      e: MouseEvent,
+      value: string,
+      filters: FilterType,
+      pivotData: Record<string, any>,
+      isSubtotal: boolean,
+      isGrandTotal: boolean,
+    ) => {
+      if (isSubtotal || isGrandTotal || !emitFilter) {
+        return;
+      }
+
+      const filtersCopy = { ...filters };
+      delete filtersCopy[METRIC_KEY];
+
+      const filtersEntries = Object.entries(filtersCopy);
+      if (filtersEntries.length === 0) {
+        return;
+      }
+
+      const [key, val] = filtersEntries[filtersEntries.length - 1];
+
+      const updatedFilters = { ...(selectedFilters || {}) };
+      if (selectedFilters && isActiveFilterValue(key, val)) {
+        updatedFilters[key] = selectedFilters[key].filter((x: DataRecordValue) => x !== val);
+      } else {
+        updatedFilters[key] = [...(selectedFilters?.[key] || []), val];
+      }
+      if (Array.isArray(updatedFilters[key]) && updatedFilters[key].length === 0) {
+        delete updatedFilters[key];
+      }
+      handleChange(updatedFilters);
+    },
+    [emitFilter, selectedFilters, handleChange],
+  );
 
   return (
     <Styles height={height} width={width}>
@@ -145,11 +192,13 @@ export default function PivotTableChart(props: PivotTableProps) {
           metric: sortAs(metricNames),
         }}
         tableOptions={{
-          clickCallback: clickCellCallback,
-          clickRowHeaderCallback,
-          clickColumnHeaderCallback,
+          clickRowHeaderCallback: toggleFilter,
+          clickColumnHeaderCallback: toggleFilter,
           colTotals,
           rowTotals,
+          highlightHeaderCellsOnHover: emitFilter,
+          highlightedHeaderCells: selectedFilters,
+          omittedHighlightHeaderGroups: [METRIC_KEY],
         }}
         subtotalOptions={{
           colSubtotalDisplay: { displayOnTop: colSubtotalPosition },
