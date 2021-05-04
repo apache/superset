@@ -302,6 +302,13 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
     filterSetsConfig: metadata?.filter_sets_configuration || [],
   });
 
+  if (!metadata) {
+    metadata = {};
+  }
+
+  metadata.show_native_filters =
+    dashboardData?.metadata?.show_native_filters ?? true;
+
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
     // If user just added cross filter to dashboard it's not saving it scope on server,
     // so we tweak it until user will update scope and will save it in server
@@ -313,10 +320,6 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
             chartQueries[chartId]?.formData?.viz_type,
           ) ?? {}
         )?.behaviors ?? [];
-
-      if (!metadata) {
-        metadata = {};
-      }
 
       if (!metadata.chart_configuration) {
         metadata.chart_configuration = {};

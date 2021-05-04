@@ -223,7 +223,7 @@ class Slice(
         try:
             form_data = json.loads(self.params)
         except Exception as ex:  # pylint: disable=broad-except
-            logger.error("Malformed json in slice's params")
+            logger.error("Malformed json in slice's params", exc_info=True)
             logger.exception(ex)
         form_data.update(
             {

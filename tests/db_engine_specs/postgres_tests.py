@@ -389,6 +389,31 @@ psql: error: could not connect to server: Operation timed out
             )
         ]
 
+        msg = "no password supplied"
+        result = PostgresEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+                message="Please re-enter the password.",
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "PostgreSQL",
+                    "issue_codes": [
+                        {
+                            "code": 1014,
+                            "message": "Issue 1014 - Either the"
+                            " username or the password is wrong.",
+                        },
+                        {
+                            "code": 1015,
+                            "message": "Issue 1015 - Either the database is "
+                            "spelled incorrectly or does not exist.",
+                        },
+                    ],
+                },
+            )
+        ]
+
 
 def test_base_parameters_mixin():
     parameters = {

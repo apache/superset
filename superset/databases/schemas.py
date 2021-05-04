@@ -21,7 +21,7 @@ from typing import Any, Dict
 
 from flask import current_app
 from flask_babel import lazy_gettext as _
-from marshmallow import fields, pre_load, Schema, validates_schema
+from marshmallow import EXCLUDE, fields, pre_load, Schema, validates_schema
 from marshmallow.validate import Length, ValidationError
 from sqlalchemy import MetaData
 from sqlalchemy.engine.url import make_url
@@ -275,6 +275,9 @@ class DatabaseParametersSchemaMixin:
 
 
 class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
+    class Meta:  # pylint: disable=too-few-public-methods
+        unknown = EXCLUDE
+
     database_name = fields.String(
         description=database_name_description, required=True, validate=Length(1, 250),
     )
@@ -314,6 +317,9 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
 
 
 class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
+    class Meta:  # pylint: disable=too-few-public-methods
+        unknown = EXCLUDE
+
     database_name = fields.String(
         description=database_name_description, allow_none=True, validate=Length(1, 250),
     )

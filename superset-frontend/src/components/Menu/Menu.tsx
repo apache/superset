@@ -19,6 +19,7 @@
 import React, { useState, useEffect } from 'react';
 import { styled } from '@superset-ui/core';
 import { debounce } from 'lodash';
+import { getUrlParam } from 'src/utils/urlUtils';
 import { Menu as DropdownMenu, MenuMode } from 'src/common/components';
 import { Link } from 'react-router-dom';
 import { Row, Col } from 'antd';
@@ -280,6 +281,9 @@ export function Menu({
     window.addEventListener('resize', windowResize);
     return () => window.removeEventListener('resize', windowResize);
   }, []);
+
+  const standalone = getUrlParam('standalone', 'boolean');
+  if (standalone) return <></>;
 
   const renderSubMenu = ({
     label,

@@ -832,9 +832,18 @@ class TestRolePermission(SupersetTestCase):
 
     def test_sql_lab_permissions(self):
         sql_lab_set = get_perm_tuples("sql_lab")
-        self.assertIn(("can_sql_json", "Superset"), sql_lab_set)
         self.assertIn(("can_csv", "Superset"), sql_lab_set)
-        self.assertIn(("can_search_queries", "Superset"), sql_lab_set)
+        self.assertIn(("can_read", "Database"), sql_lab_set)
+        self.assertIn(("can_read", "SavedQuery"), sql_lab_set)
+        self.assertIn(("can_sql_json", "Superset"), sql_lab_set)
+        self.assertIn(("can_sqllab_viz", "Superset"), sql_lab_set)
+        self.assertIn(("can_sqllab_table_viz", "Superset"), sql_lab_set)
+        self.assertIn(("can_sqllab", "Superset"), sql_lab_set)
+
+        self.assertIn(("menu_access", "SQL Lab"), sql_lab_set)
+        self.assertIn(("menu_access", "SQL Editor"), sql_lab_set)
+        self.assertIn(("menu_access", "Saved Queries"), sql_lab_set)
+        self.assertIn(("menu_access", "Query Search"), sql_lab_set)
 
         self.assert_cannot_alpha(sql_lab_set)
 

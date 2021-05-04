@@ -72,10 +72,11 @@ const ControlItems: FC<ControlItemsProps> = ({
             <Checkbox
               onChange={() => {
                 if (!controlItem.config.resetConfig) {
+                  forceUpdate();
                   return;
                 }
                 setNativeFilterFieldValues(form, filterId, {
-                  defaultValue: null,
+                  defaultDataMask: null,
                 });
                 forceUpdate();
               }}

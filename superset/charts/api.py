@@ -66,7 +66,7 @@ from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.exceptions import QueryObjectValidationError
-from superset.extensions import event_logger
+from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils.async_query_manager import AsyncQueryTokenException
@@ -277,7 +277,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=ex.normalized_messages())
         except ChartCreateFailedError as ex:
             logger.error(
-                "Error creating model %s: %s", self.__class__.__name__, str(ex)
+                "Error creating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -352,7 +355,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             response = self.response_422(message=ex.normalized_messages())
         except ChartUpdateFailedError as ex:
             logger.error(
-                "Error updating model %s: %s", self.__class__.__name__, str(ex)
+                "Error updating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             response = self.response_422(message=str(ex))
 
@@ -407,7 +413,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except ChartDeleteFailedError as ex:
             logger.error(
-                "Error deleting model %s: %s", self.__class__.__name__, str(ex)
+                "Error deleting model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -482,6 +491,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         result_format = result["query_context"].result_format
         if result_format == ChartDataResultFormat.CSV:
+            # Verify user has permission to export CSV file
+            if not security_manager.can_access("can_csv", "Superset"):
+                return self.response_403()
+
             # return the first result
             data = result["queries"][0]["data"]
             return CsvResponse(data, headers=generate_download_headers("csv"))

@@ -176,7 +176,9 @@ class Database(
             # function_names property is used in bulk APIs and should not hard crash
             # more info in: https://github.com/apache/superset/issues/9678
             logger.error(
-                "Failed to fetch database function names with error: %s", str(ex)
+                "Failed to fetch database function names with error: %s",
+                str(ex),
+                exc_info=True,
             )
         return []
 
@@ -437,8 +439,10 @@ class Database(
             cols=cols,
         )
 
-    def apply_limit_to_sql(self, sql: str, limit: int = 1000) -> str:
-        return self.db_engine_spec.apply_limit_to_sql(sql, limit, self)
+    def apply_limit_to_sql(
+        self, sql: str, limit: int = 1000, force: bool = False
+    ) -> str:
+        return self.db_engine_spec.apply_limit_to_sql(sql, limit, self, force=force)
 
     def safe_sqlalchemy_uri(self) -> str:
         return self.sqlalchemy_uri
@@ -594,7 +598,7 @@ class Database(
             try:
                 encrypted_extra = json.loads(self.encrypted_extra)
             except json.JSONDecodeError as ex:
-                logger.error(ex)
+                logger.error(ex, exc_info=True)
                 raise ex
         return encrypted_extra
 
