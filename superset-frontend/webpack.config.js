@@ -291,9 +291,6 @@ const config = {
       'react-dom': '@hot-loader/react-dom',
       // Force using absolute import path of some packages in the root node_modules,
       // as they can be dependencies of other packages via `npm link`.
-      // Both `@emotion/core` and `@superset-ui/core` remember some globals within
-      // module after imported, which will not be available everywhere if two
-      // different copies of the same module are imported in different places.
       '@superset-ui/core': path.resolve(
         APP_DIR,
         './node_modules/@superset-ui/core',
