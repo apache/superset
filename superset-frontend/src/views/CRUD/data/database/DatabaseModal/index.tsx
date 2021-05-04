@@ -37,6 +37,9 @@ import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import { StyledBasicTab, StyledModal } from './styles';
 
+const DOCUMENTATION_LINK =
+  'https://superset.apache.org/docs/databases/installing-database-drivers';
+
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -335,7 +338,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           <CreateHeaderTitle>Enter Primary Credentials</CreateHeaderTitle>
           <CreateHeaderSubtitle>
             Need help? Learn how to connect your database{' '}
-            <a href="https://superset.apache.org/docs/databases/installing-database-drivers">
+            <a
+              href={DOCUMENTATION_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               here
             </a>
             .
@@ -399,7 +406,21 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       </Tabs>
       <Alert
         message="Additional fields may be required"
-        description="Select databases require additional fields to be completed in the next step to successfully connect the database. Learn what requirements your databases has here"
+        description={
+          <>
+            Select databases require additional fields to be completed in the
+            next step to successfully connect the database. Learn what
+            requirements your databases has{' '}
+            <a
+              href={DOCUMENTATION_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              here
+            </a>
+            .
+          </>
+        }
         type="info"
         showIcon
       />
