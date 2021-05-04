@@ -34,7 +34,6 @@
     "@types/d3-scale": "^2.0.2",
     "d3-cloud": "^1.2.5",
     "d3-scale": "^3.0.1",
-    "emotion-theming": "^10.0.27",
     "encodable": "^0.7.6"
   },
   "peerDependencies": {

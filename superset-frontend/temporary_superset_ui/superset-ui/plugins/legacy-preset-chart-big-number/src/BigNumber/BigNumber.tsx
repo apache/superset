@@ -94,8 +94,8 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps, {}> {
 
   static defaultProps = {
     className: '',
-    formatNumber: (num: number) => String(num),
-    formatTime: smartDateVerboseFormatter.formatFunc,
+    formatNumber: defaultNumberFormatter,
+    formatTime: smartDateVerboseFormatter,
     headerFontSize: PROPORTION.HEADER,
     mainColor: BRAND_COLOR,
     showTrendLine: false,

@@ -18,7 +18,16 @@
  */
 import React, { ReactElement } from 'react';
 import { shallow as enzymeShallow, mount as enzymeMount } from 'enzyme';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import {
+  EmotionCacheProvider,
+  createEmotionCache,
+  supersetTheme,
+  ThemeProvider,
+} from '@superset-ui/core';
+
+const emotionCache = createEmotionCache({
+  key: 'test',
+});
 
 type optionsType = {
   wrappingComponentProps?: any;
@@ -27,8 +36,12 @@ type optionsType = {
 };
 
 export function ProviderWrapper(props: any) {
-  const { children, theme } = props;
-  return <ThemeProvider theme={theme}>{children}</ThemeProvider>;
+  const { children, theme = supersetTheme } = props;
+  return (
+    <EmotionCacheProvider value={emotionCache}>
+      <ThemeProvider theme={theme}>{children}</ThemeProvider>
+    </EmotionCacheProvider>
+  );
 }
 
 export function mount(component: ReactElement, options: optionsType = {}) {

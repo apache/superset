@@ -26,6 +26,7 @@
     "skipLibCheck": true,
     "emitDeclarationOnly": true,
     "resolveJsonModule": true,
+    "types": ["@emotion/react/types/css-prop", "jest", "jsdom"],
     "typeRoots": [
       "./node_modules/@types"
     ]

@@ -33,7 +33,6 @@
     "@superset-ui/core": "0.17.40",
     "@types/d3-scale": "^2.0.2",
     "d3-scale": "^3.2.1",
-    "emotion-theming": "^10.0.27",
     "moment": "^2.26.0",
     "mustache": "^4.0.1",
     "prop-types": "^15.7.2",
