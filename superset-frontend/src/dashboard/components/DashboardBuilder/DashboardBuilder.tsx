@@ -22,7 +22,6 @@ import React, { FC, SyntheticEvent, useEffect, useState } from 'react';
 import { Sticky, StickyContainer } from 'react-sticky';
 import { TabContainer } from 'react-bootstrap';
 import { JsonObject, styled } from '@superset-ui/core';
-
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
@@ -31,7 +30,6 @@ import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
-
 import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { URL_PARAMS } from 'src/constants';
