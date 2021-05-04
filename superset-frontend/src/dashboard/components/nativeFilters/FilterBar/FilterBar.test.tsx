@@ -41,6 +41,7 @@ import mockDatasource, {
 import FilterBar, { FILTER_BAR_TEST_ID } from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 
+jest.useFakeTimers();
 // @ts-ignore
 mockCore.makeApi = jest.fn();
 
@@ -244,9 +245,11 @@ describe('FilterBar', () => {
     expect(screen.getByRole('img', { name: 'filter' })).toBeInTheDocument();
   });
 
-  it('should render the filter control name', () => {
+  it('should render the filter control name', async () => {
     renderWrapper();
-    expect(screen.getByText('test')).toBeInTheDocument();
+    expect(
+      await screen.findByText('test', {}, { timeout: 2000 }),
+    ).toBeInTheDocument();
   });
 
   it('should toggle', () => {
