@@ -115,9 +115,11 @@ function Sankey(element, props) {
     tooltip
       .html(() => getTooltipHtml(d))
       .transition()
-      .duration(200)
-      .style('left', `${d3.event.offsetX + 10}px`)
-      .style('top', `${d3.event.offsetY + 10}px`)
+      .duration(200);
+    const { height: tooltipHeight, width: tooltipWidth } = tooltip.node().getBoundingClientRect();
+    tooltip
+      .style('left', `${Math.min(d3.event.offsetX + 10, width - tooltipWidth)}px`)
+      .style('top', `${Math.min(d3.event.offsetY + 10, height - tooltipHeight)}px`)
       .style('position', 'absolute')
       .style('opacity', 0.95);
   }
