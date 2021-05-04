@@ -89,7 +89,7 @@ class UpdateDatabaseCommand(BaseCommand):
                 ConfigurationMethod.SQLALCHEMY_URI,
                 ConfigurationMethod.DYNAMIC_FORM,
             }:
-                exceptions.append(DatabaseExistsValidationError())
+                exceptions.append(DatabaseInvalidError())
         if exceptions:
             exception = DatabaseInvalidError()
             exception.add_list(exceptions)

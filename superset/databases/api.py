@@ -231,6 +231,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:

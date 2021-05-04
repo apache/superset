@@ -23,6 +23,7 @@ from flask import current_app
 from flask_babel import lazy_gettext as _
 from marshmallow import EXCLUDE, fields, pre_load, Schema, validates_schema
 from marshmallow.validate import Length, ValidationError
+from marshmallow_enum import EnumField
 from sqlalchemy import MetaData
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError
@@ -30,7 +31,7 @@ from sqlalchemy.exc import ArgumentError
 from superset.db_engine_specs import get_engine_specs
 from superset.db_engine_specs.base import BasicParametersMixin
 from superset.exceptions import CertificateException, SupersetSecurityException
-from superset.models.core import PASSWORD_MASK
+from superset.models.core import ConfigurationMethod, PASSWORD_MASK
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils.core import markdown, parse_ssl_cert
 
@@ -314,6 +315,7 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     allow_ctas = fields.Boolean(description=allow_ctas_description)
     allow_cvas = fields.Boolean(description=allow_cvas_description)
     allow_dml = fields.Boolean(description=allow_dml_description)
+    configuration_method = EnumField(ConfigurationMethod, by_value=True)
     force_ctas_schema = fields.String(
         description=force_ctas_schema_description,
         allow_none=True,
@@ -351,6 +353,7 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
         description=cache_timeout_description, allow_none=True
     )
     expose_in_sqllab = fields.Boolean(description=expose_in_sqllab_description)
+    configuration_method = EnumField(ConfigurationMethod, by_value=True)
     allow_run_async = fields.Boolean(description=allow_run_async_description)
     allow_csv_upload = fields.Boolean(description=allow_csv_upload_description)
     allow_ctas = fields.Boolean(description=allow_ctas_description)
