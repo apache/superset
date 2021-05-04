@@ -196,7 +196,7 @@ export const StyledExpandableForm = styled.div`
   }
 `;
 
-export const StyledBasicTab = styled(Tabs.TabPane)`
+export const StyledRequiredTab = styled(Tabs.TabPane)`
   padding-left: ${({ theme }) => theme.gridUnit * 4}px;
   padding-right: ${({ theme }) => theme.gridUnit * 4}px;
   margin-top: ${({ theme }) => theme.gridUnit * 4}px;
