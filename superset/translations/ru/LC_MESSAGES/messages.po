@@ -655,7 +655,7 @@ msgstr "Параметры слоя аннотации недействител�
 
 #: superset/annotation_layers/commands/exceptions.py:33
 msgid "Annotation layer could not be deleted."
-msgstr "Слой аннотаций не может быть удалён."
+msgstr "Слой аннотации не может быть удалён."
 
 #: superset/annotation_layers/commands/exceptions.py:37
 msgid "Annotation layer could not be created."
