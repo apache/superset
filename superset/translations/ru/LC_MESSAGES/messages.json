@@ -740,10 +740,14 @@
       ],
       "Report Schedule execution got an unexpected error.": [
 <<<<<<< HEAD
+<<<<<<< HEAD
         "Во время выполнения рассылки произошла непредвиденная ошибка."
 =======
         "По время выполнения рассылки произошла непредвиденная ошибка."
 >>>>>>> Improved translation into Russian language
+=======
+        "Во время выполнения рассылки произошла непредвиденная ошибка."
+>>>>>>> Update messages.json
       ],
       "Report Schedule is still working, refusing to re-compute.": [""],
       "Report Schedule reached a working timeout.": [
