@@ -2292,7 +2292,7 @@ msgid ""
 "Once an alert is triggered, how long, in seconds, before Superset nags you "
 "again."
 msgstr ""
-"После срабатывания предупреждения, как сколько Superset не должен надоедать "
+"После срабатывания предупреждения, как долго Superset не должен надоедать "
 "снова."
 
 #: superset/views/alerts.py:180
