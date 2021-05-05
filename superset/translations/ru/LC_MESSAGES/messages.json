@@ -1681,10 +1681,14 @@
       "delete": ["удалить"],
       "Type \"%s\" to confirm": ["Введите “%s” для подтверждения"],
 <<<<<<< HEAD
+<<<<<<< HEAD
       "DELETE": ["DELETE"],
 =======
       "DELETE": ["УДАЛИТЬ"],
 >>>>>>> Improved translation into Russian language
+=======
+      "DELETE": ["DELETE"],
+>>>>>>> Update messages.json
       "Click to edit": ["Нажмите для редактирования"],
       "You don't have the rights to alter this title.": [
         "Недостаточно прав для изменения заголовка."
