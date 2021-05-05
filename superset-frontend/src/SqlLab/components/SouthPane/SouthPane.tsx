@@ -168,6 +168,7 @@ export default function SouthPane({
         onChange={switchTab}
         id={shortid.generate()}
         fullWidth={false}
+        animated={false}
       >
         <Tabs.TabPane tab={t('Results')} key="Results">
           {renderResults()}
