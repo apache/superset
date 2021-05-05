@@ -125,6 +125,7 @@
         "Нельзя использовать один и тот же срез в двух полях"
       ],
 <<<<<<< HEAD
+<<<<<<< HEAD
       "Treemap": ["Treemap"],
       "Calendar Heatmap": ["Calendar Heatmap"],
       "Bubble Chart": ["Bubble Chart"],
@@ -133,6 +134,11 @@
       "Calendar Heatmap": ["Calendar Heatmap"],
       "Bubble Chart": ["Пузырьковая диаграмма"],
 >>>>>>> Improved translation into Russian language
+=======
+      "Treemap": ["Treemap"],
+      "Calendar Heatmap": ["Calendar Heatmap"],
+      "Bubble Chart": ["Bubble Chart"],
+>>>>>>> Update messages.json
       "Please use 3 different metric labels": [
         "Пожалуйста, выберите разные срезы данных для левой и правой оси"
       ],
@@ -177,10 +183,14 @@
       "Time Series - Percent Change": ["Time Series - Percent Change"],
       "Time Series - Stacked": ["Time Series - Stacked"],
 <<<<<<< HEAD
+<<<<<<< HEAD
       "Histogram": ["Histogram"],
 =======
       "Histogram": ["Гистограмма"],
 >>>>>>> Improved translation into Russian language
+=======
+      "Histogram": ["Histogram"],
+>>>>>>> Update messages.json
       "Must have at least one numeric column specified": [
         "Должен быть указан хотя бы один числовой столбец"
       ],
