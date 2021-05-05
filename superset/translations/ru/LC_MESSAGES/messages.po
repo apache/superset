@@ -3820,7 +3820,7 @@ msgstr "Выполнить запрос (Ctrl + Return)"
 
 #: superset-frontend/src/SqlLab/components/SaveDatasetModal.tsx:108
 msgid "Save & Explore"
-msgstr "Сохранить и исследевать"
+msgstr "Сохранить и исследовать"
 
 #: superset-frontend/src/SqlLab/components/SaveDatasetModal.tsx:123
 msgid "Overwrite & Explore"
