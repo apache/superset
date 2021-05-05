@@ -351,10 +351,14 @@ msgstr "Выберите показатель для отображения"
 #: superset/viz.py:1145 superset/viz_sip38.py:1101
 msgid "Big Number with Trendline"
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "Big Number with Trendline"
 =======
 msgstr "Большое число с линией тренда"
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "Big Number with Trendline"
+>>>>>>> Update messages.po
 
 #: superset/viz.py:1153 superset/viz.py:1187 superset/viz_sip38.py:1109
 #: superset/viz_sip38.py:1140
@@ -364,10 +368,14 @@ msgstr "Выберите показатель!"
 #: superset/viz.py:1179 superset/viz_sip38.py:1132
 msgid "Big Number"
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "Big Number"
 =======
 msgstr "Большое число"
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "Big Number"
+>>>>>>> Update messages.po
 
 #: superset/viz.py:1201 superset/viz_sip38.py:1154
 msgid "Time Series - Line Chart"
