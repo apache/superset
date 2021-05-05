@@ -2040,10 +2040,14 @@
       "Physical": [""],
       "The pointer to a physical table (or view). Keep in mind that the chart is associated to this Superset logical table, and this logical table points the physical table referenced here.": [
 <<<<<<< HEAD
+<<<<<<< HEAD
         "Указатель на физическую таблицу (или представление). Следует помнить, что график связан с логической таблицей Superset, а эта логическая таблица указывает на физическую таблицу, указанную здесь."
 =======
         "Указатель на физическую таблицу (или ракурс). Следует помнить, что график связан с логической таблицей Superset, а эта логическая таблица указывает на физическую таблицу, указанную здесь."
 >>>>>>> Improved translation into Russian language
+=======
+        "Указатель на физическую таблицу (или представление). Следует помнить, что график связан с логической таблицей Superset, а эта логическая таблица указывает на физическую таблицу, указанную здесь."
+>>>>>>> Update messages.json
       ],
       "Click the lock to make changes.": [
         "Нажмите на замок, чтобы выполнить изменения."
