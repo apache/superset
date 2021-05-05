@@ -253,6 +253,7 @@
       "Annotations could not be deleted.": ["Аннотации не могут быть удалены."],
       "Annotation not found.": ["Аннотация не найдена."],
 <<<<<<< HEAD
+<<<<<<< HEAD
       "Annotation parameters are invalid.": [
         "Параметры аннотации недействительны."
       ],
@@ -268,13 +269,16 @@
         "Слой аннотации не может быть удалён."
 =======
       "Annotation parameters are invalid.": ["Слои аннотаций загружаются."],
+=======
+      "Annotation parameters are invalid.": ["Параметры аннотации недействительны."],
+>>>>>>> Update messages.json
       "Annotation could not be created.": ["Аннотация не может быть создана."],
       "Annotation could not be updated.": [
         "Аннотация не может быть обновлена."
       ],
       "Annotation delete failed.": ["Удаление аннотации не удалось."],
       "Annotation layer parameters are invalid.": [
-        "Параметры слоя аннотаций недействительны."
+        "Параметры слоя аннотации недействительны."
       ],
       "Annotation layer could not be deleted.": [
         "Слой аннотаций не может быть удалён."
