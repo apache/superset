@@ -639,7 +639,7 @@ msgstr "Слои аннотаций загружаются."
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:64
 msgid "Annotation could not be created."
-msgstr "Аннотации не могут быть созданы."
+msgstr "Аннотация не может быть создана."
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:68
 msgid "Annotation could not be updated."
