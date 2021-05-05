@@ -1013,7 +1013,7 @@
       "Name of table to be created from csv data.": [
         "Имя таблицы, которая будет сформирована из данных csv."
       ],
-      "CSV File": ["CSV-айл"],
+      "CSV File": ["CSV-файл"],
       "Select a CSV file to be uploaded to a database.": [
         "Выберите файл CSV, который будет загружен в БД."
       ],
