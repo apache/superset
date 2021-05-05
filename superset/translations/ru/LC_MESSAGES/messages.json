@@ -2928,12 +2928,17 @@
       ],
       "Query name": ["Страна"],
 <<<<<<< HEAD
+<<<<<<< HEAD
       "Edited": ["Редактировано"],
       "Created": ["Создано"],
 =======
       "Edited": ["Редактировать"],
       "Created": ["Дата создания"],
 >>>>>>> Improved translation into Russian language
+=======
+      "Edited": ["Редактировано"],
+      "Created": ["Создано"],
+>>>>>>> Update messages.json
       "Viewed": ["Просмотрено"],
       "Examples": ["Примеры"],
       "Mine": ["Мои"],
