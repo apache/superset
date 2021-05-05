@@ -996,17 +996,17 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         need_groupby = bool(metrics is not None or groupby)
         metrics = metrics or []
 
+        metrics_by_name: Dict[str, SqlMetric] = {m.metric_name: m for m in self.metrics}
+        columns_by_name: Dict[str, TableColumn] = {
+            col.column_name: col for col in self.columns
+        }
+
         # For backward compatibility
-        if granularity not in self.dttm_cols:
+        if granularity not in self.dttm_cols and granularity in columns_by_name:
             granularity = self.main_dttm_col
 
         # Database spec supports join-free timeslot grouping
         time_groupby_inline = db_engine_spec.time_groupby_inline
-
-        columns_by_name: Dict[str, TableColumn] = {
-            col.column_name: col for col in self.columns
-        }
-        metrics_by_name: Dict[str, SqlMetric] = {m.metric_name: m for m in self.metrics}
 
         if not granularity and is_timeseries:
             raise QueryObjectValidationError(
