@@ -1576,7 +1576,7 @@
       "%s-%s of %s": [""],
       "Settings": ["Настройки"],
       "About": [""],
-      "SQL query": ["Сохранить запрос"],
+      "SQL query": ["SQL-запрос"],
       "There is not enough space for this component. Try decreasing its width, or increasing the destination width.": [
         "Недостаточно пространства для этого компонента. Попробуйте уменьшить ширину или увеличить целевую ширину."
       ],
