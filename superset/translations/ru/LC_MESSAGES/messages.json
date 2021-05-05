@@ -1329,7 +1329,7 @@
       "Run": ["Выполнить"],
       "Stop running (Ctrl + x)": ["Остановить (Ctrl + x)"],
       "Run query (Ctrl + Return)": ["Выполнить запрос (Ctrl + Return)"],
-      "Save & Explore": ["Сохранить и исследевать"],
+      "Save & Explore": ["Сохранить и исследовать"],
       "Overwrite & Explore": ["Перезаписать и исследовать"],
       "Undefined": ["Не определено"],
       "Save": ["Сохранить"],
