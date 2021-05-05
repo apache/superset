@@ -1730,10 +1730,14 @@
       "Cell content": ["Созданный контент"],
       "The import was successful": ["Неудачно"],
 <<<<<<< HEAD
+<<<<<<< HEAD
       "OVERWRITE": ["OVERWRITE"],
 =======
       "OVERWRITE": ["ПЕРЕЗАПИСАТЬ"],
 >>>>>>> Improved translation into Russian language
+=======
+      "OVERWRITE": ["OVERWRITE"],
+>>>>>>> Update messages.json
       "Overwrite": ["Перезаписать"],
       "Import": ["Импорт"],
       "Import %s": ["Импорт %s"],
