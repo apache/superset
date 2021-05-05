@@ -135,6 +135,7 @@
       "Bullet Chart": ["Bullet Chart"],
       "Pick a metric to display": ["Выберите показатель для отображения"],
 <<<<<<< HEAD
+<<<<<<< HEAD
       "Big Number with Trendline": ["Big Number with Trendline"],
       "Pick a metric!": ["Выберите показатель!"],
       "Big Number": ["Big Number"],
@@ -143,6 +144,11 @@
       "Pick a metric!": ["Выберите показатель!"],
       "Big Number": ["Большое число"],
 >>>>>>> Improved translation into Russian language
+=======
+      "Big Number with Trendline": ["Big Number with Trendline"],
+      "Pick a metric!": ["Выберите показатель!"],
+      "Big Number": ["Big Number"],
+>>>>>>> Update messages.json
       "Time Series - Line Chart": ["Time Series - Line Chart"],
       "Pick a time granularity for your time series": [
         "Выберите период для временных рядов"
