@@ -1104,12 +1104,17 @@
       "Custom Plugins": ["Пользовательское условие WHERE"],
       "Custom Plugin": ["Пользовательский плагин"],
 <<<<<<< HEAD
+<<<<<<< HEAD
       "Add a Plugin": ["Добавить плагин"],
       "Edit Plugin": ["Редактировать плагин"],
 =======
       "Add a Plugin": ["Добавить столбец"],
       "Edit Plugin": ["Редактировать столбец"],
 >>>>>>> Improved translation into Russian language
+=======
+      "Add a Plugin": ["Добавить плагин"],
+      "Edit Plugin": ["Редактировать плагин"],
+>>>>>>> Update messages.json
       "Schedule Email Reports for Dashboards": [
         "Запланировать рассылку по email для дашбордов"
       ],
