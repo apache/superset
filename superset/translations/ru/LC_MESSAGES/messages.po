@@ -2664,11 +2664,11 @@ msgstr "Пользовательский плагин"
 
 #: superset/views/dynamic_plugins.py:55
 msgid "Add a Plugin"
-msgstr "Добавить столбец"
+msgstr "Добавить плагин"
 
 #: superset/views/dynamic_plugins.py:56
 msgid "Edit Plugin"
-msgstr "Редактировать столбец"
+msgstr "Редактировать плагин"
 
 #: superset/views/schedules.py:183
 msgid "Schedule Email Reports for Dashboards"
@@ -7710,11 +7710,11 @@ msgstr "Произошла ошибка при получении данных �
 
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:204
 msgid "Physical dataset"
-msgstr "Выберите источник данных"
+msgstr "Физический датасет"
 
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:214
 msgid "Virtual dataset"
-msgstr "Редактировать Базу Данных"
+msgstr "Виртуальный датасет"
 
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:399
 #, python-format
