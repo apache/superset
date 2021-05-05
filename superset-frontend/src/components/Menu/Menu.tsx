@@ -17,11 +17,14 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { t, styled } from '@superset-ui/core';
-import { Nav, Navbar, NavItem } from 'react-bootstrap';
-import NavDropdown from 'src/components/NavDropdown';
-import { Menu as DropdownMenu } from 'src/common/components';
 import { Link } from 'react-router-dom';
+import { Nav, Navbar, NavItem } from 'react-bootstrap';
+import { t, styled } from '@superset-ui/core';
+
+import { Menu as DropdownMenu } from 'src/common/components';
+import NavDropdown from 'src/components/NavDropdown';
+import { getUrlParam } from 'src/utils/urlUtils';
+
 import MenuObject, {
   MenuObjectProps,
   MenuObjectChildProps,
@@ -158,6 +161,10 @@ export function Menu({
   isFrontendRoute = () => false,
 }: MenuProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // would useQueryParam here but not all apps provide a router context
+  const standalone = getUrlParam('standalone', 'boolean');
+  if (standalone) return <></>;
 
   return (
     <StyledHeader className="top" id="main-menu">

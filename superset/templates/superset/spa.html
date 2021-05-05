@@ -18,11 +18,10 @@
 #}
 {% extends "superset/basic.html" %}
 
-{% block body %}
-<div
-  id="app"
-  class="dashboard container-fluid"
-  data-bootstrap="{{ bootstrap_data }}"
->
-</div>
+{% block navbar %}
+{% endblock %}
+
+{% block tail_js %}
+  {{ js_bundle("spa") }}
+  {% include "tail_js_custom_extra.html" %}
 {% endblock %}

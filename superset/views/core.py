@@ -462,6 +462,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         form_data, slc = get_form_data(slice_id, use_slice_data=True)
         if not slc:
             return json_error_response("The slice does not exist")
+
+        if not slc.datasource:
+            return json_error_response("The slice's datasource does not exist")
+
         try:
             viz_obj = get_viz(
                 datasource_type=slc.datasource.type,
@@ -577,6 +581,15 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             if request.args.get(response_option) == "true":
                 response_type = response_option
                 break
+
+        # Verify user has permission to export CSV file
+        if (
+            response_type == utils.ChartDataResultFormat.CSV
+            and not security_manager.can_access("can_csv", "Superset")
+        ):
+            return json_error_response(
+                _("You don't have the rights to ") + _("download as csv"), status=403,
+            )
 
         form_data = get_form_data()[0]
 
@@ -739,7 +752,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # slc perms
         slice_add_perm = security_manager.can_access("can_write", "Chart")
         slice_overwrite_perm = is_owner(slc, g.user) if slc else False
-        slice_download_perm = security_manager.can_access("can_read", "Chart")
+        slice_download_perm = security_manager.can_access("can_csv", "Superset")
 
         form_data["datasource"] = str(datasource_id) + "__" + cast(str, datasource_type)
 
@@ -1700,6 +1713,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         else get_dashboard_extra_filters(slc.id, dashboard_id)
                     )
 
+                if not slc.datasource:
+                    raise Exception("Slice's datasource does not exist")
+
                 obj = get_viz(
                     datasource_type=slc.datasource.type,
                     datasource_id=slc.datasource.id,
@@ -1840,7 +1856,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         dash_edit_perm = check_ownership(
             dashboard, raise_if_false=False
         ) and security_manager.can_access("can_save_dash", "Superset")
-        standalone_mode = ReservedUrlParameters.is_standalone_mode()
         edit_mode = (
             request.args.get(utils.ReservedUrlParameters.EDIT_MODE.value) == "true"
         )
@@ -1858,11 +1873,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         }
 
         return self.render_template(
-            "superset/dashboard.html",
-            entry="dashboard",
-            standalone_mode=standalone_mode,
-            title=dashboard.dashboard_title,
-            custom_css=dashboard.css,
+            "superset/spa.html",
+            entry="spa",
             bootstrap_data=json.dumps(
                 bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
             ),
@@ -2789,13 +2801,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return self.dashboard(dashboard_id_or_slug=str(welcome_dashboard_id))
 
         payload = {
-            "user": bootstrap_user_data(g.user),
+            "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(),
         }
 
         return self.render_template(
-            "superset/crud_views.html",
-            entry="crudViews",
+            "superset/spa.html",
+            entry="spa",
             bootstrap_data=json.dumps(
                 payload, default=utils.pessimistic_json_iso_dttm_ser
             ),

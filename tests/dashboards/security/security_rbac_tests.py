@@ -49,7 +49,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         response = self.get_dashboard_view_response(dashboard_to_access)
 
         # assert
-        self.assert_dashboard_view_response(response, dashboard_to_access)
+        self.assert200(response)
 
     def test_get_dashboard_view__owner_can_access(self):
         # arrange
@@ -67,7 +67,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         response = self.get_dashboard_view_response(dashboard_to_access)
 
         # assert
-        self.assert_dashboard_view_response(response, dashboard_to_access)
+        self.assert200(response)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_dashboard_view__user_can_not_access_without_permission(self):
@@ -133,7 +133,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         response = self.get_dashboard_view_response(dashboard_to_access)
 
         # assert
-        self.assert_dashboard_view_response(response, dashboard_to_access)
+        self.assert200(response)
 
         request_payload = get_query_context("birth_names")
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
@@ -184,7 +184,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         response = self.get_dashboard_view_response(dashboard_to_access)
 
         # assert
-        self.assert_dashboard_view_response(response, dashboard_to_access)
+        self.assert200(response)
 
         # post
         revoke_access_to_dashboard(dashboard_to_access, "Public")

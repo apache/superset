@@ -209,7 +209,7 @@ export class ExploreChartHeader extends React.PureComponent {
               openPropertiesModal: this.openPropertiesModal,
             }}
             slice={this.props.slice}
-            canDownload={this.props.can_download}
+            canDownloadCSV={this.props.can_download}
             chartStatus={chartStatus}
             latestQueryFormData={latestQueryFormData}
             queryResponse={queryResponse}

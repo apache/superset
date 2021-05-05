@@ -202,14 +202,13 @@ const config = {
     fs: 'empty',
   },
   entry: {
-    theme: path.join(APP_DIR, '/src/theme.ts'),
     preamble: PREAMBLE,
+    theme: path.join(APP_DIR, '/src/theme.ts'),
+    menu: addPreamble('src/views/menu.tsx'),
+    spa: addPreamble('/src/views/index.tsx'),
     addSlice: addPreamble('/src/addSlice/index.tsx'),
     explore: addPreamble('/src/explore/index.jsx'),
-    dashboard: addPreamble('/src/dashboard/index.jsx'),
     sqllab: addPreamble('/src/SqlLab/index.tsx'),
-    crudViews: addPreamble('/src/views/index.tsx'),
-    menu: addPreamble('src/views/menu.tsx'),
     profile: addPreamble('/src/profile/index.tsx'),
     showSavedQuery: [path.join(APP_DIR, '/src/showSavedQuery/index.jsx')],
   },
@@ -292,9 +291,6 @@ const config = {
       'react-dom': '@hot-loader/react-dom',
       // Force using absolute import path of some packages in the root node_modules,
       // as they can be dependencies of other packages via `npm link`.
-      // Both `@emotion/core` and `@superset-ui/core` remember some globals within
-      // module after imported, which will not be available everywhere if two
-      // different copies of the same module are imported in different places.
       '@superset-ui/core': path.resolve(
         APP_DIR,
         './node_modules/@superset-ui/core',

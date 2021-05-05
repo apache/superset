@@ -21,6 +21,7 @@ import { chart } from 'src/chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
 import { DataMaskStateWithId } from '../dataMask/types';
 import { NativeFiltersState } from './reducers/types';
+import { ChartState } from '../explore/types';
 
 export type ChartReducerInitialState = typeof chart;
 
@@ -34,8 +35,7 @@ export interface ChartQueryPayload extends Partial<ChartReducerInitialState> {
 }
 
 /** Chart state of redux */
-export type Chart = {
-  id: number;
+export type Chart = ChartState & {
   formData: {
     viz_type: string;
   };
@@ -54,11 +54,13 @@ export type DashboardInfo = {
   metadata: { show_native_filters: boolean; chart_configuration: JsonObject };
 };
 
+export type ChartsState = { [key: string]: Chart };
+
 /** Root state of redux */
 export type RootState = {
   datasources: JsonObject;
   sliceEntities: JsonObject;
-  charts: { [key: string]: Chart };
+  charts: ChartsState;
   dashboardLayout: DashboardLayoutState;
   dashboardFilters: {};
   dashboardState: DashboardState;

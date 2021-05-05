@@ -53,5 +53,5 @@ export default {
   explore,
   sqlLab,
   localStorageUsageInKilobytes,
-  common: () => common,
+  common,
 };
