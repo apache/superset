@@ -41,7 +41,6 @@ import SupersetResourceSelect, {
 } from 'src/components/SupersetResourceSelect';
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
-import { GlobalExploreStyles } from 'src/explore/components/GlobalExploreStyles';
 import { addDangerToast } from 'src/messageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import SelectControl from 'src/explore/components/controls/SelectControl';
@@ -263,8 +262,6 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
 
   return (
     <>
-      {/* GlobalExploreStyles needed to style AdhocFilterControl */}
-      <GlobalExploreStyles />
       <Typography.Title level={5}>{t('Settings')}</Typography.Title>
       <StyledContainer>
         <StyledFormItem

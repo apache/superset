@@ -40,7 +40,6 @@ import * as chartActions from 'src/chart/chartAction';
 import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { mergeExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
-import { GlobalExploreStyles } from './GlobalExploreStyles';
 import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
@@ -440,7 +439,6 @@ function ExploreViewContainer(props) {
           }
         `}
       />
-      <GlobalExploreStyles />
       {showingModal && (
         <SaveModal
           onHide={toggleModal}
