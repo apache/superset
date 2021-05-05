@@ -1525,7 +1525,7 @@
       "schema": ["схема"],
       "delete": ["удалить"],
       "Type \"%s\" to confirm": ["Введите “%s” для подтверждения"],
-      "DELETE": ["УДАЛИТЬ"],
+      "DELETE": ["DELETE"],
       "Click to edit": ["Нажмите для редактирования"],
       "You don't have the rights to alter this title.": [
         "Недостаточно прав для изменения заголовка."
