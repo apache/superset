@@ -136,6 +136,7 @@ msgstr "Рассылка графиков"
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:415 superset/app.py:436
 msgid "Alerts"
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "Оповещения"
 
 #: superset/app.py:448
@@ -148,6 +149,13 @@ msgstr "Предупреждения"
 msgid "Alerts & Reports"
 msgstr "Предупреждения и Рассылка"
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "Оповещения"
+
+#: superset/app.py:448
+msgid "Alerts & Reports"
+msgstr "Оповещения и Рассылка"
+>>>>>>> Update messages.po
 
 #: superset/app.py:462
 msgid "Access requests"
@@ -789,10 +797,14 @@ msgstr "`смещение_строк` должно быть больше или 
 #, python-format
 msgid "There are associated alerts or reports: %s,"
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "Существуют оповещения или рассылки: %s,"
 =======
 msgstr "Существуют предупреждения или рассылки: %s,"
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "Существуют оповещения или рассылки: %s,"
+>>>>>>> Update messages.po
 
 #: superset/charts/commands/exceptions.py:37
 #: superset/datasets/commands/exceptions.py:38
@@ -831,10 +843,14 @@ msgstr "График не может быть удалён."
 #: superset/databases/commands/exceptions.py:116
 msgid "There are associated alerts or reports"
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "Существуют привязанные оповещения или рассылки"
 =======
 msgstr "Существуют привязанные предупреждения или рассылки"
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "Существуют привязанные оповещения или рассылки"
+>>>>>>> Update messages.po
 
 #: superset/charts/commands/exceptions.py:86
 msgid "Changing this chart is forbidden"
@@ -1860,20 +1876,28 @@ msgstr[0] "Удалено %(num)d рассылок"
 msgid "Alert query returned more then one row. %s rows returned"
 msgstr ""
 <<<<<<< HEAD
+<<<<<<< HEAD
 "Запрос от оповещения вернул больше одной строки. %s строк возвращено"
 =======
 "Запрос от предупреждения вернул больше одной строки. %s строк возвращено"
 >>>>>>> Improved translation into Russian language
+=======
+"Запрос от оповещения вернул больше одной строки. %s строк возвращено"
+>>>>>>> Update messages.po
 
 #: superset/reports/commands/alert.py:83
 #, python-format
 msgid "Alert query returned more then one column. %s columns returned"
 msgstr ""
 <<<<<<< HEAD
+<<<<<<< HEAD
 "Запрос от оповещения вернул больше одного столбца. %s столбцов возвращено"
 =======
 "Запрос от предупреждения вернул больше одного столбца. %s столбцов возвращено"
 >>>>>>> Improved translation into Russian language
+=======
+"Запрос от оповещения вернул больше одного столбца. %s столбцов возвращено"
+>>>>>>> Update messages.po
 
 #: superset/reports/commands/exceptions.py:44
 msgid "Dashboard does not exist"
@@ -1950,10 +1974,14 @@ msgstr "Рассылка достигла тайм-аута в работе."
 #: superset/reports/commands/exceptions.py:138
 msgid "Alert query returned more then one row."
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "Запрос для оповещения вернул больше одной строки."
 =======
 msgstr "Запрос для предупреждения вернул больше одной строки."
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "Запрос для оповещения вернул больше одной строки."
+>>>>>>> Update messages.po
 
 #: superset/reports/commands/exceptions.py:143
 msgid "Alert validator config error."
@@ -1961,6 +1989,7 @@ msgstr "Неверная конфигурация широты и долготы
 
 #: superset/reports/commands/exceptions.py:147
 msgid "Alert query returned more then one column."
+<<<<<<< HEAD
 <<<<<<< HEAD
 msgstr "Запрос для оповещения вернул больше одного столбца."
 
@@ -1974,6 +2003,13 @@ msgstr "Запрос для предупреждения вернул больш
 msgid "Alert query returned a non-number value."
 msgstr "Запрос для предупреждения вернул не число."
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "Запрос для оповещения вернул больше одного столбца."
+
+#: superset/reports/commands/exceptions.py:151
+msgid "Alert query returned a non-number value."
+msgstr "Запрос для оповещения вернул не число."
+>>>>>>> Update messages.po
 
 #: superset/reports/commands/exceptions.py:155
 msgid "Alert found an error while executing a query."
@@ -2381,16 +2417,21 @@ msgstr "Список адресов, разделённый точкой с за
 #: superset/views/alerts.py:175
 msgid "How long to keep the logs around for this alert"
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "Как долго хранить логи для данного оповещения"
 =======
 msgstr "Как долго хранить логи для данного предупреждения"
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "Как долго хранить логи для данного оповещения"
+>>>>>>> Update messages.po
 
 #: superset/views/alerts.py:176
 msgid ""
 "Once an alert is triggered, how long, in seconds, before Superset nags you "
 "again."
 msgstr ""
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 "После срабатывания оповещения, как долго Superset не должен надоедать "
@@ -2400,6 +2441,9 @@ msgstr ""
 =======
 "После срабатывания предупреждения, как долго Superset не должен надоедать "
 >>>>>>> Update messages.po
+=======
+"После срабатывания оповещения, как долго Superset не должен надоедать "
+>>>>>>> Update messages.po
 "снова."
 
 #: superset/views/alerts.py:180
@@ -2408,10 +2452,14 @@ msgid ""
 "The query is expected to return either NULL or a number value."
 msgstr ""
 <<<<<<< HEAD
+<<<<<<< HEAD
 "SQL-выражение, которое определяет сработало оповещение или нет. Запрос "
 =======
 "SQL-выражение, которое определяет сработало предупреждение или нет. Запрос "
 >>>>>>> Improved translation into Russian language
+=======
+"SQL-выражение, которое определяет сработало оповещение или нет. Запрос "
+>>>>>>> Update messages.po
 "должен вернуть NULL или числовое значение."
 
 #: superset/views/annotations.py:40
