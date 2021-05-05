@@ -3940,10 +3940,14 @@ msgstr "Выполнить запрос (Ctrl + Return)"
 #: superset-frontend/src/SqlLab/components/SaveDatasetModal.tsx:108
 msgid "Save & Explore"
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "Сохранить и исследовать"
 =======
 msgstr "Сохранить и исследевать"
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "Сохранить и исследовать"
+>>>>>>> Update messages.po
 
 #: superset-frontend/src/SqlLab/components/SaveDatasetModal.tsx:123
 msgid "Overwrite & Explore"
