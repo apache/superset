@@ -21,9 +21,6 @@ import { styled } from '@superset-ui/core';
 export const ExplorePopoverContent = styled.div`
   .edit-popover-resize {
     transform: scaleX(-1);
-    -moz-transform: scaleX(-1);
-    -webkit-transform: scaleX(-1);
-    -ms-transform: scaleX(-1);
     float: right;
     margin-top: ${({ theme }) => theme.gridUnit * 4}px;
     margin-right: ${({ theme }) => theme.gridUnit * -2}px;

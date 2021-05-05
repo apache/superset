@@ -22,7 +22,10 @@ import { shallow } from 'enzyme';
 
 import MetricDefinitionOption from 'src/explore/components/controls/MetricControl/MetricDefinitionOption';
 import AggregateOption from 'src/explore/components/controls/MetricControl/AggregateOption';
-import { StyledMetricOption, StyledColumnOption } from 'src/explore/components/optionRenderers';
+import {
+  StyledMetricOption,
+  StyledColumnOption,
+} from 'src/explore/components/optionRenderers';
 
 describe('MetricDefinitionOption', () => {
   const mockStore = configureStore([]);
