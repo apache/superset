@@ -162,6 +162,7 @@ export default class AdhocFilterEditPopover extends React.Component {
           data-test="adhoc-filter-edit-tabs"
           style={{ minHeight: this.state.height, width: this.state.width }}
           allowOverflow
+          animated={false}
           onChange={this.onTabChange}
         >
           <Tabs.TabPane
