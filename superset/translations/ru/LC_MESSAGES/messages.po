@@ -4642,7 +4642,7 @@ msgstr "Неудачно"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:196
 msgid "OVERWRITE"
-msgstr "ПЕРЕЗАПИСАТЬ"
+msgstr "OVERWRITE"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:266
 msgid "Overwrite"
