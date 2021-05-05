@@ -161,6 +161,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         // @ts-ignore
         onChange={handleChange}
         ref={inputRef}
+        maxTagCount={5}
       >
         {data.map(row => {
           const [value] = groupby.map(col => row[col]);
