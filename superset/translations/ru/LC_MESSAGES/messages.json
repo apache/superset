@@ -2185,7 +2185,7 @@
       "How to display time shifts: as individual lines; as the absolute difference between the main time series and each time shift; as the percentage change; or as the ratio between series and time shifts.": [
         "Как отображать смещения во времени: как отдельные линии; как абсолютную разницу между основным временным рядом и каждым смещением; как процентное изменение; или как соотношение между рядами и смещениями."
       ],
-      "Python functions": ["Функция агрегации"],
+      "Python functions": ["Python функции"],
       "Rule": ["Правило"],
       "Pandas resample rule": [
         "Одна из функций (Resample) библиотеки Pandas, которая определяет период, к которому применяется функция агрегации"
