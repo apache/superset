@@ -6606,7 +6606,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:247
 msgid "Python functions"
-msgstr "Функция агрегации"
+msgstr "Python функции"
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:256
 msgid "Rule"
