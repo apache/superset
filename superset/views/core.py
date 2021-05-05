@@ -485,6 +485,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self, layer_id: int
     ) -> FlaskResponse:
         form_data = get_form_data()[0]
+        force = utils.parse_boolean_string(request.args.get("force"))
+
         form_data["layer_id"] = layer_id
         form_data["filters"] = [{"col": "layer_id", "op": "==", "val": layer_id}]
         # Set all_columns to ensure the TableViz returns the necessary columns to the
@@ -503,7 +505,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "changed_by_fk",
         ]
         datasource = AnnotationDatasource()
-        viz_obj = viz.viz_types["table"](datasource, form_data=form_data, force=False)
+        viz_obj = viz.viz_types["table"](datasource, form_data=form_data, force=force)
         payload = viz_obj.get_payload()
         return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
 
