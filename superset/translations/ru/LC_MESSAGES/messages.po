@@ -314,7 +314,7 @@ msgstr "Нельзя использовать один и тот же срез �
 
 #: superset/viz.py:954 superset/viz_sip38.py:837
 msgid "Treemap"
-msgstr "Дерево"
+msgstr "Treemap"
 
 #: superset/viz.py:986 superset/viz_sip38.py:869
 msgid "Calendar Heatmap"
@@ -322,7 +322,7 @@ msgstr "Calendar Heatmap"
 
 #: superset/viz.py:1066 superset/viz_sip38.py:1030
 msgid "Bubble Chart"
-msgstr "Пузырьковая диаграмма"
+msgstr "Bubble Chart"
 
 #: superset/viz.py:1088 superset/viz_sip38.py:1046
 msgid "Please use 3 different metric labels"
