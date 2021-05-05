@@ -3910,10 +3910,14 @@ msgstr "Запрос в отдельной вкладке"
 #: superset-frontend/src/SqlLab/components/ResultSet.tsx:575
 msgid "The query returned no data"
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "Результат пуст"
 =======
 msgstr "Запрос не вернул никаких данных"
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "Результат пуст"
+>>>>>>> Update messages.po
 
 #: superset-frontend/src/SqlLab/components/ResultSet.tsx:593
 msgid "Fetch data preview"
