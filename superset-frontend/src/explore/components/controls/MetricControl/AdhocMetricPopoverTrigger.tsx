@@ -20,6 +20,7 @@ import React, { ReactNode } from 'react';
 import { Metric } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
 import AdhocMetricEditPopoverTitle from 'src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle';
+import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
 import AdhocMetricEditPopover, {
   SAVED_TAB_KEY,
 } from './AdhocMetricEditPopover';
@@ -176,19 +177,21 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
         };
 
     const overlayContent = (
-      <AdhocMetricEditPopover
-        adhocMetric={adhocMetric}
-        title={title}
-        columns={columns}
-        savedMetricsOptions={savedMetricsOptions}
-        savedMetric={savedMetric}
-        datasourceType={datasourceType}
-        onResize={this.onPopoverResize}
-        onClose={closePopover}
-        onChange={this.onChange}
-        getCurrentTab={this.getCurrentTab}
-        getCurrentLabel={this.getCurrentLabel}
-      />
+      <ExplorePopoverContent>
+        <AdhocMetricEditPopover
+          adhocMetric={adhocMetric}
+          title={title}
+          columns={columns}
+          savedMetricsOptions={savedMetricsOptions}
+          savedMetric={savedMetric}
+          datasourceType={datasourceType}
+          onResize={this.onPopoverResize}
+          onClose={closePopover}
+          onChange={this.onChange}
+          getCurrentTab={this.getCurrentTab}
+          getCurrentLabel={this.getCurrentLabel}
+        />
+      </ExplorePopoverContent>
     );
 
     const popoverTitle = (
