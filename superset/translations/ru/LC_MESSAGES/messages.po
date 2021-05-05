@@ -4261,7 +4261,7 @@ msgstr "Февраль"
 
 #: superset-frontend/src/common/components/CronPicker.tsx:67
 msgid "March"
-msgstr "Поиск"
+msgstr "Март"
 
 #: superset-frontend/src/common/components/CronPicker.tsx:68
 msgid "April"
