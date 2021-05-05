@@ -7061,10 +7061,14 @@ msgstr "${AlertState.grace}"
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:411
 msgid "Alerts & reports"
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "Оповещения и рассылки"
 =======
 msgstr "Предупреждения и рассылки"
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "Оповещения и рассылки"
+>>>>>>> Update messages.po
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:421
 msgid "Reports"
@@ -7302,10 +7306,14 @@ msgstr "Рассылка не удалась"
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:77
 msgid "Alert failed"
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "Оповещение не удалось"
 =======
 msgstr "Предупреждение не удалось"
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "Оповещение не удалось"
+>>>>>>> Update messages.po
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:82
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:92
