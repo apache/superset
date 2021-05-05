@@ -20,16 +20,18 @@ import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import * as redux from 'react-redux';
-import { styledMount as mount } from 'spec/helpers/theming';
-import { render, screen } from 'spec/helpers/testing-library';
+import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
-import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
-import Modal from 'src/components/Modal';
-import Tabs from 'src/components/Tabs';
-import fetchMock from 'fetch-mock';
+
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { initialState } from 'spec/javascripts/sqllab/fixtures';
+import { styledMount as mount } from 'spec/helpers/theming';
+import { render, screen } from 'spec/helpers/testing-library';
+
+import Modal from 'src/components/Modal';
+import Tabs from 'src/components/Tabs';
+import DatabaseModal from './index';
 
 // store needed for withToasts(DatabaseModal)
 const mockStore = configureStore([thunk]);
@@ -39,16 +41,19 @@ const mockedProps = {
 };
 const dbProps = {
   show: true,
-  database: {
-    id: 10,
-    database_name: 'test',
-    sqlalchemy_uri: 'sqllite:///user:pw/test',
-    expose_in_sqllab: true,
-  },
+  databaseId: 10,
 };
 
 const DATABASE_ENDPOINT = 'glob:*/api/v1/database/*';
-fetchMock.get(DATABASE_ENDPOINT, {});
+fetchMock.get(DATABASE_ENDPOINT, {
+  result: {
+    id: 1,
+    database_name: 'my database',
+    expose_in_sqllab: false,
+    allow_ctas: false,
+    allow_cvas: false,
+  },
+});
 
 describe('DatabaseModal', () => {
   describe('enzyme', () => {
@@ -74,8 +79,8 @@ describe('DatabaseModal', () => {
     it('renders a Modal', () => {
       expect(wrapper.find(Modal)).toExist();
     });
-    it('renders "Add database" header when no database is included', () => {
-      expect(wrapper.find('h4').text()).toEqual('Add database');
+    it('renders "Connect a database" header when no database is included', () => {
+      expect(wrapper.find('h4').text()).toEqual('Connect a database');
     });
     it('renders "Edit database" header when database prop is included', () => {
       const editWrapper = mount(<DatabaseModal store={store} {...dbProps} />);
@@ -99,17 +104,7 @@ describe('DatabaseModal', () => {
   describe('RTL', () => {
     describe('initial load', () => {
       it('hides the forms from the db when not selected', () => {
-        render(
-          <DatabaseModal
-            show
-            database={{
-              expose_in_sqllab: false,
-              allow_ctas: false,
-              allow_cvas: false,
-            }}
-          />,
-          { useRedux: true },
-        );
+        render(<DatabaseModal show databaseId={1} />, { useRedux: true });
         // Select Advanced tab
         const advancedTab = screen.getByRole('tab', {
           name: /advanced/i,
@@ -151,10 +146,7 @@ describe('DatabaseModal', () => {
         name: /expose in sql lab/i,
       });
 
-      // While 'Expose in SQL Lab' is checked, all settings should display
       expect(exposeInSqlLab).not.toBeChecked();
-
-      // When clicked, "Expose in SQL Lab" becomes unchecked
       userEvent.click(exposeInSqlLab);
 
       // While checked make sure all checkboxes are showing
