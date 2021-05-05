@@ -985,7 +985,7 @@
       "Add Dashboard": ["Добавить дашборд"],
       "Edit Dashboard": ["Редактировать дашборд"],
       "This json object describes the positioning of the widgets in the dashboard. It is dynamically generated when adjusting the widgets size and positions by using drag & drop in the dashboard view": [
-        "Этот объект JSON описывает расположыение виджетов в дашборде. Он динамически генерируется при настройке размера и позиции виджетов в дашборде с помощью drag & drop"
+        "Этот объект JSON описывает расположение виджетов в дашборде. Он динамически генерируется при настройке размера и позиции виджетов в дашборде с помощью drag & drop"
       ],
       "The CSS for individual dashboards can be altered here, or in the dashboard view where changes are immediately visible": [
         "В этом поле можно задать индивидуальный стиль для дашборда с помощью CSS"
