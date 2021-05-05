@@ -936,8 +936,8 @@
       ],
       "Custom Plugins": ["Пользовательское условие WHERE"],
       "Custom Plugin": ["Пользовательский плагин"],
-      "Add a Plugin": ["Добавить столбец"],
-      "Edit Plugin": ["Редактировать столбец"],
+      "Add a Plugin": ["Добавить плагин"],
+      "Edit Plugin": ["Редактировать плагин"],
       "Schedule Email Reports for Dashboards": [
         "Запланировать рассылку по email для дашбордов"
       ],
@@ -2540,8 +2540,8 @@
       "An error occurred while fetching dataset related data: %s": [
         "Произошла ошибка при получении данных о датасете: %s"
       ],
-      "Physical dataset": ["Выберите источник данных"],
-      "Virtual dataset": ["Редактировать Базу Данных"],
+      "Physical dataset": ["Физический датасет"],
+      "Virtual dataset": ["Виртуальный датасет"],
       "An error occurred while fetching dataset owner values: %s": [
         "Произошла ошибка при получении создателя датасета: %s"
       ],
