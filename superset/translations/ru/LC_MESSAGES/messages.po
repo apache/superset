@@ -2125,10 +2125,14 @@ msgstr ""
 #, python-format
 msgid "[Alert] %(label)s"
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "[Оповещение] %(label)s"
 =======
 msgstr "[Уведомление] %(label)s"
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "[Оповещение] %(label)s"
+>>>>>>> Update messages.po
 
 #: superset/templates/appbuilder/navbar_right.html:35
 msgid "New"
@@ -6947,10 +6951,14 @@ msgstr "рассылка"
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:81
 msgid "alert"
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "оповещение"
 =======
 msgstr "предупреждение"
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "оповещение"
+>>>>>>> Update messages.po
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:82
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:108
@@ -6962,10 +6970,14 @@ msgstr "рассылки"
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:82
 msgid "alerts"
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "оповещения"
 =======
 msgstr "предупреждения"
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "оповещения"
+>>>>>>> Update messages.po
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:165
 #, python-format
@@ -7168,6 +7180,7 @@ msgstr "Добавить"
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1054
 msgid "Edit ${isReport ? 'Report' : 'Alert'}"
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "Править ${isReport ? ‘рассылку’ : ‘оповещение’}"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1055
@@ -7180,6 +7193,13 @@ msgstr "Править ${isReport ? ‘рассылку’ : ‘уведомле
 msgid "Add ${isReport ? 'Report' : 'Alert'}"
 msgstr "Добавить ${isReport ? ‘рассылку’ : ‘уведомление’}"
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "Править ${isReport ? ‘рассылку’ : ‘оповещение’}"
+
+#: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1055
+msgid "Add ${isReport ? 'Report' : 'Alert'}"
+msgstr "Добавить ${isReport ? ‘рассылку’ : ‘оповещение’}"
+>>>>>>> Update messages.po
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1063
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1071
@@ -7198,10 +7218,14 @@ msgstr "Условие оповещения"
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1161
 msgid "Trigger Alert If..."
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "Сделать оповещение, если…"
 =======
 msgstr "Сделать уведомление, если…"
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "Сделать оповещение, если…"
+>>>>>>> Update messages.po
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1185
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1201
@@ -7282,10 +7306,14 @@ msgstr "Рассылка отправлена"
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:63
 msgid "Alert triggered, notification sent"
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "Сработало оповещение, уведомление отправлено"
 =======
 msgstr "Сработало предупреждение, уведомление отправлено"
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "Сработало оповещение, уведомление отправлено"
+>>>>>>> Update messages.po
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:69
 msgid "Report sending"
@@ -7294,10 +7322,14 @@ msgstr "Выполняется рассылка"
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:70
 msgid "Alert running"
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "Выполняется оповещение"
 =======
 msgstr "Выполняется предупреждение"
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "Выполняется оповещение"
+>>>>>>> Update messages.po
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:76
 msgid "Report failed"
@@ -7323,10 +7355,14 @@ msgstr "Ничего не сработало"
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:87
 msgid "Alert Triggered, In Grace Period"
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "Сработало оповещение"
 =======
 msgstr "Сработало предупреждение"
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "Сработало оповещение"
+>>>>>>> Update messages.po
 
 #: superset-frontend/src/views/CRUD/alert/components/RecipientIcon.tsx:38
 msgid "${RecipientIconName.email}"
