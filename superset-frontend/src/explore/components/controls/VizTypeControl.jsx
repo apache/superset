@@ -162,6 +162,7 @@ const VizTypeControl = props => {
 
   const { value, labelType } = props;
   const filterString = filter.toLowerCase();
+  const filterStringParts = filterString.split(' ');
 
   const filteredTypes = DEFAULT_ORDER.filter(type => registry.has(type))
     .filter(type => {
@@ -181,7 +182,11 @@ const VizTypeControl = props => {
         })
         .filter(({ key }) => !typesWithDefaultOrder.has(key)),
     )
-    .filter(entry => entry.value.name.toLowerCase().includes(filterString));
+    .filter(entry =>
+      filterStringParts.every(
+        part => entry.value.name.toLowerCase().indexOf(part) !== -1,
+      ),
+    );
 
   return (
     <div>
