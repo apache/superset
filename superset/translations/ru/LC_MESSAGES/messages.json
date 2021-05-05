@@ -1830,7 +1830,7 @@
       "The JSON metric or post aggregation definition.": [""],
       "Physical": [""],
       "The pointer to a physical table (or view). Keep in mind that the chart is associated to this Superset logical table, and this logical table points the physical table referenced here.": [
-        "Указатель на физическую таблицу (или ракурс). Следует помнить, что график связан с логической таблицей Superset, а эта логическая таблица указывает на физическую таблицу, указанную здесь."
+        "Указатель на физическую таблицу (или представление). Следует помнить, что график связан с логической таблицей Superset, а эта логическая таблица указывает на физическую таблицу, указанную здесь."
       ],
       "Click the lock to make changes.": [
         "Нажмите на замок, чтобы выполнить изменения."
