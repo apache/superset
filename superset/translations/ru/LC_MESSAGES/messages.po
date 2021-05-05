@@ -635,7 +635,7 @@ msgstr "Аннотация не найдена."
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:60
 msgid "Annotation parameters are invalid."
-msgstr "Слои аннотаций загружаются."
+msgstr "Параметры аннотации недействительны."
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:64
 msgid "Annotation could not be created."
@@ -651,7 +651,7 @@ msgstr "Удаление аннотации не удалось."
 
 #: superset/annotation_layers/commands/exceptions.py:29
 msgid "Annotation layer parameters are invalid."
-msgstr "Параметры слоя аннотаций недействительны."
+msgstr "Параметры слоя аннотации недействительны."
 
 #: superset/annotation_layers/commands/exceptions.py:33
 msgid "Annotation layer could not be deleted."
