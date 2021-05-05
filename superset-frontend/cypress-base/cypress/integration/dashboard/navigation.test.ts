@@ -32,15 +32,14 @@ describe('Dashboard SPA navigation', () => {
     cy.visit(WORLD_HEALTH_DASHBOARD);
     cy.contains('[data-test="dashboard-header"]', "World Bank's Data");
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
-    // go to the dashboard list
+    // go to the dashboard list (SPA router navigation)
     cy.contains('.navbar a', 'Dashboards').click();
     cy.get('[data-test="search-input"]')
       .click()
       .type(`Video Game Sales{enter}`);
-    // loading search results can unmount the targeted element,
-    // screwing up the click, so switch to card view
+    // switch to card view just to avoid a race condition with the loading state
     cy.get('[data-test="card-view"]').click();
-    // go to video games dashboard
+    // go to video games dashboard (SPA router navigation)
     cy.contains('a', 'Video Game Sales').click();
     cy.contains('[data-test="dashboard-header"]', 'Video Game Sales');
     VIDEO_GAME_SALES_CHARTS.forEach(waitForChartLoad);
