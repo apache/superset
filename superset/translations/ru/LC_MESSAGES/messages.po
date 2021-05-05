@@ -4778,10 +4778,14 @@ msgstr "Неудачно"
 #: superset-frontend/src/components/ImportModal/index.tsx:196
 msgid "OVERWRITE"
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "OVERWRITE"
 =======
 msgstr "ПЕРЕЗАПИСАТЬ"
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "OVERWRITE"
+>>>>>>> Update messages.po
 
 #: superset-frontend/src/components/ImportModal/index.tsx:266
 msgid "Overwrite"
