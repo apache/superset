@@ -1776,7 +1776,7 @@
       "Change dataset": ["Выберите источник данных"],
       "Warning!": ["Предупреждение!"],
       "Search / Filter": ["Поиск / Фильтр"],
-      "Physical (table or view)": ["Физический (таблица или ракурс)"],
+      "Physical (table or view)": ["Физический (таблица или представление)"],
       "Virtual (SQL)": ["Виртуальный (SQL)"],
       "SQL expression": ["Выражение SQL"],
       "Data type": ["Таблица Данных"],
