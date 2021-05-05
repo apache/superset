@@ -1651,10 +1651,14 @@
       "MAY": ["МАЙ"],
       "JUN": ["ИЮН"],
 <<<<<<< HEAD
+<<<<<<< HEAD
       "JUL": ["ИЮЛ"],
 =======
       "JUL": ["Ссылка (URL)"],
 >>>>>>> Improved translation into Russian language
+=======
+      "JUL": ["ИЮЛ"],
+>>>>>>> Update messages.json
       "AUG": ["АВГ"],
       "SEP": ["СЕН"],
       "OCT": ["ОКТ"],
