@@ -656,6 +656,7 @@ msgstr "Параметры аннотации недействительны."
 #: superset/annotation_layers/annotations/commands/exceptions.py:64
 msgid "Annotation could not be created."
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "Аннотация не может быть создана."
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:68
@@ -663,6 +664,9 @@ msgid "Annotation could not be updated."
 msgstr "Аннотация не может быть обновлена."
 =======
 msgstr "Аннотации не могут быть созданы."
+=======
+msgstr "Аннотация не может быть создана."
+>>>>>>> Update messages.po
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:68
 msgid "Annotation could not be updated."
