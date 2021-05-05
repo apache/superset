@@ -47,7 +47,7 @@ pre-commit:
 	# setup pre commit dependencies
 	pip3 install -r requirements/integration.txt
 	pre-commit install
-	
+
 format: py-format js-format
 
 py-format:
