@@ -5501,7 +5501,7 @@ msgid ""
 "statement as a subquery while grouping and filtering on the generated parent "
 "queries."
 msgstr ""
-"Когда указан SQL, источник данных работает как ракурс. Superset будет "
+"Когда указан SQL, источник данных работает как представление. Superset будет "
 "использовать это выражение в подзапросе, при необходимости группировки и "
 "фильтрации."
 
