@@ -4353,7 +4353,7 @@ msgstr "ИЮН"
 
 #: superset-frontend/src/common/components/CronPicker.tsx:96
 msgid "JUL"
-msgstr "Ссылка (URL)"
+msgstr "ИЮЛ"
 
 #: superset-frontend/src/common/components/CronPicker.tsx:97
 msgid "AUG"
