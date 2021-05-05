@@ -29,8 +29,8 @@
       "Action Log": ["Журнал Действий"],
       "Dashboard Emails": ["Рассылка дашбордов"],
       "Chart Email Schedules": ["Рассылка графиков"],
-      "Alerts": ["Предупреждения"],
-      "Alerts & Reports": ["Предупреждения и Рассылка"],
+      "Alerts": ["Оповещения"],
+      "Alerts & Reports": ["Оповещения и Рассылка"],
       "Access requests": ["Запросы доступа"],
       "Druid Datasources": ["Источники Данных Druid"],
       "Druid Clusters": ["Список Кластеров Druid"],
@@ -277,7 +277,7 @@
         "`смещение_строк` должно быть больше или равно 0"
       ],
       "There are associated alerts or reports: %s,": [
-        "Существуют предупреждения или рассылки: %s,"
+        "Существуют оповещения или рассылки: %s,"
       ],
       "Database does not exist": ["База данных не существует"],
       "Dashboards do not exist": ["Дашборды отсутствуют"],
@@ -289,7 +289,7 @@
       "Chart could not be updated.": ["График не может быть обновлён."],
       "Chart could not be deleted.": ["График не может быть удалён."],
       "There are associated alerts or reports": [
-        "Существуют привязанные предупреждения или рассылки"
+        "Существуют привязанные оповещения или рассылки"
       ],
       "Changing this chart is forbidden": ["Изменение этого графика запрещено"],
       "Charts could not be deleted.": ["Графики не могут быть удалены."],
@@ -630,10 +630,10 @@
       "Saved query not found.": ["Сохранённый запрос не найден."],
       "Deleted %(num)d report schedule": ["Удалено %(num)d рассылок"],
       "Alert query returned more then one row. %s rows returned": [
-        "Запрос от предупреждения вернул больше одной строки. %s строк возвращено"
+        "Запрос от оповещения вернул больше одной строки. %s строк возвращено"
       ],
       "Alert query returned more then one column. %s columns returned": [
-        "Запрос от предупреждения вернул больше одного столбца. %s столбцов возвращено"
+        "Запрос от оповещения вернул больше одного столбца. %s столбцов возвращено"
       ],
       "Dashboard does not exist": ["Дашборд не существует"],
       "Chart does not exist": ["График не существует"],
@@ -672,16 +672,16 @@
         "Рассылка достигла тайм-аута в работе."
       ],
       "Alert query returned more then one row.": [
-        "Запрос для предупреждения вернул больше одной строки."
+        "Запрос для оповещения вернул больше одной строки."
       ],
       "Alert validator config error.": [
         "Неверная конфигурация широты и долготы."
       ],
       "Alert query returned more then one column.": [
-        "Запрос для предупреждения вернул больше одного столбца."
+        "Запрос для оповещения вернул больше одного столбца."
       ],
       "Alert query returned a non-number value.": [
-        "Запрос для предупреждения вернул не число."
+        "Запрос для оповещения вернул не число."
       ],
       "Alert found an error while executing a query.": [
         "Обнаружена ошибка в запросе."
@@ -806,13 +806,13 @@
         "Список адресов, разделённый точкой с запятой ‘;’"
       ],
       "How long to keep the logs around for this alert": [
-        "Как долго хранить логи для данного предупреждения"
+        "Как долго хранить логи для данного оповещения"
       ],
       "Once an alert is triggered, how long, in seconds, before Superset nags you again.": [
-        "После срабатывания предупреждения, как долго Superset не должен надоедать снова."
+        "После срабатывания оповещения, как долго Superset не должен надоедать снова."
       ],
       "A SQL statement that defines whether the alert should get triggered or not. The query is expected to return either NULL or a number value.": [
-        "SQL-выражение, которое определяет сработало предупреждение или нет. Запрос должен вернуть NULL или числовое значение."
+        "SQL-выражение, которое определяет сработало оповещение или нет. Запрос должен вернуть NULL или числовое значение."
       ],
       "annotation start time or end time is required.": [
         "время начала или окончания аннотации обязательно."
@@ -2242,7 +2242,7 @@
       "${AlertState.error}": ["${AlertState.error}"],
       "${AlertState.noop}": ["${AlertState.noop}"],
       "${AlertState.grace}": ["${AlertState.grace}"],
-      "Alerts & reports": ["Предупреждения и рассылки"],
+      "Alerts & reports": ["Оповещения и рассылки"],
       "Reports": ["Рассылки"],
       "This action will permanently delete %s.": [
         "Это действие навсегда удалит %s."
@@ -2302,7 +2302,7 @@
       "Report sending": ["Выполняется рассылка"],
       "Alert running": ["Выполняется предупреждение"],
       "Report failed": ["Рассылка не удалась"],
-      "Alert failed": ["Предупреждение не удалось"],
+      "Alert failed": ["Оповещение не удалось"],
       "Nothing triggered": ["Ничего не сработало"],
       "Alert Triggered, In Grace Period": ["Сработало предупреждение"],
       "${RecipientIconName.email}": ["${RecipientIconName.email}"],
