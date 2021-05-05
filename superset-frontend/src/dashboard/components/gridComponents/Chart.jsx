@@ -101,6 +101,7 @@ export default class Chart extends React.Component {
     this.state = {
       width: props.width,
       height: props.height,
+      descriptionHeight: 0,
     };
 
     this.changeFilter = this.changeFilter.bind(this);
@@ -120,7 +121,8 @@ export default class Chart extends React.Component {
     // which improves performance significantly
     if (
       nextState.width !== this.state.width ||
-      nextState.height !== this.state.height
+      nextState.height !== this.state.height ||
+      nextState.descriptionHeight !== this.state.descriptionHeight
     ) {
       return true;
     }
@@ -164,14 +166,20 @@ export default class Chart extends React.Component {
     clearTimeout(this.resizeTimeout);
   }
 
+  componentDidUpdate(prevProps) {
+    if (this.props.isExpanded !== prevProps.isExpanded) {
+      const descriptionHeight =
+        this.props.isExpanded && this.descriptionRef
+          ? this.descriptionRef.offsetHeight
+          : 0;
+      // eslint-disable-next-line react/no-did-update-set-state
+      this.setState({ descriptionHeight });
+    }
+  }
+
   getChartHeight() {
     const headerHeight = this.getHeaderHeight();
-    const descriptionHeight =
-      this.props.isExpanded && this.descriptionRef
-        ? this.descriptionRef.offsetHeight
-        : 0;
-
-    return this.state.height - headerHeight - descriptionHeight;
+    return this.state.height - headerHeight - this.state.descriptionHeight;
   }
 
   getHeaderHeight() {
