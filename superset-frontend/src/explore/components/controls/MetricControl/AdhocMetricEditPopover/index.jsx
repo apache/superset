@@ -433,7 +433,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                   }
                   editorProps={{ $blockScrolling: true }}
                   enableLiveAutocompletion
-                  className="adhoc-filter-sql-editor"
+                  className="filter-sql-editor"
                   wrapEnabled
                 />
               </FormGroup>
