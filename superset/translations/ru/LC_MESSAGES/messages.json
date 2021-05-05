@@ -281,8 +281,12 @@
         "Параметры слоя аннотации недействительны."
       ],
       "Annotation layer could not be deleted.": [
+<<<<<<< HEAD
         "Слой аннотаций не может быть удалён."
 >>>>>>> Improved translation into Russian language
+=======
+        "Слой аннотации не может быть удалён."
+>>>>>>> Update messages.json
       ],
       "Annotation layer could not be created.": [
         "Слой аннотаций не может быть создан."
