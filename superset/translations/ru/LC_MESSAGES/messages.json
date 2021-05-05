@@ -665,7 +665,7 @@
         "Ошибка при генерировании скриншота во время выполнения рассылки."
       ],
       "Report Schedule execution got an unexpected error.": [
-        "По время выполнения рассылки произошла непредвиденная ошибка."
+        "Во время выполнения рассылки произошла непредвиденная ошибка."
       ],
       "Report Schedule is still working, refusing to re-compute.": [""],
       "Report Schedule reached a working timeout.": [
