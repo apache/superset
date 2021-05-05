@@ -1141,10 +1141,14 @@
         "Имя таблицы, которая будет сформирована из данных csv."
       ],
 <<<<<<< HEAD
+<<<<<<< HEAD
       "CSV File": ["CSV-файл"],
 =======
       "CSV File": ["CSV-айл"],
 >>>>>>> Improved translation into Russian language
+=======
+      "CSV File": ["CSV-файл"],
+>>>>>>> Update messages.json
       "Select a CSV file to be uploaded to a database.": [
         "Выберите файл CSV, который будет загружен в БД."
       ],
