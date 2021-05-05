@@ -1470,10 +1470,14 @@
       "was created": ["создан"],
       "Query in a new tab": ["Запрос в отдельной вкладке"],
 <<<<<<< HEAD
+<<<<<<< HEAD
       "The query returned no data": ["Результат пуст"],
 =======
       "The query returned no data": ["Запрос не вернул никаких данных"],
 >>>>>>> Improved translation into Russian language
+=======
+      "The query returned no data": ["Результат пуст"],
+>>>>>>> Update messages.json
       "Fetch data preview": ["Получить данные для просмотра"],
       "Refetch results": ["Результаты поиска"],
       "Track job": ["Отслеживать работу"],
