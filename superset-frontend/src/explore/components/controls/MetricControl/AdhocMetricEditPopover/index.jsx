@@ -23,7 +23,7 @@ import { FormGroup } from 'react-bootstrap';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
 import { NativeSelect as Select } from 'src/components/Select';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 
 import FormLabel from 'src/components/FormLabel';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
@@ -58,6 +58,18 @@ const defaultProps = {
   columns: [],
   getCurrentTab: noOp,
 };
+
+const StyledSelect = styled(Select)`
+  .metric-option {
+    & > svg {
+      min-width: ${({ theme }) => `${theme.gridUnit * 4}px`};
+    }
+    & > .option-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+`;
 
 export const SAVED_TAB_KEY = 'SAVED';
 
@@ -344,7 +356,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
               <FormLabel>
                 <strong>{t('Saved metric')}</strong>
               </FormLabel>
-              <Select
+              <StyledSelect
                 {...savedSelectProps}
                 name="select-saved"
                 getPopupContainer={triggerNode => triggerNode.parentNode}
@@ -361,7 +373,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                       <StyledMetricOption metric={savedMetric} showType />
                     </Select.Option>
                   ))}
-              </Select>
+              </StyledSelect>
             </FormGroup>
           </Tabs.TabPane>
           <Tabs.TabPane key={EXPRESSION_TYPES.SIMPLE} tab={t('Simple')}>
