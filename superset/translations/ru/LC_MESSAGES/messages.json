@@ -268,7 +268,7 @@
         "Слой аннотации не может быть удалён."
 =======
       "Annotation parameters are invalid.": ["Слои аннотаций загружаются."],
-      "Annotation could not be created.": ["Аннотации не могут быть созданы."],
+      "Annotation could not be created.": ["Аннотация не может быть создана."],
       "Annotation could not be updated.": [
         "Аннотация не может быть обновлена."
       ],
