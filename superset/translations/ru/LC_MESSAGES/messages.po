@@ -2202,7 +2202,7 @@ msgstr "Недействительная строка geodetic"
 
 #: superset/utils/pandas_postprocessing.py:616
 msgid "`fbprophet` package not installed"
-msgstr ""
+msgstr "`fbprophet` пакет не установлен"
 
 #: superset/utils/pandas_postprocessing.py:667
 msgid "Time grain missing"
