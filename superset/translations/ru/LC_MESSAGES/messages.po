@@ -3782,7 +3782,7 @@ msgstr "Запрос в отдельной вкладке"
 
 #: superset-frontend/src/SqlLab/components/ResultSet.tsx:575
 msgid "The query returned no data"
-msgstr "Запрос не вернул никаких данных"
+msgstr "Результат пуст"
 
 #: superset-frontend/src/SqlLab/components/ResultSet.tsx:593
 msgid "Fetch data preview"
