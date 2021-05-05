@@ -298,7 +298,7 @@ msgstr ""
 
 #: superset/viz.py:828 superset/viz_sip38.py:755
 msgid "Pivot Table"
-msgstr "Сводная таблица"
+msgstr "Pivot Table"
 
 #: superset/viz.py:845 superset/viz_sip38.py:771
 msgid "Please choose at least one 'Group by' field "
@@ -406,7 +406,7 @@ msgstr "Time Series - Stacked"
 
 #: superset/viz.py:1579 superset/viz_sip38.py:1543
 msgid "Histogram"
-msgstr "Гистограмма"
+msgstr "Histogram"
 
 #: superset/viz.py:1589 superset/viz_sip38.py:1552
 msgid "Must have at least one numeric column specified"
