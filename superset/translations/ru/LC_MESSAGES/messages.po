@@ -7909,15 +7909,15 @@ msgstr "Вы уверены, что хотите удалить выбранны
 
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryPreviewModal.tsx:126
 msgid "Query name"
-msgstr "Страна"
+msgstr "Имя запроса"
 
 #: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:110
 msgid "Edited"
-msgstr "Редактировать"
+msgstr "Редактировано"
 
 #: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:117
 msgid "Created"
-msgstr "Дата создания"
+msgstr "Создано"
 
 #: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:127
 msgid "Viewed"
