@@ -66,8 +66,6 @@ import {
   CASCADING_FILTERS,
   getFiltersConfigModalTestId,
 } from '../FiltersConfigModal';
-// TODO: move styles from AdhocFilterControl to emotion and delete this ./main.less
-import './main.less';
 
 const StyledContainer = styled.div`
   display: flex;
