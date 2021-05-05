@@ -1566,7 +1566,7 @@
       "Timeout error": ["Тайм-аут"],
       "Cell content": ["Созданный контент"],
       "The import was successful": ["Неудачно"],
-      "OVERWRITE": ["ПЕРЕЗАПИСАТЬ"],
+      "OVERWRITE": ["OVERWRITE"],
       "Overwrite": ["Перезаписать"],
       "Import": ["Импорт"],
       "Import %s": ["Импорт %s"],
