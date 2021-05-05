@@ -1997,7 +1997,7 @@ msgstr ""
 #: superset/tasks/schedules.py:656
 #, python-format
 msgid "[Alert] %(label)s"
-msgstr "[Уведомление] %(label)s"
+msgstr "[Оповещение] %(label)s"
 
 #: superset/templates/appbuilder/navbar_right.html:35
 msgid "New"
@@ -6715,7 +6715,7 @@ msgstr "рассылка"
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:81
 msgid "alert"
-msgstr "предупреждение"
+msgstr "оповещение"
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:82
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:108
@@ -6726,7 +6726,7 @@ msgstr "рассылки"
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:82
 msgid "alerts"
-msgstr "предупреждения"
+msgstr "оповещения"
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:165
 #, python-format
@@ -6920,11 +6920,11 @@ msgstr "Добавить"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1054
 msgid "Edit ${isReport ? 'Report' : 'Alert'}"
-msgstr "Править ${isReport ? ‘рассылку’ : ‘уведомление’}"
+msgstr "Править ${isReport ? ‘рассылку’ : ‘оповещение’}"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1055
 msgid "Add ${isReport ? 'Report' : 'Alert'}"
-msgstr "Добавить ${isReport ? ‘рассылку’ : ‘уведомление’}"
+msgstr "Добавить ${isReport ? ‘рассылку’ : ‘оповещение’}"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1063
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1071
@@ -6934,15 +6934,15 @@ msgstr "Имя Шаблона"
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1063
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1071
 msgid "Alert name"
-msgstr "Имя Таблицы"
+msgstr "Имя оповещения"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1117
 msgid "Alert condition"
-msgstr "Тестовое соединение"
+msgstr "Условие оповещения"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1161
 msgid "Trigger Alert If..."
-msgstr "Сделать уведомление, если…"
+msgstr "Сделать оповещение, если…"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1185
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1201
@@ -6956,7 +6956,7 @@ msgstr "Область просмотра"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1214
 msgid "Alert condition schedule"
-msgstr "Тестовое соединение"
+msgstr "Расписание условия оповещения"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1224
 msgid "Schedule settings"
@@ -7022,7 +7022,7 @@ msgstr "Рассылка отправлена"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:63
 msgid "Alert triggered, notification sent"
-msgstr "Сработало предупреждение, уведомление отправлено"
+msgstr "Сработало оповещение, уведомление отправлено"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:69
 msgid "Report sending"
@@ -7030,7 +7030,7 @@ msgstr "Выполняется рассылка"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:70
 msgid "Alert running"
-msgstr "Выполняется предупреждение"
+msgstr "Выполняется оповещение"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:76
 msgid "Report failed"
@@ -7047,7 +7047,7 @@ msgstr "Ничего не сработало"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:87
 msgid "Alert Triggered, In Grace Period"
-msgstr "Сработало предупреждение"
+msgstr "Сработало оповещение"
 
 #: superset-frontend/src/views/CRUD/alert/components/RecipientIcon.tsx:38
 msgid "${RecipientIconName.email}"
