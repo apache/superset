@@ -1825,7 +1825,7 @@
       "virtual": [""],
       "Dataset name": ["Наименование датасета"],
       "When specifying SQL, the datasource acts as a view. Superset will use this statement as a subquery while grouping and filtering on the generated parent queries.": [
-        "Когда указан SQL, источник данных работает как ракурс. Superset будет использовать это выражение в подзапросе, при необходимости группировки и фильтрации."
+        "Когда указан SQL, источник данных работает как представление. Superset будет использовать это выражение в подзапросе, при необходимости группировки и фильтрации."
       ],
       "The JSON metric or post aggregation definition.": [""],
       "Physical": [""],
