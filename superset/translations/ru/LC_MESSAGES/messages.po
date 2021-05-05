@@ -4690,7 +4690,7 @@ msgstr ""
 #: superset-frontend/src/components/Menu/NewMenu.tsx:26
 #: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:114
 msgid "SQL query"
-msgstr "Сохранить запрос"
+msgstr "SQL-запрос"
 
 #: superset-frontend/src/dashboard/actions/dashboardLayout.js:180
 msgid ""
