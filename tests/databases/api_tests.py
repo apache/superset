@@ -35,6 +35,7 @@ from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.errors import SupersetError
 from superset.models.core import Database
 from superset.models.reports import ReportSchedule, ReportScheduleType
@@ -1250,10 +1251,11 @@ class TestDatabaseApi(SupersetTestCase):
     @mock.patch("superset.databases.api.get_available_engine_specs")
     @mock.patch("superset.databases.api.app")
     def test_available(self, app, get_available_engine_specs):
-        app.config = {"PREFERRED_DATABASES": ["postgresql"]}
+        app.config = {"PREFERRED_DATABASES": ["postgresql", "bigquery"]}
         get_available_engine_specs.return_value = [
             MySQLEngineSpec,
             PostgresEngineSpec,
+            BigQueryEngineSpec,
         ]
 
         self.login(username="admin")
@@ -1261,6 +1263,8 @@ class TestDatabaseApi(SupersetTestCase):
 
         rv = self.client.get(uri)
         response = json.loads(rv.data.decode("utf-8"))
+
+        print(response)
 
         assert rv.status_code == 200
         assert response == {
@@ -1304,6 +1308,22 @@ class TestDatabaseApi(SupersetTestCase):
                     },
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "postgresql+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
+                },
+                {
+                    "engine": "bigquery",
+                    "name": "Google BigQuery",
+                    "parameters": {
+                        "properties": {
+                            "credentials_json": {
+                                "additionalProperties": {},
+                                "description": "credentials for bigquery",
+                                "type": "object",
+                            }
+                        },
+                        "type": "object",
+                    },
+                    "preferred": true,
+                    "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
                 },
                 {"engine": "mysql", "name": "MySQL", "preferred": False},
             ]
