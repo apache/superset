@@ -853,10 +853,14 @@
         "\n        *%(slice_name)s*\n\n        <%(slice_url_user_friendly)s|Исследовать в Superset>\n        "
       ],
 <<<<<<< HEAD
+<<<<<<< HEAD
       "[Alert] %(label)s": ["[Оповещение] %(label)s"],
 =======
       "[Alert] %(label)s": ["[Уведомление] %(label)s"],
 >>>>>>> Improved translation into Russian language
+=======
+      "[Alert] %(label)s": ["[Оповещение] %(label)s"],
+>>>>>>> Update messages.json
       "New": ["Новый"],
       "SQL Query": ["Сохранить запрос"],
       "Chart": ["График"],
@@ -2542,6 +2546,7 @@
       "Add": ["Добавить"],
       "Edit ${isReport ? 'Report' : 'Alert'}": [
 <<<<<<< HEAD
+<<<<<<< HEAD
         "Править ${isReport ? ‘рассылку’ : ‘оповещение’}"
       ],
       "Add ${isReport ? 'Report' : 'Alert'}": [
@@ -2556,18 +2561,25 @@
       "Alert condition schedule": ["Расписание условия оповещения"],
 =======
         "Править ${isReport ? ‘рассылку’ : ‘уведомление’}"
+=======
+        "Править ${isReport ? ‘рассылку’ : ‘оповещение’}"
+>>>>>>> Update messages.json
       ],
       "Add ${isReport ? 'Report' : 'Alert'}": [
-        "Добавить ${isReport ? ‘рассылку’ : ‘уведомление’}"
+        "Добавить ${isReport ? ‘рассылку’ : ‘оповещение’}"
       ],
       "Report name": ["Имя Шаблона"],
-      "Alert name": ["Имя Таблицы"],
-      "Alert condition": ["Тестовое соединение"],
-      "Trigger Alert If...": ["Сделать уведомление, если…"],
+      "Alert name": ["Имя оповещения"],
+      "Alert condition": ["Условие оповещения"],
+      "Trigger Alert If...": ["Сделать оповещение, если…"],
       "Value": ["Подписи"],
       "Report schedule": ["Область просмотра"],
+<<<<<<< HEAD
       "Alert condition schedule": ["Тестовое соединение"],
 >>>>>>> Improved translation into Russian language
+=======
+      "Alert condition schedule": ["Расписание условия оповещения"],
+>>>>>>> Update messages.json
       "Schedule settings": ["Настройки расписания"],
       "Log retention": ["Время жизни журнала"],
       "Working timeout": [""],
@@ -2585,6 +2597,7 @@
       "Report sent": ["Рассылка отправлена"],
       "Alert triggered, notification sent": [
 <<<<<<< HEAD
+<<<<<<< HEAD
         "Сработало оповещение, уведомление отправлено"
       ],
       "Report sending": ["Выполняется рассылка"],
@@ -2595,14 +2608,21 @@
       "Alert Triggered, In Grace Period": ["Сработало оповещение"],
 =======
         "Сработало предупреждение, уведомление отправлено"
+=======
+        "Сработало оповещение, уведомление отправлено"
+>>>>>>> Update messages.json
       ],
       "Report sending": ["Выполняется рассылка"],
-      "Alert running": ["Выполняется предупреждение"],
+      "Alert running": ["Выполняется оповещение"],
       "Report failed": ["Рассылка не удалась"],
       "Alert failed": ["Оповещение не удалось"],
       "Nothing triggered": ["Ничего не сработало"],
+<<<<<<< HEAD
       "Alert Triggered, In Grace Period": ["Сработало предупреждение"],
 >>>>>>> Improved translation into Russian language
+=======
+      "Alert Triggered, In Grace Period": ["Сработало оповещение"],
+>>>>>>> Update messages.json
       "${RecipientIconName.email}": ["${RecipientIconName.email}"],
       "${RecipientIconName.slack}": ["${RecipientIconName.slack}"],
       "annotation": ["аннотация"],
