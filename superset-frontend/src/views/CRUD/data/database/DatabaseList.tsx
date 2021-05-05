@@ -414,7 +414,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     <>
       <SubMenu {...menuData} />
       <DatabaseModal
-        database={currentDatabase}
+        databaseId={currentDatabase?.id}
         show={databaseModalOpen}
         onHide={() => setDatabaseModalOpen(false)}
         onDatabaseAdd={() => {
