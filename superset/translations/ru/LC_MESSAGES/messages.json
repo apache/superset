@@ -1469,10 +1469,14 @@
       "Stop running (Ctrl + x)": ["Остановить (Ctrl + x)"],
       "Run query (Ctrl + Return)": ["Выполнить запрос (Ctrl + Return)"],
 <<<<<<< HEAD
+<<<<<<< HEAD
       "Save & Explore": ["Сохранить и исследовать"],
 =======
       "Save & Explore": ["Сохранить и исследевать"],
 >>>>>>> Improved translation into Russian language
+=======
+      "Save & Explore": ["Сохранить и исследовать"],
+>>>>>>> Update messages.json
       "Overwrite & Explore": ["Перезаписать и исследовать"],
       "Undefined": ["Не определено"],
       "Save": ["Сохранить"],
