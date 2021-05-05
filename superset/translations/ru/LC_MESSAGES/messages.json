@@ -270,7 +270,7 @@
       "Annotation parameters are invalid.": ["Слои аннотаций загружаются."],
       "Annotation could not be created.": ["Аннотации не могут быть созданы."],
       "Annotation could not be updated.": [
-        "Аннотации не могут быть обновлены."
+        "Аннотация не может быть обновлена."
       ],
       "Annotation delete failed.": ["Удаление аннотации не удалось."],
       "Annotation layer parameters are invalid.": [
