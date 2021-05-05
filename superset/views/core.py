@@ -19,7 +19,6 @@ import logging
 import re
 from contextlib import closing
 from datetime import datetime, timedelta
-from distutils.util import strtobool
 from typing import Any, Callable, cast, Dict, List, Optional, Union
 from urllib import parse
 
@@ -486,13 +485,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self, layer_id: int
     ) -> FlaskResponse:
         form_data = get_form_data()[0]
-        force_arg = request.args.get("force", "false")
-        try:
-            force = strtobool(force_arg.lower())
-        except ValueError:
-            return json_error_response(
-                _("Invalid boolean value: %(force)", force=force_arg), 400
-            )
+        force = utils.parse_boolean_string(request.args.get("force"))
 
         form_data["layer_id"] = layer_id
         form_data["filters"] = [{"col": "layer_id", "op": "==", "val": layer_id}]
