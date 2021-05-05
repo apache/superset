@@ -719,7 +719,7 @@
       "\n        *%(slice_name)s*\n\n        <%(slice_url_user_friendly)s|Explore in Superset>\n        ": [
         "\n        *%(slice_name)s*\n\n        <%(slice_url_user_friendly)s|Исследовать в Superset>\n        "
       ],
-      "[Alert] %(label)s": ["[Уведомление] %(label)s"],
+      "[Alert] %(label)s": ["[Оповещение] %(label)s"],
       "New": ["Новый"],
       "SQL Query": ["Сохранить запрос"],
       "Chart": ["График"],
@@ -2269,18 +2269,18 @@
       ],
       "Add": ["Добавить"],
       "Edit ${isReport ? 'Report' : 'Alert'}": [
-        "Править ${isReport ? ‘рассылку’ : ‘уведомление’}"
+        "Править ${isReport ? ‘рассылку’ : ‘оповещение’}"
       ],
       "Add ${isReport ? 'Report' : 'Alert'}": [
-        "Добавить ${isReport ? ‘рассылку’ : ‘уведомление’}"
+        "Добавить ${isReport ? ‘рассылку’ : ‘оповещение’}"
       ],
       "Report name": ["Имя Шаблона"],
-      "Alert name": ["Имя Таблицы"],
-      "Alert condition": ["Тестовое соединение"],
-      "Trigger Alert If...": ["Сделать уведомление, если…"],
+      "Alert name": ["Имя оповещения"],
+      "Alert condition": ["Условие оповещения"],
+      "Trigger Alert If...": ["Сделать оповещение, если…"],
       "Value": ["Подписи"],
       "Report schedule": ["Область просмотра"],
-      "Alert condition schedule": ["Тестовое соединение"],
+      "Alert condition schedule": ["Расписание условия оповещения"],
       "Schedule settings": ["Настройки расписания"],
       "Log retention": ["Время жизни журнала"],
       "Working timeout": [""],
@@ -2297,14 +2297,14 @@
       "CRON expression": ["Выражение SQL"],
       "Report sent": ["Рассылка отправлена"],
       "Alert triggered, notification sent": [
-        "Сработало предупреждение, уведомление отправлено"
+        "Сработало оповещение, уведомление отправлено"
       ],
       "Report sending": ["Выполняется рассылка"],
-      "Alert running": ["Выполняется предупреждение"],
+      "Alert running": ["Выполняется оповещение"],
       "Report failed": ["Рассылка не удалась"],
       "Alert failed": ["Оповещение не удалось"],
       "Nothing triggered": ["Ничего не сработало"],
-      "Alert Triggered, In Grace Period": ["Сработало предупреждение"],
+      "Alert Triggered, In Grace Period": ["Сработало оповещение"],
       "${RecipientIconName.email}": ["${RecipientIconName.email}"],
       "${RecipientIconName.slack}": ["${RecipientIconName.slack}"],
       "annotation": ["аннотация"],
