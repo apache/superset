@@ -4492,7 +4492,7 @@ msgstr "Введите “%s” для подтверждения"
 
 #: superset-frontend/src/components/DeleteModal.tsx:81
 msgid "DELETE"
-msgstr "УДАЛИТЬ"
+msgstr "DELETE"
 
 #: superset-frontend/src/components/EditableTitle.tsx:181
 msgid "Click to edit"
