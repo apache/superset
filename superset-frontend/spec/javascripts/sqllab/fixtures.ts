@@ -486,6 +486,18 @@ export const initialState = {
   },
 };
 
+export const user = {
+  createdOn: '2021-04-27T18:12:38.952304',
+  email: 'admin',
+  firstName: 'admin',
+  isActive: true,
+  lastName: 'admin',
+  permissions: {},
+  roles: { Admin: Array(173) },
+  userId: 1,
+  username: 'admin',
+};
+
 export const query = {
   id: 'clientId2353',
   dbId: 1,

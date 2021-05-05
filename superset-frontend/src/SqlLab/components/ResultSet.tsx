@@ -503,6 +503,7 @@ export default class ResultSet extends React.PureComponent<
   }
 
   renderRowsReturned() {
+    console.log(this.props.user);
     const { results, rows, queryLimit, limitingFactor } = this.props.query;
     const limitReached = results?.displayLimitReached;
     let limitMessage;

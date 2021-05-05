@@ -25,7 +25,7 @@ import QueryTable from 'src/SqlLab/components/QueryTable';
 import TableView from 'src/components/TableView';
 import { TableCollection } from 'src/components/dataViewCommon';
 import { Provider } from 'react-redux';
-import { queries, initialState } from './fixtures';
+import { queries, user } from './fixtures';
 
 describe('QueryTable', () => {
   const mockedProps = {
@@ -40,9 +40,10 @@ describe('QueryTable', () => {
   });
   it('renders a proper table', () => {
     const mockStore = configureStore([thunk]);
-    const store = mockStore({});
-    const spyOnUseSelector = jest.spyOn(redux, 'useSelector');
-    spyOnUseSelector.mockReturnValue(initialState.common.conf);
+    const store = mockStore({
+      sqlLab: user,
+    });
+
     const wrapper = mount(
       <Provider store={store}>
         <QueryTable {...mockedProps} />
