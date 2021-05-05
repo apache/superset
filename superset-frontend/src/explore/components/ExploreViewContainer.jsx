@@ -85,6 +85,7 @@ const Styles = styled.div`
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
+  flex-basis: 100vh;
   align-items: stretch;
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   .explore-column {
