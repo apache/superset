@@ -1922,10 +1922,14 @@ msgstr "Ошибка при генерировании скриншота во �
 #: superset/reports/commands/exceptions.py:116
 msgid "Report Schedule execution got an unexpected error."
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "Во время выполнения рассылки произошла непредвиденная ошибка."
 =======
 msgstr "По время выполнения рассылки произошла непредвиденная ошибка."
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "Во время выполнения рассылки произошла непредвиденная ошибка."
+>>>>>>> Update messages.po
 
 #: superset/reports/commands/exceptions.py:120
 msgid "Report Schedule is still working, refusing to re-compute."
