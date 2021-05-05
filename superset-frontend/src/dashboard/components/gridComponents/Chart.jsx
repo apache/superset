@@ -72,6 +72,7 @@ const propTypes = {
   addDangerToast: PropTypes.func.isRequired,
   ownState: PropTypes.object,
   filterState: PropTypes.object,
+  extraFormData: PropTypes.object,
 };
 
 const defaultProps = {

@@ -64,6 +64,8 @@ const propTypes = {
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
   ownState: PropTypes.object,
+  filterState: PropTypes.object,
+  extraFormData: PropTypes.object,
 };
 
 const BLANK = {};

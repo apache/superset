@@ -590,6 +590,8 @@ function mapStateToProps(state) {
     chart,
     timeout: explore.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
     ownState: dataMask[form_data.slice_id]?.ownState,
+    filterState: dataMask[form_data.slice_id]?.filterState,
+    extraFormData: dataMask[form_data.slice_id]?.extraFormData,
     impressionId,
   };
 }

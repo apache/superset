@@ -89,6 +89,7 @@ function mapStateToProps(
     sliceCanEdit: !!dashboardInfo.slice_can_edit,
     ownState: dataMask[id]?.ownState,
     filterState: dataMask[id]?.filterState,
+    extraFormData: dataMask[id]?.extraFormData,
   };
 }
 

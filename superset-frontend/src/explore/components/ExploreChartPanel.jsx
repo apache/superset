@@ -48,6 +48,8 @@ const propTypes = {
   vizType: PropTypes.string.isRequired,
   form_data: PropTypes.object,
   ownState: PropTypes.object,
+  filterState: PropTypes.object,
+  extraFormData: PropTypes.object,
   standalone: PropTypes.number,
   timeout: PropTypes.number,
   refreshOverlayVisible: PropTypes.bool,
@@ -191,6 +193,8 @@ const ExploreChartPanel = props => {
           width={Math.floor(chartWidth)}
           height={newHeight}
           ownState={props.ownState}
+          filterState={props.filterState}
+          extraFormData={props.extraFormData}
           annotationData={chart.annotationData}
           chartAlert={chart.chartAlert}
           chartStackTrace={chart.chartStackTrace}

@@ -46,6 +46,8 @@ const propTypes = {
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
   ownState: PropTypes.object,
+  filterState: PropTypes.object,
+  extraFormData: PropTypes.object,
 };
 
 const BLANK = {};
@@ -187,6 +189,7 @@ class ChartRenderer extends React.Component {
       initialValues,
       ownState,
       filterState,
+      extraFormData,
       formData,
       queriesResponse,
     } = this.props;
@@ -228,6 +231,7 @@ class ChartRenderer extends React.Component {
         formData={formData}
         ownState={ownState}
         filterState={filterState}
+        extraFormData={extraFormData}
         hooks={this.hooks}
         behaviors={[Behavior.INTERACTIVE_CHART]}
         queriesData={queriesResponse}
