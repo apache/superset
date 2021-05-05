@@ -2365,10 +2365,14 @@ msgid ""
 "again."
 msgstr ""
 <<<<<<< HEAD
+<<<<<<< HEAD
 "После срабатывания оповещения, как долго Superset не должен надоедать "
 =======
 "После срабатывания предупреждения, как сколько Superset не должен надоедать "
 >>>>>>> Improved translation into Russian language
+=======
+"После срабатывания предупреждения, как долго Superset не должен надоедать "
+>>>>>>> Update messages.po
 "снова."
 
 #: superset/views/alerts.py:180
