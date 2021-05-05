@@ -3005,10 +3005,14 @@ msgstr "Имя таблицы, которая будет сформирован�
 #: superset/views/database/forms.py:93
 msgid "CSV File"
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "CSV-файл"
 =======
 msgstr "CSV-айл"
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "CSV-файл"
+>>>>>>> Update messages.po
 
 #: superset/views/database/forms.py:94
 msgid "Select a CSV file to be uploaded to a database."
