@@ -30,12 +30,17 @@
       "Dashboard Emails": ["Рассылка дашбордов"],
       "Chart Email Schedules": ["Рассылка графиков"],
 <<<<<<< HEAD
+<<<<<<< HEAD
       "Alerts": ["Оповещения"],
       "Alerts & Reports": ["Оповещения и Рассылка"],
 =======
       "Alerts": ["Предупреждения"],
       "Alerts & Reports": ["Предупреждения и Рассылка"],
 >>>>>>> Improved translation into Russian language
+=======
+      "Alerts": ["Оповещения"],
+      "Alerts & Reports": ["Оповещения и Рассылка"],
+>>>>>>> Update messages.json
       "Access requests": ["Запросы доступа"],
       "Druid Datasources": ["Источники Данных Druid"],
       "Druid Clusters": ["Список Кластеров Druid"],
@@ -329,6 +334,7 @@
       ],
       "There are associated alerts or reports: %s,": [
 <<<<<<< HEAD
+<<<<<<< HEAD
         "Существуют оповещения или рассылки: %s,"
       ],
       "Database does not exist": ["База данных не существует"],
@@ -350,6 +356,9 @@
       ],
 =======
         "Существуют предупреждения или рассылки: %s,"
+=======
+        "Существуют оповещения или рассылки: %s,"
+>>>>>>> Update messages.json
       ],
       "Database does not exist": ["База данных не существует"],
       "Dashboards do not exist": ["Дашборды отсутствуют"],
@@ -361,7 +370,7 @@
       "Chart could not be updated.": ["График не может быть обновлён."],
       "Chart could not be deleted.": ["График не может быть удалён."],
       "There are associated alerts or reports": [
-        "Существуют привязанные предупреждения или рассылки"
+        "Существуют привязанные оповещения или рассылки"
       ],
       "Changing this chart is forbidden": ["Изменение этого графика запрещено"],
       "Charts could not be deleted.": ["Графики не могут быть удалены."],
@@ -704,6 +713,7 @@
       "Deleted %(num)d report schedule": ["Удалено %(num)d рассылок"],
       "Alert query returned more then one row. %s rows returned": [
 <<<<<<< HEAD
+<<<<<<< HEAD
         "Запрос от оповещения вернул больше одной строки. %s строк возвращено"
       ],
       "Alert query returned more then one column. %s columns returned": [
@@ -714,6 +724,12 @@
       "Alert query returned more then one column. %s columns returned": [
         "Запрос от предупреждения вернул больше одного столбца. %s столбцов возвращено"
 >>>>>>> Improved translation into Russian language
+=======
+        "Запрос от оповещения вернул больше одной строки. %s строк возвращено"
+      ],
+      "Alert query returned more then one column. %s columns returned": [
+        "Запрос от оповещения вернул больше одного столбца. %s столбцов возвращено"
+>>>>>>> Update messages.json
       ],
       "Dashboard does not exist": ["Дашборд не существует"],
       "Chart does not exist": ["График не существует"],
@@ -761,15 +777,20 @@
       ],
       "Alert query returned more then one row.": [
 <<<<<<< HEAD
+<<<<<<< HEAD
         "Запрос для оповещения вернул больше одной строки."
 =======
         "Запрос для предупреждения вернул больше одной строки."
 >>>>>>> Improved translation into Russian language
+=======
+        "Запрос для оповещения вернул больше одной строки."
+>>>>>>> Update messages.json
       ],
       "Alert validator config error.": [
         "Неверная конфигурация широты и долготы."
       ],
       "Alert query returned more then one column.": [
+<<<<<<< HEAD
 <<<<<<< HEAD
         "Запрос для оповещения вернул больше одного столбца."
       ],
@@ -781,6 +802,12 @@
       "Alert query returned a non-number value.": [
         "Запрос для предупреждения вернул не число."
 >>>>>>> Improved translation into Russian language
+=======
+        "Запрос для оповещения вернул больше одного столбца."
+      ],
+      "Alert query returned a non-number value.": [
+        "Запрос для оповещения вернул не число."
+>>>>>>> Update messages.json
       ],
       "Alert found an error while executing a query.": [
         "Обнаружена ошибка в запросе."
@@ -925,6 +952,7 @@
       ],
       "How long to keep the logs around for this alert": [
 <<<<<<< HEAD
+<<<<<<< HEAD
         "Как долго хранить логи для данного оповещения"
       ],
       "Once an alert is triggered, how long, in seconds, before Superset nags you again.": [
@@ -934,13 +962,20 @@
         "SQL-выражение, которое определяет сработало оповещение или нет. Запрос должен вернуть NULL или числовое значение."
 =======
         "Как долго хранить логи для данного предупреждения"
+=======
+        "Как долго хранить логи для данного оповещения"
+>>>>>>> Update messages.json
       ],
       "Once an alert is triggered, how long, in seconds, before Superset nags you again.": [
-        "После срабатывания предупреждения, как долго Superset не должен надоедать снова."
+        "После срабатывания оповещения, как долго Superset не должен надоедать снова."
       ],
       "A SQL statement that defines whether the alert should get triggered or not. The query is expected to return either NULL or a number value.": [
+<<<<<<< HEAD
         "SQL-выражение, которое определяет сработало предупреждение или нет. Запрос должен вернуть NULL или числовое значение."
 >>>>>>> Improved translation into Russian language
+=======
+        "SQL-выражение, которое определяет сработало оповещение или нет. Запрос должен вернуть NULL или числовое значение."
+>>>>>>> Update messages.json
       ],
       "annotation start time or end time is required.": [
         "время начала или окончания аннотации обязательно."
@@ -2472,10 +2507,14 @@
       "${AlertState.noop}": ["${AlertState.noop}"],
       "${AlertState.grace}": ["${AlertState.grace}"],
 <<<<<<< HEAD
+<<<<<<< HEAD
       "Alerts & reports": ["Оповещения и рассылки"],
 =======
       "Alerts & reports": ["Предупреждения и рассылки"],
 >>>>>>> Improved translation into Russian language
+=======
+      "Alerts & reports": ["Оповещения и рассылки"],
+>>>>>>> Update messages.json
       "Reports": ["Рассылки"],
       "This action will permanently delete %s.": [
         "Это действие навсегда удалит %s."
@@ -2560,7 +2599,7 @@
       "Report sending": ["Выполняется рассылка"],
       "Alert running": ["Выполняется предупреждение"],
       "Report failed": ["Рассылка не удалась"],
-      "Alert failed": ["Предупреждение не удалось"],
+      "Alert failed": ["Оповещение не удалось"],
       "Nothing triggered": ["Ничего не сработало"],
       "Alert Triggered, In Grace Period": ["Сработало предупреждение"],
 >>>>>>> Improved translation into Russian language
