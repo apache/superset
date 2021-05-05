@@ -5327,7 +5327,7 @@ msgstr "Поиск / Фильтр"
 
 #: superset-frontend/src/datasource/DatasourceEditor.jsx:91
 msgid "Physical (table or view)"
-msgstr "Физический (таблица или ракурс)"
+msgstr "Физический (таблица или представление)"
 
 #: superset-frontend/src/datasource/DatasourceEditor.jsx:92
 msgid "Virtual (SQL)"
