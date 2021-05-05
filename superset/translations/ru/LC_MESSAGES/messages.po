@@ -666,8 +666,12 @@ msgstr "Аннотации не могут быть созданы."
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:68
 msgid "Annotation could not be updated."
+<<<<<<< HEAD
 msgstr "Аннотации не могут быть обновлены."
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "Аннотация не может быть обновлена."
+>>>>>>> Update messages.po
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:72
 msgid "Annotation delete failed."
