@@ -145,7 +145,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
             value={adhocFilter.sqlExpression || adhocFilter.translateToSql()}
             editorProps={{ $blockScrolling: true }}
             enableLiveAutocompletion
-            className="adhoc-filter-sql-editor"
+            className="filter-sql-editor"
             wrapEnabled
           />
         </FormGroup>
