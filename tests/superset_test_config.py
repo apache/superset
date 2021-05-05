@@ -21,7 +21,8 @@ from superset.config import *
 from tests.superset_test_custom_template_processors import CustomPrestoTemplateProcessor
 
 AUTH_USER_REGISTRATION_ROLE = "alpha"
-SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "unittests.db")
+# SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "unittests.db")
+SQLALCHEMY_DATABASE_URI = "mysql://'superset':superset@mysql:13306/superset"
 DEBUG = False
 SUPERSET_WEBSERVER_PORT = 8081
 

@@ -61,7 +61,7 @@ class Slice(
     id = Column(Integer, primary_key=True)
     slice_name = Column(String(250))
     datasource_id = Column(Integer)
-    datasource_type = Column(String(200))
+    datasource_type = Column(String(200), nullable=False)
     datasource_name = Column(String(2000))
     viz_type = Column(String(250))
     params = Column(Text)
