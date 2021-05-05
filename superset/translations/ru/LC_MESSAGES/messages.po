@@ -2897,7 +2897,7 @@ msgstr "Имя таблицы, которая будет сформирован�
 
 #: superset/views/database/forms.py:93
 msgid "CSV File"
-msgstr "CSV-айл"
+msgstr "CSV-файл"
 
 #: superset/views/database/forms.py:94
 msgid "Select a CSV file to be uploaded to a database."
