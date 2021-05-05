@@ -1974,10 +1974,14 @@
       "Warning!": ["Предупреждение!"],
       "Search / Filter": ["Поиск / Фильтр"],
 <<<<<<< HEAD
+<<<<<<< HEAD
       "Physical (table or view)": ["Физический (таблица или представление)"],
 =======
       "Physical (table or view)": ["Физический (таблица или ракурс)"],
 >>>>>>> Improved translation into Russian language
+=======
+      "Physical (table or view)": ["Физический (таблица или представление)"],
+>>>>>>> Update messages.json
       "Virtual (SQL)": ["Виртуальный (SQL)"],
       "SQL expression": ["Выражение SQL"],
       "Data type": ["Таблица Данных"],
