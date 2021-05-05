@@ -254,7 +254,7 @@ const ExploreChartPanel = props => {
   );
 
   const elementStyle = (dimension, elementSize, gutterSize) => ({
-    [dimension]: `calc(${elementSize}% - ${gutterSize + gutterMargin}px)`,
+    [dimension]: `calc(${elementSize}% - ${(gutterSize + gutterMargin) * 3}px)`,
   });
 
   return (
