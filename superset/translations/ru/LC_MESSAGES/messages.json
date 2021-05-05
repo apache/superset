@@ -104,7 +104,7 @@
       "When using 'Group By' you are limited to use a single metric": [
         "При использовании поля [Группировка] вы не ограничены использованием одного среза"
       ],
-      "Pivot Table": ["Сводная таблица"],
+      "Pivot Table": ["Pivot Table"],
       "Please choose at least one 'Group by' field ": [
         "Пожалуйста, выберите хотя бы один срез в поле ‘Группировка’ "
       ],
@@ -114,9 +114,9 @@
       "Group By' and 'Columns' can't overlap": [
         "Нельзя использовать один и тот же срез в двух полях"
       ],
-      "Treemap": ["Дерево"],
+      "Treemap": ["Treemap"],
       "Calendar Heatmap": ["Calendar Heatmap"],
-      "Bubble Chart": ["Пузырьковая диаграмма"],
+      "Bubble Chart": ["Bubble Chart"],
       "Please use 3 different metric labels": [
         "Пожалуйста, выберите разные срезы данных для левой и правой оси"
       ],
@@ -148,7 +148,7 @@
       "Time Series - Period Pivot": ["Time Series - Period Pivot"],
       "Time Series - Percent Change": ["Time Series - Percent Change"],
       "Time Series - Stacked": ["Time Series - Stacked"],
-      "Histogram": ["Гистограмма"],
+      "Histogram": ["Histogram"],
       "Must have at least one numeric column specified": [
         "Должен быть указан хотя бы один числовой столбец"
       ],
