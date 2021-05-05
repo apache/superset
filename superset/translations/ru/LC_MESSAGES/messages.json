@@ -809,7 +809,7 @@
         "Как долго хранить логи для данного предупреждения"
       ],
       "Once an alert is triggered, how long, in seconds, before Superset nags you again.": [
-        "После срабатывания предупреждения, как сколько Superset не должен надоедать снова."
+        "После срабатывания предупреждения, как долго Superset не должен надоедать снова."
       ],
       "A SQL statement that defines whether the alert should get triggered or not. The query is expected to return either NULL or a number value.": [
         "SQL-выражение, которое определяет сработало предупреждение или нет. Запрос должен вернуть NULL или числовое значение."
