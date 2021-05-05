@@ -1620,10 +1620,14 @@
       "January": ["Январь"],
       "February": ["Февраль"],
 <<<<<<< HEAD
+<<<<<<< HEAD
       "March": ["Март"],
 =======
       "March": ["Поиск"],
 >>>>>>> Improved translation into Russian language
+=======
+      "March": ["Март"],
+>>>>>>> Update messages.json
       "April": ["Апрель"],
       "May": ["Май"],
       "June": ["Июнь"],
