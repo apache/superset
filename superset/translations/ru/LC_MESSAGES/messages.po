@@ -4620,10 +4620,14 @@ msgstr "Введите “%s” для подтверждения"
 #: superset-frontend/src/components/DeleteModal.tsx:81
 msgid "DELETE"
 <<<<<<< HEAD
+<<<<<<< HEAD
 msgstr "DELETE"
 =======
 msgstr "УДАЛИТЬ"
 >>>>>>> Improved translation into Russian language
+=======
+msgstr "DELETE"
+>>>>>>> Update messages.po
 
 #: superset-frontend/src/components/EditableTitle.tsx:181
 msgid "Click to edit"
