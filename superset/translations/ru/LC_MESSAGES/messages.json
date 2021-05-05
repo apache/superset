@@ -1320,7 +1320,7 @@
       "Database error": ["Database Expression"],
       "was created": ["создан"],
       "Query in a new tab": ["Запрос в отдельной вкладке"],
-      "The query returned no data": ["Запрос не вернул никаких данных"],
+      "The query returned no data": ["Результат пуст"],
       "Fetch data preview": ["Получить данные для просмотра"],
       "Refetch results": ["Результаты поиска"],
       "Track job": ["Отслеживать работу"],
