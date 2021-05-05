@@ -773,7 +773,7 @@
       "Invalid geohash string": ["Недействительная строка geohash"],
       "Invalid longitude/latitude": ["Долгота и Широта [Конец]"],
       "Invalid geodetic string": ["Недействительная строка geodetic"],
-      "`fbprophet` package not installed": [""],
+      "`fbprophet` package not installed": ["`fbprophet` пакет не установлен"],
       "Time grain missing": ["Период времени"],
       "Unsupported time grain: %(time_grain)s": [
         "Недействительная гранулярность времени: %(time_grain)s"
