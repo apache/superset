@@ -22,7 +22,7 @@ import { styled } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import Icon from 'src/components/Icon';
 
-interface InfoTooltipProps {
+export interface InfoTooltipProps {
   className?: string;
   tooltip: string;
   placement?:
