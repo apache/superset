@@ -121,62 +121,31 @@ const hasTimeColumn = (datasource: DatasourceMeta): boolean =>
   datasource?.columns?.some(c => c.is_dttm) ||
   datasource.type === DatasourceType.Druid;
 
-const sectionsToExpand = (sections: ControlPanelSectionConfig[]) =>
+const sectionsToExpand = (
+  sections: ControlPanelSectionConfig[],
+  datasource: DatasourceMeta,
+) =>
+  // avoid expanding time section if datasource doesn't include time column
   sections.reduce(
     (acc, section) =>
-      section.expanded ? [...acc, String(section.label)] : acc,
+      section.expanded && (!isTimeSection(section) || hasTimeColumn(datasource))
+        ? [...acc, String(section.label)]
+        : acc,
     [] as string[],
   );
 
-export class ControlPanelsContainer extends React.Component<
-  ControlPanelsContainerProps,
-  ControlPanelsContainerState
-> {
-  // trigger updates to the component when async plugins load
-  static contextType = PluginContext;
+function getState(
+  props: ControlPanelsContainerProps,
+): ControlPanelsContainerState {
+  const {
+    exploreState: { datasource },
+  } = props;
 
-  constructor(props: ControlPanelsContainerProps) {
-    super(props);
-    this.state = {
-      expandedQuerySections: [],
-      expandedCustomizeSections: [],
-      querySections: [],
-      customizeSections: [],
-    };
-    this.renderControl = this.renderControl.bind(this);
-    this.renderControlPanelSection = this.renderControlPanelSection.bind(this);
-  }
+  const querySections: ControlPanelSectionConfig[] = [];
+  const customizeSections: ControlPanelSectionConfig[] = [];
 
-  componentDidUpdate(prevProps: ControlPanelsContainerProps) {
-    if (
-      this.props.form_data.datasource !== prevProps.form_data.datasource ||
-      this.props.form_data.viz_type !== prevProps.form_data.viz_type
-    ) {
-      this.refreshSections();
-    }
-  }
-
-  componentDidMount() {
-    this.refreshSections();
-  }
-
-  refreshSections() {
-    const {
-      exploreState: { datasource },
-    } = this.props;
-
-    const querySections: ControlPanelSectionConfig[] = [];
-    const customizeSections: ControlPanelSectionConfig[] = [];
-
-    getSectionsToRender(
-      this.props.form_data.viz_type,
-      this.props.datasource_type,
-    ).forEach(origSection => {
-      let section = origSection;
-      // skip time section if no time column present in datasource
-      if (isTimeSection(section)) {
-        section = { ...section, expanded: hasTimeColumn(datasource) };
-      }
+  getSectionsToRender(props.form_data.viz_type, props.datasource_type).forEach(
+    section => {
       // if at least one control in the section is not `renderTrigger`
       // or asks to be displayed at the Data tab
       if (
@@ -197,19 +166,68 @@ export class ControlPanelsContainer extends React.Component<
       } else {
         customizeSections.push(section);
       }
-    });
-    const expandedQuerySections: string[] = sectionsToExpand(querySections);
-    const expandedCustomizeSections: string[] = sectionsToExpand(
-      customizeSections,
-    );
+    },
+  );
+  const expandedQuerySections: string[] = sectionsToExpand(
+    querySections,
+    datasource,
+  );
+  const expandedCustomizeSections: string[] = sectionsToExpand(
+    customizeSections,
+    datasource,
+  );
+  return {
+    expandedQuerySections,
+    expandedCustomizeSections,
+    querySections,
+    customizeSections,
+  };
+}
 
-    this.setState({
-      expandedQuerySections,
-      expandedCustomizeSections,
-      querySections,
-      customizeSections,
-    });
-    return sections;
+export class ControlPanelsContainer extends React.Component<
+  ControlPanelsContainerProps,
+  ControlPanelsContainerState
+> {
+  // trigger updates to the component when async plugins load
+  static contextType = PluginContext;
+
+  constructor(props: ControlPanelsContainerProps) {
+    super(props);
+    this.state = {
+      expandedQuerySections: [],
+      expandedCustomizeSections: [],
+      querySections: [],
+      customizeSections: [],
+    };
+    this.renderControl = this.renderControl.bind(this);
+    this.renderControlPanelSection = this.renderControlPanelSection.bind(this);
+  }
+
+  static getDerivedStateFromProps(
+    props: ControlPanelsContainerProps,
+    state: ControlPanelsContainerState,
+  ): ControlPanelsContainerState {
+    // only update the sections, not the expanded/collapsed state
+    const newState = getState(props);
+    return {
+      ...state,
+      customizeSections: newState.customizeSections,
+      querySections: newState.querySections,
+    };
+  }
+
+  componentDidUpdate(prevProps: ControlPanelsContainerProps) {
+    if (
+      this.props.form_data.datasource !== prevProps.form_data.datasource ||
+      this.props.form_data.viz_type !== prevProps.form_data.viz_type
+    ) {
+      // eslint-disable-next-line react/no-did-update-set-state
+      this.setState(getState(this.props));
+    }
+  }
+
+  componentDidMount() {
+    this.setState(getState(this.props));
   }
 
   renderControl({ name, config }: CustomControlItem) {
