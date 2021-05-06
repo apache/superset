@@ -358,12 +358,13 @@ describe('FilterBar', () => {
     userEvent.click(screen.getByText('Edit'));
 
     await changeFilterValue();
-    await waitFor(() => expect(screen.getAllByText('Last day').length).toBe(2));
 
     // apply new changes and save them
-    expect(
-      screen.getByTestId(getTestId('filter-set-edit-save')),
-    ).toBeDisabled();
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(getTestId('filter-set-edit-save')),
+      ).toBeDisabled(),
+    );
     expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
     userEvent.click(screen.getByTestId(getTestId('apply-button')));
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
