@@ -124,7 +124,7 @@ const hasTimeColumn = (datasource: DatasourceMeta): boolean =>
 const sectionsToExpand = (
   sections: ControlPanelSectionConfig[],
   datasource: DatasourceMeta,
-) =>
+): string[] =>
   // avoid expanding time section if datasource doesn't include time column
   sections.reduce(
     (acc, section) =>
