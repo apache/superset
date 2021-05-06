@@ -760,7 +760,7 @@ class TableViz(BaseViz):
         df = pd.concat(
             [
                 df[columns],
-                (df[percent_columns].div(df[percent_columns].sum()).add_prefix("%")),
+                (df[percent_columns].astype(float).div(df[percent_columns].sum()).add_prefix("%")),
             ],
             axis=1,
         )
