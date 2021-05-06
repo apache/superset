@@ -275,6 +275,7 @@
       "Annotation not found.": ["Аннотация не найдена."],
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
       "Annotation parameters are invalid.": [
         "Параметры аннотации недействительны."
       ],
@@ -293,6 +294,11 @@
 =======
       "Annotation parameters are invalid.": ["Параметры аннотации недействительны."],
 >>>>>>> Update messages.json
+=======
+      "Annotation parameters are invalid.": [
+        "Параметры аннотации недействительны."
+      ],
+>>>>>>> Formatted with prettier
       "Annotation could not be created.": ["Аннотация не может быть создана."],
       "Annotation could not be updated.": [
         "Аннотация не может быть обновлена."
