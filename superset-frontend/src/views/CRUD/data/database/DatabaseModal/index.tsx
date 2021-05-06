@@ -44,6 +44,7 @@ import {
   CreateHeader,
   CreateHeaderSubtitle,
   CreateHeaderTitle,
+  Divider,
 } from './styles';
 
 const DOCUMENTATION_LINK =
@@ -301,6 +302,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           </CreateHeaderSubtitle>
         </CreateHeader>
       )}
+      <Divider />
       <Tabs
         defaultActiveKey={DEFAULT_TAB_KEY}
         activeKey={tabKey}

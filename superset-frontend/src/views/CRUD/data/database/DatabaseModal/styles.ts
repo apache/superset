@@ -58,6 +58,7 @@ export const StyledModal = styled(Modal)`
   .ant-modal-body {
     padding-left: 0;
     padding-right: 0;
+    margin-bottom: 110px;
   }
   .ant-tabs-top > .ant-tabs-nav {
     margin-bottom: 0;
@@ -88,7 +89,9 @@ export const StyledModal = styled(Modal)`
     border: 1px solid ${({ theme }) => theme.colors.info.base};
     font-size: ${({ theme }) => theme.gridUnit * 3}px;
     padding: ${({ theme }) => theme.gridUnit * 4}px;
-    margin: ${({ theme }) => theme.gridUnit * 4}px;
+    margin: ${({ theme }) => theme.gridUnit * 4}px
+      ${({ theme }) => theme.gridUnit * 4}px
+      ${({ theme }) => theme.gridUnit * 30}px;
   }
   .ant-alert-with-description {
     .ant-alert-message,
@@ -263,4 +266,8 @@ export const EditHeaderSubtitle = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   font-size: ${({ theme }) => theme.typography.sizes.xl}px;
   font-weight: bold;
+`;
+
+export const Divider = styled.hr`
+  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light1};
 `;
