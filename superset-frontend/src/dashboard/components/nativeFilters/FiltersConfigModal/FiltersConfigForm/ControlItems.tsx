@@ -65,7 +65,7 @@ const ControlItems: FC<ControlItemsProps> = ({
           <Tooltip
             placement="left"
             title={
-              controlItem.config.affectDataMask &&
+              controlItem.config.affectsDataMask &&
               disabled &&
               t('Populate "Default value" to enable this control')
             }
@@ -81,7 +81,7 @@ const ControlItems: FC<ControlItemsProps> = ({
               colon={false}
             >
               <Checkbox
-                disabled={controlItem.config.affectDataMask && disabled}
+                disabled={controlItem.config.affectsDataMask && disabled}
                 onChange={() => {
                   if (!controlItem.config.resetConfig) {
                     forceUpdate();

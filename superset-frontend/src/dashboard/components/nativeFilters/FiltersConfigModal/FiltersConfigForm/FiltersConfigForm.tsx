@@ -454,7 +454,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
           ) : hasFilledDataset ? (
             t('Click "Populate" to get "Default Value" ->')
           ) : (
-            t('Fill all required field to enable "Default Value"')
+            t('Fill all required fields to enable "Default Value"')
           )}
         </StyledFormItem>
       </StyledContainer>
