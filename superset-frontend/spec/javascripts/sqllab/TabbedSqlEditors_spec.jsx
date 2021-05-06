@@ -26,7 +26,7 @@ import sinon from 'sinon';
 import { act } from 'react-dom/test-utils';
 import fetchMock from 'fetch-mock';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import { EditableTabs } from 'src/common/components/Tabs';
+import { EditableTabs } from 'src/components/Tabs';
 import TabbedSqlEditors from 'src/SqlLab/components/TabbedSqlEditors';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
 

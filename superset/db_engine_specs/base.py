@@ -15,8 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=unused-argument
-import dataclasses
-import hashlib
 import json
 import logging
 import re
@@ -31,6 +29,7 @@ from typing import (
     NamedTuple,
     Optional,
     Pattern,
+    Set,
     Tuple,
     Type,
     TYPE_CHECKING,
@@ -39,25 +38,31 @@ from typing import (
 
 import pandas as pd
 import sqlparse
-from flask import g
+from apispec import APISpec
+from apispec.ext.marshmallow import MarshmallowPlugin
+from flask import current_app, g
 from flask_babel import gettext as __, lazy_gettext as _
+from marshmallow import fields, Schema
 from sqlalchemy import column, DateTime, select, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Compiled, Dialect
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.engine.url import URL
+from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import quoted_name, text
-from sqlalchemy.sql.expression import ColumnClause, ColumnElement, Select, TextAsFrom
+from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom
 from sqlalchemy.types import String, TypeEngine, UnicodeText
+from typing_extensions import TypedDict
 
-from superset import app, security_manager, sql_parse
+from superset import security_manager, sql_parse
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
+from superset.models.sql_types.base import literal_dttm_type_factory
 from superset.sql_parse import ParsedQuery, Table
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
+from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
     # prevent circular imports
@@ -75,7 +80,6 @@ class TimeGrain(NamedTuple):  # pylint: disable=too-few-public-methods
 
 
 QueryStatus = utils.QueryStatus
-config = app.config
 
 builtin_time_grains: Dict[Optional[str], str] = {
     None: __("Original value"),
@@ -136,10 +140,21 @@ class LimitMethod:  # pylint: disable=too-few-public-methods
 
 
 class BaseEngineSpec:  # pylint: disable=too-many-public-methods
-    """Abstract class for database engine specific configurations"""
+    """Abstract class for database engine specific configurations
+
+    Attributes:
+        allows_alias_to_source_column: Whether the engine is able to pick the
+                                       source column for aggregation clauses
+                                       used in ORDER BY when a column in SELECT
+                                       has an alias that is the same as a source
+                                       column.
+        allows_hidden_orderby_agg:     Whether the engine allows ORDER BY to
+                                       directly use aggregation clauses, without
+                                       having to add the same aggregation in SELECT.
+    """
 
     engine = "base"  # str as defined in sqlalchemy.engine.engine
-    engine_aliases: Optional[Tuple[str]] = None
+    engine_aliases: Set[str] = set()
     engine_name: Optional[
         str
     ] = None  # used for user messages, overridden in child classes
@@ -159,7 +174,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             GenericDataType.NUMERIC,
         ),
         (
-            re.compile(r"^integer", re.IGNORECASE),
+            re.compile(r"^int.*", re.IGNORECASE),
             types.Integer(),
             GenericDataType.NUMERIC,
         ),
@@ -209,6 +224,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             String(),
             utils.GenericDataType.STRING,
         ),
+        (
+            re.compile(r"^datetime", re.IGNORECASE),
+            types.DateTime(),
+            GenericDataType.TEMPORAL,
+        ),
         (re.compile(r"^date", re.IGNORECASE), types.Date(), GenericDataType.TEMPORAL,),
         (
             re.compile(r"^timestamp", re.IGNORECASE),
@@ -222,7 +242,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ),
         (re.compile(r"^time", re.IGNORECASE), types.Time(), GenericDataType.TEMPORAL,),
         (
-            re.compile(r"^boolean", re.IGNORECASE),
+            re.compile(r"^bool.*", re.IGNORECASE),
             types.Boolean(),
             GenericDataType.BOOLEAN,
         ),
@@ -232,13 +252,24 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     time_secondary_columns = False
     allows_joins = True
     allows_subqueries = True
-    allows_column_aliases = True
+    allows_alias_in_select = True
+    allows_alias_in_orderby = True
     allows_sql_comments = True
+
+    # Whether ORDER BY clause can use aliases created in SELECT
+    # that are the same as a source column
+    allows_alias_to_source_column = True
+
+    # Whether ORDER BY clause must appear in SELECT
+    # if TRUE, then it doesn't have to.
+    allows_hidden_ordeby_agg = True
+
     force_column_alias_quotes = False
     arraysize = 0
     max_column_name_length = 0
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
+    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType]] = {}
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
@@ -337,12 +368,74 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         ret_list = []
         time_grains = builtin_time_grains.copy()
-        time_grains.update(config["TIME_GRAIN_ADDONS"])
+        time_grains.update(current_app.config["TIME_GRAIN_ADDONS"])
         for duration, func in cls.get_time_grain_expressions().items():
             if duration in time_grains:
                 name = time_grains[duration]
                 ret_list.append(TimeGrain(name, _(name), func, duration))
         return tuple(ret_list)
+
+    @classmethod
+    def _sort_time_grains(
+        cls, val: Tuple[Optional[str], str], index: int
+    ) -> Union[float, int, str]:
+        """
+        Return an ordered time-based value of a portion of a time grain
+        for sorting
+        Values are expected to be either None or start with P or PT
+        Have a numerical value in the middle and end with
+        a value for the time interval
+        It can also start or end with epoch start time denoting a range
+        i.e, week beginning or ending with a day
+        """
+        pos = {
+            "FIRST": 0,
+            "SECOND": 1,
+            "THIRD": 2,
+            "LAST": 3,
+        }
+
+        if val[0] is None:
+            return pos["FIRST"]
+
+        prog = re.compile(r"(.*\/)?(P|PT)([0-9\.]+)(S|M|H|D|W|M|Y)(\/.*)?")
+        result = prog.match(val[0])
+
+        # for any time grains that don't match the format, put them at the end
+        if result is None:
+            return pos["LAST"]
+
+        second_minute_hour = ["S", "M", "H"]
+        day_week_month_year = ["D", "W", "M", "Y"]
+        is_less_than_day = result.group(2) == "PT"
+        interval = result.group(4)
+        epoch_time_start_string = result.group(1) or result.group(5)
+        has_starting_or_ending = bool(len(epoch_time_start_string or ""))
+
+        def sort_day_week() -> int:
+            if has_starting_or_ending:
+                return pos["LAST"]
+            if is_less_than_day:
+                return pos["SECOND"]
+            return pos["THIRD"]
+
+        def sort_interval() -> float:
+            if is_less_than_day:
+                return second_minute_hour.index(interval)
+            return day_week_month_year.index(interval)
+
+        # 0: all "PT" values should come before "P" values (i.e, PT10M)
+        # 1: order values within the above arrays ("D" before "W")
+        # 2: sort by numeric value (PT10M before PT15M)
+        # 3: sort by any week starting/ending values
+        plist = {
+            0: sort_day_week(),
+            1: pos["SECOND"] if is_less_than_day else pos["THIRD"],
+            2: sort_interval(),
+            3: float(result.group(3)),
+        }
+
+        return plist.get(index, 0)
 
     @classmethod
     def get_time_grain_expressions(cls) -> Dict[Optional[str], str]:
@@ -354,26 +447,23 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         # TODO: use @memoize decorator or similar to avoid recomputation on every call
         time_grain_expressions = cls._time_grain_expressions.copy()
-        grain_addon_expressions = config["TIME_GRAIN_ADDON_EXPRESSIONS"]
+        grain_addon_expressions = current_app.config["TIME_GRAIN_ADDON_EXPRESSIONS"]
         time_grain_expressions.update(grain_addon_expressions.get(cls.engine, {}))
-        denylist: List[str] = config["TIME_GRAIN_DENYLIST"]
+        denylist: List[str] = current_app.config["TIME_GRAIN_DENYLIST"]
         for key in denylist:
             time_grain_expressions.pop(key)
-        return time_grain_expressions
 
-    @classmethod
-    def make_select_compatible(
-        cls, groupby_exprs: Dict[str, ColumnElement], select_exprs: List[ColumnElement]
-    ) -> List[ColumnElement]:
-        """
-        Some databases will just return the group-by field into the select, but don't
-        allow the group-by field to be put into the select list.
-
-        :param groupby_exprs: mapping between column name and column object
-        :param select_exprs: all columns in the select clause
-        :return: columns to be included in the final select clause
-        """
-        return select_exprs
+        return dict(
+            sorted(
+                time_grain_expressions.items(),
+                key=lambda x: (
+                    cls._sort_time_grains(x, 0),
+                    cls._sort_time_grains(x, 1),
+                    cls._sort_time_grains(x, 2),
+                    cls._sort_time_grains(x, 3),
+                ),
+            )
+        )
 
     @classmethod
     def fetch_data(
@@ -479,7 +569,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return {}
 
     @classmethod
-    def apply_limit_to_sql(cls, sql: str, limit: int, database: "Database") -> str:
+    def apply_limit_to_sql(
+        cls, sql: str, limit: int, database: "Database", force: bool = False
+    ) -> str:
         """
         Alters the SQL statement to apply a LIMIT clause
 
@@ -500,7 +592,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         if cls.limit_method == LimitMethod.FORCE_LIMIT:
             parsed_query = sql_parse.ParsedQuery(sql)
-            sql = parsed_query.set_or_update_query_limit(limit)
+            sql = parsed_query.set_or_update_query_limit(limit, force=force)
 
         return sql
 
@@ -527,50 +619,41 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         parsed_query = sql_parse.ParsedQuery(sql)
         return parsed_query.set_or_update_query_limit(limit)
 
-    @staticmethod
-    def csv_to_df(**kwargs: Any) -> pd.DataFrame:
-        """Read csv into Pandas DataFrame
-        :param kwargs: params to be passed to DataFrame.read_csv
-        :return: Pandas DataFrame containing data from csv
-        """
-        kwargs["encoding"] = "utf-8"
-        kwargs["iterator"] = True
-        chunks = pd.read_csv(**kwargs)
-        df = pd.concat(chunk for chunk in chunks)
-        return df
-
     @classmethod
-    def df_to_sql(cls, df: pd.DataFrame, **kwargs: Any) -> None:
-        """Upload data from a Pandas DataFrame to a database. For
-        regular engines this calls the DataFrame.to_sql() method. Can be
-        overridden for engines that don't work well with to_sql(), e.g.
-        BigQuery.
-        :param df: Dataframe with data to be uploaded
-        :param kwargs: kwargs to be passed to to_sql() method
-        """
-        df.to_sql(**kwargs)
-
-    @classmethod
-    def create_table_from_csv(  # pylint: disable=too-many-arguments
+    def df_to_sql(
         cls,
-        filename: str,
-        table: Table,
         database: "Database",
-        csv_to_df_kwargs: Dict[str, Any],
-        df_to_sql_kwargs: Dict[str, Any],
+        table: Table,
+        df: pd.DataFrame,
+        to_sql_kwargs: Dict[str, Any],
     ) -> None:
         """
-        Create table from contents of a csv. Note: this method does not create
-        metadata for the table.
+        Upload data from a Pandas DataFrame to a database.
+
+        For regular engines this calls the `pandas.DataFrame.to_sql` method. Can be
+        overridden for engines that don't work well with this method, e.g. Hive and
+        BigQuery.
+
+        Note this method does not create metadata for the table.
+
+        :param database: The database to upload the data to
+        :param table: The table to upload the data to
+        :param df: The dataframe with data to be uploaded
+        :param to_sql_kwargs: The kwargs to be passed to pandas.DataFrame.to_sql` method
         """
-        df = cls.csv_to_df(filepath_or_buffer=filename, **csv_to_df_kwargs)
+
         engine = cls.get_engine(database)
+        to_sql_kwargs["name"] = table.table
+
         if table.schema:
-            # only add schema when it is preset and non empty
-            df_to_sql_kwargs["schema"] = table.schema
+
+            # Only add schema when it is preset and non empty.
+            to_sql_kwargs["schema"] = table.schema
+
         if engine.dialect.supports_multivalues_insert:
-            df_to_sql_kwargs["method"] = "multi"
-        cls.df_to_sql(df=df, con=engine, **df_to_sql_kwargs)
+            to_sql_kwargs["method"] = "multi"
+
+        df.to_sql(con=engine, **to_sql_kwargs)
 
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
@@ -582,28 +665,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: The SQL expression
         """
         return None
-
-    @classmethod
-    def create_table_from_excel(  # pylint: disable=too-many-arguments
-        cls,
-        filename: str,
-        table: Table,
-        database: "Database",
-        excel_to_df_kwargs: Dict[str, Any],
-        df_to_sql_kwargs: Dict[str, Any],
-    ) -> None:
-        """
-        Create table from contents of a excel. Note: this method does not create
-        metadata for the table.
-        """
-        df = pd.read_excel(io=filename, **excel_to_df_kwargs)
-        engine = cls.get_engine(database)
-        if table.schema:
-            # only add schema when it is preset and non empty
-            df_to_sql_kwargs["schema"] = table.schema
-        if engine.dialect.supports_multivalues_insert:
-            df_to_sql_kwargs["method"] = "multi"
-        cls.df_to_sql(df=df, con=engine, **df_to_sql_kwargs)
 
     @classmethod
     def get_all_datasource_names(
@@ -660,15 +721,31 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return utils.error_msg_from_exception(ex)
 
     @classmethod
-    def extract_errors(cls, ex: Exception) -> List[Dict[str, Any]]:
+    def extract_errors(
+        cls, ex: Exception, context: Optional[Dict[str, Any]] = None
+    ) -> List[SupersetError]:
+        raw_message = cls._extract_error_message(ex)
+
+        context = context or {}
+        for regex, (message, error_type) in cls.custom_errors.items():
+            match = regex.search(raw_message)
+            if match:
+                params = {**context, **match.groupdict()}
+                return [
+                    SupersetError(
+                        error_type=error_type,
+                        message=message % params,
+                        level=ErrorLevel.ERROR,
+                        extra={"engine_name": cls.engine_name},
+                    )
+                ]
+
         return [
-            dataclasses.asdict(
-                SupersetError(
-                    error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                    message=cls._extract_error_message(ex),
-                    level=ErrorLevel.ERROR,
-                    extra={"engine_name": cls.engine_name},
-                )
+            SupersetError(
+                error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                message=cls._extract_error_message(ex),
+                level=ErrorLevel.ERROR,
+                extra={"engine_name": cls.engine_name},
             )
         ]
 
@@ -761,7 +838,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             # It's expected that some dialects don't implement the comment method
             pass
         except Exception as ex:  # pylint: disable=broad-except
-            logger.error("Unexpected error while fetching table comment")
+            logger.error("Unexpected error while fetching table comment", exc_info=True)
             logger.exception(ex)
         return comment
 
@@ -835,6 +912,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param cols: Columns to include in query
         :return: SQL query
         """
+        # pylint: disable=redefined-outer-name
         fields: Union[str, List[Any]] = "*"
         cols = cols or []
         if (show_cols or latest_partition) and not cols:
@@ -900,7 +978,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         parsed_query = ParsedQuery(statement)
         sql = parsed_query.stripped()
-        sql_query_mutator = config["SQL_QUERY_MUTATOR"]
+        sql_query_mutator = current_app.config["SQL_QUERY_MUTATOR"]
         if sql_query_mutator:
             sql = sql_query_mutator(sql, user_name, security_manager, database)
 
@@ -922,7 +1000,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if not cls.get_allow_cost_estimate(extra):
             raise Exception("Database does not support cost estimation")
 
-        user_name = g.user.username if g.user else None
+        user_name = g.user.username if g.user and hasattr(g.user, "username") else None
         parsed_query = sql_parse.ParsedQuery(sql)
         statements = parsed_query.get_statements()
 
@@ -1068,7 +1146,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param label: Expected expression label
         :return: Truncated label
         """
-        label = hashlib.md5(label.encode("utf-8")).hexdigest()
+        label = md5_sha_from_str(label)
         # truncate hash if it exceeds max length
         if cls.max_column_name_length and len(label) > cls.max_column_name_length:
             label = label[: cls.max_column_name_length]
@@ -1142,7 +1220,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             try:
                 extra = json.loads(database.extra)
             except json.JSONDecodeError as ex:
-                logger.error(ex)
+                logger.error(ex, exc_info=True)
                 raise ex
         return extra
 
@@ -1175,22 +1253,106 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param source: Type coming from the database table or cursor description
         :return: ColumnSpec object
         """
-        column_type = None
-
-        if (
-            cls.get_sqla_column_type(
-                native_type, column_type_mappings=column_type_mappings
-            )
-            is not None
-        ):
-            column_type, generic_type = cls.get_sqla_column_type(  # type: ignore
-                native_type, column_type_mappings=column_type_mappings
-            )
+        col_types = cls.get_sqla_column_type(
+            native_type, column_type_mappings=column_type_mappings
+        )
+        if col_types:
+            column_type, generic_type = col_types
+            # wrap temporal types in custom type that supports literal binding
+            # using datetimes
+            if generic_type == GenericDataType.TEMPORAL:
+                column_type = literal_dttm_type_factory(
+                    type(column_type), cls, native_type or ""
+                )
             is_dttm = generic_type == GenericDataType.TEMPORAL
-
-        if column_type:
             return ColumnSpec(
                 sqla_type=column_type, generic_type=generic_type, is_dttm=is_dttm
             )
-
         return None
+
+
+# schema for adding a database by providing parameters instead of the
+# full SQLAlchemy URI
+class BaseParametersSchema(Schema):
+    username = fields.String(allow_none=True, description=__("Username"))
+    password = fields.String(allow_none=True, description=__("Password"))
+    host = fields.String(required=True, description=__("Hostname or IP address"))
+    port = fields.Integer(required=True, description=__("Database port"))
+    database = fields.String(required=True, description=__("Database name"))
+    query = fields.Dict(
+        keys=fields.Str(), values=fields.Raw(), description=__("Additinal parameters")
+    )
+
+
+class BaseParametersType(TypedDict, total=False):
+    username: Optional[str]
+    password: Optional[str]
+    host: str
+    port: int
+    database: str
+    query: Dict[str, Any]
+
+
+class BaseParametersMixin:
+
+    """
+    Mixin for configuring DB engine specs via a dictionary.
+
+    With this mixin the SQLAlchemy engine can be configured through
+    individual parameters, instead of the full SQLAlchemy URI. This
+    mixin is for the most common pattern of URI:
+
+        drivername://user:password@host:port/dbname[?key=value&key=value...]
+
+    """
+
+    # schema describing the parameters used to configure the DB
+    parameters_schema = BaseParametersSchema()
+
+    # recommended driver name for the DB engine spec
+    drivername = ""
+
+    # placeholder with the SQLAlchemy URI template
+    sqlalchemy_uri_placeholder = (
+        "drivername://user:password@host:port/dbname[?key=value&key=value...]"
+    )
+
+    @classmethod
+    def build_sqlalchemy_url(cls, parameters: BaseParametersType) -> str:
+        return str(
+            URL(
+                cls.drivername,
+                username=parameters.get("username"),
+                password=parameters.get("password"),
+                host=parameters["host"],
+                port=parameters["port"],
+                database=parameters["database"],
+                query=parameters.get("query", {}),
+            )
+        )
+
+    @classmethod
+    def get_parameters_from_uri(cls, uri: str) -> BaseParametersType:
+        url = make_url(uri)
+        return {
+            "username": url.username,
+            "password": url.password,
+            "host": url.host,
+            "port": url.port,
+            "database": url.database,
+            "query": url.query,
+        }
+
+    @classmethod
+    def parameters_json_schema(cls) -> Any:
+        """
+        Return configuration parameters as OpenAPI.
+        """
+        spec = APISpec(
+            title="Database Parameters",
+            version="1.0.0",
+            openapi_version="3.0.2",
+            plugins=[MarshmallowPlugin()],
+        )
+        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
+        return spec.to_dict()["components"]["schemas"][cls.__name__]

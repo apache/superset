@@ -14,11 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import random
+import string
 from typing import List
 
 import sqlalchemy.sql.sqltypes
 
-from superset.utils.data import add_data, ColumnInfo
+from superset.utils.mock_data import add_data, ColumnInfo
 
 COLUMN_TYPES = [
     sqlalchemy.sql.sqltypes.INTEGER(),
@@ -68,3 +70,7 @@ def load_big_data() -> None:
     ]
     for i in range(1000):
         add_data(columns=columns, num_rows=10, table_name=f"small_table_{i}")
+
+    print("Creating table with long name")
+    name = "".join(random.choices(string.ascii_letters + string.digits, k=64))
+    add_data(columns=columns, num_rows=10, table_name=name)

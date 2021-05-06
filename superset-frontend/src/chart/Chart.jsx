@@ -49,6 +49,7 @@ const propTypes = {
   timeout: PropTypes.number,
   vizType: PropTypes.string.isRequired,
   triggerRender: PropTypes.bool,
+  isFiltersInitialized: PropTypes.bool,
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
@@ -62,6 +63,7 @@ const propTypes = {
   onQuery: PropTypes.func,
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
+  ownState: PropTypes.object,
 };
 
 const BLANK = {};
@@ -127,6 +129,7 @@ class Chart extends React.PureComponent {
         this.props.timeout,
         this.props.chartId,
         this.props.dashboardId,
+        this.props.ownState,
       );
     } else {
       // Create chart with POST request
@@ -136,6 +139,7 @@ class Chart extends React.PureComponent {
         this.props.timeout,
         this.props.chartId,
         this.props.dashboardId,
+        this.props.ownState,
       );
     }
   }
@@ -210,6 +214,7 @@ class Chart extends React.PureComponent {
         showMessage={false}
       >
         <Styles
+          data-ui-anchor="chart"
           className="chart-container"
           data-test="chart-container"
           height={height}

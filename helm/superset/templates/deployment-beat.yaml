@@ -24,6 +24,10 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+{{- if .Values.supersetCeleryBeat.deploymentAnnotations }}
+  annotations:
+    {{ toYaml .Values.supersetCeleryBeat.deploymentAnnotations | nindent 4 }}
+{{- end }}
 spec:
   # This must be a singleton
   replicas: 1
@@ -37,18 +41,22 @@ spec:
         checksum/superset_config.py: {{ include "superset-config" . | sha256sum }}
         checksum/connections: {{ .Values.supersetNode.connections | toYaml | sha256sum }}
         checksum/extraConfigs: {{ .Values.extraConfigs | toYaml | sha256sum }}
+        checksum/extraSecrets: {{ .Values.extraSecrets | toYaml | sha256sum }}
         checksum/extraSecretEnv: {{ .Values.extraSecretEnv | toYaml | sha256sum }}
         checksum/configOverrides: {{ .Values.configOverrides | toYaml | sha256sum }}
         {{ if .Values.supersetCeleryBeat.forceReload }}
         # Optionally force the thing to reload
         force-reload: {{ randAlphaNum 5 | quote }}
         {{ end }}
+      {{- if .Values.supersetCeleryBeat.podAnnotations }}
+        {{ toYaml .Values.supersetCeleryBeat.podAnnotations | nindent 8 }}
+      {{- end }}
       labels:
         app: {{ template "superset.name" . }}-celerybeat
         release: {{ .Release.Name }}
     spec:
       securityContext:
-        runAsUser: 0 # Needed in order to allow pip install to work in bootstrap
+        runAsUser: {{ .Values.runAsUser }}
       {{- if .Values.supersetCeleryBeat.initContainers }}
       initContainers:
       {{-  tpl (toYaml .Values.supersetCeleryBeat.initContainers) . | nindent 6 }}

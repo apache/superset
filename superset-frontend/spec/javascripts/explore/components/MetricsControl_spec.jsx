@@ -22,7 +22,7 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 
 import { AGGREGATES } from 'src/explore/constants';
-import { LabelsContainer } from 'src/explore/components/OptionControls';
+import { LabelsContainer } from 'src/explore/components/controls/OptionControls';
 import { supersetTheme } from '@superset-ui/core';
 import MetricsControl from 'src/explore/components/controls/MetricControl/MetricsControl';
 import AdhocMetric, {
@@ -55,7 +55,7 @@ function setup(overrides) {
     ...overrides,
   };
   const wrapper = shallow(<MetricsControl {...props} />);
-  const component = wrapper.dive().shallow();
+  const component = wrapper.shallow();
   return { wrapper, component, onChange };
 }
 

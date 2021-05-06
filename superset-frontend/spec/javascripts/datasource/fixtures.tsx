@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const columns = [
+import { ColumnMeta } from '@superset-ui/chart-controls';
+import { ColumnType } from '@superset-ui/core';
+
+export const columns: ColumnMeta[] = [
   {
     column_name: 'bootcamp_attend',
     description: null,
@@ -26,7 +29,7 @@ export const columns = [
     id: 516,
     is_dttm: false,
     python_date_format: null,
-    type: 'DOUBLE PRECISION',
+    type: ColumnType.DOUBLE,
     verbose_name: null,
   },
   {
@@ -39,7 +42,7 @@ export const columns = [
     id: 477,
     is_dttm: false,
     python_date_format: null,
-    type: 'STRING',
+    type: ColumnType.STRING,
     verbose_name: null,
   },
   {
@@ -51,7 +54,7 @@ export const columns = [
     id: 516,
     is_dttm: false,
     python_date_format: null,
-    type: 'DOUBLE PRECISION',
+    type: ColumnType.DOUBLE,
     verbose_name: null,
   },
 ];

@@ -204,7 +204,7 @@ export default class SelectControl extends React.PureComponent {
     if (this.optionsIncludesSelectAll(options)) {
       remainingOptions -= 1;
     }
-    return remainingOptions;
+    return remainingOptions < 0 ? 0 : remainingOptions;
   }
 
   createMetaSelectAllOption() {
@@ -221,6 +221,7 @@ export default class SelectControl extends React.PureComponent {
       disabled,
       filterOption,
       isLoading,
+      label,
       menuPlacement,
       name,
       noResultsText,
@@ -255,6 +256,7 @@ export default class SelectControl extends React.PureComponent {
 
     const selectProps = {
       autoFocus,
+      'aria-label': label,
       clearable,
       disabled,
       filterOption,

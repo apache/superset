@@ -22,7 +22,7 @@ from superset.reports.notifications.slack import SlackNotification
 
 
 def create_notification(
-    recipient: ReportRecipients, screenshot_data: NotificationContent
+    recipient: ReportRecipients, notification_content: NotificationContent
 ) -> BaseNotification:
     """
     Notification polymorphic factory
@@ -30,5 +30,5 @@ def create_notification(
     """
     for plugin in BaseNotification.plugins:
         if plugin.type == recipient.type:
-            return plugin(recipient, screenshot_data)
+            return plugin(recipient, notification_content)
     raise Exception("Recipient type not supported")

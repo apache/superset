@@ -172,6 +172,7 @@ export const table = {
   ],
   expanded: true,
 };
+
 export const defaultQueryEditor = {
   id: 'dfsadfs',
   autorun: false,
@@ -479,6 +480,8 @@ export const initialState = {
       DEFAULT_SQLLAB_LIMIT: 1000,
       SQL_MAX_ROW: 100000,
       DISPLAY_MAX_ROW: 100,
+      SQLALCHEMY_DOCS_URL: 'test_SQLALCHEMY_DOCS_URL',
+      SQLALCHEMY_DISPLAY_TEXT: 'test_SQLALCHEMY_DISPLAY_TEXT',
     },
   },
 };

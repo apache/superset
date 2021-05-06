@@ -15,19 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-import datetime
 import inspect
 import re
 import unittest
-from unittest.mock import Mock, patch
 
-import pandas as pd
+from unittest.mock import Mock, patch
+from typing import Any, Dict
+
 import prison
 import pytest
-import random
 
 from flask import current_app, g
-from sqlalchemy import Float, Date, String
 
 from superset.models.dashboard import Dashboard
 
@@ -42,11 +40,6 @@ from superset.sql_parse import Table
 from superset.utils.core import get_example_database
 
 from .base_tests import SupersetTestCase
-from .dashboard_utils import (
-    create_table_for_dashboard,
-    create_slice,
-    create_dashboard,
-)
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.fixtures.public_role import (
@@ -677,12 +670,13 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_csv", "Superset"), perm_set)
         self.assertIn(("can_dashboard", "Superset"), perm_set)
         self.assertIn(("can_explore", "Superset"), perm_set)
+        self.assertIn(("can_share_chart", "Superset"), perm_set)
+        self.assertIn(("can_share_dashboard", "Superset"), perm_set)
         self.assertIn(("can_explore_json", "Superset"), perm_set)
         self.assertIn(("can_fave_dashboards", "Superset"), perm_set)
         self.assertIn(("can_fave_slices", "Superset"), perm_set)
         self.assertIn(("can_save_dash", "Superset"), perm_set)
         self.assertIn(("can_slice", "Superset"), perm_set)
-        self.assertIn(("can_explore", "Superset"), perm_set)
         self.assertIn(("can_explore_json", "Superset"), perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), perm_set)
         self.assert_can_menu("Databases", perm_set)
@@ -838,9 +832,18 @@ class TestRolePermission(SupersetTestCase):
 
     def test_sql_lab_permissions(self):
         sql_lab_set = get_perm_tuples("sql_lab")
-        self.assertIn(("can_sql_json", "Superset"), sql_lab_set)
         self.assertIn(("can_csv", "Superset"), sql_lab_set)
-        self.assertIn(("can_search_queries", "Superset"), sql_lab_set)
+        self.assertIn(("can_read", "Database"), sql_lab_set)
+        self.assertIn(("can_read", "SavedQuery"), sql_lab_set)
+        self.assertIn(("can_sql_json", "Superset"), sql_lab_set)
+        self.assertIn(("can_sqllab_viz", "Superset"), sql_lab_set)
+        self.assertIn(("can_sqllab_table_viz", "Superset"), sql_lab_set)
+        self.assertIn(("can_sqllab", "Superset"), sql_lab_set)
+
+        self.assertIn(("menu_access", "SQL Lab"), sql_lab_set)
+        self.assertIn(("menu_access", "SQL Editor"), sql_lab_set)
+        self.assertIn(("menu_access", "Saved Queries"), sql_lab_set)
+        self.assertIn(("menu_access", "Query Search"), sql_lab_set)
 
         self.assert_cannot_alpha(sql_lab_set)
 
@@ -875,6 +878,8 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_csv", "Superset"), gamma_perm_set)
         self.assertIn(("can_dashboard", "Superset"), gamma_perm_set)
         self.assertIn(("can_explore", "Superset"), gamma_perm_set)
+        self.assertIn(("can_share_chart", "Superset"), gamma_perm_set)
+        self.assertIn(("can_share_dashboard", "Superset"), gamma_perm_set)
         self.assertIn(("can_explore_json", "Superset"), gamma_perm_set)
         self.assertIn(("can_fave_dashboards", "Superset"), gamma_perm_set)
         self.assertIn(("can_fave_slices", "Superset"), gamma_perm_set)
@@ -1037,9 +1042,9 @@ class TestRowLevelSecurity(SupersetTestCase):
     """
 
     rls_entry = None
-    query_obj = dict(
+    query_obj: Dict[str, Any] = dict(
         groupby=[],
-        metrics=[],
+        metrics=None,
         filter=[],
         is_timeseries=False,
         columns=["value"],

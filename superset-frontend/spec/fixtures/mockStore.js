@@ -19,7 +19,7 @@
 import { createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
 
-import rootReducer from 'src/dashboard/reducers/index';
+import { rootReducer } from 'src/views/store';
 
 import mockState from './mockState';
 import {
@@ -124,3 +124,34 @@ export const getMockStoreWithNativeFilters = () =>
       },
     },
   });
+
+export const stateWithoutNativeFilters = {
+  ...mockState,
+  charts: {
+    ...mockState.charts,
+    [sliceIdWithAppliedFilter]: {
+      ...mockState.charts[sliceId],
+      queryResponse: {
+        status: 'success',
+        applied_filters: [{ column: 'region' }],
+        rejected_filters: [],
+      },
+    },
+    [sliceIdWithRejectedFilter]: {
+      ...mockState.charts[sliceId],
+      queryResponse: {
+        status: 'success',
+        applied_filters: [],
+        rejected_filters: [{ column: 'region', reason: 'not_in_datasource' }],
+      },
+    },
+  },
+  dashboardInfo: {
+    dash_edit_perm: true,
+    metadata: {
+      native_filter_configuration: [],
+    },
+  },
+  dataMask: {},
+  nativeFilters: { filters: {}, filterSets: {} },
+};

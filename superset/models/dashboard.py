@@ -56,6 +56,7 @@ from superset.models.user_attributes import UserAttribute
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.utils import core as utils
 from superset.utils.decorators import debounce
+from superset.utils.hashing import md5_sha_from_str
 from superset.utils.urls import get_url_path
 
 # pylint: disable=too-many-public-methods
@@ -170,7 +171,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @property
     def datasources(self) -> Set[BaseDatasource]:
-        return {slc.datasource for slc in self.slices}
+        return {slc.datasource for slc in self.slices if slc.datasource}
 
     @property
     def charts(self) -> List[BaseDatasource]:
@@ -181,6 +182,12 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         # pylint: disable=no-member
         meta = MetaData(bind=self.get_sqla_engine())
         meta.reflect()
+
+    @property
+    def status(self) -> utils.DashboardStatus:
+        if self.published:
+            return utils.DashboardStatus.PUBLISHED
+        return utils.DashboardStatus.DRAFT
 
     @renders("dashboard_title")
     def dashboard_link(self) -> Markup:
@@ -193,7 +200,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         Returns a MD5 HEX digest that makes this dashboard unique
         """
         unique_string = f"{self.position_json}.{self.css}.{self.json_metadata}"
-        return utils.md5_hex(unique_string)
+        return md5_sha_from_str(unique_string)
 
     @property
     def thumbnail_url(self) -> str:
@@ -234,26 +241,17 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @cache_manager.cache.memoize(
         # manage cache version manually
-        make_name=lambda fname: f"{fname}-v2.1",
+        make_name=lambda fname: f"{fname}-v1.0",
         unless=lambda: not is_feature_enabled("DASHBOARD_CACHE"),
     )
-    def full_data(self) -> Dict[str, Any]:
-        """Bootstrap data for rendering the dashboard page."""
-        slices = self.slices
-        datasource_slices = utils.indexed(slices, "datasource")
-        return {
-            # dashboard metadata
-            "dashboard": self.data,
-            # slices metadata
-            "slices": [slc.data for slc in slices],
-            # datasource metadata
-            "datasources": {
-                # Filter out unneeded fields from the datasource payload
-                datasource.uid: datasource.data_for_slices(slices)
-                for datasource, slices in datasource_slices.items()
-                if datasource
-            },
-        }
+    def datasets_trimmed_for_slices(self) -> List[Dict[str, Any]]:
+        datasource_slices = utils.indexed(self.slices, "datasource")
+        return [
+            # Filter out unneeded fields from the datasource payload
+            datasource.data_for_slices(slices)
+            for datasource, slices in datasource_slices.items()
+            if datasource
+        ]
 
     @property  # type: ignore
     def params(self) -> str:  # type: ignore
@@ -275,7 +273,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @debounce(0.1)
     def clear_cache(self) -> None:
-        cache_manager.cache.delete_memoized(Dashboard.full_data, self)
+        cache_manager.cache.delete_memoized(Dashboard.datasets_trimmed_for_slices, self)
 
     @classmethod
     @debounce(0.1)

@@ -297,4 +297,4 @@ class SqlLab(BaseSupersetView):
     @has_access
     def my_queries(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """Assigns a list of found users to the given role."""
-        return redirect("/savedqueryview/list/?_flt_0_user={}".format(g.user.id))
+        return redirect("/savedqueryview/list/?_flt_0_user={}".format(g.user.get_id()))

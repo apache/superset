@@ -18,11 +18,14 @@
  */
 import React, { FC } from 'react';
 import { styled, t } from '@superset-ui/core';
-import { Collapse, Typography } from 'src/common/components';
-import { DataMaskUnit } from 'src/dataMask/types';
+import { Collapse, Typography, Tooltip } from 'src/common/components';
+import { DataMaskState } from 'src/dataMask/types';
 import { CaretDownOutlined } from '@ant-design/icons';
+import { areObjectsEqual } from 'src/reduxUtils';
+import { FilterSet } from 'src/dashboard/reducers/types';
 import { getFilterValueForDisplay } from './utils';
-import { Filter } from '../../types';
+import { useFilters } from '../state';
+import { getFilterBarTestId } from '../index';
 
 const FilterHeader = styled.div`
   display: flex;
@@ -52,46 +55,78 @@ const StyledCollapse = styled(Collapse)`
   }
 `;
 
-type FiltersHeaderProps = {
-  filters: Filter[];
-  dataMask?: DataMaskUnit;
-  expanded: boolean;
+export type FiltersHeaderProps = {
+  dataMask?: DataMaskState;
+  filterSet?: FilterSet;
 };
 
-const FiltersHeader: FC<FiltersHeaderProps> = ({
-  filters,
-  dataMask,
-  expanded,
-}) => {
+const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
+  const filters = useFilters();
+  const filterValues = Object.values(filters);
+
+  let resultFilters = filterValues ?? [];
+  if (filterSet?.nativeFilters) {
+    resultFilters = Object.values(filterSet?.nativeFilters);
+  }
+
   const getFiltersHeader = () => (
     <FilterHeader>
       <Typography.Text type="secondary">
-        {t('Filters (%d)', filters.length)}
+        {t('Filters (%d)', resultFilters.length)}
       </Typography.Text>
     </FilterHeader>
   );
+
+  const getFilterRow = ({ id, name }: { id: string; name: string }) => {
+    const changedFilter =
+      filterSet &&
+      !areObjectsEqual(filters[id], filterSet?.nativeFilters?.[id], {
+        ignoreUndefined: true,
+      });
+    const removedFilter = !Object.keys(filters).includes(id);
+
+    return (
+      <Tooltip
+        title={
+          (removedFilter &&
+            t(
+              "This filter doesn't exist in dashboard. It will not be applied.",
+            )) ||
+          (changedFilter &&
+            t('Filter metadata changed in dashboard. It will not be applied.'))
+        }
+        placement="bottomLeft"
+        key={id}
+      >
+        <div data-test="filter-info">
+          <Typography.Text strong delete={removedFilter} mark={changedFilter}>
+            {name}:&nbsp;
+          </Typography.Text>
+          <Typography.Text delete={removedFilter} mark={changedFilter}>
+            {getFilterValueForDisplay(dataMask?.[id]?.filterState?.value) || (
+              <Typography.Text type="secondary">{t('None')}</Typography.Text>
+            )}
+          </Typography.Text>
+        </div>
+      </Tooltip>
+    );
+  };
+
   return (
     <StyledCollapse
       ghost
       expandIconPosition="right"
-      defaultActiveKey={expanded ? ['filters'] : undefined}
+      defaultActiveKey={!filterSet ? ['filters'] : undefined}
       expandIcon={({ isActive }: { isActive: boolean }) => (
         <CaretDownOutlined rotate={isActive ? 0 : 180} />
       )}
     >
-      <Collapse.Panel header={getFiltersHeader()} key="filters">
-        {filters.map(({ id, name }) => (
-          <div>
-            <Typography.Text strong>{name}:&nbsp;</Typography.Text>
-            <Typography.Text>
-              {getFilterValueForDisplay(
-                dataMask?.[id]?.currentState?.value,
-              ) || (
-                <Typography.Text type="secondary">{t('None')}</Typography.Text>
-              )}
-            </Typography.Text>
-          </div>
-        ))}
+      <Collapse.Panel
+        {...getFilterBarTestId('collapse-filter-set-description')}
+        header={getFiltersHeader()}
+        key="filters"
+      >
+        {resultFilters.map(getFilterRow)}
       </Collapse.Panel>
     </StyledCollapse>
   );

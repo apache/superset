@@ -25,6 +25,8 @@ import {
 // ATTENTION: If you change any constants, make sure to also change constants.py
 
 export const NULL_STRING = '<NULL>';
+export const TRUE_STRING = 'TRUE';
+export const FALSE_STRING = 'FALSE';
 
 // moment time format strings
 export const SHORT_DATE = 'MMM D, YYYY';

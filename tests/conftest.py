@@ -21,17 +21,25 @@ import pytest
 from sqlalchemy.engine import Engine
 
 from tests.test_app import app
-
 from superset import db
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_database, json_dumps_w_dates
 
 
 CTAS_SCHEMA_NAME = "sqllab_test_db"
 ADMIN_SCHEMA_NAME = "admin_database"
 
 
+@pytest.fixture
+def app_context():
+    with app.app_context():
+        yield
+
+
 @pytest.fixture(autouse=True, scope="session")
 def setup_sample_data() -> Any:
+    # TODO(john-bodley): Determine a cleaner way of setting up the sample data without
+    # relying on `tests.test_app.app` leveraging an  `app` fixture which is purposely
+    # scoped to the function level to ensure tests remain idempotent.
     with app.app_context():
         setup_presto_if_needed()
 
@@ -73,13 +81,22 @@ def drop_from_schema(engine: Engine, schema_name: str):
 
 def setup_presto_if_needed():
     backend = app.config["SQLALCHEMY_EXAMPLES_URI"].split("://")[0]
+    database = get_example_database()
+    extra = database.get_extra()
+
     if backend == "presto":
         # decrease poll interval for tests
-        presto_poll_interval = app.config["PRESTO_POLL_INTERVAL"]
-        extra = f'{{"engine_params": {{"connect_args": {{"poll_interval": {presto_poll_interval}}}}}}}'
-        database = get_example_database()
-        database.extra = extra
-        db.session.commit()
+        extra = {
+            **extra,
+            "engine_params": {
+                "connect_args": {"poll_interval": app.config["PRESTO_POLL_INTERVAL"]}
+            },
+        }
+    else:
+        # remove `poll_interval` from databases that do not support it
+        extra = {**extra, "engine_params": {}}
+    database.extra = json_dumps_w_dates(extra)
+    db.session.commit()
 
     if backend in {"presto", "hive"}:
         database = get_example_database()

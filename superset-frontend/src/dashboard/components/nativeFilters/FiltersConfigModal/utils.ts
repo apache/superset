@@ -18,6 +18,7 @@
  */
 import { FormInstance } from 'antd/lib/form';
 import shortid from 'shortid';
+import { getInitialDataMask } from 'src/dataMask/reducer';
 import { FilterRemoval, NativeFiltersForm } from './types';
 import { Filter, FilterConfiguration, Target } from '../types';
 
@@ -123,7 +124,7 @@ export const createHandleSave = (
     removedFilters,
     setCurrentFilterId,
   );
-  if (values == null) return;
+  if (values === null) return;
 
   const newFilterConfig: FilterConfiguration = filterIds
     .filter(id => !removedFilters[id])
@@ -141,17 +142,20 @@ export const createHandleSave = (
       }
       return {
         id,
-        controlValues: formInputs.controlValues,
+        adhoc_filters: formInputs.adhoc_filters,
+        time_range: formInputs.time_range,
+        controlValues: formInputs.controlValues ?? {},
         name: formInputs.name,
         filterType: formInputs.filterType,
         // for now there will only ever be one target
         targets: [target],
-        defaultValue: formInputs.defaultValue || null,
+        defaultDataMask: formInputs.defaultDataMask ?? getInitialDataMask(),
         cascadeParentIds: formInputs.parentFilter
           ? [formInputs.parentFilter.value]
           : [],
         scope: formInputs.scope,
         isInstant: formInputs.isInstant,
+        sortMetric: formInputs.sortMetric,
       };
     });
 
@@ -197,7 +201,9 @@ export const createHandleTabEdit = (
   }
 };
 
-export const generateFilterId = () => `NATIVE_FILTER-${shortid.generate()}`;
+export const NATIVE_FILTER_PREFIX = 'NATIVE_FILTER-';
+export const generateFilterId = () =>
+  `${NATIVE_FILTER_PREFIX}${shortid.generate()}`;
 
 export const getFilterIds = (config: FilterConfiguration) =>
   config.map(filter => filter.id);

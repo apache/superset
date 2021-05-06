@@ -22,7 +22,7 @@ import { getChartControlPanelRegistry } from '@superset-ui/core';
 
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import ModalTrigger from 'src/components/ModalTrigger';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import TableCollection from 'src/components/dataViewCommon/TableCollection';
 import TableView from 'src/components/TableView';
 
@@ -148,7 +148,7 @@ describe('AlteredSliceTag', () => {
       const td = getTableWrapperFromModalBody(modalBody).find('td');
       expect(td).toHaveLength(21);
       ['control', 'before', 'after'].forEach((v, i) => {
-        expect(td.find('Cell').get(0).props.columns[i].id).toBe(v);
+        expect(td.find('defaultRenderer').get(0).props.columns[i].id).toBe(v);
       });
     });
   });

@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { getNumberFormatter, t } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 
 const propTypes = {
   rowcount: PropTypes.number,

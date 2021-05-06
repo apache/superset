@@ -153,6 +153,7 @@ describe('sqlLabReducer', () => {
     it('should add a table', () => {
       // Testing that beforeEach actually added the table
       expect(newState.tables).toHaveLength(1);
+      expect(newState.tables[0].expanded).toBe(true);
     });
     it('should merge the table attributes', () => {
       // Merging the extra attribute

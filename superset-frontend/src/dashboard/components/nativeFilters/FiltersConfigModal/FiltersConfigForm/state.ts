@@ -18,71 +18,31 @@
  */
 import { useEffect } from 'react';
 import { FormInstance } from 'antd/lib/form';
-import { getChartDataRequest } from 'src/chart/chartAction';
 import { NativeFiltersForm } from '../types';
-import { setFilterFieldValues, useForceUpdate } from './utils';
-import { Filter } from '../../types';
-import { getFormData } from '../../utils';
+import { setNativeFilterFieldValues, useForceUpdate } from './utils';
 
 // When some fields in form changed we need re-fetch data for Filter defaultValue
 // eslint-disable-next-line import/prefer-default-export
 export const useBackendFormUpdate = (
   form: FormInstance<NativeFiltersForm>,
   filterId: string,
-  filterToEdit?: Filter,
-  hasDatasource?: boolean,
-  hasColumn?: boolean,
 ) => {
   const forceUpdate = useForceUpdate();
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
   useEffect(() => {
-    let resolvedDefaultValue: any = null;
-    if (!hasDatasource) {
-      forceUpdate();
-      return;
-    }
-    // No need to check data set change because it cascading update column
-    // So check that column exists is enough
-    if (hasColumn && !formFilter?.column) {
-      setFilterFieldValues(form, filterId, {
-        defaultValueQueriesData: [],
-        defaultValue: resolvedDefaultValue,
-      });
-      return;
-    }
-    if (!formFilter?.dataset?.value) {
-      // no need to make chart data request if no dataset is defined
-      return;
-    }
-    const formData = getFormData({
-      datasetId: formFilter?.dataset?.value,
-      groupby: formFilter?.column,
-      defaultValue: formFilter?.defaultValue,
-      ...formFilter,
+    setNativeFilterFieldValues(form, filterId, {
+      isDataDirty: true,
+      defaultValueQueriesData: null,
     });
-    getChartDataRequest({
-      formData,
-      force: false,
-      requestParams: { dashboardId: 0 },
-    }).then(response => {
-      if (
-        filterToEdit?.filterType === formFilter?.filterType &&
-        filterToEdit?.targets[0].datasetId === formFilter?.dataset?.value &&
-        (!hasColumn ||
-          formFilter?.column === filterToEdit?.targets[0].column?.name)
-      ) {
-        resolvedDefaultValue = filterToEdit?.defaultValue;
-      }
-      setFilterFieldValues(form, filterId, {
-        defaultValueQueriesData: response.result,
-        defaultValue: resolvedDefaultValue,
-      });
-      forceUpdate();
-    });
+    forceUpdate();
   }, [
+    form,
     formFilter?.filterType,
     formFilter?.column,
     formFilter?.dataset?.value,
+    JSON.stringify(formFilter?.adhoc_filters),
+    formFilter?.time_range,
+    forceUpdate,
     filterId,
   ]);
 };

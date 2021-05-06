@@ -17,40 +17,56 @@
  * under the License.
  */
 import {
+  AppSection,
   Behavior,
+  ChartProps,
   DataRecord,
+  FilterState,
+  GenericDataType,
   QueryFormData,
   SetDataMaskHook,
+  ChartDataResponseResult,
 } from '@superset-ui/core';
 import { RefObject } from 'react';
 import { PluginFilterStylesProps } from '../types';
 
+export const FIRST_VALUE = '__FIRST_VALUE__';
+export type SelectValue = (number | string)[] | null;
+
 interface PluginFilterSelectCustomizeProps {
-  defaultValue?: (string | number)[] | null;
-  currentValue?: (string | number)[] | null;
+  defaultValue?: SelectValue | typeof FIRST_VALUE;
   enableEmptyFilter: boolean;
   inverseSelection: boolean;
   multiSelect: boolean;
+  defaultToFirstItem: boolean;
   inputRef?: RefObject<HTMLInputElement>;
   sortAscending: boolean;
+  sortMetric?: string;
 }
 
 export type PluginFilterSelectQueryFormData = QueryFormData &
   PluginFilterStylesProps &
   PluginFilterSelectCustomizeProps;
 
+export interface PluginFilterSelectChartProps extends ChartProps {
+  queriesData: ChartDataResponseResult[];
+}
+
 export type PluginFilterSelectProps = PluginFilterStylesProps & {
+  coltypeMap: Record<string, GenericDataType>;
   data: DataRecord[];
   setDataMask: SetDataMaskHook;
   behaviors: Behavior[];
+  appSection: AppSection;
   formData: PluginFilterSelectQueryFormData;
+  filterState: FilterState;
 };
 
 export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {
   defaultValue: null,
-  currentValue: null,
   enableEmptyFilter: false,
   inverseSelection: false,
+  defaultToFirstItem: false,
   multiSelect: true,
   sortAscending: true,
 };

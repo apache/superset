@@ -40,7 +40,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
-from superset.extensions import cache_manager
+from superset.extensions import cache_manager, security_manager
 from superset.legacy import update_time_range
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -87,20 +87,15 @@ def get_permissions(
     if not user.roles:
         raise AttributeError("User object does not have roles")
 
-    roles = {}
+    roles = defaultdict(list)
     permissions = defaultdict(set)
+
     for role in user.roles:
-        perms = set()
-        for perm in role.permissions:
-            if perm.permission and perm.view_menu:
-                perms.add((perm.permission.name, perm.view_menu.name))
-                if perm.permission.name in ("datasource_access", "database_access"):
-                    permissions[perm.permission.name].add(perm.view_menu.name)
-        roles[role.name] = [
-            [perm.permission.name, perm.view_menu.name]
-            for perm in role.permissions
-            if perm.permission and perm.view_menu
-        ]
+        permissions_ = security_manager.get_role_permissions(role)
+        for permission in permissions_:
+            if permission[0] in ("datasource_access", "database_access"):
+                permissions[permission[0]].add(permission[1])
+            roles[role.name].append([permission[0], permission[1]])
 
     return roles, permissions
 
@@ -295,7 +290,7 @@ def get_time_range_endpoints(
             if not slc:
                 slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
 
-            if slc:
+            if slc and slc.datasource:
                 endpoints = slc.datasource.database.get_extra().get(
                     "time_range_endpoints"
                 )
@@ -538,7 +533,7 @@ def check_slice_perms(_self: Any, slice_id: int) -> None:
 
     form_data, slc = get_form_data(slice_id, use_slice_data=True)
 
-    if slc:
+    if slc and slc.datasource:
         try:
             viz_obj = get_viz(
                 datasource_type=slc.datasource.type,

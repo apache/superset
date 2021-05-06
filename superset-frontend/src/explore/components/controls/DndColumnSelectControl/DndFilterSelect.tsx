@@ -17,25 +17,28 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { logging, SupersetClient, t } from '@superset-ui/core';
-import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { logging, SupersetClient, t, Metric } from '@superset-ui/core';
+import { ColumnMeta } from '@superset-ui/chart-controls';
+import { Tooltip } from 'src/components/Tooltip';
 import { OPERATORS } from 'src/explore/constants';
 import { OptionSortType } from 'src/explore/types';
-import { DndFilterSelectProps, OptionValueType } from './types';
-import AdhocFilterPopoverTrigger from '../FilterControl/AdhocFilterPopoverTrigger';
-import OptionWrapper from './components/OptionWrapper';
-import DndSelectLabel from './DndSelectLabel';
+import {
+  DndFilterSelectProps,
+  OptionValueType,
+} from 'src/explore/components/controls/DndColumnSelectControl/types';
+import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
+import OptionWrapper from 'src/explore/components/controls/DndColumnSelectControl/OptionWrapper';
+import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import AdhocFilter, {
   CLAUSES,
   EXPRESSION_TYPES,
-} from '../FilterControl/AdhocFilter';
-import AdhocMetric from '../MetricControl/AdhocMetric';
+} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import {
   DatasourcePanelDndItem,
   DndItemValue,
-} from '../../DatasourcePanel/types';
-import { DndItemType } from '../../DndItemType';
+} from 'src/explore/components/DatasourcePanel/types';
+import { DndItemType } from 'src/explore/components/DndItemType';
 
 const isDictionaryForAdhocFilter = (value: OptionValueType) =>
   !(value instanceof AdhocFilter) && value?.expressionType;
@@ -300,7 +303,6 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
   return (
     <>
       <DndSelectLabel<OptionValueType, OptionValueType[]>
-        values={values}
         onDrop={(item: DatasourcePanelDndItem) => {
           setDroppedItem(item.value);
           togglePopover(true);
@@ -313,7 +315,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
           DndItemType.MetricOption,
           DndItemType.AdhocMetricOption,
         ]}
-        placeholderText={t('Drop columns or metrics')}
+        ghostButtonText={t('Drop columns or metrics')}
         {...props}
       />
       <AdhocFilterPopoverTrigger

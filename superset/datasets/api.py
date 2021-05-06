@@ -239,7 +239,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=ex.normalized_messages())
         except DatasetCreateFailedError as ex:
             logger.error(
-                "Error creating model %s: %s", self.__class__.__name__, str(ex)
+                "Error creating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -262,7 +265,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             schema:
               type: integer
             name: pk
-          - in: path
+          - in: query
             schema:
               type: bool
             name: override_columns
@@ -314,6 +317,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             changed_model = UpdateDatasetCommand(
                 g.user, pk, item, override_columns
             ).run()
+            if override_columns:
+                RefreshDatasetCommand(g.user, pk).run()
             response = self.response(200, id=changed_model.id, result=item)
         except DatasetNotFoundError:
             response = self.response_404()
@@ -323,7 +328,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             response = self.response_422(message=ex.normalized_messages())
         except DatasetUpdateFailedError as ex:
             logger.error(
-                "Error updating model %s: %s", self.__class__.__name__, str(ex)
+                "Error updating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             response = self.response_422(message=str(ex))
         return response
@@ -377,7 +385,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except DatasetDeleteFailedError as ex:
             logger.error(
-                "Error deleting model %s: %s", self.__class__.__name__, str(ex)
+                "Error deleting model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -510,7 +521,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except DatasetRefreshFailedError as ex:
             logger.error(
-                "Error refreshing dataset %s: %s", self.__class__.__name__, str(ex)
+                "Error refreshing dataset %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -666,7 +680,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                       description: JSON map of passwords for each file
                       type: string
                     overwrite:
-                      description: overwrite existing databases?
+                      description: overwrite existing datasets?
                       type: bool
           responses:
             200:
@@ -714,5 +728,5 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             logger.warning("Import dataset failed")
             return self.response_422(message=exc.normalized_messages())
         except DatasetImportError as exc:
-            logger.exception("Import dataset failed")
+            logger.error("Import dataset failed", exc_info=True)
             return self.response_500(message=str(exc))

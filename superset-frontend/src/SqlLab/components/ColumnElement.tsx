@@ -18,10 +18,10 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ClassNames } from '@emotion/core';
+import { ClassNames } from '@emotion/react';
 import { styled, useTheme } from '@superset-ui/core';
 
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 
 const propTypes = {
   column: PropTypes.object.isRequired,

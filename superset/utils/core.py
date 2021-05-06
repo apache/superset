@@ -19,7 +19,6 @@ import collections
 import decimal
 import errno
 import functools
-import hashlib
 import json
 import logging
 import os
@@ -86,6 +85,11 @@ from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
 from typing_extensions import TypedDict
 
 import _thread  # pylint: disable=C0411
+from superset.constants import (
+    EXTRA_FORM_DATA_APPEND_KEYS,
+    EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
+    EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
+)
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import (
     CertificateException,
@@ -94,6 +98,7 @@ from superset.exceptions import (
 )
 from superset.typing import FlaskResponse, FormData, Metric
 from superset.utils.dates import datetime_to_epoch, EPOCH
+from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
 
 try:
     from pydruid.utils.having import Having
@@ -258,6 +263,13 @@ class QueryStatus(str, Enum):  # pylint: disable=too-few-public-methods
     TIMED_OUT: str = "timed_out"
 
 
+class DashboardStatus(str, Enum):
+    """Dashboard status used for frontend filters"""
+
+    PUBLISHED = "published"
+    DRAFT = "draft"
+
+
 class ReservedUrlParameters(str, Enum):
     """
     Reserved URL parameters that are used internally by Superset. These will not be
@@ -348,7 +360,7 @@ def flasher(msg: str, severity: str = "message") -> None:
         flash(msg, severity)
     except RuntimeError:
         if severity == "danger":
-            logger.error(msg)
+            logger.error(msg, exc_info=True)
         else:
             logger.info(msg)
 
@@ -430,6 +442,10 @@ def parse_js_uri_path_item(
 def cast_to_num(value: Optional[Union[float, int, str]]) -> Optional[Union[float, int]]:
     """Casts a value to an int/float
 
+    >>> cast_to_num('1 ')
+    1.0
+    >>> cast_to_num(' 2')
+    2.0
     >>> cast_to_num('5')
     5
     >>> cast_to_num('5.2')
@@ -466,10 +482,6 @@ def list_minus(l: List[Any], minus: List[Any]) -> List[Any]:
     [1, 3]
     """
     return [o for o in l if o not in minus]
-
-
-def md5_hex(data: str) -> str:
-    return hashlib.md5(data.encode()).hexdigest()
 
 
 class DashboardEncoder(json.JSONEncoder):
@@ -741,7 +753,7 @@ def validate_json(obj: Union[bytes, bytearray, str]) -> None:
         try:
             json.loads(obj)
         except Exception as ex:
-            logger.error("JSON is not valid %s", str(ex))
+            logger.error("JSON is not valid %s", str(ex), exc_info=True)
             raise SupersetException("JSON is not valid")
 
 
@@ -757,7 +769,7 @@ class SigalrmTimeout:
     def handle_timeout(  # pylint: disable=unused-argument
         self, signum: int, frame: Any
     ) -> None:
-        logger.error("Process timed out")
+        logger.error("Process timed out", exc_info=True)
         raise SupersetTimeoutException(
             error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
             message=self.error_message,
@@ -1034,7 +1046,6 @@ def to_adhoc(
     result = {
         "clause": clause.upper(),
         "expressionType": expression_type,
-        "filterOptionName": str(uuid.uuid4()),
         "isExtra": bool(filt.get("isExtra")),
     }
 
@@ -1049,6 +1060,9 @@ def to_adhoc(
     elif expression_type == "SQL":
         result.update({"sqlExpression": filt.get(clause)})
 
+    deterministic_name = md5_sha_from_dict(result)
+    result["filterOptionName"] = deterministic_name
+
     return result
 
 
@@ -1057,39 +1071,36 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
     Merge extra form data (appends and overrides) into the main payload
     and add applied time extras to the payload.
     """
-    time_extras = {
-        "granularity": "__granularity",
-        "granularity_sqla": "__granularity",
-        "time_range": "__time_range",
-    }
-    allowed_extra_overrides: Dict[str, Optional[str]] = {
-        "time_grain_sqla": "__time_grain",
-        "druid_time_origin": "__time_origin",
-        "time_range_endpoints": None,
-    }
-
-    applied_time_extras = form_data.get("applied_time_extras", {})
-    form_data["applied_time_extras"] = applied_time_extras
+    filter_keys = ["filters", "adhoc_filters"]
     extra_form_data = form_data.pop("extra_form_data", {})
-    append_form_data = extra_form_data.pop("append_form_data", {})
-    append_filters = append_form_data.get("filters", None)
-    override_form_data = extra_form_data.pop("override_form_data", {})
-    for key, value in override_form_data.items():
-        form_data[key] = value
-        # mark as temporal overrides as applied time extras
-        time_extra = time_extras.get(key)
-        if time_extra:
-            applied_time_extras[time_extra] = value
+    append_filters = extra_form_data.get("filters", None)
+
+    # merge append extras
+    for key in [key for key in EXTRA_FORM_DATA_APPEND_KEYS if key not in filter_keys]:
+        extra_value = getattr(extra_form_data, key, {})
+        form_value = getattr(form_data, key, {})
+        form_value.update(extra_value)
+        if form_value:
+            form_data["key"] = extra_value
+
+    # map regular extras that apply to form data properties
+    for src_key, target_key in EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.items():
+        value = extra_form_data.get(src_key)
+        if value is not None:
+            form_data[target_key] = value
+
+    # map extras that apply to form data extra properties
     extras = form_data.get("extras", {})
-    for key, value in allowed_extra_overrides.items():
-        extra = extras.get(key)
-        if value and extra:
-            applied_time_extras[value] = extra
-    form_data.update(extras)
+    for key in EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS:
+        value = extra_form_data.get(key)
+        if value is not None:
+            extras[key] = value
+    if extras:
+        form_data["extras"] = extras
 
     adhoc_filters = form_data.get("adhoc_filters", [])
     form_data["adhoc_filters"] = adhoc_filters
-    append_adhoc_filters = append_form_data.get("adhoc_filters", [])
+    append_adhoc_filters = extra_form_data.get("adhoc_filters", [])
     adhoc_filters.extend({"isExtra": True, **fltr} for fltr in append_adhoc_filters)
     if append_filters:
         adhoc_filters.extend(
@@ -1243,7 +1254,7 @@ def backend() -> str:
 
 
 def is_adhoc_metric(metric: Metric) -> bool:
-    return isinstance(metric, dict)
+    return isinstance(metric, dict) and "expressionType" in metric
 
 
 def get_metric_name(metric: Metric) -> str:
@@ -1368,7 +1379,7 @@ def create_ssl_cert_file(certificate: str) -> str:
     :return: The path to the certificate file
     :raises CertificateException: If certificate is not valid/unparseable
     """
-    filename = f"{hashlib.md5(certificate.encode('utf-8')).hexdigest()}.crt"
+    filename = f"{md5_sha_from_str(certificate)}.crt"
     cert_dir = current_app.config["SSL_CERT_PATH"]
     path = cert_dir if cert_dir else tempfile.gettempdir()
     path = os.path.join(path, filename)
@@ -1627,6 +1638,22 @@ def find_duplicates(items: Iterable[InputType]) -> List[InputType]:
     return [item for item, count in collections.Counter(items).items() if count > 1]
 
 
+def remove_duplicates(
+    items: Iterable[InputType], key: Optional[Callable[[InputType], Any]] = None
+) -> List[InputType]:
+    """Remove duplicate items in an iterable."""
+    if not key:
+        return list(dict.fromkeys(items).keys())
+    seen = set()
+    result = []
+    for item in items:
+        item_key = key(item)
+        if item_key not in seen:
+            seen.add(item_key)
+            result.append(item)
+    return result
+
+
 def normalize_dttm_col(
     df: pd.DataFrame,
     timestamp_format: Optional[str],
@@ -1654,3 +1681,35 @@ def normalize_dttm_col(
         df[DTTM_ALIAS] += timedelta(hours=offset)
     if time_shift is not None:
         df[DTTM_ALIAS] += time_shift
+
+
+def parse_boolean_string(bool_str: Optional[str]) -> bool:
+    """
+    Convert a string representation of a true/false value into a boolean
+
+    >>> parse_boolean_string(None)
+    False
+    >>> parse_boolean_string('false')
+    False
+    >>> parse_boolean_string('true')
+    True
+    >>> parse_boolean_string('False')
+    False
+    >>> parse_boolean_string('True')
+    True
+    >>> parse_boolean_string('foo')
+    False
+    >>> parse_boolean_string('0')
+    False
+    >>> parse_boolean_string('1')
+    True
+
+    :param bool_str: string representation of a value that is assumed to be boolean
+    :return: parsed boolean value
+    """
+    if bool_str is None:
+        return False
+    try:
+        return bool(strtobool(bool_str.lower()))
+    except ValueError:
+        return False

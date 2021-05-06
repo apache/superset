@@ -21,7 +21,7 @@ import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 
-import Popover from 'src/common/components/Popover';
+import Popover from 'src/components/Popover';
 import { AGGREGATES } from 'src/explore/constants';
 import AdhocMetricOption from 'src/explore/components/controls/MetricControl/AdhocMetricOption';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';

@@ -18,9 +18,10 @@
  */
 /* eslint camelcase: 0 */
 import { t } from '@superset-ui/core';
+import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 import { ChartState } from 'src/explore/types';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
-import { now } from '../modules/dates';
+import { now } from 'src/modules/dates';
 import * as actions from './chartAction';
 
 export const chart: ChartState = {
@@ -78,14 +79,6 @@ export default function chartReducer(
         ...state,
         chartStatus: 'stopped',
         chartAlert: t('Updating chart was stopped'),
-        chartUpdateEndTime: now(),
-      };
-    },
-    [actions.CHART_UPDATE_QUEUED](state) {
-      return {
-        ...state,
-        asyncJobId: action.asyncJobMeta.job_id,
-        chartStatus: 'loading',
         chartUpdateEndTime: now(),
       };
     },
@@ -200,7 +193,9 @@ export default function chartReducer(
     delete charts[key];
     return charts;
   }
-
+  if (action.type === HYDRATE_DASHBOARD) {
+    return { ...action.data.charts };
+  }
   if (action.type in actionHandlers) {
     return {
       ...charts,

@@ -29,7 +29,7 @@ import {
   SQL_TOOLBAR_HEIGHT,
 } from 'src/SqlLab/constants';
 import AceEditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
-import ConnectedSouthPane from 'src/SqlLab/components/SouthPane';
+import ConnectedSouthPane from 'src/SqlLab/components/SouthPane/state';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
 import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
 import { Dropdown } from 'src/common/components';

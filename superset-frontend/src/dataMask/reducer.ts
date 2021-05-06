@@ -20,66 +20,100 @@
 /* eslint-disable no-param-reassign */
 // <- When we work with Immer, we need reassign, so disabling lint
 import produce from 'immer';
-import { MaskWithId, DataMaskType, DataMaskStateWithId } from './types';
+import { DataMask, FeatureFlag } from '@superset-ui/core';
+import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
+import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
+import { isFeatureEnabled } from 'src/featureFlags';
+import { DataMaskStateWithId, DataMaskWithId } from './types';
 import {
   AnyDataMaskAction,
   SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
   UPDATE_DATA_MASK,
-  UpdateDataMask,
 } from './actions';
+import {
+  Filter,
+  FilterConfiguration,
+} from '../dashboard/components/nativeFilters/types';
 
-export function getInitialMask(id: string): MaskWithId {
-  return {
-    id,
-    extraFormData: {},
-    currentState: {},
-  };
-}
-
-const setUnitDataMask = (
-  unitName: DataMaskType,
-  action: UpdateDataMask,
-  dataMaskState: DataMaskStateWithId,
-) => {
-  if (action[unitName]) {
-    dataMaskState[unitName][action.filterId] = {
-      ...dataMaskState[unitName][action.filterId],
-      ...action[unitName],
-      id: action.filterId,
+export function getInitialDataMask(id?: string): DataMask;
+export function getInitialDataMask(id: string): DataMaskWithId {
+  let otherProps = {};
+  if (id) {
+    otherProps = {
+      id,
     };
   }
-};
+  return {
+    ...otherProps,
+    extraFormData: {},
+    filterState: {
+      value: null,
+    },
+    ownState: {},
+  } as DataMaskWithId;
+}
 
-const emptyDataMask = {
-  [DataMaskType.NativeFilters]: {},
-  [DataMaskType.CrossFilters]: {},
-  [DataMaskType.OwnFilters]: {},
-};
+function fillNativeFilters(
+  data: FilterConfiguration,
+  cleanState: DataMaskStateWithId,
+  draft: DataMaskStateWithId,
+) {
+  data.forEach((filter: Filter) => {
+    cleanState[filter.id] = {
+      ...getInitialDataMask(filter.id), // take initial data
+      ...filter.defaultDataMask, // if something new came from BE - take it
+      ...draft[filter.id], // keep local filter data
+    };
+  });
+  // Get back all other non-native filters
+  Object.values(draft).forEach(filter => {
+    if (!String(filter?.id).startsWith(NATIVE_FILTER_PREFIX)) {
+      cleanState[filter?.id] = filter;
+    }
+  });
+}
 
 const dataMaskReducer = produce(
   (draft: DataMaskStateWithId, action: AnyDataMaskAction) => {
+    const cleanState = {};
     switch (action.type) {
       case UPDATE_DATA_MASK:
-        Object.values(DataMaskType).forEach(unitName =>
-          setUnitDataMask(unitName, action, draft),
+        draft[action.filterId] = {
+          ...getInitialDataMask(action.filterId),
+          ...draft[action.filterId],
+          ...action.dataMask,
+        };
+        return draft;
+      // TODO: update hydrate to .ts
+      // @ts-ignore
+      case HYDRATE_DASHBOARD:
+        if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+          Object.keys(
+            // @ts-ignore
+            action.data.dashboardInfo?.metadata?.chart_configuration,
+          ).forEach(id => {
+            cleanState[id] = {
+              ...getInitialDataMask(id), // take initial data
+            };
+          });
+        }
+        fillNativeFilters(
+          // @ts-ignore
+          action.data.dashboardInfo?.metadata?.native_filter_configuration ??
+            [],
+          cleanState,
+          draft,
         );
-        break;
-
+        return cleanState;
       case SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE:
-        Object.values(DataMaskType).forEach(unitName => {
-          draft[unitName] = emptyDataMask[unitName];
-        });
-        (action.filterConfig ?? []).forEach(filter => {
-          draft[DataMaskType.NativeFilters][filter.id] =
-            draft[DataMaskType.NativeFilters][filter.id] ??
-            getInitialMask(filter.id);
-        });
-        break;
+        fillNativeFilters(action.filterConfig ?? [], cleanState, draft);
+        return cleanState;
 
       default:
+        return draft;
     }
   },
-  emptyDataMask,
+  {},
 );
 
 export default dataMaskReducer;

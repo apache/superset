@@ -190,11 +190,14 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(response.status_code, 404)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_get_dashboard_datasets_not_allowed(self):
+    def test_get_draft_dashboard_datasets(self):
+        """
+        All users should have access to dashboards without roles
+        """
         self.login(username="gamma")
         uri = "api/v1/dashboard/world_health/datasets"
         response = self.get_assert_metric(uri, "get_datasets")
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 200)
 
     @pytest.mark.usefixtures("create_dashboards")
     def get_dashboard_by_slug(self):
@@ -215,12 +218,15 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(response.status_code, 404)
 
     @pytest.mark.usefixtures("create_dashboards")
-    def get_dashboard_by_slug_not_allowed(self):
+    def get_draft_dashboard_by_slug(self):
+        """
+        All users should have access to dashboards without roles
+        """
         self.login(username="gamma")
         dashboard = self.dashboards[0]
         uri = f"api/v1/dashboard/{dashboard.slug}"
         response = self.get_assert_metric(uri, "get")
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 200)
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboard_charts(self):
@@ -230,6 +236,22 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.login(username="admin")
         dashboard = self.dashboards[0]
         uri = f"api/v1/dashboard/{dashboard.id}/charts"
+        response = self.get_assert_metric(uri, "get_charts")
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data.decode("utf-8"))
+        self.assertEqual(len(data["result"]), 1)
+        self.assertEqual(
+            data["result"][0]["slice_name"], dashboard.slices[0].slice_name
+        )
+
+    @pytest.mark.usefixtures("create_dashboards")
+    def test_get_dashboard_charts_by_slug(self):
+        """
+        Dashboard API: Test getting charts belonging to a dashboard
+        """
+        self.login(username="admin")
+        dashboard = self.dashboards[0]
+        uri = f"api/v1/dashboard/{dashboard.slug}/charts"
         response = self.get_assert_metric(uri, "get_charts")
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data.decode("utf-8"))
@@ -250,15 +272,15 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(response.status_code, 404)
 
     @pytest.mark.usefixtures("create_dashboards")
-    def test_get_dashboard_charts_not_allowed(self):
+    def test_get_draft_dashboard_charts(self):
         """
-        Dashboard API: Test getting charts on a dashboard a user does not have access to
+        All users should have access to draft dashboards without roles
         """
         self.login(username="gamma")
         dashboard = self.dashboards[0]
         uri = f"api/v1/dashboard/{dashboard.id}/charts"
         response = self.get_assert_metric(uri, "get_charts")
-        self.assertEqual(response.status_code, 404)
+        assert response.status_code == 200
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboard_charts_empty(self):
@@ -366,7 +388,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.login(username="gamma")
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 404)
+        self.assertEqual(rv.status_code, 200)
         # rollback changes
         db.session.delete(dashboard)
         db.session.commit()

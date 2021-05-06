@@ -48,7 +48,7 @@ class TestThumbnailsSeleniumLive(LiveServerTestCase):
     @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
     def test_get_async_dashboard_screenshot(self):
         """
-            Thumbnails: Simple get async dashboard screenshot
+        Thumbnails: Simple get async dashboard screenshot
         """
         dashboard = db.session.query(Dashboard).all()[0]
         with patch("superset.dashboards.api.DashboardRestApi.get") as mock_get:
@@ -65,7 +65,7 @@ class TestThumbnails(SupersetTestCase):
 
     def test_dashboard_thumbnail_disabled(self):
         """
-            Thumbnails: Dashboard thumbnail disabled
+        Thumbnails: Dashboard thumbnail disabled
         """
         if is_feature_enabled("THUMBNAILS"):
             return
@@ -77,7 +77,7 @@ class TestThumbnails(SupersetTestCase):
 
     def test_chart_thumbnail_disabled(self):
         """
-            Thumbnails: Chart thumbnail disabled
+        Thumbnails: Chart thumbnail disabled
         """
         if is_feature_enabled("THUMBNAILS"):
             return
@@ -90,7 +90,7 @@ class TestThumbnails(SupersetTestCase):
     @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
     def test_get_async_dashboard_screenshot(self):
         """
-            Thumbnails: Simple get async dashboard screenshot
+        Thumbnails: Simple get async dashboard screenshot
         """
         dashboard = db.session.query(Dashboard).all()[0]
         self.login(username="admin")
@@ -105,7 +105,7 @@ class TestThumbnails(SupersetTestCase):
     @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
     def test_get_async_dashboard_notfound(self):
         """
-            Thumbnails: Simple get async dashboard not found
+        Thumbnails: Simple get async dashboard not found
         """
         max_id = db.session.query(func.max(Dashboard.id)).scalar()
         self.login(username="admin")
@@ -116,7 +116,7 @@ class TestThumbnails(SupersetTestCase):
     @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
     def test_get_async_dashboard_not_allowed(self):
         """
-            Thumbnails: Simple get async dashboard not allowed
+        Thumbnails: Simple get async dashboard not allowed
         """
         dashboard = db.session.query(Dashboard).all()[0]
         self.login(username="gamma")
@@ -127,7 +127,7 @@ class TestThumbnails(SupersetTestCase):
     @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
     def test_get_async_chart_screenshot(self):
         """
-            Thumbnails: Simple get async chart screenshot
+        Thumbnails: Simple get async chart screenshot
         """
         chart = db.session.query(Slice).all()[0]
         self.login(username="admin")
@@ -142,7 +142,7 @@ class TestThumbnails(SupersetTestCase):
     @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
     def test_get_async_chart_notfound(self):
         """
-            Thumbnails: Simple get async chart not found
+        Thumbnails: Simple get async chart not found
         """
         max_id = db.session.query(func.max(Slice.id)).scalar()
         self.login(username="admin")
@@ -153,7 +153,7 @@ class TestThumbnails(SupersetTestCase):
     @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
     def test_get_cached_chart_wrong_digest(self):
         """
-            Thumbnails: Simple get chart with wrong digest
+        Thumbnails: Simple get chart with wrong digest
         """
         chart = db.session.query(Slice).all()[0]
         chart_url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
@@ -169,7 +169,7 @@ class TestThumbnails(SupersetTestCase):
     @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
     def test_get_cached_dashboard_screenshot(self):
         """
-            Thumbnails: Simple get cached dashboard screenshot
+        Thumbnails: Simple get cached dashboard screenshot
         """
         dashboard = db.session.query(Dashboard).all()[0]
         dashboard_url = get_url_path("Superset.dashboard", dashboard_id=dashboard.id)
@@ -185,7 +185,7 @@ class TestThumbnails(SupersetTestCase):
     @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
     def test_get_cached_chart_screenshot(self):
         """
-            Thumbnails: Simple get cached chart screenshot
+        Thumbnails: Simple get cached chart screenshot
         """
         chart = db.session.query(Slice).all()[0]
         chart_url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
@@ -201,7 +201,7 @@ class TestThumbnails(SupersetTestCase):
     @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
     def test_get_cached_dashboard_wrong_digest(self):
         """
-            Thumbnails: Simple get dashboard with wrong digest
+        Thumbnails: Simple get dashboard with wrong digest
         """
         dashboard = db.session.query(Dashboard).all()[0]
         dashboard_url = get_url_path("Superset.dashboard", dashboard_id=dashboard.id)

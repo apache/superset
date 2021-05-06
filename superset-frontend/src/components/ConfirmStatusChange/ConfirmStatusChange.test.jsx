@@ -22,7 +22,7 @@ import Button from 'src/components/Button';
 import { act } from 'react-dom/test-utils';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 
 describe('ConfirmStatusChange', () => {
   const mockedProps = {

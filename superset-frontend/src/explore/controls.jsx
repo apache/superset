@@ -64,9 +64,9 @@ import {
   legacyValidateInteger,
   validateNonEmpty,
 } from '@superset-ui/core';
-import { ColumnOption } from '@superset-ui/chart-controls';
 import { formatSelectOptions, mainMetric } from 'src/modules/utils';
 import { TIME_FILTER_LABELS } from './constants';
+import { StyledColumnOption } from './components/optionRenderers';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -124,8 +124,8 @@ const groupByControl = {
   default: [],
   includeTime: false,
   description: t('One or many controls to group by'),
-  optionRenderer: c => <ColumnOption column={c} showType />,
-  valueRenderer: c => <ColumnOption column={c} />,
+  optionRenderer: c => <StyledColumnOption column={c} showType />,
+  valueRenderer: c => <StyledColumnOption column={c} />,
   valueKey: 'column_name',
   allowAll: true,
   filterOption: ({ data: opt }, text) =>
@@ -308,8 +308,8 @@ export const controls = {
         'expression',
     ),
     clearable: false,
-    optionRenderer: c => <ColumnOption column={c} showType />,
-    valueRenderer: c => <ColumnOption column={c} />,
+    optionRenderer: c => <StyledColumnOption column={c} showType />,
+    valueRenderer: c => <StyledColumnOption column={c} />,
     valueKey: 'column_name',
     mapStateToProps: state => {
       const props = {};

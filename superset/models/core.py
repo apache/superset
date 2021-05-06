@@ -52,11 +52,10 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
-from sqlalchemy_utils import EncryptedType
 
 from superset import app, db_engine_specs, is_feature_enabled
 from superset.db_engine_specs.base import TimeGrain
-from superset.extensions import cache_manager, security_manager
+from superset.extensions import cache_manager, encrypted_field_factory, security_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.tags import FavStarUpdater
 from superset.result_set import SupersetResultSet
@@ -115,7 +114,7 @@ class Database(
     # short unique name, used in permissions
     database_name = Column(String(250), unique=True, nullable=False)
     sqlalchemy_uri = Column(String(1024), nullable=False)
-    password = Column(EncryptedType(String(1024), config["SECRET_KEY"]))
+    password = Column(encrypted_field_factory.create(String(1024)))
     cache_timeout = Column(Integer)
     select_as_create_table_as = Column(Boolean, default=False)
     expose_in_sqllab = Column(Boolean, default=True)
@@ -141,9 +140,9 @@ class Database(
     """
         ),
     )
-    encrypted_extra = Column(EncryptedType(Text, config["SECRET_KEY"]), nullable=True)
+    encrypted_extra = Column(encrypted_field_factory.create(Text), nullable=True)
     impersonate_user = Column(Boolean, default=False)
-    server_cert = Column(EncryptedType(Text, config["SECRET_KEY"]), nullable=True)
+    server_cert = Column(encrypted_field_factory.create(Text), nullable=True)
     export_fields = [
         "database_name",
         "sqlalchemy_uri",
@@ -177,7 +176,9 @@ class Database(
             # function_names property is used in bulk APIs and should not hard crash
             # more info in: https://github.com/apache/superset/issues/9678
             logger.error(
-                "Failed to fetch database function names with error: %s", str(ex)
+                "Failed to fetch database function names with error: %s",
+                str(ex),
+                exc_info=True,
             )
         return []
 
@@ -394,7 +395,7 @@ class Database(
             )
             df = result_set.to_pandas_df()
             if mutator:
-                mutator(df)
+                df = mutator(df)
 
             for col, coltype in df.dtypes.to_dict().items():
                 if coltype == numpy.object_ and needs_conversion(df[col]):
@@ -438,8 +439,10 @@ class Database(
             cols=cols,
         )
 
-    def apply_limit_to_sql(self, sql: str, limit: int = 1000) -> str:
-        return self.db_engine_spec.apply_limit_to_sql(sql, limit, self)
+    def apply_limit_to_sql(
+        self, sql: str, limit: int = 1000, force: bool = False
+    ) -> str:
+        return self.db_engine_spec.apply_limit_to_sql(sql, limit, self, force=force)
 
     def safe_sqlalchemy_uri(self) -> str:
         return self.sqlalchemy_uri
@@ -565,13 +568,15 @@ class Database(
 
     @property
     def db_engine_spec(self) -> Type[db_engine_specs.BaseEngineSpec]:
-        return db_engine_specs.engines.get(self.backend, db_engine_specs.BaseEngineSpec)
+        engines = db_engine_specs.get_engine_specs()
+        return engines.get(self.backend, db_engine_specs.BaseEngineSpec)
 
     @classmethod
     def get_db_engine_spec_for_backend(
         cls, backend: str
     ) -> Type[db_engine_specs.BaseEngineSpec]:
-        return db_engine_specs.engines.get(backend, db_engine_specs.BaseEngineSpec)
+        engines = db_engine_specs.get_engine_specs()
+        return engines.get(backend, db_engine_specs.BaseEngineSpec)
 
     def grains(self) -> Tuple[TimeGrain, ...]:
         """Defines time granularity database-specific expressions.
@@ -593,7 +598,7 @@ class Database(
             try:
                 encrypted_extra = json.loads(self.encrypted_extra)
             except json.JSONDecodeError as ex:
-                logger.error(ex)
+                logger.error(ex, exc_info=True)
                 raise ex
         return encrypted_extra
 

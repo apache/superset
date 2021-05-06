@@ -15,12 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=R
-import hashlib
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, NamedTuple, Optional, Union
 
-import simplejson as json
 from flask_babel import gettext as _
 from pandas import DataFrame
 
@@ -28,7 +26,7 @@ from superset import app, db
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import QueryObjectValidationError
-from superset.typing import Metric
+from superset.typing import Metric, OrderBy
 from superset.utils import pandas_postprocessing
 from superset.utils.core import (
     ChartDataResultType,
@@ -36,9 +34,11 @@ from superset.utils.core import (
     DTTM_ALIAS,
     find_duplicates,
     get_metric_names,
+    is_adhoc_metric,
     json_int_dttm_ser,
 )
 from superset.utils.date_parser import get_since_until, parse_human_timedelta
+from superset.utils.hashing import md5_sha_from_dict
 from superset.views.utils import get_time_range_endpoints
 
 config = app.config
@@ -80,7 +80,7 @@ class QueryObject:
     is_timeseries: bool
     time_shift: Optional[timedelta]
     groupby: List[str]
-    metrics: List[Union[Dict[str, Any], str]]
+    metrics: Optional[List[Metric]]
     row_limit: int
     row_offset: int
     filter: List[Dict[str, Any]]
@@ -89,7 +89,7 @@ class QueryObject:
     order_desc: bool
     extras: Dict[str, Any]
     columns: List[str]
-    orderby: List[List[str]]
+    orderby: List[OrderBy]
     post_processing: List[Dict[str, Any]]
     datasource: Optional[BaseDatasource]
     result_type: Optional[ChartDataResultType]
@@ -116,11 +116,16 @@ class QueryObject:
         order_desc: bool = True,
         extras: Optional[Dict[str, Any]] = None,
         columns: Optional[List[str]] = None,
-        orderby: Optional[List[List[str]]] = None,
+        orderby: Optional[List[OrderBy]] = None,
         post_processing: Optional[List[Optional[Dict[str, Any]]]] = None,
         is_rowcount: bool = False,
         **kwargs: Any,
     ):
+        columns = columns or []
+        groupby = groupby or []
+        extras = extras or {}
+        annotation_layers = annotation_layers or []
+
         self.is_rowcount = is_rowcount
         self.datasource = None
         if datasource:
@@ -128,12 +133,7 @@ class QueryObject:
                 str(datasource["type"]), int(datasource["id"]), db.session
             )
         self.result_type = result_type
-        annotation_layers = annotation_layers or []
         self.apply_fetch_values_predicate = apply_fetch_values_predicate or False
-        metrics = metrics or []
-        columns = columns or []
-        groupby = groupby or []
-        extras = extras or {}
         self.annotation_layers = [
             layer
             for layer in annotation_layers
@@ -169,11 +169,11 @@ class QueryObject:
         #   1. 'metric_name'   - name of predefined metric
         #   2. { label: 'label_name' }  - legacy format for a predefined metric
         #   3. { expressionType: 'SIMPLE' | 'SQL', ... } - adhoc metric
-        self.metrics = [
-            metric
-            if isinstance(metric, str) or "expressionType" in metric
-            else metric["label"]  # type: ignore
-            for metric in metrics
+        self.metrics = metrics and [
+            x
+            if isinstance(x, str) or is_adhoc_metric(x)
+            else x["label"]  # type: ignore
+            for x in metrics
         ]
 
         self.row_limit = config["ROW_LIMIT"] if row_limit is None else row_limit
@@ -236,7 +236,7 @@ class QueryObject:
     @property
     def metric_names(self) -> List[str]:
         """Return metrics names (labels), coerce adhoc metrics to strings."""
-        return get_metric_names(self.metrics)
+        return get_metric_names(self.metrics or [])
 
     @property
     def column_names(self) -> List[str]:
@@ -332,14 +332,7 @@ class QueryObject:
         if annotation_layers:
             cache_dict["annotation_layers"] = annotation_layers
 
-        json_data = self.json_dumps(cache_dict, sort_keys=True)
-        return hashlib.md5(json_data.encode("utf-8")).hexdigest()
-
-    @staticmethod
-    def json_dumps(obj: Any, sort_keys: bool = False) -> str:
-        return json.dumps(
-            obj, default=json_int_dttm_ser, ignore_nan=True, sort_keys=sort_keys
-        )
+        return md5_sha_from_dict(cache_dict, default=json_int_dttm_ser, ignore_nan=True)
 
     def exec_post_processing(self, df: DataFrame) -> DataFrame:
         """

@@ -39,7 +39,10 @@ def deliver_slack_msg(
     file: Optional[Union[str, IOBase, bytes]],
 ) -> None:
     config = current_app.config
-    client = WebClient(token=config["SLACK_API_TOKEN"], proxy=config["SLACK_PROXY"])
+    token = config["SLACK_API_TOKEN"]
+    if callable(token):
+        token = token()
+    client = WebClient(token=token, proxy=config["SLACK_PROXY"])
     # files_upload returns SlackResponse as we run it in sync mode.
     if file:
         response = cast(
