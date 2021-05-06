@@ -231,7 +231,9 @@
       ],
       "Annotations could not be deleted.": ["Аннотации не могут быть удалены."],
       "Annotation not found.": ["Аннотация не найдена."],
-      "Annotation parameters are invalid.": ["Параметры аннотации недействительны."],
+      "Annotation parameters are invalid.": [
+        "Параметры аннотации недействительны."
+      ],
       "Annotation could not be created.": ["Аннотация не может быть создана."],
       "Annotation could not be updated.": [
         "Аннотация не может быть обновлена."
