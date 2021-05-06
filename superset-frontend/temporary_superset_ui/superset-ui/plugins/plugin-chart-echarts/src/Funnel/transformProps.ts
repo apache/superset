@@ -73,7 +73,7 @@ export function formatFunnelLabel({
 export default function transformProps(
   chartProps: EchartsFunnelChartProps,
 ): FunnelChartTransformedProps {
-  const { formData, height, hooks, ownState, queriesData, width } = chartProps;
+  const { formData, height, hooks, filterState, queriesData, width } = chartProps;
   const data: DataRecord[] = queriesData[0].data || [];
 
   const {
@@ -127,7 +127,7 @@ export default function transformProps(
     };
   });
 
-  const selectedValues = (ownState.selectedValues || []).reduce(
+  const selectedValues = (filterState.selectedValues || []).reduce(
     (acc: Record<string, number>, selectedValue: string) => {
       const index = transformedData.findIndex(({ name }) => name === selectedValue);
       return {
