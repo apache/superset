@@ -198,7 +198,7 @@ const config: ControlPanelConfig = {
             name: 'row_limit',
             override: {
               visibility: ({ controls }: ControlPanelsContainerProps) =>
-                !controls.server_pagination.value,
+                !controls?.server_pagination?.value,
             },
           },
           {
@@ -211,7 +211,7 @@ const config: ControlPanelConfig = {
               choices: PAGE_SIZE_OPTIONS,
               description: t('Rows per page, 0 means no pagination'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
-                Boolean(controls.server_pagination.value),
+                Boolean(controls?.server_pagination?.value),
             },
           },
         ],
@@ -287,7 +287,7 @@ const config: ControlPanelConfig = {
               choices: PAGE_SIZE_OPTIONS,
               description: t('Rows per page, 0 means no pagination'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
-                !controls.server_pagination.value,
+                !controls?.server_pagination?.value,
             },
           },
           null,
