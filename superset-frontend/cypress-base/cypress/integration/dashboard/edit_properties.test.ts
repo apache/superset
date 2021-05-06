@@ -91,7 +91,7 @@ describe('Dashboard edit action', () => {
     cy.get('.ant-modal-body')
       .should('be.visible')
       .contains('Title')
-      .siblings('input')
+      .get('[data-test="dashboard-title-input"]')
       .type(`{selectall}{backspace}${dashboardTitle}`);
 
     // save edit changes
