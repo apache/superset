@@ -285,7 +285,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     >
       {isEditMode ? (
         <EditHeader>
-          <EditHeaderTitle>{db?.backend}</EditHeaderTitle>
+          <EditHeaderTitle>{db?.parameters?.engine}</EditHeaderTitle>
           <EditHeaderSubtitle>{db?.database_name}</EditHeaderSubtitle>
         </EditHeader>
       ) : (

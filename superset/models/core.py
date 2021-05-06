@@ -54,7 +54,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
 
 from superset import app, db_engine_specs, is_feature_enabled
-from superset.db_engine_specs.base import TimeGrain
+from superset.db_engine_specs.base import BaseParametersMixin, TimeGrain
 from superset.extensions import cache_manager, encrypted_field_factory, security_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.tags import FavStarUpdater
@@ -212,6 +212,7 @@ class Database(
             "allows_cost_estimate": self.allows_cost_estimate,
             "allows_virtual_table_explore": self.allows_virtual_table_explore,
             "explore_database_id": self.explore_database_id,
+            "parameters": self.parameters,
         }
 
     @property
@@ -221,6 +222,17 @@ class Database(
     @property
     def url_object(self) -> URL:
         return make_url(self.sqlalchemy_uri_decrypted)
+
+    @property
+    def parameters(self) -> Optional[Dict[str, Any]]:
+        # Build parameters if db_engine_spec is a subclass of BaseParametersMixin
+        parameters = {"engine": self.backend}
+
+        if issubclass(self.db_engine_spec, BaseParametersMixin):
+            uri = make_url(self.sqlalchemy_uri_decrypted)
+            return {**parameters, **self.db_engine_spec.get_parameters_from_uri(uri)}
+
+        return parameters
 
     @property
     def backend(self) -> str:
