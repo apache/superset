@@ -63,7 +63,7 @@ export function formatLabel({
 export default function transformProps(
   chartProps: EchartsRadarChartProps,
 ): RadarChartTransformedProps {
-  const { formData, height, hooks, ownState, queriesData, width } = chartProps;
+  const { formData, height, hooks, filterState, queriesData, width } = chartProps;
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 
@@ -129,7 +129,7 @@ export default function transformProps(
     } as RadarSeriesDataItemOption);
   });
 
-  const selectedValues = (ownState.selectedValues || []).reduce(
+  const selectedValues = (filterState.selectedValues || []).reduce(
     (acc: Record<string, number>, selectedValue: string) => {
       const index = transformedData.findIndex(({ name }) => name === selectedValue);
       return {
