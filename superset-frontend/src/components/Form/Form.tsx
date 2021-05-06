@@ -17,36 +17,18 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import { FormControl } from 'react-bootstrap';
-import FormLabel from './index';
+import AntDForm, { FormProps } from 'antd/lib/form';
+import { styled } from '@superset-ui/core';
 
-const mockedProps = {
-  children: 'Form label',
-  required: false,
-  htmlFor: 'form-control',
-};
+const StyledForm = styled(AntDForm)`
+  &.ant-form label {
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  }
+  .ant-form-item {
+    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  }
+`;
 
-test('should render', () => {
-  const { container } = render(<FormLabel {...mockedProps} />);
-  expect(container).toBeInTheDocument();
-});
-
-test('should render a Label', () => {
-  render(
-    <>
-      <FormLabel {...mockedProps} />
-      <FormControl id="form-control" />
-    </>,
-  );
-  expect(screen.getByLabelText('Form label')).toBeInTheDocument();
-});
-
-test('should be shown as required', () => {
-  const requiredProps = {
-    ...mockedProps,
-    required: true,
-  };
-  render(<FormLabel {...requiredProps} />);
-  expect(screen.getByText('*').parentNode).toBeInTheDocument();
-});
+export default function Form(props: FormProps) {
+  return <StyledForm {...props} />;
+}

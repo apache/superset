@@ -25,7 +25,7 @@ import Button from 'src/components/Button';
 import { NativeSelect as Select } from 'src/components/Select';
 import { t, styled } from '@superset-ui/core';
 
-import FormLabel from 'src/components/FormLabel';
+import { FormLabel } from 'src/components/Form';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { noOp } from 'src/utils/common';
