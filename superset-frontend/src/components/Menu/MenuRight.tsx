@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { MainNav as Menu } from 'src/common/components';
-import { t, styled, css, SupersetTheme, supersetTheme } from '@superset-ui/core';
+import { t, styled, css, SupersetTheme } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
 import Icon from 'src/components/Icon';
 import LanguagePicker from './LanguagePicker';
@@ -43,11 +43,9 @@ export const dropdownItems = [
 ];
 
 const versionInfoStyles = (theme: SupersetTheme) => css`
-  padding: ${ theme.gridUnit * 1.5}px
-  ${ theme.gridUnit * 4}px
-  ${ theme.gridUnit * 1.5}px
-  ${theme.gridUnit * 7}px;
-  color: ${ theme.colors.grayscale.base};
+  padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 4}px
+    ${theme.gridUnit * 1.5}px ${theme.gridUnit * 7}px;
+  color: ${theme.colors.grayscale.base};
   font-size: ${theme.typography.sizes.xs}px;
   white-space: nowrap;
 `;
@@ -135,9 +133,7 @@ const RightMenu = ({
               </li>
             )}
             {navbarRight.version_sha && (
-              <li css={versionInfoStyles}>
-                SHA: {navbarRight.version_sha}
-              </li>
+              <li css={versionInfoStyles}>SHA: {navbarRight.version_sha}</li>
             )}
           </div>
         </Menu.ItemGroup>,

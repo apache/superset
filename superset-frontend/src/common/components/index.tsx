@@ -124,12 +124,12 @@ export const StyledNav = styled(AntdMenu)`
     &:hover {
       border-bottom: none;
     }
-  } 
+  }
 
   & > .ant-menu-item > a {
     padding: ${({ theme }) => theme.gridUnit * 4}px;
   }
-  
+
   .ant-menu-submenu-open,
   .ant-menu-submenu-active {
     background-color: ${({ theme }) => theme.colors.primary.light5};
@@ -186,7 +186,6 @@ export declare type MenuMode =
   | 'inline';
 export const Menu = Object.assign(AntdMenu, {
   Item: MenuItem,
-  
 });
 
 export const MainNav = Object.assign(StyledNav, {
@@ -194,8 +193,7 @@ export const MainNav = Object.assign(StyledNav, {
   SubMenu: StyledSubMenu,
   Divider: AntdMenu.Divider,
   ItemGroup: AntdMenu.ItemGroup,
-})
-
+});
 
 export const Input = styled(AntdInput)`
   &[type='text'],

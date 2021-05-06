@@ -130,7 +130,6 @@ const StyledHeader = styled.header`
   }
 `;
 
-
 const { SubMenu } = DropdownMenu;
 
 export function Menu({
@@ -163,10 +162,7 @@ export function Menu({
   }: MenuObjectProps) => {
     if (url && isFrontendRoute) {
       return (
-        <DropdownMenu.Item 
-          key={label} 
-          role="presentation"
-        >
+        <DropdownMenu.Item key={label} role="presentation">
           <Link role="button" to={url}>
             {label}
           </Link>
@@ -181,7 +177,7 @@ export function Menu({
       );
     }
     return (
-      <SubMenu key={index}  title={label} icon={<Icon name="triangle-down" />}>
+      <SubMenu key={index} title={label} icon={<Icon name="triangle-down" />}>
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
           if (typeof child === 'string' && child === '-') {
             return <DropdownMenu.Divider key={`$${index1}`} />;
