@@ -20,7 +20,7 @@ import React, { useState, useEffect } from 'react';
 import { styled } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { Menu as DropdownMenu, MenuMode } from 'src/common/components';
+import { MainNav as DropdownMenu, MenuMode } from 'src/common/components';
 import { Link } from 'react-router-dom';
 import { Row, Col } from 'antd';
 import Icon from 'src/components/Icon';
@@ -84,24 +84,6 @@ const StyledHeader = styled.header`
   .caret {
     display: none;
   }
-
-  .navbar-inverse {
-    border: none;
-  }
-
-  .version-info {
-    padding: ${({ theme }) => theme.gridUnit * 1.5}px
-      ${({ theme }) => theme.gridUnit * 4}px
-      ${({ theme }) => theme.gridUnit * 1.5}px
-      ${({ theme }) => theme.gridUnit * 7}px;
-    color: ${({ theme }) => theme.colors.grayscale.base};
-    font-size: ${({ theme }) => theme.typography.sizes.xs}px;
-
-    div {
-      white-space: nowrap;
-    }
-  }
-
   .navbar-brand {
     display: flex;
     flex-direction: column;
@@ -116,9 +98,9 @@ const StyledHeader = styled.header`
     height: 100%;
     line-height: inherit;
   }
-  .ant-menu > .ant-menu-item > a {
+  /*.ant-menu > .ant-menu-item > a {
     padding: ${({ theme }) => theme.gridUnit * 4}px;
-  }
+  }*/
   @media (max-width: 767px) {
     .ant-menu > .ant-menu-item > a {
       padding: 0px;
@@ -133,104 +115,8 @@ const StyledHeader = styled.header`
       }
     }
   }
-  .dropdown-header {
-    text-transform: uppercase;
-    padding-left: 12px;
-  }
-  .ant-menu-horizontal:not(.ant-menu-dark) > .ant-menu-submenu,
-  .ant-menu-horizontal:not(.ant-menu-dark) > .ant-menu-item {
-    margin: 0px;
-    &:hover {
-      border-bottom: none;
-    }
-  }
-  .ant-menu-horizontal > .ant-menu-item,
-  .ant-menu-horizontal > .ant-menu-submenu {
-    vertical-align: inherit;
-    &:hover {
-      color: ${({ theme }) => theme.colors.grayscale.dark1};
-    }
-  }
-  .navbar-right {
-    border: none;
-  }
-  .ant-menu-horizontal {
-    line-height: 51px;
-    border: none;
-    .ant-menu-submenu-open,
-    .ant-menu-submenu-active,
-    .ant-menu-submenu,
-    .ant-menu-submenu-horizontal {
-      color: ${({ theme }) => theme.colors.grayscale.dark1};
-      border-bottom: none;
-    }
-
-    .ant-menu-submenu-open,
-    .ant-menu-submenu-active {
-      background-color: ${({ theme }) => theme.colors.primary.light5};
-      .ant-menu-submenu-title {
-        color: ${({ theme }) => theme.colors.grayscale.dark1};
-        background-color: ${({ theme }) => theme.colors.primary.light5};
-        border-bottom: none;
-        margin: 0;
-        &:after {
-          opacity: 1;
-          width: calc(100% - 1);
-        }
-      }
-    }
-    .ant-menu-submenu-title {
-      &:after {
-        content: '';
-        position: absolute;
-        bottom: -3px;
-        left: 50%;
-        width: 0;
-        height: 3px;
-        opacity: 0;
-        transform: translateX(-50%);
-        transition: all ${({ theme }) => theme.transitionTiming}s;
-        background-color: ${({ theme }) => theme.colors.primary.base};
-      }
-    }
-    .ant-menu-submenu-title {
-      padding: 0 ${({ theme }) => theme.gridUnit * 6}px 0
-        ${({ theme }) => theme.gridUnit * 3}px;
-      svg {
-        position: absolute;
-        top: ${({ theme }) => theme.gridUnit * 4}px;
-        right: ${({ theme }) => theme.gridUnit}px;
-        width: ${({ theme }) => theme.gridUnit * 6}px;
-      }
-      &:hover {
-        color: ${({ theme }) => theme.colors.grayscale.dark1};
-      }
-    }
-  }
 
   .ant-menu-item a {
-    color: ${({ theme }) => theme.colors.grayscale.dark1};
-    border-bottom: none;
-    transition: background-color ${({ theme }) => theme.transitionTiming}s;
-    &:after {
-      content: '';
-      position: absolute;
-      bottom: -3px;
-      left: 50%;
-      width: 0;
-      height: 3px;
-      opacity: 0;
-      transform: translateX(-50%);
-      transition: all ${({ theme }) => theme.transitionTiming}s;
-      background-color: ${({ theme }) => theme.colors.primary.base};
-    }
-    &:focus {
-      border-bottom: none;
-      background-color: transparent;
-      @media (max-width: 767px) {
-        background-color: ${({ theme }) => theme.colors.primary.light5};
-      }
-    }
     &:hover {
       color: ${({ theme }) => theme.colors.grayscale.dark1};
       background-color: ${({ theme }) => theme.colors.primary.light5};
@@ -242,25 +128,8 @@ const StyledHeader = styled.header`
       }
     }
   }
-
-  .navbar-right {
-    display: flex;
-    align-items: center;
-  }
-
-  .ant-menu {
-    .ant-menu-item-group-title {
-      padding-bottom: ${({ theme }) => theme.gridUnit}px;
-    }
-    .ant-menu-item {
-      margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-    }
-    .about-section {
-      margin: ${({ theme }) => theme.gridUnit}px 0
-        ${({ theme }) => theme.gridUnit * 2}px;
-    }
-  }
 `;
+
 
 const { SubMenu } = DropdownMenu;
 
@@ -294,7 +163,10 @@ export function Menu({
   }: MenuObjectProps) => {
     if (url && isFrontendRoute) {
       return (
-        <DropdownMenu.Item key={label} role="presentation">
+        <DropdownMenu.Item 
+          key={label} 
+          role="presentation"
+        >
           <Link role="button" to={url}>
             {label}
           </Link>
@@ -309,7 +181,7 @@ export function Menu({
       );
     }
     return (
-      <SubMenu key={index} title={label} icon={<Icon name="triangle-down" />}>
+      <SubMenu key={index}  title={label} icon={<Icon name="triangle-down" />}>
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
           if (typeof child === 'string' && child === '-') {
             return <DropdownMenu.Divider key={`$${index1}`} />;
