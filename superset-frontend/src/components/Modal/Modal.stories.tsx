@@ -17,36 +17,34 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import { FormControl } from 'react-bootstrap';
-import FormLabel from './index';
+import Modal, { ModalProps } from '.';
 
-const mockedProps = {
-  children: 'Form label',
-  required: false,
-  htmlFor: 'form-control',
+export default {
+  title: 'Modal',
+  component: Modal,
 };
 
-test('should render', () => {
-  const { container } = render(<FormLabel {...mockedProps} />);
-  expect(container).toBeInTheDocument();
-});
+export const InteractiveModal = (props: ModalProps) => (
+  <Modal {...props}>Hi</Modal>
+);
 
-test('should render a Label', () => {
-  render(
-    <>
-      <FormLabel {...mockedProps} />
-      <FormControl id="form-control" />
-    </>,
-  );
-  expect(screen.getByLabelText('Form label')).toBeInTheDocument();
-});
+InteractiveModal.args = {
+  disablePrimaryButton: false,
+  primaryButtonName: 'Danger',
+  primaryButtonType: 'danger',
+  show: true,
+  title: "I'm a modal!",
+};
 
-test('should be shown as required', () => {
-  const requiredProps = {
-    ...mockedProps,
-    required: true,
-  };
-  render(<FormLabel {...requiredProps} />);
-  expect(screen.getByText('*').parentNode).toBeInTheDocument();
-});
+InteractiveModal.argTypes = {
+  onHandledPrimaryAction: { action: 'onHandledPrimaryAction' },
+  onHide: { action: 'onHide' },
+};
+
+InteractiveModal.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};

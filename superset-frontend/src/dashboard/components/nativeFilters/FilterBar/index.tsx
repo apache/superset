@@ -35,6 +35,7 @@ import { useImmer } from 'use-immer';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { testWithId } from 'src/utils/testUtils';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
+import Loading from 'src/components/Loading';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import {
   getOnlyExtraFormData,
@@ -47,6 +48,7 @@ import {
   useFilters,
   useFilterSets,
   useFilterUpdates,
+  useInitialization,
 } from './state';
 import EditSection from './FilterSets/EditSection';
 import Header from './Header';
@@ -217,6 +219,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       { ignoreUndefined: true },
     ) || dataSelectedValues.length !== dataAppliedValues.length;
 
+  const isInitialized = useInitialization();
+
   return (
     <BarWrapper {...getFilterBarTestId()} className={cx({ open: filtersOpen })}>
       <CollapsedBar
@@ -239,7 +243,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           dataMaskSelected={dataMaskSelected}
           dataMaskApplied={dataMaskApplied}
         />
-        {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET) ? (
+        {!isInitialized ? (
+          <Loading />
+        ) : isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET) ? (
           <StyledTabs
             centered
             onChange={setTab as HandlerFunction}

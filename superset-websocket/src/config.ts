@@ -117,12 +117,12 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
     STATSD_GLOBAL_TAGS: val => (config.statsd.globalTags = toStringArray(val)),
   };
 
-  for (const [envVar, set] of Object.entries(envVarConfigSetter)) {
+  Object.entries(envVarConfigSetter).forEach(([envVar, set]) => {
     const envValue = process.env[envVar];
     if (envValue && isPresent(envValue)) {
       set(envValue);
     }
-  }
+  });
 
   return config;
 }

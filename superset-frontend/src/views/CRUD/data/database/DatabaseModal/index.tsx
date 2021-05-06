@@ -42,7 +42,7 @@ interface DatabaseModalProps {
   onDatabaseAdd?: (database?: DatabaseObject) => void; // TODO: should we add a separate function for edit?
   onHide: () => void;
   show: boolean;
-  database?: DatabaseObject | null; // If included, will go into edit mode
+  databaseId: number | undefined; // If included, will go into edit mode
 }
 
 enum ActionType {
@@ -50,7 +50,6 @@ enum ActionType {
   inputChange,
   editorChange,
   fetched,
-  initialLoad,
   reset,
 }
 
@@ -72,7 +71,7 @@ type DBReducerActionType =
       payload: DBReducerPayloadType;
     }
   | {
-      type: ActionType.fetched | ActionType.initialLoad;
+      type: ActionType.fetched;
       payload: Partial<DatabaseObject>;
     }
   | {
@@ -111,10 +110,8 @@ function dbReducer(
         ...trimmedState,
         [action.payload.name]: action.payload.value,
       };
-    case ActionType.initialLoad:
     case ActionType.fetched:
       return {
-        ...trimmedState,
         ...action.payload,
       };
     case ActionType.reset:
@@ -131,15 +128,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   onDatabaseAdd,
   onHide,
   show,
-  database = null,
+  databaseId,
 }) => {
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
-  >(dbReducer, database);
+  >(dbReducer, null);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const conf = useCommonConf();
 
-  const isEditMode = database !== null;
+  const isEditMode = !!databaseId;
   const useSqlAlchemyForm = true; // TODO: set up logic
   const hasConnectedDb = false; // TODO: set up logic
 
@@ -181,19 +178,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const onSave = () => {
     if (isEditMode) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { id, ...update }: DatabaseObject = { ...(db as DatabaseObject) };
-
-      if (db?.id) {
-        updateResource(db.id, update).then(result => {
+      // databaseId will not be null if isEditMode is true
+      // db will have at least a database_name and  sqlalchemy_uri
+      // in order for the button to not be disabled
+      updateResource(databaseId as number, db as DatabaseObject).then(
+        result => {
           if (result) {
             if (onDatabaseAdd) {
               onDatabaseAdd();
             }
             onClose();
           }
-        });
-      }
+        },
+      );
     } else if (db) {
       // Create
       db.database_name = db?.database_name?.trim();
@@ -216,11 +213,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   // Initialize
   const fetchDB = () => {
-    if (isEditMode && database?.id) {
+    if (isEditMode && databaseId) {
       if (!dbLoading) {
-        const id = database.id || 0;
-
-        fetchResource(id).catch(e =>
+        fetchResource(databaseId).catch(e =>
           addDangerToast(
             t(
               'Sorry there was an error fetching database information: %s',
@@ -233,36 +228,21 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   useEffect(() => {
-    if (database) {
-      setDB({
-        type: ActionType.initialLoad,
-        payload: database,
-      });
-    }
     if (show) {
       setTabKey(DEFAULT_TAB_KEY);
     }
-    if (database && show) {
+    if (databaseId && show) {
       fetchDB();
     }
-  }, [show, database]);
+  }, [show, databaseId]);
 
   useEffect(() => {
     // TODO: can we include these values in the original fetch?
     if (dbFetched) {
-      const {
-        extra,
-        impersonate_user,
-        server_cert,
-        sqlalchemy_uri,
-      } = dbFetched;
       setDB({
         type: ActionType.fetched,
         payload: {
-          extra,
-          impersonate_user,
-          server_cert,
-          sqlalchemy_uri,
+          ...dbFetched,
         },
       });
     }

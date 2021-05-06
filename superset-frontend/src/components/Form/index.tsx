@@ -16,13 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { IconComponentProps } from '@ant-design/icons/lib/components/Icon';
+import Form from './Form';
+import FormItem from './FormItem';
+import FormLabel from './FormLabel';
 
-type AntdIconType = IconComponentProps;
-type IconType = AntdIconType & {
-  iconColor?: string;
-  twoToneColor?: string;
-  iconSize?: 's' | 'm' | 'l' | 'xl' | 'xxl';
-};
-
-export default IconType;
+export { Form, FormItem, FormLabel };

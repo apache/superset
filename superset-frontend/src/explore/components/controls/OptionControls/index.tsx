@@ -19,14 +19,12 @@
 import React, { useRef } from 'react';
 import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
 import { styled, t, useTheme } from '@superset-ui/core';
-import {
-  MetricOption,
-  InfoTooltipWithTrigger,
-} from '@superset-ui/chart-controls';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/components/Tooltip';
 import Icon from 'src/components/Icon';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
+import { StyledMetricOption } from '../../optionRenderers';
 
 export const DragContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit}px;
@@ -246,7 +244,7 @@ export const OptionControlLabel = ({
 
   const getLabelContent = () => {
     if (savedMetric?.metric_name) {
-      return <MetricOption metric={savedMetric} />;
+      return <StyledMetricOption metric={savedMetric} />;
     }
     return <Tooltip title={label}>{label}</Tooltip>;
   };

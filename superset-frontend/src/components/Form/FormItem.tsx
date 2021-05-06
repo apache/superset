@@ -17,25 +17,29 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
-import { ColumnTypeLabel } from '@superset-ui/chart-controls';
+import Form, { FormItemProps } from 'antd/lib/form';
+import { styled } from '@superset-ui/core';
 
-import adhocMetricType from './adhocMetricType';
+const StyledItem = styled(Form.Item)`
+  .ant-form-item-label > label {
+    text-transform: uppercase;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
+    color: ${({ theme }) => theme.colors.grayscale.base};
 
-const propTypes = {
-  adhocMetric: adhocMetricType,
-  showType: PropTypes.bool,
-};
+    &.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
+      &::before {
+        display: none;
+      }
+      &::after {
+        display: inline-block;
+        color: ${({ theme }) => theme.colors.error.base};
+        font-size: ${({ theme }) => theme.typography.sizes.m}px;
+        content: '*';
+      }
+    }
+  }
+`;
 
-export default function AdhocMetricStaticOption({
-  adhocMetric,
-  showType = false,
-}) {
-  return (
-    <div>
-      {showType && <ColumnTypeLabel type="expression" />}
-      <span className="option-label">{adhocMetric.label}</span>
-    </div>
-  );
+export default function FormItem(props: FormItemProps) {
+  return <StyledItem {...props} />;
 }
-AdhocMetricStaticOption.propTypes = propTypes;

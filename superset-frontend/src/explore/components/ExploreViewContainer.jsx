@@ -26,7 +26,7 @@ import { debounce } from 'lodash';
 import { Resizable } from 're-resizable';
 
 import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
-import { Global } from '@emotion/core';
+import { Global } from '@emotion/react';
 import { Tooltip } from 'src/components/Tooltip';
 import { usePrevious } from 'src/common/hooks/usePrevious';
 import Icon from 'src/components/Icon';
@@ -85,6 +85,7 @@ const Styles = styled.div`
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
+  flex-basis: 100vh;
   align-items: stretch;
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   .explore-column {

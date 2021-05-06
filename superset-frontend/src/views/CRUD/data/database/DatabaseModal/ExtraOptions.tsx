@@ -233,7 +233,7 @@ const ExtraOptions = ({
               value={db?.encrypted_extra || ''}
               placeholder={t('Secure extra')}
               onChange={(json: string) =>
-                onEditorChange(json, 'encrypted_extra')
+                onEditorChange({ json, name: 'encrypted_extra' })
               }
               width="100%"
               height="160px"
@@ -322,7 +322,9 @@ const ExtraOptions = ({
               name="extra"
               value={db?.extra ?? defaultExtra}
               placeholder={t('Secure extra')}
-              onChange={(json: string) => onEditorChange(json, 'extra')}
+              onChange={(json: string) =>
+                onEditorChange({ json, name: 'extra' })
+              }
               width="100%"
               height="160px"
             />
