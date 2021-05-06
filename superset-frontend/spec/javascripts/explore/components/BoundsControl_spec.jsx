@@ -16,12 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-unused-expressions */
 import React from 'react';
 import { FormControl } from 'react-bootstrap';
 import sinon from 'sinon';
-import { mount } from 'enzyme';
-
+import { styledMount as mount } from 'spec/helpers/theming';
 import BoundsControl from 'src/explore/components/controls/BoundsControl';
 
 const defaultProps = {
