@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import thunk from 'redux-thunk';
-import * as redux from 'react-redux';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import QuerySearch from 'src/SqlLab/components/QuerySearch';

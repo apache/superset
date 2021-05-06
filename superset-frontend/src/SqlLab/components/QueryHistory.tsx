@@ -31,23 +31,21 @@ interface QueryHistoryProps {
 
 const QueryHistory = ({ queries, actions, displayLimit }: QueryHistoryProps) =>
   queries.length > 0 ? (
-    <div className="scrollable">
-      <QueryTable
-        columns={[
-          'state',
-          'started',
-          'duration',
-          'progress',
-          'rows',
-          'sql',
-          'output',
-          'actions',
-        ]}
-        queries={queries}
-        actions={actions}
-        displayLimit={displayLimit}
-      />
-    </div>
+    <QueryTable
+      columns={[
+        'state',
+        'started',
+        'duration',
+        'progress',
+        'rows',
+        'sql',
+        'output',
+        'actions',
+      ]}
+      queries={queries}
+      actions={actions}
+      displayLimit={displayLimit}
+    />
   ) : (
     <Alert type="info" message={t('No query history yet...')} />
   );

@@ -57,6 +57,13 @@ const EXPLORE_CHART_DEFAULT = {
   viz_type: 'table',
 };
 
+enum LIMITING_FACTOR {
+  QUERY = 'QUERY',
+  QUERY_AND_DROPDOWN = 'QUERY_AND_DROPDOWN',
+  NOT_LIMITED = 'NOT_LIMITED',
+  DROPDOWN = 'DROPDOWN',
+}
+
 const LOADING_STYLES: CSSProperties = { position: 'relative', minHeight: 100 };
 
 interface DatasetOptionAutocomplete {
@@ -327,7 +334,7 @@ export default class ResultSet extends React.PureComponent<
   getUserDatasets = async (searchText = '') => {
     // Making sure that autocomplete input has a value before rendering the dropdown
     // Transforming the userDatasetsOwned data for SaveModalComponent)
-    if (this.props.user && this.props.user.userId) {
+    if (this.props.user?.userId) {
       const queryParams = rison.encode({
         filters: [
           {
@@ -503,18 +510,17 @@ export default class ResultSet extends React.PureComponent<
   }
 
   renderRowsReturned() {
-    console.log(this.props.user);
     const { results, rows, queryLimit, limitingFactor } = this.props.query;
     const limitReached = results?.displayLimitReached;
     let limitMessage;
     const isAdmin = this.props.user?.roles.hasOwnProperty('Admin');
     const defaultDropdownLimit = queryLimit === 1000;
     const defaultDropdown =
-      limitingFactor === 'DROPDOWN' && defaultDropdownLimit;
+      limitingFactor === LIMITING_FACTOR.DROPDOWN && defaultDropdownLimit;
     const adminWarning = isAdmin
       ? ' by the configuration DISPLAY_MAX_ROWS'
       : null;
-    if (limitingFactor === 'QUERY' && this.props.csv) {
+    if (limitingFactor === LIMITING_FACTOR.QUERY && this.props.csv) {
       limitMessage = (
         <span className="limitMessage">
           {t(
@@ -523,7 +529,10 @@ export default class ResultSet extends React.PureComponent<
           )}
         </span>
       );
-    } else if (limitingFactor === 'DROPDOWN' && !defaultDropdown) {
+    } else if (
+      limitingFactor === LIMITING_FACTOR.DROPDOWN &&
+      !defaultDropdown
+    ) {
       limitMessage = (
         <span className="limitMessage">
           {t(
@@ -532,7 +541,7 @@ export default class ResultSet extends React.PureComponent<
           )}
         </span>
       );
-    } else if (limitingFactor === 'QUERY_AND_DROPDOWN') {
+    } else if (limitingFactor === LIMITING_FACTOR.QUERY_AND_DROPDOWN) {
       limitMessage = (
         <span className="limitMessage">
           {t(

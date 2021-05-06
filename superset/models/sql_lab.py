@@ -32,8 +32,6 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
-    Enum,
-    ForeignKey,
     Integer,
     Numeric,
     String,

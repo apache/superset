@@ -22,7 +22,7 @@ import moment from 'moment';
 import Card from 'src/components/Card';
 import ProgressBar from 'src/components/ProgressBar';
 import Label from 'src/components/Label';
-import { t, styled } from '@superset-ui/core';
+import { t, css } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
@@ -52,10 +52,8 @@ const openQuery = id => {
   const url = `/superset/sqllab?queryId=${id}`;
   window.open(url);
 };
-const StyledButton = styled(Button)`
-  position: static;
-`;
-const StyledSQLCard = styled(Card)`
+
+const StaticPosition = css`
   position: static;
 `;
 
@@ -108,43 +106,43 @@ const QueryTable = props => {
           </div>
         );
         q.user = (
-          <StyledButton
+          <Button
             buttonSize="small"
             buttonStyle="link"
             onClick={() => props.onUserClicked(q.userId)}
           >
             {q.user}
-          </StyledButton>
+          </Button>
         );
         q.db = (
-          <StyledButton
+          <Button
             buttonSize="small"
             buttonStyle="link"
             onClick={() => props.onDbClicked(q.dbId)}
           >
             {q.db}
-          </StyledButton>
+          </Button>
         );
         q.started = moment(q.startDttm).format('HH:mm:ss');
         q.querylink = (
-          <StyledButton
+          <Button
             buttonSize="small"
             buttonStyle="link"
             onClick={() => openQuery(q.queryId)}
           >
             <i className="fa fa-external-link m-r-3" />
             {t('Edit')}
-          </StyledButton>
+          </Button>
         );
         q.sql = (
-          <StyledSQLCard>
+          <Card css={[StaticPosition]}>
             <HighlightedSql
               sql={q.sql}
               rawSql={q.executedSql}
               shrink
               maxWidth={60}
             />
-          </StyledSQLCard>
+          </Card>
         );
         if (q.resultsKey) {
           q.output = (

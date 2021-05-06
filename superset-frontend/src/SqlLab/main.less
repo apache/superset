@@ -56,7 +56,7 @@ body {
   position: relative;
   background-color: @lightest;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
 
   > .ant-tabs-tabpane {
     position: absolute;
@@ -434,6 +434,10 @@ div.tablePopover {
 
 .QueryTable .label {
   display: inline-block;
+}
+
+.QueryTable .ant-btn {
+  position: static;
 }
 
 .ResultsModal .ant-modal-body {
