@@ -56,37 +56,37 @@ export function getInitialDataMask(id: string): DataMaskWithId {
 }
 
 function fillNativeFilters(
-  data: FilterConfiguration,
-  cleanState: DataMaskStateWithId,
-  draft: DataMaskStateWithId,
-  filters?: Filters,
+  filterConfig: FilterConfiguration,
+  mergedDataMask: DataMaskStateWithId,
+  draftDataMask: DataMaskStateWithId,
+  currentFilters?: Filters,
 ) {
-  data.forEach((filter: Filter) => {
-    cleanState[filter.id] = {
+  filterConfig.forEach((filter: Filter) => {
+    mergedDataMask[filter.id] = {
       ...getInitialDataMask(filter.id), // take initial data
       ...filter.defaultDataMask, // if something new came from BE - take it
-      ...draft[filter.id], // keep local filter data
+      ...draftDataMask[filter.id], // keep local filter data
     };
     // if we came from filters config modal and particular filters changed take it's dataMask
     if (
-      filters &&
+      currentFilters &&
       !areObjectsEqual(
         filter.defaultDataMask,
-        filters[filter.id]?.defaultDataMask,
+        currentFilters[filter.id]?.defaultDataMask,
         { ignoreUndefined: true },
       )
     ) {
-      cleanState[filter.id] = {
-        ...cleanState[filter.id],
+      mergedDataMask[filter.id] = {
+        ...mergedDataMask[filter.id],
         ...filter.defaultDataMask,
       };
     }
   });
 
   // Get back all other non-native filters
-  Object.values(draft).forEach(filter => {
+  Object.values(draftDataMask).forEach(filter => {
     if (!String(filter?.id).startsWith(NATIVE_FILTER_PREFIX)) {
-      cleanState[filter?.id] = filter;
+      mergedDataMask[filter?.id] = filter;
     }
   });
 }
