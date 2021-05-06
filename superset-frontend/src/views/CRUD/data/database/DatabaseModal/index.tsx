@@ -57,7 +57,6 @@ interface DatabaseModalProps {
   onHide: () => void;
   show: boolean;
   databaseId: number | undefined; // If included, will go into edit mode
-  database: Database;
 }
 
 enum ActionType {
@@ -266,6 +265,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const tabChange = (key: string) => {
     setTabKey(key);
   };
+
+  console.log(db);
 
   return isEditMode || useSqlAlchemyForm ? (
     <StyledModal
