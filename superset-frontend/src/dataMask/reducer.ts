@@ -72,7 +72,7 @@ function fillNativeFilters(
       filters &&
       !areObjectsEqual(
         filter.defaultDataMask,
-        filters[filter.id].defaultDataMask,
+        filters[filter.id]?.defaultDataMask,
         { ignoreUndefined: true },
       )
     ) {
@@ -82,6 +82,7 @@ function fillNativeFilters(
       };
     }
   });
+
   // Get back all other non-native filters
   Object.values(draft).forEach(filter => {
     if (!String(filter?.id).startsWith(NATIVE_FILTER_PREFIX)) {

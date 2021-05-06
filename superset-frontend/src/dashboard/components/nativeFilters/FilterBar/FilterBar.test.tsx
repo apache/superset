@@ -323,9 +323,6 @@ describe('FilterBar', () => {
     await waitFor(() => expect(screen.getAllByText('Last day').length).toBe(2));
 
     // apply new filter value
-    await waitFor(() =>
-      expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled(),
-    );
     userEvent.click(screen.getByTestId(getTestId('apply-button')));
     await waitFor(() =>
       expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled(),
@@ -341,7 +338,6 @@ describe('FilterBar', () => {
     ).not.toHaveAttribute('data-selected', 'true');
     userEvent.click(screen.getByTestId(getTestId('filter-set-wrapper')));
     expect(await screen.findByText('Last week')).toBeInTheDocument();
-    expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
     userEvent.click(screen.getByTestId(getTestId('apply-button')));
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   });
@@ -362,7 +358,7 @@ describe('FilterBar', () => {
     userEvent.click(screen.getByText('Edit'));
 
     await changeFilterValue();
-    await waitFor(() => expect(screen.getAllByText('Last day').length).toBe(1));
+    await waitFor(() => expect(screen.getAllByText('Last day').length).toBe(2));
 
     // apply new changes and save them
     expect(

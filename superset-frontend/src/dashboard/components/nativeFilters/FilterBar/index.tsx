@@ -35,6 +35,7 @@ import { useImmer } from 'use-immer';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { testWithId } from 'src/utils/testUtils';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
+import { getInitialDataMask } from 'src/dataMask/reducer';
 import {
   getOnlyExtraFormData,
   mapParentFiltersToChildren,
@@ -50,7 +51,6 @@ import {
 import EditSection from './FilterSets/EditSection';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
-import { getInitialDataMask } from '../../../../dataMask/reducer';
 
 const BAR_WIDTH = `250px`;
 
@@ -216,6 +216,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       getOnlyExtraFormData(dataMaskApplied),
       { ignoreUndefined: true },
     ) || dataSelectedValues.length !== dataAppliedValues.length;
+
   return (
     <BarWrapper {...getFilterBarTestId()} className={cx({ open: filtersOpen })}>
       <CollapsedBar
