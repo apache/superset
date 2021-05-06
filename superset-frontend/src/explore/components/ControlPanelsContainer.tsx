@@ -102,6 +102,16 @@ const ControlPanelsTabs = styled(Tabs)`
   }
 `;
 
+const StyledCollapse = styled(Collapse)`
+  .ant-collapse-content-box,
+  & > .ant-collapse-item > .ant-collapse-header {
+    ${({ theme }) => `
+      padding-left: ${theme.gridUnit * 2}px;
+      padding-right: ${theme.gridUnit * 2}px;
+    `}
+  }
+`;
+
 export class ControlPanelsContainer extends React.Component<ControlPanelsContainerProps> {
   // trigger updates to the component when async plugins load
   static contextType = PluginContext;
@@ -298,14 +308,14 @@ export class ControlPanelsContainer extends React.Component<ControlPanelsContain
           fullWidth={showCustomizeTab}
         >
           <Tabs.TabPane key="query" tab={t('Data')}>
-            <Collapse
+            <StyledCollapse
               bordered
               defaultActiveKey={expandedQuerySections}
               expandIconPosition="right"
               ghost
             >
               {querySectionsToRender.map(this.renderControlPanelSection)}
-            </Collapse>
+            </StyledCollapse>
           </Tabs.TabPane>
           {showCustomizeTab && (
             <Tabs.TabPane key="display" tab={t('Customize')}>
