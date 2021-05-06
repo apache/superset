@@ -37,6 +37,7 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Multiple select'),
               default: multiSelect,
+              affectDataMask: true,
               resetConfig: true,
               renderTrigger: true,
               description: t('Allow selecting multiple values'),

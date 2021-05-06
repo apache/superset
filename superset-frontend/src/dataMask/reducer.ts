@@ -34,6 +34,8 @@ import {
   Filter,
   FilterConfiguration,
 } from '../dashboard/components/nativeFilters/types';
+import { areObjectsEqual } from '../reduxUtils';
+import { Filters } from '../dashboard/reducers/types';
 
 export function getInitialDataMask(id?: string): DataMask;
 export function getInitialDataMask(id: string): DataMaskWithId {
@@ -57,13 +59,28 @@ function fillNativeFilters(
   data: FilterConfiguration,
   cleanState: DataMaskStateWithId,
   draft: DataMaskStateWithId,
+  filters?: Filters,
 ) {
   data.forEach((filter: Filter) => {
     cleanState[filter.id] = {
       ...getInitialDataMask(filter.id), // take initial data
-      ...draft[filter.id], // keep local filter data
       ...filter.defaultDataMask, // if something new came from BE - take it
+      ...draft[filter.id], // keep local filter data
     };
+    // if we came from filters config modal and particular filters changed take it's dataMask
+    if (
+      filters &&
+      !areObjectsEqual(
+        filter.defaultDataMask,
+        filters[filter.id].defaultDataMask,
+        { ignoreUndefined: true },
+      )
+    ) {
+      cleanState[filter.id] = {
+        ...cleanState[filter.id],
+        ...filter.defaultDataMask,
+      };
+    }
   });
   // Get back all other non-native filters
   Object.values(draft).forEach(filter => {
@@ -106,7 +123,12 @@ const dataMaskReducer = produce(
         );
         return cleanState;
       case SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE:
-        fillNativeFilters(action.filterConfig ?? [], cleanState, draft);
+        fillNativeFilters(
+          action.filterConfig ?? [],
+          cleanState,
+          draft,
+          action.filters,
+        );
         return cleanState;
 
       default:

@@ -18,7 +18,7 @@
  */
 
 import React from 'react';
-import { render, screen, cleanup } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import userEvent from '@testing-library/user-event';
 import {
@@ -175,7 +175,7 @@ describe('FilterBar', () => {
   });
 
   beforeEach(() => {
-    toggleFiltersBar.mockClear();
+    jest.clearAllMocks();
     fetchMock.get(
       'http://localhost/api/v1/time_range/?q=%27Last%20day%27',
       {
@@ -201,11 +201,6 @@ describe('FilterBar', () => {
 
     // @ts-ignore
     mockCore.makeApi = jest.fn(() => mockApi);
-  });
-
-  afterEach(() => {
-    cleanup();
-    jest.clearAllMocks();
   });
 
   const renderWrapper = (props = closedBarProps, state?: object) =>
@@ -309,7 +304,6 @@ describe('FilterBar', () => {
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   });
 
-  // TODO: fix flakiness and re-enable
   it('add and apply filter set', async () => {
     // @ts-ignore
     global.featureFlags = {
