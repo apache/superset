@@ -23,10 +23,9 @@ import { FormGroup } from 'react-bootstrap';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
 import { NativeSelect as Select } from 'src/components/Select';
-import { styled, t } from '@superset-ui/core';
-import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
+import { t, styled } from '@superset-ui/core';
 
-import FormLabel from 'src/components/FormLabel';
+import { FormLabel } from 'src/components/Form';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { noOp } from 'src/utils/common';
@@ -37,6 +36,10 @@ import savedMetricType from 'src/explore/components/controls/MetricControl/saved
 import AdhocMetric, {
   EXPRESSION_TYPES,
 } from 'src/explore/components/controls/MetricControl/AdhocMetric';
+import {
+  StyledMetricOption,
+  StyledColumnOption,
+} from 'src/explore/components/optionRenderers';
 
 const propTypes = {
   onChange: PropTypes.func.isRequired,
@@ -56,13 +59,15 @@ const defaultProps = {
   getCurrentTab: noOp,
 };
 
-const ResizeIcon = styled.i`
-  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-`;
-
-const ColumnOptionStyle = styled.span`
-  .option-label {
-    display: inline;
+const StyledSelect = styled(Select)`
+  .metric-option {
+    & > svg {
+      min-width: ${({ theme }) => `${theme.gridUnit * 4}px`};
+    }
+    & > .option-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   }
 `;
 
@@ -255,11 +260,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     if (column.metric_name && !column.verbose_name) {
       column.verbose_name = column.metric_name;
     }
-    return (
-      <ColumnOptionStyle>
-        <ColumnOption column={column} showType />
-      </ColumnOptionStyle>
-    );
+    return <StyledColumnOption column={column} showType />;
   }
 
   render() {
@@ -355,7 +356,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
               <FormLabel>
                 <strong>{t('Saved metric')}</strong>
               </FormLabel>
-              <Select
+              <StyledSelect
                 {...savedSelectProps}
                 name="select-saved"
                 getPopupContainer={triggerNode => triggerNode.parentNode}
@@ -369,10 +370,10 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                       }
                       key={savedMetric.id}
                     >
-                      <MetricOption metric={savedMetric} showType />
+                      <StyledMetricOption metric={savedMetric} showType />
                     </Select.Option>
                   ))}
-              </Select>
+              </StyledSelect>
             </FormGroup>
           </Tabs.TabPane>
           <Tabs.TabPane key={EXPRESSION_TYPES.SIMPLE} tab={t('Simple')}>
@@ -433,7 +434,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                   }
                   editorProps={{ $blockScrolling: true }}
                   enableLiveAutocompletion
-                  className="adhoc-filter-sql-editor"
+                  className="filter-sql-editor"
                   wrapEnabled
                 />
               </FormGroup>
@@ -465,7 +466,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
           >
             {t('Save')}
           </Button>
-          <ResizeIcon
+          <i
             role="button"
             aria-label="Resize"
             tabIndex={0}
