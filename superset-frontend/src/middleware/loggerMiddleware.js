@@ -118,8 +118,7 @@ const loggerMiddleware = store => next => action => {
 
   if (
     eventData.target_id &&
-    dashboardLayout.present &&
-    dashboardLayout.present[eventData.target_id]
+    dashboardLayout.present?.[eventData.target_id]
   ) {
     const { meta } = dashboardLayout.present[eventData.target_id];
     // chart name or tab/header text
