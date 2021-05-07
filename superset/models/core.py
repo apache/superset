@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=line-too-long,unused-argument,ungrouped-imports
 """A collection of ORM sqlalchemy models for Superset"""
+import enum
 import json
 import logging
 import textwrap
