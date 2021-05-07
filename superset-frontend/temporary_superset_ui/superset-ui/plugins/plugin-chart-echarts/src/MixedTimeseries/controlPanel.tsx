@@ -28,13 +28,7 @@ import {
 
 import { DEFAULT_FORM_DATA } from './types';
 import { EchartsTimeseriesSeriesType } from '../Timeseries/types';
-import {
-  legendMarginControl,
-  legendOrientationControl,
-  legendTypeControl,
-  noopControl,
-  showLegendControl,
-} from '../controls';
+import { legendSection } from '../controls';
 
 const {
   area,
@@ -263,10 +257,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<h1 className="section-header">{t('Legend')}</h1>],
-        [showLegendControl],
-        [legendTypeControl, legendOrientationControl],
-        [legendMarginControl, noopControl],
+        ...legendSection,
         [<h1 className="section-header">{t('X Axis')}</h1>],
         ['x_axis_time_format'],
         [
