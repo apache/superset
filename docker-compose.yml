@@ -87,6 +87,7 @@ services:
       - PORT=8080
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_SSL=false
 
   superset-init:
     image: *superset-image
