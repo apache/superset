@@ -212,6 +212,7 @@ export class ControlPanelsContainer extends React.Component<ControlPanelsContain
 
     return (
       <Collapse.Panel
+        data-test="collapsible-control-panel"
         css={theme => css`
           margin-bottom: 0;
           box-shadow: none;
