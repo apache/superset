@@ -62,6 +62,7 @@ import {
   EchartsRadarChartPlugin,
   EchartsFunnelChartPlugin,
   EchartsMixedTimeseriesChartPlugin,
+  EchartsTreeChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import {
   SelectFilterPlugin,
@@ -133,6 +134,7 @@ export default class MainPreset extends Preset {
         new TimeColumnFilterPlugin().configure({ key: 'filter_timecolumn' }),
         new TimeGrainFilterPlugin().configure({ key: 'filter_timegrain' }),
         new GroupByFilterPlugin().configure({ key: 'filter_groupby' }),
+        new EchartsTreeChartPlugin().configure({ key: 'tree_chart' }),
       ],
     });
   }
