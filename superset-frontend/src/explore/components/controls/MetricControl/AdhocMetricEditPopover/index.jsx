@@ -348,7 +348,6 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
           className="adhoc-metric-edit-tabs"
           style={{ height: this.state.height, width: this.state.width }}
           onChange={this.onTabChange}
-          animated={false}
           allowOverflow
         >
           <Tabs.TabPane key={SAVED_TAB_KEY} tab={t('Saved')}>

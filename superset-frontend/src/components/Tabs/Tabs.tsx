@@ -100,11 +100,6 @@ const Tabs = Object.assign(StyledTabs, {
   TabPane: StyledTabPane,
 });
 
-/* Tabs.defaultProps = {
-  fullWidth: true,
-  animated: true,
-}; */
-
 const StyledEditableTabs = styled(StyledTabs)`
   .ant-tabs-content-holder {
     background: white;
