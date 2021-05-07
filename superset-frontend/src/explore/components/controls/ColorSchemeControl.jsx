@@ -28,6 +28,7 @@ import './ColorSchemeControl.less';
 const propTypes = {
   description: PropTypes.string,
   label: PropTypes.string.isRequired,
+  labelMargin: PropTypes.number,
   name: PropTypes.string.isRequired,
   onChange: PropTypes.func,
   value: PropTypes.string,
@@ -92,7 +93,7 @@ export default class ColorSchemeControl extends React.PureComponent {
   }
 
   render() {
-    const { schemes, choices } = this.props;
+    const { schemes, choices, labelMargin = 0 } = this.props;
     // save parsed schemes for later
     this.schemes = isFunction(schemes) ? schemes() : schemes;
     const options = (isFunction(choices) ? choices() : choices).map(
@@ -118,7 +119,7 @@ export default class ColorSchemeControl extends React.PureComponent {
     return (
       <div>
         <ControlHeader {...this.props} />
-        <Select {...selectProps} />
+        <Select {...selectProps} css={{ marginTop: labelMargin }} />
       </div>
     );
   }

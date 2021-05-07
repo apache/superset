@@ -16,32 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// import { styled } from '@superset-ui/core';
-import React, { ReactNode } from 'react';
-import { ControlLabel } from 'react-bootstrap';
+import { styled } from '@superset-ui/core';
 
-export type FormLabelProps = {
-  children: ReactNode;
-  htmlFor?: string;
-  required?: boolean;
-  className?: string;
-};
-
-export default function FormLabel({
-  children,
-  htmlFor,
-  required = false,
-}: FormLabelProps) {
-  return (
-    <>
-      <ControlLabel htmlFor={htmlFor}>
-        {children}
-        {required && (
-          <span className="text-danger m-l-4">
-            <strong>*</strong>
-          </span>
-        )}
-      </ControlLabel>
-    </>
-  );
-}
+export const ExplorePopoverContent = styled.div`
+  .edit-popover-resize {
+    transform: scaleX(-1);
+    float: right;
+    margin-top: ${({ theme }) => theme.gridUnit * 4}px;
+    margin-right: ${({ theme }) => theme.gridUnit * -2}px;
+    cursor: nwse-resize;
+  }
+  .filter-sql-editor {
+    border: ${({ theme }) => theme.colors.grayscale.light2} solid thin;
+  }
+  .custom-sql-disabled-message {
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+    font-size: ${({ theme }) => theme.typography.sizes.xs}px;
+    text-align: center;
+    margin-top: ${({ theme }) => theme.gridUnit * 15}px;
+  }
+`;

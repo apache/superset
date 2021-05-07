@@ -21,6 +21,7 @@ import Popover from 'src/components/Popover';
 import { OptionSortType } from 'src/explore/types';
 import AdhocFilterEditPopover from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopover';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
 
 interface AdhocFilterPopoverTriggerProps {
   adhocFilter: AdhocFilter;
@@ -82,15 +83,17 @@ class AdhocFilterPopoverTrigger extends React.PureComponent<
           closePopover: this.closePopover,
         };
     const overlayContent = (
-      <AdhocFilterEditPopover
-        adhocFilter={adhocFilter}
-        options={this.props.options}
-        datasource={this.props.datasource}
-        partitionColumn={this.props.partitionColumn}
-        onResize={this.onPopoverResize}
-        onClose={closePopover}
-        onChange={this.props.onFilterEdit}
-      />
+      <ExplorePopoverContent>
+        <AdhocFilterEditPopover
+          adhocFilter={adhocFilter}
+          options={this.props.options}
+          datasource={this.props.datasource}
+          partitionColumn={this.props.partitionColumn}
+          onResize={this.onPopoverResize}
+          onClose={closePopover}
+          onChange={this.props.onFilterEdit}
+        />
+      </ExplorePopoverContent>
     );
 
     return (

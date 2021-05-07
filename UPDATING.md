@@ -31,6 +31,8 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 ### Potential Downtime
+- [14234](https://github.com/apache/superset/pull/14234): Adds the `limiting_factor` column to the `query` table. Give the migration includes a DDL operation on a heavily trafficed table, potential service downtime may be required.
+
 ### Deprecations
 - [13440](https://github.com/apache/superset/pull/13440): Dashboard/Charts reports and old Alerts is deprecated. The following config keys are deprecated:
     - ENABLE_ALERTS

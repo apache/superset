@@ -16,27 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-unused-expressions */
 import React from 'react';
-import { shallow } from 'enzyme';
+import AntDForm, { FormProps } from 'antd/lib/form';
+import { styled } from '@superset-ui/core';
 
-import { AGGREGATES } from 'src/explore/constants';
-import AdhocMetricStaticOption from 'src/explore/components/controls/MetricControl/AdhocMetricStaticOption';
-import AdhocMetric, {
-  EXPRESSION_TYPES,
-} from 'src/explore/components/controls/MetricControl/AdhocMetric';
+const StyledForm = styled(AntDForm)`
+  &.ant-form label {
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  }
+  .ant-form-item {
+    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  }
+`;
 
-const sumValueAdhocMetric = new AdhocMetric({
-  expressionType: EXPRESSION_TYPES.SIMPLE,
-  column: { type: 'VARCHAR(255)', column_name: 'source' },
-  aggregate: AGGREGATES.SUM,
-});
-
-describe('AdhocMetricStaticOption', () => {
-  it('renders the adhoc metrics label', () => {
-    const wrapper = shallow(
-      <AdhocMetricStaticOption adhocMetric={sumValueAdhocMetric} />,
-    );
-    expect(wrapper.text()).toBe('SUM(source)');
-  });
-});
+export default function Form(props: FormProps) {
+  return <StyledForm {...props} />;
+}

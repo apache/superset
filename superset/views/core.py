@@ -462,6 +462,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         form_data, slc = get_form_data(slice_id, use_slice_data=True)
         if not slc:
             return json_error_response("The slice does not exist")
+
+        if not slc.datasource:
+            return json_error_response("The slice's datasource does not exist")
+
         try:
             viz_obj = get_viz(
                 datasource_type=slc.datasource.type,
@@ -481,6 +485,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self, layer_id: int
     ) -> FlaskResponse:
         form_data = get_form_data()[0]
+        force = utils.parse_boolean_string(request.args.get("force"))
+
         form_data["layer_id"] = layer_id
         form_data["filters"] = [{"col": "layer_id", "op": "==", "val": layer_id}]
         # Set all_columns to ensure the TableViz returns the necessary columns to the
@@ -499,7 +505,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "changed_by_fk",
         ]
         datasource = AnnotationDatasource()
-        viz_obj = viz.viz_types["table"](datasource, form_data=form_data, force=False)
+        viz_obj = viz.viz_types["table"](datasource, form_data=form_data, force=force)
         payload = viz_obj.get_payload()
         return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
 
@@ -831,7 +837,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
             ),
             entry="explore",
-            title=title,
+            title=title.__str__(),
             standalone_mode=standalone_mode,
         )
 
@@ -1708,6 +1714,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         if extra_filters
                         else get_dashboard_extra_filters(slc.id, dashboard_id)
                     )
+
+                if not slc.datasource:
+                    raise Exception("Slice's datasource does not exist")
 
                 obj = get_viz(
                     datasource_type=slc.datasource.type,
@@ -2824,7 +2833,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         return self.render_template(
             "superset/basic.html",
-            title=_("%(user)s's profile", user=username),
+            title=_("%(user)s's profile", user=username).__str__(),
             entry="profile",
             bootstrap_data=json.dumps(
                 payload, default=utils.pessimistic_json_iso_dttm_ser
