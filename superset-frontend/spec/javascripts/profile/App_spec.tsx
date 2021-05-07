@@ -40,6 +40,6 @@ describe('App', () => {
 
   it('renders 4 Tabs', () => {
     const wrapper = shallow(<App {...mockedProps} />);
-    expect(wrapper.find(Tabs.TabPane)).toHaveLength(4);
+    expect(wrapper.find('[tab]')).toHaveLength(4);
   });
 });
