@@ -101,8 +101,8 @@ class CssTemplate(Model, AuditMixinNullable):
 
 
 class ConfigurationMethod(str, enum.Enum):
-    SQLALCHEMY_URI = "SQLALCHEMY_URI"
-    DYNAMIC_FORM = "DYNAMIC_FORM"
+    SQLALCHEMY_URI = "sqlalchemy_form"
+    DYNAMIC_FORM = "dynamic_form"
 
 
 class Database(
