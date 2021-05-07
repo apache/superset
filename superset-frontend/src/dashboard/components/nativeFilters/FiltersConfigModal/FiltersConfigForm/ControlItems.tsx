@@ -23,13 +23,15 @@ import {
 import React, { FC } from 'react';
 import { Checkbox } from 'src/common/components';
 import { FormInstance } from 'antd/lib/form';
-import { getChartControlPanelRegistry } from '@superset-ui/core';
+import { getChartControlPanelRegistry, t } from '@superset-ui/core';
+import { Tooltip } from 'src/components/Tooltip';
 import { getControlItems, setNativeFilterFieldValues } from './utils';
 import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
 import { StyledCheckboxFormItem } from './FiltersConfigForm';
 import { Filter } from '../../types';
 
 type ControlItemsProps = {
+  disabled: boolean;
   filterId: string;
   forceUpdate: Function;
   filterToEdit?: Filter;
@@ -38,6 +40,7 @@ type ControlItemsProps = {
 };
 
 const ControlItems: FC<ControlItemsProps> = ({
+  disabled,
   forceUpdate,
   form,
   filterId,
@@ -59,38 +62,48 @@ const ControlItems: FC<ControlItemsProps> = ({
             controlItem?.config?.renderTrigger,
         )
         .map(controlItem => (
-          <StyledCheckboxFormItem
-            key={controlItem.name}
-            name={['filters', filterId, 'controlValues', controlItem.name]}
-            initialValue={
-              filterToEdit?.controlValues?.[controlItem.name] ??
-              controlItem?.config?.default
+          <Tooltip
+            placement="left"
+            title={
+              controlItem.config.affectsDataMask &&
+              disabled &&
+              t('Populate "Default value" to enable this control')
             }
-            valuePropName="checked"
-            colon={false}
           >
-            <Checkbox
-              onChange={() => {
-                if (!controlItem.config.resetConfig) {
-                  forceUpdate();
-                  return;
-                }
-                setNativeFilterFieldValues(form, filterId, {
-                  defaultDataMask: null,
-                });
-                forceUpdate();
-              }}
+            <StyledCheckboxFormItem
+              key={controlItem.name}
+              name={['filters', filterId, 'controlValues', controlItem.name]}
+              initialValue={
+                filterToEdit?.controlValues?.[controlItem.name] ??
+                controlItem?.config?.default
+              }
+              valuePropName="checked"
+              colon={false}
             >
-              {controlItem.config.label}{' '}
-              {controlItem.config.description && (
-                <InfoTooltipWithTrigger
-                  placement="top"
-                  label={controlItem.config.name}
-                  tooltip={controlItem.config.description}
-                />
-              )}
-            </Checkbox>
-          </StyledCheckboxFormItem>
+              <Checkbox
+                disabled={controlItem.config.affectsDataMask && disabled}
+                onChange={() => {
+                  if (!controlItem.config.resetConfig) {
+                    forceUpdate();
+                    return;
+                  }
+                  setNativeFilterFieldValues(form, filterId, {
+                    defaultDataMask: null,
+                  });
+                  forceUpdate();
+                }}
+              >
+                {controlItem.config.label}{' '}
+                {controlItem.config.description && (
+                  <InfoTooltipWithTrigger
+                    placement="top"
+                    label={controlItem.config.name}
+                    tooltip={controlItem.config.description}
+                  />
+                )}
+              </Checkbox>
+            </StyledCheckboxFormItem>
+          </Tooltip>
         ))}
     </>
   );
