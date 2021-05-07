@@ -140,7 +140,6 @@ msgstr "Оповещения"
 #: superset/app.py:448
 msgid "Alerts & Reports"
 msgstr "Оповещения и Рассылка"
->>>>>>> Update messages.po
 
 #: superset/app.py:462
 msgid "Access requests"
@@ -1804,7 +1803,6 @@ msgstr ""
 msgid "Alert query returned more then one column. %s columns returned"
 msgstr ""
 "Запрос от оповещения вернул больше одного столбца. %s столбцов возвращено"
->>>>>>> Update messages.po
 
 #: superset/reports/commands/exceptions.py:44
 msgid "Dashboard does not exist"
