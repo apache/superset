@@ -34,6 +34,8 @@ import {
   Filter,
   FilterConfiguration,
 } from '../dashboard/components/nativeFilters/types';
+import { areObjectsEqual } from '../reduxUtils';
+import { Filters } from '../dashboard/reducers/types';
 
 export function getInitialDataMask(id?: string): DataMask;
 export function getInitialDataMask(id: string): DataMaskWithId {
@@ -54,21 +56,37 @@ export function getInitialDataMask(id: string): DataMaskWithId {
 }
 
 function fillNativeFilters(
-  data: FilterConfiguration,
-  cleanState: DataMaskStateWithId,
-  draft: DataMaskStateWithId,
+  filterConfig: FilterConfiguration,
+  mergedDataMask: DataMaskStateWithId,
+  draftDataMask: DataMaskStateWithId,
+  currentFilters?: Filters,
 ) {
-  data.forEach((filter: Filter) => {
-    cleanState[filter.id] = {
+  filterConfig.forEach((filter: Filter) => {
+    mergedDataMask[filter.id] = {
       ...getInitialDataMask(filter.id), // take initial data
       ...filter.defaultDataMask, // if something new came from BE - take it
-      ...draft[filter.id], // keep local filter data
+      ...draftDataMask[filter.id], // keep local filter data
     };
+    // if we came from filters config modal and particular filters changed take it's dataMask
+    if (
+      currentFilters &&
+      !areObjectsEqual(
+        filter.defaultDataMask,
+        currentFilters[filter.id]?.defaultDataMask,
+        { ignoreUndefined: true },
+      )
+    ) {
+      mergedDataMask[filter.id] = {
+        ...mergedDataMask[filter.id],
+        ...filter.defaultDataMask,
+      };
+    }
   });
+
   // Get back all other non-native filters
-  Object.values(draft).forEach(filter => {
+  Object.values(draftDataMask).forEach(filter => {
     if (!String(filter?.id).startsWith(NATIVE_FILTER_PREFIX)) {
-      cleanState[filter?.id] = filter;
+      mergedDataMask[filter?.id] = filter;
     }
   });
 }
@@ -106,7 +124,12 @@ const dataMaskReducer = produce(
         );
         return cleanState;
       case SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE:
-        fillNativeFilters(action.filterConfig ?? [], cleanState, draft);
+        fillNativeFilters(
+          action.filterConfig ?? [],
+          cleanState,
+          draft,
+          action.filters,
+        );
         return cleanState;
 
       default:
