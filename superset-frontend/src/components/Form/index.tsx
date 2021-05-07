@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { Input } from 'antd';
-import { css } from '@emotion/core';
+import { styled } from '@superset-ui/core';
 import Form from './Form';
 import FormItem from './FormItem';
 import FormLabel from './FormLabel';
@@ -39,10 +39,8 @@ interface LabeledErrorBoundInputProps {
   id?: string;
 }
 
-const input_margin = css`
-  .ant-form-item-control-input > input {
-    margin: 8px 0;
-  }
+const StyledInput = styled(Input)`
+  margin: 8px 0;
 `;
 
 const LabeledErrorBoundInput = ({
@@ -59,7 +57,7 @@ const LabeledErrorBoundInput = ({
   id,
 }: LabeledErrorBoundInputProps) => (
   <>
-    <FormLabel required={required}>{label} </FormLabel>
+    <FormLabel required={required}>{label}</FormLabel>
     <FormItem
       name={name}
       validateTrigger={Object.keys(validationMethods)}
@@ -69,8 +67,9 @@ const LabeledErrorBoundInput = ({
       placeholder={placeholder}
       autocomplete={autocomplete}
       type={type}
+      hasFeedback={!!errorMessage}
     >
-      <Input css={{ ...input_margin }} value={value} {...validationMethods} />
+      <StyledInput value={value} {...validationMethods} />
     </FormItem>
   </>
 );

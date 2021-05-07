@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// import { useArgs } from '@storybook/addons';
 import React, { useState } from 'react';
 import LabeledErrorBoundInput, { Form } from '.';
 
@@ -25,9 +24,8 @@ export default {
   component: Form,
 };
 
-export const InteractiveForm = ({ ...props }: any) => {
+export const InteractiveForm = () => {
   const [checkErrorMessage, setCheckErrorMessage] = useState('');
-  // const [{ label }, updateArgs] = useArgs();
 
   const validateFunctionality: (value: any) => void = value => {
     if (value.target.value.includes('success')) {
@@ -49,7 +47,3 @@ export const InteractiveForm = ({ ...props }: any) => {
     />
   );
 };
-
-// InteractiveForm.args = {
-//   label: 'Username',
-// };
