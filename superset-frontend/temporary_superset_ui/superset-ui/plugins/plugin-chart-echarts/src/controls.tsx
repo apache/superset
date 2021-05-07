@@ -1,4 +1,6 @@
+import React from 'react';
 import { t } from '@superset-ui/core';
+import { ControlPanelsContainerProps } from '@superset-ui/chart-controls';
 import { DEFAULT_LEGEND_FORM_DATA } from './types';
 
 /**
@@ -21,20 +23,18 @@ import { DEFAULT_LEGEND_FORM_DATA } from './types';
  */
 const { legendMargin, legendOrientation, legendType, showLegend } = DEFAULT_LEGEND_FORM_DATA;
 
-export const noopControl = { name: 'noop', config: { type: '', renderTrigger: true } };
-
-export const showLegendControl = {
+const showLegendControl = {
   name: 'show_legend',
   config: {
     type: 'CheckboxControl',
-    label: t('Legend'),
+    label: t('Show legend'),
     renderTrigger: true,
     default: showLegend,
     description: t('Whether to display a legend for the chart'),
   },
 };
 
-export const legendMarginControl = {
+const legendMarginControl = {
   name: 'legendMargin',
   config: {
     type: 'TextControl',
@@ -43,10 +43,12 @@ export const legendMarginControl = {
     isInt: true,
     default: legendMargin,
     description: t('Additional padding for legend.'),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.show_legend?.value),
   },
 };
 
-export const legendTypeControl = {
+const legendTypeControl = {
   name: 'legendType',
   config: {
     type: 'SelectControl',
@@ -59,10 +61,12 @@ export const legendTypeControl = {
     default: legendType,
     renderTrigger: true,
     description: t('Legend type'),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.show_legend?.value),
   },
 };
 
-export const legendOrientationControl = {
+const legendOrientationControl = {
   name: 'legendOrientation',
   config: {
     type: 'SelectControl',
@@ -77,5 +81,15 @@ export const legendOrientationControl = {
     default: legendOrientation,
     renderTrigger: true,
     description: t('Legend type'),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.show_legend?.value),
   },
 };
+
+export const legendSection = [
+  [<h1 className="section-header">{t('Legend')}</h1>],
+  [showLegendControl],
+  [legendTypeControl],
+  [legendOrientationControl],
+  [legendMarginControl],
+];
