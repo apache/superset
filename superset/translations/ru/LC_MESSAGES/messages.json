@@ -29,8 +29,13 @@
       "Action Log": ["Журнал Действий"],
       "Dashboard Emails": ["Рассылка дашбордов"],
       "Chart Email Schedules": ["Рассылка графиков"],
+<<<<<<< HEAD
       "Alerts": ["Оповещения"],
       "Alerts & Reports": ["Оповещения и Рассылка"],
+=======
+      "Alerts": ["Предупреждения"],
+      "Alerts & Reports": ["Предупреждения и Рассылка"],
+>>>>>>> Improved translation into Russian language
       "Access requests": ["Запросы доступа"],
       "Druid Datasources": ["Источники Данных Druid"],
       "Druid Clusters": ["Список Кластеров Druid"],
@@ -114,18 +119,30 @@
       "Group By' and 'Columns' can't overlap": [
         "Нельзя использовать один и тот же срез в двух полях"
       ],
+<<<<<<< HEAD
       "Treemap": ["Treemap"],
       "Calendar Heatmap": ["Calendar Heatmap"],
       "Bubble Chart": ["Bubble Chart"],
+=======
+      "Treemap": ["Дерево"],
+      "Calendar Heatmap": ["Calendar Heatmap"],
+      "Bubble Chart": ["Пузырьковая диаграмма"],
+>>>>>>> Improved translation into Russian language
       "Please use 3 different metric labels": [
         "Пожалуйста, выберите разные срезы данных для левой и правой оси"
       ],
       "Pick a metric for x, y and size": ["Выберите срез для X, Y и размер"],
       "Bullet Chart": ["Bullet Chart"],
       "Pick a metric to display": ["Выберите показатель для отображения"],
+<<<<<<< HEAD
       "Big Number with Trendline": ["Big Number with Trendline"],
       "Pick a metric!": ["Выберите показатель!"],
       "Big Number": ["Big Number"],
+=======
+      "Big Number with Trendline": ["Большое число с линией тренда"],
+      "Pick a metric!": ["Выберите показатель!"],
+      "Big Number": ["Большое число"],
+>>>>>>> Improved translation into Russian language
       "Time Series - Line Chart": ["Time Series - Line Chart"],
       "Pick a time granularity for your time series": [
         "Выберите период для временных рядов"
@@ -148,7 +165,11 @@
       "Time Series - Period Pivot": ["Time Series - Period Pivot"],
       "Time Series - Percent Change": ["Time Series - Percent Change"],
       "Time Series - Stacked": ["Time Series - Stacked"],
+<<<<<<< HEAD
       "Histogram": ["Histogram"],
+=======
+      "Histogram": ["Гистограмма"],
+>>>>>>> Improved translation into Russian language
       "Must have at least one numeric column specified": [
         "Должен быть указан хотя бы один числовой столбец"
       ],
@@ -231,6 +252,7 @@
       ],
       "Annotations could not be deleted.": ["Аннотации не могут быть удалены."],
       "Annotation not found.": ["Аннотация не найдена."],
+<<<<<<< HEAD
       "Annotation parameters are invalid.": [
         "Параметры аннотации недействительны."
       ],
@@ -244,6 +266,19 @@
       ],
       "Annotation layer could not be deleted.": [
         "Слой аннотации не может быть удалён."
+=======
+      "Annotation parameters are invalid.": ["Слои аннотаций загружаются."],
+      "Annotation could not be created.": ["Аннотации не могут быть созданы."],
+      "Annotation could not be updated.": [
+        "Аннотации не могут быть обновлены."
+      ],
+      "Annotation delete failed.": ["Удаление аннотации не удалось."],
+      "Annotation layer parameters are invalid.": [
+        "Параметры слоя аннотаций недействительны."
+      ],
+      "Annotation layer could not be deleted.": [
+        "Слой аннотаций не может быть удалён."
+>>>>>>> Improved translation into Russian language
       ],
       "Annotation layer could not be created.": [
         "Слой аннотаций не может быть создан."
@@ -279,6 +314,7 @@
         "`смещение_строк` должно быть больше или равно 0"
       ],
       "There are associated alerts or reports: %s,": [
+<<<<<<< HEAD
         "Существуют оповещения или рассылки: %s,"
       ],
       "Database does not exist": ["База данных не существует"],
@@ -298,6 +334,27 @@
       "Import chart failed for an unknown reason": [
         "Импорт графика не удался по неизвестной причине"
       ],
+=======
+        "Существуют предупреждения или рассылки: %s,"
+      ],
+      "Database does not exist": ["База данных не существует"],
+      "Dashboards do not exist": ["Дашборды отсутствуют"],
+      "Datasource type is required when datasource_id is given": [
+        "Тип источника данных обязателен, если задан ID"
+      ],
+      "Chart parameters are invalid.": ["Параметры графика недействительны."],
+      "Chart could not be created.": ["График не может быть создан."],
+      "Chart could not be updated.": ["График не может быть обновлён."],
+      "Chart could not be deleted.": ["График не может быть удалён."],
+      "There are associated alerts or reports": [
+        "Существуют привязанные предупреждения или рассылки"
+      ],
+      "Changing this chart is forbidden": ["Изменение этого графика запрещено"],
+      "Charts could not be deleted.": ["Графики не могут быть удалены."],
+      "Import chart failed for an unknown reason": [
+        "Импорт графика не удался по неизвестной причине"
+      ],
+>>>>>>> Improved translation into Russian language
       "Owners are invalid": ["Владельцы недействительны"],
       "Dataset does not exist": ["Источник данных %(name)s уже существует"],
       "`operation` property of post processing object undefined": [
@@ -632,10 +689,17 @@
       "Saved query not found.": ["Сохранённый запрос не найден."],
       "Deleted %(num)d report schedule": ["Удалено %(num)d рассылок"],
       "Alert query returned more then one row. %s rows returned": [
+<<<<<<< HEAD
         "Запрос от оповещения вернул больше одной строки. %s строк возвращено"
       ],
       "Alert query returned more then one column. %s columns returned": [
         "Запрос от оповещения вернул больше одного столбца. %s столбцов возвращено"
+=======
+        "Запрос от предупреждения вернул больше одной строки. %s строк возвращено"
+      ],
+      "Alert query returned more then one column. %s columns returned": [
+        "Запрос от предупреждения вернул больше одного столбца. %s столбцов возвращено"
+>>>>>>> Improved translation into Russian language
       ],
       "Dashboard does not exist": ["Дашборд не существует"],
       "Chart does not exist": ["График не существует"],
@@ -667,23 +731,38 @@
         "Ошибка при генерировании скриншота во время выполнения рассылки."
       ],
       "Report Schedule execution got an unexpected error.": [
+<<<<<<< HEAD
         "Во время выполнения рассылки произошла непредвиденная ошибка."
+=======
+        "По время выполнения рассылки произошла непредвиденная ошибка."
+>>>>>>> Improved translation into Russian language
       ],
       "Report Schedule is still working, refusing to re-compute.": [""],
       "Report Schedule reached a working timeout.": [
         "Рассылка достигла тайм-аута в работе."
       ],
       "Alert query returned more then one row.": [
+<<<<<<< HEAD
         "Запрос для оповещения вернул больше одной строки."
+=======
+        "Запрос для предупреждения вернул больше одной строки."
+>>>>>>> Improved translation into Russian language
       ],
       "Alert validator config error.": [
         "Неверная конфигурация широты и долготы."
       ],
       "Alert query returned more then one column.": [
+<<<<<<< HEAD
         "Запрос для оповещения вернул больше одного столбца."
       ],
       "Alert query returned a non-number value.": [
         "Запрос для оповещения вернул не число."
+=======
+        "Запрос для предупреждения вернул больше одного столбца."
+      ],
+      "Alert query returned a non-number value.": [
+        "Запрос для предупреждения вернул не число."
+>>>>>>> Improved translation into Russian language
       ],
       "Alert found an error while executing a query.": [
         "Обнаружена ошибка в запросе."
@@ -713,15 +792,26 @@
       ],
       "\n        *%(name)s*\n\n        <%(url)s|Explore in Superset>\n        ": [
         "\n        *%(name)s*\n\n        <%(url)s|Исследовать в Superset>\n        "
+<<<<<<< HEAD
       ],
       "<b><a href=\"%(url)s\">Explore in Superset</a></b><p></p>": [
         "<b><a href=“%(url)s”>Исследовать в Superset</a></b><p></p>"
       ],
+=======
+      ],
+      "<b><a href=\"%(url)s\">Explore in Superset</a></b><p></p>": [
+        "<b><a href=“%(url)s”>Исследовать в Superset</a></b><p></p>"
+      ],
+>>>>>>> Improved translation into Russian language
       "%(name)s.csv": ["%(name)s.csv"],
       "\n        *%(slice_name)s*\n\n        <%(slice_url_user_friendly)s|Explore in Superset>\n        ": [
         "\n        *%(slice_name)s*\n\n        <%(slice_url_user_friendly)s|Исследовать в Superset>\n        "
       ],
+<<<<<<< HEAD
       "[Alert] %(label)s": ["[Оповещение] %(label)s"],
+=======
+      "[Alert] %(label)s": ["[Уведомление] %(label)s"],
+>>>>>>> Improved translation into Russian language
       "New": ["Новый"],
       "SQL Query": ["Сохранить запрос"],
       "Chart": ["График"],
@@ -775,7 +865,11 @@
       "Invalid geohash string": ["Недействительная строка geohash"],
       "Invalid longitude/latitude": ["Долгота и Широта [Конец]"],
       "Invalid geodetic string": ["Недействительная строка geodetic"],
+<<<<<<< HEAD
       "`fbprophet` package not installed": ["`fbprophet` пакет не установлен"],
+=======
+      "`fbprophet` package not installed": [""],
+>>>>>>> Improved translation into Russian language
       "Time grain missing": ["Период времени"],
       "Unsupported time grain: %(time_grain)s": [
         "Недействительная гранулярность времени: %(time_grain)s"
@@ -808,6 +902,7 @@
         "Список адресов, разделённый точкой с запятой ‘;’"
       ],
       "How long to keep the logs around for this alert": [
+<<<<<<< HEAD
         "Как долго хранить логи для данного оповещения"
       ],
       "Once an alert is triggered, how long, in seconds, before Superset nags you again.": [
@@ -815,6 +910,15 @@
       ],
       "A SQL statement that defines whether the alert should get triggered or not. The query is expected to return either NULL or a number value.": [
         "SQL-выражение, которое определяет сработало оповещение или нет. Запрос должен вернуть NULL или числовое значение."
+=======
+        "Как долго хранить логи для данного предупреждения"
+      ],
+      "Once an alert is triggered, how long, in seconds, before Superset nags you again.": [
+        "После срабатывания предупреждения, как сколько Superset не должен надоедать снова."
+      ],
+      "A SQL statement that defines whether the alert should get triggered or not. The query is expected to return either NULL or a number value.": [
+        "SQL-выражение, которое определяет сработало предупреждение или нет. Запрос должен вернуть NULL или числовое значение."
+>>>>>>> Improved translation into Russian language
       ],
       "annotation start time or end time is required.": [
         "время начала или окончания аннотации обязательно."
@@ -938,8 +1042,13 @@
       ],
       "Custom Plugins": ["Пользовательское условие WHERE"],
       "Custom Plugin": ["Пользовательский плагин"],
+<<<<<<< HEAD
       "Add a Plugin": ["Добавить плагин"],
       "Edit Plugin": ["Редактировать плагин"],
+=======
+      "Add a Plugin": ["Добавить столбец"],
+      "Edit Plugin": ["Редактировать столбец"],
+>>>>>>> Improved translation into Russian language
       "Schedule Email Reports for Dashboards": [
         "Запланировать рассылку по email для дашбордов"
       ],
@@ -987,7 +1096,11 @@
       "Add Dashboard": ["Добавить дашборд"],
       "Edit Dashboard": ["Редактировать дашборд"],
       "This json object describes the positioning of the widgets in the dashboard. It is dynamically generated when adjusting the widgets size and positions by using drag & drop in the dashboard view": [
+<<<<<<< HEAD
         "Этот объект JSON описывает расположение виджетов в дашборде. Он динамически генерируется при настройке размера и позиции виджетов в дашборде с помощью drag & drop"
+=======
+        "Этот объект JSON описывает расположыение виджетов в дашборде. Он динамически генерируется при настройке размера и позиции виджетов в дашборде с помощью drag & drop"
+>>>>>>> Improved translation into Russian language
       ],
       "The CSS for individual dashboards can be altered here, or in the dashboard view where changes are immediately visible": [
         "В этом поле можно задать индивидуальный стиль для дашборда с помощью CSS"
@@ -1015,7 +1128,11 @@
       "Name of table to be created from csv data.": [
         "Имя таблицы, которая будет сформирована из данных csv."
       ],
+<<<<<<< HEAD
       "CSV File": ["CSV-файл"],
+=======
+      "CSV File": ["CSV-айл"],
+>>>>>>> Improved translation into Russian language
       "Select a CSV file to be uploaded to a database.": [
         "Выберите файл CSV, который будет загружен в БД."
       ],
@@ -1322,7 +1439,11 @@
       "Database error": ["Database Expression"],
       "was created": ["создан"],
       "Query in a new tab": ["Запрос в отдельной вкладке"],
+<<<<<<< HEAD
       "The query returned no data": ["Результат пуст"],
+=======
+      "The query returned no data": ["Запрос не вернул никаких данных"],
+>>>>>>> Improved translation into Russian language
       "Fetch data preview": ["Получить данные для просмотра"],
       "Refetch results": ["Результаты поиска"],
       "Track job": ["Отслеживать работу"],
@@ -1331,7 +1452,11 @@
       "Run": ["Выполнить"],
       "Stop running (Ctrl + x)": ["Остановить (Ctrl + x)"],
       "Run query (Ctrl + Return)": ["Выполнить запрос (Ctrl + Return)"],
+<<<<<<< HEAD
       "Save & Explore": ["Сохранить и исследовать"],
+=======
+      "Save & Explore": ["Сохранить и исследевать"],
+>>>>>>> Improved translation into Russian language
       "Overwrite & Explore": ["Перезаписать и исследовать"],
       "Undefined": ["Не определено"],
       "Save": ["Сохранить"],
@@ -1466,7 +1591,11 @@
       "Saturday": ["Суббота"],
       "January": ["Январь"],
       "February": ["Февраль"],
+<<<<<<< HEAD
       "March": ["Март"],
+=======
+      "March": ["Поиск"],
+>>>>>>> Improved translation into Russian language
       "April": ["Апрель"],
       "May": ["Май"],
       "June": ["Июнь"],
@@ -1489,7 +1618,11 @@
       "APR": ["АПР"],
       "MAY": ["МАЙ"],
       "JUN": ["ИЮН"],
+<<<<<<< HEAD
       "JUL": ["ИЮЛ"],
+=======
+      "JUL": ["Ссылка (URL)"],
+>>>>>>> Improved translation into Russian language
       "AUG": ["АВГ"],
       "SEP": ["СЕН"],
       "OCT": ["ОКТ"],
@@ -1527,7 +1660,11 @@
       "schema": ["схема"],
       "delete": ["удалить"],
       "Type \"%s\" to confirm": ["Введите “%s” для подтверждения"],
+<<<<<<< HEAD
       "DELETE": ["DELETE"],
+=======
+      "DELETE": ["УДАЛИТЬ"],
+>>>>>>> Improved translation into Russian language
       "Click to edit": ["Нажмите для редактирования"],
       "You don't have the rights to alter this title.": [
         "Недостаточно прав для изменения заголовка."
@@ -1568,7 +1705,11 @@
       "Timeout error": ["Тайм-аут"],
       "Cell content": ["Созданный контент"],
       "The import was successful": ["Неудачно"],
+<<<<<<< HEAD
       "OVERWRITE": ["OVERWRITE"],
+=======
+      "OVERWRITE": ["ПЕРЕЗАПИСАТЬ"],
+>>>>>>> Improved translation into Russian language
       "Overwrite": ["Перезаписать"],
       "Import": ["Импорт"],
       "Import %s": ["Импорт %s"],
@@ -1778,7 +1919,11 @@
       "Change dataset": ["Выберите источник данных"],
       "Warning!": ["Предупреждение!"],
       "Search / Filter": ["Поиск / Фильтр"],
+<<<<<<< HEAD
       "Physical (table or view)": ["Физический (таблица или представление)"],
+=======
+      "Physical (table or view)": ["Физический (таблица или ракурс)"],
+>>>>>>> Improved translation into Russian language
       "Virtual (SQL)": ["Виртуальный (SQL)"],
       "SQL expression": ["Выражение SQL"],
       "Data type": ["Таблица Данных"],
@@ -1827,12 +1972,20 @@
       "virtual": [""],
       "Dataset name": ["Наименование датасета"],
       "When specifying SQL, the datasource acts as a view. Superset will use this statement as a subquery while grouping and filtering on the generated parent queries.": [
+<<<<<<< HEAD
         "Когда указан SQL, источник данных работает как представление. Superset будет использовать это выражение в подзапросе, при необходимости группировки и фильтрации."
+=======
+        "Когда указан SQL, источник данных работает как ракурс. Superset будет использовать это выражение в подзапросе, при необходимости группировки и фильтрации."
+>>>>>>> Improved translation into Russian language
       ],
       "The JSON metric or post aggregation definition.": [""],
       "Physical": [""],
       "The pointer to a physical table (or view). Keep in mind that the chart is associated to this Superset logical table, and this logical table points the physical table referenced here.": [
+<<<<<<< HEAD
         "Указатель на физическую таблицу (или представление). Следует помнить, что график связан с логической таблицей Superset, а эта логическая таблица указывает на физическую таблицу, указанную здесь."
+=======
+        "Указатель на физическую таблицу (или ракурс). Следует помнить, что график связан с логической таблицей Superset, а эта логическая таблица указывает на физическую таблицу, указанную здесь."
+>>>>>>> Improved translation into Russian language
       ],
       "Click the lock to make changes.": [
         "Нажмите на замок, чтобы выполнить изменения."
@@ -2187,7 +2340,11 @@
       "How to display time shifts: as individual lines; as the absolute difference between the main time series and each time shift; as the percentage change; or as the ratio between series and time shifts.": [
         "Как отображать смещения во времени: как отдельные линии; как абсолютную разницу между основным временным рядом и каждым смещением; как процентное изменение; или как соотношение между рядами и смещениями."
       ],
+<<<<<<< HEAD
       "Python functions": ["Python функции"],
+=======
+      "Python functions": ["Функция агрегации"],
+>>>>>>> Improved translation into Russian language
       "Rule": ["Правило"],
       "Pandas resample rule": [
         "Одна из функций (Resample) библиотеки Pandas, которая определяет период, к которому применяется функция агрегации"
@@ -2244,7 +2401,11 @@
       "${AlertState.error}": ["${AlertState.error}"],
       "${AlertState.noop}": ["${AlertState.noop}"],
       "${AlertState.grace}": ["${AlertState.grace}"],
+<<<<<<< HEAD
       "Alerts & reports": ["Оповещения и рассылки"],
+=======
+      "Alerts & reports": ["Предупреждения и рассылки"],
+>>>>>>> Improved translation into Russian language
       "Reports": ["Рассылки"],
       "This action will permanently delete %s.": [
         "Это действие навсегда удалит %s."
@@ -2271,6 +2432,7 @@
       ],
       "Add": ["Добавить"],
       "Edit ${isReport ? 'Report' : 'Alert'}": [
+<<<<<<< HEAD
         "Править ${isReport ? ‘рассылку’ : ‘оповещение’}"
       ],
       "Add ${isReport ? 'Report' : 'Alert'}": [
@@ -2283,6 +2445,20 @@
       "Value": ["Подписи"],
       "Report schedule": ["Область просмотра"],
       "Alert condition schedule": ["Расписание условия оповещения"],
+=======
+        "Править ${isReport ? ‘рассылку’ : ‘уведомление’}"
+      ],
+      "Add ${isReport ? 'Report' : 'Alert'}": [
+        "Добавить ${isReport ? ‘рассылку’ : ‘уведомление’}"
+      ],
+      "Report name": ["Имя Шаблона"],
+      "Alert name": ["Имя Таблицы"],
+      "Alert condition": ["Тестовое соединение"],
+      "Trigger Alert If...": ["Сделать уведомление, если…"],
+      "Value": ["Подписи"],
+      "Report schedule": ["Область просмотра"],
+      "Alert condition schedule": ["Тестовое соединение"],
+>>>>>>> Improved translation into Russian language
       "Schedule settings": ["Настройки расписания"],
       "Log retention": ["Время жизни журнала"],
       "Working timeout": [""],
@@ -2299,6 +2475,7 @@
       "CRON expression": ["Выражение SQL"],
       "Report sent": ["Рассылка отправлена"],
       "Alert triggered, notification sent": [
+<<<<<<< HEAD
         "Сработало оповещение, уведомление отправлено"
       ],
       "Report sending": ["Выполняется рассылка"],
@@ -2307,6 +2484,16 @@
       "Alert failed": ["Оповещение не удалось"],
       "Nothing triggered": ["Ничего не сработало"],
       "Alert Triggered, In Grace Period": ["Сработало оповещение"],
+=======
+        "Сработало предупреждение, уведомление отправлено"
+      ],
+      "Report sending": ["Выполняется рассылка"],
+      "Alert running": ["Выполняется предупреждение"],
+      "Report failed": ["Рассылка не удалась"],
+      "Alert failed": ["Предупреждение не удалось"],
+      "Nothing triggered": ["Ничего не сработало"],
+      "Alert Triggered, In Grace Period": ["Сработало предупреждение"],
+>>>>>>> Improved translation into Russian language
       "${RecipientIconName.email}": ["${RecipientIconName.email}"],
       "${RecipientIconName.slack}": ["${RecipientIconName.slack}"],
       "annotation": ["аннотация"],
@@ -2611,8 +2798,13 @@
         "Вы уверены, что хотите удалить выбранные запросы?"
       ],
       "Query name": ["Страна"],
+<<<<<<< HEAD
       "Edited": ["Редактировано"],
       "Created": ["Создано"],
+=======
+      "Edited": ["Редактировать"],
+      "Created": ["Дата создания"],
+>>>>>>> Improved translation into Russian language
       "Viewed": ["Просмотрено"],
       "Examples": ["Примеры"],
       "Mine": ["Мои"],
