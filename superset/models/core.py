@@ -53,6 +53,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
+from sqlalchemy.sql.sqltypes import VARCHAR
 
 from superset import app, db_engine_specs, is_feature_enabled
 from superset.db_engine_specs.base import TimeGrain
@@ -125,7 +126,7 @@ class Database(
     select_as_create_table_as = Column(Boolean, default=False)
     expose_in_sqllab = Column(Boolean, default=True)
     configuration_method = Column(
-        Enum(ConfigurationMethod), server_default=ConfigurationMethod.SQLALCHEMY_URI
+        String(255), server_default=ConfigurationMethod.SQLALCHEMY_URI.value
     )
     allow_run_async = Column(Boolean, default=False)
     allow_csv_upload = Column(Boolean, default=False)
