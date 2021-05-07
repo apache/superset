@@ -18,7 +18,13 @@
  */
 import React from 'react';
 import { styled } from '@superset-ui/core';
-import { Dropdown, Menu as AntdMenu, Input as AntdInput, Skeleton } from 'antd';
+import {
+  Dropdown,
+  Menu as AntdMenu,
+  Input as AntdInput,
+  InputNumber as AntdInputNumber,
+  Skeleton,
+} from 'antd';
 import { DropDownProps } from 'antd/lib/dropdown';
 /*
   Antd is re-exported from here so we can override components with Emotion as needed.
@@ -36,7 +42,6 @@ export {
   Dropdown,
   Form,
   Empty,
-  InputNumber,
   Modal,
   Typography,
   Tree,
@@ -196,6 +201,11 @@ export const MainNav = Object.assign(StyledNav, {
 });
 
 export const Input = styled(AntdInput)`
+  border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+`;
+
+export const InputNumber = styled(AntdInputNumber)`
   border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
   border-radius: ${({ theme }) => theme.borderRadius}px;
 `;
