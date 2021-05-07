@@ -34,7 +34,9 @@ def upgrade():
     with op.batch_alter_table("dbs") as batch_op:
         batch_op.add_column(
             sa.Column(
-                "configuration_method", sa.VARCHAR(255), server_default="SQLALCHEMY_URI"
+                "configuration_method",
+                sa.VARCHAR(255),
+                server_default="sqlalchemy_form",
             )
         )
 
