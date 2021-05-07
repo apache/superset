@@ -128,7 +128,7 @@ describe('DashboardBuilder', () => {
     expect(parentSize.find(Tabs.TabPane)).toHaveLength(2);
   });
 
-  it('should set animated=true on Tabs for perf', () => {
+  it('should have default animated=true on Tabs for perf', () => {
     const wrapper = setup({ dashboardLayout: undoableDashboardLayoutWithTabs });
     const tabProps = wrapper.find(ParentSize).find(Tabs).props();
     expect(tabProps.animated).toBe(true);
@@ -182,7 +182,7 @@ describe('DashboardBuilder', () => {
       dashboardLayout: undoableDashboardLayoutWithTabs,
     });
 
-    expect(wrapper.find(Tabs).prop('activeKey')).toBe(DASHBOARD_GRID_ID);
+    expect(wrapper.find(Tabs).at(1).prop('activeKey')).toBe(DASHBOARD_GRID_ID);
 
     wrapper
       .find('.dashboard-component-tabs .ant-tabs .ant-tabs-tab')
