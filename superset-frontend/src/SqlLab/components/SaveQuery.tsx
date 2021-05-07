@@ -22,7 +22,7 @@ import { FormControl, FormGroup } from 'react-bootstrap';
 import { t, supersetTheme, styled } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
-import FormLabel from 'src/components/FormLabel';
+import { FormLabel } from 'src/components/Form';
 import Modal from 'src/components/Modal';
 import Icon from 'src/components/Icon';
 

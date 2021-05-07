@@ -42,15 +42,15 @@ from superset.utils.core import ColumnSpec, GenericDataType
 
 # Regular expressions to catch custom errors
 CONNECTION_ACCESS_DENIED_REGEX = re.compile(
-    "Access denied for user '(?P<username>.*?)'@'(?P<hostname>.*?)'. "
+    "Access denied for user '(?P<username>.*?)'@'(?P<hostname>.*?)'"
 )
 CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
-    "Unknown MySQL server host '(?P<hostname>.*?)'."
+    "Unknown MySQL server host '(?P<hostname>.*?)'"
 )
 CONNECTION_HOST_DOWN_REGEX = re.compile(
-    "Can't connect to MySQL server on '(?P<hostname>.*?)'."
+    "Can't connect to MySQL server on '(?P<hostname>.*?)'"
 )
-CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile("Unknown database '(?P<database>.*?)'.")
+CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile("Unknown database '(?P<database>.*?)'")
 
 
 class MySQLEngineSpec(BaseEngineSpec):

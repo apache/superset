@@ -16,24 +16,40 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import React from 'react';
 import { styled } from '@superset-ui/core';
-import AntdCard, { CardProps as AntdCardProps } from 'antd/lib/card';
+import {
+  MetricOption,
+  ColumnOption,
+  MetricOptionProps,
+  ColumnOptionProps,
+} from '@superset-ui/chart-controls';
 
-interface CardProps extends AntdCardProps {
-  padded?: boolean;
-}
-
-const Card = styled(({ padded, ...props }: CardProps) => (
-  <AntdCard {...props} />
-))`
-  background-color: ${({ theme }) => theme.colors.grayscale.light4};
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-
-  .ant-card-body {
-    padding: ${({ padded, theme }) =>
-      padded ? theme.gridUnit * 4 : theme.gridUnit}px;
+const OptionContainer = styled.div`
+  .option-label {
+    display: inline-block;
+    & ~ i {
+      margin-left: ${({ theme }) => theme.gridUnit}px;
+    }
+  }
+  .type-label {
+    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+    width: ${({ theme }) => theme.gridUnit * 7}px;
+    display: inline-block;
+    text-align: center;
+    font-weight: ${({ theme }) => theme.typography.weights.bold};
   }
 `;
 
-export default Card;
+export const StyledMetricOption = (props: MetricOptionProps) => (
+  <OptionContainer>
+    <MetricOption {...props} />
+  </OptionContainer>
+);
+
+export const StyledColumnOption = (props: ColumnOptionProps) => (
+  <OptionContainer>
+    <ColumnOption {...props} />
+  </OptionContainer>
+);

@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col } from 'src/common/components';
-import { FormControl } from 'react-bootstrap';
+import { Row, Col, Input } from 'src/common/components';
+import { Form, FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
 import { AsyncSelect } from 'src/components/Select';
@@ -33,7 +33,6 @@ import {
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
-import FormLabel from 'src/components/FormLabel';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 
 import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
@@ -327,29 +326,31 @@ class PropertiesModal extends React.PureComponent {
       <Row gutter={16}>
         <Col xs={24} md={12}>
           <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
-          <FormLabel htmlFor="owners">{t('Owners')}</FormLabel>
-          <AsyncSelect
-            name="owners"
-            isMulti
-            value={values.owners}
-            loadOptions={loadAccessOptions('owners')}
-            defaultOptions // load options on render
-            cacheOptions
-            onChange={this.onOwnersChange}
-            disabled={!isDashboardLoaded}
-            filterOption={null} // options are filtered at the api
-          />
-          <p className="help-block">
-            {t(
-              'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
-            )}
-          </p>
+          <FormItem label={t('Owners')}>
+            <AsyncSelect
+              name="owners"
+              isMulti
+              value={values.owners}
+              loadOptions={loadAccessOptions('owners')}
+              defaultOptions // load options on render
+              cacheOptions
+              onChange={this.onOwnersChange}
+              disabled={!isDashboardLoaded}
+              filterOption={null} // options are filtered at the api
+            />
+            <p className="help-block">
+              {t(
+                'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
+              )}
+            </p>
+          </FormItem>
         </Col>
         <Col xs={24} md={12}>
           <h3 style={{ marginTop: '1em' }}>{t('Colors')}</h3>
           <ColorSchemeControlWrapper
             onChange={this.onColorSchemeChange}
             colorScheme={values.colorScheme}
+            labelMargin={8}
           />
         </Col>
       </Row>
@@ -367,42 +368,44 @@ class PropertiesModal extends React.PureComponent {
         </Row>
         <Row gutter={16}>
           <Col xs={24} md={12}>
-            <FormLabel htmlFor="owners">{t('Owners')}</FormLabel>
-            <AsyncSelect
-              name="owners"
-              isMulti
-              value={values.owners}
-              loadOptions={loadAccessOptions('owners')}
-              defaultOptions // load options on render
-              cacheOptions
-              onChange={this.onOwnersChange}
-              disabled={!isDashboardLoaded}
-              filterOption={null} // options are filtered at the api
-            />
-            <p className="help-block">
-              {t(
-                'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
-              )}
-            </p>
+            <FormItem label={t('Owners')}>
+              <AsyncSelect
+                name="owners"
+                isMulti
+                value={values.owners}
+                loadOptions={loadAccessOptions('owners')}
+                defaultOptions // load options on render
+                cacheOptions
+                onChange={this.onOwnersChange}
+                disabled={!isDashboardLoaded}
+                filterOption={null} // options are filtered at the api
+              />
+              <p className="help-block">
+                {t(
+                  'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
+                )}
+              </p>
+            </FormItem>
           </Col>
           <Col xs={24} md={12}>
-            <FormLabel htmlFor="roles">{t('Roles')}</FormLabel>
-            <AsyncSelect
-              name="roles"
-              isMulti
-              value={values.roles}
-              loadOptions={loadAccessOptions('roles')}
-              defaultOptions // load options on render
-              cacheOptions
-              onChange={this.onRolesChange}
-              disabled={!isDashboardLoaded}
-              filterOption={null} // options are filtered at the api
-            />
-            <p className="help-block">
-              {t(
-                'Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles defined then the dashboard is available to all roles.',
-              )}
-            </p>
+            <FormItem label={t('Roles')}>
+              <AsyncSelect
+                name="roles"
+                isMulti
+                value={values.roles}
+                loadOptions={loadAccessOptions('roles')}
+                defaultOptions // load options on render
+                cacheOptions
+                onChange={this.onRolesChange}
+                disabled={!isDashboardLoaded}
+                filterOption={null} // options are filtered at the api
+              />
+              <p className="help-block">
+                {t(
+                  'Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles defined then the dashboard is available to all roles.',
+                )}
+              </p>
+            </FormItem>
           </Col>
         </Row>
         <Row>
@@ -410,6 +413,7 @@ class PropertiesModal extends React.PureComponent {
             <ColorSchemeControlWrapper
               onChange={this.onColorSchemeChange}
               colorScheme={values.colorScheme}
+              labelMargin={8}
             />
           </Col>
         </Row>
@@ -453,7 +457,11 @@ class PropertiesModal extends React.PureComponent {
         }
         responsive
       >
-        <form data-test="dashboard-edit-properties-form" onSubmit={this.submit}>
+        <Form
+          data-test="dashboard-edit-properties-form"
+          onSubmit={this.submit}
+          layout="vertical"
+        >
           <Row>
             <Col xs={24} md={24}>
               <h3>{t('Basic information')}</h3>
@@ -461,30 +469,30 @@ class PropertiesModal extends React.PureComponent {
           </Row>
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <FormLabel htmlFor="embed-height">{t('Title')}</FormLabel>
-              <FormControl
-                data-test="dashboard-title-input"
-                name="dashboard_title"
-                type="text"
-                bsSize="sm"
-                value={values.dashboard_title}
-                onChange={this.onChange}
-                disabled={!isDashboardLoaded}
-              />
+              <FormItem label={t('Title')}>
+                <Input
+                  data-test="dashboard-title-input"
+                  name="dashboard_title"
+                  type="text"
+                  value={values.dashboard_title}
+                  onChange={this.onChange}
+                  disabled={!isDashboardLoaded}
+                />
+              </FormItem>
             </Col>
             <Col xs={24} md={12}>
-              <FormLabel htmlFor="embed-height">{t('URL slug')}</FormLabel>
-              <FormControl
-                name="slug"
-                type="text"
-                bsSize="sm"
-                value={values.slug || ''}
-                onChange={this.onChange}
-                disabled={!isDashboardLoaded}
-              />
-              <p className="help-block">
-                {t('A readable URL for your dashboard')}
-              </p>
+              <FormItem label={t('URL slug')}>
+                <Input
+                  name="slug"
+                  type="text"
+                  value={values.slug || ''}
+                  onChange={this.onChange}
+                  disabled={!isDashboardLoaded}
+                />
+                <p className="help-block">
+                  {t('A readable URL for your dashboard')}
+                </p>
+              </FormItem>
             </Col>
           </Row>
           {isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)
@@ -504,10 +512,7 @@ class PropertiesModal extends React.PureComponent {
                 </Button>
               </h3>
               {isAdvancedOpen && (
-                <>
-                  <FormLabel htmlFor="json_metadata">
-                    {t('JSON metadata')}
-                  </FormLabel>
+                <FormItem label={t('JSON metadata')}>
                   <StyledJsonEditor
                     showLoadingForImport
                     name="json_metadata"
@@ -524,11 +529,11 @@ class PropertiesModal extends React.PureComponent {
                       'This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter specific parameters.',
                     )}
                   </p>
-                </>
+                </FormItem>
               )}
             </Col>
           </Row>
-        </form>
+        </Form>
       </Modal>
     );
   }

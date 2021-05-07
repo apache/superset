@@ -110,7 +110,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
         """
         Test that custom error messages are extracted correctly.
         """
-        msg = "mysql: Access denied for user 'test'@'testuser.com'. "
+        msg = "mysql: Access denied for user 'test'@'testuser.com'"
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
@@ -135,7 +135,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
             )
         ]
 
-        msg = "mysql: Unknown MySQL server host 'badhostname.com'. "
+        msg = "mysql: Unknown MySQL server host 'badhostname.com'"
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
@@ -155,7 +155,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
             )
         ]
 
-        msg = "mysql: Can't connect to MySQL server on 'badconnection.com'."
+        msg = "mysql: Can't connect to MySQL server on 'badconnection.com'"
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
@@ -176,7 +176,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
             )
         ]
 
-        msg = "mysql: Can't connect to MySQL server on '93.184.216.34'."
+        msg = "mysql: Can't connect to MySQL server on '93.184.216.34'"
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
@@ -196,7 +196,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
             )
         ]
 
-        msg = "mysql: Unknown database 'badDB'."
+        msg = "mysql: Unknown database 'badDB'"
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(

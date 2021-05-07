@@ -16,27 +16,43 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-unused-expressions */
 import React from 'react';
-import { shallow } from 'enzyme';
+import Card, { CardProps } from '.';
 
-import { AGGREGATES } from 'src/explore/constants';
-import AdhocMetricStaticOption from 'src/explore/components/controls/MetricControl/AdhocMetricStaticOption';
-import AdhocMetric, {
-  EXPRESSION_TYPES,
-} from 'src/explore/components/controls/MetricControl/AdhocMetric';
+export default {
+  title: 'Card',
+  component: Card,
+};
 
-const sumValueAdhocMetric = new AdhocMetric({
-  expressionType: EXPRESSION_TYPES.SIMPLE,
-  column: { type: 'VARCHAR(255)', column_name: 'source' },
-  aggregate: AGGREGATES.SUM,
-});
+export const InteractiveCard = (args: CardProps) => <Card {...args} />;
 
-describe('AdhocMetricStaticOption', () => {
-  it('renders the adhoc metrics label', () => {
-    const wrapper = shallow(
-      <AdhocMetricStaticOption adhocMetric={sumValueAdhocMetric} />,
-    );
-    expect(wrapper.text()).toBe('SUM(source)');
-  });
-});
+InteractiveCard.args = {
+  padded: true,
+  title: 'Card title',
+  children: 'Card content',
+  bordered: true,
+  loading: false,
+  hoverable: false,
+};
+
+InteractiveCard.argTypes = {
+  onClick: {
+    table: {
+      disable: true,
+    },
+    action: 'onClick',
+  },
+  theme: {
+    table: {
+      disable: true,
+    },
+  },
+};
+
+InteractiveCard.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};
