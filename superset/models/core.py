@@ -36,7 +36,6 @@ from sqlalchemy import (
     Column,
     create_engine,
     DateTime,
-    Enum,
     ForeignKey,
     Integer,
     MetaData,
@@ -53,7 +52,6 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
-from sqlalchemy.sql.sqltypes import VARCHAR
 
 from superset import app, db_engine_specs, is_feature_enabled
 from superset.db_engine_specs.base import TimeGrain

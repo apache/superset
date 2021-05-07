@@ -87,8 +87,6 @@ class TestExportDatabasesCommand(SupersetTestCase):
                 **expected_extra,
                 "engine_params": {"connect_args": {"poll_interval": 0.1}},
             }
-        print("content keys", contents.keys())
-        print("core files", core_files)
         assert core_files.issubset(set(contents.keys()))
 
         if example_db.backend == "postgresql":

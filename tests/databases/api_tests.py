@@ -895,7 +895,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(response, expected_response)
 
         data = {
-            "sqlalchemy_uri": "mssql+pymssql://url",
+            "sqlalchemy_uri": "postgres://url",
             "database_name": "examples",
             "impersonate_user": False,
             "server_cert": None,
@@ -907,15 +907,15 @@ class TestDatabaseApi(SupersetTestCase):
         expected_response = {
             "errors": [
                 {
-                    "message": 'Port None on hostname "url" refused the connection.',
-                    "error_type": "CONNECTION_PORT_CLOSED_ERROR",
+                    "message": 'The host "url" might be down, and can\'t be reached on port 5432.',
+                    "error_type": "CONNECTION_HOST_DOWN_ERROR",
                     "level": "error",
                     "extra": {
-                        "engine_name": "Microsoft SQL",
+                        "engine_name": "PostgreSQL",
                         "issue_codes": [
                             {
-                                "code": 1008,
-                                "message": "Issue 1008 - The port is closed.",
+                                "code": 1009,
+                                "message": "Issue 1009 - The host might be down, and can't be reached on the provided port.",
                             }
                         ],
                     },

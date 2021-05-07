@@ -315,7 +315,9 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     allow_ctas = fields.Boolean(description=allow_ctas_description)
     allow_cvas = fields.Boolean(description=allow_cvas_description)
     allow_dml = fields.Boolean(description=allow_dml_description)
-    # configuration_method is used on the frontend to inform the backend whether to explode parameters or to provide only a sqlalchemy_uri
+    # configuration_method is used on the frontend to
+    # inform the backend whether to explode parameters
+    # or to provide only a sqlalchemy_uri
     configuration_method = EnumField(ConfigurationMethod, by_value=True)
     force_ctas_schema = fields.String(
         description=force_ctas_schema_description,
