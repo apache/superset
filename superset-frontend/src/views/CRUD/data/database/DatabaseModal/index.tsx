@@ -266,8 +266,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setTabKey(key);
   };
 
-  console.log(db);
-
   return isEditMode || useSqlAlchemyForm ? (
     <StyledModal
       name="database"
