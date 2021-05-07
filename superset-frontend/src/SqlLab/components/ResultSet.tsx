@@ -536,7 +536,7 @@ export default class ResultSet extends React.PureComponent<
       limitMessage = (
         <span className="limitMessage">
           {t(
-            `The number of rows displayed is limited to %s by the limit dropdown`,
+            `The number of rows displayed is limited to %s by the limit dropdown.`,
             rows,
           )}
         </span>
@@ -545,7 +545,7 @@ export default class ResultSet extends React.PureComponent<
       limitMessage = (
         <span className="limitMessage">
           {t(
-            `The number of rows displayed is limited to %s by the query limit dropdown`,
+            `The number of rows displayed is limited to %s by the query limit dropdown.`,
             rows,
           )}
         </span>
@@ -560,18 +560,16 @@ export default class ResultSet extends React.PureComponent<
         )}
         {!limitReached && defaultDropdown && (
           <Alert
-            closable={false}
             type="warning"
             message={t(`%s rows returned`, rows)}
             description={t(
-              `The number of rows displayed is limited to %s by the dropdown`,
+              `The number of rows displayed is limited to %s by the dropdown.`,
               rows,
             )}
           />
         )}
         {limitReached && (
           <Alert
-            closable={false}
             type="warning"
             message={t(`%s rows returned`, rows)}
             description={t(
