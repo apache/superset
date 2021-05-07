@@ -19,6 +19,7 @@
 import { DataMask } from '@superset-ui/core';
 import { FilterConfiguration } from '../dashboard/components/nativeFilters/types';
 import { FeatureFlag, isFeatureEnabled } from '../featureFlags';
+import { Filters } from '../dashboard/reducers/types';
 
 export const UPDATE_DATA_MASK = 'UPDATE_DATA_MASK';
 export interface UpdateDataMask {
@@ -33,6 +34,7 @@ export const SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE =
 export interface SetDataMaskForFilterConfigComplete {
   type: typeof SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE;
   filterConfig: FilterConfiguration;
+  filters?: Filters;
 }
 
 export const SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL =
@@ -44,10 +46,12 @@ export interface SetDataMaskForFilterConfigFail {
 }
 export function setDataMaskForFilterConfigComplete(
   filterConfig: FilterConfiguration,
+  filters?: Filters,
 ): SetDataMaskForFilterConfigComplete {
   return {
     type: SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
     filterConfig,
+    filters,
   };
 }
 export function updateDataMask(

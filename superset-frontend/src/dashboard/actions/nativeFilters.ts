@@ -74,6 +74,7 @@ export const setFilterConfiguration = (
     filterConfig,
   });
   const { id, metadata } = getState().dashboardInfo;
+  const oldFilters = getState().nativeFilters?.filters;
 
   // TODO extract this out when makeApi supports url parameters
   const updateDashboard = makeApi<
@@ -100,7 +101,7 @@ export const setFilterConfiguration = (
       type: SET_FILTER_CONFIG_COMPLETE,
       filterConfig,
     });
-    dispatch(setDataMaskForFilterConfigComplete(filterConfig));
+    dispatch(setDataMaskForFilterConfigComplete(filterConfig, oldFilters));
   } catch (err) {
     dispatch({ type: SET_FILTER_CONFIG_FAIL, filterConfig });
     dispatch({ type: SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL, filterConfig });
