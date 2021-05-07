@@ -135,21 +135,6 @@ msgstr "Рассылка графиков"
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:415 superset/app.py:436
 msgid "Alerts"
-<<<<<<< HEAD
-<<<<<<< HEAD
-msgstr "Оповещения"
-
-#: superset/app.py:448
-msgid "Alerts & Reports"
-msgstr "Оповещения и Рассылка"
-=======
-msgstr "Предупреждения"
-
-#: superset/app.py:448
-msgid "Alerts & Reports"
-msgstr "Предупреждения и Рассылка"
->>>>>>> Improved translation into Russian language
-=======
 msgstr "Оповещения"
 
 #: superset/app.py:448
@@ -358,15 +343,7 @@ msgstr "Выберите показатель для отображения"
 
 #: superset/viz.py:1145 superset/viz_sip38.py:1101
 msgid "Big Number with Trendline"
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "Big Number with Trendline"
-=======
-msgstr "Большое число с линией тренда"
->>>>>>> Improved translation into Russian language
-=======
-msgstr "Big Number with Trendline"
->>>>>>> Update messages.po
 
 #: superset/viz.py:1153 superset/viz.py:1187 superset/viz_sip38.py:1109
 #: superset/viz_sip38.py:1140
@@ -375,15 +352,7 @@ msgstr "Выберите показатель!"
 
 #: superset/viz.py:1179 superset/viz_sip38.py:1132
 msgid "Big Number"
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "Big Number"
-=======
-msgstr "Большое число"
->>>>>>> Improved translation into Russian language
-=======
-msgstr "Big Number"
->>>>>>> Update messages.po
 
 #: superset/viz.py:1201 superset/viz_sip38.py:1154
 msgid "Time Series - Line Chart"
@@ -671,27 +640,11 @@ msgstr "Параметры аннотации недействительны."
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:64
 msgid "Annotation could not be created."
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "Аннотация не может быть создана."
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:68
 msgid "Annotation could not be updated."
 msgstr "Аннотация не может быть обновлена."
-=======
-msgstr "Аннотации не могут быть созданы."
-=======
-msgstr "Аннотация не может быть создана."
->>>>>>> Update messages.po
-
-#: superset/annotation_layers/annotations/commands/exceptions.py:68
-msgid "Annotation could not be updated."
-<<<<<<< HEAD
-msgstr "Аннотации не могут быть обновлены."
->>>>>>> Improved translation into Russian language
-=======
-msgstr "Аннотация не может быть обновлена."
->>>>>>> Update messages.po
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:72
 msgid "Annotation delete failed."
@@ -699,26 +652,11 @@ msgstr "Удаление аннотации не удалось."
 
 #: superset/annotation_layers/commands/exceptions.py:29
 msgid "Annotation layer parameters are invalid."
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "Параметры слоя аннотации недействительны."
-
-#: superset/annotation_layers/commands/exceptions.py:33
-msgid "Annotation layer could not be deleted."
-msgstr "Слой аннотации не может быть удалён."
-<<<<<<< HEAD
-=======
-msgstr "Параметры слоя аннотаций недействительны."
-=======
-msgstr "Параметры слоя аннотации недействительны."
->>>>>>> Update messages.po
 
 #: superset/annotation_layers/commands/exceptions.py:33
 msgid "Annotation layer could not be deleted."
 msgstr "Слой аннотаций не может быть удалён."
->>>>>>> Improved translation into Russian language
-=======
->>>>>>> Update messages.po
 
 #: superset/annotation_layers/commands/exceptions.py:37
 msgid "Annotation layer could not be created."
@@ -796,15 +734,7 @@ msgstr "`смещение_строк` должно быть больше или 
 #: superset/databases/commands/delete.py:65
 #, python-format
 msgid "There are associated alerts or reports: %s,"
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "Существуют оповещения или рассылки: %s,"
-=======
-msgstr "Существуют предупреждения или рассылки: %s,"
->>>>>>> Improved translation into Russian language
-=======
-msgstr "Существуют оповещения или рассылки: %s,"
->>>>>>> Update messages.po
 
 #: superset/charts/commands/exceptions.py:37
 #: superset/datasets/commands/exceptions.py:38
@@ -842,15 +772,7 @@ msgstr "График не может быть удалён."
 #: superset/dashboards/commands/exceptions.py:69
 #: superset/databases/commands/exceptions.py:116
 msgid "There are associated alerts or reports"
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "Существуют привязанные оповещения или рассылки"
-=======
-msgstr "Существуют привязанные предупреждения или рассылки"
->>>>>>> Improved translation into Russian language
-=======
-msgstr "Существуют привязанные оповещения или рассылки"
->>>>>>> Update messages.po
 
 #: superset/charts/commands/exceptions.py:86
 msgid "Changing this chart is forbidden"
@@ -1875,27 +1797,12 @@ msgstr[0] "Удалено %(num)d рассылок"
 #, python-format
 msgid "Alert query returned more then one row. %s rows returned"
 msgstr ""
-<<<<<<< HEAD
-<<<<<<< HEAD
 "Запрос от оповещения вернул больше одной строки. %s строк возвращено"
-=======
-"Запрос от предупреждения вернул больше одной строки. %s строк возвращено"
->>>>>>> Improved translation into Russian language
-=======
-"Запрос от оповещения вернул больше одной строки. %s строк возвращено"
->>>>>>> Update messages.po
 
 #: superset/reports/commands/alert.py:83
 #, python-format
 msgid "Alert query returned more then one column. %s columns returned"
 msgstr ""
-<<<<<<< HEAD
-<<<<<<< HEAD
-"Запрос от оповещения вернул больше одного столбца. %s столбцов возвращено"
-=======
-"Запрос от предупреждения вернул больше одного столбца. %s столбцов возвращено"
->>>>>>> Improved translation into Russian language
-=======
 "Запрос от оповещения вернул больше одного столбца. %s столбцов возвращено"
 >>>>>>> Update messages.po
 
@@ -1953,15 +1860,7 @@ msgstr "Ошибка при генерировании скриншота во �
 
 #: superset/reports/commands/exceptions.py:116
 msgid "Report Schedule execution got an unexpected error."
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "Во время выполнения рассылки произошла непредвиденная ошибка."
-=======
-msgstr "По время выполнения рассылки произошла непредвиденная ошибка."
->>>>>>> Improved translation into Russian language
-=======
-msgstr "Во время выполнения рассылки произошла непредвиденная ошибка."
->>>>>>> Update messages.po
 
 #: superset/reports/commands/exceptions.py:120
 msgid "Report Schedule is still working, refusing to re-compute."
@@ -1973,15 +1872,7 @@ msgstr "Рассылка достигла тайм-аута в работе."
 
 #: superset/reports/commands/exceptions.py:138
 msgid "Alert query returned more then one row."
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "Запрос для оповещения вернул больше одной строки."
-=======
-msgstr "Запрос для предупреждения вернул больше одной строки."
->>>>>>> Improved translation into Russian language
-=======
-msgstr "Запрос для оповещения вернул больше одной строки."
->>>>>>> Update messages.po
 
 #: superset/reports/commands/exceptions.py:143
 msgid "Alert validator config error."
@@ -1989,27 +1880,11 @@ msgstr "Неверная конфигурация широты и долготы
 
 #: superset/reports/commands/exceptions.py:147
 msgid "Alert query returned more then one column."
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "Запрос для оповещения вернул больше одного столбца."
 
 #: superset/reports/commands/exceptions.py:151
 msgid "Alert query returned a non-number value."
 msgstr "Запрос для оповещения вернул не число."
-=======
-msgstr "Запрос для предупреждения вернул больше одного столбца."
-
-#: superset/reports/commands/exceptions.py:151
-msgid "Alert query returned a non-number value."
-msgstr "Запрос для предупреждения вернул не число."
->>>>>>> Improved translation into Russian language
-=======
-msgstr "Запрос для оповещения вернул больше одного столбца."
-
-#: superset/reports/commands/exceptions.py:151
-msgid "Alert query returned a non-number value."
-msgstr "Запрос для оповещения вернул не число."
->>>>>>> Update messages.po
 
 #: superset/reports/commands/exceptions.py:155
 msgid "Alert found an error while executing a query."
@@ -2124,15 +1999,7 @@ msgstr ""
 #: superset/tasks/schedules.py:656
 #, python-format
 msgid "[Alert] %(label)s"
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "[Оповещение] %(label)s"
-=======
-msgstr "[Уведомление] %(label)s"
->>>>>>> Improved translation into Russian language
-=======
-msgstr "[Оповещение] %(label)s"
->>>>>>> Update messages.po
 
 #: superset/templates/appbuilder/navbar_right.html:35
 msgid "New"
@@ -2420,34 +2287,14 @@ msgstr "Список адресов, разделённый точкой с за
 
 #: superset/views/alerts.py:175
 msgid "How long to keep the logs around for this alert"
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "Как долго хранить логи для данного оповещения"
-=======
-msgstr "Как долго хранить логи для данного предупреждения"
->>>>>>> Improved translation into Russian language
-=======
-msgstr "Как долго хранить логи для данного оповещения"
->>>>>>> Update messages.po
 
 #: superset/views/alerts.py:176
 msgid ""
 "Once an alert is triggered, how long, in seconds, before Superset nags you "
 "again."
 msgstr ""
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
 "После срабатывания оповещения, как долго Superset не должен надоедать "
-=======
-"После срабатывания предупреждения, как сколько Superset не должен надоедать "
->>>>>>> Improved translation into Russian language
-=======
-"После срабатывания предупреждения, как долго Superset не должен надоедать "
->>>>>>> Update messages.po
-=======
-"После срабатывания оповещения, как долго Superset не должен надоедать "
->>>>>>> Update messages.po
 "снова."
 
 #: superset/views/alerts.py:180
@@ -2455,15 +2302,7 @@ msgid ""
 "A SQL statement that defines whether the alert should get triggered or not. "
 "The query is expected to return either NULL or a number value."
 msgstr ""
-<<<<<<< HEAD
-<<<<<<< HEAD
 "SQL-выражение, которое определяет сработало оповещение или нет. Запрос "
-=======
-"SQL-выражение, которое определяет сработало предупреждение или нет. Запрос "
->>>>>>> Improved translation into Russian language
-=======
-"SQL-выражение, которое определяет сработало оповещение или нет. Запрос "
->>>>>>> Update messages.po
 "должен вернуть NULL или числовое значение."
 
 #: superset/views/annotations.py:40
@@ -2975,15 +2814,7 @@ msgid ""
 "It is dynamically generated when adjusting the widgets size and positions by "
 "using drag & drop in the dashboard view"
 msgstr ""
-<<<<<<< HEAD
-<<<<<<< HEAD
 "Этот объект JSON описывает расположение виджетов в дашборде. Он динамически "
-=======
-"Этот объект JSON описывает расположыение виджетов в дашборде. Он динамически "
->>>>>>> Improved translation into Russian language
-=======
-"Этот объект JSON описывает расположение виджетов в дашборде. Он динамически "
->>>>>>> Update messages.po
 "генерируется при настройке размера и позиции виджетов в дашборде с помощью "
 "drag & drop"
 
@@ -3068,15 +2899,7 @@ msgstr "Имя таблицы, которая будет сформирован�
 
 #: superset/views/database/forms.py:93
 msgid "CSV File"
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "CSV-файл"
-=======
-msgstr "CSV-айл"
->>>>>>> Improved translation into Russian language
-=======
-msgstr "CSV-файл"
->>>>>>> Update messages.po
 
 #: superset/views/database/forms.py:94
 msgid "Select a CSV file to be uploaded to a database."
@@ -3961,15 +3784,7 @@ msgstr "Запрос в отдельной вкладке"
 
 #: superset-frontend/src/SqlLab/components/ResultSet.tsx:575
 msgid "The query returned no data"
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "Результат пуст"
-=======
-msgstr "Запрос не вернул никаких данных"
->>>>>>> Improved translation into Russian language
-=======
-msgstr "Результат пуст"
->>>>>>> Update messages.po
 
 #: superset-frontend/src/SqlLab/components/ResultSet.tsx:593
 msgid "Fetch data preview"
@@ -4007,15 +3822,7 @@ msgstr "Выполнить запрос (Ctrl + Return)"
 
 #: superset-frontend/src/SqlLab/components/SaveDatasetModal.tsx:108
 msgid "Save & Explore"
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "Сохранить и исследовать"
-=======
-msgstr "Сохранить и исследевать"
->>>>>>> Improved translation into Russian language
-=======
-msgstr "Сохранить и исследовать"
->>>>>>> Update messages.po
 
 #: superset-frontend/src/SqlLab/components/SaveDatasetModal.tsx:123
 msgid "Overwrite & Explore"
@@ -4687,15 +4494,7 @@ msgstr "Введите “%s” для подтверждения"
 
 #: superset-frontend/src/components/DeleteModal.tsx:81
 msgid "DELETE"
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "DELETE"
-=======
-msgstr "УДАЛИТЬ"
->>>>>>> Improved translation into Russian language
-=======
-msgstr "DELETE"
->>>>>>> Update messages.po
 
 #: superset-frontend/src/components/EditableTitle.tsx:181
 msgid "Click to edit"
@@ -4845,15 +4644,7 @@ msgstr "Неудачно"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:196
 msgid "OVERWRITE"
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "OVERWRITE"
-=======
-msgstr "ПЕРЕЗАПИСАТЬ"
->>>>>>> Improved translation into Russian language
-=======
-msgstr "OVERWRITE"
->>>>>>> Update messages.po
 
 #: superset-frontend/src/components/ImportModal/index.tsx:266
 msgid "Overwrite"
@@ -5538,15 +5329,7 @@ msgstr "Поиск / Фильтр"
 
 #: superset-frontend/src/datasource/DatasourceEditor.jsx:91
 msgid "Physical (table or view)"
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "Физический (таблица или представление)"
-=======
-msgstr "Физический (таблица или ракурс)"
->>>>>>> Improved translation into Russian language
-=======
-msgstr "Физический (таблица или представление)"
->>>>>>> Update messages.po
 
 #: superset-frontend/src/datasource/DatasourceEditor.jsx:92
 msgid "Virtual (SQL)"
@@ -5720,15 +5503,7 @@ msgid ""
 "statement as a subquery while grouping and filtering on the generated parent "
 "queries."
 msgstr ""
-<<<<<<< HEAD
-<<<<<<< HEAD
 "Когда указан SQL, источник данных работает как представление. Superset будет "
-=======
-"Когда указан SQL, источник данных работает как ракурс. Superset будет "
->>>>>>> Improved translation into Russian language
-=======
-"Когда указан SQL, источник данных работает как представление. Superset будет "
->>>>>>> Update messages.po
 "использовать это выражение в подзапросе, при необходимости группировки и "
 "фильтрации."
 
@@ -5746,15 +5521,7 @@ msgid ""
 "associated to this Superset logical table, and this logical table points the "
 "physical table referenced here."
 msgstr ""
-<<<<<<< HEAD
-<<<<<<< HEAD
 "Указатель на физическую таблицу (или представление). Следует помнить, что график "
-=======
-"Указатель на физическую таблицу (или ракурс). Следует помнить, что график "
->>>>>>> Improved translation into Russian language
-=======
-"Указатель на физическую таблицу (или представление). Следует помнить, что график "
->>>>>>> Update messages.po
 "связан с логической таблицей Superset, а эта логическая таблица указывает на "
 "физическую таблицу, указанную здесь."
 
@@ -6950,15 +6717,7 @@ msgstr "рассылка"
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:81
 msgid "alert"
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "оповещение"
-=======
-msgstr "предупреждение"
->>>>>>> Improved translation into Russian language
-=======
-msgstr "оповещение"
->>>>>>> Update messages.po
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:82
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:108
@@ -6969,15 +6728,7 @@ msgstr "рассылки"
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:82
 msgid "alerts"
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "оповещения"
-=======
-msgstr "предупреждения"
->>>>>>> Improved translation into Russian language
-=======
-msgstr "оповещения"
->>>>>>> Update messages.po
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:165
 #, python-format
@@ -7072,15 +6823,7 @@ msgstr "${AlertState.grace}"
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:411
 msgid "Alerts & reports"
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "Оповещения и рассылки"
-=======
-msgstr "Предупреждения и рассылки"
->>>>>>> Improved translation into Russian language
-=======
-msgstr "Оповещения и рассылки"
->>>>>>> Update messages.po
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:421
 msgid "Reports"
@@ -7179,27 +6922,11 @@ msgstr "Добавить"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1054
 msgid "Edit ${isReport ? 'Report' : 'Alert'}"
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "Править ${isReport ? ‘рассылку’ : ‘оповещение’}"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1055
 msgid "Add ${isReport ? 'Report' : 'Alert'}"
 msgstr "Добавить ${isReport ? ‘рассылку’ : ‘оповещение’}"
-=======
-msgstr "Править ${isReport ? ‘рассылку’ : ‘уведомление’}"
-
-#: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1055
-msgid "Add ${isReport ? 'Report' : 'Alert'}"
-msgstr "Добавить ${isReport ? ‘рассылку’ : ‘уведомление’}"
->>>>>>> Improved translation into Russian language
-=======
-msgstr "Править ${isReport ? ‘рассылку’ : ‘оповещение’}"
-
-#: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1055
-msgid "Add ${isReport ? 'Report' : 'Alert'}"
-msgstr "Добавить ${isReport ? ‘рассылку’ : ‘оповещение’}"
->>>>>>> Update messages.po
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1063
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1071
@@ -7217,15 +6944,7 @@ msgstr "Условие оповещения"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1161
 msgid "Trigger Alert If..."
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "Сделать оповещение, если…"
-=======
-msgstr "Сделать уведомление, если…"
->>>>>>> Improved translation into Russian language
-=======
-msgstr "Сделать оповещение, если…"
->>>>>>> Update messages.po
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1185
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1201
@@ -7305,15 +7024,7 @@ msgstr "Рассылка отправлена"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:63
 msgid "Alert triggered, notification sent"
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "Сработало оповещение, уведомление отправлено"
-=======
-msgstr "Сработало предупреждение, уведомление отправлено"
->>>>>>> Improved translation into Russian language
-=======
-msgstr "Сработало оповещение, уведомление отправлено"
->>>>>>> Update messages.po
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:69
 msgid "Report sending"
@@ -7321,15 +7032,7 @@ msgstr "Выполняется рассылка"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:70
 msgid "Alert running"
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "Выполняется оповещение"
-=======
-msgstr "Выполняется предупреждение"
->>>>>>> Improved translation into Russian language
-=======
-msgstr "Выполняется оповещение"
->>>>>>> Update messages.po
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:76
 msgid "Report failed"
@@ -7337,15 +7040,7 @@ msgstr "Рассылка не удалась"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:77
 msgid "Alert failed"
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "Оповещение не удалось"
-=======
-msgstr "Предупреждение не удалось"
->>>>>>> Improved translation into Russian language
-=======
-msgstr "Оповещение не удалось"
->>>>>>> Update messages.po
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:82
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:92
@@ -7354,15 +7049,7 @@ msgstr "Ничего не сработало"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:87
 msgid "Alert Triggered, In Grace Period"
-<<<<<<< HEAD
-<<<<<<< HEAD
 msgstr "Сработало оповещение"
-=======
-msgstr "Сработало предупреждение"
->>>>>>> Improved translation into Russian language
-=======
-msgstr "Сработало оповещение"
->>>>>>> Update messages.po
 
 #: superset-frontend/src/views/CRUD/alert/components/RecipientIcon.tsx:38
 msgid "${RecipientIconName.email}"
