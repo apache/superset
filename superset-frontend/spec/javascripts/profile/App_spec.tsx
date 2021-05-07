@@ -20,7 +20,6 @@ import React from 'react';
 import { Row, Col } from 'src/common/components';
 import { shallow } from 'enzyme';
 import App from 'src/profile/components/App';
-import Tabs from 'src/components/Tabs';
 
 import { user } from './fixtures';
 
