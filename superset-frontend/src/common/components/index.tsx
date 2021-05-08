@@ -72,6 +72,29 @@ export const MenuItem = styled(AntdMenu.Item)`
   &.ant-menu-item {
     height: ${({ theme }) => theme.gridUnit * 7}px;
     line-height: ${({ theme }) => theme.gridUnit * 7}px;
+    a {
+      border-bottom: none;
+      transition: background-color ${({ theme }) => theme.transitionTiming}s;
+      &:after {
+        content: '';
+        position: absolute;
+        bottom: -3px;
+        left: 50%;
+        width: 0;
+        height: 3px;
+        opacity: 0;
+        transform: translateX(-50%);
+        transition: all ${({ theme }) => theme.transitionTiming}s;
+        background-color: ${({ theme }) => theme.colors.primary.base};
+      }
+      &:focus {
+        border-bottom: none;
+        background-color: transparent;
+        @media (max-width: 767px) {
+          background-color: ${({ theme }) => theme.colors.primary.light5};
+        }
+      }
+    }
   }
 
   &.ant-menu-item,
@@ -84,8 +107,92 @@ export const MenuItem = styled(AntdMenu.Item)`
   }
 `;
 
+export const StyledNav = styled(AntdMenu)`
+  line-height: 51px;
+  border: none;
+
+  & > .ant-menu-item,
+  & > .ant-menu-submenu {
+    vertical-align: inherit;
+    &:hover {
+      color: ${({ theme }) => theme.colors.grayscale.dark1};
+    }
+  }
+  &:not(.ant-menu-dark) > .ant-menu-submenu,
+  &:not(.ant-menu-dark) > .ant-menu-item {
+    margin: 0px;
+    &:hover {
+      border-bottom: none;
+    }
+  }
+
+  & > .ant-menu-item > a {
+    padding: ${({ theme }) => theme.gridUnit * 4}px;
+  }
+
+  .ant-menu-submenu-open,
+  .ant-menu-submenu-active {
+    background-color: ${({ theme }) => theme.colors.primary.light5};
+    .ant-menu-submenu-title {
+      color: ${({ theme }) => theme.colors.grayscale.dark1};
+      background-color: ${({ theme }) => theme.colors.primary.light5};
+      border-bottom: none;
+      margin: 0;
+      &:after {
+        opacity: 1;
+        width: calc(100% - 1);
+      }
+    }
+  }
+`;
+
+export const StyledSubMenu = styled(AntdMenu.SubMenu)`
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  border-bottom: none;
+  .ant-menu-submenu-title {
+    &:after {
+      content: '';
+      position: absolute;
+      bottom: -3px;
+      left: 50%;
+      width: 0;
+      height: 3px;
+      opacity: 0;
+      transform: translateX(-50%);
+      transition: all ${({ theme }) => theme.transitionTiming}s;
+      background-color: ${({ theme }) => theme.colors.primary.base};
+    }
+  }
+  & > .ant-menu-submenu-title {
+    padding: 0 ${({ theme }) => theme.gridUnit * 6}px 0
+      ${({ theme }) => theme.gridUnit * 3}px !important;
+    svg {
+      position: absolute;
+      top: ${({ theme }) => theme.gridUnit * 4}px;
+      right: ${({ theme }) => theme.gridUnit}px;
+      width: ${({ theme }) => theme.gridUnit * 6}px;
+    }
+    &:hover {
+      color: ${({ theme }) => theme.colors.grayscale.dark1};
+    }
+  }
+`;
+
+export declare type MenuMode =
+  | 'vertical'
+  | 'vertical-left'
+  | 'vertical-right'
+  | 'horizontal'
+  | 'inline';
 export const Menu = Object.assign(AntdMenu, {
   Item: MenuItem,
+});
+
+export const MainNav = Object.assign(StyledNav, {
+  Item: MenuItem,
+  SubMenu: StyledSubMenu,
+  Divider: AntdMenu.Divider,
+  ItemGroup: AntdMenu.ItemGroup,
 });
 
 export const Input = styled(AntdInput)`
