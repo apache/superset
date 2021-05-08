@@ -131,7 +131,7 @@ describe('DashboardBuilder', () => {
   it('should set animated=true on Tabs for perf', () => {
     const wrapper = setup({ dashboardLayout: undoableDashboardLayoutWithTabs });
     const tabProps = wrapper.find(ParentSize).find(Tabs).props();
-    expect(tabProps.animated).toBe(true);
+    expect(tabProps.animated).toEqual({ inkBar: true, tabPane: false });
   });
 
   it('should render a TabPane and DashboardGrid for first Tab', () => {
