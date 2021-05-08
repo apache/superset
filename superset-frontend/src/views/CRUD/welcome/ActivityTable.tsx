@@ -239,14 +239,12 @@ export default function ActivityTable({
         // eslint-disable-next-line react/no-children-prop
         tabs={tabs}
       />
-      <>
-        {activityData[activeChild]?.length > 0 ||
-        (activeChild === 'Edited' && editedObjs && editedObjs.length > 0) ? (
-          <ActivityContainer>{renderActivity()}</ActivityContainer>
-        ) : (
-          <EmptyState tableName="RECENTS" tab={activeChild} />
-        )}
-      </>
+      {activityData[activeChild]?.length > 0 ||
+      (activeChild === 'Edited' && editedObjs && editedObjs.length > 0) ? (
+        <ActivityContainer>{renderActivity()}</ActivityContainer>
+      ) : (
+        <EmptyState tableName="RECENTS" tab={activeChild} />
+      )}
     </>
   );
 }
