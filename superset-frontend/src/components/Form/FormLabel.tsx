@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// import { styled } from '@superset-ui/core';
 import React, { ReactNode } from 'react';
-import { ControlLabel } from 'react-bootstrap';
+import { styled } from '@superset-ui/core';
 
 export type FormLabelProps = {
   children: ReactNode;
@@ -27,21 +26,36 @@ export type FormLabelProps = {
   className?: string;
 };
 
+const Label = styled.label`
+  text-transform: uppercase;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  color: ${({ theme }) => theme.colors.grayscale.base};
+  margin-bottom: ${({ theme }) => theme.gridUnit}px;
+`;
+
+const RequiredLabel = styled.label`
+  text-transform: uppercase;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  color: ${({ theme }) => theme.colors.grayscale.base};
+  margin-bottom: ${({ theme }) => theme.gridUnit}px;
+  &::after {
+    display: inline-block;
+    color: ${({ theme }) => theme.colors.error.base};
+    font-size: ${({ theme }) => theme.typography.sizes.m}px;
+    content: '*';
+  }
+`;
+
 export default function FormLabel({
   children,
   htmlFor,
   required = false,
+  className,
 }: FormLabelProps) {
+  const StyledLabel = required ? RequiredLabel : Label;
   return (
-    <>
-      <ControlLabel htmlFor={htmlFor}>
-        {children}
-        {required && (
-          <span className="text-danger m-l-4">
-            <strong>*</strong>
-          </span>
-        )}
-      </ControlLabel>
-    </>
+    <StyledLabel htmlFor={htmlFor} className={className}>
+      {children}
+    </StyledLabel>
   );
 }

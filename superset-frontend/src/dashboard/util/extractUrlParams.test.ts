@@ -16,26 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
-import cx from 'classnames';
-import { FormLabel } from 'src/components/Form';
+import extractUrlParams from './extractUrlParams';
 
-const propTypes = {
-  label: PropTypes.string.isRequired,
-  isSelected: PropTypes.bool.isRequired,
-};
+const originalWindowLocation = window.location;
 
-export default function FilterFieldItem({ label, isSelected }) {
-  return (
-    <span
-      className={cx('filter-field-item filter-container', {
-        'is-selected': isSelected,
-      })}
-    >
-      <FormLabel htmlFor={label}>{label}</FormLabel>
-    </span>
-  );
-}
+describe('extractUrlParams', () => {
+  beforeAll(() => {
+    // @ts-ignore
+    delete window.location;
+    // @ts-ignore
+    window.location = { search: '?edit=true&abc=123' };
+  });
 
-FilterFieldItem.propTypes = propTypes;
+  afterAll(() => {
+    window.location = originalWindowLocation;
+  });
+
+  it('returns all urlParams', () => {
+    expect(extractUrlParams('all')).toEqual({
+      edit: 'true',
+      abc: '123',
+    });
+  });
+
+  it('returns reserved urlParams', () => {
+    expect(extractUrlParams('reserved')).toEqual({
+      edit: 'true',
+    });
+  });
+
+  it('returns regular urlParams', () => {
+    expect(extractUrlParams('regular')).toEqual({
+      abc: '123',
+    });
+  });
+});

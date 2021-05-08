@@ -16,26 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
-import cx from 'classnames';
-import { FormLabel } from 'src/components/Form';
+import Form from './Form';
+import FormItem from './FormItem';
+import FormLabel from './FormLabel';
 
-const propTypes = {
-  label: PropTypes.string.isRequired,
-  isSelected: PropTypes.bool.isRequired,
-};
-
-export default function FilterFieldItem({ label, isSelected }) {
-  return (
-    <span
-      className={cx('filter-field-item filter-container', {
-        'is-selected': isSelected,
-      })}
-    >
-      <FormLabel htmlFor={label}>{label}</FormLabel>
-    </span>
-  );
-}
-
-FilterFieldItem.propTypes = propTypes;
+export { Form, FormItem, FormLabel };
