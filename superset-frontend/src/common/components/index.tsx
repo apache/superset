@@ -89,11 +89,13 @@ export const Menu = Object.assign(AntdMenu, {
 });
 
 export const Input = styled(AntdInput)`
-  &[type='text'],
-  &[type='textarea'] {
-    border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
-    border-radius: ${({ theme }) => theme.borderRadius}px;
-  }
+  border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+`;
+
+export const TextArea = styled(AntdInput.TextArea)`
+  border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
+  border-radius: ${({ theme }) => theme.borderRadius}px;
 `;
 
 export const NoAnimationDropdown = (props: DropDownProps) => (

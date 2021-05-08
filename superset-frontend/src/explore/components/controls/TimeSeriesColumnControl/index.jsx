@@ -18,11 +18,10 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col } from 'src/common/components';
-import { FormControl } from 'react-bootstrap';
+import { Row, Col, Input } from 'src/common/components';
 import Popover from 'src/components/Popover';
 import Select from 'src/components/Select';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 import BoundsControl from '../BoundsControl';
@@ -74,6 +73,20 @@ const colTypeOptions = [
   { value: 'spark', label: 'Sparkline' },
   { value: 'avg', label: 'Period average' },
 ];
+
+const StyledRow = styled(Row)`
+  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+`;
+
+const StyledCol = styled(Col)`
+  display: flex;
+  align-items: center;
+`;
+
+const StyledTooltip = styled(InfoTooltipWithTrigger)`
+  margin-left: ${({ theme }) => theme.gridUnit}px;
+  color: ${({ theme }) => theme.colors.grayscale.light1};
+`;
 
 export default class TimeSeriesColumnControl extends React.Component {
   constructor(props) {
@@ -128,19 +141,15 @@ export default class TimeSeriesColumnControl extends React.Component {
 
   formRow(label, tooltip, ttLabel, control) {
     return (
-      <Row style={{ marginTop: '5px' }}>
-        <Col xs={24} md={10}>
-          {`${label} `}
-          <InfoTooltipWithTrigger
-            placement="top"
-            tooltip={tooltip}
-            label={ttLabel}
-          />
-        </Col>
-        <Col xs={24} md={14}>
+      <StyledRow>
+        <StyledCol xs={24} md={10}>
+          {label}
+          <StyledTooltip placement="top" tooltip={tooltip} label={ttLabel} />
+        </StyledCol>
+        <StyledCol xs={24} md={14}>
           {control}
-        </Col>
-      </Row>
+        </StyledCol>
+      </StyledRow>
     );
   }
 
@@ -151,10 +160,9 @@ export default class TimeSeriesColumnControl extends React.Component {
           'Label',
           'The column header label',
           'time-lag',
-          <FormControl
+          <Input
             value={this.state.label}
             onChange={this.onTextInputChange.bind(this, 'label')}
-            bsSize="small"
             placeholder="Label"
           />,
         )}
@@ -162,10 +170,9 @@ export default class TimeSeriesColumnControl extends React.Component {
           'Tooltip',
           'Column header tooltip',
           'col-tooltip',
-          <FormControl
+          <Input
             value={this.state.tooltip}
             onChange={this.onTextInputChange.bind(this, 'tooltip')}
-            bsSize="small"
             placeholder="Tooltip"
           />,
         )}
@@ -186,10 +193,9 @@ export default class TimeSeriesColumnControl extends React.Component {
             'Width',
             'Width of the sparkline',
             'spark-width',
-            <FormControl
+            <Input
               value={this.state.width}
               onChange={this.onTextInputChange.bind(this, 'width')}
-              bsSize="small"
               placeholder="Width"
             />,
           )}
@@ -198,10 +204,9 @@ export default class TimeSeriesColumnControl extends React.Component {
             'Height',
             'Height of the sparkline',
             'spark-width',
-            <FormControl
+            <Input
               value={this.state.height}
               onChange={this.onTextInputChange.bind(this, 'height')}
-              bsSize="small"
               placeholder="Height"
             />,
           )}
@@ -210,10 +215,9 @@ export default class TimeSeriesColumnControl extends React.Component {
             'Time lag',
             'Number of periods to compare against',
             'time-lag',
-            <FormControl
+            <Input
               value={this.state.timeLag}
               onChange={this.onTextInputChange.bind(this, 'timeLag')}
-              bsSize="small"
               placeholder="Time Lag"
             />,
           )}
@@ -222,10 +226,9 @@ export default class TimeSeriesColumnControl extends React.Component {
             'Time ratio',
             'Number of periods to ratio against',
             'time-ratio',
-            <FormControl
+            <Input
               value={this.state.timeRatio}
               onChange={this.onTextInputChange.bind(this, 'timeRatio')}
-              bsSize="small"
               placeholder="Time Ratio"
             />,
           )}
@@ -277,10 +280,9 @@ export default class TimeSeriesColumnControl extends React.Component {
           'Number format',
           'Optional d3 number format string',
           'd3-format',
-          <FormControl
+          <Input
             value={this.state.d3format}
             onChange={this.onTextInputChange.bind(this, 'd3format')}
-            bsSize="small"
             placeholder="Number format string"
           />,
         )}
@@ -289,10 +291,9 @@ export default class TimeSeriesColumnControl extends React.Component {
             'Date format',
             'Optional d3 date format string',
             'date-format',
-            <FormControl
+            <Input
               value={this.state.dateFormat}
               onChange={this.onTextInputChange.bind(this, 'dateFormat')}
-              bsSize="small"
               placeholder="Date format string"
             />,
           )}

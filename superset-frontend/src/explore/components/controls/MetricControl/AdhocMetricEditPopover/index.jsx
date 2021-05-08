@@ -19,13 +19,12 @@
 /* eslint-disable camelcase */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { FormGroup } from 'react-bootstrap';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
 import { NativeSelect as Select } from 'src/components/Select';
 import { t, styled } from '@superset-ui/core';
 
-import { FormLabel } from 'src/components/Form';
+import { Form, FormItem } from 'src/components/Form';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { noOp } from 'src/utils/common';
@@ -337,7 +336,8 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
         savedMetric?.metric_name !== propsSavedMetric?.metric_name);
 
     return (
-      <div
+      <Form
+        layout="vertical"
         id="metrics-edit-popover"
         data-test="metrics-edit-popover"
         {...popoverProps}
@@ -352,10 +352,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
           allowOverflow
         >
           <Tabs.TabPane key={SAVED_TAB_KEY} tab={t('Saved')}>
-            <FormGroup>
-              <FormLabel>
-                <strong>{t('Saved metric')}</strong>
-              </FormLabel>
+            <FormItem label={t('Saved metric')}>
               <StyledSelect
                 {...savedSelectProps}
                 name="select-saved"
@@ -374,13 +371,10 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                     </Select.Option>
                   ))}
               </StyledSelect>
-            </FormGroup>
+            </FormItem>
           </Tabs.TabPane>
           <Tabs.TabPane key={EXPRESSION_TYPES.SIMPLE} tab={t('Simple')}>
-            <FormGroup>
-              <FormLabel>
-                <strong>{t('column')}</strong>
-              </FormLabel>
+            <FormItem label={t('column')}>
               <Select
                 {...columnSelectProps}
                 name="select-column"
@@ -396,11 +390,8 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                   </Select.Option>
                 ))}
               </Select>
-            </FormGroup>
-            <FormGroup>
-              <FormLabel>
-                <strong>{t('aggregate')}</strong>
-              </FormLabel>
+            </FormItem>
+            <FormItem label={t('aggregate')}>
               <Select
                 {...aggregateSelectProps}
                 name="select-aggregate"
@@ -412,7 +403,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                   </Select.Option>
                 ))}
               </Select>
-            </FormGroup>
+            </FormItem>
           </Tabs.TabPane>
           <Tabs.TabPane
             key={EXPRESSION_TYPES.SQL}
@@ -420,24 +411,23 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
             data-test="adhoc-metric-edit-tab#custom"
           >
             {this.props.datasourceType !== 'druid' ? (
-              <FormGroup data-test="sql-editor">
-                <SQLEditor
-                  showLoadingForImport
-                  ref={this.handleAceEditorRef}
-                  keywords={keywords}
-                  height={`${this.state.height - 80}px`}
-                  onChange={this.onSqlExpressionChange}
-                  width="100%"
-                  showGutter={false}
-                  value={
-                    adhocMetric.sqlExpression || adhocMetric.translateToSql()
-                  }
-                  editorProps={{ $blockScrolling: true }}
-                  enableLiveAutocompletion
-                  className="filter-sql-editor"
-                  wrapEnabled
-                />
-              </FormGroup>
+              <SQLEditor
+                data-test="sql-editor"
+                showLoadingForImport
+                ref={this.handleAceEditorRef}
+                keywords={keywords}
+                height={`${this.state.height - 80}px`}
+                onChange={this.onSqlExpressionChange}
+                width="100%"
+                showGutter={false}
+                value={
+                  adhocMetric.sqlExpression || adhocMetric.translateToSql()
+                }
+                editorProps={{ $blockScrolling: true }}
+                enableLiveAutocompletion
+                className="adhoc-filter-sql-editor"
+                wrapEnabled
+              />
             ) : (
               <div className="custom-sql-disabled-message">
                 Custom SQL Metrics are not available on druid datasources
@@ -474,7 +464,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
             className="fa fa-expand edit-popover-resize text-muted"
           />
         </div>
-      </div>
+      </Form>
     );
   }
 }
