@@ -32,6 +32,7 @@ export default function Echart({
   echartOptions,
   eventHandlers,
   selectedValues = {},
+  forceClear = false,
 }: EchartsProps) {
   const divRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ECharts>();
@@ -48,6 +49,10 @@ export default function Echart({
       chartRef.current?.off(name);
       chartRef.current?.on(name, handler);
     });
+
+    if (forceClear) {
+      chartRef.current.clear();
+    }
 
     chartRef.current.setOption(echartOptions, true);
 
