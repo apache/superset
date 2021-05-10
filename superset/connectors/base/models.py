@@ -566,14 +566,16 @@ class BaseColumn(AuditMixinNullable, ImportExportMixin):
         return self.type and any(map(lambda t: t in self.type.upper(), self.bool_types))
 
     @property
-    def type_generic(self) -> utils.GenericDataType:
+    def type_generic(self) -> Optional[utils.GenericDataType]:
+        if self.is_string:
+            return utils.GenericDataType.STRING
         if self.is_boolean:
             return utils.GenericDataType.BOOLEAN
         if self.is_numeric:
             return utils.GenericDataType.NUMERIC
         if self.is_temporal:
             return utils.GenericDataType.TEMPORAL
-        return utils.GenericDataType.STRING
+        return None
 
     @property
     def expression(self) -> Column:

@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, ExtraFormData, t, tn } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  ExtraFormData,
+  t,
+  TimeGranularity,
+  tn,
+} from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
 import { Styles, StyledSelect } from '../common';
@@ -38,7 +44,7 @@ export default function PluginFilterTimegrain(
 
     const extraFormData: ExtraFormData = {};
     if (timeGrain) {
-      extraFormData.time_grain_sqla = timeGrain;
+      extraFormData.time_grain_sqla = timeGrain as TimeGranularity;
     }
     setValue(resultValue);
     setDataMask({

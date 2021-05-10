@@ -23,8 +23,8 @@ from sqlalchemy.dialects import postgresql
 from superset.db_engine_specs import get_engine_specs
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.utils.core import get_example_database
-from tests.db_engine_specs.base_tests import TestDbEngineSpec
+from superset.utils.core import GenericDataType
+from tests.db_engine_specs.base_tests import assert_generic_types, TestDbEngineSpec
 from tests.fixtures.certificates import ssl_certificate
 from tests.fixtures.database import default_db_extra
 
@@ -461,3 +461,28 @@ def test_base_parameters_mixin():
         },
         "required": ["database", "host", "port", "username"],
     }
+
+
+def test_generic_type():
+    type_expectations = (
+        # Numeric
+        ("SMALLINT", GenericDataType.NUMERIC),
+        ("INTEGER", GenericDataType.NUMERIC),
+        ("BIGINT", GenericDataType.NUMERIC),
+        ("DECIMAL", GenericDataType.NUMERIC),
+        ("NUMERIC", GenericDataType.NUMERIC),
+        ("REAL", GenericDataType.NUMERIC),
+        ("DOUBLE PRECISION", GenericDataType.NUMERIC),
+        ("MONEY", GenericDataType.NUMERIC),
+        # String
+        ("CHAR", GenericDataType.STRING),
+        ("VARCHAR", GenericDataType.STRING),
+        ("TEXT", GenericDataType.STRING),
+        # Temporal
+        ("DATE", GenericDataType.TEMPORAL),
+        ("TIMESTAMP", GenericDataType.TEMPORAL),
+        ("TIME", GenericDataType.TEMPORAL),
+        # Boolean
+        ("BOOLEAN", GenericDataType.BOOLEAN),
+    )
+    assert_generic_types(PostgresEngineSpec, type_expectations)
