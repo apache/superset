@@ -43,8 +43,6 @@ import { exploreChart } from '../../explore/exploreUtils';
 import { CtasEnum } from '../actions/sqlLab';
 import { Query } from '../types';
 
-const SEARCH_HEIGHT = 90;
-
 enum DatasetRadioState {
   SAVE_NEW = 1,
   OVERWRITE_DATASET = 2,
@@ -60,7 +58,6 @@ const EXPLORE_CHART_DEFAULT = {
 enum LIMITING_FACTOR {
   QUERY = 'QUERY',
   QUERY_AND_DROPDOWN = 'QUERY_AND_DROPDOWN',
-  NOT_LIMITED = 'NOT_LIMITED',
   DROPDOWN = 'DROPDOWN',
 }
 
@@ -97,6 +94,7 @@ interface ResultSetState {
   datasetToOverwrite: Record<string, any>;
   saveModalAutocompleteValue: string;
   userDatasetOptions: DatasetOptionAutocomplete[];
+  height: number;
 }
 
 // Making text render line breaks/tabs as is as monospace,
@@ -146,6 +144,8 @@ export default class ResultSet extends React.PureComponent<
     visualize: true,
   };
 
+  alertRef: React.RefObject<HTMLDivElement>;
+
   constructor(props: ResultSetProps) {
     super(props);
     this.state = {
@@ -159,8 +159,9 @@ export default class ResultSet extends React.PureComponent<
       datasetToOverwrite: {},
       saveModalAutocompleteValue: '',
       userDatasetOptions: [],
+      height: this.props.height,
     };
-
+    this.alertRef = React.createRef();
     this.changeSearch = this.changeSearch.bind(this);
     this.fetchResults = this.fetchResults.bind(this);
     this.popSelectStar = this.popSelectStar.bind(this);
@@ -509,6 +510,14 @@ export default class ResultSet extends React.PureComponent<
     return <div />;
   }
 
+  // onAlertClose = () => {
+  //   this.setState({ height: this.props.height + 50 });
+  // };
+
+  setResultHeight = () => {
+    this.setState({ height: this.props.height - 50 });
+  };
+
   renderRowsReturned() {
     const { results, rows, queryLimit, limitingFactor } = this.props.query;
     const limitReached = results?.displayLimitReached;
@@ -545,7 +554,7 @@ export default class ResultSet extends React.PureComponent<
       limitMessage = (
         <span className="limitMessage">
           {t(
-            `The number of rows displayed is limited to %s by the query limit dropdown.`,
+            `The number of rows displayed is limited to %s by the query and limit dropdown.`,
             rows,
           )}
         </span>
@@ -560,8 +569,10 @@ export default class ResultSet extends React.PureComponent<
         )}
         {!limitReached && defaultDropdown && (
           <Alert
+            banner
             type="warning"
             message={t(`%s rows returned`, rows)}
+            // onClose={this.onAlertClose}
             description={t(
               `The number of rows displayed is limited to %s by the dropdown.`,
               rows,
@@ -571,11 +582,12 @@ export default class ResultSet extends React.PureComponent<
         {limitReached && (
           <Alert
             type="warning"
+            onClose={this.onAlertClose}
             message={t(`%s rows returned`, rows)}
             description={t(
               `The number of results displayed is limited to %s%s. Please add
-            additional limits/filters or download to csv to see more rows up to
-            the %s limit. %s`,
+              additional limits/filters or download to csv to see more rows up to
+              the %s limit. %s`,
               rows,
               adminWarning,
               queryLimit,
@@ -588,11 +600,7 @@ export default class ResultSet extends React.PureComponent<
 
   render() {
     const { query } = this.props;
-    const height = this.props.search && this.props.height;
-    // Math.max(
-    //   0,
-    //   this.props.search ? this.props.height - SEARCH_HEIGHT : this.props.height,
-    // );
+    const { height } = this.state;
     let sql;
     let exploreDBId = query.dbId;
     if (this.props.database && this.props.database.explore_database_id) {

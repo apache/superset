@@ -25,7 +25,9 @@ import { useTheme } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
 import Icons from 'src/components/Icons';
 
-export type AlertProps = PropsWithChildren<AntdAlertProps>;
+export type AlertProps = PropsWithChildren<AntdAlertProps> & {
+  ref?: any;
+};
 
 export default function Alert(props: AlertProps) {
   const {

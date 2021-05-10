@@ -83,7 +83,7 @@ const JSON_TREE_THEME = {
 };
 
 const StyledFilterableTable = styled.div`
-  height:100%
+  height: 100%;
   overflow-x: auto;
   margin-top: ${({ theme }) => theme.gridUnit * 2}px;
   overflow-y: hidden;
@@ -468,7 +468,6 @@ export default class FilterableTable extends PureComponent<
         <ScrollSync>
           {({ onScroll, scrollTop }) => (
             <div
-              style={{ height }}
               className="filterable-table-container Table"
               data-test="filterable-table-container"
               ref={this.container}
@@ -568,7 +567,7 @@ export default class FilterableTable extends PureComponent<
           <Table
             ref="Table"
             headerHeight={headerHeight}
-            height={height}
+            height={totalTableHeight}
             overscanRowCount={overscanRowCount}
             rowClassName={this.rowClassName}
             rowHeight={rowHeight}
