@@ -1015,6 +1015,26 @@ class TestUtils(SupersetTestCase):
 
             self.assertEqual(slc, None)
 
+    def test_get_form_data_request_form_with_queries(self) -> None:
+        # the CSV export uses for requests, even when sending requests to
+        # /api/v1/chart/data
+        with app.test_request_context(
+            data={
+                "form_data": json.dumps({"queries": [{"url_params": {"foo": "bar"}}]})
+            }
+        ):
+            form_data, slc = get_form_data()
+
+            self.assertEqual(
+                form_data,
+                {
+                    "url_params": {"foo": "bar"},
+                    "time_range_endpoints": get_time_range_endpoints(form_data={}),
+                },
+            )
+
+            self.assertEqual(slc, None)
+
     def test_get_form_data_request_args_and_form(self) -> None:
         with app.test_request_context(
             data={"form_data": json.dumps({"foo": "bar"})},

@@ -21,23 +21,28 @@ import Form, { FormItemProps } from 'antd/lib/form';
 import { styled } from '@superset-ui/core';
 
 const StyledItem = styled(Form.Item)`
-  .ant-form-item-label > label {
-    text-transform: uppercase;
-    font-size: ${({ theme }) => theme.typography.sizes.s}px;
-    color: ${({ theme }) => theme.colors.grayscale.base};
+  ${({ theme }) => `
+    .ant-form-item-label {
+      padding-bottom: ${theme.gridUnit}px;
+      & > label {
+        text-transform: uppercase;
+        font-size: ${theme.typography.sizes.s}px;
+        color: ${theme.colors.grayscale.base};
 
-    &.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
-      &::before {
-        display: none;
-      }
-      &::after {
-        display: inline-block;
-        color: ${({ theme }) => theme.colors.error.base};
-        font-size: ${({ theme }) => theme.typography.sizes.m}px;
-        content: '*';
+        &.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
+          &::before {
+            display: none;
+          }
+          &::after {
+            display: inline-block;
+            color: ${theme.colors.error.base};
+            font-size: ${theme.typography.sizes.m}px;
+            content: '*';
+          }
+        }
       }
     }
-  }
+  `}
 `;
 
 export default function FormItem(props: FormItemProps) {
