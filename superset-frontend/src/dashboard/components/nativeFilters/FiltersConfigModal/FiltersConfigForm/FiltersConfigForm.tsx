@@ -66,8 +66,6 @@ import {
   CASCADING_FILTERS,
   getFiltersConfigModalTestId,
 } from '../FiltersConfigModal';
-// TODO: move styles from AdhocFilterControl to emotion and delete this ./main.less
-import './main.less';
 
 const StyledContainer = styled.div`
   display: flex;
@@ -262,6 +260,8 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
     label: filter.title,
   }));
 
+  const showDefaultValue = !hasDataset || (!isDataDirty && hasFilledDataset);
+
   return (
     <>
       <Typography.Title level={5}>{t('Settings')}</Typography.Title>
@@ -436,7 +436,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
           data-test="default-input"
           label={<StyledLabel>{t('Default Value')}</StyledLabel>}
         >
-          {(!hasDataset || (!isDataDirty && hasFilledDataset)) && (
+          {showDefaultValue ? (
             <DefaultValue
               setDataMask={dataMask => {
                 setNativeFilterFieldValues(form, filterId, {
@@ -449,6 +449,10 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
               form={form}
               formData={newFormData}
             />
+          ) : hasFilledDataset ? (
+            t('Click "Populate" to get "Default Value" ->')
+          ) : (
+            t('Fill all required fields to enable "Default Value"')
           )}
         </StyledFormItem>
       </StyledContainer>
@@ -463,6 +467,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
         </Checkbox>
       </StyledCheckboxFormItem>
       <ControlItems
+        disabled={!showDefaultValue}
         filterToEdit={filterToEdit}
         formFilter={formFilter}
         filterId={filterId}

@@ -93,6 +93,7 @@ const CollapseWrapper = styled.div`
         height: calc(100% - ${({ theme }) => theme.gridUnit * 8}px);
 
         .ant-collapse-content-box {
+          padding-top: 0;
           height: 100%;
         }
       }

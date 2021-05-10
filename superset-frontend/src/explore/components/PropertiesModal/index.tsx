@@ -26,7 +26,7 @@ import { AsyncSelect } from 'src/components/Select';
 import rison from 'rison';
 import { t, SupersetClient } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
-import FormLabel from 'src/components/FormLabel';
+import { FormLabel } from 'src/components/Form';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 type PropertiesModalProps = {

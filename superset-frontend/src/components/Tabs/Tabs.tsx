@@ -131,6 +131,7 @@ export const EditableTabs = Object.assign(StyledEditableTabs, {
 EditableTabs.defaultProps = {
   type: 'editable-card',
   fullWidth: false,
+  animated: { inkBar: true, tabPane: false },
 };
 
 EditableTabs.TabPane.defaultProps = {

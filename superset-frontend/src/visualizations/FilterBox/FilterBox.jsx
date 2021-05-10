@@ -29,7 +29,7 @@ import {
   BOOL_TRUE_DISPLAY,
   SLOW_DEBOUNCE,
 } from 'src/constants';
-import FormLabel from 'src/components/FormLabel';
+import { FormLabel } from 'src/components/Form';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import ControlRow from 'src/explore/components/ControlRow';
 import Control from 'src/explore/components/Control';

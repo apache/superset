@@ -16,26 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
-import { ColumnTypeLabel } from '@superset-ui/chart-controls';
+import extractUrlParams from './extractUrlParams';
 
-import adhocMetricType from './adhocMetricType';
+const originalWindowLocation = window.location;
 
-const propTypes = {
-  adhocMetric: adhocMetricType,
-  showType: PropTypes.bool,
-};
+describe('extractUrlParams', () => {
+  beforeAll(() => {
+    // @ts-ignore
+    delete window.location;
+    // @ts-ignore
+    window.location = { search: '?edit=true&abc=123' };
+  });
 
-export default function AdhocMetricStaticOption({
-  adhocMetric,
-  showType = false,
-}) {
-  return (
-    <div>
-      {showType && <ColumnTypeLabel type="expression" />}
-      <span className="option-label">{adhocMetric.label}</span>
-    </div>
-  );
-}
-AdhocMetricStaticOption.propTypes = propTypes;
+  afterAll(() => {
+    window.location = originalWindowLocation;
+  });
+
+  it('returns all urlParams', () => {
+    expect(extractUrlParams('all')).toEqual({
+      edit: 'true',
+      abc: '123',
+    });
+  });
+
+  it('returns reserved urlParams', () => {
+    expect(extractUrlParams('reserved')).toEqual({
+      edit: 'true',
+    });
+  });
+
+  it('returns regular urlParams', () => {
+    expect(extractUrlParams('regular')).toEqual({
+      abc: '123',
+    });
+  });
+});
