@@ -30,6 +30,7 @@ export interface EchartsProps {
   echartOptions: EChartsOption;
   eventHandlers?: EventHandlers;
   selectedValues?: Record<number, string>;
+  forceClear?: boolean;
 }
 
 export enum ForecastSeriesEnum {
