@@ -26,14 +26,6 @@ class BaseTestDashboardSecurity(DashboardTestCase):
     def tearDown(self) -> None:
         self.clean_created_objects()
 
-    def assert_dashboard_view_response(
-        self, response: Response, dashboard_to_access: Dashboard
-    ) -> None:
-        self.assert200(response)
-        assert escape(dashboard_to_access.dashboard_title) in response.data.decode(
-            "utf-8"
-        )
-
     def assert_dashboard_api_response(
         self, response: Response, dashboard_to_access: Dashboard
     ) -> None:

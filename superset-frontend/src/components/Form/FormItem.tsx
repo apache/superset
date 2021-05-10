@@ -17,18 +17,34 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import NewMenu, { dropdownItems } from './NewMenu';
+import Form, { FormItemProps } from 'antd/lib/form';
+import { styled } from '@superset-ui/core';
 
-test('should render', () => {
-  const { container } = render(<NewMenu />);
-  expect(container).toBeInTheDocument();
-});
+const StyledItem = styled(Form.Item)`
+  ${({ theme }) => `
+    .ant-form-item-label {
+      padding-bottom: ${theme.gridUnit}px;
+      & > label {
+        text-transform: uppercase;
+        font-size: ${theme.typography.sizes.s}px;
+        color: ${theme.colors.grayscale.base};
 
-test('should render the dropdown items', () => {
-  render(<NewMenu />);
-  dropdownItems.forEach(item => {
-    expect(screen.getByText(item.label)).toHaveAttribute('href', item.url);
-    expect(screen.getByTestId(`menu-item-${item.label}`)).toBeInTheDocument();
-  });
-});
+        &.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
+          &::before {
+            display: none;
+          }
+          &::after {
+            display: inline-block;
+            color: ${theme.colors.error.base};
+            font-size: ${theme.typography.sizes.m}px;
+            content: '*';
+          }
+        }
+      }
+    }
+  `}
+`;
+
+export default function FormItem(props: FormItemProps) {
+  return <StyledItem {...props} />;
+}

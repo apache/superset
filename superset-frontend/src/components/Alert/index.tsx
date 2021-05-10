@@ -22,7 +22,8 @@ import {
   AlertProps as AntdAlertProps,
 } from 'src/common/components';
 import { useTheme } from '@superset-ui/core';
-import Icon, { IconName } from 'src/components/Icon';
+import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 
 export type AlertProps = PropsWithChildren<AntdAlertProps>;
 
@@ -40,23 +41,23 @@ export default function Alert(props: AlertProps) {
   const { alert, error, info, success } = colors;
 
   let baseColor = info;
-  let iconName: IconName = 'info-solid';
+  let AlertIcon = Icons.InfoSolid;
   if (type === 'error') {
     baseColor = error;
-    iconName = 'error-solid';
+    AlertIcon = Icons.ErrorSolid;
   } else if (type === 'warning') {
     baseColor = alert;
-    iconName = 'alert-solid';
+    AlertIcon = Icons.AlertSolid;
   } else if (type === 'success') {
     baseColor = success;
-    iconName = 'circle-check-solid';
+    AlertIcon = Icons.CircleCheckSolid;
   }
 
   return (
     <AntdAlert
       role="alert"
       showIcon={showIcon}
-      icon={<Icon name={iconName} aria-label={`${type} icon`} />}
+      icon={<AlertIcon aria-label={`${type} icon`} />}
       closeText={closable && <Icon name="x-small" aria-label="close icon" />}
       css={{
         padding: '6px 10px',

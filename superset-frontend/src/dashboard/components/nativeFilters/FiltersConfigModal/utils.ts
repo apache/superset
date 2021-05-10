@@ -18,6 +18,7 @@
  */
 import { FormInstance } from 'antd/lib/form';
 import shortid from 'shortid';
+import { getInitialDataMask } from 'src/dataMask/reducer';
 import { FilterRemoval, NativeFiltersForm } from './types';
 import { Filter, FilterConfiguration, Target } from '../types';
 
@@ -41,13 +42,20 @@ export const validateForm = async (
       errors: [error],
     };
     form.setFields([fieldError]);
-    // eslint-disable-next-line no-throw-literal
-    throw { errorFields: [fieldError] };
   };
 
   try {
-    const formValues = (await form.validateFields()) as NativeFiltersForm;
-
+    let formValues: NativeFiltersForm;
+    try {
+      formValues = (await form.validateFields()) as NativeFiltersForm;
+    } catch (error) {
+      // In Jest tests in chain of tests, Ant generate `outOfDate` error so need to catch it here
+      if (!error?.errorFields?.length && error?.outOfDate) {
+        formValues = error.values;
+      } else {
+        throw error;
+      }
+    }
     const validateInstant = (filterId: string) => {
       const isInstant = formValues.filters[filterId]
         ? formValues.filters[filterId].isInstant
@@ -148,7 +156,7 @@ export const createHandleSave = (
         filterType: formInputs.filterType,
         // for now there will only ever be one target
         targets: [target],
-        defaultValue: formInputs.defaultValue || null,
+        defaultDataMask: formInputs.defaultDataMask ?? getInitialDataMask(),
         cascadeParentIds: formInputs.parentFilter
           ? [formInputs.parentFilter.value]
           : [],

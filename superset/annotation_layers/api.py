@@ -158,6 +158,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
                 "Error deleting annotation layer %s: %s",
                 self.__class__.__name__,
                 str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -220,7 +221,10 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=ex.normalized_messages())
         except AnnotationLayerCreateFailedError as ex:
             logger.error(
-                "Error creating annotation %s: %s", self.__class__.__name__, str(ex)
+                "Error creating annotation %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -290,7 +294,10 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=ex.normalized_messages())
         except AnnotationLayerUpdateFailedError as ex:
             logger.error(
-                "Error updating annotation %s: %s", self.__class__.__name__, str(ex)
+                "Error updating annotation %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 

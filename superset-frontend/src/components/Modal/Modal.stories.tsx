@@ -16,32 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// import { styled } from '@superset-ui/core';
-import React, { ReactNode } from 'react';
-import { ControlLabel } from 'react-bootstrap';
+import React from 'react';
+import Modal, { ModalProps } from '.';
 
-export type FormLabelProps = {
-  children: ReactNode;
-  htmlFor?: string;
-  required?: boolean;
-  className?: string;
+export default {
+  title: 'Modal',
+  component: Modal,
 };
 
-export default function FormLabel({
-  children,
-  htmlFor,
-  required = false,
-}: FormLabelProps) {
-  return (
-    <>
-      <ControlLabel htmlFor={htmlFor}>
-        {children}
-        {required && (
-          <span className="text-danger m-l-4">
-            <strong>*</strong>
-          </span>
-        )}
-      </ControlLabel>
-    </>
-  );
-}
+export const InteractiveModal = (props: ModalProps) => (
+  <Modal {...props}>Hi</Modal>
+);
+
+InteractiveModal.args = {
+  disablePrimaryButton: false,
+  primaryButtonName: 'Danger',
+  primaryButtonType: 'danger',
+  show: true,
+  title: "I'm a modal!",
+};
+
+InteractiveModal.argTypes = {
+  onHandledPrimaryAction: { action: 'onHandledPrimaryAction' },
+  onHide: { action: 'onHide' },
+};
+
+InteractiveModal.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};

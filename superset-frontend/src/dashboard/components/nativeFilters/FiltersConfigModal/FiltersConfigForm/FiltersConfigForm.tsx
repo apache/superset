@@ -62,9 +62,10 @@ import ControlItems from './ControlItems';
 import FilterScope from './FilterScope/FilterScope';
 import RemovedFilter from './RemovedFilter';
 import DefaultValue from './DefaultValue';
-import { getFiltersConfigModalTestId } from '../FiltersConfigModal';
-// TODO: move styles from AdhocFilterControl to emotion and delete this ./main.less
-import './main.less';
+import {
+  CASCADING_FILTERS,
+  getFiltersConfigModalTestId,
+} from '../FiltersConfigModal';
 
 const StyledContainer = styled.div`
   display: flex;
@@ -123,21 +124,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const forceUpdate = useForceUpdate();
   const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
-
-  // make sure the formFilter is populated
-  if (!form.getFieldValue('filters')) {
-    setNativeFilterFieldValues(form, filterId, filterToEdit || {});
-    forceUpdate();
-  }
-  const formFilter = form.getFieldValue('filters')[filterId];
-
-  useEffect(() => {
-    setNativeFilterFieldValues(form, filterId, {
-      defaultValue: filterToEdit?.defaultValue,
-    });
-    forceUpdate();
-  }, [form, forceUpdate, filterId, filterToEdit?.defaultValue]);
-
+  const formFilter = form.getFieldValue('filters')?.[filterId] || {};
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
     // @ts-ignore
@@ -186,6 +173,8 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
     formFilter?.filterType,
   );
 
+  const isCascadingFilter = CASCADING_FILTERS.includes(formFilter?.filterType);
+
   const isDataDirty = formFilter?.isDataDirty ?? true;
 
   useBackendFormUpdate(form, filterId);
@@ -198,7 +187,6 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
     const formData = getFormData({
       datasetId: formFilter?.dataset?.value,
       groupby: formFilter?.column,
-      defaultValue: formFilter?.defaultValue,
       ...formFilter,
     });
     setNativeFilterFieldValues(form, filterId, {
@@ -249,7 +237,6 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
   const newFormData = getFormData({
     datasetId,
     groupby: hasColumn ? formFilter?.column : undefined,
-    defaultValue: formFilter?.defaultValue,
     ...formFilter,
   });
 
@@ -272,6 +259,8 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
     value: filter.id,
     label: filter.title,
   }));
+
+  const showDefaultValue = !hasDataset || (!isDataDirty && hasFilledDataset);
 
   return (
     <>
@@ -301,7 +290,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
             onChange={({ value }: { value: string }) => {
               setNativeFilterFieldValues(form, filterId, {
                 filterType: value,
-                defaultValue: null,
+                defaultDataMask: null,
               });
               forceUpdate();
             }}
@@ -331,7 +320,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
                 // We need reset column when dataset changed
                 if (datasetId && e?.value !== datasetId) {
                   setNativeFilterFieldValues(form, filterId, {
-                    defaultValue: null,
+                    defaultDataMask: null,
                     column: null,
                   });
                 }
@@ -353,10 +342,10 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
                 form={form}
                 filterId={filterId}
                 datasetId={datasetId}
-                onChange={e => {
+                onChange={() => {
                   // We need reset default value when when column changed
                   setNativeFilterFieldValues(form, filterId, {
-                    defaultValue: null,
+                    defaultDataMask: null,
                   });
                   forceUpdate();
                 }}
@@ -417,20 +406,22 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
         hidden
         initialValue={null}
       />
-      <StyledFormItem
-        name={['filters', filterId, 'parentFilter']}
-        label={<StyledLabel>{t('Parent filter')}</StyledLabel>}
-        initialValue={parentFilterOptions.find(
-          ({ value }) => value === filterToEdit?.cascadeParentIds[0],
-        )}
-        data-test="parent-filter-input"
-      >
-        <Select
-          placeholder={t('None')}
-          options={parentFilterOptions}
-          isClearable
-        />
-      </StyledFormItem>
+      {isCascadingFilter && (
+        <StyledFormItem
+          name={['filters', filterId, 'parentFilter']}
+          label={<StyledLabel>{t('Parent filter')}</StyledLabel>}
+          initialValue={parentFilterOptions.find(
+            ({ value }) => value === filterToEdit?.cascadeParentIds[0],
+          )}
+          data-test="parent-filter-input"
+        >
+          <Select
+            placeholder={t('None')}
+            options={parentFilterOptions}
+            isClearable
+          />
+        </StyledFormItem>
+      )}
       <StyledContainer>
         <StyledFormItem className="bottom" label={<StyledLabel />}>
           {hasDataset && hasFilledDataset && (
@@ -440,16 +431,16 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
           )}
         </StyledFormItem>
         <StyledFormItem
-          name={['filters', filterId, 'defaultValue']}
-          initialValue={filterToEdit?.defaultValue}
+          name={['filters', filterId, 'defaultDataMask']}
+          initialValue={filterToEdit?.defaultDataMask}
           data-test="default-input"
           label={<StyledLabel>{t('Default Value')}</StyledLabel>}
         >
-          {!isDataDirty && (hasFilledDataset || !hasDataset) && (
+          {showDefaultValue ? (
             <DefaultValue
-              setDataMask={({ filterState }) => {
+              setDataMask={dataMask => {
                 setNativeFilterFieldValues(form, filterId, {
-                  defaultValue: filterState?.value,
+                  defaultDataMask: dataMask,
                 });
                 forceUpdate();
               }}
@@ -458,6 +449,10 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
               form={form}
               formData={newFormData}
             />
+          ) : hasFilledDataset ? (
+            t('Click "Populate" to get "Default Value" ->')
+          ) : (
+            t('Fill all required fields to enable "Default Value"')
           )}
         </StyledFormItem>
       </StyledContainer>
@@ -472,6 +467,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
         </Checkbox>
       </StyledCheckboxFormItem>
       <ControlItems
+        disabled={!showDefaultValue}
         filterToEdit={filterToEdit}
         formFilter={formFilter}
         filterId={filterId}

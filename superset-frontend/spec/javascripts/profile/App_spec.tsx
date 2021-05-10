@@ -20,7 +20,6 @@ import React from 'react';
 import { Row, Col } from 'src/common/components';
 import { shallow } from 'enzyme';
 import App from 'src/profile/components/App';
-import Tabs from 'src/components/Tabs';
 
 import { user } from './fixtures';
 
@@ -40,6 +39,6 @@ describe('App', () => {
 
   it('renders 4 Tabs', () => {
     const wrapper = shallow(<App {...mockedProps} />);
-    expect(wrapper.find(Tabs.TabPane)).toHaveLength(4);
+    expect(wrapper.find('[tab]')).toHaveLength(4);
   });
 });

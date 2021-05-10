@@ -239,6 +239,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
                 "Error deleting report schedule %s: %s",
                 self.__class__.__name__,
                 str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -300,6 +301,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
                 "Error creating report schedule %s: %s",
                 self.__class__.__name__,
                 str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -368,7 +370,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except ReportScheduleUpdateFailedError as ex:
             logger.error(
-                "Error updating report %s: %s", self.__class__.__name__, str(ex)
+                "Error updating report %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 

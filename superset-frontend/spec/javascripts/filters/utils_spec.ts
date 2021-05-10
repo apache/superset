@@ -129,21 +129,15 @@ describe('Filter utils', () => {
       );
     });
     it('getSelectExtraFormData - col: "testCol", value: [], emptyFilter: false, inverseSelection: false', () => {
-      expect(getSelectExtraFormData('testCol', [], false, false)).toEqual({
-        filters: [],
-      });
+      expect(getSelectExtraFormData('testCol', [], false, false)).toEqual({});
     });
     it('getSelectExtraFormData - col: "testCol", value: undefined, emptyFilter: false, inverseSelection: false', () => {
       expect(
         getSelectExtraFormData('testCol', undefined, false, false),
-      ).toEqual({
-        filters: [],
-      });
+      ).toEqual({});
     });
     it('getSelectExtraFormData - col: "testCol", value: null, emptyFilter: false, inverseSelection: false', () => {
-      expect(getSelectExtraFormData('testCol', null, false, false)).toEqual({
-        filters: [],
-      });
+      expect(getSelectExtraFormData('testCol', null, false, false)).toEqual({});
     });
   });
 

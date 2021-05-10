@@ -29,6 +29,16 @@ describe('Add database', () => {
     // open modal
     cy.get('[data-test="btn-create-database"]').click();
 
+    // values should be blank
+    cy.get('[data-test="database-modal"] input[name="database_name"]').should(
+      'have.value',
+      '',
+    );
+    cy.get('[data-test="database-modal"] input[name="sqlalchemy_uri"]').should(
+      'have.value',
+      '',
+    );
+
     // type values
     cy.get('[data-test="database-modal"] input[name="database_name"]')
       .focus()
@@ -53,6 +63,14 @@ describe('Add database', () => {
   it('should keep update modal open when error', () => {
     // open modal
     cy.get('[data-test="database-edit"]:last').click();
+
+    // it should show saved values
+    cy.get('[data-test="database-modal"]:last input[name="sqlalchemy_uri"]')
+      .invoke('val')
+      .should('not.be.empty');
+    cy.get('[data-test="database-modal"] input[name="database_name"]')
+      .invoke('val')
+      .should('not.be.empty');
 
     cy.get('[data-test="database-modal"]:last input[name="sqlalchemy_uri"]')
       .focus()

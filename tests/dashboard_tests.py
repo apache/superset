@@ -413,7 +413,8 @@ class TestDashboard(SupersetTestCase):
         db.session.merge(dash)
         db.session.commit()
 
-        assert "Births" in self.get_resp("/superset/dashboard/births/")
+        # this asserts a non-4xx response
+        self.get_resp("/superset/dashboard/births/")
         # Cleanup
         self.revoke_public_access_to_table(table)
 

@@ -17,36 +17,24 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import { FormControl } from 'react-bootstrap';
-import FormLabel from './index';
+import { SupersetTheme } from '@superset-ui/core';
+import AntdCard, { CardProps as AntdCardProps } from 'antd/lib/card';
 
-const mockedProps = {
-  children: 'Form label',
-  required: false,
-  htmlFor: 'form-control',
-};
+export interface CardProps extends AntdCardProps {
+  padded?: boolean;
+}
 
-test('should render', () => {
-  const { container } = render(<FormLabel {...mockedProps} />);
-  expect(container).toBeInTheDocument();
-});
+const Card = ({ padded, ...props }: CardProps) => (
+  <AntdCard
+    {...props}
+    css={(theme: SupersetTheme) => ({
+      backgroundColor: theme.colors.grayscale.light4,
+      borderRadius: theme.borderRadius,
+      '.ant-card-body': {
+        padding: padded ? theme.gridUnit * 4 : theme.gridUnit,
+      },
+    })}
+  />
+);
 
-test('should render a Label', () => {
-  render(
-    <>
-      <FormLabel {...mockedProps} />
-      <FormControl id="form-control" />
-    </>,
-  );
-  expect(screen.getByLabelText('Form label')).toBeInTheDocument();
-});
-
-test('should be shown as required', () => {
-  const requiredProps = {
-    ...mockedProps,
-    required: true,
-  };
-  render(<FormLabel {...requiredProps} />);
-  expect(screen.getByText('*').parentNode).toBeInTheDocument();
-});
+export default Card;

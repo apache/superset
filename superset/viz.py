@@ -509,7 +509,8 @@ class BaseViz:
                 except Exception as ex:
                     logger.exception(ex)
                     logger.error(
-                        "Error reading cache: " + utils.error_msg_from_exception(ex)
+                        "Error reading cache: " + utils.error_msg_from_exception(ex),
+                        exc_info=True,
                     )
                 logger.info("Serving from cache")
 
@@ -2257,7 +2258,11 @@ class MapboxViz(BaseViz):
             if fd.get("point_radius") != "Auto":
                 d["columns"].append(fd.get("point_radius"))
 
-            d["columns"] = list(set(d["columns"]))
+            # Ensure this value is sorted so that it does not
+            # cause the cache key generation (which hashes the
+            # query object) to generate different keys for values
+            # that should be considered the same.
+            d["columns"] = sorted(set(d["columns"]))
         else:
             # Ensuring columns chosen are all in group by
             if (
@@ -2501,7 +2506,11 @@ class BaseDeckGLViz(BaseViz):
         if fd.get("js_columns"):
             gb += fd.get("js_columns") or []
         metrics = self.get_metrics()
-        gb = list(set(gb))
+        # Ensure this value is sorted so that it does not
+        # cause the cache key generation (which hashes the
+        # query object) to generate different keys for values
+        # that should be considered the same.
+        gb = sorted(set(gb))
         if metrics:
             d["groupby"] = gb
             d["metrics"] = metrics
