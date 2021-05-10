@@ -58,7 +58,8 @@ const propTypes = {
 
 const GUTTER_SIZE_FACTOR = 1.25;
 
-const CHART_PANEL_PADDING = 30;
+const CHART_PANEL_PADDING_HORIZ = 30;
+const CHART_PANEL_PADDING_VERTICAL = 15;
 const HEADER_PADDING = 15;
 
 const STORAGE_KEYS = {
@@ -183,8 +184,9 @@ const ExploreChartPanel = props => {
 
   const renderChart = useCallback(() => {
     const { chart } = props;
-    const newHeight = calcSectionHeight(splitSizes[0]) - CHART_PANEL_PADDING;
-    const chartWidth = chartPanelWidth - CHART_PANEL_PADDING;
+    const newHeight =
+      calcSectionHeight(splitSizes[0]) - CHART_PANEL_PADDING_VERTICAL;
+    const chartWidth = chartPanelWidth - CHART_PANEL_PADDING_HORIZ;
     return (
       chartWidth > 0 && (
         <ChartContainer
