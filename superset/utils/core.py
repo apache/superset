@@ -211,6 +211,8 @@ class FilterOperator(str, Enum):
     IN = "IN"  # pylint: disable=invalid-name
     NOT_IN = "NOT IN"
     REGEX = "REGEX"
+    IS_TRUE = "IS TRUE"
+    IS_FALSE = "IS FALSE"
 
 
 class PostProcessingBoxplotWhiskerType(str, Enum):

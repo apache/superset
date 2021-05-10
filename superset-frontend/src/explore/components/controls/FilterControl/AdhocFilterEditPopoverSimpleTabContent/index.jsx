@@ -33,6 +33,7 @@ import {
   MULTI_OPERATORS,
   CUSTOM_OPERATORS,
   DISABLE_INPUT_OPERATORS,
+  BOOLEAN_ONLY_OPERATORS,
 } from 'src/explore/constants';
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
 import AdhocFilter, {
@@ -235,19 +236,41 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     }
   }
 
+  // eslint-disable-next-line consistent-return
   isOperatorRelevant(operator, subject) {
+    const dataSourceType = this.props.datasource.type;
+    const column = this.props.datasource.columns.find(
+      col => col.column_name === subject,
+    );
+    const isColumnBoolean =
+      !!column && (column.type === 'BOOL' || column.type === 'BOOLEAN');
+    const isColumnNumber = !!column && column.type === 'NUMBER';
+
     if (operator && CUSTOM_OPERATORS.has(operator)) {
       const { partitionColumn } = this.props;
       return partitionColumn && subject && subject === partitionColumn;
     }
-
-    return !(
-      (this.props.datasource.type === 'druid' &&
-        TABLE_ONLY_OPERATORS.indexOf(operator) >= 0) ||
-      (this.props.datasource.type === 'table' &&
-        DRUID_ONLY_OPERATORS.indexOf(operator) >= 0) ||
-      (this.props.adhocFilter.clause === CLAUSES.HAVING &&
-        HAVING_OPERATORS.indexOf(operator) === -1)
+    if (isColumnBoolean) {
+      return BOOLEAN_ONLY_OPERATORS.indexOf(operator) >= 0;
+    }
+    if (BOOLEAN_ONLY_OPERATORS.indexOf(operator) >= 0) {
+      return isColumnBoolean || isColumnNumber;
+    }
+    if (
+      dataSourceType === 'table' &&
+      TABLE_ONLY_OPERATORS.indexOf(operator) >= 0
+    ) {
+      return true;
+    }
+    if (
+      dataSourceType === 'druid' &&
+      DRUID_ONLY_OPERATORS.indexOf(operator) >= 0
+    ) {
+      return true;
+    }
+    return (
+      this.props.adhocFilter.clause === CLAUSES.HAVING &&
+      HAVING_OPERATORS.indexOf(operator) >= 0
     );
   }
 
@@ -319,7 +342,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         OPERATORS_OPTIONS.filter(op => this.isOperatorRelevant(op, subject))
           .length,
       ),
-      // like AGGREGTES_OPTIONS, operator options are string
+      // like AGGREGATES_OPTIONS, operator options are string
       value: operator,
       onChange: this.onOperatorChange,
       filterOption: (input, option) =>
