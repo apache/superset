@@ -20,6 +20,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { extent as d3Extent } from 'd3-array';
+import { ensureIsArray } from '@superset-ui/core';
 import HorizonRow, { DEFAULT_COLORS } from './HorizonRow';
 import './HorizonChart.css';
 
@@ -85,7 +86,7 @@ class HorizonChart extends React.PureComponent {
             key={row.key}
             width={width}
             height={seriesHeight}
-            title={row.key.join(', ')}
+            title={ensureIsArray(row.key).join(', ')}
             data={row.values}
             bands={bands}
             colors={colors}
