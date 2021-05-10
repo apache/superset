@@ -194,6 +194,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             types.Numeric(),
             GenericDataType.NUMERIC,
         ),
+        (re.compile(r"^float", re.IGNORECASE), types.Float(), GenericDataType.NUMERIC,),
+        (
+            re.compile(r"^double", re.IGNORECASE),
+            types.Float(),
+            GenericDataType.NUMERIC,
+        ),
+        (re.compile(r"^long", re.IGNORECASE), types.Float(), GenericDataType.NUMERIC,),
         (re.compile(r"^real", re.IGNORECASE), types.REAL, GenericDataType.NUMERIC,),
         (
             re.compile(r"^smallserial", re.IGNORECASE),
