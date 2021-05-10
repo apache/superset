@@ -112,6 +112,9 @@ const StyledCollapse = styled(Collapse)`
       padding-left: ${theme.gridUnit * 2}px;
       padding-right: ${theme.gridUnit * 2}px;
     `}
+    .anticon-right {
+      right: ${({ theme }) => `${theme.gridUnit * 2}px;`};
+    }
   }
 `;
 
