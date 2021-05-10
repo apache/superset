@@ -512,8 +512,8 @@ First, be sure you are using recent versions of Node.js and npm. We recommend us
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh | bash
 
 cd superset-frontend
-nvm install
-nvm use
+nvm install --lts
+nvm use --lts
 ```
 
 Or if you use the default macOS starting with Catalina shell `zsh`, try:
