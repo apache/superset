@@ -58,6 +58,37 @@ CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
 # }
 
 
+class AbstractParametersMixin:
+
+    """
+    Abstract mixin for to allow us to write custom parameters
+    functions for specific db engines
+    """
+
+    # schema describing the parameters used to configure the DB
+    parameters_schema: Schema = None
+
+    # recommended driver name for the DB engine spec
+    drivername: str = ""
+
+    # placeholder with the SQLAlchemy URI template
+    sqlalchemy_uri_placeholder = (
+        "drivername://user:password@host:port/dbname[?key=value&key=value...]"
+    )
+
+    @classmethod
+    def build_sqlalchemy_url(cls, parameters: Any) -> str:
+        raise NotImplementedError("build_sqlalchemy_url is not implemented")
+
+    @classmethod
+    def get_parameters_from_uri(cls, uri: str) -> Any:
+        raise NotImplementedError("get_parameters_from_uri is not implemented")
+
+    @classmethod
+    def parameters_json_schema(cls) -> Any:
+        raise NotImplementedError("get_parameters_from_uri is not implemented")
+
+
 class BigQueryParametersSchema(Schema):
     credentials_json = fields.Dict(
         keys=fields.Str(),
@@ -70,7 +101,7 @@ class BigQueryParametersType(TypedDict):
     credentials_json: Dict[str, Any]
 
 
-class BigQueryEngineSpec(BaseEngineSpec):
+class BigQueryEngineSpec(BaseEngineSpec, AbstractParametersMixin):
     """Engine spec for Google's BigQuery
 
     As contributed by @mxmzdlv on issue #945"""
