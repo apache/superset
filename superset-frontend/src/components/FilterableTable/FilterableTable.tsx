@@ -83,6 +83,7 @@ const JSON_TREE_THEME = {
 };
 
 const StyledFilterableTable = styled.div`
+  height:100%
   overflow-x: auto;
   margin-top: ${({ theme }) => theme.gridUnit * 2}px;
   overflow-y: hidden;
@@ -560,7 +561,6 @@ export default class FilterableTable extends PureComponent<
       this.getDatum(sortedAndFilteredList, index);
     return (
       <StyledFilterableTable
-        style={{ height }}
         className="filterable-table-container"
         ref={this.container}
       >
@@ -568,7 +568,7 @@ export default class FilterableTable extends PureComponent<
           <Table
             ref="Table"
             headerHeight={headerHeight}
-            height={totalTableHeight}
+            height={height}
             overscanRowCount={overscanRowCount}
             rowClassName={this.rowClassName}
             rowHeight={rowHeight}

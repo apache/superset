@@ -43,7 +43,7 @@ import { exploreChart } from '../../explore/exploreUtils';
 import { CtasEnum } from '../actions/sqlLab';
 import { Query } from '../types';
 
-const SEARCH_HEIGHT = 50;
+const SEARCH_HEIGHT = 90;
 
 enum DatasetRadioState {
   SAVE_NEW = 1,
@@ -588,10 +588,11 @@ export default class ResultSet extends React.PureComponent<
 
   render() {
     const { query } = this.props;
-    const height = Math.max(
-      0,
-      this.props.search ? this.props.height - SEARCH_HEIGHT : this.props.height,
-    );
+    const height = this.props.search && this.props.height;
+    // Math.max(
+    //   0,
+    //   this.props.search ? this.props.height - SEARCH_HEIGHT : this.props.height,
+    // );
     let sql;
     let exploreDBId = query.dbId;
     if (this.props.database && this.props.database.explore_database_id) {
