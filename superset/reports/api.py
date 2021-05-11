@@ -64,7 +64,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(ReportSchedule)
 
     @before_request
-    def ensure_alert_reports_feature_enabled(self) -> Optional[Response]:
+    def ensure_alert_reports_enabled(self) -> Optional[Response]:
         if not is_feature_enabled("ALERT_REPORTS"):
             return self.response_404()
         return None

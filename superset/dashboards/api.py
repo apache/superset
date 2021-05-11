@@ -91,7 +91,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Dashboard)
 
     @before_request(only=["thumbnail"])
-    def ensure_thumbnail_feature_enabled(self) -> Optional[Response]:
+    def ensure_thumbnails_enabled(self) -> Optional[Response]:
         if not is_feature_enabled("THUMBNAILS"):
             return self.response_404()
         return None
