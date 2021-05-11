@@ -1748,9 +1748,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     ) -> FlaskResponse:
         """Toggle favorite stars on Slices and Dashboard"""
         if not g.user.get_id():
-            return json_error_response(
-                f"ERROR: Favstar toggling denied", status=403
-            )
+            return json_error_response(f"ERROR: Favstar toggling denied", status=403)
         session = db.session()
         count = 0
         favs = (
