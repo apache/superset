@@ -203,12 +203,12 @@ export function Menu({
     <StyledHeader className="top" id="main-menu" role="navigation">
       <Global
         styles={css`
-         .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light.ant-menu-submenu-placement-bottomLeft {
-           border-radius: 0px;
-         }
-         .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light {
-          border-radius: 0px;
-         }
+          .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light.ant-menu-submenu-placement-bottomLeft {
+            border-radius: 0px;
+          }
+          .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light {
+            border-radius: 0px;
+          }
         `}
       />
       <Row>

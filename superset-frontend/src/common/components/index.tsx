@@ -124,12 +124,12 @@ export const StyledNav = styled(AntdMenu)`
     &:hover {
       border-bottom: none;
     }
-  } 
+  }
 
   & > .ant-menu-item > a {
     padding: ${({ theme }) => theme.gridUnit * 4}px;
   }
-  
+
   .ant-menu-submenu-open,
   .ant-menu-submenu-active {
     background-color: ${({ theme }) => theme.colors.primary.light5};
@@ -170,7 +170,7 @@ export const StyledSubMenu = styled(AntdMenu.SubMenu)`
       ${({ theme }) => theme.gridUnit * 3}px !important;
     svg {
       position: absolute;
-      top: ${({ theme }) => theme.gridUnit * 4 + 7 }px;
+      top: ${({ theme }) => theme.gridUnit * 4 + 7}px;
       right: ${({ theme }) => theme.gridUnit}px;
       width: ${({ theme }) => theme.gridUnit * 6}px;
     }
@@ -199,7 +199,7 @@ export const MainNav = Object.assign(StyledNav, {
   SubMenu: StyledSubMenu,
   Divider: AntdMenu.Divider,
   ItemGroup: AntdMenu.ItemGroup,
-})
+});
 
 export const Input = styled(AntdInput)`
   border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
