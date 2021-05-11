@@ -2511,6 +2511,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             session.rollback()
             raise Exception(_("Query record was not created as expected."))
         if not query_id:
+            logger.warning("Not able to find query_id")
             raise Exception(_("Query record was not created as expected."))
 
         logger.info("Triggering query_id: %i", query_id)
