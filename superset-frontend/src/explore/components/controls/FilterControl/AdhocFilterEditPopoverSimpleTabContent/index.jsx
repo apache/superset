@@ -236,41 +236,42 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     }
   }
 
-  // eslint-disable-next-line consistent-return
   isOperatorRelevant(operator, subject) {
     const dataSourceType = this.props.datasource.type;
     const column = this.props.datasource.columns.find(
       col => col.column_name === subject,
     );
-    const isColumnBoolean =
-      !!column && (column.type === 'BOOL' || column.type === 'BOOLEAN');
-    const isColumnNumber = !!column && column.type === 'NUMBER';
+    const isColumnBoolean = !!column && column.type === 'BOOL';
+    const isColumnNumber = !!column && column.type === 'INT';
 
     if (operator && CUSTOM_OPERATORS.has(operator)) {
       const { partitionColumn } = this.props;
       return partitionColumn && subject && subject === partitionColumn;
     }
     if (isColumnBoolean) {
-      return BOOLEAN_ONLY_OPERATORS.indexOf(operator) >= 0;
+      return (
+        [
+          OPERATORS['IS NULL'],
+          OPERATORS['IS NOT NULL'],
+          ...BOOLEAN_ONLY_OPERATORS,
+        ].indexOf(operator) >= 0
+      );
     }
-    if (BOOLEAN_ONLY_OPERATORS.indexOf(operator) >= 0) {
-      return isColumnBoolean || isColumnNumber;
+    if (dataSourceType === 'druid' && !isColumnNumber) {
+      return (
+        [...BOOLEAN_ONLY_OPERATORS, ...TABLE_ONLY_OPERATORS].indexOf(operator) <
+        0
+      );
     }
-    if (
-      dataSourceType === 'table' &&
-      TABLE_ONLY_OPERATORS.indexOf(operator) >= 0
-    ) {
-      return true;
+    if (dataSourceType === 'table' && !isColumnNumber) {
+      return (
+        [...BOOLEAN_ONLY_OPERATORS, ...DRUID_ONLY_OPERATORS].indexOf(operator) <
+        0
+      );
     }
-    if (
-      dataSourceType === 'druid' &&
-      DRUID_ONLY_OPERATORS.indexOf(operator) >= 0
-    ) {
-      return true;
-    }
-    return (
+    return !(
       this.props.adhocFilter.clause === CLAUSES.HAVING &&
-      HAVING_OPERATORS.indexOf(operator) >= 0
+      HAVING_OPERATORS.indexOf(operator) === -1
     );
   }
 
