@@ -180,6 +180,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         DatabaseFunctionNamesResponse,
         DatabaseRelatedObjectsResponse,
         DatabaseTestConnectionSchema,
+        DatabaseValidateParametersSchema,
         TableMetadataResponseSchema,
         SelectStarResponseSchema,
         SchemasResponseSchema,

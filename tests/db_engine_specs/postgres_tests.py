@@ -401,21 +401,20 @@ psql: error: could not connect to server: Operation timed out
         result = PostgresEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
                 message="Please re-enter the password.",
+                error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={
+                    "invalid": ["password"],
                     "engine_name": "PostgreSQL",
                     "issue_codes": [
                         {
                             "code": 1014,
-                            "message": "Issue 1014 - Either the"
-                            " username or the password is wrong.",
+                            "message": "Issue 1014 - Either the username or the password is wrong.",
                         },
                         {
                             "code": 1015,
-                            "message": "Issue 1015 - Either the database is "
-                            "spelled incorrectly or does not exist.",
+                            "message": "Issue 1015 - Either the database is spelled incorrectly or does not exist.",
                         },
                     ],
                 },
@@ -445,20 +444,20 @@ def test_base_parameters_mixin():
     assert json_schema == {
         "type": "object",
         "properties": {
-            "host": {"type": "string", "description": "Hostname or IP address"},
-            "username": {"type": "string", "nullable": True, "description": "Username"},
-            "password": {"type": "string", "nullable": True, "description": "Password"},
-            "database": {"type": "string", "description": "Database name"},
-            "query": {
-                "type": "object",
-                "description": "Additinal parameters",
-                "additionalProperties": {},
-            },
             "port": {
                 "type": "integer",
                 "format": "int32",
                 "description": "Database port",
             },
+            "password": {"type": "string", "nullable": True, "description": "Password"},
+            "host": {"type": "string", "description": "Hostname or IP address"},
+            "username": {"type": "string", "nullable": True, "description": "Username"},
+            "query": {
+                "type": "object",
+                "description": "Additional parameters",
+                "additionalProperties": {},
+            },
+            "database": {"type": "string", "description": "Database name"},
         },
-        "required": ["database", "host", "port"],
+        "required": ["database", "host", "port", "username"],
     }

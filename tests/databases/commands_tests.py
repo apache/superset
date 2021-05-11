@@ -624,15 +624,15 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         mock_event_logger.assert_called()
 
 
-def test_validate(app_context):
+@mock.patch("superset.db_engine_specs.base.is_hostname_valid")
+@mock.patch("superset.db_engine_specs.base.is_port_open")
+@mock.patch("superset.databases.commands.validate.DatabaseDAO")
+def test_validate(DatabaseDAO, is_port_open, is_hostname_valid, app_context):
     """
     Test parameter validation.
-
-    Currently only supported in Postgres.
     """
-    database = get_example_database()
-    if database.backend != "postgresql":
-        return
+    is_hostname_valid.return_value = True
+    is_port_open.return_value = True
 
     payload = {
         "engine": "postgresql",
@@ -649,15 +649,14 @@ def test_validate(app_context):
     command.run()
 
 
-def test_validate_partial(app_context):
+@mock.patch("superset.db_engine_specs.base.is_hostname_valid")
+@mock.patch("superset.db_engine_specs.base.is_port_open")
+def test_validate_partial(is_port_open, is_hostname_valid, app_context):
     """
     Test parameter validation when only some parameters are present.
-
-    Currently only supported in Postgres.
     """
-    database = get_example_database()
-    if database.backend != "postgresql":
-        return
+    is_hostname_valid.return_value = True
+    is_port_open.return_value = True
 
     payload = {
         "engine": "postgresql",

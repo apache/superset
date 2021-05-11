@@ -114,6 +114,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         CONNECTION_INVALID_PASSWORD_NEEDED_REGEX: (
             __("Please re-enter the password."),
             SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            {"invalid": ["password"]},
         ),
         CONNECTION_INVALID_HOSTNAME_REGEX: (
             __('The hostname "%(hostname)s" cannot be resolved.'),

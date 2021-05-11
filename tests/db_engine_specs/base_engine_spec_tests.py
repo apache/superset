@@ -85,9 +85,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
 
     def test_limit_query_without_force(self):
         self.sql_limit_regex(
-            "SELECT * FROM a LIMIT 10",
-            "SELECT * FROM a LIMIT 10",
-            limit=11,
+            "SELECT * FROM a LIMIT 10", "SELECT * FROM a LIMIT 10", limit=11,
         )
 
     def test_limit_query_with_force(self):
@@ -361,11 +359,7 @@ def test_get_time_grain_with_unkown_values():
     config = app.config.copy()
 
     app.config["TIME_GRAIN_ADDON_EXPRESSIONS"] = {
-        "mysql": {
-            "PT2H": "foo",
-            "weird": "foo",
-            "PT12H": "foo",
-        }
+        "mysql": {"PT2H": "foo", "weird": "foo", "PT12H": "foo",}
     }
 
     with app.app_context():
@@ -464,6 +458,11 @@ def test_validate_parameters_port_closed(is_port_open, is_hostname_valid):
             message="The port is closed.",
             error_type=SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
             level=ErrorLevel.ERROR,
-            extra={"invalid": ["host", "port"]},
-        ),
+            extra={
+                "invalid": ["port"],
+                "issue_codes": [
+                    {"code": 1008, "message": "Issue 1008 - The port is closed."}
+                ],
+            },
+        )
     ]

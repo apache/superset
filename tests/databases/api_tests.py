@@ -1290,7 +1290,7 @@ class TestDatabaseApi(SupersetTestCase):
                             },
                             "query": {
                                 "additionalProperties": {},
-                                "description": "Additinal parameters",
+                                "description": "Additional parameters",
                                 "type": "object",
                             },
                             "username": {
@@ -1299,7 +1299,7 @@ class TestDatabaseApi(SupersetTestCase):
                                 "type": "string",
                             },
                         },
-                        "required": ["database", "host", "port"],
+                        "required": ["database", "host", "port", "username"],
                         "type": "object",
                     },
                     "preferred": True,
@@ -1322,7 +1322,14 @@ class TestDatabaseApi(SupersetTestCase):
                     "message": "Request is not JSON",
                     "error_type": "INVALID_PAYLOAD_FORMAT_ERROR",
                     "level": "error",
-                    "extra": {},
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1019,
+                                "message": "Issue 1019 - The submitted payload has the incorrect format.",
+                            }
+                        ]
+                    },
                 }
             ]
         }
@@ -1345,7 +1352,13 @@ class TestDatabaseApi(SupersetTestCase):
                         "messages": {
                             "engine": ["Missing data for required field."],
                             "foo": ["Unknown field."],
-                        }
+                        },
+                        "issue_codes": [
+                            {
+                                "code": 1020,
+                                "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                            }
+                        ],
                     },
                 }
             ]

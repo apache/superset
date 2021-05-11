@@ -229,7 +229,8 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
         {
             "code": 1018,
             "message": _(
-                "Issue 1018 - One or more parameters needed to configure a database are missing."
+                "Issue 1018 - One or more parameters needed to configure a "
+                "database are missing."
             ),
         },
     ],

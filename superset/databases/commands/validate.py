@@ -32,7 +32,6 @@ from superset.databases.dao import DatabaseDAO
 from superset.db_engine_specs import get_engine_specs
 from superset.db_engine_specs.base import BaseParametersMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException, SupersetErrorsException
 from superset.models.core import Database
 
 
@@ -83,7 +82,9 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             raise InvalidParametersError(errors)
 
         # try to connect
-        sqlalchemy_uri = engine_spec.build_sqlalchemy_uri(self._properties)  # type: ignore
+        sqlalchemy_uri = engine_spec.build_sqlalchemy_uri(
+            self._properties["parameters"]  # type: ignore
+        )
         if self._model and sqlalchemy_uri == self._model.safe_sqlalchemy_uri():
             sqlalchemy_uri = self._model.sqlalchemy_uri_decrypted
         database = DatabaseDAO.build_db_for_connection_test(
