@@ -130,7 +130,6 @@ export const StyledNav = styled(AntdMenu)`
     &:not(.ant-menu-dark) > .ant-menu-submenu,
     &:not(.ant-menu-dark) > .ant-menu-item {
       margin: 0px;
-
     }
   }
 
@@ -184,7 +183,7 @@ export const StyledSubMenu = styled(AntdMenu.SubMenu)`
       right: ${({ theme }) => theme.gridUnit}px;
       width: ${({ theme }) => theme.gridUnit * 6}px;
     }
-    & > span  {
+    & > span {
       position: relative;
       top: 7px;
     }
