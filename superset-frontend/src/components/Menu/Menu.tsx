@@ -19,6 +19,7 @@
 import React, { useState, useEffect } from 'react';
 import { styled } from '@superset-ui/core';
 import { debounce } from 'lodash';
+import { Global, css } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MainNav as DropdownMenu, MenuMode } from 'src/common/components';
 import { Link } from 'react-router-dom';
@@ -200,6 +201,16 @@ export function Menu({
   };
   return (
     <StyledHeader className="top" id="main-menu" role="navigation">
+      <Global
+        styles={css`
+         .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light.ant-menu-submenu-placement-bottomLeft {
+           border-radius: 0px;
+         }
+         .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light {
+          border-radius: 0px;
+         }
+        `}
+      />
       <Row>
         <Col lg={19} md={19} sm={24} xs={24}>
           <a className="navbar-brand" href={brand.path}>
