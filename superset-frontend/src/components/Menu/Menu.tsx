@@ -99,10 +99,14 @@ const StyledHeader = styled.header`
     height: 100%;
     line-height: inherit;
   }
-  /*.ant-menu > .ant-menu-item > a {
+  .ant-menu > .ant-menu-item > a {
     padding: ${({ theme }) => theme.gridUnit * 4}px;
-  }*/
+  }
   @media (max-width: 767px) {
+    .ant-menu-item {
+      padding: 0 ${({ theme }) => theme.gridUnit * 6}px 0
+        ${({ theme }) => theme.gridUnit * 3}px !important;
+    }
     .ant-menu > .ant-menu-item > a {
       padding: 0px;
     }
