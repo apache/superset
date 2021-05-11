@@ -65,7 +65,7 @@ const editModeOnProps = {
 
 function setup(props: HeaderDropdownProps) {
   return (
-    <div className="dashboard">
+    <div className="dashboard-header">
       <HeaderActionsDropdown {...props} />
     </div>
   );
