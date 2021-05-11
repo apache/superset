@@ -42,6 +42,7 @@ export interface LabelProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 export default function Label(props: LabelProps) {
+  const DisableClickHander = () => {};
   const theme = useTheme();
   const { colors, transitionTiming } = theme;
   const { type, onClick, children, ...rest } = props;
@@ -85,9 +86,21 @@ export default function Label(props: LabelProps) {
     borderColorHover = onClick ? baseColor.dark2 : 'transparent';
   }
 
+  const interactiveProps =
+    onClick && onClick !== DisableClickHander
+      ? {
+          role: 'button',
+          tabIndex: 0,
+          onKeyDown: (e: any) => {
+            if (e.key === ' ' || e.key === 'Enter') onClick(e);
+          },
+        }
+      : {};
+
   return (
     <Tag
       onClick={onClick}
+      {...interactiveProps}
       {...rest}
       css={{
         transition: `background-color ${transitionTiming}s`,
@@ -101,7 +114,7 @@ export default function Label(props: LabelProps) {
         padding: '0.35em 0.8em',
         lineHeight: 1,
         color,
-        '&:hover': {
+        '&:hover, &:focus': {
           backgroundColor: backgroundColorHover,
           borderColor: borderColorHover,
           opacity: 1,

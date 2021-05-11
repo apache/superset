@@ -68,17 +68,19 @@ test('renders with default props', () => {
 test('renders extra checkboxes when type is time series', () => {
   render(<AnnotationLayer {...defaultProps} />);
   expect(
-    screen.queryByRole('button', { name: 'Show Markers' }),
+    screen.queryByRole('checkbox', { name: 'Show Markers' }),
   ).not.toBeInTheDocument();
   expect(
-    screen.queryByRole('button', { name: 'Hide Line' }),
+    screen.queryByRole('checkbox', { name: 'Hide Line' }),
   ).not.toBeInTheDocument();
   userEvent.click(screen.getAllByText('Formula')[0]);
   userEvent.click(screen.getByText('Time series'));
   expect(
-    screen.getByRole('button', { name: 'Show Markers' }),
+    screen.getByRole('checkbox', { name: 'Show Markers' }),
   ).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Hide Line' })).toBeInTheDocument();
+  expect(
+    screen.getByRole('checkbox', { name: 'Hide Line' }),
+  ).toBeInTheDocument();
 });
 
 test('enables apply and ok buttons', async () => {

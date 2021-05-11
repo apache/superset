@@ -103,9 +103,11 @@ export default class ColorSchemeControl extends React.PureComponent {
         label: this.schemes[value]?.label || label,
       }),
     );
+    const selectName = `select-${this.props.name}`;
     const selectProps = {
       multi: false,
-      name: `select-${this.props.name}`,
+      name: selectName,
+      inputId: selectName,
       placeholder: `Select (${options.length})`,
       default: this.props.default,
       options,
@@ -118,7 +120,7 @@ export default class ColorSchemeControl extends React.PureComponent {
     };
     return (
       <div>
-        <ControlHeader {...this.props} />
+        <ControlHeader htmlFor={selectName} {...this.props} />
         <Select {...selectProps} css={{ marginTop: labelMargin }} />
       </div>
     );

@@ -42,6 +42,10 @@ const Collapse = Object.assign(
         font-size: ${({ bigger, theme }) =>
           bigger ? `${theme.gridUnit * 4}px` : 'inherit'};
 
+        &:focus {
+          background: ${({ theme }) => theme.colors.grayscale.light3};
+        }
+
         .ant-collapse-arrow svg {
           transition: ${({ animateArrows }) =>
             animateArrows ? 'transform 0.24s' : 'none'};

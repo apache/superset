@@ -85,11 +85,12 @@ export default class BoundsControl extends React.Component {
   render() {
     return (
       <div>
-        <ControlHeader {...this.props} />
+        <ControlHeader {...this.props} htmlFor={`${this.props.name}-min`} />
         <Row gutter={16}>
           <Col xs={12}>
             <Input
               data-test="min-bound"
+              id={`${this.props.name}-min`}
               type="text"
               placeholder={t('Min')}
               onChange={this.onMinChange}
@@ -100,6 +101,7 @@ export default class BoundsControl extends React.Component {
             <Input
               type="text"
               data-test="max-bound"
+              id={`${this.props.name}-max`}
               placeholder={t('Max')}
               onChange={this.onMaxChange}
               value={this.state.minMax[1]}

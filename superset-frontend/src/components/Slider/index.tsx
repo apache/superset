@@ -24,6 +24,9 @@ import AntDSlider, {
 
 export { SliderSingleProps, SliderRangeProps };
 
-export default function Slider(props: SliderSingleProps | SliderRangeProps) {
-  return <AntDSlider {...props} css={{ marginLeft: 0, marginRight: 0 }} />;
-}
+const Slider = React.forwardRef(
+  (props: SliderSingleProps | SliderRangeProps, ref: any) => (
+    <AntDSlider {...props} ref={ref} css={{ marginLeft: 0, marginRight: 0 }} />
+  ),
+);
+export default Slider;

@@ -40,11 +40,16 @@ const StyledTabs = styled(AntDTabs, {
   .ant-tabs-tab {
     flex: 1 1 auto;
 
+    &:focus-within {
+      background: ${({ theme }) => theme.colors.grayscale.light3};
+    }
+
     &.ant-tabs-tab-active .ant-tabs-tab-btn {
       color: inherit;
     }
 
-    &:hover {
+    &:hover,
+    &:focus-within {
       .anchor-link-container {
         cursor: pointer;
 

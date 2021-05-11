@@ -181,7 +181,7 @@ export default function Button(props: ButtonProps) {
         borderRadius,
         color,
         backgroundColor,
-        '&:hover': {
+        '&:hover, &:focus': {
           color: colorHover,
           backgroundColor: backgroundColorHover,
           borderColor: borderColorHover,
@@ -189,11 +189,6 @@ export default function Button(props: ButtonProps) {
         '&:active': {
           color,
           backgroundColor: backgroundColorActive,
-        },
-        '&:focus': {
-          color,
-          backgroundColor,
-          borderColor,
         },
         '&[disabled], &[disabled]:hover': {
           color: grayscale.base,

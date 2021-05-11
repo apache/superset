@@ -29,6 +29,7 @@ const propTypes = {
   modalFooter: PropTypes.node,
   beforeOpen: PropTypes.func,
   onExit: PropTypes.func,
+  onKeyDown: PropTypes.func,
   isButton: PropTypes.bool,
   className: PropTypes.string,
   tooltip: PropTypes.string,
@@ -40,6 +41,7 @@ const propTypes = {
 const defaultProps = {
   beforeOpen: () => {},
   onExit: () => {},
+  onKeyDown: () => {},
   isButton: false,
   className: '',
   modalTitle: '',
@@ -104,7 +106,14 @@ export default class ModalTrigger extends React.Component {
     /* eslint-disable jsx-a11y/interactive-supports-focus */
     return (
       <>
-        <span data-test="span-modal-trigger" onClick={this.open} role="button">
+        <span
+          data-test="span-modal-trigger"
+          onClick={this.open}
+          onKeyDown={event => {
+            if (event.key === ' ' || event.key === 'Enter') this.open(event);
+          }}
+          role="button"
+        >
           {this.props.triggerNode}
         </span>
         {this.renderModal()}

@@ -32,9 +32,11 @@ const defaultProps = {
   onChange: () => {},
 };
 
-const checkboxStyle = { paddingRight: '5px' };
+const checkboxStyle = { marginRight: '5px' };
 
 export default class CheckboxControl extends React.Component {
+  checkboxRef = React.createRef();
+
   onChange() {
     this.props.onChange(!this.props.value);
   }
@@ -45,6 +47,8 @@ export default class CheckboxControl extends React.Component {
         onChange={this.onChange.bind(this)}
         style={checkboxStyle}
         checked={!!this.props.value}
+        label={this.props.label}
+        ref={this.checkboxRef}
       />
     );
   }
@@ -55,7 +59,10 @@ export default class CheckboxControl extends React.Component {
         <ControlHeader
           {...this.props}
           leftNode={this.renderCheckbox()}
-          onClick={this.onChange.bind(this)}
+          onClick={() => {
+            this.checkboxRef.current.focus();
+            this.onChange();
+          }}
         />
       );
     }

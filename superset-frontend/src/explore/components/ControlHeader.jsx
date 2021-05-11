@@ -36,6 +36,7 @@ const propTypes = {
   tooltipOnClick: PropTypes.func,
   warning: PropTypes.string,
   danger: PropTypes.string,
+  htmlFor: PropTypes.string,
 };
 
 const defaultProps = {
@@ -43,6 +44,7 @@ const defaultProps = {
   renderTrigger: false,
   hovered: false,
   name: undefined,
+  htmlFor: undefined,
 };
 
 export default class ControlHeader extends React.Component {
@@ -85,11 +87,14 @@ export default class ControlHeader extends React.Component {
     return (
       <div className="ControlHeader" data-test={`${this.props.name}-header`}>
         <div className="pull-left">
-          <FormLabel css={{ marginBottom: 0 }}>
+          <FormLabel css={{ marginBottom: 0 }} htmlFor={this.props.htmlFor}>
             {this.props.leftNode && <span>{this.props.leftNode}</span>}
-            <span
-              role="button"
-              tabIndex={0}
+            {
+              // Disable lint error since this isn't really a button; the onClick
+              // is used to emulate browser behavior when clicking on form labels
+              // for checkboxes
+            }
+            <span // eslint-disable-line jsx-a11y/no-static-element-interactions
               onClick={this.props.onClick}
               className={labelClass}
               style={{ cursor: this.props.onClick ? 'pointer' : '' }}

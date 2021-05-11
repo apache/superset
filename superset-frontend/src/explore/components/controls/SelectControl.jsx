@@ -254,6 +254,7 @@ export default class SelectControl extends React.PureComponent {
       assistiveText = optionRemaingText;
     }
 
+    const selectId = `select-${name}`;
     const selectProps = {
       autoFocus,
       'aria-label': label,
@@ -268,7 +269,8 @@ export default class SelectControl extends React.PureComponent {
       forceOverflow,
       menuPortalTarget,
       menuPosition,
-      name: `select-${name}`,
+      name: selectId,
+      inputId: selectId,
       noResultsText,
       onChange: this.onChange,
       onFocus,
@@ -305,7 +307,9 @@ export default class SelectControl extends React.PureComponent {
           }
         `}
       >
-        {this.props.showHeader && <ControlHeader {...this.props} />}
+        {this.props.showHeader && (
+          <ControlHeader {...this.props} htmlFor={selectProps.inputId} />
+        )}
         {isMulti ? (
           <OnPasteSelect {...selectProps} selectWrap={SelectComponent} />
         ) : (

@@ -109,7 +109,7 @@ export default class TextControl<
     }
     return (
       <div>
-        <ControlHeader {...this.props} />
+        <ControlHeader {...this.props} htmlFor={this.state.controlId}/>
         <FormGroup controlId={this.state.controlId}>
           <FormControl
             type="text"

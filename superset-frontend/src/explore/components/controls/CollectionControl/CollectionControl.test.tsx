@@ -94,10 +94,7 @@ test('Should render', () => {
 test('Should show the button with the label', () => {
   const props = createProps();
   render(<CollectionControl {...props} />);
-  expect(screen.getByRole('button', { name: props.label })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: props.label })).toHaveTextContent(
-    props.label,
-  );
+  expect(screen.getByText(props.label)).toBeInTheDocument();
 });
 
 test('Should have add button', () => {

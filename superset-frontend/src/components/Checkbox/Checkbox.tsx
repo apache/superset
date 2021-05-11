@@ -24,6 +24,7 @@ interface CheckboxProps {
   checked: boolean;
   onChange: (val?: boolean) => void;
   style?: React.CSSProperties;
+  label?: string;
 }
 
 const Styles = styled.span`
@@ -31,21 +32,46 @@ const Styles = styled.span`
   & svg {
     vertical-align: top;
   }
+
+  & {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+  }
+
+  &:focus {
+    border-radius: 1px;
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075),
+      0 0 0 3px rgba(0, 0, 0, 0.1);
+  }
 `;
 
-export default function Checkbox({ checked, onChange, style }: CheckboxProps) {
-  return (
-    <Styles
-      style={style}
-      onClick={() => {
-        onChange(!checked);
-      }}
-      role="checkbox"
-      tabIndex={0}
-      aria-checked={checked}
-      aria-label="Checkbox"
-    >
-      {checked ? <CheckboxChecked /> : <CheckboxUnchecked />}
-    </Styles>
-  );
-}
+export const Checkbox = React.forwardRef<HTMLSpanElement, CheckboxProps>(
+  ({ checked, onChange, style, label }, ref) => {
+    function doChange(event: React.KeyboardEvent | React.MouseEvent) {
+      event.preventDefault();
+      onChange(!checked);
+    }
+    return (
+      <Styles
+        style={style}
+        onClick={doChange}
+        onKeyDown={event => {
+          if (event.key === ' ' || event.key === 'Enter') {
+            doChange(event);
+          }
+        }}
+        role="checkbox"
+        tabIndex={0}
+        aria-checked={checked}
+        aria-label={label}
+        ref={ref}
+      >
+        {checked ? <CheckboxChecked /> : <CheckboxUnchecked />}
+      </Styles>
+    );
+  },
+);
+Checkbox.displayName = 'Checkbox';
+
+export default Checkbox;

@@ -31,10 +31,16 @@ const defaultProps = {
 };
 
 export default function SliderControl(props) {
+  const sliderRef = React.createRef();
   return (
     <>
-      <ControlHeader {...props} />
-      <Slider {...props} defaultValue={props.default} />
+      <ControlHeader
+        {...props}
+        onClick={() => {
+          sliderRef.current.focus();
+        }}
+      />
+      <Slider {...props} ref={sliderRef} defaultValue={props.default} />
     </>
   );
 }
