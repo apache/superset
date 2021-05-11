@@ -104,9 +104,9 @@ class TestExportDatabasesCommand(SupersetTestCase):
         metadata = yaml.safe_load(contents["databases/examples.yaml"])
         assert metadata == (
             {
-                "allow_csv_upload": False,
-                "allow_ctas": False,
-                "allow_cvas": False,
+                "allow_csv_upload": True,
+                "allow_ctas": True,
+                "allow_cvas": True,
                 "allow_run_async": False,
                 "cache_timeout": None,
                 "database_name": "examples",
