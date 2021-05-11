@@ -112,20 +112,19 @@ const VerticalDotsTrigger = () => (
 );
 
 function exportTableToExcel(tables, filename = ''){
-    const dataType = 'application/vnd.ms-excel; charset=UTF-8';
-    let table;
-    if (tables.length === 2){
-        table = tables[0].cloneNode(true);
-        const secTable = tables[1].cloneNode(true);
-        table.appendChild(secTable.children[1]);
-    }
-    else{
-      if(tables.length === 1){
-        table = tables[0];
+    let table = document.createElement('table');
+
+    console.log(tables);
+    for(let i = 0; i < tables.length; i++){
+      const secTable = tables[i].cloneNode(true);
+      for(let j = 0; j < secTable.children.length; j++){
+        table.appendChild(secTable.children[j].cloneNode(true));
       }
     }
 
-    const tableHTML = table.outerHTML;//.replace(/ /g, '%20');
+    console.log(table);
+    const tableHTML = table.outerHTML.replace('<tfoot>', '').replace('</tfoot>', '');
+    console.log(tableHTML);
 
     let uri = 'data:application/vnd.ms-excel;base64,'
             , template = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><meta http-equiv="content-type" content="application/vnd.ms-excel; charset=UTF-8"><head><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>{worksheet}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>' + tableHTML + '</body></html>'
@@ -142,15 +141,6 @@ function exportTableToExcel(tables, filename = ''){
     downloadLink.click();
     document.body.removeChild(downloadLink);
 }
-
-function exportExcel(tableText, filename, worksheetName) {
-
-
-
-
-        // window.location.href = uri + base64(format(template, ctx));
-
-    }
 
 class SliceHeaderControls extends React.PureComponent {
   constructor(props) {
@@ -264,6 +254,7 @@ class SliceHeaderControls extends React.PureComponent {
       </div>
     ));
     const resizeLabel = isFullSize ? t('Minimize chart') : t('Maximize chart');
+
     const menu = (
       <Menu
         onClick={this.handleMenuClick}
@@ -320,7 +311,7 @@ class SliceHeaderControls extends React.PureComponent {
         {this.props.supersetCanCSV && (
           <Menu.Item key={MENU_KEYS.EXPORT_CSV}>{t('Export Excel')}</Menu.Item>
         )}
-        {['pivot_table_v2', 'table'].includes(this.props.slice.viz_type) ?
+        {['pivot_table_v2', 'table', 'time_table'].includes(this.props.slice.viz_type) ?
           <Menu.Item onClick={() => {
             const father = document.querySelectorAll(`[data-test-chart-id="${this.props.slice.slice_id}"]`)[0];
             const tables = father.querySelectorAll('table');

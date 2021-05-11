@@ -66,7 +66,6 @@ describe('EmptyState', () => {
       const wrapper = mount(<EmptyState {...variant} />);
       expect(wrapper).toExist();
       const textContainer = wrapper.find('.ant-empty-description');
-      console.log("variant", variant, '111111111111111111111111111111');
       expect(textContainer.text()).toEqual(
         variant.tab === 'Избранное'
           ? "У вас пока нет избранных"
