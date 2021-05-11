@@ -174,6 +174,8 @@ class TestDatabaseModel(SupersetTestCase):
         filters: Tuple[FilterTestCase, ...] = (
             FilterTestCase(FilterOperator.IS_NULL, "", "IS NULL"),
             FilterTestCase(FilterOperator.IS_NOT_NULL, "", "IS NOT NULL"),
+            FilterTestCase(FilterOperator.IS_TRUE, "", "IS 1"),
+            FilterTestCase(FilterOperator.IS_FALSE, "", "IS 0"),
             FilterTestCase(FilterOperator.GREATER_THAN, 0, "> 0"),
             FilterTestCase(FilterOperator.GREATER_THAN_OR_EQUALS, 0, ">= 0"),
             FilterTestCase(FilterOperator.LESS_THAN, 0, "< 0"),

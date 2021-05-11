@@ -241,7 +241,8 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     const column = this.props.datasource.columns.find(
       col => col.column_name === subject,
     );
-    const isColumnBoolean = !!column && (column.type === 'BOOL' || column.type === 'BOOLEAN');
+    const isColumnBoolean =
+      !!column && (column.type === 'BOOL' || column.type === 'BOOLEAN');
     const isColumnNumber = !!column && column.type === 'INT';
 
     if (operator && CUSTOM_OPERATORS.has(operator)) {
