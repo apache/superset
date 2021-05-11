@@ -75,7 +75,7 @@ setup(
         "cron-descriptor",
         "cryptography>=3.2.1",
         "flask>=1.1.0, <2.0.0",
-        "flask-appbuilder>=3.2.3, <4.0.0",
+        "flask-appbuilder>=3.3.0, <4.0.0",
         "flask-caching",
         "flask-compress",
         "flask-talisman",
