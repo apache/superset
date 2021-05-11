@@ -100,6 +100,7 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
             "optionName": "metric_112342",
         },
         "row_limit": 500000,
+        "select_country": "france",
     }
 
     print("Creating a slice")
