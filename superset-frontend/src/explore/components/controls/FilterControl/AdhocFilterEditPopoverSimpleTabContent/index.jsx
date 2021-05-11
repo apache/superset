@@ -258,21 +258,25 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         ].indexOf(operator) >= 0
       );
     }
-    if (dataSourceType === 'druid' && !isColumnNumber) {
-      return (
-        [...BOOLEAN_ONLY_OPERATORS, ...TABLE_ONLY_OPERATORS].indexOf(operator) <
-        0
-      );
-    }
-    if (dataSourceType === 'table' && !isColumnNumber) {
-      return (
-        [...BOOLEAN_ONLY_OPERATORS, ...DRUID_ONLY_OPERATORS].indexOf(operator) <
-        0
-      );
+    if (isColumnNumber) {
+      if (dataSourceType === 'druid') {
+        return !(TABLE_ONLY_OPERATORS.indexOf(operator) >= 0);
+      }
+      if (dataSourceType === 'table') {
+        return !(DRUID_ONLY_OPERATORS.indexOf(operator) >= 0);
+      }
     }
     return !(
-      this.props.adhocFilter.clause === CLAUSES.HAVING &&
-      HAVING_OPERATORS.indexOf(operator) === -1
+      (this.props.datasource.type === 'druid' &&
+        [...BOOLEAN_ONLY_OPERATORS, ...TABLE_ONLY_OPERATORS].indexOf(
+          operator,
+        ) >= 0) ||
+      (this.props.datasource.type === 'table' &&
+        [...BOOLEAN_ONLY_OPERATORS, ...DRUID_ONLY_OPERATORS].indexOf(
+          operator,
+        ) >= 0) ||
+      (this.props.adhocFilter.clause === CLAUSES.HAVING &&
+        HAVING_OPERATORS.indexOf(operator) === -1)
     );
   }
 
