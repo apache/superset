@@ -27,8 +27,16 @@ import {
 } from '@superset-ui/chart-controls';
 
 const OptionContainer = styled.div`
+  > span {
+    display: flex;
+    align-items: center;
+  }
+
   .option-label {
     display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     & ~ i {
       margin-left: ${({ theme }) => theme.gridUnit}px;
     }
