@@ -21,20 +21,21 @@ import { styled } from '@superset-ui/core';
 
 export type FormLabelProps = {
   children: ReactNode;
+  className?: string;
   htmlFor?: string;
   required?: boolean;
-  className?: string;
+  uppercase?: boolean;
 };
 
-const Label = styled.label`
-  text-transform: uppercase;
+const Label = styled.label<{ uppercase: boolean }>`
+  text-transform: ${({ uppercase }) => (uppercase ? 'uppercase' : 'none')};
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.base};
   margin-bottom: ${({ theme }) => theme.gridUnit}px;
 `;
 
-const RequiredLabel = styled.label`
-  text-transform: uppercase;
+const RequiredLabel = styled.label<{ uppercase: boolean }>`
+  text-transform: ${({ uppercase }) => (uppercase ? 'uppercase' : 'none')};
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.base};
   margin-bottom: ${({ theme }) => theme.gridUnit}px;
@@ -48,13 +49,14 @@ const RequiredLabel = styled.label`
 
 export default function FormLabel({
   children,
+  className,
   htmlFor,
   required = false,
-  className,
+  uppercase = true,
 }: FormLabelProps) {
   const StyledLabel = required ? RequiredLabel : Label;
   return (
-    <StyledLabel htmlFor={htmlFor} className={className}>
+    <StyledLabel htmlFor={htmlFor} className={className} uppercase={uppercase}>
       {children}
     </StyledLabel>
   );

@@ -408,7 +408,9 @@ class FilterBox extends React.PureComponent {
       const { label, key } = filterConfig;
       return (
         <div key={key} className="m-b-5 filter-container">
-          <FormLabel htmlFor={`LABEL-${key}`}>{label}</FormLabel>
+          <FormLabel htmlFor={`LABEL-${key}`} uppercase={false}>
+            {label}
+          </FormLabel>
           {this.renderSelect(filterConfig)}
         </div>
       );
