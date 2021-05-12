@@ -18,6 +18,7 @@
 import json
 import logging
 import re
+from abc import abstractmethod
 from contextlib import closing
 from datetime import datetime
 from typing import (
@@ -1286,15 +1287,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     functions for specific db engines
     """
 
-    @classmethod
+    @abstractmethod
     def build_sqlalchemy_url(cls, parameters: Any) -> str:
         raise NotImplementedError("build_sqlalchemy_url is not implemented")
 
-    @classmethod
+    @abstractmethod
     def get_parameters_from_uri(cls, uri: str) -> Any:
         raise NotImplementedError("get_parameters_from_uri is not implemented")
 
-    @classmethod
+    @abstractmethod
     def parameters_json_schema(cls) -> Any:
         raise NotImplementedError("get_parameters_from_uri is not implemented")
 
