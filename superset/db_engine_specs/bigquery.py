@@ -27,7 +27,7 @@ from sqlalchemy import literal_column
 from sqlalchemy.sql.expression import ColumnClause
 from typing_extensions import TypedDict
 
-from superset.db_engine_specs.base import BaseEngineSpec, BaseParametersMixin
+from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
 from superset.sql_parse import Table
 from superset.utils import core as utils
