@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ColumnType, getMetricLabel } from '@superset-ui/core/src/query';
+import { getMetricLabel } from '@superset-ui/core/src/query';
+import { GenericDataType } from '../../src';
 
 describe('getMetricLabel', () => {
   it('should handle predefined metric name', () => {
@@ -30,7 +31,7 @@ describe('getMetricLabel', () => {
         aggregate: 'AVG',
         column: {
           id: 5,
-          type: ColumnType.BIGINT,
+          type: 'BIGINT',
           columnName: 'sum_girls',
         },
       }),
@@ -44,7 +45,7 @@ describe('getMetricLabel', () => {
         aggregate: 'AVG',
         column: {
           id: 5,
-          type: ColumnType.BIGINT,
+          type: 'BIGINT',
           column_name: 'sum_girls',
         },
       }),

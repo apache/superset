@@ -16,14 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AdhocMetric, ColumnType } from '../src';
+import { AdhocMetric, GenericDataType } from '../src';
 
 export const NUM_METRIC: AdhocMetric = {
   expressionType: 'SIMPLE',
   label: 'Sum(num)',
   column: {
     id: 336,
-    type: ColumnType.BIGINT,
+    type: 'BIGINT',
+    type_generic: GenericDataType.NUMERIC,
     column_name: 'num',
     verbose_name: null,
     description: null,

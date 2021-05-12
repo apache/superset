@@ -17,30 +17,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export enum ColumnType {
-  DOUBLE = 'DOUBLE',
-  FLOAT = 'FLOAT',
-  INT = 'INT',
-  BIGINT = 'BIGINT',
-  LONG = 'LONG',
-  REAL = 'REAL',
-  NUMERIC = 'NUMERIC',
-  DECIMAL = 'DECIMAL',
-  MONEY = 'MONEY',
-  DATE = 'DATE',
-  TIME = 'TIME',
-  DATETIME = 'DATETIME',
-  VARCHAR = 'VARCHAR',
-  STRING = 'STRING',
-  CHAR = 'CHAR',
-}
+
+import { GenericDataType } from './QueryResponse';
 
 /**
  * Column information defined in datasource.
  */
 export interface Column {
   id: number;
-  type: ColumnType;
+  type?: string;
+  type_generic?: GenericDataType;
   column_name: string;
   groupby?: boolean;
   is_dttm?: boolean;
