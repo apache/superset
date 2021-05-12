@@ -106,7 +106,7 @@ image:
   tag: latest
 
 # these two options are applied globally except init container
-imagepullPolicy: IfNotPresent
+imagePullPolicy: IfNotPresent
 imagePullSecrets: []
 
 service:
@@ -160,8 +160,6 @@ supersetNode:
   initContainers:
     - name: wait-for-postgres
       image: busybox:latest
-      imagePullPolicy: IfNotPresent
-      imagePullSecrets: []
       envFrom:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
@@ -184,8 +182,6 @@ supersetWorker:
   initContainers:
     - name: wait-for-postgres
       image: busybox:latest
-      imagePullPolicy: IfNotPresent
-      imagePullSecrets: []
       envFrom:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
@@ -210,8 +206,6 @@ supersetCeleryBeat:
   initContainers:
     - name: wait-for-postgres
       image: busybox:latest
-      imagePullPolicy: IfNotPresent
-      imagePullSecrets: []
       envFrom:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
@@ -251,8 +245,6 @@ init:
   initContainers:
     - name: wait-for-postgres
       image: busybox:latest
-      imagePullPolicy: IfNotPresent
-      imagePullSecrets: []
       envFrom:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
