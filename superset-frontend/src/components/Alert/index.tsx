@@ -27,7 +27,7 @@ import Icons from 'src/components/Icons';
 
 export type AlertProps = PropsWithChildren<AntdAlertProps>;
 
-export default function Alert(props: AlertProps & { roomBelow: boolean }) {
+export default function Alert(props: AlertProps & { roomBelow?: boolean }) {
   const {
     type = 'info',
     description,
