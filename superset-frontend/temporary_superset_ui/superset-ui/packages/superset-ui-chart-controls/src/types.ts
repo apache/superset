@@ -18,14 +18,7 @@
  * under the License.
  */
 import React, { ReactNode, ReactText, ReactElement } from 'react';
-import {
-  QueryFormData,
-  DatasourceType,
-  Metric,
-  JsonValue,
-  Column,
-  ColumnType,
-} from '@superset-ui/core';
+import { QueryFormData, DatasourceType, Metric, JsonValue, Column } from '@superset-ui/core';
 import sharedControls from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
 
@@ -45,9 +38,8 @@ export type SharedControlComponents = typeof sharedControlComponents;
 /** ----------------------------------------------
  * Input data/props while rendering
  * ---------------------------------------------*/
-export type ColumnMeta = Omit<Column, 'id' | 'type'> & {
+export type ColumnMeta = Omit<Column, 'id'> & {
   id?: number;
-  type?: ColumnType;
 } & AnyDict;
 
 export interface DatasourceMeta {
