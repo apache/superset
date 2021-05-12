@@ -34,7 +34,7 @@ import {
   LOCALSTORAGE_MAX_QUERY_AGE_MS,
 } from '../../constants';
 
-const TAB_HEIGHT = 90;
+const TAB_HEIGHT = 140;
 
 /*
     editorQueries are queries executed by users passed from SqlEditor component

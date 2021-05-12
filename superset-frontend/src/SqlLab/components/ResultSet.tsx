@@ -59,6 +59,15 @@ enum LIMITING_FACTOR {
   QUERY = 'QUERY',
   QUERY_AND_DROPDOWN = 'QUERY_AND_DROPDOWN',
   DROPDOWN = 'DROPDOWN',
+  NOT_LIMITED = 'NOT_LIMITED',
+}
+
+function limitReached(displayLimitReached: boolean) {
+  return displayLimitReached;
+}
+
+function defaultDropdown(queryLimit: number, limitingFactor: string) {
+  return queryLimit === 1000 && limitingFactor === LIMITING_FACTOR.DROPDOWN;
 }
 
 const LOADING_STYLES: CSSProperties = { position: 'relative', minHeight: 100 };
@@ -94,7 +103,7 @@ interface ResultSetState {
   datasetToOverwrite: Record<string, any>;
   saveModalAutocompleteValue: string;
   userDatasetOptions: DatasetOptionAutocomplete[];
-  height: number;
+  alertIsOpen: boolean;
 }
 
 // Making text render line breaks/tabs as is as monospace,
@@ -159,9 +168,8 @@ export default class ResultSet extends React.PureComponent<
       datasetToOverwrite: {},
       saveModalAutocompleteValue: '',
       userDatasetOptions: [],
-      height: this.props.height,
+      alertIsOpen: false,
     };
-    this.alertRef = React.createRef();
     this.changeSearch = this.changeSearch.bind(this);
     this.fetchResults = this.fetchResults.bind(this);
     this.popSelectStar = this.popSelectStar.bind(this);
@@ -218,6 +226,17 @@ export default class ResultSet extends React.PureComponent<
       nextProps.query.resultsKey !== this.props.query.resultsKey
     ) {
       this.fetchResults(nextProps.query);
+    }
+    if (
+      limitReached(nextProps.query.results?.displayLimitReached) ||
+      defaultDropdown(
+        nextProps.query.queryLimit,
+        nextProps.query.limitingFactor,
+      )
+    ) {
+      this.setState({ alertIsOpen: true });
+    } else {
+      this.setState({ alertIsOpen: false });
     }
   }
 
@@ -510,22 +529,14 @@ export default class ResultSet extends React.PureComponent<
     return <div />;
   }
 
-  // onAlertClose = () => {
-  //   this.setState({ height: this.props.height + 50 });
-  // };
-
-  setResultHeight = () => {
-    this.setState({ height: this.props.height - 50 });
+  onAlertClose = () => {
+    this.setState({ alertIsOpen: false });
   };
 
   renderRowsReturned() {
     const { results, rows, queryLimit, limitingFactor } = this.props.query;
-    const limitReached = results?.displayLimitReached;
     let limitMessage;
     const isAdmin = this.props.user?.roles.hasOwnProperty('Admin');
-    const defaultDropdownLimit = queryLimit === 1000;
-    const defaultDropdown =
-      limitingFactor === LIMITING_FACTOR.DROPDOWN && defaultDropdownLimit;
     const adminWarning = isAdmin
       ? ' by the configuration DISPLAY_MAX_ROWS'
       : null;
@@ -540,7 +551,7 @@ export default class ResultSet extends React.PureComponent<
       );
     } else if (
       limitingFactor === LIMITING_FACTOR.DROPDOWN &&
-      !defaultDropdown
+      !defaultDropdown(queryLimit, limitingFactor)
     ) {
       limitMessage = (
         <span className="limitMessage">
@@ -561,25 +572,26 @@ export default class ResultSet extends React.PureComponent<
       );
     }
     return (
-      <ReturnedRows>
-        {!limitReached && !defaultDropdown && (
-          <span>
-            {t(`%s rows returned`, rows)} {limitMessage}
-          </span>
-        )}
-        {!limitReached && defaultDropdown && (
-          <Alert
-            banner
-            type="warning"
-            message={t(`%s rows returned`, rows)}
-            // onClose={this.onAlertClose}
-            description={t(
-              `The number of rows displayed is limited to %s by the dropdown.`,
-              rows,
-            )}
-          />
-        )}
-        {limitReached && (
+      <ReturnedRows ref={this.alertRef}>
+        {!limitReached(results?.displayLimitReached) &&
+          !defaultDropdown(queryLimit, limitingFactor) && (
+            <span>
+              {t(`%s rows returned`, rows)} {limitMessage}
+            </span>
+          )}
+        {!limitReached(results?.displayLimitReached) &&
+          defaultDropdown(queryLimit, limitingFactor) && (
+            <Alert
+              type="warning"
+              message={t(`%s rows returned`, rows)}
+              onClose={this.onAlertClose}
+              description={t(
+                `The number of rows displayed is limited to %s by the dropdown.`,
+                rows,
+              )}
+            />
+          )}
+        {limitReached(results?.displayLimitReached) && (
           <Alert
             type="warning"
             onClose={this.onAlertClose}
@@ -600,7 +612,6 @@ export default class ResultSet extends React.PureComponent<
 
   render() {
     const { query } = this.props;
-    const { height } = this.state;
     let sql;
     let exploreDBId = query.dbId;
     if (this.props.database && this.props.database.explore_database_id) {
@@ -671,6 +682,9 @@ export default class ResultSet extends React.PureComponent<
     }
     if (query.state === 'success' && query.results) {
       const { results } = query;
+      const height = this.state.alertIsOpen
+        ? this.props.height - 60
+        : this.props.height;
       let data;
       if (this.props.cache && query.cached) {
         ({ data } = this.state);
