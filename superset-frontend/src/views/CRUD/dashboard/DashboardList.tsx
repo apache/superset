@@ -370,6 +370,19 @@ function DashboardList(props: DashboardListProps) {
     ],
   );
 
+  const favoritesFilter: Filter = {
+    Header: t('Favorite'),
+    id: 'id',
+    urlDisplay: 'favorite',
+    input: 'select',
+    operator: FilterOperator.dashboardIsFav,
+    unfilteredLabel: t('Any'),
+    selects: [
+      { label: t('Yes'), value: true },
+      { label: t('No'), value: false },
+    ],
+  };
+
   const filters: Filters = [
     {
       Header: t('Owner'),
@@ -424,22 +437,7 @@ function DashboardList(props: DashboardListProps) {
         { label: t('Draft'), value: false },
       ],
     },
-    ...(props.user.userId
-      ? [
-          {
-            Header: t('Favorite'),
-            id: 'id',
-            urlDisplay: 'favorite',
-            input: 'select',
-            operator: FilterOperator.dashboardIsFav,
-            unfilteredLabel: t('Any'),
-            selects: [
-              { label: t('Yes'), value: true },
-              { label: t('No'), value: false },
-            ],
-          } as Filter,
-        ]
-      : []),
+    ...(props.user.userId ? [favoritesFilter] : []),
     {
       Header: t('Search'),
       id: 'dashboard_title',

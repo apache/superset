@@ -390,6 +390,19 @@ function ChartList(props: ChartListProps) {
     ],
   );
 
+  const favoritesFilter: Filter = {
+    Header: t('Favorite'),
+    id: 'id',
+    urlDisplay: 'favorite',
+    input: 'select',
+    operator: FilterOperator.chartIsFav,
+    unfilteredLabel: t('Any'),
+    selects: [
+      { label: t('Yes'), value: true },
+      { label: t('No'), value: false },
+    ],
+  };
+
   const filters: Filters = [
     {
       Header: t('Owner'),
@@ -475,22 +488,7 @@ function ChartList(props: ChartListProps) {
       ),
       paginate: false,
     },
-    ...(props.user.userId
-      ? [
-          {
-            Header: t('Favorite'),
-            id: 'id',
-            urlDisplay: 'favorite',
-            input: 'select',
-            operator: FilterOperator.chartIsFav,
-            unfilteredLabel: t('Any'),
-            selects: [
-              { label: t('Yes'), value: true },
-              { label: t('No'), value: false },
-            ],
-          } as Filter,
-        ]
-      : []),
+    ...(props.user.userId ? [favoritesFilter] : []),
     {
       Header: t('Search'),
       id: 'slice_name',
