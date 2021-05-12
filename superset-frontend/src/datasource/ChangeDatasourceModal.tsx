@@ -248,6 +248,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         {!confirmChange && (
           <>
             <Alert
+              roomBelow
               type="warning"
               message={
                 <>
