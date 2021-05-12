@@ -1485,7 +1485,7 @@
       "Share chart": ["Поделиться графиком"],
       "Share chart by email": ["Поделиться графиком по email"],
       "Export CSV": ["Экспорт CSV"],
-      "Export Excel": ["Экспорт Excel"],
+      "Export Excel": ["Экспорт исходных данных в Excel"],
       "Applied Filters (%d)": ["Примененные фильтры (%d)"],
       "Incompatible Filters (%d)": ["Несовместимые фильтры (%d)"],
       "Unset Filters (%d)": ["Непримененные фильтры (%d)"],
