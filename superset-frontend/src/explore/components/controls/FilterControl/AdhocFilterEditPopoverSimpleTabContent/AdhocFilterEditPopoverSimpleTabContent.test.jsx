@@ -253,4 +253,26 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       );
     });
   });
+  it('will display boolean operators when column is an expression', () => {
+    const { wrapper } = setup({
+      datasource: {
+        type: 'table',
+        datasource_name: 'table1',
+        schema: 'schema',
+        columns: [
+          {
+            column_name: 'value',
+            expression: 'case when value is 0 then "NO"',
+          },
+        ],
+      },
+      adhocFilter: simpleAdhocFilter,
+    });
+    const booleanOnlyOperators = ['IS TRUE', 'IS FALSE'];
+    booleanOnlyOperators.forEach(operator => {
+      expect(wrapper.instance().isOperatorRelevant(operator, 'value')).toBe(
+        true,
+      );
+    });
+  });
 });

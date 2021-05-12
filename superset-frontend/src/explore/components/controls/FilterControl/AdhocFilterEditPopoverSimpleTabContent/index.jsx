@@ -244,6 +244,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     const isColumnBoolean =
       !!column && (column.type === 'BOOL' || column.type === 'BOOLEAN');
     const isColumnNumber = !!column && column.type === 'INT';
+    const isColumnFunction = !!column && !!column.expression;
 
     if (operator && CUSTOM_OPERATORS.has(operator)) {
       const { partitionColumn } = this.props;
@@ -258,7 +259,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         ].indexOf(operator) >= 0
       );
     }
-    if (isColumnNumber) {
+    if (isColumnNumber || isColumnFunction) {
       if (dataSourceType === 'druid') {
         return !(TABLE_ONLY_OPERATORS.indexOf(operator) >= 0);
       }
