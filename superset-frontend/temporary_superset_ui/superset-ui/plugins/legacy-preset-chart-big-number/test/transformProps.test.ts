@@ -37,6 +37,21 @@ const formData = {
   yAxisFormat: '.3s',
 };
 
+const rawFormData = {
+  metric: 'value',
+  color_picker: {
+    r: 0,
+    g: 122,
+    b: 135,
+    a: 1,
+  },
+  compare_lag: 1,
+  time_grain_sqla: 'P0.25Y' as TimeGranularity,
+  compare_suffix: 'over last quarter',
+  viz_type: 'big_number',
+  y_axis_format: '.3s',
+};
+
 function generateProps(
   data: BigNumberDatum[],
   extraFormData = {},
@@ -56,7 +71,7 @@ function generateProps(
       verboseMap: {},
     },
     rawDatasource: {},
-    rawFormData: {},
+    rawFormData,
     hooks: {},
     initialValues: {},
     formData: {

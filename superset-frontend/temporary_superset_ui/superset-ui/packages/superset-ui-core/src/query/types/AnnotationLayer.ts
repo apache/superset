@@ -1,5 +1,6 @@
 /* eslint camelcase: 0 */
 import { DataRecord } from './QueryResponse';
+import { TimeGranularity } from '../../time-format';
 
 export enum AnnotationType {
   Event = 'EVENT',
@@ -40,7 +41,7 @@ type BaseAnnotationLayer = {
 
 type AnnotationOverrides = {
   granularity?: string | null;
-  time_grain_sqla?: string | null;
+  time_grain_sqla?: TimeGranularity | null;
   time_range?: string | null;
   time_shift?: string | null;
 };
