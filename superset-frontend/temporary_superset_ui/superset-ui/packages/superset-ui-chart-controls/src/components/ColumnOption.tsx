@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { Tooltip } from './Tooltip';
-import { ColumnTypeLabel, LaxColumnType } from './ColumnTypeLabel';
+import { ColumnTypeLabel } from './ColumnTypeLabel';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 import { ColumnMeta } from '../types';
 
@@ -28,18 +28,13 @@ export type ColumnOptionProps = {
 };
 
 export function ColumnOption({ column, showType = false }: ColumnOptionProps) {
-  const hasExpression = column.expression && column.expression !== column.column_name;
-
-  let columnType: LaxColumnType | undefined = column.type;
-  if (column.is_dttm) {
-    columnType = 'time';
-  } else if (hasExpression) {
-    columnType = 'expression';
-  }
+  const { expression, column_name, type_generic } = column;
+  const hasExpression = expression && expression !== column_name;
+  const type = hasExpression ? 'expression' : type_generic;
 
   return (
     <span>
-      {showType && columnType && <ColumnTypeLabel type={columnType} />}
+      {showType && type !== undefined && <ColumnTypeLabel type={type} />}
       <Tooltip
         id="metric-name-tooltip"
         title={column.verbose_name || column.column_name}
