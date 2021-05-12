@@ -131,7 +131,6 @@ describe('DashboardBuilder', () => {
   it('should have default animated=true on Tabs for perf', () => {
     const wrapper = setup({ dashboardLayout: undoableDashboardLayoutWithTabs });
     const tabProps = wrapper.find(ParentSize).find(Tabs).props();
-    console.log('tabProps', tabProps)
     expect(tabProps.animated).toEqual(true);
   });
 
