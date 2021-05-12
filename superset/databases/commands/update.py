@@ -84,12 +84,6 @@ class UpdateDatabaseCommand(BaseCommand):
                 self._model_id, database_name
             ):
                 exceptions.append(DatabaseExistsValidationError())
-        if configuration_method:
-            if ConfigurationMethod(configuration_method) not in {
-                ConfigurationMethod.SQLALCHEMY_URI,
-                ConfigurationMethod.DYNAMIC_FORM,
-            }:
-                exceptions.append(DatabaseInvalidError())
         if exceptions:
             exception = DatabaseInvalidError()
             exception.add_list(exceptions)

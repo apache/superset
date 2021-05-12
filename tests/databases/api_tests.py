@@ -269,7 +269,40 @@ class TestDatabaseApi(SupersetTestCase):
         uri = "api/v1/database/"
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(rv.status_code, 400)
+        assert response == {
+            "message": {"configuration_method": ["Invalid enum value BAD_FORM"]}
+        }
+        assert rv.status_code == 400
+
+    def test_create_database_no_configuration_method(self):
+        """
+        Database API: Test create
+        """
+        extra = {
+            "metadata_params": {},
+            "engine_params": {},
+            "metadata_cache_timeout": {},
+            "schemas_allowed_for_csv_upload": [],
+        }
+
+        self.login(username="admin")
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+        database_data = {
+            "database_name": "test-create-database",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "server_cert": None,
+            "extra": json.dumps(extra),
+        }
+
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response == {
+            "message": {"configuration_method": ["Missing data for required field."]}
+        }
+        assert rv.status_code == 400
 
     def test_create_database_server_cert_validate(self):
         """
@@ -584,7 +617,27 @@ class TestDatabaseApi(SupersetTestCase):
         }
         uri = f"api/v1/database/{test_database.id}"
         rv = self.client.put(uri, json=database_data)
-        self.assertEqual(rv.status_code, 400)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response == {
+            "message": {"configuration_method": ["Invalid enum value BAD_FORM"]}
+        }
+        assert rv.status_code == 400
+
+    def test_update_database_with_no_configuration_method(self):
+        """
+        Database API: Test update
+        """
+        example_db = get_example_database()
+        test_database = self.insert_database(
+            "test-database", example_db.sqlalchemy_uri_decrypted
+        )
+        self.login(username="admin")
+        database_data = {
+            "database_name": "test-database-updated",
+        }
+        uri = f"api/v1/database/{test_database.id}"
+        rv = self.client.put(uri, json=database_data)
+        assert rv.status_code == 200
 
     def test_delete_database(self):
         """
