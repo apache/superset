@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { shallow, ShallowWrapper } from 'enzyme';
+import { GenericDataType } from '@superset-ui/core';
 
 import {
   ColumnOption,
@@ -27,7 +28,7 @@ import {
 } from '../../src';
 
 describe('ColumnOption', () => {
-  const defaultProps = {
+  const defaultProps: ColumnOptionProps = {
     column: {
       column_name: 'foo',
       verbose_name: 'Foo',
@@ -72,7 +73,8 @@ describe('ColumnOption', () => {
         showType: true,
         column: {
           column_name: 'foo',
-          type: 'str',
+          type: 'VARCHAR',
+          type_generic: GenericDataType.STRING,
         },
       }),
     );
@@ -98,9 +100,10 @@ describe('ColumnOption', () => {
   });
   it('dttm column has correct column label if showType is true', () => {
     props.showType = true;
-    props.column.is_dttm = true;
+    props.column.expression = undefined;
+    props.column.type_generic = GenericDataType.TEMPORAL;
     wrapper = shallow(factory(props));
     expect(wrapper.find(ColumnTypeLabel)).toHaveLength(1);
-    expect(wrapper.find(ColumnTypeLabel).props().type).toBe('time');
+    expect(wrapper.find(ColumnTypeLabel).props().type).toBe(GenericDataType.TEMPORAL);
   });
 });

@@ -17,47 +17,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ColumnType, GenericDataType } from '@superset-ui/core';
+import { GenericDataType } from '@superset-ui/core';
 import React from 'react';
 
-export type LaxColumnType = ColumnType | GenericDataType | 'expression' | 'aggregate' | 'time' | '';
+type StringIcon = '?' | 'ƒ' | 'AGG' | 'ABC' | '#' | 'T/F' | 'time';
+
+export type ColumnLabelExtendedType = 'expression' | 'aggregate' | '';
 
 export type ColumnTypeLabelProps = {
-  type?: LaxColumnType;
+  type?: ColumnLabelExtendedType | GenericDataType;
 };
 
-export function ColumnTypeLabel({ type: type_ }: ColumnTypeLabelProps) {
-  const type: string =
-    type_ === undefined || type_ === null
-      ? '?'
-      : type_ === GenericDataType.BOOLEAN
-      ? 'bool'
-      : type_ === GenericDataType.NUMERIC
-      ? 'FLOAT'
-      : type_ === GenericDataType.TEMPORAL
-      ? 'time'
-      : type_ === GenericDataType.STRING
-      ? 'string'
-      : type_;
+export function ColumnTypeLabel({ type }: ColumnTypeLabelProps) {
+  let stringIcon: StringIcon = '?';
 
-  let stringIcon;
-
-  if (typeof type !== 'string') {
-    stringIcon = '?';
-  } else if (type === '' || type === 'expression') {
+  if (type === '' || type === 'expression') {
     stringIcon = 'ƒ';
   } else if (type === 'aggregate') {
     stringIcon = 'AGG';
-  } else if (type.match(/.*char.*/i) || type.match(/string.*/i) || type.match(/.*text.*/i)) {
+  } else if (type === GenericDataType.STRING) {
     stringIcon = 'ABC';
-  } else if (type.match(/.*int.*/i) || type === 'LONG' || type === 'DOUBLE' || type === 'FLOAT') {
+  } else if (type === GenericDataType.NUMERIC) {
     stringIcon = '#';
-  } else if (type.match(/.*bool.*/i)) {
+  } else if (type === GenericDataType.BOOLEAN) {
     stringIcon = 'T/F';
-  } else if (type.match(/.*time.*/i)) {
+  } else if (type === GenericDataType.TEMPORAL) {
     stringIcon = 'time';
-  } else {
-    stringIcon = '?';
   }
 
   const typeIcon =

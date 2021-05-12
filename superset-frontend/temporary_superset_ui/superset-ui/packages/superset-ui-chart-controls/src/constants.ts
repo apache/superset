@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, QueryMode, DTTM_ALIAS } from '@superset-ui/core';
+import { t, QueryMode, DTTM_ALIAS, GenericDataType } from '@superset-ui/core';
 import { ColumnMeta } from './types';
 
 // eslint-disable-next-line import/prefer-default-export
@@ -35,6 +35,7 @@ export const COLUMN_NAME_ALIASES: Record<string, string> = {
 export const TIME_COLUMN_OPTION: ColumnMeta = {
   verbose_name: COLUMN_NAME_ALIASES[DTTM_ALIAS],
   column_name: DTTM_ALIAS,
+  type_generic: GenericDataType.TEMPORAL,
   description: t('A reference to the [Time] configuration, taking granularity into account'),
 };
 
