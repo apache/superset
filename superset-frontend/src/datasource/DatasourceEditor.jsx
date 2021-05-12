@@ -239,7 +239,7 @@ function ColumnCollectionTable({
           ) : (
             v
           ),
-        type: d => <Label>{d}</Label>,
+        type: d => (d ? <Label>{d}</Label> : null),
         is_dttm: checkboxGenerator,
         filterable: checkboxGenerator,
         groupby: checkboxGenerator,
