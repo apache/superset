@@ -694,14 +694,8 @@ def test_validate_partial(is_port_open, is_hostname_valid, app_context):
 def test_validate_partial_invalid_hostname(is_hostname_valid, app_context):
     """
     Test parameter validation when only some parameters are present.
-
-    Currently only supported in Postgres.
     """
     is_hostname_valid.return_value = False
-
-    database = get_example_database()
-    if database.backend != "postgresql":
-        return
 
     payload = {
         "engine": "postgresql",
@@ -746,90 +740,4 @@ def test_validate_partial_invalid_hostname(is_hostname_valid, app_context):
                 ],
             },
         ),
-    ]
-
-
-def test_validate_invalid_username(app_context):
-    """
-    Test parameter validation.
-
-    Currently only supported in Postgres.
-    """
-    database = get_example_database()
-    if database.backend != "postgresql":
-        return
-
-    payload = {
-        "engine": "postgresql",
-        "parameters": {
-            "username": "INVALID",
-            "password": "superset",
-            "host": "localhost",
-            "port": 5432,
-            "database": "test",
-            "query": {},
-        },
-    }
-    command = ValidateDatabaseParametersCommand(None, payload)
-    with pytest.raises(DatabaseTestConnectionFailedError) as excinfo:
-        command.run()
-    assert excinfo.value.errors == [
-        SupersetError(
-            message='The username "INVALID" does not exist.',
-            error_type=SupersetErrorType.CONNECTION_INVALID_USERNAME_ERROR,
-            level=ErrorLevel.ERROR,
-            extra={
-                "invalid": ["username"],
-                "engine_name": "PostgreSQL",
-                "issue_codes": [
-                    {
-                        "code": 1012,
-                        "message": "Issue 1012 - The username provided when connecting to a database is not valid.",
-                    }
-                ],
-            },
-        )
-    ]
-
-
-def test_validate_invalid_database(app_context):
-    """
-    Test parameter validation.
-
-    Currently only supported in Postgres.
-    """
-    database = get_example_database()
-    if database.backend != "postgresql":
-        return
-
-    payload = {
-        "engine": "postgresql",
-        "parameters": {
-            "username": "superset",
-            "password": "superset",
-            "host": "localhost",
-            "port": 5432,
-            "database": "INVALID",
-            "query": {},
-        },
-    }
-    command = ValidateDatabaseParametersCommand(None, payload)
-    with pytest.raises(DatabaseTestConnectionFailedError) as excinfo:
-        command.run()
-    assert excinfo.value.errors == [
-        SupersetError(
-            message='Unable to connect to database "INVALID".',
-            error_type=SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
-            level=ErrorLevel.ERROR,
-            extra={
-                "invalid": ["database"],
-                "engine_name": "PostgreSQL",
-                "issue_codes": [
-                    {
-                        "code": 1015,
-                        "message": "Issue 1015 - Either the database is spelled incorrectly or does not exist.",
-                    }
-                ],
-            },
-        )
     ]
