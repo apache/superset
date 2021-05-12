@@ -46,7 +46,7 @@ export default class EchartsTreemapChartPlugin extends ChartPlugin<
       metadata: new ChartMetadata({
         credits: ['https://echarts.apache.org'],
         description: 'Treemap (Apache ECharts)',
-        name: t('Treemap'),
+        name: t('Treemap v2'),
         thumbnail,
       }),
       transformProps,
