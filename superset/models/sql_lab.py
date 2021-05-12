@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """A collection of ORM sqlalchemy models for SQL Lab"""
+import enum
 import re
 from datetime import datetime
 from typing import Any, Dict, List
@@ -29,6 +30,7 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
+    Enum,
     ForeignKey,
     Integer,
     Numeric,
@@ -47,6 +49,14 @@ from superset.models.helpers import (
 from superset.models.tags import QueryUpdater
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.utils.core import QueryStatus, user_label
+
+
+class LimitingFactor(str, enum.Enum):
+    QUERY = "QUERY"
+    DROPDOWN = "DROPDOWN"
+    QUERY_AND_DROPDOWN = "QUERY_AND_DROPDOWN"
+    NOT_LIMITED = "NOT_LIMITED"
+    UNKNOWN = "UNKNOWN"
 
 
 class Query(Model, ExtraJSONMixin):
@@ -76,6 +86,9 @@ class Query(Model, ExtraJSONMixin):
     executed_sql = Column(Text)
     # Could be configured in the superset config.
     limit = Column(Integer)
+    limiting_factor = Column(
+        Enum(LimitingFactor), server_default=LimitingFactor.UNKNOWN
+    )
     select_as_cta = Column(Boolean)
     select_as_cta_used = Column(Boolean, default=False)
     ctas_method = Column(String(16), default=CtasMethod.TABLE)
@@ -120,6 +133,7 @@ class Query(Model, ExtraJSONMixin):
             "id": self.client_id,
             "queryId": self.id,
             "limit": self.limit,
+            "limitingFactor": self.limiting_factor,
             "progress": self.progress,
             "rows": self.rows,
             "schema": self.schema,

@@ -48,7 +48,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         try:
             return db.session.query(Database).filter_by(id=database_id).one_or_none()
         except SQLAlchemyError as ex:  # pragma: no cover
-            logger.error("Could not get database by id: %s", str(ex))
+            logger.error("Could not get database by id: %s", str(ex), exc_info=True)
             return None
 
     @staticmethod

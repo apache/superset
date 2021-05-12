@@ -54,6 +54,7 @@ const selectedMetricType = PropTypes.oneOfType([
 ]);
 
 const propTypes = {
+  label: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
   name: PropTypes.string,
   onChange: PropTypes.func,
   value: PropTypes.arrayOf(adhocFilterType),

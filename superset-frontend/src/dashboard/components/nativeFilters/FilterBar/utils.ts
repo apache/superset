@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { DataMaskStateWithId } from 'src/dataMask/types';
 import { Filter } from '../types';
 
 export enum TabIds {
@@ -39,3 +40,9 @@ export function mapParentFiltersToChildren(
   });
   return cascadeChildren;
 }
+
+export const getOnlyExtraFormData = (data: DataMaskStateWithId) =>
+  Object.values(data).reduce(
+    (prev, next) => ({ ...prev, [next.id]: next.extraFormData }),
+    {},
+  );

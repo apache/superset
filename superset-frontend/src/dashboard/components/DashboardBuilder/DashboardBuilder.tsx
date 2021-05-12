@@ -22,7 +22,6 @@ import React, { FC, SyntheticEvent, useEffect, useState } from 'react';
 import { Sticky, StickyContainer } from 'react-sticky';
 import { TabContainer } from 'react-bootstrap';
 import { JsonObject, styled } from '@superset-ui/core';
-
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
@@ -31,7 +30,6 @@ import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
-
 import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { URL_PARAMS } from 'src/constants';
@@ -102,6 +100,12 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
+  const showNativeFilters = useSelector<RootState, boolean>(
+    state => state.dashboardInfo.metadata?.show_native_filters,
+  );
+  const canEdit = useSelector<RootState, boolean>(
+    ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
+  );
   const editMode = useSelector<RootState, boolean>(
     state => state.dashboardState.editMode,
   );
@@ -112,9 +116,10 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const filters = useFilters();
   const filterValues = Object.values<Filter>(filters);
 
-  const nativeFiltersEnabled = isFeatureEnabled(
-    FeatureFlag.DASHBOARD_NATIVE_FILTERS,
-  );
+  const nativeFiltersEnabled =
+    showNativeFilters &&
+    isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
+    (canEdit || (!canEdit && filterValues.length !== 0));
 
   const [dashboardFiltersOpen, setDashboardFiltersOpen] = useState(true);
 
@@ -237,10 +242,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             </ErrorBoundary>
           </StickyVerticalBar>
         )}
-        <DashboardContainer
-          topLevelTabs={topLevelTabs}
-          handleChangeTab={handleChangeTab}
-        />
+        <DashboardContainer topLevelTabs={topLevelTabs} />
         {editMode && <BuilderComponentPane topOffset={barTopOffset} />}
       </StyledDashboardContent>
       <ToastPresenter />

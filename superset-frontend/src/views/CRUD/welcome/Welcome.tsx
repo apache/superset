@@ -55,7 +55,7 @@ export interface ActivityData {
 
 const WelcomeContainer = styled.div`
   background-color: ${({ theme }) => theme.colors.grayscale.light4};
-  nav {
+  .ant-row.menu {
     margin-top: -15px;
     background-color: ${({ theme }) => theme.colors.grayscale.light4};
     &:after {
@@ -64,24 +64,17 @@ const WelcomeContainer = styled.div`
       border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
       margin: 0px ${({ theme }) => theme.gridUnit * 6}px;
       position: relative;
+      width: 100%;
       ${[mq[1]]} {
         margin-top: 5px;
         margin: 0px 2px;
       }
     }
-    .nav.navbar-nav {
-      & > li:nth-of-type(1),
-      & > li:nth-of-type(2),
-      & > li:nth-of-type(3) {
-        margin-top: ${({ theme }) => theme.gridUnit * 2}px;
-      }
+    .ant-menu.ant-menu-light.ant-menu-root.ant-menu-horizontal {
+      padding-left: ${({ theme }) => theme.gridUnit * 10}px;
     }
     button {
       padding: 3px 21px;
-    }
-    .navbar-right {
-      position: relative;
-      top: 11px;
     }
   }
   .ant-card.ant-card-bordered {
@@ -92,7 +85,6 @@ const WelcomeContainer = styled.div`
 const WelcomeNav = styled.div`
   height: 50px;
   background-color: white;
-  margin-top: ${({ theme }) => theme.gridUnit * -4 - 1}px;
   .navbar-brand {
     margin-left: ${({ theme }) => theme.gridUnit * 2}px;
     font-weight: ${({ theme }) => theme.typography.weights.bold};

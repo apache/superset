@@ -21,7 +21,6 @@ import pytest
 from sqlalchemy.engine import Engine
 
 from tests.test_app import app
-
 from superset import db
 from superset.utils.core import get_example_database, json_dumps_w_dates
 
@@ -38,6 +37,9 @@ def app_context():
 
 @pytest.fixture(autouse=True, scope="session")
 def setup_sample_data() -> Any:
+    # TODO(john-bodley): Determine a cleaner way of setting up the sample data without
+    # relying on `tests.test_app.app` leveraging an  `app` fixture which is purposely
+    # scoped to the function level to ensure tests remain idempotent.
     with app.app_context():
         setup_presto_if_needed()
 

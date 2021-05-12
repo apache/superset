@@ -38,6 +38,7 @@ const packageConfig = require('./package.json');
 const APP_DIR = path.resolve(__dirname, './');
 // output dir
 const BUILD_DIR = path.resolve(__dirname, '../superset/static/assets');
+const ROOT_DIR = path.resolve(__dirname, '..');
 
 const {
   mode = 'development',
@@ -201,14 +202,13 @@ const config = {
     fs: 'empty',
   },
   entry: {
-    theme: path.join(APP_DIR, '/src/theme.ts'),
     preamble: PREAMBLE,
+    theme: path.join(APP_DIR, '/src/theme.ts'),
+    menu: addPreamble('src/views/menu.tsx'),
+    spa: addPreamble('/src/views/index.tsx'),
     addSlice: addPreamble('/src/addSlice/index.tsx'),
     explore: addPreamble('/src/explore/index.jsx'),
-    dashboard: addPreamble('/src/dashboard/index.jsx'),
     sqllab: addPreamble('/src/SqlLab/index.tsx'),
-    crudViews: addPreamble('/src/views/index.tsx'),
-    menu: addPreamble('src/views/menu.tsx'),
     profile: addPreamble('/src/profile/index.tsx'),
     showSavedQuery: [path.join(APP_DIR, '/src/showSavedQuery/index.jsx')],
   },
@@ -286,15 +286,11 @@ const config = {
     },
   },
   resolve: {
-    modules: [APP_DIR, 'node_modules'],
+    modules: [APP_DIR, 'node_modules', ROOT_DIR],
     alias: {
       'react-dom': '@hot-loader/react-dom',
       // Force using absolute import path of some packages in the root node_modules,
       // as they can be dependencies of other packages via `npm link`.
-      // Both `@emotion/core` and `@superset-ui/core` remember some globals within
-      // module after imported, which will not be available everywhere if two
-      // different copies of the same module are imported in different places.
-      '@emotion/core': path.resolve(APP_DIR, './node_modules/@emotion/core'),
       '@superset-ui/core': path.resolve(
         APP_DIR,
         './node_modules/@superset-ui/core',
@@ -304,7 +300,7 @@ const config = {
         './node_modules/@superset-ui/chart-controls',
       ),
     },
-    extensions: ['.ts', '.tsx', '.js', '.jsx'],
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     symlinks: false,
   },
   context: APP_DIR, // to automatically find tsconfig.json
@@ -438,6 +434,11 @@ const config = {
           esModule: false,
         },
       },
+      {
+        test: /\.ya?ml$/,
+        include: ROOT_DIR,
+        loader: 'js-yaml-loader',
+      },
     ],
   },
   externals: {
@@ -477,6 +478,15 @@ if (isDevMode) {
     ],
     contentBase: path.join(process.cwd(), '../static/assets'),
   };
+
+  // make sure to use @emotion/* modules in the root directory
+  fs.readdirSync(path.resolve(APP_DIR, './node_modules/@emotion'), pkg => {
+    config.resolve.alias[pkg] = path.resolve(
+      APP_DIR,
+      './node_modules/@emotion',
+      pkg,
+    );
+  });
 
   // find all the symlinked plugins and use their source code for imports
   let hasSymlink = false;

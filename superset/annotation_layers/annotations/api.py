@@ -311,7 +311,10 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=ex.normalized_messages())
         except AnnotationCreateFailedError as ex:
             logger.error(
-                "Error creating annotation %s: %s", self.__class__.__name__, str(ex)
+                "Error creating annotation %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -384,7 +387,10 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=ex.normalized_messages())
         except AnnotationUpdateFailedError as ex:
             logger.error(
-                "Error updating annotation %s: %s", self.__class__.__name__, str(ex)
+                "Error updating annotation %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -436,7 +442,10 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except AnnotationDeleteFailedError as ex:
             logger.error(
-                "Error deleting annotation %s: %s", self.__class__.__name__, str(ex)
+                "Error deleting annotation %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 

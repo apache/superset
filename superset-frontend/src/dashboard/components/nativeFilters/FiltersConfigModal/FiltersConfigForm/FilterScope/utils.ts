@@ -129,11 +129,10 @@ export const findFilterScope = (
   // looking for charts to be excluded: iterate over all charts
   // and looking for charts that have one of their parents in `rootPath` and not in selected items
   Object.entries(layout).forEach(([key, value]) => {
+    const parents = value.parents || [];
     if (
       value.type === CHART_TYPE &&
-      [DASHBOARD_ROOT_ID, ...value.parents]?.find(parent =>
-        isExcluded(parent, key),
-      )
+      [DASHBOARD_ROOT_ID, ...parents]?.find(parent => isExcluded(parent, key))
     ) {
       excluded.push(value.meta.chartId);
     }

@@ -65,7 +65,7 @@ function verify(sourceProp: string) {
 
 async function setup({
   extraProps,
-  baseControl = MetricsControl,
+  baseControl = MetricsControl as WithAsyncVerificationOptions['baseControl'],
   onChange,
 }: Partial<WithAsyncVerificationOptions> & {
   extraProps?: ExtraControlProps;
@@ -121,7 +121,7 @@ describe('VerifiedMetricsControl', () => {
     });
 
     const child = wrapper.find(MetricsControl);
-    child.props().onChange(['abc']);
+    child.props().onChange?.(['abc']);
 
     expect(child.length).toBe(1);
     expect(mockOnChange).toBeCalledTimes(1);
