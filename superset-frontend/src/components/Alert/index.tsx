@@ -25,9 +25,11 @@ import { useTheme } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
 import Icons from 'src/components/Icons';
 
-export type AlertProps = PropsWithChildren<AntdAlertProps>;
+export type AlertProps = PropsWithChildren<
+  AntdAlertProps & { roomBelow?: boolean }
+>;
 
-export default function Alert(props: AlertProps & { roomBelow?: boolean }) {
+export default function Alert(props: AlertProps) {
   const {
     type = 'info',
     description,
