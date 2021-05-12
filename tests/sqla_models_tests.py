@@ -171,7 +171,6 @@ class TestDatabaseModel(SupersetTestCase):
             value: Union[float, int, List[Any], str]
             expected: Union[str, List[str]]
 
-
         filters: Tuple[FilterTestCase, ...] = (
             FilterTestCase(FilterOperator.IS_NULL, "", "IS NULL"),
             FilterTestCase(FilterOperator.IS_NOT_NULL, "", "IS NOT NULL"),
@@ -201,11 +200,12 @@ class TestDatabaseModel(SupersetTestCase):
                 ],
                 "extras": {},
             }
-
             sqla_query = table.get_sqla_query(**query_obj)
             sql = table.database.compile_sqla_query(sqla_query.sqla_query)
             if isinstance(filter_.expected, list):
-                self.assertTrue(any([candidate in sql for candidate in filter_.expected]))
+                self.assertTrue(
+                    any([candidate in sql for candidate in filter_.expected])
+                )
             else:
                 self.assertIn(filter_.expected, sql)
 
