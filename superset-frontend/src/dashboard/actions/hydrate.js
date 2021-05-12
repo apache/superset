@@ -18,7 +18,6 @@
  */
 /* eslint-disable camelcase */
 import { isString, keyBy } from 'lodash';
-import shortid from 'shortid';
 import {
   Behavior,
   CategoricalColorNamespace,
@@ -376,8 +375,6 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
         lastModifiedTime: dashboardData.changed_on,
       },
       dashboardLayout,
-      messageToasts: [],
-      impressionId: shortid.generate(),
     },
   });
 };
