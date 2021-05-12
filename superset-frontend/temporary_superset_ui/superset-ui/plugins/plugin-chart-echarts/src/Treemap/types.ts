@@ -22,6 +22,7 @@ import {
   QueryFormData,
   QueryFormMetric,
 } from '@superset-ui/core';
+import { CallbackDataParams } from 'echarts/types/src/util/types';
 import { LabelPositionEnum } from '../types';
 
 export type EchartsTreemapFormData = QueryFormData & {
@@ -55,8 +56,17 @@ export const DEFAULT_FORM_DATA: Partial<EchartsTreemapFormData> = {
   labelPosition: LabelPositionEnum.InsideTopLeft,
   numberFormat: 'SMART_NUMBER',
   showLabels: true,
-  showUpperLabels: false,
+  showUpperLabels: true,
   dateFormat: 'smart_date',
   nodeClick: 'zoomToNode',
   roam: true,
 };
+
+interface TreePathInfo {
+  name: string;
+  dataIndex: number;
+  value: number | number[];
+}
+export interface TreemapSeriesCallbackDataParams extends CallbackDataParams {
+  treePathInfo?: TreePathInfo[];
+}
