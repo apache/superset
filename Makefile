@@ -50,8 +50,8 @@ pre-commit:
 
 format: py-format js-format
 
-py-format: pre-commit
-	pre-commit run black --all-files
+py-format:
+	python -m black superset
 
 js-format:
 	cd superset-frontend; npm run prettier
