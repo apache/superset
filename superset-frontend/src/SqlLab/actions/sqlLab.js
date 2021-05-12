@@ -897,7 +897,7 @@ export function queryEditorSetSql(queryEditor, sql) {
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? SupersetClient.put({
           endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
-          postPayload: { sql },
+          postPayload: { sql, latest_query_id: queryEditor.latestQueryId },
         })
       : Promise.resolve();
 
