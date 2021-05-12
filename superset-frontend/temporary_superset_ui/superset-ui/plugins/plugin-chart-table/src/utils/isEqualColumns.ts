@@ -31,6 +31,10 @@ export default function isEqualColumns(propsA: TableChartProps[], propsB: TableC
       JSON.stringify(b.formData.columnConfig || null) &&
     isEqualArray(a.formData.metrics, b.formData.metrics) &&
     isEqualArray(a.queriesData?.[0]?.colnames, b.queriesData?.[0]?.colnames) &&
-    isEqualArray(a.queriesData?.[0]?.coltypes, b.queriesData?.[0]?.coltypes)
+    isEqualArray(a.queriesData?.[0]?.coltypes, b.queriesData?.[0]?.coltypes) &&
+    JSON.stringify(a.formData.extraFilters || null) ===
+      JSON.stringify(b.formData.extraFilters || null) &&
+    JSON.stringify(a.formData.extraFormData || null) ===
+      JSON.stringify(b.formData.extraFormData || null)
   );
 }

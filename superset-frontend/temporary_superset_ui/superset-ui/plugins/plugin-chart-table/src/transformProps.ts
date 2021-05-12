@@ -19,6 +19,7 @@
 import memoizeOne from 'memoize-one';
 import {
   DataRecord,
+  extractTimegrain,
   GenericDataType,
   getMetricLabel,
   getNumberFormatter,
@@ -75,13 +76,13 @@ const processColumns = memoizeOne(function processColumns(props: TableChartProps
     datasource: { columnFormats, verboseMap },
     rawFormData: {
       table_timestamp_format: tableTimestampFormat,
-      time_grain_sqla: granularity,
       metrics: metrics_,
       percent_metrics: percentMetrics_,
       column_config: columnConfig = {},
     },
     queriesData,
   } = props;
+  const granularity = extractTimegrain(props.rawFormData);
   const { data: records, colnames, coltypes } = queriesData[0] || {};
   // convert `metrics` and `percentMetrics` to the key names in `data.records`
   const metrics = (metrics_ ?? []).map(getMetricLabel);
