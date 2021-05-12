@@ -248,9 +248,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         {!confirmChange && (
           <>
             <Alert
-              css={theme => css`
-                margin-bottom: ${theme.gridUnit * 4}px;
-              `}
+              roomBelow
               type="warning"
               message={
                 <>
