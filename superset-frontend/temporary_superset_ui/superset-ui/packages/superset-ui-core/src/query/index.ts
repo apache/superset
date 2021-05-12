@@ -23,6 +23,7 @@ export * from './constants';
 export { default as buildQueryContext } from './buildQueryContext';
 export { default as buildQueryObject } from './buildQueryObject';
 export { default as convertFilter } from './convertFilter';
+export { default as extractTimegrain } from './extractTimegrain';
 export { default as getMetricLabel } from './getMetricLabel';
 export { default as DatasourceKey } from './DatasourceKey';
 
