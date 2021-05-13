@@ -215,7 +215,7 @@ class Database(
             "id": self.id,
             "name": self.database_name,
             "backend": self.backend,
-            "configurationMethod": self.configuration_method,
+            "configuration_method": self.configuration_method,
             "allow_multi_schema_metadata_fetch": self.allow_multi_schema_metadata_fetch,
             "allows_subquery": self.allows_subquery,
             "allows_cost_estimate": self.allows_cost_estimate,
