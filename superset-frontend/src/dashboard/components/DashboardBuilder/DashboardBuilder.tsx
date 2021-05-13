@@ -18,9 +18,8 @@
  */
 /* eslint-env browser */
 import cx from 'classnames';
-import React, { FC, SyntheticEvent, useEffect, useState } from 'react';
+import React, { FC, useEffect, useState } from 'react';
 import { Sticky, StickyContainer } from 'react-sticky';
-import { TabContainer } from 'react-bootstrap';
 import { JsonObject, styled } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
@@ -129,7 +128,9 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
 
   const handleChangeTab = ({
     pathToTabIndex,
-  }: SyntheticEvent<TabContainer, Event> & { pathToTabIndex: string[] }) => {
+  }: {
+    pathToTabIndex: string[];
+  }) => {
     dispatch(setDirectPathToChild(pathToTabIndex));
   };
 
