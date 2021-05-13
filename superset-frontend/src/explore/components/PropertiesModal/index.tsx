@@ -18,15 +18,14 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import Modal from 'src/components/Modal';
-import { Row, Col } from 'src/common/components';
-import { FormControl, FormGroup, FormControlProps } from 'react-bootstrap';
+import { Row, Col, Input, TextArea } from 'src/common/components';
 import Button from 'src/components/Button';
 import { OptionsType } from 'react-select/src/types';
 import { AsyncSelect } from 'src/components/Select';
 import rison from 'rison';
 import { t, SupersetClient } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
-import { FormLabel } from 'src/components/Form';
+import { Form, FormItem } from 'src/components/Form';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 type PropertiesModalProps = {
@@ -186,37 +185,28 @@ export default function PropertiesModal({
       responsive
       wrapProps={{ 'data-test': 'properties-edit-modal' }}
     >
-      <form onSubmit={onSubmit}>
+      <Form onFinish={onSubmit} layout="vertical">
         <Row gutter={16}>
           <Col xs={24} md={12}>
             <h3>{t('Basic information')}</h3>
-            <FormGroup>
-              <FormLabel htmlFor="name" required>
-                {t('Name')}
-              </FormLabel>
-              <FormControl
+            <FormItem label={t('Name')} required>
+              <Input
                 name="name"
                 data-test="properties-modal-name-input"
                 type="text"
-                bsSize="sm"
                 value={name}
-                onChange={(
-                  event: React.FormEvent<FormControl & FormControlProps>,
-                ) => setName((event.currentTarget?.value as string) ?? '')}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                  setName(event.target.value ?? '')
+                }
               />
-            </FormGroup>
-            <FormGroup>
-              <FormLabel htmlFor="description">{t('Description')}</FormLabel>
-              <FormControl
+            </FormItem>
+            <FormItem label={t('Description')}>
+              <TextArea
+                rows={3}
                 name="description"
-                type="text"
-                componentClass="textarea"
-                bsSize="sm"
                 value={description}
-                onChange={(
-                  event: React.FormEvent<FormControl & FormControlProps>,
-                ) =>
-                  setDescription((event.currentTarget?.value as string) ?? '')
+                onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setDescription(event.target.value ?? '')
                 }
                 style={{ maxWidth: '100%' }}
               />
@@ -225,22 +215,17 @@ export default function PropertiesModal({
                   'The description can be displayed as widget headers in the dashboard view. Supports markdown.',
                 )}
               </p>
-            </FormGroup>
+            </FormItem>
           </Col>
           <Col xs={24} md={12}>
             <h3>{t('Configuration')}</h3>
-            <FormGroup>
-              <FormLabel htmlFor="cacheTimeout">{t('Cache timeout')}</FormLabel>
-              <FormControl
+            <FormItem label={t('Cache timeout')}>
+              <Input
                 name="cacheTimeout"
                 type="text"
-                bsSize="sm"
                 value={cacheTimeout}
-                onChange={(
-                  event: React.FormEvent<FormControl & FormControlProps>,
-                ) => {
-                  const targetValue =
-                    (event.currentTarget?.value as string) ?? '';
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                  const targetValue = event.target.value ?? '';
                   setCacheTimeout(targetValue.replace(/[^0-9]/, ''));
                 }}
               />
@@ -249,10 +234,9 @@ export default function PropertiesModal({
                   "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.",
                 )}
               </p>
-            </FormGroup>
+            </FormItem>
             <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
-            <FormGroup>
-              <FormLabel htmlFor="owners">{t('Owners')}</FormLabel>
+            <FormItem label={t('Owners')}>
               <AsyncSelect
                 isMulti
                 name="owners"
@@ -269,10 +253,10 @@ export default function PropertiesModal({
                   'A list of users who can alter the chart. Searchable by name or username.',
                 )}
               </p>
-            </FormGroup>
+            </FormItem>
           </Col>
         </Row>
-      </form>
+      </Form>
     </Modal>
   );
 }
