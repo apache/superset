@@ -37,7 +37,7 @@ from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.types import String, TypeEngine
 
-from superset.db_engine_specs.base import BaseEngineSpec, BaseParametersMixin
+from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
@@ -155,7 +155,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         return "(timestamp 'epoch' + {col} * interval '1 second')"
 
 
-class PostgresEngineSpec(PostgresBaseEngineSpec, BaseParametersMixin):
+class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
     engine = "postgresql"
     engine_aliases = {"postgres"}
 
