@@ -226,18 +226,6 @@ export class ControlPanelsContainer extends React.Component<ControlPanelsContain
             padding-bottom: 0px;
           }
 
-          .control-label {
-            margin-bottom: 0px;
-            position: relative;
-            span + span {
-              // this is targeting the little info icons
-              position: absolute;
-              top: 50%;
-              right: ${theme.gridUnit * -3}px;
-              transform: translateY(-50%);
-            }
-          }
-
           span.label {
             display: inline-block;
           }
