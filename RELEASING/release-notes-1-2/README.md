@@ -74,14 +74,46 @@ Expanding the API has been an ongoing effort, and 1.2 introduces a number of new
 
 **New Charts and User Experience**
 
+- [14197](https://github.com/apache/superset/pull/14197) feat(viz): add mixed and radar chart (#14197) (@Ville Brofeldt)
+- [14187](https://github.com/apache/superset/pull/14187) Enable the new pivot table (#14187) (@Kamil Gabryjelski)
+- [13210](https://github.com/apache/superset/pull/13210) feat(explore): ColumnSelectControl with drag-and-drop (#13210) (@Yongjie Zhao)
+- [13598](https://github.com/apache/superset/pull/13598) feat(explore): Drag and drop UX improvements (#13598) (@Kamil Gabryjelski)
+- [13294](https://github.com/apache/superset/pull/13294) feat(explore): Postgres datatype conversion (#13294) (@Nikola Gigić)
+- [13758](https://github.com/apache/superset/pull/13758) feat(explore): adhoc column formatting for Table chart (#13758) (@Jesse Yang)
 
 **Progress On Dashboard Native Filters**
 
+- [13726](https://github.com/apache/superset/pull/13726) feat(native-filters): Add default first value to select filter (#13726) (@simcha90)
+- [14461](https://github.com/apache/superset/pull/14461) feat(native-filters): Auto apply changes in FiltersConfigModal (#14461) (@simcha90)
+- [13507](https://github.com/apache/superset/pull/13507) feat(native-filters): Filter set tabs (#13507) (@simcha90)
+- [14313](https://github.com/apache/superset/pull/14313) feat(native-filters): Implement adhoc filters and time picker in Range and Select native filters (#14313) (@Kamil Gabryjelski)
+- [14261](https://github.com/apache/superset/pull/14261) feat(native-filters): Show/Hide filter bar by metdata ff (#14261) (@simcha90)
+- [13506](https://github.com/apache/superset/pull/13506) feat(native-filters): Update filter bar buttons (#13506) (@simcha90)
+- [14374](https://github.com/apache/superset/pull/14374) feat(native-filters): Use datasets in dashboard as default options for native filters (#14374) (@Kamil Gabryjelski)
+- [14314](https://github.com/apache/superset/pull/14314) feat(native-filters): add option to create value in select filter (#14314) (@Ville Brofeldt)
+- [14346](https://github.com/apache/superset/pull/14346) feat(native-filters): add optional sort metric to select filter (#14346) (@Ville Brofeldt)
+- [14375](https://github.com/apache/superset/pull/14375) feat(native-filters): add refresh button to default value picker (#14375) (@Ville Brofeldt)
+- [13569](https://github.com/apache/superset/pull/13569) feat(native-filters): add sort option to select filter (#13569) (@Ville Brofeldt)
+- [13622](https://github.com/apache/superset/pull/13622) feat(native-filters): add temporal support to select filter (#13622) (@Ville Brofeldt)
+- [13484](https://github.com/apache/superset/pull/13484) feat(native-filters): add timegrain and column filter (#13484) (@Ville Brofeldt)
+- [14312](https://github.com/apache/superset/pull/14312) feat(native-filters): add tooltip to control values (#14312) (@Ville Brofeldt)
+- [14217](https://github.com/apache/superset/pull/14217) feat(native-filters): select group by support (#14217) (@Amit Miran)
 
 **Progress On Dashboard Level Access**
 
+- [13145](https://github.com/apache/superset/pull/13145) feat(dashboard_rbac): manage roles for dashboard (#13145) (@simcha90)
+- [13992](https://github.com/apache/superset/pull/13992) feat(dashboard_rbac): provide data access based on dashboard access (#13992) (@Amit Miran)
+- [#12865](https://github.com/apache/superset/pull/12865) feat(dashboard_rbac): dashboards API support for roles create/update + roles validation (@amitmiran137)
+
 
 **Improvements to Developer Experience**
+
+- [14208](https://github.com/apache/superset/pull/14208) feat: add endpoint to fetch available DBs (#14208) (@Beto Dealmeida)
+- [13331](https://github.com/apache/superset/pull/13331) fix(query-object): extra time-range-endpoints (#13331) (@John Bodley)
+- [13893](https://github.com/apache/superset/pull/13893) feat: create backend routes and API for importing saved queries (#13893) (@AAfghahi)
+- [13960](https://github.com/apache/superset/pull/13960) feat: initial work to make v1 API compatible with SIP-40 and SIP-41 (#13960) (@Beto Dealmeida)
+- [13444](https://github.com/apache/superset/pull/13444) fix: API to allow importing old exports (JSON/YAML) (#13444) (@Beto Dealmeida)
+- [13893](https://github.com/apache/superset/pull/13893) feat: create backend routes and API for importing saved queries (#13893) (@AAfghahi)
 
 
 ## Breaking Changes and Full Changelog
