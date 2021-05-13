@@ -66,7 +66,7 @@ from superset.databases.schemas import (
 )
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
-from superset.db_engine_specs.base import BaseParametersMixin
+from superset.db_engine_specs.base import BasicParametersMixin
 from superset.exceptions import InvalidPayloadFormatError, InvalidPayloadSchemaError
 from superset.extensions import security_manager
 from superset.models.core import Database
@@ -904,7 +904,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "preferred": engine_spec.engine in preferred_databases,
             }
 
-            if issubclass(engine_spec, BaseParametersMixin):
+            if issubclass(engine_spec, BasicParametersMixin):
                 payload["parameters"] = engine_spec.parameters_json_schema()
                 payload[
                     "sqlalchemy_uri_placeholder"

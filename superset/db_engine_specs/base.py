@@ -1294,7 +1294,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI
-class BaseParametersSchema(Schema):
+class BasicParametersSchema(Schema):
     username = fields.String(required=True, allow_none=True, description=__("Username"))
     password = fields.String(allow_none=True, description=__("Password"))
     host = fields.String(required=True, description=__("Hostname or IP address"))
@@ -1305,7 +1305,7 @@ class BaseParametersSchema(Schema):
     )
 
 
-class BaseParametersType(TypedDict, total=False):
+class BasicParametersType(TypedDict, total=False):
     username: Optional[str]
     password: Optional[str]
     host: str
@@ -1314,7 +1314,7 @@ class BaseParametersType(TypedDict, total=False):
     query: Dict[str, Any]
 
 
-class BaseParametersMixin:
+class BasicParametersMixin:
 
     """
     Mixin for configuring DB engine specs via a dictionary.
@@ -1328,7 +1328,7 @@ class BaseParametersMixin:
     """
 
     # schema describing the parameters used to configure the DB
-    parameters_schema = BaseParametersSchema()
+    parameters_schema = BasicParametersSchema()
 
     # recommended driver name for the DB engine spec
     drivername = ""
@@ -1339,7 +1339,7 @@ class BaseParametersMixin:
     )
 
     @classmethod
-    def build_sqlalchemy_uri(cls, parameters: BaseParametersType) -> str:
+    def build_sqlalchemy_uri(cls, parameters: BasicParametersType) -> str:
         return str(
             URL(
                 cls.drivername,
@@ -1353,7 +1353,7 @@ class BaseParametersMixin:
         )
 
     @staticmethod
-    def get_parameters_from_uri(uri: str) -> BaseParametersType:
+    def get_parameters_from_uri(uri: str) -> BasicParametersType:
         url = make_url(uri)
         return {
             "username": url.username,
@@ -1365,7 +1365,9 @@ class BaseParametersMixin:
         }
 
     @classmethod
-    def validate_parameters(cls, parameters: BaseParametersType) -> List[SupersetError]:
+    def validate_parameters(
+        cls, parameters: BasicParametersType
+    ) -> List[SupersetError]:
         """
         Validates any number of parameters, for progressive validation.
 
