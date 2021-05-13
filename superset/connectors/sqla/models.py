@@ -192,6 +192,16 @@ class TableColumn(Model, BaseColumn):
     export_parent = "table"
 
     @property
+    def is_boolean(self) -> bool:
+        """
+        Check if the column has a boolean datatype.
+        """
+        column_spec = self.table.database.db_engine_spec.get_column_spec(self.type)
+        if column_spec is None:
+            return False
+        return column_spec.generic_type == GenericDataType.BOOLEAN
+
+    @property
     def is_numeric(self) -> bool:
         """
         Check if the column has a numeric datatype.
@@ -349,6 +359,7 @@ class TableColumn(Model, BaseColumn):
             "groupby",
             "is_dttm",
             "type",
+            "type_generic",
             "python_date_format",
         )
         return {s: getattr(self, s) for s in attrs if hasattr(self, s)}

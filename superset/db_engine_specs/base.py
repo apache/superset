@@ -194,6 +194,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             types.Numeric(),
             GenericDataType.NUMERIC,
         ),
+        (re.compile(r"^float", re.IGNORECASE), types.Float(), GenericDataType.NUMERIC,),
+        (
+            re.compile(r"^double", re.IGNORECASE),
+            types.Float(),
+            GenericDataType.NUMERIC,
+        ),
         (re.compile(r"^real", re.IGNORECASE), types.REAL, GenericDataType.NUMERIC,),
         (
             re.compile(r"^smallserial", re.IGNORECASE),
@@ -211,6 +217,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             GenericDataType.NUMERIC,
         ),
         (
+            re.compile(r"^money", re.IGNORECASE),
+            types.Numeric(),
+            GenericDataType.NUMERIC,
+        ),
+        (
             re.compile(r"^string", re.IGNORECASE),
             types.String(),
             utils.GenericDataType.STRING,
@@ -225,6 +236,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             String(),
             utils.GenericDataType.STRING,
         ),
+        (
+            re.compile(r"^((TINY|MEDIUM|LONG)?TEXT)", re.IGNORECASE),
+            String(),
+            utils.GenericDataType.STRING,
+        ),
+        (re.compile(r"^LONG", re.IGNORECASE), types.Float(), GenericDataType.NUMERIC,),
         (
             re.compile(r"^datetime", re.IGNORECASE),
             types.DateTime(),
