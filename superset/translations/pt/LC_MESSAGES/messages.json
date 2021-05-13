@@ -304,6 +304,7 @@
       "Toggle chart description": ["Alternar descrição do gráfico"],
       "Edit chart": ["Editar gráfico"],
       "Export CSV": ["Exportar CSV"],
+      "Export XML": ["Exportar XML"],
       "Explore chart": ["Explorar gráfico"],
       "Remove chart from dashboard": ["Remover gráfico do dashboard"],
       "is expected to be a number": ["deve ser um número"],
@@ -322,6 +323,7 @@
       "Width": ["Largura"],
       "Export to .json": ["Exportar para .json"],
       "Export to .csv format": ["Exportar para o formato .csv"],
+      "Export to .xml format": ["Exportar para o formato .xml"],
       "Please enter a slice name": [
         "Por favor insira um nome para a visualização"
       ],
