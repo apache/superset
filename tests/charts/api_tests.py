@@ -1197,6 +1197,30 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 403)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_xml_result_format(self):
+        """
+        Chart data API: Test chart data with XML result format
+        """
+        self.login(username="admin")
+        request_payload = get_query_context("birth_names")
+        request_payload["result_format"] = "xml"
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 200)
+
+    # Test chart csv without permission
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_xml_result_format_permission_denined(self):
+        """
+        Chart data API: Test chart data with XML result format
+        """
+        self.login(username="gamma_no_csv")
+        request_payload = get_query_context("birth_names")
+        request_payload["result_format"] = "xml"
+
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 403)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_mixed_case_filter_op(self):
         """
         Chart data API: Ensure mixed case filter operator generates valid result
