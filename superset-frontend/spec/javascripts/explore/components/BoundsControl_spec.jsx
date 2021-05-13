@@ -17,10 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { FormControl } from 'react-bootstrap';
 import sinon from 'sinon';
 import { styledMount as mount } from 'spec/helpers/theming';
 import BoundsControl from 'src/explore/components/controls/BoundsControl';
+import { Input } from 'src/common/components';
 
 const defaultProps = {
   name: 'y_axis_bounds',
@@ -35,13 +35,13 @@ describe('BoundsControl', () => {
     wrapper = mount(<BoundsControl {...defaultProps} />);
   });
 
-  it('renders two FormControls', () => {
-    expect(wrapper.find(FormControl)).toHaveLength(2);
+  it('renders two Input', () => {
+    expect(wrapper.find(Input)).toHaveLength(2);
   });
 
   it('errors on non-numeric', () => {
     wrapper
-      .find(FormControl)
+      .find(Input)
       .first()
       .simulate('change', { target: { value: 's' } });
     expect(defaultProps.onChange.calledWith([null, null])).toBe(true);
@@ -51,11 +51,11 @@ describe('BoundsControl', () => {
   });
   it('casts to numeric', () => {
     wrapper
-      .find(FormControl)
+      .find(Input)
       .first()
       .simulate('change', { target: { value: '1' } });
     wrapper
-      .find(FormControl)
+      .find(Input)
       .last()
       .simulate('change', { target: { value: '5' } });
     expect(defaultProps.onChange.calledWith([1, 5])).toBe(true);

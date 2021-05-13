@@ -25,7 +25,9 @@ import { useTheme } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
 import Icons from 'src/components/Icons';
 
-export type AlertProps = PropsWithChildren<AntdAlertProps>;
+export type AlertProps = PropsWithChildren<
+  AntdAlertProps & { roomBelow?: boolean }
+>;
 
 export default function Alert(props: AlertProps) {
   const {
@@ -33,11 +35,12 @@ export default function Alert(props: AlertProps) {
     description,
     showIcon = true,
     closable = true,
+    roomBelow = false,
     children,
   } = props;
 
   const theme = useTheme();
-  const { colors, typography } = theme;
+  const { colors, typography, gridUnit } = theme;
   const { alert, error, info, success } = colors;
 
   let baseColor = info;
@@ -60,12 +63,13 @@ export default function Alert(props: AlertProps) {
       icon={<AlertIcon aria-label={`${type} icon`} />}
       closeText={closable && <Icon name="x-small" aria-label="close icon" />}
       css={{
-        padding: '6px 10px',
+        marginBottom: roomBelow ? gridUnit * 4 : 0,
+        padding: `${gridUnit * 2}px ${gridUnit * 3}px`,
         alignItems: 'flex-start',
         border: 0,
         backgroundColor: baseColor.light2,
         '& .ant-alert-icon': {
-          marginRight: 10,
+          marginRight: gridUnit * 2,
         },
         '& .ant-alert-message': {
           color: baseColor.dark2,

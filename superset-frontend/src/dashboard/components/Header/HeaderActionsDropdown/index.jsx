@@ -317,7 +317,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         overlay={menu}
         trigger={['click']}
         getPopupContainer={triggerNode =>
-          triggerNode.closest(SCREENSHOT_NODE_SELECTOR)
+          triggerNode.closest('.dashboard-header')
         }
       >
         <DropdownButton id="save-dash-split-button" role="button">

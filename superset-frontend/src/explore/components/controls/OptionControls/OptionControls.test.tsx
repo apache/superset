@@ -36,6 +36,7 @@ import {
 
 const defaultProps = {
   label: <span>Test label</span>,
+  tooltipTitle: 'This is a tooltip title',
   onRemove: jest.fn(),
   onMoveLabel: jest.fn(),
   onDropLabel: jest.fn(),

@@ -18,11 +18,11 @@
  */
 import { t, styled } from '@superset-ui/core';
 import React, { useState } from 'react';
-import { FormGroup, FormControl, FormControlProps } from 'react-bootstrap';
+import { Input } from 'src/common/components';
 import Modal from 'src/components/Modal';
 import { FormLabel } from 'src/components/Form';
 
-const StyleFormGroup = styled(FormGroup)`
+const StyledDiv = styled.div`
   padding-top: 8px;
   width: 50%;
   label {
@@ -64,24 +64,21 @@ export default function DeleteModal({
       title={title}
     >
       <DescriptionContainer>{description}</DescriptionContainer>
-      <StyleFormGroup>
+      <StyledDiv>
         <FormLabel htmlFor="delete">
           {t('Type "%s" to confirm', t('DELETE'))}
         </FormLabel>
-        <FormControl
+        <Input
           data-test="delete-modal-input"
           type="text"
           id="delete"
-          bsSize="sm"
           autoComplete="off"
-          onChange={(
-            event: React.FormEvent<FormControl & FormControlProps>,
-          ) => {
-            const targetValue = (event.currentTarget?.value as string) ?? '';
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+            const targetValue = event.target.value ?? '';
             setDisableChange(targetValue.toUpperCase() !== t('DELETE'));
           }}
         />
-      </StyleFormGroup>
+      </StyledDiv>
     </Modal>
   );
 }

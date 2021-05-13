@@ -17,12 +17,10 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { Row, Col } from 'src/common/components';
-import { FormControl, FormGroup } from 'react-bootstrap';
+import { Row, Col, Input, TextArea } from 'src/common/components';
 import { t, supersetTheme, styled } from '@superset-ui/core';
-
 import Button from 'src/components/Button';
-import { FormLabel } from 'src/components/Form';
+import { Form, FormItem } from 'src/components/Form';
 import Modal from 'src/components/Modal';
 import Icon from 'src/components/Icon';
 
@@ -100,12 +98,12 @@ export default function SaveQuery({
     close();
   };
 
-  const onLabelChange = (e: React.FormEvent<FormControl>) => {
-    setLabel((e.target as HTMLInputElement).value);
+  const onLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLabel(e.target.value);
   };
 
-  const onDescriptionChange = (e: React.FormEvent<FormControl>) => {
-    setDescription((e.target as HTMLInputElement).value);
+  const onDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setDescription(e.target.value);
   };
 
   const toggleSave = () => {
@@ -113,27 +111,24 @@ export default function SaveQuery({
   };
 
   const renderModalBody = () => (
-    <FormGroup bsSize="small">
+    <Form layout="vertical">
       <Row>
         <Col xs={24}>
-          <small>
-            <FormLabel htmlFor="embed-height">{t('Name')}</FormLabel>
-          </small>
-          <FormControl type="text" value={label} onChange={onLabelChange} />
+          <FormItem label={t('Name')}>
+            <Input type="text" value={label} onChange={onLabelChange} />
+          </FormItem>
         </Col>
       </Row>
       <br />
       <Row>
         <Col xs={24}>
-          <small>
-            <FormLabel htmlFor="embed-height">{t('Description')}</FormLabel>
-          </small>
-          <FormControl
-            rows={5}
-            componentClass="textarea"
-            value={description}
-            onChange={onDescriptionChange}
-          />
+          <FormItem label={t('Description')}>
+            <TextArea
+              rows={4}
+              value={description}
+              onChange={onDescriptionChange}
+            />
+          </FormItem>
         </Col>
       </Row>
       {saveQueryWarning && (
@@ -149,7 +144,7 @@ export default function SaveQuery({
           </div>
         </>
       )}
-    </FormGroup>
+    </Form>
   );
 
   return (
