@@ -18,12 +18,9 @@
  */
 import React from 'react';
 import { Input } from 'antd';
-import { styled } from '@superset-ui/core';
-// import * as alertSVG from 'images/icons/alert.svg';
+import { styled, css, SupersetTheme } from '@superset-ui/core';
 import FormItem from './FormItem';
 import FormLabel from './FormLabel';
-
-// console.log('---alertString--- ', alertSVG);
 
 export interface LabeledErrorBoundInputProps {
   label?: string;
@@ -46,6 +43,29 @@ const StyledInput = styled(Input)`
   margin: 8px 0;
 `;
 
+const alertIconStyles = (theme: SupersetTheme, hasError: boolean) => css`
+  .ant-form-item-children-icon {
+    display: none;
+  }
+  ${hasError &&
+  `.ant-form-item-control-input-content {
+      position: relative;
+
+      &:after {
+        content: ' ';
+        display: inline-block;
+        background: ${theme.colors.error.base};
+        mask: url('/images/icons/error.svg');
+        mask-size: cover;
+        width: ${theme.gridUnit * 4}px;
+        height: ${theme.gridUnit * 4}px;
+        position: absolute;
+        right: 7px;
+        top: 15px;
+      }
+    }`}
+`;
+
 const LabeledErrorBoundInput = ({
   label,
   validationMethods,
@@ -60,6 +80,7 @@ const LabeledErrorBoundInput = ({
       {label}
     </FormLabel>
     <FormItem
+      css={(theme: SupersetTheme) => alertIconStyles(theme, !!errorMessage)}
       validateTrigger={Object.keys(validationMethods)}
       validateStatus={errorMessage ? 'error' : 'success'}
       help={errorMessage || helpText}
