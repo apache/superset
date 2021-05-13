@@ -1290,7 +1290,7 @@ class TestDatabaseApi(SupersetTestCase):
                             },
                             "query": {
                                 "additionalProperties": {},
-                                "description": "Additinal parameters",
+                                "description": "Additional parameters",
                                 "type": "object",
                             },
                             "username": {
@@ -1299,12 +1299,158 @@ class TestDatabaseApi(SupersetTestCase):
                                 "type": "string",
                             },
                         },
-                        "required": ["database", "host", "port"],
+                        "required": ["database", "host", "port", "username"],
                         "type": "object",
                     },
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "postgresql+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
                 },
                 {"engine": "mysql", "name": "MySQL", "preferred": False},
+            ]
+        }
+
+    def test_validate_parameters_invalid_payload_format(self):
+        self.login(username="admin")
+        url = "api/v1/database/validate_parameters"
+        rv = self.client.post(url, data="INVALID", content_type="text/plain")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 400
+        assert response == {
+            "errors": [
+                {
+                    "message": "Request is not JSON",
+                    "error_type": "INVALID_PAYLOAD_FORMAT_ERROR",
+                    "level": "error",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1019,
+                                "message": "Issue 1019 - The submitted payload has the incorrect format.",
+                            }
+                        ]
+                    },
+                }
+            ]
+        }
+
+    def test_validate_parameters_invalid_payload_schema(self):
+        self.login(username="admin")
+        url = "api/v1/database/validate_parameters"
+        payload = {"foo": "bar"}
+        rv = self.client.post(url, json=payload)
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "An error happened when validating the request",
+                    "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
+                    "level": "error",
+                    "extra": {
+                        "messages": {
+                            "engine": ["Missing data for required field."],
+                            "foo": ["Unknown field."],
+                        },
+                        "issue_codes": [
+                            {
+                                "code": 1020,
+                                "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
+
+    def test_validate_parameters_missing_fields(self):
+        self.login(username="admin")
+        url = "api/v1/database/validate_parameters"
+        payload = {
+            "engine": "postgresql",
+            "parameters": {
+                "host": "",
+                "port": 5432,
+                "username": "",
+                "password": "",
+                "database": "",
+                "query": {},
+            },
+        }
+        rv = self.client.post(url, json=payload)
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "One or more parameters are missing: database, host, username",
+                    "error_type": "CONNECTION_MISSING_PARAMETERS_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "missing": ["database", "host", "username"],
+                        "issue_codes": [
+                            {
+                                "code": 1018,
+                                "message": "Issue 1018 - One or more parameters needed to configure a database are missing.",
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
+
+    @mock.patch("superset.db_engine_specs.base.is_hostname_valid")
+    def test_validate_parameters_invalid_host(self, is_hostname_valid):
+        is_hostname_valid.return_value = False
+
+        self.login(username="admin")
+        url = "api/v1/database/validate_parameters"
+        payload = {
+            "engine": "postgresql",
+            "parameters": {
+                "host": "localhost",
+                "port": 5432,
+                "username": "",
+                "password": "",
+                "database": "",
+                "query": {},
+            },
+        }
+        rv = self.client.post(url, json=payload)
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "One or more parameters are missing: database, username",
+                    "error_type": "CONNECTION_MISSING_PARAMETERS_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "missing": ["database", "username"],
+                        "issue_codes": [
+                            {
+                                "code": 1018,
+                                "message": "Issue 1018 - One or more parameters needed to configure a database are missing.",
+                            }
+                        ],
+                    },
+                },
+                {
+                    "message": "The hostname provided can't be resolved.",
+                    "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
+                    "level": "error",
+                    "extra": {
+                        "invalid": ["host"],
+                        "issue_codes": [
+                            {
+                                "code": 1007,
+                                "message": "Issue 1007 - The hostname provided can't be resolved.",
+                            }
+                        ],
+                    },
+                },
             ]
         }

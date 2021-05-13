@@ -104,22 +104,27 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         CONNECTION_INVALID_USERNAME_REGEX: (
             __('The username "%(username)s" does not exist.'),
             SupersetErrorType.CONNECTION_INVALID_USERNAME_ERROR,
+            {"invalid": ["username"]},
         ),
         CONNECTION_INVALID_PASSWORD_REGEX: (
             __('The password provided for username "%(username)s" is incorrect.'),
             SupersetErrorType.CONNECTION_INVALID_PASSWORD_ERROR,
+            {"invalid": ["username", "password"]},
         ),
         CONNECTION_INVALID_PASSWORD_NEEDED_REGEX: (
             __("Please re-enter the password."),
             SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            {"invalid": ["password"]},
         ),
         CONNECTION_INVALID_HOSTNAME_REGEX: (
             __('The hostname "%(hostname)s" cannot be resolved.'),
             SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+            {"invalid": ["host"]},
         ),
         CONNECTION_PORT_CLOSED_REGEX: (
             __('Port %(port)s on hostname "%(hostname)s" refused the connection.'),
             SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
+            {"invalid": ["host", "port"]},
         ),
         CONNECTION_HOST_DOWN_REGEX: (
             __(
@@ -127,10 +132,12 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
                 "reached on port %(port)s."
             ),
             SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+            {"invalid": ["host", "port"]},
         ),
         CONNECTION_UNKNOWN_DATABASE_REGEX: (
             __('Unable to connect to database "%(database)s".'),
             SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+            {"invalid": ["database"]},
         ),
     }
 
