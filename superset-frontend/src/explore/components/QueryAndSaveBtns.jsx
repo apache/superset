@@ -95,7 +95,7 @@ export default function QueryAndSaveBtns({
         },
         '.errMsg': {
           marginLeft: theme.gridUnit * 4,
-        }
+        },
       }}
     >
       <ButtonGroup className="query-and-save">
