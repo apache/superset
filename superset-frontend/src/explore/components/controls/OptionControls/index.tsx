@@ -167,6 +167,7 @@ export const OptionControlLabel = ({
   type,
   index,
   isExtra,
+  tooltipTitle,
   ...props
 }: {
   label: string | React.ReactNode;
@@ -181,6 +182,7 @@ export const OptionControlLabel = ({
   type: string;
   index: number;
   isExtra?: boolean;
+  tooltipTitle: string;
 }) => {
   const theme = useTheme();
   const ref = useRef<HTMLDivElement>(null);
@@ -246,7 +248,7 @@ export const OptionControlLabel = ({
     if (savedMetric?.metric_name) {
       return <StyledMetricOption metric={savedMetric} />;
     }
-    return <Tooltip title={label}>{label}</Tooltip>;
+    return <Tooltip title={tooltipTitle}>{label}</Tooltip>;
   };
 
   const getOptionControlContent = () => (
