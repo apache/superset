@@ -19,11 +19,14 @@
 import React from 'react';
 import { Input } from 'antd';
 import { styled } from '@superset-ui/core';
+// import * as alertSVG from 'images/icons/alert.svg';
 import Form from './Form';
 import FormItem from './FormItem';
 import FormLabel from './FormLabel';
 
-interface LabeledErrorBoundInputProps {
+// console.log('---alertString--- ', alertSVG);
+
+export interface LabeledErrorBoundInputProps {
   label?: string;
   name: string;
   validationMethods:
@@ -34,9 +37,10 @@ interface LabeledErrorBoundInputProps {
   value: string | number | readonly string[] | undefined;
   required?: boolean;
   placeholder?: string;
-  autocomplete?: string;
+  autoComplete?: string;
   type?: string;
   id?: string;
+  onChange?: any;
 }
 
 const StyledInput = styled(Input)`
@@ -45,31 +49,25 @@ const StyledInput = styled(Input)`
 
 const LabeledErrorBoundInput = ({
   label,
-  name,
   validationMethods,
   errorMessage,
   helpText,
-  value,
   required = false,
-  placeholder,
-  autocomplete,
-  type,
   id,
+  ...props
 }: LabeledErrorBoundInputProps) => (
   <>
-    <FormLabel required={required}>{label}</FormLabel>
+    <FormLabel htmlFor={id} required={required}>
+      {label}
+    </FormLabel>
     <FormItem
-      name={name}
       validateTrigger={Object.keys(validationMethods)}
       validateStatus={errorMessage ? 'error' : 'success'}
       help={errorMessage || helpText}
-      id={id}
-      placeholder={placeholder}
-      autocomplete={autocomplete}
-      type={type}
       hasFeedback={!!errorMessage}
+      {...props}
     >
-      <StyledInput value={value} {...validationMethods} />
+      <StyledInput {...props} {...validationMethods} />
     </FormItem>
   </>
 );

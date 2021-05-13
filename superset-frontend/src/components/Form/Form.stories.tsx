@@ -17,17 +17,25 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import LabeledErrorBoundInput, { Form } from '.';
+import LabeledErrorBoundInput, { LabeledErrorBoundInputProps } from '.';
 
 export default {
-  title: 'Form',
-  component: Form,
+  title: 'LabeledErrorBoundInput',
+  component: LabeledErrorBoundInput,
 };
 
-export const InteractiveForm = () => {
+export const InteractiveLabeledErrorBoundInput = ({
+  name,
+  value,
+  placeholder,
+  type,
+  id,
+}: LabeledErrorBoundInputProps) => {
   const [checkErrorMessage, setCheckErrorMessage] = useState('');
+  const [currentValue, setCurrentValue] = useState(value);
 
   const validateFunctionality: (value: any) => void = value => {
+    setCurrentValue(value.target.value);
     if (value.target.value.includes('success')) {
       setCheckErrorMessage('');
     } else {
@@ -37,13 +45,33 @@ export const InteractiveForm = () => {
 
   return (
     <LabeledErrorBoundInput
-      name="Username"
+      id={id}
+      name={name}
       validationMethods={{ onChange: validateFunctionality }}
       errorMessage={checkErrorMessage}
       helpText="This is a line of example help text"
-      value=""
-      label="Username"
+      value={currentValue}
+      // This must stay the same as name or form breaks
+      label={name}
+      placeholder={placeholder}
+      type={type}
       required
     />
   );
+};
+
+InteractiveLabeledErrorBoundInput.args = {
+  name: 'Username',
+  placeholder: 'Example placeholder text...',
+  id: 1,
+};
+
+InteractiveLabeledErrorBoundInput.argTypes = {
+  type: {
+    defaultValue: 'textbox',
+    control: {
+      type: 'select',
+      options: ['textbox', 'checkbox', 'radio'],
+    },
+  },
 };
