@@ -17,7 +17,9 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import LabeledErrorBoundInput, { LabeledErrorBoundInputProps } from '.';
+import LabeledErrorBoundInput, {
+  LabeledErrorBoundInputProps,
+} from './LabeledErrorBoundInput';
 
 export default {
   title: 'LabeledErrorBoundInput',
