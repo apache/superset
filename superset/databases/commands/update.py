@@ -32,7 +32,7 @@ from superset.databases.commands.exceptions import (
 )
 from superset.databases.dao import DatabaseDAO
 from superset.extensions import db, security_manager
-from superset.models.core import ConfigurationMethod, Database
+from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
 
