@@ -23,8 +23,8 @@ from typing import Any, Callable, cast, Dict, List, Optional, Union
 from urllib import parse
 
 import backoff
-import humanize
 import dicttoxml
+import humanize
 import pandas as pd
 import simplejson as json
 from flask import abort, flash, g, Markup, redirect, render_template, request, Response
@@ -112,7 +112,6 @@ from superset.views.base import (
     common_bootstrap_payload,
     create_table_permissions,
     CsvResponse,
-    XmlResponse,
     data_payload_response,
     generate_download_headers,
     get_error_msg,
@@ -122,6 +121,7 @@ from superset.views.base import (
     json_errors_response,
     json_success,
     validate_sqlatable,
+    XmlResponse,
 )
 from superset.views.utils import (
     _deserialize_results_payload,
@@ -438,16 +438,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self, viz_obj: BaseViz, response_type: Optional[str] = None
     ) -> FlaskResponse:
         if response_type == utils.ChartDataResultFormat.CSV:
-            return CsvResponse(
-                viz_obj.get_csv(), headers=generate_download_headers("csv")
-            )
+            return CsvResponse(viz_obj.get_csv(), headers=generate_download_headers("csv"))
 
         if response_type == utils.ChartDataResultFormat.XML:
             payload = viz_obj.get_payload()
             xml = dicttoxml.dicttoxml(payload)
-            return XmlResponse(
-                xml, headers=generate_download_headers("xml")
-            )
+            return XmlResponse(xml, headers=generate_download_headers("xml"))
 
         if response_type == utils.ChartDataResultType.QUERY:
             return self.get_query_string_response(viz_obj)

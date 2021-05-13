@@ -41,11 +41,11 @@ describe('ExploreActionButtons', () => {
     ).toBe(true);
   });
 
-  it('should render 6 children/buttons', () => {
+  it('should render 7 children/buttons', () => {
     const wrapper = shallow(
       <ExploreActionButtons {...defaultProps} store={mockStore} />,
     );
-    expect(wrapper.dive().children()).toHaveLength(6);
+    expect(wrapper.dive().children()).toHaveLength(7);
   });
 
   describe('ExploreActionButtons and no permission to download CSV', () => {
@@ -75,7 +75,7 @@ describe('ExploreActionButtons', () => {
     it('should render csv buttons but is disabled and not clickable', () => {
       const spyExportChart = sinon.spy(exploreUtils, 'exportChart');
 
-      const csvButton = wrapper.find('div.disabled');
+      const csvButton = wrapper.find('div.disabled').first();
       expect(wrapper).toHaveLength(1);
       csvButton.simulate('click');
       expect(spyExportChart.callCount).toBe(0);
