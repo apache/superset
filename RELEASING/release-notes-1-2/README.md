@@ -120,5 +120,3 @@ Expanding the API has been an ongoing effort, and 1.2 introduces a number of new
 
 - To see the complete changelog in this release, head to [CHANGELOG.MD](https://github.com/apache/superset/blob/master/CHANGELOG.md).
 - In line with the semantic versioning scheme adopted by the community, 1.2.0 does not contain any backwards incompatible changes.
-
-
