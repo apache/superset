@@ -22,11 +22,13 @@ import pytest
 from superset.db_engine_specs import get_engine_specs
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
+    BaseParametersMixin,
     builtin_time_grains,
     LimitMethod,
 )
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql_parse import ParsedQuery
 from superset.utils.core import get_example_database
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
@@ -365,3 +367,102 @@ def test_get_time_grain_with_unkown_values():
         assert list(time_grains)[-1] == "weird"
 
     app.config = config
+
+
+@mock.patch("superset.db_engine_specs.base.is_hostname_valid")
+@mock.patch("superset.db_engine_specs.base.is_port_open")
+def test_validate(is_port_open, is_hostname_valid):
+    is_hostname_valid.return_value = True
+    is_port_open.return_value = True
+
+    parameters = {
+        "host": "localhost",
+        "port": 5432,
+        "username": "username",
+        "password": "password",
+        "database": "dbname",
+        "query": {"sslmode": "verify-full"},
+    }
+    errors = BaseParametersMixin.validate_parameters(parameters)
+    assert errors == []
+
+
+def test_validate_parameters_missing():
+    parameters = {
+        "host": "",
+        "port": None,
+        "username": "",
+        "password": "",
+        "database": "",
+        "query": {},
+    }
+    errors = BaseParametersMixin.validate_parameters(parameters)
+    assert errors == [
+        SupersetError(
+            message=(
+                "One or more parameters are missing: " "database, host, port, username"
+            ),
+            error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+            level=ErrorLevel.WARNING,
+            extra={"missing": ["database", "host", "port", "username"]},
+        ),
+    ]
+
+
+@mock.patch("superset.db_engine_specs.base.is_hostname_valid")
+def test_validate_parameters_invalid_host(is_hostname_valid):
+    is_hostname_valid.return_value = False
+
+    parameters = {
+        "host": "localhost",
+        "port": None,
+        "username": "username",
+        "password": "password",
+        "database": "dbname",
+        "query": {"sslmode": "verify-full"},
+    }
+    errors = BaseParametersMixin.validate_parameters(parameters)
+    assert errors == [
+        SupersetError(
+            message="One or more parameters are missing: port",
+            error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+            level=ErrorLevel.WARNING,
+            extra={"missing": ["port"]},
+        ),
+        SupersetError(
+            message="The hostname provided can't be resolved.",
+            error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={"invalid": ["host"]},
+        ),
+    ]
+
+
+@mock.patch("superset.db_engine_specs.base.is_hostname_valid")
+@mock.patch("superset.db_engine_specs.base.is_port_open")
+def test_validate_parameters_port_closed(is_port_open, is_hostname_valid):
+    is_hostname_valid.return_value = True
+    is_port_open.return_value = False
+
+    parameters = {
+        "host": "localhost",
+        "port": 5432,
+        "username": "username",
+        "password": "password",
+        "database": "dbname",
+        "query": {"sslmode": "verify-full"},
+    }
+    errors = BaseParametersMixin.validate_parameters(parameters)
+    assert errors == [
+        SupersetError(
+            message="The port is closed.",
+            error_type=SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={
+                "invalid": ["port"],
+                "issue_codes": [
+                    {"code": 1008, "message": "Issue 1008 - The port is closed."}
+                ],
+            },
+        )
+    ]

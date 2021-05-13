@@ -48,6 +48,7 @@ class SupersetErrorType(str, Enum):
     CONNECTION_ACCESS_DENIED_ERROR = "CONNECTION_ACCESS_DENIED_ERROR"
     CONNECTION_UNKNOWN_DATABASE_ERROR = "CONNECTION_UNKNOWN_DATABASE_ERROR"
     CONNECTION_DATABASE_PERMISSIONS_ERROR = "CONNECTION_DATABASE_PERMISSIONS_ERROR"
+    CONNECTION_MISSING_PARAMETERS_ERROR = "CONNECTION_MISSING_PARAMETERS_ERROR"
 
     # Viz errors
     VIZ_GET_DF_ERROR = "VIZ_GET_DF_ERROR"
@@ -69,6 +70,10 @@ class SupersetErrorType(str, Enum):
     # Generic errors
     GENERIC_COMMAND_ERROR = "GENERIC_COMMAND_ERROR"
     GENERIC_BACKEND_ERROR = "GENERIC_BACKEND_ERROR"
+
+    # API errors
+    INVALID_PAYLOAD_FORMAT_ERROR = "INVALID_PAYLOAD_FORMAT_ERROR"
+    INVALID_PAYLOAD_SCHEMA_ERROR = "INVALID_PAYLOAD_SCHEMA_ERROR"
 
 
 ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
@@ -219,6 +224,31 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
             "code": 1017,
             "message": _("Issue 1017 - User doesn't have the proper permissions."),
         },
+    ],
+    SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR: [
+        {
+            "code": 1018,
+            "message": _(
+                "Issue 1018 - One or more parameters needed to configure a "
+                "database are missing."
+            ),
+        },
+    ],
+    SupersetErrorType.INVALID_PAYLOAD_FORMAT_ERROR: [
+        {
+            "code": 1019,
+            "message": _(
+                "Issue 1019 - The submitted payload has the incorrect format."
+            ),
+        }
+    ],
+    SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR: [
+        {
+            "code": 1020,
+            "message": _(
+                "Issue 1020 - The submitted payload has the incorrect schema."
+            ),
+        }
     ],
 }
 

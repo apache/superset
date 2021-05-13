@@ -79,7 +79,7 @@ test('should render the remove button', () => {
 
 test('should render the right caret', () => {
   render(setup(mockedProps));
-  expect(screen.getByTestId('caret-right')).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'caret-right' })).toBeInTheDocument();
 });
 
 test('should render the Popover on clicking the right caret', () => {
