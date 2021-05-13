@@ -62,14 +62,6 @@ enum LIMITING_FACTOR {
   NOT_LIMITED = 'NOT_LIMITED',
 }
 
-function limitReached(displayLimitReached: boolean) {
-  return displayLimitReached;
-}
-
-function defaultDropdown(queryLimit: number, limitingFactor: string) {
-  return queryLimit === 1000 && limitingFactor === LIMITING_FACTOR.DROPDOWN;
-}
-
 const LOADING_STYLES: CSSProperties = { position: 'relative', minHeight: 100 };
 
 interface DatasetOptionAutocomplete {
@@ -90,6 +82,7 @@ interface ResultSetProps {
   showSql?: boolean;
   visualize?: boolean;
   user: UserWithPermissionsAndRoles;
+  defaultQueryLimit: number;
 }
 
 interface ResultSetState {
@@ -152,8 +145,6 @@ export default class ResultSet extends React.PureComponent<
     showSql: false,
     visualize: true,
   };
-
-  alertRef: React.RefObject<HTMLDivElement>;
 
   constructor(props: ResultSetProps) {
     super(props);
@@ -227,18 +218,15 @@ export default class ResultSet extends React.PureComponent<
     ) {
       this.fetchResults(nextProps.query);
     }
-    if (
-      limitReached(nextProps.query.results?.displayLimitReached) ||
-      defaultDropdown(
-        nextProps.query.queryLimit,
-        nextProps.query.limitingFactor,
-      )
-    ) {
+  }
+
+  calculateAlertRefHeight = (alertElement: HTMLElement | null) => {
+    if (alertElement) {
       this.setState({ alertIsOpen: true });
     } else {
       this.setState({ alertIsOpen: false });
     }
-  }
+  };
 
   getDefaultDatasetName = () =>
     `${this.props.query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
@@ -354,7 +342,8 @@ export default class ResultSet extends React.PureComponent<
   getUserDatasets = async (searchText = '') => {
     // Making sure that autocomplete input has a value before rendering the dropdown
     // Transforming the userDatasetsOwned data for SaveModalComponent)
-    if (this.props.user?.userId) {
+    const { userId } = this.props.user;
+    if (userId) {
       const queryParams = rison.encode({
         filters: [
           {
@@ -365,7 +354,7 @@ export default class ResultSet extends React.PureComponent<
           {
             col: 'owners',
             opr: 'rel_m_m',
-            value: this.props.user.userId,
+            value: userId,
           },
         ],
         order_column: 'changed_on_delta_humanized',
@@ -536,10 +525,15 @@ export default class ResultSet extends React.PureComponent<
   renderRowsReturned() {
     const { results, rows, queryLimit, limitingFactor } = this.props.query;
     let limitMessage;
-    const isAdmin = this.props.user?.roles.hasOwnProperty('Admin');
+    const limitReached = results?.displayLimitReached;
+    const isAdmin = !!this.props.user?.roles.Admin;
     const adminWarning = isAdmin
       ? ' by the configuration DISPLAY_MAX_ROWS'
-      : null;
+      : '';
+    const shouldUseDefaultDropdownAlert =
+      queryLimit === this.props.defaultQueryLimit &&
+      limitingFactor === LIMITING_FACTOR.DROPDOWN;
+
     if (limitingFactor === LIMITING_FACTOR.QUERY && this.props.csv) {
       limitMessage = (
         <span className="limitMessage">
@@ -551,7 +545,7 @@ export default class ResultSet extends React.PureComponent<
       );
     } else if (
       limitingFactor === LIMITING_FACTOR.DROPDOWN &&
-      !defaultDropdown(queryLimit, limitingFactor)
+      !shouldUseDefaultDropdownAlert
     ) {
       limitMessage = (
         <span className="limitMessage">
@@ -572,15 +566,14 @@ export default class ResultSet extends React.PureComponent<
       );
     }
     return (
-      <ReturnedRows ref={this.alertRef}>
-        {!limitReached(results?.displayLimitReached) &&
-          !defaultDropdown(queryLimit, limitingFactor) && (
-            <span>
-              {t(`%s rows returned`, rows)} {limitMessage}
-            </span>
-          )}
-        {!limitReached(results?.displayLimitReached) &&
-          defaultDropdown(queryLimit, limitingFactor) && (
+      <ReturnedRows>
+        {!limitReached && !shouldUseDefaultDropdownAlert && (
+          <span>
+            {t(`%s rows returned`, rows)} {limitMessage}
+          </span>
+        )}
+        {!limitReached && shouldUseDefaultDropdownAlert && (
+          <div ref={this.calculateAlertRefHeight}>
             <Alert
               type="warning"
               message={t(`%s rows returned`, rows)}
@@ -590,21 +583,24 @@ export default class ResultSet extends React.PureComponent<
                 rows,
               )}
             />
-          )}
-        {limitReached(results?.displayLimitReached) && (
-          <Alert
-            type="warning"
-            onClose={this.onAlertClose}
-            message={t(`%s rows returned`, rows)}
-            description={t(
-              `The number of results displayed is limited to %s%s. Please add
-              additional limits/filters or download to csv to see more rows up to
-              the %s limit. %s`,
-              rows,
-              adminWarning,
-              queryLimit,
-            )}
-          />
+          </div>
+        )}
+        {limitReached && (
+          <div ref={this.calculateAlertRefHeight}>
+            <Alert
+              type="warning"
+              onClose={this.onAlertClose}
+              message={t(`%s rows returned`, rows)}
+              description={t(
+                `The number of results displayed is limited to %s%s. Please add
+                additional limits/filters or download to csv to see more rows up to
+                the %s limit.`,
+                rows,
+                adminWarning,
+                queryLimit,
+              )}
+            />
+          </div>
         )}
       </ReturnedRows>
     );
@@ -683,7 +679,7 @@ export default class ResultSet extends React.PureComponent<
     if (query.state === 'success' && query.results) {
       const { results } = query;
       const height = this.state.alertIsOpen
-        ? this.props.height - 60
+        ? this.props.height - 70
         : this.props.height;
       let data;
       if (this.props.cache && query.cached) {

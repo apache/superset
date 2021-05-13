@@ -51,6 +51,7 @@ interface SouthPanePropTypes {
   offline?: boolean;
   displayLimit: number;
   user: UserWithPermissionsAndRoles;
+  defaultQueryLimit: number;
 }
 
 const StyledPane = styled.div`
@@ -96,6 +97,7 @@ export default function SouthPane({
   offline = false,
   displayLimit,
   user,
+  defaultQueryLimit,
 }: SouthPanePropTypes) {
   const innerTabContentHeight = height - TAB_HEIGHT;
   const southPaneRef = createRef<HTMLDivElement>();
@@ -143,6 +145,7 @@ export default function SouthPane({
             height={innerTabContentHeight}
             database={databases[latestQuery.dbId]}
             displayLimit={displayLimit}
+            defaultQueryLimit={defaultQueryLimit}
           />
         );
       }
@@ -169,6 +172,7 @@ export default function SouthPane({
           user={user}
           height={innerTabContentHeight}
           displayLimit={displayLimit}
+          defaultQueryLimit={defaultQueryLimit}
         />
       </Tabs.TabPane>
     ));
