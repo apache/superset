@@ -23,7 +23,6 @@ import React, {
   useEffect,
   useCallback,
 } from 'react';
-import { FormControl, FormControlProps } from 'react-bootstrap';
 import Alert from 'src/components/Alert';
 import { SupersetClient, t, styled } from '@superset-ui/core';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
@@ -32,9 +31,10 @@ import Button from 'src/components/Button';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import Dataset from 'src/types/Dataset';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
-import { getClientErrorObject } from '../utils/getClientErrorObject';
-import Loading from '../components/Loading';
-import withToasts from '../messageToasts/enhancers/withToasts';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import Loading from 'src/components/Loading';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
+import { Input, AntdInput } from 'src/common/components';
 
 const CONFIRM_WARNING_MESSAGE = t(
   'Warning! Changing the dataset may break the chart if the metadata does not exist.',
@@ -107,7 +107,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   const [filter, setFilter] = useState<any>(undefined);
   const [confirmChange, setConfirmChange] = useState(false);
   const [confirmedDataset, setConfirmedDataset] = useState<Datasource>();
-  let searchRef = useRef<HTMLInputElement>(null);
+  const searchRef = useRef<AntdInput>(null);
 
   const {
     state: { loading, resourceCollection },
@@ -140,9 +140,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
 
   useEffect(() => {
     const onEnterModal = async () => {
-      if (searchRef && searchRef.current) {
-        searchRef.current.focus();
-      }
+      setTimeout(() => searchRef?.current?.focus(), 200);
     };
 
     if (show) {
@@ -158,14 +156,8 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     show,
   ]);
 
-  const setSearchRef = (ref: any) => {
-    searchRef = ref;
-  };
-
-  const changeSearch = (
-    event: React.FormEvent<FormControl & FormControlProps>,
-  ) => {
-    const searchValue = (event.currentTarget?.value as string) ?? '';
+  const changeSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const searchValue = event.target.value ?? '';
     setFilter(searchValue);
   };
 
@@ -250,24 +242,20 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
             <Alert
               roomBelow
               type="warning"
+              css={theme => ({ marginBottom: theme.gridUnit * 4 })}
               message={
                 <>
                   <strong>{t('Warning!')}</strong> {CHANGE_WARNING_MSG}
                 </>
               }
             />
-            <div>
-              <FormControl
-                inputRef={ref => {
-                  setSearchRef(ref);
-                }}
-                type="text"
-                bsSize="sm"
-                value={filter}
-                placeholder={t('Search / Filter')}
-                onChange={changeSearch}
-              />
-            </div>
+            <Input
+              ref={searchRef}
+              type="text"
+              value={filter}
+              placeholder={t('Search / Filter')}
+              onChange={changeSearch}
+            />
             {loading && <Loading />}
             {!loading && (
               <TableView
