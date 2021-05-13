@@ -100,7 +100,7 @@ class CssTemplate(Model, AuditMixinNullable):
 
 
 class ConfigurationMethod(str, enum.Enum):
-    SQLALCHEMY_URI = "sqlalchemy_form"
+    SQLALCHEMY_FORM = "sqlalchemy_form"
     DYNAMIC_FORM = "dynamic_form"
 
 
@@ -124,7 +124,7 @@ class Database(
     select_as_create_table_as = Column(Boolean, default=False)
     expose_in_sqllab = Column(Boolean, default=True)
     configuration_method = Column(
-        String(255), server_default=ConfigurationMethod.SQLALCHEMY_URI.value
+        String(255), server_default=ConfigurationMethod.SQLALCHEMY_FORM.value
     )
     allow_run_async = Column(Boolean, default=False)
     allow_csv_upload = Column(Boolean, default=False)

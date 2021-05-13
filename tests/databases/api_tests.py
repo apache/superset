@@ -229,7 +229,7 @@ class TestDatabaseApi(SupersetTestCase):
         database_data = {
             "database_name": "test-create-database",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
-            "configuration_method": ConfigurationMethod.SQLALCHEMY_URI,
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
             "server_cert": None,
             "extra": json.dumps(extra),
         }
@@ -240,12 +240,13 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 201)
         # Cleanup
         model = db.session.query(Database).get(response.get("id"))
+        assert model.configuration_method == ConfigurationMethod.SQLALCHEMY_FORM
         db.session.delete(model)
         db.session.commit()
 
     def test_create_database_invalid_configuration_method(self):
         """
-        Database API: Test create
+        Database API: Test create with an invalid configuration method.
         """
         extra = {
             "metadata_params": {},
@@ -276,7 +277,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_create_database_no_configuration_method(self):
         """
-        Database API: Test create
+        Database API: Test create with no config method.
         """
         extra = {
             "metadata_params": {},
@@ -316,6 +317,7 @@ class TestDatabaseApi(SupersetTestCase):
         database_data = {
             "database_name": "test-create-database-invalid-cert",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
             "server_cert": "INVALID CERT",
         }
 
@@ -338,6 +340,7 @@ class TestDatabaseApi(SupersetTestCase):
         database_data = {
             "database_name": "test-create-database-invalid-json",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
             "encrypted_extra": '{"A": "a", "B", "C"}',
             "extra": '["A": "a", "B", "C"]',
         }
@@ -378,6 +381,7 @@ class TestDatabaseApi(SupersetTestCase):
         database_data = {
             "database_name": "test-create-database-invalid-extra",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
             "extra": json.dumps(extra),
         }
 
@@ -407,7 +411,7 @@ class TestDatabaseApi(SupersetTestCase):
         database_data = {
             "database_name": "examples",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
-            "configuration_method": ConfigurationMethod.SQLALCHEMY_URI,
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
         }
 
         uri = "api/v1/database/"
@@ -427,6 +431,7 @@ class TestDatabaseApi(SupersetTestCase):
         database_data = {
             "database_name": "test-database-invalid-uri",
             "sqlalchemy_uri": "wrong_uri",
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
         }
 
         uri = "api/v1/database/"
@@ -448,6 +453,7 @@ class TestDatabaseApi(SupersetTestCase):
         database_data = {
             "database_name": "test-create-sqlite-database",
             "sqlalchemy_uri": "sqlite:////some.db",
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
         }
 
         uri = "api/v1/database/"
@@ -476,7 +482,7 @@ class TestDatabaseApi(SupersetTestCase):
         database_data = {
             "database_name": "test-create-database-wrong-password",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
-            "configuration_method": ConfigurationMethod.SQLALCHEMY_URI,
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
         }
 
         uri = "api/v1/database/"
@@ -623,6 +629,9 @@ class TestDatabaseApi(SupersetTestCase):
         }
         assert rv.status_code == 400
 
+        db.session.delete(test_database)
+        db.session.commit()
+
     def test_update_database_with_no_configuration_method(self):
         """
         Database API: Test update
@@ -638,6 +647,9 @@ class TestDatabaseApi(SupersetTestCase):
         uri = f"api/v1/database/{test_database.id}"
         rv = self.client.put(uri, json=database_data)
         assert rv.status_code == 200
+
+        db.session.delete(test_database)
+        db.session.commit()
 
     def test_delete_database(self):
         """

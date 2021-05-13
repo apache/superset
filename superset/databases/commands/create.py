@@ -33,7 +33,6 @@ from superset.databases.commands.exceptions import (
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.dao import DatabaseDAO
 from superset.extensions import db, event_logger, security_manager
-from superset.models.core import ConfigurationMethod
 
 logger = logging.getLogger(__name__)
 
