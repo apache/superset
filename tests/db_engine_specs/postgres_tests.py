@@ -23,6 +23,7 @@ from sqlalchemy.dialects import postgresql
 from superset.db_engine_specs import get_engine_specs
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.utils.core import get_example_database
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
 from tests.fixtures.certificates import ssl_certificate
 from tests.fixtures.database import default_db_extra
@@ -234,6 +235,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
                             ),
                         },
                     ],
+                    "invalid": ["username"],
                 },
             )
         ]
@@ -257,6 +259,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
                             "can't be resolved.",
                         }
                     ],
+                    "invalid": ["host"],
                 },
             )
         ]
@@ -282,6 +285,7 @@ could not connect to server: Connection refused
                     "issue_codes": [
                         {"code": 1008, "message": "Issue 1008 - The port is closed."}
                     ],
+                    "invalid": ["host", "port"],
                 },
             )
         ]
@@ -311,6 +315,7 @@ psql: error: could not connect to server: Operation timed out
                             "and can't be reached on the provided port.",
                         }
                     ],
+                    "invalid": ["host", "port"],
                 },
             )
         ]
@@ -341,6 +346,7 @@ psql: error: could not connect to server: Operation timed out
                             "and can't be reached on the provided port.",
                         }
                     ],
+                    "invalid": ["host", "port"],
                 },
             )
         ]
@@ -363,6 +369,7 @@ psql: error: could not connect to server: Operation timed out
                             ),
                         },
                     ],
+                    "invalid": ["username", "password"],
                 },
             )
         ]
@@ -385,6 +392,7 @@ psql: error: could not connect to server: Operation timed out
                             ),
                         }
                     ],
+                    "invalid": ["database"],
                 },
             )
         ]
@@ -393,21 +401,20 @@ psql: error: could not connect to server: Operation timed out
         result = PostgresEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
                 message="Please re-enter the password.",
+                error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={
+                    "invalid": ["password"],
                     "engine_name": "PostgreSQL",
                     "issue_codes": [
                         {
                             "code": 1014,
-                            "message": "Issue 1014 - Either the"
-                            " username or the password is wrong.",
+                            "message": "Issue 1014 - Either the username or the password is wrong.",
                         },
                         {
                             "code": 1015,
-                            "message": "Issue 1015 - Either the database is "
-                            "spelled incorrectly or does not exist.",
+                            "message": "Issue 1015 - Either the database is spelled incorrectly or does not exist.",
                         },
                     ],
                 },
@@ -424,7 +431,7 @@ def test_base_parameters_mixin():
         "database": "dbname",
         "query": {"foo": "bar"},
     }
-    sqlalchemy_uri = PostgresEngineSpec.build_sqlalchemy_url(parameters)
+    sqlalchemy_uri = PostgresEngineSpec.build_sqlalchemy_uri(parameters)
     assert (
         sqlalchemy_uri
         == "postgresql+psycopg2://username:password@localhost:5432/dbname?foo=bar"
@@ -437,20 +444,20 @@ def test_base_parameters_mixin():
     assert json_schema == {
         "type": "object",
         "properties": {
-            "host": {"type": "string", "description": "Hostname or IP address"},
-            "username": {"type": "string", "nullable": True, "description": "Username"},
-            "password": {"type": "string", "nullable": True, "description": "Password"},
-            "database": {"type": "string", "description": "Database name"},
-            "query": {
-                "type": "object",
-                "description": "Additinal parameters",
-                "additionalProperties": {},
-            },
             "port": {
                 "type": "integer",
                 "format": "int32",
                 "description": "Database port",
             },
+            "password": {"type": "string", "nullable": True, "description": "Password"},
+            "host": {"type": "string", "description": "Hostname or IP address"},
+            "username": {"type": "string", "nullable": True, "description": "Username"},
+            "query": {
+                "type": "object",
+                "description": "Additional parameters",
+                "additionalProperties": {},
+            },
+            "database": {"type": "string", "description": "Database name"},
         },
-        "required": ["database", "host", "port"],
+        "required": ["database", "host", "port", "username"],
     }

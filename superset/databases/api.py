@@ -47,6 +47,7 @@ from superset.databases.commands.export import ExportDatabasesCommand
 from superset.databases.commands.importers.dispatcher import ImportDatabasesCommand
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.commands.update import UpdateDatabaseCommand
+from superset.databases.commands.validate import ValidateDatabaseParametersCommand
 from superset.databases.dao import DatabaseDAO
 from superset.databases.decorators import check_datasource_access
 from superset.databases.filters import DatabaseFilter
@@ -57,6 +58,7 @@ from superset.databases.schemas import (
     DatabasePutSchema,
     DatabaseRelatedObjectsResponse,
     DatabaseTestConnectionSchema,
+    DatabaseValidateParametersSchema,
     get_export_ids_schema,
     SchemasResponseSchema,
     SelectStarResponseSchema,
@@ -65,6 +67,7 @@ from superset.databases.schemas import (
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.base import BaseParametersMixin
+from superset.exceptions import InvalidPayloadFormatError, InvalidPayloadSchemaError
 from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.typing import FlaskResponse
@@ -87,6 +90,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "related_objects",
         "function_names",
         "available",
+        "validate_parameters",
     }
     resource_name = "database"
     class_permission_name = "Database"
@@ -176,6 +180,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         DatabaseFunctionNamesResponse,
         DatabaseRelatedObjectsResponse,
         DatabaseTestConnectionSchema,
+        DatabaseValidateParametersSchema,
         TableMetadataResponseSchema,
         SelectStarResponseSchema,
         SchemasResponseSchema,
@@ -914,3 +919,55 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         )
 
         return self.response(200, databases=available_databases)
+
+    @expose("/validate_parameters", methods=["POST"])
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".validate_parameters",
+        log_to_statsd=False,
+    )
+    def validate_parameters(  # pylint: disable=too-many-return-statements
+        self,
+    ) -> FlaskResponse:
+        """validates database connection parameters
+        ---
+        post:
+          description: >-
+            Validates parameters used to connect to a database
+          requestBody:
+            description: DB-specific parameters
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/DatabaseValidateParametersSchema"
+          responses:
+            200:
+              description: Database Test Connection
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not request.is_json:
+            raise InvalidPayloadFormatError("Request is not JSON")
+
+        try:
+            payload = DatabaseValidateParametersSchema().load(request.json)
+        except ValidationError as error:
+            raise InvalidPayloadSchemaError(error)
+
+        command = ValidateDatabaseParametersCommand(g.user, payload)
+        command.run()
+        return self.response(200, message="OK")

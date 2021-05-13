@@ -107,22 +107,26 @@ class MySQLEngineSpec(BaseEngineSpec):
 
     type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
 
-    custom_errors = {
+    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
         CONNECTION_ACCESS_DENIED_REGEX: (
             __('Either the username "%(username)s" or the password is incorrect.'),
             SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            {},
         ),
         CONNECTION_INVALID_HOSTNAME_REGEX: (
             __('Unknown MySQL server host "%(hostname)s".'),
             SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+            {},
         ),
         CONNECTION_HOST_DOWN_REGEX: (
             __('The host "%(hostname)s" might be down and can\'t be reached.'),
             SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+            {},
         ),
         CONNECTION_UNKNOWN_DATABASE_REGEX: (
             __('Unable to connect to database "%(database)s".'),
             SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+            {},
         ),
     }
 
