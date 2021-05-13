@@ -17,47 +17,37 @@
  * under the License.
  */
 import React from 'react';
-import sinon from 'sinon';
-import { styledMount as mount } from 'spec/helpers/theming';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import BoundsControl from 'src/explore/components/controls/BoundsControl';
-import { Input } from 'src/common/components';
 
 const defaultProps = {
   name: 'y_axis_bounds',
   label: 'Bounds of the y axis',
-  onChange: sinon.spy(),
+  onChange: jest.fn(),
 };
 
-describe('BoundsControl', () => {
-  let wrapper;
+test('renders two inputs', () => {
+  render(<BoundsControl {...defaultProps} />);
+  expect(screen.getAllByRole('spinbutton')).toHaveLength(2);
+});
 
-  beforeEach(() => {
-    wrapper = mount(<BoundsControl {...defaultProps} />);
-  });
+test('receives null on non-numeric', async () => {
+  render(<BoundsControl {...defaultProps} />);
+  const minInput = screen.getAllByRole('spinbutton')[0];
+  userEvent.type(minInput, 'text');
+  await waitFor(() =>
+    expect(defaultProps.onChange).toHaveBeenCalledWith([null, null]),
+  );
+});
 
-  it('renders two Input', () => {
-    expect(wrapper.find(Input)).toHaveLength(2);
-  });
-
-  it('errors on non-numeric', () => {
-    wrapper
-      .find(Input)
-      .first()
-      .simulate('change', { target: { value: 's' } });
-    expect(defaultProps.onChange.calledWith([null, null])).toBe(true);
-    expect(defaultProps.onChange.getCall(0).args[1][0]).toContain(
-      'value should be numeric',
-    );
-  });
-  it('casts to numeric', () => {
-    wrapper
-      .find(Input)
-      .first()
-      .simulate('change', { target: { value: '1' } });
-    wrapper
-      .find(Input)
-      .last()
-      .simulate('change', { target: { value: '5' } });
-    expect(defaultProps.onChange.calledWith([1, 5])).toBe(true);
-  });
+test('calls onChange with correct values', async () => {
+  render(<BoundsControl {...defaultProps} />);
+  const minInput = screen.getAllByRole('spinbutton')[0];
+  const maxInput = screen.getAllByRole('spinbutton')[1];
+  userEvent.type(minInput, '1');
+  userEvent.type(maxInput, '2');
+  await waitFor(() =>
+    expect(defaultProps.onChange).toHaveBeenLastCalledWith([1, 2]),
+  );
 });
