@@ -17,9 +17,9 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
-import { styled } from '@superset-ui/core';
+import { styled, css } from '@superset-ui/core';
 import { debounce } from 'lodash';
-import { Global, css } from '@emotion/react';
+import { Global } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MainNav as DropdownMenu, MenuMode } from 'src/common/components';
 import { Link } from 'react-router-dom';

@@ -157,7 +157,7 @@ export const StyledSubMenu = styled(AntdMenu.SubMenu)`
   }
   .ant-menu-submenu-title {
     position: relative;
-    top: -7px;
+    top: ${({ theme }) => theme.gridUnit * -1 - 3}px;
     &:after {
       content: '';
       position: absolute;
