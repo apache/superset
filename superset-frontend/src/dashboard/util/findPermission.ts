@@ -46,10 +46,7 @@ const isUserDashboardOwner = (
 export const canUserEditDashboard = (
   dashboard: Dashboard,
   user?: UserWithPermissionsAndRoles | null,
-) => {
-  return (
-    !!user &&
-    (isUserAdmin(user) || isUserDashboardOwner(dashboard, user)) &&
-    findPermission('can_write', 'Dashboard', user.roles)
-  );
-};
+) =>
+  !!user &&
+  (isUserAdmin(user) || isUserDashboardOwner(dashboard, user)) &&
+  findPermission('can_write', 'Dashboard', user.roles);

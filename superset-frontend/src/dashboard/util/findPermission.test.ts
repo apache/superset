@@ -22,7 +22,7 @@ import Owner from 'src/types/Owner';
 import findPermission, { canUserEditDashboard } from './findPermission';
 
 describe('findPermission', () => {
-  test('findPermission for single role', () => {
+  it('findPermission for single role', () => {
     expect(findPermission('abc', 'def', { role: [['abc', 'def']] })).toEqual(
       true,
     );
@@ -34,7 +34,7 @@ describe('findPermission', () => {
     expect(findPermission('abc', 'def', { role: [] })).toEqual(false);
   });
 
-  test('findPermission for multiple roles', () => {
+  it('findPermission for multiple roles', () => {
     expect(
       findPermission('abc', 'def', {
         role1: [
