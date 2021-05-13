@@ -119,7 +119,7 @@ class TestThumbnails(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
-    @with_feature_flags(THUMBNAILS=True)
+    @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
     def test_get_async_dashboard_not_allowed(self):
         """
         Thumbnails: Simple get async dashboard not allowed
