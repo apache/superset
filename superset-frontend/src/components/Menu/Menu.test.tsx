@@ -303,7 +303,7 @@ test('should render the Documentation link when available', async () => {
   render(<Menu {...mockedProps} />);
   userEvent.hover(screen.getByText('Settings'));
   const doc = await screen.findByTitle('Documentation');
-  expect(doc.firstChild).toHaveAttribute('href', documentation_url);
+  expect(doc).toHaveAttribute('href', documentation_url);
 });
 
 test('should render the Bug Report link when available', async () => {
@@ -314,8 +314,8 @@ test('should render the Bug Report link when available', async () => {
   } = mockedProps;
 
   render(<Menu {...mockedProps} />);
-  const bugReport = await screen.findByTitle('Report a Bug');
-  expect(bugReport.firstChild).toHaveAttribute('href', bug_report_url);
+  const bugReport = await screen.findByTitle('Report a bug');
+  expect(bugReport).toHaveAttribute('href', bug_report_url);
 });
 
 test('should render the Login link when user is anonymous', () => {
@@ -332,5 +332,5 @@ test('should render the Login link when user is anonymous', () => {
 
 test('should render the Language Picker', () => {
   render(<Menu {...mockedProps} />);
-  expect(screen.getByTestId('language-picker')).toBeInTheDocument();
+  expect(screen.getByRole('combobox')).toBeInTheDocument();
 });
