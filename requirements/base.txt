@@ -59,6 +59,8 @@ croniter==0.3.36
 cryptography==3.2.1
 # via apache-superset
 decorator==4.4.2
+# via apache-superset
+dicttoxml==1.7.4
 # via retry
 defusedxml==0.6.0
 # via python3-openid
