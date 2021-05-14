@@ -67,6 +67,7 @@ describe('Dashboard edit mode', () => {
 
     // should show Save changes button
     cy.get('[data-test="header-save-button"]').should('be.visible');
+    cy.screenshot();
 
     // undo first step and expect deleted item
     cy.get('[data-test="undo-action"]').click();
@@ -78,6 +79,7 @@ describe('Dashboard edit mode', () => {
     cy.get('[data-test="grid-container"]')
       .find('.box_plot')
       .should('not.exist');
+    cy.screenshot();
 
     // undo second step and expect initial items count
     cy.get('[data-test="undo-action"]').click();
@@ -85,6 +87,7 @@ describe('Dashboard edit mode', () => {
       .find('[data-test="chart-container"]')
       .should('have.length', elementsCount);
     cy.get('[data-test="card-title"]').contains('Box plot', { timeout: 5000 });
+    cy.screenshot();
 
     // save changes button should be disabled
     cy.get('[data-test="header-save-button"]').should('be.disabled');
