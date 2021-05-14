@@ -197,39 +197,38 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
       <Row className="menu" role="navigation">
         {props.name && <div className="header">{props.name}</div>}
         <Menu mode={showMenu} style={{ backgroundColor: 'transparent' }}>
-          {props.tabs &&
-            props.tabs.map(tab => {
-              if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
-                return (
-                  <Menu.Item key={tab.label}>
-                    <li
-                      role="tab"
-                      data-test={tab['data-test']}
-                      className={tab.name === props.activeChild ? 'active' : ''}
-                    >
-                      <div>
-                        <Link to={tab.url || ''}>{tab.label}</Link>
-                      </div>
-                    </li>
-                  </Menu.Item>
-                );
-              }
-
+          {props.tabs?.map(tab => {
+            if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
               return (
                 <Menu.Item key={tab.label}>
                   <li
-                    className={cx('no-router', {
-                      active: tab.name === props.activeChild,
-                    })}
                     role="tab"
+                    data-test={tab['data-test']}
+                    className={tab.name === props.activeChild ? 'active' : ''}
                   >
-                    <a href={tab.url} onClick={tab.onClick}>
-                      {tab.label}
-                    </a>
+                    <div>
+                      <Link to={tab.url || ''}>{tab.label}</Link>
+                    </div>
                   </li>
                 </Menu.Item>
               );
-            })}
+            }
+
+            return (
+              <Menu.Item key={tab.label}>
+                <li
+                  className={cx('no-router', {
+                    active: tab.name === props.activeChild,
+                  })}
+                  role="tab"
+                >
+                  <a href={tab.url} onClick={tab.onClick}>
+                    {tab.label}
+                  </a>
+                </li>
+              </Menu.Item>
+            );
+          })}
         </Menu>
         <div className={navRightStyle}>
           {props.buttons?.map((btn, i) => (
