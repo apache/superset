@@ -182,7 +182,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             depth={DASHBOARD_ROOT_DEPTH}
             index={0}
             orientation="column"
-            onDrop={() => dispatch(handleComponentDrop)}
+            onDrop={dropResult => dispatch(handleComponentDrop(dropResult))}
             editMode={editMode}
             // you cannot drop on/displace tabs if they already exist
             disableDragdrop={!!topLevelTabs}
