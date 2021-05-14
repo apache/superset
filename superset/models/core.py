@@ -54,7 +54,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
 
 from superset import app, db_engine_specs, is_feature_enabled
-from superset.db_engine_specs.base import TimeGrain
+from superset.db_engine_specs.base import BasicParametersMixin, TimeGrain
 from superset.extensions import cache_manager, encrypted_field_factory, security_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.tags import FavStarUpdater
@@ -212,6 +212,7 @@ class Database(
             "allows_cost_estimate": self.allows_cost_estimate,
             "allows_virtual_table_explore": self.allows_virtual_table_explore,
             "explore_database_id": self.explore_database_id,
+            "parameters": self.parameters,
         }
 
     @property
@@ -221,6 +222,17 @@ class Database(
     @property
     def url_object(self) -> URL:
         return make_url(self.sqlalchemy_uri_decrypted)
+
+    @property
+    def parameters(self) -> Optional[Dict[str, Any]]:
+        # Build parameters if db_engine_spec is a subclass of BasicParametersMixin
+        parameters = {"engine": self.backend}
+
+        if issubclass(self.db_engine_spec, BasicParametersMixin):
+            uri = make_url(self.sqlalchemy_uri_decrypted)
+            return {**parameters, **self.db_engine_spec.get_parameters_from_uri(uri)}
+
+        return parameters
 
     @property
     def backend(self) -> str:
@@ -568,10 +580,10 @@ class Database(
 
     @property
     def db_engine_spec(self) -> Type[db_engine_specs.BaseEngineSpec]:
-        return self.get_db_engine_spec_for_backend(self.backend)
+        engines = db_engine_specs.get_engine_specs()
+        return engines.get(self.backend, db_engine_specs.BaseEngineSpec)
 
     @classmethod
-    @utils.memoized
     def get_db_engine_spec_for_backend(
         cls, backend: str
     ) -> Type[db_engine_specs.BaseEngineSpec]:
