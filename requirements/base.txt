@@ -127,6 +127,7 @@ isodate==0.6.0
 # via apache-superset
 itsdangerous==1.1.0
 # via
+#   apache-superset
 #   flask
 #   flask-wtf
 jinja2==2.11.3
