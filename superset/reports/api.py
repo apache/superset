@@ -15,14 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from flask import g, request, Response
 from flask_appbuilder.api import expose, permission_name, protect, rison, safe
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
 
+from superset import is_feature_enabled
 from superset.charts.filters import ChartFilter
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.filters import DashboardAccessFilter
@@ -60,6 +62,12 @@ logger = logging.getLogger(__name__)
 
 class ReportScheduleRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(ReportSchedule)
+
+    @before_request
+    def ensure_alert_reports_enabled(self) -> Optional[Response]:
+        if not is_feature_enabled("ALERT_REPORTS"):
+            return self.response_404()
+        return None
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.RELATED,
