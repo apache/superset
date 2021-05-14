@@ -18,10 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { FormGroup, HelpBlock, FormControl } from 'react-bootstrap';
-
 import { Tooltip } from 'src/components/Tooltip';
-import { FormLabel } from 'src/components/Form';
+import { FormItem, FormLabel } from 'src/components/Form';
 import './crud.less';
 
 const propTypes = {
@@ -63,19 +61,31 @@ export default class Field extends React.PureComponent {
       onChange: this.onChange,
     });
     return (
-      <FormGroup controlId={fieldKey}>
-        <FormLabel className="m-r-5">
-          {label || fieldKey}
-          {compact && description && (
-            <Tooltip id="field-descr" placement="right" title={description}>
-              <i className="fa fa-info-circle m-l-5" />
-            </Tooltip>
-          )}
-        </FormLabel>{' '}
+      <FormItem
+        controlId={fieldKey}
+        label={
+          <FormLabel className="m-r-5">
+            {label || fieldKey}
+            {compact && description && (
+              <Tooltip id="field-descr" placement="right" title={description}>
+                <i className="fa fa-info-circle m-l-5" />
+              </Tooltip>
+            )}
+          </FormLabel>
+        }
+      >
         {hookedControl}
-        <FormControl.Feedback />
-        {!compact && description && <HelpBlock>{description}</HelpBlock>}
-      </FormGroup>
+        {!compact && description && (
+          <div
+            css={theme => ({
+              color: theme.colors.grayscale.base,
+              marginTop: theme.gridUnit,
+            })}
+          >
+            {description}
+          </div>
+        )}
+      </FormItem>
     );
   }
 }

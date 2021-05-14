@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import LanguagePicker from './LanguagePicker';
 
 const mockedProps = {
@@ -41,14 +42,14 @@ test('should render', () => {
   expect(container).toBeInTheDocument();
 });
 
-test('should render the button', () => {
+test('should render the combobox', () => {
   render(<LanguagePicker {...mockedProps} />);
-  const button = screen.getByRole('button');
-  expect(button).toHaveAttribute('href', '#');
+  expect(screen.getByRole('combobox')).toBeInTheDocument();
 });
 
-test('should render the menuitem', () => {
+test('should render the items', async () => {
   render(<LanguagePicker {...mockedProps} />);
-  const menuitem = screen.getByRole('menuitem');
-  expect(menuitem).toHaveTextContent('Italian');
+  userEvent.click(screen.getByRole('combobox'));
+  expect(await screen.findByText('English')).toBeInTheDocument();
+  expect(await screen.findByText('Italian')).toBeInTheDocument();
 });

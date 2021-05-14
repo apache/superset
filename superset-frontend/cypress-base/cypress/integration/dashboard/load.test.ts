@@ -44,7 +44,14 @@ describe('Dashboard load', () => {
 
   it('should load in edit/standalone mode', () => {
     cy.visit(`${WORLD_HEALTH_DASHBOARD}?edit=true&standalone=true`);
-    cy.get('[data-test="discard-changes-button"]').should('be.visible');
+    cy.get('[data-test="discard-changes-button"]', { timeout: 10000 }).should(
+      'be.visible',
+    );
     cy.get('#app-menu').should('not.exist');
+  });
+
+  it('should send log data', () => {
+    cy.visit(WORLD_HEALTH_DASHBOARD);
+    cy.intercept('/superset/log/?explode=events&dashboard_id=*');
   });
 });

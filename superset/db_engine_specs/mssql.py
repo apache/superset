@@ -17,7 +17,7 @@
 import logging
 import re
 from datetime import datetime
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Pattern, Tuple
 
 from flask_babel import gettext as __
 
@@ -64,21 +64,24 @@ class MssqlEngineSpec(BaseEngineSpec):
         "P1Y": "DATEADD(year, DATEDIFF(year, 0, {col}), 0)",
     }
 
-    custom_errors = {
+    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
         CONNECTION_ACCESS_DENIED_REGEX: (
             __(
                 'Either the username "%(username)s", password, '
                 'or database name "%(database)s" is incorrect.'
             ),
             SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            {},
         ),
         CONNECTION_INVALID_HOSTNAME_REGEX: (
             __('The hostname "%(hostname)s" cannot be resolved.'),
             SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+            {},
         ),
         CONNECTION_PORT_CLOSED_REGEX: (
             __('Port %(port)s on hostname "%(hostname)s" refused the connection.'),
             SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
+            {},
         ),
         CONNECTION_HOST_DOWN_REGEX: (
             __(
@@ -86,6 +89,7 @@ class MssqlEngineSpec(BaseEngineSpec):
                 "reached on port %(port)s."
             ),
             SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+            {},
         ),
     }
 

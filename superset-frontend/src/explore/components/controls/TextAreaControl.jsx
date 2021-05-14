@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { FormGroup, FormControl } from 'react-bootstrap';
+import { TextArea } from 'src/common/components';
 import { debounce } from 'lodash';
 import { t } from '@superset-ui/core';
 
@@ -99,16 +99,13 @@ export default class TextAreaControl extends React.Component {
       );
     }
     return (
-      <FormGroup controlId="formControlsTextarea">
-        <FormControl
-          componentClass="textarea"
-          placeholder={t('textarea')}
-          onChange={this.onControlChange.bind(this)}
-          value={value}
-          disabled={this.props.readOnly}
-          style={{ height: this.props.height }}
-        />
-      </FormGroup>
+      <TextArea
+        placeholder={t('textarea')}
+        onChange={this.onControlChange.bind(this)}
+        value={value}
+        disabled={this.props.readOnly}
+        style={{ height: this.props.height }}
+      />
     );
   }
 

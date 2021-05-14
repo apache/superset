@@ -30,6 +30,7 @@ export default function buildQuery(formData: PluginFilterSelectQueryFormData) {
         ...baseQueryObject,
         apply_fetch_values_predicate: true,
         groupby: columns,
+        metrics: sortMetric ? [sortMetric] : [],
         filters: filters.concat(
           columns.map(column => ({ col: column, op: 'IS NOT NULL' })),
         ),
