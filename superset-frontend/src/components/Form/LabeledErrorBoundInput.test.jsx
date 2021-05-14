@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import LabeledErrorBoundInput from 'src/components/Form';
+import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 
 const defaultProps = {
   id: 1,
@@ -53,13 +53,9 @@ describe('LabeledErrorBoundInput', () => {
     const label = screen.getByText(/username/i);
     const textboxInput = screen.getByRole('textbox');
     const errorText = screen.getByText(/example error message/i);
-    const errorSVG = screen.queryByRole('img', {
-      name: /close-circle/i,
-    });
 
     expect(label).toBeVisible();
     expect(textboxInput).toBeVisible();
     expect(errorText).toBeVisible();
-    expect(errorSVG).toBeVisible();
   });
 });
