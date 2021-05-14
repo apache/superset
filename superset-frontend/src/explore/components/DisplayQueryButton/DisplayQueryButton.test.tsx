@@ -96,7 +96,7 @@ test('Shoud render a button', () => {
   expect(screen.getByRole('button')).toBeInTheDocument();
 });
 
-test('Shoud open a menu', () => {
+test('Should open a menu', () => {
   const props = createProps();
   render(<ConectedDisplayQueryButton {...props} />, {
     useRedux: true,
@@ -122,7 +122,7 @@ test('Shoud open a menu', () => {
   ).toBeInTheDocument();
 });
 
-test('Shoud call onOpenPropertiesModal when click on "Edit properties"', () => {
+test('Should call onOpenPropertiesModal when click on "Edit properties"', () => {
   const props = createProps();
   render(<ConectedDisplayQueryButton {...props} />, {
     useRedux: true,
@@ -150,7 +150,7 @@ test('Shoud call getChartDataRequest when click on "View query"', async () => {
   await waitFor(() => expect(getChartDataRequest).toBeCalledTimes(1));
 });
 
-test('Shoud call onOpenInEditor when click on "Run in SQL Lab"', () => {
+test('Should call onOpenInEditor when click on "Run in SQL Lab"', () => {
   const props = createProps();
   render(<ConectedDisplayQueryButton {...props} />, {
     useRedux: true,
@@ -164,7 +164,7 @@ test('Shoud call onOpenInEditor when click on "Run in SQL Lab"', () => {
   expect(props.onOpenInEditor).toBeCalledTimes(1);
 });
 
-test('Shoud call downloadAsImage when click on "Download as image"', () => {
+test('Should call downloadAsImage when click on "Download as image"', () => {
   const props = createProps();
   const spy = jest.spyOn(downloadAsImage, 'default');
   render(<ConectedDisplayQueryButton {...props} />, {
