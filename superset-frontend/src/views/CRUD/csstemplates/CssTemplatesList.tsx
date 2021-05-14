@@ -303,7 +303,7 @@ function CssTemplatesList({
 
   return (
     <>
-      <SubMenu headerSize={8} {...menuData} />
+      <SubMenu {...menuData} />
       <CssTemplateModal
         addDangerToast={addDangerToast}
         cssTemplate={currentCssTemplate}
