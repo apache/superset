@@ -32,10 +32,8 @@
   },
   "peerDependencies": {
     "@types/react": "*",
-    "@types/react-bootstrap": "*",
     "antd": "^4.9.4",
     "react": "^16.13.1",
-    "react-bootstrap": "^0.33.1",
     "react-icons": "^4.2.0"
   }
 }
