@@ -221,9 +221,8 @@ class SupersetAppInitializer:
         appbuilder.add_api(DatasetMetricRestApi)
         appbuilder.add_api(QueryRestApi)
         appbuilder.add_api(SavedQueryRestApi)
-        if feature_flag_manager.is_feature_enabled("ALERT_REPORTS"):
-            appbuilder.add_api(ReportScheduleRestApi)
-            appbuilder.add_api(ReportExecutionLogRestApi)
+        appbuilder.add_api(ReportScheduleRestApi)
+        appbuilder.add_api(ReportExecutionLogRestApi)
         #
         # Setup regular views
         #
