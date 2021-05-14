@@ -132,6 +132,13 @@ describe('canUserEditDashboard', () => {
   it('rejects nonexistent users', () => {
     expect(canUserEditDashboard(dashboard, null)).toEqual(false);
   });
+  it('rejects missing roles', () => {
+    // in redux, when there is no user, the user is actually set to an empty object,
+    // so we need to handle missing roles as well as a missing user.s
+    expect(
+      canUserEditDashboard(dashboard, {} as UserWithPermissionsAndRoles),
+    ).toEqual(false);
+  });
   it('rejects "admins" if the admin role does not have edit rights for some reason', () => {
     expect(
       canUserEditDashboard(dashboard, {
