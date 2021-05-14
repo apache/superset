@@ -1255,6 +1255,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
 
     @classmethod
+    @utils.memoized
     def get_column_spec(
         cls,
         native_type: Optional[str],
