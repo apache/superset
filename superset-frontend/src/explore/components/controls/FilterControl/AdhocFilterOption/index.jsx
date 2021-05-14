@@ -63,6 +63,7 @@ const AdhocFilterOption = ({
   >
     <OptionControlLabel
       label={adhocFilter.getDefaultLabel()}
+      tooltipTitle={adhocFilter.getTooltipTitle()}
       onRemove={onRemoveFilter}
       onMoveLabel={onMoveLabel}
       onDropLabel={onDropLabel}

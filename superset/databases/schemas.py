@@ -28,7 +28,7 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError
 
 from superset.db_engine_specs import get_engine_specs
-from superset.db_engine_specs.base import BaseParametersMixin
+from superset.db_engine_specs.base import BasicParametersMixin
 from superset.exceptions import CertificateException, SupersetSecurityException
 from superset.models.core import PASSWORD_MASK
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
@@ -259,7 +259,7 @@ class DatabaseParametersSchemaMixin:
                     [_('Engine "%(engine)s" is not a valid engine.', engine=engine,)]
                 )
             engine_spec = engine_specs[engine]
-            if not issubclass(engine_spec, BaseParametersMixin):
+            if not issubclass(engine_spec, BasicParametersMixin):
                 raise ValidationError(
                     [
                         _(

@@ -30,7 +30,7 @@ from superset.databases.commands.exceptions import (
 )
 from superset.databases.dao import DatabaseDAO
 from superset.db_engine_specs import get_engine_specs
-from superset.db_engine_specs.base import BaseParametersMixin
+from superset.db_engine_specs.base import BasicParametersMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.core import Database
 
@@ -56,7 +56,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                 ),
             )
         engine_spec = engine_specs[engine]
-        if not issubclass(engine_spec, BaseParametersMixin):
+        if not issubclass(engine_spec, BasicParametersMixin):
             raise InvalidEngineError(
                 SupersetError(
                     message=__(
@@ -69,7 +69,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                         "allowed": [
                             name
                             for name, engine_spec in engine_specs.items()
-                            if issubclass(engine_spec, BaseParametersMixin)
+                            if issubclass(engine_spec, BasicParametersMixin)
                         ],
                         "provided": engine,
                     },

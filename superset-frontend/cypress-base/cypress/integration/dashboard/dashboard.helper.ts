@@ -45,9 +45,7 @@ export interface ChartSpec {
 
 export function getChartGridComponent({ name, viz }: ChartSpec) {
   return cy
-    .get(`[data-test="chart-grid-component"][data-test-chart-name="${name}"]`, {
-      timeout: 30000,
-    })
+    .get(`[data-test="chart-grid-component"][data-test-chart-name="${name}"]`)
     .should('have.attr', 'data-test-viz-type', viz);
 }
 

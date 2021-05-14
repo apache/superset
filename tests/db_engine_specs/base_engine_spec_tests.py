@@ -22,7 +22,7 @@ import pytest
 from superset.db_engine_specs import get_engine_specs
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
-    BaseParametersMixin,
+    BasicParametersMixin,
     builtin_time_grains,
     LimitMethod,
 )
@@ -383,7 +383,7 @@ def test_validate(is_port_open, is_hostname_valid):
         "database": "dbname",
         "query": {"sslmode": "verify-full"},
     }
-    errors = BaseParametersMixin.validate_parameters(parameters)
+    errors = BasicParametersMixin.validate_parameters(parameters)
     assert errors == []
 
 
@@ -396,7 +396,7 @@ def test_validate_parameters_missing():
         "database": "",
         "query": {},
     }
-    errors = BaseParametersMixin.validate_parameters(parameters)
+    errors = BasicParametersMixin.validate_parameters(parameters)
     assert errors == [
         SupersetError(
             message=(
@@ -421,7 +421,7 @@ def test_validate_parameters_invalid_host(is_hostname_valid):
         "database": "dbname",
         "query": {"sslmode": "verify-full"},
     }
-    errors = BaseParametersMixin.validate_parameters(parameters)
+    errors = BasicParametersMixin.validate_parameters(parameters)
     assert errors == [
         SupersetError(
             message="One or more parameters are missing: port",
@@ -452,7 +452,7 @@ def test_validate_parameters_port_closed(is_port_open, is_hostname_valid):
         "database": "dbname",
         "query": {"sslmode": "verify-full"},
     }
-    errors = BaseParametersMixin.validate_parameters(parameters)
+    errors = BasicParametersMixin.validate_parameters(parameters)
     assert errors == [
         SupersetError(
             message="The port is closed.",

@@ -195,11 +195,41 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
   return (
     <StyledHeader>
       <Row className="menu" role="navigation">
+<<<<<<< HEAD
         {props.name && <div className="header">{props.name}</div>}
         <Menu mode={showMenu} style={{ backgroundColor: 'transparent' }}>
           {props.tabs &&
             props.tabs.map(tab => {
               if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
+=======
+        {props.name && (
+          <Col flex="none">
+            <div className="header">{props.name}</div>
+          </Col>
+        )}
+        <Col flex="auto" xs={24}>
+          <Menu mode={showMenu} style={{ backgroundColor: 'transparent' }}>
+            {props.tabs &&
+              props.tabs.map(tab => {
+                if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
+                  return (
+                    <Menu.Item key={tab.label}>
+                      <li
+                        role="tab"
+                        data-test={tab['data-test']}
+                        className={
+                          tab.name === props.activeChild ? 'active' : ''
+                        }
+                      >
+                        <div>
+                          <Link to={tab.url || ''}>{tab.label}</Link>
+                        </div>
+                      </li>
+                    </Menu.Item>
+                  );
+                }
+
+>>>>>>> c55418d0208b1e9a23515566b3d83d4ec2a8a907
                 return (
                   <Menu.Item key={tab.label}>
                     <li
