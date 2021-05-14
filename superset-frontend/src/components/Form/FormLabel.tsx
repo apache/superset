@@ -40,7 +40,7 @@ const RequiredLabel = styled.label`
   margin-bottom: ${({ theme }) => theme.gridUnit}px;
   &::after {
     display: inline-block;
-    margin-left: 4px;
+    margin-left: ${({ theme }) => theme.gridUnit}px;
     color: ${({ theme }) => theme.colors.error.base};
     font-size: ${({ theme }) => theme.typography.sizes.m}px;
     content: '*';
