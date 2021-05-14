@@ -98,6 +98,7 @@ const ChartOverlay = styled.div`
 export default class Chart extends React.Component {
   constructor(props) {
     super(props);
+    console.log('Props are', this.props);
     this.state = {
       width: props.width,
       height: props.height,
@@ -334,6 +335,7 @@ export default class Chart extends React.Component {
           handleToggleFullSize={handleToggleFullSize}
           isFullSize={isFullSize}
           chartStatus={chart.chartStatus}
+          formData={formData}
         />
 
         {/*

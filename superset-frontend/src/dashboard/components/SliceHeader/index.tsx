@@ -56,6 +56,7 @@ type SliceHeaderProps = {
   addDangerToast: Function;
   handleToggleFullSize: Function;
   chartStatus: string;
+  formData: object;
 };
 
 const annoationsLoading = t('Annotation layers are still loading.');
@@ -95,6 +96,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   handleToggleFullSize,
   isFullSize,
   chartStatus,
+  formData,
 }) => {
   // TODO: change to indicator field after it will be implemented
   const crossFilterValue = useSelector<RootState, any>(
@@ -183,6 +185,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
               handleToggleFullSize={handleToggleFullSize}
               isFullSize={isFullSize}
               chartStatus={chartStatus}
+              formData={formData}
             />
           </>
         )}
