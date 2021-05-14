@@ -19,6 +19,7 @@
 """Unit tests for Superset"""
 import dataclasses
 import json
+from collections import defaultdict
 from io import BytesIO
 from unittest import mock
 from zipfile import is_zipfile, ZipFile
@@ -1369,15 +1370,18 @@ class TestDatabaseApi(SupersetTestCase):
         url = "api/v1/database/validate_parameters"
         payload = {
             "engine": "postgresql",
-            "parameters": {
+            "parameters": defaultdict(dict),
+        }
+        payload["parameters"].update(
+            {
                 "host": "",
                 "port": 5432,
                 "username": "",
                 "password": "",
                 "database": "",
                 "query": {},
-            },
-        }
+            }
+        )
         rv = self.client.post(url, json=payload)
         response = json.loads(rv.data.decode("utf-8"))
 
@@ -1409,15 +1413,18 @@ class TestDatabaseApi(SupersetTestCase):
         url = "api/v1/database/validate_parameters"
         payload = {
             "engine": "postgresql",
-            "parameters": {
+            "parameters": defaultdict(dict),
+        }
+        payload["parameters"].update(
+            {
                 "host": "localhost",
                 "port": 5432,
                 "username": "",
                 "password": "",
                 "database": "",
                 "query": {},
-            },
-        }
+            }
+        )
         rv = self.client.post(url, json=payload)
         response = json.loads(rv.data.decode("utf-8"))
 
