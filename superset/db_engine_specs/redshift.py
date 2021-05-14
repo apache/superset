@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import re
+from typing import Any, Dict, Pattern, Tuple
 
 from flask_babel import gettext as __
 
@@ -49,18 +50,21 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec):
     engine_name = "Amazon Redshift"
     max_column_name_length = 127
 
-    custom_errors = {
+    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
         CONNECTION_ACCESS_DENIED_REGEX: (
             __('Either the username "%(username)s" or the password is incorrect.'),
             SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            {},
         ),
         CONNECTION_INVALID_HOSTNAME_REGEX: (
             __('The hostname "%(hostname)s" cannot be resolved.'),
             SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+            {},
         ),
         CONNECTION_PORT_CLOSED_REGEX: (
             __('Port %(port)s on hostname "%(hostname)s" refused the connection.'),
             SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
+            {},
         ),
         CONNECTION_HOST_DOWN_REGEX: (
             __(
@@ -68,6 +72,7 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec):
                 "reached on port %(port)s."
             ),
             SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+            {},
         ),
         CONNECTION_UNKNOWN_DATABASE_REGEX: (
             __(
@@ -75,6 +80,7 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec):
                 " Please verify your database name and try again."
             ),
             SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+            {},
         ),
     }
 

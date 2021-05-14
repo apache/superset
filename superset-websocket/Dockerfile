@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -13,35 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-**/__pycache__/
-**/.git
-**/.apache_superset.egg-info
-**/.github
-**/.mypy_cache
-**/.pytest_cache
-**/.tox
-**/.vscode
-**/.idea
-**/.coverage
-**/.DS_Store
-**/.eggs
-**/.python-version
-**/*.egg-info
-**/*.bak
-**/*.db
-**/*.pyc
-**/*.sqllite
-**/*.swp
-**/.terser-plugin-cache/
-**/.storybook/
-**/node_modules/
+FROM node:14.16.1
 
-tests/
-docs/
-install/
-superset-frontend/cypress-base/
-superset-frontend/coverage/
-superset/static/assets/
-superset-websocket/dist/
-venv
+WORKDIR /home/superset-websocket
+
+COPY . .
+
+RUN npm ci
+RUN npm run build
+
+CMD ["npm", "start"]

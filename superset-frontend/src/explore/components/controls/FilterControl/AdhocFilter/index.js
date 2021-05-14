@@ -142,6 +142,10 @@ export default class AdhocFilter {
     return label.length < 43 ? label : `${label.substring(0, 40)}...`;
   }
 
+  getTooltipTitle() {
+    return this.translateToSql();
+  }
+
   translateToSql() {
     return translateToSql(this);
   }

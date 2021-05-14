@@ -806,9 +806,9 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
     logs = db.session.query(ReportExecutionLog).all()
     # Two logs, first is created by fixture
     assert len(logs) == 2
-    assert logs[1].error_message == ReportScheduleWorkingTimeoutError.message
-    assert logs[1].state == ReportState.ERROR
-
+    assert ReportScheduleWorkingTimeoutError.message in [
+        log.error_message for log in logs
+    ]
     assert create_report_slack_chart_working.last_state == ReportState.ERROR
 
 
