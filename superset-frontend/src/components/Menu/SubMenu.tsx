@@ -113,9 +113,6 @@ const StyledHeader = styled.div`
   @media (max-width: 767px) {
     .header,
     .nav-right {
-      //float: left;
-      //padding-left: ${({ theme }) => theme.gridUnit * 2}px;
-      //display: block;
       position: relative;
       margin-left: 8px;
     }
