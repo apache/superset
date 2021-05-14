@@ -63,6 +63,10 @@ describe('findPermission', () => {
       false,
     );
   });
+
+  it('handles nonexistent roles', () => {
+    expect(findPermission('abc', 'def', null)).toEqual(false);
+  });
 });
 
 describe('canUserEditDashboard', () => {

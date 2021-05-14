@@ -23,7 +23,8 @@ import Dashboard from 'src/types/Dashboard';
 type UserRoles = Record<string, [string, string][]>;
 
 const findPermission = memoizeOne(
-  (perm: string, view: string, roles: UserRoles) =>
+  (perm: string, view: string, roles?: UserRoles | null) =>
+    !!roles &&
     Object.values(roles).some(permissions =>
       permissions.some(([perm_, view_]) => perm_ === perm && view_ === view),
     ),
