@@ -16,7 +16,7 @@
 # under the License.
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 
 import pandas as pd
 from flask_babel import gettext as __
@@ -95,7 +95,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
         "P1Y": "{func}({col}, YEAR)",
     }
 
-    custom_errors = {
+    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
         CONNECTION_DATABASE_PERMISSIONS_REGEX: (
             __(
                 "We were unable to connect to your database. Please "
@@ -103,6 +103,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
                 "and Job User roles on the project."
             ),
             SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
+            {},
         ),
     }
 

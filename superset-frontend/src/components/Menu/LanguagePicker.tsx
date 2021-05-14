@@ -17,8 +17,9 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { Menu } from 'src/common/components';
-import NavDropdown from 'src/components/NavDropdown';
+import { Select } from 'src/common/components';
+import { styled, useTheme } from '@superset-ui/core';
+import Icons from 'src/components/Icons';
 
 export interface Languages {
   [key: string]: {
@@ -33,43 +34,81 @@ interface LanguagePickerProps {
   languages: Languages;
 }
 
+const dropdownWidth = 150;
+
+const StyledLabel = styled.div`
+  display: flex;
+  align-items: center;
+
+  & i {
+    margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
+
+  & span {
+    display: block;
+    width: ${dropdownWidth}px;
+    word-wrap: break-word;
+    white-space: normal;
+  }
+`;
+
+const StyledFlag = styled.div`
+  margin-top: 2px;
+`;
+
+const StyledIcon = styled(Icons.TriangleDown)`
+  ${({ theme }) => `
+    margin-top: -${theme.gridUnit}px;
+    margin-left: -${theme.gridUnit * 2}px;
+  `}
+`;
+
 export default function LanguagePicker({
   locale,
   languages,
 }: LanguagePickerProps) {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const theme = useTheme();
+  const [open, setOpen] = useState(false);
+
+  const options = Object.keys(languages).map(langKey => ({
+    label: (
+      <StyledLabel className="f16">
+        <i className={`flag ${languages[langKey].flag}`} />{' '}
+        <span>{languages[langKey].name}</span>
+      </StyledLabel>
+    ),
+    value: langKey,
+    flag: (
+      <StyledFlag className="f16">
+        <i className={`flag ${languages[langKey].flag}`} />
+      </StyledFlag>
+    ),
+  }));
 
   return (
-    <NavDropdown
-      onMouseEnter={() => setDropdownOpen(true)}
-      onMouseLeave={() => setDropdownOpen(false)}
-      onToggle={value => setDropdownOpen(value)}
-      open={dropdownOpen}
-      id="locale-dropdown"
-      title={
-        <span className="f16">
-          <i className={`flag ${languages[locale].flag}`} />
-        </span>
+    <Select
+      defaultValue={locale}
+      open={open}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onDropdownVisibleChange={open => setOpen(open)}
+      bordered={false}
+      options={options}
+      suffixIcon={
+        <StyledIcon
+          iconColor={theme.colors.grayscale.base}
+          className="ant-select-suffix"
+        />
       }
-      data-test="language-picker"
-    >
-      <Menu
-        onSelect={({ key }) => {
-          window.location.href = languages[key].url;
-        }}
-      >
-        {Object.keys(languages).map(langKey =>
-          langKey === locale ? null : (
-            <Menu.Item key={langKey}>
-              {' '}
-              <div className="f16">
-                <i className={`flag ${languages[langKey].flag}`} /> -{' '}
-                {languages[langKey].name}
-              </div>
-            </Menu.Item>
-          ),
-        )}
-      </Menu>
-    </NavDropdown>
+      listHeight={400}
+      dropdownAlign={{
+        offset: [-dropdownWidth, 0],
+      }}
+      optionLabelProp="flag"
+      dropdownMatchSelectWidth={false}
+      onChange={(value: string) => {
+        window.location.href = languages[value].url;
+      }}
+    />
   );
 }

@@ -72,6 +72,8 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
             activeKey={activeKey}
             renderTabBar={() => <></>}
             fullWidth={false}
+            animated
+            allowOverflow
           >
             {childIds.map((id, index) => (
               // Matching the key of the first TabPane irrespective of topLevelTabs

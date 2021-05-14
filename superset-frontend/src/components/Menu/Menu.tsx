@@ -216,7 +216,7 @@ export function Menu({
         `}
       />
       <Row>
-        <Col lg={19} md={19} sm={24} xs={24}>
+        <Col lg={12} md={24} sm={24} xs={24}>
           <a className="navbar-brand" href={brand.path}>
             <img width={brand.width} src={brand.icon} alt={brand.alt} />
           </a>
@@ -225,7 +225,7 @@ export function Menu({
             data-test="navbar-top"
             className="main-nav"
           >
-            {menu.map((item, index) => {
+            {menu.map(item => {
               const props = {
                 ...item,
                 isFrontendRoute: isFrontendRoute(item.url),
@@ -245,7 +245,7 @@ export function Menu({
             })}
           </DropdownMenu>
         </Col>
-        <Col lg={5} md={5} sm={24} xs={24}>
+        <Col lg={12} md={24} sm={24} xs={24}>
           <RightMenu
             settings={settings}
             navbarRight={navbarRight}

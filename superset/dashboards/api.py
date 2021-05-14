@@ -18,11 +18,12 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import g, make_response, redirect, request, Response, send_file, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
@@ -88,6 +89,13 @@ logger = logging.getLogger(__name__)
 
 class DashboardRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Dashboard)
+
+    @before_request(only=["thumbnail"])
+    def ensure_thumbnails_enabled(self) -> Optional[Response]:
+        if not is_feature_enabled("THUMBNAILS"):
+            return self.response_404()
+        return None
+
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
         RouteMethod.IMPORT,
@@ -96,6 +104,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "favorite_status",
         "get_charts",
         "get_datasets",
+        "thumbnail",
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -205,11 +214,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     }
     openapi_spec_methods = openapi_spec_methods_override
     """ Overrides GET methods OpenApi descriptions """
-
-    def __init__(self) -> None:
-        if is_feature_enabled("THUMBNAILS"):
-            self.include_route_methods = self.include_route_methods | {"thumbnail"}
-        super().__init__()
 
     def __repr__(self) -> str:
         """Deterministic string representation of the API instance for etag_cache."""

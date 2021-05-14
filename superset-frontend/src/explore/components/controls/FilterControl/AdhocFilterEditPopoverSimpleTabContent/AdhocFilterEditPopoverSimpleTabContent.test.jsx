@@ -20,7 +20,6 @@
 import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import { FormGroup } from 'react-bootstrap';
 
 import AdhocFilter, {
   EXPRESSION_TYPES,
@@ -86,7 +85,7 @@ function setup(overrides) {
 describe('AdhocFilterEditPopoverSimpleTabContent', () => {
   it('renders the simple tab form', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(FormGroup)).toHaveLength(3);
+    expect(wrapper).toExist();
   });
 
   it('passes the new adhocFilter to onChange after onSubjectChange', () => {

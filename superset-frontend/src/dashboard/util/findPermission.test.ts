@@ -16,44 +16,128 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import findPermission from './findPermission';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import Dashboard from 'src/types/Dashboard';
+import Owner from 'src/types/Owner';
+import findPermission, { canUserEditDashboard } from './findPermission';
 
-test('findPermission for single role', () => {
-  expect(findPermission('abc', 'def', { role: [['abc', 'def']] })).toEqual(
-    true,
-  );
+describe('findPermission', () => {
+  it('findPermission for single role', () => {
+    expect(findPermission('abc', 'def', { role: [['abc', 'def']] })).toEqual(
+      true,
+    );
 
-  expect(findPermission('abc', 'def', { role: [['abc', 'de']] })).toEqual(
-    false,
-  );
+    expect(findPermission('abc', 'def', { role: [['abc', 'de']] })).toEqual(
+      false,
+    );
 
-  expect(findPermission('abc', 'def', { role: [] })).toEqual(false);
+    expect(findPermission('abc', 'def', { role: [] })).toEqual(false);
+  });
+
+  it('findPermission for multiple roles', () => {
+    expect(
+      findPermission('abc', 'def', {
+        role1: [
+          ['ccc', 'aaa'],
+          ['abc', 'def'],
+        ],
+        role2: [['abc', 'def']],
+      }),
+    ).toEqual(true);
+
+    expect(
+      findPermission('abc', 'def', {
+        role1: [['abc', 'def']],
+        role2: [['abc', 'dd']],
+      }),
+    ).toEqual(true);
+
+    expect(
+      findPermission('abc', 'def', {
+        role1: [['ccc', 'aaa']],
+        role2: [['aaa', 'ddd']],
+      }),
+    ).toEqual(false);
+
+    expect(findPermission('abc', 'def', { role1: [], role2: [] })).toEqual(
+      false,
+    );
+  });
+
+  it('handles nonexistent roles', () => {
+    expect(findPermission('abc', 'def', null)).toEqual(false);
+  });
 });
 
-test('findPermission for multiple roles', () => {
-  expect(
-    findPermission('abc', 'def', {
-      role1: [
-        ['ccc', 'aaa'],
-        ['abc', 'def'],
-      ],
-      role2: [['abc', 'def']],
-    }),
-  ).toEqual(true);
+describe('canUserEditDashboard', () => {
+  const ownerUser: UserWithPermissionsAndRoles = {
+    createdOn: '2021-05-12T16:56:22.116839',
+    email: 'user@example.com',
+    firstName: 'Test',
+    isActive: true,
+    lastName: 'User',
+    userId: 1,
+    username: 'owner',
+    permissions: {},
+    roles: { Alpha: [['can_write', 'Dashboard']] },
+  };
 
-  expect(
-    findPermission('abc', 'def', {
-      role1: [['abc', 'def']],
-      role2: [['abc', 'dd']],
-    }),
-  ).toEqual(true);
+  const adminUser: UserWithPermissionsAndRoles = {
+    ...ownerUser,
+    roles: {
+      ...ownerUser.roles,
+      Admin: [['can_write', 'Dashboard']],
+    },
+    userId: 2,
+    username: 'admin',
+  };
 
-  expect(
-    findPermission('abc', 'def', {
-      role1: [['ccc', 'aaa']],
-      role2: [['aaa', 'ddd']],
-    }),
-  ).toEqual(false);
+  const outsiderUser: UserWithPermissionsAndRoles = {
+    ...ownerUser,
+    userId: 3,
+    username: 'outsider',
+  };
 
-  expect(findPermission('abc', 'def', { role1: [], role2: [] })).toEqual(false);
+  const owner: Owner = {
+    first_name: 'Test',
+    id: ownerUser.userId,
+    last_name: 'User',
+    username: ownerUser.username,
+  };
+
+  const dashboard: Dashboard = {
+    id: 1,
+    dashboard_title: 'Test Dash',
+    url: 'https://dashboard.example.com/1',
+    thumbnail_url: 'https://dashboard.example.com/1/thumbnail.png',
+    published: true,
+    css: null,
+    changed_by_name: 'Test User',
+    changed_by: owner,
+    changed_on: '2021-05-12T16:56:22.116839',
+    charts: [],
+    owners: [owner],
+    roles: [],
+  };
+
+  it('allows owners to edit', () => {
+    expect(canUserEditDashboard(dashboard, ownerUser)).toEqual(true);
+  });
+  it('allows admin users to edit regardless of ownership', () => {
+    expect(canUserEditDashboard(dashboard, adminUser)).toEqual(true);
+  });
+  it('rejects non-owners', () => {
+    expect(canUserEditDashboard(dashboard, outsiderUser)).toEqual(false);
+  });
+  it('rejects nonexistent users', () => {
+    expect(canUserEditDashboard(dashboard, null)).toEqual(false);
+  });
+  it('rejects "admins" if the admin role does not have edit rights for some reason', () => {
+    expect(
+      canUserEditDashboard(dashboard, {
+        ...adminUser,
+        roles: { Admin: [] },
+      }),
+    ).toEqual(false);
+  });
 });

@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { ColumnType } from '@superset-ui/core';
+import { GenericDataType } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocFilter, {
@@ -63,7 +63,14 @@ test('renders options with column', () => {
   render(
     <DndFilterSelect
       {...defaultProps}
-      columns={[{ id: 1, type: ColumnType.STRING, column_name: 'Column' }]}
+      columns={[
+        {
+          id: 1,
+          type: 'VARCHAR',
+          type_generic: GenericDataType.STRING,
+          column_name: 'Column',
+        },
+      ]}
     />,
     {
       useDnd: true,

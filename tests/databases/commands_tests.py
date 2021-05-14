@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=no-self-use, invalid-name
-from unittest import mock
+from unittest import mock, skip
 from unittest.mock import patch
 
 import pytest
@@ -36,9 +36,10 @@ from superset.databases.commands.exceptions import (
 from superset.databases.commands.export import ExportDatabasesCommand
 from superset.databases.commands.importers.v1 import ImportDatabasesCommand
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
+from superset.databases.commands.validate import ValidateDatabaseParametersCommand
 from superset.databases.schemas import DatabaseTestConnectionSchema
-from superset.errors import SupersetError, SupersetErrorType
-from superset.exceptions import SupersetSecurityException
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetErrorsException, SupersetSecurityException
 from superset.models.core import Database
 from superset.utils.core import backend, get_example_database
 from tests.base_tests import SupersetTestCase
@@ -53,6 +54,7 @@ from tests.fixtures.importexport import (
 
 
 class TestExportDatabasesCommand(SupersetTestCase):
+    @skip("Flaky")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures(
         "load_birth_names_dashboard_with_slices", "load_energy_table_with_slice"
@@ -620,3 +622,122 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             )
 
         mock_event_logger.assert_called()
+
+
+@mock.patch("superset.db_engine_specs.base.is_hostname_valid")
+@mock.patch("superset.db_engine_specs.base.is_port_open")
+@mock.patch("superset.databases.commands.validate.DatabaseDAO")
+def test_validate(DatabaseDAO, is_port_open, is_hostname_valid, app_context):
+    """
+    Test parameter validation.
+    """
+    is_hostname_valid.return_value = True
+    is_port_open.return_value = True
+
+    payload = {
+        "engine": "postgresql",
+        "parameters": {
+            "host": "localhost",
+            "port": 5432,
+            "username": "superset",
+            "password": "superset",
+            "database": "test",
+            "query": {},
+        },
+    }
+    command = ValidateDatabaseParametersCommand(None, payload)
+    command.run()
+
+
+@mock.patch("superset.db_engine_specs.base.is_hostname_valid")
+@mock.patch("superset.db_engine_specs.base.is_port_open")
+def test_validate_partial(is_port_open, is_hostname_valid, app_context):
+    """
+    Test parameter validation when only some parameters are present.
+    """
+    is_hostname_valid.return_value = True
+    is_port_open.return_value = True
+
+    payload = {
+        "engine": "postgresql",
+        "parameters": {
+            "host": "localhost",
+            "port": 5432,
+            "username": "",
+            "password": "superset",
+            "database": "test",
+            "query": {},
+        },
+    }
+    command = ValidateDatabaseParametersCommand(None, payload)
+    with pytest.raises(SupersetErrorsException) as excinfo:
+        command.run()
+    assert excinfo.value.errors == [
+        SupersetError(
+            message="One or more parameters are missing: username",
+            error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+            level=ErrorLevel.WARNING,
+            extra={
+                "missing": ["username"],
+                "issue_codes": [
+                    {
+                        "code": 1018,
+                        "message": "Issue 1018 - One or more parameters needed to configure a database are missing.",
+                    }
+                ],
+            },
+        )
+    ]
+
+
+@mock.patch("superset.db_engine_specs.base.is_hostname_valid")
+def test_validate_partial_invalid_hostname(is_hostname_valid, app_context):
+    """
+    Test parameter validation when only some parameters are present.
+    """
+    is_hostname_valid.return_value = False
+
+    payload = {
+        "engine": "postgresql",
+        "parameters": {
+            "host": "localhost",
+            "port": None,
+            "username": "",
+            "password": "",
+            "database": "",
+            "query": {},
+        },
+    }
+    command = ValidateDatabaseParametersCommand(None, payload)
+    with pytest.raises(SupersetErrorsException) as excinfo:
+        command.run()
+    assert excinfo.value.errors == [
+        SupersetError(
+            message="One or more parameters are missing: database, port, username",
+            error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+            level=ErrorLevel.WARNING,
+            extra={
+                "missing": ["database", "port", "username"],
+                "issue_codes": [
+                    {
+                        "code": 1018,
+                        "message": "Issue 1018 - One or more parameters needed to configure a database are missing.",
+                    }
+                ],
+            },
+        ),
+        SupersetError(
+            message="The hostname provided can't be resolved.",
+            error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={
+                "invalid": ["host"],
+                "issue_codes": [
+                    {
+                        "code": 1007,
+                        "message": "Issue 1007 - The hostname provided can't be resolved.",
+                    }
+                ],
+            },
+        ),
+    ]
