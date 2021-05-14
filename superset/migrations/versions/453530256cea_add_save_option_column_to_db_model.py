@@ -43,4 +43,4 @@ def upgrade():
 
 def downgrade():
     with op.batch_alter_table("dbs") as batch_op:
-        batch_op.drop_column("save_option")
+        batch_op.drop_column("configuration_method")

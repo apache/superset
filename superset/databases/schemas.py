@@ -72,9 +72,9 @@ allow_multi_schema_metadata_fetch_description = (
     "tables, this can be expensive and put strain on the system."
 )  # pylint: disable=invalid-name
 configuration_method_description = (
-    "Configuration_method is used on the frontend to"
-    " inform the backend whether to explode parameters"
-    " or to provide only a sqlalchemy_uri."
+    "Configuration_method is used on the frontend to "
+    "inform the backend whether to explode parameters "
+    "or to provide only a sqlalchemy_uri."
 )
 impersonate_user_description = (
     "If Presto, all the queries in SQL Lab are going to be executed as the "
