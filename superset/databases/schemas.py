@@ -278,7 +278,7 @@ class DatabaseValidateParametersSchema(Schema):
     engine = fields.String(required=True, description="SQLAlchemy engine to use")
     parameters = fields.Dict(
         keys=fields.String(),
-        values=fields.Raw(),
+        values=fields.Raw(allow_none=True),
         description="DB-specific parameters for configuration",
     )
     database_name = fields.String(
