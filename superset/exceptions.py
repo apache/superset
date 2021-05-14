@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
 from flask_babel import gettext as _
@@ -175,6 +176,11 @@ class InvalidPayloadSchemaError(SupersetErrorException):
     status = 422
 
     def __init__(self, error: ValidationError):
+        # dataclasses.asdict does not work with defaultdict, convert to dict
+        # https://bugs.python.org/issue35540
+        for k, v in error.messages.items():
+            if isinstance(v, defaultdict):
+                error.messages[k] = dict(v)
         error = SupersetError(
             message="An error happened when validating the request",
             error_type=SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR,
