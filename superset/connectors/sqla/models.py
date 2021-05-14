@@ -22,7 +22,7 @@ from collections import defaultdict, OrderedDict
 from contextlib import closing
 from dataclasses import dataclass, field  # pylint: disable=wrong-import-order
 from datetime import datetime, timedelta
-from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Union
+from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Type, Union
 
 import pandas as pd
 import sqlalchemy as sa
@@ -57,7 +57,7 @@ from sqlalchemy.types import TypeEngine
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
-from superset.db_engine_specs.base import TimestampExpression
+from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     QueryObjectValidationError,
@@ -196,30 +196,21 @@ class TableColumn(Model, BaseColumn):
         """
         Check if the column has a boolean datatype.
         """
-        column_spec = self.table.database.db_engine_spec.get_column_spec(self.type)
-        if column_spec is None:
-            return False
-        return column_spec.generic_type == GenericDataType.BOOLEAN
+        return self.type_generic == GenericDataType.BOOLEAN
 
     @property
     def is_numeric(self) -> bool:
         """
         Check if the column has a numeric datatype.
         """
-        column_spec = self.table.database.db_engine_spec.get_column_spec(self.type)
-        if column_spec is None:
-            return False
-        return column_spec.generic_type == GenericDataType.NUMERIC
+        return self.type_generic == GenericDataType.NUMERIC
 
     @property
     def is_string(self) -> bool:
         """
         Check if the column has a string datatype.
         """
-        column_spec = self.table.database.db_engine_spec.get_column_spec(self.type)
-        if column_spec is None:
-            return False
-        return column_spec.generic_type == GenericDataType.STRING
+        return self.type_generic == GenericDataType.STRING
 
     @property
     def is_temporal(self) -> bool:
@@ -231,14 +222,20 @@ class TableColumn(Model, BaseColumn):
         """
         if self.is_dttm is not None:
             return self.is_dttm
-        column_spec = self.table.database.db_engine_spec.get_column_spec(self.type)
-        if column_spec is None:
-            return False
-        return column_spec.is_dttm
+        return self.type_generic == GenericDataType.TEMPORAL
+
+    @property
+    def db_engine_spec(self) -> Type[BaseEngineSpec]:
+        return self.table.db_engine_spec
+
+    @property
+    def type_generic(self) -> Optional[utils.GenericDataType]:
+        column_spec = self.db_engine_spec.get_column_spec(self.type)
+        return column_spec.generic_type if column_spec else None
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.column_name
-        db_engine_spec = self.table.database.db_engine_spec
+        db_engine_spec = self.db_engine_spec
         column_spec = db_engine_spec.get_column_spec(self.type)
         type_ = column_spec.sqla_type if column_spec else None
         if self.expression:
@@ -290,7 +287,6 @@ class TableColumn(Model, BaseColumn):
         """
         label = label or utils.DTTM_ALIAS
 
-        db_ = self.table.database
         pdf = self.python_date_format
         is_epoch = pdf in ("epoch_s", "epoch_ms")
         if not self.expression and not time_grain and not is_epoch:
@@ -300,7 +296,7 @@ class TableColumn(Model, BaseColumn):
             col = literal_column(self.expression)
         else:
             col = column(self.column_name)
-        time_expr = db_.db_engine_spec.get_timestamp_expr(
+        time_expr = self.db_engine_spec.get_timestamp_expr(
             col, pdf, time_grain, self.type
         )
         return self.table.make_sqla_column_compatible(time_expr, label)
@@ -313,11 +309,7 @@ class TableColumn(Model, BaseColumn):
         ],
     ) -> str:
         """Convert datetime object to a SQL expression string"""
-        sql = (
-            self.table.database.db_engine_spec.convert_dttm(self.type, dttm)
-            if self.type
-            else None
-        )
+        sql = self.db_engine_spec.convert_dttm(self.type, dttm) if self.type else None
 
         if sql:
             return sql
@@ -528,6 +520,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         return self.name
 
     @property
+    def db_engine_spec(self) -> Type[BaseEngineSpec]:
+        return self.database.db_engine_spec
+
+    @property
     def changed_by_name(self) -> str:
         if not self.changed_by:
             return ""
@@ -636,7 +632,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         return self.database.sql_url + "?table_name=" + str(self.table_name)
 
     def external_metadata(self) -> List[Dict[str, str]]:
-        db_engine_spec = self.database.db_engine_spec
+        db_engine_spec = self.db_engine_spec
         if self.sql:
             engine = self.database.get_sqla_engine(schema=self.schema)
             sql = self.get_template_processor().process_template(self.sql)
@@ -815,9 +811,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
         from_sql = self.get_rendered_sql(template_processor)
         parsed_query = ParsedQuery(from_sql)
-        db_engine_spec = self.database.db_engine_spec
         if not (
-            parsed_query.is_unknown() or db_engine_spec.is_readonly_query(parsed_query)
+            parsed_query.is_unknown()
+            or self.db_engine_spec.is_readonly_query(parsed_query)
         ):
             raise QueryObjectValidationError(
                 _("Virtual dataset query must be read-only")
@@ -889,7 +885,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         :return: either a sql alchemy column or label instance if supported by engine
         """
         label_expected = label or sqla_col.name
-        db_engine_spec = self.database.db_engine_spec
+        db_engine_spec = self.db_engine_spec
         # add quotes to tables
         if db_engine_spec.allows_alias_in_select:
             label = db_engine_spec.make_label_compatible(label_expected)
@@ -909,7 +905,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         the same as a source column. In this case, we update the SELECT alias to
         another name to avoid the conflict.
         """
-        if self.database.db_engine_spec.allows_alias_to_source_column:
+        if self.db_engine_spec.allows_alias_to_source_column:
             return
 
         def is_alias_used_in_orderby(col: ColumnElement) -> bool:
@@ -990,7 +986,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         extra_cache_keys: List[Any] = []
         template_kwargs["extra_cache_keys"] = extra_cache_keys
         template_processor = self.get_template_processor(**template_kwargs)
-        db_engine_spec = self.database.db_engine_spec
+        db_engine_spec = self.db_engine_spec
         prequeries: List[str] = []
         orderby = orderby or []
         extras = extras or {}
@@ -1469,7 +1465,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             logger.warning(
                 "Query %s on schema %s failed", sql, self.schema, exc_info=True
             )
-            db_engine_spec = self.database.db_engine_spec
+            db_engine_spec = self.db_engine_spec
             errors = [
                 dataclasses.asdict(error) for error in db_engine_spec.extract_errors(ex)
             ]
@@ -1497,7 +1493,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         new_columns = self.external_metadata()
         metrics = []
         any_date_col = None
-        db_engine_spec = self.database.db_engine_spec
+        db_engine_spec = self.db_engine_spec
         old_columns = db.session.query(TableColumn).filter(TableColumn.table == self)
 
         old_columns_by_name: Dict[str, TableColumn] = {
