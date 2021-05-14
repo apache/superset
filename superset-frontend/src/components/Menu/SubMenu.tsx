@@ -21,7 +21,7 @@ import { Link, useHistory } from 'react-router-dom';
 import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 import { debounce } from 'lodash';
-import { Col, Row } from 'antd';
+import { Row } from 'antd';
 import { Menu, MenuMode } from 'src/common/components';
 import Button, { OnClickHandler } from 'src/components/Button';
 
@@ -42,6 +42,8 @@ const StyledHeader = styled.div`
     padding: 14px 0;
     margin-right: ${({ theme }) => theme.gridUnit * 3}px;
     float: right;
+    position: absolute;
+    right: 0;
   }
   .nav-right-collapse {
     display: flex;
@@ -111,8 +113,8 @@ const StyledHeader = styled.div`
   @media (max-width: 767px) {
     .header,
     .nav-right {
-      float: left;
-      padding-left: ${({ theme }) => theme.gridUnit * 2}px;
+      position: relative;
+      margin-left: ${({ theme }) => theme.gridUnit * 2}px;
     }
   }
 `;
@@ -150,13 +152,11 @@ export interface SubMenuProps {
    *  otherwise, a 'You should not use <Link> outside a <Router>' error will be thrown */
   usesRouter?: boolean;
   color?: string;
-  headerSize?: number;
 }
 
 const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
   const [navRightStyle, setNavRightStyle] = useState('nav-right');
-  const [navRightCol, setNavRightCol] = useState(8);
 
   let hasHistory = true;
   // If no parent <Router> component exists, useHistory throws an error
@@ -177,14 +177,12 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
         props.buttons.length >= 3 &&
         window.innerWidth >= 795
       ) {
-        setNavRightCol(8);
         setNavRightStyle('nav-right');
       } else if (
         props.buttons &&
         props.buttons.length >= 3 &&
         window.innerWidth <= 795
       ) {
-        setNavRightCol(24);
         setNavRightStyle('nav-right-collapse');
       }
     }
@@ -197,64 +195,53 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
   return (
     <StyledHeader>
       <Row className="menu" role="navigation">
-        {props.name && (
-          <Col flex="none">
-            <div className="header">{props.name}</div>
-          </Col>
-        )}
-        <Col flex="auto" xs={24}>
-          <Menu mode={showMenu} style={{ backgroundColor: 'transparent' }}>
-            {props.tabs &&
-              props.tabs.map(tab => {
-                if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
-                  return (
-                    <Menu.Item key={tab.label}>
-                      <li
-                        role="tab"
-                        data-test={tab['data-test']}
-                        className={
-                          tab.name === props.activeChild ? 'active' : ''
-                        }
-                      >
-                        <div>
-                          <Link to={tab.url || ''}>{tab.label}</Link>
-                        </div>
-                      </li>
-                    </Menu.Item>
-                  );
-                }
+        {props.name && <div className="header">{props.name}</div>}
+        <Menu mode={showMenu} style={{ backgroundColor: 'transparent' }}>
+          {props.tabs?.map(tab => {
+            if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
+              return (
+                <Menu.Item key={tab.label}>
+                  <li
+                    role="tab"
+                    data-test={tab['data-test']}
+                    className={tab.name === props.activeChild ? 'active' : ''}
+                  >
+                    <div>
+                      <Link to={tab.url || ''}>{tab.label}</Link>
+                    </div>
+                  </li>
+                </Menu.Item>
+              );
+            }
 
-                return (
-                  <Menu.Item key={tab.label}>
-                    <li
-                      className={cx('no-router', {
-                        active: tab.name === props.activeChild,
-                      })}
-                      role="tab"
-                    >
-                      <a href={tab.url} onClick={tab.onClick}>
-                        {tab.label}
-                      </a>
-                    </li>
-                  </Menu.Item>
-                );
-              })}
-          </Menu>
-        </Col>
-        <Col lg={8} md={navRightCol} sm={24} xs={24}>
-          <div className={navRightStyle}>
-            {props.buttons?.map((btn, i) => (
-              <Button
-                key={i}
-                buttonStyle={btn.buttonStyle}
-                onClick={btn.onClick}
-                data-test={btn['data-test']}
-              >
-                {btn.name}
-              </Button>
-            ))}
-          </div>
-        </Col>
+            return (
+              <Menu.Item key={tab.label}>
+                <li
+                  className={cx('no-router', {
+                    active: tab.name === props.activeChild,
+                  })}
+                  role="tab"
+                >
+                  <a href={tab.url} onClick={tab.onClick}>
+                    {tab.label}
+                  </a>
+                </li>
+              </Menu.Item>
+            );
+          })}
+        </Menu>
+        <div className={navRightStyle}>
+          {props.buttons?.map((btn, i) => (
+            <Button
+              key={i}
+              buttonStyle={btn.buttonStyle}
+              onClick={btn.onClick}
+              data-test={btn['data-test']}
+            >
+              {btn.name}
+            </Button>
+          ))}
+        </div>
       </Row>
       {props.children}
     </StyledHeader>
