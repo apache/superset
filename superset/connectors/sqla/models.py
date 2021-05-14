@@ -242,7 +242,10 @@ class TableColumn(Model, BaseColumn):
         column_spec = db_engine_spec.get_column_spec(self.type)
         type_ = column_spec.sqla_type if column_spec else None
         if self.expression:
-            col = literal_column(self.expression, type_=type_)
+            expression = get_template_processor(
+                self.table.database, self.table
+            ).process_template(self.expression)
+            col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
         col = self.table.make_sqla_column_compatible(col, label)
