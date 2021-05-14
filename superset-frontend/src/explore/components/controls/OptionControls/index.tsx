@@ -21,7 +21,7 @@ import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
 import { styled, t, useTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/components/Tooltip';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import { StyledMetricOption } from '../../optionRenderers';
@@ -167,6 +167,7 @@ export const OptionControlLabel = ({
   type,
   index,
   isExtra,
+  tooltipTitle,
   ...props
 }: {
   label: string | React.ReactNode;
@@ -181,6 +182,7 @@ export const OptionControlLabel = ({
   type: string;
   index: number;
   isExtra?: boolean;
+  tooltipTitle: string;
 }) => {
   const theme = useTheme();
   const ref = useRef<HTMLDivElement>(null);
@@ -246,7 +248,7 @@ export const OptionControlLabel = ({
     if (savedMetric?.metric_name) {
       return <StyledMetricOption metric={savedMetric} />;
     }
-    return <Tooltip title={label}>{label}</Tooltip>;
+    return <Tooltip title={tooltipTitle}>{label}</Tooltip>;
   };
 
   const getOptionControlContent = () => (
@@ -260,10 +262,10 @@ export const OptionControlLabel = ({
         data-test="remove-control-button"
         onClick={onRemove}
       >
-        <Icon name="x-small" color={theme.colors.grayscale.light1} />
+        <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
       </CloseContainer>
       <Label data-test="control-label">
-        {isFunction && <Icon name="function" viewBox="0 0 16 11" />}
+        {isFunction && <Icons.FunctionX viewBox="0 0 16 11" iconSize="l" />}
         {getLabelContent()}
       </Label>
       {isExtra && (
@@ -279,7 +281,7 @@ export const OptionControlLabel = ({
       )}
       {withCaret && (
         <CaretContainer>
-          <Icon name="caret-right" color={theme.colors.grayscale.light1} />
+          <Icons.CaretRight iconColor={theme.colors.grayscale.light1} />
         </CaretContainer>
       )}
     </OptionControlContainer>

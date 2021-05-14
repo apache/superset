@@ -148,13 +148,15 @@ export class ExploreChartHeader extends React.PureComponent {
 
           {this.props.slice && (
             <StyledButtons>
-              <FaveStar
-                itemId={this.props.slice.slice_id}
-                fetchFaveStar={this.props.actions.fetchFaveStar}
-                saveFaveStar={this.props.actions.saveFaveStar}
-                isStarred={this.props.isStarred}
-                showTooltip
-              />
+              {this.props.userId && (
+                <FaveStar
+                  itemId={this.props.slice.slice_id}
+                  fetchFaveStar={this.props.actions.fetchFaveStar}
+                  saveFaveStar={this.props.actions.saveFaveStar}
+                  isStarred={this.props.isStarred}
+                  showTooltip
+                />
+              )}
               <PropertiesModal
                 show={this.state.isPropertiesModalOpen}
                 onHide={this.closePropertiesModal}

@@ -158,7 +158,6 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
   const [navRightStyle, setNavRightStyle] = useState('nav-right');
   const [navRightCol, setNavRightCol] = useState(8);
 
-  const { headerSize = 2 } = props;
   let hasHistory = true;
   // If no parent <Router> component exists, useHistory throws an error
   try {
@@ -195,17 +194,15 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
     return () => window.removeEventListener('resize', resize);
   }, [props.buttons]);
 
-  const offset = props.name ? headerSize : 0;
-
   return (
     <StyledHeader>
       <Row className="menu" role="navigation">
         {props.name && (
-          <Col md={offset} xs={24}>
+          <Col flex="none">
             <div className="header">{props.name}</div>
           </Col>
         )}
-        <Col md={16 - offset} sm={24} xs={24}>
+        <Col flex="auto" xs={24}>
           <Menu mode={showMenu} style={{ backgroundColor: 'transparent' }}>
             {props.tabs &&
               props.tabs.map(tab => {

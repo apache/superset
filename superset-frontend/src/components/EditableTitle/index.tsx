@@ -110,12 +110,9 @@ export default function EditableTitle({
     }
   }
 
-  // this entire method exists to support using EditableTitle as the title of a
-  // react-bootstrap Tab, as a workaround for this line in react-bootstrap https://goo.gl/ZVLmv4
-  //
-  // tl;dr when a Tab EditableTitle is being edited, typically the Tab it's within has been
-  // clicked and is focused/active. for accessibility, when focused the Tab <a /> intercepts
-  // the ' ' key (among others, including all arrows) and onChange() doesn't fire. somehow
+  // tl;dr when a EditableTitle is being edited, typically the Tab that wraps it has been
+  // clicked and is focused/active. For accessibility, when the focused tab anchor intercepts
+  // the ' ' key (among others, including all arrows) the onChange() doesn't fire. Somehow
   // keydown is still called so we can detect this and manually add a ' ' to the current title
   function handleKeyDown(event: any) {
     if (event.key === ' ') {
