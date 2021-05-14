@@ -72,6 +72,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
             activeKey={activeKey}
             renderTabBar={() => <></>}
             fullWidth={false}
+            animated
             allowOverflow
           >
             {childIds.map((id, index) => (
