@@ -78,7 +78,6 @@ class CreateDatabaseCommand(BaseCommand):
         exceptions: List[ValidationError] = list()
         sqlalchemy_uri: Optional[str] = self._properties.get("sqlalchemy_uri")
         database_name: Optional[str] = self._properties.get("database_name")
-
         if not sqlalchemy_uri:
             exceptions.append(DatabaseRequiredFieldValidationError("sqlalchemy_uri"))
         if not database_name:
@@ -87,7 +86,6 @@ class CreateDatabaseCommand(BaseCommand):
             # Check database_name uniqueness
             if not DatabaseDAO.validate_uniqueness(database_name):
                 exceptions.append(DatabaseExistsValidationError())
-
         if exceptions:
             exception = DatabaseInvalidError()
             exception.add_list(exceptions)
