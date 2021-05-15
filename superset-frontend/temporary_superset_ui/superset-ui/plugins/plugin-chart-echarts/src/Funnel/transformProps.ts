@@ -162,6 +162,7 @@ export default function transformProps(
       label: {
         ...defaultLabel,
         position: labelLine ? 'outer' : 'inner',
+        textBorderColor: 'transparent',
       },
       emphasis: {
         label: {

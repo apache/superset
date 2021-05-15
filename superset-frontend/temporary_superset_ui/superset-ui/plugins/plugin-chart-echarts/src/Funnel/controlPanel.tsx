@@ -20,23 +20,18 @@ import React from 'react';
 import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
-  ControlPanelsContainerProps,
   D3_FORMAT_OPTIONS,
   sections,
   sharedControls,
+  ControlStateMapping,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA, EchartsFunnelLabelTypeType } from './types';
 import { legendSection } from '../controls';
 
-const {
-  sort,
-  orient,
-  labelLine,
-  labelType,
-  numberFormat,
-  showLabels,
-  emitFilter,
-} = DEFAULT_FORM_DATA;
+const { labelType, numberFormat, showLabels, emitFilter } = DEFAULT_FORM_DATA;
+
+const funnelLegendSection = [...legendSection];
+funnelLegendSection.splice(2, 1);
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -89,7 +84,7 @@ const config: ControlPanelConfig = {
               },
             ]
           : [],
-        ...legendSection,
+        ...funnelLegendSection,
         // eslint-disable-next-line react/jsx-key
         [<h1 className="section-header">{t('Labels')}</h1>],
         [
@@ -140,57 +135,18 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [
-          {
-            name: 'label_line',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Label Line'),
-              default: labelLine,
-              renderTrigger: true,
-              description: t('Draw line from Funnel to label when labels outside?'),
-              visibility: ({ controls }: ControlPanelsContainerProps) =>
-                Boolean(controls?.show_labels?.value),
-            },
-          },
-        ],
-        // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Funnel shape')}</h1>],
-        [
-          {
-            name: 'sort',
-            config: {
-              type: 'SelectControl',
-              label: t('sort'),
-              default: sort,
-              renderTrigger: true,
-              choices: [
-                [null, 'Default'],
-                ['ascending', 'Ascending'],
-                ['descending', 'Descending'],
-              ],
-              description: t('Sort data'),
-            },
-          },
-          {
-            name: 'orient',
-            config: {
-              type: 'SelectControl',
-              label: t('orient'),
-              default: orient,
-              renderTrigger: true,
-              choices: [
-                [null, 'Default'],
-                ['vertical', 'Vertical'],
-                ['horizontal', 'Horizontal'],
-              ],
-              description: t('Funnel chart orientation. The options are vertical, horizontal'),
-            },
-          },
-        ],
       ],
     },
   ],
+  onInit(state: ControlStateMapping) {
+    return {
+      ...state,
+      row_limit: {
+        ...state.row_limit,
+        value: state.row_limit.default,
+      },
+    };
+  },
 };
 
 export default config;
