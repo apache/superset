@@ -68,7 +68,7 @@ The 1.2 release adds support for [Crate DB](https://github.com/apache/superset/p
 
 
 # Developer Experience
-Expanding the API has been an ongoing effort, and 1.2 introduces a number of new API routes to allow developers to get available databases, get a given dashboard's charts, and import saved queries, among other things.
+Expanding the API has been an ongoing effort, and 1.2 introduces several new API routes to allow developers to get available databases, get a given dashboard's charts, and import saved queries, among other things.
 
 # PR Highlights
 
