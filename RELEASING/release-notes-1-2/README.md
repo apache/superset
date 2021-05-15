@@ -57,7 +57,7 @@ Last but not least, the alerts and reports feature and its dependencies have bee
 
 # Dashboard Level Security
 
-Superset has so far relied on a role based access system implemented at the dataset level. While this provides granular security options that satisfy many use cases, some organizations need more options. [SIP-51](https://github.com/apache/superset/issues/10408) lays out a vision for dashboard level role based access control as a fully backwards compatible extension to Superset's security options.
+Superset has so far relied on a role-based access system implemented at the dataset level. While this provides granular security options that satisfy many use cases, some organizations need more options. [SIP-51](https://github.com/apache/superset/issues/10408) lays out a vision for dashboard-level role-based access control as a fully backwards compatible extension to Superset's security options.
 
 The 1.1 release saw steps taken in the direction of this vision, and 1.2 builds on that with new permissions for sharing charts and dashboards that can be assigned to roles. **Note that this functionality is still experimental and hidden behind a feature flag as of 1.2.**
 
