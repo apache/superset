@@ -35,8 +35,7 @@ export type EchartsTreemapFormData = QueryFormData & {
   showUpperLabels: boolean;
   numberFormat: string;
   dateFormat: string;
-  nodeClick: undefined | 'zoomToNode' | 'link';
-  roam: boolean | 'scale' | 'move';
+  dashboardId?: number;
 };
 
 export enum EchartsTreemapLabelType {
@@ -58,8 +57,6 @@ export const DEFAULT_FORM_DATA: Partial<EchartsTreemapFormData> = {
   showLabels: true,
   showUpperLabels: true,
   dateFormat: 'smart_date',
-  nodeClick: 'zoomToNode',
-  roam: true,
 };
 
 interface TreePathInfo {
