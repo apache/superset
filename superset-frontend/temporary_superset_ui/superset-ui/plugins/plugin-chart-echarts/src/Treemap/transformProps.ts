@@ -97,8 +97,7 @@ export default function transformProps(chartProps: EchartsTreemapChartProps): Ec
     dateFormat,
     showLabels,
     showUpperLabels,
-    nodeClick,
-    roam,
+    dashboardId,
   }: EchartsTreemapFormData = {
     ...DEFAULT_TREEMAP_FORM_DATA,
     ...formData,
@@ -204,8 +203,8 @@ export default function transformProps(chartProps: EchartsTreemapChartProps): Ec
       animation: false,
       width: '100%',
       height: '100%',
-      nodeClick,
-      roam,
+      nodeClick: dashboardId ? undefined : 'zoomToNode',
+      roam: !dashboardId,
       breadcrumb: {
         show: false,
         emptyItemWidth: 25,
