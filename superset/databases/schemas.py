@@ -23,6 +23,7 @@ from flask import current_app
 from flask_babel import lazy_gettext as _
 from marshmallow import EXCLUDE, fields, pre_load, Schema, validates_schema
 from marshmallow.validate import Length, ValidationError
+from marshmallow_enum import EnumField
 from sqlalchemy import MetaData
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError
@@ -30,7 +31,7 @@ from sqlalchemy.exc import ArgumentError
 from superset.db_engine_specs import get_engine_specs
 from superset.db_engine_specs.base import BasicParametersMixin
 from superset.exceptions import CertificateException, SupersetSecurityException
-from superset.models.core import PASSWORD_MASK
+from superset.models.core import ConfigurationMethod, PASSWORD_MASK
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils.core import markdown, parse_ssl_cert
 
@@ -70,6 +71,11 @@ allow_multi_schema_metadata_fetch_description = (
     "all database schemas. For large data warehouse with thousands of "
     "tables, this can be expensive and put strain on the system."
 )  # pylint: disable=invalid-name
+configuration_method_description = (
+    "Configuration_method is used on the frontend to "
+    "inform the backend whether to explode parameters "
+    "or to provide only a sqlalchemy_uri."
+)
 impersonate_user_description = (
     "If Presto, all the queries in SQL Lab are going to be executed as the "
     "currently logged on user who must have permission to run them.<br/>"
@@ -314,6 +320,12 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     allow_ctas = fields.Boolean(description=allow_ctas_description)
     allow_cvas = fields.Boolean(description=allow_cvas_description)
     allow_dml = fields.Boolean(description=allow_dml_description)
+    configuration_method = EnumField(
+        ConfigurationMethod,
+        by_value=True,
+        required=True,
+        description=configuration_method_description,
+    )
     force_ctas_schema = fields.String(
         description=force_ctas_schema_description,
         allow_none=True,
@@ -351,6 +363,12 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
         description=cache_timeout_description, allow_none=True
     )
     expose_in_sqllab = fields.Boolean(description=expose_in_sqllab_description)
+    configuration_method = EnumField(
+        ConfigurationMethod,
+        by_value=True,
+        allow_none=True,
+        description=configuration_method_description,
+    )
     allow_run_async = fields.Boolean(description=allow_run_async_description)
     allow_csv_upload = fields.Boolean(description=allow_csv_upload_description)
     allow_ctas = fields.Boolean(description=allow_ctas_description)

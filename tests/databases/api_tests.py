@@ -37,7 +37,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import SupersetError
-from superset.models.core import Database
+from superset.models.core import Database, ConfigurationMethod
 from superset.models.reports import ReportSchedule, ReportScheduleType
 from superset.utils.core import get_example_database, get_main_database
 from tests.base_tests import SupersetTestCase
@@ -229,6 +229,7 @@ class TestDatabaseApi(SupersetTestCase):
         database_data = {
             "database_name": "test-create-database",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
             "server_cert": None,
             "extra": json.dumps(extra),
         }
@@ -239,8 +240,70 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 201)
         # Cleanup
         model = db.session.query(Database).get(response.get("id"))
+        assert model.configuration_method == ConfigurationMethod.SQLALCHEMY_FORM
         db.session.delete(model)
         db.session.commit()
+
+    def test_create_database_invalid_configuration_method(self):
+        """
+        Database API: Test create with an invalid configuration method.
+        """
+        extra = {
+            "metadata_params": {},
+            "engine_params": {},
+            "metadata_cache_timeout": {},
+            "schemas_allowed_for_csv_upload": [],
+        }
+
+        self.login(username="admin")
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+        database_data = {
+            "database_name": "test-create-database",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "configuration_method": "BAD_FORM",
+            "server_cert": None,
+            "extra": json.dumps(extra),
+        }
+
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response == {
+            "message": {"configuration_method": ["Invalid enum value BAD_FORM"]}
+        }
+        assert rv.status_code == 400
+
+    def test_create_database_no_configuration_method(self):
+        """
+        Database API: Test create with no config method.
+        """
+        extra = {
+            "metadata_params": {},
+            "engine_params": {},
+            "metadata_cache_timeout": {},
+            "schemas_allowed_for_csv_upload": [],
+        }
+
+        self.login(username="admin")
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+        database_data = {
+            "database_name": "test-create-database",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "server_cert": None,
+            "extra": json.dumps(extra),
+        }
+
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response == {
+            "message": {"configuration_method": ["Missing data for required field."]}
+        }
+        assert rv.status_code == 400
 
     def test_create_database_server_cert_validate(self):
         """
@@ -254,6 +317,7 @@ class TestDatabaseApi(SupersetTestCase):
         database_data = {
             "database_name": "test-create-database-invalid-cert",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
             "server_cert": "INVALID CERT",
         }
 
@@ -276,6 +340,7 @@ class TestDatabaseApi(SupersetTestCase):
         database_data = {
             "database_name": "test-create-database-invalid-json",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
             "encrypted_extra": '{"A": "a", "B", "C"}',
             "extra": '["A": "a", "B", "C"]',
         }
@@ -316,6 +381,7 @@ class TestDatabaseApi(SupersetTestCase):
         database_data = {
             "database_name": "test-create-database-invalid-extra",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
             "extra": json.dumps(extra),
         }
 
@@ -345,6 +411,7 @@ class TestDatabaseApi(SupersetTestCase):
         database_data = {
             "database_name": "examples",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
         }
 
         uri = "api/v1/database/"
@@ -364,6 +431,7 @@ class TestDatabaseApi(SupersetTestCase):
         database_data = {
             "database_name": "test-database-invalid-uri",
             "sqlalchemy_uri": "wrong_uri",
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
         }
 
         uri = "api/v1/database/"
@@ -385,6 +453,7 @@ class TestDatabaseApi(SupersetTestCase):
         database_data = {
             "database_name": "test-create-sqlite-database",
             "sqlalchemy_uri": "sqlite:////some.db",
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
         }
 
         uri = "api/v1/database/"
@@ -413,6 +482,7 @@ class TestDatabaseApi(SupersetTestCase):
         database_data = {
             "database_name": "test-create-database-wrong-password",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
         }
 
         uri = "api/v1/database/"
@@ -434,7 +504,10 @@ class TestDatabaseApi(SupersetTestCase):
             "test-database", example_db.sqlalchemy_uri_decrypted
         )
         self.login(username="admin")
-        database_data = {"database_name": "test-database-updated"}
+        database_data = {
+            "database_name": "test-database-updated",
+            "configuration_method": ConfigurationMethod.DYNAMIC_FORM,
+        }
         uri = f"api/v1/database/{test_database.id}"
         rv = self.client.put(uri, json=database_data)
         self.assertEqual(rv.status_code, 200)
@@ -531,6 +604,49 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertIn(
             "Invalid connection string", response["message"]["sqlalchemy_uri"][0],
         )
+
+        db.session.delete(test_database)
+        db.session.commit()
+
+    def test_update_database_with_invalid_configuration_method(self):
+        """
+        Database API: Test update
+        """
+        example_db = get_example_database()
+        test_database = self.insert_database(
+            "test-database", example_db.sqlalchemy_uri_decrypted
+        )
+        self.login(username="admin")
+        database_data = {
+            "database_name": "test-database-updated",
+            "configuration_method": "BAD_FORM",
+        }
+        uri = f"api/v1/database/{test_database.id}"
+        rv = self.client.put(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response == {
+            "message": {"configuration_method": ["Invalid enum value BAD_FORM"]}
+        }
+        assert rv.status_code == 400
+
+        db.session.delete(test_database)
+        db.session.commit()
+
+    def test_update_database_with_no_configuration_method(self):
+        """
+        Database API: Test update
+        """
+        example_db = get_example_database()
+        test_database = self.insert_database(
+            "test-database", example_db.sqlalchemy_uri_decrypted
+        )
+        self.login(username="admin")
+        database_data = {
+            "database_name": "test-database-updated",
+        }
+        uri = f"api/v1/database/{test_database.id}"
+        rv = self.client.put(uri, json=database_data)
+        assert rv.status_code == 200
 
         db.session.delete(test_database)
         db.session.commit()
@@ -731,8 +847,8 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test database schemas
         """
-        self.login("admin")
-        database = db.session.query(Database).first()
+        self.login(username="admin")
+        database = db.session.query(Database).filter_by(database_name="examples").one()
         schemas = database.get_all_schema_names()
 
         rv = self.client.get(f"api/v1/database/{database.id}/schemas/")
