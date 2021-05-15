@@ -32,7 +32,7 @@ Superset 1.2 continues the Apache ECharts migration by introducing several chart
 
 The migration to Apache ECharts continues by introducing a number of new high-quality visualizations in this release.
 
-The mixed time-series multichart allows different kinds of time-series visualization to be overlayed.
+The mixed time-series multi chart allows different kinds of time-series visualization to be overlayed.
 
 ![mixed time series](media/time_series_multichart.png)
 
