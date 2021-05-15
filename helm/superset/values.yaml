@@ -103,7 +103,7 @@ extraConfigMountPath: "/app/configs"
 
 image:
   repository: apache/superset
-  tag: latest
+  tag: 1.1.0
 
 # these two options are applied globally except init container
 imagePullPolicy: IfNotPresent
