@@ -44,7 +44,7 @@ By popular demand, we have introduced a new and improved version of the pivot ta
 
 ![pivot table](media/pivot_table_v2.png)
 
-A number of UI tweaks in explore and sql lab made it into this release as well, including new buttons and menu options to make common workflows easier, as well as more communicative error messages, particularly in the database connection menus.
+Several UI tweaks in Explore and SQL Lab made it into this release as well, including new buttons and menu options to make common workflows easier, as well as more communicative error messages, particularly in the database connection menus.
 
 The dashboard native filter feature, [while still behind a feature flag in this release](https://github.com/apache/superset/blob/master/RELEASING/release-notes-1-0/README.md#feature-flags), has received plenty of new functionality and is closer than ever to being ready for prime-time. This feature provides a way to apply and manipulate filters over many charts at the dashboard level. 1.2 adds more controls, more options for aggregations, and better support for temporal filters, among other things.
 
