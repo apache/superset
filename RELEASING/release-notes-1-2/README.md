@@ -19,7 +19,7 @@ under the License.
 
 # Release Notes for Superset 1.2
 
-Superset 1.2 continues the Apache ECharts migration by introducing a number of chart types. It also brings with it tons of user experience improvements, API improvements, bug-fixes, and continued development of experimental features included in previous releases. Keep reading for more details on these categories:
+Superset 1.2 continues the Apache ECharts migration by introducing several chart types. It also brings with it tons of user experience improvements, API improvements, bug fixes, and continued development of experimental features included in previous releases. Keep reading for more details on these categories:
 
 - [**User Experience**](#user-experience)
 - [**Dashboard Level Security**](#dashboard-level-security)
