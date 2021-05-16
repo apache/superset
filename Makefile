@@ -51,8 +51,8 @@ update:
 	# Create default roles and permissions
 	superset init
 
-	# Load some data to play with
-	superset load-examples
+	# Install js packages
+	cd superset-frontend; npm install
 
 venv:
 	# Create a virtual environment and activate it (recommended)
