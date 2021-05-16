@@ -221,7 +221,6 @@ class Database(
             "allows_cost_estimate": self.allows_cost_estimate,
             "allows_virtual_table_explore": self.allows_virtual_table_explore,
             "explore_database_id": self.explore_database_id,
-            "parameters": self.parameters,
         }
 
     @property
@@ -233,6 +232,11 @@ class Database(
         return make_url(self.sqlalchemy_uri_decrypted)
 
     @property
+    def backend(self) -> str:
+        sqlalchemy_url = make_url(self.sqlalchemy_uri_decrypted)
+        return sqlalchemy_url.get_backend_name()  # pylint: disable=no-member
+
+    @property
     def parameters(self) -> Optional[Dict[str, Any]]:
         # Build parameters if db_engine_spec is a subclass of BasicParametersMixin
         parameters = {"engine": self.backend}
@@ -242,11 +246,6 @@ class Database(
             return {**parameters, **self.db_engine_spec.get_parameters_from_uri(uri)}
 
         return parameters
-
-    @property
-    def backend(self) -> str:
-        sqlalchemy_url = make_url(self.sqlalchemy_uri_decrypted)
-        return sqlalchemy_url.get_backend_name()  # pylint: disable=no-member
 
     @property
     def metadata_cache_timeout(self) -> Dict[str, Any]:
@@ -590,6 +589,14 @@ class Database(
     @property
     def db_engine_spec(self) -> Type[db_engine_specs.BaseEngineSpec]:
         return self.get_db_engine_spec_for_backend(self.backend)
+
+    @classmethod
+    @utils.memoized
+    def get_db_engine_spec_for_backend(
+        cls, backend: str
+    ) -> Type[db_engine_specs.BaseEngineSpec]:
+        engines = db_engine_specs.get_engine_specs()
+        return engines.get(backend, db_engine_specs.BaseEngineSpec)
 
     def grains(self) -> Tuple[TimeGrain, ...]:
         """Defines time granularity database-specific expressions.
