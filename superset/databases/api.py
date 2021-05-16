@@ -104,6 +104,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "expose_in_sqllab",
         "allow_run_async",
         "allow_csv_upload",
+        "configuration_method",
         "allow_ctas",
         "allow_cvas",
         "allow_dml",
@@ -147,6 +148,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "allow_ctas",
         "allow_cvas",
         "allow_dml",
+        "configuration_method",
         "force_ctas_schema",
         "impersonate_user",
         "allow_multi_schema_metadata_fetch",
@@ -231,6 +233,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
         try:
