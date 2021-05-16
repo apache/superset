@@ -593,6 +593,7 @@ class Database(
         return engines.get(self.backend, db_engine_specs.BaseEngineSpec)
 
     @classmethod
+    @utils.memoized
     def get_db_engine_spec_for_backend(
         cls, backend: str
     ) -> Type[db_engine_specs.BaseEngineSpec]:
