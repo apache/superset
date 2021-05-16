@@ -589,11 +589,6 @@ class Database(
 
     @property
     def db_engine_spec(self) -> Type[db_engine_specs.BaseEngineSpec]:
-        engines = db_engine_specs.get_engine_specs()
-        return engines.get(self.backend, db_engine_specs.BaseEngineSpec)
-
-    @property
-    def db_engine_spec(self) -> Type[db_engine_specs.BaseEngineSpec]:
         return self.get_db_engine_spec_for_backend(self.backend)
 
     def grains(self) -> Tuple[TimeGrain, ...]:
