@@ -21,16 +21,6 @@ type DatabaseUser = {
   last_name: string;
 };
 
-// type DatabaseParameters = {
-//   database: string;
-//   engine: string;
-//   host: string;
-//   password?: string;
-//   port: number;
-//   query: Object;
-//   username: string;
-// };
-
 export type DatabaseObject = {
   // Connection + general
   id?: number;
@@ -40,7 +30,6 @@ export type DatabaseObject = {
   created_by?: null | DatabaseUser;
   changed_on_delta_humanized?: string;
   changed_on?: string;
-  // parameters?: DatabaseParameters;
 
   // Performance
   cache_timeout?: string;
