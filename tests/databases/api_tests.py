@@ -1582,3 +1582,25 @@ class TestDatabaseApi(SupersetTestCase):
                 },
             ]
         }
+
+    def test_validate_parameters_with_mysql(self):
+        example_db = get_example_database()
+        test_database = self.insert_database(
+            "test-database", example_db.sqlalchemy_uri_decrypted
+        )
+        test_database.password = "password"
+        self.login(username="admin")
+        url = "api/v1/database/validate_parameters"
+        payload = {
+            "engine": "mysql",
+            "parameters": {
+                "host": "localhost",
+                "port": 5432,
+                "username": "admin",
+                "password": test_database.password,
+                "database": test_database.database_name,
+                "query": {},
+            },
+        }
+        rv = self.client.post(url, json=payload)
+        assert rv.status_code == 422
