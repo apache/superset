@@ -42,7 +42,7 @@ const MENU_KEYS = {
   VIEW_QUERY: 'view_query',
 };
 
-export const DisplayQueryButton = props => {
+export const ExploreAdditionalActionsMenu = props => {
   const { datasource } = props.latestQueryFormData;
   const sqlSupported = datasource && datasource.split('__')[1] === 'table';
   const handleMenuClick = ({ key, domEvent }) => {
@@ -105,22 +105,22 @@ export const DisplayQueryButton = props => {
         </Menu>
       }
     >
-      <div
+      <divs
         role="button"
         id="query"
         tabIndex={0}
         className="btn btn-default btn-sm"
       >
         <i role="img" className="fa fa-bars" />
-      </div>
+      </divs>
     </Dropdown>
   );
 };
 
-DisplayQueryButton.propTypes = propTypes;
+ExploreAdditionalActionsMenu.propTypes = propTypes;
 
 function mapDispatchToProps(dispatch) {
   return bindActionCreators({ sliceUpdated }, dispatch);
 }
 
-export default connect(null, mapDispatchToProps)(DisplayQueryButton);
+export default connect(null, mapDispatchToProps)(ExploreAdditionalActionsMenu);

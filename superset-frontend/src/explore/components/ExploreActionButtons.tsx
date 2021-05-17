@@ -25,8 +25,8 @@ import copyTextToClipboard from 'src/utils/copy';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useUrlShortener } from 'src/common/hooks/useUrlShortener';
 import EmbedCodeButton from './EmbedCodeButton';
-import ConnectedDisplayQueryButton from './DisplayQueryButton';
 import { exportChart, getExploreLongUrl } from '../exploreUtils';
+import { ExploreAdditionalActionsMenu } from './ExploreAdditionalActionsMenu';
 
 type ActionButtonProps = {
   icon: React.ReactElement;
@@ -39,7 +39,7 @@ type ActionButtonProps = {
 };
 
 type ExploreActionButtonsProps = {
-  actions: { redirectSQLLab: Function; openPropertiesModal: Function };
+  actions: { redirectSQLLab: () => void; openPropertiesModal: () => void };
   canDownloadCSV: boolean;
   chartStatus: string;
   latestQueryFormData: {};
@@ -86,7 +86,6 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
     canDownloadCSV,
     chartStatus,
     latestQueryFormData,
-    queriesResponse,
     slice,
     addDangerToast,
   } = props;
@@ -188,8 +187,7 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
           />
         </>
       )}
-      <ConnectedDisplayQueryButton
-        queryResponse={queriesResponse?.[0]}
+      <ExploreAdditionalActionsMenu
         latestQueryFormData={latestQueryFormData}
         chartStatus={chartStatus}
         onOpenInEditor={actions.redirectSQLLab}
