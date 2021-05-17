@@ -1318,10 +1318,22 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods,abstract-method
     def get_parameters_from_uri(self, uri: str) -> Any:
         raise NotImplementedError("get_parameters_from_uri is not implemented")
 
-    # pylint: disable=W0223
-    @abstractmethod
-    def parameters_json_schema(self) -> Any:
-        raise NotImplementedError("get_parameters_from_uri is not implemented")
+    @classmethod
+    def parameters_json_schema(cls) -> Any:
+        """
+        Return configuration parameters as OpenAPI.
+        """
+        if not cls.parameters_schema:
+            return None
+
+        spec = APISpec(
+            title="Database Parameters",
+            version="1.0.0",
+            openapi_version="3.0.2",
+            plugins=[MarshmallowPlugin()],
+        )
+        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
+        return spec.to_dict()["components"]["schemas"][cls.__name__]
 
 
 # schema for adding a database by providing parameters instead of the
@@ -1450,17 +1462,3 @@ class BasicParametersMixin:
             )
 
         return errors
-
-    @classmethod
-    def parameters_json_schema(cls) -> Any:
-        """
-        Return configuration parameters as OpenAPI.
-        """
-        spec = APISpec(
-            title="Database Parameters",
-            version="1.0.0",
-            openapi_version="3.0.2",
-            plugins=[MarshmallowPlugin()],
-        )
-        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
-        return spec.to_dict()["components"]["schemas"][cls.__name__]
