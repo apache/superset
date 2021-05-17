@@ -183,6 +183,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       // in order for the button to not be disabled
       updateResource(databaseId as number, db as DatabaseObject).then(
         result => {
+          console.log(result);
           if (result) {
             if (onDatabaseAdd) {
               onDatabaseAdd();
