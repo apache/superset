@@ -225,7 +225,7 @@ export default class FilterableTable extends PureComponent<
     columnKey: string;
   }): string | JSX.Element {
     if (cellData === null) {
-      return <i className="text-muted">&ZeroWidthSpace;NULL&ZeroWidthSpace;</i>;
+      return <i className="text-muted">NULL</i>;
     }
     const content = String(cellData);
     const firstCharacter = content.substring(0, 1);
