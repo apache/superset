@@ -18,12 +18,13 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from zipfile import ZipFile
 
 import simplejson
 from flask import g, make_response, redirect, request, Response, send_file, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as _, ngettext
 from marshmallow import ValidationError
@@ -94,6 +95,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
     resource_name = "chart"
     allow_browser_login = True
 
+    @before_request(only=["thumbnail", "screenshot", "cache_screenshot"])
+    def ensure_thumbnails_enabled(self) -> Optional[Response]:
+        if not is_feature_enabled("THUMBNAILS"):
+            return self.response_404()
+        return None
+
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
         RouteMethod.IMPORT,
@@ -103,6 +110,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "data_from_cache",
         "viz_types",
         "favorite_status",
+        "thumbnail",
+        "screenshot",
+        "cache_screenshot",
     }
     class_permission_name = "Chart"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -211,15 +221,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
     }
 
     allowed_rel_fields = {"owners", "created_by"}
-
-    def __init__(self) -> None:
-        if is_feature_enabled("THUMBNAILS"):
-            self.include_route_methods = self.include_route_methods | {
-                "thumbnail",
-                "screenshot",
-                "cache_screenshot",
-            }
-        super().__init__()
 
     @expose("/", methods=["POST"])
     @protect()

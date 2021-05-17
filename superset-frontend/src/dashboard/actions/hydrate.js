@@ -30,7 +30,9 @@ import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/re
 import { getParam } from 'src/modules/utils';
 import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
-import findPermission from 'src/dashboard/util/findPermission';
+import findPermission, {
+  canUserEditDashboard,
+} from 'src/dashboard/util/findPermission';
 import {
   DASHBOARD_FILTER_SCOPE_GLOBAL,
   dashboardFilter,
@@ -319,7 +321,8 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
     });
   }
 
-  const { roles } = getState().user;
+  const { roles } = user;
+  const canEdit = canUserEditDashboard(dashboardData, user);
 
   return dispatch({
     type: HYDRATE_DASHBOARD,
@@ -332,7 +335,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
         ...dashboardData,
         metadata,
         userId: String(user.userId), // legacy, please use state.user instead
-        dash_edit_perm: findPermission('can_write', 'Dashboard', roles),
+        dash_edit_perm: canEdit,
         dash_save_perm: findPermission('can_save_dash', 'Superset', roles),
         dash_share_perm: findPermission(
           'can_share_dashboard',
@@ -368,7 +371,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
         css: dashboardData.css || '',
         colorNamespace: metadata?.color_namespace || null,
         colorScheme: metadata?.color_scheme || null,
-        editMode: findPermission('can_write', 'Dashboard', roles) && editMode,
+        editMode: canEdit && editMode,
         isPublished: dashboardData.published,
         hasUnsavedChanges: false,
         maxUndoHistoryExceeded: false,
