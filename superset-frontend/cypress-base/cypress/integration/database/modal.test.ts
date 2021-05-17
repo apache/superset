@@ -62,17 +62,17 @@ describe('Add database', () => {
 
   it('should keep update modal open when error', () => {
     // open modal
-    cy.get('[data-test="database-edit"]:first').click();
+    cy.get('[data-test="database-edit"]:last').click();
 
     // it should show saved values
-    cy.get('[data-test="database-modal"]:first input[name="sqlalchemy_uri"]')
+    cy.get('[data-test="database-modal"]:last input[name="sqlalchemy_uri"]')
       .invoke('val')
       .should('not.be.empty');
     cy.get('[data-test="database-modal"] input[name="database_name"]')
       .invoke('val')
       .should('not.be.empty');
 
-    cy.get('[data-test="database-modal"]:first input[name="sqlalchemy_uri"]')
+    cy.get('[data-test="database-modal"]:last input[name="sqlalchemy_uri"]')
       .focus()
       .dblclick()
       .type('{selectall}{backspace}bad_uri');
