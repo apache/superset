@@ -24,19 +24,14 @@ import FormLabel from './FormLabel';
 
 export interface LabeledErrorBoundInputProps {
   label?: string;
-  name: string;
   validationMethods:
     | { onBlur: (value: any) => void }
     | { onChange: (value: any) => void };
   errorMessage: string | null;
   helpText?: string;
-  value: string | number | readonly string[] | undefined;
   required?: boolean;
-  placeholder?: string;
-  autoComplete?: string;
-  type?: string;
   id?: string;
-  onChange?: any;
+  [x: string]: any;
 }
 
 const StyledInput = styled(Input)`
@@ -85,7 +80,6 @@ const LabeledErrorBoundInput = ({
       validateStatus={errorMessage ? 'error' : 'success'}
       help={errorMessage || helpText}
       hasFeedback={!!errorMessage}
-      {...props}
     >
       <StyledInput {...props} {...validationMethods} />
     </FormItem>
