@@ -81,7 +81,7 @@ const RightMenu = ({
         <SubMenu
           data-test="new-dropdown"
           title={
-            <StyledI data-test="new-dropdown-icon" style={{margin:0}} className="fa fa-plus" />
+            <StyledI data-test="new-dropdown-icon" className="fa fa-plus" />
           }
           icon={<Icon name="triangle-down" />}
         >
@@ -98,7 +98,7 @@ const RightMenu = ({
           ))}
         </SubMenu>
       )}
-      <SubMenu title="Settings" style={{margin: 0}}icon={<Icon name="triangle-down" />}>
+      <SubMenu title="Settings" icon={<Icon name="triangle-down" />}>
         {settings.map((section, index) => [
           <Menu.ItemGroup key={`${section.label}`} title={section.label}>
             {section.childs?.map(child => {
