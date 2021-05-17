@@ -19,8 +19,6 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 
 import pandas as pd
-from apispec import APISpec
-from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from sqlalchemy import literal_column
