@@ -105,14 +105,14 @@ export const ExploreAdditionalActionsMenu = props => {
         </Menu>
       }
     >
-      <divs
+      <div
         role="button"
         id="query"
         tabIndex={0}
         className="btn btn-default btn-sm"
       >
         <i role="img" className="fa fa-bars" />
-      </divs>
+      </div>
     </Dropdown>
   );
 };
