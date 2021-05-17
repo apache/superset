@@ -90,6 +90,11 @@
       "Issue 1017 - User doesn't have the proper permissions.": [
         "Issue 1017 - ユーザーに適切なアクセス許可がありません。"
       ],
+      "Issue 1018 - One or more parameters needed to configure a database are missing.": [
+        ""
+      ],
+      "Issue 1019 - The submitted payload has the incorrect format.": [""],
+      "Issue 1020 - The submitted payload has the incorrect schema.": [""],
       "Invalid certificate": ["無効な証明書"],
       "Unsafe return type for function %(func)s: %(value_type)s": [
         "関数 %(func)s の安全でない戻り値の型: %(value_type)s"
@@ -549,6 +554,8 @@
       "Unexpected error occurred, please check your logs for details": [""],
       "Import database failed for an unknown reason": [""],
       "Could not load database driver: {}": [""],
+      "Engine \"%(engine)s\" cannot be configured through parameters.": [""],
+      "Database is offline.": [""],
       "Deleted %(num)d dataset": [" %(num)d 件のデータセットを削除しました"],
       "Null or Empty": [""],
       "Dataset column not found.": ["データセット列が見つかりません。"],
@@ -600,7 +607,7 @@
       "Hostname or IP address": ["ホスト名またはIPアドレス"],
       "Database port": ["DBポート番号"],
       "Database name": ["データベース名"],
-      "Additinal parameters": ["追加パラメータ"],
+      "Additional parameters": [""],
       "We were unable to connect to your database. Please confirm that your service account has the Viewer and Job User roles on the project.": [
         ""
       ],
@@ -624,6 +631,7 @@
       ],
       "The username \"%(username)s\" does not exist.": [""],
       "The password provided for username \"%(username)s\" is incorrect.": [""],
+      "Please re-enter the password.": [""],
       "We can't seem to resolve the column \"%(column_name)s\" at line %(location)s.": [
         ""
       ],
@@ -883,6 +891,8 @@
         ""
       ],
       "You have no permission to approve this request": [""],
+      "You don't have the rights to ": [""],
+      "download as csv": [""],
       "Cannot import dashboard: %(db_error)s.\nMake sure to create the database before importing the dashboard.": [
         ""
       ],
@@ -890,7 +900,6 @@
         ""
       ],
       "[Missing Dataset]": ["[データセットが見つかりません]"],
-      "You don't have the rights to ": [""],
       "alter this ": [""],
       "chart": ["チャート"],
       "create a ": ["作成日 "],
@@ -1499,9 +1508,8 @@
       "Deselect all": ["すべての選択を解除"],
       "No Data": [""],
       "%s-%s of %s": [""],
-      "Settings": ["設定"],
-      "About": [""],
       "SQL query": ["SQLクエリ"],
+      "About": [""],
       "OK": [""],
       "Error while fetching table list": [""],
       "Select table or type table name": [""],
@@ -1653,6 +1661,7 @@
       "Force refresh": ["強制更新"],
       "Toggle chart description": ["チャートの説明を切り替え"],
       "View chart in Explore": ["チャートを表示"],
+      "View query": ["クエリを見る"],
       "Copy chart URL": ["チャートのURLをコピー"],
       "Share chart by email": ["チャートをメールで共有"],
       "Export CSV": ["CSVで出力"],
@@ -1706,14 +1715,22 @@
       "Undo?": ["元に戻しますか？"],
       "New filter": ["新しいフィルタ"],
       "Filters configuration and scoping": ["フィルタの構成とスコープ"],
+      "Populate \"Default value\" to enable this control": [""],
+      "Settings": ["設定"],
       "Filter name": ["フィルタ名"],
       "Name is required": ["名前が必要です"],
       "Filter Type": ["フィルタタイプ"],
       "Dataset": ["データセット"],
       "Dataset is required": ["データセットが必要です"],
+      "Adhoc filters": [""],
+      "Time range": ["期間"],
       "Parent filter": ["親フィルタ"],
+      "Populate": [""],
       "Default Value": ["デフォルト値"],
+      "Click \"Populate\" to get \"Default Value\" ->": [""],
+      "Fill all required fields to enable \"Default Value\"": [""],
       "Apply changes instantly": ["変更を即座に適用する"],
+      "Sort Metric": [""],
       "You have removed this filter.": ["このフィルタを削除しました。"],
       "Restore Filter": ["フィルタを復元"],
       "Scoping": ["スコープ"],
@@ -1915,7 +1932,6 @@
       "Showing %s of %s": ["Showing %s of %s"],
       "New chart": ["新しいチャート"],
       "Edit properties": [""],
-      "View query": ["クエリを見る"],
       "Run in SQL Lab": ["SQL Labで実行"],
       "You do not have permission to edit this chart": [
         "このチャートを編集する権限がありません"
@@ -1930,8 +1946,6 @@
       "A list of users who can alter the chart. Searchable by name or username.": [
         ""
       ],
-      "`Min` value should be numeric or empty": [""],
-      "`Max` value should be numeric or empty": [""],
       "Min": ["最小値"],
       "Max": ["最大値"],
       "No results found": [""],
@@ -2203,6 +2217,8 @@
       "Time in seconds": ["秒単位の時間"],
       "Grace period": ["猶予期間"],
       "Message content": ["メッセージ内容"],
+      "Send as PNG": [""],
+      "Send as CSV": [""],
       "log": ["ログ"],
       "State": ["状態"],
       "Execution ID": ["実行 ID"],
@@ -2361,17 +2377,6 @@
         ""
       ],
       "Delete Database?": ["データベースを削除しますか？"],
-      "Please enter a SQLAlchemy URI to test": [""],
-      "Sorry there was an error fetching database information: %s": [""],
-      "Edit database": ["データベースを編集"],
-      "Add database": ["データベースを追加"],
-      "Display Name": ["表示名"],
-      "Name your dataset": [""],
-      "Pick a name to help you identify this database.": [""],
-      "dialect+driver://username:password@host:port/database": [""],
-      "Refer to the ": [""],
-      " for more information on how to structure your URI.": [""],
-      "Test connection": ["接続のテスト"],
       "Allow this database to be queried in SQL Lab": [""],
       "Allow creation of new tables based on queries": [""],
       "Allow creation of new views based on queries": [""],
@@ -2420,6 +2425,19 @@
       "5. The allows_virtual_table_explore field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.": [
         ""
       ],
+      "Display Name": ["表示名"],
+      "Name your dataset": [""],
+      "Pick a name to help you identify this database.": [""],
+      "dialect+driver://username:password@host:port/database": [""],
+      "Refer to the ": [""],
+      " for more information on how to structure your URI.": [""],
+      "Test connection": ["接続のテスト"],
+      "Please enter a SQLAlchemy URI to test": [""],
+      "Sorry there was an error fetching database information: %s": [""],
+      "Connect": [""],
+      "Edit database": ["データベースを編集"],
+      "Connect a database": [""],
+      "Finish": [""],
       "Add dataset": ["データセットを追加"],
       "The passwords for the databases below are needed in order to import them together with the datasets. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed.": [
         ""
@@ -2463,7 +2481,6 @@
       "Rows": [""],
       "Open query in SQL Lab": ["SQL Labでクエリを開く"],
       "An error occurred while fetching database values: %s": [""],
-      "Time range": ["期間"],
       "Search by query text": [""],
       "Query preview": ["クエリプレビュー"],
       "Previous": ["前"],

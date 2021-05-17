@@ -48,6 +48,7 @@
       ],
       "Issue 1004 - The column was deleted or renamed in the database.": [""],
       "Issue 1005 - The table was deleted or renamed in the database.": [""],
+      "Issue 1005 - The schema was deleted or renamed in the database.": [""],
       "Issue 1006 - One or more parameters specified in the query are missing.": [
         ""
       ],
@@ -56,11 +57,34 @@
       "Issue 1009 - The host might be down, and can't be reached on the provided port.": [
         ""
       ],
+      "Issue 1010 - Superset encountered an error while running a command.": [
+        ""
+      ],
+      "Issue 1011 - Superset encountered an unexpected error.": [""],
+      "Issue 1012 - The username provided when connecting to a database is not valid.": [
+        ""
+      ],
+      "Issue 1013 - The password provided when connecting to a database is not valid.": [
+        ""
+      ],
+      "Issue 1014 - Either the username or the password is wrong.": [""],
+      "Issue 1015 - Either the database is spelled incorrectly or does not exist.": [
+        ""
+      ],
+      "Issue 1017 - User doesn't have the proper permissions.": [""],
+      "Issue 1018 - One or more parameters needed to configure a database are missing.": [
+        ""
+      ],
+      "Issue 1019 - The submitted payload has the incorrect format.": [""],
+      "Issue 1020 - The submitted payload has the incorrect schema.": [""],
       "Invalid certificate": [""],
       "Unsafe return type for function %(func)s: %(value_type)s": [""],
       "Unsupported return value for method %(name)s": [""],
       "Unsafe template value for key %(key)s: %(value_type)s": [""],
       "Unsupported template value for key %(key)s": [""],
+      "SQL Lab timeout. This environment's policy is to kill queries after {} seconds.": [
+        ""
+      ],
       "Only `SELECT` statements are allowed against this database": [""],
       "CTAS (create table as select) can only be run with a query where the last statement is a SELECT. Please make sure your query has a SELECT as its last statement. Then, try running your query again.": [
         ""
@@ -324,9 +348,7 @@
       "Metric '%(metric)s' does not exist": [
         "메트릭 '%(metric)s' 이 존재하지 않습니다."
       ],
-      "Unknown column used in orderby: %(col)": [
-        "알 수 없는 칼럼이 orderby에 사용되었습니다: %(col)"
-      ],
+      "Unknown column used in orderby: %(col)s": [""],
       "Time column \"%(col)s\" does not exist in dataset": [""],
       "Filter value list cannot be empty": [""],
       "Must specify a value for filters with comparison operators": [""],
@@ -447,6 +469,13 @@
       "The metadata_params in Extra field is not configured correctly. The key %(key)s is invalid.": [
         ""
       ],
+      "An engine must be specified when passing individual parameters to a database.": [
+        ""
+      ],
+      "Engine \"%(engine)s\" is not a valid engine.": [""],
+      "Engine spec \"%(engine_spec)s\" does not support being configured via individual parameters.": [
+        ""
+      ],
       "Database parameters are invalid.": [""],
       "A database with the same name already exists": [
         "같은 이름의 데이터베이스가 이미 존재합니다"
@@ -472,12 +501,9 @@
       ],
       "Unexpected error occurred, please check your logs for details": [""],
       "Import database failed for an unknown reason": [""],
-      "Unable to resolve hostname \"%(hostname)s\".": [""],
-      "The host %(host)s is up, but the port %(port)s is closed.": [""],
-      "The host %(host)s might be down, ond can't be reached on port %(port)s.": [
-        ""
-      ],
       "Could not load database driver: {}": [""],
+      "Engine \"%(engine)s\" cannot be configured through parameters.": [""],
+      "Database is offline.": [""],
       "Deleted %(num)d dataset": ["데이터베이스 선택"],
       "Null or Empty": [""],
       "Dataset column not found.": [""],
@@ -530,17 +556,54 @@
       "Week starting monday": [""],
       "Week ending saturday": [""],
       "Week_ending sunday": [""],
-      "Unknown Presto Error": [""],
+      "Username": [""],
+      "Password": [""],
+      "Hostname or IP address": [""],
+      "Database port": [""],
+      "Database name": ["데이터소스 명"],
+      "Additional parameters": [""],
+      "We were unable to connect to your database. Please confirm that your service account has the Viewer and Job User roles on the project.": [
+        ""
+      ],
+      "Either the username \"%(username)s\", password, or database name \"%(database)s\" is incorrect.": [
+        ""
+      ],
+      "The hostname \"%(hostname)s\" cannot be resolved.": [""],
+      "Port %(port)s on hostname \"%(hostname)s\" refused the connection.": [
+        ""
+      ],
+      "The host \"%(hostname)s\" might be down, and can't be reached on port %(port)s.": [
+        ""
+      ],
+      "Either the username \"%(username)s\" or the password is incorrect.": [
+        ""
+      ],
+      "Unknown MySQL server host \"%(hostname)s\".": [""],
+      "The host \"%(hostname)s\" might be down and can't be reached.": [""],
+      "Unable to connect to database \"%(database)s\".": [""],
+      "The username \"%(username)s\" does not exist.": [""],
+      "The password provided for username \"%(username)s\" is incorrect.": [""],
+      "Please re-enter the password.": [""],
       "We can't seem to resolve the column \"%(column_name)s\" at line %(location)s.": [
         ""
       ],
       "The table \"%(table_name)s\" does not exist. A valid table must be used to run this query.": [
         ""
       ],
+      "The schema \"%(schema_name)s\" does not exist. A valid schema must be used to run this query.": [
+        ""
+      ],
+      "Unable to connect to catalog named \"%(catalog_name)s\".": [""],
+      "Unknown Presto Error": [""],
+      "We were unable to connect to your database named \"%(database)s\". Please verify your database name and try again.": [
+        ""
+      ],
       "Temporal expression not supported for type: %(col_type)s": [""],
       "Deleted %(num)d saved query": [""],
       "Saved queries could not be deleted.": [""],
       "Saved query not found.": ["저장된 쿼리를 찾을 수 없습니다."],
+      "Import saved query failed for an unknown reason.": [""],
+      "Saved query parameters are invalid.": [""],
       "Deleted %(num)d report schedule": [""],
       "Value must be greater than 0": ["값은 0보다 커야합니다"],
       "Alert query returned more then one row. %s rows returned": [""],
@@ -558,6 +621,7 @@
       "Report Schedule delete failed.": [""],
       "Report Schedule log prune failed.": [""],
       "Report Schedule execution failed when generating a screenshot.": [""],
+      "Report Schedule execution failed when generating a csv.": [""],
       "Report Schedule execution got an unexpected error.": [""],
       "Report Schedule is still working, refusing to re-compute.": [""],
       "Report Schedule reached a working timeout.": [""],
@@ -568,6 +632,7 @@
       "Alert found an error while executing a query.": [""],
       "A timeout occurred while executing the query.": [""],
       "A timeout occurred while taking a screenshot.": [""],
+      "A timeout occurred while generating a csv.": [""],
       "Alert fired during grace period.": [""],
       "Alert ended grace period.": [""],
       "Alert on grace period": [""],
@@ -577,14 +642,15 @@
       "Changing this report is forbidden": [""],
       "An error occurred while pruning logs ": [""],
       "\n            Error: %(text)s\n            ": [""],
-      "\n                <b><a href=\"%(url)s\">Explore in Superset</a></b><p></p>\n                <img src=\"cid:%(msgid)s\">\n                ": [
+      "\n            <p>%(description)s</p>\n            <b><a href=\"%(url)s\">Explore in Superset</a></b><p></p>\n            %(img_tag)s\n            ": [
         ""
       ],
+      "%(name)s.csv": [""],
       "%(prefix)s %(title)s": [""],
-      "\n            *%(name)s*\n\n            Error: %(text)s\n            ": [
+      "\n            *%(name)s*\n\n            %(description)s\n\n            Error: %(text)s\n            ": [
         ""
       ],
-      "\n                *%(name)s*\n\n                <%(url)s|Explore in Superset>\n                ": [
+      "\n            *%(name)s*\n\n            %(description)s\n\n            <%(url)s|Explore in Superset>\n            ": [
         ""
       ],
       "%(dialect)s cannot be used as a data source for security reasons.": [""],
@@ -595,7 +661,6 @@
       "\n            <b><a href=\"%(url)s\">Explore in Superset</a></b><p></p>\n            <img src=\"cid:%(msgid)s\">\n            ": [
         ""
       ],
-      "%(name)s.csv": [""],
       "\n        *%(slice_name)s*\n\n        <%(slice_url_user_friendly)s|Explore in Superset>\n        ": [
         ""
       ],
@@ -645,7 +710,7 @@
         ""
       ],
       "`rename_columns` must have the same length as `columns`.": [""],
-      "`fbprophet` package not installed": [""],
+      "`prophet` package not installed": [""],
       "Time grain missing": [""],
       "Unsupported time grain: %(time_grain)s": [""],
       "Periods must be a positive integer value": [""],
@@ -710,6 +775,8 @@
         ""
       ],
       "You have no permission to approve this request": [""],
+      "You don't have the rights to ": [""],
+      "download as csv": [""],
       "Cannot import dashboard: %(db_error)s.\nMake sure to create the database before importing the dashboard.": [
         ""
       ],
@@ -717,7 +784,6 @@
         ""
       ],
       "[Missing Dataset]": [""],
-      "You don't have the rights to ": [""],
       "alter this ": [""],
       "chart": [""],
       "create a ": [""],
@@ -817,7 +883,7 @@
         ""
       ],
       "Owners is a list of users who can alter the dashboard.": [""],
-      "Roles is a list which defines access to the dashboard. These roles are always applied in addition to restrictions on dataset level access. If no roles defined then the dashboard is available to all roles.": [
+      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks.If no roles defined then the dashboard is available to all roles.": [
         ""
       ],
       "Determines whether or not this dashboard is visible in the list of all dashboards": [
@@ -1090,7 +1156,7 @@
       "Copy to Clipboard": [""],
       "Filter results": ["검색 결과"],
       "%s rows returned": [""],
-      "It appears that the number of rows in the query results displayed\n           was limited on the server side to\n           the %s limit.": [
+      "The number of results displayed is limited to %s. Please add\n            additional limits/filters or download to csv to see more rows up to\n            the %s limit.": [
         ""
       ],
       "Query was stopped": [""],
@@ -1120,14 +1186,9 @@
       "Schedule": [""],
       "There was an error with your request": [""],
       "Please save the query to enable sharing": [""],
-      "Copy link": [""],
       "Copy query link to your clipboard": ["클립보드에 복사하기"],
       "Save the query to enable this feature": [""],
-      "No stored results found, you need to re-run your query": [""],
-      "Run a query to display results here": [""],
-      "Preview: `%s`": [""],
-      "Results": ["결과"],
-      "Query history": ["Query 실행 이력"],
+      "Copy link": [""],
       "Run query": ["Query 실행"],
       "New tab": ["탭 닫기"],
       "Untitled query": ["Query 공유"],
@@ -1161,6 +1222,11 @@
       "Remove table preview": [""],
       "Edit template parameters": [""],
       "Invalid JSON": [""],
+      "No stored results found, you need to re-run your query": [""],
+      "Run a query to display results here": [""],
+      "Preview: `%s`": [""],
+      "Results": ["결과"],
+      "Query history": ["Query 실행 이력"],
       "Create a new chart": ["새 차트 생성"],
       "Choose a dataset": ["데이터소스 선택"],
       "If the dataset you are looking for is not available in the list, follow the instructions on how to add it in the Superset tutorial.": [
@@ -1169,6 +1235,20 @@
       "Choose a visualization type": ["시각화 유형 선택"],
       "Create new chart": ["새 차트 생성"],
       "An error occurred while loading the SQL": [""],
+      "Click to see difference": [""],
+      "Altered": [""],
+      "Chart changes": [""],
+      "Superset chart": ["Superset 튜토리얼"],
+      "Check out this chart in dashboard:": [""],
+      "Select ...": [""],
+      "Loaded data cached": [""],
+      "Loaded from cache": [""],
+      "Click to force-refresh": [""],
+      "cached": [""],
+      "Certified by %s": [""],
+      "Copy to clipboard": ["클립보드에 복사하기"],
+      "Copied to clipboard!": [""],
+      "Sorry, your browser does not support copying. Use Ctrl / Cmd + C!": [""],
       "every": [""],
       "every month": ["월"],
       "every day of the month": [""],
@@ -1231,8 +1311,6 @@
       "OCT": [""],
       "NOV": [""],
       "DEC": [""],
-      "OK": [""],
-      "Certified by %s": [""],
       "Error while fetching schema list": [""],
       "Error while fetching database list": [
         "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
@@ -1244,19 +1322,6 @@
       "Schema:": ["스키마"],
       "datasource": ["데이터소스"],
       "schema": ["스키마"],
-      "Click to see difference": [""],
-      "Altered": [""],
-      "Chart changes": [""],
-      "Superset chart": ["Superset 튜토리얼"],
-      "Check out this chart in dashboard:": [""],
-      "Select ...": [""],
-      "Loaded data cached": [""],
-      "Loaded from cache": [""],
-      "Click to force-refresh": [""],
-      "cached": [""],
-      "Copy to clipboard": ["클립보드에 복사하기"],
-      "Copied to clipboard!": [""],
-      "Sorry, your browser does not support copying. Use Ctrl / Cmd + C!": [""],
       "delete": ["삭제"],
       "Type \"%s\" to confirm": [""],
       "DELETE": [""],
@@ -1295,9 +1360,9 @@
       "Deselect all": ["테이블 선택"],
       "No Data": [""],
       "%s-%s of %s": [""],
-      "Settings": [""],
-      "About": [""],
       "SQL query": ["Query 저장"],
+      "About": [""],
+      "OK": [""],
       "Error while fetching table list": [""],
       "Select table or type table name": [""],
       "Type to search ...": [""],
@@ -1327,10 +1392,40 @@
         ""
       ],
       "Color scheme": [""],
+      "You have unsaved changes.": [""],
+      "There is no chart definition associated with this component, could it have been deleted?": [
+        ""
+      ],
+      "Delete this container and save to remove this message.": [""],
+      "Don't refresh": [""],
+      "10 seconds": ["10초"],
+      "30 seconds": ["30초"],
+      "1 minute": ["1분"],
+      "5 minutes": ["5분"],
+      "30 minutes": ["30분"],
+      "1 hour": ["1시간"],
+      "6 hours": ["6시간"],
+      "12 hours": ["12시간"],
+      "24 hours": ["24시간"],
+      "Refresh interval": ["새로고침 간격"],
+      "Refresh frequency": [""],
+      "Are you sure you want to proceed?": [""],
+      "Save for this session": [""],
+      "You must pick a name for the new dashboard": [""],
+      "Save dashboard": ["대시보드 저장"],
+      "Overwrite Dashboard [%s]": [""],
+      "Save as:": ["다른이름으로 저장"],
+      "[dashboard name]": [""],
+      "also copy (duplicate) charts": [""],
+      "Filter your charts": [""],
+      "Cross Filter Scoping": [""],
       "Load a template": ["템플릿 불러오기"],
       "Load a CSS template": ["CSS 템플릿 불러오기"],
       "Live CSS editor": [""],
-      "You have unsaved changes.": [""],
+      "Applied Cross Filters (%d)": [""],
+      "Applied Filters (%d)": [""],
+      "Incompatible Filters (%d)": [""],
+      "Unset Filters (%d)": [""],
       "This dashboard is currently force refreshing; the next force refresh will be in %s.": [
         ""
       ],
@@ -1353,10 +1448,6 @@
       "Edit CSS": ["CSS 수정"],
       "Download as image": [""],
       "Toggle fullscreen": [""],
-      "There is no chart definition associated with this component, could it have been deleted?": [
-        ""
-      ],
-      "Delete this container and save to remove this message.": [""],
       "An error has occurred": [""],
       "You do not have permission to edit this dashboard": [""],
       "A valid color scheme is required": [""],
@@ -1366,6 +1457,9 @@
         ""
       ],
       "Colors": [""],
+      "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles defined then the dashboard is available to all roles.": [
+        ""
+      ],
       "Apply": [""],
       "Dashboard properties": ["대시보드"],
       "Basic information": [""],
@@ -1381,27 +1475,6 @@
       ],
       "This dashboard is published. Click to make it a draft.": [""],
       "Draft": [""],
-      "Don't refresh": [""],
-      "10 seconds": ["10초"],
-      "30 seconds": ["30초"],
-      "1 minute": ["1분"],
-      "5 minutes": ["5분"],
-      "30 minutes": ["30분"],
-      "1 hour": ["1시간"],
-      "6 hours": ["6시간"],
-      "12 hours": ["12시간"],
-      "24 hours": ["24시간"],
-      "Refresh interval": ["새로고침 간격"],
-      "Refresh frequency": [""],
-      "Are you sure you want to proceed?": [""],
-      "Save for this session": [""],
-      "You must pick a name for the new dashboard": [""],
-      "Save dashboard": ["대시보드 저장"],
-      "Overwrite Dashboard [%s]": [""],
-      "Save as:": ["다른이름으로 저장"],
-      "[dashboard name]": [""],
-      "also copy (duplicate) charts": [""],
-      "Filter your charts": [""],
       "Annotation layers are still loading.": [""],
       "One ore more annotation layers failed loading.": [""],
       "Emitted values": [""],
@@ -1412,15 +1485,11 @@
       "Force refresh": [""],
       "Toggle chart description": [""],
       "View chart in Explore": [""],
+      "View query": ["Query 공유"],
       "Copy chart URL": [""],
       "Share chart by email": [""],
       "Export CSV": ["CSV 내보내기"],
       "Cross-filter scoping": [""],
-      "Cross Filter Scoping": [""],
-      "Applied Cross Filters (%d)": [""],
-      "Applied Filters (%d)": [""],
-      "Incompatible Filters (%d)": [""],
-      "Unset Filters (%d)": [""],
       "Search...": ["검색"],
       "No filter is selected.": [""],
       "Editing 1 filter:": [""],
@@ -1441,19 +1510,17 @@
       "Preview": ["데이터 미리보기"],
       "Sorry, your browser does not support copying.": [""],
       "Sorry, something went wrong. Try again later.": [""],
-      "Select parent filters": ["필터"],
-      "Clear all": [""],
       "All Filters (${filterValues.length})": [""],
       "Filter Sets (${filterSetFilterValues.length})": [""],
-      "Cannot load filter": [""],
+      "Select parent filters": ["필터"],
       "Check configuration": [""],
+      "Cannot load filter": [""],
       "Editing filter set:": [""],
       "Filter set with this name already exists": [""],
       "Filter set already exists": [""],
       "This filter set is identical to: \"%s\"": [""],
       "Remove invalid filters": [""],
       "Rebuild": [""],
-      "New filter set": [""],
       "Filters (%d)": [""],
       "This filter doesn't exist in dashboard. It will not be applied.": [""],
       "Filter metadata changed in dashboard. It will not be applied.": [""],
@@ -1461,18 +1528,29 @@
       "Please filter set name": [""],
       "Create": [""],
       "Create new filter set": [""],
+      "New filter set": [""],
+      "Clear all": [""],
       "Add filter": ["테이블 추가"],
       "(Removed)": [""],
       "Undo?": [""],
       "New filter": [""],
       "Filters configuration and scoping": [""],
-      "Default Value": [""],
+      "Populate \"Default value\" to enable this control": [""],
+      "Settings": [""],
       "Filter name": ["필터"],
       "Name is required": [""],
       "Filter Type": [""],
-      "Datasource is required": ["데이터소스"],
+      "Dataset": ["데이터베이스"],
+      "Dataset is required": [""],
+      "Adhoc filters": [""],
+      "Time range": [""],
       "Parent filter": ["필터"],
+      "Populate": [""],
+      "Default Value": [""],
+      "Click \"Populate\" to get \"Default Value\" ->": [""],
+      "Fill all required fields to enable \"Default Value\"": [""],
       "Apply changes instantly": [""],
+      "Sort Metric": [""],
       "You have removed this filter.": [""],
       "Restore Filter": [""],
       "Scoping": [""],
@@ -1580,7 +1658,6 @@
       "Group by": [""],
       "One or many controls to group by": [""],
       "One or many metrics to display": [""],
-      "Dataset": ["데이터베이스"],
       "Visualization type": ["시각화 유형"],
       "The type of visualization to display": [""],
       "Fixed color": [""],
@@ -1635,14 +1712,6 @@
       "bolt": [""],
       "Changing this control takes effect instantly": [""],
       "Customize": [""],
-      "rows retrieved": [""],
-      "Sorry, An error occurred": [""],
-      "No data": [""],
-      "View samples": [""],
-      "New chart": ["차트 이동"],
-      "Edit properties": [""],
-      "View query": ["Query 공유"],
-      "Run in SQL Lab": ["SQL Lab"],
       "Height": [""],
       "Width": [""],
       "Copy chart URL to clipboard": [""],
@@ -1654,20 +1723,6 @@
       "Edit chart properties": [""],
       "Control labeled ": [""],
       "Open Datasource tab": ["데이터소스 명"],
-      "\n                This filter was inherited from the dashboard's context.\n                It won't be saved when saving the chart.\n              ": [
-        ""
-      ],
-      "You do not have permission to edit this chart": [""],
-      "The description can be displayed as widget headers in the dashboard view. Supports markdown.": [
-        ""
-      ],
-      "Configuration": [""],
-      "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.": [
-        ""
-      ],
-      "A list of users who can alter the chart. Searchable by name or username.": [
-        ""
-      ],
       "rows": [""],
       "Limit reached": [""],
       "**Select** a dashboard OR **create** a new one": [""],
@@ -1679,8 +1734,44 @@
       "Save as ...": ["다른이름으로 저장"],
       "Chart name": ["차트 유형"],
       "Add to dashboard": ["대시보드 추가"],
+      "rows retrieved": [""],
+      "Sorry, An error occurred": [""],
+      "No data": [""],
+      "View samples": [""],
       "Search Metrics & Columns": [""],
       "Showing %s of %s": [""],
+      "New chart": ["차트 이동"],
+      "Edit properties": [""],
+      "Run in SQL Lab": ["SQL Lab"],
+      "You do not have permission to edit this chart": [""],
+      "The description can be displayed as widget headers in the dashboard view. Supports markdown.": [
+        ""
+      ],
+      "Configuration": [""],
+      "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.": [
+        ""
+      ],
+      "A list of users who can alter the chart. Searchable by name or username.": [
+        ""
+      ],
+      "Min": [""],
+      "Max": [""],
+      "No results found": [""],
+      "%s option(s)": [""],
+      "Invalid lat/long configuration.": [""],
+      "Reverse lat/long ": [""],
+      "Longitude & Latitude columns": [""],
+      "Delimited long & lat single column": [""],
+      "Multiple formats accepted, look the geopy.points Python library for more details": [
+        ""
+      ],
+      "Geohash": [""],
+      "textarea": [""],
+      "in modal": [""],
+      "This visualization type is not supported.": ["시각화 유형 선택"],
+      "Click to change visualization type": ["시각화 유형 선택"],
+      "Select a visualization type": [""],
+      "Failed to verify select options: %s": [""],
       "Annotation Slice Configuration": [""],
       "This section allows you to configure how to use the slice\n               to generate annotations.": [
         ""
@@ -1700,54 +1791,14 @@
       "Remove": [""],
       "Edit annotation layer": ["주석 레이어"],
       "Add annotation layer": ["주석 레이어"],
-      "`Min` value should be numeric or empty": [""],
-      "`Max` value should be numeric or empty": [""],
-      "Min": [""],
-      "Max": [""],
+      "Empty collection": [""],
+      "Add an item": [""],
+      "Remove item": [""],
       "Edit dataset": ["차트 수정"],
       "View in SQL Lab": ["SQL Lab"],
       "More dataset related options": [""],
       "Missing dataset": [""],
       "The dataset linked to this chart may have been deleted.": [""],
-      "Default": [""],
-      "(optional) default value for the filter, when using the multiple option, you can use a semicolon-delimited list of options.": [
-        ""
-      ],
-      "Sort metric": ["메트릭"],
-      "Metric to sort the results by": [""],
-      "Sort ascending": [""],
-      "Check for sorting ascending": [""],
-      "Allow multiple selections": [""],
-      "Multiple selections allowed, otherwise filter is limited to a single value": [
-        ""
-      ],
-      "Search all filter options": [""],
-      "By default, each filter loads at most 1000 choices at the initial page load. Check this box if you have more than 1000 filter values and want to enable dynamically searching that loads filter values as users type (may add stress to your database).": [
-        ""
-      ],
-      "Required": [""],
-      "User must select a value for this filter": [""],
-      "Filter configuration": [""],
-      "Fixed": [""],
-      "Based on a metric": [""],
-      "Error while fetching data": [""],
-      "No results found": [""],
-      "%s option(s)": [""],
-      "Invalid lat/long configuration.": [""],
-      "Reverse lat/long ": [""],
-      "Longitude & Latitude columns": [""],
-      "Delimited long & lat single column": [""],
-      "Multiple formats accepted, look the geopy.points Python library for more details": [
-        ""
-      ],
-      "Geohash": [""],
-      "textarea": [""],
-      "in modal": [""],
-      "Time series columns": ["컬럼 수정"],
-      "This visualization type is not supported.": ["시각화 유형 선택"],
-      "Click to change visualization type": ["시각화 유형 선택"],
-      "Select a visualization type": [""],
-      "Failed to verify select options: %s": [""],
       "RANGE TYPE": [""],
       "Actual time range": [""],
       "CANCEL": [""],
@@ -1776,6 +1827,25 @@
       "Get the specify date for the holiday": [""],
       "Drop columns or metrics": [""],
       "Drop columns": [""],
+      "Default": [""],
+      "(optional) default value for the filter, when using the multiple option, you can use a semicolon-delimited list of options.": [
+        ""
+      ],
+      "Sort metric": ["메트릭"],
+      "Metric to sort the results by": [""],
+      "Sort ascending": [""],
+      "Check for sorting ascending": [""],
+      "Allow multiple selections": [""],
+      "Multiple selections allowed, otherwise filter is limited to a single value": [
+        ""
+      ],
+      "Search all filter options": [""],
+      "By default, each filter loads at most 1000 choices at the initial page load. Check this box if you have more than 1000 filter values and want to enable dynamically searching that loads filter values as users type (may add stress to your database).": [
+        ""
+      ],
+      "Required": [""],
+      "User must select a value for this filter": [""],
+      "Filter configuration": [""],
       "Simple": [""],
       "Custom SQL": [""],
       "No such column found. To filter on a metric, try the Custom SQL tab.": [
@@ -1790,14 +1860,21 @@
       "choose WHERE or HAVING...": [""],
       "Filters by columns": ["컬럼 목록"],
       "Filters by metrics": ["필터"],
+      "Fixed": [""],
+      "Based on a metric": [""],
+      "My metric": ["메트릭"],
+      "Add metric": ["메트릭"],
       "%s aggregates(s)": [""],
       "%s saved metric(s)": [""],
       "Saved": ["저장"],
       "Saved metric": ["저장된 Query"],
       "column": ["컬럼 추가"],
       "aggregate": [""],
-      "My metric": ["메트릭"],
-      "Add metric": ["메트릭"],
+      "\n                This filter was inherited from the dashboard's context.\n                It won't be saved when saving the chart.\n              ": [
+        ""
+      ],
+      "Error while fetching data": [""],
+      "Time series columns": ["컬럼 수정"],
       "Code": [""],
       "Markup type": [""],
       "Pick your favorite markup language": [""],
@@ -1854,8 +1931,9 @@
       "Pandas resample rule": [""],
       "Method": [""],
       "Pandas resample method": [""],
-      "Chosen non-numeric column": [""],
+      "No columns": [""],
       "%s option": [""],
+      "Chosen non-numeric column": [""],
       "No time columns": [""],
       "Favorites": [""],
       "Created content": ["새 차트 생성"],
@@ -1911,7 +1989,6 @@
       "90 days": [""],
       "Add notification method": [""],
       "Add delivery method": [""],
-      "Recipients are separated by \",\" or \";\"": [""],
       "Add": [""],
       "Edit ${isReport ? 'Report' : 'Alert'}": [""],
       "Add ${isReport ? 'Report' : 'Alert'}": [""],
@@ -1928,10 +2005,13 @@
       "Time in seconds": ["10초"],
       "Grace period": [""],
       "Message content": [""],
+      "Send as PNG": [""],
+      "Send as CSV": [""],
       "log": [""],
       "State": ["상태"],
-      "Scheduled at": [""],
-      "Start at": ["시작 시간"],
+      "Execution ID": [""],
+      "Scheduled at (UTC)": [""],
+      "Start at (UTC)": [""],
       "Duration": [""],
       "Error message": [""],
       "${alertResource?.type}": [""],
@@ -1944,6 +2024,7 @@
       "Alert failed": ["테이블 명"],
       "Nothing triggered": [""],
       "Alert Triggered, In Grace Period": [""],
+      "Recipients are separated by \",\" or \";\"": [""],
       "${RecipientIconName.email}": [""],
       "${RecipientIconName.slack}": [""],
       "annotation": ["주석"],
@@ -2005,6 +2086,7 @@
       "Alphabetical": [""],
       "Recently modified": [""],
       "Least recently modified": [""],
+      "Import charts": [""],
       "Are you sure you want to delete the selected charts?": [""],
       "css_template": [""],
       "Edit CSS template properties": ["CSS 템플릿"],
@@ -2034,7 +2116,6 @@
         "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
       ],
       "An error occurred while fetching dashboard created by values: %s": [""],
-      "Unpublished": [""],
       "Are you sure you want to delete the selected dashboards?": [""],
       "SQL Copied!": ["복사됨!"],
       "The passwords for the databases below are needed in order to import them. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed.": [
@@ -2047,6 +2128,7 @@
       "An error occurred while fetching database related data: %s": [
         "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
       ],
+      "Import databases": [""],
       "Asynchronous query execution": [""],
       "AQE": [""],
       "Allow data manipulation language": [""],
@@ -2057,32 +2139,20 @@
         ""
       ],
       "Delete Database?": ["데이터베이스 선택"],
-      "Please enter a SQLAlchemy URI to test": [""],
-      "Sorry there was an error fetching database information: %s": [""],
-      "Edit database": ["차트 수정"],
-      "Add database": ["데이터베이스"],
-      "Connection": [""],
-      "Database name": ["데이터소스 명"],
-      "Name your dataset": [""],
-      "dialect+driver://username:password@host:port/database": [""],
-      "Test connection": [""],
-      "Refer to the ": [""],
-      " for more information on how to structure your URI.": [""],
-      "Performance": [""],
-      "Chart cache timeout": ["차트 유형"],
-      "Operate the database in asynchronous mode, meaning that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.": [
-        ""
-      ],
-      "SQL Lab settings": ["SQL Lab"],
       "Allow this database to be queried in SQL Lab": [""],
       "Allow creation of new tables based on queries": [""],
       "Allow creation of new views based on queries": [""],
+      "CTAS & CVAS SCHEMA": [""],
+      "Search or select schema": [""],
+      "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema.": [
+        ""
+      ],
       "Allow manipulation of the database using non-SELECT statements such as UPDATE, DELETE, CREATE, etc.": [
         ""
       ],
       "Allow multi schema metadata fetch": [""],
-      "CTAS schema": ["스키마"],
-      "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema.": [
+      "Chart cache timeout": ["차트 유형"],
+      "Operate the database in asynchronous mode, meaning that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.": [
         ""
       ],
       "Secure extra": ["보안"],
@@ -2117,6 +2187,19 @@
       "5. The allows_virtual_table_explore field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.": [
         ""
       ],
+      "Display Name": [""],
+      "Name your dataset": [""],
+      "Pick a name to help you identify this database.": [""],
+      "dialect+driver://username:password@host:port/database": [""],
+      "Refer to the ": [""],
+      " for more information on how to structure your URI.": [""],
+      "Test connection": [""],
+      "Please enter a SQLAlchemy URI to test": [""],
+      "Sorry there was an error fetching database information: %s": [""],
+      "Connect": [""],
+      "Edit database": ["차트 수정"],
+      "Connect a database": [""],
+      "Finish": [""],
       "Add dataset": ["차트 추가"],
       "The passwords for the databases below are needed in order to import them together with the datasets. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed.": [
         ""
@@ -2139,6 +2222,7 @@
         "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
       ],
       "An error occurred while fetching schema values: %s": [""],
+      "Import datasets": [""],
       "There was an issue deleting the selected datasets: %s": [""],
       "The dataset %s is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.": [
         ""
@@ -2163,7 +2247,6 @@
       "An error occurred while fetching database values: %s": [
         "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
       ],
-      "Time range": [""],
       "Search by query text": [""],
       "Query preview": ["데이터 미리보기"],
       "Previous": [""],
@@ -2171,16 +2254,25 @@
       "Open in SQL Lab": ["SQL Lab"],
       "User query": ["Query 공유"],
       "Executed query": ["저장된 Query 수정"],
+      "The passwords for the databases below are needed in order to import them together with the saved queries. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed.": [
+        ""
+      ],
+      "You are importing one or more saved queries that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
+        ""
+      ],
       "Saved queries": ["저장된 Query"],
       "There was an issue previewing the selected query %s": [""],
+      "Import queries": [""],
       "Link Copied!": ["복사됨!"],
       "There was an issue deleting the selected queries: %s": [""],
       "Edit query": ["저장된 Query 수정"],
       "Copy query URL": [""],
+      "Export query": [""],
       "Delete query": ["삭제"],
       "This action will permanently delete the saved query.": [""],
       "Delete Query?": ["삭제"],
       "Are you sure you want to delete the selected queries?": [""],
+      "queries": [""],
       "Query name": ["Query 검색"],
       "[Untitled]": [""],
       "Unknown": [""],
@@ -2211,6 +2303,9 @@
       "Share": ["Query 공유"],
       "Last run %s": [""],
       "There was an issue fetching your recent activity: %s": [""],
+      "There was an issues fetching your dashboards: %s": [""],
+      "There was an issues fetching your chart: %s": [""],
+      "There was an issues fetching your saved queries: %s": [""],
       "Recents": [""],
       "Select start and end date": ["데이터베이스 선택"],
       "Type or Select [%s]": [""],
