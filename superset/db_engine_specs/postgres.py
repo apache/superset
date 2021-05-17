@@ -155,7 +155,9 @@ class PostgresBaseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         return "(timestamp 'epoch' + {col} * interval '1 second')"
 
 
-class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
+class PostgresEngineSpec(
+    PostgresBaseEngineSpec, BasicParametersMixin
+):  # pylint: disable=abstract-method
     engine = "postgresql"
     engine_aliases = {"postgres"}
 
