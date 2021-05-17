@@ -407,19 +407,19 @@ class SupersetAppInitializer:
         except ImportError:
             pass
 
-        #
-        # Conditionally setup log views
-        #
-        if self.config["FAB_ADD_SECURITY_VIEWS"] and self.config["SUPERSET_LOG_VIEW"]:
-            appbuilder.add_api(LogRestApi)
-            appbuilder.add_view(
-                LogModelView,
-                "Action Log",
-                label=__("Action Log"),
-                category="Security",
-                category_label=__("Security"),
-                icon="fa-list-ol",
-            )
+        appbuilder.add_api(LogRestApi)
+        appbuilder.add_view(
+            LogModelView,
+            "Action Log",
+            label=__("Action Log"),
+            category="Security",
+            category_label=__("Security"),
+            icon="fa-list-ol",
+            menu_cond=lambda: (
+                self.config["FAB_ADD_SECURITY_VIEWS"]
+                and self.config["SUPERSET_LOG_VIEW"]
+            ),
+        )
         appbuilder.add_api(SecurityRestApi)
         #
         # Conditionally setup email views
