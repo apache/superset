@@ -43,11 +43,22 @@ CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
 )
 
 
+class BigQueryCredsJsonSchema(Schema):
+    type = fields.String()
+    project_id = fields.String()
+    private_key_id = fields.String()
+    private_key = fields.String()
+    client_email = fields.String()
+    client_id = fields.String()
+    auth_uri = fields.String()
+    token_uri = fields.String()
+    auth_provider_x509_cert_url = fields.String()
+    client_x509_cert_url = fields.String()
+
+
 class BigQueryParametersSchema(Schema):
-    credentials_json = fields.Dict(
-        keys=fields.Str(),
-        values=fields.Raw(),
-        description=__("Credentials for BigQuery"),
+    credentials_json = fields.Nested(
+        BigQueryCredsJsonSchema, description=__("Credentials for BigQuery"),
     )
 
 
