@@ -318,10 +318,7 @@ class SupersetAppInitializer:
         appbuilder.add_view_no_menu(Dashboard)
         appbuilder.add_view_no_menu(DashboardModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
-
-        if feature_flag_manager.is_feature_enabled("KV_STORE"):
-            appbuilder.add_view_no_menu(KV)
-
+        appbuilder.add_view_no_menu(KV)
         appbuilder.add_view_no_menu(R)
         appbuilder.add_view_no_menu(SavedQueryView)
         appbuilder.add_view_no_menu(SavedQueryViewApi)

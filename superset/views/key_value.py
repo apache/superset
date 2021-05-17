@@ -14,12 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Optional
+
 import simplejson as json
 from flask import request, Response
 from flask_appbuilder import expose
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.security.decorators import has_access_api
+from werkzeug.exceptions import NotFound
 
-from superset import db, event_logger
+from superset import db, event_logger, is_feature_enabled
 from superset.models import core as models
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
@@ -29,6 +33,12 @@ from superset.views.base import BaseSupersetView, json_error_response
 class KV(BaseSupersetView):
 
     """Used for storing and retrieving key value pairs"""
+
+    @before_request
+    def ensure_feature_enabled(self) -> Optional[Response]:
+        if not is_feature_enabled("KV_STORE"):
+            raise NotFound()
+        return None
 
     @event_logger.log_this
     @has_access_api
