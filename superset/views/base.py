@@ -29,6 +29,7 @@ from flask import (
     g,
     get_flashed_messages,
     redirect,
+    request,
     Response,
     session,
     url_for,
@@ -375,6 +376,12 @@ def show_superset_errors(ex: SupersetErrorsException) -> FlaskResponse:
 @superset_app.errorhandler(CSRFError)
 def refresh_csrf_token(ex: CSRFError) -> FlaskResponse:
     logger.warning(ex)
+
+    # show JSON error payload for API requests
+    if request.path.startswith("/api"):
+        return show_http_exception(ex)
+
+    # return login page for non-API requests
     return redirect(appbuilder.get_url_for_login)
 
 
