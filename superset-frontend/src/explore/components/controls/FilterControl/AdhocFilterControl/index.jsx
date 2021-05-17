@@ -38,7 +38,7 @@ import {
   HeaderContainer,
   LabelsContainer,
 } from 'src/explore/components/controls/OptionControls';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
 import AdhocFilterOption from 'src/explore/components/controls/FilterControl/AdhocFilterOption';
 import AdhocFilter, {
@@ -339,11 +339,9 @@ class AdhocFilterControl extends React.Component {
           <ControlHeader {...this.props} />
           {this.addNewFilterPopoverTrigger(
             <AddIconButton data-test="add-filter-button">
-              <Icon
-                name="plus-large"
-                width={theme.gridUnit * 3}
-                height={theme.gridUnit * 3}
-                color={theme.colors.grayscale.light5}
+              <Icons.PlusLarge
+                iconSize="s"
+                iconColor={theme.colors.grayscale.light5}
               />
             </AddIconButton>,
           )}
@@ -355,10 +353,7 @@ class AdhocFilterControl extends React.Component {
               )
             : this.addNewFilterPopoverTrigger(
                 <AddControlLabel>
-                  <Icon
-                    name="plus-small"
-                    color={theme.colors.grayscale.light1}
-                  />
+                  <Icons.PlusSmall iconColor={theme.colors.grayscale.light1} />
                   {t('Add filter')}
                 </AddControlLabel>,
               )}

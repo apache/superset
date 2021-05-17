@@ -22,7 +22,7 @@ import { t } from '@superset-ui/core';
 
 import Popover from 'src/components/Popover';
 import { FormLabel } from 'src/components/Form';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { getShortUrl } from 'src/utils/urlUtils';
@@ -161,9 +161,9 @@ export default class EmbedCodeButton extends React.Component {
           <div
             className="btn btn-default btn-sm"
             data-test="embed-code-button"
-            style={{ height: 30 }}
+            style={{ display: 'flex', alignItems: 'center', height: 30 }}
           >
-            <Icon name="code" width={15} height={15} style={{ marginTop: 1 }} />
+            <Icons.Code iconSize="l" />
           </div>
         </Tooltip>
       </Popover>
