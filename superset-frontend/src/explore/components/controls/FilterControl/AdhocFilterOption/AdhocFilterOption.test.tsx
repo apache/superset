@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DndProvider } from 'react-dnd';
@@ -61,30 +61,32 @@ const setup = (props: {
   </DndProvider>
 );
 
-test('should render', () => {
+test('should render', async () => {
   const { container } = render(setup(mockedProps));
-  expect(container).toBeInTheDocument();
+  await waitFor(() => expect(container).toBeInTheDocument());
 });
 
-test('should render the control label', () => {
+test('should render the control label', async () => {
   render(setup(mockedProps));
-  expect(screen.getByText('value > 10')).toBeInTheDocument();
+  expect(await screen.findByText('value > 10')).toBeInTheDocument();
 });
 
-test('should render the remove button', () => {
+test('should render the remove button', async () => {
   render(setup(mockedProps));
-  const removeBtn = screen.getByRole('button');
+  const removeBtn = await screen.findByRole('button');
   expect(removeBtn).toBeInTheDocument();
 });
 
-test('should render the right caret', () => {
+test('should render the right caret', async () => {
   render(setup(mockedProps));
-  expect(screen.getByRole('img', { name: 'caret-right' })).toBeInTheDocument();
+  expect(
+    await screen.findByRole('img', { name: 'caret-right' }),
+  ).toBeInTheDocument();
 });
 
-test('should render the Popover on clicking the right caret', () => {
+test('should render the Popover on clicking the right caret', async () => {
   render(setup(mockedProps));
-  const rightCaret = screen.getByRole('img', { name: 'caret-right' });
+  const rightCaret = await screen.findByRole('img', { name: 'caret-right' });
   userEvent.click(rightCaret);
   expect(screen.getByRole('tooltip')).toBeInTheDocument();
 });
