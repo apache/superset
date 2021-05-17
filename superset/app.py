@@ -296,15 +296,17 @@ class SupersetAppInitializer:
             category_label=__("Manage"),
             category_icon="",
         )
-        if feature_flag_manager.is_feature_enabled("ROW_LEVEL_SECURITY"):
-            appbuilder.add_view(
-                RowLevelSecurityFiltersModelView,
-                "Row Level Security",
-                label=__("Row level security"),
-                category="Security",
-                category_label=__("Security"),
-                icon="fa-lock",
-            )
+        appbuilder.add_view(
+            RowLevelSecurityFiltersModelView,
+            "Row Level Security",
+            label=__("Row level security"),
+            category="Security",
+            category_label=__("Security"),
+            icon="fa-lock",
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
+                "ROW_LEVEL_SECURITY"
+            ),
+        )
 
         #
         # Setup views with no menu

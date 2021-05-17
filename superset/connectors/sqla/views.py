@@ -18,15 +18,17 @@
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Any, cast, Dict, List, Union
+from typing import Any, cast, Dict, List, Optional, Union
 
 from flask import current_app, flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.fieldwidgets import Select2Widget
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __, lazy_gettext as _
+from werkzeug.exceptions import NotFound
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import Regexp
 
@@ -368,6 +370,13 @@ class RowLevelSecurityFiltersModelView(  # pylint: disable=too-many-ancestors
     if app.config["RLS_FORM_QUERY_REL_FIELDS"]:
         add_form_query_rel_fields = app.config["RLS_FORM_QUERY_REL_FIELDS"]
         edit_form_query_rel_fields = add_form_query_rel_fields
+
+    @before_request
+    # pylint: disable=R020
+    def ensure_feature_enabled(self) -> Optional[FlaskResponse]:
+        if not is_feature_enabled("ROW_LEVEL_SECURITY"):
+            raise NotFound()
+        return None
 
 
 class TableModelView(  # pylint: disable=too-many-ancestors
