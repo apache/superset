@@ -106,4 +106,4 @@ export const TIME_FILTER_MAP = {
 };
 
 // TODO: make this configurable per Superset installation
-export const DEFAULT_TIME_RANGE = 'Last week';
+export const DEFAULT_TIME_RANGE = 'No filter';
