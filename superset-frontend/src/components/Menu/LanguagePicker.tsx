@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import { Select } from 'src/common/components';
-import { styled, useTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import React from 'react';
+import { MainNav as Menu } from 'src/common/components';
+import { styled } from '@superset-ui/core';
+import Icon from 'src/components/Icon';
+
+const { SubMenu } = Menu;
 
 export interface Languages {
   [key: string]: {
@@ -34,81 +36,50 @@ interface LanguagePickerProps {
   languages: Languages;
 }
 
-const dropdownWidth = 150;
-
 const StyledLabel = styled.div`
   display: flex;
   align-items: center;
 
   & i {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
   }
 
-  & span {
+  & a {
     display: block;
-    width: ${dropdownWidth}px;
+    width: 150px;
     word-wrap: break-word;
-    white-space: normal;
+    text-decoration: none;
   }
 `;
 
-const StyledFlag = styled.div`
+const StyledFlag = styled.i`
   margin-top: 2px;
 `;
 
-const StyledIcon = styled(Icons.TriangleDown)`
-  ${({ theme }) => `
-    margin-top: -${theme.gridUnit}px;
-    margin-left: -${theme.gridUnit * 2}px;
-  `}
-`;
-
-export default function LanguagePicker({
-  locale,
-  languages,
-}: LanguagePickerProps) {
-  const theme = useTheme();
-  const [open, setOpen] = useState(false);
-
-  const options = Object.keys(languages).map(langKey => ({
-    label: (
-      <StyledLabel className="f16">
-        <i className={`flag ${languages[langKey].flag}`} />{' '}
-        <span>{languages[langKey].name}</span>
-      </StyledLabel>
-    ),
-    value: langKey,
-    flag: (
-      <StyledFlag className="f16">
-        <i className={`flag ${languages[langKey].flag}`} />
-      </StyledFlag>
-    ),
-  }));
-
+export default function LanguagePicker(props: LanguagePickerProps) {
+  const { locale, languages, ...rest } = props;
   return (
-    <Select
-      defaultValue={locale}
-      open={open}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-      onDropdownVisibleChange={open => setOpen(open)}
-      bordered={false}
-      options={options}
-      suffixIcon={
-        <StyledIcon
-          iconColor={theme.colors.grayscale.base}
-          className="ant-select-suffix"
-        />
+    <SubMenu
+      aria-label="Languages"
+      title={
+        <div className="f16">
+          <StyledFlag className={`flag ${languages[locale].flag}`} />
+        </div>
       }
-      listHeight={400}
-      dropdownAlign={{
-        offset: [-dropdownWidth, 0],
-      }}
-      optionLabelProp="flag"
-      dropdownMatchSelectWidth={false}
-      onChange={(value: string) => {
-        window.location.href = languages[value].url;
-      }}
-    />
+      icon={<Icon name="triangle-down" />}
+      {...rest}
+    >
+      {Object.keys(languages).map(langKey => (
+        <Menu.Item
+          key={langKey}
+          style={{ whiteSpace: 'normal', height: 'auto' }}
+        >
+          <StyledLabel className="f16">
+            <i className={`flag ${languages[langKey].flag}`} />
+            <a href={languages[langKey].url}>{languages[langKey].name}</a>
+          </StyledLabel>
+        </Menu.Item>
+      ))}
+    </SubMenu>
   );
 }
