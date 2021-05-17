@@ -18,7 +18,6 @@
 import json
 import logging
 import re
-from abc import abstractmethod
 from contextlib import closing
 from datetime import datetime
 from typing import (
@@ -1308,14 +1307,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods,abstract-method
     Abstract classmethods to allow us to write custom parameters
     functions for specific db engines
     """
-    # pylint: disable=W0223
-    @abstractmethod
-    def build_sqlalchemy_url(self, parameters: Any) -> str:
+
+    @classmethod
+    def build_sqlalchemy_url(cls, parameters: Any) -> str:
         raise NotImplementedError("build_sqlalchemy_url is not implemented")
 
-    # pylint: disable=W0223
-    @abstractmethod
-    def get_parameters_from_uri(self, uri: str) -> Any:
+    @classmethod
+    def get_parameters_from_uri(cls, uri: str) -> Any:
         raise NotImplementedError("get_parameters_from_uri is not implemented")
 
     @classmethod
