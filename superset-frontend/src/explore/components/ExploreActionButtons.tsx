@@ -25,7 +25,7 @@ import copyTextToClipboard from 'src/utils/copy';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useUrlShortener } from 'src/common/hooks/useUrlShortener';
 import EmbedCodeButton from './EmbedCodeButton';
-import ConnectedDisplayQueryButton from './DisplayQueryButton';
+import ExploreAdditionalActionsMenu from './ExploreAdditionalActionsMenu';
 import { exportChart, getExploreLongUrl } from '../exploreUtils';
 
 type ActionButtonProps = {
@@ -188,7 +188,7 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
           />
         </>
       )}
-      <ConnectedDisplayQueryButton
+      <ExploreAdditionalActionsMenu
         queryResponse={queriesResponse?.[0]}
         latestQueryFormData={latestQueryFormData}
         chartStatus={chartStatus}
