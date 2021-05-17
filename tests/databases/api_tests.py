@@ -36,6 +36,7 @@ from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.db_engine_specs.hana import HanaEngineSpec
 from superset.errors import SupersetError
 from superset.models.core import Database, ConfigurationMethod
 from superset.models.reports import ReportSchedule, ReportScheduleType
@@ -1370,8 +1371,8 @@ class TestDatabaseApi(SupersetTestCase):
     def test_available(self, app, get_available_engine_specs):
         app.config = {"PREFERRED_DATABASES": ["postgresql"]}
         get_available_engine_specs.return_value = [
-            MySQLEngineSpec,
             PostgresEngineSpec,
+            HanaEngineSpec,
         ]
 
         self.login(username="admin")
@@ -1379,7 +1380,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         rv = self.client.get(uri)
         response = json.loads(rv.data.decode("utf-8"))
-
+        print(response)
         assert rv.status_code == 200
         assert response == {
             "databases": [
@@ -1427,7 +1428,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "postgresql+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
                 },
-                {"engine": "mysql", "name": "MySQL", "preferred": False},
+                {"engine": "hana", "name": "SAP HANA", "preferred": False},
             ]
         }
 
@@ -1582,25 +1583,3 @@ class TestDatabaseApi(SupersetTestCase):
                 },
             ]
         }
-
-    def test_validate_parameters_with_mysql(self):
-        example_db = get_example_database()
-        test_database = self.insert_database(
-            "test-database", example_db.sqlalchemy_uri_decrypted
-        )
-        test_database.password = "password"
-        self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
-        payload = {
-            "engine": "mysql",
-            "parameters": {
-                "host": "localhost",
-                "port": 5432,
-                "username": "admin",
-                "password": test_database.password,
-                "database": test_database.database_name,
-                "query": {},
-            },
-        }
-        rv = self.client.post(url, json=payload)
-        assert rv.status_code == 422

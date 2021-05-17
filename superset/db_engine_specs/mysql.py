@@ -53,10 +53,15 @@ CONNECTION_HOST_DOWN_REGEX = re.compile(
 CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile("Unknown database '(?P<database>.*?)'")
 
 
-class MySQLBaseEngineSpec(BaseEngineSpec):
+class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     engine = "mysql"
     engine_name = "MySQL"
     max_column_name_length = 64
+
+    drivername = "mysql"
+    sqlalchemy_uri_placeholder = (
+        "mysql://user:password@host:post/dbname[?key=value&key=value...]"
+    )
 
     column_type_mappings: Tuple[
         Tuple[
@@ -201,12 +206,3 @@ class MySQLBaseEngineSpec(BaseEngineSpec):
         return super().get_column_spec(
             native_type, column_type_mappings=column_type_mappings
         )
-
-
-class MySQLEngineSpec(MySQLBaseEngineSpec, BasicParametersMixin):
-    engine = "mySQL"
-
-    drivername = "mysql"
-    sqlalchemy_uri_placeholder = (
-        "mysql://user:password@host:post/dbname[?key=value&key=value...]"
-    )
