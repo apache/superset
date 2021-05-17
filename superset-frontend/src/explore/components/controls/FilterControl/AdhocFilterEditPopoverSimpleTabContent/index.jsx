@@ -237,7 +237,6 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
   }
 
   isOperatorRelevant(operator, subject) {
-    const dataSourceType = this.props.datasource.type;
     const column = this.props.datasource.columns?.find(
       col => col.column_name === subject,
     );
