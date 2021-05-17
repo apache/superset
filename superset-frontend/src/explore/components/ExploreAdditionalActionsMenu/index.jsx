@@ -42,7 +42,7 @@ const MENU_KEYS = {
   VIEW_QUERY: 'view_query',
 };
 
-export const ExploreAdditionalActionsMenu = props => {
+const ExploreAdditionalActionsMenu = props => {
   const { datasource } = props.latestQueryFormData;
   const sqlSupported = datasource && datasource.split('__')[1] === 'table';
   const handleMenuClick = ({ key, domEvent }) => {

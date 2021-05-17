@@ -20,7 +20,7 @@ import React from 'react';
 import { mount, shallow } from 'enzyme';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { Dropdown, Menu } from 'src/common/components';
-import { ExploreAdditionalActionsMenu } from 'src/explore/components/ExploreAdditionalActionsMenu';
+import ExploreAdditionalActionsMenu from 'src/explore/components/ExploreAdditionalActionsMenu';
 
 describe('ExploreAdditionalActionsMenu', () => {
   const defaultProps = {

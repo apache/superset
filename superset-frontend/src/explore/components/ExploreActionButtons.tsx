@@ -26,7 +26,7 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useUrlShortener } from 'src/common/hooks/useUrlShortener';
 import EmbedCodeButton from './EmbedCodeButton';
 import { exportChart, getExploreLongUrl } from '../exploreUtils';
-import { ExploreAdditionalActionsMenu } from './ExploreAdditionalActionsMenu';
+import ExploreAdditionalActionsMenu from './ExploreAdditionalActionsMenu';
 
 type ActionButtonProps = {
   icon: React.ReactElement;
