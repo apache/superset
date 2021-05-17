@@ -372,33 +372,38 @@ class SupersetAppInitializer:
             category="SQL Lab",
             category_label=__("SQL Lab"),
         )
-        if self.config["CSV_EXTENSIONS"].intersection(
-            self.config["ALLOWED_EXTENSIONS"]
-        ):
+        appbuilder.add_link(
+            "Upload a CSV",
+            label=__("Upload a CSV"),
+            href="/csvtodatabaseview/form",
+            icon="fa-upload",
+            category="Data",
+            category_label=__("Data"),
+            category_icon="fa-wrench",
+            cond=lambda: bool(
+                self.config["CSV_EXTENSIONS"].intersection(
+                    self.config["ALLOWED_EXTENSIONS"]
+                )
+            ),
+        )
+
+        try:
+            import xlrd  # pylint: disable=unused-import
+
             appbuilder.add_link(
-                "Upload a CSV",
-                label=__("Upload a CSV"),
-                href="/csvtodatabaseview/form",
+                "Upload Excel",
+                label=__("Upload Excel"),
+                href="/exceltodatabaseview/form",
                 icon="fa-upload",
                 category="Data",
                 category_label=__("Data"),
                 category_icon="fa-wrench",
+                cond=lambda: bool(
+                    self.config["EXCEL_EXTENSIONS"].intersection(
+                        self.config["ALLOWED_EXTENSIONS"]
+                    )
+                ),
             )
-        try:
-            import xlrd  # pylint: disable=unused-import
-
-            if self.config["EXCEL_EXTENSIONS"].intersection(
-                self.config["ALLOWED_EXTENSIONS"]
-            ):
-                appbuilder.add_link(
-                    "Upload Excel",
-                    label=__("Upload Excel"),
-                    href="/exceltodatabaseview/form",
-                    icon="fa-upload",
-                    category="Data",
-                    category_label=__("Data"),
-                    category_icon="fa-wrench",
-                )
         except ImportError:
             pass
 
