@@ -101,6 +101,7 @@ export default function Label(props: LabelProps) {
         padding: '0.35em 0.8em',
         lineHeight: 1,
         color,
+        maxWidth: '100%',
         '&:hover': {
           backgroundColor: backgroundColorHover,
           borderColor: borderColorHover,
