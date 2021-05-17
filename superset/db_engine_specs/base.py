@@ -1310,17 +1310,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods,abstract-method
     """
     # pylint: disable=W0223
     @abstractmethod
-    def build_sqlalchemy_url(cls, parameters: Any) -> str:
+    def build_sqlalchemy_url(self, parameters: Any) -> str:
         raise NotImplementedError("build_sqlalchemy_url is not implemented")
 
     # pylint: disable=W0223
     @abstractmethod
-    def get_parameters_from_uri(cls, uri: str) -> Any:
+    def get_parameters_from_uri(self, uri: str) -> Any:
         raise NotImplementedError("get_parameters_from_uri is not implemented")
 
     # pylint: disable=W0223
     @abstractmethod
-    def parameters_json_schema(cls) -> Any:
+    def parameters_json_schema(self) -> Any:
         raise NotImplementedError("get_parameters_from_uri is not implemented")
 
 
