@@ -529,16 +529,24 @@ export default class ResultSet extends React.PureComponent<
     const isAdmin = !!this.props.user?.roles.Admin;
     const displayMaxRowsReachedMessage = {
       withAdmin: t(
-        `The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS.
-        Please add additional limits/filters or download to csv to see more rows up to the
-        the %(queryLimit)d limit.`,
-        { rows, queryLimit },
+        `The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. `,
+        { rows },
+      ).concat(
+        t(
+          `Please add additional limits/filters or download to csv to see more rows up to the`,
+        ),
+        t(`the %(queryLimit)d limit.`, { queryLimit }),
       ),
       withoutAdmin: t(
-        `The number of results displayed is limited to %(rows)d.
-        Please add additional limits/filters, download to csv, or contact an admin
-        to see more rows up to the the %(queryLimit)d limit.`,
-        { rows, queryLimit },
+        `The number of results displayed is limited to %(rows)d. `,
+        { rows },
+      ).concat(
+        t(
+          `Please add additional limits/filters, download to csv, or contact an admin`,
+        ),
+        t(`to see more rows up to the the %(queryLimit)d limit.`, {
+          queryLimit,
+        }),
       ),
     };
     const shouldUseDefaultDropdownAlert =
