@@ -364,6 +364,10 @@ def show_superset_errors(ex: SupersetErrorsException) -> FlaskResponse:
 @superset_app.errorhandler(HTTPException)
 def show_http_exception(ex: HTTPException) -> FlaskResponse:
     logger.warning(ex)
+    if not config["DEBUG"] and ex.code == 404:
+        return redirect("/static/assets/404.html")
+    if not config["DEBUG"] and ex.code == 500:
+        return redirect("/static/assets/500.html")
     return json_errors_response(
         errors=[
             SupersetError(
