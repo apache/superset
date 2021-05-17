@@ -47,7 +47,7 @@ class BigQueryParametersSchema(Schema):
     credentials_json = fields.Dict(
         keys=fields.Str(),
         values=fields.Raw(),
-        description=__("credentials for bigquery"),
+        description=__("Credentials for BigQuery"),
     )
 
 
