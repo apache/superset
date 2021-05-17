@@ -50,8 +50,12 @@ const ViewQueryModal: React.FC<Props> = props => {
       })
       .catch(response => {
         getClientErrorObject(response).then(({ error, message }) => {
-          // TODO: Handle statusText
-          setError(error || message || t('Sorry, An error occurred'));
+          setError(
+            error ||
+              message ||
+              response.statusText ||
+              t('Sorry, An error occurred'),
+          );
           setIsLoading(false);
         });
       });
