@@ -275,35 +275,36 @@ class TestDatabaseApi(SupersetTestCase):
         }
         assert rv.status_code == 400
 
-    def test_create_database_no_configuration_method(self):
-        """
-        Database API: Test create with no config method.
-        """
-        extra = {
-            "metadata_params": {},
-            "engine_params": {},
-            "metadata_cache_timeout": {},
-            "schemas_allowed_for_csv_upload": [],
-        }
+    # add this test back in when config method becomes required for creation.
+    # def test_create_database_no_configuration_method(self):
+    #     """
+    #     Database API: Test create with no config method.
+    #     """
+    #     extra = {
+    #         "metadata_params": {},
+    #         "engine_params": {},
+    #         "metadata_cache_timeout": {},
+    #         "schemas_allowed_for_csv_upload": [],
+    #     }
 
-        self.login(username="admin")
-        example_db = get_example_database()
-        if example_db.backend == "sqlite":
-            return
-        database_data = {
-            "database_name": "test-create-database",
-            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
-            "server_cert": None,
-            "extra": json.dumps(extra),
-        }
+    #     self.login(username="admin")
+    #     example_db = get_example_database()
+    #     if example_db.backend == "sqlite":
+    #         return
+    #     database_data = {
+    #         "database_name": "test-create-database",
+    #         "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+    #         "server_cert": None,
+    #         "extra": json.dumps(extra),
+    #     }
 
-        uri = "api/v1/database/"
-        rv = self.client.post(uri, json=database_data)
-        response = json.loads(rv.data.decode("utf-8"))
-        assert response == {
-            "message": {"configuration_method": ["Missing data for required field."]}
-        }
-        assert rv.status_code == 400
+    #     uri = "api/v1/database/"
+    #     rv = self.client.post(uri, json=database_data)
+    #     response = json.loads(rv.data.decode("utf-8"))
+    #     assert response == {
+    #         "message": {"configuration_method": ["Missing data for required field."]}
+    #     }
+    #     assert rv.status_code == 400
 
     def test_create_database_server_cert_validate(self):
         """
