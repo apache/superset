@@ -323,7 +323,6 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     configuration_method = EnumField(
         ConfigurationMethod,
         by_value=True,
-        required=True,
         description=configuration_method_description,
     )
     force_ctas_schema = fields.String(
