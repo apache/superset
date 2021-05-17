@@ -250,22 +250,17 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       const { partitionColumn } = this.props;
       return partitionColumn && subject && subject === partitionColumn;
     }
+    if (
+      operator === OPERATORS['IS TRUE'] ||
+      operator === OPERATORS['IS FALSE']
+    ) {
+      return isColumnBoolean || isColumnNumber || isColumnFunction;
+    }
     if (isColumnBoolean) {
       return (
-        [
-          OPERATORS['IS NULL'],
-          OPERATORS['IS NOT NULL'],
-          ...BOOLEAN_ONLY_OPERATORS,
-        ].indexOf(operator) >= 0
+        operator === OPERATORS['IS NULL'] ||
+        operator === OPERATORS['IS NOT NULL']
       );
-    }
-    if (isColumnNumber || isColumnFunction) {
-      if (dataSourceType === 'druid') {
-        return !(TABLE_ONLY_OPERATORS.indexOf(operator) >= 0);
-      }
-      if (dataSourceType === 'table') {
-        return !(DRUID_ONLY_OPERATORS.indexOf(operator) >= 0);
-      }
     }
     return !(
       (this.props.datasource.type === 'druid' &&
