@@ -20,15 +20,13 @@ import React from 'react';
 
 const NUM_COLUMNS = 12;
 
-export default function ControlRow({
-  controls,
-}: {
-  controls: React.ReactElement[];
-}) {
+type Control = React.ReactElement | null;
+
+export default function ControlRow({ controls }: { controls: Control[] }) {
   // ColorMapControl renders null and should not be counted
   // in the columns number
   const countableControls = controls.filter(
-    control => !['ColorMapControl'].includes(control.props.type),
+    control => !['ColorMapControl'].includes(control?.props.type),
   );
   const colSize = NUM_COLUMNS / countableControls.length;
   return (
