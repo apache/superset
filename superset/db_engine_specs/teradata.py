@@ -17,7 +17,7 @@
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 
 
-class TeradataEngineSpec(BaseEngineSpec):
+class TeradataEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     """Dialect for Teradata DB."""
 
     engine = "teradata"

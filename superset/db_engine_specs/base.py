@@ -141,7 +141,7 @@ class LimitMethod:  # pylint: disable=too-few-public-methods
     FORCE_LIMIT = "force_limit"
 
 
-class BaseEngineSpec:  # pylint: disable=too-many-public-methods
+class BaseEngineSpec:  # pylint: disable=too-many-public-methods,abstract-method
     """Abstract class for database engine specific configurations
 
     Attributes:
@@ -1308,15 +1308,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     Abstract classmethods to allow us to write custom parameters
     functions for specific db engines
     """
-
+    # pylint: disable=W0223
     @abstractmethod
     def build_sqlalchemy_url(cls, parameters: Any) -> str:
         raise NotImplementedError("build_sqlalchemy_url is not implemented")
 
+    # pylint: disable=W0223
     @abstractmethod
     def get_parameters_from_uri(cls, uri: str) -> Any:
         raise NotImplementedError("get_parameters_from_uri is not implemented")
 
+    # pylint: disable=W0223
     @abstractmethod
     def parameters_json_schema(cls) -> Any:
         raise NotImplementedError("get_parameters_from_uri is not implemented")

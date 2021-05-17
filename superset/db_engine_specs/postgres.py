@@ -82,7 +82,7 @@ CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile(
 )
 
 
-class PostgresBaseEngineSpec(BaseEngineSpec):
+class PostgresBaseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     """ Abstract class for Postgres 'like' databases """
 
     engine = ""

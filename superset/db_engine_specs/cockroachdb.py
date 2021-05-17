@@ -17,7 +17,7 @@
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 
 
-class CockroachDbEngineSpec(PostgresEngineSpec):
+class CockroachDbEngineSpec(PostgresEngineSpec):  # pylint: disable=abstract-method
     engine = "cockroachdb"
     engine_name = "CockroachDB"
     drivername = "cockroach"

@@ -83,7 +83,7 @@ def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
     return location
 
 
-class HiveEngineSpec(PrestoEngineSpec):
+class HiveEngineSpec(PrestoEngineSpec):  # pylint: disable=abstract-method
     """Reuses PrestoEngineSpec functionality."""
 
     engine = "hive"

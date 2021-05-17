@@ -21,7 +21,7 @@ from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 from superset.utils import core as utils
 
 
-class OracleEngineSpec(BaseEngineSpec):
+class OracleEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     engine = "oracle"
     engine_name = "Oracle"
     limit_method = LimitMethod.WRAP_SQL

@@ -21,7 +21,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
 
 
-class DremioEngineSpec(BaseEngineSpec):
+class DremioEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     engine = "dremio"
     engine_name = "Dremio"

@@ -55,7 +55,7 @@ class BigQueryParametersType(TypedDict):
     credentials_json: Dict[str, Any]
 
 
-class BigQueryEngineSpec(BaseEngineSpec):
+class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     """Engine spec for Google's BigQuery
 
     As contributed by @mxmzdlv on issue #945"""

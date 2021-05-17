@@ -24,7 +24,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
 
 
-class TrinoEngineSpec(BaseEngineSpec):
+class TrinoEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     engine = "trino"
     engine_name = "Trino"
 

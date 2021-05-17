@@ -24,7 +24,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
 
 
-class DrillEngineSpec(BaseEngineSpec):
+class DrillEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     """Engine spec for Apache Drill"""
 
     engine = "drill"
