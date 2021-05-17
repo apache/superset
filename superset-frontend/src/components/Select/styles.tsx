@@ -101,7 +101,7 @@ export const defaultTheme: (
     controlHeight: 34,
     lineHeight: 19,
     fontSize: 14,
-    minWidth: '7.5em', // just enough to display 'No options'
+    minWidth: '6.5em',
   },
 });
 
