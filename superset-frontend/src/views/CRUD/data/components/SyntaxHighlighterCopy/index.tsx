@@ -36,11 +36,13 @@ SyntaxHighlighter.registerLanguage('json', jsonSyntax);
 
 const SyntaxHighlighterWrapper = styled.div`
   margin-top: -24px;
+
   &:hover {
     svg {
       visibility: visible;
     }
   }
+
   svg {
     position: relative;
     top: 40px;
@@ -64,13 +66,13 @@ export default function SyntaxHighlighterCopy({
   function copyToClipboard(textToCopy: string) {
     copyTextToClipboard(textToCopy)
       .then(() => {
-        if (addDangerToast) {
-          addDangerToast(t('Sorry, your browser does not support copying.'));
+        if (addSuccessToast) {
+          addSuccessToast(t('SQL Copied!'));
         }
       })
       .catch(() => {
-        if (addSuccessToast) {
-          addSuccessToast(t('SQL Copied!'));
+        if (addDangerToast) {
+          addDangerToast(t('Sorry, your browser does not support copying.'));
         }
       });
   }
