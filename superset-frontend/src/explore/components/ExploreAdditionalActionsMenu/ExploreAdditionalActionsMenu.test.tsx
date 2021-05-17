@@ -23,7 +23,7 @@ import userEvent from '@testing-library/user-event';
 import * as chartAction from 'src/chart/chartAction';
 import * as downloadAsImage from 'src/utils/downloadAsImage';
 import fetchMock from 'fetch-mock';
-import ConectedDisplayQueryButton from '.';
+import ExploreAdditionalActionsMenu from '.';
 
 const createProps = () => ({
   latestQueryFormData: {
@@ -90,15 +90,15 @@ fetchMock.post(
   },
 );
 
-test('Shoud render a button', () => {
+test('Should render a button', () => {
   const props = createProps();
-  render(<ConectedDisplayQueryButton {...props} />, { useRedux: true });
+  render(<ExploreAdditionalActionsMenu {...props} />, { useRedux: true });
   expect(screen.getByRole('button')).toBeInTheDocument();
 });
 
 test('Should open a menu', () => {
   const props = createProps();
-  render(<ConectedDisplayQueryButton {...props} />, {
+  render(<ExploreAdditionalActionsMenu {...props} />, {
     useRedux: true,
   });
 
@@ -124,7 +124,7 @@ test('Should open a menu', () => {
 
 test('Should call onOpenPropertiesModal when click on "Edit properties"', () => {
   const props = createProps();
-  render(<ConectedDisplayQueryButton {...props} />, {
+  render(<ExploreAdditionalActionsMenu {...props} />, {
     useRedux: true,
   });
   expect(props.onOpenInEditor).toBeCalledTimes(0);
@@ -133,10 +133,10 @@ test('Should call onOpenPropertiesModal when click on "Edit properties"', () => 
   expect(props.onOpenPropertiesModal).toBeCalledTimes(1);
 });
 
-test('Shoud call getChartDataRequest when click on "View query"', async () => {
+test('Should call getChartDataRequest when click on "View query"', async () => {
   const props = createProps();
   const getChartDataRequest = jest.spyOn(chartAction, 'getChartDataRequest');
-  render(<ConectedDisplayQueryButton {...props} />, {
+  render(<ExploreAdditionalActionsMenu {...props} />, {
     useRedux: true,
   });
 
@@ -152,7 +152,7 @@ test('Shoud call getChartDataRequest when click on "View query"', async () => {
 
 test('Should call onOpenInEditor when click on "Run in SQL Lab"', () => {
   const props = createProps();
-  render(<ConectedDisplayQueryButton {...props} />, {
+  render(<ExploreAdditionalActionsMenu {...props} />, {
     useRedux: true,
   });
 
@@ -167,7 +167,7 @@ test('Should call onOpenInEditor when click on "Run in SQL Lab"', () => {
 test('Should call downloadAsImage when click on "Download as image"', () => {
   const props = createProps();
   const spy = jest.spyOn(downloadAsImage, 'default');
-  render(<ConectedDisplayQueryButton {...props} />, {
+  render(<ExploreAdditionalActionsMenu {...props} />, {
     useRedux: true,
   });
 
