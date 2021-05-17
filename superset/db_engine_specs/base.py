@@ -140,7 +140,7 @@ class LimitMethod:  # pylint: disable=too-few-public-methods
     FORCE_LIMIT = "force_limit"
 
 
-class BaseEngineSpec:  # pylint: disable=too-many-public-methods,abstract-method
+class BaseEngineSpec:  # pylint: disable=too-many-public-methods, abstract-method
     """Abstract class for database engine specific configurations
 
     Attributes:

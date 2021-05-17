@@ -319,17 +319,3 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         # We might need to add a special case for bigquery since
         # we are relying on the json credentials
         return None
-
-    @classmethod
-    def parameters_json_schema(cls) -> Any:
-        """
-        Return configuration parameters as OpenAPI.
-        """
-        spec = APISpec(
-            title="Database Parameters",
-            version="1.0.0",
-            openapi_version="3.0.2",
-            plugins=[MarshmallowPlugin()],
-        )
-        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
-        return spec.to_dict()["components"]["schemas"][cls.__name__]
