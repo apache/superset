@@ -241,8 +241,9 @@ class Database(
     def parameters(self) -> Dict[str, Any]:
         # Build parameters if db_engine_spec is a subclass of BasicParametersMixin
         parameters = {"engine": self.backend}
-
-        if self.db_engine_spec.parameters_schema is not None:
+        if hasattr(self.db_engine_spec, "parameters_schema") and hasattr(
+            self.db_engine_spec, "get_parameters_from_uri"
+        ):
             uri = make_url(self.sqlalchemy_uri_decrypted)
             return {**parameters, **self.db_engine_spec.get_parameters_from_uri(uri)}  # type: ignore
 

@@ -291,17 +291,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]
     ] = {}
 
-    # schema describing the parameters used to configure the DB
-    parameters_schema: Optional[Schema] = None
-
-    # recommended driver name for the DB engine spec
-    drivername: str = ""
-
-    # placeholder with the SQLAlchemy URI template
-    sqlalchemy_uri_placeholder = (
-        "drivername://user:password@host:port/dbname[?key=value&key=value...]"
-    )
-
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
         """
