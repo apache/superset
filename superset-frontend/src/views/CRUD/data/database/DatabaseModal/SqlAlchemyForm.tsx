@@ -17,9 +17,9 @@
  * under the License.
  */
 import React, { EventHandler, ChangeEvent, MouseEvent } from 'react';
-import { t, supersetTheme } from '@superset-ui/core';
+import { t, SupersetTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';
-import { StyledInputContainer } from './styles';
+import { StyledInputContainer, wideButton } from './styles';
 
 import { DatabaseObject } from '../types';
 
@@ -86,10 +86,7 @@ const SqlAlchemyTab = ({
       onClick={testConnection}
       cta
       buttonStyle="link"
-      style={{
-        width: '100%',
-        border: `1px solid ${supersetTheme.colors.primary.base}`,
-      }}
+      css={(theme: SupersetTheme) => wideButton(theme)}
     >
       {t('Test connection')}
     </Button>

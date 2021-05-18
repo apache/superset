@@ -18,8 +18,9 @@
  */
 import React, { FormEvent } from 'react';
 import cx from 'classnames';
-import { FormGroup, FormControl } from 'react-bootstrap';
-import FormLabel from 'src/components/Form/FormLabel';
+import { InputProps } from 'antd/lib/input';
+import { FormLabel, FormItem } from 'src/components/Form';
+import { Input } from 'src/common/components';
 import { StyledFormHeader, formScrollableStyles } from './styles';
 import { DatabaseForm } from '../types';
 
@@ -93,10 +94,10 @@ const DatabaseConnectionForm = ({
 }: {
   dbModel: DatabaseForm;
   onParametersChange: (
-    event: FormEvent<FormControl> | { target: HTMLInputElement },
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
   onChange: (
-    event: FormEvent<FormControl> | { target: HTMLInputElement },
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
 }) => (
   <>
@@ -126,7 +127,7 @@ const DatabaseConnectionForm = ({
               ? onChange
               : onParametersChange;
           return (
-            <FormGroup
+            <FormItem
               className={cx(className, `form-group-${className}`)}
               key={field}
             >
@@ -136,17 +137,16 @@ const DatabaseConnectionForm = ({
               >
                 {description}
               </FormLabel>
-              <FormControl
+              <Input
                 name={field}
                 type={type}
                 id={field}
-                bsSize="sm"
                 autoComplete="off"
                 placeholder={placeholder}
                 onChange={onEdit}
               />
               <p className="helper">{label}</p>
-            </FormGroup>
+            </FormItem>
           );
         })}
     </div>
