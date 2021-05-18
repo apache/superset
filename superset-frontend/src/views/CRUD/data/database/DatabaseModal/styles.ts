@@ -106,6 +106,28 @@ export const antDModalStyles = (theme: SupersetTheme) => css`
   }
 `;
 
+export const antDAlertStyles = (theme: SupersetTheme) => css`
+  border: 1px solid ${theme.colors.info.base};
+  padding: ${theme.gridUnit * 4}px;
+  margin: ${theme.gridUnit * 8}px 0 0;
+  .ant-alert-message {
+    color: ${theme.colors.info.dark2};
+    font-size: ${theme.typography.sizes.s + 1}px;
+    font-weight: bold;
+  }
+  .ant-alert-description {
+    color: ${theme.colors.info.dark2};
+    font-size: ${theme.typography.sizes.s + 1}px;
+    line-height: ${theme.gridUnit * 4}px;
+    .ant-alert-icon {
+      margin-right: ${theme.gridUnit * 2.5}px;
+      font-size: ${theme.typography.sizes.l + 1}px;
+      position: relative;
+      top: ${theme.gridUnit / 4}px;
+    }
+  }
+`;
+
 export const formHelperStyles = (theme: SupersetTheme) => css`
   .required {
     margin-left: ${theme.gridUnit / 2}px;
@@ -118,6 +140,17 @@ export const formHelperStyles = (theme: SupersetTheme) => css`
     color: ${theme.colors.grayscale.light1};
     font-size: ${theme.typography.sizes.s - 1}px;
     text-align: left;
+  }
+`;
+
+export const wideButton = (theme: SupersetTheme) => css`
+  width: 100%;
+  border: 1px solid ${theme.colors.primary.dark2};
+  color: ${theme.colors.primary.dark2};
+  &:hover,
+  &:focus {
+    border: 1px solid ${theme.colors.primary.dark1};
+    color: ${theme.colors.primary.dark1};
   }
 `;
 
@@ -147,21 +180,6 @@ export const formStyles = (theme: SupersetTheme) => css`
     color: ${theme.colors.grayscale.light1};
     font-size: ${theme.typography.sizes.s - 1}px;
     margin-top: ${theme.gridUnit * 1.5}px;
-  }
-
-  .ant-alert {
-    color: ${({ theme }) => theme.colors.info.dark2};
-    border: 1px solid ${({ theme }) => theme.colors.info.base};
-    font-size: ${({ theme }) => theme.gridUnit * 3}px;
-    padding: ${({ theme }) => theme.gridUnit * 4}px;
-    margin: ${({ theme }) => theme.gridUnit * 4}px 0 0;
-  }
-  .ant-alert-with-description {
-    .ant-alert-message,
-    .alert-with-description {
-      color: ${({ theme }) => theme.colors.info.dark2};
-      font-weight: bold;
-    }
   }
   .ant-modal-body {
     padding-top: 0;
@@ -307,22 +325,20 @@ export const CreateHeader = styled.div`
   flex-direction: column;
   justify-content: center;
   padding: 0px;
-  margin: ${({ theme }) => theme.gridUnit * 4}px
-    ${({ theme }) => theme.gridUnit * 4}px
-    ${({ theme }) => theme.gridUnit * 9}px;
+  margin: 0 ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 6}px;
 `;
 
 export const CreateHeaderTitle = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  color: ${({ theme }) => theme.colors.grayscale.dark2};
   font-weight: bold;
-  font-size: ${({ theme }) => theme.typography.sizes.l}px;
-  padding: ${({ theme }) => theme.gridUnit * 1}px;
+  font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  padding: ${({ theme }) => theme.gridUnit * 1}px 0;
 `;
 
 export const CreateHeaderSubtitle = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  padding: ${({ theme }) => theme.gridUnit * 1}px;
 `;
 
 export const EditHeaderTitle = styled.div`
@@ -335,8 +351,4 @@ export const EditHeaderSubtitle = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   font-size: ${({ theme }) => theme.typography.sizes.xl}px;
   font-weight: bold;
-`;
-
-export const Divider = styled.hr`
-  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light1};
 `;

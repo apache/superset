@@ -96,6 +96,8 @@ export type DatabaseForm = {
   sqlalchemy_uri_placeholder: string;
 };
 
+// the values should align with the database
+// model enum in superset/superset/models/core.py
 export enum CONFIGURATION_METHOD {
   SQLALCHEMY_URI = 'sqlalchemy_form',
   DYNAMIC_FORM = 'dynamic_form',

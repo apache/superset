@@ -45,22 +45,20 @@ import SqlAlchemyForm from './SqlAlchemyForm';
 
 import DatabaseConnectionForm from './DatabaseConnectionForm';
 import {
-  StyledBasicTab,
-  StyledModal,
-  EditHeader,
-  EditHeaderTitle,
-  EditHeaderSubtitle,
+  antDAlertStyles,
+  antDModalNoPaddingStyles,
+  antDModalStyles,
+  antDTabsStyles,
+  buttonLinkStyles,
   CreateHeader,
   CreateHeaderSubtitle,
   CreateHeaderTitle,
-  Divider,
-  StyledBasicTab,
-  antDModalStyles,
-  antDModalNoPaddingStyles,
+  EditHeader,
+  EditHeaderSubtitle,
+  EditHeaderTitle,
   formHelperStyles,
   formStyles,
-  antDTabsStyles,
-  buttonLinkStyles,
+  StyledBasicTab,
 } from './styles';
 
 const DOCUMENTATION_LINK =
@@ -76,14 +74,14 @@ interface DatabaseModalProps {
 }
 
 enum ActionType {
-  textChange,
-  inputChange,
+  configMethodChange,
+  dbSelected,
   editorChange,
   fetched,
-  reset,
-  dbSelected,
+  inputChange,
   parametersChange,
-  configMethodChange,
+  reset,
+  textChange,
 }
 
 interface DBReducerPayloadType {
@@ -312,9 +310,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (dbFetched) {
       setDB({
         type: ActionType.fetched,
-        payload: {
-          ...dbFetched,
-        },
+        payload: dbFetched,
       });
     }
   }, [dbFetched]);
@@ -381,11 +377,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           </CreateHeaderSubtitle>
         </CreateHeader>
       )}
-      <Divider />
+      <hr />
       <Tabs
         defaultActiveKey={DEFAULT_TAB_KEY}
         activeKey={tabKey}
         onTabClick={tabChange}
+        animated={{ inkBar: true, tabPane: true }}
       >
         <StyledBasicTab tab={<span>{t('Basic')}</span>} key="1">
           {useSqlAlchemyForm ? (
@@ -408,12 +405,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             </div>
           )}
           <Alert
+            css={(theme: SupersetTheme) => antDAlertStyles(theme)}
             message="Additional fields may be required"
             description={
               <>
                 Select databases require additional fields to be completed in
-                the next step to successfully connect the database. Learn what
-                requirements your databases has{' '}
+                the Advanced tab to successfully connect the database. Learn
+                what requirements your databases has{' '}
                 <a
                   href={DOCUMENTATION_LINK}
                   target="_blank"
