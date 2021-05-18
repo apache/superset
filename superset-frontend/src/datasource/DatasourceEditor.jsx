@@ -548,6 +548,7 @@ class DatasourceEditor extends React.PureComponent {
           control={<TextControl controlId="default_endpoint" />}
         />
         <Field
+          inline
           fieldKey="filter_select_enabled"
           label={t('Autocomplete filters')}
           description={t('Whether to populate autocomplete filters options')}

@@ -18,9 +18,17 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { css } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { FormItem, FormLabel } from 'src/components/Form';
 import './crud.less';
+
+const formItemInlineCss = css`
+  .ant-form-item-control-input-content {
+    display: flex;
+    flex-direction: row;
+  }
+`;
 
 const propTypes = {
   value: PropTypes.any,
@@ -30,6 +38,7 @@ const propTypes = {
   control: PropTypes.node.isRequired,
   onChange: PropTypes.func,
   compact: PropTypes.bool,
+  inline: PropTypes.bool,
 };
 const defaultProps = {
   onChange: () => {},
@@ -55,6 +64,7 @@ export default class Field extends React.PureComponent {
       control,
       description,
       fieldKey,
+      inline,
     } = this.props;
     const hookedControl = React.cloneElement(control, {
       value,
@@ -73,13 +83,14 @@ export default class Field extends React.PureComponent {
             )}
           </FormLabel>
         }
+        css={inline && formItemInlineCss}
       >
         {hookedControl}
         {!compact && description && (
           <div
             css={theme => ({
               color: theme.colors.grayscale.base,
-              marginTop: theme.gridUnit,
+              [inline ? 'marginLeft' : 'marginTop']: theme.gridUnit,
             })}
           >
             {description}
