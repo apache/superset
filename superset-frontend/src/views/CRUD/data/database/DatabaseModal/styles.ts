@@ -102,6 +102,10 @@ export const StyledModal = styled(Modal)`
     padding-top: 0;
     margin-bottom: 0;
   }
+  .ant-tabs-content-holder {
+    overflow: auto;
+    max-height: 475px;
+  }
 `;
 
 export const StyledInputContainer = styled.div`
