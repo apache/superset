@@ -16,31 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
-import htmlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/htmlbars';
-import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/markdown';
-import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
-import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
-import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { Dropdown, Menu } from 'src/common/components';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import CopyToClipboard from 'src/components/CopyToClipboard';
-import { getChartDataRequest } from 'src/chart/chartAction';
 import downloadAsImage from 'src/utils/downloadAsImage';
-import Loading from 'src/components/Loading';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
-import { CopyButton } from 'src/explore/components/DataTableControl';
-
-SyntaxHighlighter.registerLanguage('markdown', markdownSyntax);
-SyntaxHighlighter.registerLanguage('html', htmlSyntax);
-SyntaxHighlighter.registerLanguage('sql', sqlSyntax);
-SyntaxHighlighter.registerLanguage('json', jsonSyntax);
+import ViewQueryModal from '../controls/ViewQueryModal';
 
 const propTypes = {
   onOpenPropertiesModal: PropTypes.func,
@@ -54,53 +39,12 @@ const MENU_KEYS = {
   EDIT_PROPERTIES: 'edit_properties',
   RUN_IN_SQL_LAB: 'run_in_sql_lab',
   DOWNLOAD_AS_IMAGE: 'download_as_image',
+  VIEW_QUERY: 'view_query',
 };
 
-const CopyButtonViewQuery = styled(CopyButton)`
-  && {
-    margin: 0 0 ${({ theme }) => theme.gridUnit}px;
-  }
-`;
-
-export const DisplayQueryButton = props => {
+const ExploreAdditionalActionsMenu = props => {
   const { datasource } = props.latestQueryFormData;
-
-  const [language, setLanguage] = useState(null);
-  const [query, setQuery] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [sqlSupported] = useState(
-    datasource && datasource.split('__')[1] === 'table',
-  );
-
-  const beforeOpen = resultType => {
-    setIsLoading(true);
-
-    getChartDataRequest({
-      formData: props.latestQueryFormData,
-      resultFormat: 'json',
-      resultType,
-    })
-      .then(response => {
-        // Only displaying the first query is currently supported
-        const result = response.result[0];
-        setLanguage(result.language);
-        setQuery(result.query);
-        setIsLoading(false);
-        setError(null);
-      })
-      .catch(response => {
-        getClientErrorObject(response).then(
-          ({ error, message, statusText }) => {
-            setError(
-              error || message || statusText || t('Sorry, An error occurred'),
-            );
-            setIsLoading(false);
-          },
-        );
-      });
-  };
-
+  const sqlSupported = datasource && datasource.split('__')[1] === 'table';
   const handleMenuClick = ({ key, domEvent }) => {
     const { slice, onOpenInEditor, latestQueryFormData } = props;
     switch (key) {
@@ -124,34 +68,6 @@ export const DisplayQueryButton = props => {
     }
   };
 
-  const renderQueryModalBody = () => {
-    if (isLoading) {
-      return <Loading />;
-    }
-    if (error) {
-      return <pre>{error}</pre>;
-    }
-    if (query) {
-      return (
-        <div>
-          <CopyToClipboard
-            text={query}
-            shouldShowText={false}
-            copyNode={
-              <CopyButtonViewQuery buttonSize="xsmall">
-                <i className="fa fa-clipboard" />
-              </CopyButtonViewQuery>
-            }
-          />
-          <SyntaxHighlighter language={language} style={github}>
-            {query}
-          </SyntaxHighlighter>
-        </div>
-      );
-    }
-    return null;
-  };
-
   const { slice } = props;
   return (
     <Dropdown
@@ -164,14 +80,17 @@ export const DisplayQueryButton = props => {
               {t('Edit properties')}
             </Menu.Item>
           )}
-          <Menu.Item>
+          <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
             <ModalTrigger
               triggerNode={
                 <span data-test="view-query-menu-item">{t('View query')}</span>
               }
               modalTitle={t('View query')}
-              beforeOpen={() => beforeOpen('query')}
-              modalBody={renderQueryModalBody()}
+              modalBody={
+                <ViewQueryModal
+                  latestQueryFormData={props.latestQueryFormData}
+                />
+              }
               responsive
             />
           </Menu.Item>
@@ -198,10 +117,10 @@ export const DisplayQueryButton = props => {
   );
 };
 
-DisplayQueryButton.propTypes = propTypes;
+ExploreAdditionalActionsMenu.propTypes = propTypes;
 
 function mapDispatchToProps(dispatch) {
   return bindActionCreators({ sliceUpdated }, dispatch);
 }
 
-export default connect(null, mapDispatchToProps)(DisplayQueryButton);
+export default connect(null, mapDispatchToProps)(ExploreAdditionalActionsMenu);
