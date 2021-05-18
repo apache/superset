@@ -19,6 +19,8 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 
 import pandas as pd
+from apispec import APISpec
+from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from sqlalchemy import literal_column
@@ -41,27 +43,42 @@ CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
 )
 
 
-class BigQueryCredsJsonSchema(Schema):
-    type = fields.String()
-    project_id = fields.String()
-    private_key_id = fields.String()
-    private_key = fields.String()
-    client_email = fields.String()
-    client_id = fields.String()
-    auth_uri = fields.String()
-    token_uri = fields.String()
-    auth_provider_x509_cert_url = fields.String()
-    client_x509_cert_url = fields.String()
-
-
 class BigQueryParametersSchema(Schema):
-    credentials_json = fields.Nested(
-        BigQueryCredsJsonSchema, description=__("Credentials for BigQuery"),
+    type = fields.String(required=True, description=__("Credentials for BigQuery"))
+    project_id = fields.String(
+        required=True, description=__("Credentials for BigQuery")
+    )
+    private_key_id = fields.String(
+        required=True, description=__("Credentials for BigQuery")
+    )
+    private_key = fields.String(
+        required=True, description=__("Credentials for BigQuery")
+    )
+    client_email = fields.String(
+        required=True, description=__("Credentials for BigQuery")
+    )
+    client_id = fields.String(required=True, description=__("Credentials for BigQuery"))
+    auth_uri = fields.String(required=True, description=__("Credentials for BigQuery"))
+    token_uri = fields.String(required=True, description=__("Credentials for BigQuery"))
+    auth_provider_x509_cert_url = fields.String(
+        required=True, description=__("Credentials for BigQuery")
+    )
+    client_x509_cert_url = fields.String(
+        required=True, description=__("Credentials for BigQuery")
     )
 
 
 class BigQueryParametersType(TypedDict):
-    credentials_json: Dict[str, Any]
+    type: str
+    project_id: str
+    private_key_id: str
+    private_key: str
+    client_email: str
+    client_id: str
+    auth_uri: str
+    token_uri: str
+    auth_provider_x509_cert_url: str
+    client_x509_cert_url: str
 
 
 class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
@@ -315,16 +332,30 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     @classmethod
     def build_sqlalchemy_url(cls, parameters: BigQueryParametersType) -> str:
-        project_id = (
-            parameters.get("credentials_json", {})
-            .get("credentials_info", {})
-            .get("project_id")
-        )
-
+        project_id = parameters.get("project_id")
         return f"{cls.drivername}://{project_id}"
 
     @classmethod
-    def get_parameters_from_uri(cls, uri: str) -> Optional[BigQueryParametersType]:
+    def get_parameters_from_uri(cls, uri: str) -> Any:
         # We might need to add a special case for bigquery since
         # we are relying on the json credentials
-        return None
+        return {"foo": "bar"}
+
+    @classmethod
+    def parameters_json_schema(cls) -> Any:
+        """
+        Return configuration parameters as OpenAPI.
+        """
+        if not cls.parameters_schema:
+            return None
+
+        print(cls.parameters_schema)
+
+        spec = APISpec(
+            title="Database Parameters",
+            version="1.0.0",
+            openapi_version="3.0.2",
+            plugins=[MarshmallowPlugin()],
+        )
+        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
+        return spec.to_dict()["components"]["schemas"][cls.__name__]

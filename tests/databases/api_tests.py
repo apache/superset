@@ -1382,6 +1382,8 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.get(uri)
         response = json.loads(rv.data.decode("utf-8"))
 
+        print(response)
+
         assert rv.status_code == 200
         assert response == {
             "databases": [
@@ -1442,7 +1444,7 @@ class TestDatabaseApi(SupersetTestCase):
                         },
                         "type": "object",
                     },
-                    "preferred": true,
+                    "preferred": True,
                     "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
                 },
                 {"engine": "mysql", "name": "MySQL", "preferred": False},
