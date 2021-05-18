@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { FormGroup } from 'react-bootstrap';
 import { NativeSelect as Select } from 'src/components/Select';
 import { Input } from 'src/common/components';
 import { t, SupersetClient, styled } from '@superset-ui/core';
@@ -346,80 +345,80 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
 
     return (
       <>
-        <FormGroup className="adhoc-filter-simple-column-dropdown">
-          <Select
-            {...this.selectProps}
-            {...subjectSelectProps}
-            name="filter-column"
-            getPopupContainer={triggerNode => triggerNode.parentNode}
-          >
-            {columns.map(column => (
-              <Select.Option
-                value={column.id || column.optionName}
-                filterBy={
-                  column.saved_metric_name || column.column_name || column.label
-                }
-                key={column.id || column.optionName}
-              >
-                {this.renderSubjectOptionLabel(column)}
-              </Select.Option>
-            ))}
-          </Select>
-        </FormGroup>
-        <FormGroup>
-          <Select
-            {...this.selectProps}
-            {...operatorSelectProps}
-            getPopupContainer={triggerNode => triggerNode.parentNode}
-            name="filter-operator"
-          >
-            {OPERATORS_OPTIONS.filter(op =>
-              this.isOperatorRelevant(op, subject),
-            ).map(option => (
-              <Select.Option value={option} key={option}>
-                {translateOperator(option)}
-              </Select.Option>
-            ))}
-          </Select>
-        </FormGroup>
-        <FormGroup data-test="adhoc-filter-simple-value">
-          {MULTI_OPERATORS.has(operator) ||
-          this.state.suggestions.length > 0 ? (
-            <SelectWithLabel
-              name="filter-value"
-              {...comparatorSelectProps}
-              getPopupContainer={triggerNode => triggerNode.parentNode}
-              onSearch={val => this.setState({ currentSuggestionSearch: val })}
-              onSelect={this.clearSuggestionSearch}
-              onBlur={this.clearSuggestionSearch}
+        <Select
+          css={theme => ({
+            marginTop: theme.gridUnit * 4,
+            marginBottom: theme.gridUnit * 4,
+          })}
+          {...this.selectProps}
+          {...subjectSelectProps}
+          name="filter-column"
+          getPopupContainer={triggerNode => triggerNode.parentNode}
+        >
+          {columns.map(column => (
+            <Select.Option
+              value={column.id || column.optionName}
+              filterBy={
+                column.saved_metric_name || column.column_name || column.label
+              }
+              key={column.id || column.optionName}
             >
-              {this.state.suggestions.map(suggestion => (
-                <Select.Option value={suggestion} key={suggestion}>
-                  {suggestion}
-                </Select.Option>
-              ))}
+              {this.renderSubjectOptionLabel(column)}
+            </Select.Option>
+          ))}
+        </Select>
+        <Select
+          css={theme => ({ marginBottom: theme.gridUnit * 4 })}
+          {...this.selectProps}
+          {...operatorSelectProps}
+          getPopupContainer={triggerNode => triggerNode.parentNode}
+          name="filter-operator"
+        >
+          {OPERATORS_OPTIONS.filter(op =>
+            this.isOperatorRelevant(op, subject),
+          ).map(option => (
+            <Select.Option value={option} key={option}>
+              {translateOperator(option)}
+            </Select.Option>
+          ))}
+        </Select>
+        {MULTI_OPERATORS.has(operator) || this.state.suggestions.length > 0 ? (
+          <SelectWithLabel
+            data-test="adhoc-filter-simple-value"
+            name="filter-value"
+            {...comparatorSelectProps}
+            getPopupContainer={triggerNode => triggerNode.parentNode}
+            onSearch={val => this.setState({ currentSuggestionSearch: val })}
+            onSelect={this.clearSuggestionSearch}
+            onBlur={this.clearSuggestionSearch}
+          >
+            {this.state.suggestions.map(suggestion => (
+              <Select.Option value={suggestion} key={suggestion}>
+                {suggestion}
+              </Select.Option>
+            ))}
 
-              {/* enable selecting an option not included in suggestions */}
-              {currentSuggestionSearch &&
-                !this.state.suggestions.some(
-                  suggestion => suggestion === currentSuggestionSearch,
-                ) && (
-                  <Select.Option value={currentSuggestionSearch}>
-                    {currentSuggestionSearch}
-                  </Select.Option>
-                )}
-            </SelectWithLabel>
-          ) : (
-            <Input
-              name="filter-value"
-              ref={ref => this.focusComparator(ref, focusComparator)}
-              onChange={this.onInputComparatorChange}
-              value={comparator}
-              placeholder={t('Filter value (case sensitive)')}
-              disabled={DISABLE_INPUT_OPERATORS.includes(operator)}
-            />
-          )}
-        </FormGroup>
+            {/* enable selecting an option not included in suggestions */}
+            {currentSuggestionSearch &&
+              !this.state.suggestions.some(
+                suggestion => suggestion === currentSuggestionSearch,
+              ) && (
+                <Select.Option value={currentSuggestionSearch}>
+                  {currentSuggestionSearch}
+                </Select.Option>
+              )}
+          </SelectWithLabel>
+        ) : (
+          <Input
+            data-test="adhoc-filter-simple-value"
+            name="filter-value"
+            ref={ref => this.focusComparator(ref, focusComparator)}
+            onChange={this.onInputComparatorChange}
+            value={comparator}
+            placeholder={t('Filter value (case sensitive)')}
+            disabled={DISABLE_INPUT_OPERATORS.includes(operator)}
+          />
+        )}
       </>
     );
   }

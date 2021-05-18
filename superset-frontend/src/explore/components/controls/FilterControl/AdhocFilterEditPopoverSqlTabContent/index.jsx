@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { FormGroup } from 'react-bootstrap';
 import { NativeSelect as Select } from 'src/components/Select';
 import { t } from '@superset-ui/core';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
@@ -115,7 +114,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
 
     return (
       <span>
-        <FormGroup className="filter-edit-clause-section">
+        <div className="filter-edit-clause-section">
           <Select
             {...this.selectProps}
             {...clauseSelectProps}
@@ -133,8 +132,8 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
             <br />
             <strong>HAVING</strong> {t('Filters by metrics')}
           </span>
-        </FormGroup>
-        <FormGroup>
+        </div>
+        <div css={theme => ({ marginTop: theme.gridUnit * 4 })}>
           <SQLEditor
             ref={this.handleAceEditorRef}
             keywords={keywords}
@@ -148,7 +147,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
             className="filter-sql-editor"
             wrapEnabled
           />
-        </FormGroup>
+        </div>
       </span>
     );
   }

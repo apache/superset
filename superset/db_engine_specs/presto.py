@@ -165,13 +165,14 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
     }
 
-    custom_errors = {
+    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
         COLUMN_DOES_NOT_EXIST_REGEX: (
             __(
                 'We can\'t seem to resolve the column "%(column_name)s" at '
                 "line %(location)s.",
             ),
             SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+            {},
         ),
         TABLE_DOES_NOT_EXIST_REGEX: (
             __(
@@ -179,6 +180,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
                 "A valid table must be used to run this query.",
             ),
             SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+            {},
         ),
         SCHEMA_DOES_NOT_EXIST_REGEX: (
             __(
@@ -186,14 +188,17 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
                 "A valid schema must be used to run this query.",
             ),
             SupersetErrorType.SCHEMA_DOES_NOT_EXIST_ERROR,
+            {},
         ),
         CONNECTION_ACCESS_DENIED_REGEX: (
             __('Either the username "%(username)s" or the password is incorrect.'),
             SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            {},
         ),
         CONNECTION_INVALID_HOSTNAME_REGEX: (
             __('The hostname "%(hostname)s" cannot be resolved.'),
             SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+            {},
         ),
         CONNECTION_HOST_DOWN_REGEX: (
             __(
@@ -201,14 +206,17 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
                 "reached on port %(port)s."
             ),
             SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+            {},
         ),
         CONNECTION_PORT_CLOSED_REGEX: (
             __('Port %(port)s on hostname "%(hostname)s" refused the connection.'),
             SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
+            {},
         ),
         CONNECTION_UNKNOWN_DATABASE_ERROR: (
             __('Unable to connect to catalog named "%(catalog_name)s".'),
             SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+            {},
         ),
     }
 

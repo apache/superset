@@ -21,6 +21,8 @@ import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import TimeSeriesColumnControl from '.';
 
+jest.mock('lodash/debounce', () => jest.fn(fn => fn));
+
 test('renders with default props', () => {
   render(<TimeSeriesColumnControl />);
   expect(screen.getByText('Time series columns')).toBeInTheDocument();
@@ -34,16 +36,6 @@ test('renders popover on edit', () => {
   expect(screen.getByText('Label')).toBeInTheDocument();
   expect(screen.getByText('Tooltip')).toBeInTheDocument();
   expect(screen.getByText('Type')).toBeInTheDocument();
-});
-
-test('triggers onChange when type changes', () => {
-  const onChange = jest.fn();
-  render(<TimeSeriesColumnControl onChange={onChange} />);
-  userEvent.click(screen.getByRole('button'));
-  userEvent.click(screen.getByText('Select...'));
-  expect(onChange).not.toHaveBeenCalled();
-  userEvent.click(screen.getByText('Time comparison'));
-  expect(onChange).toHaveBeenCalled();
 });
 
 test('renders time comparison', () => {
@@ -82,23 +74,47 @@ test('renders period average', () => {
   expect(screen.getByText('Number format')).toBeInTheDocument();
 });
 
+test('triggers onChange when type changes', () => {
+  const onChange = jest.fn();
+  render(<TimeSeriesColumnControl onChange={onChange} />);
+  userEvent.click(screen.getByRole('button'));
+  userEvent.click(screen.getByText('Select...'));
+  userEvent.click(screen.getByText('Time comparison'));
+  expect(onChange).not.toHaveBeenCalled();
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(onChange).toHaveBeenCalledWith(
+    expect.objectContaining({ colType: 'time' }),
+  );
+});
+
 test('triggers onChange when time lag changes', () => {
+  const timeLag = '1';
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
+  const timeLagInput = screen.getByPlaceholderText('Time Lag');
+  userEvent.clear(timeLagInput);
+  userEvent.type(timeLagInput, timeLag);
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.type(screen.getByPlaceholderText('Time Lag'), '1');
-  expect(onChange).toHaveBeenCalled();
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ timeLag }));
 });
 
 test('triggers onChange when color bounds changes', () => {
+  const min = 1;
+  const max = 5;
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
+  const minInput = screen.getByPlaceholderText('Min');
+  const maxInput = screen.getByPlaceholderText('Max');
+  userEvent.type(minInput, min.toString());
+  userEvent.type(maxInput, max.toString());
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.type(screen.getByPlaceholderText('Min'), '1');
-  userEvent.type(screen.getByPlaceholderText('Max'), '10');
-  expect(onChange).toHaveBeenCalledTimes(3);
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(onChange).toHaveBeenLastCalledWith(
+    expect.objectContaining({ bounds: [min, max] }),
+  );
 });
 
 test('triggers onChange when time type changes', () => {
@@ -106,71 +122,102 @@ test('triggers onChange when time type changes', () => {
   render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
   userEvent.click(screen.getByText('Select...'));
-  expect(onChange).not.toHaveBeenCalled();
   userEvent.click(screen.getByText('Difference'));
-  expect(onChange).toHaveBeenCalled();
+  expect(onChange).not.toHaveBeenCalled();
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(onChange).toHaveBeenCalledWith(
+    expect.objectContaining({ comparisonType: 'diff' }),
+  );
 });
 
 test('triggers onChange when number format changes', () => {
+  const numberFormatString = 'Test format';
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
+  userEvent.type(
+    screen.getByPlaceholderText('Number format string'),
+    numberFormatString,
+  );
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.type(screen.getByPlaceholderText('Number format string'), 'format');
-  expect(onChange).toHaveBeenCalled();
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(onChange).toHaveBeenCalledWith(
+    expect.objectContaining({ d3format: numberFormatString }),
+  );
 });
 
 test('triggers onChange when width changes', () => {
+  const width = '10';
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
+  userEvent.type(screen.getByPlaceholderText('Width'), width);
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.type(screen.getByPlaceholderText('Width'), '10');
-  expect(onChange).toHaveBeenCalled();
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ width }));
 });
 
 test('triggers onChange when height changes', () => {
+  const height = '10';
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
+  userEvent.type(screen.getByPlaceholderText('Height'), height);
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.type(screen.getByPlaceholderText('Height'), '10');
-  expect(onChange).toHaveBeenCalled();
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ height }));
 });
 
 test('triggers onChange when time ratio changes', () => {
+  const timeRatio = '10';
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
+  userEvent.type(screen.getByPlaceholderText('Time Ratio'), timeRatio);
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.type(screen.getByPlaceholderText('Time Ratio'), '10');
-  expect(onChange).toHaveBeenCalled();
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ timeRatio }));
 });
 
 test('triggers onChange when show Y-axis changes', () => {
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
-  expect(onChange).not.toHaveBeenCalled();
   userEvent.click(screen.getByRole('checkbox'));
-  expect(onChange).toHaveBeenCalled();
+  expect(onChange).not.toHaveBeenCalled();
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(onChange).toHaveBeenCalledWith(
+    expect.objectContaining({ showYAxis: true }),
+  );
 });
 
 test('triggers onChange when Y-axis bounds changes', () => {
+  const min = 1;
+  const max = 5;
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
+  const minInput = screen.getByPlaceholderText('Min');
+  const maxInput = screen.getByPlaceholderText('Max');
+  userEvent.type(minInput, min.toString());
+  userEvent.clear(maxInput);
+  userEvent.type(maxInput, max.toString());
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.type(screen.getByPlaceholderText('Min'), '1');
-  userEvent.type(screen.getByPlaceholderText('Max'), '10');
-  expect(onChange).toHaveBeenCalledTimes(3);
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(onChange).toHaveBeenCalledWith(
+    expect.objectContaining({ yAxisBounds: [min, max] }),
+  );
 });
 
 test('triggers onChange when date format changes', () => {
+  const dateFormat = 'yy/MM/dd';
   const onChange = jest.fn();
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
   userEvent.click(screen.getByRole('button'));
+  userEvent.type(screen.getByPlaceholderText('Date format string'), dateFormat);
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.type(screen.getByPlaceholderText('Date format string'), 'yy/MM/dd');
-  expect(onChange).toHaveBeenCalled();
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(onChange).toHaveBeenCalledWith(
+    expect.objectContaining({ dateFormat }),
+  );
 });

@@ -85,6 +85,7 @@ setup(
         "graphlib-backport",
         "gunicorn>=20.0.2, <20.1",
         "humanize",
+        "itsdangerous>=1.0.0, <2.0.0",
         "isodate",
         "markdown>=3.0",
         "msgpack>=1.0.0, <1.1",

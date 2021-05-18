@@ -42,6 +42,12 @@ export default function SearchFilter({
     setValue('');
     onSubmit('');
   };
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setValue(e.currentTarget.value);
+    if (e.currentTarget.value === '') {
+      onClear();
+    }
+  };
 
   return (
     <FilterContainer>
@@ -50,9 +56,7 @@ export default function SearchFilter({
         placeholder={Header}
         name={name}
         value={value}
-        onChange={e => {
-          setValue(e.currentTarget.value);
-        }}
+        onChange={handleChange}
         onSubmit={handleSubmit}
         onClear={onClear}
       />
