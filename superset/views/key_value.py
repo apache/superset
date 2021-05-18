@@ -34,9 +34,13 @@ class KV(BaseSupersetView):
 
     """Used for storing and retrieving key value pairs"""
 
+    @staticmethod
+    def is_enabled() -> bool:
+        return is_feature_enabled("KV_STORE")
+
     @before_request
-    def ensure_feature_enabled(self) -> Optional[Response]:
-        if not is_feature_enabled("KV_STORE"):
+    def ensure_enabled(self) -> Optional[FlaskResponse]:
+        if not self.is_enabled():
             raise NotFound()
         return None
 
