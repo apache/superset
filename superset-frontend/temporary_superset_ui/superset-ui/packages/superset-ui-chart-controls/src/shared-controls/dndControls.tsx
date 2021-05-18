@@ -40,6 +40,7 @@ export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
         options.unshift(TIME_COLUMN_OPTION);
       }
       newState.options = Object.fromEntries(options.map(option => [option.column_name, option]));
+      newState.savedMetrics = state.datasource.metrics || [];
     }
     return newState;
   },
