@@ -169,10 +169,6 @@ export const StyledInputContainer = styled.div`
       flex: 0 1 auto;
       width: 40%;
     }
-
-    &[name='sqlalchemy_uri'] {
-      margin-right: ${({ theme }) => theme.gridUnit * 3}px;
-    }
   }
   &.expandable {
     height: 0;
@@ -227,7 +223,7 @@ export const EditHeader = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: ${({ theme }) => theme.gridUnit * 1}px;
+  padding: 0px;
   margin: ${({ theme }) => theme.gridUnit * 4}px
     ${({ theme }) => theme.gridUnit * 4}px
     ${({ theme }) => theme.gridUnit * 9}px;
