@@ -105,7 +105,7 @@ builtin_time_grains: Dict[Optional[str], str] = {
 
 class TimestampExpression(
     ColumnClause
-):  # pylint: disable=abstract-method,too-many-ancestors,too-few-public-methods
+):  # pylint: disable=too-many-ancestors,too-few-public-methods
     def __init__(self, expr: str, col: ColumnClause, **kwargs: Any) -> None:
         """Sqlalchemy class that can be can be used to render native column elements
         respeting engine-specific quoting rules as part of a string-based expression.
@@ -1303,36 +1303,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods, abstract-metho
             )
         return None
 
-    """
-    Abstract classmethods to allow us to write custom parameters
-    functions for specific db engines
-    """
-
-    @classmethod
-    def build_sqlalchemy_url(cls, parameters: Any) -> str:
-        raise NotImplementedError("build_sqlalchemy_url is not implemented")
-
-    @classmethod
-    def get_parameters_from_uri(cls, uri: str) -> Any:
-        raise NotImplementedError("get_parameters_from_uri is not implemented")
-
-    @classmethod
-    def parameters_json_schema(cls) -> Any:
-        """
-        Return configuration parameters as OpenAPI.
-        """
-        if not cls.parameters_schema:
-            return None
-
-        spec = APISpec(
-            title="Database Parameters",
-            version="1.0.0",
-            openapi_version="3.0.2",
-            plugins=[MarshmallowPlugin()],
-        )
-        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
-        return spec.to_dict()["components"]["schemas"][cls.__name__]
-
 
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI
@@ -1394,8 +1364,8 @@ class BasicParametersMixin:
             )
         )
 
-    @staticmethod
-    def get_parameters_from_uri(uri: str) -> BasicParametersType:
+    @classmethod
+    def get_parameters_from_uri(cls, uri: str) -> BasicParametersType:
         url = make_url(uri)
         return {
             "username": url.username,
@@ -1460,3 +1430,20 @@ class BasicParametersMixin:
             )
 
         return errors
+
+    @classmethod
+    def parameters_json_schema(cls) -> Any:
+        """
+        Return configuration parameters as OpenAPI.
+        """
+        if not cls.parameters_schema:
+            return None
+
+        spec = APISpec(
+            title="Database Parameters",
+            version="1.0.0",
+            openapi_version="3.0.2",
+            plugins=[MarshmallowPlugin()],
+        )
+        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
+        return spec.to_dict()["components"]["schemas"][cls.__name__]

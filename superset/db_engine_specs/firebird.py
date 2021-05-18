@@ -21,7 +21,7 @@ from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 from superset.utils import core as utils
 
 
-class FirebirdEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
+class FirebirdEngineSpec(BaseEngineSpec):
     """Engine for Firebird"""
 
     engine = "firebird"

@@ -23,7 +23,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
 
 
-class ImpalaEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
+class ImpalaEngineSpec(BaseEngineSpec):
     """Engine spec for Cloudera's Impala"""
 
     engine = "impala"

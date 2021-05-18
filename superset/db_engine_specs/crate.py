@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
 
 
-class CrateEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
+class CrateEngineSpec(BaseEngineSpec):
 
     engine = "crate"
     engine_name = "CrateDB"

@@ -18,7 +18,7 @@
 from superset.db_engine_specs.hive import HiveEngineSpec
 
 
-class DatabricksHiveEngineSpec(HiveEngineSpec):  # pylint: disable=abstract-method
+class DatabricksHiveEngineSpec(HiveEngineSpec):
     engine = "databricks"
     engine_name = "Databricks Hive"
     driver = "pyhive"

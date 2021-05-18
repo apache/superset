@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from superset.models.core import Database
 
 
-class SqliteEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
+class SqliteEngineSpec(BaseEngineSpec):
     engine = "sqlite"
     engine_name = "SQLite"
 

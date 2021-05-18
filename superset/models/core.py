@@ -244,7 +244,7 @@ class Database(
 
         if self.db_engine_spec.parameters_schema is not None:
             uri = make_url(self.sqlalchemy_uri_decrypted)
-            return {**parameters, **self.db_engine_spec.get_parameters_from_uri(uri)}
+            return {**parameters, **self.db_engine_spec.get_parameters_from_uri(uri)}  # type: ignore
 
         return parameters
 

@@ -21,7 +21,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
 
 
-class AthenaEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
+class AthenaEngineSpec(BaseEngineSpec):
     engine = "awsathena"
     engine_name = "Amazon Athena"
 

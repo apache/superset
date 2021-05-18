@@ -53,7 +53,7 @@ CONNECTION_HOST_DOWN_REGEX = re.compile(
 CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile("Unknown database '(?P<database>.*?)'")
 
 
-class MySQLEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
+class MySQLEngineSpec(BaseEngineSpec):
     engine = "mysql"
     engine_name = "MySQL"
     max_column_name_length = 64

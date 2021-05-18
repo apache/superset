@@ -17,7 +17,7 @@
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
 
-class GSheetsEngineSpec(SqliteEngineSpec):  # pylint: disable=abstract-method
+class GSheetsEngineSpec(SqliteEngineSpec):
     """Engine for Google spreadsheets"""
 
     engine = "gsheets"
