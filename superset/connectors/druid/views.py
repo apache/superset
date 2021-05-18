@@ -18,13 +18,16 @@
 import json
 import logging
 from datetime import datetime
+from typing import Optional
 
-from flask import flash, Markup, redirect
+from flask import current_app as app, flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.fieldwidgets import Select2Widget
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
+from werkzeug.exceptions import NotFound
 from wtforms import StringField
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 
@@ -49,7 +52,19 @@ from superset.views.base import (
 logger = logging.getLogger(__name__)
 
 
-class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):
+class EnsureEnabled:
+    @staticmethod
+    def is_enabled() -> bool:
+        return bool(app.config["DRUID_IS_ACTIVE"])
+
+    @before_request
+    def ensure_enabled(self) -> Optional[FlaskResponse]:
+        if not self.is_enabled():
+            raise NotFound()
+        return None
+
+
+class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView, EnsureEnabled):
     datamodel = SQLAInterface(models.DruidColumn)
     include_route_methods = RouteMethod.RELATED_VIEW_SET
 
@@ -136,7 +151,7 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):
         self.post_update(item)
 
 
-class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):
+class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView, EnsureEnabled):
     datamodel = SQLAInterface(models.DruidMetric)
     include_route_methods = RouteMethod.RELATED_VIEW_SET
 
@@ -189,7 +204,9 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):
     edit_form_extra_fields = add_form_extra_fields
 
 
-class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):
+class DruidClusterModelView(
+    SupersetModelView, DeleteMixin, YamlExportMixin, EnsureEnabled
+):
     datamodel = SQLAInterface(models.DruidCluster)
     include_route_methods = RouteMethod.CRUD_SET
     list_title = _("Druid Clusters")
@@ -251,7 +268,9 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):
         DeleteMixin._delete(self, pk)
 
 
-class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):
+class DruidDatasourceModelView(
+    DatasourceModelView, DeleteMixin, YamlExportMixin, EnsureEnabled
+):
     datamodel = SQLAInterface(models.DruidDatasource)
     include_route_methods = RouteMethod.CRUD_SET
     list_title = _("Druid Datasources")
@@ -367,7 +386,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
         DeleteMixin._delete(self, pk)
 
 
-class Druid(BaseSupersetView):
+class Druid(BaseSupersetView, EnsureEnabled):
     """The base views for Superset!"""
 
     @has_access

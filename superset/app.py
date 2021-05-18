@@ -491,51 +491,63 @@ class SupersetAppInitializer:
         )
 
         #
-        # Conditionally setup Druid Views
+        # Druid Views
         #
-        if self.config["DRUID_IS_ACTIVE"]:
-            appbuilder.add_separator("Data")
-            appbuilder.add_view(
-                DruidDatasourceModelView,
-                "Druid Datasources",
-                label=__("Druid Datasources"),
-                category="Data",
-                category_label=__("Data"),
-                icon="fa-cube",
-            )
-            appbuilder.add_view(
-                DruidClusterModelView,
-                name="Druid Clusters",
-                label=__("Druid Clusters"),
-                icon="fa-cubes",
-                category="Data",
-                category_label=__("Data"),
-                category_icon="fa-database",
-            )
-            appbuilder.add_view_no_menu(DruidMetricInlineView)
-            appbuilder.add_view_no_menu(DruidColumnInlineView)
-            appbuilder.add_view_no_menu(Druid)
+        appbuilder.add_separator(
+            "Data", cond=lambda: bool(self.config["DRUID_IS_ACTIVE"])
+        )
+        appbuilder.add_view(
+            DruidDatasourceModelView,
+            "Druid Datasources",
+            label=__("Druid Datasources"),
+            category="Data",
+            category_label=__("Data"),
+            icon="fa-cube",
+            menu_cond=lambda: bool(self.config["DRUID_IS_ACTIVE"]),
+        )
+        appbuilder.add_view(
+            DruidClusterModelView,
+            name="Druid Clusters",
+            label=__("Druid Clusters"),
+            icon="fa-cubes",
+            category="Data",
+            category_label=__("Data"),
+            category_icon="fa-database",
+            menu_cond=lambda: bool(self.config["DRUID_IS_ACTIVE"]),
+        )
+        appbuilder.add_view_no_menu(DruidMetricInlineView)
+        appbuilder.add_view_no_menu(DruidColumnInlineView)
+        appbuilder.add_view_no_menu(Druid)
 
-            if self.config["DRUID_METADATA_LINKS_ENABLED"]:
-                appbuilder.add_link(
-                    "Scan New Datasources",
-                    label=__("Scan New Datasources"),
-                    href="/druid/scan_new_datasources/",
-                    category="Data",
-                    category_label=__("Data"),
-                    category_icon="fa-database",
-                    icon="fa-refresh",
-                )
-                appbuilder.add_link(
-                    "Refresh Druid Metadata",
-                    label=__("Refresh Druid Metadata"),
-                    href="/druid/refresh_datasources/",
-                    category="Data",
-                    category_label=__("Data"),
-                    category_icon="fa-database",
-                    icon="fa-cog",
-                )
-            appbuilder.add_separator("Data")
+        appbuilder.add_link(
+            "Scan New Datasources",
+            label=__("Scan New Datasources"),
+            href="/druid/scan_new_datasources/",
+            category="Data",
+            category_label=__("Data"),
+            category_icon="fa-database",
+            icon="fa-refresh",
+            cond=lambda: bool(
+                self.config["DRUID_IS_ACTIVE"]
+                and self.config["DRUID_METADATA_LINKS_ENABLED"]
+            ),
+        )
+        appbuilder.add_link(
+            "Refresh Druid Metadata",
+            label=__("Refresh Druid Metadata"),
+            href="/druid/refresh_datasources/",
+            category="Data",
+            category_label=__("Data"),
+            category_icon="fa-database",
+            icon="fa-cog",
+            cond=lambda: bool(
+                self.config["DRUID_IS_ACTIVE"]
+                and self.config["DRUID_METADATA_LINKS_ENABLED"]
+            ),
+        )
+        appbuilder.add_separator(
+            "Data", cond=lambda: bool(self.config["DRUID_IS_ACTIVE"])
+        )
 
     def init_app_in_ctx(self) -> None:
         """
