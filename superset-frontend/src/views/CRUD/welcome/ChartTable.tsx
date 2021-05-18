@@ -75,9 +75,7 @@ function ChartTable({
     false,
   );
 
-  useEffect(() => {
-
-  })
+  useEffect(() => {});
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
     'chart',
@@ -95,10 +93,10 @@ function ChartTable({
 
   useEffect(() => {
     const filter = getFromLocalStorage('chart', null);
-    if(!filter) {
+    if (!filter) {
       setChartFilter('Mine');
     } else setChartFilter(filter.tab);
-  }, [])
+  }, []);
 
   const getFilters = (filterName: string) => {
     const filters = [];
@@ -152,18 +150,19 @@ function ChartTable({
             name: 'Favorite',
             label: t('Favorite'),
             onClick: () =>
-              getData('Favorite').then(() => { 
-                setChartFilter('Favorite') 
-                setInLocalStorage('chart', {tab: 'Favorite'})
-            }),
+              getData('Favorite').then(() => {
+                setChartFilter('Favorite');
+                setInLocalStorage('chart', { tab: 'Favorite' });
+              }),
           },
           {
             name: 'Mine',
             label: t('Mine'),
-            onClick: () => getData('Mine').then(() => { 
-              setChartFilter('Mine')
-              setInLocalStorage('chart', {tab: 'Mine'})
-            }),
+            onClick: () =>
+              getData('Mine').then(() => {
+                setChartFilter('Mine');
+                setInLocalStorage('chart', { tab: 'Mine' });
+              }),
           },
         ]}
         buttons={[

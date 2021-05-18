@@ -75,10 +75,10 @@ function DashboardTable({
 
   useEffect(() => {
     const filter = getFromLocalStorage('dashboard', null);
-    if(!filter) {
+    if (!filter) {
       setDashboardFilter('Mine');
     } else setDashboardFilter(filter.tab);
-  }, [])
+  }, []);
 
   const handleDashboardEdit = (edits: Dashboard) =>
     SupersetClient.get({
@@ -150,9 +150,9 @@ function DashboardTable({
             name: 'Favorite',
             label: t('Favorite'),
             onClick: () => {
-              getData('Favorite').then(() => { 
-                setDashboardFilter('Favorite')
-                setInLocalStorage('dashboard', {tab: 'Favorite'})
+              getData('Favorite').then(() => {
+                setDashboardFilter('Favorite');
+                setInLocalStorage('dashboard', { tab: 'Favorite' });
               });
             },
           },
@@ -160,9 +160,9 @@ function DashboardTable({
             name: 'Mine',
             label: t('Mine'),
             onClick: () => {
-              getData('Mine').then(() => { 
-                setDashboardFilter('Mine')
-                setInLocalStorage('dashboard', {tab: 'Mine'})
+              getData('Mine').then(() => {
+                setDashboardFilter('Mine');
+                setInLocalStorage('dashboard', { tab: 'Mine' });
               });
             },
           },
