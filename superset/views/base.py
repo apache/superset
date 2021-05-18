@@ -32,7 +32,6 @@ from flask import (
     request,
     Response,
     session,
-    url_for,
 )
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
@@ -377,11 +376,9 @@ def show_superset_errors(ex: SupersetErrorsException) -> FlaskResponse:
 def refresh_csrf_token(ex: CSRFError) -> FlaskResponse:
     logger.warning(ex)
 
-    # show JSON error payload for API requests
-    if request.path.startswith("/api"):
+    if request.is_json:
         return show_http_exception(ex)
 
-    # return login page for non-API requests
     return redirect(appbuilder.get_url_for_login)
 
 
