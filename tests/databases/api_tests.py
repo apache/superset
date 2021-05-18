@@ -36,7 +36,6 @@ from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
-from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.errors import SupersetError
 from superset.models.core import Database, ConfigurationMethod
 from superset.models.reports import ReportSchedule, ReportScheduleType
@@ -307,28 +306,28 @@ class TestDatabaseApi(SupersetTestCase):
     #     }
     #     assert rv.status_code == 400
 
-    # def test_create_database_server_cert_validate(self):
-    #     """
-    #     Database API: Test create server cert validation
-    #     """
-    #     example_db = get_example_database()
-    #     if example_db.backend == "sqlite":
-    #         return
+    def test_create_database_server_cert_validate(self):
+        """
+        Database API: Test create server cert validation
+        """
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
 
-    #     self.login(username="admin")
-    #     database_data = {
-    #         "database_name": "test-create-database-invalid-cert",
-    #         "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
-    #         "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
-    #         "server_cert": "INVALID CERT",
-    #     }
+        self.login(username="admin")
+        database_data = {
+            "database_name": "test-create-database-invalid-cert",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
+            "server_cert": "INVALID CERT",
+        }
 
-    #     uri = "api/v1/database/"
-    #     rv = self.client.post(uri, json=database_data)
-    #     response = json.loads(rv.data.decode("utf-8"))
-    #     expected_response = {"message": {"server_cert": ["Invalid certificate"]}}
-    #     self.assertEqual(rv.status_code, 400)
-    #     self.assertEqual(response, expected_response)
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": {"server_cert": ["Invalid certificate"]}}
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(response, expected_response)
 
     def test_create_database_json_validate(self):
         """
@@ -1373,7 +1372,6 @@ class TestDatabaseApi(SupersetTestCase):
         get_available_engine_specs.return_value = [
             MySQLEngineSpec,
             PostgresEngineSpec,
-            BigQueryEngineSpec,
         ]
 
         self.login(username="admin")
