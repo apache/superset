@@ -550,6 +550,6 @@ class ImportV1DatabaseSchema(Schema):
     def validate_password(self, data: Dict[str, Any], **kwargs: Any) -> None:
         """If sqlalchemy_uri has a masked password, password is required"""
         uri = data["sqlalchemy_uri"]
-        password = urllib.parse.urlparse(uri).password
+        password = make_url(uri).password
         if password == PASSWORD_MASK and data.get("password") is None:
             raise ValidationError("Must provide a password for the database")
