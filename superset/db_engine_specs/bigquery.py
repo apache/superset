@@ -20,8 +20,10 @@ from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 
 import pandas as pd
 from flask_babel import gettext as __
+from marshmallow import fields, Schema
 from sqlalchemy import literal_column
 from sqlalchemy.sql.expression import ColumnClause
+from typing_extensions import TypedDict
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
@@ -39,7 +41,30 @@ CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
 )
 
 
-class BigQueryEngineSpec(BaseEngineSpec):
+class BigQueryCredsJsonSchema(Schema):
+    type = fields.String()
+    project_id = fields.String()
+    private_key_id = fields.String()
+    private_key = fields.String()
+    client_email = fields.String()
+    client_id = fields.String()
+    auth_uri = fields.String()
+    token_uri = fields.String()
+    auth_provider_x509_cert_url = fields.String()
+    client_x509_cert_url = fields.String()
+
+
+class BigQueryParametersSchema(Schema):
+    credentials_json = fields.Nested(
+        BigQueryCredsJsonSchema, description=__("Credentials for BigQuery"),
+    )
+
+
+class BigQueryParametersType(TypedDict):
+    credentials_json: Dict[str, Any]
+
+
+class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     """Engine spec for Google's BigQuery
 
     As contributed by @mxmzdlv on issue #945"""
@@ -47,6 +72,11 @@ class BigQueryEngineSpec(BaseEngineSpec):
     engine = "bigquery"
     engine_name = "Google BigQuery"
     max_column_name_length = 128
+
+    # Mixin overrides
+    parameters_schema = BigQueryParametersSchema()
+    drivername = engine
+    sqlalchemy_uri_placeholder = "bigquery://{project_id}"
 
     # BigQuery doesn't maintain context when running multiple statements in the
     # same cursor, so we need to run all statements at once
@@ -282,3 +312,19 @@ class BigQueryEngineSpec(BaseEngineSpec):
                 to_gbq_kwargs[key] = to_sql_kwargs[key]
 
         pandas_gbq.to_gbq(df, **to_gbq_kwargs)
+
+    @classmethod
+    def build_sqlalchemy_url(cls, parameters: BigQueryParametersType) -> str:
+        project_id = (
+            parameters.get("credentials_json", {})
+            .get("credentials_info", {})
+            .get("project_id")
+        )
+
+        return f"{cls.drivername}://{project_id}"
+
+    @classmethod
+    def get_parameters_from_uri(cls, uri: str) -> Optional[BigQueryParametersType]:
+        # We might need to add a special case for bigquery since
+        # we are relying on the json credentials
+        return None

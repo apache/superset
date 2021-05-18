@@ -36,6 +36,7 @@ from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.errors import SupersetError
 from superset.models.core import Database, ConfigurationMethod
 from superset.models.reports import ReportSchedule, ReportScheduleType
@@ -275,36 +276,35 @@ class TestDatabaseApi(SupersetTestCase):
         }
         assert rv.status_code == 400
 
-    # add this test back in when config method becomes required for creation.
-    # def test_create_database_no_configuration_method(self):
-    #     """
-    #     Database API: Test create with no config method.
-    #     """
-    #     extra = {
-    #         "metadata_params": {},
-    #         "engine_params": {},
-    #         "metadata_cache_timeout": {},
-    #         "schemas_allowed_for_csv_upload": [],
-    #     }
+    def test_create_database_no_configuration_method(self):
+        """
+        Database API: Test create with no config method.
+        """
+        extra = {
+            "metadata_params": {},
+            "engine_params": {},
+            "metadata_cache_timeout": {},
+            "schemas_allowed_for_csv_upload": [],
+        }
 
-    #     self.login(username="admin")
-    #     example_db = get_example_database()
-    #     if example_db.backend == "sqlite":
-    #         return
-    #     database_data = {
-    #         "database_name": "test-create-database",
-    #         "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
-    #         "server_cert": None,
-    #         "extra": json.dumps(extra),
-    #     }
+        self.login(username="admin")
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+        database_data = {
+            "database_name": "test-create-database",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "server_cert": None,
+            "extra": json.dumps(extra),
+        }
 
-    #     uri = "api/v1/database/"
-    #     rv = self.client.post(uri, json=database_data)
-    #     response = json.loads(rv.data.decode("utf-8"))
-    #     assert response == {
-    #         "message": {"configuration_method": ["Missing data for required field."]}
-    #     }
-    #     assert rv.status_code == 400
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response == {
+            "message": {"configuration_method": ["Missing data for required field."]}
+        }
+        assert rv.status_code == 400
 
     def test_create_database_server_cert_validate(self):
         """
@@ -1368,10 +1368,11 @@ class TestDatabaseApi(SupersetTestCase):
     @mock.patch("superset.databases.api.get_available_engine_specs")
     @mock.patch("superset.databases.api.app")
     def test_available(self, app, get_available_engine_specs):
-        app.config = {"PREFERRED_DATABASES": ["postgresql"]}
+        app.config = {"PREFERRED_DATABASES": ["postgresql", "bigquery"]}
         get_available_engine_specs.return_value = [
             MySQLEngineSpec,
             PostgresEngineSpec,
+            BigQueryEngineSpec,
         ]
 
         self.login(username="admin")
@@ -1391,10 +1392,6 @@ class TestDatabaseApi(SupersetTestCase):
                             "database": {
                                 "description": "Database name",
                                 "type": "string",
-                            },
-                            "encryption": {
-                                "description": "Use an encrypted connection to the database",
-                                "type": "boolean",
                             },
                             "host": {
                                 "description": "Hostname or IP address",
@@ -1426,6 +1423,22 @@ class TestDatabaseApi(SupersetTestCase):
                     },
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "postgresql+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
+                },
+                {
+                    "engine": "bigquery",
+                    "name": "Google BigQuery",
+                    "parameters": {
+                        "properties": {
+                            "credentials_json": {
+                                "additionalProperties": {},
+                                "description": "credentials for bigquery",
+                                "type": "object",
+                            }
+                        },
+                        "type": "object",
+                    },
+                    "preferred": true,
+                    "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
                 },
                 {"engine": "mysql", "name": "MySQL", "preferred": False},
             ]
