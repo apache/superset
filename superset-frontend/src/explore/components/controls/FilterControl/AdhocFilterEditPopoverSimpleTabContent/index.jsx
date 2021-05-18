@@ -235,11 +235,30 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
   }
 
   isOperatorRelevant(operator, subject) {
+    const column = this.props.datasource.columns?.find(
+      col => col.column_name === subject,
+    );
+    const isColumnBoolean =
+      !!column && (column.type === 'BOOL' || column.type === 'BOOLEAN');
+    const isColumnNumber = !!column && column.type === 'INT';
+    const isColumnFunction = !!column && !!column.expression;
+
     if (operator && CUSTOM_OPERATORS.has(operator)) {
       const { partitionColumn } = this.props;
       return partitionColumn && subject && subject === partitionColumn;
     }
-
+    if (
+      operator === OPERATORS['IS TRUE'] ||
+      operator === OPERATORS['IS FALSE']
+    ) {
+      return isColumnBoolean || isColumnNumber || isColumnFunction;
+    }
+    if (isColumnBoolean) {
+      return (
+        operator === OPERATORS['IS NULL'] ||
+        operator === OPERATORS['IS NOT NULL']
+      );
+    }
     return !(
       (this.props.datasource.type === 'druid' &&
         TABLE_ONLY_OPERATORS.indexOf(operator) >= 0) ||
@@ -318,7 +337,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         OPERATORS_OPTIONS.filter(op => this.isOperatorRelevant(op, subject))
           .length,
       ),
-      // like AGGREGTES_OPTIONS, operator options are string
+      // like AGGREGATES_OPTIONS, operator options are string
       value: operator,
       onChange: this.onOperatorChange,
       filterOption: (input, option) =>

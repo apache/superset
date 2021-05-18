@@ -1205,6 +1205,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     where_clause_and.append(col_obj.get_sqla_col().is_(None))
                 elif op == utils.FilterOperator.IS_NOT_NULL.value:
                     where_clause_and.append(col_obj.get_sqla_col().isnot(None))
+                elif op == utils.FilterOperator.IS_TRUE.value:
+                    where_clause_and.append(col_obj.get_sqla_col().is_(True))
+                elif op == utils.FilterOperator.IS_FALSE.value:
+                    where_clause_and.append(col_obj.get_sqla_col().is_(False))
                 else:
                     if eq is None:
                         raise QueryObjectValidationError(
