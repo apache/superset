@@ -58,7 +58,7 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     engine_name = "MySQL"
     max_column_name_length = 64
 
-    drivername = "mysql"
+    drivername = "mysql+mysqldb"
     sqlalchemy_uri_placeholder = (
         "mysql://user:password@host:post/dbname[?key=value&key=value...]"
     )
