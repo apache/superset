@@ -33,7 +33,6 @@ import {
   MULTI_OPERATORS,
   CUSTOM_OPERATORS,
   DISABLE_INPUT_OPERATORS,
-  BOOLEAN_ONLY_OPERATORS,
 } from 'src/explore/constants';
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
 import AdhocFilter, {
@@ -263,13 +262,9 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     }
     return !(
       (this.props.datasource.type === 'druid' &&
-        [...BOOLEAN_ONLY_OPERATORS, ...TABLE_ONLY_OPERATORS].indexOf(
-          operator,
-        ) >= 0) ||
+        TABLE_ONLY_OPERATORS.indexOf(operator) >= 0) ||
       (this.props.datasource.type === 'table' &&
-        [...BOOLEAN_ONLY_OPERATORS, ...DRUID_ONLY_OPERATORS].indexOf(
-          operator,
-        ) >= 0) ||
+        DRUID_ONLY_OPERATORS.indexOf(operator) >= 0) ||
       (this.props.adhocFilter.clause === CLAUSES.HAVING &&
         HAVING_OPERATORS.indexOf(operator) === -1)
     );

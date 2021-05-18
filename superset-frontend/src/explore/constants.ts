@@ -50,10 +50,6 @@ export const OPERATORS_OPTIONS = Object.values(OPERATORS);
 
 export const TABLE_ONLY_OPERATORS = [OPERATORS.LIKE];
 export const DRUID_ONLY_OPERATORS = [OPERATORS.REGEX];
-export const BOOLEAN_ONLY_OPERATORS = [
-  OPERATORS['IS TRUE'],
-  OPERATORS['IS FALSE'],
-];
 export const HAVING_OPERATORS = [
   OPERATORS['=='],
   OPERATORS['!='],
