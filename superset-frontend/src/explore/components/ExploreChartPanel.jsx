@@ -283,6 +283,7 @@ const ExploreChartPanel = props => {
             tableSectionHeight={tableSectionHeight}
             onCollapseChange={onCollapseChange}
             chartStatus={props.chart.chartStatus}
+            errorMessage={props.errorMessage}
           />
         </Split>
       )}
