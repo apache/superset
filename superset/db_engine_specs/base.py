@@ -292,7 +292,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     ] = {}
 
     # schema describing the parameters used to configure the DB
-    parameters_schema: Schema = None
+    parameters_schema: Optional[Schema] = None
 
     # recommended driver name for the DB engine spec
     drivername: str = ""
