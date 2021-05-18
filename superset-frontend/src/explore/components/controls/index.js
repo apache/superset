@@ -45,6 +45,7 @@ import DndColumnSelectControl, {
   DndFilterSelect,
   DndMetricSelect,
 } from './DndColumnSelectControl';
+import DrillDownControl from './DrillDownControl';
 
 const controlMap = {
   AnnotationLayerControl,
@@ -60,6 +61,7 @@ const controlMap = {
   DndColumnSelect,
   DndFilterSelect,
   DndMetricSelect,
+  DrillDownControl,
   FixedOrMetricControl,
   HiddenControl,
   SelectAsyncControl,

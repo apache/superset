@@ -94,7 +94,6 @@ class ChartRenderer extends React.Component {
       return (
         this.hasQueryResponseChange ||
         nextProps.annotationData !== this.props.annotationData ||
-        nextProps.ownState !== this.props.ownState ||
         nextProps.filterState !== this.props.filterState ||
         nextProps.height !== this.props.height ||
         nextProps.width !== this.props.width ||

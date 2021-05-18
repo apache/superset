@@ -19,7 +19,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import Alert from 'src/components/Alert';
-import { styled, logging, t } from '@superset-ui/core';
+import { styled, logging, t, DrillDown } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import Button from 'src/components/Button';
@@ -109,6 +109,11 @@ class Chart extends React.PureComponent {
   }
 
   componentDidMount() {
+    if (this.props.formData?.drillDown) {
+      const drilldown = DrillDown.fromHierarchy(this.props.formData.groupby)
+      this.props.actions.updateDataMask(this.props.chartId, {ownState: {drilldown: drilldown}});
+    }
+
     if (this.props.triggerQuery) {
       this.runQuery();
     }
