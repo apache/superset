@@ -34,6 +34,7 @@ from sqlalchemy.sql import func
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
+from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import SupersetError
@@ -1372,6 +1373,7 @@ class TestDatabaseApi(SupersetTestCase):
         get_available_engine_specs.return_value = [
             MySQLEngineSpec,
             PostgresEngineSpec,
+            BigQueryEngineSpec,
         ]
 
         self.login(username="admin")
