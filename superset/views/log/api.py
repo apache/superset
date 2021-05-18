@@ -53,3 +53,4 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
     def ensure_enabled(self) -> None:
         if not self.is_enabled():
             return self.response_404()
+        return None
