@@ -469,16 +469,16 @@ class SupersetAppInitializer:
         appbuilder.add_view_no_menu(AlertLogModelView)
         appbuilder.add_view_no_menu(AlertObservationModelView)
 
-        if feature_flag_manager.is_feature_enabled("ALERT_REPORTS"):
-            appbuilder.add_view(
-                AlertView,
-                "Alerts & Report",
-                label=__("Alerts & Reports"),
-                category="Manage",
-                category_label=__("Manage"),
-                icon="fa-exclamation-triangle",
-            )
-            appbuilder.add_view_no_menu(ReportView)
+        appbuilder.add_view(
+            AlertView,
+            "Alerts & Report",
+            label=__("Alerts & Reports"),
+            category="Manage",
+            category_label=__("Manage"),
+            icon="fa-exclamation-triangle",
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled("ALERT_REPORTS"),
+        )
+        appbuilder.add_view_no_menu(ReportView)
 
         #
         # Conditionally add Access Request Model View
