@@ -1315,6 +1315,9 @@ class BasicParametersSchema(Schema):
     query = fields.Dict(
         keys=fields.Str(), values=fields.Raw(), description=__("Additional parameters")
     )
+    encryption = fields.Boolean(
+        required=False, description=__("Use an encrypted connection to the database")
+    )
 
 
 class BasicParametersType(TypedDict, total=False):
@@ -1324,6 +1327,7 @@ class BasicParametersType(TypedDict, total=False):
     port: int
     database: str
     query: Dict[str, Any]
+    encryption: bool
 
 
 class BasicParametersMixin:
@@ -1350,8 +1354,18 @@ class BasicParametersMixin:
         "drivername://user:password@host:port/dbname[?key=value&key=value...]"
     )
 
+    # query parameter to enable encryption in the database connection
+    # for Postgres this would be `{"sslmode": "verify-ca"}`, eg.
+    encryption_parameters: Dict[str, str] = {}
+
     @classmethod
     def build_sqlalchemy_uri(cls, parameters: BasicParametersType) -> str:
+        query = parameters.get("query", {})
+        if parameters.get("encryption"):
+            if not cls.encryption_parameters:
+                raise Exception("Unable to build a URL with encryption enabled")
+            query.update(cls.encryption_parameters)
+
         return str(
             URL(
                 cls.drivername,
@@ -1360,13 +1374,16 @@ class BasicParametersMixin:
                 host=parameters["host"],
                 port=parameters["port"],
                 database=parameters["database"],
-                query=parameters.get("query", {}),
+                query=query,
             )
         )
 
     @classmethod
-    def get_parameters_from_uri(cls, uri: str) -> Optional[BasicParametersType]:
+    def get_parameters_from_uri(cls, uri: str) -> BasicParametersType:
         url = make_url(uri)
+        encryption = all(
+            item in url.query.items() for item in cls.encryption_parameters.items()
+        )
         return {
             "username": url.username,
             "password": url.password,
@@ -1374,6 +1391,7 @@ class BasicParametersMixin:
             "port": url.port,
             "database": url.database,
             "query": url.query,
+            "encryption": encryption,
         }
 
     @classmethod

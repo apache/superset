@@ -294,7 +294,7 @@ div.Workspace {
   .queryPane {
     flex: 1 1 auto;
     padding-left: 10px;
-    overflow-y: visible;
+    overflow-y: none;
     overflow-x: scroll;
   }
 
@@ -434,6 +434,10 @@ div.tablePopover {
 
 .QueryTable .label {
   display: inline-block;
+}
+
+.QueryTable .ant-btn {
+  position: static;
 }
 
 .ResultsModal .ant-modal-body {

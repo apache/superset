@@ -163,6 +163,8 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
     sqlalchemy_uri_placeholder = (
         "postgresql+psycopg2://user:password@host:port/dbname[?key=value&key=value...]"
     )
+    # https://www.postgresql.org/docs/9.1/libpq-ssl.html#LIBQ-SSL-CERTIFICATES
+    encryption_parameters = {"sslmode": "verify-ca"}
 
     max_column_name_length = 63
     try_remove_schema_from_table_name = False
