@@ -41,7 +41,7 @@ from .base import BaseSupersetView, SupersetModelView
 # TODO: access control rules for this module
 
 
-class EnsureEnabledCheck(object):
+class EnsureEnabledCheck:
     @staticmethod
     def is_enabled() -> bool:
         return bool(app.config["ENABLE_ALERTS"])
