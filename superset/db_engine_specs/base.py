@@ -1351,6 +1351,8 @@ class BasicParametersMixin:
     def build_sqlalchemy_uri(cls, parameters: BasicParametersType) -> str:
         query = parameters.get("query", {})
         if parameters.get("encryption"):
+            if not cls.encryption_parameters:
+                raise Exception("Unable to build a URL with encryption enabled")
             query.update(cls.encryption_parameters)
 
         return str(
