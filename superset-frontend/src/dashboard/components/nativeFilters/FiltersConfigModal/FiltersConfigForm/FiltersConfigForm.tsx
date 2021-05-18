@@ -156,6 +156,9 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
     ?.datasourceCount;
   const hasColumn =
     hasDataset && !FILTERS_WITHOUT_COLUMN.includes(formFilter?.filterType);
+  // @ts-ignore
+  const enableNoResults = !!nativeFilterItems[formFilter?.filterType]?.value
+    ?.enableNoResults;
 
   const datasetId = formFilter?.dataset?.value;
 

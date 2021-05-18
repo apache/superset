@@ -16,29 +16,63 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext } from '@superset-ui/core';
+import {
+  AdhocFilter,
+  buildQueryContext,
+  GenericDataType,
+  QueryObject,
+  QueryObjectFilterClause,
+} from '@superset-ui/core';
 import { DEFAULT_FORM_DATA, PluginFilterSelectQueryFormData } from './types';
 
-export default function buildQuery(formData: PluginFilterSelectQueryFormData) {
+export default function buildQuery(
+  formData: PluginFilterSelectQueryFormData,
+  options,
+) {
+  const {
+    ownState: { search, coltypeMap },
+  } = options;
   const { sortAscending, sortMetric } = { ...DEFAULT_FORM_DATA, ...formData };
   return buildQueryContext(formData, baseQueryObject => {
     const { columns = [], filters = [] } = baseQueryObject;
+    // @ts-ignore
+    const extra_filters: QueryObjectFilterClause[] = search
+      ? columns.map(column => {
+          if (
+            coltypeMap[column] === GenericDataType.NUMERIC &&
+            !Number.isNaN(Number(search))
+          ) {
+            // for numeric columns we apply a >= where clause
+            return {
+              col: column,
+              op: '>=',
+              val: Number(search),
+            };
+          }
+          return {
+            col: column,
+            op: 'LIKE',
+            val: `%${search}%`,
+          };
+        })
+      : [];
 
     const sortColumns = sortMetric ? [sortMetric] : columns;
-    return [
+    const query: QueryObject[] = [
       {
         ...baseQueryObject,
         apply_fetch_values_predicate: true,
         groupby: columns,
         metrics: sortMetric ? [sortMetric] : [],
-        filters: filters.concat(
-          columns.map(column => ({ col: column, op: 'IS NOT NULL' })),
-        ),
+        filters: filters
+          .concat(columns.map(column => ({ col: column, op: 'IS NOT NULL' })))
+          .concat(extra_filters),
         orderby:
           sortMetric || sortAscending
             ? sortColumns.map(column => [column, sortAscending])
             : [],
       },
     ];
+    return query;
   });
 }
