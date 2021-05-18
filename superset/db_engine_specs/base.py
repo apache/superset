@@ -140,7 +140,7 @@ class LimitMethod:  # pylint: disable=too-few-public-methods
     FORCE_LIMIT = "force_limit"
 
 
-class BaseEngineSpec:  # pylint: disable=too-many-public-methods
+class BaseEngineSpec:  # pylint: disable=too-many-public-methods, abstract-method
     """Abstract class for database engine specific configurations
 
     Attributes:
@@ -290,6 +290,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     custom_errors: Dict[
         Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]
     ] = {}
+
+    # schema describing the parameters used to configure the DB
+    parameters_schema: Schema = None
+
+    # recommended driver name for the DB engine spec
+    drivername: str = ""
+
+    # placeholder with the SQLAlchemy URI template
+    sqlalchemy_uri_placeholder = (
+        "drivername://user:password@host:port/dbname[?key=value&key=value...]"
+    )
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
@@ -1292,6 +1303,36 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             )
         return None
 
+    """
+    Abstract classmethods to allow us to write custom parameters
+    functions for specific db engines
+    """
+
+    @classmethod
+    def build_sqlalchemy_url(cls, parameters: Any) -> str:
+        raise NotImplementedError("build_sqlalchemy_url is not implemented")
+
+    @classmethod
+    def get_parameters_from_uri(cls, uri: str) -> Any:
+        raise NotImplementedError("get_parameters_from_uri is not implemented")
+
+    @classmethod
+    def parameters_json_schema(cls) -> Any:
+        """
+        Return configuration parameters as OpenAPI.
+        """
+        if not cls.parameters_schema:
+            return None
+
+        spec = APISpec(
+            title="Database Parameters",
+            version="1.0.0",
+            openapi_version="3.0.2",
+            plugins=[MarshmallowPlugin()],
+        )
+        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
+        return spec.to_dict()["components"]["schemas"][cls.__name__]
+
 
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI
@@ -1419,17 +1460,3 @@ class BasicParametersMixin:
             )
 
         return errors
-
-    @classmethod
-    def parameters_json_schema(cls) -> Any:
-        """
-        Return configuration parameters as OpenAPI.
-        """
-        spec = APISpec(
-            title="Database Parameters",
-            version="1.0.0",
-            openapi_version="3.0.2",
-            plugins=[MarshmallowPlugin()],
-        )
-        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
-        return spec.to_dict()["components"]["schemas"][cls.__name__]

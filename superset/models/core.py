@@ -54,7 +54,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
 
 from superset import app, db_engine_specs, is_feature_enabled
-from superset.db_engine_specs.base import BasicParametersMixin, TimeGrain
+from superset.db_engine_specs.base import TimeGrain
 from superset.extensions import cache_manager, encrypted_field_factory, security_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.tags import FavStarUpdater
