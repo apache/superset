@@ -25,8 +25,8 @@ import FormLabel from './FormLabel';
 export interface LabeledErrorBoundInputProps {
   label?: string;
   validationMethods:
-    | { onBlur: (value: any) => void }
-    | { onChange: (value: any) => void };
+    | { onBlur: (value: any) => string }
+    | { onChange: (value: any) => string };
   errorMessage: string | null;
   helpText?: string;
   required?: boolean;

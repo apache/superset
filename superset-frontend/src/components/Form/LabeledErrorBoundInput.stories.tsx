@@ -33,16 +33,14 @@ export const InteractiveLabeledErrorBoundInput = ({
   type,
   id,
 }: LabeledErrorBoundInputProps) => {
-  const [checkErrorMessage, setCheckErrorMessage] = useState('');
   const [currentValue, setCurrentValue] = useState(value);
 
-  const validateFunctionality: (value: any) => void = value => {
+  const validateFunctionality: (value: any) => string = value => {
     setCurrentValue(value.target.value);
     if (value.target.value.includes('success')) {
-      setCheckErrorMessage('');
-    } else {
-      setCheckErrorMessage('Type success in the text bar');
+      return 'success';
     }
+    return 'error';
   };
 
   return (
@@ -50,7 +48,9 @@ export const InteractiveLabeledErrorBoundInput = ({
       id={id}
       name={name}
       validationMethods={{ onChange: validateFunctionality }}
-      errorMessage={checkErrorMessage}
+      errorMessage={
+        currentValue === 'success' ? '' : 'Type success in the text bar'
+      }
       helpText="This is a line of example help text"
       value={currentValue}
       // This must stay the same as name or form breaks
