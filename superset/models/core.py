@@ -242,7 +242,7 @@ class Database(
         # Build parameters if db_engine_spec is a subclass of BasicParametersMixin
         parameters = {"engine": self.backend}
 
-        if issubclass(self.db_engine_spec, BasicParametersMixin):
+        if self.db_engine_spec.parameters_schema is not None:
             uri = make_url(self.sqlalchemy_uri_decrypted)
             return {**parameters, **self.db_engine_spec.get_parameters_from_uri(uri)}
 
