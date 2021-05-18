@@ -429,23 +429,28 @@ class SupersetAppInitializer:
                 "ENABLE_SCHEDULED_EMAIL_REPORTS "
                 "is deprecated and will be removed in version 2.0.0"
             )
-            appbuilder.add_separator("Manage")
-            appbuilder.add_view(
-                DashboardEmailScheduleView,
-                "Dashboard Email Schedules",
-                label=__("Dashboard Emails"),
-                category="Manage",
-                category_label=__("Manage"),
-                icon="fa-search",
-            )
-            appbuilder.add_view(
-                SliceEmailScheduleView,
-                "Chart Emails",
-                label=__("Chart Email Schedules"),
-                category="Manage",
-                category_label=__("Manage"),
-                icon="fa-search",
-            )
+
+        appbuilder.add_separator(
+            "Manage", cond=lambda: self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"]
+        )
+        appbuilder.add_view(
+            DashboardEmailScheduleView,
+            "Dashboard Email Schedules",
+            label=__("Dashboard Emails"),
+            category="Manage",
+            category_label=__("Manage"),
+            icon="fa-search",
+            menu_cond=lambda: self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"],
+        )
+        appbuilder.add_view(
+            SliceEmailScheduleView,
+            "Chart Emails",
+            label=__("Chart Email Schedules"),
+            category="Manage",
+            category_label=__("Manage"),
+            icon="fa-search",
+            menu_cond=lambda: self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"],
+        )
 
         if self.config["ENABLE_ALERTS"]:
             logging.warning(
