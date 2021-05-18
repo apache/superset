@@ -430,11 +430,12 @@ def test_base_parameters_mixin():
         "port": 5432,
         "database": "dbname",
         "query": {"foo": "bar"},
+        "encryption": True,
     }
     sqlalchemy_uri = PostgresEngineSpec.build_sqlalchemy_uri(parameters)
-    assert (
-        sqlalchemy_uri
-        == "postgresql+psycopg2://username:password@localhost:5432/dbname?foo=bar"
+    assert sqlalchemy_uri == (
+        "postgresql+psycopg2://username:password@localhost:5432/dbname?"
+        "foo=bar&sslmode=verify-ca"
     )
 
     parameters_from_uri = PostgresEngineSpec.get_parameters_from_uri(sqlalchemy_uri)
@@ -458,6 +459,10 @@ def test_base_parameters_mixin():
                 "additionalProperties": {},
             },
             "database": {"type": "string", "description": "Database name"},
+            "encryption": {
+                "type": "boolean",
+                "description": "Use an encrypted connection to the database",
+            },
         },
         "required": ["database", "host", "port", "username"],
     }
