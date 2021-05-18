@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional
-
 import simplejson as json
 from flask import request, Response
 from flask_appbuilder import expose
@@ -39,10 +37,9 @@ class KV(BaseSupersetView):
         return is_feature_enabled("KV_STORE")
 
     @before_request
-    def ensure_enabled(self) -> Optional[FlaskResponse]:
+    def ensure_enabled(self) -> None:
         if not self.is_enabled():
             raise NotFound()
-        return None
 
     @event_logger.log_this
     @has_access_api

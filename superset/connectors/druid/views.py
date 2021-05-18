@@ -18,7 +18,6 @@
 import json
 import logging
 from datetime import datetime
-from typing import Optional
 
 from flask import current_app as app, flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
@@ -58,10 +57,9 @@ class EnsureEnabled:
         return bool(app.config["DRUID_IS_ACTIVE"])
 
     @before_request
-    def ensure_enabled(self) -> Optional[FlaskResponse]:
+    def ensure_enabled(self) -> None:
         if not self.is_enabled():
             raise NotFound()
-        return None
 
 
 class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView, EnsureEnabled):

@@ -19,7 +19,7 @@ DEPRECATION NOTICE: this module is deprecated and will be removed on 2.0.
 """
 
 import enum
-from typing import Optional, Type, Union
+from typing import Type, Union
 
 import simplejson as json
 from croniter import croniter
@@ -61,10 +61,9 @@ class EmailScheduleView(
         return app.config["ENABLE_SCHEDULED_EMAIL_REPORTS"]
 
     @before_request
-    def ensure_enabled(self) -> Optional[FlaskResponse]:
+    def ensure_enabled(self) -> None:
         if not self.is_enabled():
             raise NotFound()
-        return None
 
     @property
     def schedule_type(self) -> str:

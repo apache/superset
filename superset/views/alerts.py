@@ -17,8 +17,6 @@
 """
 DEPRECATION NOTICE: this module is deprecated and will be removed on 2.0.
 """
-from typing import Optional
-
 from croniter import croniter
 from flask import abort, current_app as app, flash, Markup
 from flask_appbuilder import CompactCRUDMixin, permission_name
@@ -49,10 +47,9 @@ class EnsureEnabledCheck(object):
         return bool(app.config["ENABLE_ALERTS"])
 
     @before_request
-    def ensure_enabled(self) -> Optional[FlaskResponse]:
+    def ensure_enabled(self) -> None:
         if not self.is_enabled():
             raise NotFound()
-        return None
 
 
 class AlertLogModelView(

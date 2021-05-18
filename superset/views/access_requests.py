@@ -14,9 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional
-
-from flask import current_app as app, Response
+from flask import current_app as app
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
@@ -55,7 +53,6 @@ class AccessRequestsModelView(  # pylint: disable=too-many-ancestors
         return bool(app.config["ENABLE_ACCESS_REQUEST"])
 
     @before_request
-    def ensure_enabled(self) -> Optional[Response]:
+    def ensure_enabled(self) -> None:
         if not self.is_enabled():
             raise NotFound()
-        return None

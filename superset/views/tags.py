@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import simplejson as json
 from flask import request, Response
@@ -54,10 +54,9 @@ class TagView(BaseSupersetView):
         return is_feature_enabled("TAGGING_SYSTEM")
 
     @before_request
-    def ensure_enabled(self) -> Optional[FlaskResponse]:
+    def ensure_enabled(self) -> None:
         if not self.is_enabled():
             raise NotFound()
-        return None
 
     @has_access_api
     @expose("/tags/suggestions/", methods=["GET"])

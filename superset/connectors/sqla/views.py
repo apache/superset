@@ -18,7 +18,7 @@
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Any, cast, Dict, List, Optional, Union
+from typing import Any, cast, Dict, List, Union
 
 from flask import current_app, flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
@@ -376,10 +376,9 @@ class RowLevelSecurityFiltersModelView(  # pylint: disable=too-many-ancestors
         return is_feature_enabled("ROW_LEVEL_SECURITY")
 
     @before_request
-    def ensure_enabled(self) -> Optional[FlaskResponse]:
+    def ensure_enabled(self) -> None:
         if not self.is_enabled():
             raise NotFound()
-        return None
 
 
 class TableModelView(  # pylint: disable=too-many-ancestors
