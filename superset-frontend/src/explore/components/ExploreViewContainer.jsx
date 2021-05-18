@@ -383,20 +383,21 @@ function ExploreViewContainer(props) {
     );
     const uniqueErrorMessages = [...new Set(errorMessages.flat())];
 
-    const errors2 = uniqueErrorMessages.map(message => {
-      const matchingLabels = controlsWithErrors
-        .filter(control => control.validationErrors?.includes(message))
-        .map(control => control.label);
-      return [matchingLabels, message];
-    });
+    const errors = uniqueErrorMessages
+      .map(message => {
+        const matchingLabels = controlsWithErrors
+          .filter(control => control.validationErrors?.includes(message))
+          .map(control => control.label);
+        return [matchingLabels, message];
+      })
+      .map(([labels, message]) => (
+        <div key={message}>
+          {labels.length > 1 ? t('Controls labeled ') : t('Control labeled ')}
+          <strong>{` ${labels.join(', ')}`}</strong>
+          <span>: {message}</span>
+        </div>
+      ));
 
-    const errors = errors2.map(([labels, message]) => (
-      <div key={message}>
-        {labels.length > 1 ? t('Controls labeled ') : t('Control labeled ')}
-        <strong>{` ${labels.join(', ')}`}</strong>
-        <span>: {message}</span>
-      </div>
-    ));
     let errorMessage;
     if (errors.length > 0) {
       errorMessage = <div style={{ textAlign: 'left' }}>{errors}</div>;
