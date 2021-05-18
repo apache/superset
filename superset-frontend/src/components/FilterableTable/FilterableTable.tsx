@@ -83,8 +83,10 @@ const JSON_TREE_THEME = {
 };
 
 const StyledFilterableTable = styled.div`
+  height: 100%;
   overflow-x: auto;
   margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+  overflow-y: hidden;
 `;
 
 // when more than MAX_COLUMNS_FOR_TABLE are returned, switch from table to grid view
@@ -466,7 +468,6 @@ export default class FilterableTable extends PureComponent<
         <ScrollSync>
           {({ onScroll, scrollTop }) => (
             <div
-              style={{ height }}
               className="filterable-table-container Table"
               data-test="filterable-table-container"
               ref={this.container}
@@ -559,7 +560,6 @@ export default class FilterableTable extends PureComponent<
       this.getDatum(sortedAndFilteredList, index);
     return (
       <StyledFilterableTable
-        style={{ height }}
         className="filterable-table-container"
         ref={this.container}
       >
