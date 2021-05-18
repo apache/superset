@@ -456,16 +456,18 @@ class SupersetAppInitializer:
             logging.warning(
                 "ENABLE_ALERTS is deprecated and will be removed in version 2.0.0"
             )
-            appbuilder.add_view(
-                AlertModelView,
-                "Alerts",
-                label=__("Alerts"),
-                category="Manage",
-                category_label=__("Manage"),
-                icon="fa-exclamation-triangle",
-            )
-            appbuilder.add_view_no_menu(AlertLogModelView)
-            appbuilder.add_view_no_menu(AlertObservationModelView)
+
+        appbuilder.add_view(
+            AlertModelView,
+            "Alerts",
+            label=__("Alerts"),
+            category="Manage",
+            category_label=__("Manage"),
+            icon="fa-exclamation-triangle",
+            menu_cond=lambda: bool(self.config["ENABLE_ALERTS"]),
+        )
+        appbuilder.add_view_no_menu(AlertLogModelView)
+        appbuilder.add_view_no_menu(AlertObservationModelView)
 
         if feature_flag_manager.is_feature_enabled("ALERT_REPORTS"):
             appbuilder.add_view(
