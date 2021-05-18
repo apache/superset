@@ -480,18 +480,15 @@ class SupersetAppInitializer:
         )
         appbuilder.add_view_no_menu(ReportView)
 
-        #
-        # Conditionally add Access Request Model View
-        #
-        if self.config["ENABLE_ACCESS_REQUEST"]:
-            appbuilder.add_view(
-                AccessRequestsModelView,
-                "Access requests",
-                label=__("Access requests"),
-                category="Security",
-                category_label=__("Security"),
-                icon="fa-table",
-            )
+        appbuilder.add_view(
+            AccessRequestsModelView,
+            "Access requests",
+            label=__("Access requests"),
+            category="Security",
+            category_label=__("Security"),
+            icon="fa-table",
+            menu_cond=lambda: bool(self.config["ENABLE_ACCESS_REQUEST"]),
+        )
 
         #
         # Conditionally setup Druid Views
