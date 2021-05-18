@@ -60,8 +60,10 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
 
     drivername = "mysql+mysqldb"
     sqlalchemy_uri_placeholder = (
-        "mysql://user:password@host:post/dbname[?key=value&key=value...]"
+        "mysql://user:password@host:port/dbname[?key=value&key=value...]"
     )
+
+    encryption_parameters = {"ssl": "1"}
 
     column_type_mappings: Tuple[
         Tuple[
