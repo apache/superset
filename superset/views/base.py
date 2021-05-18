@@ -23,7 +23,16 @@ from typing import Any, Callable, cast, Dict, List, Optional, TYPE_CHECKING, Uni
 
 import simplejson as json
 import yaml
-from flask import abort, flash, g, get_flashed_messages, redirect, Response, session
+from flask import (
+    abort,
+    flash,
+    g,
+    get_flashed_messages,
+    redirect,
+    request,
+    Response,
+    session,
+)
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.forms import DynamicForm
@@ -364,10 +373,13 @@ def show_superset_errors(ex: SupersetErrorsException) -> FlaskResponse:
 @superset_app.errorhandler(HTTPException)
 def show_http_exception(ex: HTTPException) -> FlaskResponse:
     logger.warning(ex)
-    if not config["DEBUG"] and ex.code == 404:
-        return redirect("/static/assets/404.html")
-    if not config["DEBUG"] and ex.code == 500:
-        return redirect("/static/assets/500.html")
+    if (
+        "text/html" in request.accept_mimetypes
+        and not config["DEBUG"]
+        and ex.code in {404, 500}
+    ):
+        return redirect(f"/static/assets/{ex.code}.html")
+
     return json_errors_response(
         errors=[
             SupersetError(
