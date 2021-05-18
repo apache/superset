@@ -238,7 +238,7 @@ class Database(
         return sqlalchemy_url.get_backend_name()  # pylint: disable=no-member
 
     @property
-    def parameters(self) -> Optional[Dict[str, Any]]:
+    def parameters(self) -> Dict[str, Any]:
         # Build parameters if db_engine_spec is a subclass of BasicParametersMixin
         parameters = {"engine": self.backend}
 
