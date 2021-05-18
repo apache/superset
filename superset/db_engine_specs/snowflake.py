@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from superset.models.core import Database
 
 
-class SnowflakeEngineSpec(PostgresBaseEngineSpec):
+class SnowflakeEngineSpec(PostgresBaseEngineSpec):  # pylint: disable=abstract-method
     engine = "snowflake"
     engine_name = "Snowflake"
     force_column_alias_quotes = True

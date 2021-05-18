@@ -42,7 +42,7 @@ CONNECTION_HOST_DOWN_REGEX = re.compile(
 )
 
 
-class MssqlEngineSpec(BaseEngineSpec):
+class MssqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     engine = "mssql"
     engine_name = "Microsoft SQL"
     limit_method = LimitMethod.WRAP_SQL

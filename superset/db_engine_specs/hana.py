@@ -22,7 +22,7 @@ from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.utils import core as utils
 
 
-class HanaEngineSpec(PostgresBaseEngineSpec):
+class HanaEngineSpec(PostgresBaseEngineSpec):  # pylint: disable=abstract-method
     engine = "hana"
     engine_name = "SAP HANA"
     limit_method = LimitMethod.WRAP_SQL

@@ -144,7 +144,9 @@ def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
     raise Exception(f"Unknown type {type_}!")
 
 
-class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-methods
+class PrestoEngineSpec(
+    BaseEngineSpec
+):  # pylint: disable=too-many-public-methods,abstract-method
     engine = "presto"
     engine_name = "Presto"
     allows_alias_to_source_column = False

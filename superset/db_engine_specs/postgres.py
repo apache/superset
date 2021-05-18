@@ -82,7 +82,7 @@ CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile(
 )
 
 
-class PostgresBaseEngineSpec(BaseEngineSpec):
+class PostgresBaseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     """ Abstract class for Postgres 'like' databases """
 
     engine = ""
@@ -155,7 +155,9 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         return "(timestamp 'epoch' + {col} * interval '1 second')"
 
 
-class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
+class PostgresEngineSpec(
+    PostgresBaseEngineSpec, BasicParametersMixin
+):  # pylint: disable=abstract-method
     engine = "postgresql"
     engine_aliases = {"postgres"}
 

@@ -17,7 +17,7 @@
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 
 
-class Db2EngineSpec(BaseEngineSpec):
+class Db2EngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     engine = "db2"
     engine_aliases = {"ibm_db_sa"}
     engine_name = "IBM Db2"

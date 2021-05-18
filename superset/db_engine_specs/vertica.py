@@ -17,6 +17,6 @@
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 
 
-class VerticaEngineSpec(PostgresBaseEngineSpec):
+class VerticaEngineSpec(PostgresBaseEngineSpec):  # pylint: disable=abstract-method
     engine = "vertica"
     engine_name = "Vertica"
