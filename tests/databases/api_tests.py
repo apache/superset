@@ -1394,6 +1394,10 @@ class TestDatabaseApi(SupersetTestCase):
                                 "description": "Database name",
                                 "type": "string",
                             },
+                            "encryption": {
+                                "description": "Use an encrypted connection to the database",
+                                "type": "boolean",
+                            },
                             "host": {
                                 "description": "Hostname or IP address",
                                 "type": "string",
