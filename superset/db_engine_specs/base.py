@@ -1365,7 +1365,7 @@ class BasicParametersMixin:
         )
 
     @classmethod
-    def get_parameters_from_uri(cls, uri: str) -> BasicParametersType:
+    def get_parameters_from_uri(cls, uri: str) -> Optional[BasicParametersType]:
         url = make_url(uri)
         return {
             "username": url.username,
