@@ -89,9 +89,7 @@ export const StyledModal = styled(Modal)`
     border: 1px solid ${({ theme }) => theme.colors.info.base};
     font-size: ${({ theme }) => theme.gridUnit * 3}px;
     padding: ${({ theme }) => theme.gridUnit * 4}px;
-    margin: ${({ theme }) => theme.gridUnit * 4}px
-      ${({ theme }) => theme.gridUnit * 4}px
-      ${({ theme }) => theme.gridUnit * 30}px;
+    margin: ${({ theme }) => theme.gridUnit * 4}px 0 0;
   }
   .ant-alert-with-description {
     .ant-alert-message,
@@ -102,6 +100,7 @@ export const StyledModal = styled(Modal)`
   }
   .ant-modal-body {
     padding-top: 0;
+    margin-bottom: 0;
   }
 `;
 
@@ -233,7 +232,7 @@ export const CreateHeader = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: ${({ theme }) => theme.gridUnit * 1}px;
+  padding: 0px;
   margin: ${({ theme }) => theme.gridUnit * 4}px
     ${({ theme }) => theme.gridUnit * 4}px
     ${({ theme }) => theme.gridUnit * 9}px;
