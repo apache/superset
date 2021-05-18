@@ -196,4 +196,82 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       }),
     );
   });
+  it('will display boolean operators only when column type is boolean', () => {
+    const { wrapper } = setup({
+      datasource: {
+        type: 'table',
+        datasource_name: 'table1',
+        schema: 'schema',
+        columns: [{ column_name: 'value', type: 'BOOL' }],
+      },
+      adhocFilter: simpleAdhocFilter,
+    });
+    const booleanOnlyOperators = [
+      'IS TRUE',
+      'IS FALSE',
+      'IS NULL',
+      'IS NOT NULL',
+    ];
+    booleanOnlyOperators.forEach(operator => {
+      expect(wrapper.instance().isOperatorRelevant(operator, 'value')).toBe(
+        true,
+      );
+    });
+  });
+  it('will display boolean operators when column type is number', () => {
+    const { wrapper } = setup({
+      datasource: {
+        type: 'table',
+        datasource_name: 'table1',
+        schema: 'schema',
+        columns: [{ column_name: 'value', type: 'INT' }],
+      },
+      adhocFilter: simpleAdhocFilter,
+    });
+    const booleanOnlyOperators = ['IS TRUE', 'IS FALSE'];
+    booleanOnlyOperators.forEach(operator => {
+      expect(wrapper.instance().isOperatorRelevant(operator, 'value')).toBe(
+        true,
+      );
+    });
+  });
+  it('will not display boolean operators when column type is string', () => {
+    const { wrapper } = setup({
+      datasource: {
+        type: 'table',
+        datasource_name: 'table1',
+        schema: 'schema',
+        columns: [{ column_name: 'value', type: 'STRING' }],
+      },
+      adhocFilter: simpleAdhocFilter,
+    });
+    const booleanOnlyOperators = ['IS TRUE', 'IS FALSE'];
+    booleanOnlyOperators.forEach(operator => {
+      expect(wrapper.instance().isOperatorRelevant(operator, 'value')).toBe(
+        false,
+      );
+    });
+  });
+  it('will display boolean operators when column is an expression', () => {
+    const { wrapper } = setup({
+      datasource: {
+        type: 'table',
+        datasource_name: 'table1',
+        schema: 'schema',
+        columns: [
+          {
+            column_name: 'value',
+            expression: 'case when value is 0 then "NO"',
+          },
+        ],
+      },
+      adhocFilter: simpleAdhocFilter,
+    });
+    const booleanOnlyOperators = ['IS TRUE', 'IS FALSE'];
+    booleanOnlyOperators.forEach(operator => {
+      expect(wrapper.instance().isOperatorRelevant(operator, 'value')).toBe(
+        true,
+      );
+    });
+  });
 });
