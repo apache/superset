@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# isort:skip_file
 from unittest.mock import patch
 
 from superset.views.log.views import LogModelView
