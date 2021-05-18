@@ -248,9 +248,6 @@ class DatabaseParametersSchemaMixin:
         """
         parameters = data.pop("parameters", None)
         if parameters:
-            if len(parameters.keys()) < 2:
-                return data
-
             if "engine" not in parameters:
                 raise ValidationError(
                     [
