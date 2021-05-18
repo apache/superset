@@ -56,6 +56,8 @@ export type PluginFilterSelectProps = PluginFilterStylesProps & {
   coltypeMap: Record<string, GenericDataType>;
   data: DataRecord[];
   setDataMask: SetDataMaskHook;
+  setFocusedFilter: () => void;
+  unsetFocusedFilter: () => void;
   behaviors: Behavior[];
   appSection: AppSection;
   formData: PluginFilterSelectQueryFormData;

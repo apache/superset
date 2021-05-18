@@ -37,6 +37,8 @@ export type PluginFilterTimeProps = PluginFilterStylesProps & {
   behaviors: Behavior[];
   data: DataRecord[];
   setDataMask: SetDataMaskHook;
+  setFocusedFilter: () => void;
+  unsetFocusedFilter: () => void;
   formData: PluginFilterSelectQueryFormData;
   filterState: FilterState;
 };

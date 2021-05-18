@@ -37,6 +37,8 @@ export type PluginFilterTimeGrainQueryFormData = QueryFormData &
 export type PluginFilterTimeGrainProps = PluginFilterStylesProps & {
   data: DataRecord[];
   setDataMask: SetDataMaskHook;
+  setFocusedFilter: () => void;
+  unsetFocusedFilter: () => void;
   filterState: FilterState;
   formData: PluginFilterTimeGrainQueryFormData;
 };

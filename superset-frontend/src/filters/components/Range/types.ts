@@ -39,6 +39,8 @@ export type PluginFilterRangeProps = PluginFilterStylesProps & {
   data: DataRecord[];
   formData: PluginFilterRangeQueryFormData;
   setDataMask: SetDataMaskHook;
+  setFocusedFilter: () => void;
+  unsetFocusedFilter: () => void;
   filterState: FilterState;
   behaviors: Behavior[];
   inputRef: RefObject<any>;
