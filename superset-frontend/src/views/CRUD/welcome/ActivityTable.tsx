@@ -19,6 +19,9 @@
 import React, { useState } from 'react';
 import moment from 'moment';
 import { styled, t } from '@superset-ui/core';
+import {
+  setInLocalStorage,
+} from 'src/utils/localStorageHelpers';
 
 import Loading from 'src/components/Loading';
 import ListViewCard from 'src/components/ListViewCard';
@@ -162,6 +165,7 @@ export default function ActivityTable({
 }: ActivityProps) {
   const [editedObjs, setEditedObjs] = useState<Array<ActivityData>>();
   const [loadingState, setLoadingState] = useState(false);
+
   const getEditedCards = () => {
     setLoadingState(true);
     getEditedObjects(user.userId).then(r => {
@@ -175,6 +179,7 @@ export default function ActivityTable({
       label: t('Edited'),
       onClick: () => {
         setActiveChild('Edited');
+        setInLocalStorage('activity', {activity: 'Edited'})
         getEditedCards();
       },
     },
@@ -183,6 +188,7 @@ export default function ActivityTable({
       label: t('Created'),
       onClick: () => {
         setActiveChild('Created');
+        setInLocalStorage('activity', {activity: 'Created'})
       },
     },
   ];
@@ -193,6 +199,7 @@ export default function ActivityTable({
       label: t('Viewed'),
       onClick: () => {
         setActiveChild('Viewed');
+        setInLocalStorage('activity', {activity: 'Viewed'})
       },
     });
   } else {
@@ -201,6 +208,7 @@ export default function ActivityTable({
       label: t('Examples'),
       onClick: () => {
         setActiveChild('Examples');
+        setInLocalStorage('activity', {activity: 'Examples'})
       },
     });
   }
