@@ -33,6 +33,8 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import CrossFilterScopingModal from 'src/dashboard/components/CrossFilterScopingModal/CrossFilterScopingModal';
 import Icons from 'src/components/Icons';
+import ModalTrigger from 'src/components/ModalTrigger';
+import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
@@ -76,6 +78,7 @@ const MENU_KEYS = {
   EXPORT_CSV: 'export_csv',
   RESIZE_LABEL: 'resize_label',
   DOWNLOAD_AS_IMAGE: 'download_as_image',
+  VIEW_QUERY: 'view_query',
 };
 
 const VerticalDotsContainer = styled.div`
@@ -253,6 +256,21 @@ class SliceHeaderControls extends React.PureComponent {
         {this.props.supersetCanExplore && (
           <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
             {t('View chart in Explore')}
+          </Menu.Item>
+        )}
+
+        {this.props.supersetCanExplore && (
+          <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
+            <ModalTrigger
+              triggerNode={
+                <span data-test="view-query-menu-item">{t('View query')}</span>
+              }
+              modalTitle={t('View query')}
+              modalBody={
+                <ViewQueryModal latestQueryFormData={this.props.formData} />
+              }
+              responsive
+            />
           </Menu.Item>
         )}
 
