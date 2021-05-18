@@ -15,8 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-"""Unit tests for Superset"""
-from flask_appbuilder.security.sqla.models import User
 from unittest.mock import patch
 
 from superset.views.log.views import LogModelView
