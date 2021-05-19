@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import Form, { FormItemProps } from 'antd/lib/form';
+import Form from 'antd/lib/form';
 import { styled } from '@superset-ui/core';
 
 const StyledItem = styled(Form.Item)`
@@ -45,6 +44,4 @@ const StyledItem = styled(Form.Item)`
   `}
 `;
 
-export default function FormItem(props: FormItemProps) {
-  return <StyledItem {...props} />;
-}
+export default StyledItem;
