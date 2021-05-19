@@ -39,6 +39,7 @@ import { useOpenModal, useRemoveCurrentFilter } from './state';
 
 export const StyledModalBody = styled.div`
   display: flex;
+  height: 500px;
   flex-direction: row;
   .filters-list {
     width: ${({ theme }) => theme.gridUnit * 50}px;

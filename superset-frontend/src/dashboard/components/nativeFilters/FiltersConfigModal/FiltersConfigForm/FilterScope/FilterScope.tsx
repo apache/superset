@@ -64,7 +64,6 @@ const FilterScope: FC<FilterScopeProps> = ({
 
   return (
     <Wrapper>
-      <Typography.Title level={5}>{t('Scoping')}</Typography.Title>
       <CleanFormItem
         name={[...pathToFormValue, 'scoping']}
         initialValue={initialScoping}
