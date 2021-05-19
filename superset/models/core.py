@@ -162,6 +162,7 @@ class Database(
         "allow_ctas",
         "allow_cvas",
         "allow_file_upload",
+        "impersonate_user",
         "extra",
     ]
     extra_import_fields = ["password"]

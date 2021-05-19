@@ -306,6 +306,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "allow_ctas",
             "allow_cvas",
             "allow_csv_upload",
+            "impersonate_user",
             "extra",
             "uuid",
             "version",
