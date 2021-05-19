@@ -58,6 +58,7 @@ export const StyledModal = styled(Modal)`
   .ant-modal-body {
     padding-left: 0;
     padding-right: 0;
+    margin-bottom: 110px;
   }
   .ant-tabs-top > .ant-tabs-nav {
     margin-bottom: 0;
@@ -81,6 +82,29 @@ export const StyledModal = styled(Modal)`
   }
   .ant-modal-title > h4 {
     font-weight: bold;
+  }
+
+  .ant-alert {
+    color: ${({ theme }) => theme.colors.info.dark2};
+    border: 1px solid ${({ theme }) => theme.colors.info.base};
+    font-size: ${({ theme }) => theme.gridUnit * 3}px;
+    padding: ${({ theme }) => theme.gridUnit * 4}px;
+    margin: ${({ theme }) => theme.gridUnit * 4}px 0 0;
+  }
+  .ant-alert-with-description {
+    .ant-alert-message,
+    .alert-with-description {
+      color: ${({ theme }) => theme.colors.info.dark2};
+      font-weight: bold;
+    }
+  }
+  .ant-modal-body {
+    padding-top: 0;
+    margin-bottom: 0;
+  }
+  .ant-tabs-content-holder {
+    overflow: auto;
+    max-height: 475px;
   }
 `;
 
@@ -148,10 +172,6 @@ export const StyledInputContainer = styled.div`
       flex: 0 1 auto;
       width: 40%;
     }
-
-    &[name='sqlalchemy_uri'] {
-      margin-right: ${({ theme }) => theme.gridUnit * 3}px;
-    }
   }
   &.expandable {
     height: 0;
@@ -200,4 +220,53 @@ export const StyledBasicTab = styled(Tabs.TabPane)`
   padding-left: ${({ theme }) => theme.gridUnit * 4}px;
   padding-right: ${({ theme }) => theme.gridUnit * 4}px;
   margin-top: ${({ theme }) => theme.gridUnit * 4}px;
+`;
+
+export const EditHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0px;
+  margin: ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 9}px;
+`;
+
+export const CreateHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0px;
+  margin: ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 9}px;
+`;
+
+export const CreateHeaderTitle = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  font-weight: bold;
+  font-size: ${({ theme }) => theme.typography.sizes.l}px;
+  padding: ${({ theme }) => theme.gridUnit * 1}px;
+`;
+
+export const CreateHeaderSubtitle = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  padding: ${({ theme }) => theme.gridUnit * 1}px;
+`;
+
+export const EditHeaderTitle = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.light1};
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  text-transform: uppercase;
+`;
+
+export const EditHeaderSubtitle = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  font-size: ${({ theme }) => theme.typography.sizes.xl}px;
+  font-weight: bold;
+`;
+
+export const Divider = styled.hr`
+  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light1};
 `;
