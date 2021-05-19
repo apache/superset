@@ -36,6 +36,7 @@ from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.hana import HanaEngineSpec
 from superset.errors import SupersetError
 from superset.models.core import Database, ConfigurationMethod
@@ -1373,6 +1374,7 @@ class TestDatabaseApi(SupersetTestCase):
         app.config = {"PREFERRED_DATABASES": ["postgresql"]}
         get_available_engine_specs.return_value = [
             PostgresEngineSpec,
+            BigQueryEngineSpec,
             HanaEngineSpec,
         ]
 
@@ -1427,6 +1429,45 @@ class TestDatabaseApi(SupersetTestCase):
                     },
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "postgresql+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
+                },
+                {
+                    "engine": "bigquery",
+                    "name": "Google BigQuery",
+                    "parameters": {
+                        "properties": {
+                            "auth_provider_x509_cert_url": {
+                                "description": "",
+                                "type": "string",
+                            },
+                            "auth_uri": {"description": "", "type": "string",},
+                            "client_email": {"description": "", "type": "string",},
+                            "client_id": {"description": "", "type": "string",},
+                            "client_x509_cert_url": {
+                                "description": "",
+                                "type": "string",
+                            },
+                            "private_key": {"description": "", "type": "string",},
+                            "private_key_id": {"description": "", "type": "string",},
+                            "project_id": {"description": "", "type": "string",},
+                            "token_uri": {"description": "", "type": "string",},
+                            "type": {"description": "", "type": "string",},
+                        },
+                        "required": [
+                            "auth_provider_x509_cert_url",
+                            "auth_uri",
+                            "client_email",
+                            "client_id",
+                            "client_x509_cert_url",
+                            "private_key",
+                            "private_key_id",
+                            "project_id",
+                            "token_uri",
+                            "type",
+                        ],
+                        "type": "object",
+                    },
+                    "preferred": True,
+                    "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
                 },
                 {"engine": "hana", "name": "SAP HANA", "preferred": False},
             ]
