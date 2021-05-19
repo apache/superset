@@ -336,8 +336,6 @@ class BigQueryEngineSpec(BaseEngineSpec):
         if not cls.parameters_schema:
             return None
 
-        print(cls.parameters_schema)
-
         spec = APISpec(
             title="Database Parameters",
             version="1.0.0",
