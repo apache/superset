@@ -170,7 +170,7 @@ export default function ActivityTable({
       setEditedObjs([...r.editedChart, ...r.editedDash]);
       setLoadingState(false);
     });
-  });
+  },[]);
 
   const getEditedCards = () => {
     setLoadingState(true);
