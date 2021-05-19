@@ -385,6 +385,13 @@ def refresh_csrf_token(ex: CSRFError) -> FlaskResponse:
 @superset_app.errorhandler(HTTPException)
 def show_http_exception(ex: HTTPException) -> FlaskResponse:
     logger.warning(ex)
+    if (
+        "text/html" in request.accept_mimetypes
+        and not config["DEBUG"]
+        and ex.code in {404, 500}
+    ):
+        return redirect(f"/static/assets/{ex.code}.html")
+
     return json_errors_response(
         errors=[
             SupersetError(
