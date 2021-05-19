@@ -31,7 +31,7 @@ from superset.utils.dict_import_export import EXPORT_VERSION
 
 logger = logging.getLogger(__name__)
 
-JSON_KEYS = {"params", "template_params", "extra"}
+JSON_KEYS = {"params", "template_params"}
 
 
 class ExportDatasetsCommand(ExportModelsCommand):
