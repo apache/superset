@@ -93,7 +93,7 @@ const ActivityContainer = styled.div`
     grid-template-columns: repeat(auto-fit, minmax(42%, max-content));
   }
   ${mq[1]} {
-    grid-template-columns: repeat(auto-fit, minmax(63%, max-content));
+    grid-template-columns: repeat(auto-fit, minmax(80%, max-content));
   }
 `;
 
