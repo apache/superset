@@ -23,7 +23,16 @@ from typing import Any, Callable, cast, Dict, List, Optional, TYPE_CHECKING, Uni
 
 import simplejson as json
 import yaml
-from flask import abort, flash, g, get_flashed_messages, redirect, Response, session
+from flask import (
+    abort,
+    flash,
+    g,
+    get_flashed_messages,
+    redirect,
+    request,
+    Response,
+    session,
+)
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.forms import DynamicForm
@@ -32,6 +41,7 @@ from flask_appbuilder.security.sqla.models import Role, User
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from flask_jwt_extended.exceptions import NoAuthorizationError
+from flask_wtf.csrf import CSRFError
 from flask_wtf.form import FlaskForm
 from sqlalchemy import or_
 from sqlalchemy.orm import Query
@@ -359,6 +369,17 @@ def show_superset_error(ex: SupersetErrorException) -> FlaskResponse:
 def show_superset_errors(ex: SupersetErrorsException) -> FlaskResponse:
     logger.warning(ex)
     return json_errors_response(errors=ex.errors, status=ex.status)
+
+
+# Redirect to login if the CSRF token is expired
+@superset_app.errorhandler(CSRFError)
+def refresh_csrf_token(ex: CSRFError) -> FlaskResponse:
+    logger.warning(ex)
+
+    if request.is_json:
+        return show_http_exception(ex)
+
+    return redirect(appbuilder.get_url_for_login)
 
 
 @superset_app.errorhandler(HTTPException)
