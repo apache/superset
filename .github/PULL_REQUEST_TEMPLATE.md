@@ -5,7 +5,7 @@
 <!--- Skip this if not applicable -->
 
 ### TESTING INSTRUCTIONS
-<!--- What steps should be taken to manually verify the changes -->
+<!--- Required! What steps can be taken to manually verify the changes? -->
 
 ### ADDITIONAL INFORMATION
 <!--- Check any relevant boxes with "x" -->
