@@ -527,6 +527,7 @@ export default class ResultSet extends React.PureComponent<
     let limitMessage;
     const limitReached = results?.displayLimitReached;
     const isAdmin = !!this.props.user?.roles.Admin;
+    const limit = queryLimit || results.query.limit;
     const displayMaxRowsReachedMessage = {
       withAdmin: t(
         `The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. `,
@@ -535,7 +536,9 @@ export default class ResultSet extends React.PureComponent<
         t(
           `Please add additional limits/filters or download to csv to see more rows up to the`,
         ),
-        t(`the %(queryLimit)d limit.`, { queryLimit }),
+        t(`the %(limit)d limit.`, {
+          limit,
+        }),
       ),
       withoutAdmin: t(
         `The number of results displayed is limited to %(rows)d. `,
@@ -544,8 +547,8 @@ export default class ResultSet extends React.PureComponent<
         t(
           `Please add additional limits/filters, download to csv, or contact an admin`,
         ),
-        t(`to see more rows up to the the %(queryLimit)d limit.`, {
-          queryLimit,
+        t(`to see more rows up to the the %(limit)d limit.`, {
+          limit,
         }),
       ),
     };
