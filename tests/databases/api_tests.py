@@ -36,6 +36,7 @@ from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.db_engine_specs.hana import HanaEngineSpec
 from superset.errors import SupersetError
 from superset.models.core import Database, ConfigurationMethod
 from superset.models.reports import ReportSchedule, ReportScheduleType
@@ -1371,8 +1372,8 @@ class TestDatabaseApi(SupersetTestCase):
     def test_available(self, app, get_available_engine_specs):
         app.config = {"PREFERRED_DATABASES": ["postgresql"]}
         get_available_engine_specs.return_value = [
-            MySQLEngineSpec,
             PostgresEngineSpec,
+            HanaEngineSpec,
         ]
 
         self.login(username="admin")
@@ -1380,7 +1381,6 @@ class TestDatabaseApi(SupersetTestCase):
 
         rv = self.client.get(uri)
         response = json.loads(rv.data.decode("utf-8"))
-
         assert rv.status_code == 200
         assert response == {
             "databases": [
@@ -1428,7 +1428,73 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "postgresql+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
                 },
-                {"engine": "mysql", "name": "MySQL", "preferred": False},
+                {"engine": "hana", "name": "SAP HANA", "preferred": False},
+            ]
+        }
+
+    @mock.patch("superset.databases.api.get_available_engine_specs")
+    @mock.patch("superset.databases.api.app")
+    def test_available_with_mysql(self, app, get_available_engine_specs):
+        app.config = {"PREFERRED_DATABASES": ["mysql"]}
+        get_available_engine_specs.return_value = [
+            MySQLEngineSpec,
+            HanaEngineSpec,
+        ]
+
+        self.login(username="admin")
+        uri = "api/v1/database/available/"
+
+        rv = self.client.get(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        print(response)
+        assert rv.status_code == 200
+        assert response == {
+            "databases": [
+                {
+                    "engine": "mysql",
+                    "name": "MySQL",
+                    "parameters": {
+                        "properties": {
+                            "database": {
+                                "description": "Database name",
+                                "type": "string",
+                            },
+                            "encryption": {
+                                "description": "Use an encrypted connection to the database",
+                                "type": "boolean",
+                            },
+                            "host": {
+                                "description": "Hostname or IP address",
+                                "type": "string",
+                            },
+                            "password": {
+                                "description": "Password",
+                                "nullable": True,
+                                "type": "string",
+                            },
+                            "port": {
+                                "description": "Database port",
+                                "format": "int32",
+                                "type": "integer",
+                            },
+                            "query": {
+                                "additionalProperties": {},
+                                "description": "Additional parameters",
+                                "type": "object",
+                            },
+                            "username": {
+                                "description": "Username",
+                                "nullable": True,
+                                "type": "string",
+                            },
+                        },
+                        "required": ["database", "host", "port", "username"],
+                        "type": "object",
+                    },
+                    "preferred": True,
+                    "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
+                },
+                {"engine": "hana", "name": "SAP HANA", "preferred": False},
             ]
         }
 
