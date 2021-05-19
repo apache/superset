@@ -41,6 +41,10 @@ import AdhocFilter, {
 import columnType from 'src/explore/components/controls/FilterControl/columnType';
 
 const SelectWithLabel = styled(Select)`
+  .ant-select-selector {
+    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  }
+
   .ant-select-selector::after {
     content: '${({ labelText }) => labelText || '\\A0'}';
     display: inline-block;
