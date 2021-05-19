@@ -71,6 +71,10 @@ const sqlLabPersistStateConfig = {
         }
       });
 
+      if (subset.sqlLab?.user) {
+        delete subset.sqlLab.user;
+      }
+
       const data = JSON.stringify(subset);
       // 2 digit precision
       const currentSize =
