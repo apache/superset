@@ -69,7 +69,7 @@ import {
   dnd_adhoc_filters,
   dnd_adhoc_metric,
   dnd_adhoc_metrics,
-  dnd_timeseries_limit_metric,
+  dnd_sort_by,
   dndColumnsControl,
   dndEntity,
   dndGroupByControl,
@@ -339,7 +339,7 @@ const limit: SharedControlConfig<'SelectControl'> = {
   ),
 };
 
-const timeseries_limit_metric: SharedControlConfig<'MetricsControl'> = {
+const sort_by: SharedControlConfig<'MetricsControl'> = {
   type: 'MetricsControl',
   label: t('Sort By'),
   default: null,
@@ -481,7 +481,8 @@ const sharedControls = {
   time_range,
   row_limit,
   limit,
-  timeseries_limit_metric: enableExploreDnd ? dnd_timeseries_limit_metric : timeseries_limit_metric,
+  timeseries_limit_metric: enableExploreDnd ? dnd_sort_by : sort_by,
+  orderby: enableExploreDnd ? dnd_sort_by : sort_by,
   series: enableExploreDnd ? dndSeries : series,
   entity: enableExploreDnd ? dndEntity : entity,
   x,
