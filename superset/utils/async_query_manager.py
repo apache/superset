@@ -35,7 +35,7 @@ class AsyncQueryJobException(Exception):
 
 
 def build_job_metadata(
-    channel_id: str, job_id: str, user_id: Optional[int], **kwargs: Any
+    channel_id: str, job_id: str, user_id: Optional[str], **kwargs: Any
 ) -> Dict[str, Any]:
     return {
         "channel_id": channel_id,
@@ -169,7 +169,7 @@ class AsyncQueryManager:
             logger.warning(exc)
             raise AsyncQueryTokenException("Failed to parse token")
 
-    def init_job(self, channel_id: str, user_id: Optional[int]) -> Dict[str, Any]:
+    def init_job(self, channel_id: str, user_id: Optional[str]) -> Dict[str, Any]:
         job_id = str(uuid.uuid4())
         return build_job_metadata(
             channel_id, job_id, user_id, status=self.STATUS_PENDING
