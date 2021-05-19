@@ -1436,12 +1436,35 @@ class TestDatabaseApi(SupersetTestCase):
                     "name": "Google BigQuery",
                     "parameters": {
                         "properties": {
-                            "credentials_json": {
-                                "additionalProperties": {},
-                                "description": "credentials for bigquery",
-                                "type": "object",
-                            }
+                            "auth_provider_x509_cert_url": {
+                                "description": "",
+                                "type": "string",
+                            },
+                            "auth_uri": {"description": "", "type": "string",},
+                            "client_email": {"description": "", "type": "string",},
+                            "client_id": {"description": "", "type": "string",},
+                            "client_x509_cert_url": {
+                                "description": "",
+                                "type": "string",
+                            },
+                            "private_key": {"description": "", "type": "string",},
+                            "private_key_id": {"description": "", "type": "string",},
+                            "project_id": {"description": "", "type": "string",},
+                            "token_uri": {"description": "", "type": "string",},
+                            "type": {"description": "", "type": "string",},
                         },
+                        "required": [
+                            "auth_provider_x509_cert_url",
+                            "auth_uri",
+                            "client_email",
+                            "client_id",
+                            "client_x509_cert_url",
+                            "private_key",
+                            "private_key_id",
+                            "project_id",
+                            "token_uri",
+                            "type",
+                        ],
                         "type": "object",
                     },
                     "preferred": True,

@@ -42,30 +42,18 @@ CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
     + "permission in project (?P<project>.+?)"
 )
 
-
+# TODO: Fill in descriptions of each field
 class BigQueryParametersSchema(Schema):
-    type = fields.String(required=True, description=__("Credentials for BigQuery"))
-    project_id = fields.String(
-        required=True, description=__("Credentials for BigQuery")
-    )
-    private_key_id = fields.String(
-        required=True, description=__("Credentials for BigQuery")
-    )
-    private_key = fields.String(
-        required=True, description=__("Credentials for BigQuery")
-    )
-    client_email = fields.String(
-        required=True, description=__("Credentials for BigQuery")
-    )
-    client_id = fields.String(required=True, description=__("Credentials for BigQuery"))
-    auth_uri = fields.String(required=True, description=__("Credentials for BigQuery"))
-    token_uri = fields.String(required=True, description=__("Credentials for BigQuery"))
-    auth_provider_x509_cert_url = fields.String(
-        required=True, description=__("Credentials for BigQuery")
-    )
-    client_x509_cert_url = fields.String(
-        required=True, description=__("Credentials for BigQuery")
-    )
+    type = fields.String(required=True, description=__(""))
+    project_id = fields.String(required=True, description=__(""))
+    private_key_id = fields.String(required=True, description=__(""))
+    private_key = fields.String(required=True, description=__(""))
+    client_email = fields.String(required=True, description=__(""))
+    client_id = fields.String(required=True, description=__(""))
+    auth_uri = fields.String(required=True, description=__(""))
+    token_uri = fields.String(required=True, description=__(""))
+    auth_provider_x509_cert_url = fields.String(required=True, description=__(""))
+    client_x509_cert_url = fields.String(required=True, description=__(""))
 
 
 class BigQueryParametersType(TypedDict):
