@@ -1314,7 +1314,7 @@ class TestDatabaseApi(SupersetTestCase):
         masked_database_config = database_config.copy()
         masked_database_config[
             "sqlalchemy_uri"
-        ] = "postgresql://username:XXXXXXXXXX@host:12345/db"
+        ] = "vertica+vertica_python://hackathon:XXXXXXXXXX@host:5433/dbname?ssl=1"
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
@@ -1341,7 +1341,8 @@ class TestDatabaseApi(SupersetTestCase):
         )
         assert database.database_name == "imported_database"
         assert (
-            database.sqlalchemy_uri == "postgresql://username:XXXXXXXXXX@host:12345/db"
+            database.sqlalchemy_uri
+            == "vertica+vertica_python://hackathon:XXXXXXXXXX@host:5433/dbname?ssl=1"
         )
         assert database.password == "SECRET"
 
