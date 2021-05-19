@@ -16,7 +16,6 @@
 # under the License.
 import inspect
 import json
-import urllib.parse
 from typing import Any, Dict
 
 from flask import current_app
