@@ -120,7 +120,7 @@ class AsyncQueryManager:
             user_id = None
 
             try:
-                user_id = int(g.user.get_id())
+                user_id = g.user.id
             except AttributeError:
                 pass
 
