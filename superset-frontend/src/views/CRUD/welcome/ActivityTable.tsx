@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import moment from 'moment';
 import { styled, t } from '@superset-ui/core';
 import { setInLocalStorage } from 'src/utils/localStorageHelpers';
@@ -163,6 +163,14 @@ export default function ActivityTable({
 }: ActivityProps) {
   const [editedObjs, setEditedObjs] = useState<Array<ActivityData>>();
   const [loadingState, setLoadingState] = useState(false);
+
+  useEffect(() => {
+    setLoadingState(true);
+    getEditedObjects(user.userId).then(r => {
+      setEditedObjs([...r.editedChart, ...r.editedDash]);
+      setLoadingState(false);
+    });
+  });
 
   const getEditedCards = () => {
     setLoadingState(true);
