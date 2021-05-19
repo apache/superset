@@ -25,6 +25,7 @@ import React, {
   Reducer,
 } from 'react';
 import Tabs from 'src/components/Tabs';
+import { Alert } from 'src/common/components';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import {
   testDatabaseConnection,
@@ -34,7 +35,20 @@ import { useCommonConf } from 'src/views/CRUD/data/database/state';
 import { DatabaseObject } from 'src/views/CRUD/data/database/types';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
-import { StyledBasicTab, StyledModal } from './styles';
+import {
+  StyledBasicTab,
+  StyledModal,
+  EditHeader,
+  EditHeaderTitle,
+  EditHeaderSubtitle,
+  CreateHeader,
+  CreateHeaderSubtitle,
+  CreateHeaderTitle,
+  Divider,
+} from './styles';
+
+const DOCUMENTATION_LINK =
+  'https://superset.apache.org/docs/databases/installing-database-drivers';
 
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
@@ -267,6 +281,28 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
       }
     >
+      {isEditMode ? (
+        <EditHeader>
+          <EditHeaderTitle>{db?.backend}</EditHeaderTitle>
+          <EditHeaderSubtitle>{db?.database_name}</EditHeaderSubtitle>
+        </EditHeader>
+      ) : (
+        <CreateHeader>
+          <CreateHeaderTitle>Enter Primary Credentials</CreateHeaderTitle>
+          <CreateHeaderSubtitle>
+            Need help? Learn how to connect your database{' '}
+            <a
+              href={DOCUMENTATION_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              here
+            </a>
+            .
+          </CreateHeaderSubtitle>
+        </CreateHeader>
+      )}
+      <Divider />
       <Tabs
         defaultActiveKey={DEFAULT_TAB_KEY}
         activeKey={tabKey}
@@ -292,6 +328,26 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <p>TODO: db form</p>
             </div>
           )}
+          <Alert
+            message="Additional fields may be required"
+            description={
+              <>
+                Select databases require additional fields to be completed in
+                the next step to successfully connect the database. Learn what
+                requirements your databases has{' '}
+                <a
+                  href={DOCUMENTATION_LINK}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  here
+                </a>
+                .
+              </>
+            }
+            type="info"
+            showIcon
+          />
         </StyledBasicTab>
         <Tabs.TabPane tab={<span>{t('Advanced')}</span>} key="2">
           <ExtraOptions

@@ -108,6 +108,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "allow_ctas",
         "allow_cvas",
         "allow_dml",
+        "backend",
         "force_ctas_schema",
         "allow_multi_schema_metadata_fetch",
         "impersonate_user",
