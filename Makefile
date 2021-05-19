@@ -38,7 +38,9 @@ superset:
 	# Load some data to play with
 	superset load-examples
 
-update:
+update: update-py update-js
+
+update-py:
 	# Install external dependencies
 	pip install -r requirements/local.txt
 
@@ -51,6 +53,7 @@ update:
 	# Create default roles and permissions
 	superset init
 
+update-js:
 	# Install js packages
 	cd superset-frontend; npm install
 
