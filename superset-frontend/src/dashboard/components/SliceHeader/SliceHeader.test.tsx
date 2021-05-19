@@ -157,6 +157,7 @@ const createProps = () => ({
   forceRefresh: jest.fn(),
   exploreChart: jest.fn(),
   exportCSV: jest.fn(),
+  formData: {},
 });
 
 test('Should render', () => {

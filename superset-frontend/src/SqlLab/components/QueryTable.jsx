@@ -22,8 +22,8 @@ import moment from 'moment';
 import Card from 'src/components/Card';
 import ProgressBar from 'src/components/ProgressBar';
 import Label from 'src/components/Label';
-import { t } from '@superset-ui/core';
-
+import { t, css } from '@superset-ui/core';
+import { useSelector } from 'react-redux';
 import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
 import { fDuration } from 'src/modules/dates';
@@ -53,6 +53,10 @@ const openQuery = id => {
   window.open(url);
 };
 
+const StaticPosition = css`
+  position: static;
+`;
+
 const QueryTable = props => {
   const columns = useMemo(
     () =>
@@ -63,6 +67,8 @@ const QueryTable = props => {
       })),
     [props.columns],
   );
+
+  const user = useSelector(({ sqlLab: { user } }) => user);
 
   const data = useMemo(() => {
     const restoreSql = query => {
@@ -129,7 +135,7 @@ const QueryTable = props => {
           </Button>
         );
         q.sql = (
-          <Card>
+          <Card css={[StaticPosition]}>
             <HighlightedSql
               sql={q.sql}
               rawSql={q.executedSql}
@@ -153,6 +159,7 @@ const QueryTable = props => {
               modalBody={
                 <ResultSet
                   showSql
+                  user={user}
                   query={query}
                   actions={props.actions}
                   height={400}

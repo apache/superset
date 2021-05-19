@@ -153,6 +153,12 @@ const RightMenu = ({
           </Menu.ItemGroup>,
         ]}
       </SubMenu>
+      {navbarRight.show_language_picker && (
+        <LanguagePicker
+          locale={navbarRight.locale}
+          languages={navbarRight.languages}
+        />
+      )}
     </Menu>
     {navbarRight.documentation_url && (
       <a
@@ -174,12 +180,6 @@ const RightMenu = ({
       >
         <i className="fa fa-bug" />
       </a>
-    )}
-    {navbarRight.show_language_picker && (
-      <LanguagePicker
-        locale={navbarRight.locale}
-        languages={navbarRight.languages}
-      />
     )}
     {navbarRight.user_is_anonymous && (
       <a href={navbarRight.user_login_url}>

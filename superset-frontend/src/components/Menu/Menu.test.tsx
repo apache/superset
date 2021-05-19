@@ -332,5 +332,5 @@ test('should render the Login link when user is anonymous', () => {
 
 test('should render the Language Picker', () => {
   render(<Menu {...mockedProps} />);
-  expect(screen.getByRole('combobox')).toBeInTheDocument();
+  expect(screen.getByLabelText('Languages')).toBeInTheDocument();
 });

@@ -274,15 +274,17 @@ class SupersetAppInitializer:
             category="",
             category_icon="",
         )
-        if feature_flag_manager.is_feature_enabled("DYNAMIC_PLUGINS"):
-            appbuilder.add_view(
-                DynamicPluginsView,
-                "Plugins",
-                label=__("Plugins"),
-                category="Manage",
-                category_label=__("Manage"),
-                icon="fa-puzzle-piece",
-            )
+        appbuilder.add_view(
+            DynamicPluginsView,
+            "Plugins",
+            label=__("Plugins"),
+            category="Manage",
+            category_label=__("Manage"),
+            icon="fa-puzzle-piece",
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
+                "DYNAMIC_PLUGINS"
+            ),
+        )
         appbuilder.add_view(
             CssTemplateModelView,
             "CSS Templates",

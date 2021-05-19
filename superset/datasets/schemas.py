@@ -162,7 +162,7 @@ class ImportV1DatasetSchema(Schema):
     template_params = fields.Dict(allow_none=True)
     filter_select_enabled = fields.Boolean()
     fetch_values_predicate = fields.String(allow_none=True)
-    extra = fields.Dict(allow_none=True)
+    extra = fields.String(allow_none=True)
     uuid = fields.UUID(required=True)
     columns = fields.List(fields.Nested(ImportV1ColumnSchema))
     metrics = fields.List(fields.Nested(ImportV1MetricSchema))

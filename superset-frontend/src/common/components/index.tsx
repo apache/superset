@@ -123,18 +123,29 @@ export const StyledNav = styled(AntdMenu)`
       color: ${({ theme }) => theme.colors.grayscale.dark1};
     }
   }
+
   &:not(.ant-menu-dark) > .ant-menu-submenu,
   &:not(.ant-menu-dark) > .ant-menu-item {
-    margin: 0px;
     &:hover {
       border-bottom: none;
+    }
+  }
+
+  @media (min-width: 767px) {
+    &:not(.ant-menu-dark) > .ant-menu-submenu,
+    &:not(.ant-menu-dark) > .ant-menu-item {
+      margin: 0px;
     }
   }
 
   & > .ant-menu-item > a {
     padding: ${({ theme }) => theme.gridUnit * 4}px;
   }
+`;
 
+export const StyledSubMenu = styled(AntdMenu.SubMenu)`
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  border-bottom: none;
   .ant-menu-submenu-open,
   .ant-menu-submenu-active {
     background-color: ${({ theme }) => theme.colors.primary.light5};
@@ -149,12 +160,9 @@ export const StyledNav = styled(AntdMenu)`
       }
     }
   }
-`;
-
-export const StyledSubMenu = styled(AntdMenu.SubMenu)`
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-  border-bottom: none;
   .ant-menu-submenu-title {
+    position: relative;
+    top: ${({ theme }) => -theme.gridUnit - 3}px;
     &:after {
       content: '';
       position: absolute;
@@ -168,17 +176,24 @@ export const StyledSubMenu = styled(AntdMenu.SubMenu)`
       background-color: ${({ theme }) => theme.colors.primary.base};
     }
   }
+  .ant-menu-submenu-arrow {
+    top: 67%;
+  }
   & > .ant-menu-submenu-title {
     padding: 0 ${({ theme }) => theme.gridUnit * 6}px 0
       ${({ theme }) => theme.gridUnit * 3}px !important;
     svg {
       position: absolute;
-      top: ${({ theme }) => theme.gridUnit * 4}px;
+      top: ${({ theme }) => theme.gridUnit * 4 + 7}px;
       right: ${({ theme }) => theme.gridUnit}px;
       width: ${({ theme }) => theme.gridUnit * 6}px;
     }
+    & > span {
+      position: relative;
+      top: 7px;
+    }
     &:hover {
-      color: ${({ theme }) => theme.colors.grayscale.dark1};
+      color: ${({ theme }) => theme.colors.primary.base};
     }
   }
 `;

@@ -39,12 +39,12 @@ export default function Option(props: OptionProps) {
         data-test="remove-control-button"
         onClick={() => props.clickClose(props.index)}
       >
-        <Icons.XSmall color={theme.colors.grayscale.light1} />
+        <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
       </CloseContainer>
       <Label data-test="control-label">{props.children}</Label>
       {props.withCaret && (
         <CaretContainer>
-          <Icons.CaretRight color={theme.colors.grayscale.light1} />
+          <Icons.CaretRight iconColor={theme.colors.grayscale.light1} />
         </CaretContainer>
       )}
     </OptionControlContainer>

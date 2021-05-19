@@ -375,7 +375,7 @@ dataset_config: Dict[str, Any] = {
     "template_params": {},
     "filter_select_enabled": True,
     "fetch_values_predicate": None,
-    "extra": None,
+    "extra": "dttm > sysdate() -10 ",
     "metrics": [
         {
             "metric_name": "count",

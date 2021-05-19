@@ -2905,7 +2905,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             except json.JSONDecodeError:
                 pass
 
-        payload["user"] = bootstrap_user_data(g.user)
+        payload["user"] = bootstrap_user_data(g.user, include_perms=True)
         bootstrap_data = json.dumps(
             payload, default=utils.pessimistic_json_iso_dttm_ser
         )
