@@ -221,6 +221,7 @@ class Database(
             "allows_cost_estimate": self.allows_cost_estimate,
             "allows_virtual_table_explore": self.allows_virtual_table_explore,
             "explore_database_id": self.explore_database_id,
+            "parameters": self.parameters,
         }
 
     @property
@@ -235,6 +236,18 @@ class Database(
     def backend(self) -> str:
         sqlalchemy_url = make_url(self.sqlalchemy_uri_decrypted)
         return sqlalchemy_url.get_backend_name()  # pylint: disable=no-member
+
+    @property
+    def parameters(self) -> Dict[str, Any]:
+        # Build parameters if db_engine_spec is a subclass of BasicParametersMixin
+        parameters = {"engine": self.backend}
+        if hasattr(self.db_engine_spec, "parameters_schema") and hasattr(
+            self.db_engine_spec, "get_parameters_from_uri"
+        ):
+            uri = make_url(self.sqlalchemy_uri_decrypted)
+            return {**parameters, **self.db_engine_spec.get_parameters_from_uri(uri)}  # type: ignore
+
+        return parameters
 
     @property
     def metadata_cache_timeout(self) -> Dict[str, Any]:
