@@ -269,7 +269,7 @@ init:
     superset load_examples
     {{- end }}
     if [ -f "{{ .Values.extraConfigMountPath }}/import_datasources.yaml" ]; then
-      echo "Initializing connections.... "
+      echo "Importing database connections.... "
       superset import_datasources -p {{ .Values.extraConfigMountPath }}/import_datasources.yaml
     fi
 ##
