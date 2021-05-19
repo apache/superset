@@ -113,7 +113,7 @@ export const dnd_adhoc_metric: SharedControlConfig<'DndMetricSelect'> = {
   default: (c: Control) => mainMetric(c.savedMetrics),
 };
 
-export const dnd_timeseries_limit_metric: SharedControlConfig<'DndMetricSelect'> = {
+export const dnd_sort_by: SharedControlConfig<'DndMetricSelect'> = {
   type: 'DndMetricSelect',
   label: t('Sort by'),
   default: null,
