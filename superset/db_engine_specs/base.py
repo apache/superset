@@ -1443,6 +1443,9 @@ class BasicParametersMixin:
         """
         Return configuration parameters as OpenAPI.
         """
+        if not cls.parameters_schema:
+            return None
+
         spec = APISpec(
             title="Database Parameters",
             version="1.0.0",

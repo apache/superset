@@ -113,6 +113,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "impersonate_user",
         "encrypted_extra",
         "extra",
+        "parameters",
         "server_cert",
         "sqlalchemy_uri",
     ]
