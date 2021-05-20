@@ -39,6 +39,7 @@ from flask_appbuilder.security.views import (
     ViewMenuModelView,
 )
 from flask_appbuilder.widgets import ListWidget
+from flask_login import AnonymousUserMixin
 from sqlalchemy import and_, or_
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import Session
@@ -1023,6 +1024,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .filter(self.user_model.username == username)
             .one_or_none()
         )
+
+    def get_anonymous_user(self) -> User:  # pylint: disable=no-self-use
+        return AnonymousUserMixin()
 
     def get_rls_filters(self, table: "BaseDatasource") -> List[SqlaQuery]:
         """
