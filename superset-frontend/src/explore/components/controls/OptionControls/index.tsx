@@ -63,6 +63,7 @@ export const Label = styled.div`
       margin-right: ${theme.gridUnit}px;
       margin-left: ${theme.gridUnit}px;
       font-weight: ${theme.typography.weights.normal};
+      width: auto;
     }
     .option-label {
       display: inline;

@@ -42,7 +42,7 @@ const OptionContainer = styled.div`
     }
   }
   .type-label {
-    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-right: ${({ theme }) => theme.gridUnit * 3}px;
     width: ${({ theme }) => theme.gridUnit * 7}px;
     display: inline-block;
     text-align: center;
