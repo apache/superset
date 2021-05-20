@@ -157,6 +157,7 @@ from superset.views.utils import (
     sanitize_datasource_data,
 )
 from superset.viz import BaseViz
+from flask_wtf.csrf import CSRFError
 
 config = app.config
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
@@ -2709,6 +2710,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             render_template("superset/traceback.html", error_msg=get_error_msg()),
             500,
         )
+
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(e):
+        return render_template('superset/csrf_error.html', reason=e.description), 401 
 
     @event_logger.log_this
     @expose("/welcome/")
