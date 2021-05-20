@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CUSTOM_OPERATORS } from 'src/explore/constants';
+import { CUSTOM_OPERATORS, OPERATORS } from 'src/explore/constants';
 import { getSimpleSQLExpression } from 'src/explore/exploreUtils';
 
 export const EXPRESSION_TYPES = {
@@ -42,6 +42,8 @@ const OPERATORS_TO_SQL = {
   REGEX: 'REGEX',
   'IS NOT NULL': 'IS NOT NULL',
   'IS NULL': 'IS NULL',
+  'IS TRUE': 'IS TRUE',
+  'IS FALSE': 'IS FALSE',
   'LATEST PARTITION': ({ datasource }) =>
     `= '{{ presto.latest_partition('${datasource.schema}.${datasource.datasource_name}') }}'`,
 };
@@ -116,7 +118,14 @@ export default class AdhocFilter {
 
   isValid() {
     if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
-      if (this.operator === 'IS NOT NULL' || this.operator === 'IS NULL') {
+      if (
+        [
+          OPERATORS['IS TRUE'],
+          OPERATORS['IS FALSE'],
+          OPERATORS['IS NULL'],
+          OPERATORS['IS NOT NULL'],
+        ].indexOf(this.operator) >= 0
+      ) {
         return !!(this.operator && this.subject);
       }
 
@@ -140,6 +149,10 @@ export default class AdhocFilter {
   getDefaultLabel() {
     const label = this.translateToSql();
     return label.length < 43 ? label : `${label.substring(0, 40)}...`;
+  }
+
+  getTooltipTitle() {
+    return this.translateToSql();
   }
 
   translateToSql() {

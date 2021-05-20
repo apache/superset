@@ -17,11 +17,11 @@
  * under the License.
  */
 import React from 'react';
-import { FormGroup, FormControl, FormControlProps } from 'react-bootstrap';
 import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import { FAST_DEBOUNCE } from 'src/constants';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import { Input } from 'src/common/components';
 
 type InputValueType = string | number;
 
@@ -39,12 +39,8 @@ export interface TextControlProps<T extends InputValueType = InputValueType> {
 }
 
 export interface TextControlState {
-  controlId: string;
   value: string;
 }
-
-const generateControlId = (controlId?: string) =>
-  `formInlineName_${controlId ?? (Math.random() * 1000000).toFixed()}`;
 
 const safeStringify = (value?: InputValueType | null) =>
   value == null ? '' : String(value);
@@ -58,9 +54,6 @@ export default class TextControl<
     super(props);
     this.initialValue = props.value;
     this.state = {
-      // if there's no control id provided, generate a random
-      // number to prevent rendering elements with same ids
-      controlId: generateControlId(props.controlId),
       value: safeStringify(this.initialValue),
     };
   }
@@ -94,8 +87,8 @@ export default class TextControl<
     this.onChange(inputValue);
   }, FAST_DEBOUNCE);
 
-  onChangeWrapper: FormControlProps['onChange'] = event => {
-    const { value } = event.target as HTMLInputElement;
+  onChangeWrapper = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = event.target;
     this.setState({ value }, () => {
       this.debouncedOnChange(value);
     });
@@ -110,18 +103,16 @@ export default class TextControl<
     return (
       <div>
         <ControlHeader {...this.props} />
-        <FormGroup controlId={this.state.controlId}>
-          <FormControl
-            type="text"
-            data-test="inline-name"
-            placeholder={this.props.placeholder}
-            onChange={this.onChangeWrapper}
-            onFocus={this.props.onFocus}
-            value={value}
-            disabled={this.props.disabled}
-            aria-label={this.props.label}
-          />
-        </FormGroup>
+        <Input
+          type="text"
+          data-test="inline-name"
+          placeholder={this.props.placeholder}
+          onChange={this.onChangeWrapper}
+          onFocus={this.props.onFocus}
+          value={value}
+          disabled={this.props.disabled}
+          aria-label={this.props.label}
+        />
       </div>
     );
   };

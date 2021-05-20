@@ -18,8 +18,8 @@
  */
 import React, { useEffect, useState, FC } from 'react';
 import { useDispatch } from 'react-redux';
+import { useParams } from 'react-router-dom';
 import Loading from 'src/components/Loading';
-import ErrorBoundary from 'src/components/ErrorBoundary';
 import {
   useDashboard,
   useDashboardCharts,
@@ -28,20 +28,24 @@ import {
 import { ResourceStatus } from 'src/common/hooks/apiResources/apiResources';
 import { usePrevious } from 'src/common/hooks/usePrevious';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
-import DashboardContainer from 'src/dashboard/containers/Dashboard';
+import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 
-interface DashboardRouteProps {
-  dashboardIdOrSlug: string;
-}
+const DashboardContainer = React.lazy(
+  () =>
+    import(
+      /* webpackChunkName: "DashboardContainer" */
+      /* webpackPreload: true */
+      'src/dashboard/containers/Dashboard'
+    ),
+);
 
-const DashboardPage: FC<DashboardRouteProps> = ({
-  dashboardIdOrSlug, // eventually get from react router
-}) => {
+const DashboardPage: FC = () => {
   const dispatch = useDispatch();
+  const { idOrSlug } = useParams<{ idOrSlug: string }>();
   const [isLoaded, setLoaded] = useState(false);
-  const dashboardResource = useDashboard(dashboardIdOrSlug);
-  const chartsResource = useDashboardCharts(dashboardIdOrSlug);
-  const datasetsResource = useDashboardDatasets(dashboardIdOrSlug);
+  const dashboardResource = useDashboard(idOrSlug);
+  const chartsResource = useDashboardCharts(idOrSlug);
+  const datasetsResource = useDashboardDatasets(idOrSlug);
   const isLoading = [dashboardResource, chartsResource, datasetsResource].some(
     resource => resource.status === ResourceStatus.LOADING,
   );
@@ -49,6 +53,13 @@ const DashboardPage: FC<DashboardRouteProps> = ({
   const error = [dashboardResource, chartsResource, datasetsResource].find(
     resource => resource.status === ResourceStatus.ERROR,
   )?.error;
+
+  useEffect(() => {
+    if (dashboardResource.result) {
+      document.title = dashboardResource.result.dashboard_title;
+    }
+  }, [dashboardResource.result]);
+
   useEffect(() => {
     if (
       wasLoading &&
@@ -63,6 +74,7 @@ const DashboardPage: FC<DashboardRouteProps> = ({
           datasetsResource.result,
         ),
       );
+      injectCustomCss(dashboardResource.result.css);
       setLoaded(true);
     }
   }, [
@@ -79,12 +91,4 @@ const DashboardPage: FC<DashboardRouteProps> = ({
   return <DashboardContainer />;
 };
 
-const DashboardPageWithErrorBoundary = ({
-  dashboardIdOrSlug,
-}: DashboardRouteProps) => (
-  <ErrorBoundary>
-    <DashboardPage dashboardIdOrSlug={dashboardIdOrSlug} />
-  </ErrorBoundary>
-);
-
-export default DashboardPageWithErrorBoundary;
+export default DashboardPage;

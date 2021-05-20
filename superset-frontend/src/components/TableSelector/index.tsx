@@ -25,7 +25,7 @@ import React, {
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import { AsyncSelect, CreatableSelect, Select } from 'src/components/Select';
 
-import FormLabel from 'src/components/FormLabel';
+import { FormLabel } from 'src/components/Form';
 
 import DatabaseSelector from 'src/components/DatabaseSelector';
 import RefreshLabel from 'src/components/RefreshLabel';

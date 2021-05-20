@@ -64,6 +64,8 @@ npm install
 
 Copy `config.example.json` to `config.json` and adjust the values for your environment.
 
+Configuration via environment variables is also supported which can be helpful in certain contexts, e.g., deployment. `src/config.ts` can be consulted to see the full list of supported values.
+
 ## Superset Configuration
 
 Configure the Superset Flask app to enable global async queries (in `superset_config.py`):
@@ -92,6 +94,22 @@ GLOBAL_ASYNC_QUERIES_JWT_SECRET
 ```
 
 More info on Superset configuration values for async queries: https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries
+
+## StatsD monitoring
+
+The application is tracking a couple of metrics with `statsd` using the [hot-shots](https://www.npmjs.com/package/hot-shots) library, such as the number of connected clients and the number of failed attempts to send a message to a client.
+
+`statsd` can be configured with the `statsd` object in the configuration file. See the [hot-shots](https://www.npmjs.com/package/hot-shots) readme for more info. The default configuration is:
+
+```json
+{
+  "statsd": {
+    "host": "127.0.0.1",
+    "port": 8125,
+    "globalTags": []
+  }
+}
+```
 
 ## Running
 

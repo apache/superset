@@ -1135,7 +1135,7 @@ The following configuration settings are available for async queries (see config
 - ``GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE`` - JWT cookie secure option
 - ``GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN`` - JWT cookie domain option (`see docs for set_cookie <https://tedboy.github.io/flask/interface_api.response_object.html#flask.Response.set_cookie>`
 - ``GLOBAL_ASYNC_QUERIES_JWT_SECRET`` - JWT's use a secret key to sign and validate the contents. This value should be at least 32 bytes and have sufficient randomness for proper security
-- ``GLOBAL_ASYNC_QUERIES_TRANSPORT`` - currently the only available option is (HTTP) `polling`, but support for a WebSocket will be added in future versions
+- ``GLOBAL_ASYNC_QUERIES_TRANSPORT`` - available options: "polling" (HTTP, default), "ws" (WebSocket, requires running superset-websocket server)
 - ``GLOBAL_ASYNC_QUERIES_POLLING_DELAY`` - the time (in ms) between polling requests
 
 More information on the async query feature can be found in `SIP-39 <https://github.com/apache/superset/issues/9190>`_.

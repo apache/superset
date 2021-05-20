@@ -17,7 +17,8 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { t, useTheme, css } from '@superset-ui/core';
+import { Global, css } from '@emotion/react';
+import { t, useTheme } from '@superset-ui/core';
 import {
   MinusCircleFilled,
   CheckCircleFilled,
@@ -25,7 +26,6 @@ import {
 } from '@ant-design/icons';
 import Popover from 'src/components/Popover';
 import Collapse from 'src/components/Collapse';
-import { Global } from '@emotion/core';
 import Icon from 'src/components/Icon';
 import {
   Indent,

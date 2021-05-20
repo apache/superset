@@ -22,7 +22,7 @@ from sqlalchemy.dialects.mysql import DATE, NVARCHAR, TEXT, VARCHAR
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils.core import GenericDataType
-from tests.db_engine_specs.base_tests import TestDbEngineSpec
+from tests.db_engine_specs.base_tests import assert_generic_types, TestDbEngineSpec
 
 
 class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
@@ -65,7 +65,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
             )
             self.assertEqual(actual, expected)
 
-    def test_is_db_column_type_match(self):
+    def test_generic_type(self):
         type_expectations = (
             # Numeric
             ("TINYINT", GenericDataType.NUMERIC),
@@ -89,10 +89,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
             ("TIMESTAMP", GenericDataType.TEMPORAL),
             ("TIME", GenericDataType.TEMPORAL),
         )
-
-        for type_str, col_type in type_expectations:
-            column_spec = MySQLEngineSpec.get_column_spec(type_str)
-            assert column_spec.generic_type == col_type
+        assert_generic_types(MySQLEngineSpec, type_expectations)
 
     def test_extract_error_message(self):
         from MySQLdb._exceptions import OperationalError
@@ -110,7 +107,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
         """
         Test that custom error messages are extracted correctly.
         """
-        msg = "mysql: Access denied for user 'test'@'testuser.com'. "
+        msg = "mysql: Access denied for user 'test'@'testuser.com'"
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
@@ -118,6 +115,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
                 message='Either the username "test" or the password is incorrect.',
                 level=ErrorLevel.ERROR,
                 extra={
+                    "invalid": ["username", "password"],
                     "engine_name": "MySQL",
                     "issue_codes": [
                         {
@@ -135,7 +133,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
             )
         ]
 
-        msg = "mysql: Unknown MySQL server host 'badhostname.com'. "
+        msg = "mysql: Unknown MySQL server host 'badhostname.com'"
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
@@ -143,6 +141,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
                 message='Unknown MySQL server host "badhostname.com".',
                 level=ErrorLevel.ERROR,
                 extra={
+                    "invalid": ["host"],
                     "engine_name": "MySQL",
                     "issue_codes": [
                         {
@@ -155,7 +154,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
             )
         ]
 
-        msg = "mysql: Can't connect to MySQL server on 'badconnection.com'."
+        msg = "mysql: Can't connect to MySQL server on 'badconnection.com'"
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
@@ -164,6 +163,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
                 "down and can't be reached.",
                 level=ErrorLevel.ERROR,
                 extra={
+                    "invalid": ["host", "port"],
                     "engine_name": "MySQL",
                     "issue_codes": [
                         {
@@ -176,7 +176,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
             )
         ]
 
-        msg = "mysql: Can't connect to MySQL server on '93.184.216.34'."
+        msg = "mysql: Can't connect to MySQL server on '93.184.216.34'"
         result = MySQLEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
@@ -184,6 +184,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
                 message='The host "93.184.216.34" might be down and can\'t be reached.',
                 level=ErrorLevel.ERROR,
                 extra={
+                    "invalid": ["host", "port"],
                     "engine_name": "MySQL",
                     "issue_codes": [
                         {
@@ -196,14 +197,16 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
             )
         ]
 
-        msg = "mysql: Unknown database 'badDB'."
+        msg = "mysql: Unknown database 'badDB'"
         result = MySQLEngineSpec.extract_errors(Exception(msg))
+        print(result)
         assert result == [
             SupersetError(
                 message='Unable to connect to database "badDB".',
                 error_type=SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={
+                    "invalid": ["database"],
                     "engine_name": "MySQL",
                     "issue_codes": [
                         {

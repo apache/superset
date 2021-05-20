@@ -15,14 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
+import functools
 from typing import Any
 
 import pytest
 from sqlalchemy.engine import Engine
+from unittest.mock import patch
 
 from tests.test_app import app
-
 from superset import db
+from superset.extensions import feature_flag_manager
 from superset.utils.core import get_example_database, json_dumps_w_dates
 
 
@@ -38,6 +40,9 @@ def app_context():
 
 @pytest.fixture(autouse=True, scope="session")
 def setup_sample_data() -> Any:
+    # TODO(john-bodley): Determine a cleaner way of setting up the sample data without
+    # relying on `tests.test_app.app` leveraging an  `app` fixture which is purposely
+    # scoped to the function level to ensure tests remain idempotent.
     with app.app_context():
         setup_presto_if_needed()
 
@@ -106,3 +111,38 @@ def setup_presto_if_needed():
         drop_from_schema(engine, ADMIN_SCHEMA_NAME)
         engine.execute(f"DROP SCHEMA IF EXISTS {ADMIN_SCHEMA_NAME}")
         engine.execute(f"CREATE SCHEMA {ADMIN_SCHEMA_NAME}")
+
+
+def with_feature_flags(**mock_feature_flags):
+    """
+    Use this decorator to mock feature flags in tests.
+
+    Usage:
+
+        class TestYourFeature(SupersetTestCase):
+
+            @with_feature_flags(YOUR_FEATURE=True)
+            def test_your_feature_enabled(self):
+                self.assertEqual(is_feature_enabled("YOUR_FEATURE"), True)
+
+            @with_feature_flags(YOUR_FEATURE=False)
+            def test_your_feature_disabled(self):
+                self.assertEqual(is_feature_enabled("YOUR_FEATURE"), False)
+    """
+
+    def mock_get_feature_flags():
+        feature_flags = feature_flag_manager._feature_flags or {}
+        return {**feature_flags, **mock_feature_flags}
+
+    def decorate(test_fn):
+        def wrapper(*args, **kwargs):
+            with patch.object(
+                feature_flag_manager,
+                "get_feature_flags",
+                side_effect=mock_get_feature_flags,
+            ):
+                test_fn(*args, **kwargs)
+
+        return functools.update_wrapper(wrapper, test_fn)
+
+    return decorate

@@ -196,7 +196,7 @@ The purpose is to separate problem from possible solutions.
 
 **Refactor:** For small refactors, it can be a standalone PR itself detailing what you are refactoring and why. If there are concerns, project maintainers may request you to create a `#SIP` for the PR before proceeding.
 
-**Feature/Large changes:** If you intend to change the public API, or make any non-trivial changes to the implementation, we requires you to file a new issue as `#SIP` (Superset Improvement Proposal). This lets us reach an agreement on your proposal before you put significant effort into it. You are welcome to submit a PR along with the SIP (sometimes necessary for demonstration), but we will not review/merge the code until the SIP is approved.
+**Feature/Large changes:** If you intend to change the public API, or make any non-trivial changes to the implementation, we require you to file a new issue as `#SIP` (Superset Improvement Proposal). This lets us reach an agreement on your proposal before you put significant effort into it. You are welcome to submit a PR along with the SIP (sometimes necessary for demonstration), but we will not review/merge the code until the SIP is approved.
 
 In general, small PRs are always easier to review than large PRs. The best practice is to break your work into smaller independent PRs and refer to the same issue. This will greatly reduce turnaround time.
 
@@ -512,8 +512,8 @@ First, be sure you are using recent versions of Node.js and npm. We recommend us
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh | bash
 
 cd superset-frontend
-nvm install
-nvm use
+nvm install --lts
+nvm use --lts
 ```
 
 Or if you use the default macOS starting with Catalina shell `zsh`, try:
@@ -1137,7 +1137,7 @@ Submissions will be considered for submission (or removal) on a case-by-case bas
 1. Generate the migration file
 
    ```bash
-   superset db migrate -m 'add_metadata_column_to_annotation_model.py'
+   superset db migrate -m 'add_metadata_column_to_annotation_model'
    ```
 
    This will generate a file in `migrations/version/{SHA}_this_will_be_in_the_migration_filename.py`.
@@ -1296,7 +1296,7 @@ The following configuration settings are available for async queries (see config
 - `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE` - JWT cookie secure option
 - `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN` - JWT cookie domain option ([see docs for set_cookie](https://tedboy.github.io/flask/interface_api.response_object.html#flask.Response.set_cookie))
 - `GLOBAL_ASYNC_QUERIES_JWT_SECRET` - JWT's use a secret key to sign and validate the contents. This value should be at least 32 bytes and have sufficient randomness for proper security
-- `GLOBAL_ASYNC_QUERIES_TRANSPORT` - currently the only available option is (HTTP) `polling`, but support for a WebSocket will be added in future versions
+- `GLOBAL_ASYNC_QUERIES_TRANSPORT` - available options: "polling" (HTTP, default), "ws" (WebSocket, requires running superset-websocket server)
 - `GLOBAL_ASYNC_QUERIES_POLLING_DELAY` - the time (in ms) between polling requests
 
 More information on the async query feature can be found in [SIP-39](https://github.com/apache/superset/issues/9190).

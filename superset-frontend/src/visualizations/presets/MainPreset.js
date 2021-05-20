@@ -60,7 +60,10 @@ import {
   EchartsGraphChartPlugin,
   EchartsGaugeChartPlugin,
   EchartsRadarChartPlugin,
+  EchartsFunnelChartPlugin,
+  EchartsTreemapChartPlugin,
   EchartsMixedTimeseriesChartPlugin,
+  EchartsTreeChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import {
   SelectFilterPlugin,
@@ -95,6 +98,8 @@ export default class MainPreset extends Preset {
         new DualLineChartPlugin().configure({ key: 'dual_line' }),
         new EventFlowChartPlugin().configure({ key: 'event_flow' }),
         new FilterBoxChartPlugin().configure({ key: 'filter_box' }),
+        new EchartsFunnelChartPlugin().configure({ key: 'funnel' }),
+        new EchartsTreemapChartPlugin().configure({ key: 'treemap_v2' }),
         new EchartsGaugeChartPlugin().configure({ key: 'gauge_chart' }),
         new EchartsGraphChartPlugin().configure({ key: 'graph_chart' }),
         new EchartsRadarChartPlugin().configure({ key: 'radar' }),
@@ -131,6 +136,7 @@ export default class MainPreset extends Preset {
         new TimeColumnFilterPlugin().configure({ key: 'filter_timecolumn' }),
         new TimeGrainFilterPlugin().configure({ key: 'filter_timegrain' }),
         new GroupByFilterPlugin().configure({ key: 'filter_groupby' }),
+        new EchartsTreeChartPlugin().configure({ key: 'tree_chart' }),
       ],
     });
   }

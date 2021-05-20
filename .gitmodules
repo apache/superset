@@ -38,4 +38,4 @@
 	url = https://github.com/helm/chart-releaser-action
 [submodule ".github/actions/github-action-push-to-another-repository"]
 	path = .github/actions/github-action-push-to-another-repository
-	url = git@github.com:cpina/github-action-push-to-another-repository.git
+	url = https://github.com/cpina/github-action-push-to-another-repository

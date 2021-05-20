@@ -56,6 +56,7 @@ from superset.models.user_attributes import UserAttribute
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.utils import core as utils
 from superset.utils.decorators import debounce
+from superset.utils.hashing import md5_sha_from_str
 from superset.utils.urls import get_url_path
 
 # pylint: disable=too-many-public-methods
@@ -170,7 +171,8 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
 
     @property
     def datasources(self) -> Set[BaseDatasource]:
-        return {slc.datasource for slc in self.slices}
+        # pylint: disable=using-constant-test
+        return {slc.datasource for slc in self.slices if slc.datasource}
 
     @property
     def charts(self) -> List[BaseDatasource]:
@@ -199,7 +201,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         Returns a MD5 HEX digest that makes this dashboard unique
         """
         unique_string = f"{self.position_json}.{self.css}.{self.json_metadata}"
-        return utils.md5_hex(unique_string)
+        return md5_sha_from_str(unique_string)
 
     @property
     def thumbnail_url(self) -> str:

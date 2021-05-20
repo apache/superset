@@ -26,6 +26,7 @@ function mapStateToProps({ sqlLab }: Record<string, any>) {
     activeSouthPaneTab: sqlLab.activeSouthPaneTab,
     databases: sqlLab.databases,
     offline: sqlLab.offline,
+    user: sqlLab.user,
   };
 }
 

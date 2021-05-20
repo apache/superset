@@ -16,13 +16,13 @@
 # under the License.
 # pylint: disable=line-too-long,unused-argument,ungrouped-imports
 """A collection of ORM sqlalchemy models for Superset"""
+import enum
 import json
 import logging
 import textwrap
 from contextlib import closing
 from copy import deepcopy
 from datetime import datetime
-from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
 
 import numpy
@@ -99,6 +99,11 @@ class CssTemplate(Model, AuditMixinNullable):
     css = Column(Text, default="")
 
 
+class ConfigurationMethod(str, enum.Enum):
+    SQLALCHEMY_FORM = "sqlalchemy_form"
+    DYNAMIC_FORM = "dynamic_form"
+
+
 class Database(
     Model, AuditMixinNullable, ImportExportMixin
 ):  # pylint: disable=too-many-public-methods
@@ -118,6 +123,9 @@ class Database(
     cache_timeout = Column(Integer)
     select_as_create_table_as = Column(Boolean, default=False)
     expose_in_sqllab = Column(Boolean, default=True)
+    configuration_method = Column(
+        String(255), server_default=ConfigurationMethod.SQLALCHEMY_FORM.value
+    )
     allow_run_async = Column(Boolean, default=False)
     allow_csv_upload = Column(Boolean, default=False)
     allow_ctas = Column(Boolean, default=False)
@@ -176,7 +184,9 @@ class Database(
             # function_names property is used in bulk APIs and should not hard crash
             # more info in: https://github.com/apache/superset/issues/9678
             logger.error(
-                "Failed to fetch database function names with error: %s", str(ex)
+                "Failed to fetch database function names with error: %s",
+                str(ex),
+                exc_info=True,
             )
         return []
 
@@ -205,11 +215,13 @@ class Database(
             "id": self.id,
             "name": self.database_name,
             "backend": self.backend,
+            "configuration_method": self.configuration_method,
             "allow_multi_schema_metadata_fetch": self.allow_multi_schema_metadata_fetch,
             "allows_subquery": self.allows_subquery,
             "allows_cost_estimate": self.allows_cost_estimate,
             "allows_virtual_table_explore": self.allows_virtual_table_explore,
             "explore_database_id": self.explore_database_id,
+            "parameters": self.parameters,
         }
 
     @property
@@ -224,6 +236,18 @@ class Database(
     def backend(self) -> str:
         sqlalchemy_url = make_url(self.sqlalchemy_uri_decrypted)
         return sqlalchemy_url.get_backend_name()  # pylint: disable=no-member
+
+    @property
+    def parameters(self) -> Dict[str, Any]:
+        # Build parameters if db_engine_spec is a subclass of BasicParametersMixin
+        parameters = {"engine": self.backend}
+        if hasattr(self.db_engine_spec, "parameters_schema") and hasattr(
+            self.db_engine_spec, "get_parameters_from_uri"
+        ):
+            uri = make_url(self.sqlalchemy_uri_decrypted)
+            return {**parameters, **self.db_engine_spec.get_parameters_from_uri(uri)}  # type: ignore
+
+        return parameters
 
     @property
     def metadata_cache_timeout(self) -> Dict[str, Any]:
@@ -437,8 +461,10 @@ class Database(
             cols=cols,
         )
 
-    def apply_limit_to_sql(self, sql: str, limit: int = 1000) -> str:
-        return self.db_engine_spec.apply_limit_to_sql(sql, limit, self)
+    def apply_limit_to_sql(
+        self, sql: str, limit: int = 1000, force: bool = False
+    ) -> str:
+        return self.db_engine_spec.apply_limit_to_sql(sql, limit, self, force=force)
 
     def safe_sqlalchemy_uri(self) -> str:
         return self.sqlalchemy_uri
@@ -564,10 +590,10 @@ class Database(
 
     @property
     def db_engine_spec(self) -> Type[db_engine_specs.BaseEngineSpec]:
-        engines = db_engine_specs.get_engine_specs()
-        return engines.get(self.backend, db_engine_specs.BaseEngineSpec)
+        return self.get_db_engine_spec_for_backend(self.backend)
 
     @classmethod
+    @utils.memoized
     def get_db_engine_spec_for_backend(
         cls, backend: str
     ) -> Type[db_engine_specs.BaseEngineSpec]:
@@ -594,7 +620,7 @@ class Database(
             try:
                 encrypted_extra = json.loads(self.encrypted_extra)
             except json.JSONDecodeError as ex:
-                logger.error(ex)
+                logger.error(ex, exc_info=True)
                 raise ex
         return encrypted_extra
 
@@ -718,7 +744,7 @@ class Log(Model):  # pylint: disable=too-few-public-methods
     referrer = Column(String(1024))
 
 
-class FavStarClassName(str, Enum):
+class FavStarClassName(str, enum.Enum):
     CHART = "slice"
     DASHBOARD = "Dashboard"
 

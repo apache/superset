@@ -70,6 +70,8 @@ const propTypes = {
   addAnnotationLayer: PropTypes.func,
   removeAnnotationLayer: PropTypes.func,
   close: PropTypes.func,
+
+  onPopoverClear: PropTypes.func,
 };
 
 const defaultProps = {
@@ -93,6 +95,7 @@ const defaultProps = {
   addAnnotationLayer: () => {},
   removeAnnotationLayer: () => {},
   close: () => {},
+  onPopoverClear: () => {},
 };
 
 export default class AnnotationLayer extends React.PureComponent {
@@ -169,6 +172,7 @@ export default class AnnotationLayer extends React.PureComponent {
     );
     this.handleValue = this.handleValue.bind(this);
     this.isValidForm = this.isValidForm.bind(this);
+    this.popoverClearWrapper = this.popoverClearWrapper.bind(this);
   }
 
   componentDidMount() {
@@ -236,6 +240,15 @@ export default class AnnotationLayer extends React.PureComponent {
     }
     errors.push(this.isValidFormula(value, annotationType));
     return !errors.filter(x => x).length;
+  }
+
+  popoverClearWrapper(value, actionMeta, callback) {
+    if (callback) {
+      callback(value);
+    }
+    if (actionMeta?.action === 'clear') {
+      this.props.onPopoverClear(true);
+    }
   }
 
   handleAnnotationType(annotationType) {
@@ -409,7 +422,9 @@ export default class AnnotationLayer extends React.PureComponent {
           options={valueOptions}
           isLoading={isLoadingOptions}
           value={value}
-          onChange={this.handleValue}
+          onChange={(value, _, actionMeta) =>
+            this.popoverClearWrapper(value, actionMeta, this.handleValue)
+          }
           validationErrors={!value ? ['Mandatory'] : []}
           optionRenderer={this.renderOption}
         />
@@ -490,7 +505,11 @@ export default class AnnotationLayer extends React.PureComponent {
                 validationErrors={!intervalEndColumn ? ['Mandatory'] : []}
                 options={columns}
                 value={intervalEndColumn}
-                onChange={v => this.setState({ intervalEndColumn: v })}
+                onChange={(value, _, actionMeta) =>
+                  this.popoverClearWrapper(value, actionMeta, v =>
+                    this.setState({ intervalEndColumn: v }),
+                  )
+                }
               />
             )}
             <SelectControl
@@ -500,7 +519,11 @@ export default class AnnotationLayer extends React.PureComponent {
               description="Pick a title for you annotation."
               options={[{ value: '', label: 'None' }].concat(columns)}
               value={titleColumn}
-              onChange={v => this.setState({ titleColumn: v })}
+              onChange={(value, _, actionMeta) =>
+                this.popoverClearWrapper(value, actionMeta, v =>
+                  this.setState({ titleColumn: v }),
+                )
+              }
             />
             {annotationType !== ANNOTATION_TYPES.TIME_SERIES && (
               <SelectControl
@@ -512,7 +535,11 @@ export default class AnnotationLayer extends React.PureComponent {
                 multi
                 options={columns}
                 value={descriptionColumns}
-                onChange={v => this.setState({ descriptionColumns: v })}
+                onChange={(value, _, actionMeta) =>
+                  this.popoverClearWrapper(value, actionMeta, v =>
+                    this.setState({ descriptionColumns: v }),
+                  )
+                }
               />
             )}
             <div style={{ marginTop: '1rem' }}>
@@ -628,7 +655,11 @@ export default class AnnotationLayer extends React.PureComponent {
             { value: 'opacityHigh', label: '0.8' },
           ]}
           value={opacity}
-          onChange={v => this.setState({ opacity: v })}
+          onChange={(value, _, actionMeta) =>
+            this.popoverClearWrapper(value, actionMeta, v =>
+              this.setState({ opacity: v }),
+            )
+          }
         />
         <div>
           <ControlHeader label={t('Color')} />
@@ -734,7 +765,13 @@ export default class AnnotationLayer extends React.PureComponent {
                   name="annotation-source-type"
                   options={supportedSourceTypes}
                   value={sourceType}
-                  onChange={this.handleAnnotationSourceType}
+                  onChange={(value, _, actionMeta) =>
+                    this.popoverClearWrapper(
+                      value,
+                      actionMeta,
+                      this.handleAnnotationSourceType,
+                    )
+                  }
                   validationErrors={!sourceType ? [t('Mandatory')] : []}
                 />
               )}

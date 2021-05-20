@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { DataMaskStateWithId } from 'src/dataMask/types';
+import { JsonObject } from '@superset-ui/core';
 import { CHART_TYPE } from './componentTypes';
 import { Scope } from '../components/nativeFilters/types';
-import { ActiveFilters, LayoutItem } from '../types';
+import { ActiveFilters, Layout, LayoutItem } from '../types';
 import { ChartConfiguration, Filters } from '../reducers/types';
 import { DASHBOARD_ROOT_ID } from './constants';
-import { DataMaskStateWithId } from '../../dataMask/types';
 
 // Looking for affected chart scopes and values
 export const findAffectedCharts = ({
@@ -50,12 +51,11 @@ export const findAffectedCharts = ({
       // eslint-disable-next-line no-param-reassign
       activeFilters[filterId] = {
         scope: [],
-        values: [],
+        values: extraFormData,
       };
     }
     // Add not excluded chart scopes(to know what charts refresh) and values(refresh only if its value changed)
     activeFilters[filterId].scope.push(chartId);
-    activeFilters[filterId].values.push(extraFormData);
     return;
   }
   // If child is not chart, recursive iterate over its children
@@ -71,6 +71,17 @@ export const findAffectedCharts = ({
   );
 };
 
+export const getRelevantDataMask = (
+  dataMask: DataMaskStateWithId,
+  prop: string,
+): JsonObject | DataMaskStateWithId =>
+  Object.values(dataMask)
+    .filter(item => item[prop])
+    .reduce(
+      (prev, next) => ({ ...prev, [next.id]: prop ? next[prop] : next }),
+      {},
+    );
+
 export const getAllActiveFilters = ({
   chartConfiguration,
   nativeFilters,
@@ -80,7 +91,7 @@ export const getAllActiveFilters = ({
   chartConfiguration: ChartConfiguration;
   dataMask: DataMaskStateWithId;
   nativeFilters: Filters;
-  layout: { [key: string]: LayoutItem };
+  layout: Layout;
 }): ActiveFilters => {
   const activeFilters = {};
 
@@ -92,7 +103,7 @@ export const getAllActiveFilters = ({
         excluded: [filterId],
       };
     // Iterate over all roots to find all affected charts
-    scope.rootPath.forEach(layoutItemId => {
+    scope.rootPath.forEach((layoutItemId: string | number) => {
       layout[layoutItemId].children.forEach((child: string) => {
         // Need exclude from affected charts, charts that located in scope `excluded`
         findAffectedCharts({

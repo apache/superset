@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import Card from 'src/common/components/Card';
 import Collapse from 'src/components/Collapse';
+import Card from 'src/components/Card';
 import ButtonGroup from 'src/components/ButtonGroup';
 import shortid from 'shortid';
 import { t, styled } from '@superset-ui/core';
@@ -99,7 +99,7 @@ class TableElement extends React.PureComponent {
       let partitionQuery;
       let partitionClipBoard;
       if (table.partitions.partitionQuery) {
-        ({ partitionQuery } = table.partitions.partitionQuery);
+        ({ partitionQuery } = table.partitions);
         const tt = t('Copy partition query to clipboard');
         partitionClipBoard = (
           <CopyToClipboard
@@ -204,7 +204,7 @@ class TableElement extends React.PureComponent {
       >
         <Tooltip
           id="copy-to-clipboard-tooltip"
-          placement="top"
+          placement="topLeft"
           style={{ cursor: 'pointer' }}
           title={table.name}
           trigger={['hover']}

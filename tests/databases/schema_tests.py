@@ -20,14 +20,14 @@ from unittest import mock
 from marshmallow import fields, Schema, ValidationError
 
 from superset.databases.schemas import DatabaseParametersSchemaMixin
-from superset.db_engine_specs.base import BaseParametersMixin
+from superset.db_engine_specs.base import BasicParametersMixin
 
 
 class DummySchema(Schema, DatabaseParametersSchemaMixin):
     sqlalchemy_uri = fields.String()
 
 
-class DummyEngine(BaseParametersMixin):
+class DummyEngine(BasicParametersMixin):
     drivername = "dummy"
 
 

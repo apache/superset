@@ -143,7 +143,7 @@ test('should search and render matching metrics', async () => {
   });
 });
 
-test('should render a warning', () => {
+test('should render a warning', async () => {
   const deprecatedDatasource = {
     ...datasource,
     extra: JSON.stringify({ warning_markdown: 'This is a warning.' }),
@@ -160,5 +160,7 @@ test('should render a warning', () => {
       },
     }),
   );
-  expect(screen.getByTestId('alert-solid')).toBeInTheDocument();
+  expect(
+    await screen.findByRole('img', { name: 'alert-solid' }),
+  ).toBeInTheDocument();
 });

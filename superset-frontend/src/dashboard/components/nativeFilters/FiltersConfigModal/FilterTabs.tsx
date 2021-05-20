@@ -19,7 +19,7 @@
 import { PlusOutlined } from '@ant-design/icons';
 import { styled, t } from '@superset-ui/core';
 import React, { FC } from 'react';
-import { LineEditableTabs } from 'src/common/components/Tabs';
+import { LineEditableTabs } from 'src/components/Tabs';
 import Icon from 'src/components/Icon';
 import { FilterRemoval } from './types';
 import { REMOVAL_DELAY_SECS } from './utils';

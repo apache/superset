@@ -34,6 +34,7 @@ from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.tags import ChartUpdater
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils import core as utils
+from superset.utils.hashing import md5_sha_from_str
 from superset.utils.urls import get_url_path
 from superset.viz import BaseViz, viz_types  # type: ignore
 
@@ -99,7 +100,7 @@ class Slice(
         return ConnectorRegistry.sources[self.datasource_type]
 
     @property
-    def datasource(self) -> "BaseDatasource":
+    def datasource(self) -> Optional["BaseDatasource"]:
         return self.get_datasource
 
     def clone(self) -> "Slice":
@@ -159,8 +160,9 @@ class Slice(
     def viz(self) -> Optional[BaseViz]:
         form_data = json.loads(self.params)
         viz_class = viz_types.get(self.viz_type)
-        if viz_class:
-            return viz_class(datasource=self.datasource, form_data=form_data)
+        datasource = self.datasource
+        if viz_class and datasource:
+            return viz_class(datasource=datasource, form_data=form_data)
         return None
 
     @property
@@ -202,7 +204,7 @@ class Slice(
         """
         Returns a MD5 HEX digest that makes this dashboard unique
         """
-        return utils.md5_hex(self.params or "")
+        return md5_sha_from_str(self.params or "")
 
     @property
     def thumbnail_url(self) -> str:
@@ -222,7 +224,7 @@ class Slice(
         try:
             form_data = json.loads(self.params)
         except Exception as ex:  # pylint: disable=broad-except
-            logger.error("Malformed json in slice's params")
+            logger.error("Malformed json in slice's params", exc_info=True)
             logger.exception(ex)
         form_data.update(
             {

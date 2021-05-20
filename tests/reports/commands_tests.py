@@ -107,13 +107,9 @@ def get_notification_error_sent_count(report_schedule: ReportSchedule) -> int:
 def assert_log(state: str, error_message: Optional[str] = None):
     db.session.commit()
     logs = db.session.query(ReportExecutionLog).all()
-    if state == ReportState.WORKING:
-        assert len(logs) == 2
-        assert logs[1].error_message == error_message
-        assert logs[1].state == state
-        return
-    # On error we send an email
+
     if state == ReportState.ERROR:
+        # On error we send an email
         assert len(logs) == 3
     else:
         assert len(logs) == 2
@@ -810,9 +806,9 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
     logs = db.session.query(ReportExecutionLog).all()
     # Two logs, first is created by fixture
     assert len(logs) == 2
-    assert logs[1].error_message == ReportScheduleWorkingTimeoutError.message
-    assert logs[1].state == ReportState.ERROR
-
+    assert ReportScheduleWorkingTimeoutError.message in [
+        log.error_message for log in logs
+    ]
     assert create_report_slack_chart_working.last_state == ReportState.ERROR
 
 

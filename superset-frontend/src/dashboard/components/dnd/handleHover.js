@@ -17,7 +17,8 @@
  * under the License.
  */
 import { throttle } from 'lodash';
-import getDropPosition from '../../util/getDropPosition';
+import { DASHBOARD_ROOT_TYPE } from 'src/dashboard/util/componentTypes';
+import getDropPosition from 'src/dashboard/util/getDropPosition';
 import handleScroll from './handleScroll';
 
 const HOVER_THROTTLE_MS = 100;
@@ -28,9 +29,13 @@ function handleHover(props, monitor, Component) {
 
   const dropPosition = getDropPosition(monitor, Component);
 
-  handleScroll(dropPosition);
+  const isDashboardRoot =
+    Component?.props?.component?.type === DASHBOARD_ROOT_TYPE;
+  const scroll = isDashboardRoot ? 'SCROLL_TOP' : null;
 
-  if (!dropPosition || dropPosition === 'SCROLL_TOP') {
+  handleScroll(scroll);
+
+  if (!dropPosition) {
     Component.setState(() => ({ dropIndicator: null }));
     return;
   }

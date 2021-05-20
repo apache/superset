@@ -22,7 +22,7 @@ import Button from 'src/components/Button';
 import { styled, t } from '@superset-ui/core';
 
 import ErrorBoundary from 'src/components/ErrorBoundary';
-import Tabs from 'src/common/components/Tabs';
+import Tabs from 'src/components/Tabs';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
 import AdhocFilter, {
   EXPRESSION_TYPES,
@@ -54,6 +54,38 @@ const ResizeIcon = styled.i`
 
 const startingWidth = 320;
 const startingHeight = 240;
+
+const FilterPopoverContentContainer = styled.div`
+  .adhoc-filter-edit-tabs > .nav-tabs {
+    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+
+    & > li > a {
+      padding: ${({ theme }) => theme.gridUnit}px;
+    }
+  }
+
+  #filter-edit-popover {
+    max-width: none;
+  }
+
+  .filter-edit-clause-dropdown {
+    width: ${({ theme }) => theme.gridUnit * 30}px;
+    margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
+
+  .filter-edit-clause-info {
+    font-size: ${({ theme }) => theme.typography.sizes.xs}px;
+    padding-left: ${({ theme }) => theme.gridUnit}px;
+  }
+
+  .filter-edit-clause-section {
+    display: inline-flex;
+  }
+
+  .adhoc-filter-simple-column-dropdown {
+    margin-top: ${({ theme }) => theme.gridUnit * 5}px;
+  }
+`;
 
 export default class AdhocFilterEditPopover extends React.Component {
   constructor(props) {
@@ -149,7 +181,7 @@ export default class AdhocFilterEditPopover extends React.Component {
     const hasUnsavedChanges = !adhocFilter.equals(propsAdhocFilter);
 
     return (
-      <div
+      <FilterPopoverContentContainer
         id="filter-edit-popover"
         {...popoverProps}
         data-test="filter-edit-popover"
@@ -229,7 +261,7 @@ export default class AdhocFilterEditPopover extends React.Component {
             className="fa fa-expand edit-popover-resize text-muted"
           />
         </div>
-      </div>
+      </FilterPopoverContentContainer>
     );
   }
 }
