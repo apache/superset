@@ -19,6 +19,8 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import { styledMount } from 'spec/helpers/theming';
+import { render } from 'spec/helpers/testing-library';
+import { screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import sinon from 'sinon';
 import Alert from 'src/components/Alert';
@@ -38,49 +40,48 @@ import {
   stoppedQuery,
   initialState,
   user,
+  queryWithNoQueryLimit,
 } from './fixtures';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore(initialState);
-
+const clearQuerySpy = sinon.spy();
+const fetchQuerySpy = sinon.spy();
+const reRunQuerySpy = sinon.spy();
+const mockedProps = {
+  actions: {
+    clearQueryResults: clearQuerySpy,
+    fetchQueryResults: fetchQuerySpy,
+    reRunQuery: reRunQuerySpy,
+  },
+  cache: true,
+  query: queries[0],
+  height: 140,
+  database: { allows_virtual_table_explore: true },
+  user,
+  defaultQueryLimit: 1000,
+};
+const stoppedQueryProps = { ...mockedProps, query: stoppedQuery };
+const runningQueryProps = { ...mockedProps, query: runningQuery };
+const cachedQueryProps = { ...mockedProps, query: cachedQuery };
+const failedQueryWithErrorMessageProps = {
+  ...mockedProps,
+  query: failedQueryWithErrorMessage,
+};
+const failedQueryWithErrorsProps = {
+  ...mockedProps,
+  query: failedQueryWithErrors,
+};
+const newProps = {
+  query: {
+    cached: false,
+    resultsKey: 'new key',
+    results: {
+      data: [{ a: 1 }],
+    },
+  },
+};
 describe('ResultSet', () => {
-  const clearQuerySpy = sinon.spy();
-  const fetchQuerySpy = sinon.spy();
-  const reRunQuerySpy = sinon.spy();
-  const mockedProps = {
-    actions: {
-      clearQueryResults: clearQuerySpy,
-      fetchQueryResults: fetchQuerySpy,
-      reRunQuery: reRunQuerySpy,
-    },
-    cache: true,
-    query: queries[0],
-    height: 140,
-    database: { allows_virtual_table_explore: true },
-    user,
-    defaultQueryLimit: 1000,
-  };
-  const stoppedQueryProps = { ...mockedProps, query: stoppedQuery };
-  const runningQueryProps = { ...mockedProps, query: runningQuery };
-  const cachedQueryProps = { ...mockedProps, query: cachedQuery };
-  const failedQueryWithErrorMessageProps = {
-    ...mockedProps,
-    query: failedQueryWithErrorMessage,
-  };
-  const failedQueryWithErrorsProps = {
-    ...mockedProps,
-    query: failedQueryWithErrors,
-  };
-  const newProps = {
-    query: {
-      cached: false,
-      resultsKey: 'new key',
-      results: {
-        data: [{ a: 1 }],
-      },
-    },
-  };
-
   it('is valid', () => {
     expect(React.isValidElement(<ResultSet {...mockedProps} />)).toBe(true);
   });
@@ -180,5 +181,20 @@ describe('ResultSet', () => {
       const wrapper = shallow(<ResultSet {...failedQueryWithErrorsProps} />);
       expect(wrapper.find(ErrorMessageWithStackTrace)).toExist();
     });
+  });
+});
+
+describe('RTL ResultSet tests', () => {
+  it('renders if there props has no limit in query.results but has queryLimit', () => {
+    render(<ResultSet {...mockedProps} />, { useRedux: true });
+    const grid = screen.getAllByRole('grid');
+    expect(grid.length).toBe(1);
+  });
+
+  it('Renders if there is a limit in query.results but not queryLimit', () => {
+    const props = { ...mockedProps, query: queryWithNoQueryLimit };
+    render(<ResultSet {...props} />, { useRedux: true });
+    const grid = screen.getAllByRole('grid');
+    expect(grid.length).toBe(1);
   });
 });
