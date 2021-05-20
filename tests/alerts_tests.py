@@ -379,7 +379,7 @@ class TestAlertsEndpoints(SupersetTestCase):
             self.login("admin")
             uri = "/alertlogmodelview/list/"
             rv = self.client.get(uri)
-            self.assertLess(rv.status_code, 404)
+            self.assertLess(rv.status_code, 400)
 
     def test_model_view_disabled(self):
         with patch.object(AlertModelView, "is_enabled", return_value=False):
@@ -393,7 +393,7 @@ class TestAlertsEndpoints(SupersetTestCase):
             self.login("admin")
             uri = "/alerts/list/"
             rv = self.client.get(uri)
-            self.assertLess(rv.status_code, 404)
+            self.assertLess(rv.status_code, 400)
 
     def test_observation_view_disabled(self):
         with patch.object(AlertObservationModelView, "is_enabled", return_value=False):
@@ -407,4 +407,4 @@ class TestAlertsEndpoints(SupersetTestCase):
             self.login("admin")
             uri = "/alertobservationmodelview/list/"
             rv = self.client.get(uri)
-            self.assertLess(rv.status_code, 404)
+            self.assertLess(rv.status_code, 400)

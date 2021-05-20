@@ -568,7 +568,7 @@ class TestSchedules(SupersetTestCase):
             self.login("admin")
             uri = "/dashboardemailscheduleview/list/"
             rv = self.client.get(uri)
-            self.assertLess(rv.status_code, 404)
+            self.assertLess(rv.status_code, 400)
 
     def test_slice_disabled(self):
         with patch.object(SliceEmailScheduleView, "is_enabled", return_value=False):
@@ -582,7 +582,7 @@ class TestSchedules(SupersetTestCase):
             self.login("admin")
             uri = "/sliceemailscheduleview/list/"
             rv = self.client.get(uri)
-            self.assertLess(rv.status_code, 404)
+            self.assertLess(rv.status_code, 400)
 
 
 def test_slack_client_compatibility():

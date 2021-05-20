@@ -1219,4 +1219,4 @@ class TestAccessRequestEndpoints(SupersetTestCase):
             self.login("admin")
             uri = "/accessrequestsmodelview/list/"
             rv = self.client.get(uri)
-            self.assertLess(rv.status_code, 404)
+            self.assertLess(rv.status_code, 400)
