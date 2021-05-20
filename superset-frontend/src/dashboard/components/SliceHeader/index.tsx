@@ -36,10 +36,10 @@ type SliceHeaderProps = {
   cachedDttm?: string[];
   updatedDttm?: number;
   updateSliceName?: (arg0: string) => void;
-  toggleExpandSlice?: Function;
-  forceRefresh?: Function;
-  exploreChart?: Function;
-  exportCSV?: Function;
+  toggleExpandSlice?: () => void;
+  forceRefresh?: () => void;
+  exploreChart?: () => void;
+  exportCSV?: () => void;
   editMode?: boolean;
   isFullSize?: boolean;
   annotationQuery?: object;
@@ -52,9 +52,9 @@ type SliceHeaderProps = {
   componentId: string;
   dashboardId: number;
   filters: object;
-  addSuccessToast: Function;
-  addDangerToast: Function;
-  handleToggleFullSize: Function;
+  addSuccessToast: () => void;
+  addDangerToast: () => void;
+  handleToggleFullSize: () => void;
   chartStatus: string;
   formData: object;
 };
@@ -82,7 +82,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   cachedDttm = null,
   updatedDttm = null,
   isCached = [],
-  isExpanded = [],
+  isExpanded = false,
   sliceName = '',
   supersetCanExplore = false,
   supersetCanShare = false,
@@ -165,6 +165,8 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             )}
             <FiltersBadge chartId={slice.slice_id} />
             <SliceHeaderControls
+              // TODO: Fix this
+              // @ts-ignore
               slice={slice}
               isCached={isCached}
               isExpanded={isExpanded}

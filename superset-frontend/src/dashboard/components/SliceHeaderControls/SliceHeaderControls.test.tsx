@@ -47,6 +47,7 @@ const createProps = () => ({
     slice_id: 371,
     slice_url: '/superset/explore/?form_data=%7B%22slice_id%22%3A%20371%7D',
     slice_name: 'Vaccine Candidates per Country & Stage',
+    slice_description: 'Table of vaccine candidates for 100 countries',
     form_data: {
       adhoc_filters: [],
       color_scheme: 'supersetColors',
@@ -76,7 +77,7 @@ const createProps = () => ({
   },
   isCached: [false],
   isExpanded: false,
-  cachedDttm: [null],
+  cachedDttm: [''],
   updatedDttm: 1617213803803,
   supersetCanExplore: true,
   supersetCanCSV: true,
@@ -85,6 +86,10 @@ const createProps = () => ({
   dashboardId: 26,
   isFullSize: false,
   chartStatus: 'rendered',
+  showControls: true,
+  supersetCanShare: true,
+  formData: {},
+  exportFullCSV: jest.fn(),
 });
 
 test('Should render', () => {
