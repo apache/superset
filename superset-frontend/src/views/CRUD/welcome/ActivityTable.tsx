@@ -165,11 +165,13 @@ export default function ActivityTable({
   const [loadingState, setLoadingState] = useState(false);
 
   useEffect(() => {
-    setLoadingState(true);
-    getEditedObjects(user.userId).then(r => {
-      setEditedObjs([...r.editedChart, ...r.editedDash]);
-      setLoadingState(false);
-    });
+    if(activeChild === 'Edited') {
+      setLoadingState(true);
+      getEditedObjects(user.userId).then(r => {
+        setEditedObjs([...r.editedChart, ...r.editedDash]);
+        setLoadingState(false);
+      });
+    }
   }, []);
 
   const getEditedCards = () => {
