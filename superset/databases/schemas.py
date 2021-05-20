@@ -246,6 +246,8 @@ class DatabaseParametersSchemaMixin:
         the constructed SQLAlchemy URI to be passed.
         """
         parameters = data.pop("parameters", None)
+        encrypted_extra = data.get("encrypted_extra", None)
+
         if parameters:
             if "engine" not in parameters:
                 raise ValidationError(
@@ -275,7 +277,9 @@ class DatabaseParametersSchemaMixin:
                     ]
                 )
 
-            data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(parameters)
+            data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(
+                parameters, encrypted_extra
+            )
         return data
 
 

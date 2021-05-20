@@ -29,6 +29,7 @@ from typing_extensions import TypedDict
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
+from superset.exceptions import SupersetGenericDBErrorException
 from superset.sql_parse import Table
 from superset.utils import core as utils
 from superset.utils.hashing import md5_sha_from_str
@@ -44,29 +45,11 @@ CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
 
 # TODO: Fill in descriptions of each field
 class BigQueryParametersSchema(Schema):
-    type = fields.String(required=True, description=__(""))
-    project_id = fields.String(required=True, description=__(""))
-    private_key_id = fields.String(required=True, description=__(""))
-    private_key = fields.String(required=True, description=__(""))
-    client_email = fields.String(required=True, description=__(""))
-    client_id = fields.String(required=True, description=__(""))
-    auth_uri = fields.String(required=True, description=__(""))
-    token_uri = fields.String(required=True, description=__(""))
-    auth_provider_x509_cert_url = fields.String(required=True, description=__(""))
-    client_x509_cert_url = fields.String(required=True, description=__(""))
+    pass
 
 
 class BigQueryParametersType(TypedDict):
-    type: str
-    project_id: str
-    private_key_id: str
-    private_key: str
-    client_email: str
-    client_id: str
-    auth_uri: str
-    token_uri: str
-    auth_provider_x509_cert_url: str
-    client_x509_cert_url: str
+    pass
 
 
 class BigQueryEngineSpec(BaseEngineSpec):
@@ -318,15 +301,21 @@ class BigQueryEngineSpec(BaseEngineSpec):
         pandas_gbq.to_gbq(df, **to_gbq_kwargs)
 
     @classmethod
-    def build_sqlalchemy_url(cls, parameters: BigQueryParametersType) -> str:
-        project_id = parameters.get("project_id")
-        return f"{cls.drivername}://{project_id}"
+    def build_sqlalchemy_uri(
+        cls, _: BigQueryParametersType, encrypted_extra: Optional[Dict[str, str]] = None
+    ) -> str:
+        if encrypted_extra:
+            project_id = encrypted_extra.get("project_id")
+            return f"{cls.drivername}://{project_id}"
+
+        raise SupersetGenericDBErrorException(
+            message="Big Query encrypted_extra is not available",
+        )
 
     @classmethod
-    def get_parameters_from_uri(cls, uri: str) -> Any:
-        # We might need to add a special case for bigquery since
-        # we are relying on the json credentials
-        return {"foo": "bar"}
+    def get_parameters_from_uri(cls, _: str) -> Any:
+        # BigQuery doesn't have parameters
+        return None
 
     @classmethod
     def parameters_json_schema(cls) -> Any:
