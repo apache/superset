@@ -51,7 +51,7 @@ from superset.views.base import (
 logger = logging.getLogger(__name__)
 
 
-class EnsureEnabled:
+class EnsureEnabledMixin:
     @staticmethod
     def is_enabled() -> bool:
         return bool(app.config["DRUID_IS_ACTIVE"])
@@ -62,7 +62,7 @@ class EnsureEnabled:
             raise NotFound()
 
 
-class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView, EnsureEnabled):
+class DruidColumnInlineView(CompactCRUDMixin, EnsureEnabledMixin, SupersetModelView):
     datamodel = SQLAInterface(models.DruidColumn)
     include_route_methods = RouteMethod.RELATED_VIEW_SET
 
@@ -149,7 +149,7 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView, EnsureEnabled):
         self.post_update(item)
 
 
-class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView, EnsureEnabled):
+class DruidMetricInlineView(CompactCRUDMixin, EnsureEnabledMixin, SupersetModelView):
     datamodel = SQLAInterface(models.DruidMetric)
     include_route_methods = RouteMethod.RELATED_VIEW_SET
 
@@ -203,7 +203,7 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView, EnsureEnabled):
 
 
 class DruidClusterModelView(
-    SupersetModelView, DeleteMixin, YamlExportMixin, EnsureEnabled
+    EnsureEnabledMixin, SupersetModelView, DeleteMixin, YamlExportMixin,
 ):
     datamodel = SQLAInterface(models.DruidCluster)
     include_route_methods = RouteMethod.CRUD_SET
@@ -267,7 +267,7 @@ class DruidClusterModelView(
 
 
 class DruidDatasourceModelView(
-    DatasourceModelView, DeleteMixin, YamlExportMixin, EnsureEnabled
+    EnsureEnabledMixin, DatasourceModelView, DeleteMixin, YamlExportMixin,
 ):
     datamodel = SQLAInterface(models.DruidDatasource)
     include_route_methods = RouteMethod.CRUD_SET
@@ -384,7 +384,7 @@ class DruidDatasourceModelView(
         DeleteMixin._delete(self, pk)
 
 
-class Druid(BaseSupersetView, EnsureEnabled):
+class Druid(EnsureEnabledMixin, BaseSupersetView):
     """The base views for Superset!"""
 
     @has_access

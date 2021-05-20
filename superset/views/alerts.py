@@ -41,7 +41,7 @@ from .base import BaseSupersetView, SupersetModelView
 # TODO: access control rules for this module
 
 
-class EnsureEnabledCheck:
+class EnsureEnabledMixin:
     @staticmethod
     def is_enabled() -> bool:
         return bool(app.config["ENABLE_ALERTS"])
@@ -53,7 +53,7 @@ class EnsureEnabledCheck:
 
 
 class AlertLogModelView(
-    CompactCRUDMixin, SupersetModelView, EnsureEnabledCheck
+    CompactCRUDMixin, EnsureEnabledMixin, SupersetModelView
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(AlertLog)
     include_route_methods = {RouteMethod.LIST} | {"show"}
@@ -67,7 +67,7 @@ class AlertLogModelView(
 
 
 class AlertObservationModelView(
-    CompactCRUDMixin, SupersetModelView, EnsureEnabledCheck
+    CompactCRUDMixin, EnsureEnabledMixin, SupersetModelView
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(SQLObservation)
     include_route_methods = {RouteMethod.LIST} | {"show"}
@@ -123,7 +123,7 @@ class ReportView(BaseAlertReportView):
 
 
 class AlertModelView(
-    SupersetModelView, EnsureEnabledCheck
+    EnsureEnabledMixin, SupersetModelView
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(Alert)
     route_base = "/alerts"
