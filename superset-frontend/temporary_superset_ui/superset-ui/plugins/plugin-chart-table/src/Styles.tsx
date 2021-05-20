@@ -16,16 +16,17 @@ export default styled.div`
   thead > tr > th {
     padding-right: 1.4em;
     position: relative;
-    background: #fff;
+    background: ${({ theme: { colors } }) => colors.grayscale.light5};
+    text-align: left;
   }
   th svg {
-    color: #ccc;
-    position: absolute;
-    bottom: 0.6em;
-    right: 0.2em;
+    color: ${({ theme: { colors } }) => colors.grayscale.light2};
+    position: relative;
+    vertical-align: middle;
+    margin: 0 ${({ theme: { gridUnit } }) => gridUnit}px;
   }
   th.is-sorted svg {
-    color: #a8a8a8;
+    color: ${({ theme: { colors } }) => colors.grayscale.base};
   }
   .table > tbody > tr:first-of-type > td,
   .table > tbody > tr:first-of-type > th {
@@ -70,7 +71,7 @@ export default styled.div`
 
   .pagination > li > span.dt-pagination-ellipsis:focus,
   .pagination > li > span.dt-pagination-ellipsis:hover {
-    background: #fff;
+    background: ${({ theme: { colors } }) => colors.grayscale.light5};
   }
 
   .dt-no-results {
