@@ -30,11 +30,10 @@ import {
 import { RefObject } from 'react';
 import { PluginFilterStylesProps } from '../types';
 
-export const FIRST_VALUE = '__FIRST_VALUE__';
 export type SelectValue = (number | string)[] | null;
 
 interface PluginFilterSelectCustomizeProps {
-  defaultValue?: SelectValue | typeof FIRST_VALUE;
+  defaultValue?: SelectValue;
   enableEmptyFilter: boolean;
   inverseSelection: boolean;
   multiSelect: boolean;

@@ -17,45 +17,45 @@
  * under the License.
  */
 import {
-  AdhocFilter,
   buildQueryContext,
   GenericDataType,
   QueryObject,
   QueryObjectFilterClause,
 } from '@superset-ui/core';
+import { BuildQuery } from '@superset-ui/core/lib/chart/registries/ChartBuildQueryRegistrySingleton';
 import { DEFAULT_FORM_DATA, PluginFilterSelectQueryFormData } from './types';
 
-export default function buildQuery(
+const buildQuery: BuildQuery<PluginFilterSelectQueryFormData> = (
   formData: PluginFilterSelectQueryFormData,
   options,
-) {
-  const {
-    ownState: { search, coltypeMap },
-  } = options;
+) => {
+  const { search, coltypeMap } = options?.ownState || {};
   const { sortAscending, sortMetric } = { ...DEFAULT_FORM_DATA, ...formData };
   return buildQueryContext(formData, baseQueryObject => {
     const { columns = [], filters = [] } = baseQueryObject;
-    // @ts-ignore
-    const extra_filters: QueryObjectFilterClause[] = search
-      ? columns.map(column => {
-          if (
-            coltypeMap[column] === GenericDataType.NUMERIC &&
-            !Number.isNaN(Number(search))
-          ) {
-            // for numeric columns we apply a >= where clause
-            return {
-              col: column,
-              op: '>=',
-              val: Number(search),
-            };
-          }
-          return {
-            col: column,
-            op: 'LIKE',
-            val: `%${search}%`,
-          };
-        })
-      : [];
+    const extra_filters: QueryObjectFilterClause[] = columns.map(column => {
+      if (search && coltypeMap[column] === GenericDataType.STRING) {
+        return {
+          col: column,
+          op: 'LIKE',
+          val: `%${search}%`,
+        };
+      }
+      if (
+        search &&
+        coltypeMap[column] === GenericDataType.NUMERIC &&
+        !Number.isNaN(Number(search))
+      ) {
+        // for numeric columns we apply a >= where clause
+        return {
+          col: column,
+          op: '>=',
+          val: Number(search),
+        };
+      }
+      // if no search is defined, make sure the col value is not null
+      return { col: column, op: 'IS NOT NULL' };
+    });
 
     const sortColumns = sortMetric ? [sortMetric] : columns;
     const query: QueryObject[] = [
@@ -64,9 +64,7 @@ export default function buildQuery(
         apply_fetch_values_predicate: true,
         groupby: columns,
         metrics: sortMetric ? [sortMetric] : [],
-        filters: filters
-          .concat(columns.map(column => ({ col: column, op: 'IS NOT NULL' })))
-          .concat(extra_filters),
+        filters: filters.concat(extra_filters),
         orderby:
           sortMetric || sortAscending
             ? sortColumns.map(column => [column, sortAscending])
@@ -75,4 +73,6 @@ export default function buildQuery(
     ];
     return query;
   });
-}
+};
+
+export default buildQuery;

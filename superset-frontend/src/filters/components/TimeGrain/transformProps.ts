@@ -30,7 +30,7 @@ export default function transformProps(chartProps: ChartProps) {
   } = chartProps;
   const { setDataMask = () => {} } = hooks;
 
-  const { data } = queriesData?.[0] || {};
+  const { data } = queriesData[0];
 
   return {
     filterState,

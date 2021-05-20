@@ -31,7 +31,7 @@ import React, { useEffect, useReducer, useState } from 'react';
 import { Select } from 'src/common/components';
 import { debounce } from 'lodash';
 import { SLOW_DEBOUNCE } from 'src/constants';
-import { FIRST_VALUE, PluginFilterSelectProps, SelectValue } from './types';
+import { PluginFilterSelectProps, SelectValue } from './types';
 import { StyledSelect, Styles } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
 
@@ -102,7 +102,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     isRefreshing,
     width,
     setDataMask,
-    filterState,
     appSection,
   } = props;
   const {
@@ -116,25 +115,14 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     searchAllOptions,
   } = formData;
 
-  const forceFirstValue =
+  const isDisabled =
     appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem;
 
   const groupby = ensureIsArray<string>(formData.groupby);
   // Correct initial value for Ant Select
-  const initSelectValue: SelectValue =
-    // `defaultValue` can be `FIRST_VALUE` if `defaultToFirstItem` is checked, so need convert it to correct value for Select
-    defaultValue === FIRST_VALUE ? [] : defaultValue ?? [];
-
-  const firstItem: SelectValue = data[0]
-    ? (groupby.map(col => data[0][col]) as string[]) ?? initSelectValue
-    : initSelectValue;
 
   // If we are in config modal we always need show empty select for `defaultToFirstItem`
-  const [values, setValues] = useState<SelectValue>(
-    defaultToFirstItem && appSection !== AppSection.FILTER_CONFIG_MODAL
-      ? firstItem
-      : initSelectValue,
-  );
+  const [values, setValues] = useState<SelectValue>([]);
   const [currentSuggestionSearch, setCurrentSuggestionSearch] = useState('');
   const [dataMask, dispatchDataMask] = useReducer<DataMaskReducer>(reducer, {});
 
@@ -158,6 +146,16 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   };
 
   useEffect(() => {
+    const firstItem: SelectValue = data[0]
+      ? (groupby.map(col => data[0][col]) as string[])
+      : null;
+    if (!isDisabled && defaultToFirstItem && firstItem) {
+      // initialize to first value if set to default to first item
+      setValues(firstItem);
+    } else if (!isDisabled && defaultValue?.length) {
+      // initialize to saved value
+      setValues(defaultValue);
+    }
     // initialize column types (these should only be set once)
     if (searchAllOptions) {
       dispatchDataMask({
@@ -176,25 +174,16 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   });
 
   const handleChange = (value?: SelectValue | number | string) => {
-    if (value === null) return;
-    let selectValue: (number | string)[] = ensureIsArray<number | string>(
-      value,
-    );
-    if (value === FIRST_VALUE) {
-      selectValue = forceFirstValue ? [] : firstItem;
-    }
-    setValues(selectValue);
+    setValues(ensureIsArray(value));
   };
 
   useEffect(() => {
-    let stateValue: SelectValue | typeof FIRST_VALUE = values?.length
-      ? values
-      : null;
-
-    if (values?.[0] === FIRST_VALUE) {
-      stateValue = [FIRST_VALUE];
+    if (isDisabled) {
+      setValues([]);
     }
+  }, [isDisabled]);
 
+  useEffect(() => {
     const emptyFilter =
       enableEmptyFilter && !inverseSelection && values?.length === 0;
 
@@ -210,24 +199,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         // We need to save in state `FIRST_VALUE` as some const and not as REAL value,
         // because when FiltersBar check if all filters initialized it compares `defaultValue` with this value
         // and because REAL value can be unpredictable for users that have different data for same dashboard we use `FIRST_VALUE`
-        value: stateValue,
+        value: values,
       },
     });
   }, [col, enableEmptyFilter, inverseSelection, JSON.stringify(values)]);
-
-  useEffect(() => {
-    // For currentValue we need set always `FIRST_VALUE` only if we in config modal for `defaultToFirstItem` mode
-    handleChange(forceFirstValue ? FIRST_VALUE : filterState.value ?? []);
-  }, [JSON.stringify(filterState.value)]);
-
-  useEffect(() => {
-    // If we have `defaultToFirstItem` mode it means that default value always `FIRST_VALUE`
-    handleChange(defaultToFirstItem ? FIRST_VALUE : defaultValue);
-  }, [
-    JSON.stringify(defaultValue),
-    JSON.stringify(firstItem),
-    defaultToFirstItem,
-  ]);
 
   useEffect(() => {
     setDataMask(dataMask);
@@ -243,7 +218,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         allowClear={!enableEmptyFilter}
         // @ts-ignore
         value={values}
-        disabled={forceFirstValue}
+        disabled={isDisabled}
         showSearch={showSearch}
         mode={multiSelect ? 'multiple' : undefined}
         placeholder={placeholderText}
