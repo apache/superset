@@ -24,11 +24,10 @@ import {
   FilterState,
   GenericDataType,
   QueryFormData,
-  SetDataMaskHook,
   ChartDataResponseResult,
 } from '@superset-ui/core';
 import { RefObject } from 'react';
-import { PluginFilterStylesProps } from '../types';
+import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
 
 export const FIRST_VALUE = '__FIRST_VALUE__';
 export type SelectValue = (number | string)[] | null;
@@ -55,14 +54,11 @@ export interface PluginFilterSelectChartProps extends ChartProps {
 export type PluginFilterSelectProps = PluginFilterStylesProps & {
   coltypeMap: Record<string, GenericDataType>;
   data: DataRecord[];
-  setDataMask: SetDataMaskHook;
-  setFocusedFilter: () => void;
-  unsetFocusedFilter: () => void;
   behaviors: Behavior[];
   appSection: AppSection;
   formData: PluginFilterSelectQueryFormData;
   filterState: FilterState;
-};
+} & PluginFilterHooks;
 
 export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {
   defaultValue: null,
