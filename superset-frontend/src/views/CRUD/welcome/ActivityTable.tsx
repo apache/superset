@@ -165,7 +165,7 @@ export default function ActivityTable({
   const [loadingState, setLoadingState] = useState(false);
 
   useEffect(() => {
-    if(activeChild === 'Edited') {
+    if (activeChild === 'Edited') {
       setLoadingState(true);
       getEditedObjects(user.userId).then(r => {
         setEditedObjs([...r.editedChart, ...r.editedDash]);
