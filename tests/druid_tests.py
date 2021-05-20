@@ -605,7 +605,7 @@ class TestDruidViewEnabling(SupersetTestCase):
             self.login("admin")
             uri = "/druid/refresh_datasources/"
             rv = self.client.get(uri)
-            self.assertNotEqual(rv.status_code, 404)
+            self.assertLess(rv.status_code, 404)
 
     def test_druid_cluster_disabled(self):
         with patch.object(DruidClusterModelView, "is_enabled", return_value=False):
@@ -619,7 +619,7 @@ class TestDruidViewEnabling(SupersetTestCase):
             self.login("admin")
             uri = "/druidclustermodelview/list/"
             rv = self.client.get(uri)
-            self.assertNotEqual(rv.status_code, 404)
+            self.assertLess(rv.status_code, 404)
 
     def test_druid_column_disabled(self):
         with patch.object(DruidColumnInlineView, "is_enabled", return_value=False):
@@ -633,7 +633,7 @@ class TestDruidViewEnabling(SupersetTestCase):
             self.login("admin")
             uri = "/druidcolumninlineview/list/"
             rv = self.client.get(uri)
-            self.assertNotEqual(rv.status_code, 404)
+            self.assertLess(rv.status_code, 404)
 
     def test_druid_datasource_disabled(self):
         with patch.object(DruidDatasourceModelView, "is_enabled", return_value=False):
@@ -647,7 +647,7 @@ class TestDruidViewEnabling(SupersetTestCase):
             self.login("admin")
             uri = "/druiddatasourcemodelview/list/"
             rv = self.client.get(uri)
-            self.assertNotEqual(rv.status_code, 404)
+            self.assertLess(rv.status_code, 404)
 
     def test_druid_metric_disabled(self):
         with patch.object(DruidMetricInlineView, "is_enabled", return_value=False):
@@ -661,7 +661,7 @@ class TestDruidViewEnabling(SupersetTestCase):
             self.login("admin")
             uri = "/druidmetricinlineview/list/"
             rv = self.client.get(uri)
-            self.assertNotEqual(rv.status_code, 404)
+            self.assertLess(rv.status_code, 404)
 
 
 if __name__ == "__main__":
