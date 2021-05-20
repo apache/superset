@@ -137,16 +137,16 @@ class CsvToDatabaseView(SimpleFormView):
         else:
             read = pd.read_csv
             kwargs = {
-                "chunksize": 1000,
-                "encoding": "utf-8",
+                "chunksize": 1000,  # type: ignore
+                "encoding": "utf-8",  # type: ignore
                 "header": form.header.data if form.header.data else 0,
                 "index_col": form.index_col.data,
                 "infer_datetime_format": form.infer_datetime_format.data,
-                "iterator": True,
-                "keep_default_na": not form.null_values.data,
+                "iterator": True,  # type: ignore
+                "keep_default_na": not form.null_values.data,  # type: ignore
                 "mangle_dupe_cols": form.mangle_dupe_cols.data,
                 "usecols": form.usecols.data,
-                "na_values": form.null_values.data if form.null_values.data else None,
+                "na_values": form.null_values.data if form.null_values.data else None,  # type: ignore
                 "nrows": form.nrows.data,
                 "parse_dates": form.parse_dates.data,
                 "sep": form.sep.data,
