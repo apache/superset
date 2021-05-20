@@ -43,9 +43,9 @@ CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
     + "permission in project (?P<project>.+?)"
 )
 
-# TODO: Fill in descriptions of each field
+
 class BigQueryParametersSchema(Schema):
-    pass
+    credentials_info = fields.String(description="credentials.json file for BigQuery")
 
 
 class BigQueryParametersType(TypedDict):
@@ -328,8 +328,11 @@ class BigQueryEngineSpec(BaseEngineSpec):
         spec = APISpec(
             title="Database Parameters",
             version="1.0.0",
-            openapi_version="3.0.2",
+            openapi_version="3.0.0",
             plugins=[MarshmallowPlugin()],
         )
         spec.components.schema(cls.__name__, schema=cls.parameters_schema)
-        return spec.to_dict()["components"]["schemas"][cls.__name__]
+
+        schemas = spec.to_dict()["components"]["schemas"][cls.__name__]
+        schemas["properties"]["credentials_info"]["type"] = "encryption_extra"
+        return schemas

@@ -909,11 +909,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "preferred": engine_spec.engine in preferred_databases,
             }
 
-            if issubclass(engine_spec, BasicParametersMixin):
-                payload["parameters"] = engine_spec.parameters_json_schema()
+            if hasattr(engine_spec, "parameters_json_schema") or hasattr(
+                engine_spec, "sqlalchemy_uri_placeholder"
+            ):
+                payload["parameters"] = engine_spec.parameters_json_schema()  # type: ignore
                 payload[
                     "sqlalchemy_uri_placeholder"
-                ] = engine_spec.sqlalchemy_uri_placeholder
+                ] = engine_spec.sqlalchemy_uri_placeholder  # type: ignore
 
             available_databases.append(payload)
 
