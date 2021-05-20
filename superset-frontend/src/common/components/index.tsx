@@ -54,6 +54,7 @@ export {
   Tag,
   Tabs,
   Tooltip,
+  Upload,
   Input as AntdInput,
 } from 'antd';
 export { Card as AntdCard } from 'antd';

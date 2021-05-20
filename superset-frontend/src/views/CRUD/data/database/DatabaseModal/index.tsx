@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
+import { Upload, Button } from 'antd';
 import React, {
   FunctionComponent,
   useEffect,
@@ -25,7 +26,7 @@ import React, {
   Reducer,
 } from 'react';
 import Tabs from 'src/components/Tabs';
-import { Alert } from 'src/common/components';
+import { Alert, Select, Upload, Button } from 'src/common/components';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import {
   testDatabaseConnection,
@@ -37,6 +38,7 @@ import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import {
   StyledBasicTab,
+  StyledJsonEditor,
   StyledModal,
   EditHeader,
   EditHeaderTitle,
@@ -49,6 +51,8 @@ import {
 
 const DOCUMENTATION_LINK =
   'https://superset.apache.org/docs/databases/installing-database-drivers';
+
+const { Option } = Select;
 
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
@@ -148,10 +152,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
   >(dbReducer, null);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
+  const [bigQueryOption, setBigQueryOption] = useState<string>('upload');
   const conf = useCommonConf();
 
   const isEditMode = !!databaseId;
-  const useSqlAlchemyForm = true; // TODO: set up logic
+  const useSqlAlchemyForm = false; // TODO: set up logic
   const hasConnectedDb = false; // TODO: set up logic
 
   // Database fetch logic
@@ -265,6 +270,39 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const tabChange = (key: string) => {
     setTabKey(key);
   };
+
+  const BigQueryForm = () => (
+    <>
+      <Select
+        defaultValue={bigQueryOption}
+        style={{ width: '100%' }}
+        onChange={value => {
+          setBigQueryOption(value);
+        }}
+      >
+        <Option value="upload">Upload JSON file</Option>
+        <Option value="paste">Copy and Paste JSON credentials</Option>
+      </Select>
+      {bigQueryOption === 'paste' ? (
+        <div className="input-container">
+          <StyledJsonEditor
+            name="encrypted_extra"
+            value={db?.encrypted_extra || ''}
+            placeholder={t('Secure extra')}
+            onChange={(json: string) => {
+              console.log(json);
+            }}
+            width="100%"
+            height="160px"
+          />
+        </div>
+      ) : (
+        <Upload>
+          <Button>Click to Upload</Button>
+        </Upload>
+      )}
+    </>
+  );
 
   return isEditMode || useSqlAlchemyForm ? (
     <StyledModal
@@ -388,6 +426,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     >
       <div>
         <p>TODO: db form</p>
+        <BigQueryForm />
       </div>
     </StyledModal>
   );
