@@ -74,15 +74,7 @@ const ActivityContainer = styled.div`
   margin-top: ${({ theme }) => theme.gridUnit * -4}px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
-  ${[mq[3]]} {
-    grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
-  }
-  ${[mq[2]]} {
-    grid-template-columns: repeat(auto-fit, minmax(42%, max-content));
-  }
-  ${[mq[1]]} {
-    grid-template-columns: repeat(auto-fit, minmax(63%, max-content));
-  }
+
   grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
   justify-content: left;
   padding: ${({ theme }) => theme.gridUnit * 6}px;
@@ -93,6 +85,15 @@ const ActivityContainer = styled.div`
   }
   .ant-card-meta-title {
     font-weight: ${({ theme }) => theme.typography.weights.bold};
+  }
+  ${mq[3]} {
+    grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
+  }
+  ${mq[2]} {
+    grid-template-columns: repeat(auto-fit, minmax(42%, max-content));
+  }
+  ${mq[1]} {
+    grid-template-columns: repeat(auto-fit, minmax(80%, max-content));
   }
 `;
 
