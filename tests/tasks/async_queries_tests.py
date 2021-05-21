@@ -15,12 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for async query celery jobs in Superset"""
-import re
 from unittest import mock
 from uuid import uuid4
 
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
+from flask import g
 
 from superset import db
 from superset.charts.commands.data import ChartDataCommand
@@ -30,6 +30,7 @@ from superset.exceptions import SupersetException
 from superset.extensions import async_query_manager, security_manager
 from superset.tasks import async_queries
 from superset.tasks.async_queries import (
+    ensure_user_is_set,
     load_chart_data_into_cache,
     load_explore_json_into_cache,
 )
@@ -202,3 +203,44 @@ class TestAsyncQueries(SupersetTestCase):
                 ensure_user_is_set.side_effect = SoftTimeLimitExceeded()
                 load_explore_json_into_cache(job_metadata, form_data)
             ensure_user_is_set.assert_called_once_with(user.id, "error", errors=errors)
+
+    def test_ensure_user_is_set(self):
+        g_user_is_set = hasattr(g, "user")
+        original_g_user = g.user if g_user_is_set else None
+
+        if g_user_is_set:
+            del g.user
+
+        self.assertFalse(hasattr(g, "user"))
+        ensure_user_is_set(1)
+        self.assertTrue(hasattr(g, "user"))
+        self.assertFalse(g.user.is_anonymous)
+        self.assertEqual("1", g.user.get_id())
+
+        del g.user
+
+        self.assertFalse(hasattr(g, "user"))
+        ensure_user_is_set(None)
+        self.assertTrue(hasattr(g, "user"))
+        self.assertTrue(g.user.is_anonymous)
+        self.assertEqual(None, g.user.get_id())
+
+        del g.user
+
+        g.user = security_manager.get_user_by_id(2)
+        self.assertEqual("2", g.user.get_id())
+
+        ensure_user_is_set(1)
+        self.assertTrue(hasattr(g, "user"))
+        self.assertFalse(g.user.is_anonymous)
+        self.assertEqual("2", g.user.get_id())
+
+        ensure_user_is_set(None)
+        self.assertTrue(hasattr(g, "user"))
+        self.assertFalse(g.user.is_anonymous)
+        self.assertEqual("2", g.user.get_id())
+
+        if g_user_is_set:
+            g.user = original_g_user
+        else:
+            del g.user
