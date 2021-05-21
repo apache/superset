@@ -178,7 +178,11 @@ class CsvToDatabaseView(SimpleFormView):
 
         try:
             chunks = read(form.csv_file.data, **kwargs)
-            df = pd.concat(chunks) if isinstance(chunks, list) else chunks
+            df = (
+                pd.concat(chunks)
+                if isinstance(chunks, pd.io.parsers.TextFileReader)
+                else chunks
+            )
 
             database = (
                 db.session.query(models.Database)
