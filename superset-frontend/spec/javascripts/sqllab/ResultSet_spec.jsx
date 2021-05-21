@@ -19,8 +19,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import { styledMount } from 'spec/helpers/theming';
-import { render } from 'spec/helpers/testing-library';
-import { screen } from '@testing-library/react';
+import { render, screen } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import sinon from 'sinon';
 import Alert from 'src/components/Alert';
