@@ -225,6 +225,21 @@ class TestAsyncQueries(SupersetTestCase):
         self.assertTrue(g.user.is_anonymous)
         self.assertEqual(None, g.user.get_id())
 
+        del g.user
+
+        g.user = security_manager.get_user_by_id(2)
+        self.assertEqual("2", g.user.get_id())
+
+        ensure_user_is_set(1)
+        self.assertTrue(hasattr(g, "user"))
+        self.assertFalse(g.user.is_anonymous)
+        self.assertEqual("2", g.user.get_id())
+
+        ensure_user_is_set(None)
+        self.assertTrue(hasattr(g, "user"))
+        self.assertFalse(g.user.is_anonymous)
+        self.assertEqual("2", g.user.get_id())
+
         if g_user_is_set:
             g.user = original_g_user
         else:
