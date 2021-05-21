@@ -25,17 +25,18 @@ import FormLabel from './FormLabel';
 export interface LabeledErrorBoundInputProps {
   label?: string;
   validationMethods:
-    | { onBlur: (value: any) => string }
-    | { onChange: (value: any) => string };
+    | { onBlur: (value: any) => void }
+    | { onChange: (value: any) => void };
   errorMessage: string | null;
   helpText?: string;
   required?: boolean;
   id?: string;
+  classname?: string;
   [x: string]: any;
 }
 
 const StyledInput = styled(Input)`
-  margin: 8px 0;
+  margin: ${({ theme }) => `${theme.gridUnit}px 0 ${theme.gridUnit * 2}px`};
 `;
 
 const alertIconStyles = (theme: SupersetTheme, hasError: boolean) => css`
@@ -60,6 +61,12 @@ const alertIconStyles = (theme: SupersetTheme, hasError: boolean) => css`
       }
     }`}
 `;
+const StyledFormGroup = styled('div')`
+  margin-bottom: ${({ theme }) => theme.gridUnit * 5}px;
+  .ant-form-item {
+    margin-bottom: 0;
+  }
+`;
 
 const LabeledErrorBoundInput = ({
   label,
@@ -68,9 +75,10 @@ const LabeledErrorBoundInput = ({
   helpText,
   required = false,
   id,
+  className,
   ...props
 }: LabeledErrorBoundInputProps) => (
-  <>
+  <StyledFormGroup className={className}>
     <FormLabel htmlFor={id} required={required}>
       {label}
     </FormLabel>
@@ -83,7 +91,7 @@ const LabeledErrorBoundInput = ({
     >
       <StyledInput {...props} {...validationMethods} />
     </FormItem>
-  </>
+  </StyledFormGroup>
 );
 
 export default LabeledErrorBoundInput;

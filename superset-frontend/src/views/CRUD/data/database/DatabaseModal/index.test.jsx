@@ -336,7 +336,7 @@ describe('DatabaseModal', () => {
         await screen.findByText(/display name/i);
 
         // it does not fetch any databases if no id is passed in
-        expect(fetchMock.calls().length).toEqual(0);
+        expect(fetchMock.calls(DATABASE_FETCH_ENDPOINT).length).toEqual(0);
 
         // todo we haven't hooked this up to load dynamically yet so
         // we can't currently test it
