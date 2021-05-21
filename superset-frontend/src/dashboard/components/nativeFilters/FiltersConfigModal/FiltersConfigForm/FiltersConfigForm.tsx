@@ -474,6 +474,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
                   hasDataset={hasDataset}
                   form={form}
                   formData={newFormData}
+                  enableNoResults={enableNoResults}
                 />
               ) : hasFilledDataset ? (
                 t('Click "Populate" to get "Default Value" ->')

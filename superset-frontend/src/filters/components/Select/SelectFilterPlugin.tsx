@@ -146,14 +146,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   };
 
   useEffect(() => {
-    const firstItem: SelectValue = data[0]
-      ? (groupby.map(col => data[0][col]) as string[])
-      : null;
-    if (!isDisabled && defaultToFirstItem && firstItem) {
-      // initialize to first value if set to default to first item
-      setValues(firstItem);
-    } else if (!isDisabled && defaultValue?.length) {
-      // initialize to saved value
+    if (!isDisabled && defaultValue?.length) {
+      // initialize to default value
       setValues(defaultValue);
     }
     // initialize column types (these should only be set once)
@@ -166,6 +160,19 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       });
     }
   }, []);
+
+  useEffect(() => {
+    const firstItem: SelectValue = data[0]
+      ? (groupby.map(col => data[0][col]) as string[])
+      : null;
+    if (!isDisabled && defaultToFirstItem && firstItem) {
+      // initialize to first value if set to default to first item
+      setValues(firstItem);
+    } else if (!isDisabled && defaultValue?.length) {
+      // initialize to saved value
+      setValues(defaultValue);
+    }
+  }, [defaultValue]);
 
   const [col] = groupby;
   const datatype: GenericDataType = coltypeMap[col];
