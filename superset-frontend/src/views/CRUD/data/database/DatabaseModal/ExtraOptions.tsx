@@ -18,7 +18,7 @@
  */
 import React, { ChangeEvent, EventHandler } from 'react';
 import cx from 'classnames';
-import { t } from '@superset-ui/core';
+import { t, SupersetTheme } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import Collapse from 'src/components/Collapse';
@@ -26,7 +26,8 @@ import {
   StyledInputContainer,
   StyledJsonEditor,
   StyledExpandableForm,
-} from 'src/views/CRUD/data/database/DatabaseModal/styles';
+  antdCollapseStyles,
+} from './styles';
 import { DatabaseObject } from '../types';
 
 const defaultExtra =
@@ -48,7 +49,11 @@ const ExtraOptions = ({
   const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
 
   return (
-    <Collapse expandIconPosition="right" accordion>
+    <Collapse
+      expandIconPosition="right"
+      accordion
+      css={(theme: SupersetTheme) => antdCollapseStyles(theme)}
+    >
       <Collapse.Panel
         header={
           <div>

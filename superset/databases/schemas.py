@@ -39,6 +39,7 @@ database_schemas_query_schema = {
 }
 
 database_name_description = "A database name to identify this connection."
+port_description = "Port number for the database connection."
 cache_timeout_description = (
     "Duration (in seconds) of the caching timeout for charts of this database. "
     "A timeout of 0 indicates that the cache never expires. "
