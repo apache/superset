@@ -145,7 +145,7 @@ class CsvToDatabaseView(SimpleFormView):
                 "iterator": True,  # type: ignore
                 "keep_default_na": not form.null_values.data,  # type: ignore
                 "mangle_dupe_cols": form.mangle_dupe_cols.data,
-                "usecols": form.usecols.data,
+                "usecols": form.usecols.data if form.usecols.data else None,
                 "na_values": form.null_values.data if form.null_values.data else None,  # type: ignore
                 "nrows": form.nrows.data,
                 "parse_dates": form.parse_dates.data,

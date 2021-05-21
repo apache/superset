@@ -91,6 +91,7 @@ def create_csv_files():
     os.remove(CSV_FILENAME2)
 
 
+@pytest.fixture()
 def create_parquet_files():
     pd.DataFrame({"a": ["john", "paul"], "b": [1, 2]}).to_parquet(PARQUET_FILENAME)
     yield
@@ -260,7 +261,7 @@ def test_import_csv(setup_csv_upload, create_csv_files):
     resp = upload_csv(
         CSV_FILENAME1,
         CSV_UPLOAD_TABLE,
-        extra={"if_exists": "replace", "usecols": ["a"]},
+        extra={"if_exists": "replace", "usecols": '["a"]'},
     )
     assert success_msg_f1 in resp
 
@@ -389,4 +390,4 @@ def test_import_parquet(setup_csv_upload, create_parquet_files):
         .execute(f"SELECT * from {CSV_UPLOAD_TABLE}")
         .fetchall()
     )
-    assert data == [(0, "john", 1), (1, "paul", 2)]
+    assert data == [("john", 1), ("paul", 2)]
