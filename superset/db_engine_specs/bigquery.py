@@ -58,7 +58,7 @@ def encrypted_field_properties(self, field, **kwargs):
     ret = {}
     if isinstance(field, EncryptedField):
         if self.openapi_version.major > 2:
-            ret["x-encrypted"] = True
+            ret["x-encrypted-extra"] = True
     return ret
 
 
