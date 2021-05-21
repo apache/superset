@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 import pandas as pd
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from apispec.ext.marshmallow.openapi import OpenAPIConverter
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from sqlalchemy import literal_column
@@ -43,9 +44,25 @@ CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
     + "permission in project (?P<project>.+?)"
 )
 
+ma_plugin = MarshmallowPlugin()
+
+
+class EncryptedField(fields.String):
+    pass
+
 
 class BigQueryParametersSchema(Schema):
-    credentials_info = fields.String(description="credentials.json file for BigQuery")
+    credentials_info = EncryptedField(description="credentials.json file for BigQuery")
+
+
+def encrypted_field_properties(
+    self: OpenAPIConverter, field: EncryptedField
+) -> Dict[str, Any]:
+    ret = {}
+    if isinstance(field, EncryptedField):
+        if self.openapi_version.major > 2:
+            ret["x-encrypted"] = True
+    return ret
 
 
 class BigQueryParametersType(TypedDict):
@@ -329,10 +346,10 @@ class BigQueryEngineSpec(BaseEngineSpec):
             title="Database Parameters",
             version="1.0.0",
             openapi_version="3.0.0",
-            plugins=[MarshmallowPlugin()],
+            plugins=[ma_plugin],
         )
-        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
 
-        schemas = spec.to_dict()["components"]["schemas"][cls.__name__]
-        schemas["properties"]["credentials_info"]["type"] = "encryption_extra"
-        return schemas
+        ma_plugin.init_spec(spec)
+        ma_plugin.converter.add_attribute_function(encrypted_field_properties)
+        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
+        return spec.to_dict()["components"]["schemas"][cls.__name__]
