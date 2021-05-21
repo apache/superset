@@ -16,13 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { t } from '@superset-ui/core';
 import {
   useListViewResource,
   useChartEditModal,
   useFavoriteStatus,
 } from 'src/views/CRUD/hooks';
+import {
+  setInLocalStorage,
+  getFromLocalStorage,
+} from 'src/utils/localStorageHelpers';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useHistory } from 'react-router-dom';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
@@ -71,6 +75,7 @@ function ChartTable({
     false,
   );
 
+  useEffect(() => {});
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
     'chart',
@@ -85,6 +90,13 @@ function ChartTable({
   } = useChartEditModal(setCharts, charts);
 
   const [chartFilter, setChartFilter] = useState('Mine');
+
+  useEffect(() => {
+    const filter = getFromLocalStorage('chart', null);
+    if (!filter) {
+      setChartFilter('Mine');
+    } else setChartFilter(filter.tab);
+  }, []);
 
   const getFilters = (filterName: string) => {
     const filters = [];
@@ -138,12 +150,19 @@ function ChartTable({
             name: 'Favorite',
             label: t('Favorite'),
             onClick: () =>
-              getData('Favorite').then(() => setChartFilter('Favorite')),
+              getData('Favorite').then(() => {
+                setChartFilter('Favorite');
+                setInLocalStorage('chart', { tab: 'Favorite' });
+              }),
           },
           {
             name: 'Mine',
             label: t('Mine'),
-            onClick: () => getData('Mine').then(() => setChartFilter('Mine')),
+            onClick: () =>
+              getData('Mine').then(() => {
+                setChartFilter('Mine');
+                setInLocalStorage('chart', { tab: 'Mine' });
+              }),
           },
         ]}
         buttons={[
