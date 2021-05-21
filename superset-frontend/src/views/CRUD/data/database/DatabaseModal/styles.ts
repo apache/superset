@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { styled } from '@superset-ui/core';
-import Modal from 'src/components/Modal';
+import { styled, css, SupersetTheme } from '@superset-ui/core';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 import Tabs from 'src/components/Tabs';
 
@@ -28,75 +27,159 @@ const EXPOSE_ALL_FORM_HEIGHT = EXPOSE_IN_SQLLAB_FORM_HEIGHT + 102;
 
 const anticonHeight = 12;
 
-export const StyledModal = styled(Modal)`
-  .ant-collapse {
-    .ant-collapse-header {
-      padding-top: ${({ theme }) => theme.gridUnit * 3.5}px;
-      padding-bottom: ${({ theme }) => theme.gridUnit * 2.5}px;
+export const StyledFormHeader = styled.header`
+  border-bottom: ${({ theme }) => `${theme.gridUnit * 0.25}px solid
+    ${theme.colors.grayscale.light2};`}
+  padding-left: ${({ theme }) => theme.gridUnit * 4}px;
+  padding-right: ${({ theme }) => theme.gridUnit * 4}px;
+  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  .helper {
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+  }
+  h4 {
+    color: ${({ theme }) => theme.colors.grayscale.dark2};
+    font-weight: bold;
+    font-size: ${({ theme }) => theme.typography.sizes.l}px;
+  }
+`;
 
-      .anticon.ant-collapse-arrow {
-        top: calc(50% - ${anticonHeight / 2}px);
-      }
-      .helper {
-        color: ${({ theme }) => theme.colors.grayscale.base};
-      }
+export const antdCollapseStyles = (theme: SupersetTheme) => css`
+  .ant-collapse-header {
+    padding-top: ${theme.gridUnit * 3.5}px;
+    padding-bottom: ${theme.gridUnit * 2.5}px;
+
+    .anticon.ant-collapse-arrow {
+      top: calc(50% - ${anticonHeight / 2}px);
     }
-    h4 {
-      font-size: 16px;
-      font-weight: bold;
-      margin-top: 0;
-      margin-bottom: ${({ theme }) => theme.gridUnit}px;
-    }
-    p.helper {
-      margin-bottom: 0;
-      padding: 0;
+    .helper {
+      color: ${theme.colors.grayscale.base};
     }
   }
-  .ant-modal-header {
-    padding: 18px 16px 16px;
+  h4 {
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 0;
+    margin-bottom: ${theme.gridUnit}px;
   }
+  p.helper {
+    margin-bottom: 0;
+    padding: 0;
+  }
+`;
+
+export const antDTabsStyles = css`
+  .ant-tabs-top > .ant-tabs-nav {
+    margin-bottom: 0;
+  }
+  .ant-tabs-tab {
+    margin-right: 0;
+  }
+`;
+
+export const antDModalNoPaddingStyles = css`
   .ant-modal-body {
     padding-left: 0;
     padding-right: 0;
     margin-bottom: 110px;
   }
-  .ant-tabs-top > .ant-tabs-nav {
-    margin-bottom: 0;
+`;
+
+export const formScrollableStyles = (theme: SupersetTheme) => css`
+  overflow-y: scroll;
+  padding-left: ${theme.gridUnit * 4}px;
+  padding-right: ${theme.gridUnit * 4}px;
+`;
+
+export const antDModalStyles = (theme: SupersetTheme) => css`
+  .ant-modal-header {
+    padding: ${theme.gridUnit * 4.5}px ${theme.gridUnit * 4}px
+      ${theme.gridUnit * 4}px;
   }
+
   .ant-modal-close-x .close {
-    color: ${({ theme }) => theme.colors.grayscale.dark1};
+    color: ${theme.colors.grayscale.dark1};
     opacity: 1;
-  }
-
-  .required {
-    margin-left: ${({ theme }) => theme.gridUnit / 2}px;
-    color: ${({ theme }) => theme.colors.error.base};
-  }
-
-  .helper {
-    display: block;
-    padding: ${({ theme }) => theme.gridUnit}px 0;
-    color: ${({ theme }) => theme.colors.grayscale.light1};
-    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
-    text-align: left;
   }
   .ant-modal-title > h4 {
     font-weight: bold;
   }
+`;
 
-  .ant-alert {
-    color: ${({ theme }) => theme.colors.info.dark2};
-    border: 1px solid ${({ theme }) => theme.colors.info.base};
-    font-size: ${({ theme }) => theme.gridUnit * 3}px;
-    padding: ${({ theme }) => theme.gridUnit * 4}px;
-    margin: ${({ theme }) => theme.gridUnit * 4}px 0 0;
+export const antDAlertStyles = (theme: SupersetTheme) => css`
+  border: 1px solid ${theme.colors.info.base};
+  padding: ${theme.gridUnit * 4}px;
+  margin: ${theme.gridUnit * 8}px 0 0;
+  .ant-alert-message {
+    color: ${theme.colors.info.dark2};
+    font-size: ${theme.typography.sizes.s + 1}px;
+    font-weight: bold;
   }
-  .ant-alert-with-description {
-    .ant-alert-message,
-    .alert-with-description {
-      color: ${({ theme }) => theme.colors.info.dark2};
-      font-weight: bold;
+  .ant-alert-description {
+    color: ${theme.colors.info.dark2};
+    font-size: ${theme.typography.sizes.s + 1}px;
+    line-height: ${theme.gridUnit * 4}px;
+    .ant-alert-icon {
+      margin-right: ${theme.gridUnit * 2.5}px;
+      font-size: ${theme.typography.sizes.l + 1}px;
+      position: relative;
+      top: ${theme.gridUnit / 4}px;
     }
+  }
+`;
+
+export const formHelperStyles = (theme: SupersetTheme) => css`
+  .required {
+    margin-left: ${theme.gridUnit / 2}px;
+    color: ${theme.colors.error.base};
+  }
+
+  .helper {
+    display: block;
+    padding: ${theme.gridUnit}px 0;
+    color: ${theme.colors.grayscale.light1};
+    font-size: ${theme.typography.sizes.s - 1}px;
+    text-align: left;
+  }
+`;
+
+export const wideButton = (theme: SupersetTheme) => css`
+  width: 100%;
+  border: 1px solid ${theme.colors.primary.dark2};
+  color: ${theme.colors.primary.dark2};
+  &:hover,
+  &:focus {
+    border: 1px solid ${theme.colors.primary.dark1};
+    color: ${theme.colors.primary.dark1};
+  }
+`;
+
+export const formStyles = (theme: SupersetTheme) => css`
+  .form-group {
+    margin-bottom: ${theme.gridUnit * 4}px;
+    &-w-50 {
+      display: inline-block;
+      width: ${`calc(50% - ${theme.gridUnit * 4}px)`};
+      & + .form-group-w-50 {
+        margin-left: ${theme.gridUnit * 8}px;
+      }
+    }
+    .text-danger {
+      color: ${theme.colors.error.base};
+      font-size: ${theme.typography.sizes.s - 1}px;
+      strong {
+        font-weight: normal;
+      }
+    }
+  }
+  .control-label {
+    color: ${theme.colors.grayscale.dark1};
+    font-size: ${theme.typography.sizes.s - 1}px;
+  }
+  .helper {
+    color: ${theme.colors.grayscale.light1};
+    font-size: ${theme.typography.sizes.s - 1}px;
+    margin-top: ${theme.gridUnit * 1.5}px;
   }
   .ant-modal-body {
     padding-top: 0;
@@ -219,7 +302,12 @@ export const StyledExpandableForm = styled.div`
 export const StyledBasicTab = styled(Tabs.TabPane)`
   padding-left: ${({ theme }) => theme.gridUnit * 4}px;
   padding-right: ${({ theme }) => theme.gridUnit * 4}px;
-  margin-top: ${({ theme }) => theme.gridUnit * 4}px;
+  margin-top: ${({ theme }) => theme.gridUnit * 6}px;
+`;
+
+export const buttonLinkStyles = css`
+  font-weight: 400;
+  text-transform: initial;
 `;
 
 export const EditHeader = styled.div`
@@ -237,22 +325,20 @@ export const CreateHeader = styled.div`
   flex-direction: column;
   justify-content: center;
   padding: 0px;
-  margin: ${({ theme }) => theme.gridUnit * 4}px
-    ${({ theme }) => theme.gridUnit * 4}px
-    ${({ theme }) => theme.gridUnit * 9}px;
+  margin: 0 ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 6}px;
 `;
 
 export const CreateHeaderTitle = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  color: ${({ theme }) => theme.colors.grayscale.dark2};
   font-weight: bold;
-  font-size: ${({ theme }) => theme.typography.sizes.l}px;
-  padding: ${({ theme }) => theme.gridUnit * 1}px;
+  font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  padding: ${({ theme }) => theme.gridUnit * 1}px 0;
 `;
 
 export const CreateHeaderSubtitle = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  padding: ${({ theme }) => theme.gridUnit * 1}px;
 `;
 
 export const EditHeaderTitle = styled.div`
@@ -265,8 +351,4 @@ export const EditHeaderSubtitle = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   font-size: ${({ theme }) => theme.typography.sizes.xl}px;
   font-weight: bold;
-`;
-
-export const Divider = styled.hr`
-  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light1};
 `;
