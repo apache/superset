@@ -70,6 +70,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ['groupby'],
         ['metrics'],
+        ['timeseries_limit_metric'],
         ['adhoc_filters'],
         [
           {
