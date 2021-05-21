@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t, SupersetTheme } from '@superset-ui/core';
 import React, {
   FunctionComponent,
   useEffect,
@@ -26,25 +26,39 @@ import React, {
 } from 'react';
 import Tabs from 'src/components/Tabs';
 import { Alert } from 'src/common/components';
+import Modal from 'src/components/Modal';
+import Button from 'src/components/Button';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import {
   testDatabaseConnection,
   useSingleViewResource,
+  useAvailableDatabases,
 } from 'src/views/CRUD/hooks';
 import { useCommonConf } from 'src/views/CRUD/data/database/state';
-import { DatabaseObject } from 'src/views/CRUD/data/database/types';
+import {
+  DatabaseObject,
+  DatabaseForm,
+  CONFIGURATION_METHOD,
+} from 'src/views/CRUD/data/database/types';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
+
+import DatabaseConnectionForm from './DatabaseConnectionForm';
 import {
-  StyledBasicTab,
-  StyledModal,
-  EditHeader,
-  EditHeaderTitle,
-  EditHeaderSubtitle,
+  antDAlertStyles,
+  antDModalNoPaddingStyles,
+  antDModalStyles,
+  antDTabsStyles,
+  buttonLinkStyles,
   CreateHeader,
   CreateHeaderSubtitle,
   CreateHeaderTitle,
-  Divider,
+  EditHeader,
+  EditHeaderSubtitle,
+  EditHeaderTitle,
+  formHelperStyles,
+  formStyles,
+  StyledBasicTab,
 } from './styles';
 
 const DOCUMENTATION_LINK =
@@ -60,11 +74,14 @@ interface DatabaseModalProps {
 }
 
 enum ActionType {
-  textChange,
-  inputChange,
+  configMethodChange,
+  dbSelected,
   editorChange,
   fetched,
+  inputChange,
+  parametersChange,
   reset,
+  textChange,
 }
 
 interface DBReducerPayloadType {
@@ -81,7 +98,8 @@ type DBReducerActionType =
       type:
         | ActionType.textChange
         | ActionType.inputChange
-        | ActionType.editorChange;
+        | ActionType.editorChange
+        | ActionType.parametersChange;
       payload: DBReducerPayloadType;
     }
   | {
@@ -89,7 +107,18 @@ type DBReducerActionType =
       payload: Partial<DatabaseObject>;
     }
   | {
+      type: ActionType.dbSelected;
+      payload: {
+        parameters: { engine?: string };
+        configuration_method: CONFIGURATION_METHOD;
+      };
+    }
+  | {
       type: ActionType.reset;
+    }
+  | {
+      type: ActionType.configMethodChange;
+      payload: { configuration_method: CONFIGURATION_METHOD };
     };
 
 function dbReducer(
@@ -114,6 +143,14 @@ function dbReducer(
         ...trimmedState,
         [action.payload.name]: action.payload.value,
       };
+    case ActionType.parametersChange:
+      return {
+        ...trimmedState,
+        parameters: {
+          ...trimmedState.parameters,
+          [action.payload.name]: action.payload.value,
+        },
+      };
     case ActionType.editorChange:
       return {
         ...trimmedState,
@@ -126,6 +163,15 @@ function dbReducer(
       };
     case ActionType.fetched:
       return {
+        parameters: {
+          engine: trimmedState.parameters?.engine,
+        },
+        configuration_method: trimmedState.configuration_method,
+        ...action.payload,
+      };
+    case ActionType.dbSelected:
+    case ActionType.configMethodChange:
+      return {
         ...action.payload,
       };
     case ActionType.reset:
@@ -135,6 +181,7 @@ function dbReducer(
 }
 
 const DEFAULT_TAB_KEY = '1';
+const FALSY_FORM_VALUES = [undefined, null, ''];
 
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   addDangerToast,
@@ -148,11 +195,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
   >(dbReducer, null);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
+  const [availableDbs, getAvailableDbs] = useAvailableDatabases();
+  const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
   const conf = useCommonConf();
 
   const isEditMode = !!databaseId;
-  const useSqlAlchemyForm = true; // TODO: set up logic
-  const hasConnectedDb = false; // TODO: set up logic
+  const useSqlAlchemyForm =
+    db?.configuration_method === CONFIGURATION_METHOD.SQLALCHEMY_URI;
 
   // Database fetch logic
   const {
@@ -187,39 +236,38 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const onClose = () => {
     setDB({ type: ActionType.reset });
+    setHasConnectedDb(false);
     onHide();
   };
 
   const onSave = () => {
-    if (isEditMode) {
-      // databaseId will not be null if isEditMode is true
-      // db will have at least a database_name and  sqlalchemy_uri
-      // in order for the button to not be disabled
-      updateResource(databaseId as number, db as DatabaseObject).then(
-        result => {
-          if (result) {
-            if (onDatabaseAdd) {
-              onDatabaseAdd();
-            }
-            onClose();
-          }
-        },
-      );
-    } else if (db) {
-      // Create
-      db.database_name = db?.database_name?.trim();
-      createResource(db as DatabaseObject).then(dbId => {
-        if (dbId) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, ...update } = db || {};
+    if (db?.id) {
+      if (db.sqlalchemy_uri) {
+        // don't pass parameters if using the sqlalchemy uri
+        delete update.parameters;
+      }
+      updateResource(db.id as number, update as DatabaseObject).then(result => {
+        if (result) {
           if (onDatabaseAdd) {
             onDatabaseAdd();
           }
           onClose();
         }
       });
+    } else if (db) {
+      // Create
+      createResource(update as DatabaseObject).then(dbId => {
+        if (dbId) {
+          setHasConnectedDb(true);
+          if (onDatabaseAdd) {
+            onDatabaseAdd();
+          }
+        }
+      });
     }
   };
-
-  const disableSave = !(db?.database_name?.trim() && db?.sqlalchemy_uri);
 
   const onChange = (type: any, payload: any) => {
     setDB({ type, payload } as DBReducerActionType);
@@ -244,6 +292,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   useEffect(() => {
     if (show) {
       setTabKey(DEFAULT_TAB_KEY);
+      getAvailableDbs();
+      setDB({
+        type: ActionType.dbSelected,
+        payload: {
+          parameters: { engine: 'postgresql' },
+          configuration_method: CONFIGURATION_METHOD.SQLALCHEMY_URI,
+        }, // todo hook this up to step 1
+      });
     }
     if (databaseId && show) {
       fetchDB();
@@ -251,13 +307,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   }, [show, databaseId]);
 
   useEffect(() => {
-    // TODO: can we include these values in the original fetch?
     if (dbFetched) {
       setDB({
         type: ActionType.fetched,
-        payload: {
-          ...dbFetched,
-        },
+        payload: dbFetched,
       });
     }
   }, [dbFetched]);
@@ -266,10 +319,32 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setTabKey(key);
   };
 
+  const dbModel: DatabaseForm =
+    availableDbs?.databases?.find(
+      (available: { engine: string | undefined }) =>
+        available.engine === db?.parameters?.engine,
+    ) || {};
+
+  const disableSave =
+    !hasConnectedDb &&
+    (useSqlAlchemyForm
+      ? !(db?.database_name?.trim() && db?.sqlalchemy_uri)
+      : // disable the button if there is no dbModel.parameters or if
+        // any required fields are falsy
+        !dbModel?.parameters ||
+        !!dbModel.parameters.required.filter(field =>
+          FALSY_FORM_VALUES.includes(db?.parameters?.[field]),
+        ).length);
+
   return isEditMode || useSqlAlchemyForm ? (
-    <StyledModal
+    <Modal
+      css={(theme: SupersetTheme) => [
+        antDTabsStyles,
+        antDModalStyles(theme),
+        antDModalNoPaddingStyles,
+        formHelperStyles(theme),
+      ]}
       name="database"
-      className="database-modal"
       disablePrimaryButton={disableSave}
       height="600px"
       onHandledPrimaryAction={onSave}
@@ -302,11 +377,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           </CreateHeaderSubtitle>
         </CreateHeader>
       )}
-      <Divider />
+      <hr />
       <Tabs
         defaultActiveKey={DEFAULT_TAB_KEY}
         activeKey={tabKey}
         onTabClick={tabChange}
+        animated={{ inkBar: true, tabPane: true }}
       >
         <StyledBasicTab tab={<span>{t('Basic')}</span>} key="1">
           {useSqlAlchemyForm ? (
@@ -325,16 +401,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             />
           ) : (
             <div>
-              <p>TODO: db form</p>
+              <p>TODO: form</p>
             </div>
           )}
           <Alert
+            css={(theme: SupersetTheme) => antDAlertStyles(theme)}
             message="Additional fields may be required"
             description={
               <>
                 Select databases require additional fields to be completed in
-                the next step to successfully connect the database. Learn what
-                requirements your databases has{' '}
+                the Advanced tab to successfully connect the database. Learn
+                what requirements your databases has{' '}
                 <a
                   href={DOCUMENTATION_LINK}
                   target="_blank"
@@ -372,24 +449,82 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           />
         </Tabs.TabPane>
       </Tabs>
-    </StyledModal>
+    </Modal>
   ) : (
-    <StyledModal
+    <Modal
+      css={(theme: SupersetTheme) => [
+        antDModalNoPaddingStyles,
+        antDModalStyles(theme),
+        formHelperStyles(theme),
+        formStyles(theme),
+      ]}
       name="database"
-      className="database-modal"
       disablePrimaryButton={disableSave}
       height="600px"
       onHandledPrimaryAction={onSave}
       onHide={onClose}
-      primaryButtonName={hasConnectedDb ? t('Connect') : t('Finish')}
+      primaryButtonName={hasConnectedDb ? t('Finish') : t('Connect')}
       width="500px"
       show={show}
       title={<h4>{t('Connect a database')}</h4>}
     >
-      <div>
-        <p>TODO: db form</p>
-      </div>
-    </StyledModal>
+      {hasConnectedDb ? (
+        <ExtraOptions
+          db={db as DatabaseObject}
+          onInputChange={({ target }: { target: HTMLInputElement }) =>
+            onChange(ActionType.inputChange, {
+              type: target.type,
+              name: target.name,
+              checked: target.checked,
+              value: target.value,
+            })
+          }
+          onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
+            onChange(ActionType.textChange, {
+              name: target.name,
+              value: target.value,
+            })
+          }
+          onEditorChange={(payload: { name: string; json: any }) =>
+            onChange(ActionType.editorChange, payload)
+          }
+        />
+      ) : (
+        <>
+          <DatabaseConnectionForm
+            dbModel={dbModel}
+            onParametersChange={({ target }: { target: HTMLInputElement }) =>
+              onChange(ActionType.parametersChange, {
+                type: target.type,
+                name: target.name,
+                checked: target.checked,
+                value: target.value,
+              })
+            }
+            onChange={({ target }: { target: HTMLInputElement }) =>
+              onChange(ActionType.textChange, {
+                name: target.name,
+                value: target.value,
+              })
+            }
+          />
+          <Button
+            buttonStyle="link"
+            onClick={() =>
+              setDB({
+                type: ActionType.configMethodChange,
+                payload: {
+                  configuration_method: CONFIGURATION_METHOD.SQLALCHEMY_URI,
+                },
+              })
+            }
+            css={buttonLinkStyles}
+          >
+            Connect this database with a SQLAlchemy URI string instead
+          </Button>
+        </>
+      )}
+    </Modal>
   );
 };
 
