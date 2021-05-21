@@ -31,6 +31,7 @@ export interface LabeledErrorBoundInputProps {
   helpText?: string;
   required?: boolean;
   id?: string;
+  classname?: string;
   [x: string]: any;
 }
 
@@ -60,6 +61,12 @@ const alertIconStyles = (theme: SupersetTheme, hasError: boolean) => css`
       }
     }`}
 `;
+const StyledFormGroup = styled('div')`
+  margin-bottom: ${({ theme }) => theme.gridUnit * 6}px;
+  .ant-form-item {
+    margin-bottom: 0;
+  }
+`;
 
 const LabeledErrorBoundInput = ({
   label,
@@ -68,9 +75,10 @@ const LabeledErrorBoundInput = ({
   helpText,
   required = false,
   id,
+  className,
   ...props
 }: LabeledErrorBoundInputProps) => (
-  <>
+  <StyledFormGroup className={className}>
     <FormLabel htmlFor={id} required={required}>
       {label}
     </FormLabel>
@@ -83,7 +91,7 @@ const LabeledErrorBoundInput = ({
     >
       <StyledInput {...props} {...validationMethods} />
     </FormItem>
-  </>
+  </StyledFormGroup>
 );
 
 export default LabeledErrorBoundInput;

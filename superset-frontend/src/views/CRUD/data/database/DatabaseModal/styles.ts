@@ -164,13 +164,6 @@ export const formStyles = (theme: SupersetTheme) => css`
         margin-left: ${theme.gridUnit * 8}px;
       }
     }
-    .text-danger {
-      color: ${theme.colors.error.base};
-      font-size: ${theme.typography.sizes.s - 1}px;
-      strong {
-        font-weight: normal;
-      }
-    }
   }
   .control-label {
     color: ${theme.colors.grayscale.dark1};
@@ -188,6 +181,13 @@ export const formStyles = (theme: SupersetTheme) => css`
   .ant-tabs-content-holder {
     overflow: auto;
     max-height: 475px;
+  }
+`;
+
+export const validatedFormStyles = (theme: SupersetTheme) => css`
+  label {
+    color: ${theme.colors.grayscale.dark1};
+    font-size: ${theme.typography.sizes.s - 1}px;
   }
 `;
 

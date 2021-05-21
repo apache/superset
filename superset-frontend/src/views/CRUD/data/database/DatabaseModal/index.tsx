@@ -297,7 +297,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         type: ActionType.dbSelected,
         payload: {
           parameters: { engine: 'postgresql' },
-          configuration_method: CONFIGURATION_METHOD.SQLALCHEMY_URI,
+          configuration_method: CONFIGURATION_METHOD.DYNAMIC_FORM,
         }, // todo hook this up to step 1
       });
     }

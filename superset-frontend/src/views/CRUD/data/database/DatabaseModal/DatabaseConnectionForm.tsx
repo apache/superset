@@ -17,11 +17,14 @@
  * under the License.
  */
 import React, { FormEvent } from 'react';
-import cx from 'classnames';
+import { SupersetTheme } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
-import { FormLabel, FormItem } from 'src/components/Form';
-import { Input } from 'src/common/components';
-import { StyledFormHeader, formScrollableStyles } from './styles';
+import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
+import {
+  StyledFormHeader,
+  formScrollableStyles,
+  validatedFormStyles,
+} from './styles';
 import { DatabaseForm } from '../types';
 
 export const FormFieldOrder = [
@@ -33,58 +36,91 @@ export const FormFieldOrder = [
   'database_name',
 ];
 
-const CHANGE_METHOD = {
-  onChange: 'onChange',
-  onPropertiesChange: 'onPropertiesChange',
-};
+interface FieldPropTypes {
+  required: boolean;
+  changeMethods: { onPropertiesChange: (value: any) => string } & {
+    onChange: (value: any) => string;
+  };
+}
+
+const hostField = ({ required, changeMethods }: FieldPropTypes) => (
+  <ValidatedInput
+    id="host"
+    required={required}
+    validationMethods={{ onBlur: () => '' }}
+    errorMessage=""
+    placeholder="e.g. 127.0.0.1"
+    className="form-group-w-50"
+    label="Host"
+    onChange={changeMethods.onPropertiesChange}
+  />
+);
+const portField = ({ required, changeMethods }: FieldPropTypes) => (
+  <ValidatedInput
+    id="host"
+    required={required}
+    validationMethods={{ onBlur: () => '' }}
+    errorMessage=""
+    placeholder="e.g. 5432"
+    className="form-group-w-50"
+    label="Port"
+    onChange={changeMethods.onPropertiesChange}
+  />
+);
+const databaseField = ({ required, changeMethods }: FieldPropTypes) => (
+  <ValidatedInput
+    id="host"
+    required={required}
+    validationMethods={{ onBlur: () => '' }}
+    errorMessage=""
+    placeholder="e.g. world_population"
+    label="Database name"
+    onChange={changeMethods.onPropertiesChange}
+    helpText="Copy the name of the PostgreSQL database you are trying to connect to."
+  />
+);
+const usernameField = ({ required, changeMethods }: FieldPropTypes) => (
+  <ValidatedInput
+    id="host"
+    required={required}
+    validationMethods={{ onBlur: () => '' }}
+    errorMessage=""
+    placeholder="e.g. Analytics"
+    label="Username"
+    onChange={changeMethods.onPropertiesChange}
+  />
+);
+const passwordField = ({ required, changeMethods }: FieldPropTypes) => (
+  <ValidatedInput
+    id="host"
+    required={required}
+    validationMethods={{ onBlur: () => '' }}
+    errorMessage=""
+    placeholder="e.g. ********"
+    label="Password"
+    onChange={changeMethods.onPropertiesChange}
+  />
+);
+const displayField = ({ required, changeMethods }: FieldPropTypes) => (
+  <ValidatedInput
+    id="host"
+    required={required}
+    validationMethods={{ onBlur: () => '' }}
+    errorMessage=""
+    placeholder="e.g. ********"
+    label="Display Name"
+    onChange={changeMethods.onChange}
+    helpText="Pick a nickname for this database to display as in Superset."
+  />
+);
 
 const FORM_FIELD_MAP = {
-  host: {
-    description: 'Host',
-    type: 'text',
-    className: 'w-50',
-    placeholder: 'e.g. 127.0.0.1',
-    changeMethod: CHANGE_METHOD.onPropertiesChange,
-  },
-  port: {
-    description: 'Port',
-    type: 'text',
-    className: 'w-50',
-    placeholder: 'e.g. 5432',
-    changeMethod: CHANGE_METHOD.onPropertiesChange,
-  },
-  database: {
-    description: 'Database name',
-    type: 'text',
-    label:
-      'Copy the name of the PostgreSQL database you are trying to connect to.',
-    placeholder: 'e.g. world_population',
-    changeMethod: CHANGE_METHOD.onPropertiesChange,
-  },
-  username: {
-    description: 'Username',
-    type: 'text',
-    placeholder: 'e.g. Analytics',
-    changeMethod: CHANGE_METHOD.onPropertiesChange,
-  },
-  password: {
-    description: 'Password',
-    type: 'text',
-    placeholder: 'e.g. ********',
-    changeMethod: CHANGE_METHOD.onPropertiesChange,
-  },
-  database_name: {
-    description: 'Display Name',
-    type: 'text',
-    label: 'Pick a nickname for this database to display as in Superset.',
-    changeMethod: CHANGE_METHOD.onChange,
-  },
-  query: {
-    additionalProperties: {},
-    description: 'Additional parameters',
-    type: 'object',
-    changeMethod: CHANGE_METHOD.onPropertiesChange,
-  },
+  host: hostField,
+  port: portField,
+  database: databaseField,
+  username: usernameField,
+  password: passwordField,
+  database_name: displayField,
 };
 
 const DatabaseConnectionForm = ({
@@ -107,48 +143,23 @@ const DatabaseConnectionForm = ({
         Need help? Learn more about connecting to {name}.
       </p>
     </StyledFormHeader>
-    <div css={formScrollableStyles}>
+    <div
+      css={(theme: SupersetTheme) => [
+        formScrollableStyles,
+        validatedFormStyles(theme),
+      ]}
+    >
       {parameters &&
         FormFieldOrder.filter(
           (key: string) =>
             Object.keys(parameters.properties).includes(key) ||
             key === 'database_name',
-        ).map(field => {
-          const {
-            className,
-            description,
-            type,
-            placeholder,
-            label,
-            changeMethod,
-          } = FORM_FIELD_MAP[field];
-          const onEdit =
-            changeMethod === CHANGE_METHOD.onChange
-              ? onChange
-              : onParametersChange;
-          return (
-            <FormItem
-              className={cx(className, `form-group-${className}`)}
-              key={field}
-            >
-              <FormLabel
-                htmlFor={field}
-                required={parameters.required.includes(field)}
-              >
-                {description}
-              </FormLabel>
-              <Input
-                name={field}
-                type={type}
-                id={field}
-                autoComplete="off"
-                placeholder={placeholder}
-                onChange={onEdit}
-              />
-              <p className="helper">{label}</p>
-            </FormItem>
-          );
-        })}
+        ).map(field =>
+          FORM_FIELD_MAP[field]({
+            required: parameters.required.includes(field),
+            changeMethods: { onParametersChange, onChange },
+          }),
+        )}
     </div>
   </>
 );
