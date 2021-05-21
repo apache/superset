@@ -17,7 +17,6 @@
 """Unit tests for alerting in Superset"""
 import json
 import logging
-from typing import Optional
 from unittest.mock import patch
 
 import pytest
@@ -41,6 +40,12 @@ from superset.tasks.schedules import (
     validate_observations,
 )
 from superset.utils import core as utils
+from superset.views.alerts import (
+    AlertLogModelView,
+    AlertModelView,
+    AlertObservationModelView,
+)
+from tests.base_tests import SupersetTestCase
 from tests.test_app import app
 from tests.utils import read_fixture
 
@@ -359,3 +364,47 @@ def test_deliver_alert_screenshot(
         "|*Explore in Superset*>",
         "title": f"[Alert] {alert.label}",
     }
+
+
+class TestAlertsEndpoints(SupersetTestCase):
+    def test_log_model_view_disabled(self):
+        with patch.object(AlertLogModelView, "is_enabled", return_value=False):
+            self.login("admin")
+            uri = "/alertlogmodelview/list/"
+            rv = self.client.get(uri)
+            self.assertEqual(rv.status_code, 404)
+
+    def test_log_model_view_enabled(self):
+        with patch.object(AlertLogModelView, "is_enabled", return_value=True):
+            self.login("admin")
+            uri = "/alertlogmodelview/list/"
+            rv = self.client.get(uri)
+            self.assertLess(rv.status_code, 400)
+
+    def test_model_view_disabled(self):
+        with patch.object(AlertModelView, "is_enabled", return_value=False):
+            self.login("admin")
+            uri = "/alerts/list/"
+            rv = self.client.get(uri)
+            self.assertEqual(rv.status_code, 404)
+
+    def test_model_view_enabled(self):
+        with patch.object(AlertModelView, "is_enabled", return_value=True):
+            self.login("admin")
+            uri = "/alerts/list/"
+            rv = self.client.get(uri)
+            self.assertNotEqual(rv.status_code, 404)
+
+    def test_observation_view_disabled(self):
+        with patch.object(AlertObservationModelView, "is_enabled", return_value=False):
+            self.login("admin")
+            uri = "/alertobservationmodelview/list/"
+            rv = self.client.get(uri)
+            self.assertEqual(rv.status_code, 404)
+
+    def test_observation_view_enabled(self):
+        with patch.object(AlertObservationModelView, "is_enabled", return_value=True):
+            self.login("admin")
+            uri = "/alertobservationmodelview/list/"
+            rv = self.client.get(uri)
+            self.assertLess(rv.status_code, 400)

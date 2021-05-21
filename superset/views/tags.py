@@ -21,11 +21,13 @@ from typing import Any, Dict, List
 import simplejson as json
 from flask import request, Response
 from flask_appbuilder import expose
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.security.decorators import has_access_api
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy import and_, func
+from werkzeug.exceptions import NotFound
 
-from superset import db, utils
+from superset import db, is_feature_enabled, utils
 from superset.jinja_context import ExtraCache
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -47,6 +49,15 @@ def process_template(content: str) -> str:
 
 
 class TagView(BaseSupersetView):
+    @staticmethod
+    def is_enabled() -> bool:
+        return is_feature_enabled("TAGGING_SYSTEM")
+
+    @before_request
+    def ensure_enabled(self) -> None:
+        if not self.is_enabled():
+            raise NotFound()
+
     @has_access_api
     @expose("/tags/suggestions/", methods=["GET"])
     def suggestions(self) -> FlaskResponse:  # pylint: disable=no-self-use
