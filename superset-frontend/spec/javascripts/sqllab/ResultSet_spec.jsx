@@ -186,13 +186,12 @@ describe('ResultSet', () => {
 describe('RTL ResultSet tests', () => {
   it('renders if there is no limit in query.results but has queryLimit', () => {
     render(<ResultSet {...mockedProps} />, { useRedux: true });
-    const grid = screen.getAllByRole('grid');
-    expect(grid.length).toBe(1);
+    expect(screen.getByRole('grid')).toBeInTheDocument();
   });
 
   it('renders if there is a limit in query.results but not queryLimit', () => {
     const props = { ...mockedProps, query: queryWithNoQueryLimit };
     render(<ResultSet {...props} />, { useRedux: true });
-    expect(screen.getByRole('grid')).toBeInTheDocument());
+    expect(screen.getByRole('grid')).toBeInTheDocument();
   });
 });
