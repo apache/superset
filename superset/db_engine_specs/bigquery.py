@@ -63,7 +63,7 @@ def encrypted_field_properties(self, field: Any, **_) -> Dict[str, Any]:  # type
 
 
 class BigQueryParametersType(TypedDict):
-    pass
+    credentials_info: Dict[str, Any]
 
 
 class BigQueryEngineSpec(BaseEngineSpec):
