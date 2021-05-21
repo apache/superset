@@ -119,8 +119,11 @@ class AsyncQueryManager:
         ) -> Response:
             user_id = None
 
-            if hasattr(g, "user") and g.user.get_id() is not None:
-                user_id = int(g.user.get_id())
+            try:
+                user_id = g.user.get_id()
+                user_id = int(user_id)
+            except Exception:  # pylint: disable=broad-except
+                pass
 
             reset_token = (
                 not request.cookies.get(self._jwt_cookie_name)
