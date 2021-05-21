@@ -393,7 +393,7 @@ class TestAlertsEndpoints(SupersetTestCase):
             self.login("admin")
             uri = "/alerts/list/"
             rv = self.client.get(uri)
-            self.assertLess(rv.status_code, 400)
+            self.assertNotEqual(rv.status_code, 404)
 
     def test_observation_view_disabled(self):
         with patch.object(AlertObservationModelView, "is_enabled", return_value=False):
