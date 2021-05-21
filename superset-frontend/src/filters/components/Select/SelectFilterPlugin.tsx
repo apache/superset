@@ -50,7 +50,6 @@ const debouncedOwnStateFunc = debounce(
 );
 
 type DataMaskAction =
-  | { type: 'initialize'; dataMask: DataMask }
   | { type: 'ownState'; ownState: JsonObject }
   | {
       type: 'filterState';
@@ -77,10 +76,6 @@ function reducer(state: DataMask, action: DataMaskAction): DataMask {
           ...action.filterState,
         },
       };
-    case 'initialize':
-      return {
-        ...action.dataMask,
-      };
     default:
       return {
         ...state,
@@ -102,6 +97,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     isRefreshing,
     width,
     setDataMask,
+    setFocusedFilter,
+    unsetFocusedFilter,
     appSection,
   } = props;
   const {
@@ -174,6 +171,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     }
   }, [defaultValue]);
 
+  const handleBlur = () => {
+    clearSuggestionSearch();
+    unsetFocusedFilter();
+  };
+
   const [col] = groupby;
   const datatype: GenericDataType = coltypeMap[col];
   const labelFormatter = getDataRecordFormatter({
@@ -231,7 +233,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         placeholder={placeholderText}
         onSearch={searchWrapper}
         onSelect={clearSuggestionSearch}
-        onBlur={clearSuggestionSearch}
+        onBlur={handleBlur}
+        onFocus={setFocusedFilter}
         // @ts-ignore
         onChange={handleChange}
         ref={inputRef}

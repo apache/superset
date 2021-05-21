@@ -128,12 +128,6 @@ describe('DashboardBuilder', () => {
     expect(parentSize.find(Tabs.TabPane)).toHaveLength(2);
   });
 
-  it('should have default animated=true on Tabs for perf', () => {
-    const wrapper = setup({ dashboardLayout: undoableDashboardLayoutWithTabs });
-    const tabProps = wrapper.find(ParentSize).find(Tabs).props();
-    expect(tabProps.animated).toEqual(true);
-  });
-
   it('should render a TabPane and DashboardGrid for first Tab', () => {
     const wrapper = setup({ dashboardLayout: undoableDashboardLayoutWithTabs });
     const parentSize = wrapper.find(ParentSize);

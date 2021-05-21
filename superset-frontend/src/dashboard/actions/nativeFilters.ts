@@ -116,7 +116,7 @@ type BootstrapData = {
   };
 };
 
-export interface SetBooststapData {
+export interface SetBootstrapData {
   type: typeof HYDRATE_DASHBOARD;
   data: BootstrapData;
 }
@@ -182,6 +182,28 @@ export function saveFilterSets(
   };
 }
 
+export const SET_FOCUSED_NATIVE_FILTER = 'SET_FOCUSED_NATIVE_FILTER';
+export interface SetFocusedNativeFilter {
+  type: typeof SET_FOCUSED_NATIVE_FILTER;
+  id: string;
+}
+export const UNSET_FOCUSED_NATIVE_FILTER = 'UNSET_FOCUSED_NATIVE_FILTER';
+export interface UnsetFocusedNativeFilter {
+  type: typeof UNSET_FOCUSED_NATIVE_FILTER;
+}
+
+export function setFocusedNativeFilter(id: string): SetFocusedNativeFilter {
+  return {
+    type: SET_FOCUSED_NATIVE_FILTER,
+    id,
+  };
+}
+export function unsetFocusedNativeFilter(): UnsetFocusedNativeFilter {
+  return {
+    type: UNSET_FOCUSED_NATIVE_FILTER,
+  };
+}
+
 export type AnyFilterAction =
   | SetFilterConfigBegin
   | SetFilterConfigComplete
@@ -190,4 +212,6 @@ export type AnyFilterAction =
   | SetFilterSetsConfigComplete
   | SetFilterSetsConfigFail
   | SaveFilterSets
-  | SetBooststapData;
+  | SetBootstrapData
+  | SetFocusedNativeFilter
+  | UnsetFocusedNativeFilter;
