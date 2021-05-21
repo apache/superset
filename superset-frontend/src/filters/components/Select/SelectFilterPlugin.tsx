@@ -40,6 +40,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     height,
     width,
     setDataMask,
+    setFocusedFilter,
+    unsetFocusedFilter,
     filterState,
     appSection,
   } = props;
@@ -76,6 +78,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   const clearSuggestionSearch = () => {
     setCurrentSuggestionSearch('');
+  };
+
+  const handleBlur = () => {
+    clearSuggestionSearch();
+    unsetFocusedFilter();
   };
 
   const [col] = groupby;
@@ -157,7 +164,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         placeholder={placeholderText}
         onSearch={setCurrentSuggestionSearch}
         onSelect={clearSuggestionSearch}
-        onBlur={clearSuggestionSearch}
+        onBlur={handleBlur}
+        onFocus={setFocusedFilter}
         // @ts-ignore
         onChange={handleChange}
         ref={inputRef}

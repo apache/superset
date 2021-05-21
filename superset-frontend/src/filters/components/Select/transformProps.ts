@@ -33,7 +33,11 @@ export default function transformProps(
     filterState,
   } = chartProps;
   const newFormData = { ...DEFAULT_FORM_DATA, ...formData };
-  const { setDataMask = () => {} } = hooks;
+  const {
+    setDataMask = () => {},
+    setFocusedFilter = () => {},
+    unsetFocusedFilter = () => {},
+  } = hooks;
   const [queryData] = queriesData;
   const { colnames = [], coltypes = [], data = [] } = queryData || {};
   const coltypeMap: Record<string, GenericDataType> = colnames.reduce(
@@ -51,5 +55,7 @@ export default function transformProps(
     data,
     formData: newFormData,
     setDataMask,
+    setFocusedFilter,
+    unsetFocusedFilter,
   };
 }
