@@ -21,7 +21,6 @@ from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 import pandas as pd
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
-from apispec.ext.marshmallow.openapi import OpenAPIConverter
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from sqlalchemy import literal_column
@@ -55,9 +54,7 @@ class BigQueryParametersSchema(Schema):
     credentials_info = EncryptedField(description="credentials.json file for BigQuery")
 
 
-def encrypted_field_properties(
-    self: OpenAPIConverter, field: EncryptedField
-) -> Dict[str, Any]:
+def encrypted_field_properties(self, field, **kwargs):
     ret = {}
     if isinstance(field, EncryptedField):
         if self.openapi_version.major > 2:

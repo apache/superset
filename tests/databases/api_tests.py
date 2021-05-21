@@ -1435,38 +1435,15 @@ class TestDatabaseApi(SupersetTestCase):
                     "name": "Google BigQuery",
                     "parameters": {
                         "properties": {
-                            "auth_provider_x509_cert_url": {
-                                "description": "",
+                            "credentials_info": {
+                                "description": "credentials.json file for BigQuery",
                                 "type": "string",
-                            },
-                            "auth_uri": {"description": "", "type": "string",},
-                            "client_email": {"description": "", "type": "string",},
-                            "client_id": {"description": "", "type": "string",},
-                            "client_x509_cert_url": {
-                                "description": "",
-                                "type": "string",
-                            },
-                            "private_key": {"description": "", "type": "string",},
-                            "private_key_id": {"description": "", "type": "string",},
-                            "project_id": {"description": "", "type": "string",},
-                            "token_uri": {"description": "", "type": "string",},
-                            "type": {"description": "", "type": "string",},
+                                "x-encrypted": True,
+                            }
                         },
-                        "required": [
-                            "auth_provider_x509_cert_url",
-                            "auth_uri",
-                            "client_email",
-                            "client_id",
-                            "client_x509_cert_url",
-                            "private_key",
-                            "private_key_id",
-                            "project_id",
-                            "token_uri",
-                            "type",
-                        ],
                         "type": "object",
                     },
-                    "preferred": True,
+                    "preferred": False,
                     "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
                 },
                 {"engine": "hana", "name": "SAP HANA", "preferred": False},
