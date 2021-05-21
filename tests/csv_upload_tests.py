@@ -266,9 +266,10 @@ def test_import_csv(setup_csv_upload, create_csv_files):
         CSV_UPLOAD_TABLE,
         extra={"if_exists": "replace", "usecols": ["a"]},
     )
-    table = SupersetTestCase.get_table_by_name(CSV_UPLOAD_TABLE)
     assert success_msg_f1 in resp
+
     # make sure only specified column name was read
+    table = SupersetTestCase.get_table_by_name(CSV_UPLOAD_TABLE)
     assert "b" not in table.column_names
 
     # try to append to table from file with different schema
