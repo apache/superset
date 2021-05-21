@@ -36,7 +36,11 @@ from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
+<<<<<<< HEAD
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+=======
+from superset.db_engine_specs.redshift import RedshiftEngineSpec
+>>>>>>> redshift basic mixin and tests
 from superset.db_engine_specs.hana import HanaEngineSpec
 from superset.errors import SupersetError
 from superset.models.core import Database, ConfigurationMethod
@@ -1371,10 +1375,12 @@ class TestDatabaseApi(SupersetTestCase):
     @mock.patch("superset.databases.api.get_available_engine_specs")
     @mock.patch("superset.databases.api.app")
     def test_available(self, app, get_available_engine_specs):
-        app.config = {"PREFERRED_DATABASES": ["postgresql"]}
+        app.config = {"PREFERRED_DATABASES": ["postgresql", "biqquery", "mysql", "redshift"]}
         get_available_engine_specs.return_value = [
             PostgresEngineSpec,
             BigQueryEngineSpec,
+            MySQLEngineSpec,
+            RedshiftEngineSpec,
             HanaEngineSpec,
         ]
 
@@ -1464,7 +1470,6 @@ class TestDatabaseApi(SupersetTestCase):
 
         rv = self.client.get(uri)
         response = json.loads(rv.data.decode("utf-8"))
-        print(response)
         assert rv.status_code == 200
         assert response == {
             "databases": [
@@ -1511,6 +1516,50 @@ class TestDatabaseApi(SupersetTestCase):
                     },
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
+                },
+                {
+                    "engine": "redshift",
+                    "name": "Amazon Redshift",
+                    "parameters": {
+                        "properties": {
+                            "database": {
+                                "description": "Database name",
+                                "type": "string",
+                            },
+                            "encryption": {
+                                "description": "Use an encrypted connection to the database",
+                                "type": "boolean",
+                            },
+                            "host": {
+                                "description": "Hostname or IP address",
+                                "type": "string",
+                            },
+                            "password": {
+                                "description": "Password",
+                                "nullable": True,
+                                "type": "string",
+                            },
+                            "port": {
+                                "description": "Database port",
+                                "format": "int32",
+                                "type": "integer",
+                            },
+                            "query": {
+                                "additionalProperties": {},
+                                "description": "Additional parameters",
+                                "type": "object",
+                            },
+                            "username": {
+                                "description": "Username",
+                                "nullable": True,
+                                "type": "string",
+                            },
+                        },
+                        "required": ["database", "host", "port", "username"],
+                        "type": "object",
+                    },
+                    "preferred": True,
+                    "sqlalchemy_uri_placeholder": "redshift://user:password@host:port/dbname[?key=value&key=value...]",
                 },
                 {"engine": "hana", "name": "SAP HANA", "preferred": False},
             ]
