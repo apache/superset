@@ -54,7 +54,7 @@ class BigQueryParametersSchema(Schema):
     credentials_info = EncryptedField(description="credentials.json file for BigQuery")
 
 
-def encrypted_field_properties(self, field, **kwargs):
+def encrypted_field_properties(self, field: Any, **_) -> Dict[str, Any]:  # type: ignore
     ret = {}
     if isinstance(field, EncryptedField):
         if self.openapi_version.major > 2:
