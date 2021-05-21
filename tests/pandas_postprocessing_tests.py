@@ -197,6 +197,21 @@ class TestPostProcessing(SupersetTestCase):
         )
         self.assertEqual(df.sum()[1], 382)
 
+    def test_pivot_fill_column_values(self):
+        """
+        Make sure pivot witn null column names returns correct DataFrame
+        """
+        df_copy = categories_df.copy()
+        df_copy["category"] = None
+        df = proc.pivot(
+            df=df_copy,
+            index=["name"],
+            columns=["category"],
+            aggregates={"idx_nulls": {"operator": "sum"}},
+        )
+        assert len(df) == 101
+        assert df.columns.tolist() == ["name", "<NULL>"]
+
     def test_pivot_exceptions(self):
         """
         Make sure pivot raises correct Exceptions
