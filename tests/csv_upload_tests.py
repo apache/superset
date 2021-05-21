@@ -256,10 +256,6 @@ def test_import_csv(setup_csv_upload, create_csv_files):
         )
         assert success_msg_f1 in resp
 
-    # upload again with replace mode
-    resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE, extra={"if_exists": "replace"})
-    assert success_msg_f1 in resp
-
     # upload again with replace mode and specific columns
     resp = upload_csv(
         CSV_FILENAME1,
@@ -271,6 +267,10 @@ def test_import_csv(setup_csv_upload, create_csv_files):
     # make sure only specified column name was read
     table = SupersetTestCase.get_table_by_name(CSV_UPLOAD_TABLE)
     assert "b" not in table.column_names
+
+    # upload again with replace mode
+    resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE, extra={"if_exists": "replace"})
+    assert success_msg_f1 in resp
 
     # try to append to table from file with different schema
     resp = upload_csv(CSV_FILENAME2, CSV_UPLOAD_TABLE, extra={"if_exists": "append"})
