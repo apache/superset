@@ -23,8 +23,6 @@ import { Select } from 'src/components/Select';
 import { Tooltip } from 'src/components/Tooltip';
 import ControlHeader from '../ControlHeader';
 
-import './ColorSchemeControl.less';
-
 const propTypes = {
   description: PropTypes.string,
   label: PropTypes.string.isRequired,
@@ -75,11 +73,26 @@ export default class ColorSchemeControl extends React.PureComponent {
 
     return (
       <Tooltip id={`${currentScheme.id}-tooltip`} title={currentScheme.label}>
-        <ul className="color-scheme-container" data-test={currentScheme.id}>
+        <ul
+          css={{
+            listStyle: 'none',
+            margin: 0,
+            padding: 0,
+            display: 'flex',
+            alignItems: 'center',
+
+            '& li': {
+              flexBasis: 9,
+              height: 10,
+              margin: '9px 1px',
+            },
+          }}
+          data-test={currentScheme.id}
+        >
           {colors.map((color, i) => (
             <li
               key={`${currentScheme.id}-${i}`}
-              style={{
+              css={{
                 backgroundColor: color,
                 border: `1px solid ${color === 'white' ? 'black' : color}`,
               }}
