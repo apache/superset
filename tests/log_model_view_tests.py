@@ -14,20 +14,24 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from unittest.mock import patch
 
-from tests.base_tests import SupersetTestCase
-from tests.conftest import with_feature_flags
+from superset.views.log.views import LogModelView
+
+from .base_tests import SupersetTestCase
 
 
-class TestTagging(SupersetTestCase):
-    @with_feature_flags(TAGGING_SYSTEM=False)
-    def test_tag_view_disabled(self):
-        self.login("admin")
-        response = self.client.get("/tagview/tags/suggestions/")
-        self.assertEqual(404, response.status_code)
+class TestLogModelView(SupersetTestCase):
+    def test_disabled(self):
+        with patch.object(LogModelView, "is_enabled", return_value=False):
+            self.login("admin")
+            uri = "/logmodelview/list/"
+            rv = self.client.get(uri)
+            self.assert404(rv)
 
-    @with_feature_flags(TAGGING_SYSTEM=True)
-    def test_tag_view_enabled(self):
-        self.login("admin")
-        response = self.client.get("/tagview/tags/suggestions/")
-        self.assertNotEqual(404, response.status_code)
+    def test_enabled(self):
+        with patch.object(LogModelView, "is_enabled", return_value=True):
+            self.login("admin")
+            uri = "/logmodelview/list/"
+            rv = self.client.get(uri)
+            self.assert200(rv)

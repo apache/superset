@@ -14,20 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 from tests.base_tests import SupersetTestCase
 from tests.conftest import with_feature_flags
 
 
-class TestTagging(SupersetTestCase):
-    @with_feature_flags(TAGGING_SYSTEM=False)
-    def test_tag_view_disabled(self):
-        self.login("admin")
-        response = self.client.get("/tagview/tags/suggestions/")
-        self.assertEqual(404, response.status_code)
+class TestRowLevelSecurityFiltersModelView(SupersetTestCase):
+    @with_feature_flags(ROW_LEVEL_SECURITY=False)
+    def test_rls_disabled(self):
+        """
+        RLS Filters Model View: Responds not found when disabled
+        """
+        self.login(username="admin")
+        uri = "/rowlevelsecurityfiltersmodelview/api"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
 
-    @with_feature_flags(TAGGING_SYSTEM=True)
-    def test_tag_view_enabled(self):
-        self.login("admin")
-        response = self.client.get("/tagview/tags/suggestions/")
-        self.assertNotEqual(404, response.status_code)
+    @with_feature_flags(ROW_LEVEL_SECURITY=True)
+    def test_rls_enabled(self):
+        """
+        RLS Filters Model View: Responds successfully when enabled
+        """
+        self.login(username="admin")
+        uri = "/rowlevelsecurityfiltersmodelview/api"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
