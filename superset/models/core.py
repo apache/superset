@@ -55,7 +55,6 @@ from sqlalchemy.sql import expression, Select
 
 from superset import app, db_engine_specs, is_feature_enabled
 from superset.db_engine_specs.base import TimeGrain
-from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.extensions import cache_manager, encrypted_field_factory, security_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.tags import FavStarUpdater
@@ -242,7 +241,6 @@ class Database(
     def parameters(self) -> Dict[str, Any]:
         # Build parameters if db_engine_spec is a subclass of BasicParametersMixin
         parameters = {"engine": self.backend}
-
         if hasattr(self.db_engine_spec, "parameters_schema") and hasattr(
             self.db_engine_spec, "get_parameters_from_uri"
         ):
