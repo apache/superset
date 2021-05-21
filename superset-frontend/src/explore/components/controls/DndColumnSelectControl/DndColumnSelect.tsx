@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
+import { tn } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
 import { LabelProps } from 'src/explore/components/controls/DndColumnSelectControl/types';
@@ -79,6 +80,7 @@ export const DndColumnSelect = (props: LabelProps) => {
       valuesRenderer={valuesRenderer}
       accept={DndItemType.Column}
       displayGhostButton={multi || optionSelector.values.length === 0}
+      ghostButtonText={tn('Drop column', 'Drop columns', multi ? 2 : 1)}
       {...props}
     />
   );

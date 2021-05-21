@@ -18,7 +18,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ensureIsArray, Metric, t } from '@superset-ui/core';
+import { ensureIsArray, Metric, tn } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { isEqual } from 'lodash';
 import { usePrevious } from 'src/common/hooks/usePrevious';
@@ -268,7 +268,11 @@ export const DndMetricSelect = (props: any) => {
         canDrop={canDrop}
         valuesRenderer={valuesRenderer}
         accept={[DndItemType.Column, DndItemType.Metric]}
-        ghostButtonText={t('Drop columns or metrics')}
+        ghostButtonText={tn(
+          'Drop column or metric',
+          'Drop columns or metrics',
+          multi ? 2 : 1,
+        )}
         displayGhostButton={multi || value.length === 0}
         {...props}
       />
