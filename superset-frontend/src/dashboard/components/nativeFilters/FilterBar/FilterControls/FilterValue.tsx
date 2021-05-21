@@ -26,12 +26,17 @@ import {
   Behavior,
   ChartDataResponseResult,
 } from '@superset-ui/core';
+import { useDispatch } from 'react-redux';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import Loading from 'src/components/Loading';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import {
+  setFocusedNativeFilter,
+  unsetFocusedNativeFilter,
+} from 'src/dashboard/actions/nativeFilters';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FilterProps } from './types';
 import { getFormData } from '../../utils';
@@ -61,6 +66,7 @@ const FilterValue: React.FC<FilterProps> = ({
   const { name: groupby } = column;
   const hasDataSource = !!datasetId;
   const [loading, setLoading] = useState<boolean>(hasDataSource);
+  const dispatch = useDispatch();
   useEffect(() => {
     const newFormData = getFormData({
       ...filter,
@@ -130,6 +136,9 @@ const FilterValue: React.FC<FilterProps> = ({
   const setDataMask = (dataMask: DataMask) =>
     onFilterSelectionChange(filter, dataMask);
 
+  const setFocusedFilter = () => dispatch(setFocusedNativeFilter(id));
+  const unsetFocusedFilter = () => dispatch(unsetFocusedNativeFilter());
+
   if (error) {
     return (
       <BasicErrorAlert
@@ -155,7 +164,7 @@ const FilterValue: React.FC<FilterProps> = ({
           behaviors={[Behavior.NATIVE_FILTER]}
           filterState={filter.dataMask?.filterState}
           ownState={filter.dataMask?.ownState}
-          hooks={{ setDataMask }}
+          hooks={{ setDataMask, setFocusedFilter, unsetFocusedFilter }}
         />
       )}
     </FilterItem>
