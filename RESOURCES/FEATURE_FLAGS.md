@@ -33,6 +33,7 @@ These features are considered **unfinished** and should only be used on developm
 - REMOVE_SLICE_LEVEL_LABEL_COLORS
 - SHARE_QUERIES_VIA_KV_STORE
 - TAGGING_SYSTEM
+- ENABLE_TEMPLATE_REMOVE_FILTERS
 
 ## In Testing
 These features are **finished** but currently being tested. They are usable, but may still contain some bugs.
