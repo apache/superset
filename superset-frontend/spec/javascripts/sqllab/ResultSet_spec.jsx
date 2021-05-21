@@ -190,7 +190,7 @@ describe('RTL ResultSet tests', () => {
     expect(grid.length).toBe(1);
   });
 
-  it('Renders if there is a limit in query.results but not queryLimit', () => {
+  it('renders if there is a limit in query.results but not queryLimit', () => {
     const props = { ...mockedProps, query: queryWithNoQueryLimit };
     render(<ResultSet {...props} />, { useRedux: true });
     const grid = screen.getAllByRole('grid');
