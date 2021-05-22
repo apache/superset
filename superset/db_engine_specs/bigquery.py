@@ -22,7 +22,7 @@ import pandas as pd
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
-from marshmallow import fields, Schema
+from marshmallow import Schema
 from sqlalchemy import literal_column
 from sqlalchemy.sql.expression import ColumnClause
 from typing_extensions import TypedDict
