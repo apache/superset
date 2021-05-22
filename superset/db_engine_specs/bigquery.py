@@ -27,6 +27,7 @@ from sqlalchemy import literal_column
 from sqlalchemy.sql.expression import ColumnClause
 from typing_extensions import TypedDict
 
+from superset.databases.schemas import encrypted_field_properties, EncryptedField
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetGenericDBErrorException
@@ -46,20 +47,8 @@ CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
 ma_plugin = MarshmallowPlugin()
 
 
-class EncryptedField(fields.String):
-    pass
-
-
 class BigQueryParametersSchema(Schema):
     credentials_info = EncryptedField(description="credentials.json file for BigQuery")
-
-
-def encrypted_field_properties(self, field: Any, **_) -> Dict[str, Any]:  # type: ignore
-    ret = {}
-    if isinstance(field, EncryptedField):
-        if self.openapi_version.major > 2:
-            ret["x-encrypted-extra"] = True
-    return ret
 
 
 class BigQueryParametersType(TypedDict):
