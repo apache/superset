@@ -316,9 +316,16 @@ class BigQueryEngineSpec(BaseEngineSpec):
         )
 
     @classmethod
-    def get_parameters_from_uri(cls, _: str) -> Any:
+    def get_parameters_from_uri(
+        cls, _: str, encrypted_extra: Optional[Dict[str, str]] = None
+    ) -> Any:
         # BigQuery doesn't have parameters
-        return None
+        if encrypted_extra:
+            return encrypted_extra
+
+        raise SupersetGenericDBErrorException(
+            message="Big Query encrypted_extra is not available",
+        )
 
     @classmethod
     def parameters_json_schema(cls) -> Any:
