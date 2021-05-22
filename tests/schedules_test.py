@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 from datetime import datetime, timedelta
+from superset.views.schedules import DashboardEmailScheduleView, SliceEmailScheduleView
 from unittest.mock import Mock, patch, PropertyMock
 
 from flask_babel import gettext as __
@@ -554,6 +555,34 @@ class TestSchedules(SupersetTestCase):
                 "title": "[Report]  Region Filter",
             },
         )
+
+    def test_dashboard_disabled(self):
+        with patch.object(DashboardEmailScheduleView, "is_enabled", return_value=False):
+            self.login("admin")
+            uri = "/dashboardemailscheduleview/list/"
+            rv = self.client.get(uri)
+            self.assertEqual(rv.status_code, 404)
+
+    def test_dashboard_enabled(self):
+        with patch.object(DashboardEmailScheduleView, "is_enabled", return_value=True):
+            self.login("admin")
+            uri = "/dashboardemailscheduleview/list/"
+            rv = self.client.get(uri)
+            self.assertLess(rv.status_code, 400)
+
+    def test_slice_disabled(self):
+        with patch.object(SliceEmailScheduleView, "is_enabled", return_value=False):
+            self.login("admin")
+            uri = "/sliceemailscheduleview/list/"
+            rv = self.client.get(uri)
+            self.assertEqual(rv.status_code, 404)
+
+    def test_slice_enabled(self):
+        with patch.object(SliceEmailScheduleView, "is_enabled", return_value=True):
+            self.login("admin")
+            uri = "/sliceemailscheduleview/list/"
+            rv = self.client.get(uri)
+            self.assertLess(rv.status_code, 400)
 
 
 def test_slack_client_compatibility():

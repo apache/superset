@@ -936,7 +936,7 @@ class PivotTableViz(BaseViz):
 
         # Display metrics side by side with each column
         if self.form_data.get("combine_metric"):
-            df = df.stack(0).unstack()
+            df = df.stack(0).unstack().reindex(level=-1, columns=metrics)
         return dict(
             columns=list(df.columns),
             html=df.to_html(
