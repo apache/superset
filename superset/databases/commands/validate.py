@@ -99,7 +99,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             server_cert=self._properties.get("server_cert", ""),
             extra=self._properties.get("extra", "{}"),
             impersonate_user=self._properties.get("impersonate_user", False),
-            encrypted_extra=self._properties.get("encrypted_extra", "{}"),
+            encrypted_extra=serialized_encrypted_extra,
         )
         database.set_sqlalchemy_uri(sqlalchemy_uri)
         database.db_engine_spec.mutate_db_for_connection_test(database)

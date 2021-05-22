@@ -270,17 +270,11 @@ class DatabaseParametersSchemaMixin:
                     [_('Engine "%(engine)s" is not a valid engine.', engine=engine,)]
                 )
             engine_spec = engine_specs[engine]
-            if hasattr(engine_spec, "build_sqlalchemy_uri"):
-                data[
-                    "sqlalchemy_uri"
-                ] = engine_spec.build_sqlalchemy_uri(  # type: ignore
-                    parameters
-                )
 
-        if hasattr(engine_spec, "build_sqlalchemy_uri"):
-            data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(  # type: ignore
-                parameters, encrypted_extra
-            )
+            if hasattr(engine_spec, "build_sqlalchemy_uri"):
+                data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(  # type: ignore
+                    parameters, encrypted_extra
+                )
 
         return data
 
