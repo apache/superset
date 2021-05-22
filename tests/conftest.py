@@ -15,23 +15,34 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
+import functools
 from typing import Any
 
 import pytest
 from sqlalchemy.engine import Engine
+from unittest.mock import patch
 
 from tests.test_app import app
-
 from superset import db
-from superset.utils.core import get_example_database
+from superset.extensions import feature_flag_manager
+from superset.utils.core import get_example_database, json_dumps_w_dates
 
 
 CTAS_SCHEMA_NAME = "sqllab_test_db"
 ADMIN_SCHEMA_NAME = "admin_database"
 
 
+@pytest.fixture
+def app_context():
+    with app.app_context():
+        yield
+
+
 @pytest.fixture(autouse=True, scope="session")
 def setup_sample_data() -> Any:
+    # TODO(john-bodley): Determine a cleaner way of setting up the sample data without
+    # relying on `tests.test_app.app` leveraging an  `app` fixture which is purposely
+    # scoped to the function level to ensure tests remain idempotent.
     with app.app_context():
         setup_presto_if_needed()
 
@@ -73,13 +84,22 @@ def drop_from_schema(engine: Engine, schema_name: str):
 
 def setup_presto_if_needed():
     backend = app.config["SQLALCHEMY_EXAMPLES_URI"].split("://")[0]
+    database = get_example_database()
+    extra = database.get_extra()
+
     if backend == "presto":
         # decrease poll interval for tests
-        presto_poll_interval = app.config["PRESTO_POLL_INTERVAL"]
-        extra = f'{{"engine_params": {{"connect_args": {{"poll_interval": {presto_poll_interval}}}}}}}'
-        database = get_example_database()
-        database.extra = extra
-        db.session.commit()
+        extra = {
+            **extra,
+            "engine_params": {
+                "connect_args": {"poll_interval": app.config["PRESTO_POLL_INTERVAL"]}
+            },
+        }
+    else:
+        # remove `poll_interval` from databases that do not support it
+        extra = {**extra, "engine_params": {}}
+    database.extra = json_dumps_w_dates(extra)
+    db.session.commit()
 
     if backend in {"presto", "hive"}:
         database = get_example_database()
@@ -91,3 +111,38 @@ def setup_presto_if_needed():
         drop_from_schema(engine, ADMIN_SCHEMA_NAME)
         engine.execute(f"DROP SCHEMA IF EXISTS {ADMIN_SCHEMA_NAME}")
         engine.execute(f"CREATE SCHEMA {ADMIN_SCHEMA_NAME}")
+
+
+def with_feature_flags(**mock_feature_flags):
+    """
+    Use this decorator to mock feature flags in tests.
+
+    Usage:
+
+        class TestYourFeature(SupersetTestCase):
+
+            @with_feature_flags(YOUR_FEATURE=True)
+            def test_your_feature_enabled(self):
+                self.assertEqual(is_feature_enabled("YOUR_FEATURE"), True)
+
+            @with_feature_flags(YOUR_FEATURE=False)
+            def test_your_feature_disabled(self):
+                self.assertEqual(is_feature_enabled("YOUR_FEATURE"), False)
+    """
+
+    def mock_get_feature_flags():
+        feature_flags = feature_flag_manager._feature_flags or {}
+        return {**feature_flags, **mock_feature_flags}
+
+    def decorate(test_fn):
+        def wrapper(*args, **kwargs):
+            with patch.object(
+                feature_flag_manager,
+                "get_feature_flags",
+                side_effect=mock_get_feature_flags,
+            ):
+                test_fn(*args, **kwargs)
+
+        return functools.update_wrapper(wrapper, test_fn)
+
+    return decorate

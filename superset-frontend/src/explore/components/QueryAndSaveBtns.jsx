@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import ButtonGroup from 'src/components/ButtonGroup';
 import { t, useTheme } from '@superset-ui/core';
 
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import Button from 'src/components/Button';
 
 const propTypes = {
@@ -93,6 +93,9 @@ export default function QueryAndSaveBtns({
         '& button': {
           width: 100,
         },
+        '.errMsg': {
+          marginLeft: theme.gridUnit * 4,
+        },
       }}
     >
       <ButtonGroup className="query-and-save">
@@ -110,7 +113,7 @@ export default function QueryAndSaveBtns({
         </Button>
       </ButtonGroup>
       {errorMessage && (
-        <span>
+        <span className="errMsg">
           {' '}
           <Tooltip
             id="query-error-tooltip"

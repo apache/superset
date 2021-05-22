@@ -18,7 +18,7 @@
  */
 import {
   buildQueryContext,
-  ColumnType,
+  GenericDataType,
   QueryFormData,
 } from '@superset-ui/core';
 
@@ -43,6 +43,7 @@ export default function buildQuery(formData: QueryFormData) {
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,
+      apply_fetch_values_predicate: true,
       columns: [],
       groupby: [],
       metrics: [
@@ -51,7 +52,7 @@ export default function buildQuery(formData: QueryFormData) {
           column: {
             column_name: column,
             id: 1,
-            type: ColumnType.FLOAT,
+            type_generic: GenericDataType.NUMERIC,
           },
           expressionType: 'SIMPLE',
           hasCustomLabel: true,
@@ -62,7 +63,7 @@ export default function buildQuery(formData: QueryFormData) {
           column: {
             column_name: column,
             id: 2,
-            type: ColumnType.FLOAT,
+            type_generic: GenericDataType.NUMERIC,
           },
           expressionType: 'SIMPLE',
           hasCustomLabel: true,

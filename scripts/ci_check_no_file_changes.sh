@@ -27,7 +27,7 @@ if [[ -z ${PR_NUMBER} ]]; then
   exit 1
 fi
 
-URL="https://api.github.com/repos/${GITHUB_REPO}/pulls/${PR_NUMBER}/files"
+URL="https://api.github.com/repos/${GITHUB_REPO}/pulls/${PR_NUMBER}/files?per_page=1000"
 FILES=$(curl -s -X GET -G "${URL}" | jq -r '.[] | .filename')
 
 REGEXES=()

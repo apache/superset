@@ -25,12 +25,12 @@ import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-import ListView, { Filters } from 'src/components/ListView';
+import ListView, { FilterOperator, Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
+import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
 import ImportModelsModal from 'src/components/ImportModal/index';
-import DatabaseModal from './DatabaseModal';
 import { DatabaseObject } from './types';
 
 const PAGE_SIZE = 25;
@@ -147,10 +147,13 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     );
   }
 
-  function handleDatabaseEdit(database: DatabaseObject) {
-    // Set database and open modal
+  function handleDatabaseEditModal({
+    database = null,
+    modalOpen = false,
+  }: { database?: DatabaseObject | null; modalOpen?: boolean } = {}) {
+    // Set database and modal
     setCurrentDatabase(database);
-    setDatabaseModalOpen(true);
+    setDatabaseModalOpen(modalOpen);
   }
 
   const canCreate = hasPerm('can_write');
@@ -176,15 +179,22 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         buttonStyle: 'primary',
         onClick: () => {
           // Ensure modal will be opened in add mode
-          setCurrentDatabase(null);
-          setDatabaseModalOpen(true);
+          handleDatabaseEditModal({ modalOpen: true });
         },
       },
     ];
 
     if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
       menuData.buttons.push({
-        name: <Icons.Import />,
+        name: (
+          <Tooltip
+            id="import-tooltip"
+            title={t('Import databases')}
+            placement="bottomRight"
+          >
+            <Icons.Import data-test="import-button" />
+          </Tooltip>
+        ),
         buttonStyle: 'link',
         onClick: openDatabaseImportModal,
       });
@@ -290,7 +300,8 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
-          const handleEdit = () => handleDatabaseEdit(original);
+          const handleEdit = () =>
+            handleDatabaseEditModal({ database: original, modalOpen: true });
           const handleDelete = () => openDatabaseDeleteModal(original);
           const handleExport = () => handleDatabaseExport(original);
           if (!canEdit && !canDelete && !canExport) {
@@ -366,7 +377,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         Header: t('Expose in SQL Lab'),
         id: 'expose_in_sqllab',
         input: 'select',
-        operator: 'eq',
+        operator: FilterOperator.equals,
         unfilteredLabel: 'All',
         selects: [
           { label: 'Yes', value: true },
@@ -385,7 +396,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         ),
         id: 'allow_run_async',
         input: 'select',
-        operator: 'eq',
+        operator: FilterOperator.equals,
         unfilteredLabel: 'All',
         selects: [
           { label: 'Yes', value: true },
@@ -396,7 +407,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         Header: t('Search'),
         id: 'database_name',
         input: 'search',
-        operator: 'ct',
+        operator: FilterOperator.contains,
       },
     ],
     [],
@@ -406,9 +417,9 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     <>
       <SubMenu {...menuData} />
       <DatabaseModal
-        database={currentDatabase}
+        databaseId={currentDatabase?.id}
         show={databaseModalOpen}
-        onHide={() => setDatabaseModalOpen(false)}
+        onHide={handleDatabaseEditModal}
         onDatabaseAdd={() => {
           refreshData();
         }}

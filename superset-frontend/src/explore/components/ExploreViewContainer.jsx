@@ -21,21 +21,25 @@ import React, { useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { styled, t, supersetTheme, css } from '@superset-ui/core';
+import { styled, t, css, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { Resizable } from 're-resizable';
 
 import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
-import { Global } from '@emotion/core';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Global } from '@emotion/react';
+import { Tooltip } from 'src/components/Tooltip';
 import { usePrevious } from 'src/common/hooks/usePrevious';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import {
   getFromLocalStorage,
   setInLocalStorage,
 } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
 import cx from 'classnames';
+import * as chartActions from 'src/chart/chartAction';
+import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
+import { chartPropShape } from 'src/dashboard/util/propShapes';
+import { mergeExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
@@ -44,11 +48,8 @@ import DataSourcePanel from './DatasourcePanel';
 import { getExploreLongUrl } from '../exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
 import { getFormDataFromControls } from '../controlUtils';
-import { chartPropShape } from '../../dashboard/util/propShapes';
 import * as exploreActions from '../actions/exploreActions';
 import * as saveModalActions from '../actions/saveModalActions';
-import * as chartActions from '../../chart/chartAction';
-import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import * as logActions from '../../logger/actions';
 import {
   LOG_ACTIONS_MOUNT_EXPLORER,
@@ -84,6 +85,7 @@ const Styles = styled.div`
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
+  flex-basis: 100vh;
   align-items: stretch;
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   .explore-column {
@@ -168,6 +170,7 @@ function ExploreViewContainer(props) {
   const [showingModal, setShowingModal] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  const theme = useTheme();
   const width = `${windowSize.width}px`;
   const navHeight = props.standalone ? 0 : 90;
   const height = props.forcedHeight
@@ -294,6 +297,15 @@ function ExploreViewContainer(props) {
     }
   }, []);
 
+  const reRenderChart = () => {
+    props.actions.updateQueryFormData(
+      getFormDataFromControls(props.controls),
+      props.chart.id,
+    );
+    props.actions.renderTriggered(new Date().getTime(), props.chart.id);
+    addHistory();
+  };
+
   // effect to run when controls change
   useEffect(() => {
     if (previousControls) {
@@ -320,15 +332,10 @@ function ExploreViewContainer(props) {
         key => props.controls[key].renderTrigger,
       );
       if (hasDisplayControlChanged) {
-        props.actions.updateQueryFormData(
-          getFormDataFromControls(props.controls),
-          props.chart.id,
-        );
-        props.actions.renderTriggered(new Date().getTime(), props.chart.id);
-        addHistory();
+        reRenderChart();
       }
     }
-  }, [props.controls]);
+  }, [props.controls, props.ownState]);
 
   const chartIsStale = useMemo(() => {
     if (previousControls) {
@@ -349,6 +356,13 @@ function ExploreViewContainer(props) {
     }
     return false;
   }, [previousControls, props.controls]);
+
+  useEffect(() => {
+    if (props.ownState !== undefined) {
+      onQuery();
+      reRenderChart();
+    }
+  }, [props.ownState]);
 
   if (chartIsStale) {
     props.actions.logEvent(LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS);
@@ -459,11 +473,10 @@ function ExploreViewContainer(props) {
             className="action-button"
             onClick={toggleCollapse}
           >
-            <Icon
-              name="expand"
-              color={supersetTheme.colors.primary.base}
+            <Icons.Expand
               className="collapse-icon"
-              width={16}
+              iconColor={theme.colors.primary.base}
+              iconSize="l"
             />
           </span>
         </div>
@@ -483,15 +496,18 @@ function ExploreViewContainer(props) {
         >
           <span role="button" tabIndex={0} className="action-button">
             <Tooltip title={t('Open Datasource tab')}>
-              <Icon
-                name="collapse"
-                color={supersetTheme.colors.primary.base}
+              <Icons.Collapse
                 className="collapse-icon"
-                width={16}
+                iconColor={theme.colors.primary.base}
+                iconSize="l"
               />
             </Tooltip>
           </span>
-          <Icon name="dataset-physical" width={16} />
+          <Icons.DatasetPhysical
+            css={{ marginTop: theme.gridUnit * 2 }}
+            iconSize="l"
+            iconColor={theme.colors.grayscale.base}
+          />
         </div>
       ) : null}
       <Resizable
@@ -540,8 +556,14 @@ function ExploreViewContainer(props) {
 ExploreViewContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
-  const { explore, charts, impressionId } = state;
+  const { explore, charts, impressionId, dataMask } = state;
   const form_data = getFormDataFromControls(explore.controls);
+  form_data.extra_form_data = mergeExtraFormData(
+    { ...form_data.extra_form_data },
+    {
+      ...dataMask[form_data.slice_id]?.ownState,
+    },
+  );
   const chartKey = Object.keys(charts)[0];
   const chart = charts[chartKey];
   return {
@@ -571,7 +593,9 @@ function mapStateToProps(state) {
     forcedHeight: explore.forced_height,
     chart,
     timeout: explore.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
+    ownState: dataMask[form_data.slice_id]?.ownState,
     impressionId,
+    userId: explore.user_id,
   };
 }
 

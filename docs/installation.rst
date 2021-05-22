@@ -1133,8 +1133,9 @@ The following configuration settings are available for async queries (see config
 - ``GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE`` - the maximum number of events for all users (FIFO eviction)
 - ``GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME`` - the async query feature uses a `JWT <https://tools.ietf.org/html/rfc7519>`_ cookie for authentication, this setting is the cookie's name
 - ``GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE`` - JWT cookie secure option
+- ``GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN`` - JWT cookie domain option (`see docs for set_cookie <https://tedboy.github.io/flask/interface_api.response_object.html#flask.Response.set_cookie>`
 - ``GLOBAL_ASYNC_QUERIES_JWT_SECRET`` - JWT's use a secret key to sign and validate the contents. This value should be at least 32 bytes and have sufficient randomness for proper security
-- ``GLOBAL_ASYNC_QUERIES_TRANSPORT`` - currently the only available option is (HTTP) `polling`, but support for a WebSocket will be added in future versions
+- ``GLOBAL_ASYNC_QUERIES_TRANSPORT`` - available options: "polling" (HTTP, default), "ws" (WebSocket, requires running superset-websocket server)
 - ``GLOBAL_ASYNC_QUERIES_POLLING_DELAY`` - the time (in ms) between polling requests
 
 More information on the async query feature can be found in `SIP-39 <https://github.com/apache/superset/issues/9190>`_.
@@ -1207,7 +1208,7 @@ To render dashboards you need to install a local browser on your superset instan
   * `geckodriver <https://github.com/mozilla/geckodriver>`_ and Firefox is preferred
   * `chromedriver <http://chromedriver.chromium.org/>`_ is a good option too
 
-You need to adjust the ``EMAIL_REPORTS_WEBDRIVER`` accordingly in your configuration.
+You need to adjust the ``WEBDRIVER_TYPE`` accordingly in your configuration.
 
 You also need to specify on behalf of which username to render the dashboards. In general
 dashboards and charts are not accessible to unauthorized requests, that is why the
@@ -1487,13 +1488,14 @@ Install Superset with helm in Kubernetes
 ----------------------------------------
 
 You can install Superset into Kubernetes with Helm <https://helm.sh/>. The chart is
-located in ``install/helm``.
+located in the ``helm`` directory.
 
-To install Superset into your Kubernetes:
+To install Superset in your Kubernetes cluster with Helm 3, run:
 
 .. code-block:: bash
 
-    helm upgrade --install superset ./install/helm/superset
+    helm dep install ./helm/superset
+    helm upgrade --install superset ./helm/superset
 
 Note that the above command will install Superset into ``default`` namespace of your Kubernetes cluster.
 
@@ -1569,23 +1571,13 @@ You can enable or disable features with flag from ``superset_config.py``:
 
 .. code-block:: python
 
-     DEFAULT_FEATURE_FLAGS = {
+     FEATURE_FLAGS = {
          'CLIENT_CACHE': False,
          'ENABLE_EXPLORE_JSON_CSRF_PROTECTION': False,
          'PRESTO_EXPAND_DATA': False,
      }
 
-Here is a list of flags and descriptions:
-
-* ENABLE_EXPLORE_JSON_CSRF_PROTECTION
-
-  * For some security concerns, you may need to enforce CSRF protection on all query request to explore_json endpoint. In Superset, we use `flask-csrf <https://sjl.bitbucket.io/flask-csrf/>`_ add csrf protection for all POST requests, but this protection doesn't apply to GET method.
-
-  * When ENABLE_EXPLORE_JSON_CSRF_PROTECTION is set to true, your users cannot make GET request to explore_json. The default value for this feature False (current behavior), explore_json accepts both GET and POST request. See `PR 7935 <https://github.com/apache/superset/pull/7935>`_ for more details.
-
-* PRESTO_EXPAND_DATA
-
-  * When this feature is enabled, nested types in Presto will be expanded into extra columns and/or arrays. This is experimental, and doesn't work with all nested types.
+A current list of feature flags can be found in `RESOURCES/FEATURE_FLAGS.md`
 
 
 SIP-15

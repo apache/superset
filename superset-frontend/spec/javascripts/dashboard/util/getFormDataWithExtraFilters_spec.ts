@@ -29,6 +29,16 @@ describe('getFormDataWithExtraFilters', () => {
   const filterId = 'native-filter-1';
   const mockChart = {
     id: chartId,
+    chartAlert: null,
+    chartStatus: null,
+    chartUpdateEndTime: null,
+    chartUpdateStartTime: 1,
+    lastRendered: 1,
+    latestQueryFormData: {},
+    sliceFormData: null,
+    queryController: null,
+    queriesResponse: null,
+    triggerQuery: false,
     formData: {
       viz_type: 'filter_select',
       filters: [
@@ -41,8 +51,9 @@ describe('getFormDataWithExtraFilters', () => {
     },
   };
   const mockArgs: GetFormDataWithExtraFiltersArguments = {
+    chartConfiguration: {},
     charts: {
-      [chartId]: mockChart,
+      [chartId as number]: mockChart,
     },
     chart: mockChart,
     filters: {
@@ -61,16 +72,13 @@ describe('getFormDataWithExtraFilters', () => {
           },
         } as unknown) as Filter,
       },
-      filtersState: {
-        crossFilters: {},
-        ownFilters: {},
-        nativeFilters: {
-          [filterId]: {
-            id: filterId,
-            extraFormData: {},
-            currentState: {},
-          },
-        },
+    },
+    dataMask: {
+      [filterId]: {
+        id: filterId,
+        extraFormData: {},
+        filterState: {},
+        ownState: {},
       },
     },
     layout: (dashboardLayout.present as unknown) as {

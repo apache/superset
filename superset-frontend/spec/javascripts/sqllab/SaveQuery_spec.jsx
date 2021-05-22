@@ -17,12 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { FormControl } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 import * as sinon from 'sinon';
 import SaveQuery from 'src/SqlLab/components/SaveQuery';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
+import { FormItem } from 'src/components/Form';
 
 describe('SavedQuery', () => {
   const mockedProps = {
@@ -52,11 +52,11 @@ describe('SavedQuery', () => {
 
     expect(modal.find('[data-test="cancel-query"]')).toHaveLength(1);
   });
-  it('has 2 FormControls', () => {
+  it('has 2 FormItem', () => {
     const wrapper = shallow(<SaveQuery {...mockedProps} />);
     const modal = wrapper.find(Modal);
 
-    expect(modal.find(FormControl)).toHaveLength(2);
+    expect(modal.find(FormItem)).toHaveLength(2);
   });
   // eslint-disable-next-line jest/no-disabled-tests
   it.skip('has a save button if this is a new query', () => {

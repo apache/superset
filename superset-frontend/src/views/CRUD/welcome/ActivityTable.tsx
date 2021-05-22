@@ -16,16 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import moment from 'moment';
 import { styled, t } from '@superset-ui/core';
+import { setInLocalStorage } from 'src/utils/localStorageHelpers';
 
 import Loading from 'src/components/Loading';
 import ListViewCard from 'src/components/ListViewCard';
 import SubMenu from 'src/components/Menu/SubMenu';
 import { Chart } from 'src/types/Chart';
 import { Dashboard, SavedQueryObject } from 'src/views/CRUD/types';
-import { mq, CardStyles } from 'src/views/CRUD/utils';
+import { mq, CardStyles, getEditedObjects } from 'src/views/CRUD/utils';
 
 import { ActivityData } from './Welcome';
 import EmptyState from './EmptyState';
@@ -66,7 +67,6 @@ interface ActivityProps {
   };
   activeChild: string;
   setActiveChild: (arg0: string) => void;
-  loading: boolean;
   activityData: ActivityData;
 }
 
@@ -75,15 +75,7 @@ const ActivityContainer = styled.div`
   margin-top: ${({ theme }) => theme.gridUnit * -4}px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
-  ${[mq[3]]} {
-    grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
-  }
-  ${[mq[2]]} {
-    grid-template-columns: repeat(auto-fit, minmax(42%, max-content));
-  }
-  ${[mq[1]]} {
-    grid-template-columns: repeat(auto-fit, minmax(63%, max-content));
-  }
+
   grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
   justify-content: left;
   padding: ${({ theme }) => theme.gridUnit * 6}px;
@@ -94,6 +86,15 @@ const ActivityContainer = styled.div`
   }
   .ant-card-meta-title {
     font-weight: ${({ theme }) => theme.typography.weights.bold};
+  }
+  ${mq[3]} {
+    grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
+  }
+  ${mq[2]} {
+    grid-template-columns: repeat(auto-fit, minmax(42%, max-content));
+  }
+  ${mq[1]} {
+    grid-template-columns: repeat(auto-fit, minmax(80%, max-content));
   }
 `;
 
@@ -156,17 +157,39 @@ const getEntityLastActionOn = (entity: ActivityObject) => {
 };
 
 export default function ActivityTable({
-  loading,
   activeChild,
   setActiveChild,
   activityData,
+  user,
 }: ActivityProps) {
+  const [editedObjs, setEditedObjs] = useState<Array<ActivityData>>();
+  const [loadingState, setLoadingState] = useState(false);
+
+  useEffect(() => {
+    if (activeChild === 'Edited') {
+      setLoadingState(true);
+      getEditedObjects(user.userId).then(r => {
+        setEditedObjs([...r.editedChart, ...r.editedDash]);
+        setLoadingState(false);
+      });
+    }
+  }, []);
+
+  const getEditedCards = () => {
+    setLoadingState(true);
+    getEditedObjects(user.userId).then(r => {
+      setEditedObjs([...r.editedChart, ...r.editedDash]);
+      setLoadingState(false);
+    });
+  };
   const tabs = [
     {
       name: 'Edited',
       label: t('Edited'),
       onClick: () => {
         setActiveChild('Edited');
+        setInLocalStorage('activity', { activity: 'Edited' });
+        getEditedCards();
       },
     },
     {
@@ -174,6 +197,7 @@ export default function ActivityTable({
       label: t('Created'),
       onClick: () => {
         setActiveChild('Created');
+        setInLocalStorage('activity', { activity: 'Created' });
       },
     },
   ];
@@ -184,6 +208,7 @@ export default function ActivityTable({
       label: t('Viewed'),
       onClick: () => {
         setActiveChild('Viewed');
+        setInLocalStorage('activity', { activity: 'Viewed' });
       },
     });
   } else {
@@ -192,35 +217,38 @@ export default function ActivityTable({
       label: t('Examples'),
       onClick: () => {
         setActiveChild('Examples');
+        setInLocalStorage('activity', { activity: 'Examples' });
       },
     });
   }
 
   const renderActivity = () =>
-    activityData[activeChild].map((entity: ActivityObject) => {
-      const url = getEntityUrl(entity);
-      const lastActionOn = getEntityLastActionOn(entity);
-      return (
-        <CardStyles
-          onClick={() => {
-            window.location.href = url;
-          }}
-          key={url}
-        >
-          <ListViewCard
-            loading={loading}
-            cover={<></>}
-            url={url}
-            title={getEntityTitle(entity)}
-            description={lastActionOn}
-            avatar={getEntityIconName(entity)}
-            actions={null}
-          />
-        </CardStyles>
-      );
-    });
-
-  if (loading) return <Loading position="inline" />;
+    (activeChild !== 'Edited' ? activityData[activeChild] : editedObjs).map(
+      (entity: ActivityObject) => {
+        const url = getEntityUrl(entity);
+        const lastActionOn = getEntityLastActionOn(entity);
+        return (
+          <CardStyles
+            onClick={() => {
+              window.location.href = url;
+            }}
+            key={url}
+          >
+            <ListViewCard
+              cover={<></>}
+              url={url}
+              title={getEntityTitle(entity)}
+              description={lastActionOn}
+              avatar={getEntityIconName(entity)}
+              actions={null}
+            />
+          </CardStyles>
+        );
+      },
+    );
+  if (loadingState && !editedObjs) {
+    return <Loading position="inline" />;
+  }
   return (
     <>
       <SubMenu
@@ -228,13 +256,12 @@ export default function ActivityTable({
         // eslint-disable-next-line react/no-children-prop
         tabs={tabs}
       />
-      <>
-        {activityData[activeChild]?.length > 0 ? (
-          <ActivityContainer>{renderActivity()}</ActivityContainer>
-        ) : (
-          <EmptyState tableName="RECENTS" tab={activeChild} />
-        )}
-      </>
+      {activityData[activeChild]?.length > 0 ||
+      (activeChild === 'Edited' && editedObjs && editedObjs.length > 0) ? (
+        <ActivityContainer>{renderActivity()}</ActivityContainer>
+      ) : (
+        <EmptyState tableName="RECENTS" tab={activeChild} />
+      )}
     </>
   );
 }

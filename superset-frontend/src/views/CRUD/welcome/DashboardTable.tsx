@@ -16,12 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps } from 'src/views/CRUD/types';
 import { useHistory } from 'react-router-dom';
+import {
+  setInLocalStorage,
+  getFromLocalStorage,
+} from 'src/utils/localStorageHelpers';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import Loading from 'src/components/Loading';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
 import SubMenu from 'src/components/Menu/SubMenu';
@@ -41,6 +46,7 @@ function DashboardTable({
   addDangerToast,
   addSuccessToast,
   mine,
+  showThumbnails,
 }: DashboardTableProps) {
   const history = useHistory();
   const {
@@ -55,6 +61,8 @@ function DashboardTable({
     addDangerToast,
     true,
     mine,
+    [],
+    false,
   );
   const dashboardIds = useMemo(() => dashboards.map(c => c.id), [dashboards]);
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
@@ -64,6 +72,13 @@ function DashboardTable({
   );
   const [editModal, setEditModal] = useState<Dashboard>();
   const [dashboardFilter, setDashboardFilter] = useState('Mine');
+
+  useEffect(() => {
+    const filter = getFromLocalStorage('dashboard', null);
+    if (!filter) {
+      setDashboardFilter('Mine');
+    } else setDashboardFilter(filter.tab);
+  }, []);
 
   const handleDashboardEdit = (edits: Dashboard) =>
     SupersetClient.get({
@@ -125,6 +140,7 @@ function DashboardTable({
       filters: getFilters(filter),
     });
 
+  if (loading) return <Loading position="inline" />;
   return (
     <>
       <SubMenu
@@ -134,14 +150,20 @@ function DashboardTable({
             name: 'Favorite',
             label: t('Favorite'),
             onClick: () => {
-              getData('Favorite').then(() => setDashboardFilter('Favorite'));
+              getData('Favorite').then(() => {
+                setDashboardFilter('Favorite');
+                setInLocalStorage('dashboard', { tab: 'Favorite' });
+              });
             },
           },
           {
             name: 'Mine',
             label: t('Mine'),
             onClick: () => {
-              getData('Mine').then(() => setDashboardFilter('Mine'));
+              getData('Mine').then(() => {
+                setDashboardFilter('Mine');
+                setInLocalStorage('dashboard', { tab: 'Mine' });
+              });
             },
           },
         ]}
@@ -187,6 +209,7 @@ function DashboardTable({
               dashboard={e}
               hasPerm={hasPerm}
               bulkSelectEnabled={false}
+              showThumbnails={showThumbnails}
               dashboardFilter={dashboardFilter}
               refreshData={refreshData}
               addDangerToast={addDangerToast}

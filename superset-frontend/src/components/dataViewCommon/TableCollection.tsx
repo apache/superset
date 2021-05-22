@@ -269,7 +269,7 @@ export default React.memo(
                       [column.size || '']: column.size,
                     })}
                   >
-                    <span className="loading-bar">
+                    <span className="loading-bar" role="progressbar">
                       <span>LOADING</span>
                     </span>
                   </td>
@@ -306,7 +306,10 @@ export default React.memo(
                       {...cell.getCellProps()}
                       {...columnCellProps}
                     >
-                      <span className={cx({ 'loading-bar': loading })}>
+                      <span
+                        className={cx({ 'loading-bar': loading })}
+                        role={loading ? 'progressbar' : undefined}
+                      >
                         <span data-test="cell-text">{cell.render('Cell')}</span>
                       </span>
                     </td>

@@ -107,7 +107,7 @@ const FilterFocusHighlight = React.forwardRef(
       styles = {
         borderColor: theme.colors.primary.light2,
         opacity: 1,
-        boxShadow: `0px 0px ${({ theme }) => theme.gridUnit * 2}px ${
+        boxShadow: `0px 0px ${theme.gridUnit * 2}px ${
           theme.colors.primary.light2
         }`,
         pointerEvents: 'auto',
@@ -245,8 +245,8 @@ class ChartHolder extends React.Component {
     let chartHeight = 0;
 
     if (this.state.isFullSize) {
-      chartWidth = document.body.clientWidth - CHART_MARGIN;
-      chartHeight = document.body.clientHeight - CHART_MARGIN;
+      chartWidth = window.innerWidth - CHART_MARGIN;
+      chartHeight = window.innerHeight - CHART_MARGIN;
     } else {
       chartWidth = Math.floor(
         widthMultiple * columnWidth +

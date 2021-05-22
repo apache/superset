@@ -334,6 +334,7 @@ export default function sqlLabReducer(state = {}, action) {
         results: action.results,
         rows: action?.results?.data?.length,
         state: 'success',
+        limitingFactor: action?.results?.query?.limitingFactor,
         tempSchema: action?.results?.query?.tempSchema,
         tempTable: action?.results?.query?.tempTable,
         errorMessage: null,
@@ -488,6 +489,11 @@ export default function sqlLabReducer(state = {}, action) {
       return alterInArr(state, 'queryEditors', action.queryEditor, {
         northPercent: action.northPercent,
         southPercent: action.southPercent,
+      });
+    },
+    [actions.QUERY_EDITOR_TOGGLE_LEFT_BAR]() {
+      return alterInArr(state, 'queryEditors', action.queryEditor, {
+        hideLeftBar: action.hideLeftBar,
       });
     },
     [actions.SET_DATABASES]() {

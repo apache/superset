@@ -19,7 +19,7 @@
 import shortid from 'shortid';
 import { compose } from 'redux';
 import persistState, { StorageAdapter } from 'redux-localstorage';
-import { isEqual } from 'lodash';
+import { isEqual, omitBy, isUndefined } from 'lodash';
 
 export function addToObject(
   state: Record<string, any>,
@@ -170,8 +170,15 @@ export function areArraysShallowEqual(arr1: unknown[], arr2: unknown[]) {
 }
 
 export function areObjectsEqual(
-  obj1: Record<string, any>,
-  obj2: Record<string, any>,
+  obj1: any,
+  obj2: any,
+  opts = { ignoreUndefined: false },
 ) {
-  return isEqual(obj1, obj2);
+  let comp1 = obj1;
+  let comp2 = obj2;
+  if (opts.ignoreUndefined) {
+    comp1 = omitBy(obj1, isUndefined);
+    comp2 = omitBy(obj2, isUndefined);
+  }
+  return isEqual(comp1, comp2);
 }

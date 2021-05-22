@@ -17,12 +17,14 @@
  * under the License.
  */
 import React from 'react';
+import { Link, useHistory } from 'react-router-dom';
 import { t } from '@superset-ui/core';
 import {
   handleDashboardDelete,
   handleBulkDashboardExport,
   CardStyles,
 } from 'src/views/CRUD/utils';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { Dropdown, Menu } from 'src/common/components';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListViewCard from 'src/components/ListViewCard';
@@ -46,6 +48,7 @@ interface DashboardCardProps {
   favoriteStatus: boolean;
   dashboardFilter?: string;
   userId?: number;
+  showThumbnails?: boolean;
 }
 
 function DashboardCard({
@@ -60,7 +63,9 @@ function DashboardCard({
   openDashboardEditModal,
   favoriteStatus,
   saveFavoriteStatus,
+  showThumbnails,
 }: DashboardCardProps) {
+  const history = useHistory();
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_read');
@@ -136,7 +141,7 @@ function DashboardCard({
     <CardStyles
       onClick={() => {
         if (!bulkSelectEnabled) {
-          window.location.href = dashboard.url;
+          history.push(dashboard.url);
         }
       }}
     >
@@ -146,7 +151,13 @@ function DashboardCard({
         titleRight={
           <Label>{dashboard.published ? t('published') : t('draft')}</Label>
         }
+        cover={
+          !isFeatureEnabled(FeatureFlag.THUMBNAILS) || !showThumbnails ? (
+            <></>
+          ) : null
+        }
         url={bulkSelectEnabled ? undefined : dashboard.url}
+        linkComponent={Link}
         imgURL={dashboard.thumbnail_url}
         imgFallbackURL="/static/assets/images/dashboard-card-fallback.svg"
         description={t(

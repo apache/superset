@@ -23,6 +23,10 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+{{- if .Values.supersetWorker.deploymentAnnotations }}
+  annotations:
+    {{ toYaml .Values.supersetWorker.deploymentAnnotations | nindent 4 }}
+{{- end }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -35,18 +39,22 @@ spec:
         checksum/superset_config.py: {{ include "superset-config" . | sha256sum }}
         checksum/connections: {{ .Values.supersetNode.connections | toYaml | sha256sum }}
         checksum/extraConfigs: {{ .Values.extraConfigs | toYaml | sha256sum }}
+        checksum/extraSecrets: {{ .Values.extraSecrets | toYaml | sha256sum }}
         checksum/extraSecretEnv: {{ .Values.extraSecretEnv | toYaml | sha256sum }}
         checksum/configOverrides: {{ .Values.configOverrides | toYaml | sha256sum }}
         {{ if .Values.supersetWorker.forceReload }}
         # Optionally force the thing to reload
         force-reload: {{ randAlphaNum 5 | quote }}
         {{ end }}
+      {{- if .Values.supersetWorker.podAnnotations }}
+        {{ toYaml .Values.supersetWorker.podAnnotations | nindent 8 }}
+      {{- end }}
       labels:
         app: {{ template "superset.name" . }}-worker
         release: {{ .Release.Name }}
     spec:
       securityContext:
-        runAsUser: 0 # Needed in order to allow pip install to work in bootstrap
+        runAsUser: {{ .Values.runAsUser }}
       {{- if .Values.supersetWorker.initContainers }}
       initContainers:
       {{-  tpl (toYaml .Values.supersetWorker.initContainers) . | nindent 6 }}

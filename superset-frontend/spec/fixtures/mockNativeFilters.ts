@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ExtraFormData } from '@superset-ui/core';
 import { NativeFiltersState } from 'src/dashboard/reducers/types';
+import { DataMaskStateWithId } from '../../src/dataMask/types';
 
 export const nativeFilters: NativeFiltersState = {
   filterSets: {},
@@ -33,7 +35,11 @@ export const nativeFilters: NativeFiltersState = {
           },
         },
       ],
-      defaultValue: null,
+      defaultDataMask: {
+        filterState: {
+          value: null,
+        },
+      },
       cascadeParentIds: [],
       scope: {
         rootPath: ['ROOT_ID'],
@@ -58,7 +64,11 @@ export const nativeFilters: NativeFiltersState = {
           },
         },
       ],
-      defaultValue: null,
+      defaultDataMask: {
+        filterState: {
+          value: null,
+        },
+      },
       cascadeParentIds: [],
       scope: {
         rootPath: ['ROOT_ID'],
@@ -72,46 +82,41 @@ export const nativeFilters: NativeFiltersState = {
       isInstant: true,
     },
   },
-  filtersState: {
-    crossFilters: {},
-    ownFilters: {},
-    nativeFilters: {
-      'NATIVE_FILTER-e7Q8zKixx': {
-        id: 'NATIVE_FILTER-e7Q8zKixx',
-        extraFormData: {
-          append_form_data: {
-            filters: [
-              {
-                col: 'region',
-                op: 'IN',
-                val: ['East Asia & Pacific'],
-              },
-            ],
-          },
+};
+
+export const dataMaskWith2Filters: DataMaskStateWithId = {
+  'NATIVE_FILTER-e7Q8zKixx': {
+    id: 'NATIVE_FILTER-e7Q8zKixx',
+    ownState: {},
+    extraFormData: {
+      filters: [
+        {
+          col: 'region',
+          op: 'IN',
+          val: ['East Asia & Pacific'],
         },
-        currentState: {
-          value: ['East Asia & Pacific'],
-        },
-      },
-      'NATIVE_FILTER-x9QPw0so1': {
-        id: 'NATIVE_FILTER-x9QPw0so1',
-        extraFormData: {},
-        currentState: {},
-      },
+      ],
     },
+    filterState: {
+      value: ['East Asia & Pacific'],
+    },
+  },
+  'NATIVE_FILTER-x9QPw0so1': {
+    id: 'NATIVE_FILTER-x9QPw0so1',
+    ownState: {},
+    extraFormData: {},
+    filterState: {},
   },
 };
 
-export const extraFormData = {
-  append_form_data: {
-    filters: [
-      {
-        col: 'ethnic_minority',
-        op: 'IN',
-        val: 'No, not an ethnic minority',
-      },
-    ],
-  },
+export const extraFormData: ExtraFormData = {
+  filters: [
+    {
+      col: 'ethnic_minority',
+      op: 'IN',
+      val: ['No, not an ethnic minority'],
+    },
+  ],
 };
 
 export const NATIVE_FILTER_ID = 'NATIVE_FILTER-p4LImrSgA';
@@ -123,7 +128,11 @@ export const singleNativeFiltersState = {
       name: 'eth',
       type: 'text',
       targets: [{ datasetId: 13, column: { name: 'ethnic_minority' } }],
-      defaultValue: null,
+      defaultDataMask: {
+        filterState: {
+          value: null,
+        },
+      },
       cascadeParentIds: [],
       scope: { rootPath: ['ROOT_ID'], excluded: [227, 229] },
       inverseSelection: false,
@@ -132,15 +141,14 @@ export const singleNativeFiltersState = {
       isRequired: false,
     },
   },
-  filtersState: {
-    nativeFilters: {
-      [NATIVE_FILTER_ID]: {
-        id: NATIVE_FILTER_ID,
-        extraFormData,
-        currentState: {
-          value: ['No, not an ethnic minority'],
-        },
-      },
+};
+
+export const dataMaskWith1Filter: DataMaskStateWithId = {
+  [NATIVE_FILTER_ID]: {
+    id: NATIVE_FILTER_ID,
+    extraFormData,
+    filterState: {
+      value: ['No, not an ethnic minority'],
     },
   },
 };

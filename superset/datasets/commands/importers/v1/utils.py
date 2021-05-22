@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 CHUNKSIZE = 512
 VARCHAR = re.compile(r"VARCHAR\((\d+)\)", re.IGNORECASE)
 
-JSON_KEYS = {"params", "template_params", "extra"}
+JSON_KEYS = {"params", "template_params"}
 
 
 type_map = {
@@ -92,7 +92,7 @@ def import_dataset(
     # TODO (betodealmeida): move this logic to import_from_dict
     config = config.copy()
     for key in JSON_KEYS:
-        if config.get(key):
+        if config.get(key) is not None:
             try:
                 config[key] = json.dumps(config[key])
             except TypeError:
@@ -116,7 +116,13 @@ def import_dataset(
         session.flush()
 
     example_database = get_example_database()
-    table_exists = example_database.has_table_by_name(dataset.table_name)
+    try:
+        table_exists = example_database.has_table_by_name(dataset.table_name)
+    except Exception as ex:
+        # MySQL doesn't play nice with GSheets table names
+        logger.warning("Couldn't check if table %s exists, stopping import")
+        raise ex
+
     if data_uri and (not table_exists or force_data):
         load_data(data_uri, dataset, example_database, session)
 

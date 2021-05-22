@@ -21,7 +21,14 @@ from typing import List, Optional, Set
 from urllib import parse
 
 import sqlparse
-from sqlparse.sql import Identifier, IdentifierList, remove_quotes, Token, TokenList
+from sqlparse.sql import (
+    Identifier,
+    IdentifierList,
+    Parenthesis,
+    remove_quotes,
+    Token,
+    TokenList,
+)
 from sqlparse.tokens import Keyword, Name, Punctuation, String, Whitespace
 from sqlparse.utils import imt
 
@@ -278,7 +285,9 @@ class ParsedQuery:
         table_name_preceding_token = False
 
         for item in token.tokens:
-            if item.is_group and not self._is_identifier(item):
+            if item.is_group and (
+                not self._is_identifier(item) or isinstance(item.tokens[0], Parenthesis)
+            ):
                 self._extract_from_token(item)
 
             if item.ttype in Keyword and (
@@ -291,7 +300,6 @@ class ParsedQuery:
             if item.ttype in Keyword:
                 table_name_preceding_token = False
                 continue
-
             if table_name_preceding_token:
                 if isinstance(item, Identifier):
                     self._process_tokenlist(item)
@@ -303,7 +311,7 @@ class ParsedQuery:
                 if any(not self._is_identifier(token2) for token2 in item.tokens):
                     self._extract_from_token(item)
 
-    def set_or_update_query_limit(self, new_limit: int) -> str:
+    def set_or_update_query_limit(self, new_limit: int, force: bool = False) -> str:
         """Returns the query with the specified limit.
 
         Does not change the underlying query if user did not apply the limit,
@@ -324,8 +332,8 @@ class ParsedQuery:
                 break
         _, limit = statement.token_next(idx=limit_pos)
         # Override the limit only when it exceeds the configured value.
-        if limit.ttype == sqlparse.tokens.Literal.Number.Integer and new_limit < int(
-            limit.value
+        if limit.ttype == sqlparse.tokens.Literal.Number.Integer and (
+            force or new_limit < int(limit.value)
         ):
             limit.value = new_limit
         elif limit.is_group:

@@ -23,6 +23,15 @@ export type Column = {
   name: string;
 };
 
+export type QueryState =
+  | 'stopped'
+  | 'failed'
+  | 'pending'
+  | 'running'
+  | 'scheduled'
+  | 'success'
+  | 'timed_out';
+
 export type Query = {
   cached: boolean;
   ctas: boolean;
@@ -43,19 +52,13 @@ export type Query = {
     data: Record<string, unknown>[];
     expanded_columns: Column[];
     selected_columns: Column[];
+    query: { limit: number };
   };
   resultsKey: string | null;
   schema: string;
   sql: string;
   sqlEditorId: string;
-  state:
-    | 'stopped'
-    | 'failed'
-    | 'pending'
-    | 'running'
-    | 'scheduled'
-    | 'success'
-    | 'timed_out';
+  state: QueryState;
   tab: string | null;
   tempSchema: string | null;
   tempTable: string;
@@ -63,4 +66,5 @@ export type Query = {
   templateParams: any;
   rows: number;
   queryLimit: number;
+  limitingFactor: string;
 };

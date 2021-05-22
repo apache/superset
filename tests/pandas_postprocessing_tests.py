@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 from datetime import datetime
+from importlib.util import find_spec
 import math
 from typing import Any, List, Optional
 
@@ -195,6 +196,21 @@ class TestPostProcessing(SupersetTestCase):
             aggregates={"idx_nulls": {"operator": "sum"}},
         )
         self.assertEqual(df.sum()[1], 382)
+
+    def test_pivot_fill_column_values(self):
+        """
+        Make sure pivot witn null column names returns correct DataFrame
+        """
+        df_copy = categories_df.copy()
+        df_copy["category"] = None
+        df = proc.pivot(
+            df=df_copy,
+            index=["name"],
+            columns=["category"],
+            aggregates={"idx_nulls": {"operator": "sum"}},
+        )
+        assert len(df) == 101
+        assert df.columns.tolist() == ["name", "<NULL>"]
 
     def test_pivot_exceptions(self):
         """
@@ -560,7 +576,7 @@ class TestPostProcessing(SupersetTestCase):
         self.assertListEqual(processed_df["pct_a"].tolist(), [0.25, 0.75])
 
     def test_prophet_valid(self):
-        pytest.importorskip("fbprophet")
+        pytest.importorskip("prophet")
 
         df = proc.prophet(
             df=prophet_df, time_grain="P1M", periods=3, confidence_interval=0.9
@@ -587,6 +603,14 @@ class TestPostProcessing(SupersetTestCase):
         assert df[DTTM_ALIAS].iloc[0].to_pydatetime() == datetime(2018, 12, 31)
         assert df[DTTM_ALIAS].iloc[-1].to_pydatetime() == datetime(2022, 5, 31)
         assert len(df) == 9
+
+    def test_prophet_import(self):
+        prophet = find_spec("prophet")
+        if prophet is None:
+            with pytest.raises(QueryObjectValidationError):
+                proc.prophet(
+                    df=prophet_df, time_grain="P1M", periods=3, confidence_interval=0.9
+                )
 
     def test_prophet_missing_temporal_column(self):
         df = prophet_df.drop(DTTM_ALIAS, axis=1)

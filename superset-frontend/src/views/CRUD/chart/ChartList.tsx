@@ -42,15 +42,17 @@ import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import FaveStar from 'src/components/FaveStar';
 import ListView, {
   ListViewProps,
+  Filter,
   Filters,
   SelectOption,
-  FilterOperators,
+  FilterOperator,
 } from 'src/components/ListView';
+import { getFromLocalStorage } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Chart from 'src/types/Chart';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import ChartCard from './ChartCard';
 
@@ -194,23 +196,27 @@ function ChartList(props: ChartListProps) {
 
   const columns = useMemo(
     () => [
-      {
-        Cell: ({
-          row: {
-            original: { id },
-          },
-        }: any) => (
-          <FaveStar
-            itemId={id}
-            saveFaveStar={saveFavoriteStatus}
-            isStarred={favoriteStatus[id]}
-          />
-        ),
-        Header: '',
-        id: 'id',
-        disableSortBy: true,
-        size: 'xs',
-      },
+      ...(props.user.userId
+        ? [
+            {
+              Cell: ({
+                row: {
+                  original: { id },
+                },
+              }: any) => (
+                <FaveStar
+                  itemId={id}
+                  saveFaveStar={saveFavoriteStatus}
+                  isStarred={favoriteStatus[id]}
+                />
+              ),
+              Header: '',
+              id: 'id',
+              disableSortBy: true,
+              size: 'xs',
+            },
+          ]
+        : []),
       {
         Cell: ({
           row: {
@@ -376,15 +382,33 @@ function ChartList(props: ChartListProps) {
         hidden: !canEdit && !canDelete,
       },
     ],
-    [canEdit, canDelete, canExport, favoriteStatus],
+    [
+      canEdit,
+      canDelete,
+      canExport,
+      ...(props.user.userId ? [favoriteStatus] : []),
+    ],
   );
+
+  const favoritesFilter: Filter = {
+    Header: t('Favorite'),
+    id: 'id',
+    urlDisplay: 'favorite',
+    input: 'select',
+    operator: FilterOperator.chartIsFav,
+    unfilteredLabel: t('Any'),
+    selects: [
+      { label: t('Yes'), value: true },
+      { label: t('No'), value: false },
+    ],
+  };
 
   const filters: Filters = [
     {
       Header: t('Owner'),
       id: 'owners',
       input: 'select',
-      operator: FilterOperators.relationManyMany,
+      operator: FilterOperator.relationManyMany,
       unfilteredLabel: t('All'),
       fetchSelects: createFetchRelated(
         'chart',
@@ -405,7 +429,7 @@ function ChartList(props: ChartListProps) {
       Header: t('Created by'),
       id: 'created_by',
       input: 'select',
-      operator: FilterOperators.relationOneMany,
+      operator: FilterOperator.relationOneMany,
       unfilteredLabel: t('All'),
       fetchSelects: createFetchRelated(
         'chart',
@@ -426,7 +450,7 @@ function ChartList(props: ChartListProps) {
       Header: t('Viz type'),
       id: 'viz_type',
       input: 'select',
-      operator: FilterOperators.equals,
+      operator: FilterOperator.equals,
       unfilteredLabel: t('All'),
       selects: registry
         .keys()
@@ -450,7 +474,7 @@ function ChartList(props: ChartListProps) {
       Header: t('Dataset'),
       id: 'datasource_id',
       input: 'select',
-      operator: FilterOperators.equals,
+      operator: FilterOperator.equals,
       unfilteredLabel: t('All'),
       fetchSelects: createFetchDatasets(
         createErrorHandler(errMsg =>
@@ -464,23 +488,12 @@ function ChartList(props: ChartListProps) {
       ),
       paginate: false,
     },
-    {
-      Header: t('Favorite'),
-      id: 'id',
-      urlDisplay: 'favorite',
-      input: 'select',
-      operator: FilterOperators.chartIsFav,
-      unfilteredLabel: t('Any'),
-      selects: [
-        { label: t('Yes'), value: true },
-        { label: t('No'), value: false },
-      ],
-    },
+    ...(props.user.userId ? [favoritesFilter] : []),
     {
       Header: t('Search'),
       id: 'slice_name',
       input: 'search',
-      operator: FilterOperators.chartAllText,
+      operator: FilterOperator.chartAllText,
     },
   ];
 
@@ -506,9 +519,16 @@ function ChartList(props: ChartListProps) {
   ];
 
   function renderCard(chart: Chart) {
+    const { userId } = props.user;
+    const userKey = getFromLocalStorage(userId.toString(), null);
     return (
       <ChartCard
         chart={chart}
+        showThumbnails={
+          userKey
+            ? userKey.thumbnails
+            : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+        }
         hasPerm={hasPerm}
         openChartEditModal={openChartEditModal}
         bulkSelectEnabled={bulkSelectEnabled}
@@ -545,7 +565,15 @@ function ChartList(props: ChartListProps) {
   }
   if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
     subMenuButtons.push({
-      name: <Icons.Import />,
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import charts')}
+          placement="bottomRight"
+        >
+          <Icons.Import data-test="import-button" />
+        </Tooltip>
+      ),
       buttonStyle: 'link',
       onClick: openChartImportModal,
     });

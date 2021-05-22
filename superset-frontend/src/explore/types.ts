@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryData, QueryFormData, AnnotationData } from '@superset-ui/core';
+import {
+  QueryData,
+  QueryFormData,
+  AnnotationData,
+  AdhocMetric,
+} from '@superset-ui/core';
+import { ColumnMeta } from '@superset-ui/chart-controls';
 
 export { Slice, Chart } from 'src/types/Chart';
 
@@ -43,5 +49,8 @@ export interface ChartState {
   queryController: AbortController | null;
   queriesResponse: QueryData | null;
   triggerQuery: boolean;
-  asyncJobId?: string;
 }
+
+export type OptionSortType = Partial<
+  ColumnMeta & AdhocMetric & { saved_metric_name: string }
+>;

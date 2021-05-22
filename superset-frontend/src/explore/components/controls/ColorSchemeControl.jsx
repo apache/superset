@@ -20,14 +20,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { isFunction } from 'lodash';
 import { Select } from 'src/components/Select';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import ControlHeader from '../ControlHeader';
-
-import './ColorSchemeControl.less';
 
 const propTypes = {
   description: PropTypes.string,
   label: PropTypes.string.isRequired,
+  labelMargin: PropTypes.number,
   name: PropTypes.string.isRequired,
   onChange: PropTypes.func,
   value: PropTypes.string,
@@ -74,11 +73,26 @@ export default class ColorSchemeControl extends React.PureComponent {
 
     return (
       <Tooltip id={`${currentScheme.id}-tooltip`} title={currentScheme.label}>
-        <ul className="color-scheme-container" data-test={currentScheme.id}>
+        <ul
+          css={{
+            listStyle: 'none',
+            margin: 0,
+            padding: 0,
+            display: 'flex',
+            alignItems: 'center',
+
+            '& li': {
+              flexBasis: 9,
+              height: 10,
+              margin: '9px 1px',
+            },
+          }}
+          data-test={currentScheme.id}
+        >
           {colors.map((color, i) => (
             <li
               key={`${currentScheme.id}-${i}`}
-              style={{
+              css={{
                 backgroundColor: color,
                 border: `1px solid ${color === 'white' ? 'black' : color}`,
               }}
@@ -92,7 +106,7 @@ export default class ColorSchemeControl extends React.PureComponent {
   }
 
   render() {
-    const { schemes, choices } = this.props;
+    const { schemes, choices, labelMargin = 0 } = this.props;
     // save parsed schemes for later
     this.schemes = isFunction(schemes) ? schemes() : schemes;
     const options = (isFunction(choices) ? choices() : choices).map(
@@ -118,7 +132,7 @@ export default class ColorSchemeControl extends React.PureComponent {
     return (
       <div>
         <ControlHeader {...this.props} />
-        <Select {...selectProps} />
+        <Select {...selectProps} css={{ marginTop: labelMargin }} />
       </div>
     );
   }

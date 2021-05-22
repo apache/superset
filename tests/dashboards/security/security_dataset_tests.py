@@ -76,15 +76,12 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
 
         # act
         responses_by_url = {
-            url: self.client.get(url).data.decode("utf-8")
-            for url in dashboard_title_by_url.keys()
+            url: self.client.get(url) for url in dashboard_title_by_url.keys()
         }
 
         # assert
         for dashboard_url, get_dashboard_response in responses_by_url.items():
-            assert (
-                escape(dashboard_title_by_url[dashboard_url]) in get_dashboard_response
-            )
+            self.assert200(get_dashboard_response)
 
     def test_get_dashboards__users_are_dashboards_owners(self):
         # arrange
@@ -207,20 +204,6 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
             self.assertIn(first_dash.url, get_dashboards_response)
         finally:
             self.revoke_public_access_to_table(accessed_table)
-
-    def test_get_dashboard_api_no_data_access(self):
-        """
-        Dashboard API: Test get dashboard without data access
-        """
-        admin = self.get_user("admin")
-        dashboard = create_dashboard_to_db(
-            random_title(), random_slug(), owners=[admin]
-        )
-
-        self.login(username="gamma")
-        uri = DASHBOARD_API_URL_FORMAT.format(dashboard.id)
-        rv = self.client.get(uri)
-        self.assert404(rv)
 
     def test_get_dashboards_api_no_data_access(self):
         """

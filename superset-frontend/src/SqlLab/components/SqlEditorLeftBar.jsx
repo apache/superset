@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Button from 'src/components/Button';
 import { t, styled, css } from '@superset-ui/core';
-import Collapse from 'src/common/components/Collapse';
+import Collapse from 'src/components/Collapse';
 import TableElement from './TableElement';
 import TableSelector from '../../components/TableSelector';
 
@@ -59,6 +59,7 @@ export default class SqlEditorLeftBar extends React.PureComponent {
     this.onDbChange = this.onDbChange.bind(this);
     this.getDbList = this.getDbList.bind(this);
     this.onTableChange = this.onTableChange.bind(this);
+    this.onToggleTable = this.onToggleTable.bind(this);
   }
 
   onSchemaChange(schema) {
@@ -89,6 +90,16 @@ export default class SqlEditorLeftBar extends React.PureComponent {
 
   onTableChange(tableName, schemaName) {
     this.props.actions.addTable(this.props.queryEditor, tableName, schemaName);
+  }
+
+  onToggleTable(tables) {
+    this.props.tables.forEach(table => {
+      if (!tables.includes(table.id.toString()) && table.expanded) {
+        this.props.actions.collapseTable(table);
+      } else if (tables.includes(table.id.toString()) && !table.expanded) {
+        this.props.actions.expandTable(table);
+      }
+    });
   }
 
   getDbList(dbs) {
@@ -147,8 +158,9 @@ export default class SqlEditorLeftBar extends React.PureComponent {
         <StyledScrollbarContainer>
           <StyledScrollbarContent contentHeight={tableMetaDataHeight}>
             <Collapse
-              ghost
-              expandIconPosition="right"
+              activeKey={this.props.tables
+                .filter(({ expanded }) => expanded)
+                .map(({ id }) => id)}
               css={theme => css`
                 .ant-collapse-item {
                   margin-bottom: ${theme.gridUnit * 3}px;
@@ -169,6 +181,9 @@ export default class SqlEditorLeftBar extends React.PureComponent {
                   }
                 }
               `}
+              expandIconPosition="right"
+              ghost
+              onChange={this.onToggleTable}
             >
               {this.props.tables.map(table => (
                 <TableElement

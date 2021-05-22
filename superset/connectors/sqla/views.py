@@ -24,9 +24,11 @@ from flask import current_app, flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.fieldwidgets import Select2Widget
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __, lazy_gettext as _
+from werkzeug.exceptions import NotFound
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import Regexp
 
@@ -235,10 +237,10 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
         ),
         "extra": utils.markdown(
             "Extra data to specify metric metadata. Currently supports "
-            'certification data of the format: `{ "certification": "certified_by": '
+            'metadata of the format: `{ "certification": { "certified_by": '
             '"Data Platform Team", "details": "This metric is the source of truth." '
-            "} }`. This should be modified from the edit datasource model in "
-            "Explore to ensure correct formatting.",
+            '}, "warning_markdown": "This is a warning." }`. This should be modified '
+            "from the edit datasource model in Explore to ensure correct formatting.",
             True,
         ),
     }
@@ -369,6 +371,15 @@ class RowLevelSecurityFiltersModelView(  # pylint: disable=too-many-ancestors
         add_form_query_rel_fields = app.config["RLS_FORM_QUERY_REL_FIELDS"]
         edit_form_query_rel_fields = add_form_query_rel_fields
 
+    @staticmethod
+    def is_enabled() -> bool:
+        return is_feature_enabled("ROW_LEVEL_SECURITY")
+
+    @before_request
+    def ensure_enabled(self) -> None:
+        if not self.is_enabled():
+            raise NotFound()
+
 
 class TableModelView(  # pylint: disable=too-many-ancestors
     DatasourceModelView, DeleteMixin, YamlExportMixin
@@ -463,9 +474,9 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         ),
         "extra": utils.markdown(
             "Extra data to specify table metadata. Currently supports "
-            'certification data of the format: `{ "certification": { "certified_by": '
+            'metadata of the format: `{ "certification": { "certified_by": '
             '"Data Platform Team", "details": "This table is the source of truth." '
-            "} }`.",
+            '}, "warning_markdown": "This is a warning." }`.',
             True,
         ),
     }

@@ -24,8 +24,10 @@ import {
   styledShallow as shallow,
 } from 'spec/helpers/theming';
 
-import Checkbox from '.';
-import { CheckboxChecked, CheckboxUnchecked } from '../CheckboxIcons';
+import Checkbox, {
+  CheckboxChecked,
+  CheckboxUnchecked,
+} from 'src/components/Checkbox';
 
 describe('Checkbox', () => {
   let wrapper: ReactWrapper;
@@ -43,9 +45,7 @@ describe('Checkbox', () => {
       const shallowWrapper = shallow(
         <Checkbox style={{}} checked={false} onChange={() => true} />,
       );
-      expect(
-        shallowWrapper.dive().dive().dive().find(CheckboxUnchecked),
-      ).toExist();
+      expect(shallowWrapper.dive().find(CheckboxUnchecked)).toExist();
     });
   });
 
@@ -54,9 +54,7 @@ describe('Checkbox', () => {
       const shallowWrapper = shallow(
         <Checkbox style={{}} checked onChange={() => true} />,
       );
-      expect(
-        shallowWrapper.dive().dive().dive().find(CheckboxChecked),
-      ).toExist();
+      expect(shallowWrapper.dive().find(CheckboxChecked)).toExist();
     });
   });
 

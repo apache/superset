@@ -17,7 +17,7 @@
 """Utils to provide dashboards for tests"""
 
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from pandas import DataFrame
 
@@ -34,6 +34,7 @@ def create_table_for_dashboard(
     database: Database,
     dtype: Dict[str, Any],
     table_description: str = "",
+    fetch_values_predicate: Optional[str] = None,
 ) -> SqlaTable:
     df.to_sql(
         table_name,
@@ -51,6 +52,8 @@ def create_table_for_dashboard(
     )
     if not table:
         table = table_source(table_name=table_name)
+    if fetch_values_predicate:
+        table.fetch_values_predicate = fetch_values_predicate
     table.database = database
     table.description = table_description
     db.session.merge(table)

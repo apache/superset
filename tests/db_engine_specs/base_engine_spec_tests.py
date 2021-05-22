@@ -19,13 +19,16 @@ from unittest import mock
 
 import pytest
 
-from superset.db_engine_specs import engines
+from superset.db_engine_specs import get_engine_specs
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
+    BasicParametersMixin,
     builtin_time_grains,
     LimitMethod,
 )
+from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql_parse import ParsedQuery
 from superset.utils.core import get_example_database
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
@@ -78,6 +81,19 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         self.sql_limit_regex(
             "SELECT * FROM (SELECT * FROM a LIMIT 10) LIMIT 9999",
             "SELECT * FROM (SELECT * FROM a LIMIT 10) LIMIT 1000",
+        )
+
+    def test_limit_query_without_force(self):
+        self.sql_limit_regex(
+            "SELECT * FROM a LIMIT 10", "SELECT * FROM a LIMIT 10", limit=11,
+        )
+
+    def test_limit_query_with_force(self):
+        self.sql_limit_regex(
+            "SELECT * FROM a LIMIT 10",
+            "SELECT * FROM a LIMIT 11",
+            limit=11,
+            force=True,
         )
 
     def test_limit_with_expr(self):
@@ -166,29 +182,10 @@ class TestDbEngineSpecs(TestDbEngineSpec):
             "SELECT * FROM table", "SELECT * FROM table", DummyEngineSpec
         )
 
-    def test_time_grain_denylist(self):
-        with app.app_context():
-            app.config["TIME_GRAIN_DENYLIST"] = ["PT1M"]
-            time_grain_functions = SqliteEngineSpec.get_time_grain_expressions()
-            self.assertNotIn("PT1M", time_grain_functions)
-
-    def test_time_grain_addons(self):
-        with app.app_context():
-            app.config["TIME_GRAIN_ADDONS"] = {"PTXM": "x seconds"}
-            app.config["TIME_GRAIN_ADDON_EXPRESSIONS"] = {
-                "sqlite": {"PTXM": "ABC({col})"}
-            }
-            time_grains = SqliteEngineSpec.get_time_grains()
-            time_grain_addon = time_grains[-1]
-            self.assertEqual("PTXM", time_grain_addon.duration)
-            self.assertEqual("x seconds", time_grain_addon.label)
-            app.config["TIME_GRAIN_ADDONS"] = {}
-            app.config["TIME_GRAIN_ADDON_EXPRESSIONS"] = {}
-
     def test_engine_time_grain_validity(self):
         time_grains = set(builtin_time_grains.keys())
         # loop over all subclasses of BaseEngineSpec
-        for engine in engines.values():
+        for engine in get_engine_specs().values():
             if engine is not BaseEngineSpec:
                 # make sure time grain functions have been defined
                 self.assertGreater(len(engine.get_time_grain_expressions()), 0)
@@ -196,6 +193,24 @@ class TestDbEngineSpecs(TestDbEngineSpec):
                 defined_grains = {grain.duration for grain in engine.get_time_grains()}
                 intersection = time_grains.intersection(defined_grains)
                 self.assertSetEqual(defined_grains, intersection, engine)
+
+    def test_get_time_grain_expressions(self):
+        time_grains = MySQLEngineSpec.get_time_grain_expressions()
+        self.assertEqual(
+            list(time_grains.keys()),
+            [
+                None,
+                "PT1S",
+                "PT1M",
+                "PT1H",
+                "P1D",
+                "P1W",
+                "P1M",
+                "P0.25Y",
+                "P1Y",
+                "1969-12-29T00:00:00Z/P1W",
+            ],
+        )
 
     def test_get_table_names(self):
         inspector = mock.Mock()
@@ -263,9 +278,191 @@ def test_is_readonly():
     def is_readonly(sql: str) -> bool:
         return BaseEngineSpec.is_readonly_query(ParsedQuery(sql))
 
-    assert not is_readonly("SHOW LOCKS test EXTENDED")
+    assert is_readonly("SHOW LOCKS test EXTENDED")
     assert not is_readonly("SET hivevar:desc='Legislators'")
     assert not is_readonly("UPDATE t1 SET col1 = NULL")
     assert is_readonly("EXPLAIN SELECT 1")
     assert is_readonly("SELECT 1")
     assert is_readonly("WITH (SELECT 1) bla SELECT * from bla")
+    assert is_readonly("SHOW CATALOGS")
+    assert is_readonly("SHOW TABLES")
+
+
+def test_time_grain_denylist():
+    config = app.config.copy()
+    app.config["TIME_GRAIN_DENYLIST"] = ["PT1M"]
+
+    with app.app_context():
+        time_grain_functions = SqliteEngineSpec.get_time_grain_expressions()
+        assert not "PT1M" in time_grain_functions
+
+    app.config = config
+
+
+def test_time_grain_addons():
+    config = app.config.copy()
+    app.config["TIME_GRAIN_ADDONS"] = {"PTXM": "x seconds"}
+    app.config["TIME_GRAIN_ADDON_EXPRESSIONS"] = {"sqlite": {"PTXM": "ABC({col})"}}
+
+    with app.app_context():
+        time_grains = SqliteEngineSpec.get_time_grains()
+        time_grain_addon = time_grains[-1]
+        assert "PTXM" == time_grain_addon.duration
+        assert "x seconds" == time_grain_addon.label
+
+    app.config = config
+
+
+def test_get_time_grain_with_config():
+    """ Should concatenate from configs and then sort in the proper order """
+    config = app.config.copy()
+
+    app.config["TIME_GRAIN_ADDON_EXPRESSIONS"] = {
+        "mysql": {
+            "PT2H": "foo",
+            "PT4H": "foo",
+            "PT6H": "foo",
+            "PT8H": "foo",
+            "PT10H": "foo",
+            "PT12H": "foo",
+            "PT1S": "foo",
+        }
+    }
+
+    with app.app_context():
+        time_grains = MySQLEngineSpec.get_time_grain_expressions()
+        assert set(time_grains.keys()) == {
+            None,
+            "PT1S",
+            "PT1M",
+            "PT1H",
+            "PT2H",
+            "PT4H",
+            "PT6H",
+            "PT8H",
+            "PT10H",
+            "PT12H",
+            "P1D",
+            "P1W",
+            "P1M",
+            "P0.25Y",
+            "P1Y",
+            "1969-12-29T00:00:00Z/P1W",
+        }
+
+    app.config = config
+
+
+def test_get_time_grain_with_unkown_values():
+    """Should concatenate from configs and then sort in the proper order
+    putting unknown patterns at the end"""
+    config = app.config.copy()
+
+    app.config["TIME_GRAIN_ADDON_EXPRESSIONS"] = {
+        "mysql": {"PT2H": "foo", "weird": "foo", "PT12H": "foo",}
+    }
+
+    with app.app_context():
+        time_grains = MySQLEngineSpec.get_time_grain_expressions()
+        assert list(time_grains)[-1] == "weird"
+
+    app.config = config
+
+
+@mock.patch("superset.db_engine_specs.base.is_hostname_valid")
+@mock.patch("superset.db_engine_specs.base.is_port_open")
+def test_validate(is_port_open, is_hostname_valid):
+    is_hostname_valid.return_value = True
+    is_port_open.return_value = True
+
+    parameters = {
+        "host": "localhost",
+        "port": 5432,
+        "username": "username",
+        "password": "password",
+        "database": "dbname",
+        "query": {"sslmode": "verify-full"},
+    }
+    errors = BasicParametersMixin.validate_parameters(parameters)
+    assert errors == []
+
+
+def test_validate_parameters_missing():
+    parameters = {
+        "host": "",
+        "port": None,
+        "username": "",
+        "password": "",
+        "database": "",
+        "query": {},
+    }
+    errors = BasicParametersMixin.validate_parameters(parameters)
+    assert errors == [
+        SupersetError(
+            message=(
+                "One or more parameters are missing: " "database, host, port, username"
+            ),
+            error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+            level=ErrorLevel.WARNING,
+            extra={"missing": ["database", "host", "port", "username"]},
+        ),
+    ]
+
+
+@mock.patch("superset.db_engine_specs.base.is_hostname_valid")
+def test_validate_parameters_invalid_host(is_hostname_valid):
+    is_hostname_valid.return_value = False
+
+    parameters = {
+        "host": "localhost",
+        "port": None,
+        "username": "username",
+        "password": "password",
+        "database": "dbname",
+        "query": {"sslmode": "verify-full"},
+    }
+    errors = BasicParametersMixin.validate_parameters(parameters)
+    assert errors == [
+        SupersetError(
+            message="One or more parameters are missing: port",
+            error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+            level=ErrorLevel.WARNING,
+            extra={"missing": ["port"]},
+        ),
+        SupersetError(
+            message="The hostname provided can't be resolved.",
+            error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={"invalid": ["host"]},
+        ),
+    ]
+
+
+@mock.patch("superset.db_engine_specs.base.is_hostname_valid")
+@mock.patch("superset.db_engine_specs.base.is_port_open")
+def test_validate_parameters_port_closed(is_port_open, is_hostname_valid):
+    is_hostname_valid.return_value = True
+    is_port_open.return_value = False
+
+    parameters = {
+        "host": "localhost",
+        "port": 5432,
+        "username": "username",
+        "password": "password",
+        "database": "dbname",
+        "query": {"sslmode": "verify-full"},
+    }
+    errors = BasicParametersMixin.validate_parameters(parameters)
+    assert errors == [
+        SupersetError(
+            message="The port is closed.",
+            error_type=SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={
+                "invalid": ["port"],
+                "issue_codes": [
+                    {"code": 1008, "message": "Issue 1008 - The port is closed."}
+                ],
+            },
+        )
+    ]

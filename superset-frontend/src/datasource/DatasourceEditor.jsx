@@ -18,15 +18,17 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Col, Well } from 'react-bootstrap';
-import { Radio } from 'src/common/components/Radio';
+import { Row, Col } from 'src/common/components';
+import { Radio } from 'src/components/Radio';
+import Card from 'src/components/Card';
 import Alert from 'src/components/Alert';
-import Badge from 'src/common/components/Badge';
+import Badge from 'src/components/Badge';
 import shortid from 'shortid';
 import { styled, SupersetClient, t, supersetTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';
-import Tabs from 'src/common/components/Tabs';
-import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
+import Tabs from 'src/components/Tabs';
+import CertifiedIcon from 'src/components/CertifiedIcon';
+import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import DatabaseSelector from 'src/components/DatabaseSelector';
 import Icon from 'src/components/Icon';
 import Label from 'src/components/Label';
@@ -75,6 +77,13 @@ const FlexRowContainer = styled.div`
 
   > svg {
     margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
+`;
+
+const StyledTableTabs = styled(Tabs)`
+  overflow: visible;
+  .ant-tabs-content-holder {
+    overflow: visible;
   }
 `;
 
@@ -230,7 +239,7 @@ function ColumnCollectionTable({
           ) : (
             v
           ),
-        type: d => <Label>{d}</Label>,
+        type: d => (d ? <Label>{d}</Label> : null),
         is_dttm: checkboxGenerator,
         filterable: checkboxGenerator,
         groupby: checkboxGenerator,
@@ -276,7 +285,7 @@ StackedField.propTypes = {
 };
 
 function FormContainer({ children }) {
-  return <Well style={{ marginTop: 20 }}>{children}</Well>;
+  return <Card padded>{children}</Card>;
 }
 
 FormContainer.propTypes = {
@@ -539,6 +548,7 @@ class DatasourceEditor extends React.PureComponent {
           control={<TextControl controlId="default_endpoint" />}
         />
         <Field
+          inline
           fieldKey="filter_select_enabled"
           label={t('Autocomplete filters')}
           description={t('Whether to populate autocomplete filters options')}
@@ -564,9 +574,9 @@ class DatasourceEditor extends React.PureComponent {
             label={t('Extra')}
             description={t(
               'Extra data to specify table metadata. Currently supports ' +
-                'certification data of the format: `{ "certification": { "certified_by": ' +
+                'metadata of the format: `{ "certification": { "certified_by": ' +
                 '"Data Platform Team", "details": "This table is the source of truth." ' +
-                '} }`.',
+                '}, "warning_markdown": "This is a warning." }`.',
             )}
             control={
               <TextAreaControl
@@ -764,7 +774,7 @@ class DatasourceEditor extends React.PureComponent {
             </div>
           )}
           {this.state.datasourceType === DATASOURCE_TYPES.physical.key && (
-            <Col md={6}>
+            <Col xs={24} md={12}>
               {this.state.isSqla && (
                 <Field
                   fieldKey="tableSelector"
@@ -882,19 +892,6 @@ class DatasourceEditor extends React.PureComponent {
                 }
               />
               <Field
-                label={t('Warning message')}
-                fieldKey="warning_text"
-                description={t(
-                  'Warning message to display in the metric selector',
-                )}
-                control={
-                  <TextControl
-                    controlId="warning_text"
-                    placeholder={t('Warning message')}
-                  />
-                }
-              />
-              <Field
                 label={t('Certified by')}
                 fieldKey="certified_by"
                 description={t(
@@ -918,6 +915,18 @@ class DatasourceEditor extends React.PureComponent {
                   />
                 }
               />
+              <Field
+                label={t('Warning')}
+                fieldKey="warning_markdown"
+                description={t('Optional warning about use of this metric')}
+                control={
+                  <TextAreaControl
+                    controlId="warning_markdown"
+                    language="markdown"
+                    offerEditInModal={false}
+                  />
+                }
+              />
             </Fieldset>
           </FormContainer>
         }
@@ -933,9 +942,14 @@ class DatasourceEditor extends React.PureComponent {
           metric_name: (v, onChange, _, record) => (
             <FlexRowContainer>
               {record.is_certified && (
-                <CertifiedIconWithTooltip
+                <CertifiedIcon
                   certifiedBy={record.certified_by}
                   details={record.certification_details}
+                />
+              )}
+              {record.warning_markdown && (
+                <WarningIconWithTooltip
+                  warningMarkdown={record.warning_markdown}
                 />
               )}
               <EditableTitle canEdit title={v} onSaveTitle={onChange} />
@@ -990,7 +1004,7 @@ class DatasourceEditor extends React.PureComponent {
             </>
           }
         />
-        <Tabs
+        <StyledTableTabs
           fullWidth={false}
           id="table-tabs"
           data-test="edit-dataset-tabs"
@@ -1072,16 +1086,16 @@ class DatasourceEditor extends React.PureComponent {
             />
           </Tabs.TabPane>
           <Tabs.TabPane key={4} tab={t('Settings')}>
-            <div>
-              <Col md={6}>
+            <Row gutter={16}>
+              <Col xs={24} md={12}>
                 <FormContainer>{this.renderSettingsFieldset()}</FormContainer>
               </Col>
-              <Col md={6}>
+              <Col xs={24} md={12}>
                 <FormContainer>{this.renderAdvancedFieldset()}</FormContainer>
               </Col>
-            </div>
+            </Row>
           </Tabs.TabPane>
-        </Tabs>
+        </StyledTableTabs>
       </DatasourceContainer>
     );
   }

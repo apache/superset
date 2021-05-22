@@ -172,6 +172,7 @@ export const table = {
   ],
   expanded: true,
 };
+
 export const defaultQueryEditor = {
   id: 'dfsadfs',
   autorun: false,
@@ -207,6 +208,7 @@ export const queries = [
     executedSql: null,
     changed_on: '2016-10-19T20:56:06',
     rows: 42,
+    queryLimit: 100,
     endDttm: 1476910566798,
     limit_reached: false,
     schema: 'test_schema',
@@ -460,6 +462,18 @@ export const runningQuery = {
 };
 export const cachedQuery = { ...queries[0], cached: true };
 
+export const user = {
+  createdOn: '2021-04-27T18:12:38.952304',
+  email: 'admin',
+  firstName: 'admin',
+  isActive: true,
+  lastName: 'admin',
+  permissions: {},
+  roles: { Admin: Array(173) },
+  userId: 1,
+  username: 'admin',
+};
+
 export const initialState = {
   sqlLab: {
     offline: false,
@@ -472,6 +486,7 @@ export const initialState = {
     workspaceQueries: [],
     queriesLastUpdate: 0,
     activeSouthPaneTab: 'Results',
+    user: { user },
   },
   messageToasts: [],
   common: {
@@ -479,6 +494,8 @@ export const initialState = {
       DEFAULT_SQLLAB_LIMIT: 1000,
       SQL_MAX_ROW: 100000,
       DISPLAY_MAX_ROW: 100,
+      SQLALCHEMY_DOCS_URL: 'test_SQLALCHEMY_DOCS_URL',
+      SQLALCHEMY_DISPLAY_TEXT: 'test_SQLALCHEMY_DISPLAY_TEXT',
     },
   },
 };

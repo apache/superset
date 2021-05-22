@@ -18,12 +18,13 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from zipfile import ZipFile
 
 import simplejson
 from flask import g, make_response, redirect, request, Response, send_file, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as _, ngettext
 from marshmallow import ValidationError
@@ -65,8 +66,8 @@ from superset.charts.schemas import (
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
-from superset.extensions import event_logger
+from superset.exceptions import QueryObjectValidationError
+from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils.async_query_manager import AsyncQueryTokenException
@@ -94,6 +95,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
     resource_name = "chart"
     allow_browser_login = True
 
+    @before_request(only=["thumbnail", "screenshot", "cache_screenshot"])
+    def ensure_thumbnails_enabled(self) -> Optional[Response]:
+        if not is_feature_enabled("THUMBNAILS"):
+            return self.response_404()
+        return None
+
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
         RouteMethod.IMPORT,
@@ -103,6 +110,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "data_from_cache",
         "viz_types",
         "favorite_status",
+        "thumbnail",
+        "screenshot",
+        "cache_screenshot",
     }
     class_permission_name = "Chart"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -212,15 +222,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     allowed_rel_fields = {"owners", "created_by"}
 
-    def __init__(self) -> None:
-        if is_feature_enabled("THUMBNAILS"):
-            self.include_route_methods = self.include_route_methods | {
-                "thumbnail",
-                "screenshot",
-                "cache_screenshot",
-            }
-        super().__init__()
-
     @expose("/", methods=["POST"])
     @protect()
     @safe
@@ -277,7 +278,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=ex.normalized_messages())
         except ChartCreateFailedError as ex:
             logger.error(
-                "Error creating model %s: %s", self.__class__.__name__, str(ex)
+                "Error creating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -352,7 +356,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             response = self.response_422(message=ex.normalized_messages())
         except ChartUpdateFailedError as ex:
             logger.error(
-                "Error updating model %s: %s", self.__class__.__name__, str(ex)
+                "Error updating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             response = self.response_422(message=str(ex))
 
@@ -407,7 +414,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except ChartDeleteFailedError as ex:
             logger.error(
-                "Error deleting model %s: %s", self.__class__.__name__, str(ex)
+                "Error deleting model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -482,14 +492,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         result_format = result["query_context"].result_format
         if result_format == ChartDataResultFormat.CSV:
+            # Verify user has permission to export CSV file
+            if not security_manager.can_access("can_csv", "Superset"):
+                return self.response_403()
+
             # return the first result
             data = result["queries"][0]["data"]
-            return CsvResponse(
-                data,
-                status=200,
-                headers=generate_download_headers("csv"),
-                mimetype="application/csv",
-            )
+            return CsvResponse(data, headers=generate_download_headers("csv"))
 
         if result_format == ChartDataResultFormat.JSON:
             response_data = simplejson.dumps(
@@ -505,7 +514,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     @expose("/data", methods=["POST"])
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
@@ -574,8 +582,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
                     "Request is incorrect: %(error)s", error=error.normalized_messages()
                 )
             )
-        except SupersetSecurityException:
-            return self.response_401()
 
         # TODO: support CSV, SQL query and other non-JSON types
         if (
@@ -589,14 +595,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
             except AsyncQueryTokenException:
                 return self.response_401()
 
-            result = command.run_async()
+            result = command.run_async(g.user.get_id())
             return self.response(202, **result)
 
         return self.get_data_response(command)
 
     @expose("/data/<cache_key>", methods=["GET"])
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
@@ -646,9 +651,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_400(
                 message=_("Request is incorrect: %(error)s", error=error.messages)
             )
-        except SupersetSecurityException as exc:
-            logger.info(exc)
-            return self.response_401()
 
         return self.get_data_response(command, True)
 
@@ -966,7 +968,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         charts = ChartDAO.find_by_ids(requested_ids)
         if not charts:
             return self.response_404()
-        favorited_chart_ids = ChartDAO.favorited_ids(charts, g.user.id)
+        favorited_chart_ids = ChartDAO.favorited_ids(charts, g.user.get_id())
         res = [
             {"id": request_id, "value": request_id in favorited_chart_ids}
             for request_id in requested_ids
@@ -993,11 +995,14 @@ class ChartRestApi(BaseSupersetModelRestApi):
                   type: object
                   properties:
                     formData:
+                      description: upload file (ZIP)
                       type: string
                       format: binary
                     passwords:
+                      description: JSON map of passwords for each file
                       type: string
                     overwrite:
+                      description: overwrite existing databases?
                       type: bool
           responses:
             200:

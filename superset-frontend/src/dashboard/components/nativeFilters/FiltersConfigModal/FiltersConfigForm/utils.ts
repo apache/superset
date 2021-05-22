@@ -21,26 +21,31 @@ import { FormInstance } from 'antd/lib/form';
 import React from 'react';
 import { CustomControlItem } from '@superset-ui/chart-controls';
 
+const FILTERS_FIELD_NAME = 'filters';
+
 export const useForceUpdate = () => {
   const [, updateState] = React.useState({});
   return React.useCallback(() => updateState({}), []);
 };
 
-export const setFilterFieldValues = (
+export const setNativeFilterFieldValues = (
   form: FormInstance,
   filterId: string,
   values: object,
 ) => {
-  const formFilters = form.getFieldValue('filters');
-  form.setFieldsValue({
-    filters: {
-      ...formFilters,
-      [filterId]: {
-        ...formFilters[filterId],
-        ...values,
+  const formFilters = form.getFieldValue(FILTERS_FIELD_NAME) || {};
+  form.setFields([
+    {
+      name: FILTERS_FIELD_NAME,
+      value: {
+        ...formFilters,
+        [filterId]: {
+          ...formFilters[filterId],
+          ...values,
+        },
       },
     },
-  });
+  ]);
 };
 
 export const getControlItems = (

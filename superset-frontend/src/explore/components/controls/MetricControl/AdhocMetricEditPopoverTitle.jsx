@@ -19,8 +19,8 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 import PropTypes from 'prop-types';
-import { FormControl } from 'react-bootstrap';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Input } from 'src/common/components';
+import { Tooltip } from 'src/components/Tooltip';
 
 const propTypes = {
   title: PropTypes.shape({
@@ -79,7 +79,7 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
     }
 
     return this.state.isEditMode ? (
-      <FormControl
+      <Input
         className="metric-edit-popover-label-input"
         type="text"
         placeholder={title.label}

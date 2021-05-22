@@ -19,7 +19,7 @@
 import React, { useState, useMemo } from 'react';
 import moment, { Moment } from 'moment';
 import { styled } from '@superset-ui/core';
-import { RangePicker as AntRangePicker } from 'src/common/components/DatePicker';
+import { RangePicker as AntRangePicker } from 'src/components/DatePicker';
 import { FilterContainer, BaseFilter, FilterTitle } from './Base';
 
 interface DateRangeFilterProps extends BaseFilter {

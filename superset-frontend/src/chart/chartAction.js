@@ -41,7 +41,8 @@ import { logEvent } from '../logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger/LogUtils';
 import { getClientErrorObject } from '../utils/getClientErrorObject';
 import { allowCrossDomain as domainShardingEnabled } from '../utils/hostNamesConfig';
-import { updateExtraFormData } from '../dashboard/actions/nativeFilters';
+import { updateDataMask } from '../dataMask/actions';
+import { waitForAsyncData } from '../middleware/asyncEvent';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -66,11 +67,6 @@ export function chartUpdateStopped(key) {
 export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED';
 export function chartUpdateFailed(queriesResponse, key) {
   return { type: CHART_UPDATE_FAILED, queriesResponse, key };
-}
-
-export const CHART_UPDATE_QUEUED = 'CHART_UPDATE_QUEUED';
-export function chartUpdateQueued(asyncJobMeta, key) {
-  return { type: CHART_UPDATE_QUEUED, asyncJobMeta, key };
 }
 
 export const CHART_RENDERING_FAILED = 'CHART_RENDERING_FAILED';
@@ -165,6 +161,7 @@ const v1ChartDataRequest = async (
   force,
   requestParams,
   setDataMask,
+  ownState,
 ) => {
   const payload = buildV1ChartDataPayload({
     formData,
@@ -172,6 +169,7 @@ const v1ChartDataRequest = async (
     resultFormat,
     force,
     setDataMask,
+    ownState,
   });
 
   // The dashboard id is added to query params for tracking purposes
@@ -209,6 +207,7 @@ export async function getChartDataRequest({
   force = false,
   method = 'POST',
   requestParams = {},
+  ownState = {},
 }) {
   let querySettings = {
     ...requestParams,
@@ -239,6 +238,7 @@ export async function getChartDataRequest({
     force,
     querySettings,
     setDataMask,
+    ownState,
   );
 }
 
@@ -248,6 +248,7 @@ export function runAnnotationQuery(
   formData = null,
   key,
   isDashboardRequest = false,
+  force = false,
 ) {
   return function (dispatch, getState) {
     const sliceKey = key || Object.keys(getState().charts)[0];
@@ -286,7 +287,12 @@ export function runAnnotationQuery(
     }
 
     const isNative = annotation.sourceType === ANNOTATION_SOURCE_TYPES.NATIVE;
-    const url = getAnnotationJsonUrl(annotation.value, sliceFormData, isNative);
+    const url = getAnnotationJsonUrl(
+      annotation.value,
+      sliceFormData,
+      isNative,
+      force,
+    );
     const controller = new AbortController();
     const { signal } = controller;
 
@@ -355,6 +361,7 @@ export function exploreJSON(
   key,
   method,
   dashboardId,
+  ownState,
 ) {
   return async dispatch => {
     const logStart = Logger.getTimestamp();
@@ -366,8 +373,8 @@ export function exploreJSON(
     };
     if (dashboardId) requestParams.dashboard_id = dashboardId;
 
-    const setDataMask = filtersState => {
-      dispatch(updateExtraFormData(formData.slice_id, filtersState));
+    const setDataMask = dataMask => {
+      dispatch(updateDataMask(formData.slice_id, dataMask));
     };
     const chartDataRequest = getChartDataRequest({
       setDataMask,
@@ -377,6 +384,7 @@ export function exploreJSON(
       force,
       method,
       requestParams,
+      ownState,
     });
 
     dispatch(chartUpdateStarted(controller, formData, key));
@@ -387,9 +395,11 @@ export function exploreJSON(
         if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
           // deal with getChartDataRequest transforming the response data
           const result = 'result' in response ? response.result[0] : response;
-          return dispatch(chartUpdateQueued(result, key));
+          return waitForAsyncData(result);
         }
-
+        return queriesResponse;
+      })
+      .then(queriesResponse => {
         queriesResponse.forEach(resultItem =>
           dispatch(
             logEvent(LOG_ACTIONS_LOAD_CHART, {
@@ -414,6 +424,10 @@ export function exploreJSON(
         return dispatch(chartUpdateSucceeded(queriesResponse, key));
       })
       .catch(response => {
+        if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+          return dispatch(chartUpdateFailed([response], key));
+        }
+
         const appendErrorLog = (errorDetails, isCached) => {
           dispatch(
             logEvent(LOG_ACTIONS_LOAD_CHART, {
@@ -454,7 +468,14 @@ export function exploreJSON(
       dispatch(updateQueryFormData(formData, key)),
       ...annotationLayers.map(x =>
         dispatch(
-          runAnnotationQuery(x, timeout, formData, key, isDashboardRequest),
+          runAnnotationQuery(
+            x,
+            timeout,
+            formData,
+            key,
+            isDashboardRequest,
+            force,
+          ),
         ),
       ),
     ]);
@@ -468,6 +489,7 @@ export function getSavedChart(
   timeout = 60,
   key,
   dashboardId,
+  ownState,
 ) {
   /*
    * Perform a GET request to `/explore_json`.
@@ -479,7 +501,15 @@ export function getSavedChart(
    *  GET  /explore_json?{"chart_id":1,"extra_filters":"..."}
    *
    */
-  return exploreJSON(formData, force, timeout, key, 'GET', dashboardId);
+  return exploreJSON(
+    formData,
+    force,
+    timeout,
+    key,
+    'GET',
+    dashboardId,
+    ownState,
+  );
 }
 
 export const POST_CHART_FORM_DATA = 'POST_CHART_FORM_DATA';
@@ -489,6 +519,7 @@ export function postChartFormData(
   timeout = 60,
   key,
   dashboardId,
+  ownState,
 ) {
   /*
    * Perform a POST request to `/explore_json`.
@@ -496,14 +527,22 @@ export function postChartFormData(
    * This will post the form data to the endpoint, returning a new chart.
    *
    */
-  return exploreJSON(formData, force, timeout, key, 'POST', dashboardId);
+  return exploreJSON(
+    formData,
+    force,
+    timeout,
+    key,
+    'POST',
+    dashboardId,
+    ownState,
+  );
 }
 
 export function redirectSQLLab(formData) {
   return dispatch => {
     getChartDataRequest({ formData, resultFormat: 'json', resultType: 'query' })
       .then(({ result }) => {
-        const redirectUrl = '/superset/sqllab';
+        const redirectUrl = '/superset/sqllab/';
         const payload = {
           datasourceKey: formData.datasource,
           sql: result[0].query,
@@ -535,6 +574,7 @@ export function refreshChart(chartKey, force, dashboardId) {
         timeout,
         chart.id,
         dashboardId,
+        getState().dataMask[chart.id]?.ownState,
       ),
     );
   };

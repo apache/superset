@@ -20,17 +20,23 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { List } from 'react-virtualized';
-import SearchInput, { createFilter } from 'react-search-input';
-import { t } from '@superset-ui/core';
-
-import { Select } from 'src/common/components';
+import { createFilter } from 'react-search-input';
+import { t, styled } from '@superset-ui/core';
+import { Input } from 'src/common/components';
+import Select from 'src/components/Select';
+import Loading from 'src/components/Loading';
+import {
+  CHART_TYPE,
+  NEW_COMPONENT_SOURCE_TYPE,
+} from 'src/dashboard/util/componentTypes';
+import {
+  NEW_CHART_ID,
+  NEW_COMPONENTS_SOURCE_ID,
+} from 'src/dashboard/util/constants';
+import { slicePropShape } from 'src/dashboard/util/propShapes';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
 import DragDroppable from './dnd/DragDroppable';
-import Loading from '../../components/Loading';
-import { CHART_TYPE, NEW_COMPONENT_SOURCE_TYPE } from '../util/componentTypes';
-import { NEW_CHART_ID, NEW_COMPONENTS_SOURCE_ID } from '../util/constants';
-import { slicePropShape } from '../util/propShapes';
 
 const propTypes = {
   fetchAllSlices: PropTypes.func.isRequired,
@@ -66,6 +72,17 @@ const SIDEPANE_HEADER_HEIGHT = 30;
 const SLICE_ADDER_CONTROL_HEIGHT = 64;
 const DEFAULT_CELL_HEIGHT = 112;
 
+const Controls = styled.div`
+  display: flex;
+  flex-direction: row;
+  padding: ${({ theme }) => theme.gridUnit * 3}px;
+`;
+
+const StyledSelect = styled(Select)`
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  min-width: 150px;
+`;
+
 class SliceAdder extends React.Component {
   static sortByComparator(attr) {
     const desc = attr === 'changed_on' ? -1 : 1;
@@ -92,6 +109,7 @@ class SliceAdder extends React.Component {
     this.rowRenderer = this.rowRenderer.bind(this);
     this.searchUpdated = this.searchUpdated.bind(this);
     this.handleKeyPress = this.handleKeyPress.bind(this);
+    this.handleChange = this.handleChange.bind(this);
     this.handleSelect = this.handleSelect.bind(this);
   }
 
@@ -136,6 +154,10 @@ class SliceAdder extends React.Component {
     }
   }
 
+  handleChange(ev) {
+    this.searchUpdated(ev.target.value);
+  }
+
   searchUpdated(searchTerm) {
     this.setState(prevState => ({
       searchTerm,
@@ -146,7 +168,8 @@ class SliceAdder extends React.Component {
     }));
   }
 
-  handleSelect(sortBy) {
+  handleSelect(object) {
+    const sortBy = object.value;
     this.setState(prevState => ({
       sortBy,
       filteredSlices: this.getFilteredSortedSlices(
@@ -210,26 +233,25 @@ class SliceAdder extends React.Component {
       MARGIN_BOTTOM;
     return (
       <div className="slice-adder-container">
-        <div className="controls">
-          <SearchInput
+        <Controls>
+          <Input
             placeholder={t('Filter your charts')}
             className="search-input"
-            onChange={this.searchUpdated}
+            onChange={this.handleChange}
             onKeyPress={this.handleKeyPress}
             data-test="dashboard-charts-filter-search-input"
           />
-          <Select
+          <StyledSelect
             id="slice-adder-sortby"
-            defaultValue={DEFAULT_SORT_KEY}
+            value={this.state.sortBy}
             onChange={this.handleSelect}
-          >
-            {Object.entries(KEYS_TO_SORT).map(([key, label]) => (
-              <Select.Option key={key} value={key}>
-                Sort by {label}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
+            options={Object.entries(KEYS_TO_SORT).map(([key, label]) => ({
+              label: `${t('Sort by')} ${label}`,
+              value: key,
+            }))}
+            placeholder={t('Sort by')}
+          />
+        </Controls>
         {this.props.isLoading && <Loading />}
         {!this.props.isLoading && this.state.filteredSlices.length > 0 && (
           <List

@@ -19,8 +19,20 @@
 import { ChartProps } from '@superset-ui/core';
 
 export default function transformProps(chartProps: ChartProps) {
-  const { formData, height, hooks, queriesData, width, behaviors } = chartProps;
-  const { setDataMask } = hooks;
+  const {
+    formData,
+    height,
+    hooks,
+    queriesData,
+    width,
+    behaviors,
+    filterState,
+  } = chartProps;
+  const {
+    setDataMask = () => {},
+    setFocusedFilter = () => {},
+    unsetFocusedFilter = () => {},
+  } = hooks;
   const { data } = queriesData[0];
 
   return {
@@ -29,6 +41,9 @@ export default function transformProps(chartProps: ChartProps) {
     behaviors,
     height,
     setDataMask,
+    filterState,
     width,
+    setFocusedFilter,
+    unsetFocusedFilter,
   };
 }

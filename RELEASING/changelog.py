@@ -26,12 +26,14 @@ from typing import Any, Dict, Iterator, List, Optional, Union
 import click
 
 try:
-    from github import BadCredentialsException, Github, PullRequest
+    from github import BadCredentialsException, Github, PullRequest, Repository
 except ModuleNotFoundError:
     print("PyGithub is a required package for this script")
     exit(1)
 
 SUPERSET_REPO = "apache/superset"
+SUPERSET_PULL_REQUEST_TYPES = r"^(fix|feat|chore|refactor|docs|build|ci|/gmi)"
+SUPERSET_RISKY_LABELS = r"^(blocking|risk|hold|revert|security vulnerability)"
 
 
 @dataclass
@@ -65,15 +67,22 @@ class GitChangeLog:
     """
 
     def __init__(
-        self, version: str, logs: List[GitLog], access_token: Optional[str] = None
+        self,
+        version: str,
+        logs: List[GitLog],
+        access_token: Optional[str] = None,
+        risk: Optional[bool] = False,
     ) -> None:
         self._version = version
         self._logs = logs
+        self._pr_logs_with_details: Dict[int, Dict[str, Any]] = {}
         self._github_login_cache: Dict[str, Optional[str]] = {}
+        self._github_prs: Dict[int, Any] = {}
         self._wait = 10
         github_token = access_token or os.environ.get("GITHUB_TOKEN")
         self._github = Github(github_token)
-        self._superset_repo = ""
+        self._show_risk = risk
+        self._superset_repo: Repository = None
 
     def _fetch_github_pr(self, pr_number: int) -> PullRequest:
         """
@@ -81,6 +90,11 @@ class GitChangeLog:
         """
         try:
             github_repo = self._github.get_repo(SUPERSET_REPO)
+            self._superset_repo = github_repo
+            pull_request = self._github_prs.get(pr_number)
+            if not pull_request:
+                pull_request = github_repo.get_pull(pr_number)
+                self._github_prs[pr_number] = pull_request
         except BadCredentialsException as ex:
             print(
                 f"Bad credentials to github provided"
@@ -88,7 +102,7 @@ class GitChangeLog:
             )
             sys.exit(1)
 
-        return github_repo.get_pull(pr_number)
+        return pull_request
 
     def _get_github_login(self, git_log: GitLog) -> Optional[str]:
         """
@@ -108,21 +122,102 @@ class GitChangeLog:
         self._github_login_cache[author_name] = github_login
         return github_login
 
+    def _has_commit_migrations(self, git_sha: str) -> bool:
+        commit = self._superset_repo.get_commit(sha=git_sha)
+        return any(
+            "superset/migrations/versions/" in file.filename for file in commit.files
+        )
+
+    def _get_pull_request_details(self, git_log: GitLog) -> Dict[str, Any]:
+        pr_number = git_log.pr_number
+        if pr_number:
+            detail = self._pr_logs_with_details.get(pr_number)
+            if detail:
+                return detail
+            pr_info = self._fetch_github_pr(pr_number)
+
+        has_migrations = self._has_commit_migrations(git_log.sha)
+        title = pr_info.title if pr_info else git_log.message
+        pr_type = re.match(SUPERSET_PULL_REQUEST_TYPES, title)
+        if pr_type:
+            pr_type = pr_type.group().strip('"')
+
+        labels = (" | ").join([label.name for label in pr_info.labels])
+        is_risky = self._is_risk_pull_request(pr_info.labels)
+        detail = {
+            "id": pr_number,
+            "has_migrations": has_migrations,
+            "labels": labels,
+            "title": title,
+            "type": pr_type,
+            "is_risky": is_risky or has_migrations,
+        }
+
+        if pr_number:
+            self._pr_logs_with_details[pr_number] = detail
+
+        return detail
+
+    def _is_risk_pull_request(self, labels: List[Any]) -> bool:
+        for label in labels:
+            risk_label = re.match(SUPERSET_RISKY_LABELS, label.name)
+            if risk_label is not None:
+                return True
+        return False
+
     def _get_changelog_version_head(self) -> str:
         return f"### {self._version} ({self._logs[0].time})"
 
+    def _parse_change_log(
+        self, changelog: Dict[str, str], pr_info: Dict[str, str], github_login: str,
+    ):
+        formatted_pr = (
+            f"- [#{pr_info.get('id')}]"
+            f"(https://github.com/{SUPERSET_REPO}/pull/{pr_info.get('id')}) "
+            f"{pr_info.get('title')} (@{github_login})\n"
+        )
+        if pr_info.get("has_migrations"):
+            changelog["Database Migrations"] += formatted_pr
+        elif pr_info.get("type") == "fix":
+            changelog["Fixes"] += formatted_pr
+        elif pr_info.get("type") == "feat":
+            changelog["Features"] += formatted_pr
+        else:
+            changelog["Others"] += formatted_pr
+
     def __repr__(self) -> str:
         result = f"\n{self._get_changelog_version_head()}\n"
+        changelog = {
+            "Database Migrations": "\n",
+            "Features": "\n",
+            "Fixes": "\n",
+            "Others": "\n",
+        }
         for i, log in enumerate(self._logs):
             github_login = self._get_github_login(log)
+            pr_info = self._get_pull_request_details(log)
+
             if not github_login:
                 github_login = log.author
-            result = result + (
-                f"- [#{log.pr_number}]"
-                f"(https://github.com/{SUPERSET_REPO}/pull/{log.pr_number}) "
-                f"{log.message} (@{github_login})\n"
-            )
+
+            if self._show_risk:
+                if pr_info.get("is_risky"):
+                    result += (
+                        f"- [#{log.pr_number}]"
+                        f"(https://github.com/{SUPERSET_REPO}/pull/{log.pr_number}) "
+                        f"{pr_info.get('title')} (@{github_login})  "
+                        f"{pr_info.get('labels')} \n"
+                    )
+            else:
+                self._parse_change_log(changelog, pr_info, github_login)
+
             print(f"\r {i}/{len(self._logs)}", end="", flush=True)
+
+        if self._show_risk:
+            return result
+
+        for key in changelog:
+            result += f"**{key}** {changelog[key]}\n"
         return result
 
     def __iter__(self) -> Iterator[Dict[str, Any]]:
@@ -269,14 +364,20 @@ def compare(base_parameters: BaseParameters) -> None:
     help="The github access token,"
     " if not provided will try to fetch from GITHUB_TOKEN env var",
 )
+@click.option("--risk", is_flag=True, help="show all pull requests with risky labels")
 @click.pass_obj
-def change_log(base_parameters: BaseParameters, csv: str, access_token: str) -> None:
+def change_log(
+    base_parameters: BaseParameters, csv: str, access_token: str, risk: bool
+) -> None:
     """ Outputs a changelog (by PR) """
     previous_logs = base_parameters.previous_logs
     current_logs = base_parameters.current_logs
     previous_diff_logs = previous_logs.diff(current_logs)
     logs = GitChangeLog(
-        current_logs.git_ref, previous_diff_logs[::-1], access_token=access_token
+        current_logs.git_ref,
+        previous_diff_logs[::-1],
+        access_token=access_token,
+        risk=risk,
     )
     if csv:
         with open(csv, "w") as csv_file:

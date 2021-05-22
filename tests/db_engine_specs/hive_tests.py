@@ -21,10 +21,11 @@ from unittest import mock
 import pytest
 import pandas as pd
 from sqlalchemy.sql import select
-from tests.test_app import app
+
 from superset.db_engine_specs.hive import HiveEngineSpec, upload_to_s3
 from superset.exceptions import SupersetException
 from superset.sql_parse import Table, ParsedQuery
+from tests.test_app import app
 
 
 def test_0_progress():
@@ -161,62 +162,44 @@ def test_convert_dttm():
     )
 
 
-def test_create_table_from_csv_append() -> None:
-
+def test_df_to_csv() -> None:
     with pytest.raises(SupersetException):
-        HiveEngineSpec.create_table_from_csv(
-            "foo.csv", Table("foobar"), mock.MagicMock(), {}, {"if_exists": "append"}
+        HiveEngineSpec.df_to_sql(
+            mock.MagicMock(), Table("foobar"), pd.DataFrame(), {"if_exists": "append"},
         )
 
 
-@mock.patch(
-    "superset.db_engine_specs.hive.config",
-    {**app.config, "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC": lambda *args: True},
-)
 @mock.patch("superset.db_engine_specs.hive.g", spec={})
-@mock.patch("tableschema.Table")
-def test_create_table_from_csv_if_exists_fail(mock_table, mock_g):
-    mock_table.infer.return_value = {}
+def test_df_to_sql_if_exists_fail(mock_g):
     mock_g.user = True
     mock_database = mock.MagicMock()
     mock_database.get_df.return_value.empty = False
     with pytest.raises(SupersetException, match="Table already exists"):
-        HiveEngineSpec.create_table_from_csv(
-            "foo.csv", Table("foobar"), mock_database, {}, {"if_exists": "fail"}
+        HiveEngineSpec.df_to_sql(
+            mock_database, Table("foobar"), pd.DataFrame(), {"if_exists": "fail"}
         )
 
 
-@mock.patch(
-    "superset.db_engine_specs.hive.config",
-    {**app.config, "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC": lambda *args: True},
-)
 @mock.patch("superset.db_engine_specs.hive.g", spec={})
-@mock.patch("tableschema.Table")
-def test_create_table_from_csv_if_exists_fail_with_schema(mock_table, mock_g):
-    mock_table.infer.return_value = {}
+def test_df_to_sql_if_exists_fail_with_schema(mock_g):
     mock_g.user = True
     mock_database = mock.MagicMock()
     mock_database.get_df.return_value.empty = False
     with pytest.raises(SupersetException, match="Table already exists"):
-        HiveEngineSpec.create_table_from_csv(
-            "foo.csv",
-            Table(table="foobar", schema="schema"),
+        HiveEngineSpec.df_to_sql(
             mock_database,
-            {},
+            Table(table="foobar", schema="schema"),
+            pd.DataFrame(),
             {"if_exists": "fail"},
         )
 
 
-@mock.patch(
-    "superset.db_engine_specs.hive.config",
-    {**app.config, "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC": lambda *args: True},
-)
 @mock.patch("superset.db_engine_specs.hive.g", spec={})
-@mock.patch("tableschema.Table")
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3")
-def test_create_table_from_csv_if_exists_replace(mock_upload_to_s3, mock_table, mock_g):
+def test_df_to_sql_if_exists_replace(mock_upload_to_s3, mock_g):
+    config = app.config.copy()
+    app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"]: lambda *args: ""
     mock_upload_to_s3.return_value = "mock-location"
-    mock_table.infer.return_value = {}
     mock_g.user = True
     mock_database = mock.MagicMock()
     mock_database.get_df.return_value.empty = False
@@ -224,29 +207,24 @@ def test_create_table_from_csv_if_exists_replace(mock_upload_to_s3, mock_table, 
     mock_database.get_sqla_engine.return_value.execute = mock_execute
     table_name = "foobar"
 
-    HiveEngineSpec.create_table_from_csv(
-        "foo.csv",
-        Table(table=table_name),
-        mock_database,
-        {"sep": "mock", "header": 1, "na_values": "mock"},
-        {"if_exists": "replace"},
-    )
+    with app.app_context():
+        HiveEngineSpec.df_to_sql(
+            mock_database,
+            Table(table=table_name),
+            pd.DataFrame(),
+            {"if_exists": "replace", "header": 1, "na_values": "mock", "sep": "mock"},
+        )
 
     mock_execute.assert_any_call(f"DROP TABLE IF EXISTS {table_name}")
+    app.config = config
 
 
-@mock.patch(
-    "superset.db_engine_specs.hive.config",
-    {**app.config, "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC": lambda *args: True},
-)
 @mock.patch("superset.db_engine_specs.hive.g", spec={})
-@mock.patch("tableschema.Table")
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3")
-def test_create_table_from_csv_if_exists_replace_with_schema(
-    mock_upload_to_s3, mock_table, mock_g
-):
+def test_df_to_sql_if_exists_replace_with_schema(mock_upload_to_s3, mock_g):
+    config = app.config.copy()
+    app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"]: lambda *args: ""
     mock_upload_to_s3.return_value = "mock-location"
-    mock_table.infer.return_value = {}
     mock_g.user = True
     mock_database = mock.MagicMock()
     mock_database.get_df.return_value.empty = False
@@ -254,82 +232,17 @@ def test_create_table_from_csv_if_exists_replace_with_schema(
     mock_database.get_sqla_engine.return_value.execute = mock_execute
     table_name = "foobar"
     schema = "schema"
-    HiveEngineSpec.create_table_from_csv(
-        "foo.csv",
-        Table(table=table_name, schema=schema),
-        mock_database,
-        {"sep": "mock", "header": 1, "na_values": "mock"},
-        {"if_exists": "replace"},
-    )
+
+    with app.app_context():
+        HiveEngineSpec.df_to_sql(
+            mock_database,
+            Table(table=table_name, schema=schema),
+            pd.DataFrame(),
+            {"if_exists": "replace", "header": 1, "na_values": "mock", "sep": "mock"},
+        )
 
     mock_execute.assert_any_call(f"DROP TABLE IF EXISTS {schema}.{table_name}")
-
-
-def test_get_create_table_stmt() -> None:
-    table = Table("employee")
-    schema_def = """eid int, name String, salary String, destination String"""
-    location = "s3a://directory/table"
-    from unittest import TestCase
-
-    assert HiveEngineSpec.get_create_table_stmt(
-        table, schema_def, location, ",", 0, [""]
-    ) == (
-        """CREATE TABLE employee ( eid int, name String, salary String, destination String )
-                ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
-                STORED AS TEXTFILE LOCATION :location
-                tblproperties ('skip.header.line.count'=:header_line_count, 'serialization.null.format'=:null_value)""",
-        {
-            "delim": ",",
-            "location": "s3a://directory/table",
-            "header_line_count": "1",
-            "null_value": "",
-        },
-    )
-    assert HiveEngineSpec.get_create_table_stmt(
-        table, schema_def, location, ",", 1, ["1", "2"]
-    ) == (
-        """CREATE TABLE employee ( eid int, name String, salary String, destination String )
-                ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
-                STORED AS TEXTFILE LOCATION :location
-                tblproperties ('skip.header.line.count'=:header_line_count, 'serialization.null.format'=:null_value)""",
-        {
-            "delim": ",",
-            "location": "s3a://directory/table",
-            "header_line_count": "2",
-            "null_value": "1",
-        },
-    )
-    assert HiveEngineSpec.get_create_table_stmt(
-        table, schema_def, location, ",", 100, ["NaN"]
-    ) == (
-        """CREATE TABLE employee ( eid int, name String, salary String, destination String )
-                ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
-                STORED AS TEXTFILE LOCATION :location
-                tblproperties ('skip.header.line.count'=:header_line_count, 'serialization.null.format'=:null_value)""",
-        {
-            "delim": ",",
-            "location": "s3a://directory/table",
-            "header_line_count": "101",
-            "null_value": "NaN",
-        },
-    )
-    assert HiveEngineSpec.get_create_table_stmt(
-        table, schema_def, location, ",", None, None
-    ) == (
-        """CREATE TABLE employee ( eid int, name String, salary String, destination String )
-                ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
-                STORED AS TEXTFILE LOCATION :location""",
-        {"delim": ",", "location": "s3a://directory/table"},
-    )
-    assert HiveEngineSpec.get_create_table_stmt(
-        table, schema_def, location, ",", 100, []
-    ) == (
-        """CREATE TABLE employee ( eid int, name String, salary String, destination String )
-                ROW FORMAT DELIMITED FIELDS TERMINATED BY :delim
-                STORED AS TEXTFILE LOCATION :location
-                tblproperties ('skip.header.line.count'=:header_line_count)""",
-        {"delim": ",", "location": "s3a://directory/table", "header_line_count": "101"},
-    )
+    app.config = config
 
 
 def test_is_readonly():
@@ -345,40 +258,59 @@ def test_is_readonly():
     assert is_readonly("WITH (SELECT 1) bla SELECT * from bla")
 
 
+@pytest.mark.parametrize(
+    "schema,upload_prefix",
+    [("foo", "EXTERNAL_HIVE_TABLES/1/foo/"), (None, "EXTERNAL_HIVE_TABLES/1/")],
+)
+def test_s3_upload_prefix(schema: str, upload_prefix: str) -> None:
+    mock_database = mock.MagicMock()
+    mock_database.id = 1
+
+    assert (
+        app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"](
+            database=mock_database, user=mock.MagicMock(), schema=schema
+        )
+        == upload_prefix
+    )
+
+
 def test_upload_to_s3_no_bucket_path():
-    with pytest.raises(
-        Exception,
-        match="No upload bucket specified. You can specify one in the config file.",
-    ):
-        upload_to_s3("filename", "prefix", Table("table"))
+    with app.app_context():
+        with pytest.raises(
+            Exception,
+            match="No upload bucket specified. You can specify one in the config file.",
+        ):
+            upload_to_s3("filename", "prefix", Table("table"))
 
 
 @mock.patch("boto3.client")
-@mock.patch(
-    "superset.db_engine_specs.hive.config",
-    {**app.config, "CSV_TO_HIVE_UPLOAD_S3_BUCKET": "bucket"},
-)
 def test_upload_to_s3_client_error(client):
+    config = app.config.copy()
+    app.config["CSV_TO_HIVE_UPLOAD_S3_BUCKET"] = "bucket"
     from botocore.exceptions import ClientError
 
     client.return_value.upload_file.side_effect = ClientError(
         {"Error": {}}, "operation_name"
     )
 
-    with pytest.raises(ClientError):
-        upload_to_s3("filename", "prefix", Table("table"))
+    with app.app_context():
+        with pytest.raises(ClientError):
+            upload_to_s3("filename", "prefix", Table("table"))
+
+    app.config = config
 
 
 @mock.patch("boto3.client")
-@mock.patch(
-    "superset.db_engine_specs.hive.config",
-    {**app.config, "CSV_TO_HIVE_UPLOAD_S3_BUCKET": "bucket"},
-)
 def test_upload_to_s3_success(client):
+    config = app.config.copy()
+    app.config["CSV_TO_HIVE_UPLOAD_S3_BUCKET"] = "bucket"
     client.return_value.upload_file.return_value = True
 
-    location = upload_to_s3("filename", "prefix", Table("table"))
-    assert f"s3a://bucket/prefix/table" == location
+    with app.app_context():
+        location = upload_to_s3("filename", "prefix", Table("table"))
+        assert f"s3a://bucket/prefix/table" == location
+
+    app.config = config
 
 
 def test_fetch_data_query_error():

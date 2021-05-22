@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { sharedControlComponents } from '@superset-ui/chart-controls';
 import AnnotationLayerControl from './AnnotationLayerControl';
 import BoundsControl from './BoundsControl';
 import CheckboxControl from './CheckboxControl';
@@ -39,7 +40,11 @@ import VizTypeControl from './VizTypeControl';
 import MetricsControl from './MetricControl/MetricsControl';
 import AdhocFilterControl from './FilterControl/AdhocFilterControl';
 import FilterBoxItemControl from './FilterBoxItemControl';
-import DndColumnSelectControl from './DndColumnSelectControl';
+import DndColumnSelectControl, {
+  DndColumnSelect,
+  DndFilterSelect,
+  DndMetricSelect,
+} from './DndColumnSelectControl';
 
 const controlMap = {
   AnnotationLayerControl,
@@ -52,6 +57,9 @@ const controlMap = {
   DatasourceControl,
   DateFilterControl,
   DndColumnSelectControl,
+  DndColumnSelect,
+  DndFilterSelect,
+  DndMetricSelect,
   FixedOrMetricControl,
   HiddenControl,
   SelectAsyncControl,
@@ -66,5 +74,6 @@ const controlMap = {
   MetricsControl,
   AdhocFilterControl,
   FilterBoxItemControl,
+  ...sharedControlComponents,
 };
 export default controlMap;

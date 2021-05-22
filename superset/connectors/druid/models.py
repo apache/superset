@@ -47,12 +47,12 @@ from sqlalchemy import (
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import backref, relationship, Session
 from sqlalchemy.sql import expression
-from sqlalchemy_utils import EncryptedType
 
-from superset import conf, db, is_feature_enabled, security_manager
+from superset import conf, db, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.constants import NULL_STRING
 from superset.exceptions import SupersetException
+from superset.extensions import encrypted_field_factory
 from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, QueryResult
 from superset.typing import FilterValues, Granularity, Metric, QueryObjectDict
@@ -138,7 +138,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportExportMixin):
     metadata_last_refreshed = Column(DateTime)
     cache_timeout = Column(Integer)
     broker_user = Column(String(255))
-    broker_pass = Column(EncryptedType(String(255), conf.get("SECRET_KEY")))
+    broker_pass = Column(encrypted_field_factory.create(String(255)))
 
     export_fields = [
         "cluster_name",
@@ -1139,11 +1139,17 @@ class DruidDatasource(Model, BaseDatasource):
         client: Optional["PyDruid"] = None,
         order_desc: bool = True,
         is_rowcount: bool = False,
+        apply_fetch_values_predicate: bool = False,
     ) -> str:
         """Runs a query against Druid and returns a dataframe."""
-        # is_rowcount is only supported on SQL connector
+        # is_rowcount and apply_fetch_values_predicate is only
+        # supported on SQL connector
         if is_rowcount:
             raise SupersetException("is_rowcount is not supported on Druid connector")
+        if apply_fetch_values_predicate:
+            raise SupersetException(
+                "apply_fetch_values_predicate is not supported on Druid connector"
+            )
 
         # TODO refactor into using a TBD Query object
         client = client or self.cluster.get_pydruid_client()
@@ -1509,7 +1515,9 @@ class DruidDatasource(Model, BaseDatasource):
             eq = cls.filter_values_handler(
                 eq,
                 is_list_target=is_list_target,
-                target_column_is_numeric=is_numeric_col,
+                target_column_type=utils.GenericDataType.NUMERIC
+                if is_numeric_col
+                else utils.GenericDataType.STRING,
             )
 
             # For these two ops, could have used Dimension,

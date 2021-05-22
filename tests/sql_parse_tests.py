@@ -158,6 +158,13 @@ class TestSupersetSqlParse(unittest.TestCase):
         query = "SELECT f1, (SELECT count(1) FROM t2) FROM t1"
         self.assertEqual({Table("t1"), Table("t2")}, self.extract_tables(query))
 
+        query = "SELECT f1, (SELECT count(1) FROM t2) as f2 FROM t1"
+        self.assertEqual({Table("t1"), Table("t2")}, self.extract_tables(query))
+
+    def test_parentheses(self):
+        query = "SELECT f1, (x + y) AS f2 FROM t1"
+        self.assertEqual({Table("t1")}, self.extract_tables(query))
+
     def test_union(self):
         query = "SELECT * FROM t1 UNION SELECT * FROM t2"
         self.assertEqual({Table("t1"), Table("t2")}, self.extract_tables(query))

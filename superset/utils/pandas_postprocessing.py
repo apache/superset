@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from decimal import Decimal
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
@@ -24,6 +25,7 @@ from flask_babel import gettext as _
 from geopy.point import Point
 from pandas import DataFrame, NamedAgg, Series, Timestamp
 
+from superset.constants import NULL_STRING
 from superset.exceptions import QueryObjectValidationError
 from superset.utils.core import (
     DTTM_ALIAS,
@@ -213,7 +215,7 @@ def pivot(  # pylint: disable=too-many-arguments
     aggregates: Dict[str, Dict[str, Any]],
     columns: Optional[List[str]] = None,
     metric_fill_value: Optional[Any] = None,
-    column_fill_value: Optional[str] = None,
+    column_fill_value: Optional[str] = NULL_STRING,
     drop_missing_columns: Optional[bool] = True,
     combine_value_with_metric: bool = False,
     marginal_distributions: Optional[bool] = None,
@@ -227,7 +229,9 @@ def pivot(  # pylint: disable=too-many-arguments
     :param index: Columns to group by on the table index (=rows)
     :param columns: Columns to group by on the table columns
     :param metric_fill_value: Value to replace missing values with
-    :param column_fill_value: Value to replace missing pivot columns with
+    :param column_fill_value: Value to replace missing pivot columns with. By default
+           replaces missing values with "<NULL>". Set to `None` to remove columns
+           with missing values.
     :param drop_missing_columns: Do not include columns whose entries are all missing
     :param combine_value_with_metric: Display metrics side by side within each column,
            as opposed to each column being displayed side by side for each metric.
@@ -249,7 +253,7 @@ def pivot(  # pylint: disable=too-many-arguments
             _("Pivot operation must include at least one aggregate")
         )
 
-    if column_fill_value:
+    if columns and column_fill_value:
         df[columns] = df[columns].fillna(value=column_fill_value)
 
     aggregate_funcs = _get_aggregate_funcs(df, aggregates)
@@ -577,7 +581,7 @@ def contribution(
     :return: DataFrame with contributions.
     """
     contribution_df = df.copy()
-    numeric_df = contribution_df.select_dtypes(include="number")
+    numeric_df = contribution_df.select_dtypes(include=["number", Decimal])
     # verify column selections
     if columns:
         numeric_columns = numeric_df.columns.tolist()
@@ -630,14 +634,14 @@ def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
     Fit a prophet model and return a DataFrame with predicted results.
     """
     try:
-        prophet_logger = logging.getLogger("fbprophet.plot")
+        prophet_logger = logging.getLogger("prophet.plot")
 
         prophet_logger.setLevel(logging.CRITICAL)
-        from fbprophet import Prophet  # pylint: disable=import-error
+        from prophet import Prophet  # pylint: disable=import-error
 
         prophet_logger.setLevel(logging.NOTSET)
     except ModuleNotFoundError:
-        raise QueryObjectValidationError(_("`fbprophet` package not installed"))
+        raise QueryObjectValidationError(_("`prophet` package not installed"))
     model = Prophet(
         interval_width=confidence_interval,
         yearly_seasonality=yearly_seasonality,

@@ -17,10 +17,9 @@
 import json
 import logging
 from datetime import datetime
-from distutils.util import strtobool
 from io import BytesIO
 from typing import Any
-from zipfile import ZipFile
+from zipfile import is_zipfile, ZipFile
 
 import yaml
 from flask import g, request, Response, send_file
@@ -62,6 +61,7 @@ from superset.datasets.schemas import (
     get_delete_ids_schema,
     get_export_ids_schema,
 )
+from superset.utils.core import parse_boolean_string
 from superset.views.base import DatasourceFilter, generate_download_headers
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -239,7 +239,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=ex.normalized_messages())
         except DatasetCreateFailedError as ex:
             logger.error(
-                "Error creating model %s: %s", self.__class__.__name__, str(ex)
+                "Error creating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -262,7 +265,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             schema:
               type: integer
             name: pk
-          - in: path
+          - in: query
             schema:
               type: bool
             name: override_columns
@@ -299,7 +302,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         override_columns = (
-            bool(strtobool(request.args["override_columns"]))
+            parse_boolean_string(request.args["override_columns"])
             if "override_columns" in request.args
             else False
         )
@@ -314,6 +317,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             changed_model = UpdateDatasetCommand(
                 g.user, pk, item, override_columns
             ).run()
+            if override_columns:
+                RefreshDatasetCommand(g.user, pk).run()
             response = self.response(200, id=changed_model.id, result=item)
         except DatasetNotFoundError:
             response = self.response_404()
@@ -323,7 +328,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             response = self.response_422(message=ex.normalized_messages())
         except DatasetUpdateFailedError as ex:
             logger.error(
-                "Error updating model %s: %s", self.__class__.__name__, str(ex)
+                "Error updating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             response = self.response_422(message=str(ex))
         return response
@@ -377,7 +385,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except DatasetDeleteFailedError as ex:
             logger.error(
-                "Error deleting model %s: %s", self.__class__.__name__, str(ex)
+                "Error deleting model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -510,7 +521,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except DatasetRefreshFailedError as ex:
             logger.error(
-                "Error refreshing dataset %s: %s", self.__class__.__name__, str(ex)
+                "Error refreshing dataset %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -659,11 +673,14 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                   type: object
                   properties:
                     formData:
+                      description: upload file (ZIP or YAML)
                       type: string
                       format: binary
                     passwords:
+                      description: JSON map of passwords for each file
                       type: string
                     overwrite:
+                      description: overwrite existing datasets?
                       type: bool
           responses:
             200:
@@ -687,8 +704,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         upload = request.files.get("formData")
         if not upload:
             return self.response_400()
-        with ZipFile(upload) as bundle:
-            contents = get_contents_from_bundle(bundle)
+        if is_zipfile(upload):
+            with ZipFile(upload) as bundle:
+                contents = get_contents_from_bundle(bundle)
+        else:
+            upload.seek(0)
+            contents = {upload.filename: upload.read()}
 
         passwords = (
             json.loads(request.form["passwords"])
@@ -707,5 +728,5 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             logger.warning("Import dataset failed")
             return self.response_422(message=exc.normalized_messages())
         except DatasetImportError as exc:
-            logger.exception("Import dataset failed")
+            logger.error("Import dataset failed", exc_info=True)
             return self.response_500(message=str(exc))

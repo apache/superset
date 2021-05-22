@@ -24,8 +24,7 @@ import { Provider } from 'react-redux';
 
 import { shallow } from 'enzyme';
 import { styledMount as mount } from 'spec/helpers/theming';
-import { FormControl } from 'react-bootstrap';
-import { Radio } from 'src/common/components/Radio';
+import { Radio } from 'src/components/Radio';
 import Button from 'src/components/Button';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
@@ -91,7 +90,6 @@ describe('SaveModal', () => {
   it('renders a Modal with the right set of components', () => {
     const wrapper = getWrapper();
     expect(wrapper.find(StyledModal)).toExist();
-    expect(wrapper.find(FormControl)).toExist();
     expect(wrapper.find(Radio)).toHaveLength(2);
 
     const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);

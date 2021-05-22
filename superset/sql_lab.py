@@ -36,7 +36,7 @@ from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
 from superset.extensions import celery_app
 from superset.models.core import Database
-from superset.models.sql_lab import Query
+from superset.models.sql_lab import LimitingFactor, Query
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import CtasMethod, ParsedQuery
 from superset.utils.celery import session_scope
@@ -102,9 +102,13 @@ def handle_query_error(
 
 def get_query_backoff_handler(details: Dict[Any, Any]) -> None:
     query_id = details["kwargs"]["query_id"]
-    logger.error("Query with id `%s` could not be retrieved", str(query_id))
+    logger.error(
+        "Query with id `%s` could not be retrieved", str(query_id), exc_info=True
+    )
     stats_logger.incr("error_attempting_orm_query_{}".format(details["tries"] - 1))
-    logger.error("Query %s: Sleeping for a sec before retrying...", str(query_id))
+    logger.error(
+        "Query %s: Sleeping for a sec before retrying...", str(query_id), exc_info=True
+    )
 
 
 def get_query_giveup_handler(_: Any) -> None:
@@ -159,6 +163,15 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 expand_data=expand_data,
                 log_params=log_params,
             )
+        except SoftTimeLimitExceeded as ex:
+            logger.warning("Query %d: Time limit exceeded", query_id)
+            logger.debug("Query %d: %s", query_id, ex)
+            raise SqlLabTimeoutException(
+                _(
+                    "SQL Lab timeout. This environment's policy is to kill queries "
+                    "after {} seconds.".format(SQLLAB_TIMEOUT)
+                )
+            )
         except Exception as ex:  # pylint: disable=broad-except
             logger.debug("Query %d: %s", query_id, ex)
             stats_logger.incr("error_sqllab_unhandled")
@@ -166,7 +179,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
             return handle_query_error(str(ex), query, session)
 
 
-# pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments, too-many-locals
 def execute_sql_statement(
     sql_statement: str,
     query: Query,
@@ -181,6 +194,10 @@ def execute_sql_statement(
     db_engine_spec = database.db_engine_spec
     parsed_query = ParsedQuery(sql_statement)
     sql = parsed_query.stripped()
+    # This is a test to see if the query is being
+    # limited by either the dropdown or the sql.
+    # We are testing to see if more rows exist than the limit.
+    increased_limit = None if query.limit is None else query.limit + 1
 
     if not db_engine_spec.is_readonly_query(parsed_query) and not database.allow_dml:
         raise SqlLabSecurityException(
@@ -206,12 +223,16 @@ def execute_sql_statement(
         if SQL_MAX_ROW and (not query.limit or query.limit > SQL_MAX_ROW):
             query.limit = SQL_MAX_ROW
         if query.limit:
-            sql = database.apply_limit_to_sql(sql, query.limit)
+            # We are fetching one more than the requested limit in order
+            # to test whether there are more rows than the limit.
+            # Later, the extra row will be dropped before sending
+            # the results back to the user.
+            sql = database.apply_limit_to_sql(sql, increased_limit, force=True)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
     sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
-
     try:
+        query.executed_sql = sql
         if log_query:
             log_query(
                 query.database.sqlalchemy_uri,
@@ -222,7 +243,6 @@ def execute_sql_statement(
                 security_manager,
                 log_params,
             )
-        query.executed_sql = sql
         session.commit()
         with stats_timing("sqllab.query.time_executing_query", stats_logger):
             logger.debug("Query %d: Running query: %s", query.id, sql)
@@ -236,17 +256,14 @@ def execute_sql_statement(
                 query.id,
                 str(query.to_dict()),
             )
-            data = db_engine_spec.fetch_data(cursor, query.limit)
-
-    except SoftTimeLimitExceeded as ex:
-        logger.error("Query %d: Time limit exceeded", query.id)
-        logger.debug("Query %d: %s", query.id, ex)
-        raise SqlLabTimeoutException(
-            "SQL Lab timeout. This environment's policy is to kill queries "
-            "after {} seconds.".format(SQLLAB_TIMEOUT)
-        )
+            data = db_engine_spec.fetch_data(cursor, increased_limit)
+            if query.limit is None or len(data) <= query.limit:
+                query.limiting_factor = LimitingFactor.NOT_LIMITED
+            else:
+                # return 1 row less than increased_query
+                data = data[:-1]
     except Exception as ex:
-        logger.error("Query %d: %s", query.id, type(ex))
+        logger.error("Query %d: %s", query.id, type(ex), exc_info=True)
         logger.debug("Query %d: %s", query.id, ex)
         raise SqlLabException(db_engine_spec.extract_error_message(ex))
 

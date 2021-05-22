@@ -45,7 +45,7 @@ const propTypes = {
   setDataMask: PropTypes.func,
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
-  ownCurrentState: PropTypes.object,
+  ownState: PropTypes.object,
 };
 
 const BLANK = {};
@@ -75,11 +75,8 @@ class ChartRenderer extends React.Component {
       setControlValue: this.handleSetControlValue,
       onFilterMenuOpen: this.props.onFilterMenuOpen,
       onFilterMenuClose: this.props.onFilterMenuClose,
-      setDataMask: filtersState => {
-        this.props.actions?.updateExtraFormData(
-          this.props.chartId,
-          filtersState,
-        );
+      setDataMask: dataMask => {
+        this.props.actions?.updateDataMask(this.props.chartId, dataMask);
       },
     };
   }
@@ -97,6 +94,8 @@ class ChartRenderer extends React.Component {
       return (
         this.hasQueryResponseChange ||
         nextProps.annotationData !== this.props.annotationData ||
+        nextProps.ownState !== this.props.ownState ||
+        nextProps.filterState !== this.props.filterState ||
         nextProps.height !== this.props.height ||
         nextProps.width !== this.props.width ||
         nextProps.triggerRender ||
@@ -186,7 +185,8 @@ class ChartRenderer extends React.Component {
       annotationData,
       datasource,
       initialValues,
-      ownCurrentState,
+      ownState,
+      filterState,
       formData,
       queriesResponse,
     } = this.props;
@@ -226,9 +226,10 @@ class ChartRenderer extends React.Component {
         datasource={datasource}
         initialValues={initialValues}
         formData={formData}
-        ownCurrentState={ownCurrentState}
+        ownState={ownState}
+        filterState={filterState}
         hooks={this.hooks}
-        behaviors={[Behavior.CROSS_FILTER]}
+        behaviors={[Behavior.INTERACTIVE_CHART]}
         queriesData={queriesResponse}
         onRenderSuccess={this.handleRenderSuccess}
         onRenderFailure={this.handleRenderFailure}

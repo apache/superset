@@ -21,62 +21,33 @@ import {
   SAVE_FILTER_SETS,
   SET_FILTER_CONFIG_COMPLETE,
   SET_FILTER_SETS_CONFIG_COMPLETE,
-  SET_FILTERS_STATE,
-  UPDATE_EXTRA_FORM_DATA,
-  UpdateExtraFormData,
+  SET_FOCUSED_NATIVE_FILTER,
+  UNSET_FOCUSED_NATIVE_FILTER,
 } from 'src/dashboard/actions/nativeFilters';
-import {
-  FiltersSet,
-  FiltersState,
-  FilterState,
-  FilterStateType,
-  NativeFiltersState,
-} from './types';
+import { FilterSet, NativeFiltersState } from './types';
 import { FilterConfiguration } from '../components/nativeFilters/types';
-
-export function getInitialFilterState(id: string): FilterState {
-  return {
-    id,
-    extraFormData: {},
-    currentState: {},
-  };
-}
+import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 export function getInitialState({
   filterSetsConfig,
   filterConfig,
   state: prevState,
 }: {
-  filterSetsConfig?: FiltersSet[];
+  filterSetsConfig?: FilterSet[];
   filterConfig?: FilterConfiguration;
   state?: NativeFiltersState;
 }): NativeFiltersState {
   const state: Partial<NativeFiltersState> = {};
 
-  const emptyFiltersState = {
-    [FilterStateType.NativeFilters]: {},
-    [FilterStateType.CrossFilters]: {},
-    [FilterStateType.OwnFilters]: {},
-  };
-
   const filters = {};
-  const filtersState = { ...emptyFiltersState };
   if (filterConfig) {
     filterConfig.forEach(filter => {
       const { id } = filter;
       filters[id] = filter;
-      filtersState.nativeFilters[id] =
-        prevState?.filtersState?.nativeFilters[id] || getInitialFilterState(id);
     });
     state.filters = filters;
-    state.filtersState = {
-      ...emptyFiltersState,
-      ...prevState?.filtersState,
-      nativeFilters: filtersState.nativeFilters,
-    };
   } else {
     state.filters = prevState?.filters ?? {};
-    state.filtersState = prevState?.filtersState ?? { ...emptyFiltersState };
   }
 
   if (filterSetsConfig) {
@@ -89,61 +60,23 @@ export function getInitialState({
   } else {
     state.filterSets = prevState?.filterSets ?? {};
   }
+  state.focusedFilterId = undefined;
   return state as NativeFiltersState;
 }
-
-const getUnitState = (
-  unitName: FilterStateType,
-  action: UpdateExtraFormData,
-  filtersState: FiltersState,
-) => {
-  if (action[unitName])
-    return {
-      ...filtersState[unitName],
-      [action.filterId]: {
-        ...filtersState[unitName][action.filterId],
-        ...action[unitName],
-      },
-    };
-  return { ...filtersState[unitName] };
-};
 
 export default function nativeFilterReducer(
   state: NativeFiltersState = {
     filters: {},
     filterSets: {},
-    filtersState: {
-      [FilterStateType.NativeFilters]: {},
-      [FilterStateType.CrossFilters]: {},
-      [FilterStateType.OwnFilters]: {},
-    },
   },
   action: AnyFilterAction,
 ) {
-  const { filters, filtersState, filterSets } = state;
+  const { filterSets } = state;
   switch (action.type) {
-    case UPDATE_EXTRA_FORM_DATA:
+    case HYDRATE_DASHBOARD:
       return {
-        ...state,
-        filters,
-        filtersState: {
-          ...filtersState,
-          [FilterStateType.NativeFilters]: getUnitState(
-            FilterStateType.NativeFilters,
-            action,
-            filtersState,
-          ),
-          [FilterStateType.CrossFilters]: getUnitState(
-            FilterStateType.CrossFilters,
-            action,
-            filtersState,
-          ),
-          [FilterStateType.OwnFilters]: getUnitState(
-            FilterStateType.OwnFilters,
-            action,
-            filtersState,
-          ),
-        },
+        filters: action.data.nativeFilters.filters,
+        filterSets: action.data.nativeFilters.filterSets,
       };
     case SAVE_FILTER_SETS:
       return {
@@ -153,16 +86,8 @@ export default function nativeFilterReducer(
           [action.filtersSetId]: {
             id: action.filtersSetId,
             name: action.name,
-            filtersState: action.filtersState,
+            dataMask: action.dataMask,
           },
-        },
-      };
-    case SET_FILTERS_STATE:
-      return {
-        ...state,
-        filtersState: {
-          ...filtersState,
-          ...action.filtersState,
         },
       };
 
@@ -175,6 +100,17 @@ export default function nativeFilterReducer(
         state,
       });
 
+    case SET_FOCUSED_NATIVE_FILTER:
+      return {
+        ...state,
+        focusedFilterId: action.id,
+      };
+
+    case UNSET_FOCUSED_NATIVE_FILTER:
+      return {
+        ...state,
+        focusedFilterId: undefined,
+      };
     // TODO handle SET_FILTER_CONFIG_FAIL action
     default:
       return state;

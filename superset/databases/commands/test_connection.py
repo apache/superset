@@ -32,6 +32,7 @@ from superset.databases.commands.exceptions import (
 )
 from superset.databases.dao import DatabaseDAO
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import event_logger
 from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
@@ -48,6 +49,17 @@ class TestConnectionDatabaseCommand(BaseCommand):
         uri = self._properties.get("sqlalchemy_uri", "")
         if self._model and uri == self._model.safe_sqlalchemy_uri():
             uri = self._model.sqlalchemy_uri_decrypted
+
+        # context for error messages
+        url = make_url(uri)
+        context = {
+            "hostname": url.host,
+            "password": url.password,
+            "port": url.port,
+            "username": url.username,
+            "database": url.database,
+        }
+
         try:
             database = DatabaseDAO.build_db_for_connection_test(
                 server_cert=self._properties.get("server_cert", ""),
@@ -55,25 +67,56 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 impersonate_user=self._properties.get("impersonate_user", False),
                 encrypted_extra=self._properties.get("encrypted_extra", "{}"),
             )
-            if database is not None:
-                database.set_sqlalchemy_uri(uri)
-                database.db_engine_spec.mutate_db_for_connection_test(database)
-                username = self._actor.username if self._actor is not None else None
-                engine = database.get_sqla_engine(user_name=username)
+
+            database.set_sqlalchemy_uri(uri)
+            database.db_engine_spec.mutate_db_for_connection_test(database)
+            username = self._actor.username if self._actor is not None else None
+            engine = database.get_sqla_engine(user_name=username)
             with closing(engine.raw_connection()) as conn:
-                if not engine.dialect.do_ping(conn):
+                try:
+                    alive = engine.dialect.do_ping(conn)
+                except Exception:  # pylint: disable=broad-except
+                    alive = False
+                if not alive:
                     raise DBAPIError(None, None, None)
-        except (NoSuchModuleError, ModuleNotFoundError):
-            driver_name = make_url(uri).drivername
-            raise DatabaseTestConnectionDriverError(
-                message=_("Could not load database driver: {}").format(driver_name),
+
+            # Log succesful connection test with engine
+            event_logger.log_with_context(
+                action="test_connection_success",
+                engine=database.db_engine_spec.__name__,
             )
-        except DBAPIError:
-            raise DatabaseTestConnectionFailedError()
+
+        except (NoSuchModuleError, ModuleNotFoundError) as ex:
+            event_logger.log_with_context(
+                action=f"test_connection_error.{ex.__class__.__name__}",
+                engine=database.db_engine_spec.__name__,
+            )
+            raise DatabaseTestConnectionDriverError(
+                message=_("Could not load database driver: {}").format(
+                    database.db_engine_spec.__name__
+                ),
+            )
+        except DBAPIError as ex:
+            event_logger.log_with_context(
+                action=f"test_connection_error.{ex.__class__.__name__}",
+                engine=database.db_engine_spec.__name__,
+            )
+            # check for custom errors (wrong username, wrong password, etc)
+            errors = database.db_engine_spec.extract_errors(ex, context)
+            raise DatabaseTestConnectionFailedError(errors)
         except SupersetSecurityException as ex:
+            event_logger.log_with_context(
+                action=f"test_connection_error.{ex.__class__.__name__}",
+                engine=database.db_engine_spec.__name__,
+            )
             raise DatabaseSecurityUnsafeError(message=str(ex))
-        except Exception:
-            raise DatabaseTestConnectionUnexpectedError()
+        except Exception as ex:  # pylint: disable=broad-except
+            event_logger.log_with_context(
+                action=f"test_connection_error.{ex.__class__.__name__}",
+                engine=database.db_engine_spec.__name__,
+            )
+            errors = database.db_engine_spec.extract_errors(ex, context)
+            raise DatabaseTestConnectionUnexpectedError(errors)
 
     def validate(self) -> None:
         database_name = self._properties.get("database_name")

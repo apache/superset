@@ -56,7 +56,7 @@ body {
   position: relative;
   background-color: @lightest;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
 
   > .ant-tabs-tabpane {
     position: absolute;
@@ -294,12 +294,14 @@ div.Workspace {
   .queryPane {
     flex: 1 1 auto;
     padding-left: 10px;
-    overflow: visible;
+    overflow-y: none;
+    overflow-x: scroll;
   }
 
   .schemaPane-enter-done,
   .schemaPane-exit {
     transform: translateX(0);
+    z-index: 7;
   }
 
   .schemaPane-exit-active {
@@ -432,6 +434,10 @@ div.tablePopover {
 
 .QueryTable .label {
   display: inline-block;
+}
+
+.QueryTable .ant-btn {
+  position: static;
 }
 
 .ResultsModal .ant-modal-body {

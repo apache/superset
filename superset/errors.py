@@ -39,6 +39,16 @@ class SupersetErrorType(str, Enum):
     GENERIC_DB_ENGINE_ERROR = "GENERIC_DB_ENGINE_ERROR"
     COLUMN_DOES_NOT_EXIST_ERROR = "COLUMN_DOES_NOT_EXIST_ERROR"
     TABLE_DOES_NOT_EXIST_ERROR = "TABLE_DOES_NOT_EXIST_ERROR"
+    SCHEMA_DOES_NOT_EXIST_ERROR = "SCHEMA_DOES_NOT_EXIST_ERROR"
+    CONNECTION_INVALID_USERNAME_ERROR = "CONNECTION_INVALID_USERNAME_ERROR"
+    CONNECTION_INVALID_PASSWORD_ERROR = "CONNECTION_INVALID_PASSWORD_ERROR"
+    CONNECTION_INVALID_HOSTNAME_ERROR = "CONNECTION_INVALID_HOSTNAME_ERROR"
+    CONNECTION_PORT_CLOSED_ERROR = "CONNECTION_PORT_CLOSED_ERROR"
+    CONNECTION_HOST_DOWN_ERROR = "CONNECTION_HOST_DOWN_ERROR"
+    CONNECTION_ACCESS_DENIED_ERROR = "CONNECTION_ACCESS_DENIED_ERROR"
+    CONNECTION_UNKNOWN_DATABASE_ERROR = "CONNECTION_UNKNOWN_DATABASE_ERROR"
+    CONNECTION_DATABASE_PERMISSIONS_ERROR = "CONNECTION_DATABASE_PERMISSIONS_ERROR"
+    CONNECTION_MISSING_PARAMETERS_ERROR = "CONNECTION_MISSING_PARAMETERS_ERROR"
 
     # Viz errors
     VIZ_GET_DF_ERROR = "VIZ_GET_DF_ERROR"
@@ -56,6 +66,14 @@ class SupersetErrorType(str, Enum):
 
     # Sql Lab errors
     MISSING_TEMPLATE_PARAMS_ERROR = "MISSING_TEMPLATE_PARAMS_ERROR"
+
+    # Generic errors
+    GENERIC_COMMAND_ERROR = "GENERIC_COMMAND_ERROR"
+    GENERIC_BACKEND_ERROR = "GENERIC_BACKEND_ERROR"
+
+    # API errors
+    INVALID_PAYLOAD_FORMAT_ERROR = "INVALID_PAYLOAD_FORMAT_ERROR"
+    INVALID_PAYLOAD_SCHEMA_ERROR = "INVALID_PAYLOAD_SCHEMA_ERROR"
 
 
 ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
@@ -105,6 +123,21 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
             ),
         },
     ],
+    SupersetErrorType.SCHEMA_DOES_NOT_EXIST_ERROR: [
+        {
+            "code": 1003,
+            "message": _(
+                "Issue 1003 - There is a syntax error in the SQL query. "
+                "Perhaps there was a misspelling or a typo."
+            ),
+        },
+        {
+            "code": 1016,
+            "message": _(
+                "Issue 1005 - The schema was deleted or renamed in the database."
+            ),
+        },
+    ],
     SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR: [
         {
             "code": 1006,
@@ -113,6 +146,109 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
                 "missing."
             ),
         },
+    ],
+    SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR: [
+        {
+            "code": 1007,
+            "message": _("Issue 1007 - The hostname provided can't be resolved."),
+        },
+    ],
+    SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR: [
+        {"code": 1008, "message": _("Issue 1008 - The port is closed.")},
+    ],
+    SupersetErrorType.CONNECTION_HOST_DOWN_ERROR: [
+        {
+            "code": 1009,
+            "message": _(
+                "Issue 1009 - The host might be down, and can't be reached on the "
+                "provided port."
+            ),
+        },
+    ],
+    SupersetErrorType.GENERIC_COMMAND_ERROR: [
+        {
+            "code": 1010,
+            "message": _(
+                "Issue 1010 - Superset encountered an error while running a command."
+            ),
+        },
+    ],
+    SupersetErrorType.GENERIC_BACKEND_ERROR: [
+        {
+            "code": 1011,
+            "message": _("Issue 1011 - Superset encountered an unexpected error."),
+        },
+    ],
+    SupersetErrorType.CONNECTION_INVALID_USERNAME_ERROR: [
+        {
+            "code": 1012,
+            "message": _(
+                "Issue 1012 - The username provided when "
+                "connecting to a database is not valid."
+            ),
+        },
+    ],
+    SupersetErrorType.CONNECTION_INVALID_PASSWORD_ERROR: [
+        {
+            "code": 1013,
+            "message": _(
+                "Issue 1013 - The password provided when "
+                "connecting to a database is not valid."
+            ),
+        },
+    ],
+    SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR: [
+        {
+            "code": 1014,
+            "message": _("Issue 1014 - Either the username or the password is wrong."),
+        },
+        {
+            "code": 1015,
+            "message": _(
+                "Issue 1015 - Either the database is "
+                "spelled incorrectly or does not exist."
+            ),
+        },
+    ],
+    SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR: [
+        {
+            "code": 1015,
+            "message": _(
+                "Issue 1015 - Either the database is "
+                "spelled incorrectly or does not exist."
+            ),
+        }
+    ],
+    SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR: [
+        {
+            "code": 1017,
+            "message": _("Issue 1017 - User doesn't have the proper permissions."),
+        },
+    ],
+    SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR: [
+        {
+            "code": 1018,
+            "message": _(
+                "Issue 1018 - One or more parameters needed to configure a "
+                "database are missing."
+            ),
+        },
+    ],
+    SupersetErrorType.INVALID_PAYLOAD_FORMAT_ERROR: [
+        {
+            "code": 1019,
+            "message": _(
+                "Issue 1019 - The submitted payload has the incorrect format."
+            ),
+        }
+    ],
+    SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR: [
+        {
+            "code": 1020,
+            "message": _(
+                "Issue 1020 - The submitted payload has the incorrect schema."
+            ),
+        }
     ],
 }
 

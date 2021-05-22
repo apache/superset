@@ -54,10 +54,12 @@ envpy3
 env36
 local_config.py
 /superset_config.py
+/superset_text.yml
 superset.egg-info/
 superset/bin/supersetc
 tmp
 rat-results.txt
+superset/app/
 
 # Node.js, webpack artifacts
 *.entry.js

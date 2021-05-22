@@ -1,0 +1,59 @@
+name: Check DB migration conflict
+on:
+  push:
+    paths:
+      - "superset/migrations/**"
+
+jobs:
+  check_db_migration_conflict:
+    name: Check DB migration conflict
+    runs-on: ubuntu-20.04
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+      - name: Check and notify
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // API reference: https://octokit.github.io/rest.js
+            const currentBranch = context.ref.replace('refs/heads/', '');
+
+            // Find all pull requests to current branch
+            const opts = github.pulls.list.endpoint.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              base: context.ref,
+              state: 'open',
+              sort: 'updated',
+              per_page: 100,
+            });
+            const pulls = await github.paginate(opts);
+            if (pulls.length > 0) {
+              console.log(`Found ${pulls.length} open PRs for base branch "${currentBranch}"`)
+            }
+
+            for (const pull of pulls) {
+              const listFilesOpts = await github.pulls.listFiles.endpoint.merge({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pull.number,
+              });
+              const files = await github.paginate(listFilesOpts);
+              if (
+                files.some(x => x.contents_url.includes('/contents/superset/migrations'))
+              ) {
+                console.log(`PR #${pull.number} "${pull.title}" also added db migration`)
+                await github.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pull.number,
+                  body:
+                    `⚠️ @${pull.user.login} Your base branch \`${currentBranch}\` has just ` +
+                    'also updated `superset/migrations`.\n' +
+                    '\n' +
+                    '❗ **Please consider rebasing your branch to avoid db migration conflicts.**',
+                });
+              }
+            }

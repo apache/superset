@@ -21,7 +21,9 @@ from marshmallow import EXCLUDE, fields, post_load, Schema, validate
 from marshmallow.validate import Length, Range
 from marshmallow_enum import EnumField
 
+from superset import app
 from superset.common.query_context import QueryContext
+from superset.db_engine_specs.base import builtin_time_grains
 from superset.utils import schema as utils
 from superset.utils.core import (
     AnnotationType,
@@ -32,6 +34,8 @@ from superset.utils.core import (
     PostProcessingContributionOrientation,
     TimeRangeEndpoint,
 )
+
+config = app.config
 
 #
 # RISON/JSON schemas for query parameters
@@ -126,26 +130,6 @@ openapi_spec_methods_override = {
 }
 
 
-TIME_GRAINS = (
-    "PT1S",
-    "PT1M",
-    "PT5M",
-    "PT10M",
-    "PT15M",
-    "PT0.5H",
-    "PT1H",
-    "P1D",
-    "P1W",
-    "P1M",
-    "P0.25Y",
-    "P1Y",
-    "1969-12-28T00:00:00Z/P1W",  # Week starting Sunday
-    "1969-12-29T00:00:00Z/P1W",  # Week starting Monday
-    "P1W/1970-01-03T00:00:00Z",  # Week ending Saturday
-    "P1W/1970-01-04T00:00:00Z",  # Week ending Sunday
-)
-
-
 class ChartEntityResponseSchema(Schema):
     """
     Schema for a chart object
@@ -155,6 +139,7 @@ class ChartEntityResponseSchema(Schema):
     slice_name = fields.String(description=slice_name_description)
     cache_timeout = fields.Integer(description=cache_timeout_description)
     changed_on = fields.String(description=changed_on_description)
+    modified = fields.String()
     datasource = fields.String(description=datasource_name_description)
     description = fields.String(description=description_description)
     description_markeddown = fields.String(
@@ -498,7 +483,13 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
         description="Time grain used to specify time period increments in prediction. "
         "Supports [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) "
         "durations.",
-        validate=validate.OneOf(choices=TIME_GRAINS),
+        validate=validate.OneOf(
+            choices=[
+                i
+                for i in {**builtin_time_grains, **config["TIME_GRAIN_ADDONS"]}.keys()
+                if i
+            ]
+        ),
         example="P1D",
         required=True,
     )
@@ -796,7 +787,13 @@ class ChartDataExtrasSchema(Schema):
         description="To what level of granularity should the temporal column be "
         "aggregated. Supports "
         "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
-        validate=validate.OneOf(choices=TIME_GRAINS),
+        validate=validate.OneOf(
+            choices=[
+                i
+                for i in {**builtin_time_grains, **config["TIME_GRAIN_ADDONS"]}.keys()
+                if i
+            ]
+        ),
         example="P1D",
         allow_none=True,
     )
@@ -907,6 +904,11 @@ class ChartDataQueryObjectSchema(Schema):
         description="A mapping of temporal extras that have been applied to the query",
         allow_none=True,
         example={"__time_range": "1 year ago : now"},
+    )
+    apply_fetch_values_predicate = fields.Boolean(
+        description="Add fetch values predicate (where clause) to query "
+        "if defined in datasource",
+        allow_none=True,
     )
     filters = fields.List(fields.Nested(ChartDataFilterSchema), allow_none=True)
     granularity = fields.String(
