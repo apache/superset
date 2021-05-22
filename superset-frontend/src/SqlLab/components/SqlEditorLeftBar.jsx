@@ -89,7 +89,12 @@ export default class SqlEditorLeftBar extends React.PureComponent {
   }
 
   onTableChange(tableName, schemaName) {
-    this.props.actions.addTable(this.props.queryEditor, tableName, schemaName);
+    this.props.actions.addTable(
+      this.props.queryEditor,
+      this.props.database,
+      tableName,
+      schemaName,
+    );
   }
 
   onToggleTable(tables) {
@@ -131,7 +136,12 @@ export default class SqlEditorLeftBar extends React.PureComponent {
     const schemaName = tableOpt.value.schema;
     const tableName = tableOpt.value.table;
     this.props.actions.queryEditorSetSchema(this.props.queryEditor, schemaName);
-    this.props.actions.addTable(this.props.queryEditor, tableName, schemaName);
+    this.props.actions.addTable(
+      this.props.queryEditor,
+      this.props.database,
+      tableName,
+      schemaName,
+    );
   }
 
   render() {

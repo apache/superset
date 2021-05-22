@@ -138,6 +138,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "expose_in_sqllab",
         "force_ctas_schema",
         "id",
+        "preview_data",
     ]
     add_columns = [
         "database_name",

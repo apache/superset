@@ -42,11 +42,12 @@ interface Props {
   actions: {
     queryEditorSetSelectedText: (edit: any, text: null | string) => void;
     queryEditorSetFunctionNames: (queryEditor: object, dbId: number) => void;
-    addTable: (queryEditor: any, value: any, schema: any) => void;
+    addTable: (queryEditor: any, database: any, value: any, schema: any) => void;
   };
   autocomplete: boolean;
   onBlur: (sql: string) => void;
   sql: string;
+  database: any;
   schemas: any[];
   tables: any[];
   functionNames: string[];
@@ -200,6 +201,7 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
         if (data.meta === 'table') {
           this.props.actions.addTable(
             this.props.queryEditor,
+            this.props.database,
             data.value,
             this.props.queryEditor.schema,
           );

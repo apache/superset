@@ -370,6 +370,12 @@ const ExtraOptions = ({
                   'or not the Explore button in SQL Lab results is shown.',
               )}
             </div>
+            <div>
+              {t(
+                '6. The preview_data field is a boolean specifying whether or not data ' +
+                  'preview queries will be run when fetching table metadata in SQL Lab.',
+              )}
+            </div>
           </div>
         </StyledInputContainer>
       </Collapse.Panel>
