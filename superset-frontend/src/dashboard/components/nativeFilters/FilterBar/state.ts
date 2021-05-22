@@ -107,7 +107,10 @@ export const useInitialization = () => {
     const numberOfLoadedCharts = Object.values(charts).filter(
       ({ chartStatus }) => chartStatus !== 'loading',
     ).length;
-    if (numberOfLoadedCharts >= numberOfLoadingCharts) {
+    if (
+      numberOfLoadingCharts > 0 &&
+      numberOfLoadedCharts >= numberOfLoadingCharts
+    ) {
       setIsInitialized(true);
     }
   }, [charts, isInitialized, numberOfLoadingCharts]);
