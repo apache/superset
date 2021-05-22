@@ -296,7 +296,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       setDB({
         type: ActionType.dbSelected,
         payload: {
-          parameters: { engine: 'postgresql' },
+          parameters: {},
           configuration_method: CONFIGURATION_METHOD.SQLALCHEMY_URI,
         }, // todo hook this up to step 1
       });
