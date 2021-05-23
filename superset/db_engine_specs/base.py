@@ -1348,7 +1348,11 @@ class BasicParametersMixin:
     encryption_parameters: Dict[str, str] = {}
 
     @classmethod
-    def build_sqlalchemy_uri(cls, parameters: BasicParametersType) -> str:
+    def build_sqlalchemy_uri(
+        cls,
+        parameters: BasicParametersType,
+        encryted_extra: Optional[Dict[str, str]] = None,
+    ) -> str:
         query = parameters.get("query", {})
         if parameters.get("encryption"):
             if not cls.encryption_parameters:
