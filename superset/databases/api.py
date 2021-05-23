@@ -908,7 +908,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "preferred": engine_spec.engine in preferred_databases,
             }
 
-            if hasattr(engine_spec, "parameters_json_schema") or hasattr(
+            if hasattr(engine_spec, "parameters_json_schema") and hasattr(
                 engine_spec, "sqlalchemy_uri_placeholder"
             ):
                 payload[
