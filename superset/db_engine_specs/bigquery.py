@@ -314,7 +314,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
             return f"{cls.drivername}://{project_id}"
 
         raise SupersetGenericDBErrorException(
-            message="Big Query encrypted_extra is not available",
+            message="Big Query encrypted_extra is not available.",
         )
 
     @classmethod
