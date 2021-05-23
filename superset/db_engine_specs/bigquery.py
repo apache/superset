@@ -324,7 +324,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
             return encrypted_extra
 
         raise SupersetGenericDBErrorException(
-            message="Big Query encrypted_extra is not available",
+            message="Big Query encrypted_extra is not available.",
         )
 
     @classmethod
