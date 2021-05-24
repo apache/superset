@@ -19,25 +19,27 @@
  */
 import React from 'react';
 import {
-  t,
   addLocaleData,
-  smartDateFormatter,
-  QueryMode,
-  QueryFormColumn,
   ChartDataResponseResult,
-  isFeatureEnabled,
+  ensureIsArray,
   FeatureFlag,
+  isFeatureEnabled,
+  QueryFormColumn,
+  QueryMode,
+  smartDateFormatter,
+  t,
 } from '@superset-ui/core';
 import {
-  D3_TIME_FORMAT_OPTIONS,
-  ControlConfig,
   ColumnOption,
-  ControlStateMapping,
+  ControlConfig,
   ControlPanelConfig,
   ControlPanelsContainerProps,
-  sharedControls,
-  sections,
+  ControlStateMapping,
+  D3_TIME_FORMAT_OPTIONS,
+  ExtraControlProps,
   QueryModeLabel,
+  sections,
+  sharedControls,
 } from '@superset-ui/chart-controls';
 
 import i18n from './i18n';
@@ -59,7 +61,8 @@ function getQueryMode(controls: ControlStateMapping): QueryMode {
  * Visibility check
  */
 function isQueryMode(mode: QueryMode) {
-  return ({ controls }: ControlPanelsContainerProps) => getQueryMode(controls) === mode;
+  return ({ controls }: Pick<ControlPanelsContainerProps, 'controls'>) =>
+    getQueryMode(controls) === mode;
 }
 
 const isAggMode = isQueryMode(QueryMode.aggregate);
@@ -92,6 +95,27 @@ const all_columns: typeof sharedControls.groupby = {
     options: datasource?.columns || [],
     queryMode: getQueryMode(controls),
   }),
+  visibility: isRawMode,
+};
+
+const dnd_all_columns: typeof sharedControls.groupby = {
+  type: 'DndColumnSelect',
+  label: t('Columns'),
+  description: t('Columns to display'),
+  default: [],
+  mapStateToProps({ datasource, controls }, controlState) {
+    const newState: ExtraControlProps = {};
+    if (datasource) {
+      const options = datasource.columns;
+      newState.options = Object.fromEntries(options.map(option => [option.column_name, option]));
+    }
+    newState.queryMode = getQueryMode(controls);
+    newState.externalValidationErrors =
+      isRawMode({ controls }) && ensureIsArray(controlState.value).length === 0
+        ? [t('must have a value')]
+        : [];
+    return newState;
+  },
   visibility: isRawMode,
 };
 
@@ -149,7 +173,9 @@ const config: ControlPanelConfig = {
           },
           {
             name: 'all_columns',
-            config: all_columns,
+            config: isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
+              ? dnd_all_columns
+              : all_columns,
           },
         ],
         [

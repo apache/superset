@@ -16,13 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 import {
   columnChoices,
   ControlPanelConfig,
+  ControlPanelState,
   formatSelectOptions,
   sections,
 } from '@superset-ui/chart-controls';
+import { dndEntity } from '@superset-ui/chart-controls/lib/shared-controls/dndControls';
+
+const allColumns = {
+  type: 'SelectControl',
+  default: null,
+  mapStateToProps: (state: ControlPanelState) => ({
+    choices: columnChoices(state.datasource),
+  }),
+};
+
+const columnsConfig = isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
+  ? dndEntity
+  : allColumns;
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -35,25 +49,19 @@ const config: ControlPanelConfig = {
           {
             name: 'all_columns_x',
             config: {
-              type: 'SelectControl',
+              ...columnsConfig,
               label: t('Longitude'),
-              default: null,
               description: t('Column containing longitude data'),
-              mapStateToProps: state => ({
-                choices: columnChoices(state.datasource),
-              }),
             },
           },
+        ],
+        [
           {
             name: 'all_columns_y',
             config: {
-              type: 'SelectControl',
+              ...columnsConfig,
               label: t('Latitude'),
-              default: null,
               description: t('Column containing latitude data'),
-              mapStateToProps: state => ({
-                choices: columnChoices(state.datasource),
-              }),
             },
           },
         ],
