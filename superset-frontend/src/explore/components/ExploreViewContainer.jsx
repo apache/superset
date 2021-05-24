@@ -590,7 +590,7 @@ function mapStateToProps(state) {
     forcedHeight: explore.forced_height,
     chart,
     timeout: explore.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
-    ownState: dataMask[form_data.slice_id]?.ownState,
+    ownState: dataMask[form_data?.slice_id || 0]?.ownState,
     impressionId,
   };
 }
