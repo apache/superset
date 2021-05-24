@@ -37,18 +37,6 @@ import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
 
 const { Option } = Select;
 
-const debouncedOwnStateFunc = debounce(
-  (dispatch: { (action: DataMaskAction): void }, val: string) => {
-    dispatch({
-      type: 'ownState',
-      ownState: {
-        search: val,
-      },
-    });
-  },
-  SLOW_DEBOUNCE,
-);
-
 type DataMaskAction =
   | { type: 'ownState'; ownState: JsonObject }
   | {
@@ -119,13 +107,33 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   // Correct initial value for Ant Select
 
   // If we are in config modal we always need show empty select for `defaultToFirstItem`
-  const [values, setValues] = useState<SelectValue>([]);
+  const [values, setValues] = useState<SelectValue>(
+    !isDisabled && defaultValue?.length ? defaultValue : [],
+  );
   const [currentSuggestionSearch, setCurrentSuggestionSearch] = useState('');
-  const [dataMask, dispatchDataMask] = useReducer<DataMaskReducer>(reducer, {});
+  const [dataMask, dispatchDataMask] = useReducer<DataMaskReducer>(
+    reducer,
+    searchAllOptions
+      ? {
+          ownState: {
+            coltypeMap,
+          },
+        }
+      : {},
+  );
+
+  const debouncedOwnStateFunc = debounce((val: string) => {
+    dispatchDataMask({
+      type: 'ownState',
+      ownState: {
+        search: val,
+      },
+    });
+  }, SLOW_DEBOUNCE);
 
   const searchWrapper = (val: string) => {
     if (searchAllOptions) {
-      debouncedOwnStateFunc(dispatchDataMask, val);
+      debouncedOwnStateFunc(val);
     }
     setCurrentSuggestionSearch(val);
   };
@@ -143,22 +151,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   };
 
   useEffect(() => {
-    if (!isDisabled && defaultValue?.length) {
-      // initialize to default value
-      setValues(defaultValue);
-    }
-    // initialize column types (these should only be set once)
-    if (searchAllOptions) {
-      dispatchDataMask({
-        type: 'ownState',
-        ownState: {
-          coltypeMap,
-        },
-      });
-    }
-  }, []);
-
-  useEffect(() => {
     const firstItem: SelectValue = data[0]
       ? (groupby.map(col => data[0][col]) as string[])
       : null;
@@ -169,7 +161,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       // initialize to saved value
       setValues(defaultValue);
     }
-  }, [defaultValue]);
+  }, [defaultToFirstItem, defaultValue]);
 
   const handleBlur = () => {
     clearSuggestionSearch();
