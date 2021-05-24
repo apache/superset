@@ -202,7 +202,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const isEditMode = !!databaseId;
   const useSqlAlchemyForm =
     db?.configuration_method === CONFIGURATION_METHOD.SQLALCHEMY_URI;
-
+  const useTabLayout = isEditMode || useSqlAlchemyForm;
   // Database fetch logic
   const {
     state: { loading: dbLoading, resource: dbFetched },
@@ -240,7 +240,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     onHide();
   };
 
-  const onSave = () => {
+  const onSave = async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...update } = db || {};
     if (db?.id) {
@@ -258,14 +258,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       });
     } else if (db) {
       // Create
-      createResource(update as DatabaseObject).then(dbId => {
-        if (dbId) {
-          setHasConnectedDb(true);
-          if (onDatabaseAdd) {
-            onDatabaseAdd();
-          }
+      const dbId = await createResource(update as DatabaseObject);
+      if (dbId) {
+        setHasConnectedDb(true);
+        if (onDatabaseAdd) {
+          onDatabaseAdd();
         }
-      });
+        if (useTabLayout) {
+          // tab layout only has one step
+          // so it should close immediately on save
+          onClose();
+        }
+      }
     }
   };
 
@@ -336,7 +340,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           FALSY_FORM_VALUES.includes(db?.parameters?.[field]),
         ).length);
 
-  return isEditMode || useSqlAlchemyForm ? (
+  return useTabLayout ? (
     <Modal
       css={(theme: SupersetTheme) => [
         antDTabsStyles,
@@ -346,6 +350,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       ]}
       name="database"
       disablePrimaryButton={disableSave}
+      data-test="database-modal"
       height="600px"
       onHandledPrimaryAction={onSave}
       onHide={onClose}
