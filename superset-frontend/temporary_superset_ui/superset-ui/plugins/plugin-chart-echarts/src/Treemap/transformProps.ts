@@ -22,6 +22,7 @@ import {
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
+  NumberFormats,
   NumberFormatter,
 } from '@superset-ui/core';
 import { groupBy, isNumber, transform } from 'lodash';
@@ -35,7 +36,7 @@ import {
   TreemapSeriesCallbackDataParams,
 } from './types';
 import { EchartsProps } from '../types';
-import { formatSeriesName } from '../utils/series';
+import { formatSeriesName, getColtypesMapping } from '../utils/series';
 import { defaultTooltip } from '../defaults';
 
 export function formatLabel({
@@ -69,8 +70,20 @@ export function formatTooltip({
   params: TreemapSeriesCallbackDataParams;
   numberFormatter: NumberFormatter;
 }): string {
-  const { value, treePathInfo } = params;
+  const { value, treePathInfo = [] } = params;
   const formattedValue = numberFormatter(value as number);
+  const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
+
+  let formattedPercent = '';
+  // the last item is current node, here we should find the parent node
+  const currentNode = treePathInfo[treePathInfo.length - 1];
+  const parentNode = treePathInfo[treePathInfo.length - 2];
+  if (parentNode) {
+    const percent: number = parentNode.value
+      ? (currentNode.value as number) / (parentNode.value as number)
+      : 0;
+    formattedPercent = percentFormatter(percent);
+  }
 
   const treePath = (treePathInfo ?? [])
     .map(pathInfo => pathInfo?.name || '')
@@ -79,18 +92,23 @@ export function formatTooltip({
   const metricLabel = treePath.shift() || '';
 
   // groupby1/groupby2/...
-  // metric: value
-  return [`<div>${treePath.join(' ▸ ')}</div>`, `${metricLabel}: ${formattedValue}`].join('');
+  // metric: value (percent of parent)
+  return [
+    `<div>${treePath.join(' ▸ ')}</div>`,
+    `${metricLabel}: ${formattedValue}`,
+    formattedPercent ? ` (${formattedPercent})` : '',
+  ].join('');
 }
 
 export default function transformProps(chartProps: EchartsTreemapChartProps): EchartsProps {
   const { formData, height, queriesData, width } = chartProps;
   const { data = [] } = queriesData[0];
+  const coltypeMapping = getColtypesMapping(queriesData[0]);
 
   const {
     colorScheme,
     groupby = [],
-    metrics = [],
+    metric = '',
     labelType,
     labelPosition,
     numberFormat,
@@ -128,6 +146,7 @@ export default function transformProps(chartProps: EchartsTreemapChartProps): Ec
             const name = formatSeriesName(key, {
               numberFormatter,
               timeFormatter: getTimeFormatter(dateFormat),
+              ...(coltypeMapping[currGroupby] && { coltype: coltypeMapping[currGroupby] }),
             });
             result.push({
               name,
@@ -144,6 +163,7 @@ export default function transformProps(chartProps: EchartsTreemapChartProps): Ec
         const name = formatSeriesName(key, {
           numberFormatter,
           timeFormatter: getTimeFormatter(dateFormat),
+          ...(coltypeMapping[currGroupby] && { coltype: coltypeMapping[currGroupby] }),
         });
         const children = transformer(value, restGroupby, metric, depth + 1);
         result.push({
@@ -160,27 +180,31 @@ export default function transformProps(chartProps: EchartsTreemapChartProps): Ec
       ...child,
       colorSaturation: [0.4, 0.7],
       itemStyle: {
-        borderColor: showUpperLabels ? colorFn(`${child.name}_${depth - 1}`) : '#fff',
-        color: colorFn(`${child.name}_${depth}_${showUpperLabels}`),
+        borderColor: '#fff',
+        color: colorFn(`${child.name}_${depth}`),
         borderWidth: 2,
         gapWidth: 2,
       },
     }));
   };
 
-  const metricsLabel = metrics.map(metric => getMetricLabel(metric));
-
+  const metricLabel = getMetricLabel(metric);
   const initialDepth = 1;
-  const transformedData: TreemapSeriesNodeItemOption[] = metricsLabel.map(metricLabel => ({
-    name: metricLabel,
-    colorSaturation: [0.4, 0.7],
-    itemStyle: {
-      borderColor: showUpperLabels ? colorFn(`${metricLabel}_${initialDepth}`) : '#fff',
-      borderWidth: 2,
-      gapWidth: 2,
+  const transformedData: TreemapSeriesNodeItemOption[] = [
+    {
+      name: metricLabel,
+      colorSaturation: [0.4, 0.7],
+      itemStyle: {
+        borderColor: '#fff',
+        borderWidth: 2,
+        gapWidth: 2,
+      },
+      upperLabel: {
+        show: false,
+      },
+      children: transformer(data, groupby, metricLabel, initialDepth),
     },
-    children: transformer(data, groupby, metricLabel, initialDepth),
-  }));
+  ];
 
   // set a default color when metric values are 0 over all.
   const levels = [
