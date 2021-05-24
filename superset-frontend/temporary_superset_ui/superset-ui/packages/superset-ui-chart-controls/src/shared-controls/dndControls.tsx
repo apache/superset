@@ -124,3 +124,28 @@ export const dnd_sort_by: SharedControlConfig<'DndMetricSelect'> = {
     datasourceType: datasource?.type,
   }),
 };
+
+export const dnd_size: SharedControlConfig<'DndMetricSelect'> = {
+  ...dnd_adhoc_metric,
+  label: t('Bubble Size'),
+  description: t('Metric used to calculate bubble size'),
+};
+
+export const dnd_x: SharedControlConfig<'DndMetricSelect'> = {
+  ...dnd_adhoc_metric,
+  label: t('X Axis'),
+  description: t('Metric assigned to the [X] axis'),
+};
+
+export const dnd_y: SharedControlConfig<'DndMetricSelect'> = {
+  ...dnd_adhoc_metric,
+  label: t('Y Axis'),
+  description: t('Metric assigned to the [Y] axis'),
+};
+
+export const dnd_secondary_metric: SharedControlConfig<'DndMetricSelect'> = {
+  ...dnd_adhoc_metric,
+  label: t('Color Metric'),
+  validators: [],
+  description: t('A metric to use for color'),
+};

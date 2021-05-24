@@ -19,7 +19,7 @@
 import { DatasourceMeta } from '../types';
 
 /**
- * Convert Dataource columns to column choices
+ * Convert Datasource columns to column choices
  */
 export default function columnChoices(datasource?: DatasourceMeta | null): [string, string][] {
   return (
