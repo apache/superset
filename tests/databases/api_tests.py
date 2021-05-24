@@ -1443,6 +1443,7 @@ class TestDatabaseApi(SupersetTestCase):
                         },
                         "type": "object",
                     },
+                    "required": ["credentials_info"],
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
                 },
@@ -1464,7 +1465,6 @@ class TestDatabaseApi(SupersetTestCase):
 
         rv = self.client.get(uri)
         response = json.loads(rv.data.decode("utf-8"))
-        print(response)
         assert rv.status_code == 200
         assert response == {
             "databases": [
