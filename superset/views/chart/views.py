@@ -68,7 +68,10 @@ class SliceModelView(
             for d in ConnectorRegistry.get_all_datasources(db.session)
         ]
         payload = {
-            "datasources": sorted(datasources, key=lambda d: d["label"]),
+            "datasources": sorted(
+                datasources,
+                key=lambda d: d["label"].lower() if isinstance(d["label"], str) else "",
+            ),
             "common": common_bootstrap_payload(),
             "user": bootstrap_user_data(g.user),
         }
