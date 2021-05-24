@@ -24,7 +24,7 @@ describe('Treemap tranformProps', () => {
     colorScheme: 'bnbColors',
     datasource: '3__table',
     granularity_sqla: 'ds',
-    metrics: ['sum__num'],
+    metric: 'sum__num',
     groupby: ['foo', 'bar'],
   };
   const chartProps = new ChartProps({
