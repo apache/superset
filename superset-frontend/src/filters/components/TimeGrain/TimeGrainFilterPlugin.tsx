@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, ExtraFormData, t, tn } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  ExtraFormData,
+  t,
+  TimeGranularity,
+  tn,
+} from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
 import { Styles, StyledSelect } from '../common';
@@ -27,7 +33,16 @@ const { Option } = Select;
 export default function PluginFilterTimegrain(
   props: PluginFilterTimeGrainProps,
 ) {
-  const { data, formData, height, width, setDataMask, filterState } = props;
+  const {
+    data,
+    formData,
+    height,
+    width,
+    setDataMask,
+    setFocusedFilter,
+    unsetFocusedFilter,
+    filterState,
+  } = props;
   const { defaultValue, inputRef } = formData;
 
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
@@ -38,7 +53,7 @@ export default function PluginFilterTimegrain(
 
     const extraFormData: ExtraFormData = {};
     if (timeGrain) {
-      extraFormData.time_grain_sqla = timeGrain;
+      extraFormData.time_grain_sqla = timeGrain as TimeGranularity;
     }
     setValue(resultValue);
     setDataMask({
@@ -71,6 +86,8 @@ export default function PluginFilterTimegrain(
         placeholder={placeholderText}
         // @ts-ignore
         onChange={handleChange}
+        onBlur={unsetFocusedFilter}
+        onFocus={setFocusedFilter}
         ref={inputRef}
       >
         {(data || []).map((row: { name: string; duration: string }) => {

@@ -27,6 +27,7 @@ import {
   getChartControlPanelRegistry,
   QueryFormData,
   DatasourceType,
+  css,
 } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,
@@ -314,7 +315,24 @@ export class ControlPanelsContainer extends React.Component<
 
     return (
       <Collapse.Panel
-        className="control-panel-section"
+        data-test="collapsible-control-panel"
+        css={theme => css`
+          margin-bottom: 0;
+          box-shadow: none;
+
+          &:last-child {
+            padding-bottom: ${theme.gridUnit * 10}px;
+          }
+
+          .panel-body {
+            margin-left: ${theme.gridUnit * 4}px;
+            padding-bottom: 0px;
+          }
+
+          span.label {
+            display: inline-block;
+          }
+        `}
         header={PanelHeader()}
         key={sectionId}
       >

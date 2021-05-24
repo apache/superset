@@ -19,11 +19,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Row, Col, Input } from 'src/common/components';
+import Button from 'src/components/Button';
 import Popover from 'src/components/Popover';
 import Select from 'src/components/Select';
 import { t, styled } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-
 import BoundsControl from '../BoundsControl';
 import CheckboxControl from '../CheckboxControl';
 
@@ -76,6 +76,8 @@ const colTypeOptions = [
 
 const StyledRow = styled(Row)`
   margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+  display: flex;
+  align-items: center;
 `;
 
 const StyledCol = styled(Col)`
@@ -88,10 +90,27 @@ const StyledTooltip = styled(InfoTooltipWithTrigger)`
   color: ${({ theme }) => theme.colors.grayscale.light1};
 `;
 
+const ButtonBar = styled.div`
+  margin-top: ${({ theme }) => theme.gridUnit * 5}px;
+  display: flex;
+  justify-content: center;
+`;
+
 export default class TimeSeriesColumnControl extends React.Component {
   constructor(props) {
     super(props);
-    const state = {
+
+    this.onSave = this.onSave.bind(this);
+    this.onClose = this.onClose.bind(this);
+    this.resetState = this.resetState.bind(this);
+    this.initialState = this.initialState.bind(this);
+    this.onPopoverVisibleChange = this.onPopoverVisibleChange.bind(this);
+
+    this.state = this.initialState();
+  }
+
+  initialState() {
+    return {
       label: this.props.label,
       tooltip: this.props.tooltip,
       colType: this.props.colType,
@@ -105,57 +124,73 @@ export default class TimeSeriesColumnControl extends React.Component {
       bounds: this.props.bounds,
       d3format: this.props.d3format,
       dateFormat: this.props.dateFormat,
+      popoverVisible: false,
     };
-    delete state.onChange;
-    this.state = state;
-    this.onChange = this.onChange.bind(this);
   }
 
-  onChange() {
+  resetState() {
+    const initialState = this.initialState();
+    this.setState({ ...initialState });
+  }
+
+  onSave() {
     this.props.onChange(this.state);
+    this.setState({ popoverVisible: false });
+  }
+
+  onClose() {
+    this.resetState();
   }
 
   onSelectChange(attr, opt) {
-    this.setState({ [attr]: opt.value }, this.onChange);
+    this.setState({ [attr]: opt.value });
   }
 
   onTextInputChange(attr, event) {
-    this.setState({ [attr]: event.target.value }, this.onChange);
+    this.setState({ [attr]: event.target.value });
   }
 
   onCheckboxChange(attr, value) {
-    this.setState({ [attr]: value }, this.onChange);
+    this.setState({ [attr]: value });
   }
 
   onBoundsChange(bounds) {
-    this.setState({ bounds }, this.onChange);
+    this.setState({ bounds });
+  }
+
+  onPopoverVisibleChange(popoverVisible) {
+    if (popoverVisible) {
+      this.setState({ popoverVisible });
+    } else {
+      this.resetState();
+    }
   }
 
   onYAxisBoundsChange(yAxisBounds) {
-    this.setState({ yAxisBounds }, this.onChange);
+    this.setState({ yAxisBounds });
   }
 
   textSummary() {
-    return `${this.state.label}`;
+    return `${this.props.label}`;
   }
 
   formRow(label, tooltip, ttLabel, control) {
     return (
       <StyledRow>
-        <StyledCol xs={24} md={10}>
+        <StyledCol xs={24} md={11}>
           {label}
           <StyledTooltip placement="top" tooltip={tooltip} label={ttLabel} />
         </StyledCol>
-        <StyledCol xs={24} md={14}>
+        <Col xs={24} md={13}>
           {control}
-        </StyledCol>
+        </Col>
       </StyledRow>
     );
   }
 
   renderPopover() {
     return (
-      <div id="ts-col-popo" style={{ width: 300 }}>
+      <div id="ts-col-popo" style={{ width: 320 }}>
         {this.formRow(
           'Label',
           'The column header label',
@@ -297,6 +332,19 @@ export default class TimeSeriesColumnControl extends React.Component {
               placeholder="Date format string"
             />,
           )}
+        <ButtonBar>
+          <Button buttonSize="small" onClick={this.onClose} cta>
+            {t('Close')}
+          </Button>
+          <Button
+            buttonStyle="primary"
+            buttonSize="small"
+            onClick={this.onSave}
+            cta
+          >
+            {t('Save')}
+          </Button>
+        </ButtonBar>
       </div>
     );
   }
@@ -310,6 +358,8 @@ export default class TimeSeriesColumnControl extends React.Component {
           placement="right"
           content={this.renderPopover()}
           title="Column Configuration"
+          visible={this.state.popoverVisible}
+          onVisibleChange={this.onPopoverVisibleChange}
         >
           <InfoTooltipWithTrigger
             icon="edit"

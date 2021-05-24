@@ -18,9 +18,8 @@
  */
 /* eslint-env browser */
 import cx from 'classnames';
-import React, { FC, SyntheticEvent, useEffect, useState } from 'react';
+import React, { FC, useEffect, useState } from 'react';
 import { Sticky, StickyContainer } from 'react-sticky';
-import { TabContainer } from 'react-bootstrap';
 import { JsonObject, styled } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
@@ -129,7 +128,9 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
 
   const handleChangeTab = ({
     pathToTabIndex,
-  }: SyntheticEvent<TabContainer, Event> & { pathToTabIndex: string[] }) => {
+  }: {
+    pathToTabIndex: string[];
+  }) => {
     dispatch(setDirectPathToChild(pathToTabIndex));
   };
 
@@ -181,7 +182,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             depth={DASHBOARD_ROOT_DEPTH}
             index={0}
             orientation="column"
-            onDrop={() => dispatch(handleComponentDrop)}
+            onDrop={dropResult => dispatch(handleComponentDrop(dropResult))}
             editMode={editMode}
             // you cannot drop on/displace tabs if they already exist
             disableDragdrop={!!topLevelTabs}

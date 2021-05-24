@@ -611,7 +611,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     async_channel_id = async_query_manager.parse_jwt_from_request(
                         request
                     )["channel"]
-                    job_metadata = async_query_manager.init_job(async_channel_id)
+                    job_metadata = async_query_manager.init_job(
+                        async_channel_id, g.user.get_id()
+                    )
                     load_explore_json_into_cache.delay(
                         job_metadata, form_data, response_type, force
                     )
@@ -1747,6 +1749,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self, class_name: str, obj_id: int, action: str
     ) -> FlaskResponse:
         """Toggle favorite stars on Slices and Dashboard"""
+        if not g.user.get_id():
+            return json_error_response("ERROR: Favstar toggling denied", status=403)
         session = db.session()
         count = 0
         favs = (
@@ -2903,7 +2907,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             except json.JSONDecodeError:
                 pass
 
-        payload["user"] = bootstrap_user_data(g.user)
+        payload["user"] = bootstrap_user_data(g.user, include_perms=True)
         bootstrap_data = json.dumps(
             payload, default=utils.pessimistic_json_iso_dttm_ser
         )

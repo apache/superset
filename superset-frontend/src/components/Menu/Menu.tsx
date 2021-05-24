@@ -17,12 +17,13 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
-import { styled } from '@superset-ui/core';
+import { styled, css } from '@superset-ui/core';
 import { debounce } from 'lodash';
+import { Global } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MainNav as DropdownMenu, MenuMode } from 'src/common/components';
 import { Link } from 'react-router-dom';
-import { Row, Col } from 'antd';
+import { Row, Col, Grid } from 'antd';
 import Icon from 'src/components/Icon';
 import RightMenu from './MenuRight';
 import { Languages } from './LanguagePicker';
@@ -98,10 +99,14 @@ const StyledHeader = styled.header`
     height: 100%;
     line-height: inherit;
   }
-  /*.ant-menu > .ant-menu-item > a {
+  .ant-menu > .ant-menu-item > a {
     padding: ${({ theme }) => theme.gridUnit * 4}px;
-  }*/
+  }
   @media (max-width: 767px) {
+    .ant-menu-item {
+      padding: 0 ${({ theme }) => theme.gridUnit * 6}px 0
+        ${({ theme }) => theme.gridUnit * 3}px !important;
+    }
     .ant-menu > .ant-menu-item > a {
       padding: 0px;
     }
@@ -132,11 +137,14 @@ const StyledHeader = styled.header`
 
 const { SubMenu } = DropdownMenu;
 
+const { useBreakpoint } = Grid;
+
 export function Menu({
   data: { menu, brand, navbar_right: navbarRight, settings },
   isFrontendRoute = () => false,
 }: MenuProps) {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
+  const screens = useBreakpoint();
 
   useEffect(() => {
     function handleResize() {
@@ -200,8 +208,18 @@ export function Menu({
   };
   return (
     <StyledHeader className="top" id="main-menu" role="navigation">
+      <Global
+        styles={css`
+          .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light.ant-menu-submenu-placement-bottomLeft {
+            border-radius: 0px;
+          }
+          .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light {
+            border-radius: 0px;
+          }
+        `}
+      />
       <Row>
-        <Col lg={19} md={19} sm={24} xs={24}>
+        <Col md={16} xs={24}>
           <a className="navbar-brand" href={brand.path}>
             <img width={brand.width} src={brand.icon} alt={brand.alt} />
           </a>
@@ -210,7 +228,7 @@ export function Menu({
             data-test="navbar-top"
             className="main-nav"
           >
-            {menu.map((item, index) => {
+            {menu.map(item => {
               const props = {
                 ...item,
                 isFrontendRoute: isFrontendRoute(item.url),
@@ -230,8 +248,9 @@ export function Menu({
             })}
           </DropdownMenu>
         </Col>
-        <Col lg={5} md={5} sm={24} xs={24}>
+        <Col md={8} xs={24}>
           <RightMenu
+            align={screens.md ? 'flex-end' : 'flex-start'}
             settings={settings}
             navbarRight={navbarRight}
             isFrontendRoute={isFrontendRoute}

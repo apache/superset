@@ -29,6 +29,8 @@ import nativeFilters from 'src/dashboard/reducers/nativeFilters';
 import datasources from 'src/dashboard/reducers/datasources';
 import sliceEntities from 'src/dashboard/reducers/sliceEntities';
 import dashboardLayout from 'src/dashboard/reducers/undoableDashboardLayout';
+import logger from 'src/middleware/loggerMiddleware';
+import shortid from 'shortid';
 
 // Some reducers don't do anything, and redux is just used to reference the initial "state".
 // This may change later, as the client application takes on more responsibilities.
@@ -57,12 +59,12 @@ export const rootReducer = combineReducers({
   messageToasts: messageToastReducer,
   common: noopReducer(bootstrap.common || {}),
   user: noopReducer(bootstrap.user || {}),
-  impressionId: noopReducer(''),
+  impressionId: noopReducer(shortid.generate()),
   ...dashboardReducers,
 });
 
 export const store = createStore(
   rootReducer,
   {},
-  compose(applyMiddleware(thunk), initEnhancer(false)),
+  compose(applyMiddleware(thunk, logger), initEnhancer(false)),
 );

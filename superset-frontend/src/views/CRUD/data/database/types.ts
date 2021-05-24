@@ -30,6 +30,8 @@ export type DatabaseObject = {
   created_by?: null | DatabaseUser;
   changed_on_delta_humanized?: string;
   changed_on?: string;
+  parameters?: { database_name?: string; engine?: string };
+  configuration_method: CONFIGURATION_METHOD;
 
   // Performance
   cache_timeout?: string;
@@ -52,3 +54,51 @@ export type DatabaseObject = {
   allow_csv_upload?: boolean;
   extra?: string;
 };
+
+export type DatabaseForm = {
+  engine: string;
+  name: string;
+  parameters: {
+    properties: {
+      database: {
+        description: string;
+        type: string;
+      };
+      host: {
+        description: string;
+        type: string;
+      };
+      password: {
+        description: string;
+        nullable: boolean;
+        type: string;
+      };
+      port: {
+        description: string;
+        format: string;
+        type: string;
+      };
+      query: {
+        additionalProperties: {};
+        description: string;
+        type: string;
+      };
+      username: {
+        description: string;
+        nullable: boolean;
+        type: string;
+      };
+    };
+    required: string[];
+    type: string;
+  };
+  preferred: boolean;
+  sqlalchemy_uri_placeholder: string;
+};
+
+// the values should align with the database
+// model enum in superset/superset/models/core.py
+export enum CONFIGURATION_METHOD {
+  SQLALCHEMY_URI = 'sqlalchemy_form',
+  DYNAMIC_FORM = 'dynamic_form',
+}

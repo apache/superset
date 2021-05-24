@@ -35,11 +35,11 @@ from superset.models.reports import (
     ReportRecipientType,
     ReportState,
 )
-import tests.test_app
+from superset.utils.core import get_example_database
 from tests.base_tests import SupersetTestCase
+from tests.conftest import with_feature_flags
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.reports.utils import insert_report_schedule
-from superset.utils.core import get_example_database
 
 
 REPORTS_COUNT = 10
@@ -139,6 +139,23 @@ class TestReportSchedulesApi(SupersetTestCase):
             for user in users:
                 db.session.delete(user)
             db.session.commit()
+
+    @with_feature_flags(ALERT_REPORTS=False)
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_get_report_schedule_disabled(self):
+        """
+        ReportSchedule Api: Test get report schedule 404s when feature is disabled
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name1")
+            .first()
+        )
+
+        self.login(username="admin")
+        uri = f"api/v1/report/{report_schedule.id}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 404
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_get_report_schedule(self):

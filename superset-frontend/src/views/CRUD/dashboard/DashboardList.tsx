@@ -32,6 +32,7 @@ import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import ListView, {
   ListViewProps,
+  Filter,
   Filters,
   FilterOperator,
 } from 'src/components/ListView';
@@ -189,23 +190,27 @@ function DashboardList(props: DashboardListProps) {
 
   const columns = useMemo(
     () => [
-      {
-        Cell: ({
-          row: {
-            original: { id },
-          },
-        }: any) => (
-          <FaveStar
-            itemId={id}
-            saveFaveStar={saveFavoriteStatus}
-            isStarred={favoriteStatus[id]}
-          />
-        ),
-        Header: '',
-        id: 'id',
-        disableSortBy: true,
-        size: 'xs',
-      },
+      ...(props.user.userId
+        ? [
+            {
+              Cell: ({
+                row: {
+                  original: { id },
+                },
+              }: any) => (
+                <FaveStar
+                  itemId={id}
+                  saveFaveStar={saveFavoriteStatus}
+                  isStarred={favoriteStatus[id]}
+                />
+              ),
+              Header: '',
+              id: 'id',
+              disableSortBy: true,
+              size: 'xs',
+            },
+          ]
+        : []),
       {
         Cell: ({
           row: {
@@ -357,8 +362,26 @@ function DashboardList(props: DashboardListProps) {
         disableSortBy: true,
       },
     ],
-    [canEdit, canDelete, canExport, favoriteStatus],
+    [
+      canEdit,
+      canDelete,
+      canExport,
+      ...(props.user.userId ? [favoriteStatus] : []),
+    ],
   );
+
+  const favoritesFilter: Filter = {
+    Header: t('Favorite'),
+    id: 'id',
+    urlDisplay: 'favorite',
+    input: 'select',
+    operator: FilterOperator.dashboardIsFav,
+    unfilteredLabel: t('Any'),
+    selects: [
+      { label: t('Yes'), value: true },
+      { label: t('No'), value: false },
+    ],
+  };
 
   const filters: Filters = [
     {
@@ -414,18 +437,7 @@ function DashboardList(props: DashboardListProps) {
         { label: t('Draft'), value: false },
       ],
     },
-    {
-      Header: t('Favorite'),
-      id: 'id',
-      urlDisplay: 'favorite',
-      input: 'select',
-      operator: FilterOperator.dashboardIsFav,
-      unfilteredLabel: t('Any'),
-      selects: [
-        { label: t('Yes'), value: true },
-        { label: t('No'), value: false },
-      ],
-    },
+    ...(props.user.userId ? [favoritesFilter] : []),
     {
       Header: t('Search'),
       id: 'dashboard_title',
