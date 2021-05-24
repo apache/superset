@@ -84,6 +84,9 @@ function translateOperator(operator) {
   if (operator === OPERATORS.LIKE) {
     return 'LIKE';
   }
+  if (operator === OPERATORS.ILIKE) {
+    return 'LIKE (case insensitive)';
+  }
   if (operator === OPERATORS['LATEST PARTITION']) {
     return 'use latest_partition template';
   }

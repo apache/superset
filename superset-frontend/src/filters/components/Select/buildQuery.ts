@@ -37,7 +37,7 @@ const buildQuery: BuildQuery<PluginFilterSelectQueryFormData> = (
       if (search && coltypeMap[column] === GenericDataType.STRING) {
         return {
           col: column,
-          op: 'LIKE',
+          op: 'ILIKE',
           val: `%${search}%`,
         };
       }
