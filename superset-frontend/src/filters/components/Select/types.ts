@@ -29,16 +29,16 @@ import {
 import { RefObject } from 'react';
 import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
 
-export const FIRST_VALUE = '__FIRST_VALUE__';
 export type SelectValue = (number | string)[] | null;
 
 interface PluginFilterSelectCustomizeProps {
-  defaultValue?: SelectValue | typeof FIRST_VALUE;
+  defaultValue?: SelectValue;
   enableEmptyFilter: boolean;
   inverseSelection: boolean;
   multiSelect: boolean;
   defaultToFirstItem: boolean;
   inputRef?: RefObject<HTMLInputElement>;
+  searchAllOptions: boolean;
   sortAscending: boolean;
   sortMetric?: string;
 }
@@ -58,6 +58,7 @@ export type PluginFilterSelectProps = PluginFilterStylesProps & {
   appSection: AppSection;
   formData: PluginFilterSelectQueryFormData;
   filterState: FilterState;
+  isRefreshing: boolean;
 } & PluginFilterHooks;
 
 export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {
@@ -66,5 +67,6 @@ export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {
   inverseSelection: false,
   defaultToFirstItem: false,
   multiSelect: true,
+  searchAllOptions: false,
   sortAscending: true,
 };

@@ -18,31 +18,76 @@
  */
 import {
   AppSection,
+  DataMask,
   ensureIsArray,
+  ExtraFormData,
   GenericDataType,
+  JsonObject,
   smartDateDetailedFormatter,
   t,
   tn,
 } from '@superset-ui/core';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useReducer, useState } from 'react';
 import { Select } from 'src/common/components';
-import { FIRST_VALUE, PluginFilterSelectProps, SelectValue } from './types';
+import { debounce } from 'lodash';
+import { SLOW_DEBOUNCE } from 'src/constants';
+import { PluginFilterSelectProps, SelectValue } from './types';
 import { StyledSelect, Styles } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
 
 const { Option } = Select;
 
+type DataMaskAction =
+  | { type: 'ownState'; ownState: JsonObject }
+  | {
+      type: 'filterState';
+      extraFormData: ExtraFormData;
+      filterState: { value: SelectValue };
+    };
+
+function reducer(state: DataMask, action: DataMaskAction): DataMask {
+  switch (action.type) {
+    case 'ownState':
+      return {
+        ...state,
+        ownState: {
+          ...(state.ownState || {}),
+          ...action.ownState,
+        },
+      };
+    case 'filterState':
+      return {
+        ...state,
+        extraFormData: action.extraFormData,
+        filterState: {
+          ...(state.filterState || {}),
+          ...action.filterState,
+        },
+      };
+    default:
+      return {
+        ...state,
+      };
+  }
+}
+
+type DataMaskReducer = (
+  prevState: DataMask,
+  action: DataMaskAction,
+) => DataMask;
+
 export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const {
     coltypeMap,
     data,
+    filterState,
     formData,
     height,
+    isRefreshing,
     width,
     setDataMask,
     setFocusedFilter,
     unsetFocusedFilter,
-    filterState,
     appSection,
   } = props;
   const {
@@ -53,32 +98,74 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     inverseSelection,
     inputRef,
     defaultToFirstItem,
+    searchAllOptions,
   } = formData;
 
-  const forceFirstValue =
+  const isDisabled =
     appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem;
 
   const groupby = ensureIsArray<string>(formData.groupby);
   // Correct initial value for Ant Select
-  const initSelectValue: SelectValue =
-    // `defaultValue` can be `FIRST_VALUE` if `defaultToFirstItem` is checked, so need convert it to correct value for Select
-    defaultValue === FIRST_VALUE ? [] : defaultValue ?? [];
-
-  const firstItem: SelectValue = data[0]
-    ? (groupby.map(col => data[0][col]) as string[]) ?? initSelectValue
-    : initSelectValue;
 
   // If we are in config modal we always need show empty select for `defaultToFirstItem`
   const [values, setValues] = useState<SelectValue>(
-    defaultToFirstItem && appSection !== AppSection.FILTER_CONFIG_MODAL
-      ? firstItem
-      : initSelectValue,
+    !isDisabled && defaultValue?.length ? defaultValue : [],
   );
   const [currentSuggestionSearch, setCurrentSuggestionSearch] = useState('');
+  const [dataMask, dispatchDataMask] = useReducer<DataMaskReducer>(
+    reducer,
+    searchAllOptions
+      ? {
+          ownState: {
+            coltypeMap,
+          },
+        }
+      : {},
+  );
+
+  const debouncedOwnStateFunc = useCallback(
+    debounce((val: string) => {
+      dispatchDataMask({
+        type: 'ownState',
+        ownState: {
+          search: val,
+        },
+      });
+    }, SLOW_DEBOUNCE),
+    [],
+  );
+
+  const searchWrapper = (val: string) => {
+    if (searchAllOptions) {
+      debouncedOwnStateFunc(val);
+    }
+    setCurrentSuggestionSearch(val);
+  };
 
   const clearSuggestionSearch = () => {
     setCurrentSuggestionSearch('');
+    if (searchAllOptions) {
+      dispatchDataMask({
+        type: 'ownState',
+        ownState: {
+          search: null,
+        },
+      });
+    }
   };
+
+  useEffect(() => {
+    const firstItem: SelectValue = data[0]
+      ? (groupby.map(col => data[0][col]) as string[])
+      : null;
+    if (!isDisabled && defaultToFirstItem && firstItem) {
+      // initialize to first value if set to default to first item
+      setValues(firstItem);
+    } else if (!isDisabled && defaultValue?.length) {
+      // initialize to saved value
+      setValues(defaultValue);
+    }
+  }, [defaultToFirstItem, defaultValue]);
 
   const handleBlur = () => {
     clearSuggestionSearch();
@@ -92,27 +179,24 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   });
 
   const handleChange = (value?: SelectValue | number | string) => {
-    let selectValue: (number | string)[] = ensureIsArray<number | string>(
-      value,
-    );
-    let stateValue: SelectValue | typeof FIRST_VALUE = selectValue.length
-      ? selectValue
-      : null;
+    setValues(ensureIsArray(value));
+  };
 
-    if (value === FIRST_VALUE) {
-      selectValue = forceFirstValue ? [] : firstItem;
-      stateValue = FIRST_VALUE;
+  useEffect(() => {
+    if (isDisabled) {
+      setValues([]);
     }
+  }, [isDisabled]);
 
-    setValues(selectValue);
-
+  useEffect(() => {
     const emptyFilter =
-      enableEmptyFilter && !inverseSelection && selectValue?.length === 0;
+      enableEmptyFilter && !inverseSelection && values?.length === 0;
 
-    setDataMask({
+    dispatchDataMask({
+      type: 'filterState',
       extraFormData: getSelectExtraFormData(
         col,
-        selectValue,
+        values,
         emptyFilter,
         inverseSelection,
       ),
@@ -120,33 +204,21 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         // We need to save in state `FIRST_VALUE` as some const and not as REAL value,
         // because when FiltersBar check if all filters initialized it compares `defaultValue` with this value
         // and because REAL value can be unpredictable for users that have different data for same dashboard we use `FIRST_VALUE`
-        value: stateValue,
+        value: values,
       },
     });
-  };
+  }, [col, enableEmptyFilter, inverseSelection, JSON.stringify(values)]);
 
   useEffect(() => {
-    // For currentValue we need set always `FIRST_VALUE` only if we in config modal for `defaultToFirstItem` mode
-    handleChange(forceFirstValue ? FIRST_VALUE : filterState.value ?? []);
-  }, [
-    JSON.stringify(filterState.value),
-    defaultToFirstItem,
-    multiSelect,
-    enableEmptyFilter,
-    inverseSelection,
-  ]);
+    // handle changes coming from application, e.g. "Clear all" button
+    if (JSON.stringify(values) !== JSON.stringify(filterState.value)) {
+      handleChange(filterState.value);
+    }
+  }, [JSON.stringify(filterState.value)]);
 
   useEffect(() => {
-    // If we have `defaultToFirstItem` mode it means that default value always `FIRST_VALUE`
-    handleChange(defaultToFirstItem ? FIRST_VALUE : defaultValue);
-  }, [
-    JSON.stringify(defaultValue),
-    JSON.stringify(firstItem),
-    defaultToFirstItem,
-    multiSelect,
-    enableEmptyFilter,
-    inverseSelection,
-  ]);
+    setDataMask(dataMask);
+  }, [JSON.stringify(dataMask)]);
 
   const placeholderText =
     data.length === 0
@@ -158,17 +230,18 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         allowClear={!enableEmptyFilter}
         // @ts-ignore
         value={values}
-        disabled={forceFirstValue}
+        disabled={isDisabled}
         showSearch={showSearch}
         mode={multiSelect ? 'multiple' : undefined}
         placeholder={placeholderText}
-        onSearch={setCurrentSuggestionSearch}
+        onSearch={searchWrapper}
         onSelect={clearSuggestionSearch}
         onBlur={handleBlur}
         onFocus={setFocusedFilter}
         // @ts-ignore
         onChange={handleChange}
         ref={inputRef}
+        loading={isRefreshing}
       >
         {data.map(row => {
           const [value] = groupby.map(col => row[col]);
