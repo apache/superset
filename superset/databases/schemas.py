@@ -227,6 +227,7 @@ class DatabaseParametersSchemaMixin:
     When using this mixin make sure that `sqlalchemy_uri` is not required.
     """
 
+    engine = fields.String(allow_none=True, description="SQLAlchemy engine to use")
     parameters = fields.Dict(
         keys=fields.String(),
         values=fields.Raw(),
@@ -245,15 +246,14 @@ class DatabaseParametersSchemaMixin:
         parameters (eg, username, password, host, etc.), instead of requiring
         the constructed SQLAlchemy URI to be passed.
         """
-        parameters = data.pop("parameters", None)
-        serialized_encrypted_extra = data.get("encrypted_extra", "{}")
-        try:
-            encrypted_extra = json.loads(serialized_encrypted_extra)
-        except json.decoder.JSONDecodeError:
-            encrypted_extra = {}
+        parameters = data.pop("parameters", {})
+
+        # TODO (betodealmeida): remove second expression after making sure
+        # frontend is not passing engine inside parameters
+        engine = data.pop("engine", None) or parameters.pop("engine", None)
 
         if parameters:
-            if "engine" not in parameters:
+            if not engine:
                 raise ValidationError(
                     [
                         _(
@@ -262,8 +262,6 @@ class DatabaseParametersSchemaMixin:
                         )
                     ]
                 )
-            engine = parameters["engine"]
-
             engine_specs = get_engine_specs()
             if engine not in engine_specs:
                 raise ValidationError(
@@ -272,6 +270,12 @@ class DatabaseParametersSchemaMixin:
             engine_spec = engine_specs[engine]
 
             if hasattr(engine_spec, "build_sqlalchemy_uri"):
+                serialized_encrypted_extra = data.get("encrypted_extra", "{}")
+                try:
+                    encrypted_extra = json.loads(serialized_encrypted_extra)
+                except json.decoder.JSONDecodeError:
+                    encrypted_extra = {}
+
                 data[
                     "sqlalchemy_uri"
                 ] = engine_spec.build_sqlalchemy_uri(  # type: ignore
