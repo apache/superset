@@ -16,14 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, t, validateNonEmpty } from '@superset-ui/core';
 import {
   columnChoices,
   ControlPanelConfig,
+  ControlPanelState,
   formatSelectOptions,
   formatSelectOptionsForRange,
   sections,
 } from '@superset-ui/chart-controls';
+import { dndEntity } from '@superset-ui/chart-controls/lib/shared-controls/dndControls';
 
 const sortAxisChoices = [
   ['alpha_asc', t('Axis ascending')],
@@ -31,6 +33,25 @@ const sortAxisChoices = [
   ['value_asc', t('Metric ascending')],
   ['value_desc', t('Metric descending')],
 ];
+
+const allColumns = {
+  type: 'SelectControl',
+  default: null,
+  description: t('Columns to display'),
+  mapStateToProps: (state: ControlPanelState) => ({
+    choices: columnChoices(state.datasource),
+  }),
+  validators: [validateNonEmpty],
+};
+
+const dndAllColumns = {
+  ...dndEntity,
+  description: t('Columns to display'),
+};
+
+const columnsConfig = isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
+  ? dndAllColumns
+  : allColumns;
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -43,27 +64,17 @@ const config: ControlPanelConfig = {
           {
             name: 'all_columns_x',
             config: {
-              type: 'SelectControl',
+              ...columnsConfig,
               label: 'X Axis',
-              default: null,
-              description: t('Columns to display'),
-              mapStateToProps: state => ({
-                choices: columnChoices(state.datasource),
-              }),
-              validators: [validateNonEmpty],
             },
           },
+        ],
+        [
           {
             name: 'all_columns_y',
             config: {
-              type: 'SelectControl',
+              ...columnsConfig,
               label: 'Y Axis',
-              default: null,
-              description: t('Columns to display'),
-              mapStateToProps: state => ({
-                choices: columnChoices(state.datasource),
-              }),
-              validators: [validateNonEmpty],
             },
           },
         ],

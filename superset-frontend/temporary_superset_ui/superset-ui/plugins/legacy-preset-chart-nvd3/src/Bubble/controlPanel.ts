@@ -43,8 +43,8 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        [],
-        ['series', 'entity'],
+        ['series'],
+        ['entity'],
         ['x'],
         ['y'],
         ['adhoc_filters'],
