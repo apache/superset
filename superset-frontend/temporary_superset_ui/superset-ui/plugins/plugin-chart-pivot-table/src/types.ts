@@ -22,6 +22,7 @@ import {
   AdhocMetric,
   SetDataMaskHook,
   DataRecordValue,
+  JsonObject,
 } from '@superset-ui/core';
 
 export interface PivotTableStylesProps {
@@ -49,6 +50,7 @@ interface PivotTableCustomizeProps {
   setDataMask: SetDataMaskHook;
   emitFilter?: boolean;
   selectedFilters?: SelectedFiltersType;
+  verboseMap?: JsonObject;
 }
 
 export type PivotTableQueryFormData = QueryFormData &
