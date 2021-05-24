@@ -98,7 +98,7 @@ from superset.exceptions import (
 )
 from superset.typing import FlaskResponse, FormData, Metric
 from superset.utils.dates import datetime_to_epoch, EPOCH
-from superset.utils.hashing import md5_sha_from_str
+from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
 
 try:
     from pydruid.utils.having import Having
@@ -211,6 +211,8 @@ class FilterOperator(str, Enum):
     IN = "IN"  # pylint: disable=invalid-name
     NOT_IN = "NOT IN"
     REGEX = "REGEX"
+    IS_TRUE = "IS TRUE"
+    IS_FALSE = "IS FALSE"
 
 
 class PostProcessingBoxplotWhiskerType(str, Enum):
@@ -360,7 +362,7 @@ def flasher(msg: str, severity: str = "message") -> None:
         flash(msg, severity)
     except RuntimeError:
         if severity == "danger":
-            logger.error(msg)
+            logger.error(msg, exc_info=True)
         else:
             logger.info(msg)
 
@@ -753,7 +755,7 @@ def validate_json(obj: Union[bytes, bytearray, str]) -> None:
         try:
             json.loads(obj)
         except Exception as ex:
-            logger.error("JSON is not valid %s", str(ex))
+            logger.error("JSON is not valid %s", str(ex), exc_info=True)
             raise SupersetException("JSON is not valid")
 
 
@@ -769,7 +771,7 @@ class SigalrmTimeout:
     def handle_timeout(  # pylint: disable=unused-argument
         self, signum: int, frame: Any
     ) -> None:
-        logger.error("Process timed out")
+        logger.error("Process timed out", exc_info=True)
         raise SupersetTimeoutException(
             error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
             message=self.error_message,
@@ -1046,7 +1048,6 @@ def to_adhoc(
     result = {
         "clause": clause.upper(),
         "expressionType": expression_type,
-        "filterOptionName": str(uuid.uuid4()),
         "isExtra": bool(filt.get("isExtra")),
     }
 
@@ -1060,6 +1061,9 @@ def to_adhoc(
         )
     elif expression_type == "SQL":
         result.update({"sqlExpression": filt.get(clause)})
+
+    deterministic_name = md5_sha_from_dict(result)
+    result["filterOptionName"] = deterministic_name
 
     return result
 
@@ -1679,3 +1683,35 @@ def normalize_dttm_col(
         df[DTTM_ALIAS] += timedelta(hours=offset)
     if time_shift is not None:
         df[DTTM_ALIAS] += time_shift
+
+
+def parse_boolean_string(bool_str: Optional[str]) -> bool:
+    """
+    Convert a string representation of a true/false value into a boolean
+
+    >>> parse_boolean_string(None)
+    False
+    >>> parse_boolean_string('false')
+    False
+    >>> parse_boolean_string('true')
+    True
+    >>> parse_boolean_string('False')
+    False
+    >>> parse_boolean_string('True')
+    True
+    >>> parse_boolean_string('foo')
+    False
+    >>> parse_boolean_string('0')
+    False
+    >>> parse_boolean_string('1')
+    True
+
+    :param bool_str: string representation of a value that is assumed to be boolean
+    :return: parsed boolean value
+    """
+    if bool_str is None:
+        return False
+    try:
+        return bool(strtobool(bool_str.lower()))
+    except ValueError:
+        return False

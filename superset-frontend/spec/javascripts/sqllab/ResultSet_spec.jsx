@@ -37,6 +37,7 @@ import {
   runningQuery,
   stoppedQuery,
   initialState,
+  user,
 } from './fixtures';
 
 const mockStore = configureStore([thunk]);
@@ -54,8 +55,10 @@ describe('ResultSet', () => {
     },
     cache: true,
     query: queries[0],
-    height: 0,
+    height: 140,
     database: { allows_virtual_table_explore: true },
+    user,
+    defaultQueryLimit: 1000,
   };
   const stoppedQueryProps = { ...mockedProps, query: stoppedQuery };
   const runningQueryProps = { ...mockedProps, query: runningQuery };

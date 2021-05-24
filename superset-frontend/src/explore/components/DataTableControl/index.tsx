@@ -18,10 +18,9 @@
  */
 import React, { useMemo } from 'react';
 import { styled, t } from '@superset-ui/core';
-import { FormControl } from 'react-bootstrap';
 import { Column } from 'react-table';
 import debounce from 'lodash/debounce';
-
+import { Input } from 'src/common/components';
 import {
   BOOL_FALSE_DISPLAY,
   BOOL_TRUE_DISPLAY,
@@ -73,9 +72,8 @@ export const FilterInput = ({
 }) => {
   const debouncedChangeHandler = debounce(onChangeHandler, SLOW_DEBOUNCE);
   return (
-    <FormControl
+    <Input
       placeholder={t('Search')}
-      bsSize="sm"
       onChange={(event: any) => {
         const filterText = event.target.value;
         debouncedChangeHandler(filterText);

@@ -18,11 +18,12 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import g, make_response, redirect, request, Response, send_file, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
@@ -72,6 +73,7 @@ from superset.dashboards.schemas import (
 from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
+from superset.utils.cache import etag_cache
 from superset.utils.screenshots import DashboardScreenshot
 from superset.utils.urls import get_url_path
 from superset.views.base import generate_download_headers
@@ -87,6 +89,13 @@ logger = logging.getLogger(__name__)
 
 class DashboardRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Dashboard)
+
+    @before_request(only=["thumbnail"])
+    def ensure_thumbnails_enabled(self) -> Optional[Response]:
+        if not is_feature_enabled("THUMBNAILS"):
+            return self.response_404()
+        return None
+
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
         RouteMethod.IMPORT,
@@ -95,6 +104,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "favorite_status",
         "get_charts",
         "get_datasets",
+        "thumbnail",
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -205,11 +215,23 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     openapi_spec_methods = openapi_spec_methods_override
     """ Overrides GET methods OpenApi descriptions """
 
-    def __init__(self) -> None:
-        if is_feature_enabled("THUMBNAILS"):
-            self.include_route_methods = self.include_route_methods | {"thumbnail"}
-        super().__init__()
+    def __repr__(self) -> str:
+        """Deterministic string representation of the API instance for etag_cache."""
+        return "Superset.dashboards.api.DashboardRestApi@v{}{}".format(
+            self.appbuilder.app.config["VERSION_STRING"],
+            self.appbuilder.app.config["VERSION_SHA"],
+        )
 
+    @etag_cache(
+        get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_changed_on(  # pylint: disable=line-too-long
+            id_or_slug
+        ),
+        max_age=0,
+        raise_for_access=lambda _self, id_or_slug: DashboardDAO.get_by_id_or_slug(
+            id_or_slug
+        ),
+        skip=lambda _self, id_or_slug: not is_feature_enabled("DASHBOARD_CACHE"),
+    )
     @expose("/<id_or_slug>", methods=["GET"])
     @protect()
     @safe
@@ -257,6 +279,16 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         except DashboardNotFoundError:
             return self.response_404()
 
+    @etag_cache(
+        get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_and_datasets_changed_on(  # pylint: disable=line-too-long
+            id_or_slug
+        ),
+        max_age=0,
+        raise_for_access=lambda _self, id_or_slug: DashboardDAO.get_by_id_or_slug(
+            id_or_slug
+        ),
+        skip=lambda _self, id_or_slug: not is_feature_enabled("DASHBOARD_CACHE"),
+    )
     @expose("/<id_or_slug>/datasets", methods=["GET"])
     @protect()
     @safe
@@ -267,38 +299,38 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     )
     def get_datasets(self, id_or_slug: str) -> Response:
         """Gets a dashboard's datasets
-                ---
-                get:
-                  description: >-
-                    Returns a list of a dashboard's datasets. Each dataset includes only
-                    the information necessary to render the dashboard's charts.
-                  parameters:
-                  - in: path
-                    schema:
-                      type: string
-                    name: id_or_slug
-                    description: Either the id of the dashboard, or its slug
-                  responses:
-                    200:
-                      description: Dashboard dataset definitions
-                      content:
-                        application/json:
-                          schema:
-                            type: object
-                            properties:
-                              result:
-                                type: array
-                                items:
-                                  $ref: '#/components/schemas/DashboardDatasetSchema'
-                    302:
-                      description: Redirects to the current digest
-                    400:
-                      $ref: '#/components/responses/400'
-                    401:
-                      $ref: '#/components/responses/401'
-                    404:
-                      $ref: '#/components/responses/404'
-                """
+        ---
+        get:
+          description: >-
+            Returns a list of a dashboard's datasets. Each dataset includes only
+            the information necessary to render the dashboard's charts.
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: Either the id of the dashboard, or its slug
+          responses:
+            200:
+              description: Dashboard dataset definitions
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/DashboardDatasetSchema'
+            302:
+              description: Redirects to the current digest
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+        """
         try:
             datasets = DashboardDAO.get_datasets_for_dashboard(id_or_slug)
             result = [
@@ -308,6 +340,16 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         except DashboardNotFoundError:
             return self.response_404()
 
+    @etag_cache(
+        get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_and_slices_changed_on(  # pylint: disable=line-too-long
+            id_or_slug
+        ),
+        max_age=0,
+        raise_for_access=lambda _self, id_or_slug: DashboardDAO.get_by_id_or_slug(
+            id_or_slug
+        ),
+        skip=lambda _self, id_or_slug: not is_feature_enabled("DASHBOARD_CACHE"),
+    )
     @expose("/<id_or_slug>/charts", methods=["GET"])
     @protect()
     @safe
@@ -421,7 +463,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=ex.normalized_messages())
         except DashboardCreateFailedError as ex:
             logger.error(
-                "Error creating model %s: %s", self.__class__.__name__, str(ex)
+                "Error creating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -494,7 +539,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=ex.normalized_messages())
         except DashboardUpdateFailedError as ex:
             logger.error(
-                "Error updating model %s: %s", self.__class__.__name__, str(ex)
+                "Error updating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             response = self.response_422(message=str(ex))
         return response
@@ -548,7 +596,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except DashboardDeleteFailedError as ex:
             logger.error(
-                "Error deleting model %s: %s", self.__class__.__name__, str(ex)
+                "Error deleting model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 

@@ -39,6 +39,7 @@ from flask_appbuilder.security.views import (
     ViewMenuModelView,
 )
 from flask_appbuilder.widgets import ListWidget
+from flask_login import AnonymousUserMixin
 from sqlalchemy import and_, or_
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import Session
@@ -183,6 +184,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     ACCESSIBLE_PERMS = {"can_userinfo", "resetmypassword"}
+
+    SQLLAB_PERMISSION_VIEWS = {
+        ("can_csv", "Superset"),
+        ("can_read", "SavedQuery"),
+        ("can_read", "Database"),
+        ("can_sql_json", "Superset"),
+        ("can_sqllab_viz", "Superset"),
+        ("can_sqllab_table_viz", "Superset"),
+        ("can_sqllab", "Superset"),
+        ("menu_access", "SQL Lab"),
+        ("menu_access", "SQL Editor"),
+        ("menu_access", "Saved Queries"),
+        ("menu_access", "Query Search"),
+    }
 
     data_access_permissions = (
         "database_access",
@@ -820,24 +835,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param pvm: The FAB permission/view
         :returns: Whether the FAB object is SQL Lab related
         """
-
-        return (
-            pvm.view_menu.name
-            in {"SQL Lab", "SQL Editor", "Query Search", "Saved Queries"}
-            or pvm.permission.name
-            in {
-                "can_sql_json",
-                "can_csv",
-                "can_search_queries",
-                "can_sqllab_viz",
-                "can_sqllab_table_viz",
-                "can_sqllab",
-            }
-            or (
-                pvm.view_menu.name in self.USER_MODEL_VIEWS
-                and pvm.permission.name == "can_list"
-            )
-        )
+        return (pvm.permission.name, pvm.view_menu.name) in self.SQLLAB_PERMISSION_VIEWS
 
     def _is_granter_pvm(  # pylint: disable=no-self-use
         self, pvm: PermissionView
@@ -1026,6 +1024,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .filter(self.user_model.username == username)
             .one_or_none()
         )
+
+    def get_anonymous_user(self) -> User:  # pylint: disable=no-self-use
+        return AnonymousUserMixin()
 
     def get_rls_filters(self, table: "BaseDatasource") -> List[SqlaQuery]:
         """

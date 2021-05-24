@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import copy
 import logging
 from typing import Any, cast, Dict, Optional
 
@@ -39,9 +40,11 @@ query_timeout = current_app.config[
 
 
 def ensure_user_is_set(user_id: Optional[int]) -> None:
-    user_is_set = hasattr(g, "user") and g.user is not None
-    if not user_is_set and user_id is not None:
+    user_is_not_set = not (hasattr(g, "user") and g.user is not None)
+    if user_is_not_set and user_id is not None:
         g.user = security_manager.get_user_by_id(user_id)
+    elif user_is_not_set:
+        g.user = security_manager.get_anonymous_user()
 
 
 @celery_app.task(name="load_chart_data_into_cache", soft_time_limit=query_timeout)
@@ -91,6 +94,13 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
             ensure_user_is_set(job_metadata.get("user_id"))
             datasource_id, datasource_type = get_datasource_info(None, None, form_data)
 
+            # Perform a deep copy here so that below we can cache the original
+            # value of the form_data object. This is necessary since the viz
+            # objects modify the form_data object. If the modified version were
+            # to be cached here, it will lead to a cache miss when clients
+            # attempt to retrieve the value of the completed async query.
+            original_form_data = copy.deepcopy(form_data)
+
             viz_obj = get_viz(
                 datasource_type=cast(str, datasource_type),
                 datasource_id=datasource_id,
@@ -102,8 +112,11 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
             if viz_obj.has_error(payload):
                 raise SupersetVizException(errors=payload["errors"])
 
-            # cache form_data for async retrieval
-            cache_value = {"form_data": form_data, "response_type": response_type}
+            # Cache the original form_data value for async retrieval
+            cache_value = {
+                "form_data": original_form_data,
+                "response_type": response_type,
+            }
             cache_key = generate_cache_key(cache_value, cache_key_prefix)
             set_and_log_cache(cache_manager.cache, cache_key, cache_value)
             result_url = f"/superset/explore_json/data/{cache_key}"

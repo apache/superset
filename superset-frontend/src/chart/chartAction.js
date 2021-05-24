@@ -248,6 +248,7 @@ export function runAnnotationQuery(
   formData = null,
   key,
   isDashboardRequest = false,
+  force = false,
 ) {
   return function (dispatch, getState) {
     const sliceKey = key || Object.keys(getState().charts)[0];
@@ -286,7 +287,12 @@ export function runAnnotationQuery(
     }
 
     const isNative = annotation.sourceType === ANNOTATION_SOURCE_TYPES.NATIVE;
-    const url = getAnnotationJsonUrl(annotation.value, sliceFormData, isNative);
+    const url = getAnnotationJsonUrl(
+      annotation.value,
+      sliceFormData,
+      isNative,
+      force,
+    );
     const controller = new AbortController();
     const { signal } = controller;
 
@@ -462,7 +468,14 @@ export function exploreJSON(
       dispatch(updateQueryFormData(formData, key)),
       ...annotationLayers.map(x =>
         dispatch(
-          runAnnotationQuery(x, timeout, formData, key, isDashboardRequest),
+          runAnnotationQuery(
+            x,
+            timeout,
+            formData,
+            key,
+            isDashboardRequest,
+            force,
+          ),
         ),
       ),
     ]);

@@ -52,6 +52,7 @@ export type Query = {
     data: Record<string, unknown>[];
     expanded_columns: Column[];
     selected_columns: Column[];
+    query: { limit: number };
   };
   resultsKey: string | null;
   schema: string;
@@ -65,4 +66,5 @@ export type Query = {
   templateParams: any;
   rows: number;
   queryLimit: number;
+  limitingFactor: string;
 };

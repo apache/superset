@@ -100,7 +100,7 @@ class Slice(
         return ConnectorRegistry.sources[self.datasource_type]
 
     @property
-    def datasource(self) -> "BaseDatasource":
+    def datasource(self) -> Optional["BaseDatasource"]:
         return self.get_datasource
 
     def clone(self) -> "Slice":
@@ -160,8 +160,9 @@ class Slice(
     def viz(self) -> Optional[BaseViz]:
         form_data = json.loads(self.params)
         viz_class = viz_types.get(self.viz_type)
-        if viz_class:
-            return viz_class(datasource=self.datasource, form_data=form_data)
+        datasource = self.datasource
+        if viz_class and datasource:
+            return viz_class(datasource=datasource, form_data=form_data)
         return None
 
     @property
@@ -223,7 +224,7 @@ class Slice(
         try:
             form_data = json.loads(self.params)
         except Exception as ex:  # pylint: disable=broad-except
-            logger.error("Malformed json in slice's params")
+            logger.error("Malformed json in slice's params", exc_info=True)
             logger.exception(ex)
         form_data.update(
             {

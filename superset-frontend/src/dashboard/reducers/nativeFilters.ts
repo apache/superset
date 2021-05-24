@@ -21,7 +21,8 @@ import {
   SAVE_FILTER_SETS,
   SET_FILTER_CONFIG_COMPLETE,
   SET_FILTER_SETS_CONFIG_COMPLETE,
-  SET_FILTERS_INITIALIZED,
+  SET_FOCUSED_NATIVE_FILTER,
+  UNSET_FOCUSED_NATIVE_FILTER,
 } from 'src/dashboard/actions/nativeFilters';
 import { FilterSet, NativeFiltersState } from './types';
 import { FilterConfiguration } from '../components/nativeFilters/types';
@@ -36,9 +37,7 @@ export function getInitialState({
   filterConfig?: FilterConfiguration;
   state?: NativeFiltersState;
 }): NativeFiltersState {
-  const state: Partial<NativeFiltersState> = {
-    isInitialized: prevState?.isInitialized,
-  };
+  const state: Partial<NativeFiltersState> = {};
 
   const filters = {};
   if (filterConfig) {
@@ -61,12 +60,12 @@ export function getInitialState({
   } else {
     state.filterSets = prevState?.filterSets ?? {};
   }
+  state.focusedFilterId = undefined;
   return state as NativeFiltersState;
 }
 
 export default function nativeFilterReducer(
   state: NativeFiltersState = {
-    isInitialized: false,
     filters: {},
     filterSets: {},
   },
@@ -95,18 +94,23 @@ export default function nativeFilterReducer(
     case SET_FILTER_CONFIG_COMPLETE:
       return getInitialState({ filterConfig: action.filterConfig, state });
 
-    case SET_FILTERS_INITIALIZED:
-      return {
-        ...state,
-        isInitialized: true,
-      };
-
     case SET_FILTER_SETS_CONFIG_COMPLETE:
       return getInitialState({
         filterSetsConfig: action.filterSetsConfig,
         state,
       });
 
+    case SET_FOCUSED_NATIVE_FILTER:
+      return {
+        ...state,
+        focusedFilterId: action.id,
+      };
+
+    case UNSET_FOCUSED_NATIVE_FILTER:
+      return {
+        ...state,
+        focusedFilterId: undefined,
+      };
     // TODO handle SET_FILTER_CONFIG_FAIL action
     default:
       return state;

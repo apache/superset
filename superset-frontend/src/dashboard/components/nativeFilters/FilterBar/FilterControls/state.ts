@@ -19,7 +19,7 @@
 import { useSelector } from 'react-redux';
 import { NativeFiltersState } from 'src/dashboard/reducers/types';
 import { mergeExtraFormData } from '../../utils';
-import { useDataMask } from '../state';
+import { useNativeFiltersDataMask } from '../state';
 
 // eslint-disable-next-line import/prefer-default-export
 export function useCascadingFilters(id: string) {
@@ -29,7 +29,7 @@ export function useCascadingFilters(id: string) {
   const filter = filters[id];
   const cascadeParentIds: string[] = filter?.cascadeParentIds ?? [];
   let cascadedFilters = {};
-  const nativeFiltersDataMask = useDataMask();
+  const nativeFiltersDataMask = useNativeFiltersDataMask();
   cascadeParentIds.forEach(parentId => {
     const parentState = nativeFiltersDataMask[parentId] || {};
     const { extraFormData: parentExtra = {} } = parentState;

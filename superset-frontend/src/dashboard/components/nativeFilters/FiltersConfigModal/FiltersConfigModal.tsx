@@ -39,6 +39,7 @@ import { useOpenModal, useRemoveCurrentFilter } from './state';
 
 export const StyledModalBody = styled.div`
   display: flex;
+  height: 500px;
   flex-direction: row;
   .filters-list {
     width: ${({ theme }) => theme.gridUnit * 50}px;
@@ -62,6 +63,7 @@ export interface FiltersConfigModalProps {
   onSave: (filterConfig: FilterConfiguration) => Promise<void>;
   onCancel: () => void;
 }
+export const CASCADING_FILTERS = ['filter_select'];
 
 /**
  * This is the modal to configure all the dashboard-native filters.
@@ -170,6 +172,9 @@ export function FiltersConfigModal({
   const getParentFilters = (id: string) =>
     filterIds
       .filter(filterId => filterId !== id && !removedFilters[filterId])
+      .filter(filterId =>
+        CASCADING_FILTERS.includes(formValues.filters[filterId]?.filterType),
+      )
       .map(id => ({
         id,
         title: getFilterTitle(id),

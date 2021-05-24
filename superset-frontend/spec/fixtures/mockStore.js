@@ -19,7 +19,7 @@
 import { createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
 
-import rootReducer from 'src/dashboard/reducers/index';
+import { rootReducer } from 'src/views/store';
 
 import mockState from './mockState';
 import {

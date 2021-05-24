@@ -523,6 +523,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             "Expected column `%s`, found: %s.",
             cls._show_functions_column,
             ", ".join(columns),
+            exc_info=True,
         )
         # if the results have a single column, use that
         if len(columns) == 1:

@@ -18,9 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Col } from 'react-bootstrap';
-import Card from 'src/common/components/Card';
+import { Row, Col } from 'src/common/components';
 import { Radio } from 'src/components/Radio';
+import Card from 'src/components/Card';
 import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
 import shortid from 'shortid';
@@ -239,7 +239,7 @@ function ColumnCollectionTable({
           ) : (
             v
           ),
-        type: d => <Label>{d}</Label>,
+        type: d => (d ? <Label>{d}</Label> : null),
         is_dttm: checkboxGenerator,
         filterable: checkboxGenerator,
         groupby: checkboxGenerator,
@@ -548,6 +548,7 @@ class DatasourceEditor extends React.PureComponent {
           control={<TextControl controlId="default_endpoint" />}
         />
         <Field
+          inline
           fieldKey="filter_select_enabled"
           label={t('Autocomplete filters')}
           description={t('Whether to populate autocomplete filters options')}
@@ -773,7 +774,7 @@ class DatasourceEditor extends React.PureComponent {
             </div>
           )}
           {this.state.datasourceType === DATASOURCE_TYPES.physical.key && (
-            <Col md={6}>
+            <Col xs={24} md={12}>
               {this.state.isSqla && (
                 <Field
                   fieldKey="tableSelector"
@@ -1085,14 +1086,14 @@ class DatasourceEditor extends React.PureComponent {
             />
           </Tabs.TabPane>
           <Tabs.TabPane key={4} tab={t('Settings')}>
-            <div>
-              <Col md={6}>
+            <Row gutter={16}>
+              <Col xs={24} md={12}>
                 <FormContainer>{this.renderSettingsFieldset()}</FormContainer>
               </Col>
-              <Col md={6}>
+              <Col xs={24} md={12}>
                 <FormContainer>{this.renderAdvancedFieldset()}</FormContainer>
               </Col>
-            </div>
+            </Row>
           </Tabs.TabPane>
         </StyledTableTabs>
       </DatasourceContainer>

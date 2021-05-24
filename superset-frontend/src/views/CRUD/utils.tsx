@@ -156,7 +156,9 @@ export const createFetchRelated = createFetchResourceMethod('related');
 export const createFetchDistinct = createFetchResourceMethod('distinct');
 
 export function createErrorHandler(
-  handleErrorFunc: (errMsg?: string | Record<string, string[]>) => void,
+  handleErrorFunc: (
+    errMsg?: string | Record<string, string[] | string>,
+  ) => void,
 ) {
   return async (e: SupersetClientResponse | string) => {
     const parsedError = await getClientErrorObject(e);
@@ -299,15 +301,13 @@ export const mq = breakpoints.map(bp => `@media (max-width: ${bp}px)`);
 export const CardContainer = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(31%, 31%));
-  ${[mq[3]]} {
+  ${mq[3]} {
     grid-template-columns: repeat(auto-fit, minmax(31%, 31%));
   }
-
-  ${[mq[2]]} {
+  ${mq[2]} {
     grid-template-columns: repeat(auto-fit, minmax(48%, 48%));
   }
-
-  ${[mq[1]]} {
+  ${mq[1]} {
     grid-template-columns: repeat(auto-fit, minmax(50%, 80%));
   }
   grid-gap: ${({ theme }) => theme.gridUnit * 8}px;

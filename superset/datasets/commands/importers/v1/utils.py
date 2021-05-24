@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 CHUNKSIZE = 512
 VARCHAR = re.compile(r"VARCHAR\((\d+)\)", re.IGNORECASE)
 
-JSON_KEYS = {"params", "template_params", "extra"}
+JSON_KEYS = {"params", "template_params"}
 
 
 type_map = {

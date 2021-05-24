@@ -58,4 +58,9 @@ addParameters({
     { name: 'Medium', value: '32px', default: true },
     { name: 'Large', value: '64px' },
   ],
+  options: {
+    storySort: {
+      method: 'alphabetical',
+    },
+  },
 });
