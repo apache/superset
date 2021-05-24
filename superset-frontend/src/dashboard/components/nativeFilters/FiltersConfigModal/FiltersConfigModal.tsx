@@ -37,6 +37,13 @@ import FilterTabs from './FilterTabs';
 import FiltersConfigForm from './FiltersConfigForm/FiltersConfigForm';
 import { useOpenModal, useRemoveCurrentFilter } from './state';
 
+const StyledModalWrapper = styled(StyledModal)`
+  min-width: 700px;
+  .ant-modal-body {
+    padding: 0px;
+  }
+`;
+
 export const StyledModalBody = styled.div`
   display: flex;
   height: 500px;
@@ -205,11 +212,11 @@ export function FiltersConfigModal({
   };
 
   return (
-    <StyledModal
+    <StyledModalWrapper
       visible={isOpen}
       maskClosable={false}
       title={t('Filters configuration and scoping')}
-      width="55%"
+      width="50%"
       destroyOnClose
       onCancel={handleCancel}
       onOk={handleSave}
@@ -269,6 +276,6 @@ export function FiltersConfigModal({
           </StyledForm>
         </StyledModalBody>
       </ErrorBoundary>
-    </StyledModal>
+    </StyledModalWrapper>
   );
 }
