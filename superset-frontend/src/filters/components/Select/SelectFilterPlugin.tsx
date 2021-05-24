@@ -27,7 +27,7 @@ import {
   t,
   tn,
 } from '@superset-ui/core';
-import React, { useEffect, useReducer, useState } from 'react';
+import React, { useCallback, useEffect, useReducer, useState } from 'react';
 import { Select } from 'src/common/components';
 import { debounce } from 'lodash';
 import { SLOW_DEBOUNCE } from 'src/constants';
@@ -123,14 +123,17 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       : {},
   );
 
-  const debouncedOwnStateFunc = debounce((val: string) => {
-    dispatchDataMask({
-      type: 'ownState',
-      ownState: {
-        search: val,
-      },
-    });
-  }, SLOW_DEBOUNCE);
+  const debouncedOwnStateFunc = useCallback(
+    debounce((val: string) => {
+      dispatchDataMask({
+        type: 'ownState',
+        ownState: {
+          search: val,
+        },
+      });
+    }, SLOW_DEBOUNCE),
+    [],
+  );
 
   const searchWrapper = (val: string) => {
     if (searchAllOptions) {
