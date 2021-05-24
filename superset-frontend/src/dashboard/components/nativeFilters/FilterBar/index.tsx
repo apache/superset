@@ -19,7 +19,7 @@
 
 /* eslint-disable no-param-reassign */
 import { HandlerFunction, styled, t } from '@superset-ui/core';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import cx from 'classnames';
 import Icon from 'src/components/Icon';
@@ -179,6 +179,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     () => mapParentFiltersToChildren(filterValues),
     [filterValues],
   );
+
+  useEffect(() => {
+    setDataMaskSelected(() => dataMaskApplied);
+  }, [JSON.stringify(dataMaskApplied), setDataMaskSelected]);
 
   const handleFilterSelectionChange = (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
