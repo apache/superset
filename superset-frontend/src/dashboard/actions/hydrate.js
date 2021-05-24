@@ -27,7 +27,6 @@ import {
 import { chart } from 'src/chart/chartReducer';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
-import { getParam } from 'src/modules/utils';
 import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import findPermission, {
@@ -56,6 +55,8 @@ import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import { TIME_RANGE } from 'src/visualizations/FilterBox/FilterBox';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 import extractUrlParams from '../util/extractUrlParams';
+import { getUrlParam } from '../../utils/urlUtils';
+import { URL_PARAMS } from '../../constants';
 
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
@@ -77,9 +78,9 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
   });
   try {
     // allow request parameter overwrite dashboard metadata
-    preselectFilters = JSON.parse(
-      getParam('preselect_filters') || metadata.default_filters,
-    );
+    preselectFilters =
+      getUrlParam(URL_PARAMS.preselectFilters, 'object') ||
+      JSON.parse(metadata.default_filters);
   } catch (e) {
     //
   }

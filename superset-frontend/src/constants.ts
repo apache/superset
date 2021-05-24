@@ -25,6 +25,7 @@ export const BOOL_FALSE_DISPLAY = 'False';
 export const URL_PARAMS = {
   standalone: 'standalone',
   preselectFilters: 'preselect_filters',
+  showFilters: 'show_filters',
 };
 
 /**

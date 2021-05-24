@@ -120,7 +120,9 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
     (canEdit || (!canEdit && filterValues.length !== 0));
 
-  const [dashboardFiltersOpen, setDashboardFiltersOpen] = useState(true);
+  const [dashboardFiltersOpen, setDashboardFiltersOpen] = useState(
+    getUrlParam(URL_PARAMS.showFilters, 'boolean') ?? true,
+  );
 
   const toggleDashboardFiltersOpen = (visible?: boolean) => {
     setDashboardFiltersOpen(visible ?? !dashboardFiltersOpen);

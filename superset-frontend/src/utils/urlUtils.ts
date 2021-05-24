@@ -18,12 +18,18 @@
  */
 import { SupersetClient } from '@superset-ui/core';
 import { getClientErrorObject } from './getClientErrorObject';
+import { URL_PARAMS } from '../constants';
 
-export type UrlParamType = 'string' | 'number' | 'boolean';
-export function getUrlParam(paramName: string, type: 'string'): string;
-export function getUrlParam(paramName: string, type: 'number'): number;
-export function getUrlParam(paramName: string, type: 'boolean'): boolean;
-export function getUrlParam(paramName: string, type: UrlParamType): unknown {
+export type UrlParamType = 'string' | 'number' | 'boolean' | 'object';
+export type ParamNameType = typeof URL_PARAMS[keyof typeof URL_PARAMS];
+export function getUrlParam(paramName: ParamNameType, type: 'string'): string;
+export function getUrlParam(paramName: ParamNameType, type: 'number'): number;
+export function getUrlParam(paramName: ParamNameType, type: 'boolean'): boolean;
+export function getUrlParam(paramName: ParamNameType, type: 'object'): object;
+export function getUrlParam(
+  paramName: ParamNameType,
+  type: UrlParamType,
+): unknown {
   const urlParam = new URLSearchParams(window.location.search).get(paramName);
   switch (type) {
     case 'number':
@@ -40,6 +46,11 @@ export function getUrlParam(paramName: string, type: UrlParamType): unknown {
         return Number(urlParam);
       }
       return null;
+    case 'object':
+      if (!urlParam) {
+        return null;
+      }
+      return JSON.parse(urlParam);
     case 'boolean':
       if (!urlParam) {
         return null;
