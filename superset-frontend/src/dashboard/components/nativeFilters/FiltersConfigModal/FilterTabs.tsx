@@ -84,31 +84,58 @@ export const FilterTabTitle = styled.span`
 `;
 
 const FilterTabsContainer = styled(LineEditableTabs)`
-  // extra selector specificity:
-  &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
-    min-width: ${FILTER_WIDTH}px;
-    margin: 0 ${({ theme }) => theme.gridUnit * 2}px 0 0;
-    padding: ${({ theme }) => theme.gridUnit}px
-      ${({ theme }) => theme.gridUnit * 2}px;
+  ${({ theme }) => `
+    height: 100%;
 
-    &:hover,
-    &-active {
-      color: ${({ theme }) => theme.colors.grayscale.dark1};
-      border-radius: ${({ theme }) => theme.borderRadius}px;
-      background-color: ${({ theme }) => theme.colors.secondary.light4};
+    & > .ant-tabs-content-holder {
+      border-left: 1px solid ${theme.colors.grayscale.light2};
+      margin-right: ${theme.gridUnit * 4}px;
+    }
+    & > .ant-tabs-content-holder ~ .ant-tabs-content-holder {
+      border: none;
+    }
 
-      .ant-tabs-tab-remove > svg {
-        color: ${({ theme }) => theme.colors.grayscale.base};
-        transition: all 0.3s;
+    &.ant-tabs-left
+      > .ant-tabs-content-holder
+      > .ant-tabs-content
+      > .ant-tabs-tabpane {
+      padding-left: ${theme.gridUnit * 4}px;
+      margin-top: ${theme.gridUnit * 4}px;
+    }
+
+    .ant-tabs-nav-list {
+      padding-top: ${theme.gridUnit * 4}px;
+      padding-right: ${theme.gridUnit * 2}px;
+      padding-bottom: ${theme.gridUnit * 4}px;
+      padding-left: ${theme.gridUnit * 3}px;
+    }
+
+    // extra selector specificity:
+    &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
+      min-width: ${FILTER_WIDTH}px;
+      margin: 0 ${theme.gridUnit * 2}px 0 0;
+      padding: ${theme.gridUnit}px
+        ${theme.gridUnit * 2}px;
+
+      &:hover,
+      &-active {
+        color: ${theme.colors.grayscale.dark1};
+        border-radius: ${theme.borderRadius}px;
+        background-color: ${theme.colors.secondary.light4};
+
+        .ant-tabs-tab-remove > svg {
+          color: ${theme.colors.grayscale.base};
+          transition: all 0.3s;
+        }
       }
     }
-  }
 
-  .ant-tabs-tab-btn {
-    text-align: left;
-    justify-content: space-between;
-    text-transform: unset;
-  }
+    .ant-tabs-tab-btn {
+      text-align: left;
+      justify-content: space-between;
+      text-transform: unset;
+    }
+  `}
 `;
 
 type FilterTabsProps = {
