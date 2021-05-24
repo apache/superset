@@ -438,7 +438,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self, viz_obj: BaseViz, response_type: Optional[str] = None
     ) -> FlaskResponse:
         if response_type == utils.ChartDataResultFormat.CSV:
-            return CsvResponse(viz_obj.get_csv(), headers=generate_download_headers("csv"))
+            return CsvResponse(
+                viz_obj.get_csv(), headers=generate_download_headers("csv")
+            )
 
         if response_type == utils.ChartDataResultFormat.XML:
             payload = viz_obj.get_payload()
