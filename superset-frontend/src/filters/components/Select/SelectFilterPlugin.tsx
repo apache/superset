@@ -80,6 +80,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const {
     coltypeMap,
     data,
+    filterState,
     formData,
     height,
     isRefreshing,
@@ -204,6 +205,13 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       },
     });
   }, [col, enableEmptyFilter, inverseSelection, JSON.stringify(values)]);
+
+  useEffect(() => {
+    // handle changes coming from application, e.g. "Clear all" button
+    if (JSON.stringify(values) !== JSON.stringify(filterState.value)) {
+      handleChange(filterState.value);
+    }
+  }, [JSON.stringify(filterState.value)]);
 
   useEffect(() => {
     setDataMask(dataMask);
