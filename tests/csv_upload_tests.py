@@ -47,6 +47,7 @@ PARQUET_FILENAME = "testParquet.parquet"
 
 EXCEL_UPLOAD_TABLE = "excel_upload"
 CSV_UPLOAD_TABLE = "csv_upload"
+PARQUET_UPLOAD_TABLE = "parquet_upload"
 CSV_UPLOAD_TABLE_W_SCHEMA = "csv_upload_w_schema"
 CSV_UPLOAD_TABLE_W_EXPLORE = "csv_upload_w_explore"
 
@@ -71,6 +72,7 @@ def setup_csv_upload():
         engine = upload_db.get_sqla_engine()
         engine.execute(f"DROP TABLE IF EXISTS {EXCEL_UPLOAD_TABLE}")
         engine.execute(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE}")
+        engine.execute(f"DROP TABLE IF EXISTS {PARQUET_UPLOAD_TABLE}")
         engine.execute(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE_W_SCHEMA}")
         engine.execute(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE_W_EXPLORE}")
         db.session.delete(upload_db)
@@ -356,30 +358,28 @@ def test_import_parquet(setup_csv_upload, create_parquet_files):
         pytest.skip("Hive doesn't allow parquet upload.")
 
     success_msg = (
-        f'CSV file "{PARQUET_FILENAME}" uploaded to table "{CSV_UPLOAD_TABLE}"'
+        f'CSV file "{PARQUET_FILENAME}" uploaded to table "{PARQUET_UPLOAD_TABLE}"'
     )
 
     # initial upload with fail mode
-    resp = upload_csv(PARQUET_FILENAME, CSV_UPLOAD_TABLE)
+    resp = upload_csv(PARQUET_FILENAME, PARQUET_UPLOAD_TABLE)
     assert success_msg in resp
 
     # upload again with fail mode; should fail
-    fail_msg = (
-        f'Unable to upload CSV file "{PARQUET_FILENAME}" to table "{CSV_UPLOAD_TABLE}"'
-    )
-    resp = upload_csv(PARQUET_FILENAME, CSV_UPLOAD_TABLE)
+    fail_msg = f'Unable to upload CSV file "{PARQUET_FILENAME}" to table "{PARQUET_UPLOAD_TABLE}"'
+    resp = upload_csv(PARQUET_FILENAME, PARQUET_UPLOAD_TABLE)
     assert fail_msg in resp
 
     if utils.backend() != "hive":
         # upload again with append mode
         resp = upload_csv(
-            PARQUET_FILENAME, CSV_UPLOAD_TABLE, extra={"if_exists": "append"}
+            PARQUET_FILENAME, PARQUET_UPLOAD_TABLE, extra={"if_exists": "append"}
         )
         assert success_msg in resp
 
     # upload again with replace mode
     resp = upload_csv(
-        PARQUET_FILENAME, CSV_UPLOAD_TABLE, extra={"if_exists": "replace"}
+        PARQUET_FILENAME, PARQUET_UPLOAD_TABLE, extra={"if_exists": "replace"}
     )
     assert success_msg in resp
 
@@ -387,7 +387,7 @@ def test_import_parquet(setup_csv_upload, create_parquet_files):
     data = (
         get_upload_db()
         .get_sqla_engine()
-        .execute(f"SELECT * from {CSV_UPLOAD_TABLE}")
+        .execute(f"SELECT * from {PARQUET_UPLOAD_TABLE}")
         .fetchall()
     )
     assert data == [("john", 1), ("paul", 2)]
