@@ -1521,7 +1521,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "type": "object",
                     },
                     "preferred": True,
-                    "sqlalchemy_uri_placeholder": "redshift://user:password@host:port/dbname[?key=value&key=value...]",
+                    "sqlalchemy_uri_placeholder": "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
                 },
                 {
                     "engine": "bigquery",

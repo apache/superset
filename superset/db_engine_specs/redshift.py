@@ -52,7 +52,7 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
     max_column_name_length = 127
 
     sqlalchemy_uri_placeholder = (
-        "redshift://user:password@host:port/dbname[?key=value&key=value...]"
+        "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]"
     )
 
     encryption_parameters = {"sslmode": "verify-ca"}
