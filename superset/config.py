@@ -303,6 +303,7 @@ LANGUAGES = {
     "pt_BR": {"flag": "br", "name": "Brazilian Portuguese"},
     "ru": {"flag": "ru", "name": "Russian"},
     "ko": {"flag": "kr", "name": "Korean"},
+    'sk': {'flag': 'sk', 'name': 'Slovak'},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
