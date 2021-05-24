@@ -36,11 +36,8 @@ from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
-<<<<<<< HEAD
-from superset.db_engine_specs.bigquery import BigQueryEngineSpec
-=======
 from superset.db_engine_specs.redshift import RedshiftEngineSpec
->>>>>>> redshift basic mixin and tests
+from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.hana import HanaEngineSpec
 from superset.errors import SupersetError
 from superset.models.core import Database, ConfigurationMethod
@@ -1375,7 +1372,9 @@ class TestDatabaseApi(SupersetTestCase):
     @mock.patch("superset.databases.api.get_available_engine_specs")
     @mock.patch("superset.databases.api.app")
     def test_available(self, app, get_available_engine_specs):
-        app.config = {"PREFERRED_DATABASES": ["postgresql", "biqquery", "mysql", "redshift"]}
+        app.config = {
+            "PREFERRED_DATABASES": ["postgresql", "biqquery", "mysql", "redshift"]
+        }
         get_available_engine_specs.return_value = [
             PostgresEngineSpec,
             BigQueryEngineSpec,
@@ -1436,43 +1435,6 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "postgresql+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
                 },
-                {
-                    "engine": "bigquery",
-                    "name": "Google BigQuery",
-                    "parameters": {
-                        "properties": {
-                            "credentials_info": {
-                                "description": "Contents of BigQuery JSON credentials.",
-                                "type": "string",
-                                "x-encrypted-extra": True,
-                            }
-                        },
-                        "type": "object",
-                    },
-                    "preferred": False,
-                    "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
-                },
-                {"engine": "hana", "name": "SAP HANA", "preferred": False},
-            ]
-        }
-
-    @mock.patch("superset.databases.api.get_available_engine_specs")
-    @mock.patch("superset.databases.api.app")
-    def test_available_with_mysql(self, app, get_available_engine_specs):
-        app.config = {"PREFERRED_DATABASES": ["mysql"]}
-        get_available_engine_specs.return_value = [
-            MySQLEngineSpec,
-            HanaEngineSpec,
-        ]
-
-        self.login(username="admin")
-        uri = "api/v1/database/available/"
-
-        rv = self.client.get(uri)
-        response = json.loads(rv.data.decode("utf-8"))
-        assert rv.status_code == 200
-        assert response == {
-            "databases": [
                 {
                     "engine": "mysql",
                     "name": "MySQL",
@@ -1560,6 +1522,22 @@ class TestDatabaseApi(SupersetTestCase):
                     },
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "redshift://user:password@host:port/dbname[?key=value&key=value...]",
+                },
+                {
+                    "engine": "bigquery",
+                    "name": "Google BigQuery",
+                    "parameters": {
+                        "properties": {
+                            "credentials_info": {
+                                "description": "Contents of BigQuery JSON credentials.",
+                                "type": "string",
+                                "x-encrypted-extra": True,
+                            }
+                        },
+                        "type": "object",
+                    },
+                    "preferred": False,
+                    "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
                 },
                 {"engine": "hana", "name": "SAP HANA", "preferred": False},
             ]
