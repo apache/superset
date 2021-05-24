@@ -8530,4 +8530,3 @@ msgstr ""
 #: superset-frontend/src/visualizations/TimeTable/TimeTableChartPlugin.js:24
 msgid "Time-series Table"
 msgstr ""
-
