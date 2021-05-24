@@ -21,8 +21,8 @@ from io import BytesIO
 from typing import Any, Dict
 from zipfile import ZipFile
 
-import simplejson
 import dicttoxml
+import simplejson
 from flask import g, make_response, redirect, request, Response, send_file, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -83,7 +83,7 @@ from superset.views.base_api import (
     RelatedFieldFilter,
     statsd_metrics,
 )
-from superset.views.core import CsvResponse, XmlResponse, generate_download_headers
+from superset.views.core import CsvResponse, generate_download_headers, XmlResponse
 from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
