@@ -30,6 +30,7 @@ describe('PivotTableChart transformProps', () => {
     ],
     hooks: { setDataMask },
     filterState: { selectedFilters: {} },
+    datasource: { verboseMap: {} },
   });
 
   it('should transform chart props for viz', () => {
@@ -53,6 +54,7 @@ describe('PivotTableChart transformProps', () => {
       emitFilter: false,
       setDataMask,
       selectedFilters: {},
+      verboseMap: {},
     });
   });
 });

@@ -56,6 +56,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     emitFilter,
     setDataMask,
     selectedFilters,
+    verboseMap,
   } = props;
 
   const adaptiveFormatter = getNumberFormatter(valueFormat);
@@ -202,6 +203,7 @@ export default function PivotTableChart(props: PivotTableProps) {
           colSubtotalDisplay: { displayOnTop: colSubtotalPosition },
           rowSubtotalDisplay: { displayOnTop: rowSubtotalPosition },
         }}
+        namesMapping={verboseMap}
       />
     </Styles>
   );
