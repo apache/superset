@@ -42,20 +42,35 @@ const mockedProps = {
 const dbProps = {
   show: true,
   databaseId: 10,
+  database_name: 'my database',
+  sqlalchemy_uri: 'postgres://superset:superset@something:1234/superset',
 };
 
 const DATABASE_ENDPOINT = 'glob:*/api/v1/database/*';
+const AVAILABLE_DB_ENDPOINT = 'glob:*/api/v1/database/available/*';
+fetchMock.config.overwriteRoutes = true;
 fetchMock.get(DATABASE_ENDPOINT, {
   result: {
-    id: 1,
+    id: 10,
     database_name: 'my database',
     expose_in_sqllab: false,
     allow_ctas: false,
     allow_cvas: false,
+    configuration_method: 'sqlalchemy_form',
   },
+});
+fetchMock.get(AVAILABLE_DB_ENDPOINT, {
+  databases: [
+    {
+      engine: 'mysql',
+      name: 'MySQL',
+      preferred: false,
+    },
+  ],
 });
 
 describe('DatabaseModal', () => {
+  afterEach(fetchMock.reset);
   describe('enzyme', () => {
     let wrapper;
     let spyOnUseSelector;
@@ -250,6 +265,73 @@ describe('DatabaseModal', () => {
 
       // Both checkboxes go unchecked, so the field should no longer render
       expect(schemaField).not.toHaveClass('open');
+    });
+
+    describe('create database', () => {
+      it('should show a form when dynamic_form is selected', async () => {
+        const props = {
+          ...dbProps,
+          databaseId: null,
+          database_name: null,
+          sqlalchemy_uri: null,
+        };
+        render(<DatabaseModal {...props} />, { useRedux: true });
+        // it should have the correct header text
+        const headerText = screen.getByText(/connect a database/i);
+        expect(headerText).toBeVisible();
+
+        await screen.findByText(/display name/i);
+
+        // it does not fetch any databases if no id is passed in
+        expect(fetchMock.calls().length).toEqual(0);
+
+        // todo we haven't hooked this up to load dynamically yet so
+        // we can't currently test it
+      });
+    });
+
+    describe('edit database', () => {
+      it('renders the sqlalchemy form when the sqlalchemy_form configuration method is set', async () => {
+        render(<DatabaseModal {...dbProps} />, { useRedux: true });
+
+        // it should have tabs
+        const tabs = screen.getAllByRole('tab');
+        expect(tabs.length).toEqual(2);
+        expect(tabs[0]).toHaveTextContent('Basic');
+        expect(tabs[1]).toHaveTextContent('Advanced');
+
+        // it should have the correct header text
+        const headerText = screen.getByText(/edit database/i);
+        expect(headerText).toBeVisible();
+
+        // todo add more when this form is built out
+      });
+      it('renders the dynamic form when the dynamic_form configuration method is set', async () => {
+        fetchMock.get(DATABASE_ENDPOINT, {
+          result: {
+            id: 10,
+            database_name: 'my database',
+            expose_in_sqllab: false,
+            allow_ctas: false,
+            allow_cvas: false,
+            configuration_method: 'dynamic_form',
+            parameters: {
+              database: 'mydatabase',
+            },
+          },
+        });
+        render(<DatabaseModal {...dbProps} />, { useRedux: true });
+
+        await screen.findByText(/todo/i);
+
+        // // it should have tabs
+        const tabs = screen.getAllByRole('tab');
+        expect(tabs.length).toEqual(2);
+
+        // it should show a TODO for now
+        const todoText = screen.getAllByText(/todo/i);
+        expect(todoText[0]).toBeVisible();
+      });
     });
   });
 });

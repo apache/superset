@@ -29,8 +29,8 @@ import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import ListView, { FilterOperator, Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
+import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
 import ImportModelsModal from 'src/components/ImportModal/index';
-import DatabaseModal from './DatabaseModal';
 import { DatabaseObject } from './types';
 
 const PAGE_SIZE = 25;
@@ -147,10 +147,13 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     );
   }
 
-  function handleDatabaseEdit(database: DatabaseObject) {
-    // Set database and open modal
+  function handleDatabaseEditModal({
+    database = null,
+    modalOpen = false,
+  }: { database?: DatabaseObject | null; modalOpen?: boolean } = {}) {
+    // Set database and modal
     setCurrentDatabase(database);
-    setDatabaseModalOpen(true);
+    setDatabaseModalOpen(modalOpen);
   }
 
   const canCreate = hasPerm('can_write');
@@ -176,8 +179,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         buttonStyle: 'primary',
         onClick: () => {
           // Ensure modal will be opened in add mode
-          setCurrentDatabase(null);
-          setDatabaseModalOpen(true);
+          handleDatabaseEditModal({ modalOpen: true });
         },
       },
     ];
@@ -298,7 +300,8 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
-          const handleEdit = () => handleDatabaseEdit(original);
+          const handleEdit = () =>
+            handleDatabaseEditModal({ database: original, modalOpen: true });
           const handleDelete = () => openDatabaseDeleteModal(original);
           const handleExport = () => handleDatabaseExport(original);
           if (!canEdit && !canDelete && !canExport) {
@@ -416,7 +419,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       <DatabaseModal
         databaseId={currentDatabase?.id}
         show={databaseModalOpen}
-        onHide={() => setDatabaseModalOpen(false)}
+        onHide={handleDatabaseEditModal}
         onDatabaseAdd={() => {
           refreshData();
         }}

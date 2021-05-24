@@ -28,7 +28,6 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError
 
 from superset.db_engine_specs import get_engine_specs
-from superset.db_engine_specs.base import BasicParametersMixin
 from superset.exceptions import CertificateException, SupersetSecurityException
 from superset.models.core import ConfigurationMethod, PASSWORD_MASK
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
@@ -40,6 +39,7 @@ database_schemas_query_schema = {
 }
 
 database_name_description = "A database name to identify this connection."
+port_description = "Port number for the database connection."
 cache_timeout_description = (
     "Duration (in seconds) of the caching timeout for charts of this database. "
     "A timeout of 0 indicates that the cache never expires. "
@@ -246,6 +246,12 @@ class DatabaseParametersSchemaMixin:
         the constructed SQLAlchemy URI to be passed.
         """
         parameters = data.pop("parameters", None)
+        serialized_encrypted_extra = data.get("encrypted_extra", "{}")
+        try:
+            encrypted_extra = json.loads(serialized_encrypted_extra)
+        except json.decoder.JSONDecodeError:
+            encrypted_extra = {}
+
         if parameters:
             if "engine" not in parameters:
                 raise ValidationError(
@@ -264,18 +270,14 @@ class DatabaseParametersSchemaMixin:
                     [_('Engine "%(engine)s" is not a valid engine.', engine=engine,)]
                 )
             engine_spec = engine_specs[engine]
-            if not issubclass(engine_spec, BasicParametersMixin):
-                raise ValidationError(
-                    [
-                        _(
-                            'Engine spec "%(engine_spec)s" does not support '
-                            "being configured via individual parameters.",
-                            engine_spec=engine_spec.__name__,
-                        )
-                    ]
+
+            if hasattr(engine_spec, "build_sqlalchemy_uri"):
+                data[
+                    "sqlalchemy_uri"
+                ] = engine_spec.build_sqlalchemy_uri(  # type: ignore
+                    parameters, encrypted_extra
                 )
 
-            data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(parameters)
         return data
 
 
@@ -552,3 +554,15 @@ class ImportV1DatabaseSchema(Schema):
         password = make_url(uri).password
         if password == PASSWORD_MASK and data.get("password") is None:
             raise ValidationError("Must provide a password for the database")
+
+
+class EncryptedField(fields.String):
+    pass
+
+
+def encrypted_field_properties(self, field: Any, **_) -> Dict[str, Any]:  # type: ignore
+    ret = {}
+    if isinstance(field, EncryptedField):
+        if self.openapi_version.major > 2:
+            ret["x-encrypted-extra"] = True
+    return ret
