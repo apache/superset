@@ -34,6 +34,7 @@ type DefaultValueProps = {
   hasDataset: boolean;
   form: FormInstance<NativeFiltersForm>;
   formData: ReturnType<typeof getFormData>;
+  enableNoResults: boolean;
 };
 
 const DefaultValue: FC<DefaultValueProps> = ({
@@ -42,6 +43,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
   form,
   setDataMask,
   formData,
+  enableNoResults,
 }) => {
   const [loading, setLoading] = useState(hasDataset);
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
@@ -70,6 +72,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
       }
       chartType={formFilter?.filterType}
       hooks={{ setDataMask }}
+      enableNoResults={enableNoResults}
     />
   );
 };

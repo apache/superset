@@ -39,6 +39,7 @@ const OPERATORS_TO_SQL = {
   IN: 'IN',
   'NOT IN': 'NOT IN',
   LIKE: 'LIKE',
+  ILIKE: 'ILIKE',
   REGEX: 'REGEX',
   'IS NOT NULL': 'IS NOT NULL',
   'IS NULL': 'IS NULL',
