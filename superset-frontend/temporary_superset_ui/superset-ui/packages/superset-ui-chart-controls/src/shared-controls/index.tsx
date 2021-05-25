@@ -46,7 +46,6 @@ import {
 } from '@superset-ui/core';
 
 import {
-  mainMetric,
   formatSelectOptions,
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
@@ -130,10 +129,6 @@ const metrics: SharedControlConfig<'MetricsControl'> = {
   multi: true,
   label: t('Metrics'),
   validators: [validateNonEmpty],
-  default: (c: Control) => {
-    const metric = mainMetric(c.savedMetrics);
-    return metric ? [metric] : null;
-  },
   mapStateToProps: ({ datasource }) => ({
     columns: datasource ? datasource.columns : [],
     savedMetrics: datasource ? datasource.metrics : [],
@@ -147,7 +142,6 @@ const metric: SharedControlConfig<'MetricsControl'> = {
   multi: false,
   label: t('Metric'),
   description: t('Metric'),
-  default: (c: Control) => mainMetric(c.savedMetrics),
 };
 
 const datasourceControl: SharedControlConfig<'DatasourceControl'> = {
@@ -304,7 +298,7 @@ const time_range: SharedControlConfig<'DateFilterControl'> = {
   type: 'DateFilterControl',
   freeForm: true,
   label: TIME_FILTER_LABELS.time_range,
-  default: t('Last week'), // this value is translated, but the backend wouldn't understand a translated value?
+  default: t('No filter'), // this value is translated, but the backend wouldn't understand a translated value?
   description: t(
     'The time range for the visualization. All relative times, e.g. "Last month", ' +
       '"Last 7 days", "now", etc. are evaluated on the server using the server\'s ' +
