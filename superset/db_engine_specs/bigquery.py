@@ -310,7 +310,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
         cls, _: BigQueryParametersType, encrypted_extra: Optional[Dict[str, str]] = None
     ) -> str:
         if encrypted_extra:
-            project_id = encrypted_extra.get("project_id")
+            project_id = encrypted_extra.get("credentials_info").get("project_id")
             return f"{cls.drivername}://{project_id}"
 
         raise SupersetGenericDBErrorException(
