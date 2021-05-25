@@ -252,7 +252,8 @@ class DatabaseParametersSchemaMixin:
         # frontend is not passing engine inside parameters
         engine = data.pop("engine", None) or parameters.pop("engine", None)
 
-        if parameters:
+        configuration_method = data.get('configuration_method')
+        if configuration_method == ConfigurationMethod.DYNAMIC_FORM:
             if not engine:
                 raise ValidationError(
                     [
