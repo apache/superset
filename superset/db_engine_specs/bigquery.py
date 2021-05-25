@@ -307,10 +307,12 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     @classmethod
     def build_sqlalchemy_uri(
-        cls, _: BigQueryParametersType, encrypted_extra: Optional[Dict[str, str]] = None
+        cls, _: BigQueryParametersType, encrypted_extra: Optional[Dict[str, Any]] = None
     ) -> str:
         if encrypted_extra:
-            project_id = encrypted_extra.get("project_id")
+            project_id = encrypted_extra.get("credentials_info", {}).get("project_id")
+
+        if project_id:
             return f"{cls.drivername}://{project_id}"
 
         raise SupersetGenericDBErrorException(
