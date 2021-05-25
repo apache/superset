@@ -68,7 +68,7 @@ const credentialsInfo = ({
       </Select>
       {uploadOption === 'paste' ? (
         <div className="input-container" onChange={changeMethods.onChange}>
-          <Input name="encryption_extra" rows={4}/>
+          <Input name="encrypted_extra" rows={4}/>
         </div>
       ) : (
         <Upload>
