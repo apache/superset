@@ -93,6 +93,8 @@ const DEFAULT_ORDER = [
 
 const typesWithDefaultOrder = new Set(DEFAULT_ORDER);
 
+export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
+
 function VizSupportValidation({ vizType }) {
   const state = useDynamicPluginContext();
   if (state.loading || registry.has(vizType)) {
@@ -153,7 +155,10 @@ const VizTypeControl = props => {
           className={`viztype-selector ${isSelected ? 'selected' : ''}`}
           src={type.thumbnail}
         />
-        <div className="viztype-label" data-test="viztype-label">
+        <div
+          className="viztype-label"
+          data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__viztype-label`}
+        >
           {type.name}
         </div>
       </div>
@@ -162,8 +167,10 @@ const VizTypeControl = props => {
 
   const { value, labelType } = props;
   const filterString = filter.toLowerCase();
+  const filterStringParts = filterString.split(' ');
 
-  const filteredTypes = DEFAULT_ORDER.filter(type => registry.has(type))
+  const a = DEFAULT_ORDER.filter(type => registry.has(type));
+  const filteredTypes = a
     .filter(type => {
       const behaviors = registry.get(type)?.behaviors || [];
       return nativeFilterGate(behaviors);
@@ -181,7 +188,11 @@ const VizTypeControl = props => {
         })
         .filter(({ key }) => !typesWithDefaultOrder.has(key)),
     )
-    .filter(entry => entry.value.name.toLowerCase().includes(filterString));
+    .filter(entry =>
+      filterStringParts.every(
+        part => entry.value.name.toLowerCase().indexOf(part) !== -1,
+      ),
+    );
 
   return (
     <div>
@@ -217,9 +228,10 @@ const VizTypeControl = props => {
             value={filter}
             placeholder={t('Search')}
             onChange={changeSearch}
+            data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__search-input`}
           />
         </div>
-        <Row data-test="viz-row" gutter={16}>
+        <Row data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__viz-row`} gutter={16}>
           {filteredTypes.map(entry => (
             <Col xs={12} sm={8} md={6} lg={4} key={`grid-col-${entry.key}`}>
               {renderItem(entry)}
