@@ -169,11 +169,14 @@ class TestDatabaseModel(SupersetTestCase):
         class FilterTestCase(NamedTuple):
             operator: str
             value: Union[float, int, List[Any], str]
-            expected: str
+            expected: Union[str, List[str]]
 
         filters: Tuple[FilterTestCase, ...] = (
             FilterTestCase(FilterOperator.IS_NULL, "", "IS NULL"),
             FilterTestCase(FilterOperator.IS_NOT_NULL, "", "IS NOT NULL"),
+            # Some db backends translate true/false to 1/0
+            FilterTestCase(FilterOperator.IS_TRUE, "", ["IS 1", "IS true"]),
+            FilterTestCase(FilterOperator.IS_FALSE, "", ["IS 0", "IS false"]),
             FilterTestCase(FilterOperator.GREATER_THAN, 0, "> 0"),
             FilterTestCase(FilterOperator.GREATER_THAN_OR_EQUALS, 0, ">= 0"),
             FilterTestCase(FilterOperator.LESS_THAN, 0, "< 0"),
@@ -199,7 +202,12 @@ class TestDatabaseModel(SupersetTestCase):
             }
             sqla_query = table.get_sqla_query(**query_obj)
             sql = table.database.compile_sqla_query(sqla_query.sqla_query)
-            self.assertIn(filter_.expected, sql)
+            if isinstance(filter_.expected, list):
+                self.assertTrue(
+                    any([candidate in sql for candidate in filter_.expected])
+                )
+            else:
+                self.assertIn(filter_.expected, sql)
 
     def test_incorrect_jinja_syntax_raises_correct_exception(self):
         query_obj = {

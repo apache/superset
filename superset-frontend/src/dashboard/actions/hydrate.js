@@ -18,13 +18,11 @@
  */
 /* eslint-disable camelcase */
 import { isString, keyBy } from 'lodash';
-import shortid from 'shortid';
 import {
   Behavior,
   CategoricalColorNamespace,
   getChartMetadataRegistry,
 } from '@superset-ui/core';
-import querystring from 'query-string';
 
 import { chart } from 'src/chart/chartReducer';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
@@ -32,7 +30,9 @@ import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/re
 import { getParam } from 'src/modules/utils';
 import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
-import findPermission from 'src/dashboard/util/findPermission';
+import findPermission, {
+  canUserEditDashboard,
+} from 'src/dashboard/util/findPermission';
 import {
   DASHBOARD_FILTER_SCOPE_GLOBAL,
   dashboardFilter,
@@ -55,27 +55,7 @@ import getLocationHash from 'src/dashboard/util/getLocationHash';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import { TIME_RANGE } from 'src/visualizations/FilterBox/FilterBox';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
-
-const reservedQueryParams = new Set(['standalone', 'edit']);
-
-/**
- * Returns the url params that are used to customize queries
- * in datasets built using sql lab.
- * We may want to extract this to some kind of util in the future.
- */
-const extractUrlParams = queryParams =>
-  Object.entries(queryParams).reduce((acc, [key, value]) => {
-    if (reservedQueryParams.has(key)) return acc;
-    // if multiple url params share the same key (?foo=bar&foo=baz), they will appear as an array.
-    // Only one value can be used for a given query param, so we just take the first one.
-    if (Array.isArray(value)) {
-      return {
-        ...acc,
-        [key]: value[0],
-      };
-    }
-    return { ...acc, [key]: value };
-  }, {});
+import extractUrlParams from '../util/extractUrlParams';
 
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
@@ -85,9 +65,9 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
 ) => {
   const { user, common } = getState();
   let { metadata } = dashboardData;
-  const queryParams = querystring.parse(window.location.search);
-  const urlParams = extractUrlParams(queryParams);
-  const editMode = queryParams.edit === 'true';
+  const regularUrlParams = extractUrlParams('regular');
+  const reservedUrlParams = extractUrlParams('reserved');
+  const editMode = reservedUrlParams.edit === 'true';
 
   let preselectFilters = {};
 
@@ -154,7 +134,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
       ...slice.form_data,
       url_params: {
         ...slice.form_data.url_params,
-        ...urlParams,
+        ...regularUrlParams,
       },
     };
     chartQueries[key] = {
@@ -341,7 +321,8 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
     });
   }
 
-  const { roles } = getState().user;
+  const { roles } = user;
+  const canEdit = canUserEditDashboard(dashboardData, user);
 
   return dispatch({
     type: HYDRATE_DASHBOARD,
@@ -354,7 +335,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
         ...dashboardData,
         metadata,
         userId: String(user.userId), // legacy, please use state.user instead
-        dash_edit_perm: findPermission('can_write', 'Dashboard', roles),
+        dash_edit_perm: canEdit,
         dash_save_perm: findPermission('can_save_dash', 'Superset', roles),
         dash_share_perm: findPermission(
           'can_share_dashboard',
@@ -390,15 +371,13 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
         css: dashboardData.css || '',
         colorNamespace: metadata?.color_namespace || null,
         colorScheme: metadata?.color_scheme || null,
-        editMode: findPermission('can_write', 'Dashboard', roles) && editMode,
+        editMode: canEdit && editMode,
         isPublished: dashboardData.published,
         hasUnsavedChanges: false,
         maxUndoHistoryExceeded: false,
         lastModifiedTime: dashboardData.changed_on,
       },
       dashboardLayout,
-      messageToasts: [],
-      impressionId: shortid.generate(),
     },
   });
 };

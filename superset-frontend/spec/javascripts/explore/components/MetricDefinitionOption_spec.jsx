@@ -19,10 +19,13 @@
 import React from 'react';
 import configureStore from 'redux-mock-store';
 import { shallow } from 'enzyme';
-import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
 
 import MetricDefinitionOption from 'src/explore/components/controls/MetricControl/MetricDefinitionOption';
 import AggregateOption from 'src/explore/components/controls/MetricControl/AggregateOption';
+import {
+  StyledMetricOption,
+  StyledColumnOption,
+} from 'src/explore/components/optionRenderers';
 
 describe('MetricDefinitionOption', () => {
   const mockStore = configureStore([]);
@@ -32,16 +35,16 @@ describe('MetricDefinitionOption', () => {
     return shallow(<MetricDefinitionOption store={store} {...props} />).dive();
   }
 
-  it('renders a MetricOption given a saved metric', () => {
+  it('renders a StyledMetricOption given a saved metric', () => {
     const wrapper = setup({
       option: { metric_name: 'a_saved_metric', expression: 'COUNT(*)' },
     });
-    expect(wrapper.find(MetricOption)).toExist();
+    expect(wrapper.find(StyledMetricOption)).toExist();
   });
 
-  it('renders a ColumnOption given a column', () => {
+  it('renders a StyledColumnOption given a column', () => {
     const wrapper = setup({ option: { column_name: 'a_column' } });
-    expect(wrapper.find(ColumnOption)).toExist();
+    expect(wrapper.find(StyledColumnOption)).toExist();
   });
 
   it('renders an AggregateOption given an aggregate metric', () => {

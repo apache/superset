@@ -101,7 +101,7 @@ describe('ActivityTable', () => {
     expect(wrapper.find(ActivityTable)).toExist();
   });
   it('renders tabs with three buttons', () => {
-    expect(wrapper.find('li')).toHaveLength(3);
+    expect(wrapper.find('li.no-router')).toHaveLength(3);
   });
   it('renders ActivityCards', async () => {
     expect(wrapper.find('ListViewCard')).toExist();
@@ -119,7 +119,7 @@ describe('ActivityTable', () => {
     expect(chartCall).toHaveLength(1);
     expect(dashboardCall).toHaveLength(1);
   });
-  it('show empty state if there is data', () => {
+  it('show empty state if there is no data', () => {
     const activityProps = {
       activeChild: 'Created',
       activityData: {},

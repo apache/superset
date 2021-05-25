@@ -16,14 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  FilterState,
-  QueryFormData,
-  DataRecord,
-  SetDataMaskHook,
-} from '@superset-ui/core';
+import { FilterState, QueryFormData, DataRecord } from '@superset-ui/core';
 import { RefObject } from 'react';
-import { PluginFilterStylesProps } from '../types';
+import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
 
 interface PluginFilterTimeGrainCustomizeProps {
   defaultValue?: string[] | null;
@@ -36,10 +31,9 @@ export type PluginFilterTimeGrainQueryFormData = QueryFormData &
 
 export type PluginFilterTimeGrainProps = PluginFilterStylesProps & {
   data: DataRecord[];
-  setDataMask: SetDataMaskHook;
   filterState: FilterState;
   formData: PluginFilterTimeGrainQueryFormData;
-};
+} & PluginFilterHooks;
 
 export const DEFAULT_FORM_DATA: PluginFilterTimeGrainCustomizeProps = {
   defaultValue: null,

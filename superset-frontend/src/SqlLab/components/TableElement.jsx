@@ -204,7 +204,7 @@ class TableElement extends React.PureComponent {
       >
         <Tooltip
           id="copy-to-clipboard-tooltip"
-          placement="top"
+          placement="topLeft"
           style={{ cursor: 'pointer' }}
           title={table.name}
           trigger={['hover']}

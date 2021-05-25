@@ -90,63 +90,6 @@
     flex-grow: 1;
   }
 
-  .chart-card-container {
-    .chart-card {
-      border: 1px solid @gray-light;
-      font-weight: @font-weight-light;
-      padding: 8px;
-      margin: 0 8px 8px 8px;
-      position: relative;
-      cursor: move;
-      background: fade(@lightest, @opacity-medium-light);
-      white-space: nowrap;
-      overflow: hidden;
-
-      &:hover {
-        background: @gray-bg;
-      }
-    }
-
-    .card-title {
-      margin-right: 60px;
-      margin-bottom: 8px;
-      font-weight: @font-weight-bold;
-    }
-
-    .card-body {
-      display: flex;
-      flex-direction: column;
-
-      .item {
-        span {
-          word-break: break-all;
-
-          &:first-child {
-            font-weight: @font-weight-normal;
-          }
-        }
-      }
-    }
-
-    .chart-card.is-selected {
-      cursor: not-allowed;
-      opacity: 0.4;
-    }
-
-    .is-added-label {
-      background: @almost-black;
-      color: @lightest;
-      font-size: @font-size-s;
-      line-height: @line-height-tight;
-      text-transform: uppercase;
-      position: absolute;
-      padding: 4px 8px;
-      top: 32px;
-      right: 32px;
-      pointer-events: none;
-    }
-  }
-
   .slice-adder-container {
     position: relative;
     background-color: white;

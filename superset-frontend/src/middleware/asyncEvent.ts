@@ -56,13 +56,15 @@ const RETRY_DELAY = 100;
 
 let config: AppConfig;
 let transport: string;
-let polling_delay: number;
+let pollingDelayMs: number;
+let pollingTimeoutId: number;
 let listenersByJobId: Record<string, ListenerFn>;
 let retriesByJobId: Record<string, number>;
 let lastReceivedEventId: string | null | undefined;
 
 export const init = (appConfig?: AppConfig) => {
   if (!isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) return;
+  if (pollingTimeoutId) clearTimeout(pollingTimeoutId);
 
   listenersByJobId = {};
   retriesByJobId = {};
@@ -84,7 +86,7 @@ export const init = (appConfig?: AppConfig) => {
     }
   }
   transport = config.GLOBAL_ASYNC_QUERIES_TRANSPORT || TRANSPORT_POLLING;
-  polling_delay = config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY || 500;
+  pollingDelayMs = config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY || 500;
 
   try {
     lastReceivedEventId = localStorage.getItem(LOCALSTORAGE_KEY);
@@ -185,7 +187,7 @@ const loadEventsFromApi = async () => {
   }
 
   if (transport === TRANSPORT_POLLING) {
-    setTimeout(loadEventsFromApi, polling_delay);
+    pollingTimeoutId = window.setTimeout(loadEventsFromApi, pollingDelayMs);
   }
 };
 

@@ -22,7 +22,7 @@ from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
 from flask_babel import _
 
-from superset import app, db
+from superset import app, db, event_logger
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.datasets.commands.exceptions import DatasetForbiddenError
 from superset.exceptions import SupersetException, SupersetSecurityException
@@ -36,6 +36,10 @@ class Datasource(BaseSupersetView):
     """Datasource-related views"""
 
     @expose("/save/", methods=["POST"])
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.save",
+        log_to_statsd=False,
+    )
     @has_access_api
     @api
     @handle_api_exception

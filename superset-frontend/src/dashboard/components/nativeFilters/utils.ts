@@ -28,6 +28,7 @@ import {
 import { Charts } from 'src/dashboard/types';
 import { RefObject } from 'react';
 import { DataMaskStateWithId } from 'src/dataMask/types';
+import extractUrlParams from 'src/dashboard/util/extractUrlParams';
 import { Filter } from './types';
 
 export const getFormData = ({
@@ -71,12 +72,12 @@ export const getFormData = ({
     extra_form_data: cascadingFilters,
     granularity_sqla: 'ds',
     metrics: ['count'],
-    row_limit: 10000,
+    row_limit: 1000,
     showSearch: true,
     defaultValue: defaultDataMask?.filterState?.value,
     time_range,
     time_range_endpoints: ['inclusive', 'exclusive'],
-    url_params: {},
+    url_params: extractUrlParams('regular'),
     viz_type: filterType,
     inputRef,
   };

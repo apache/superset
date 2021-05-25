@@ -23,7 +23,17 @@ from typing import Any, Callable, cast, Dict, List, Optional, TYPE_CHECKING, Uni
 
 import simplejson as json
 import yaml
-from flask import abort, flash, g, get_flashed_messages, redirect, Response, session
+from flask import (
+    abort,
+    flash,
+    g,
+    get_flashed_messages,
+    redirect,
+    request,
+    Response,
+    send_file,
+    session,
+)
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.forms import DynamicForm
@@ -32,7 +42,9 @@ from flask_appbuilder.security.sqla.models import Role, User
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from flask_jwt_extended.exceptions import NoAuthorizationError
+from flask_wtf.csrf import CSRFError
 from flask_wtf.form import FlaskForm
+from pkg_resources import resource_filename
 from sqlalchemy import or_
 from sqlalchemy.orm import Query
 from werkzeug.exceptions import HTTPException
@@ -361,9 +373,28 @@ def show_superset_errors(ex: SupersetErrorsException) -> FlaskResponse:
     return json_errors_response(errors=ex.errors, status=ex.status)
 
 
+# Redirect to login if the CSRF token is expired
+@superset_app.errorhandler(CSRFError)
+def refresh_csrf_token(ex: CSRFError) -> FlaskResponse:
+    logger.warning(ex)
+
+    if request.is_json:
+        return show_http_exception(ex)
+
+    return redirect(appbuilder.get_url_for_login)
+
+
 @superset_app.errorhandler(HTTPException)
 def show_http_exception(ex: HTTPException) -> FlaskResponse:
     logger.warning(ex)
+    if (
+        "text/html" in request.accept_mimetypes
+        and not config["DEBUG"]
+        and ex.code in {404, 500}
+    ):
+        path = resource_filename("superset", f"static/assets/{ex.code}.html")
+        return send_file(path)
+
     return json_errors_response(
         errors=[
             SupersetError(

@@ -206,11 +206,14 @@ class FilterOperator(str, Enum):
     GREATER_THAN_OR_EQUALS = ">="
     LESS_THAN_OR_EQUALS = "<="
     LIKE = "LIKE"
+    ILIKE = "ILIKE"
     IS_NULL = "IS NULL"
     IS_NOT_NULL = "IS NOT NULL"
     IN = "IN"  # pylint: disable=invalid-name
     NOT_IN = "NOT IN"
     REGEX = "REGEX"
+    IS_TRUE = "IS TRUE"
+    IS_FALSE = "IS FALSE"
 
 
 class PostProcessingBoxplotWhiskerType(str, Enum):
@@ -1681,3 +1684,35 @@ def normalize_dttm_col(
         df[DTTM_ALIAS] += timedelta(hours=offset)
     if time_shift is not None:
         df[DTTM_ALIAS] += time_shift
+
+
+def parse_boolean_string(bool_str: Optional[str]) -> bool:
+    """
+    Convert a string representation of a true/false value into a boolean
+
+    >>> parse_boolean_string(None)
+    False
+    >>> parse_boolean_string('false')
+    False
+    >>> parse_boolean_string('true')
+    True
+    >>> parse_boolean_string('False')
+    False
+    >>> parse_boolean_string('True')
+    True
+    >>> parse_boolean_string('foo')
+    False
+    >>> parse_boolean_string('0')
+    False
+    >>> parse_boolean_string('1')
+    True
+
+    :param bool_str: string representation of a value that is assumed to be boolean
+    :return: parsed boolean value
+    """
+    if bool_str is None:
+        return False
+    try:
+        return bool(strtobool(bool_str.lower()))
+    except ValueError:
+        return False
