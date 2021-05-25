@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FormEvent } from 'react';
+import React, { FormEvent, useState } from 'react';
 import { SupersetTheme, JsonObject } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
+import { Input, Select, Upload, Button} from 'src/common/components';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import {
   StyledFormHeader,
@@ -34,6 +35,7 @@ export const FormFieldOrder = [
   'username',
   'password',
   'database_name',
+  'credentials_info',
 ];
 
 interface FieldPropTypes {
@@ -44,6 +46,42 @@ interface FieldPropTypes {
   validationErrors: JsonObject | null;
   getValidation: () => void;
 }
+
+const credentialsInfo = ({
+  required,
+  changeMethods,
+  getValidation,
+  validationErrors,
+}: FieldPropTypes) => {
+  const [uploadOption, setUploadOption] = useState<string>('upload');
+  return (
+    <>
+      <Select
+        defaultValue={'file'}
+        style={{ width: '100%' }}
+        onChange={value => {
+          setUploadOption(value);
+        }}
+      >
+        <Select value="file">Upload JSON file</Select>
+        <Select value="paste">Copy and Paste JSON credentials</Select>
+      </Select>
+      {uploadOption === 'paste' ? (
+        <div className="input-container">
+          <Input rows={4}/>
+        </div>
+      ) : (
+        <Upload>
+          <Button>Click to Upload</Button>
+        </Upload>
+      )}
+      {/* <div className="input-container">
+          <Input rows={4}/>
+      </div> */}
+    </>
+  );
+};
+
 
 const hostField = ({
   required,
@@ -159,6 +197,7 @@ const FORM_FIELD_MAP = {
   username: usernameField,
   password: passwordField,
   database_name: displayField,
+  credentials_info: credentialsInfo,
 };
 
 const DatabaseConnectionForm = ({
@@ -206,6 +245,7 @@ const DatabaseConnectionForm = ({
             key: field,
           }),
         )}
+        {JSON.stringify(parameters)}
     </div>
   </>
 );

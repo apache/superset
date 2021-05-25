@@ -301,7 +301,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       setDB({
         type: ActionType.dbSelected,
         payload: {
-          configuration_method: CONFIGURATION_METHOD.SQLALCHEMY_URI,
+          configuration_method: CONFIGURATION_METHOD.DYNAMIC_FORM,
+          engine: 'bigquery',
         }, // todo hook this up to step 1
       });
     }

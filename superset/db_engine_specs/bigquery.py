@@ -49,6 +49,7 @@ ma_plugin = MarshmallowPlugin()
 
 class BigQueryParametersSchema(Schema):
     credentials_info = EncryptedField(
+        required=True,  # TODO: remove this but is needed to render in the FE
         description="Contents of BigQuery JSON credentials.",
     )
 
