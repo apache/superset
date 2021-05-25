@@ -886,6 +886,17 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                         name:
                           description: Name of the database
                           type: string
+                        engine:
+                          description: Name of the SQLAlchemy engine
+                          type: string
+                        available_drivers:
+                          description: Installed drivers for the engine
+                          type: array
+                          items:
+                            type: string
+                        default_driver:
+                          description: Default driver for the engine
+                          type: string
                         preferred:
                           description: Is the database preferred?
                           type: boolean
@@ -894,6 +905,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                           type: string
                         parameters:
                           description: JSON schema defining the needed parameters
+                          type: object
             400:
               $ref: '#/components/responses/400'
             500:
@@ -901,15 +913,22 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         """
         preferred_databases: List[str] = app.config.get("PREFERRED_DATABASES", [])
         available_databases = []
-        for engine_spec in get_available_engine_specs():
+        for engine_spec, drivers in get_available_engine_specs().items():
             payload: Dict[str, Any] = {
                 "name": engine_spec.engine_name,
                 "engine": engine_spec.engine,
-                "preferred": engine_spec.engine in preferred_databases,
+                "available_drivers": sorted(drivers),
+                "preferred": engine_spec.engine_name in preferred_databases,
             }
 
-            if hasattr(engine_spec, "parameters_json_schema") and hasattr(
-                engine_spec, "sqlalchemy_uri_placeholder"
+            if hasattr(engine_spec, "default_driver"):
+                payload["default_driver"] = engine_spec.default_driver  # type: ignore
+
+            # show configuration parameters for DBs that support it
+            if (
+                hasattr(engine_spec, "parameters_json_schema")
+                and hasattr(engine_spec, "sqlalchemy_uri_placeholder")
+                and getattr(engine_spec, "default_driver") in drivers
             ):
                 payload[
                     "parameters"
@@ -920,13 +939,25 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
             available_databases.append(payload)
 
-        available_databases.sort(
-            key=lambda payload: preferred_databases.index(payload["engine"])
-            if payload["engine"] in preferred_databases
-            else len(preferred_databases)
+        # sort preferred first
+        response = sorted(
+            (payload for payload in available_databases if payload["preferred"]),
+            key=lambda payload: preferred_databases.index(payload["name"]),
         )
 
-        return self.response(200, databases=available_databases)
+        # add others
+        response.extend(
+            sorted(
+                (
+                    payload
+                    for payload in available_databases
+                    if not payload["preferred"]
+                ),
+                key=lambda payload: payload["name"],
+            )
+        )
+
+        return self.response(200, databases=response)
 
     @expose("/validate_parameters", methods=["POST"])
     @protect()
