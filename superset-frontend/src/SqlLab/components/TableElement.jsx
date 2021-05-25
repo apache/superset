@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import Collapse from 'src/components/Collapse';
 import Card from 'src/components/Card';
@@ -56,44 +56,37 @@ const Fade = styled.div`
   opacity: ${props => (props.hovered ? 1 : 0)};
 `;
 
-class TableElement extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {
-      sortColumns: false,
-      hovered: false,
-    };
-    this.toggleSortColumns = this.toggleSortColumns.bind(this);
-    this.removeTable = this.removeTable.bind(this);
-    this.setHover = debounce(this.setHover.bind(this), 100);
-  }
+const TableElement = props => {
+  const [sortColumns, setSortColumns] = useState(false);
+  const [hovered, setHovered] = useState(false);
 
-  setHover(hovered) {
-    this.setState({ hovered });
-  }
+  const { table, actions } = props;
 
-  popSelectStar() {
+  const setHover = hovered => {
+    debounce(() => setHovered(hovered), 100)();
+  };
+
+  const popSelectStar = () => {
     const qe = {
       id: shortid.generate(),
-      title: this.props.table.name,
-      dbId: this.props.table.dbId,
+      title: table.name,
+      dbId: table.dbId,
       autorun: true,
-      sql: this.props.table.selectStar,
+      sql: table.selectStar,
     };
-    this.props.actions.addQueryEditor(qe);
-  }
+    actions.addQueryEditor(qe);
+  };
 
-  removeTable() {
-    this.props.actions.removeDataPreview(this.props.table);
-    this.props.actions.removeTable(this.props.table);
-  }
+  const removeTable = () => {
+    actions.removeDataPreview(table);
+    actions.removeTable(table);
+  };
 
-  toggleSortColumns() {
-    this.setState(prevState => ({ sortColumns: !prevState.sortColumns }));
-  }
+  const toggleSortColumns = () => {
+    setSortColumns(prevState => !prevState);
+  };
 
-  renderWell() {
-    const { table } = this.props;
+  const renderWell = () => {
     let header;
     if (table.partitions) {
       let partitionQuery;
@@ -126,11 +119,10 @@ class TableElement extends React.PureComponent {
       );
     }
     return header;
-  }
+  };
 
-  renderControls() {
+  const renderControls = () => {
     let keyLink;
-    const { table } = this.props;
     if (table.indexes && table.indexes.length > 0) {
       keyLink = (
         <ModalTrigger
@@ -156,12 +148,12 @@ class TableElement extends React.PureComponent {
         {keyLink}
         <IconTooltip
           className={
-            `fa fa-sort-${!this.state.sortColumns ? 'alpha' : 'numeric'}-asc ` +
+            `fa fa-sort-${!sortColumns ? 'alpha' : 'numeric'}-asc ` +
             'pull-left sort-cols m-l-2 pointer'
           }
-          onClick={this.toggleSortColumns}
+          onClick={toggleSortColumns}
           tooltip={
-            !this.state.sortColumns
+            !sortColumns
               ? t('Sort columns alphabetically')
               : t('Original table column order')
           }
@@ -187,20 +179,19 @@ class TableElement extends React.PureComponent {
         )}
         <IconTooltip
           className="fa fa-times table-remove pull-left m-l-2 pointer"
-          onClick={this.removeTable}
+          onClick={removeTable}
           tooltip={t('Remove table preview')}
         />
       </ButtonGroup>
     );
-  }
+  };
 
-  renderHeader() {
-    const { table } = this.props;
+  const renderHeader = () => {
     return (
       <div
         className="clearfix header-container"
-        onMouseEnter={() => this.setHover(true)}
-        onMouseLeave={() => this.setHover(false)}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
       >
         <Tooltip
           id="copy-to-clipboard-tooltip"
@@ -220,23 +211,22 @@ class TableElement extends React.PureComponent {
           ) : (
             <Fade
               data-test="fade"
-              hovered={this.state.hovered}
+              hovered={hovered}
               onClick={e => e.stopPropagation()}
             >
-              {this.renderControls()}
+              {renderControls()}
             </Fade>
           )}
         </div>
       </div>
     );
-  }
+  };
 
-  renderBody() {
-    const { table } = this.props;
+  const renderBody = () => {
     let cols;
     if (table.columns) {
       cols = table.columns.slice();
-      if (this.state.sortColumns) {
+      if (sortColumns) {
         cols.sort((a, b) => {
           const colA = a.name.toUpperCase();
           const colB = b.name.toUpperCase();
@@ -253,11 +243,11 @@ class TableElement extends React.PureComponent {
 
     const metadata = (
       <div
-        onMouseEnter={() => this.setHover(true)}
-        onMouseLeave={() => this.setHover(false)}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
         css={{ paddingTop: 6 }}
       >
-        {this.renderWell()}
+        {renderWell()}
         <div>
           {cols &&
             cols.map(col => <ColumnElement column={col} key={col.name} />)}
@@ -265,21 +255,19 @@ class TableElement extends React.PureComponent {
       </div>
     );
     return metadata;
-  }
+  };
 
-  render() {
-    return (
-      <Collapse.Panel
-        {...this.props}
-        header={this.renderHeader()}
-        className="TableElement"
-        forceRender="true"
-      >
-        {this.renderBody()}
-      </Collapse.Panel>
-    );
-  }
-}
+  return (
+    <Collapse.Panel
+      {...props}
+      header={renderHeader()}
+      className="TableElement"
+      forceRender="true"
+    >
+      {renderBody()}
+    </Collapse.Panel>
+  );
+};
 
 TableElement.propTypes = propTypes;
 TableElement.defaultProps = defaultProps;
