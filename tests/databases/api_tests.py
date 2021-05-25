@@ -510,7 +510,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(username="admin")
         database_data = {
             "database_name": "test-database-updated",
-            "configuration_method": ConfigurationMethod.DYNAMIC_FORM,
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
         }
         uri = f"api/v1/database/{test_database.id}"
         rv = self.client.put(uri, json=database_data)
