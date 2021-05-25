@@ -27,7 +27,7 @@ type InputValueType = string | number;
 
 export interface TextControlProps<T extends InputValueType = InputValueType> {
   label?: string;
-  name?: string;
+  name: string;
   disabled?: boolean;
   isFloat?: boolean;
   isInt?: boolean;
