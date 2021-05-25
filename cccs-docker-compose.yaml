@@ -73,7 +73,7 @@ services:
     volumes: *superset-volumes
     environment:
       CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
-
+      PYTHONPATH: "/app/superset/cccs/pythonpath/:/app/pythonpath:/app/docker/pythonpath_dev"
   superset-init:
     image: *superset-image
     container_name: superset_init
@@ -84,6 +84,7 @@ services:
     volumes: *superset-volumes
     environment:
       CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
+      PYTHONPATH: "/app/superset/cccs/pythonpath/:/app/pythonpath:/app/docker/pythonpath_dev"
 
   superset-node:
     image: node:14
