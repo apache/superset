@@ -31,6 +31,7 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useHistory } from 'react-router-dom';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { User } from 'src/types/bootstrapTypes';
+import { HOMEPAGE_CHART_FILTER } from 'src/views/CRUD/utils';
 import ChartCard from 'src/views/CRUD/chart/ChartCard';
 import Chart from 'src/types/Chart';
 import Loading from 'src/components/Loading';
@@ -75,7 +76,6 @@ function ChartTable({
     false,
   );
 
-  useEffect(() => {});
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
     'chart',
@@ -92,7 +92,7 @@ function ChartTable({
   const [chartFilter, setChartFilter] = useState('Mine');
 
   useEffect(() => {
-    const filter = getFromLocalStorage('chart', null);
+    const filter = getFromLocalStorage(HOMEPAGE_CHART_FILTER, null);
     if (!filter) {
       setChartFilter('Mine');
     } else setChartFilter(filter.tab);
@@ -152,7 +152,7 @@ function ChartTable({
             onClick: () =>
               getData('Favorite').then(() => {
                 setChartFilter('Favorite');
-                setInLocalStorage('chart', { tab: 'Favorite' });
+                setInLocalStorage(HOMEPAGE_CHART_FILTER, { tab: 'Favorite' });
               }),
           },
           {
@@ -161,7 +161,7 @@ function ChartTable({
             onClick: () =>
               getData('Mine').then(() => {
                 setChartFilter('Mine');
-                setInLocalStorage('chart', { tab: 'Mine' });
+                setInLocalStorage(HOMEPAGE_CHART_FILTER, { tab: 'Mine' });
               }),
           },
         ]}

@@ -35,6 +35,7 @@ import {
 } from 'src/views/CRUD/utils';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { Switch } from 'src/common/components';
+import { HOMEPAGE_ACTIVITY_FILTER } from 'src/views/CRUD/utils';
 
 import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';
@@ -65,7 +66,7 @@ const WelcomeContainer = styled.div`
       margin: 0px ${({ theme }) => theme.gridUnit * 6}px;
       position: relative;
       width: 100%;
-      ${[mq[1]]} {
+      ${mq[1]} {
         margin-top: 5px;
         margin: 0px 2px;
       }
@@ -118,6 +119,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
 
   useEffect(() => {
     const userKey = getFromLocalStorage(id, null);
+    const activeTab = getFromLocalStorage(HOMEPAGE_ACTIVITY_FILTER, null)
     if (userKey && !userKey.thumbnails) setChecked(false);
     getRecentAcitivtyObjs(user.userId, recent, addDangerToast)
       .then(res => {
@@ -125,13 +127,14 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         if (res.viewed) {
           const filtered = reject(res.viewed, ['item_url', null]).map(r => r);
           data.Viewed = filtered;
-          const savedActivity = getFromLocalStorage('activity', null);
-          if (!savedActivity) {
+          if(!activeTab){
             setActiveChild('Viewed');
-          } else setActiveChild(savedActivity.activity);
+          } else setActiveChild(activeTab.activity);
         } else {
           data.Examples = res.examples;
-          setActiveChild('Examples');
+          if(activeTab === 'Viewed' || !activeTab){
+            setActiveChild( 'Examples');
+          } else setActiveChild(activeTab);
         }
         setActivityData(activityData => ({ ...activityData, ...data }));
       })

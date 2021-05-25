@@ -25,6 +25,7 @@ import {
   setInLocalStorage,
   getFromLocalStorage,
 } from 'src/utils/localStorageHelpers';
+import { HOMEPAGE_DASHBOARD_FILTER } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Loading from 'src/components/Loading';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
@@ -74,7 +75,7 @@ function DashboardTable({
   const [dashboardFilter, setDashboardFilter] = useState('Mine');
 
   useEffect(() => {
-    const filter = getFromLocalStorage('dashboard', null);
+    const filter = getFromLocalStorage(HOMEPAGE_DASHBOARD_FILTER, null);
     if (!filter) {
       setDashboardFilter('Mine');
     } else setDashboardFilter(filter.tab);
@@ -152,7 +153,7 @@ function DashboardTable({
             onClick: () => {
               getData('Favorite').then(() => {
                 setDashboardFilter('Favorite');
-                setInLocalStorage('dashboard', { tab: 'Favorite' });
+                setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, { tab: 'Favorite' });
               });
             },
           },
@@ -162,7 +163,7 @@ function DashboardTable({
             onClick: () => {
               getData('Mine').then(() => {
                 setDashboardFilter('Mine');
-                setInLocalStorage('dashboard', { tab: 'Mine' });
+                setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, { tab: 'Mine' });
               });
             },
           },
