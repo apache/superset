@@ -19,6 +19,9 @@ variables:
   tag: '$(Build.BuildId)'
   buildTimestamp: $[format('{0:yyyyMMddHHmmss}', pipeline.startTime)]
 
+  # Superset config file
+  supersetConfigFile: 'superset/config.py'
+
   # Agent VM image name
   vmImageName: 'ubuntu-latest'
 
@@ -36,6 +39,10 @@ stages:
     - bash: |
         BRANCH_NAME=`echo "$SYSTEM_PULLREQUEST_SOURCEBRANCH $BUILD_SOURCEBRANCH" | sed -r 's/^\s*(refs\/heads\/)?(\S*).*$/\2/' | sed 's/\//_/g'`
         echo "##vso[task.setvariable variable=BRANCH_NAME]$BRANCH_NAME"
+
+    - bash: |
+        sed -i '/^VERSION_SHA_LENGTH = .*/i # CCCS Superset Azure pipeline injection\nBUILD_NUMBER = '$(Build.BuildNumber)'\n' $(System.DefaultWorkingDirectory)/$(supersetConfigFile)
+        echo "BUILD_NUMBER variable added to $(supersetConfigFile) with value $(Build.BuildNumber)"
 
     - task: Docker@2
       displayName: Build and push an image to container registry
