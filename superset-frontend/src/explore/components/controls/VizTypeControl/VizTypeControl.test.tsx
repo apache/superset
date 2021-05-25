@@ -90,10 +90,10 @@ describe('VizTypeControl', () => {
 
     const visualizations = screen.getByTestId(getTestId('viz-row'));
 
-    expect(visualizations.textContent).toContain('Time-series Table');
-    expect(visualizations.textContent).toContain('Time-series Chart');
-    expect(visualizations.textContent).toContain('Mixed timeseries chart');
-    expect(visualizations.textContent).toContain('Line Chart');
+    expect(visualizations).toHaveTextContent(/Time-series Table/);
+    expect(visualizations).toHaveTextContent(/Time-series Chart/);
+    expect(visualizations).toHaveTextContent(/Mixed timeseries chart/);
+    expect(visualizations).toHaveTextContent(/Line Chart/);
 
     const searchInputText = 'time series';
 
@@ -103,9 +103,9 @@ describe('VizTypeControl', () => {
       searchInputText,
     );
 
-    expect(visualizations.textContent).toContain('Time-series Table');
-    expect(visualizations.textContent).toContain('Time-series Chart');
-    expect(visualizations.textContent).toContain('Mixed timeseries chart');
-    expect(visualizations.textContent).not.toContain('Line Chart');
+    expect(visualizations).toHaveTextContent(/Time-series Table/);
+    expect(visualizations).toHaveTextContent(/Time-series Chart/);
+    expect(visualizations).toHaveTextContent(/Mixed timeseries chart/);
+    expect(visualizations).not.toHaveTextContent(/Line Chart/);
   });
 });
