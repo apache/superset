@@ -15,15 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from urllib import parse
 from distutils.version import StrictVersion
-from typing import (
-    Any,
-    Dict,
-    Optional,
-)
-from sqlalchemy.engine.url import make_url, URL
+from typing import Any, Dict, Optional
+from urllib import parse
 
+from sqlalchemy.engine.url import make_url, URL
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
@@ -108,4 +104,3 @@ class TrinoEngineSpec(BaseEngineSpec):
         :param username: Effective username
         """
         # Do nothing and let update_impersonation_config take care of impersonation
-
