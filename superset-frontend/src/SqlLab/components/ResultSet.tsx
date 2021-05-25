@@ -526,34 +526,32 @@ export default class ResultSet extends React.PureComponent<
     const { results, rows, queryLimit, limitingFactor } = this.props.query;
     let limitMessage;
     const limitReached = results?.displayLimitReached;
-    const isAdmin = !!this.props.user?.roles.Admin;
     const limit = queryLimit || results.query.limit;
+    const isAdmin = !!this.props.user?.roles.Admin;
     const displayMaxRowsReachedMessage = {
       withAdmin: t(
         `The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. `,
         { rows },
       ).concat(
         t(
-          `Please add additional limits/filters or download to csv to see more rows up to the`,
+          `Please add additional limits/filters or download to csv to see more rows up to `,
         ),
-        t(`the %(limit)d limit.`, {
-          limit,
-        }),
+        t(`the %(limit)d limit.`, { limit }),
       ),
       withoutAdmin: t(
         `The number of results displayed is limited to %(rows)d. `,
         { rows },
       ).concat(
         t(
-          `Please add additional limits/filters, download to csv, or contact an admin`,
+          `Please add additional limits/filters, download to csv, or contact an admin `,
         ),
-        t(`to see more rows up to the the %(limit)d limit.`, {
+        t(`to see more rows up to the %(limit)d limit.`, {
           limit,
         }),
       ),
     };
     const shouldUseDefaultDropdownAlert =
-      queryLimit === this.props.defaultQueryLimit &&
+      limit === this.props.defaultQueryLimit &&
       limitingFactor === LIMITING_FACTOR.DROPDOWN;
 
     if (limitingFactor === LIMITING_FACTOR.QUERY && this.props.csv) {
