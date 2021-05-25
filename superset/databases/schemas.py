@@ -233,6 +233,12 @@ class DatabaseParametersSchemaMixin:
         values=fields.Raw(),
         description="DB-specific parameters for configuration",
     )
+    configuration_method = EnumField(
+        ConfigurationMethod,
+        by_value=True,
+        description=configuration_method_description,
+        missing=ConfigurationMethod.SQLALCHEMY_FORM,
+    )
 
     # pylint: disable=no-self-use, unused-argument
     @pre_load
@@ -252,7 +258,8 @@ class DatabaseParametersSchemaMixin:
         # frontend is not passing engine inside parameters
         engine = data.pop("engine", None) or parameters.pop("engine", None)
 
-        if parameters:
+        configuration_method = data.get("configuration_method")
+        if configuration_method == ConfigurationMethod.DYNAMIC_FORM:
             if not engine:
                 raise ValidationError(
                     [
@@ -269,18 +276,25 @@ class DatabaseParametersSchemaMixin:
                 )
             engine_spec = engine_specs[engine]
 
-            if hasattr(engine_spec, "build_sqlalchemy_uri"):
-                serialized_encrypted_extra = data.get("encrypted_extra", "{}")
-                try:
-                    encrypted_extra = json.loads(serialized_encrypted_extra)
-                except json.decoder.JSONDecodeError:
-                    encrypted_extra = {}
-
-                data[
-                    "sqlalchemy_uri"
-                ] = engine_spec.build_sqlalchemy_uri(  # type: ignore
-                    parameters, encrypted_extra
+            if not hasattr(engine_spec, "build_sqlalchemy_uri"):
+                raise ValidationError(
+                    [
+                        _(
+                            'Engine spec "InvalidEngine" does not support '
+                            "being configured via individual parameters."
+                        )
+                    ]
                 )
+
+            serialized_encrypted_extra = data.get("encrypted_extra", "{}")
+            try:
+                encrypted_extra = json.loads(serialized_encrypted_extra)
+            except json.decoder.JSONDecodeError:
+                encrypted_extra = {}
+
+            data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(  # type: ignore
+                parameters, encrypted_extra
+            )
 
         return data
 
@@ -325,11 +339,6 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     allow_ctas = fields.Boolean(description=allow_ctas_description)
     allow_cvas = fields.Boolean(description=allow_cvas_description)
     allow_dml = fields.Boolean(description=allow_dml_description)
-    configuration_method = EnumField(
-        ConfigurationMethod,
-        by_value=True,
-        description=configuration_method_description,
-    )
     force_ctas_schema = fields.String(
         description=force_ctas_schema_description,
         allow_none=True,
@@ -367,12 +376,6 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
         description=cache_timeout_description, allow_none=True
     )
     expose_in_sqllab = fields.Boolean(description=expose_in_sqllab_description)
-    configuration_method = EnumField(
-        ConfigurationMethod,
-        by_value=True,
-        allow_none=True,
-        description=configuration_method_description,
-    )
     allow_run_async = fields.Boolean(description=allow_run_async_description)
     allow_csv_upload = fields.Boolean(description=allow_csv_upload_description)
     allow_ctas = fields.Boolean(description=allow_ctas_description)
