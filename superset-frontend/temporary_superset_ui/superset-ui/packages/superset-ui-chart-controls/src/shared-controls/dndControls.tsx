@@ -17,15 +17,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Metric, t, validateNonEmpty } from '@superset-ui/core';
+import { t, validateNonEmpty } from '@superset-ui/core';
 import { ExtraControlProps, SharedControlConfig } from '../types';
-import { mainMetric } from '../utils';
 import { TIME_COLUMN_OPTION } from '../constants';
-
-type Control = {
-  savedMetrics?: Metric[] | null;
-  default?: unknown;
-};
 
 export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
   type: 'DndColumnSelect',
@@ -93,10 +87,6 @@ export const dnd_adhoc_metrics: SharedControlConfig<'DndMetricSelect'> = {
   multi: true,
   label: t('Metrics'),
   validators: [validateNonEmpty],
-  default: (c: Control) => {
-    const metric = mainMetric(c.savedMetrics);
-    return metric ? [metric] : null;
-  },
   mapStateToProps: ({ datasource }) => ({
     columns: datasource ? datasource.columns : [],
     savedMetrics: datasource ? datasource.metrics : [],
@@ -110,7 +100,6 @@ export const dnd_adhoc_metric: SharedControlConfig<'DndMetricSelect'> = {
   multi: false,
   label: t('Metric'),
   description: t('Metric'),
-  default: (c: Control) => mainMetric(c.savedMetrics),
 };
 
 export const dnd_sort_by: SharedControlConfig<'DndMetricSelect'> = {
