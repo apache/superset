@@ -67,17 +67,14 @@ const credentialsInfo = ({
         <Select value="paste">Copy and Paste JSON credentials</Select>
       </Select>
       {uploadOption === 'paste' ? (
-        <div className="input-container">
-          <Input rows={4}/>
+        <div className="input-container" onChange={changeMethods.onChange}>
+          <Input name="encryption_extra" rows={4}/>
         </div>
       ) : (
         <Upload>
           <Button>Click to Upload</Button>
         </Upload>
       )}
-      {/* <div className="input-container">
-          <Input rows={4}/>
-      </div> */}
     </>
   );
 };
@@ -245,7 +242,6 @@ const DatabaseConnectionForm = ({
             key: field,
           }),
         )}
-        {JSON.stringify(parameters)}
     </div>
   </>
 );
