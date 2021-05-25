@@ -38,7 +38,7 @@ export default {
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [[spatial, 'size'], ['row_limit', filterNulls], ['adhoc_filters']],
+      controlSetRows: [[spatial], ['size'], ['row_limit'], [filterNulls], ['adhoc_filters']],
     },
     {
       label: t('Map'),

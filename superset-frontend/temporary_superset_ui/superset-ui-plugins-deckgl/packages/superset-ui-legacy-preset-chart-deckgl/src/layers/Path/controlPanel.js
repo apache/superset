@@ -17,7 +17,7 @@
  * under the License.
  */
 import { sections } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 import {
   filterNulls,
   autozoom,
@@ -32,6 +32,7 @@ import {
   reverseLongLat,
   mapboxStyle,
 } from '../../utilities/Shared_DeckGL';
+import { dndLineColumn } from '../../utilities/sharedDndControls';
 
 export default {
   controlPanelSections: [
@@ -40,17 +41,21 @@ export default {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
+        [isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP) ? dndLineColumn : lineColumn],
         [
-          lineColumn,
           {
             ...lineType,
-            choices: [
-              ['polyline', 'Polyline'],
-              ['json', 'JSON'],
-            ],
+            config: {
+              ...lineType.config,
+              choices: [
+                ['polyline', 'Polyline'],
+                ['json', 'JSON'],
+              ],
+            },
           },
         ],
-        ['row_limit', filterNulls],
+        ['row_limit'],
+        [filterNulls],
         ['adhoc_filters'],
       ],
     },
