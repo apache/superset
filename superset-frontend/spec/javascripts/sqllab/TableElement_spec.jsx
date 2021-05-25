@@ -86,13 +86,11 @@ describe('TableElement', () => {
         },
       },
     );
-    expect(wrapper.find(TableElement).state().hovered).toBe(false);
     expect(wrapper.find('[data-test="fade"]').first().props().hovered).toBe(
       false,
     );
     wrapper.find('.header-container').hostNodes().simulate('mouseEnter');
     await waitForComponentToPaint(wrapper, 300);
-    expect(wrapper.find(TableElement).state().hovered).toBe(true);
     expect(wrapper.find('[data-test="fade"]').first().props().hovered).toBe(
       true,
     );
@@ -111,12 +109,22 @@ describe('TableElement', () => {
         },
       },
     );
-    expect(wrapper.find(TableElement).state().sortColumns).toBe(false);
+    expect(
+      wrapper.find(IconTooltip).at(1).hasClass('fa-sort-alpha-asc'),
+    ).toEqual(true);
+    expect(
+      wrapper.find(IconTooltip).at(1).hasClass('fa-sort-numeric-asc'),
+    ).toEqual(false);
     wrapper.find('.header-container').hostNodes().simulate('click');
     expect(wrapper.find(ColumnElement).first().props().column.name).toBe('id');
     wrapper.find('.header-container').simulate('mouseEnter');
     wrapper.find('.sort-cols').hostNodes().simulate('click');
-    expect(wrapper.find(TableElement).state().sortColumns).toBe(true);
+    expect(
+      wrapper.find(IconTooltip).at(1).hasClass('fa-sort-numeric-asc'),
+    ).toEqual(true);
+    expect(
+      wrapper.find(IconTooltip).at(1).hasClass('fa-sort-alpha-asc'),
+    ).toEqual(false);
     expect(wrapper.find(ColumnElement).first().props().column.name).toBe(
       'active',
     );
