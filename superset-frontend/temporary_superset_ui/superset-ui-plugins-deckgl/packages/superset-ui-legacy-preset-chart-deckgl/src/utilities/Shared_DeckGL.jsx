@@ -364,3 +364,16 @@ export const mapboxStyle = {
     description: t('Base layer map style'),
   },
 };
+
+export const geojsonColumn = {
+  name: 'geojson',
+  config: {
+    type: 'SelectControl',
+    label: t('GeoJson Column'),
+    validators: [validateNonEmpty],
+    description: t('Select the geojson column'),
+    mapStateToProps: state => ({
+      choices: columnChoices(state.datasource),
+    }),
+  },
+};

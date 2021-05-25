@@ -17,9 +17,8 @@
  * under the License.
  */
 import { sections } from '@superset-ui/chart-controls';
-import { t, validateNonEmpty, legacyValidateInteger } from '@superset-ui/core';
+import { t, legacyValidateInteger, isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { formatSelectOptions } from '../../utilities/utils';
-import { columnChoices } from '../../utilities/controls';
 import {
   filterNulls,
   jsColumns,
@@ -33,7 +32,13 @@ import {
   extruded,
   viewport,
   mapboxStyle,
+  geojsonColumn,
 } from '../../utilities/Shared_DeckGL';
+import { dndGeojsonColumn } from '../../utilities/sharedDndControls';
+
+const geojson = isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
+  ? dndGeojsonColumn
+  : geojsonColumn;
 
 export default {
   controlPanelSections: [
@@ -41,25 +46,7 @@ export default {
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [
-        [
-          {
-            name: 'geojson',
-            config: {
-              type: 'SelectControl',
-              label: t('GeoJson Column'),
-              validators: [validateNonEmpty],
-              description: t('Select the geojson column'),
-              mapStateToProps: state => ({
-                choices: columnChoices(state.datasource),
-              }),
-            },
-          },
-          null,
-        ],
-        ['row_limit', filterNulls],
-        ['adhoc_filters'],
-      ],
+      controlSetRows: [[geojson], ['row_limit'], [filterNulls], ['adhoc_filters']],
     },
     {
       label: t('Map'),

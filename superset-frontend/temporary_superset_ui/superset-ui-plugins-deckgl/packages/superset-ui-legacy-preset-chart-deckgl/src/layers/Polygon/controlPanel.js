@@ -17,7 +17,7 @@
  * under the License.
  */
 import { sections } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 import timeGrainSqlaAnimationOverrides from '../../utilities/controls';
 import { formatSelectOptions } from '../../utilities/utils';
 import {
@@ -43,6 +43,11 @@ import {
   reverseLongLat,
   mapboxStyle,
 } from '../../utilities/Shared_DeckGL';
+import { dndLineColumn } from '../../utilities/sharedDndControls';
+
+const lines = isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
+  ? dndLineColumn
+  : lineColumn;
 
 export default {
   controlPanelSections: [
@@ -52,13 +57,37 @@ export default {
       expanded: true,
       controlSetRows: [
         [
-          { ...lineColumn, label: t('Polygon Column') },
-          { ...lineType, label: t('Polygon Encoding') },
+          {
+            ...lines,
+            config: {
+              ...lines.config,
+              label: t('Polygon Column'),
+            },
+          },
+        ],
+        [
+          {
+            ...lineType,
+            config: {
+              ...lineType.config,
+              label: t('Polygon Encoding'),
+            },
+          },
         ],
         ['adhoc_filters'],
-        ['metric', { ...pointRadiusFixed, label: t('Elevation') }],
-        ['row_limit', null],
-        [reverseLongLat, filterNulls],
+        ['metric'],
+        [
+          {
+            ...pointRadiusFixed,
+            config: {
+              ...pointRadiusFixed.config,
+              label: t('Elevation'),
+            },
+          },
+        ],
+        ['row_limit'],
+        [reverseLongLat],
+        [filterNulls],
       ],
     },
     {
