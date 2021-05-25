@@ -248,18 +248,6 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             connect_args["principal_username"] = username
 
     @classmethod
-    def modify_url_for_impersonation(
-        cls, url: URL, impersonate_user: bool, username: Optional[str]
-    ) -> None:
-        """
-        Modify the SQL Alchemy URL object with the user to impersonate if applicable.
-        :param url: SQLAlchemy URL object
-        :param impersonate_user: Flag indicating if impersonation is enabled
-        :param username: Effective username
-        """
-        # Do nothing and let update_impersonation_config take care of impersonation
-
-    @classmethod
     def get_table_names(
         cls, database: "Database", inspector: Inspector, schema: Optional[str]
     ) -> List[str]:
