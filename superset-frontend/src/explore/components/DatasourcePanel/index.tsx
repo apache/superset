@@ -185,17 +185,17 @@ export default function DataSourcePanel({
 
   const mainBody = (
     <>
-      <input
-        type="text"
-        onChange={evt => {
-          setInputValue(evt.target.value);
-          search(evt.target.value);
-        }}
-        value={inputValue}
-        className="form-control input-md"
-        placeholder={t('Search Metrics & Columns')}
-      />
-      <div className="field-selections">
+      <div className="field-selections" style={{overflowY: 'scroll', height: '85%'}}>
+        <input
+          type="text"
+          onChange={evt => {
+            setInputValue(evt.target.value);
+            search(evt.target.value);
+          }}
+          value={inputValue}
+          className="form-control input-md"
+          placeholder={t('Search Metrics & Columns')}
+        />
         <Collapse
           bordered
           defaultActiveKey={['metrics', 'column']}
