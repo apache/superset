@@ -24,10 +24,14 @@ import { setInLocalStorage } from 'src/utils/localStorageHelpers';
 import Loading from 'src/components/Loading';
 import ListViewCard from 'src/components/ListViewCard';
 import SubMenu from 'src/components/Menu/SubMenu';
-import { HOMEPAGE_ACTIVITY_FILTER } from 'src/views/CRUD/utils';
+import {
+  HOMEPAGE_ACTIVITY_FILTER,
+  mq,
+  CardStyles,
+  getEditedObjects,
+} from 'src/views/CRUD/utils';
 import { Chart } from 'src/types/Chart';
 import { Dashboard, SavedQueryObject } from 'src/views/CRUD/types';
-import { mq, CardStyles, getEditedObjects } from 'src/views/CRUD/utils';
 
 import { ActivityData } from './Welcome';
 import EmptyState from './EmptyState';
@@ -189,7 +193,7 @@ export default function ActivityTable({
       label: t('Edited'),
       onClick: () => {
         setActiveChild('Edited');
-        setInLocalStorage( HOMEPAGE_ACTIVITY_FILTER, { activity: 'Edited' });
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, { activity: 'Edited' });
         getEditedCards();
       },
     },
@@ -198,7 +202,7 @@ export default function ActivityTable({
       label: t('Created'),
       onClick: () => {
         setActiveChild('Created');
-        setInLocalStorage( HOMEPAGE_ACTIVITY_FILTER, { activity: 'Created' });
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, { activity: 'Created' });
       },
     },
   ];
@@ -209,7 +213,7 @@ export default function ActivityTable({
       label: t('Viewed'),
       onClick: () => {
         setActiveChild('Viewed');
-        setInLocalStorage( HOMEPAGE_ACTIVITY_FILTER, { activity: 'Viewed' });
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, { activity: 'Viewed' });
       },
     });
   } else {
@@ -218,7 +222,7 @@ export default function ActivityTable({
       label: t('Examples'),
       onClick: () => {
         setActiveChild('Examples');
-        setInLocalStorage( HOMEPAGE_ACTIVITY_FILTER, { activity: 'Examples' });
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, { activity: 'Examples' });
       },
     });
   }

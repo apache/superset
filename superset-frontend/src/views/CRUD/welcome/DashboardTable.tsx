@@ -25,14 +25,17 @@ import {
   setInLocalStorage,
   getFromLocalStorage,
 } from 'src/utils/localStorageHelpers';
-import { HOMEPAGE_DASHBOARD_FILTER } from 'src/views/CRUD/utils';
+import {
+  HOMEPAGE_DASHBOARD_FILTER,
+  createErrorHandler,
+  CardContainer,
+} from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Loading from 'src/components/Loading';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
-import { createErrorHandler, CardContainer } from '../utils';
 
 const PAGE_SIZE = 3;
 
@@ -153,7 +156,9 @@ function DashboardTable({
             onClick: () => {
               getData('Favorite').then(() => {
                 setDashboardFilter('Favorite');
-                setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, { tab: 'Favorite' });
+                setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, {
+                  tab: 'Favorite',
+                });
               });
             },
           },

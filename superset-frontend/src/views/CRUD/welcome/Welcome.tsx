@@ -32,10 +32,10 @@ import {
   getRecentAcitivtyObjs,
   mq,
   getUserOwnedObjects,
+  HOMEPAGE_ACTIVITY_FILTER,
 } from 'src/views/CRUD/utils';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { Switch } from 'src/common/components';
-import { HOMEPAGE_ACTIVITY_FILTER } from 'src/views/CRUD/utils';
 
 import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';
@@ -119,7 +119,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
 
   useEffect(() => {
     const userKey = getFromLocalStorage(id, null);
-    const activeTab = getFromLocalStorage(HOMEPAGE_ACTIVITY_FILTER, null)
+    const activeTab = getFromLocalStorage(HOMEPAGE_ACTIVITY_FILTER, null);
     if (userKey && !userKey.thumbnails) setChecked(false);
     getRecentAcitivtyObjs(user.userId, recent, addDangerToast)
       .then(res => {
@@ -127,12 +127,12 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         if (res.viewed) {
           const filtered = reject(res.viewed, ['item_url', null]).map(r => r);
           data.Viewed = filtered;
-          if(!activeTab){
+          if (!activeTab) {
             setActiveChild('Viewed');
           } else setActiveChild(activeTab.activity);
         } else {
           data.Examples = res.examples;
-          if(activeTab === 'Viewed' || !activeTab){
+          if (activeTab === 'Viewed' || !activeTab) {
             setActiveChild('Examples');
           } else setActiveChild(activeTab.activity);
         }

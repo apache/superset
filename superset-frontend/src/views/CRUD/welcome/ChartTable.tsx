@@ -31,14 +31,13 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useHistory } from 'react-router-dom';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { User } from 'src/types/bootstrapTypes';
-import { HOMEPAGE_CHART_FILTER } from 'src/views/CRUD/utils';
+import { HOMEPAGE_CHART_FILTER, CardContainer } from 'src/views/CRUD/utils';
 import ChartCard from 'src/views/CRUD/chart/ChartCard';
 import Chart from 'src/types/Chart';
 import Loading from 'src/components/Loading';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
-import { CardContainer } from '../utils';
 
 const PAGE_SIZE = 3;
 
