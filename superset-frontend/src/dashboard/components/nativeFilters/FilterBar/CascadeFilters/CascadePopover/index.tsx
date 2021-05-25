@@ -28,6 +28,7 @@ import FilterControl from 'src/dashboard/components/nativeFilters/FilterBar/Filt
 import CascadeFilterControl from 'src/dashboard/components/nativeFilters/FilterBar/CascadeFilters/CascadeFilterControl';
 import { CascadeFilter } from 'src/dashboard/components/nativeFilters/FilterBar/CascadeFilters/types';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
+import { RootState } from 'src/dashboard/types';
 
 interface CascadePopoverProps {
   filter: CascadeFilter;
@@ -82,7 +83,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   directPathToChild,
 }) => {
   const [currentPathToChild, setCurrentPathToChild] = useState<string[]>();
-  const dataMask = useSelector<any, DataMaskWithId>(
+  const dataMask = useSelector<RootState, DataMaskWithId>(
     state => state.dataMask[filter.id] ?? getInitialDataMask(filter.id),
   );
 

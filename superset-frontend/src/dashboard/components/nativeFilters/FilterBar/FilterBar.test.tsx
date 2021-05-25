@@ -18,7 +18,7 @@
  */
 
 import React from 'react';
-import { render, screen, cleanup } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import userEvent from '@testing-library/user-event';
 import {
@@ -41,6 +41,7 @@ import mockDatasource, {
 import FilterBar, { FILTER_BAR_TEST_ID } from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 
+jest.useFakeTimers();
 // @ts-ignore
 mockCore.makeApi = jest.fn();
 
@@ -70,7 +71,7 @@ const getDateControlTestId = testWithId<string>(
 const FILTER_NAME = 'Time filter 1';
 const FILTER_SET_NAME = 'New filter set';
 
-const addFilterFlow = () => {
+const addFilterFlow = async () => {
   // open filter config modal
   userEvent.click(screen.getByTestId(getTestId('collapsable')));
   userEvent.click(screen.getByTestId(getTestId('create-filter')));
@@ -79,20 +80,20 @@ const addFilterFlow = () => {
   userEvent.click(screen.getByText('Time filter'));
   userEvent.type(screen.getByTestId(getModalTestId('name-input')), FILTER_NAME);
   userEvent.click(screen.getByText('Save'));
+  await screen.findByText('All Filters (1)');
 };
 
 const addFilterSetFlow = async () => {
   // add filter set
   userEvent.click(screen.getByText('Filter Sets (0)'));
-  expect(screen.getByTestId(getTestId('new-filter-set-button'))).toBeDisabled();
 
   // check description
   expect(screen.getByText('Filters (1)')).toBeInTheDocument();
   expect(screen.getByText(FILTER_NAME)).toBeInTheDocument();
+
   expect(screen.getAllByText('Last week').length).toBe(2);
 
   // apply filters
-  userEvent.click(screen.getByTestId(getTestId('apply-button')));
   expect(screen.getByTestId(getTestId('new-filter-set-button'))).toBeEnabled();
 
   // create filter set
@@ -139,7 +140,7 @@ describe('FilterBar', () => {
               "name":"${FILTER_NAME}",
               "filterType":"filter_time",
               "targets":[{"datasetId":11,"column":{"name":"color"}}],
-              "defaultValue":null,
+              "defaultDataMask":{"filterState":{"value":null}},
               "controlValues":{},
               "cascadeParentIds":[],
               "scope":{"rootPath":["ROOT_ID"],"excluded":[]},
@@ -154,7 +155,7 @@ describe('FilterBar', () => {
                   "name":"${FILTER_NAME}",
                   "filterType":"filter_time",
                   "targets":[{}],
-                  "defaultValue":"Last week",
+                  "defaultDataMask":{"filterState":{"value":"Last week"},"extraFormData":{"time_range":"Last week"}},
                   "controlValues":{},
                   "cascadeParentIds":[],
                   "scope":{"rootPath":["ROOT_ID"],"excluded":[]},
@@ -163,7 +164,7 @@ describe('FilterBar', () => {
               },
               "dataMask":{
                 "${filterId}":{
-                  "extraFormData":{"override_form_data":{"time_range":"Last week"}},
+                  "extraFormData":{"time_range":"Last week"},
                   "filterState":{"value":"Last week"},
                   "ownState":{},
                   "id":"${filterId}"
@@ -176,7 +177,7 @@ describe('FilterBar', () => {
   });
 
   beforeEach(() => {
-    toggleFiltersBar.mockClear();
+    jest.clearAllMocks();
     fetchMock.get(
       'http://localhost/api/v1/time_range/?q=%27Last%20day%27',
       {
@@ -202,11 +203,6 @@ describe('FilterBar', () => {
 
     // @ts-ignore
     mockCore.makeApi = jest.fn(() => mockApi);
-  });
-
-  afterEach(() => {
-    cleanup();
-    jest.clearAllMocks();
   });
 
   const renderWrapper = (props = closedBarProps, state?: object) =>
@@ -246,9 +242,11 @@ describe('FilterBar', () => {
     expect(screen.getByRole('img', { name: 'filter' })).toBeInTheDocument();
   });
 
-  it('should render the filter control name', () => {
+  it('should render the filter control name', async () => {
     renderWrapper();
-    expect(screen.getByText('test')).toBeInTheDocument();
+    expect(
+      await screen.findByText('test', {}, { timeout: 2000 }),
+    ).toBeInTheDocument();
   });
 
   it('should toggle', () => {
@@ -305,42 +303,36 @@ describe('FilterBar', () => {
     renderWrapper(openedBarProps, stateWithoutNativeFilters);
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
 
-    addFilterFlow();
+    await addFilterFlow();
 
-    await screen.findByText('All Filters (1)');
-
-    // apply filter
     expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
-    userEvent.click(screen.getByTestId(getTestId('apply-button')));
-    expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   });
 
-  // TODO: fix flakiness and re-enable
-  it.skip('add and apply filter set', async () => {
+  it('add and apply filter set', async () => {
     // @ts-ignore
     global.featureFlags = {
+      [FeatureFlag.DASHBOARD_NATIVE_FILTERS]: true,
       [FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET]: true,
     };
     renderWrapper(openedBarProps, stateWithoutNativeFilters);
 
-    addFilterFlow();
+    await addFilterFlow();
 
-    await screen.findByText('All Filters (1)');
-    expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
+    userEvent.click(screen.getByTestId(getTestId('apply-button')));
 
     await addFilterSetFlow();
 
     // change filter
-    userEvent.click(screen.getByText('All Filters (1)'));
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
-
+    userEvent.click(await screen.findByText('All Filters (1)'));
     await changeFilterValue();
     await waitFor(() => expect(screen.getAllByText('Last day').length).toBe(2));
 
     // apply new filter value
-    expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
     userEvent.click(screen.getByTestId(getTestId('apply-button')));
-    expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+    await waitFor(() =>
+      expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled(),
+    );
 
     // applying filter set
     userEvent.click(screen.getByText('Filter Sets (1)'));
@@ -351,14 +343,13 @@ describe('FilterBar', () => {
       screen.getByTestId(getTestId('filter-set-wrapper')),
     ).not.toHaveAttribute('data-selected', 'true');
     userEvent.click(screen.getByTestId(getTestId('filter-set-wrapper')));
+    userEvent.click(screen.getAllByText('Filters (1)')[1]);
     expect(await screen.findByText('Last week')).toBeInTheDocument();
-    expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
     userEvent.click(screen.getByTestId(getTestId('apply-button')));
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   });
 
-  // TODO: fix flakiness and re-enable
-  it.skip('add and edit filter set', async () => {
+  it('add and edit filter set', async () => {
     // @ts-ignore
     global.featureFlags = {
       [FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET]: true,
@@ -366,10 +357,9 @@ describe('FilterBar', () => {
     };
     renderWrapper(openedBarProps, stateWithoutNativeFilters);
 
-    addFilterFlow();
+    await addFilterFlow();
 
-    await screen.findByText('All Filters (1)');
-    expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
+    userEvent.click(screen.getByTestId(getTestId('apply-button')));
 
     await addFilterSetFlow();
 
@@ -377,12 +367,13 @@ describe('FilterBar', () => {
     userEvent.click(screen.getByText('Edit'));
 
     await changeFilterValue();
-    await waitFor(() => expect(screen.getAllByText('Last day').length).toBe(1));
 
     // apply new changes and save them
-    expect(
-      screen.getByTestId(getTestId('filter-set-edit-save')),
-    ).toBeDisabled();
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(getTestId('filter-set-edit-save')),
+      ).toBeDisabled(),
+    );
     expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
     userEvent.click(screen.getByTestId(getTestId('apply-button')));
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();

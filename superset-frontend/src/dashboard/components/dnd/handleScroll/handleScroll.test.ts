@@ -28,6 +28,7 @@ afterAll(() => {
 
 test('calling: "NOT_SCROLL_TOP" ,"SCROLL_TOP", "NOT_SCROLL_TOP"', () => {
   window.scroll = jest.fn();
+  document.documentElement.scrollTop = 500;
 
   handleScroll('NOT_SCROLL_TOP');
 

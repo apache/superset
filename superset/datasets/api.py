@@ -17,7 +17,6 @@
 import json
 import logging
 from datetime import datetime
-from distutils.util import strtobool
 from io import BytesIO
 from typing import Any
 from zipfile import is_zipfile, ZipFile
@@ -62,6 +61,7 @@ from superset.datasets.schemas import (
     get_delete_ids_schema,
     get_export_ids_schema,
 )
+from superset.utils.core import parse_boolean_string
 from superset.views.base import DatasourceFilter, generate_download_headers
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -302,7 +302,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         override_columns = (
-            bool(strtobool(request.args["override_columns"]))
+            parse_boolean_string(request.args["override_columns"])
             if "override_columns" in request.args
             else False
         )

@@ -33,7 +33,16 @@ const { Option } = Select;
 export default function PluginFilterTimeColumn(
   props: PluginFilterTimeColumnProps,
 ) {
-  const { data, formData, height, width, setDataMask, filterState } = props;
+  const {
+    data,
+    formData,
+    height,
+    width,
+    setDataMask,
+    setFocusedFilter,
+    unsetFocusedFilter,
+    filterState,
+  } = props;
   const { defaultValue, inputRef } = formData;
 
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
@@ -80,6 +89,8 @@ export default function PluginFilterTimeColumn(
         placeholder={placeholderText}
         // @ts-ignore
         onChange={handleChange}
+        onBlur={unsetFocusedFilter}
+        onFocus={setFocusedFilter}
         ref={inputRef}
       >
         {timeColumns.map(

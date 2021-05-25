@@ -897,7 +897,7 @@ export function queryEditorSetSql(queryEditor, sql) {
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? SupersetClient.put({
           endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
-          postPayload: { sql },
+          postPayload: { sql, latest_query_id: queryEditor.latestQueryId },
         })
       : Promise.resolve();
 
@@ -987,7 +987,9 @@ export function mergeTable(table, query) {
 function getTableMetadata(table, query, dispatch) {
   return SupersetClient.get({
     endpoint: encodeURI(
-      `/api/v1/database/${query.dbId}/table/${table.name}/${table.schema}/`,
+      `/api/v1/database/${query.dbId}/table/${encodeURIComponent(
+        table.name,
+      )}/${encodeURIComponent(table.schema)}/`,
     ),
   })
     .then(({ json }) => {

@@ -124,7 +124,7 @@ def loads_request_json(request_json_data: str) -> Dict[Any, Any]:
         return {}
 
 
-def get_form_data(
+def get_form_data(  # pylint: disable=too-many-locals
     slice_id: Optional[int] = None, use_slice_data: bool = False
 ) -> Tuple[Dict[str, Any], Optional[Slice]]:
     form_data = {}
@@ -139,7 +139,13 @@ def get_form_data(
     if request_json_data:
         form_data.update(request_json_data)
     if request_form_data:
-        form_data.update(loads_request_json(request_form_data))
+        parsed_form_data = loads_request_json(request_form_data)
+        # some chart data api requests are form_data
+        queries = parsed_form_data.get("queries")
+        if isinstance(queries, list):
+            form_data.update(queries[0])
+        else:
+            form_data.update(parsed_form_data)
     # request params can overwrite the body
     if request_args_data:
         form_data.update(loads_request_json(request_args_data))
@@ -290,7 +296,7 @@ def get_time_range_endpoints(
             if not slc:
                 slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
 
-            if slc:
+            if slc and slc.datasource:
                 endpoints = slc.datasource.database.get_extra().get(
                     "time_range_endpoints"
                 )
@@ -533,7 +539,7 @@ def check_slice_perms(_self: Any, slice_id: int) -> None:
 
     form_data, slc = get_form_data(slice_id, use_slice_data=True)
 
-    if slc:
+    if slc and slc.datasource:
         try:
             viz_obj = get_viz(
                 datasource_type=slc.datasource.type,

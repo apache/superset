@@ -533,6 +533,7 @@ class BaseColumn(AuditMixinNullable, ImportExportMixin):
     def __repr__(self) -> str:
         return str(self.column_name)
 
+    bool_types = ("BOOL",)
     num_types = (
         "DOUBLE",
         "FLOAT",
@@ -559,6 +560,22 @@ class BaseColumn(AuditMixinNullable, ImportExportMixin):
     @property
     def is_string(self) -> bool:
         return self.type and any(map(lambda t: t in self.type.upper(), self.str_types))
+
+    @property
+    def is_boolean(self) -> bool:
+        return self.type and any(map(lambda t: t in self.type.upper(), self.bool_types))
+
+    @property
+    def type_generic(self) -> Optional[utils.GenericDataType]:
+        if self.is_string:
+            return utils.GenericDataType.STRING
+        if self.is_boolean:
+            return utils.GenericDataType.BOOLEAN
+        if self.is_numeric:
+            return utils.GenericDataType.NUMERIC
+        if self.is_temporal:
+            return utils.GenericDataType.TEMPORAL
+        return None
 
     @property
     def expression(self) -> Column:

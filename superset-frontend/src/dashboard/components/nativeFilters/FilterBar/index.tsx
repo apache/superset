@@ -26,20 +26,29 @@ import Icon from 'src/components/Icon';
 import { Tabs } from 'src/common/components';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { updateDataMask } from 'src/dataMask/actions';
-import { DataMaskState } from 'src/dataMask/types';
+import {
+  DataMaskState,
+  DataMaskStateWithId,
+  DataMaskWithId,
+} from 'src/dataMask/types';
 import { useImmer } from 'use-immer';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { testWithId } from 'src/utils/testUtils';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
-import { setFiltersInitialized } from 'src/dashboard/actions/nativeFilters';
-import { mapParentFiltersToChildren, TabIds } from './utils';
+import Loading from 'src/components/Loading';
+import { getInitialDataMask } from 'src/dataMask/reducer';
+import {
+  getOnlyExtraFormData,
+  mapParentFiltersToChildren,
+  TabIds,
+} from './utils';
 import FilterSets from './FilterSets';
 import {
-  useDataMask,
+  useNativeFiltersDataMask,
   useFilters,
   useFilterSets,
-  useFiltersInitialisation,
   useFilterUpdates,
+  useInitialization,
 } from './state';
 import EditSection from './FilterSets/EditSection';
 import Header from './Header';
@@ -155,23 +164,25 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   directPathToChild,
 }) => {
   const [editFilterSetId, setEditFilterSetId] = useState<string | null>(null);
-  const [dataMaskSelected, setDataMaskSelected] = useImmer<DataMaskState>({});
-  const [
-    lastAppliedFilterData,
-    setLastAppliedFilterData,
-  ] = useImmer<DataMaskState>({});
+  const [dataMaskSelected, setDataMaskSelected] = useImmer<DataMaskStateWithId>(
+    {},
+  );
   const dispatch = useDispatch();
   const filterSets = useFilterSets();
   const filterSetFilterValues = Object.values(filterSets);
   const [tab, setTab] = useState(TabIds.AllFilters);
   const filters = useFilters();
   const filterValues = Object.values<Filter>(filters);
-  const dataMaskApplied = useDataMask();
+  const dataMaskApplied: DataMaskStateWithId = useNativeFiltersDataMask();
   const [isFilterSetChanged, setIsFilterSetChanged] = useState(false);
   const cascadeChildren = useMemo(
     () => mapParentFiltersToChildren(filterValues),
     [filterValues],
   );
+
+  useEffect(() => {
+    setDataMaskSelected(() => dataMaskApplied);
+  }, [JSON.stringify(dataMaskApplied), setDataMaskSelected]);
 
   const handleFilterSelectionChange = (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
@@ -180,12 +191,18 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     setIsFilterSetChanged(tab !== TabIds.AllFilters);
     setDataMaskSelected(draft => {
       const children = cascadeChildren[filter.id] || [];
-      // force instant updating on initialization or for parent filters
-      if (filter.isInstant || children.length > 0) {
+      // force instant updating on initialization or for parent filters when dataMaskSelected has filter
+      if (
+        dataMaskSelected[filter.id] &&
+        (filter.isInstant || children.length > 0)
+      ) {
         dispatch(updateDataMask(filter.id, dataMask));
       }
 
-      draft[filter.id] = dataMask;
+      draft[filter.id] = {
+        ...(getInitialDataMask(filter.id) as DataMaskWithId),
+        ...dataMask,
+      };
     });
   };
 
@@ -196,28 +213,20 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         dispatch(updateDataMask(filterId, dataMaskSelected[filterId]));
       }
     });
-    setLastAppliedFilterData(() => dataMaskSelected);
   };
 
-  const { isInitialized } = useFiltersInitialisation(
-    dataMaskSelected,
-    handleApply,
-  );
+  useFilterUpdates(dataMaskSelected, setDataMaskSelected);
 
-  useEffect(() => {
-    if (isInitialized) {
-      dispatch(setFiltersInitialized());
-    }
-  }, [dispatch, isInitialized]);
-
-  useFilterUpdates(
-    dataMaskSelected,
-    setDataMaskSelected,
-    setLastAppliedFilterData,
-  );
-
+  const dataSelectedValues = Object.values(dataMaskSelected);
+  const dataAppliedValues = Object.values(dataMaskApplied);
   const isApplyDisabled =
-    !isInitialized || areObjectsEqual(dataMaskSelected, lastAppliedFilterData);
+    areObjectsEqual(
+      getOnlyExtraFormData(dataMaskSelected),
+      getOnlyExtraFormData(dataMaskApplied),
+      { ignoreUndefined: true },
+    ) || dataSelectedValues.length !== dataAppliedValues.length;
+
+  const isInitialized = useInitialization();
 
   return (
     <BarWrapper {...getFilterBarTestId()} className={cx({ open: filtersOpen })}>
@@ -241,7 +250,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           dataMaskSelected={dataMaskSelected}
           dataMaskApplied={dataMaskApplied}
         />
-        {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET) ? (
+        {!isInitialized ? (
+          <Loading />
+        ) : isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET) ? (
           <StyledTabs
             centered
             onChange={setTab as HandlerFunction}

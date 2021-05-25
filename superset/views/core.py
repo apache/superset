@@ -462,6 +462,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         form_data, slc = get_form_data(slice_id, use_slice_data=True)
         if not slc:
             return json_error_response("The slice does not exist")
+
+        if not slc.datasource:
+            return json_error_response("The slice's datasource does not exist")
+
         try:
             viz_obj = get_viz(
                 datasource_type=slc.datasource.type,
@@ -481,6 +485,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self, layer_id: int
     ) -> FlaskResponse:
         form_data = get_form_data()[0]
+        force = utils.parse_boolean_string(request.args.get("force"))
+
         form_data["layer_id"] = layer_id
         form_data["filters"] = [{"col": "layer_id", "op": "==", "val": layer_id}]
         # Set all_columns to ensure the TableViz returns the necessary columns to the
@@ -499,7 +505,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "changed_by_fk",
         ]
         datasource = AnnotationDatasource()
-        viz_obj = viz.viz_types["table"](datasource, form_data=form_data, force=False)
+        viz_obj = viz.viz_types["table"](datasource, form_data=form_data, force=force)
         payload = viz_obj.get_payload()
         return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
 
@@ -578,6 +584,15 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 response_type = response_option
                 break
 
+        # Verify user has permission to export CSV file
+        if (
+            response_type == utils.ChartDataResultFormat.CSV
+            and not security_manager.can_access("can_csv", "Superset")
+        ):
+            return json_error_response(
+                _("You don't have the rights to ") + _("download as csv"), status=403,
+            )
+
         form_data = get_form_data()[0]
 
         try:
@@ -596,7 +611,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     async_channel_id = async_query_manager.parse_jwt_from_request(
                         request
                     )["channel"]
-                    job_metadata = async_query_manager.init_job(async_channel_id)
+                    job_metadata = async_query_manager.init_job(
+                        async_channel_id, g.user.get_id()
+                    )
                     load_explore_json_into_cache.delay(
                         job_metadata, form_data, response_type, force
                     )
@@ -739,7 +756,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # slc perms
         slice_add_perm = security_manager.can_access("can_write", "Chart")
         slice_overwrite_perm = is_owner(slc, g.user) if slc else False
-        slice_download_perm = security_manager.can_access("can_read", "Chart")
+        slice_download_perm = security_manager.can_access("can_csv", "Superset")
 
         form_data["datasource"] = str(datasource_id) + "__" + cast(str, datasource_type)
 
@@ -822,7 +839,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
             ),
             entry="explore",
-            title=title,
+            title=title.__str__(),
             standalone_mode=standalone_mode,
         )
 
@@ -1700,6 +1717,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         else get_dashboard_extra_filters(slc.id, dashboard_id)
                     )
 
+                if not slc.datasource:
+                    raise Exception("Slice's datasource does not exist")
+
                 obj = get_viz(
                     datasource_type=slc.datasource.type,
                     datasource_id=slc.datasource.id,
@@ -1729,6 +1749,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self, class_name: str, obj_id: int, action: str
     ) -> FlaskResponse:
         """Toggle favorite stars on Slices and Dashboard"""
+        if not g.user.get_id():
+            return json_error_response("ERROR: Favstar toggling denied", status=403)
         session = db.session()
         count = 0
         favs = (
@@ -1840,7 +1862,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         dash_edit_perm = check_ownership(
             dashboard, raise_if_false=False
         ) and security_manager.can_access("can_save_dash", "Superset")
-        standalone_mode = ReservedUrlParameters.is_standalone_mode()
         edit_mode = (
             request.args.get(utils.ReservedUrlParameters.EDIT_MODE.value) == "true"
         )
@@ -1858,11 +1879,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         }
 
         return self.render_template(
-            "superset/dashboard.html",
-            entry="dashboard",
-            standalone_mode=standalone_mode,
-            title=dashboard.dashboard_title,
-            custom_css=dashboard.css,
+            "superset/spa.html",
+            entry="spa",
             bootstrap_data=json.dumps(
                 bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
             ),
@@ -2789,13 +2807,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return self.dashboard(dashboard_id_or_slug=str(welcome_dashboard_id))
 
         payload = {
-            "user": bootstrap_user_data(g.user),
+            "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(),
         }
 
         return self.render_template(
-            "superset/crud_views.html",
-            entry="crudViews",
+            "superset/spa.html",
+            entry="spa",
             bootstrap_data=json.dumps(
                 payload, default=utils.pessimistic_json_iso_dttm_ser
             ),
@@ -2819,7 +2837,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         return self.render_template(
             "superset/basic.html",
-            title=_("%(user)s's profile", user=username),
+            title=_("%(user)s's profile", user=username).__str__(),
             entry="profile",
             bootstrap_data=json.dumps(
                 payload, default=utils.pessimistic_json_iso_dttm_ser
@@ -2889,7 +2907,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             except json.JSONDecodeError:
                 pass
 
-        payload["user"] = bootstrap_user_data(g.user)
+        payload["user"] = bootstrap_user_data(g.user, include_perms=True)
         bootstrap_data = json.dumps(
             payload, default=utils.pessimistic_json_iso_dttm_ser
         )

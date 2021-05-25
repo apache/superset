@@ -25,7 +25,7 @@ from superset.commands.exceptions import (
     ImportFailedError,
     UpdateFailedError,
 )
-from superset.exceptions import SupersetErrorsException
+from superset.exceptions import SupersetErrorException, SupersetErrorsException
 
 
 class DatabaseInvalidError(CommandInvalidError):
@@ -137,3 +137,15 @@ class DatabaseTestConnectionUnexpectedError(SupersetErrorsException):
 
 class DatabaseImportError(ImportFailedError):
     message = _("Import database failed for an unknown reason")
+
+
+class InvalidEngineError(SupersetErrorException):
+    status = 422
+
+
+class DatabaseOfflineError(SupersetErrorException):
+    status = 422
+
+
+class InvalidParametersError(SupersetErrorsException):
+    status = 422

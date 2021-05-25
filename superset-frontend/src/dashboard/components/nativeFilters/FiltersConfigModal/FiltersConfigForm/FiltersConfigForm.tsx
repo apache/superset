@@ -34,7 +34,7 @@ import {
 import { FormInstance } from 'antd/lib/form';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { Checkbox, Form, Input, Typography } from 'src/common/components';
+import { Checkbox, Form, Input } from 'src/common/components';
 import { Select } from 'src/components/Select';
 import SupersetResourceSelect, {
   cachedSupersetGet,
@@ -44,10 +44,12 @@ import DateFilterControl from 'src/explore/components/controls/DateFilterControl
 import { addDangerToast } from 'src/messageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import SelectControl from 'src/explore/components/controls/SelectControl';
+import Collapse from 'src/components/Collapse';
 import Button from 'src/components/Button';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import Tabs from 'src/components/Tabs';
 import { ColumnSelect } from './ColumnSelect';
 import { NativeFiltersForm } from '../types';
 import {
@@ -66,12 +68,18 @@ import {
   CASCADING_FILTERS,
   getFiltersConfigModalTestId,
 } from '../FiltersConfigModal';
-// TODO: move styles from AdhocFilterControl to emotion and delete this ./main.less
-import './main.less';
+
+const { TabPane } = Tabs;
 
 const StyledContainer = styled.div`
   display: flex;
   flex-direction: row-reverse;
+  justify-content: space-between;
+`;
+
+const StyledDatasetContainer = styled.div`
+  display: flex;
+  flex-direction: row;
   justify-content: space-between;
 `;
 
@@ -93,6 +101,58 @@ export const StyledLabel = styled.span`
 const CleanFormItem = styled(Form.Item)`
   margin-bottom: 0;
 `;
+
+const StyledCollapse = styled(Collapse)`
+  margin-left: ${({ theme }) => theme.gridUnit * -4 - 1}px;
+  margin-right: ${({ theme }) => theme.gridUnit * -4}px;
+  border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border-radius: 0px;
+
+  .ant-collapse-header {
+    border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    margin-top: -1px;
+    border-radius: 0px;
+  }
+
+  .ant-collapse-content {
+    border: 0px;
+  }
+
+  &.ant-collapse > .ant-collapse-item {
+    border: 0px;
+    border-radius: 0px;
+  }
+`;
+
+const StyledTabs = styled(Tabs)`
+  .ant-tabs-nav-list {
+    padding: 0px;
+  }
+`;
+
+const FilterTabs = {
+  configuration: {
+    key: 'configuration',
+    name: t('Configuration'),
+  },
+  scoping: {
+    key: 'scoping',
+    name: t('Scoping'),
+  },
+};
+
+const FilterPanels = {
+  basic: {
+    key: 'basic',
+    name: t('Basic'),
+  },
+  advanced: {
+    key: 'advanced',
+    name: t('Advanced'),
+  },
+};
 
 export interface FiltersConfigFormProps {
   filterId: string;
@@ -126,9 +186,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const forceUpdate = useForceUpdate();
   const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
-
   const formFilter = form.getFieldValue('filters')?.[filterId] || {};
-
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
     // @ts-ignore
@@ -146,7 +204,9 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
     ?.datasourceCount;
   const hasColumn =
     hasDataset && !FILTERS_WITHOUT_COLUMN.includes(formFilter?.filterType);
-
+  // @ts-ignore
+  const enableNoResults = !!nativeFilterItems[formFilter?.filterType]?.value
+    ?.enableNoResults;
   const datasetId = formFilter?.dataset?.value;
 
   useEffect(() => {
@@ -191,7 +251,6 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
     const formData = getFormData({
       datasetId: formFilter?.dataset?.value,
       groupby: formFilter?.column,
-      defaultValue: formFilter?.defaultValue,
       ...formFilter,
     });
     setNativeFilterFieldValues(form, filterId, {
@@ -242,7 +301,6 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
   const newFormData = getFormData({
     datasetId,
     groupby: hasColumn ? formFilter?.column : undefined,
-    defaultValue: formFilter?.defaultValue,
     ...formFilter,
   });
 
@@ -266,251 +324,290 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
     label: filter.title,
   }));
 
+  const showDefaultValue = !hasDataset || (!isDataDirty && hasFilledDataset);
+
   return (
     <>
-      <Typography.Title level={5}>{t('Settings')}</Typography.Title>
-      <StyledContainer>
-        <StyledFormItem
-          name={['filters', filterId, 'name']}
-          label={<StyledLabel>{t('Filter name')}</StyledLabel>}
-          initialValue={filterToEdit?.name}
-          rules={[{ required: !removed, message: t('Name is required') }]}
+      <StyledTabs defaultActiveKey={FilterTabs.configuration.key} centered>
+        <TabPane
+          tab={FilterTabs.configuration.name}
+          key={FilterTabs.configuration.key}
+          forceRender
         >
-          <Input {...getFiltersConfigModalTestId('name-input')} />
-        </StyledFormItem>
-        <StyledFormItem
-          name={['filters', filterId, 'filterType']}
-          rules={[{ required: !removed, message: t('Name is required') }]}
-          initialValue={filterToEdit?.filterType || 'filter_select'}
-          label={<StyledLabel>{t('Filter Type')}</StyledLabel>}
-          {...getFiltersConfigModalTestId('filter-type')}
-        >
-          <Select
-            options={nativeFilterVizTypes.map(filterType => ({
-              value: filterType,
-              // @ts-ignore
-              label: nativeFilterItems[filterType]?.value.name,
-            }))}
-            onChange={({ value }: { value: string }) => {
-              setNativeFilterFieldValues(form, filterId, {
-                filterType: value,
-                defaultValue: null,
-              });
-              forceUpdate();
-            }}
-          />
-        </StyledFormItem>
-      </StyledContainer>
-      {hasDataset && (
-        <>
-          <StyledFormItem
-            name={['filters', filterId, 'dataset']}
-            initialValue={{ value: initialDatasetId }}
-            label={<StyledLabel>{t('Dataset')}</StyledLabel>}
-            rules={[{ required: !removed, message: t('Dataset is required') }]}
-            {...getFiltersConfigModalTestId('datasource-input')}
-          >
-            <SupersetResourceSelect
-              initialId={initialDatasetId}
-              resource="dataset"
-              searchColumn="table_name"
-              transformItem={datasetToSelectOption}
-              isMulti={false}
-              onError={onDatasetSelectError}
-              defaultOptions={Object.values(loadedDatasets).map(
-                datasetToSelectOption,
-              )}
-              onChange={e => {
-                // We need reset column when dataset changed
-                if (datasetId && e?.value !== datasetId) {
-                  setNativeFilterFieldValues(form, filterId, {
-                    defaultValue: null,
-                    column: null,
-                  });
-                }
-                forceUpdate();
-              }}
-            />
-          </StyledFormItem>
-          {hasColumn && (
+          <StyledContainer>
             <StyledFormItem
-              // don't show the column select unless we have a dataset
-              // style={{ display: datasetId == null ? undefined : 'none' }}
-              name={['filters', filterId, 'column']}
-              initialValue={initColumn}
-              label={<StyledLabel>{t('Column')}</StyledLabel>}
-              rules={[{ required: !removed, message: t('Field is required') }]}
-              data-test="field-input"
+              name={['filters', filterId, 'name']}
+              label={<StyledLabel>{t('Filter name')}</StyledLabel>}
+              initialValue={filterToEdit?.name}
+              rules={[{ required: !removed, message: t('Name is required') }]}
             >
-              <ColumnSelect
-                form={form}
-                filterId={filterId}
-                datasetId={datasetId}
-                onChange={e => {
-                  // We need reset default value when when column changed
+              <Input {...getFiltersConfigModalTestId('name-input')} />
+            </StyledFormItem>
+            <StyledFormItem
+              name={['filters', filterId, 'filterType']}
+              rules={[{ required: !removed, message: t('Name is required') }]}
+              initialValue={filterToEdit?.filterType || 'filter_select'}
+              label={<StyledLabel>{t('Filter Type')}</StyledLabel>}
+              {...getFiltersConfigModalTestId('filter-type')}
+            >
+              <Select
+                options={nativeFilterVizTypes.map(filterType => ({
+                  value: filterType,
+                  // @ts-ignore
+                  label: nativeFilterItems[filterType]?.value.name,
+                }))}
+                onChange={({ value }: { value: string }) => {
                   setNativeFilterFieldValues(form, filterId, {
-                    defaultValue: null,
+                    filterType: value,
+                    defaultDataMask: null,
                   });
                   forceUpdate();
                 }}
               />
             </StyledFormItem>
-          )}
-          {hasAdditionalFilters && (
-            <>
+          </StyledContainer>
+          {hasDataset && (
+            <StyledDatasetContainer>
               <StyledFormItem
-                name={['filters', filterId, 'adhoc_filters']}
-                initialValue={filterToEdit?.adhoc_filters}
+                name={['filters', filterId, 'dataset']}
+                initialValue={{ value: initialDatasetId }}
+                label={<StyledLabel>{t('Dataset')}</StyledLabel>}
+                rules={[
+                  { required: !removed, message: t('Dataset is required') },
+                ]}
+                {...getFiltersConfigModalTestId('datasource-input')}
               >
-                <AdhocFilterControl
-                  columns={
-                    datasetDetails?.columns?.filter(
-                      (c: ColumnMeta) => c.filterable,
-                    ) || []
-                  }
-                  savedMetrics={datasetDetails?.metrics || []}
-                  datasource={datasetDetails}
-                  onChange={(filters: AdhocFilter[]) => {
-                    setNativeFilterFieldValues(form, filterId, {
-                      adhoc_filters: filters,
-                    });
-                    forceUpdate();
-                  }}
-                  label={<StyledLabel>{t('Adhoc filters')}</StyledLabel>}
-                />
-              </StyledFormItem>
-              <StyledFormItem
-                name={['filters', filterId, 'time_range']}
-                label={<StyledLabel>{t('Time range')}</StyledLabel>}
-                initialValue={filterToEdit?.time_range || 'No filter'}
-              >
-                <DateFilterControl
-                  name="time_range"
-                  onChange={timeRange => {
-                    setNativeFilterFieldValues(form, filterId, {
-                      time_range: timeRange,
-                    });
+                <SupersetResourceSelect
+                  initialId={initialDatasetId}
+                  resource="dataset"
+                  searchColumn="table_name"
+                  transformItem={datasetToSelectOption}
+                  isMulti={false}
+                  onError={onDatasetSelectError}
+                  defaultOptions={Object.values(loadedDatasets).map(
+                    datasetToSelectOption,
+                  )}
+                  onChange={e => {
+                    // We need reset column when dataset changed
+                    if (datasetId && e?.value !== datasetId) {
+                      setNativeFilterFieldValues(form, filterId, {
+                        defaultDataMask: null,
+                        column: null,
+                      });
+                    }
                     forceUpdate();
                   }}
                 />
               </StyledFormItem>
-            </>
+              {hasColumn && (
+                <StyledFormItem
+                  // don't show the column select unless we have a dataset
+                  // style={{ display: datasetId == null ? undefined : 'none' }}
+                  name={['filters', filterId, 'column']}
+                  initialValue={initColumn}
+                  label={<StyledLabel>{t('Column')}</StyledLabel>}
+                  rules={[
+                    { required: !removed, message: t('Field is required') },
+                  ]}
+                  data-test="field-input"
+                >
+                  <ColumnSelect
+                    form={form}
+                    filterId={filterId}
+                    datasetId={datasetId}
+                    onChange={() => {
+                      // We need reset default value when when column changed
+                      setNativeFilterFieldValues(form, filterId, {
+                        defaultDataMask: null,
+                      });
+                      forceUpdate();
+                    }}
+                  />
+                </StyledFormItem>
+              )}
+            </StyledDatasetContainer>
           )}
-        </>
-      )}
-      {hasFilledDataset && (
-        <CleanFormItem
-          name={['filters', filterId, 'defaultValueFormData']}
-          hidden
-          initialValue={newFormData}
-        />
-      )}
-      <CleanFormItem
-        name={['filters', filterId, 'defaultValueQueriesData']}
-        hidden
-        initialValue={null}
-      />
-      {isCascadingFilter && (
-        <StyledFormItem
-          name={['filters', filterId, 'parentFilter']}
-          label={<StyledLabel>{t('Parent filter')}</StyledLabel>}
-          initialValue={parentFilterOptions.find(
-            ({ value }) => value === filterToEdit?.cascadeParentIds[0],
-          )}
-          data-test="parent-filter-input"
+          <StyledCollapse>
+            <Collapse.Panel
+              header={FilterPanels.basic.name}
+              key={FilterPanels.basic.key}
+            >
+              {hasFilledDataset && (
+                <CleanFormItem
+                  name={['filters', filterId, 'defaultValueFormData']}
+                  hidden
+                  initialValue={newFormData}
+                />
+              )}
+              <CleanFormItem
+                name={['filters', filterId, 'defaultValueQueriesData']}
+                hidden
+                initialValue={null}
+              />
+              {isCascadingFilter && (
+                <StyledFormItem
+                  name={['filters', filterId, 'parentFilter']}
+                  label={<StyledLabel>{t('Parent filter')}</StyledLabel>}
+                  initialValue={parentFilterOptions.find(
+                    ({ value }) => value === filterToEdit?.cascadeParentIds[0],
+                  )}
+                  data-test="parent-filter-input"
+                >
+                  <Select
+                    placeholder={t('None')}
+                    options={parentFilterOptions}
+                    isClearable
+                  />
+                </StyledFormItem>
+              )}
+              <StyledContainer>
+                <StyledFormItem className="bottom" label={<StyledLabel />}>
+                  {hasDataset && hasFilledDataset && (
+                    <Button onClick={refreshHandler}>
+                      {isDataDirty ? t('Populate') : t('Refresh')}
+                    </Button>
+                  )}
+                </StyledFormItem>
+                <StyledFormItem
+                  name={['filters', filterId, 'defaultDataMask']}
+                  initialValue={filterToEdit?.defaultDataMask}
+                  data-test="default-input"
+                  label={<StyledLabel>{t('Default Value')}</StyledLabel>}
+                >
+                  {showDefaultValue ? (
+                    <DefaultValue
+                      setDataMask={dataMask => {
+                        setNativeFilterFieldValues(form, filterId, {
+                          defaultDataMask: dataMask,
+                        });
+                        forceUpdate();
+                      }}
+                      filterId={filterId}
+                      hasDataset={hasDataset}
+                      form={form}
+                      formData={newFormData}
+                      enableNoResults={enableNoResults}
+                    />
+                  ) : hasFilledDataset ? (
+                    t('Click "Populate" to get "Default Value" ->')
+                  ) : (
+                    t('Fill all required fields to enable "Default Value"')
+                  )}
+                </StyledFormItem>
+              </StyledContainer>
+              <StyledCheckboxFormItem
+                name={['filters', filterId, 'isInstant']}
+                initialValue={filterToEdit?.isInstant || false}
+                valuePropName="checked"
+                colon={false}
+              >
+                <Checkbox data-test="apply-changes-instantly-checkbox">
+                  {t('Apply changes instantly')}
+                </Checkbox>
+              </StyledCheckboxFormItem>
+              <ControlItems
+                disabled={!showDefaultValue}
+                filterToEdit={filterToEdit}
+                formFilter={formFilter}
+                filterId={filterId}
+                form={form}
+                forceUpdate={forceUpdate}
+              />
+            </Collapse.Panel>
+            {((hasDataset && hasAdditionalFilters) || hasMetrics) && (
+              <Collapse.Panel
+                header={FilterPanels.advanced.name}
+                key={FilterPanels.advanced.key}
+              >
+                {hasDataset && hasAdditionalFilters && (
+                  <>
+                    <StyledFormItem
+                      name={['filters', filterId, 'adhoc_filters']}
+                      initialValue={filterToEdit?.adhoc_filters}
+                    >
+                      <AdhocFilterControl
+                        columns={
+                          datasetDetails?.columns?.filter(
+                            (c: ColumnMeta) => c.filterable,
+                          ) || []
+                        }
+                        savedMetrics={datasetDetails?.metrics || []}
+                        datasource={datasetDetails}
+                        onChange={(filters: AdhocFilter[]) => {
+                          setNativeFilterFieldValues(form, filterId, {
+                            adhoc_filters: filters,
+                          });
+                          forceUpdate();
+                        }}
+                        label={<StyledLabel>{t('Adhoc filters')}</StyledLabel>}
+                      />
+                    </StyledFormItem>
+                    <StyledFormItem
+                      name={['filters', filterId, 'time_range']}
+                      label={<StyledLabel>{t('Time range')}</StyledLabel>}
+                      initialValue={filterToEdit?.time_range || 'No filter'}
+                    >
+                      <DateFilterControl
+                        name="time_range"
+                        onChange={timeRange => {
+                          setNativeFilterFieldValues(form, filterId, {
+                            time_range: timeRange,
+                          });
+                          forceUpdate();
+                        }}
+                      />
+                    </StyledFormItem>
+                  </>
+                )}
+                {hasMetrics && (
+                  <StyledFormItem
+                    // don't show the column select unless we have a dataset
+                    // style={{ display: datasetId == null ? undefined : 'none' }}
+                    name={['filters', filterId, 'sortMetric']}
+                    initialValue={filterToEdit?.sortMetric}
+                    label={<StyledLabel>{t('Sort Metric')}</StyledLabel>}
+                    data-test="field-input"
+                  >
+                    <SelectControl
+                      form={form}
+                      filterId={filterId}
+                      name="sortMetric"
+                      options={metrics.map((metric: Metric) => ({
+                        value: metric.metric_name,
+                        label: metric.verbose_name ?? metric.metric_name,
+                      }))}
+                      onChange={(value: string | null): void => {
+                        if (value !== undefined) {
+                          setNativeFilterFieldValues(form, filterId, {
+                            sortMetric: value,
+                          });
+                          forceUpdate();
+                        }
+                      }}
+                    />
+                  </StyledFormItem>
+                )}
+              </Collapse.Panel>
+            )}
+          </StyledCollapse>
+        </TabPane>
+        <TabPane
+          tab={FilterTabs.scoping.name}
+          key={FilterTabs.scoping.key}
+          forceRender
         >
-          <Select
-            placeholder={t('None')}
-            options={parentFilterOptions}
-            isClearable
+          <FilterScope
+            updateFormValues={(values: any) =>
+              setNativeFilterFieldValues(form, filterId, values)
+            }
+            pathToFormValue={['filters', filterId]}
+            forceUpdate={forceUpdate}
+            scope={filterToEdit?.scope}
+            formScope={formFilter?.scope}
+            formScoping={formFilter?.scoping}
           />
-        </StyledFormItem>
-      )}
-      <StyledContainer>
-        <StyledFormItem className="bottom" label={<StyledLabel />}>
-          {hasDataset && hasFilledDataset && (
-            <Button onClick={refreshHandler}>
-              {isDataDirty ? t('Populate') : t('Refresh')}
-            </Button>
-          )}
-        </StyledFormItem>
-        <StyledFormItem
-          name={['filters', filterId, 'defaultValue']}
-          initialValue={filterToEdit?.defaultValue}
-          data-test="default-input"
-          label={<StyledLabel>{t('Default Value')}</StyledLabel>}
-        >
-          {(!hasDataset || (!isDataDirty && hasFilledDataset)) && (
-            <DefaultValue
-              setDataMask={({ filterState }) => {
-                setNativeFilterFieldValues(form, filterId, {
-                  defaultValue: filterState?.value,
-                });
-                forceUpdate();
-              }}
-              filterId={filterId}
-              hasDataset={hasDataset}
-              form={form}
-              formData={newFormData}
-            />
-          )}
-        </StyledFormItem>
-      </StyledContainer>
-      <StyledCheckboxFormItem
-        name={['filters', filterId, 'isInstant']}
-        initialValue={filterToEdit?.isInstant || false}
-        valuePropName="checked"
-        colon={false}
-      >
-        <Checkbox data-test="apply-changes-instantly-checkbox">
-          {t('Apply changes instantly')}
-        </Checkbox>
-      </StyledCheckboxFormItem>
-      <ControlItems
-        filterToEdit={filterToEdit}
-        formFilter={formFilter}
-        filterId={filterId}
-        form={form}
-        forceUpdate={forceUpdate}
-      />
-      {hasMetrics && (
-        <StyledFormItem
-          // don't show the column select unless we have a dataset
-          // style={{ display: datasetId == null ? undefined : 'none' }}
-          name={['filters', filterId, 'sortMetric']}
-          initialValue={filterToEdit?.sortMetric}
-          label={<StyledLabel>{t('Sort Metric')}</StyledLabel>}
-          data-test="field-input"
-        >
-          <SelectControl
-            form={form}
-            filterId={filterId}
-            name="sortMetric"
-            options={metrics.map((metric: Metric) => ({
-              value: metric.metric_name,
-              label: metric.verbose_name ?? metric.metric_name,
-            }))}
-            onChange={(value: string | null): void => {
-              if (value !== undefined) {
-                setNativeFilterFieldValues(form, filterId, {
-                  sortMetric: value,
-                });
-                forceUpdate();
-              }
-            }}
-          />
-        </StyledFormItem>
-      )}
-      <FilterScope
-        updateFormValues={(values: any) =>
-          setNativeFilterFieldValues(form, filterId, values)
-        }
-        pathToFormValue={['filters', filterId]}
-        forceUpdate={forceUpdate}
-        scope={filterToEdit?.scope}
-        formScope={formFilter?.scope}
-        formScoping={formFilter?.scoping}
-      />
+        </TabPane>
+      </StyledTabs>
     </>
   );
 };

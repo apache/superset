@@ -40,9 +40,11 @@ query_timeout = current_app.config[
 
 
 def ensure_user_is_set(user_id: Optional[int]) -> None:
-    user_is_set = hasattr(g, "user") and g.user is not None
-    if not user_is_set and user_id is not None:
+    user_is_not_set = not (hasattr(g, "user") and g.user is not None)
+    if user_is_not_set and user_id is not None:
         g.user = security_manager.get_user_by_id(user_id)
+    elif user_is_not_set:
+        g.user = security_manager.get_anonymous_user()
 
 
 @celery_app.task(name="load_chart_data_into_cache", soft_time_limit=query_timeout)

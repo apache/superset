@@ -14,6 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Optional
+
+from sqlalchemy.engine.url import URL
+
+from superset import security_manager
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
 
@@ -24,3 +29,12 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     engine_name = "Google Sheets"
     allows_joins = False
     allows_subqueries = True
+
+    @classmethod
+    def modify_url_for_impersonation(
+        cls, url: URL, impersonate_user: bool, username: Optional[str]
+    ) -> None:
+        if impersonate_user and username is not None:
+            user = security_manager.find_user(username=username)
+            if user and user.email:
+                url.query["subject"] = user.email

@@ -17,18 +17,20 @@
 # from superset import db
 # from superset.models.dashboard import Dashboard
 import urllib.request
+from io import BytesIO
 from unittest import skipUnless
 from unittest.mock import patch
 
 from flask_testing import LiveServerTestCase
 from sqlalchemy.sql import func
 
-from superset import db, is_feature_enabled, security_manager, thumbnail_cache
+from superset import db, is_feature_enabled, security_manager
 from superset.extensions import machine_auth_provider_factory
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
-from superset.utils.urls import get_url_path
+from superset.utils.urls import get_url_host
+from tests.conftest import with_feature_flags
 from tests.test_app import app
 
 from .base_tests import SupersetTestCase
@@ -63,31 +65,29 @@ class TestThumbnails(SupersetTestCase):
 
     mock_image = b"bytes mock image"
 
+    @with_feature_flags(THUMBNAILS=False)
     def test_dashboard_thumbnail_disabled(self):
         """
         Thumbnails: Dashboard thumbnail disabled
         """
-        if is_feature_enabled("THUMBNAILS"):
-            return
         dashboard = db.session.query(Dashboard).all()[0]
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
+    @with_feature_flags(THUMBNAILS=False)
     def test_chart_thumbnail_disabled(self):
         """
         Thumbnails: Chart thumbnail disabled
         """
-        if is_feature_enabled("THUMBNAILS"):
-            return
         chart = db.session.query(Slice).all()[0]
         self.login(username="admin")
         uri = f"api/v1/chart/{chart}/thumbnail/{chart.digest}/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
-    @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
+    @with_feature_flags(THUMBNAILS=True)
     def test_get_async_dashboard_screenshot(self):
         """
         Thumbnails: Simple get async dashboard screenshot
@@ -100,9 +100,15 @@ class TestThumbnails(SupersetTestCase):
         ) as mock_task:
             rv = self.client.get(uri)
             self.assertEqual(rv.status_code, 202)
-            mock_task.assert_called_with(dashboard.id, force=True)
 
-    @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
+            expected_uri = f"{get_url_host()}superset/dashboard/{dashboard.id}/"
+            expected_digest = dashboard.digest
+            expected_kwargs = {"force": True}
+            mock_task.assert_called_with(
+                expected_uri, expected_digest, **expected_kwargs
+            )
+
+    @with_feature_flags(THUMBNAILS=True)
     def test_get_async_dashboard_notfound(self):
         """
         Thumbnails: Simple get async dashboard not found
@@ -124,7 +130,7 @@ class TestThumbnails(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
-    @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
+    @with_feature_flags(THUMBNAILS=True)
     def test_get_async_chart_screenshot(self):
         """
         Thumbnails: Simple get async chart screenshot
@@ -137,9 +143,14 @@ class TestThumbnails(SupersetTestCase):
         ) as mock_task:
             rv = self.client.get(uri)
             self.assertEqual(rv.status_code, 202)
-            mock_task.assert_called_with(chart.id, force=True)
+            expected_uri = f"{get_url_host()}superset/slice/{chart.id}/?standalone=true"
+            expected_digest = chart.digest
+            expected_kwargs = {"force": True}
+            mock_task.assert_called_with(
+                expected_uri, expected_digest, **expected_kwargs
+            )
 
-    @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
+    @with_feature_flags(THUMBNAILS=True)
     def test_get_async_chart_notfound(self):
         """
         Thumbnails: Simple get async chart not found
@@ -150,68 +161,66 @@ class TestThumbnails(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
-    @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
+    @with_feature_flags(THUMBNAILS=True)
     def test_get_cached_chart_wrong_digest(self):
         """
         Thumbnails: Simple get chart with wrong digest
         """
         chart = db.session.query(Slice).all()[0]
-        chart_url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
-        # Cache a test "image"
-        screenshot = ChartScreenshot(chart_url, chart.digest)
-        thumbnail_cache.set(screenshot.cache_key, self.mock_image)
-        self.login(username="admin")
-        uri = f"api/v1/chart/{chart.id}/thumbnail/1234/"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 302)
-        self.assertRedirects(rv, f"api/v1/chart/{chart.id}/thumbnail/{chart.digest}/")
+        with patch.object(
+            ChartScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
+        ):
+            self.login(username="admin")
+            uri = f"api/v1/chart/{chart.id}/thumbnail/1234/"
+            rv = self.client.get(uri)
+            self.assertEqual(rv.status_code, 302)
+            self.assertRedirects(
+                rv, f"api/v1/chart/{chart.id}/thumbnail/{chart.digest}/"
+            )
 
-    @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
+    @with_feature_flags(THUMBNAILS=True)
     def test_get_cached_dashboard_screenshot(self):
         """
         Thumbnails: Simple get cached dashboard screenshot
         """
         dashboard = db.session.query(Dashboard).all()[0]
-        dashboard_url = get_url_path("Superset.dashboard", dashboard_id=dashboard.id)
-        # Cache a test "image"
-        screenshot = DashboardScreenshot(dashboard_url, dashboard.digest)
-        thumbnail_cache.set(screenshot.cache_key, self.mock_image)
-        self.login(username="admin")
-        uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
-        self.assertEqual(rv.data, self.mock_image)
+        with patch.object(
+            DashboardScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
+        ):
+            self.login(username="admin")
+            uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
+            rv = self.client.get(uri)
+            self.assertEqual(rv.status_code, 200)
+            self.assertEqual(rv.data, self.mock_image)
 
-    @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
+    @with_feature_flags(THUMBNAILS=True)
     def test_get_cached_chart_screenshot(self):
         """
         Thumbnails: Simple get cached chart screenshot
         """
         chart = db.session.query(Slice).all()[0]
-        chart_url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
-        # Cache a test "image"
-        screenshot = ChartScreenshot(chart_url, chart.digest)
-        thumbnail_cache.set(screenshot.cache_key, self.mock_image)
-        self.login(username="admin")
-        uri = f"api/v1/chart/{chart.id}/thumbnail/{chart.digest}/"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
-        self.assertEqual(rv.data, self.mock_image)
+        with patch.object(
+            ChartScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
+        ):
+            self.login(username="admin")
+            uri = f"api/v1/chart/{chart.id}/thumbnail/{chart.digest}/"
+            rv = self.client.get(uri)
+            self.assertEqual(rv.status_code, 200)
+            self.assertEqual(rv.data, self.mock_image)
 
-    @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
+    @with_feature_flags(THUMBNAILS=True)
     def test_get_cached_dashboard_wrong_digest(self):
         """
         Thumbnails: Simple get dashboard with wrong digest
         """
         dashboard = db.session.query(Dashboard).all()[0]
-        dashboard_url = get_url_path("Superset.dashboard", dashboard_id=dashboard.id)
-        # Cache a test "image"
-        screenshot = DashboardScreenshot(dashboard_url, dashboard.digest)
-        thumbnail_cache.set(screenshot.cache_key, self.mock_image)
-        self.login(username="admin")
-        uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/1234/"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 302)
-        self.assertRedirects(
-            rv, f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
-        )
+        with patch.object(
+            DashboardScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
+        ):
+            self.login(username="admin")
+            uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/1234/"
+            rv = self.client.get(uri)
+            self.assertEqual(rv.status_code, 302)
+            self.assertRedirects(
+                rv, f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
+            )
