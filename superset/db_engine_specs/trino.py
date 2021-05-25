@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from distutils.version import StrictVersion
 from typing import Any, Dict, Optional
 from urllib import parse
 
