@@ -40,15 +40,17 @@ function execControlValidator<T = ControlType>(
   processedState: ControlState<T>,
 ) {
   const validators = control.validators as ControlValueValidator[] | undefined;
-  const validationErrors: ValidationError[] = [];
+  const { externalValidationErrors = [] } = control;
+  const errors: ValidationError[] = [];
   if (validators && validators.length > 0) {
     validators.forEach(validator => {
       const error = validator.call(control, control.value, processedState);
       if (error) {
-        validationErrors.push(error);
+        errors.push(error);
       }
     });
   }
+  const validationErrors = [...errors, ...externalValidationErrors];
   // always reset validation errors even when there is no validator
   return { ...control, validationErrors };
 }
