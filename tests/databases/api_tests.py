@@ -1372,16 +1372,14 @@ class TestDatabaseApi(SupersetTestCase):
     @mock.patch("superset.databases.api.get_available_engine_specs")
     @mock.patch("superset.databases.api.app")
     def test_available(self, app, get_available_engine_specs):
-        app.config = {
-            "PREFERRED_DATABASES": ["postgresql", "biqquery", "mysql", "redshift"]
+        app.config = {"PREFERRED_DATABASES": ["PostgreSQL", "Google BigQuery"]}
+        get_available_engine_specs.return_value = {
+            PostgresEngineSpec: {"psycopg2"},
+            BigQueryEngineSpec: {"bigquery"},
+            MySQLEngineSpec: {"mysqlconnector", "mysqldb"},
+            RedshiftEngineSpec: {"psycopg2"},
+            HanaEngineSpec: {""},
         }
-        get_available_engine_specs.return_value = [
-            PostgresEngineSpec,
-            BigQueryEngineSpec,
-            MySQLEngineSpec,
-            RedshiftEngineSpec,
-            HanaEngineSpec,
-        ]
 
         self.login(username="admin")
         uri = "api/v1/database/available/"
@@ -1392,6 +1390,8 @@ class TestDatabaseApi(SupersetTestCase):
         assert response == {
             "databases": [
                 {
+                    "available_drivers": ["psycopg2"],
+                    "default_driver": "psycopg2",
                     "engine": "postgresql",
                     "name": "PostgreSQL",
                     "parameters": {
@@ -1433,9 +1433,36 @@ class TestDatabaseApi(SupersetTestCase):
                         "type": "object",
                     },
                     "preferred": True,
-                    "sqlalchemy_uri_placeholder": "postgresql+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
+                    "sqlalchemy_uri_placeholder": "postgresql://user:password@host:port/dbname[?key=value&key=value...]",
                 },
                 {
+                    "available_drivers": ["bigquery"],
+                    "default_driver": "bigquery",
+                    "engine": "bigquery",
+                    "name": "Google BigQuery",
+                    "parameters": {
+                        "properties": {
+                            "credentials_info": {
+                                "description": "Contents of BigQuery JSON credentials.",
+                                "type": "string",
+                                "x-encrypted-extra": True,
+                            }
+                        },
+                        "type": "object",
+                    },
+                    "preferred": True,
+                    "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
+                },
+                {
+                    "available_drivers": ["psycopg2"],
+                    "default_driver": "",
+                    "engine": "redshift",
+                    "name": "Amazon Redshift",
+                    "preferred": False,
+                },
+                {
+                    "available_drivers": ["mysqlconnector", "mysqldb"],
+                    "default_driver": "mysqldb",
                     "engine": "mysql",
                     "name": "MySQL",
                     "parameters": {
@@ -1476,70 +1503,48 @@ class TestDatabaseApi(SupersetTestCase):
                         "required": ["database", "host", "port", "username"],
                         "type": "object",
                     },
-                    "preferred": True,
+                    "preferred": False,
                     "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
                 },
                 {
-                    "engine": "redshift",
-                    "name": "Amazon Redshift",
-                    "parameters": {
-                        "properties": {
-                            "database": {
-                                "description": "Database name",
-                                "type": "string",
-                            },
-                            "encryption": {
-                                "description": "Use an encrypted connection to the database",
-                                "type": "boolean",
-                            },
-                            "host": {
-                                "description": "Hostname or IP address",
-                                "type": "string",
-                            },
-                            "password": {
-                                "description": "Password",
-                                "nullable": True,
-                                "type": "string",
-                            },
-                            "port": {
-                                "description": "Database port",
-                                "format": "int32",
-                                "type": "integer",
-                            },
-                            "query": {
-                                "additionalProperties": {},
-                                "description": "Additional parameters",
-                                "type": "object",
-                            },
-                            "username": {
-                                "description": "Username",
-                                "nullable": True,
-                                "type": "string",
-                            },
-                        },
-                        "required": ["database", "host", "port", "username"],
-                        "type": "object",
-                    },
+                    "available_drivers": [""],
+                    "engine": "hana",
+                    "name": "SAP HANA",
+                    "preferred": False,
+                },
+            ]
+        }
+
+    @mock.patch("superset.databases.api.get_available_engine_specs")
+    @mock.patch("superset.databases.api.app")
+    def test_available_no_default(self, app, get_available_engine_specs):
+        app.config = {"PREFERRED_DATABASES": ["MySQL"]}
+        get_available_engine_specs.return_value = {
+            MySQLEngineSpec: {"mysqlconnector"},
+            HanaEngineSpec: {""},
+        }
+
+        self.login(username="admin")
+        uri = "api/v1/database/available/"
+
+        rv = self.client.get(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert response == {
+            "databases": [
+                {
+                    "available_drivers": ["mysqlconnector"],
+                    "default_driver": "mysqldb",
+                    "engine": "mysql",
+                    "name": "MySQL",
                     "preferred": True,
-                    "sqlalchemy_uri_placeholder": "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
                 },
                 {
-                    "engine": "bigquery",
-                    "name": "Google BigQuery",
-                    "parameters": {
-                        "properties": {
-                            "credentials_info": {
-                                "description": "Contents of BigQuery JSON credentials.",
-                                "type": "string",
-                                "x-encrypted-extra": True,
-                            }
-                        },
-                        "type": "object",
-                    },
+                    "available_drivers": [""],
+                    "engine": "hana",
+                    "name": "SAP HANA",
                     "preferred": False,
-                    "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
                 },
-                {"engine": "hana", "name": "SAP HANA", "preferred": False},
             ]
         }
 
