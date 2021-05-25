@@ -26,9 +26,12 @@ import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { fireEvent, render, screen, act } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
 import userEvent from '@testing-library/user-event';
+import { user } from './fixtures';
 
 const mockStore = configureStore([thunk]);
-const store = mockStore({});
+const store = mockStore({
+  sqlLab: user,
+});
 
 const SEARCH_ENDPOINT = 'glob:*/superset/search_queries?*';
 const USER_ENDPOINT = 'glob:*/api/v1/query/related/user';

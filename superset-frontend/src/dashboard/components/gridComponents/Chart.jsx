@@ -334,6 +334,7 @@ export default class Chart extends React.Component {
           handleToggleFullSize={handleToggleFullSize}
           isFullSize={isFullSize}
           chartStatus={chart.chartStatus}
+          formData={formData}
         />
 
         {/*

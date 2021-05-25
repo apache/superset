@@ -20,9 +20,9 @@ import React from 'react';
 import { mount, shallow } from 'enzyme';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { Dropdown, Menu } from 'src/common/components';
-import { DisplayQueryButton } from 'src/explore/components/DisplayQueryButton';
+import ExploreAdditionalActionsMenu from 'src/explore/components/ExploreAdditionalActionsMenu';
 
-describe('DisplayQueryButton', () => {
+describe('ExploreAdditionalActionsMenu', () => {
   const defaultProps = {
     animation: false,
     queryResponse: {
@@ -38,12 +38,12 @@ describe('DisplayQueryButton', () => {
   };
 
   it('is valid', () => {
-    expect(React.isValidElement(<DisplayQueryButton {...defaultProps} />)).toBe(
-      true,
-    );
+    expect(
+      React.isValidElement(<ExploreAdditionalActionsMenu {...defaultProps} />),
+    ).toBe(true);
   });
-  it('renders a dropdown with 3 itens', () => {
-    const wrapper = mount(<DisplayQueryButton {...defaultProps} />, {
+  it('renders a dropdown with 3 items', () => {
+    const wrapper = mount(<ExploreAdditionalActionsMenu {...defaultProps} />, {
       wrappingComponent: ThemeProvider,
       wrappingComponentProps: {
         theme: supersetTheme,

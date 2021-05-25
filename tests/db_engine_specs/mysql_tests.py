@@ -115,6 +115,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
                 message='Either the username "test" or the password is incorrect.',
                 level=ErrorLevel.ERROR,
                 extra={
+                    "invalid": ["username", "password"],
                     "engine_name": "MySQL",
                     "issue_codes": [
                         {
@@ -140,6 +141,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
                 message='Unknown MySQL server host "badhostname.com".',
                 level=ErrorLevel.ERROR,
                 extra={
+                    "invalid": ["host"],
                     "engine_name": "MySQL",
                     "issue_codes": [
                         {
@@ -161,6 +163,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
                 "down and can't be reached.",
                 level=ErrorLevel.ERROR,
                 extra={
+                    "invalid": ["host", "port"],
                     "engine_name": "MySQL",
                     "issue_codes": [
                         {
@@ -181,6 +184,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
                 message='The host "93.184.216.34" might be down and can\'t be reached.',
                 level=ErrorLevel.ERROR,
                 extra={
+                    "invalid": ["host", "port"],
                     "engine_name": "MySQL",
                     "issue_codes": [
                         {
@@ -195,12 +199,14 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
 
         msg = "mysql: Unknown database 'badDB'"
         result = MySQLEngineSpec.extract_errors(Exception(msg))
+        print(result)
         assert result == [
             SupersetError(
                 message='Unable to connect to database "badDB".',
                 error_type=SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={
+                    "invalid": ["database"],
                     "engine_name": "MySQL",
                     "issue_codes": [
                         {

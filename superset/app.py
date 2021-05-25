@@ -226,10 +226,12 @@ class SupersetAppInitializer:
         #
         # Setup regular views
         #
-        if appbuilder.app.config["LOGO_TARGET_PATH"]:
-            appbuilder.add_link(
-                "Home", label=__("Home"), href="/superset/welcome/",
-            )
+        appbuilder.add_link(
+            "Home",
+            label=__("Home"),
+            href="/superset/welcome/",
+            cond=lambda: bool(appbuilder.app.config["LOGO_TARGET_PATH"]),
+        )
         appbuilder.add_view(
             AnnotationLayerModelView,
             "Annotation Layers",
@@ -294,15 +296,17 @@ class SupersetAppInitializer:
             category_label=__("Manage"),
             category_icon="",
         )
-        if feature_flag_manager.is_feature_enabled("ROW_LEVEL_SECURITY"):
-            appbuilder.add_view(
-                RowLevelSecurityFiltersModelView,
-                "Row Level Security",
-                label=__("Row level security"),
-                category="Security",
-                category_label=__("Security"),
-                icon="fa-lock",
-            )
+        appbuilder.add_view(
+            RowLevelSecurityFiltersModelView,
+            "Row Level Security",
+            label=__("Row level security"),
+            category="Security",
+            category_label=__("Security"),
+            icon="fa-lock",
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
+                "ROW_LEVEL_SECURITY"
+            ),
+        )
 
         #
         # Setup views with no menu
@@ -314,10 +318,7 @@ class SupersetAppInitializer:
         appbuilder.add_view_no_menu(Dashboard)
         appbuilder.add_view_no_menu(DashboardModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
-
-        if feature_flag_manager.is_feature_enabled("KV_STORE"):
-            appbuilder.add_view_no_menu(KV)
-
+        appbuilder.add_view_no_menu(KV)
         appbuilder.add_view_no_menu(R)
         appbuilder.add_view_no_menu(SavedQueryView)
         appbuilder.add_view_no_menu(SavedQueryViewApi)
@@ -330,23 +331,23 @@ class SupersetAppInitializer:
         appbuilder.add_view_no_menu(TableModelView)
         appbuilder.add_view_no_menu(TableSchemaView)
         appbuilder.add_view_no_menu(TabStateView)
-
-        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-            appbuilder.add_view_no_menu(TagView)
+        appbuilder.add_view_no_menu(TagView)
 
         #
         # Add links
         #
-        if not feature_flag_manager.is_feature_enabled("VERSIONED_EXPORT"):
-            appbuilder.add_link(
-                "Import Dashboards",
-                label=__("Import Dashboards"),
-                href="/superset/import_dashboards/",
-                icon="fa-cloud-upload",
-                category="Manage",
-                category_label=__("Manage"),
-                category_icon="fa-wrench",
-            )
+        appbuilder.add_link(
+            "Import Dashboards",
+            label=__("Import Dashboards"),
+            href="/superset/import_dashboards/",
+            icon="fa-cloud-upload",
+            category="Manage",
+            category_label=__("Manage"),
+            category_icon="fa-wrench",
+            cond=lambda: not feature_flag_manager.is_feature_enabled(
+                "VERSIONED_EXPORT"
+            ),
+        )
         appbuilder.add_link(
             "SQL Editor",
             label=_("SQL Editor"),
@@ -371,49 +372,54 @@ class SupersetAppInitializer:
             category="SQL Lab",
             category_label=__("SQL Lab"),
         )
-        if self.config["CSV_EXTENSIONS"].intersection(
-            self.config["ALLOWED_EXTENSIONS"]
-        ):
+        appbuilder.add_link(
+            "Upload a CSV",
+            label=__("Upload a CSV"),
+            href="/csvtodatabaseview/form",
+            icon="fa-upload",
+            category="Data",
+            category_label=__("Data"),
+            category_icon="fa-wrench",
+            cond=lambda: bool(
+                self.config["CSV_EXTENSIONS"].intersection(
+                    self.config["ALLOWED_EXTENSIONS"]
+                )
+            ),
+        )
+
+        try:
+            import xlrd  # pylint: disable=unused-import
+
             appbuilder.add_link(
-                "Upload a CSV",
-                label=__("Upload a CSV"),
-                href="/csvtodatabaseview/form",
+                "Upload Excel",
+                label=__("Upload Excel"),
+                href="/exceltodatabaseview/form",
                 icon="fa-upload",
                 category="Data",
                 category_label=__("Data"),
                 category_icon="fa-wrench",
+                cond=lambda: bool(
+                    self.config["EXCEL_EXTENSIONS"].intersection(
+                        self.config["ALLOWED_EXTENSIONS"]
+                    )
+                ),
             )
-        try:
-            import xlrd  # pylint: disable=unused-import
-
-            if self.config["EXCEL_EXTENSIONS"].intersection(
-                self.config["ALLOWED_EXTENSIONS"]
-            ):
-                appbuilder.add_link(
-                    "Upload Excel",
-                    label=__("Upload Excel"),
-                    href="/exceltodatabaseview/form",
-                    icon="fa-upload",
-                    category="Data",
-                    category_label=__("Data"),
-                    category_icon="fa-wrench",
-                )
         except ImportError:
             pass
 
-        #
-        # Conditionally setup log views
-        #
-        if self.config["FAB_ADD_SECURITY_VIEWS"] and self.config["SUPERSET_LOG_VIEW"]:
-            appbuilder.add_api(LogRestApi)
-            appbuilder.add_view(
-                LogModelView,
-                "Action Log",
-                label=__("Action Log"),
-                category="Security",
-                category_label=__("Security"),
-                icon="fa-list-ol",
-            )
+        appbuilder.add_api(LogRestApi)
+        appbuilder.add_view(
+            LogModelView,
+            "Action Log",
+            label=__("Action Log"),
+            category="Security",
+            category_label=__("Security"),
+            icon="fa-list-ol",
+            menu_cond=lambda: (
+                self.config["FAB_ADD_SECURITY_VIEWS"]
+                and self.config["SUPERSET_LOG_VIEW"]
+            ),
+        )
         appbuilder.add_api(SecurityRestApi)
         #
         # Conditionally setup email views
@@ -423,109 +429,125 @@ class SupersetAppInitializer:
                 "ENABLE_SCHEDULED_EMAIL_REPORTS "
                 "is deprecated and will be removed in version 2.0.0"
             )
-            appbuilder.add_separator("Manage")
-            appbuilder.add_view(
-                DashboardEmailScheduleView,
-                "Dashboard Email Schedules",
-                label=__("Dashboard Emails"),
-                category="Manage",
-                category_label=__("Manage"),
-                icon="fa-search",
-            )
-            appbuilder.add_view(
-                SliceEmailScheduleView,
-                "Chart Emails",
-                label=__("Chart Email Schedules"),
-                category="Manage",
-                category_label=__("Manage"),
-                icon="fa-search",
-            )
+
+        appbuilder.add_separator(
+            "Manage", cond=lambda: self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"]
+        )
+        appbuilder.add_view(
+            DashboardEmailScheduleView,
+            "Dashboard Email Schedules",
+            label=__("Dashboard Emails"),
+            category="Manage",
+            category_label=__("Manage"),
+            icon="fa-search",
+            menu_cond=lambda: self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"],
+        )
+        appbuilder.add_view(
+            SliceEmailScheduleView,
+            "Chart Emails",
+            label=__("Chart Email Schedules"),
+            category="Manage",
+            category_label=__("Manage"),
+            icon="fa-search",
+            menu_cond=lambda: self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"],
+        )
 
         if self.config["ENABLE_ALERTS"]:
             logging.warning(
                 "ENABLE_ALERTS is deprecated and will be removed in version 2.0.0"
             )
-            appbuilder.add_view(
-                AlertModelView,
-                "Alerts",
-                label=__("Alerts"),
-                category="Manage",
-                category_label=__("Manage"),
-                icon="fa-exclamation-triangle",
-            )
-            appbuilder.add_view_no_menu(AlertLogModelView)
-            appbuilder.add_view_no_menu(AlertObservationModelView)
 
-        if feature_flag_manager.is_feature_enabled("ALERT_REPORTS"):
-            appbuilder.add_view(
-                AlertView,
-                "Alerts & Report",
-                label=__("Alerts & Reports"),
-                category="Manage",
-                category_label=__("Manage"),
-                icon="fa-exclamation-triangle",
-            )
-            appbuilder.add_view_no_menu(ReportView)
+        appbuilder.add_view(
+            AlertModelView,
+            "Alerts",
+            label=__("Alerts"),
+            category="Manage",
+            category_label=__("Manage"),
+            icon="fa-exclamation-triangle",
+            menu_cond=lambda: bool(self.config["ENABLE_ALERTS"]),
+        )
+        appbuilder.add_view_no_menu(AlertLogModelView)
+        appbuilder.add_view_no_menu(AlertObservationModelView)
+
+        appbuilder.add_view(
+            AlertView,
+            "Alerts & Report",
+            label=__("Alerts & Reports"),
+            category="Manage",
+            category_label=__("Manage"),
+            icon="fa-exclamation-triangle",
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled("ALERT_REPORTS"),
+        )
+        appbuilder.add_view_no_menu(ReportView)
+
+        appbuilder.add_view(
+            AccessRequestsModelView,
+            "Access requests",
+            label=__("Access requests"),
+            category="Security",
+            category_label=__("Security"),
+            icon="fa-table",
+            menu_cond=lambda: bool(self.config["ENABLE_ACCESS_REQUEST"]),
+        )
 
         #
-        # Conditionally add Access Request Model View
+        # Druid Views
         #
-        if self.config["ENABLE_ACCESS_REQUEST"]:
-            appbuilder.add_view(
-                AccessRequestsModelView,
-                "Access requests",
-                label=__("Access requests"),
-                category="Security",
-                category_label=__("Security"),
-                icon="fa-table",
-            )
+        appbuilder.add_separator(
+            "Data", cond=lambda: bool(self.config["DRUID_IS_ACTIVE"])
+        )
+        appbuilder.add_view(
+            DruidDatasourceModelView,
+            "Druid Datasources",
+            label=__("Druid Datasources"),
+            category="Data",
+            category_label=__("Data"),
+            icon="fa-cube",
+            menu_cond=lambda: bool(self.config["DRUID_IS_ACTIVE"]),
+        )
+        appbuilder.add_view(
+            DruidClusterModelView,
+            name="Druid Clusters",
+            label=__("Druid Clusters"),
+            icon="fa-cubes",
+            category="Data",
+            category_label=__("Data"),
+            category_icon="fa-database",
+            menu_cond=lambda: bool(self.config["DRUID_IS_ACTIVE"]),
+        )
+        appbuilder.add_view_no_menu(DruidMetricInlineView)
+        appbuilder.add_view_no_menu(DruidColumnInlineView)
+        appbuilder.add_view_no_menu(Druid)
 
-        #
-        # Conditionally setup Druid Views
-        #
-        if self.config["DRUID_IS_ACTIVE"]:
-            appbuilder.add_separator("Data")
-            appbuilder.add_view(
-                DruidDatasourceModelView,
-                "Druid Datasources",
-                label=__("Druid Datasources"),
-                category="Data",
-                category_label=__("Data"),
-                icon="fa-cube",
-            )
-            appbuilder.add_view(
-                DruidClusterModelView,
-                name="Druid Clusters",
-                label=__("Druid Clusters"),
-                icon="fa-cubes",
-                category="Data",
-                category_label=__("Data"),
-                category_icon="fa-database",
-            )
-            appbuilder.add_view_no_menu(DruidMetricInlineView)
-            appbuilder.add_view_no_menu(DruidColumnInlineView)
-            appbuilder.add_view_no_menu(Druid)
-
-            if self.config["DRUID_METADATA_LINKS_ENABLED"]:
-                appbuilder.add_link(
-                    "Scan New Datasources",
-                    label=__("Scan New Datasources"),
-                    href="/druid/scan_new_datasources/",
-                    category="Data",
-                    category_label=__("Data"),
-                    category_icon="fa-database",
-                    icon="fa-refresh",
-                )
-                appbuilder.add_link(
-                    "Refresh Druid Metadata",
-                    label=__("Refresh Druid Metadata"),
-                    href="/druid/refresh_datasources/",
-                    category="Data",
-                    category_label=__("Data"),
-                    category_icon="fa-database",
-                    icon="fa-cog",
-                )
-            appbuilder.add_separator("Data")
+        appbuilder.add_link(
+            "Scan New Datasources",
+            label=__("Scan New Datasources"),
+            href="/druid/scan_new_datasources/",
+            category="Data",
+            category_label=__("Data"),
+            category_icon="fa-database",
+            icon="fa-refresh",
+            cond=lambda: bool(
+                self.config["DRUID_IS_ACTIVE"]
+                and self.config["DRUID_METADATA_LINKS_ENABLED"]
+            ),
+        )
+        appbuilder.add_link(
+            "Refresh Druid Metadata",
+            label=__("Refresh Druid Metadata"),
+            href="/druid/refresh_datasources/",
+            category="Data",
+            category_label=__("Data"),
+            category_icon="fa-database",
+            icon="fa-cog",
+            cond=lambda: bool(
+                self.config["DRUID_IS_ACTIVE"]
+                and self.config["DRUID_METADATA_LINKS_ENABLED"]
+            ),
+        )
+        appbuilder.add_separator(
+            "Data", cond=lambda: bool(self.config["DRUID_IS_ACTIVE"])
+        )
 
     def init_app_in_ctx(self) -> None:
         """

@@ -53,29 +53,35 @@ const StyledI = styled.div`
   color: ${({ theme }) => theme.colors.primary.dark1};
 `;
 
-const StyledDiv = styled.div`
+const StyledDiv = styled.div<{ align: string }>`
   display: flex;
   flex-direction: row;
-  justify-content: flex-end;
+  justify-content: ${({ align }) => align};
   align-items: center;
-  min-width: 360px;
-  margin-right: ${({ theme }) => theme.gridUnit * 4}px;
+  margin-right: ${({ theme }) => theme.gridUnit}px;
+`;
+
+const StyledAnchor = styled.a`
+  padding-right: ${({ theme }) => theme.gridUnit}px;
+  padding-left: ${({ theme }) => theme.gridUnit}px;
 `;
 
 const { SubMenu } = Menu;
 
 interface RightMenuProps {
+  align: 'flex-start' | 'flex-end';
   settings: MenuObjectProps[];
   navbarRight: NavBarProps;
   isFrontendRoute: (path?: string) => boolean;
 }
 
 const RightMenu = ({
+  align,
   settings,
   navbarRight,
   isFrontendRoute,
 }: RightMenuProps) => (
-  <StyledDiv>
+  <StyledDiv align={align}>
     <Menu mode="horizontal">
       {!navbarRight.user_is_anonymous && (
         <SubMenu
@@ -161,7 +167,7 @@ const RightMenu = ({
       )}
     </Menu>
     {navbarRight.documentation_url && (
-      <a
+      <StyledAnchor
         href={navbarRight.documentation_url}
         target="_blank"
         rel="noreferrer"
@@ -169,23 +175,23 @@ const RightMenu = ({
       >
         <i className="fa fa-question" />
         &nbsp;
-      </a>
+      </StyledAnchor>
     )}
     {navbarRight.bug_report_url && (
-      <a
+      <StyledAnchor
         href={navbarRight.bug_report_url}
         target="_blank"
         rel="noreferrer"
         title={t('Report a bug')}
       >
         <i className="fa fa-bug" />
-      </a>
+      </StyledAnchor>
     )}
     {navbarRight.user_is_anonymous && (
-      <a href={navbarRight.user_login_url}>
+      <StyledAnchor href={navbarRight.user_login_url}>
         <i className="fa fa-fw fa-sign-in" />
         {t('Login')}
-      </a>
+      </StyledAnchor>
     )}
   </StyledDiv>
 );

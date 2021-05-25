@@ -56,10 +56,11 @@ type SliceHeaderProps = {
   addDangerToast: Function;
   handleToggleFullSize: Function;
   chartStatus: string;
+  formData: object;
 };
 
-const annoationsLoading = t('Annotation layers are still loading.');
-const annoationsError = t('One ore more annotation layers failed loading.');
+const annotationsLoading = t('Annotation layers are still loading.');
+const annotationsError = t('One ore more annotation layers failed loading.');
 
 const CrossFilterIcon = styled(Icon)`
   fill: ${({ theme }) => theme.colors.grayscale.light5};
@@ -95,6 +96,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   handleToggleFullSize,
   isFullSize,
   chartStatus,
+  formData,
 }) => {
   // TODO: change to indicator field after it will be implemented
   const crossFilterValue = useSelector<RootState, any>(
@@ -120,11 +122,11 @@ const SliceHeader: FC<SliceHeaderProps> = ({
           <Tooltip
             id="annotations-loading-tooltip"
             placement="top"
-            title={annoationsLoading}
+            title={annotationsLoading}
           >
             <i
               role="img"
-              aria-label={annoationsLoading}
+              aria-label={annotationsLoading}
               className="fa fa-refresh warning"
             />
           </Tooltip>
@@ -133,11 +135,11 @@ const SliceHeader: FC<SliceHeaderProps> = ({
           <Tooltip
             id="annoation-errors-tooltip"
             placement="top"
-            title={annoationsError}
+            title={annotationsError}
           >
             <i
               role="img"
-              aria-label={annoationsError}
+              aria-label={annotationsError}
               className="fa fa-exclamation-circle danger"
             />
           </Tooltip>
@@ -183,6 +185,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
               handleToggleFullSize={handleToggleFullSize}
               isFullSize={isFullSize}
               chartStatus={chartStatus}
+              formData={formData}
             />
           </>
         )}

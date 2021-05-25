@@ -33,7 +33,16 @@ const { Option } = Select;
 export default function PluginFilterTimegrain(
   props: PluginFilterTimeGrainProps,
 ) {
-  const { data, formData, height, width, setDataMask, filterState } = props;
+  const {
+    data,
+    formData,
+    height,
+    width,
+    setDataMask,
+    setFocusedFilter,
+    unsetFocusedFilter,
+    filterState,
+  } = props;
   const { defaultValue, inputRef } = formData;
 
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
@@ -77,6 +86,8 @@ export default function PluginFilterTimegrain(
         placeholder={placeholderText}
         // @ts-ignore
         onChange={handleChange}
+        onBlur={unsetFocusedFilter}
+        onFocus={setFocusedFilter}
         ref={inputRef}
       >
         {(data || []).map((row: { name: string; duration: string }) => {

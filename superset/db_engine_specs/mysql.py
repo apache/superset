@@ -35,7 +35,7 @@ from sqlalchemy.dialects.mysql import (
 from sqlalchemy.engine.url import URL
 from sqlalchemy.types import TypeEngine
 
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import SupersetErrorType
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
@@ -53,10 +53,17 @@ CONNECTION_HOST_DOWN_REGEX = re.compile(
 CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile("Unknown database '(?P<database>.*?)'")
 
 
-class MySQLEngineSpec(BaseEngineSpec):
+class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     engine = "mysql"
     engine_name = "MySQL"
     max_column_name_length = 64
+
+    drivername = "mysql+mysqldb"
+    sqlalchemy_uri_placeholder = (
+        "mysql://user:password@host:port/dbname[?key=value&key=value...]"
+    )
+
+    encryption_parameters = {"ssl": "1"}
 
     column_type_mappings: Tuple[
         Tuple[
@@ -111,22 +118,22 @@ class MySQLEngineSpec(BaseEngineSpec):
         CONNECTION_ACCESS_DENIED_REGEX: (
             __('Either the username "%(username)s" or the password is incorrect.'),
             SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
-            {},
+            {"invalid": ["username", "password"]},
         ),
         CONNECTION_INVALID_HOSTNAME_REGEX: (
             __('Unknown MySQL server host "%(hostname)s".'),
             SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
-            {},
+            {"invalid": ["host"]},
         ),
         CONNECTION_HOST_DOWN_REGEX: (
             __('The host "%(hostname)s" might be down and can\'t be reached.'),
             SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
-            {},
+            {"invalid": ["host", "port"]},
         ),
         CONNECTION_UNKNOWN_DATABASE_REGEX: (
             __('Unable to connect to database "%(database)s".'),
             SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
-            {},
+            {"invalid": ["database"]},
         ),
     }
 

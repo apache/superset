@@ -25,6 +25,7 @@ import { t, styled } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import Label from 'src/components/Label';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import QueryHistory from '../QueryHistory';
 import ResultSet from '../ResultSet';
 import {
@@ -33,7 +34,7 @@ import {
   LOCALSTORAGE_MAX_QUERY_AGE_MS,
 } from '../../constants';
 
-const TAB_HEIGHT = 90;
+const TAB_HEIGHT = 140;
 
 /*
     editorQueries are queries executed by users passed from SqlEditor component
@@ -49,6 +50,8 @@ interface SouthPanePropTypes {
   databases: Record<string, any>;
   offline?: boolean;
   displayLimit: number;
+  user: UserWithPermissionsAndRoles;
+  defaultQueryLimit: number;
 }
 
 const StyledPane = styled.div`
@@ -61,6 +64,16 @@ const StyledPane = styled.div`
     height: 100%;
     display: flex;
     flex-direction: column;
+    .scrollable {
+      overflow-y: auto;
+    }
+  }
+  .ant-tabs-tabpane {
+    display: flex;
+    flex-direction: column;
+    .scrollable {
+      overflow-y: auto;
+    }
   }
   .tab-content {
     .alert {
@@ -83,13 +96,14 @@ export default function SouthPane({
   databases,
   offline = false,
   displayLimit,
+  user,
+  defaultQueryLimit,
 }: SouthPanePropTypes) {
   const innerTabContentHeight = height - TAB_HEIGHT;
   const southPaneRef = createRef<HTMLDivElement>();
   const switchTab = (id: string) => {
     actions.setActiveSouthPaneTab(id);
   };
-
   const renderOfflineStatus = () => (
     <Label className="m-r-3" type={STATE_TYPE_MAP[STATUS_OPTIONS.offline]}>
       {STATUS_OPTIONS.offline}
@@ -127,9 +141,11 @@ export default function SouthPane({
             search
             query={latestQuery}
             actions={actions}
+            user={user}
             height={innerTabContentHeight}
             database={databases[latestQuery.dbId]}
             displayLimit={displayLimit}
+            defaultQueryLimit={defaultQueryLimit}
           />
         );
       }
@@ -153,8 +169,10 @@ export default function SouthPane({
           csv={false}
           actions={actions}
           cache
+          user={user}
           height={innerTabContentHeight}
           displayLimit={displayLimit}
+          defaultQueryLimit={defaultQueryLimit}
         />
       </Tabs.TabPane>
     ));

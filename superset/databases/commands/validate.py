@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 from contextlib import closing
 from typing import Any, Dict, Optional
 
@@ -81,9 +82,16 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         if errors:
             raise InvalidParametersError(errors)
 
+        serialized_encrypted_extra = self._properties.get("encrypted_extra", "{}")
+        try:
+            encrypted_extra = json.loads(serialized_encrypted_extra)
+        except json.decoder.JSONDecodeError:
+            encrypted_extra = {}
+
         # try to connect
         sqlalchemy_uri = engine_spec.build_sqlalchemy_uri(
-            self._properties["parameters"]  # type: ignore
+            self._properties["parameters"],  # type: ignore
+            encrypted_extra,
         )
         if self._model and sqlalchemy_uri == self._model.safe_sqlalchemy_uri():
             sqlalchemy_uri = self._model.sqlalchemy_uri_decrypted
@@ -91,7 +99,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             server_cert=self._properties.get("server_cert", ""),
             extra=self._properties.get("extra", "{}"),
             impersonate_user=self._properties.get("impersonate_user", False),
-            encrypted_extra=self._properties.get("encrypted_extra", "{}"),
+            encrypted_extra=serialized_encrypted_extra,
         )
         database.set_sqlalchemy_uri(sqlalchemy_uri)
         database.db_engine_spec.mutate_db_for_connection_test(database)

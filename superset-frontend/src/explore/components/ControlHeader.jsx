@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/core';
+import { t, css } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/components/Tooltip';
 import { FormLabel } from 'src/components/Form';
@@ -51,7 +51,16 @@ export default class ControlHeader extends React.Component {
   renderOptionalIcons() {
     if (this.props.hovered) {
       return (
-        <span>
+        <span
+          css={theme => css`
+            position: absolute;
+            top: 50%;
+            right: 0;
+            padding-left: ${theme.gridUnit}px;
+            transform: translate(100%, -50%);
+            white-space: nowrap;
+          `}
+        >
           {this.props.description && (
             <span>
               <InfoTooltipWithTrigger
@@ -87,7 +96,14 @@ export default class ControlHeader extends React.Component {
     return (
       <div className="ControlHeader" data-test={`${this.props.name}-header`}>
         <div className="pull-left">
-          <FormLabel css={{ marginBottom: 0 }} htmlFor={this.props.htmlFor}>
+          <FormLabel
+            css={{
+              marginBottom: 0,
+              position: 'relative',
+              whiteSpace: 'nowrap',
+            }}
+            htmlFor={this.props.htmlFor}
+          >
             {this.props.leftNode && <span>{this.props.leftNode}</span>}
             {
               // Disable lint error since this isn't really a button; the onClick

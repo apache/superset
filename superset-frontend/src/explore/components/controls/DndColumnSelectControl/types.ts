@@ -39,6 +39,7 @@ export interface LabelProps<T = string[] | string> {
   value?: T;
   onChange: (value?: T) => void;
   options: { string: ColumnMeta };
+  multi?: boolean;
 }
 
 export interface DndColumnSelectProps<
