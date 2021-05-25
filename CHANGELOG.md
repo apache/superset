@@ -18,8 +18,8 @@ under the License.
 -->
 ## Change Log
 
-### 1.2 (Wed May 12 23:28:45 2021 +0300)
-**Database Migrations**
+### 1.2 (Tue May 11 09:05:39 2021 -0700)
+**Database Migrations** 
 - [#14446](https://github.com/apache/superset/pull/14446) fix(native-filters): add migration to update metadata (@villebro)
 - [#14234](https://github.com/apache/superset/pull/14234) feat: Adding limiting_factor column to Query model (@AAfghahi)
 - [#14109](https://github.com/apache/superset/pull/14109) feat: Adding encrypted field factory (@craig-rueda)
@@ -33,7 +33,7 @@ under the License.
 - [#13493](https://github.com/apache/superset/pull/13493) fix: merge 67da9ef1ef9c and 1412ec1e5a7b migrations (@hughhhh)
 - [#13288](https://github.com/apache/superset/pull/13288) fix(sqllab): per-tab hide left bar (@betodealmeida)
 
-**Features**
+**Features** 
 - [#14590](https://github.com/apache/superset/pull/14590) feat(native-filters): add sort metric to select (@villebro)
 - [#14519](https://github.com/apache/superset/pull/14519) feat(dremio): implement convert_dttm method (@villebro)
 - [#14461](https://github.com/apache/superset/pull/14461) feat(native-filters): Auto apply changes in FiltersConfigModal (@simcha90)
@@ -133,11 +133,11 @@ under the License.
 - [#13145](https://github.com/apache/superset/pull/13145) feat(dashboard_rbac): manage roles for dashboard (@simcha90)
 - [#13377](https://github.com/apache/superset/pull/13377) feat(viz): implement time picker on filter box (@zhaoyongjie)
 - [#13364](https://github.com/apache/superset/pull/13364) feat: add unit test for LimitMethod.FETCH_MANY (@betodealmeida)
-- [#13353](https://github.com/apache/superset/pull/13353) feat: add Firebird DB engine spec (@betodealmeida)
 - [#13210](https://github.com/apache/superset/pull/13210) feat(explore): ColumnSelectControl with drag-and-drop (@zhaoyongjie)
 - [#13135](https://github.com/apache/superset/pull/13135) feat(reports): send notification on error with grace (@dpgaspar)
 
-**Fixes**
+**Fixes** 
+- [#14561](https://github.com/apache/superset/pull/14561) fix: select country in examples chart (@betodealmeida)
 - [#14587](https://github.com/apache/superset/pull/14587) fix: dashboard side actions (@pkdotson)
 - [#14526](https://github.com/apache/superset/pull/14526) fix(chart-data): handle url_params in csv export and native filters (@villebro)
 - [#14509](https://github.com/apache/superset/pull/14509) fix: parameterize titles correctly (@suddjian)
@@ -236,7 +236,6 @@ under the License.
 - [#13718](https://github.com/apache/superset/pull/13718) fix(alerts and reports): Unify timestamp format on execution log view (@jfrag1)
 - [#13841](https://github.com/apache/superset/pull/13841) fix(sqllab): warning message when displayed rows limited (@zuzana-vej)
 - [#13794](https://github.com/apache/superset/pull/13794) fix(native-filters): improve loading styles for filter component (@villebro)
-- [#13735](https://github.com/apache/superset/pull/13735) fix(#13734): Properly escape special characters in CSV output  (@benjreinhart)
 - [#13825](https://github.com/apache/superset/pull/13825) fix(cypress): avoid referencing detached dom nodes (@suddjian)
 - [#13694](https://github.com/apache/superset/pull/13694) fix: select table overlay (@AAfghahi)
 - [#13780](https://github.com/apache/superset/pull/13780) fix: restart superset container in test script (@benjreinhart)
@@ -282,17 +281,14 @@ under the License.
 - [#13444](https://github.com/apache/superset/pull/13444) fix: API to allow importing old exports (JSON/YAML) (@betodealmeida)
 - [#13464](https://github.com/apache/superset/pull/13464) fix: SHOW is not DML (@betodealmeida)
 - [#13469](https://github.com/apache/superset/pull/13469) fix: Remove view in sql lab from druid datasources (@etr2460)
-- [#13461](https://github.com/apache/superset/pull/13461) fix: url shortener invalid input (@dpgaspar)
 - [#13425](https://github.com/apache/superset/pull/13425) fix: Adding v0 import/export fields to dashboard metadata schema (@michellethomas)
 - [#13424](https://github.com/apache/superset/pull/13424) fix: use semver for badge sort (@eschutho)
 - [#12341](https://github.com/apache/superset/pull/12341) fix: annotation layer modal err handling (@riahk)
 - [#13331](https://github.com/apache/superset/pull/13331) fix(query-object): extra time-range-endpoints (@john-bodley)
-- [#13157](https://github.com/apache/superset/pull/13157) fix(alerts&reports): Alerts & Reports will use values from WEBDRIVER_WINDOW option (@iercan)
-- [#13350](https://github.com/apache/superset/pull/13350) fix(celery): Reset DB connection pools for forked worker processes (@robdiciuccio)
 - [#13174](https://github.com/apache/superset/pull/13174) fix: update SQL Lab Buttons to better wording (@AAfghahi)
 - [#13330](https://github.com/apache/superset/pull/13330) fix: date picker support date unit with singular and plural (@zhaoyongjie)
 
-**Others**
+**Others** 
 - [#14460](https://github.com/apache/superset/pull/14460) chore: bump table plugin to 0.17.42 (@amitmiran137)
 - [#14443](https://github.com/apache/superset/pull/14443) perf(native-filters): Load native filters after charts (@simcha90)
 - [#14408](https://github.com/apache/superset/pull/14408) perf(native-filters): avoid unnecessary reloading of charts (@simcha90)
@@ -430,7 +426,6 @@ under the License.
 - [#13861](https://github.com/apache/superset/pull/13861) docs: fixed a link (@ericmand)
 - [#13854](https://github.com/apache/superset/pull/13854) chore: Displays row limit warning with the Alert component (@michael-s-molina)
 - [#13811](https://github.com/apache/superset/pull/13811) chore: add success log whenever a connection is working (@hughhhh)
-- [#13824](https://github.com/apache/superset/pull/13824) chore: update change log with cherry-picks for release 1.1 (@lilykuang)
 - [#13767](https://github.com/apache/superset/pull/13767) chore(git): ignore app folder under superset (@cemremengu)
 - [#13784](https://github.com/apache/superset/pull/13784) chore(cypress): Make the e2e tests more behavior-driven (@suddjian)
 - [#13797](https://github.com/apache/superset/pull/13797) refactor: New schedule query button (@AAfghahi)
@@ -442,9 +437,7 @@ under the License.
 - [#13781](https://github.com/apache/superset/pull/13781) docs: update setup instructions (@benjreinhart)
 - [#13676](https://github.com/apache/superset/pull/13676) refactor: SouthPane into functional component (@AAfghahi)
 - [#13785](https://github.com/apache/superset/pull/13785) refactor: Revert "refactor: ScheduleQueryButton into functional component (#134… (@hughhhh)
-- [#13732](https://github.com/apache/superset/pull/13732) chore: Update docs for 1.1 (@betodealmeida)
 - [#13443](https://github.com/apache/superset/pull/13443) refactor: ScheduleQueryButton into functional component (@AAfghahi)
-- [#13777](https://github.com/apache/superset/pull/13777) docs: added release notes for 1.1 (@srinify)
 - [#13738](https://github.com/apache/superset/pull/13738) chore: Update presto.mdx (@hughhhh)
 - [#13751](https://github.com/apache/superset/pull/13751) test: changing logger.exception to logger.errors in databases api (@AAfghahi)
 - [#13770](https://github.com/apache/superset/pull/13770) docs(contributing): fix backend port (@cemremengu)
@@ -460,9 +453,7 @@ under the License.
 - [#13555](https://github.com/apache/superset/pull/13555) test: useChangeEffect (@yardz)
 - [#13658](https://github.com/apache/superset/pull/13658) chore: bump pyyaml to latest (@robdiciuccio)
 - [#13643](https://github.com/apache/superset/pull/13643) docs: Make suggested changes related to curl use in CONTRIBUTING.md (@slim-patchy)
-- [#13588](https://github.com/apache/superset/pull/13588) chore: script for changelog  (@lilykuang)
 - [#13660](https://github.com/apache/superset/pull/13660) chore(explore): added debounce in DateFilterControl (@zhaoyongjie)
-- [#13402](https://github.com/apache/superset/pull/13402) docs: add file for users to see status of feature flags (@eschutho)
 - [#13342](https://github.com/apache/superset/pull/13342) chore: improve modal error handling (@lilykuang)
 - [#13508](https://github.com/apache/superset/pull/13508) test: Tests and dedicated directory for the SupersetResourceSelect Component (@geido)
 - [#13611](https://github.com/apache/superset/pull/13611) docs: correct sentence (@ErfanMirzapour)
@@ -500,7 +491,6 @@ under the License.
 - [#13401](https://github.com/apache/superset/pull/13401) refactor: convert controlUtils to TypeScript (1 of 2) (@ktmud)
 - [#13102](https://github.com/apache/superset/pull/13102) refactor: Query search into functional component (@AAfghahi)
 - [#13418](https://github.com/apache/superset/pull/13418) chore: Added rockset and firebird (@srinify)
-- [#13431](https://github.com/apache/superset/pull/13431) chore: clean remaining old directed force graph code (@mayurnewase)
 - [#13408](https://github.com/apache/superset/pull/13408) chore: Removes unused Hotkeys component (@michael-s-molina)
 - [#13407](https://github.com/apache/superset/pull/13407) test: Adds storybook to FormRow component (@michael-s-molina)
 - [#13406](https://github.com/apache/superset/pull/13406) test: Adds storybook to AnchorLink component (@michael-s-molina)
@@ -509,7 +499,6 @@ under the License.
 - [#13359](https://github.com/apache/superset/pull/13359) test: Adds tests and storybook to CopyToClipboard component (@michael-s-molina)
 - [#13358](https://github.com/apache/superset/pull/13358) test: ErrorMessage components tests (@geido)
 - [#13374](https://github.com/apache/superset/pull/13374) chore: convert chartReducer to TypeScript (@ktmud)
-- [#12882](https://github.com/apache/superset/pull/12882) chore: bump pyarrow and pandas (@villebro)
 - [#13137](https://github.com/apache/superset/pull/13137) refactor(self-trigger): Split native filters state (@simcha90)
 - [#13367](https://github.com/apache/superset/pull/13367) chore: npm audit fix (@eschutho)
 - [#13343](https://github.com/apache/superset/pull/13343) test: Adds storybook to Timer component (@michael-s-molina)
