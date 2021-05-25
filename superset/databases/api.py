@@ -775,7 +775,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                       type: string
                     overwrite:
                       description: overwrite existing databases?
-                      type: bool
+                      type: boolean
           responses:
             200:
               description: Database import result
@@ -888,7 +888,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                           type: string
                         preferred:
                           description: Is the database preferred?
-                          type: bool
+                          type: boolean
                         sqlalchemy_uri_placeholder:
                           description: Example placeholder for the SQLAlchemy URI
                           type: string
