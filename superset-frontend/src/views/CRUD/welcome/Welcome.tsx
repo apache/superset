@@ -133,8 +133,8 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         } else {
           data.Examples = res.examples;
           if(activeTab === 'Viewed' || !activeTab){
-            setActiveChild( 'Examples');
-          } else setActiveChild(activeTab);
+            setActiveChild('Examples');
+          } else setActiveChild(activeTab.activity);
         }
         setActivityData(activityData => ({ ...activityData, ...data }));
       })
