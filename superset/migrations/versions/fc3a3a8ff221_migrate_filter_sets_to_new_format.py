@@ -17,14 +17,14 @@
 """migrate filter sets to new format
 
 Revision ID: fc3a3a8ff221
-Revises: 453530256cea
+Revises: 085f06488938
 Create Date: 2021-04-12 12:38:03.913514
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "fc3a3a8ff221"
-down_revision = "453530256cea"
+down_revision = "085f06488938"
 
 import json
 from typing import Any, Dict, Iterable
