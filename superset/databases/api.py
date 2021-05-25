@@ -917,7 +917,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             payload: Dict[str, Any] = {
                 "name": engine_spec.engine_name,
                 "engine": engine_spec.engine,
-                "available_drivers": list(drivers),
+                "available_drivers": sorted(drivers),
                 "preferred": engine_spec.engine_name in preferred_databases,
             }
 
@@ -939,13 +939,25 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
             available_databases.append(payload)
 
-        available_databases.sort(
-            key=lambda payload: preferred_databases.index(payload["engine"])
-            if payload["engine"] in preferred_databases
-            else len(preferred_databases)
+        # sort preferred first
+        response = sorted(
+            (payload for payload in available_databases if payload["preferred"]),
+            key=lambda payload: preferred_databases.index(payload["name"]),
         )
 
-        return self.response(200, databases=available_databases)
+        # add others
+        response.extend(
+            sorted(
+                (
+                    payload
+                    for payload in available_databases
+                    if not payload["preferred"]
+                ),
+                key=lambda payload: payload["name"],
+            )
+        )
+
+        return self.response(200, databases=response)
 
     @expose("/validate_parameters", methods=["POST"])
     @protect()

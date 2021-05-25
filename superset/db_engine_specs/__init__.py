@@ -107,7 +107,7 @@ def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
                     attribute.dialect.dbapi()
                 except ModuleNotFoundError:
                     continue
-                except Exception as ex:
+                except Exception as ex:  # pylint: disable=broad-except
                     logger.warning(
                         "Unable to load dialect %s: %s", attribute.dialect, ex
                     )

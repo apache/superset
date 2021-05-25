@@ -1372,7 +1372,7 @@ class TestDatabaseApi(SupersetTestCase):
     @mock.patch("superset.databases.api.get_available_engine_specs")
     @mock.patch("superset.databases.api.app")
     def test_available(self, app, get_available_engine_specs):
-        app.config = {"PREFERRED_DATABASES": ["postgresql"]}
+        app.config = {"PREFERRED_DATABASES": ["PostgreSQL", "Google BigQuery"]}
         get_available_engine_specs.return_value = {
             PostgresEngineSpec: {"psycopg2"},
             BigQueryEngineSpec: {"bigquery"},
@@ -1432,7 +1432,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "required": ["database", "host", "port", "username"],
                         "type": "object",
                     },
-                    "preferred": False,
+                    "preferred": True,
                     "sqlalchemy_uri_placeholder": "postgresql://user:password@host:port/dbname[?key=value&key=value...]",
                 },
                 {
@@ -1450,11 +1450,18 @@ class TestDatabaseApi(SupersetTestCase):
                         },
                         "type": "object",
                     },
-                    "preferred": False,
+                    "preferred": True,
                     "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
                 },
                 {
-                    "available_drivers": ["mysqldb", "mysqlconnector"],
+                    "available_drivers": ["psycopg2"],
+                    "default_driver": "",
+                    "engine": "redshift",
+                    "name": "Amazon Redshift",
+                    "preferred": False,
+                },
+                {
+                    "available_drivers": ["mysqlconnector", "mysqldb"],
                     "default_driver": "mysqldb",
                     "engine": "mysql",
                     "name": "MySQL",
@@ -1500,13 +1507,6 @@ class TestDatabaseApi(SupersetTestCase):
                     "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
                 },
                 {
-                    "available_drivers": ["psycopg2"],
-                    "default_driver": "",
-                    "engine": "redshift",
-                    "name": "Amazon Redshift",
-                    "preferred": False,
-                },
-                {
                     "available_drivers": [""],
                     "engine": "hana",
                     "name": "SAP HANA",
@@ -1518,7 +1518,7 @@ class TestDatabaseApi(SupersetTestCase):
     @mock.patch("superset.databases.api.get_available_engine_specs")
     @mock.patch("superset.databases.api.app")
     def test_available_no_default(self, app, get_available_engine_specs):
-        app.config = {"PREFERRED_DATABASES": ["mysql"]}
+        app.config = {"PREFERRED_DATABASES": ["MySQL"]}
         get_available_engine_specs.return_value = {
             MySQLEngineSpec: {"mysqlconnector"},
             HanaEngineSpec: {""},
