@@ -297,7 +297,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         type: ActionType.dbSelected,
         payload: {
           parameters: { engine: 'postgresql' },
-          configuration_method: CONFIGURATION_METHOD.SQLALCHEMY_URI,
+          configuration_method: CONFIGURATION_METHOD.DYNAMIC_FORM,
         }, // todo hook this up to step 1
       });
     }
@@ -400,31 +400,26 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               testConnection={testConnection}
             />
           ) : (
-            <div>
-              <p>TODO: form</p>
-            </div>
+            <DatabaseConnectionForm
+              isEditMode
+              db={db as DatabaseObject}
+              dbModel={dbModel}
+              onParametersChange={({ target }: { target: HTMLInputElement }) =>
+                onChange(ActionType.parametersChange, {
+                  type: target.type,
+                  name: target.name,
+                  checked: target.checked,
+                  value: target.value,
+                })
+              }
+              onChange={({ target }: { target: HTMLInputElement }) =>
+                onChange(ActionType.textChange, {
+                  name: target.name,
+                  value: target.value,
+                })
+              }
+            />
           )}
-          <Alert
-            css={(theme: SupersetTheme) => antDAlertStyles(theme)}
-            message="Additional fields may be required"
-            description={
-              <>
-                Select databases require additional fields to be completed in
-                the Advanced tab to successfully connect the database. Learn
-                what requirements your databases has{' '}
-                <a
-                  href={DOCUMENTATION_LINK}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  here
-                </a>
-                .
-              </>
-            }
-            type="info"
-            showIcon
-          />
         </StyledBasicTab>
         <Tabs.TabPane tab={<span>{t('Advanced')}</span>} key="2">
           <ExtraOptions

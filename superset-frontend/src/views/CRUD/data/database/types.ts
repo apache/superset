@@ -30,7 +30,13 @@ export type DatabaseObject = {
   created_by?: null | DatabaseUser;
   changed_on_delta_humanized?: string;
   changed_on?: string;
-  parameters?: { database_name?: string; engine?: string };
+  parameters?: {
+    database_name?: string;
+    engine?: string;
+    host?: string;
+    port?: number;
+    password?: string;
+  };
   configuration_method: CONFIGURATION_METHOD;
 
   // Performance
@@ -56,6 +62,7 @@ export type DatabaseObject = {
 };
 
 export type DatabaseForm = {
+  db: DatabaseObject;
   engine: string;
   name: string;
   parameters: {

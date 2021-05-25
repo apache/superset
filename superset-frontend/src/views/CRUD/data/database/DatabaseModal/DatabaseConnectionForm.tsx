@@ -22,7 +22,7 @@ import { InputProps } from 'antd/lib/input';
 import { FormLabel, FormItem } from 'src/components/Form';
 import { Input } from 'src/common/components';
 import { StyledFormHeader, formScrollableStyles } from './styles';
-import { DatabaseForm } from '../types';
+import { DatabaseForm, DatabaseObject } from '../types';
 
 export const FormFieldOrder = [
   'host',
@@ -69,7 +69,7 @@ const FORM_FIELD_MAP = {
   },
   password: {
     description: 'Password',
-    type: 'text',
+    type: 'password',
     placeholder: 'e.g. ********',
     changeMethod: CHANGE_METHOD.onPropertiesChange,
   },
@@ -88,10 +88,14 @@ const FORM_FIELD_MAP = {
 };
 
 const DatabaseConnectionForm = ({
+  db,
+  isEditMode,
   dbModel: { name, parameters },
   onParametersChange,
   onChange,
 }: {
+  isEditMode?: boolean;
+  db?: DatabaseObject;
   dbModel: DatabaseForm;
   onParametersChange: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
@@ -101,12 +105,14 @@ const DatabaseConnectionForm = ({
   ) => void;
 }) => (
   <>
-    <StyledFormHeader>
-      <h4>Enter the required {name} credentials</h4>
-      <p className="helper">
-        Need help? Learn more about connecting to {name}.
-      </p>
-    </StyledFormHeader>
+    {!isEditMode && (
+      <StyledFormHeader>
+        <h4>Enter the required {name} credentials</h4>
+        <p className="helper">
+          Need help? Learn more about connecting to {name}.
+        </p>
+      </StyledFormHeader>
+    )}
     <div css={formScrollableStyles}>
       {parameters &&
         FormFieldOrder.filter(
@@ -141,10 +147,12 @@ const DatabaseConnectionForm = ({
                 name={field}
                 type={type}
                 id={field}
+                value={db?.parameters ? db.parameters[field] : ''}
                 autoComplete="off"
                 placeholder={placeholder}
                 onChange={onEdit}
               />
+
               <p className="helper">{label}</p>
             </FormItem>
           );
