@@ -73,6 +73,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
       chartType={formFilter?.filterType}
       hooks={{ setDataMask }}
       enableNoResults={enableNoResults}
+      filterState={formFilter.defaultDataMask?.filterState}
     />
   );
 };
