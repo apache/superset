@@ -86,6 +86,10 @@ const StyledDatasetContainer = styled.div`
 export const StyledFormItem = styled(Form.Item)`
   width: 49%;
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+
+  .ant-form-item-control-input-content > div > div {
+    height: auto;
+  }
 `;
 
 export const StyledCheckboxFormItem = styled(Form.Item)`
