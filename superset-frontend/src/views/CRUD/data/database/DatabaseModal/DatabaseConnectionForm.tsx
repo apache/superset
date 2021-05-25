@@ -19,7 +19,7 @@
 import React, { FormEvent, useState } from 'react';
 import { SupersetTheme, JsonObject } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
-import { Input, Select, Upload, Button} from 'src/common/components';
+import { Input, Select, Upload, Button } from 'src/common/components';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import {
   StyledFormHeader,
@@ -42,7 +42,7 @@ interface FieldPropTypes {
   required: boolean;
   changeMethods: { onParametersChange: (value: any) => string } & {
     onChange: (value: any) => string;
-  };
+  } & { onParametersUploadFileChange: (value: any) => string };
   validationErrors: JsonObject | null;
   getValidation: () => void;
 }
@@ -59,26 +59,36 @@ const credentialsInfo = ({
       <Select
         defaultValue={'file'}
         style={{ width: '100%' }}
-        onChange={value => {
-          setUploadOption(value);
-        }}
+        onChange={option => setUploadOption(option)}
       >
         <Select value="file">Upload JSON file</Select>
         <Select value="paste">Copy and Paste JSON credentials</Select>
       </Select>
       {uploadOption === 'paste' ? (
         <div className="input-container" onChange={changeMethods.onChange}>
-          <Input name="encrypted_extra" rows={4}/>
+          <Input name="encrypted_extra" rows={4} />
         </div>
       ) : (
-        <Upload>
-          <Button>Click to Upload</Button>
-        </Upload>
+        <input
+          type="file"
+          onChange={async event => {
+            const file = event?.target?.files[0];
+            const credentials = JSON.parse(await file.text());
+            const encrypted_extra = JSON.stringify({
+              credentials_info: credentials,
+            });
+            changeMethods.onParametersUploadFileChange({
+              target: {
+                name: 'encrypted_extra',
+                value: encrypted_extra,
+              },
+            });
+          }}
+        />
       )}
     </>
   );
 };
-
 
 const hostField = ({
   required,
@@ -201,6 +211,7 @@ const DatabaseConnectionForm = ({
   dbModel: { name, parameters },
   onParametersChange,
   onChange,
+  onParametersUploadFileChange,
   validationErrors,
   getValidation,
 }: {
@@ -209,6 +220,9 @@ const DatabaseConnectionForm = ({
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
   onChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onParametersUploadFileChange: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
   validationErrors: JsonObject | null;
@@ -236,7 +250,11 @@ const DatabaseConnectionForm = ({
         ).map(field =>
           FORM_FIELD_MAP[field]({
             required: parameters.required.includes(field),
-            changeMethods: { onParametersChange, onChange },
+            changeMethods: {
+              onParametersChange,
+              onChange,
+              onParametersUploadFileChange,
+            },
             validationErrors,
             getValidation,
             key: field,

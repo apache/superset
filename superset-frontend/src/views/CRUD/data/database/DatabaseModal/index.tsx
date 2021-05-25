@@ -82,6 +82,7 @@ enum ActionType {
   parametersChange,
   reset,
   textChange,
+  parametersUploadFileChange,
 }
 
 interface DBReducerPayloadType {
@@ -99,7 +100,8 @@ type DBReducerActionType =
         | ActionType.textChange
         | ActionType.inputChange
         | ActionType.editorChange
-        | ActionType.parametersChange;
+        | ActionType.parametersChange
+        | ActionType.parametersUploadFileChange;
       payload: DBReducerPayloadType;
     }
   | {
@@ -169,6 +171,11 @@ function dbReducer(
     case ActionType.configMethodChange:
       return {
         ...action.payload,
+      };
+    case ActionType.parametersUploadFileChange:
+      return {
+        ...trimmedState,
+        [action.payload.name]: action.payload.value,
       };
     case ActionType.reset:
     default:
@@ -512,6 +519,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             }
             onChange={({ target }: { target: HTMLInputElement }) =>
               onChange(ActionType.textChange, {
+                name: target.name,
+                value: target.value,
+              })
+            }
+            onParametersUploadFileChange={({
+              target,
+            }: {
+              target: HTMLInputElement;
+            }) =>
+              onChange(ActionType.parametersUploadFileChange, {
                 name: target.name,
                 value: target.value,
               })
