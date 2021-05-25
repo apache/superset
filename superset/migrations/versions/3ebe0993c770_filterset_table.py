@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""empty message
+"""add filter set model
 
 Revision ID: 3ebe0993c770
 Revises: 453530256cea
