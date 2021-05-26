@@ -24,11 +24,13 @@ import {
   EXTRA_FORM_DATA_APPEND_KEYS,
   EXTRA_FORM_DATA_OVERRIDE_KEYS,
   AdhocFilter,
+  FeatureFlag,
 } from '@superset-ui/core';
 import { Charts } from 'src/dashboard/types';
 import { RefObject } from 'react';
 import { DataMaskStateWithId } from 'src/dataMask/types';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
+import { isFeatureEnabled } from 'src/featureFlags';
 import { Filter } from './types';
 
 export const getFormData = ({
@@ -130,4 +132,13 @@ export function getExtraFormData(
     );
   });
   return extraFormData;
+}
+
+export function nativeFilterGate(behaviors: Behavior[]): boolean {
+  return (
+    !behaviors.includes(Behavior.NATIVE_FILTER) ||
+    (isFeatureEnabled(FeatureFlag.DASHBOARD_FILTERS_EXPERIMENTAL) &&
+      isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+      behaviors.includes(Behavior.INTERACTIVE_CHART))
+  );
 }
