@@ -46,7 +46,7 @@ const StyledModalWrapper = styled(StyledModal)`
 
 export const StyledModalBody = styled.div`
   display: flex;
-  height: 500px;
+  height: 700px;
   flex-direction: row;
   .filters-list {
     width: ${({ theme }) => theme.gridUnit * 50}px;
