@@ -249,8 +249,9 @@ const TableElement = props => {
       >
         {renderWell()}
         <div>
-          {cols &&
-            cols.map(col => <ColumnElement column={col} key={col.name} />)}
+          {cols?.map(col => (
+            <ColumnElement column={col} key={col.name} />
+          ))}
         </div>
       </div>
     );
