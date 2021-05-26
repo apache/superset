@@ -42,7 +42,6 @@ from superset.datasets.commands.exceptions import (
     DatasetCreateFailedError,
     DatasetDeleteFailedError,
     DatasetForbiddenError,
-    DatasetImportError,
     DatasetInvalidError,
     DatasetNotFoundError,
     DatasetRefreshFailedError,

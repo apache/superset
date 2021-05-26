@@ -38,7 +38,6 @@ from superset.databases.commands.exceptions import (
     DatabaseCreateFailedError,
     DatabaseDeleteDatasetsExistFailedError,
     DatabaseDeleteFailedError,
-    DatabaseImportError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
     DatabaseUpdateFailedError,
