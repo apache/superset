@@ -32,7 +32,7 @@ from werkzeug.wsgi import FileWrapper
 
 from superset import is_feature_enabled, thumbnail_cache
 from superset.charts.schemas import ChartEntityResponseSchema
-from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.commands.bulk_delete import BulkDeleteDashboardCommand
@@ -43,7 +43,6 @@ from superset.dashboards.commands.exceptions import (
     DashboardCreateFailedError,
     DashboardDeleteFailedError,
     DashboardForbiddenError,
-    DashboardImportError,
     DashboardInvalidError,
     DashboardNotFoundError,
     DashboardUpdateFailedError,
@@ -888,7 +887,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     @expose("/import/", methods=["POST"])
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
@@ -944,6 +942,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             upload.seek(0)
             contents = {upload.filename: upload.read()}
 
+        if not contents:
+            raise NoValidFilesFoundError()
+
         passwords = (
             json.loads(request.form["passwords"])
             if "passwords" in request.form
@@ -954,12 +955,5 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         command = ImportDashboardsCommand(
             contents, passwords=passwords, overwrite=overwrite
         )
-        try:
-            command.run()
-            return self.response(200, message="OK")
-        except CommandInvalidError as exc:
-            logger.warning("Import dashboard failed")
-            return self.response_422(message=exc.normalized_messages())
-        except DashboardImportError as exc:
-            logger.exception("Import dashboard failed")
-            return self.response_500(message=str(exc))
+        command.run()
+        return self.response(200, message="OK")
