@@ -121,10 +121,10 @@ RUN apt update \
 #     default-jre libgtk-3-0 xvfb firefox-esr
 
 # Install for google chrome
-ENV CHROME_VERSION 
-RUN wget --no-verbose -O /tmp/chrome.deb https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_${CHROME_VERSION}_amd64.deb \
-    && apt install -y /tmp/chrome.deb \
-    wget https://chromedriver.storage.googleapis.com/88.0.4324.96/chromedriver_linux64.zip && \
+ENV CHROME_VERSION 88.0.4324.182-1
+RUN wget --no-verbose -O /tmp/chrome.deb https://dl.google.com/linux/deb/pool/main/g/google-chrome-stable/google-chrome-stable_${CHROME_VERSION}_amd64.deb \
+    && apt install -y /tmp/chrome.deb
+RUN wget https://chromedriver.storage.googleapis.com/88.0.4324.96/chromedriver_linux64.zip && \
     unzip chromedriver_linux64.zip && \
     chmod +x chromedriver && \
     mv chromedriver /usr/bin && \
