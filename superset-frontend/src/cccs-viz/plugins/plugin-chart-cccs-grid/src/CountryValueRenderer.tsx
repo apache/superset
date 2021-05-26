@@ -251,7 +251,7 @@ const lookup = {
 export default (props: any) => {
   const country = props.value;
   const code =  lookup[country];
-  
+
   return (
   <span>
     <img

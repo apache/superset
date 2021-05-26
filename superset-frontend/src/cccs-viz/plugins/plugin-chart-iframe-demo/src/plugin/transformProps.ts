@@ -54,7 +54,7 @@ export default function transformProps(chartProps: ChartProps) {
 
   console.log('formData via TransformProps.ts', formData);
 
-  
+
   var ip = '3.1.1.1';
   var num = formData?.adhocFilters?.length;
 

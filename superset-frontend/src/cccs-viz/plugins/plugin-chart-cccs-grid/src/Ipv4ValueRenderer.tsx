@@ -33,7 +33,7 @@ export default class Ipv4ValueRenderer extends Component<{}, { cellValue: any }>
     // if (typeof this.state.cellValue == "number") {
     //   ipString = this.formatIpV4(this.state.cellValue);
     // }
-    
+
     const url = "http://10.162.232.22:8000/gwwk.html";
 
     return (

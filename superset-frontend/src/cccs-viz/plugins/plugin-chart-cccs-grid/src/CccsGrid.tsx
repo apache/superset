@@ -96,7 +96,7 @@ export default function CccsGrid({
   // };
 
 
-  
+
 
   // What is ownFilters used for???
 
@@ -174,7 +174,7 @@ export default function CccsGrid({
 
   return (
 
-    <div style={{ width, height}}  className="ag-theme-balham" > 
+    <div style={{ width, height}}  className="ag-theme-balham" >
         <AgGridReact
           modules={AllModules}
           columnDefs={columnDefs}
@@ -189,6 +189,6 @@ export default function CccsGrid({
           rowData={rowData}
         />
       </div>
-     
+
   );
 }

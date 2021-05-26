@@ -51,7 +51,7 @@ export default function transformProps(chartProps: ChartProps) {
   const { datasource, hooks, width, height, formData, queriesData } = chartProps;
   const { boldText, headerFontSize, headerText, emitFilter } = formData;
   const data = queriesData[0].data as TimeseriesDataRecord[];
-  
+
   const { setDataMask = () => {} } = hooks;
 
   const columns = datasource?.columns as Column[];

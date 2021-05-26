@@ -112,4 +112,3 @@ git add superset-frontend/src/cccs-viz/plugins/plugin-chart-data-grid/
 git push origin master
 
 ```
-

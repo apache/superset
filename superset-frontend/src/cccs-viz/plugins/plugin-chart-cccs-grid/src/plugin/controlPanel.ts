@@ -106,7 +106,7 @@ const queryMode: ControlConfig<'RadioButtonControl'> = {
 //  * Validates the adhoc filter control. Each filter has a subject (the column name for example SRC_PORT) and a comparator (the value being tested),
 //  * it can be a single value for operators like !=, >, <= etc
 //  * or it can be an array of values for example when the IN or NOT IN operator is used.
-//  * 
+//  *
 //  * @param filters an array of adhoc filter with the following attributes
 //  * @param state the current state of the adhoc filter control it includes a copy of the columns as defined in the dataset model
 //  * @returns a string explaining the reason why the control is in an invalid state or false if there is no errors

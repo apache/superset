@@ -54,7 +54,7 @@ export default function IframeDemo(props: IframeDemoProps) {
   // height and width are the height and width of the DOM element as it exists in the dashboard.
   // There is also a `data` prop, which is, of course, your DATA 🎉
   const { ip, height, width } = props;
-  
+
 
 
   const rootElem = createRef<HTMLDivElement>();
