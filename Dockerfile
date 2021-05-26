@@ -120,13 +120,14 @@ RUN apt update \
 #     default-jre libgtk-3-0 xvfb firefox-esr
 
 # Install for google chrome
-RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
-    apt install -y ./google-chrome-stable_current_amd64.deb && \
+ENV CHROME_VERSION 
+RUN wget --no-verbose -O /tmp/chrome.deb https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_${CHROME_VERSION}_amd64.deb \
+    && apt install -y /tmp/chrome.deb \
     wget https://chromedriver.storage.googleapis.com/88.0.4324.96/chromedriver_linux64.zip && \
     unzip chromedriver_linux64.zip && \
     chmod +x chromedriver && \
     mv chromedriver /usr/bin && \
-    rm -f google-chrome-stable_current_amd64.deb chromedriver_linux64.zip
+    rm -f /tmp/chrome.deb chromedriver_linux64.zip
 
 ENV GECKODRIVER_VERSION 0.29.0
 RUN wget --no-verbose -O /tmp/geckodriver.tar.gz https://github.com/mozilla/geckodriver/releases/download/v$GECKODRIVER_VERSION/geckodriver-v$GECKODRIVER_VERSION-linux64.tar.gz \
