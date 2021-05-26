@@ -17,7 +17,6 @@
  * under the License.
  */
 import {
-  Behavior,
   getChartMetadataRegistry,
   styled,
   SupersetClient,
@@ -56,6 +55,7 @@ import Chart from 'src/types/Chart';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import ChartCard from './ChartCard';
+import { nativeFilterGate } from '../../../dashboard/components/nativeFilters/utils';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -455,11 +455,7 @@ function ChartList(props: ChartListProps) {
       unfilteredLabel: t('All'),
       selects: registry
         .keys()
-        .filter(
-          k =>
-            !registry.get(k)?.behaviors?.includes(Behavior.NATIVE_FILTER) ||
-            isFeatureEnabled(FeatureFlag.DASHBOARD_FILTERS_EXPERIMENTAL),
-        )
+        .filter(k => nativeFilterGate(registry.get(k)?.behaviors || []))
         .map(k => ({ label: registry.get(k)?.name || k, value: k }))
         .sort((a, b) => {
           if (!a.label || !b.label) {
