@@ -339,3 +339,27 @@ export const EditHeaderSubtitle = styled.div`
   font-size: ${({ theme }) => theme.typography.sizes.l}px;
   font-weight: bold;
 `;
+
+export const CredentialInfoForm = styled.div`
+  .label-select {
+    text-transform: uppercase;
+    color: ${({ theme }) => theme.colors.grayscale.dark1};
+    font-size: 11px;
+    margin: 0 0 ${({ theme }) => theme.gridUnit * 2}px;
+  }
+
+  .label-paste {
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+    font-size: 11px;
+    line-height: 16px;
+  }
+
+  .input-container {
+    margin: ${({ theme }) => theme.gridUnit * 10}px 0;
+  }
+  .input-form {
+    height: 100px;
+    width: 100%;
+    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  }
+`;

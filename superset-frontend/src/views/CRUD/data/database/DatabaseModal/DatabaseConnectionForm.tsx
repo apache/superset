@@ -25,6 +25,7 @@ import {
   StyledFormHeader,
   formScrollableStyles,
   validatedFormStyles,
+  CredentialInfoForm,
 } from './styles';
 import { DatabaseForm } from '../types';
 
@@ -55,38 +56,46 @@ const credentialsInfo = ({
 }: FieldPropTypes) => {
   const [uploadOption, setUploadOption] = useState<string>('upload');
   return (
-    <>
-      <Select
-        defaultValue={'file'}
-        style={{ width: '100%' }}
-        onChange={option => setUploadOption(option)}
-      >
-        <Select value="file">Upload JSON file</Select>
-        <Select value="paste">Copy and Paste JSON credentials</Select>
-      </Select>
-      {uploadOption === 'paste' ? (
-        <div className="input-container" onChange={changeMethods.onChange}>
-          <textarea name="encrypted_extra" />
-        </div>
-      ) : (
-        <input
-          type="file"
-          onChange={async event => {
-            const file = event?.target?.files[0];
-            const credentials = JSON.parse(await file.text());
-            const encrypted_extra = JSON.stringify({
-              credentials_info: credentials,
-            });
-            changeMethods.onParametersUploadFileChange({
-              target: {
-                name: 'encrypted_extra',
-                value: encrypted_extra,
-              },
-            });
-          }}
-        />
-      )}
-    </>
+    <CredentialInfoForm>
+      <>
+        <label className="label-select">
+          How do you want to enter service account credentials?
+        </label>
+        <Select
+          defaultValue={'file'}
+          style={{ width: '100%' }}
+          onChange={option => setUploadOption(option)}
+        >
+          <Select value="file">Upload JSON file</Select>
+          <Select value="paste">Copy and Paste JSON credentials</Select>
+        </Select>
+        {uploadOption === 'paste' ? (
+          <div className="input-container" onChange={changeMethods.onChange}>
+            <textarea className="input-form" name="encrypted_extra" />
+            <label className="label-paste">
+              Copy and paste the entire service account .json file here
+            </label>
+          </div>
+        ) : (
+          <input
+            type="file"
+            onChange={async event => {
+              const file = event?.target?.files[0];
+              const credentials = JSON.parse(await file.text());
+              const encrypted_extra = JSON.stringify({
+                credentials_info: credentials,
+              });
+              changeMethods.onParametersUploadFileChange({
+                target: {
+                  name: 'encrypted_extra',
+                  value: encrypted_extra,
+                },
+              });
+            }}
+          />
+        )}
+      </>
+    </CredentialInfoForm>
   );
 };
 
