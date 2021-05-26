@@ -123,7 +123,7 @@ const TableElement = props => {
 
   const renderControls = () => {
     let keyLink;
-    if (table.indexes && table.indexes.length > 0) {
+    if (table?.indexes.length > 0) {
       keyLink = (
         <ModalTrigger
           modalTitle={
