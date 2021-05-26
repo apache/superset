@@ -121,7 +121,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     (canEdit || (!canEdit && filterValues.length !== 0));
 
   const [dashboardFiltersOpen, setDashboardFiltersOpen] = useState(
-    getUrlParam(URL_PARAMS.showFilters, 'boolean') ?? true,
+    getUrlParam(URL_PARAMS.showFilters) ?? true,
   );
 
   const toggleDashboardFiltersOpen = (visible?: boolean) => {
@@ -154,7 +154,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
       : undefined;
 
   const hideDashboardHeader =
-    getUrlParam(URL_PARAMS.standalone, 'number') ===
+    getUrlParam(URL_PARAMS.standalone) ===
     DashboardStandaloneMode.HIDE_NAV_AND_TITLE;
 
   const barTopOffset =

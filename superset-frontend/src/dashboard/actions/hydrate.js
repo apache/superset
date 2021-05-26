@@ -53,10 +53,10 @@ import getFilterConfigsFromFormdata from 'src/dashboard/util/getFilterConfigsFro
 import getLocationHash from 'src/dashboard/util/getLocationHash';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import { TIME_RANGE } from 'src/visualizations/FilterBox/FilterBox';
+import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 import extractUrlParams from '../util/extractUrlParams';
-import { getUrlParam } from '../../utils/urlUtils';
-import { URL_PARAMS } from '../../constants';
 
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
@@ -79,7 +79,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
   try {
     // allow request parameter overwrite dashboard metadata
     preselectFilters =
-      getUrlParam(URL_PARAMS.preselectFilters, 'object') ||
+      getUrlParam(URL_PARAMS.preselectFilters) ||
       JSON.parse(metadata.default_filters);
   } catch (e) {
     //

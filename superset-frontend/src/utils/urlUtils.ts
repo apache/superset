@@ -22,15 +22,8 @@ import { URL_PARAMS } from '../constants';
 
 export type UrlParamType = 'string' | 'number' | 'boolean' | 'object';
 export type ParamNameType = typeof URL_PARAMS[keyof typeof URL_PARAMS];
-export function getUrlParam(paramName: ParamNameType, type: 'string'): string;
-export function getUrlParam(paramName: ParamNameType, type: 'number'): number;
-export function getUrlParam(paramName: ParamNameType, type: 'boolean'): boolean;
-export function getUrlParam(paramName: ParamNameType, type: 'object'): object;
-export function getUrlParam(
-  paramName: ParamNameType,
-  type: UrlParamType,
-): unknown {
-  const urlParam = new URLSearchParams(window.location.search).get(paramName);
+export function getUrlParam({ name, type }: ParamNameType): unknown {
+  const urlParam = new URLSearchParams(window.location.search).get(name);
   switch (type) {
     case 'number':
       if (!urlParam) {

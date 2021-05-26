@@ -191,7 +191,7 @@ function ExploreViewContainer(props) {
     const payload = { ...props.form_data };
     const longUrl = getExploreLongUrl(
       props.form_data,
-      props.standalone ? URL_PARAMS.standalone : null,
+      props.standalone ? URL_PARAMS.standalone.name : null,
       false,
     );
     try {
