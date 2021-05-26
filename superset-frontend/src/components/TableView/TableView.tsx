@@ -44,6 +44,10 @@ export interface TableViewProps {
   isPaginationSticky?: boolean;
   showRowCount?: boolean;
   scrollTable?: boolean;
+  customGotoPage?: (p: any) => void;
+  customPageCount?: number;
+  customPageIndex?: number;
+  resourceCount?: number;
 }
 
 const EmptyWrapper = styled.div`

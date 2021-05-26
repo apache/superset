@@ -211,7 +211,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     return data;
   };
 
-  const customGotoPage = (p) => {
+  const customGotoPage = (p: number) => {
     console.log({p})
     SupersetClient.get({endpoint: `/api/v1/dataset/?q=${rison.encode({
       order_column: 'changed_on_delta_humanized',
@@ -221,16 +221,11 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     })}`,
     })
       .then((resources)=> {
-        console.log('resources', resources);
         setPageIndex(p-1);
         setResourceCollection(resources.json.result)
       })
-      //setResourceCollection([...resourceCollection, ...resourceCollection.reverse()])
-      //setTimeout(()=> gotoPage(pageIndex - 1));
-
   }
 
-  console.log('resourceCount', resourceCount);
   return (
     <StyledModal
       show={show}
@@ -289,11 +284,10 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
                 emptyWrapperType={EmptyWrapperType.Small}
                 initialPageIndex={0}
                 customGotoPage={customGotoPage}
-                customPageCount = {Math.ceil(resourceCount/20)} 
+                customPageCount={Math.ceil(resourceCount/20)} 
                 customPageIndex={pageIndex}
-                resourceCount= {resourceCount}
+                resourceCount={resourceCount}
                 withPagination
-                //scrollTable
               />
             )}
           </>
