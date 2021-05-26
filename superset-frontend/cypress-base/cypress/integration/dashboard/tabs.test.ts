@@ -137,7 +137,7 @@ describe('Dashboard tabs', () => {
       expect(requestParams.extra_filters[0]).deep.eq({
         col: 'region',
         op: 'IN',
-        val: '[South Asia]',
+        val: ['South Asia'],
       });
       expect(requestParams.viz_type).eq(LINE_CHART.viz);
     });
