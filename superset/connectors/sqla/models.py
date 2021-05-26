@@ -309,7 +309,8 @@ class TableColumn(Model, BaseColumn):
         ],
     ) -> str:
         """Convert datetime object to a SQL expression string"""
-        sql = self.db_engine_spec.convert_dttm(self.type, dttm) if self.type else None
+        dttm_type = self.type or ("DATETIME" if self.is_dttm else None)
+        sql = self.db_engine_spec.convert_dttm(dttm_type, dttm) if dttm_type else None
 
         if sql:
             return sql
@@ -1239,6 +1240,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         where_clause_and.append(col_obj.get_sqla_col() <= eq)
                     elif op == utils.FilterOperator.LIKE.value:
                         where_clause_and.append(col_obj.get_sqla_col().like(eq))
+                    elif op == utils.FilterOperator.ILIKE.value:
+                        where_clause_and.append(col_obj.get_sqla_col().ilike(eq))
                     else:
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)

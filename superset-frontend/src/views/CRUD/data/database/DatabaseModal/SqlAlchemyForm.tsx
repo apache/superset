@@ -44,6 +44,7 @@ const SqlAlchemyTab = ({
         <input
           type="text"
           name="database_name"
+          data-test="database-name-input"
           value={db?.database_name || ''}
           placeholder={t('Name your database')}
           onChange={onInputChange}
@@ -62,6 +63,7 @@ const SqlAlchemyTab = ({
         <input
           type="text"
           name="sqlalchemy_uri"
+          data-test="sqlalchemy-uri-input"
           value={db?.sqlalchemy_uri || ''}
           autoComplete="off"
           placeholder={t(
