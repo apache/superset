@@ -237,8 +237,7 @@ export const selectNativeIndicatorsForChart = (
           status: getStatus({ value, column }),
           value,
         };
-      },
-    );
+      });
   }
 
   let crossFilterIndicators: any = [];
