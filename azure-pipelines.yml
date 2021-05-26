@@ -54,5 +54,3 @@ stages:
         tags: |
           $(BRANCH_NAME)
           $(BRANCH_NAME)_$(buildTimestamp)_b$(Build.BuildId)
-
-
