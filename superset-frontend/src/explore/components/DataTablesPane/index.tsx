@@ -249,7 +249,7 @@ export const DataTablesPane = ({
       if (data[type]?.length === 0) {
         return <span>No data</span>;
       }
-      console.log('filteredData[type]', filteredData[type])
+      console.log('filteredData[type]', filteredData[type]);
       return (
         <TableView
           columns={columns[type]}

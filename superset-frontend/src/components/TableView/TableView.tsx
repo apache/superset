@@ -139,7 +139,7 @@ const TableView = ({
   const pageIndex = customPageIndex || tablePageIndex;
 
   const content = withPagination ? page : rows;
-  console.log({ rows, page, pageSize});
+  console.log({ rows, page, pageSize });
 
   let EmptyWrapperComponent;
   switch (emptyWrapperType) {
@@ -154,7 +154,6 @@ const TableView = ({
   }
 
   const isEmpty = !loading && content.length === 0;
-  console.log("------", { pageIndex});
   return (
     <TableViewStyles {...props}>
       <TableCollection
@@ -184,11 +183,10 @@ const TableView = ({
             totalPages={pageCount || 0}
             currentPage={pageCount ? pageIndex + 1 : 0}
             onChange={(p: number) => {
-              if(customGotoPage)
-              {
+              if (customGotoPage) {
                 customGotoPage(p);
               } else {
-                gotoPage(p-1);
+                gotoPage(p - 1);
               }
             }}
             hideFirstAndLastPageLinks

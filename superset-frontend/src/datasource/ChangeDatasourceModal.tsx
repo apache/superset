@@ -114,7 +114,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   const {
     state: { resourceCount, loading, resourceCollection },
     fetchData,
-    setResourceCollection
+    setResourceCollection,
   } = useListViewResource<Dataset>('dataset', t('dataset'), addDangerToast);
 
   const selectDatasource = useCallback((datasource: Datasource) => {
@@ -212,19 +212,19 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   };
 
   const customGotoPage = (p: number) => {
-    console.log({p})
-    SupersetClient.get({endpoint: `/api/v1/dataset/?q=${rison.encode({
-      order_column: 'changed_on_delta_humanized',
-      order_direction: 'desc',
-      page: p-1,
-      page_size: 20, 
-    })}`,
-    })
-      .then((resources)=> {
-        setPageIndex(p-1);
-        setResourceCollection(resources.json.result)
-      })
-  }
+    console.log({ p });
+    SupersetClient.get({
+      endpoint: `/api/v1/dataset/?q=${rison.encode({
+        order_column: 'changed_on_delta_humanized',
+        order_direction: 'desc',
+        page: p - 1,
+        page_size: 20,
+      })}`,
+    }).then(resources => {
+      setPageIndex(p - 1);
+      setResourceCollection(resources.json.result);
+    });
+  };
 
   return (
     <StyledModal
@@ -284,7 +284,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
                 emptyWrapperType={EmptyWrapperType.Small}
                 initialPageIndex={0}
                 customGotoPage={customGotoPage}
-                customPageCount={Math.ceil(resourceCount/20)} 
+                customPageCount={Math.ceil(resourceCount / 20)}
                 customPageIndex={pageIndex}
                 resourceCount={resourceCount}
                 withPagination
