@@ -32,6 +32,7 @@ import ColumnElement from './ColumnElement';
 import ShowSQL from './ShowSQL';
 import ModalTrigger from '../../components/ModalTrigger';
 import Loading from '../../components/Loading';
+import { UpOutlined } from '@ant-design/icons';
 
 const propTypes = {
   table: PropTypes.object,
@@ -60,7 +61,7 @@ const TableElement = props => {
   const [sortColumns, setSortColumns] = useState(false);
   const [hovered, setHovered] = useState(false);
 
-  const { table, actions } = props;
+  const { table, actions, isActive } = props;
 
   const setHover = hovered => {
     debounce(() => setHovered(hovered), 100)();
@@ -161,13 +162,15 @@ const TableElement = props => {
         {table.selectStar && (
           <CopyToClipboard
             copyNode={
-              <IconTooltip aria-label="Copy">
+              <IconTooltip
+                aria-label="Copy"
+                tooltip={t('Copy SELECT statement to the clipboard')}
+              >
                 <i aria-hidden className="fa fa-clipboard pull-left m-l-2" />
               </IconTooltip>
             }
             text={table.selectStar}
             shouldShowText={false}
-            tooltipText={t('Copy SELECT statement to the clipboard')}
           />
         )}
         {table.view && (
@@ -258,12 +261,31 @@ const TableElement = props => {
     return metadata;
   };
 
+  const collapseExpandIcon = () => {
+    return (
+      <IconTooltip
+        style={{
+          position: 'absolute',
+          right: '4%',
+          height: '1em',
+        }}
+        aria-label="Collapse"
+        tooltip={t(`${!isActive ? 'Expand' : 'Collapse'} table preview`)}
+      >
+        <UpOutlined
+          style={!isActive ? { transform: 'rotate(180deg)' } : null}
+        />
+      </IconTooltip>
+    );
+  };
+
   return (
     <Collapse.Panel
       {...props}
       header={renderHeader()}
       className="TableElement"
-      forceRender="true"
+      forceRender={true}
+      expandIcon={collapseExpandIcon}
     >
       {renderBody()}
     </Collapse.Panel>
