@@ -431,6 +431,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               validationErrors={validationErrors}
             />
           )}
+          <Alert
+            css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+            message="Additional fields may be required"
+            description={
+              <>
+                Select databases require additional fields to be completed in
+                the Advanced tab to successfully connect the database. Learn
+                what requirements your databases has{' '}
+                <a
+                  href={DOCUMENTATION_LINK}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  here
+                </a>
+                .
+              </>
+            }
+            type="info"
+            showIcon
+          />
         </StyledBasicTab>
         <Tabs.TabPane tab={<span>{t('Advanced')}</span>} key="2">
           <ExtraOptions

@@ -205,7 +205,13 @@ const DatabaseConnectionForm = ({
         </p>
       </StyledFormHeader>
     )}
-    <div css={formScrollableStyles}>
+    <div
+      // @ts-ignore
+      css={(theme: SupersetTheme) => [
+        formScrollableStyles,
+        validatedFormStyles(theme),
+      ]}
+    >
       {parameters &&
         FormFieldOrder.filter(
           (key: string) =>
