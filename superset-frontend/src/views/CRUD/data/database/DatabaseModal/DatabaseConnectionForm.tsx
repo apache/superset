@@ -66,7 +66,7 @@ const credentialsInfo = ({
       </Select>
       {uploadOption === 'paste' ? (
         <div className="input-container" onChange={changeMethods.onChange}>
-          <Input name="encrypted_extra" rows={4} />
+          <textarea name="encrypted_extra" />
         </div>
       ) : (
         <input
