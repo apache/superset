@@ -54,8 +54,8 @@ import ImportModelsModal from 'src/components/ImportModal/index';
 import Chart from 'src/types/Chart';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
+import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import ChartCard from './ChartCard';
-import { nativeFilterGate } from '../../../dashboard/components/nativeFilters/utils';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
