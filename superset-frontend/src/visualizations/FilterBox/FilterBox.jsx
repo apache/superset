@@ -159,9 +159,10 @@ class FilterBox extends React.PureComponent {
       if (Array.isArray(options)) {
         vals = options.map(opt => (typeof opt === 'string' ? opt : opt.value));
       } else if (options.value) {
-        vals = options.value;
+        // must use array member for legacy extra_filters's value
+        vals = [options.value];
       } else {
-        vals = options;
+        vals = [options];
       }
     }
 
