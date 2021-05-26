@@ -185,6 +185,11 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
     )
 
     @classmethod
+    def _extract_error_message(cls, ex: Exception) -> str:
+        message = super()._extract_error_message(ex)
+        return message.rstrip("^ \n\t")
+
+    @classmethod
     def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
         return True
 
