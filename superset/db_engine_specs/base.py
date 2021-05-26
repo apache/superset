@@ -1372,7 +1372,9 @@ class BasicParametersMixin:
         )
 
     @classmethod
-    def get_parameters_from_uri(cls, uri: str) -> BasicParametersType:
+    def get_parameters_from_uri(
+        cls, uri: str, encrypted_extra: Optional[Dict[str, Any]] = None
+    ) -> BasicParametersType:
         url = make_url(uri)
         encryption = all(
             item in url.query.items() for item in cls.encryption_parameters.items()
