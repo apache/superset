@@ -25,7 +25,16 @@ import { PluginFilterGroupByProps } from './types';
 const { Option } = Select;
 
 export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
-  const { data, formData, height, width, setDataMask, filterState } = props;
+  const {
+    data,
+    formData,
+    height,
+    width,
+    setDataMask,
+    setFocusedFilter,
+    unsetFocusedFilter,
+    filterState,
+  } = props;
   const { defaultValue, inputRef, multiSelect } = formData;
 
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
@@ -68,6 +77,8 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
         mode={multiSelect ? 'multiple' : undefined}
         // @ts-ignore
         onChange={handleChange}
+        onBlur={unsetFocusedFilter}
+        onFocus={setFocusedFilter}
         ref={inputRef}
       >
         {columns.map(

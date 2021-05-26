@@ -240,7 +240,8 @@ class Database(
     @property
     def parameters(self) -> Dict[str, Any]:
         # Build parameters if db_engine_spec is a subclass of BasicParametersMixin
-        parameters = {"engine": self.backend, "database_name": self.database_name}
+        parameters = {"engine": self.backend}
+
         if hasattr(self.db_engine_spec, "parameters_schema") and hasattr(
             self.db_engine_spec, "get_parameters_from_uri"
         ):

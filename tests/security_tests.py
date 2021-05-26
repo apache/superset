@@ -38,6 +38,7 @@ from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.sql_parse import Table
 from superset.utils.core import get_example_database
+from superset.views.access_requests import AccessRequestsModelView
 
 from .base_tests import SupersetTestCase
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
@@ -1203,3 +1204,19 @@ class TestRowLevelSecurity(SupersetTestCase):
         assert not self.NAMES_B_REGEX.search(sql)
         assert not self.NAMES_Q_REGEX.search(sql)
         assert not self.BASE_FILTER_REGEX.search(sql)
+
+
+class TestAccessRequestEndpoints(SupersetTestCase):
+    def test_access_request_disabled(self):
+        with patch.object(AccessRequestsModelView, "is_enabled", return_value=False):
+            self.login("admin")
+            uri = "/accessrequestsmodelview/list/"
+            rv = self.client.get(uri)
+            self.assertEqual(rv.status_code, 404)
+
+    def test_access_request_enabled(self):
+        with patch.object(AccessRequestsModelView, "is_enabled", return_value=True):
+            self.login("admin")
+            uri = "/accessrequestsmodelview/list/"
+            rv = self.client.get(uri)
+            self.assertLess(rv.status_code, 400)

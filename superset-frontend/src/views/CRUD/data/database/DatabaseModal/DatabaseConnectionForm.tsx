@@ -17,11 +17,14 @@
  * under the License.
  */
 import React, { FormEvent } from 'react';
-import cx from 'classnames';
+import { SupersetTheme, JsonObject } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
-import { FormLabel, FormItem } from 'src/components/Form';
-import { Input } from 'src/common/components';
-import { StyledFormHeader, formScrollableStyles } from './styles';
+import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
+import {
+  StyledFormHeader,
+  formScrollableStyles,
+  validatedFormStyles,
+} from './styles';
 import { DatabaseForm, DatabaseObject } from '../types';
 
 export const FormFieldOrder = [
@@ -33,76 +36,165 @@ export const FormFieldOrder = [
   'database_name',
 ];
 
-const CHANGE_METHOD = {
-  onChange: 'onChange',
-  onPropertiesChange: 'onPropertiesChange',
-};
+interface FieldPropTypes {
+  required: boolean;
+  changeMethods: { onParametersChange: (value: any) => string } & {
+    onChange: (value: any) => string;
+  };
+  validationErrors: JsonObject | null;
+  getValidation: () => void;
+  db?: DatabaseObject;
+}
+
+const hostField = ({
+  required,
+  changeMethods,
+  getValidation,
+  validationErrors,
+  db,
+}: FieldPropTypes) => (
+  <ValidatedInput
+    id="host"
+    name="host"
+    value={db?.parameters?.host || ''}
+    required={required}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.host}
+    placeholder="e.g. 127.0.0.1"
+    className="form-group-w-50"
+    label="Host"
+    onChange={changeMethods.onParametersChange}
+  />
+);
+const portField = ({
+  required,
+  changeMethods,
+  getValidation,
+  validationErrors,
+  db,
+}: FieldPropTypes) => (
+  <ValidatedInput
+    id="port"
+    name="port"
+    required={required}
+    value={db?.parameters?.port || ''}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.port}
+    placeholder="e.g. 5432"
+    className="form-group-w-50"
+    label="Port"
+    onChange={changeMethods.onParametersChange}
+  />
+);
+const databaseField = ({
+  required,
+  changeMethods,
+  getValidation,
+  validationErrors,
+  db,
+}: FieldPropTypes) => (
+  <ValidatedInput
+    id="database"
+    name="database"
+    required={required}
+    value={db?.parameters?.database || ''}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.database}
+    placeholder="e.g. world_population"
+    label="Database name"
+    onChange={changeMethods.onParametersChange}
+    helpText="Copy the name of the PostgreSQL database you are trying to connect to."
+  />
+);
+const usernameField = ({
+  required,
+  changeMethods,
+  getValidation,
+  validationErrors,
+  db,
+}: FieldPropTypes) => (
+  <ValidatedInput
+    id="username"
+    name="username"
+    required={required}
+    value={db?.parameters?.username || ''}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.username}
+    placeholder="e.g. Analytics"
+    label="Username"
+    onChange={changeMethods.onParametersChange}
+  />
+);
+const passwordField = ({
+  required,
+  changeMethods,
+  getValidation,
+  validationErrors,
+  db,
+}: FieldPropTypes) => (
+  <ValidatedInput
+    id="password"
+    name="password"
+    required={required}
+    type="password"
+    value={db?.parameters?.password || ''}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.password}
+    placeholder="e.g. ********"
+    label="Password"
+    onChange={changeMethods.onParametersChange}
+  />
+);
+const displayField = ({
+  required,
+  changeMethods,
+  getValidation,
+  validationErrors,
+  db,
+}: FieldPropTypes) => (
+  <ValidatedInput
+    id="database_name"
+    name="database_name"
+    required={required}
+    value={db?.database_name || ''}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.database_name}
+    placeholder=""
+    label="Display Name"
+    onChange={changeMethods.onChange}
+    helpText="Pick a nickname for this database to display as in Superset."
+  />
+);
 
 const FORM_FIELD_MAP = {
-  host: {
-    description: 'Host',
-    type: 'text',
-    className: 'w-50',
-    placeholder: 'e.g. 127.0.0.1',
-    changeMethod: CHANGE_METHOD.onPropertiesChange,
-  },
-  port: {
-    description: 'Port',
-    type: 'text',
-    className: 'w-50',
-    placeholder: 'e.g. 5432',
-    changeMethod: CHANGE_METHOD.onPropertiesChange,
-  },
-  database: {
-    description: 'Database name',
-    type: 'text',
-    label:
-      'Copy the name of the PostgreSQL database you are trying to connect to.',
-    placeholder: 'e.g. world_population',
-    changeMethod: CHANGE_METHOD.onPropertiesChange,
-  },
-  username: {
-    description: 'Username',
-    type: 'text',
-    placeholder: 'e.g. Analytics',
-    changeMethod: CHANGE_METHOD.onPropertiesChange,
-  },
-  password: {
-    description: 'Password',
-    type: 'password',
-    placeholder: 'e.g. ********',
-    changeMethod: CHANGE_METHOD.onPropertiesChange,
-  },
-  database_name: {
-    description: 'Display Name',
-    type: 'text',
-    label: 'Pick a nickname for this database to display as in Superset.',
-    changeMethod: CHANGE_METHOD.onChange,
-  },
-  query: {
-    additionalProperties: {},
-    description: 'Additional parameters',
-    type: 'object',
-    changeMethod: CHANGE_METHOD.onPropertiesChange,
-  },
+  host: hostField,
+  port: portField,
+  database: databaseField,
+  username: usernameField,
+  password: passwordField,
+  database_name: displayField,
 };
 
 const DatabaseConnectionForm = ({
-  db,
-  isEditMode,
   dbModel: { name, parameters },
   onParametersChange,
   onChange,
+  validationErrors,
+  getValidation,
+  db,
+  isEditMode = false,
 }: {
   isEditMode?: boolean;
-  db?: DatabaseObject;
   dbModel: DatabaseForm;
+  db: Partial<DatabaseObject> | null;
   onParametersChange: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
   onChange: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
+  validationErrors: JsonObject | null;
+  getValidation: () => void;
 }) => (
   <>
     {!isEditMode && (
@@ -119,48 +211,19 @@ const DatabaseConnectionForm = ({
           (key: string) =>
             Object.keys(parameters.properties).includes(key) ||
             key === 'database_name',
-        ).map(field => {
-          const {
-            className,
-            description,
-            type,
-            placeholder,
-            label,
-            changeMethod,
-          } = FORM_FIELD_MAP[field];
-          const onEdit =
-            changeMethod === CHANGE_METHOD.onChange
-              ? onChange
-              : onParametersChange;
-          return (
-            <FormItem
-              className={cx(className, `form-group-${className}`)}
-              key={field}
-            >
-              <FormLabel
-                htmlFor={field}
-                required={parameters.required.includes(field)}
-              >
-                {description}
-              </FormLabel>
-              <Input
-                name={field}
-                type={type}
-                id={field}
-                value={db?.parameters ? db.parameters[field] : ''}
-                autoComplete="off"
-                placeholder={placeholder}
-                onChange={onEdit}
-              />
-
-              <p className="helper">{label}</p>
-            </FormItem>
-          );
-        })}
+        ).map(field =>
+          FORM_FIELD_MAP[field]({
+            required: parameters.required.includes(field),
+            changeMethods: { onParametersChange, onChange },
+            validationErrors,
+            getValidation,
+            db,
+            key: field,
+          }),
+        )}
     </div>
   </>
 );
-
 export const FormFieldMap = FORM_FIELD_MAP;
 
 export default DatabaseConnectionForm;

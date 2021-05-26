@@ -41,6 +41,10 @@ const StyledItem = styled(Form.Item)`
         }
       }
     }
+    .ant-form-item-explain {
+      color: ${theme.colors.grayscale.light1};
+      font-size: ${theme.typography.sizes.s - 1}px;
+    }
   `}
 `;
 

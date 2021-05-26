@@ -595,7 +595,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             except AsyncQueryTokenException:
                 return self.response_401()
 
-            result = command.run_async()
+            result = command.run_async(g.user.get_id())
             return self.response(202, **result)
 
         return self.get_data_response(command)

@@ -88,4 +88,28 @@ describe('Add database', () => {
     // cy.wait(1000); // wait for potential (incorrect) closing annimation
     // cy.get('[data-test="database-modal"]').should('be.visible');
   });
+
+  it('should close modal after save', () => {
+    cy.get('[data-test="btn-create-database"]').click();
+
+    // type values
+    cy.get('[data-test="database-modal"] input[name="database_name"]')
+      .focus()
+      .type('cypress');
+    cy.get('[data-test="database-modal"] input[name="sqlalchemy_uri"]')
+      .focus()
+      .type('gsheets://');
+
+    // click save
+    cy.get('[data-test="modal-confirm-button"]:not(:disabled)').click();
+
+    // should show error alerts and keep modal open
+    cy.get('.toast').contains('error');
+    cy.wait(1000); // wait for potential (incorrect) closing annimation
+    cy.get('[data-test="database-modal"]').should('be.visible');
+
+    // should be able to close modal
+    cy.get('[data-test="modal-cancel-button"]').click();
+    cy.get('[data-test="database-modal"]').should('not.be.visible');
+  });
 });

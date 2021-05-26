@@ -32,12 +32,14 @@ export type DatabaseObject = {
   changed_on?: string;
   parameters?: {
     database_name?: string;
-    engine?: string;
     host?: string;
     port?: number;
+    database?: string;
+    username?: string;
     password?: string;
   };
   configuration_method: CONFIGURATION_METHOD;
+  engine?: string;
 
   // Performance
   cache_timeout?: string;
@@ -62,7 +64,6 @@ export type DatabaseObject = {
 };
 
 export type DatabaseForm = {
-  db: DatabaseObject;
   engine: string;
   name: string;
   parameters: {

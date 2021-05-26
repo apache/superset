@@ -291,7 +291,9 @@ const ExtraOptions = ({
               indeterminate={false}
               checked={!!db?.impersonate_user}
               onChange={onInputChange}
-              labelText={t('Impersonate Logged In User (Presto & Hive)')}
+              labelText={t(
+                'Impersonate Logged In User (Presto, Hive, and GSheets)',
+              )}
             />
             <InfoTooltip
               tooltip={t(

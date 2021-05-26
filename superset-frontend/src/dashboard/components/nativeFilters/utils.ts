@@ -72,7 +72,7 @@ export const getFormData = ({
     extra_form_data: cascadingFilters,
     granularity_sqla: 'ds',
     metrics: ['count'],
-    row_limit: 10000,
+    row_limit: 1000,
     showSearch: true,
     defaultValue: defaultDataMask?.filterState?.value,
     time_range,

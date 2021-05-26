@@ -125,7 +125,10 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         if (res.viewed) {
           const filtered = reject(res.viewed, ['item_url', null]).map(r => r);
           data.Viewed = filtered;
-          setActiveChild('Viewed');
+          const savedActivity = getFromLocalStorage('activity', null);
+          if (!savedActivity) {
+            setActiveChild('Viewed');
+          } else setActiveChild(savedActivity.activity);
         } else {
           data.Examples = res.examples;
           setActiveChild('Examples');

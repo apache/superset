@@ -657,3 +657,52 @@ export function useAvailableDatabases() {
 
   return [availableDbs, getAvailable] as const;
 }
+
+export function useDatabaseValidation() {
+  const [validationErrors, setValidationErrors] = useState<JsonObject | null>(
+    null,
+  );
+  const getValidation = useCallback(
+    (database: Partial<DatabaseObject> | null) => {
+      SupersetClient.post({
+        endpoint: '/api/v1/database/validate_parameters',
+        body: JSON.stringify(database),
+        headers: { 'Content-Type': 'application/json' },
+      })
+        .then(() => {
+          setValidationErrors(null);
+        })
+        .catch(e => {
+          if (typeof e.json === 'function') {
+            e.json().then(({ errors = [] }: JsonObject) => {
+              const parsedErrors = errors
+                .filter(
+                  (error: { error_type: string }) =>
+                    error.error_type !== 'CONNECTION_MISSING_PARAMETERS_ERROR',
+                )
+                .reduce(
+                  (
+                    obj: {},
+                    {
+                      extra,
+                      message,
+                    }: {
+                      extra: { invalid: string[] };
+                      message: string;
+                    },
+                  ) => ({ ...obj, [extra.invalid[0]]: message }),
+                  {},
+                );
+              setValidationErrors(parsedErrors);
+            });
+          } else {
+            // eslint-disable-next-line no-console
+            console.error(e);
+          }
+        });
+    },
+    [setValidationErrors],
+  );
+
+  return [validationErrors, getValidation] as const;
+}
