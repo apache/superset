@@ -187,8 +187,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     setIsFilterSetChanged(tab !== TabIds.AllFilters);
     setDataMaskSelected(draft => {
       const children = cascadeChildren[filter.id] || [];
-      // force instant updating on initialization or for parent filters
-      if (filter.isInstant || children.length > 0) {
+      // force instant updating on initialization or for parent filters when dataMaskSelected has filter
+      if (
+        dataMaskSelected[filter.id] &&
+        (filter.isInstant || children.length > 0)
+      ) {
         dispatch(updateDataMask(filter.id, dataMask));
       }
 
