@@ -32,7 +32,14 @@ import {
   Metric,
 } from '@superset-ui/chart-controls';
 import { FormInstance } from 'antd/lib/form';
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useState,
+  useMemo,
+  forwardRef,
+  useImperativeHandle,
+} from 'react';
 import { useSelector } from 'react-redux';
 import { Checkbox, Form, Input } from 'src/common/components';
 import { Select } from 'src/components/Select';
@@ -150,6 +157,12 @@ const StyledTabs = styled(Tabs)`
   }
 `;
 
+const StyledAsterisk = styled.span`
+  color: ${({ theme }) => theme.colors.error.base};
+  font-family: SimSun, sans-serif;
+  margin-right: ${({ theme }) => theme.gridUnit - 1}px;
+`;
+
 const FilterTabs = {
   configuration: {
     key: 'configuration',
@@ -196,15 +209,19 @@ const BASIC_CONTROL_ITEMS = ['enableEmptyFilter', 'multiSelect'];
  * The configuration form for a specific filter.
  * Assigns field values to `filters[filterId]` in the form.
  */
-export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
-  filterId,
-  filterToEdit,
-  removed,
-  restoreFilter,
-  form,
-  parentFilters,
-}) => {
+const FiltersConfigForm = (
+  {
+    filterId,
+    filterToEdit,
+    removed,
+    restoreFilter,
+    form,
+    parentFilters,
+  }: FiltersConfigFormProps,
+  ref: React.RefObject<any>,
+) => {
   const [metrics, setMetrics] = useState<Metric[]>([]);
+  const [activeTabKey, setActiveTabKey] = useState<string | undefined>();
   const [hasDefaultValue, setHasDefaultValue] = useState(
     !!filterToEdit?.defaultDataMask?.filterState?.value,
   );
@@ -253,6 +270,12 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
         });
     }
   }, [datasetId, hasColumn]);
+
+  useImperativeHandle(ref, () => ({
+    changeTab(tab: 'configuration' | 'scoping') {
+      setActiveTabKey(tab);
+    },
+  }));
 
   const hasMetrics = hasColumn && !!metrics.length;
 
@@ -371,7 +394,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
 
   const controlItems = formFilter
     ? getControlItemsMap({
-        disabled: !showDefaultValue,
+        disabled: false,
         forceUpdate,
         form,
         filterId,
@@ -393,7 +416,12 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
 
   return (
     <>
-      <StyledTabs defaultActiveKey={FilterTabs.configuration.key} centered>
+      <StyledTabs
+        defaultActiveKey={FilterTabs.configuration.key}
+        activeKey={activeTabKey}
+        onChange={activeKey => setActiveTabKey(activeKey)}
+        centered
+      >
         <TabPane
           tab={FilterTabs.configuration.name}
           key={FilterTabs.configuration.key}
@@ -519,6 +547,23 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
                   initialValue={filterToEdit?.defaultDataMask}
                   data-test="default-input"
                   label={<StyledLabel>{t('Default Value')}</StyledLabel>}
+                  required
+                  rules={[
+                    {
+                      required: true,
+                    },
+                    {
+                      validator: (rule, value) => {
+                        const hasValue = !!value.filterState?.value;
+                        if (hasValue) {
+                          return Promise.resolve();
+                        }
+                        return Promise.reject(
+                          new Error(t('Default value is required')),
+                        );
+                      },
+                    },
+                  ]}
                 >
                   {showDefaultValue ? (
                     <DefaultValue
@@ -526,6 +571,9 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
                         setNativeFilterFieldValues(form, filterId, {
                           defaultDataMask: dataMask,
                         });
+                        form.validateFields([
+                          ['filters', filterId, 'defaultDataMask'],
+                        ]);
                         forceUpdate();
                       }}
                       filterId={filterId}
@@ -562,12 +610,31 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
                   <CollapsibleControl
                     title={t('Filter is hierarchical')}
                     checked={!!parentFilter}
+                    onChange={checked => {
+                      if (checked) {
+                        // execute after render
+                        setTimeout(
+                          () =>
+                            form.validateFields([
+                              ['filters', filterId, 'parentFilter'],
+                            ]),
+                          0,
+                        );
+                      }
+                    }}
                   >
                     <StyledRowFormItem
                       name={['filters', filterId, 'parentFilter']}
                       label={<StyledLabel>{t('Parent filter')}</StyledLabel>}
                       initialValue={parentFilter}
                       data-test="parent-filter-input"
+                      required
+                      rules={[
+                        {
+                          required: true,
+                          message: t('Parent filter is required'),
+                        },
+                      ]}
                     >
                       <Select
                         placeholder={t('None')}
@@ -587,10 +654,29 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
                       !!filterToEdit?.adhoc_filters ||
                       !!filterToEdit?.time_range
                     }
+                    onChange={checked => {
+                      if (checked) {
+                        // execute after render
+                        setTimeout(
+                          () =>
+                            form.validateFields([
+                              ['filters', filterId, 'adhoc_filters'],
+                            ]),
+                          0,
+                        );
+                      }
+                    }}
                   >
                     <StyledRowFormItem
                       name={['filters', filterId, 'adhoc_filters']}
                       initialValue={filterToEdit?.adhoc_filters}
+                      required
+                      rules={[
+                        {
+                          required: true,
+                          message: t('Adhoc filters is required'),
+                        },
+                      ]}
                     >
                       <AdhocFilterControl
                         columns={
@@ -606,7 +692,12 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
                           });
                           forceUpdate();
                         }}
-                        label={<StyledLabel>{t('Adhoc filters')}</StyledLabel>}
+                        label={
+                          <span>
+                            <StyledAsterisk>*</StyledAsterisk>
+                            <StyledLabel>{t('Adhoc filters')}</StyledLabel>
+                          </span>
+                        }
                       />
                     </StyledRowFormItem>
                     <StyledRowFormItem
@@ -717,4 +808,6 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
   );
 };
 
-export default FiltersConfigForm;
+export default forwardRef<typeof FiltersConfigForm, FiltersConfigFormProps>(
+  FiltersConfigForm,
+);
