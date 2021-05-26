@@ -626,6 +626,14 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         buf.seek(0)
         return buf
 
+    def create_invalid_dashboard_import(self):
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("sql/dump.sql", "w") as fp:
+                fp.write("CREATE TABLE foo (bar INT)".encode())
+        buf.seek(0)
+        return buf
+
     def test_delete_dashboard(self):
         """
         Dashboard API: Test delete
@@ -1391,6 +1399,39 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         db.session.delete(dataset)
         db.session.delete(database)
         db.session.commit()
+
+    def test_import_dashboard_invalid_file(self):
+        """
+        Dashboard API: Test import invalid dashboard file
+        """
+        self.login(username="admin")
+        uri = "api/v1/dashboard/import/"
+
+        buf = self.create_invalid_dashboard_import()
+        form_data = {
+            "formData": (buf, "dashboard_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 400
+        assert response == {
+            "errors": [
+                {
+                    "message": "No valid import files were found",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": "Issue 1010 - Superset encountered an error while running a command.",
+                            }
+                        ]
+                    },
+                }
+            ]
+        }
 
     def test_import_dashboard_v0_export(self):
         num_dashboards = db.session.query(Dashboard).count()
