@@ -167,9 +167,7 @@ const FilterTabs: FC<FilterTabsProps> = ({
     addIcon={
       <StyledAddFilterBox>
         <PlusOutlined />{' '}
-        <span data-test="add-filter-button" aria-label="Add filter">
-          {t('Add filter')}
-        </span>
+        <span data-test="add-filter-button">{t('Add filter')}</span>
       </StyledAddFilterBox>
     }
   >

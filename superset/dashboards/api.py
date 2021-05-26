@@ -914,7 +914,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                       type: string
                     overwrite:
                       description: overwrite existing databases?
-                      type: boolean
+                      type: bool
           responses:
             200:
               description: Dashboard import result

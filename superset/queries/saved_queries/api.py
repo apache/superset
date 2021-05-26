@@ -289,7 +289,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
                       type: string
                     overwrite:
                       description: overwrite existing saved queries?
-                      type: boolean
+                      type: bool
           responses:
             200:
               description: Saved Query import result

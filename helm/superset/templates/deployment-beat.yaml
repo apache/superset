@@ -96,10 +96,6 @@ spec:
       tolerations:
 {{ toYaml . | indent 8 }}
     {{- end }}
-{{- if .Values.imagePullSecrets }}
-      imagePullSecrets:
-{{ toYaml .Values.imagePullSecrets | indent 8 }}
-      {{- end }}
       volumes:
         - name: superset-config
           secret:

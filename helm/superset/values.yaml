@@ -106,9 +106,6 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
-imagePullSecrets: []
-
-
 service:
   type: ClusterIP
   port: 8088

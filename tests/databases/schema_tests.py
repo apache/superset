@@ -21,7 +21,6 @@ from marshmallow import fields, Schema, ValidationError
 
 from superset.databases.schemas import DatabaseParametersSchemaMixin
 from superset.db_engine_specs.base import BasicParametersMixin
-from superset.models.core import ConfigurationMethod
 
 
 class DummySchema(Schema, DatabaseParametersSchemaMixin):
@@ -29,8 +28,7 @@ class DummySchema(Schema, DatabaseParametersSchemaMixin):
 
 
 class DummyEngine(BasicParametersMixin):
-    engine = "dummy"
-    default_driver = "dummy"
+    drivername = "dummy"
 
 
 class InvalidEngine:
@@ -41,34 +39,31 @@ class InvalidEngine:
 def test_database_parameters_schema_mixin(get_engine_specs):
     get_engine_specs.return_value = {"dummy_engine": DummyEngine}
     payload = {
-        "engine": "dummy_engine",
-        "configuration_method": ConfigurationMethod.DYNAMIC_FORM,
         "parameters": {
+            "engine": "dummy_engine",
             "username": "username",
             "password": "password",
             "host": "localhost",
             "port": 12345,
             "database": "dbname",
-        },
+        }
     }
     schema = DummySchema()
     result = schema.load(payload)
     assert result == {
-        "configuration_method": ConfigurationMethod.DYNAMIC_FORM,
-        "sqlalchemy_uri": "dummy+dummy://username:password@localhost:12345/dbname",
+        "sqlalchemy_uri": "dummy://username:password@localhost:12345/dbname"
     }
 
 
 def test_database_parameters_schema_mixin_no_engine():
     payload = {
-        "configuration_method": ConfigurationMethod.DYNAMIC_FORM,
         "parameters": {
             "username": "username",
             "password": "password",
             "host": "localhost",
             "port": 12345,
             "dbname": "dbname",
-        },
+        }
     }
     schema = DummySchema()
     try:
@@ -85,15 +80,14 @@ def test_database_parameters_schema_mixin_no_engine():
 def test_database_parameters_schema_mixin_invalid_engine(get_engine_specs):
     get_engine_specs.return_value = {}
     payload = {
-        "engine": "dummy_engine",
-        "configuration_method": ConfigurationMethod.DYNAMIC_FORM,
         "parameters": {
+            "engine": "dummy_engine",
             "username": "username",
             "password": "password",
             "host": "localhost",
             "port": 12345,
             "dbname": "dbname",
-        },
+        }
     }
     schema = DummySchema()
     try:
@@ -108,15 +102,14 @@ def test_database_parameters_schema_mixin_invalid_engine(get_engine_specs):
 def test_database_parameters_schema_no_mixin(get_engine_specs):
     get_engine_specs.return_value = {"invalid_engine": InvalidEngine}
     payload = {
-        "engine": "invalid_engine",
-        "configuration_method": ConfigurationMethod.DYNAMIC_FORM,
         "parameters": {
+            "engine": "invalid_engine",
             "username": "username",
             "password": "password",
             "host": "localhost",
             "port": 12345,
             "database": "dbname",
-        },
+        }
     }
     schema = DummySchema()
     try:

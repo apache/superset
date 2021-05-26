@@ -1028,12 +1028,16 @@ WEBDRIVER_WINDOW = {"dashboard": (1600, 2000), "slice": (3000, 1200)}
 WEBDRIVER_AUTH_FUNC = None
 
 # Any config options to be passed as-is to the webdriver
-WEBDRIVER_CONFIGURATION: Dict[Any, Any] = {"service_log_path": "/dev/null"}
+WEBDRIVER_CONFIGURATION: Dict[Any, Any] = {}
 
 # Additional args to be passed as arguments to the config object
 # Note: these options are Chrome-specific. For FF, these should
 # only include the "--headless" arg
-WEBDRIVER_OPTION_ARGS = ["--headless", "--marionette"]
+WEBDRIVER_OPTION_ARGS = [
+    "--force-device-scale-factor=2.0",
+    "--high-dpi-support=2.0",
+    "--headless",
+]
 
 # The base URL to query for accessing the user interface
 WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
@@ -1069,13 +1073,13 @@ SQL_VALIDATORS_BY_ENGINE = {
 
 # A list of preferred databases, in order. These databases will be
 # displayed prominently in the "Add Database" dialog. You should
-# use the "engine_name" attribute of the corresponding DB engine spec
-# in `superset/db_engine_specs/`.
+# use the "engine" attribute of the corresponding DB engine spec in
+# `superset/db_engine_specs/`.
 PREFERRED_DATABASES: List[str] = [
-    # "PostgreSQL",
-    # "Presto",
-    # "MySQL",
-    # "SQLite",
+    # "postgresql",
+    # "presto",
+    # "mysql",
+    # "sqlite",
     # etc.
 ]
 

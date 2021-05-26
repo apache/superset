@@ -227,7 +227,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         onChange={handleChange}
         ref={inputRef}
         loading={isRefreshing}
-        maxTagCount={5}
       >
         {data.map(row => {
           const [value] = groupby.map(col => row[col]);

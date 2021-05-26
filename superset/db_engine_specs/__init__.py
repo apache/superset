@@ -30,15 +30,12 @@ The general idea is to use static classes and an inheritance scheme.
 import inspect
 import logging
 import pkgutil
-from collections import defaultdict
 from importlib import import_module
 from pathlib import Path
 from typing import Any, Dict, List, Set, Type
 
 import sqlalchemy.databases
-import sqlalchemy.dialects
 from pkg_resources import iter_entry_points
-from sqlalchemy.engine.default import DefaultDialect
 
 from superset.db_engine_specs.base import BaseEngineSpec
 
@@ -88,31 +85,12 @@ def get_engine_specs() -> Dict[str, Type[BaseEngineSpec]]:
     return engine_specs_map
 
 
-def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
-    """
-    Return available engine specs and installed drivers for them.
-    """
-    drivers: Dict[str, Set[str]] = defaultdict(set)
-
+def get_available_engine_specs() -> List[Type[BaseEngineSpec]]:
     # native SQLAlchemy dialects
-    for attr in sqlalchemy.databases.__all__:
-        dialect = getattr(sqlalchemy.dialects, attr)
-        for attribute in dialect.__dict__.values():
-            if (
-                hasattr(attribute, "dialect")
-                and inspect.isclass(attribute.dialect)
-                and issubclass(attribute.dialect, DefaultDialect)
-            ):
-                try:
-                    attribute.dialect.dbapi()
-                except ModuleNotFoundError:
-                    continue
-                except Exception as ex:  # pylint: disable=broad-except
-                    logger.warning(
-                        "Unable to load dialect %s: %s", attribute.dialect, ex
-                    )
-                    continue
-                drivers[attr].add(attribute.dialect.driver)
+    backends: Set[str] = {
+        getattr(sqlalchemy.databases, attr).dialect.name
+        for attr in sqlalchemy.databases.__all__
+    }
 
     # installed 3rd-party dialects
     for ep in iter_entry_points("sqlalchemy.dialects"):
@@ -121,11 +99,7 @@ def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
         except Exception:  # pylint: disable=broad-except
             logger.warning("Unable to load SQLAlchemy dialect: %s", dialect)
         else:
-            drivers[dialect.name].add(dialect.driver)
+            backends.add(dialect.name)
 
     engine_specs = get_engine_specs()
-    return {
-        engine_specs[backend]: drivers
-        for backend, drivers in drivers.items()
-        if backend in engine_specs
-    }
+    return [engine_specs[backend] for backend in backends if backend in engine_specs]
