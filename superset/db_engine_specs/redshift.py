@@ -19,6 +19,7 @@ from typing import Any, Dict, Pattern, Tuple
 
 from flask_babel import gettext as __
 
+from superset.db_engine_specs.base import BasicParametersMixin
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import SupersetErrorType
 
@@ -45,26 +46,32 @@ CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile(
 )
 
 
-class RedshiftEngineSpec(PostgresBaseEngineSpec):
+class RedshiftEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
     engine = "redshift"
     engine_name = "Amazon Redshift"
     max_column_name_length = 127
+
+    sqlalchemy_uri_placeholder = (
+        "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]"
+    )
+
+    encryption_parameters = {"sslmode": "verify-ca"}
 
     custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
         CONNECTION_ACCESS_DENIED_REGEX: (
             __('Either the username "%(username)s" or the password is incorrect.'),
             SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
-            {},
+            {"invalid": ["username", "password"]},
         ),
         CONNECTION_INVALID_HOSTNAME_REGEX: (
             __('The hostname "%(hostname)s" cannot be resolved.'),
             SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
-            {},
+            {"invalid": ["host"]},
         ),
         CONNECTION_PORT_CLOSED_REGEX: (
             __('Port %(port)s on hostname "%(hostname)s" refused the connection.'),
             SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
-            {},
+            {"invalid": ["host", "port"]},
         ),
         CONNECTION_HOST_DOWN_REGEX: (
             __(
@@ -72,7 +79,7 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec):
                 "reached on port %(port)s."
             ),
             SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
-            {},
+            {"invalid": ["host", "port"]},
         ),
         CONNECTION_UNKNOWN_DATABASE_REGEX: (
             __(
@@ -80,7 +87,7 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec):
                 " Please verify your database name and try again."
             ),
             SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
-            {},
+            {"invalid": ["database"]},
         ),
     }
 

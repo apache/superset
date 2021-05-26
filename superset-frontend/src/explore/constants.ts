@@ -37,6 +37,7 @@ export const OPERATORS = {
   '<=': '<=',
   IN: 'IN',
   'NOT IN': 'NOT IN',
+  ILIKE: 'ILIKE',
   LIKE: 'LIKE',
   REGEX: 'REGEX',
   'IS NOT NULL': 'IS NOT NULL',
@@ -48,7 +49,7 @@ export const OPERATORS = {
 
 export const OPERATORS_OPTIONS = Object.values(OPERATORS);
 
-export const TABLE_ONLY_OPERATORS = [OPERATORS.LIKE];
+export const TABLE_ONLY_OPERATORS = [OPERATORS.LIKE, OPERATORS.ILIKE];
 export const DRUID_ONLY_OPERATORS = [OPERATORS.REGEX];
 export const HAVING_OPERATORS = [
   OPERATORS['=='],
@@ -105,4 +106,4 @@ export const TIME_FILTER_MAP = {
 };
 
 // TODO: make this configurable per Superset installation
-export const DEFAULT_TIME_RANGE = 'Last week';
+export const DEFAULT_TIME_RANGE = 'No filter';
