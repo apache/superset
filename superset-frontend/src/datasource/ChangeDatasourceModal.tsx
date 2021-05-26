@@ -25,6 +25,7 @@ import React, {
 } from 'react';
 import Alert from 'src/components/Alert';
 import { SupersetClient, t, styled } from '@superset-ui/core';
+import rison from 'rison';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import StyledModal from 'src/components/Modal';
 import Button from 'src/components/Button';
@@ -108,10 +109,12 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   const [confirmChange, setConfirmChange] = useState(false);
   const [confirmedDataset, setConfirmedDataset] = useState<Datasource>();
   const searchRef = useRef<AntdInput>(null);
+  const [pageIndex, setPageIndex] = useState(0);
 
   const {
-    state: { loading, resourceCollection },
+    state: { resourceCount, loading, resourceCollection },
     fetchData,
+    setResourceCollection
   } = useListViewResource<Dataset>('dataset', t('dataset'), addDangerToast);
 
   const selectDatasource = useCallback((datasource: Datasource) => {
@@ -208,6 +211,26 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     return data;
   };
 
+  const customGotoPage = (p) => {
+    console.log({p})
+    SupersetClient.get({endpoint: `/api/v1/dataset/?q=${rison.encode({
+      order_column: 'changed_on_delta_humanized',
+      order_direction: 'desc',
+      page: p-1,
+      page_size: 20, 
+    })}`,
+    })
+      .then((resources)=> {
+        console.log('resources', resources);
+        setPageIndex(p-1);
+        setResourceCollection(resources.json.result)
+      })
+      //setResourceCollection([...resourceCollection, ...resourceCollection.reverse()])
+      //setTimeout(()=> gotoPage(pageIndex - 1));
+
+  }
+
+  console.log('resourceCount', resourceCount);
   return (
     <StyledModal
       show={show}
@@ -264,7 +287,13 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
                 pageSize={20}
                 className="table-condensed"
                 emptyWrapperType={EmptyWrapperType.Small}
-                scrollTable
+                initialPageIndex={0}
+                customGotoPage={customGotoPage}
+                customPageCount = {Math.ceil(resourceCount/20)} 
+                customPageIndex={pageIndex}
+                resourceCount= {resourceCount}
+                withPagination
+                //scrollTable
               />
             )}
           </>

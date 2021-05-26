@@ -99,6 +99,10 @@ const TableView = ({
   emptyWrapperType = EmptyWrapperType.Default,
   noDataText,
   showRowCount = true,
+  customGotoPage,
+  customPageCount,
+  customPageIndex,
+  resourceCount,
   ...props
 }: TableViewProps) => {
   const initialState = {
@@ -114,9 +118,9 @@ const TableView = ({
     page,
     rows,
     prepareRow,
-    pageCount,
+    pageCount: tablePageCount,
     gotoPage,
-    state: { pageIndex, pageSize },
+    state: { pageIndex: tablePageIndex, pageSize },
   } = useTable(
     {
       columns,
@@ -127,8 +131,11 @@ const TableView = ({
     useSortBy,
     usePagination,
   );
+  const pageCount = customPageCount || tablePageCount;
+  const pageIndex = customPageIndex || tablePageIndex;
 
   const content = withPagination ? page : rows;
+  console.log({ rows, page, pageSize});
 
   let EmptyWrapperComponent;
   switch (emptyWrapperType) {
@@ -143,7 +150,7 @@ const TableView = ({
   }
 
   const isEmpty = !loading && content.length === 0;
-
+  console.log("------", { pageIndex});
   return (
     <TableViewStyles {...props}>
       <TableCollection
@@ -172,7 +179,14 @@ const TableView = ({
           <Pagination
             totalPages={pageCount || 0}
             currentPage={pageCount ? pageIndex + 1 : 0}
-            onChange={(p: number) => gotoPage(p - 1)}
+            onChange={(p: number) => {
+              if(customGotoPage)
+              {
+                customGotoPage(p);
+              } else {
+                gotoPage(p-1);
+              }
+            }}
             hideFirstAndLastPageLinks
           />
           {showRowCount && (
@@ -182,7 +196,7 @@ const TableView = ({
                   '%s-%s of %s',
                   pageSize * pageIndex + (page.length && 1),
                   pageSize * pageIndex + page.length,
-                  data.length,
+                  resourceCount || data.length,
                 )}
             </div>
           )}
