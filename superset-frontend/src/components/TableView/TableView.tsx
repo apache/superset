@@ -139,7 +139,6 @@ const TableView = ({
   const pageIndex = customPageIndex || tablePageIndex;
 
   const content = withPagination ? page : rows;
-  console.log({ rows, page, pageSize });
 
   let EmptyWrapperComponent;
   switch (emptyWrapperType) {
