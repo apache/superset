@@ -124,7 +124,7 @@ SUPERSET_WORKERS = 2  # deprecated
 SUPERSET_CELERY_WORKERS = 32  # deprecated
 
 SUPERSET_WEBSERVER_PROTOCOL = "http"
-SUPERSET_WEBSERVER_ADDRESS = "0.0.0.0"
+SUPERSET_WEBSERVER_ADDRESS = "superset"
 SUPERSET_WEBSERVER_PORT = 8088
 
 # This is an important setting, and should be lower than your
