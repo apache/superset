@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, useRef } from 'react';
 import { uniq } from 'lodash';
 import { t, styled } from '@superset-ui/core';
 import { Form } from 'src/common/components';
@@ -27,6 +27,7 @@ import { useFilterConfigMap, useFilterConfiguration } from '../state';
 import { FilterRemoval, NativeFiltersForm } from './types';
 import { FilterConfiguration } from '../types';
 import {
+  validateForm,
   createHandleSave,
   createHandleTabEdit,
   generateFilterId,
@@ -88,6 +89,8 @@ export function FiltersConfigModal({
   onCancel,
 }: FiltersConfigModalProps) {
   const [form] = Form.useForm<NativeFiltersForm>();
+
+  const configFormRef = useRef<any>();
 
   // the filter config from redux state, this does not change until modal is closed.
   const filterConfig = useFilterConfiguration();
@@ -187,16 +190,29 @@ export function FiltersConfigModal({
         title: getFilterTitle(id),
       }));
 
-  const handleSave = createHandleSave(
-    form,
-    currentFilterId,
-    filterConfigMap,
-    filterIds,
-    removedFilters,
-    setCurrentFilterId,
-    resetForm,
-    onSave,
-  );
+  const handleSave = async () => {
+    const values: NativeFiltersForm | null = await validateForm(
+      form,
+      currentFilterId,
+      filterConfigMap,
+      filterIds,
+      removedFilters,
+      setCurrentFilterId,
+    );
+
+    if (values) {
+      createHandleSave(
+        filterConfigMap,
+        filterIds,
+        removedFilters,
+        resetForm,
+        onSave,
+        values,
+      )();
+    } else {
+      configFormRef.current.changeTab('configuration');
+    }
+  };
 
   const handleConfirmCancel = () => {
     resetForm();
@@ -264,6 +280,7 @@ export function FiltersConfigModal({
             >
               {(id: string) => (
                 <FiltersConfigForm
+                  ref={configFormRef}
                   form={form}
                   filterId={id}
                   filterToEdit={filterConfigMap[id]}
