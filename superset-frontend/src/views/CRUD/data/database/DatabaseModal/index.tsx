@@ -134,8 +134,6 @@ function dbReducer(
     ...(state || {}),
   };
 
-  console.log(action);
-
   switch (action.type) {
     case ActionType.inputChange:
       if (action.payload.type === 'checkbox') {
@@ -173,6 +171,9 @@ function dbReducer(
         ...action.payload,
       };
     case ActionType.dbSelected:
+      return {
+        ...action.payload,
+      };
     case ActionType.configMethodChange:
       return {
         ...action.payload,
@@ -205,7 +206,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [isLoading, setLoading] = useState<boolean>(false);
   const conf = useCommonConf();
 
-  const isSelectMode = true;
   const isEditMode = !!databaseId;
   const useSqlAlchemyForm =
     db?.configuration_method === CONFIGURATION_METHOD.SQLALCHEMY_URI;
@@ -530,16 +530,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             getValidation={() => getValidation(db)}
             validationErrors={validationErrors}
           />
-          {isSelectMode && !isLoading && (
+          {!isLoading && !db && (
             <>
               <label className="label-select">
                 What database would you like to connect?
               </label>
               <Select
-                defaultValue={'bigquery'}
                 style={{ width: '100%' }}
                 onChange={option => {
-                  console.log(option);
                   setDB({
                     type: ActionType.dbSelected,
                     payload: {
