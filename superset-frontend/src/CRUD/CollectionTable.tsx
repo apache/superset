@@ -53,11 +53,8 @@ interface CRUDCollectionState {
   sortColumn: string;
   sort: number;
 }
-function createCollectionArray(collection: object)
-{
-  return Object.keys(collection).map(
-    k => collection[k],
-  );
+function createCollectionArray(collection: object) {
+  return Object.keys(collection).map(k => collection[k]);
 }
 
 function createKeyedCollection(arr: Array<object>) {
@@ -91,9 +88,9 @@ const CrudTableWrapper = styled.div<{ stickyHeader?: boolean }>`
         min
       }
     `}
-    th span {
-      vertical-align: -8px;  
-    }
+  th span {
+    vertical-align: -8px;
+  }
 `;
 
 const CrudButtonWrapper = styled.div`
@@ -111,10 +108,10 @@ export default class CRUDCollection extends React.PureComponent<
     const collection = createKeyedCollection(props.collection);
     this.state = {
       expandedColumns: {},
-      collection: collection,
+      collection,
       collectionArray: createCollectionArray(collection),
       sortColumn: '',
-      sort: 0
+      sort: 0,
     };
     this.renderItem = this.renderItem.bind(this);
     this.onAddItem = this.onAddItem.bind(this);
@@ -131,8 +128,8 @@ export default class CRUDCollection extends React.PureComponent<
     if (nextProps.collection !== this.props.collection) {
       const collection = createKeyedCollection(nextProps.collection);
       this.setState({
-        collection: collection,
-        collectionArray: createCollectionArray(collection)
+        collection,
+        collectionArray: createCollectionArray(collection),
       });
     }
   }
@@ -208,16 +205,15 @@ export default class CRUDCollection extends React.PureComponent<
     }));
   }
 
-  sortColumn(col:string, sort = 0){
+  sortColumn(col: string, sort = 0) {
     const { sortColumns } = this.props;
     // default sort logic sorting string, boolean and number
-    const compareSort = (m: any,n: any) => {
-      if(typeof m === "string") {
-        return (m || " ").localeCompare((n));
-      } else {
-        return m - n; 
+    const compareSort = (m: any, n: any) => {
+      if (typeof m === 'string') {
+        return (m || ' ').localeCompare(n);
       }
-    }
+      return m - n;
+    };
     return () => {
       if (sortColumns?.includes(col)) {
         // display in random order if no sort specified
@@ -227,37 +223,48 @@ export default class CRUDCollection extends React.PureComponent<
             collectionArray: createCollectionArray(collection),
             sortColumn: '',
             sort,
-          })
+          });
           return;
         }
-        // newly ordered collection
-        const newCollection = this.state.collectionArray.sort((a: object,b: object)=>{
-          return sort === 1 ?
-            compareSort(a[col], b[col]) : compareSort(b[col], a[col]);
-        }).map((v: object) =>v);
 
-        this.setState({
-          collectionArray: newCollection,
-          sortColumn: col,
-          sort
+        this.setState(prevState => {
+          // newly ordered collection
+          const newCollection = prevState.collectionArray
+            .sort((a: object, b: object) =>
+              sort === 1
+                ? compareSort(a[col], b[col])
+                : compareSort(b[col], a[col]),
+            )
+            .map((v: object) => v);
+          return {
+            ...prevState,
+            collectionArray: newCollection,
+            sortColumn: col,
+            sort,
+          };
         });
       }
-    }
+    };
   }
 
   renderSortIcon(col: string) {
-     if (this.state.sortColumn === col && this.state.sort === 1) {
-      return <Icons.SortAsc onClick={this.sortColumn(col, 2)}/>
-     }
-     if (this.state.sortColumn === col && this.state.sort === 2) {
-      return <Icons.SortDesc onClick={this.sortColumn(col, 0)}/>
-     }
-     return <Icons.Sort onClick={this.sortColumn(col, 1)}/>
+    if (this.state.sortColumn === col && this.state.sort === 1) {
+      return <Icons.SortAsc onClick={this.sortColumn(col, 2)} />;
+    }
+    if (this.state.sortColumn === col && this.state.sort === 2) {
+      return <Icons.SortDesc onClick={this.sortColumn(col, 0)} />;
+    }
+    return <Icons.Sort onClick={this.sortColumn(col, 1)} />;
   }
 
   renderHeaderRow() {
     const cols = this.effectiveTableColumns();
-    const { allowDeletes, expandFieldset, extraButtons, sortColumns} = this.props;
+    const {
+      allowDeletes,
+      expandFieldset,
+      extraButtons,
+      sortColumns,
+    } = this.props;
     return (
       <thead>
         <tr>
@@ -375,7 +382,7 @@ export default class CRUDCollection extends React.PureComponent<
   }
 
   renderTableBody() {
-    const data = this.state.collectionArray; 
+    const data = this.state.collectionArray;
     const content = data.length
       ? data.map(d => this.renderItem(d))
       : this.renderEmptyCell();
