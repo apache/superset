@@ -115,7 +115,7 @@ const TableView = ({
     sortBy: initialSortBy,
   };
 
-  const {
+  /*const {
     getTableProps,
     getTableBodyProps,
     headerGroups,
@@ -134,7 +134,29 @@ const TableView = ({
     useFilters,
     useSortBy,
     usePagination,
-  );
+  );*/
+  const states = useTable(
+    {
+      columns,
+      data,
+      initialState,
+    },
+    useFilters,
+    useSortBy,
+    usePagination,
+  ); 
+  const {
+    getTableProps,
+    getTableBodyProps,
+    headerGroups,
+    page,
+    rows,
+    prepareRow,
+    pageCount: tablePageCount,
+    gotoPage,
+    state: { pageIndex: tablePageIndex, pageSize },
+  } = states; 
+  console.log(states);
   const pageCount = customPageCount || tablePageCount;
   const pageIndex = customPageIndex || tablePageIndex;
 

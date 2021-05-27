@@ -24,7 +24,7 @@ import React, {
   useCallback,
 } from 'react';
 import Alert from 'src/components/Alert';
-import { SupersetClient, t, styled, css } from '@superset-ui/core';
+import { SupersetClient, t, styled, css, makeApi } from '@superset-ui/core';
 import rison from 'rison';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import StyledModal from 'src/components/Modal';
@@ -212,26 +212,19 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   };
 
   const customGotoPage = (p: number) => {
-    SupersetClient.get({
-      endpoint: `/api/v1/dataset/?q=${rison.encode({
-        order_column: 'changed_on_delta_humanized',
-        order_direction: 'desc',
-        page: p - 1,
-        page_size: 20,
-      })}`,
-    }).then(resources => {
+    const queryParams = rison.encode({
+      order_column: 'changed_on_delta_humanized',
+      order_direction: 'desc',
+      page: p - 1,
+      page_size: 20,
+    });
+
+    makeApi({ method: 'GET', endpoint: '/api/v1/dataset',
+            })(`q=${queryParams}`).then(resources => {
       setPageIndex(p - 1);
-      setResourceCollection(resources.json.result);
+      setResourceCollection(resources.result);
     });
   };
-
-  const styleOverride = css`
-    .table-condensed {
-      height: 300px;
-      margin-bottom: 16px;
-      overflow: auto;
-    }
-  `;
 
   return (
     <StyledModal
@@ -242,7 +235,13 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       width={confirmChange ? '432px' : ''}
       height={confirmChange ? 'auto' : '480px'}
       hideFooter={!confirmChange}
-      css={styleOverride}
+      css={theme => css`
+        .table-condensed {
+          height: 300px;
+          margin-bottom: ${theme.gridUnit * 4};
+          overflow: auto;
+        }
+      `}
       footer={
         <>
           {confirmChange && (
