@@ -40,14 +40,14 @@ const findTabsWithChartsInScope = (
   dashboardLayout,
   chartsInScope,
   childId,
-  tabIdsInTheTree,
+  tabId,
   tabsToHighlight,
 ) => {
   if (
     dashboardLayout[childId].type === CHART_TYPE &&
     chartsInScope.includes(dashboardLayout[childId].meta.chartId)
   ) {
-    tabsToHighlight.add(...tabIdsInTheTree);
+    tabsToHighlight.add(tabId);
   }
   if (
     dashboardLayout[childId].children.length === 0 ||
@@ -60,9 +60,7 @@ const findTabsWithChartsInScope = (
       dashboardLayout,
       chartsInScope,
       childId,
-      dashboardLayout[childId].type === TAB_TYPE
-        ? [...tabIdsInTheTree, childId]
-        : tabIdsInTheTree,
+      tabId,
       tabsToHighlight,
     ),
   );
@@ -319,7 +317,7 @@ class Tabs extends React.PureComponent {
             dashboardLayout,
             chartsInScope,
             tabId,
-            [tabId],
+            tabId,
             tabsToHighlight,
           );
         }
