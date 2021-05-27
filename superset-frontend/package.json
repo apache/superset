@@ -89,7 +89,7 @@
     "@superset-ui/legacy-plugin-chart-treemap": "^0.17.52",
     "@superset-ui/legacy-plugin-chart-world-map": "^0.17.52",
     "@superset-ui/legacy-preset-chart-big-number": "^0.17.52",
-    "@superset-ui/legacy-preset-chart-deckgl": "^0.4.6",
+    "@superset-ui/legacy-preset-chart-deckgl": "^0.4.7",
     "@superset-ui/legacy-preset-chart-nvd3": "^0.17.52",
     "@superset-ui/plugin-chart-echarts": "^0.17.52",
     "@superset-ui/plugin-chart-pivot-table": "^0.17.52",
