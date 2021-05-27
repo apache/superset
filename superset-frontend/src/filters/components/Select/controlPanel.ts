@@ -94,7 +94,9 @@ const config: ControlPanelConfig = {
               affectsDataMask: true,
               renderTrigger: true,
               requiredFirst: true,
-              description: t('Select first item by default'),
+              description: t(
+                'Select first item by default (requires repopulate Default Value if column field changed)',
+              ),
             },
           },
         ],

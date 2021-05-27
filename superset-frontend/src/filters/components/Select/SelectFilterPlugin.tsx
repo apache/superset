@@ -43,11 +43,15 @@ type DataMaskAction =
   | { type: 'ownState'; ownState: JsonObject }
   | {
       type: 'filterState';
+      __cache: JsonObject;
       extraFormData: ExtraFormData;
       filterState: { value: SelectValue; isInitialized?: boolean };
     };
 
-function reducer(draft: Required<DataMask>, action: DataMaskAction) {
+function reducer(
+  draft: Required<DataMask> & { __cache?: JsonObject },
+  action: DataMaskAction,
+) {
   switch (action.type) {
     case 'ownState':
       draft.ownState = {
@@ -57,6 +61,8 @@ function reducer(draft: Required<DataMask>, action: DataMaskAction) {
       return draft;
     case 'filterState':
       draft.extraFormData = action.extraFormData;
+      // eslint-disable-next-line no-underscore-dangle
+      draft.__cache = action.__cache;
       draft.filterState = { ...draft.filterState, ...action.filterState };
       return draft;
     default:
@@ -104,6 +110,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
       dispatchDataMask({
         type: 'filterState',
+        __cache: filterState,
         extraFormData: getSelectExtraFormData(
           col,
           values,
@@ -125,6 +132,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       dispatchDataMask,
       enableEmptyFilter,
       inverseSelection,
+      JSON.stringify(filterState),
     ],
   );
 
@@ -181,14 +189,15 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     }
   };
 
-  const firstItem: SelectValue = data[0]
-    ? (groupby.map(col => data[0][col]) as string[])
-    : null;
-
   useEffect(() => {
     if (defaultToFirstItem && filterState.value === undefined) {
       // initialize to first value if set to default to first item
-      if (firstItem) {
+      const firstItem: SelectValue = data[0]
+        ? (groupby.map(col => data[0][col]) as string[])
+        : null;
+      // firstItem[0] !== undefined for a case when groupby changed but new data still not fetched
+      // TODO: still need repopulate default value in config modal when column changed
+      if (firstItem && firstItem[0] !== undefined) {
         updateDataMask(firstItem);
       }
     } else if (isDisabled) {
@@ -207,7 +216,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     updateDataMask,
     data,
     groupby,
-    JSON.stringify(filterState.value),
+    JSON.stringify(filterState),
   ]);
 
   useEffect(() => {

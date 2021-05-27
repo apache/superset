@@ -28,6 +28,7 @@ import { RootState } from '../../types';
 
 // eslint-disable-next-line import/prefer-default-export
 export const useNativeFilters = () => {
+  const [isInitialized, setIsInitialized] = useState(false);
   const [dashboardFiltersOpen, setDashboardFiltersOpen] = useState(true);
   const showNativeFilters = useSelector<RootState, boolean>(
     state => state.dashboardInfo.metadata?.show_native_filters,
@@ -48,15 +49,16 @@ export const useNativeFilters = () => {
     ({ requiredFirst }) => requiredFirst,
   );
   const dataMask = useNativeFiltersDataMask();
-  const showDashboard =
-    !nativeFiltersEnabled ||
-    !(
-      nativeFiltersEnabled &&
-      requiredFirstFilter.length &&
-      requiredFirstFilter.find(
-        ({ id }) => dataMask[id]?.filterState?.value === undefined,
-      )
-    );
+  const showDashboard = isInitialized
+    ? true
+    : !nativeFiltersEnabled ||
+      !(
+        nativeFiltersEnabled &&
+        requiredFirstFilter.length &&
+        requiredFirstFilter.find(
+          ({ id }) => dataMask[id]?.filterState?.value === undefined,
+        )
+      );
 
   const toggleDashboardFiltersOpen = (visible?: boolean) => {
     setDashboardFiltersOpen(visible ?? !dashboardFiltersOpen);
@@ -71,6 +73,12 @@ export const useNativeFilters = () => {
       toggleDashboardFiltersOpen(false);
     }
   }, [filterValues.length]);
+
+  useEffect(() => {
+    if (showDashboard) {
+      setIsInitialized(true);
+    }
+  }, [showDashboard]);
 
   return {
     showDashboard,

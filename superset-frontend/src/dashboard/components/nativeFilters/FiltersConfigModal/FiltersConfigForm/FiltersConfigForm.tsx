@@ -429,6 +429,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
           )}
           <StyledCollapse>
             <Collapse.Panel
+              forceRender
               header={FilterPanels.basic.name}
               key={FilterPanels.basic.key}
             >
@@ -516,6 +517,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
             </Collapse.Panel>
             {((hasDataset && hasAdditionalFilters) || hasMetrics) && (
               <Collapse.Panel
+                forceRender
                 header={FilterPanels.advanced.name}
                 key={FilterPanels.advanced.key}
               >
