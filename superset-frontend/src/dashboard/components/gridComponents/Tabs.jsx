@@ -36,15 +36,36 @@ import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
 import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
 import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
 
-const tabContainsChartInScope = (dashboardLayout, chartsInScope, childId) => {
-  if (dashboardLayout[childId].type === CHART_TYPE) {
-    return chartsInScope.includes(dashboardLayout[childId].meta.chartId);
+const findTabsWithChartsInScope = (
+  dashboardLayout,
+  chartsInScope,
+  childId,
+  tabIdsInTheTree,
+  tabsToHighlight,
+) => {
+  if (
+    dashboardLayout[childId].type === CHART_TYPE &&
+    chartsInScope.includes(dashboardLayout[childId].meta.chartId)
+  ) {
+    tabsToHighlight.push(...tabIdsInTheTree);
   }
-  if (dashboardLayout[childId].children.length === 0) {
-    return false;
+  if (
+    dashboardLayout[childId].children.length === 0 ||
+    (dashboardLayout[childId].type === TAB_TYPE &&
+      tabsToHighlight.includes(childId))
+  ) {
+    return;
   }
-  return dashboardLayout[childId].children.some(childId =>
-    tabContainsChartInScope(dashboardLayout, chartsInScope, childId),
+  dashboardLayout[childId].children.forEach(childId =>
+    findTabsWithChartsInScope(
+      dashboardLayout,
+      chartsInScope,
+      childId,
+      dashboardLayout[childId].type === TAB_TYPE
+        ? [...tabIdsInTheTree, childId]
+        : tabIdsInTheTree,
+      tabsToHighlight,
+    ),
   );
 };
 
@@ -294,8 +315,14 @@ class Tabs extends React.PureComponent {
         filterScope: focusedFilterScope.scope,
       });
       tabIds.forEach(tabId => {
-        if (tabContainsChartInScope(dashboardLayout, chartsInScope, tabId)) {
-          tabsToHighlight.push(tabId);
+        if (!tabsToHighlight.includes(tabId)) {
+          findTabsWithChartsInScope(
+            dashboardLayout,
+            chartsInScope,
+            tabId,
+            [tabId],
+            tabsToHighlight,
+          );
         }
       });
     }
