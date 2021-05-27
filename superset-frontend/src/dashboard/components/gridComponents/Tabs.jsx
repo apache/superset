@@ -47,12 +47,11 @@ const findTabsWithChartsInScope = (
     dashboardLayout[childId].type === CHART_TYPE &&
     chartsInScope.includes(dashboardLayout[childId].meta.chartId)
   ) {
-    tabsToHighlight.push(...tabIdsInTheTree);
+    tabsToHighlight.add(...tabIdsInTheTree);
   }
   if (
     dashboardLayout[childId].children.length === 0 ||
-    (dashboardLayout[childId].type === TAB_TYPE &&
-      tabsToHighlight.includes(childId))
+    (dashboardLayout[childId].type === TAB_TYPE && tabsToHighlight.has(childId))
   ) {
     return;
   }
@@ -309,13 +308,13 @@ class Tabs extends React.PureComponent {
     const { children: tabIds } = tabsComponent;
     const { tabIndex: selectedTabIndex, activeKey } = this.state;
 
-    const tabsToHighlight = [];
+    const tabsToHighlight = new Set();
     if (focusedFilterScope) {
       const chartsInScope = getChartIdsInFilterScope({
         filterScope: focusedFilterScope.scope,
       });
       tabIds.forEach(tabId => {
-        if (!tabsToHighlight.includes(tabId)) {
+        if (!tabsToHighlight.has(tabId)) {
           findTabsWithChartsInScope(
             dashboardLayout,
             chartsInScope,
@@ -376,7 +375,7 @@ class Tabs extends React.PureComponent {
                       onDropOnTab={this.handleDropOnTab}
                       isFocused={activeKey === tabId}
                       isHighlighted={
-                        activeKey !== tabId && tabsToHighlight.includes(tabId)
+                        activeKey !== tabId && tabsToHighlight.has(tabId)
                       }
                     />
                   }
