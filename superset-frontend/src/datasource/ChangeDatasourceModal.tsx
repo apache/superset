@@ -219,8 +219,9 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       page_size: 20,
     });
 
-    makeApi({ method: 'GET', endpoint: '/api/v1/dataset',
-            })(`q=${queryParams}`).then(resources => {
+    makeApi({ method: 'GET', endpoint: '/api/v1/dataset' })(
+      `q=${queryParams}`,
+    ).then(resources => {
       setPageIndex(p - 1);
       setResourceCollection(resources.result);
     });
