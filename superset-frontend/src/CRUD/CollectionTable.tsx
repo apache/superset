@@ -42,12 +42,16 @@ interface CRUDCollectionProps {
   ) => ReactNode)[];
   onChange?: (arg0: any) => void;
   tableColumns: Array<any>;
+  sortColumns: Array<string>;
   stickyHeader?: boolean;
 }
 
 interface CRUDCollectionState {
   collection: object;
+  collectionArray: object;
   expandedColumns: object;
+  sortColumn: string;
+  sort: number;
 }
 function createCollectionArray(collection: object)
 {
@@ -100,7 +104,9 @@ export default class CRUDCollection extends React.PureComponent<
     this.state = {
       expandedColumns: {},
       collection: collection,
-      collectionArray: createCollectionArray(collection)
+      collectionArray: createCollectionArray(collection),
+      sortColumn: '',
+      sort: 0
     };
     this.renderItem = this.renderItem.bind(this);
     this.onAddItem = this.onAddItem.bind(this);
@@ -110,6 +116,7 @@ export default class CRUDCollection extends React.PureComponent<
     this.renderTableBody = this.renderTableBody.bind(this);
     this.changeCollection = this.changeCollection.bind(this);
     this.sortColumn = this.sortColumn.bind(this);
+    this.renderSortIcon = this.renderSortIcon.bind(this);
   }
 
   UNSAFE_componentWillReceiveProps(nextProps: CRUDCollectionProps) {
@@ -193,32 +200,51 @@ export default class CRUDCollection extends React.PureComponent<
     }));
   }
 
-  sortColumn(col, up){
+  sortColumn(col:string, sort = 0){
     const { sortColumns } = this.props;
+    // default sort logic sorting string, boolean and number
+    const compareSort = (m,n) => {
+      if(typeof m === "string") {
+        return (m || "").localeCompare((n));
+      } else {
+        return m - n; 
+      }
+    }
     return () => {
       if (sortColumns?.includes(col)) {
+        // display in random order if no sort specified
+        if (sort === 0) {
+          const collection = createKeyedCollection(this.props.collection);
+          this.setState({
+            collectionArray: createCollectionArray(collection),
+            sortColumn: '',
+            sort,
+          })
+          return;
+        }
+        // newly ordered collection
         const newCollection = this.state.collectionArray.sort((a,b)=>{
-          const x = a[col];
-          const y = b[col];
-          if (up) {
-            if(typeof x === "string") {
-              return (x || "").localeCompare((y));
-            } else {
-              return x - y; 
-            }
-          } else {
-            if(typeof x === "string") {
-              return (y || "").localeCompare((x));
-            } else {
-              return y - x; 
-            }
-          }
+          return sort === 1 ?
+            compareSort(a[col], b[col]) : compareSort(b[col], a[col]);
         }).map(v=>v);
+
         this.setState({
-          collectionArray: newCollection
+          collectionArray: newCollection,
+          sortColumn: col,
+          sort
         });
       }
     }
+  }
+
+  renderSortIcon(col: string) {
+     if (this.state.sortColumn === col && this.state.sort === 1) {
+      return <Icons.SortAsc onClick={this.sortColumn(col, 2)}/>
+     }
+     if (this.state.sortColumn === col && this.state.sort === 2) {
+      return <Icons.SortDesc onClick={this.sortColumn(col, 0)}/>
+     }
+     return <Icons.Sort onClick={this.sortColumn(col, 1)}/>
   }
 
   renderHeaderRow() {
@@ -231,12 +257,7 @@ export default class CRUDCollection extends React.PureComponent<
           {cols.map(col => (
             <th key={col}>
               {this.getLabel(col)}
-              {sortColumns?.includes(col) && (
-                <>
-                  <button onClick={this.sortColumn(col, true)}> up</button>
-                  <button onClick={this.sortColumn(col, false)}> down</button>
-                </>
-              )}
+              {sortColumns?.includes(col) && this.renderSortIcon(col)}
             </th>
           ))}
           {extraButtons}
@@ -347,7 +368,6 @@ export default class CRUDCollection extends React.PureComponent<
 
   renderTableBody() {
     const data = this.state.collectionArray; 
-    console.log({ data});
     const content = data.length
       ? data.map(d => this.renderItem(d))
       : this.renderEmptyCell();
