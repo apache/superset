@@ -322,7 +322,3 @@ export const CardStyles = styled.div`
     text-decoration: none;
   }
 `;
-
-export const HOMEPAGE_CHART_FILTER = 'homepage_chart_filter';
-export const HOMEPAGE_ACTIVITY_FILTER = 'homepage_activity_filter';
-export const HOMEPAGE_DASHBOARD_FILTER = 'homepage_dashboard_filter';

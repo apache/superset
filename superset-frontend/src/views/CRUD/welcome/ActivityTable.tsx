@@ -25,11 +25,11 @@ import Loading from 'src/components/Loading';
 import ListViewCard from 'src/components/ListViewCard';
 import SubMenu from 'src/components/Menu/SubMenu';
 import {
-  HOMEPAGE_ACTIVITY_FILTER,
   mq,
   CardStyles,
   getEditedObjects,
 } from 'src/views/CRUD/utils';
+import { HOMEPAGE_ACTIVITY_FILTER } from 'src/views/CRUD/storageKeys';
 import { Chart } from 'src/types/Chart';
 import { Dashboard, SavedQueryObject } from 'src/views/CRUD/types';
 
@@ -228,7 +228,7 @@ export default function ActivityTable({
       label: t('Examples'),
       onClick: () => {
         setActiveChild('Examples');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, { activity: SetTabType.EXAMPLE });
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, { activity: 'Examples' });
       },
     });
   }

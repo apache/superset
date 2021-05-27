@@ -26,10 +26,10 @@ import {
   getFromLocalStorage,
 } from 'src/utils/localStorageHelpers';
 import {
-  HOMEPAGE_DASHBOARD_FILTER,
   createErrorHandler,
   CardContainer,
 } from 'src/views/CRUD/utils';
+import { HOMEPAGE_DASHBOARD_FILTER } from 'src/views/CRUD/storageKeys';
 import { TableTabTypes } from 'src/views/CRUD/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Loading from 'src/components/Loading';

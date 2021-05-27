@@ -32,8 +32,8 @@ import {
   getRecentAcitivtyObjs,
   mq,
   getUserOwnedObjects,
-  HOMEPAGE_ACTIVITY_FILTER,
 } from 'src/views/CRUD/utils';
+import { HOMEPAGE_ACTIVITY_FILTER } from 'src/views/CRUD/storageKeys';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { Switch } from 'src/common/components';
 
