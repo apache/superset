@@ -38,6 +38,7 @@ import React, {
 import { Select } from 'src/common/components';
 import debounce from 'lodash/debounce';
 import { SLOW_DEBOUNCE } from 'src/constants';
+import { CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import { PluginFilterSelectProps, SelectValue } from './types';
 import { StyledSelect, Styles } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -260,6 +261,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         ref={inputRef}
         loading={isRefreshing}
         maxTagCount={5}
+        menuItemSelectedIcon={
+          inverseSelection ? <CloseOutlined /> : <CheckOutlined />
+        }
       >
         {sortedData.map(row => {
           const [value] = groupby.map(col => row[col]);
