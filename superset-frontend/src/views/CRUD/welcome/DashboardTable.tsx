@@ -30,6 +30,7 @@ import {
   createErrorHandler,
   CardContainer,
 } from 'src/views/CRUD/utils';
+import { TableTabTypes } from 'src/views/CRUD/types';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Loading from 'src/components/Loading';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
@@ -157,7 +158,7 @@ function DashboardTable({
               getData('Favorite').then(() => {
                 setDashboardFilter('Favorite');
                 setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, {
-                  tab: 'Favorite',
+                  tab: TableTabTypes.FAVORITE,
                 });
               });
             },
@@ -168,7 +169,7 @@ function DashboardTable({
             onClick: () => {
               getData('Mine').then(() => {
                 setDashboardFilter('Mine');
-                setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, { tab: 'Mine' });
+                setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, { tab: TableTabTypes.MINE });
               });
             },
           },

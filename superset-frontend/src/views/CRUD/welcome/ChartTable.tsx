@@ -29,6 +29,7 @@ import {
 } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useHistory } from 'react-router-dom';
+import { TableTabTypes } from 'src/views/CRUD/types';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { User } from 'src/types/bootstrapTypes';
 import { HOMEPAGE_CHART_FILTER, CardContainer } from 'src/views/CRUD/utils';
@@ -151,7 +152,7 @@ function ChartTable({
             onClick: () =>
               getData('Favorite').then(() => {
                 setChartFilter('Favorite');
-                setInLocalStorage(HOMEPAGE_CHART_FILTER, { tab: 'Favorite' });
+                setInLocalStorage(HOMEPAGE_CHART_FILTER, { tab: TableTabTypes.FAVORITE });
               }),
           },
           {
@@ -160,7 +161,7 @@ function ChartTable({
             onClick: () =>
               getData('Mine').then(() => {
                 setChartFilter('Mine');
-                setInLocalStorage(HOMEPAGE_CHART_FILTER, { tab: 'Mine' });
+                setInLocalStorage(HOMEPAGE_CHART_FILTER, { tab: TableTabTypes.MINE });
               }),
           },
         ]}

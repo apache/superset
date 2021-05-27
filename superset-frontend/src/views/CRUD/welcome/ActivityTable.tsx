@@ -56,6 +56,12 @@ interface RecentDashboard extends RecentActivity {
   item_type: 'dashboard';
 }
 
+enum SetTabType {
+  EDITED = 'Edited',
+  CREATED = 'Created',
+  VIEWED = 'Viewed',
+  EXAMPLE = 'Example'
+}
 /**
  * Recent activity objects fetched by `getRecentAcitivtyObjs`.
  */
@@ -193,7 +199,7 @@ export default function ActivityTable({
       label: t('Edited'),
       onClick: () => {
         setActiveChild('Edited');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, { activity: 'Edited' });
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, { activity: SetTabType.EDITED });
         getEditedCards();
       },
     },
@@ -202,7 +208,7 @@ export default function ActivityTable({
       label: t('Created'),
       onClick: () => {
         setActiveChild('Created');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, { activity: 'Created' });
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, { activity: SetTabType.CREATED });
       },
     },
   ];
@@ -213,7 +219,7 @@ export default function ActivityTable({
       label: t('Viewed'),
       onClick: () => {
         setActiveChild('Viewed');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, { activity: 'Viewed' });
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, { activity: SetTabType.VIEWED });
       },
     });
   } else {
@@ -222,7 +228,7 @@ export default function ActivityTable({
       label: t('Examples'),
       onClick: () => {
         setActiveChild('Examples');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, { activity: 'Examples' });
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, { activity: SetTabType.EXAMPLE });
       },
     });
   }
