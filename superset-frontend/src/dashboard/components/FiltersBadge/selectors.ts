@@ -192,20 +192,15 @@ export const selectNativeIndicatorsForChart = (
 
   const getStatus = ({
     value,
-    isAffectedByScope,
     column,
     type = DataMaskType.NativeFilters,
   }: {
     value: any;
-    isAffectedByScope: boolean;
     column?: string;
     type?: DataMaskType;
   }): IndicatorStatus => {
     // a filter is only considered unset if it's value is null
     const hasValue = value !== null;
-    if (!isAffectedByScope) {
-      return IndicatorStatus.Unset;
-    }
     if (type === DataMaskType.CrossFilters && hasValue) {
       return IndicatorStatus.CrossFilterApplied;
     }
@@ -223,14 +218,13 @@ export const selectNativeIndicatorsForChart = (
 
   let nativeFilterIndicators: any = [];
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)) {
-    nativeFilterIndicators = Object.values(nativeFilters.filters).map(
-      nativeFilter => {
-        const isAffectedByScope = getTreeCheckedItems(
-          nativeFilter.scope,
-          dashboardLayout,
-        ).some(
+    nativeFilterIndicators = Object.values(nativeFilters.filters)
+      .filter(nativeFilter =>
+        getTreeCheckedItems(nativeFilter.scope, dashboardLayout).some(
           layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
-        );
+        ),
+      )
+      .map(nativeFilter => {
         const column = nativeFilter.targets[0]?.column?.name;
         let value = dataMask[nativeFilter.id]?.filterState?.value ?? null;
         if (!Array.isArray(value) && value !== null) {
@@ -240,25 +234,24 @@ export const selectNativeIndicatorsForChart = (
           column,
           name: nativeFilter.name,
           path: [nativeFilter.id],
-          status: getStatus({ value, isAffectedByScope, column }),
+          status: getStatus({ value, column }),
           value,
         };
-      },
-    );
+      });
   }
 
   let crossFilterIndicators: any = [];
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
     crossFilterIndicators = Object.values(chartConfiguration)
-      .map(chartConfig => {
-        const scope = chartConfig?.crossFilters?.scope;
-        const isAffectedByScope = getTreeCheckedItems(
-          scope,
+      .filter(chartConfig =>
+        getTreeCheckedItems(
+          chartConfig?.crossFilters?.scope,
           dashboardLayout,
         ).some(
           layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
-        );
-
+        ),
+      )
+      .map(chartConfig => {
         let value = dataMask[chartConfig.id]?.filterState?.value ?? null;
         if (!Array.isArray(value) && value !== null) {
           value = [value];
@@ -270,7 +263,6 @@ export const selectNativeIndicatorsForChart = (
           path: [`${chartConfig.id}`],
           status: getStatus({
             value,
-            isAffectedByScope,
             type: DataMaskType.CrossFilters,
           }),
           value,

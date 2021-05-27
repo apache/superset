@@ -29,7 +29,8 @@ class DummySchema(Schema, DatabaseParametersSchemaMixin):
 
 
 class DummyEngine(BasicParametersMixin):
-    drivername = "dummy"
+    engine = "dummy"
+    default_driver = "dummy"
 
 
 class InvalidEngine:
@@ -54,7 +55,7 @@ def test_database_parameters_schema_mixin(get_engine_specs):
     result = schema.load(payload)
     assert result == {
         "configuration_method": ConfigurationMethod.DYNAMIC_FORM,
-        "sqlalchemy_uri": "dummy://username:password@localhost:12345/dbname",
+        "sqlalchemy_uri": "dummy+dummy://username:password@localhost:12345/dbname",
     }
 
 
