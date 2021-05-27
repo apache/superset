@@ -86,6 +86,7 @@ describe('DatasourceEditor', () => {
         nullable: true,
         default: '',
         primary_key: false,
+        is_dttm: true,
       },
       {
         name: 'gender',
@@ -93,6 +94,7 @@ describe('DatasourceEditor', () => {
         nullable: true,
         default: '',
         primary_key: false,
+        is_dttm: false,
       },
       {
         name: 'new_column',
@@ -100,6 +102,7 @@ describe('DatasourceEditor', () => {
         nullable: true,
         default: '',
         primary_key: false,
+        is_dttm: false,
       },
     ];
 
