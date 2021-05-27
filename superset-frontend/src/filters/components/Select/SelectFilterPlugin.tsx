@@ -38,7 +38,7 @@ import React, {
 import { Select } from 'src/common/components';
 import debounce from 'lodash/debounce';
 import { SLOW_DEBOUNCE } from 'src/constants';
-import { CheckOutlined, CloseOutlined } from '@ant-design/icons';
+import { CheckOutlined, StopOutlined } from '@ant-design/icons';
 import { PluginFilterSelectProps, SelectValue } from './types';
 import { StyledSelect, Styles } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -50,7 +50,7 @@ type DataMaskAction =
   | {
       type: 'filterState';
       extraFormData: ExtraFormData;
-      filterState: { value: SelectValue };
+      filterState: { value: SelectValue; label?: string };
     };
 
 function reducer(state: DataMask, action: DataMaskAction): DataMask {
@@ -136,6 +136,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const updateDataMask = (values: SelectValue) => {
     const emptyFilter =
       enableEmptyFilter && !inverseSelection && !values?.length;
+    const suffix =
+      inverseSelection && values?.length ? ` (${t('excluded')})` : '';
 
     dispatchDataMask({
       type: 'filterState',
@@ -147,6 +149,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       ),
       filterState: {
         value: values,
+        label: `${(values || []).join(', ')}${suffix}`,
       },
     });
   };
@@ -262,7 +265,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         loading={isRefreshing}
         maxTagCount={5}
         menuItemSelectedIcon={
-          inverseSelection ? <CloseOutlined /> : <CheckOutlined />
+          inverseSelection ? <StopOutlined /> : <CheckOutlined />
         }
       >
         {sortedData.map(row => {
