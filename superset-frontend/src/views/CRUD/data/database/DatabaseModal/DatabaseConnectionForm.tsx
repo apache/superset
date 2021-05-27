@@ -28,6 +28,7 @@ import {
   CredentialInfoForm,
 } from './styles';
 import { DatabaseForm } from '../types';
+import { DeleteFilled } from '@ant-design/icons';
 
 export const FormFieldOrder = [
   'host',
@@ -55,6 +56,7 @@ const credentialsInfo = ({
   validationErrors,
 }: FieldPropTypes) => {
   const [uploadOption, setUploadOption] = useState<string>('upload');
+  const [fileToUpload, setFileToUpload] = useState<string>(null);
   return (
     <CredentialInfoForm>
       <>
@@ -71,28 +73,53 @@ const credentialsInfo = ({
         </Select>
         {uploadOption === 'paste' ? (
           <div className="input-container" onChange={changeMethods.onChange}>
+            <label className="label-select">Service Account</label>
             <textarea className="input-form" name="encrypted_extra" />
             <label className="label-paste">
               Copy and paste the entire service account .json file here
             </label>
           </div>
         ) : (
-          <input
-            type="file"
-            onChange={async event => {
-              const file = event?.target?.files[0];
-              const credentials = JSON.parse(await file.text());
-              const encrypted_extra = JSON.stringify({
-                credentials_info: credentials,
-              });
-              changeMethods.onParametersUploadFileChange({
-                target: {
-                  name: 'encrypted_extra',
-                  value: encrypted_extra,
-                },
-              });
-            }}
-          />
+          <div className="input-container">
+            {!fileToUpload && (
+              <>
+                <label className="label-select">Upload Credentials</label>
+                <Button
+                  onClick={() =>
+                    document.getElementById('selectedFile').click()
+                  }
+                >
+                  Choose File
+                </Button>
+              </>
+            )}
+            {fileToUpload && (
+              <div className="input-upload-current">
+                {fileToUpload}
+                <DeleteFilled onClick={() => setFileToUpload(null)} />
+              </div>
+            )}
+
+            <input
+              id="selectedFile"
+              className="input-upload"
+              type="file"
+              onChange={async event => {
+                const file = event?.target?.files[0];
+                setFileToUpload(file.name);
+                const credentials = JSON.parse(await file.text());
+                const encrypted_extra = JSON.stringify({
+                  credentials_info: credentials,
+                });
+                changeMethods.onParametersUploadFileChange({
+                  target: {
+                    name: 'encrypted_extra',
+                    value: encrypted_extra,
+                  },
+                });
+              }}
+            />
+          </div>
         )}
       </>
     </CredentialInfoForm>

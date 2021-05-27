@@ -355,11 +355,25 @@ export const CredentialInfoForm = styled.div`
   }
 
   .input-container {
-    margin: ${({ theme }) => theme.gridUnit * 10}px 0;
+    margin: ${({ theme }) => theme.gridUnit * 7}px 0;
+    display: flex;
+    flex-direction: column;
+}
   }
   .input-form {
     height: 100px;
     width: 100%;
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    resize: vertical;
+  }
+
+  .input-container {
+    .input-upload {
+      display: none;
+    }
+    .input-upload-current {
+      display: flex;
+      justify-content: space-between;
+    }
   }
 `;
