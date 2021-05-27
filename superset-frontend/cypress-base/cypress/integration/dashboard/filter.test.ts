@@ -70,8 +70,8 @@ describe('Dashboard filter', () => {
           }
           expect(requestFilter).deep.eq({
             col: 'region',
-            op: '==',
-            val: 'South Asia',
+            op: 'IN',
+            val: ['South Asia'],
           });
         });
       });
