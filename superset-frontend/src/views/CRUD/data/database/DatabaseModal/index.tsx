@@ -266,6 +266,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     } else if (db) {
       // Create
+      if (update.encrypted_extra) {
+        // wrap encrypted_extra in credentials_info
+        update.encrypted_extra = JSON.stringify({
+          credentials_info: JSON.parse(update.encrypted_extra),
+        });
+      }
       const dbId = await createResource(update as DatabaseObject);
       if (dbId) {
         setHasConnectedDb(true);

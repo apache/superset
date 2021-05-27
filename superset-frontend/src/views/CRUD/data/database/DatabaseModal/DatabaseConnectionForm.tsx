@@ -74,7 +74,10 @@ const credentialsInfo = ({
         {uploadOption === 'paste' ? (
           <div className="input-container" onChange={changeMethods.onChange}>
             <label className="label-select">Service Account</label>
-            <textarea className="input-form" name="encrypted_extra" />
+            <textarea
+              className="input-form"
+              name="encrypted_extra"
+            />
             <label className="label-paste">
               Copy and paste the entire service account .json file here
             </label>
