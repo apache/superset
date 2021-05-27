@@ -25,7 +25,7 @@ import React, {
   Reducer,
 } from 'react';
 import Tabs from 'src/components/Tabs';
-import { Alert } from 'src/common/components';
+import { Alert, Select } from 'src/common/components';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -82,6 +82,7 @@ enum ActionType {
   parametersChange,
   reset,
   textChange,
+  allowSelectDB,
 }
 
 interface DBReducerPayloadType {
@@ -119,6 +120,10 @@ type DBReducerActionType =
   | {
       type: ActionType.configMethodChange;
       payload: { configuration_method: CONFIGURATION_METHOD };
+    }
+  | {
+      type: ActionType.allowSelectDB;
+      payload: { available: [] };
     };
 
 function dbReducer(
@@ -128,6 +133,8 @@ function dbReducer(
   const trimmedState = {
     ...(state || {}),
   };
+
+  console.log(action);
 
   switch (action.type) {
     case ActionType.inputChange:
@@ -195,8 +202,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [validationErrors, getValidation] = useDatabaseValidation();
   const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
   const [dbName, setDbName] = useState('');
+  const [isLoading, setLoading] = useState<boolean>(false);
   const conf = useCommonConf();
 
+  const isSelectMode = true;
   const isEditMode = !!databaseId;
   const useSqlAlchemyForm =
     db?.configuration_method === CONFIGURATION_METHOD.SQLALCHEMY_URI;
@@ -298,12 +307,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (show) {
       setTabKey(DEFAULT_TAB_KEY);
       getAvailableDbs();
-      setDB({
-        type: ActionType.dbSelected,
-        payload: {
-          configuration_method: CONFIGURATION_METHOD.SQLALCHEMY_URI,
-        }, // todo hook this up to step 1
-      });
+      setLoading(true);
     }
     if (databaseId && show) {
       fetchDB();
@@ -321,6 +325,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       setDbName(dbFetched.database_name);
     }
   }, [dbFetched]);
+
+  useEffect(() => {
+    if (isLoading) {
+      setLoading(false);
+      console.log('done loading');
+      console.log(availableDbs);
+    }
+  }, [availableDbs]);
 
   const tabChange = (key: string) => {
     setTabKey(key);
@@ -518,6 +530,22 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             getValidation={() => getValidation(db)}
             validationErrors={validationErrors}
           />
+          {isSelectMode && !isLoading && (
+            <>
+              <label className="label-select">
+                What database would you like to connect?
+              </label>
+              <Select
+                defaultValue={'bigquery'}
+                style={{ width: '100%' }}
+                onChange={option => console.log('hi')}
+              >
+                {availableDbs?.databases?.map((engine) => (
+                  <Select.Option key={engine.engine} >{engine.name}</Select.Option>
+                ))}
+              </Select>
+            </>
+          )}
           <Button
             buttonStyle="link"
             onClick={() =>
