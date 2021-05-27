@@ -49,6 +49,12 @@ interface CRUDCollectionState {
   collection: object;
   expandedColumns: object;
 }
+function createCollectionArray(collection: object)
+{
+  return Object.keys(collection).map(
+    k => collection[k],
+  );
+}
 
 function createKeyedCollection(arr: Array<object>) {
   const newArr = arr.map((o: any) => ({
@@ -89,9 +95,12 @@ export default class CRUDCollection extends React.PureComponent<
 > {
   constructor(props: CRUDCollectionProps) {
     super(props);
+
+    const collection = createKeyedCollection(props.collection);
     this.state = {
       expandedColumns: {},
-      collection: createKeyedCollection(props.collection),
+      collection: collection,
+      collectionArray: createCollectionArray(collection)
     };
     this.renderItem = this.renderItem.bind(this);
     this.onAddItem = this.onAddItem.bind(this);
@@ -100,12 +109,15 @@ export default class CRUDCollection extends React.PureComponent<
     this.onFieldsetChange = this.onFieldsetChange.bind(this);
     this.renderTableBody = this.renderTableBody.bind(this);
     this.changeCollection = this.changeCollection.bind(this);
+    this.sortColumn = this.sortColumn.bind(this);
   }
 
   UNSAFE_componentWillReceiveProps(nextProps: CRUDCollectionProps) {
     if (nextProps.collection !== this.props.collection) {
+      const collection = createKeyedCollection(nextProps.collection);
       this.setState({
-        collection: createKeyedCollection(nextProps.collection),
+        collection: collection,
+        collectionArray: createCollectionArray(collection)
       });
     }
   }
@@ -181,15 +193,51 @@ export default class CRUDCollection extends React.PureComponent<
     }));
   }
 
+  sortColumn(col, up){
+    const { sortColumns } = this.props;
+    return () => {
+      if (sortColumns?.includes(col)) {
+        const newCollection = this.state.collectionArray.sort((a,b)=>{
+          const x = a[col];
+          const y = b[col];
+          if (up) {
+            if(typeof x === "string") {
+              return (x || "").localeCompare((y));
+            } else {
+              return x - y; 
+            }
+          } else {
+            if(typeof x === "string") {
+              return (y || "").localeCompare((x));
+            } else {
+              return y - x; 
+            }
+          }
+        }).map(v=>v);
+        this.setState({
+          collectionArray: newCollection
+        });
+      }
+    }
+  }
+
   renderHeaderRow() {
     const cols = this.effectiveTableColumns();
-    const { allowDeletes, expandFieldset, extraButtons } = this.props;
+    const { allowDeletes, expandFieldset, extraButtons, sortColumns} = this.props;
     return (
       <thead>
         <tr>
           {expandFieldset && <th aria-label="Expand" className="tiny-cell" />}
           {cols.map(col => (
-            <th key={col}>{this.getLabel(col)}</th>
+            <th key={col}>
+              {this.getLabel(col)}
+              {sortColumns?.includes(col) && (
+                <>
+                  <button onClick={this.sortColumn(col, true)}> up</button>
+                  <button onClick={this.sortColumn(col, false)}> down</button>
+                </>
+              )}
+            </th>
           ))}
           {extraButtons}
           {allowDeletes && (
@@ -298,9 +346,8 @@ export default class CRUDCollection extends React.PureComponent<
   }
 
   renderTableBody() {
-    const data = Object.keys(this.state.collection).map(
-      k => this.state.collection[k],
-    );
+    const data = this.state.collectionArray; 
+    console.log({ data});
     const content = data.length
       ? data.map(d => this.renderItem(d))
       : this.renderEmptyCell();
