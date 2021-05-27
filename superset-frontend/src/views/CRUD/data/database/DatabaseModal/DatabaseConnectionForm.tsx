@@ -118,16 +118,13 @@ const credentialsInfo = ({
               onChange={async event => {
                 const file = event?.target?.files[0];
                 setFileToUpload(file.name);
-                const credentials = JSON.parse(await file.text());
-                const encrypted_extra = JSON.stringify({
-                  credentials_info: credentials,
-                });
                 changeMethods.onParametersUploadFileChange({
                   target: {
                     name: 'encrypted_extra',
-                    value: encrypted_extra,
+                    value: await file.text(),
                   },
                 });
+                document.getElementById('selectedFile').value = null;
               }}
             />
           </div>
