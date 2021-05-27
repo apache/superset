@@ -33,7 +33,20 @@ import getLeafComponentIdFromPath from '../../util/getLeafComponentIdFromPath';
 import { componentShape } from '../../util/propShapes';
 import { NEW_TAB_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
-import { TAB_TYPE } from '../../util/componentTypes';
+import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
+import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
+
+const tabContainsChartInScope = (dashboardLayout, chartsInScope, childId) => {
+  if (dashboardLayout[childId].type === CHART_TYPE) {
+    return chartsInScope.includes(dashboardLayout[childId].meta.chartId);
+  }
+  if (dashboardLayout[childId].children.length === 0) {
+    return false;
+  }
+  return dashboardLayout[childId].children.some(childId =>
+    tabContainsChartInScope(dashboardLayout, chartsInScope, childId),
+  );
+};
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -268,11 +281,24 @@ class Tabs extends React.PureComponent {
       renderHoverMenu,
       isComponentVisible: isCurrentTabVisible,
       editMode,
+      focusedFilterScope,
+      dashboardLayout,
     } = this.props;
 
     const { children: tabIds } = tabsComponent;
     const { tabIndex: selectedTabIndex, activeKey } = this.state;
 
+    const tabsToHighlight = [];
+    if (focusedFilterScope) {
+      const chartsInScope = getChartIdsInFilterScope({
+        filterScope: focusedFilterScope.scope,
+      });
+      tabIds.forEach(tabId => {
+        if (tabContainsChartInScope(dashboardLayout, chartsInScope, tabId)) {
+          tabsToHighlight.push(tabId);
+        }
+      });
+    }
     return (
       <DragDroppable
         component={tabsComponent}
@@ -322,6 +348,9 @@ class Tabs extends React.PureComponent {
                       columnWidth={columnWidth}
                       onDropOnTab={this.handleDropOnTab}
                       isFocused={activeKey === tabId}
+                      isHighlighted={
+                        activeKey !== tabId && tabsToHighlight.includes(tabId)
+                      }
                     />
                   }
                 >

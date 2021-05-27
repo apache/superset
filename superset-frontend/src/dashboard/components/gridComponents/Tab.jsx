@@ -192,6 +192,7 @@ export default class Tab extends React.PureComponent {
       editMode,
       filters,
       isFocused,
+      isHighlighted,
     } = this.props;
 
     return (
@@ -205,7 +206,11 @@ export default class Tab extends React.PureComponent {
         editMode={editMode}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (
-          <div className="dragdroppable-tab" ref={dragSourceRef}>
+          <div
+            className="dragdroppable-tab"
+            ref={dragSourceRef}
+            style={isHighlighted ? { backgroundColor: 'red' } : {}}
+          >
             <EditableTitle
               title={component.meta.text}
               defaultTitle={component.meta.defaultText}
