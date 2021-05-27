@@ -36,6 +36,7 @@ from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.db_engine_specs.redshift import RedshiftEngineSpec
 from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.hana import HanaEngineSpec
 from superset.errors import SupersetError
@@ -509,7 +510,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(username="admin")
         database_data = {
             "database_name": "test-database-updated",
-            "configuration_method": ConfigurationMethod.DYNAMIC_FORM,
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
         }
         uri = f"api/v1/database/{test_database.id}"
         rv = self.client.put(uri, json=database_data)
@@ -1371,12 +1372,14 @@ class TestDatabaseApi(SupersetTestCase):
     @mock.patch("superset.databases.api.get_available_engine_specs")
     @mock.patch("superset.databases.api.app")
     def test_available(self, app, get_available_engine_specs):
-        app.config = {"PREFERRED_DATABASES": ["postgresql"]}
-        get_available_engine_specs.return_value = [
-            PostgresEngineSpec,
-            BigQueryEngineSpec,
-            HanaEngineSpec,
-        ]
+        app.config = {"PREFERRED_DATABASES": ["PostgreSQL", "Google BigQuery"]}
+        get_available_engine_specs.return_value = {
+            PostgresEngineSpec: {"psycopg2"},
+            BigQueryEngineSpec: {"bigquery"},
+            MySQLEngineSpec: {"mysqlconnector", "mysqldb"},
+            RedshiftEngineSpec: {"psycopg2"},
+            HanaEngineSpec: {""},
+        }
 
         self.login(username="admin")
         uri = "api/v1/database/available/"
@@ -1387,6 +1390,8 @@ class TestDatabaseApi(SupersetTestCase):
         assert response == {
             "databases": [
                 {
+                    "available_drivers": ["psycopg2"],
+                    "default_driver": "psycopg2",
                     "engine": "postgresql",
                     "name": "PostgreSQL",
                     "parameters": {
@@ -1428,9 +1433,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "type": "object",
                     },
                     "preferred": True,
-                    "sqlalchemy_uri_placeholder": "postgresql+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
+                    "sqlalchemy_uri_placeholder": "postgresql://user:password@host:port/dbname[?key=value&key=value...]",
                 },
                 {
+                    "available_drivers": ["bigquery"],
+                    "default_driver": "bigquery",
                     "engine": "bigquery",
                     "name": "Google BigQuery",
                     "parameters": {
@@ -1441,34 +1448,22 @@ class TestDatabaseApi(SupersetTestCase):
                                 "x-encrypted-extra": True,
                             }
                         },
+                        "required": ["credentials_info"],
                         "type": "object",
                     },
-                    "preferred": False,
+                    "preferred": True,
                     "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
                 },
-                {"engine": "hana", "name": "SAP HANA", "preferred": False},
-            ]
-        }
-
-    @mock.patch("superset.databases.api.get_available_engine_specs")
-    @mock.patch("superset.databases.api.app")
-    def test_available_with_mysql(self, app, get_available_engine_specs):
-        app.config = {"PREFERRED_DATABASES": ["mysql"]}
-        get_available_engine_specs.return_value = [
-            MySQLEngineSpec,
-            HanaEngineSpec,
-        ]
-
-        self.login(username="admin")
-        uri = "api/v1/database/available/"
-
-        rv = self.client.get(uri)
-        response = json.loads(rv.data.decode("utf-8"))
-        print(response)
-        assert rv.status_code == 200
-        assert response == {
-            "databases": [
                 {
+                    "available_drivers": ["psycopg2"],
+                    "default_driver": "",
+                    "engine": "redshift",
+                    "name": "Amazon Redshift",
+                    "preferred": False,
+                },
+                {
+                    "available_drivers": ["mysqlconnector", "mysqldb"],
+                    "default_driver": "mysqldb",
                     "engine": "mysql",
                     "name": "MySQL",
                     "parameters": {
@@ -1509,10 +1504,48 @@ class TestDatabaseApi(SupersetTestCase):
                         "required": ["database", "host", "port", "username"],
                         "type": "object",
                     },
-                    "preferred": True,
+                    "preferred": False,
                     "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
                 },
-                {"engine": "hana", "name": "SAP HANA", "preferred": False},
+                {
+                    "available_drivers": [""],
+                    "engine": "hana",
+                    "name": "SAP HANA",
+                    "preferred": False,
+                },
+            ]
+        }
+
+    @mock.patch("superset.databases.api.get_available_engine_specs")
+    @mock.patch("superset.databases.api.app")
+    def test_available_no_default(self, app, get_available_engine_specs):
+        app.config = {"PREFERRED_DATABASES": ["MySQL"]}
+        get_available_engine_specs.return_value = {
+            MySQLEngineSpec: {"mysqlconnector"},
+            HanaEngineSpec: {""},
+        }
+
+        self.login(username="admin")
+        uri = "api/v1/database/available/"
+
+        rv = self.client.get(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert response == {
+            "databases": [
+                {
+                    "available_drivers": ["mysqlconnector"],
+                    "default_driver": "mysqldb",
+                    "engine": "mysql",
+                    "name": "MySQL",
+                    "preferred": True,
+                },
+                {
+                    "available_drivers": [""],
+                    "engine": "hana",
+                    "name": "SAP HANA",
+                    "preferred": False,
+                },
             ]
         }
 

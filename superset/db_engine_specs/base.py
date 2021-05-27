@@ -1328,7 +1328,7 @@ class BasicParametersMixin:
     individual parameters, instead of the full SQLAlchemy URI. This
     mixin is for the most common pattern of URI:
 
-        drivername://user:password@host:port/dbname[?key=value&key=value...]
+        engine+driver://user:password@host:port/dbname[?key=value&key=value...]
 
     """
 
@@ -1336,11 +1336,11 @@ class BasicParametersMixin:
     parameters_schema = BasicParametersSchema()
 
     # recommended driver name for the DB engine spec
-    drivername = ""
+    default_driver = ""
 
     # placeholder with the SQLAlchemy URI template
     sqlalchemy_uri_placeholder = (
-        "drivername://user:password@host:port/dbname[?key=value&key=value...]"
+        "engine+driver://user:password@host:port/dbname[?key=value&key=value...]"
     )
 
     # query parameter to enable encryption in the database connection
@@ -1361,7 +1361,7 @@ class BasicParametersMixin:
 
         return str(
             URL(
-                cls.drivername,
+                f"{cls.engine}+{cls.default_driver}".rstrip("+"),  # type: ignore
                 username=parameters.get("username"),
                 password=parameters.get("password"),
                 host=parameters["host"],
@@ -1372,7 +1372,9 @@ class BasicParametersMixin:
         )
 
     @classmethod
-    def get_parameters_from_uri(cls, uri: str) -> BasicParametersType:
+    def get_parameters_from_uri(
+        cls, uri: str, encrypted_extra: Optional[Dict[str, Any]] = None
+    ) -> BasicParametersType:
         url = make_url(uri)
         encryption = all(
             item in url.query.items() for item in cls.encryption_parameters.items()
