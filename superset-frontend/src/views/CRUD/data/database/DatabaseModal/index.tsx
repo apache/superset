@@ -59,6 +59,7 @@ import {
   formHelperStyles,
   formStyles,
   StyledBasicTab,
+  SelectDatabaseStyles,
 } from './styles';
 
 const DOCUMENTATION_LINK =
@@ -524,7 +525,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             validationErrors={validationErrors}
           />
           {!isLoading && !db && (
-            <>
+            <SelectDatabaseStyles>
               <label className="label-select">
                 What database would you like to connect?
               </label>
@@ -546,7 +547,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   </Select.Option>
                 ))}
               </Select>
-            </>
+            </SelectDatabaseStyles>
           )}
           <Button
             buttonStyle="link"
