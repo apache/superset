@@ -97,6 +97,9 @@ export const StyledRowFormItem = styled(Form.Item)`
   margin-bottom: 0px;
   min-width: 50%;
 
+  .ant-form-item-control-input-content > div > div {
+    height: auto;
+  }
   & .ant-form-item-control-input {
     min-height: ${({ theme }) => theme.gridUnit * 10}px;
   }
