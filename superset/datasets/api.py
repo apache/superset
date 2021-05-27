@@ -29,7 +29,7 @@ from flask_babel import ngettext
 from marshmallow import ValidationError
 
 from superset import event_logger, is_feature_enabled
-from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
@@ -42,7 +42,6 @@ from superset.datasets.commands.exceptions import (
     DatasetCreateFailedError,
     DatasetDeleteFailedError,
     DatasetForbiddenError,
-    DatasetImportError,
     DatasetInvalidError,
     DatasetNotFoundError,
     DatasetRefreshFailedError,
@@ -655,7 +654,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
     @expose("/import/", methods=["POST"])
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
@@ -711,6 +709,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             upload.seek(0)
             contents = {upload.filename: upload.read()}
 
+        if not contents:
+            raise NoValidFilesFoundError()
+
         passwords = (
             json.loads(request.form["passwords"])
             if "passwords" in request.form
@@ -721,12 +722,5 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         command = ImportDatasetsCommand(
             contents, passwords=passwords, overwrite=overwrite
         )
-        try:
-            command.run()
-            return self.response(200, message="OK")
-        except CommandInvalidError as exc:
-            logger.warning("Import dataset failed")
-            return self.response_422(message=exc.normalized_messages())
-        except DatasetImportError as exc:
-            logger.error("Import dataset failed", exc_info=True)
-            return self.response_500(message=str(exc))
+        command.run()
+        return self.response(200, message="OK")
