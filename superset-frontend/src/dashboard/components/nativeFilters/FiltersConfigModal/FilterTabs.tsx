@@ -42,11 +42,9 @@ export const StyledFilterTitle = styled.span`
 
 export const StyledAddFilterBox = styled.div`
   color: ${({ theme }) => theme.colors.primary.dark1};
-  text-align: left;
-  padding: ${({ theme }) => theme.gridUnit * 2}px 0;
-  margin: ${({ theme }) => theme.gridUnit * 3}px 0 0
-    ${({ theme }) => -theme.gridUnit * 2}px;
-  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light1};
+  padding: ${({ theme }) => theme.gridUnit * 2}px;
+  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  cursor: pointer;
 
   &:hover {
     color: ${({ theme }) => theme.colors.primary.base};
@@ -89,10 +87,17 @@ const FilterTabsContainer = styled(LineEditableTabs)`
 
     & > .ant-tabs-content-holder {
       border-left: 1px solid ${theme.colors.grayscale.light2};
-      margin-right: ${theme.gridUnit * 4}px;
+      padding-right: ${theme.gridUnit * 4}px;
+      overflow-x: hidden;
+      overflow-y: auto;
     }
+
     & > .ant-tabs-content-holder ~ .ant-tabs-content-holder {
       border: none;
+    }
+
+    &.ant-tabs-card > .ant-tabs-nav .ant-tabs-ink-bar {
+      visibility: hidden;
     }
 
     &.ant-tabs-left
@@ -104,9 +109,11 @@ const FilterTabsContainer = styled(LineEditableTabs)`
     }
 
     .ant-tabs-nav-list {
-      padding-top: ${theme.gridUnit * 4}px;
-      padding-right: ${theme.gridUnit * 2}px;
-      padding-bottom: ${theme.gridUnit * 4}px;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding-top: ${theme.gridUnit * 2}px;
+      padding-right: ${theme.gridUnit}px;
+      padding-bottom: ${theme.gridUnit * 3}px;
       padding-left: ${theme.gridUnit * 3}px;
     }
 
@@ -135,6 +142,24 @@ const FilterTabsContainer = styled(LineEditableTabs)`
       justify-content: space-between;
       text-transform: unset;
     }
+
+    .ant-tabs-nav-more {
+      display: none;
+    }
+
+    .ant-tabs-extra-content {
+      width: 100%;
+    }
+  `}
+`;
+
+const StyledHeader = styled.div`
+  ${({ theme }) => `
+    color: ${theme.colors.grayscale.dark1};
+    font-size: ${theme.typography.sizes.l}px;
+    padding-top: ${theme.gridUnit * 4}px;
+    padding-right: ${theme.gridUnit * 4}px;
+    padding-left: ${theme.gridUnit * 4}px;
   `}
 `;
 
@@ -164,14 +189,18 @@ const FilterTabs: FC<FilterTabsProps> = ({
     onChange={onChange}
     activeKey={currentFilterId}
     onEdit={onEdit}
-    addIcon={
-      <StyledAddFilterBox>
-        <PlusOutlined />{' '}
-        <span data-test="add-filter-button" aria-label="Add filter">
-          {t('Add filter')}
-        </span>
-      </StyledAddFilterBox>
-    }
+    hideAdd
+    tabBarExtraContent={{
+      left: <StyledHeader>{t('Filters')}</StyledHeader>,
+      right: (
+        <StyledAddFilterBox onClick={() => onEdit('', 'add')}>
+          <PlusOutlined />{' '}
+          <span data-test="add-filter-button" aria-label="Add filter">
+            {t('Add filter')}
+          </span>
+        </StyledAddFilterBox>
+      ),
+    }}
   >
     {filterIds.map(id => (
       <LineEditableTabs.TabPane

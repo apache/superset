@@ -64,7 +64,7 @@ export const validateForm = async (
         addValidationError(
           filterId,
           'isInstant',
-          'For parent filters changes must be applied instantly',
+          'For hierarchical filters changes must be applied instantly',
         );
       }
     };
