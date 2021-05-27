@@ -82,7 +82,6 @@ enum ActionType {
   parametersChange,
   reset,
   textChange,
-  allowSelectDB,
 }
 
 interface DBReducerPayloadType {
@@ -121,10 +120,6 @@ type DBReducerActionType =
       type: ActionType.configMethodChange;
       payload: { configuration_method: CONFIGURATION_METHOD };
     }
-  | {
-      type: ActionType.allowSelectDB;
-      payload: { available: [] };
-    };
 
 function dbReducer(
   state: Partial<DatabaseObject> | null,
