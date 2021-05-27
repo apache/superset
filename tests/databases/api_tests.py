@@ -1509,6 +1509,44 @@ class TestDatabaseApi(SupersetTestCase):
                     "default_driver": "",
                     "engine": "redshift",
                     "name": "Amazon Redshift",
+                    "parameters": {
+                        "properties": {
+                            "database": {
+                                "description": "Database name",
+                                "type": "string",
+                            },
+                            "encryption": {
+                                "description": "Use an encrypted connection to the database",
+                                "type": "boolean",
+                            },
+                            "host": {
+                                "description": "Hostname or IP address",
+                                "type": "string",
+                            },
+                            "password": {
+                                "description": "Password",
+                                "nullable": True,
+                                "type": "string",
+                            },
+                            "port": {
+                                "description": "Database port",
+                                "format": "int32",
+                                "type": "integer",
+                            },
+                            "query": {
+                                "additionalProperties": {},
+                                "description": "Additional parameters",
+                                "type": "object",
+                            },
+                            "username": {
+                                "description": "Username",
+                                "nullable": True,
+                                "type": "string",
+                            },
+                        },
+                        "required": ["database", "host", "port", "username"],
+                        "type": "object",
+                    },
                     "preferred": False,
                 },
                 {
