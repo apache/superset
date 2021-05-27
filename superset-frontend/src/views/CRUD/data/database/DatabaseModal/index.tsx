@@ -180,7 +180,7 @@ function dbReducer(
       };
     case ActionType.reset:
     default:
-      return {};
+      return null;
   }
 }
 
