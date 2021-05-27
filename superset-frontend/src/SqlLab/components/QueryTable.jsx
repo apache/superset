@@ -22,16 +22,18 @@ import moment from 'moment';
 import Card from 'src/components/Card';
 import ProgressBar from 'src/components/ProgressBar';
 import Label from 'src/components/Label';
-import { t, css } from '@superset-ui/core';
+import { t, css, styled } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
 import { fDuration } from 'src/modules/dates';
+import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
+import { Tooltip } from 'src/components/Tooltip';
 import { IconTooltip } from '../../components/IconTooltip';
 import ResultSet from './ResultSet';
 import ModalTrigger from '../../components/ModalTrigger';
 import HighlightedSql from './HighlightedSql';
-import QueryStateLabel from './QueryStateLabel';
 
 const propTypes = {
   columns: PropTypes.array,
@@ -57,12 +59,42 @@ const StaticPosition = css`
   position: static;
 `;
 
+const verticalAlign = css`
+  vertical-align: 0em;
+  svg {
+    height: 0.9em;
+  }
+`;
+
+const StyledTooltip = styled(IconTooltip)`
+  padding-right: ${({ theme }) => theme.gridUnit * 2}px;
+  span {
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    &: hover {
+      color: ${({ theme }) => theme.colors.primary.base};
+    }
+  }
+`;
+
+const StatusIcon = styled(Icon, {
+  shouldForwardProp: prop => prop !== 'status',
+})`
+  color: ${({ status, theme }) => {
+    if (status === 'success') return theme.colors.success.base;
+    if (status === 'failed') return theme.colors.error.base;
+    if (status === 'running') return theme.colors.primary.base;
+    if (status === 'offline') return theme.colors.grayscale.light1;
+
+    return theme.colors.grayscale.base;
+  }};
+`;
+
 const QueryTable = props => {
   const columns = useMemo(
     () =>
       props.columns.map(column => ({
         accessor: column,
-        Header: column,
+        Header: () => column.charAt(0).toUpperCase().concat(column.slice(1)),
         disableSortBy: true,
       })),
     [props.columns],
@@ -98,6 +130,36 @@ const QueryTable = props => {
           q.duration = fDuration(q.startDttm, q.endDttm);
         }
         const time = moment(q.startDttm).format().split('T');
+        const statusConfig = {
+          name: '',
+          label: '',
+          status: '',
+        };
+        if (q.state === 'success') {
+          statusConfig.name = 'check';
+          statusConfig.label = t('Success');
+          statusConfig.status = 'success';
+        }
+        if (q.state === 'failed' || q.state === 'stopped') {
+          statusConfig.name = 'x-small';
+          statusConfig.label = t('Failed');
+          statusConfig.status = 'failed';
+        }
+        if (q.state === 'running') {
+          statusConfig.name = 'running';
+          statusConfig.label = t('Running');
+          statusConfig.status = 'running';
+        }
+        if (q.state === 'timed_out') {
+          statusConfig.name = 'offline';
+          statusConfig.label = t('Offline');
+          statusConfig.status = 'offline';
+        }
+        if (q.state === 'scheduled' || q.state === 'pending') {
+          statusConfig.name = 'queued';
+          statusConfig.label = t('Scheduled');
+          statusConfig.status = 'queued';
+        }
         q.time = (
           <div>
             <span>
@@ -176,44 +238,56 @@ const QueryTable = props => {
             q.ctas && q.tempTable && q.tempTable.includes('.') ? '' : q.schema;
           q.output = [schemaUsed, q.tempTable].filter(v => v).join('.');
         }
-        q.progress = (
-          <ProgressBar percent={parseInt(q.progress.toFixed(0), 10)} striped />
-        );
-        let errorTooltip;
-        if (q.errorMessage) {
-          errorTooltip = (
-            <IconTooltip tooltip={q.errorMessage}>
-              <i className="fa fa-exclamation-circle text-danger" />
-            </IconTooltip>
+        q.progress =
+          q.state === 'success' ? (
+            <ProgressBar
+              percent={parseInt(q.progress.toFixed(0), 10)}
+              striped
+              showInfo={false}
+            />
+          ) : (
+            <ProgressBar
+              percent={parseInt(q.progress.toFixed(0), 10)}
+              striped
+            />
           );
-        }
         q.state = (
-          <div>
-            <QueryStateLabel query={query} />
-            {errorTooltip}
-          </div>
+          <Tooltip title={statusConfig.label} placement="bottom">
+            <span>
+              <StatusIcon
+                name={statusConfig.name}
+                status={statusConfig.status}
+              />
+            </span>
+          </Tooltip>
         );
         q.actions = (
           <div>
-            <IconTooltip
-              className="fa fa-pencil m-r-3 pointer"
+            <StyledTooltip
               onClick={() => restoreSql(query)}
               tooltip={t(
                 'Overwrite text in the editor with a query on this table',
               )}
               placement="top"
-            />
-            <IconTooltip
-              className="fa fa-plus-circle m-r-3 pointer"
+            >
+              <Icons.Edit iconSize="small" />
+            </StyledTooltip>
+            <StyledTooltip
               onClick={() => openQueryInNewTab(query)}
               tooltip={t('Run query in a new tab')}
               placement="top"
-            />
-            <IconTooltip
-              className="fa fa-trash m-r-3 pointer"
+            >
+              <Icons.PlusCircleOutlined
+                iconSize="x-small"
+                css={verticalAlign}
+              />
+            </StyledTooltip>
+            <StyledTooltip
               tooltip={t('Remove query from log')}
               onClick={() => removeQuery(query)}
-            />
+            >
+              <Icons.Trash iconSize="x-small" />
+            </StyledTooltip>
           </div>
         );
         return q;

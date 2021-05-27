@@ -42,7 +42,7 @@ export interface Props {
 }
 
 const StyledSpan = styled.span`
-  color: ${({ theme }) => theme.colors.primary.dark1};
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
   &: hover {
     color: ${({ theme }) => theme.colors.primary.dark2};
   }
