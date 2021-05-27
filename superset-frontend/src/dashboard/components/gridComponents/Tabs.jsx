@@ -55,11 +55,11 @@ const findTabsWithChartsInScope = (
   ) {
     return;
   }
-  dashboardLayout[childId].children.forEach(childId =>
+  dashboardLayout[childId].children.forEach(subChildId =>
     findTabsWithChartsInScope(
       dashboardLayout,
       chartsInScope,
-      childId,
+      subChildId,
       tabId,
       tabsToHighlight,
     ),
