@@ -329,10 +329,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   useEffect(() => {
     if (isLoading) {
       setLoading(false);
-      console.log('done loading');
-      console.log(availableDbs);
     }
-  }, [availableDbs]);
+  }, [availableDbs, isLoading]);
 
   const tabChange = (key: string) => {
     setTabKey(key);
