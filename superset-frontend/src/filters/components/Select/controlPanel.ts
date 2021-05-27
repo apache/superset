@@ -93,7 +93,8 @@ const config: ControlPanelConfig = {
               resetConfig: true,
               affectsDataMask: true,
               renderTrigger: true,
-              description: t('Select first item by default'),
+              description: t('By default no filter is applied.' +
+                             'Check this box if you want tp apply with first item from the available items on the list'),
             },
           },
         ],
