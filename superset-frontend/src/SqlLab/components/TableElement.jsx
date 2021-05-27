@@ -32,7 +32,7 @@ import ColumnElement from './ColumnElement';
 import ShowSQL from './ShowSQL';
 import ModalTrigger from '../../components/ModalTrigger';
 import Loading from '../../components/Loading';
-import { UpOutlined } from '@ant-design/icons';
+import { RightOutlined } from '@ant-design/icons';
 
 const propTypes = {
   table: PropTypes.object,
@@ -265,15 +265,22 @@ const TableElement = props => {
     return (
       <IconTooltip
         style={{
-          position: 'absolute',
-          right: '4%',
+          position: 'fixed',
+          right: '16px',
+          left: 'auto',
           height: '1em',
+          width: '1em',
+          fontSize: '12px',
+          transform: 'rotate(90deg)',
+          display: 'flex',
+          alignItems: 'center',
         }}
         aria-label="Collapse"
         tooltip={t(`${!isActive ? 'Expand' : 'Collapse'} table preview`)}
       >
-        <UpOutlined
-          style={!isActive ? { transform: 'rotate(180deg)' } : null}
+        <RightOutlined
+          className="anticon"
+          style={isActive ? { transform: 'rotate(180deg)' } : null}
         />
       </IconTooltip>
     );
