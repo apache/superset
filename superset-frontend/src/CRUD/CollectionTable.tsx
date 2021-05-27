@@ -48,7 +48,7 @@ interface CRUDCollectionProps {
 
 interface CRUDCollectionState {
   collection: object;
-  collectionArray: object;
+  collectionArray: Array<object>;
   expandedColumns: object;
   sortColumn: string;
   sort: number;
@@ -77,15 +77,23 @@ const CrudTableWrapper = styled.div<{ stickyHeader?: boolean }>`
     stickyHeader &&
     `
       height: 350px;
-      overflow: auto;
+      overflow-y: auto;
+      overflow-x: auto;
 
+      .table {
+        min-width: 800px;
+      }
       thead th {
         background: #fff;
         position: sticky;
         top: 0;
         z-index: 9;
+        min
       }
     `}
+    th span {
+      vertical-align: -8px;  
+    }
 `;
 
 const CrudButtonWrapper = styled.div`
@@ -203,9 +211,9 @@ export default class CRUDCollection extends React.PureComponent<
   sortColumn(col:string, sort = 0){
     const { sortColumns } = this.props;
     // default sort logic sorting string, boolean and number
-    const compareSort = (m,n) => {
+    const compareSort = (m: any,n: any) => {
       if(typeof m === "string") {
-        return (m || "").localeCompare((n));
+        return (m || " ").localeCompare((n));
       } else {
         return m - n; 
       }
@@ -223,10 +231,10 @@ export default class CRUDCollection extends React.PureComponent<
           return;
         }
         // newly ordered collection
-        const newCollection = this.state.collectionArray.sort((a,b)=>{
+        const newCollection = this.state.collectionArray.sort((a: object,b: object)=>{
           return sort === 1 ?
             compareSort(a[col], b[col]) : compareSort(b[col], a[col]);
-        }).map(v=>v);
+        }).map((v: object) =>v);
 
         this.setState({
           collectionArray: newCollection,
