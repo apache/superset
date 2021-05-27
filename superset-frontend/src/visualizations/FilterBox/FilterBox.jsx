@@ -22,7 +22,7 @@ import { debounce } from 'lodash';
 import { max as d3Max } from 'd3-array';
 import { AsyncCreatableSelect, CreatableSelect } from 'src/components/Select';
 import Button from 'src/components/Button';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t, SupersetClient, ensureIsArray } from '@superset-ui/core';
 
 import {
   BOOL_FALSE_DISPLAY,
@@ -158,10 +158,9 @@ class FilterBox extends React.PureComponent {
     if (options !== null) {
       if (Array.isArray(options)) {
         vals = options.map(opt => (typeof opt === 'string' ? opt : opt.value));
-      } else if (options.value) {
-        vals = options.value;
       } else {
-        vals = options;
+        // must use array member for legacy extra_filters's value
+        vals = ensureIsArray(options.value ?? options);
       }
     }
 
