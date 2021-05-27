@@ -24,11 +24,7 @@ import { setInLocalStorage } from 'src/utils/localStorageHelpers';
 import Loading from 'src/components/Loading';
 import ListViewCard from 'src/components/ListViewCard';
 import SubMenu from 'src/components/Menu/SubMenu';
-import {
-  mq,
-  CardStyles,
-  getEditedObjects,
-} from 'src/views/CRUD/utils';
+import { mq, CardStyles, getEditedObjects } from 'src/views/CRUD/utils';
 import { HOMEPAGE_ACTIVITY_FILTER } from 'src/views/CRUD/storageKeys';
 import { Chart } from 'src/types/Chart';
 import { Dashboard, SavedQueryObject } from 'src/views/CRUD/types';
@@ -60,7 +56,7 @@ enum SetTabType {
   EDITED = 'Edited',
   CREATED = 'Created',
   VIEWED = 'Viewed',
-  EXAMPLE = 'Example'
+  EXAMPLE = 'Example',
 }
 /**
  * Recent activity objects fetched by `getRecentAcitivtyObjs`.
@@ -199,7 +195,9 @@ export default function ActivityTable({
       label: t('Edited'),
       onClick: () => {
         setActiveChild('Edited');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, { activity: SetTabType.EDITED });
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, {
+          activity: SetTabType.EDITED,
+        });
         getEditedCards();
       },
     },
@@ -208,7 +206,9 @@ export default function ActivityTable({
       label: t('Created'),
       onClick: () => {
         setActiveChild('Created');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, { activity: SetTabType.CREATED });
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, {
+          activity: SetTabType.CREATED,
+        });
       },
     },
   ];
@@ -219,7 +219,9 @@ export default function ActivityTable({
       label: t('Viewed'),
       onClick: () => {
         setActiveChild('Viewed');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, { activity: SetTabType.VIEWED });
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, {
+          activity: SetTabType.VIEWED,
+        });
       },
     });
   } else {

@@ -153,7 +153,9 @@ function ChartTable({
             onClick: () =>
               getData('Favorite').then(() => {
                 setChartFilter('Favorite');
-                setInLocalStorage(HOMEPAGE_CHART_FILTER, { tab: TableTabTypes.FAVORITE });
+                setInLocalStorage(HOMEPAGE_CHART_FILTER, {
+                  tab: TableTabTypes.FAVORITE,
+                });
               }),
           },
           {
@@ -162,7 +164,9 @@ function ChartTable({
             onClick: () =>
               getData('Mine').then(() => {
                 setChartFilter('Mine');
-                setInLocalStorage(HOMEPAGE_CHART_FILTER, { tab: TableTabTypes.MINE });
+                setInLocalStorage(HOMEPAGE_CHART_FILTER, {
+                  tab: TableTabTypes.MINE,
+                });
               }),
           },
         ]}

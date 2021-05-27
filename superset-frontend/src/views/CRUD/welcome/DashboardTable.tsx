@@ -19,18 +19,19 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
-import { Dashboard, DashboardTableProps } from 'src/views/CRUD/types';
+import {
+  Dashboard,
+  DashboardTableProps,
+  TableTabTypes,
+} from 'src/views/CRUD/types';
 import { useHistory } from 'react-router-dom';
 import {
   setInLocalStorage,
   getFromLocalStorage,
 } from 'src/utils/localStorageHelpers';
-import {
-  createErrorHandler,
-  CardContainer,
-} from 'src/views/CRUD/utils';
+import { createErrorHandler, CardContainer } from 'src/views/CRUD/utils';
 import { HOMEPAGE_DASHBOARD_FILTER } from 'src/views/CRUD/storageKeys';
-import { TableTabTypes } from 'src/views/CRUD/types';
+
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Loading from 'src/components/Loading';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
@@ -169,7 +170,9 @@ function DashboardTable({
             onClick: () => {
               getData('Mine').then(() => {
                 setDashboardFilter('Mine');
-                setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, { tab: TableTabTypes.MINE });
+                setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, {
+                  tab: TableTabTypes.MINE,
+                });
               });
             },
           },
