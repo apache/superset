@@ -152,6 +152,9 @@ export const createHandleSave = (
         adhoc_filters: formInputs.adhoc_filters,
         time_range: formInputs.time_range,
         controlValues: formInputs.controlValues ?? {},
+        requiredFirst: Object.values(formInputs.requiredFirst ?? {}).find(
+          rf => rf,
+        ),
         name: formInputs.name,
         filterType: formInputs.filterType,
         // for now there will only ever be one target

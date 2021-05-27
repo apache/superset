@@ -62,7 +62,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
   ) : (
     <SuperChart
       height={25}
-      width={250}
+      width={180}
       appSection={AppSection.FILTER_CONFIG_MODAL}
       behaviors={[Behavior.NATIVE_FILTER]}
       formData={formData}

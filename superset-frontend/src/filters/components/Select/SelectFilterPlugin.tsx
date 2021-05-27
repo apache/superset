@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* eslint-disable no-param-reassign */
 import {
   AppSection,
   DataMask,
@@ -27,10 +28,11 @@ import {
   t,
   tn,
 } from '@superset-ui/core';
-import React, { useCallback, useEffect, useReducer, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
 import debounce from 'lodash/debounce';
 import { SLOW_DEBOUNCE } from 'src/constants';
+import { useImmerReducer } from 'use-immer';
 import { PluginFilterSelectProps, SelectValue } from './types';
 import { StyledSelect, Styles } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -42,39 +44,25 @@ type DataMaskAction =
   | {
       type: 'filterState';
       extraFormData: ExtraFormData;
-      filterState: { value: SelectValue };
+      filterState: { value: SelectValue; isInitialized?: boolean };
     };
 
-function reducer(state: DataMask, action: DataMaskAction): DataMask {
+function reducer(draft: Required<DataMask>, action: DataMaskAction) {
   switch (action.type) {
     case 'ownState':
-      return {
-        ...state,
-        ownState: {
-          ...(state.ownState || {}),
-          ...action.ownState,
-        },
+      draft.ownState = {
+        ...draft.ownState,
+        ...action.ownState,
       };
+      return draft;
     case 'filterState':
-      return {
-        ...state,
-        extraFormData: action.extraFormData,
-        filterState: {
-          ...(state.filterState || {}),
-          ...action.filterState,
-        },
-      };
+      draft.extraFormData = action.extraFormData;
+      draft.filterState = { ...draft.filterState, ...action.filterState };
+      return draft;
     default:
-      return {
-        ...state,
-      };
+      return draft;
   }
 }
-
-type DataMaskReducer = (
-  prevState: DataMask,
-  action: DataMaskAction,
-) => DataMask;
 
 export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const {
@@ -102,29 +90,43 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const groupby = ensureIsArray<string>(formData.groupby);
   const [col] = groupby;
   const [currentSuggestionSearch, setCurrentSuggestionSearch] = useState('');
-  const [dataMask, dispatchDataMask] = useReducer<DataMaskReducer>(reducer, {
+  const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
+    extraFormData: {},
     filterState,
     ownState: {
       coltypeMap,
     },
   });
-  const updateDataMask = (values: SelectValue) => {
-    const emptyFilter =
-      enableEmptyFilter && !inverseSelection && !values?.length;
+  const updateDataMask = useCallback(
+    (values: SelectValue) => {
+      const emptyFilter =
+        enableEmptyFilter && !inverseSelection && !values?.length;
 
-    dispatchDataMask({
-      type: 'filterState',
-      extraFormData: getSelectExtraFormData(
-        col,
-        values,
-        emptyFilter,
-        inverseSelection,
-      ),
-      filterState: {
-        value: values,
-      },
-    });
-  };
+      dispatchDataMask({
+        type: 'filterState',
+        extraFormData: getSelectExtraFormData(
+          col,
+          values,
+          emptyFilter,
+          inverseSelection,
+        ),
+        filterState: {
+          value:
+            appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem
+              ? undefined
+              : values,
+        },
+      });
+    },
+    [
+      appSection,
+      col,
+      defaultToFirstItem,
+      dispatchDataMask,
+      enableEmptyFilter,
+      inverseSelection,
+    ],
+  );
 
   const isDisabled =
     appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem;
@@ -179,16 +181,19 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     }
   };
 
+  const firstItem: SelectValue = data[0]
+    ? (groupby.map(col => data[0][col]) as string[])
+    : null;
+
   useEffect(() => {
-    const firstItem: SelectValue = data[0]
-      ? (groupby.map(col => data[0][col]) as string[])
-      : null;
-    if (isDisabled) {
+    if (defaultToFirstItem && filterState.value === undefined) {
+      // initialize to first value if set to default to first item
+      if (firstItem) {
+        updateDataMask(firstItem);
+      }
+    } else if (isDisabled) {
       // empty selection if filter is disabled
       updateDataMask(null);
-    } else if (!isDisabled && defaultToFirstItem && firstItem) {
-      // initialize to first value if set to default to first item
-      updateDataMask(firstItem);
     } else {
       // reset data mask based on filter state
       updateDataMask(filterState.value);
@@ -199,6 +204,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     defaultToFirstItem,
     enableEmptyFilter,
     inverseSelection,
+    updateDataMask,
+    data,
+    groupby,
+    JSON.stringify(filterState.value),
   ]);
 
   useEffect(() => {

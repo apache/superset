@@ -21,9 +21,9 @@ import {
   InfoTooltipWithTrigger,
 } from '@superset-ui/chart-controls';
 import React, { FC } from 'react';
-import { Checkbox } from 'src/common/components';
+import { Checkbox, Form } from 'src/common/components';
 import { FormInstance } from 'antd/lib/form';
-import { getChartControlPanelRegistry, t } from '@superset-ui/core';
+import { getChartControlPanelRegistry, styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { getControlItems, setNativeFilterFieldValues } from './utils';
 import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
@@ -38,6 +38,10 @@ type ControlItemsProps = {
   form: FormInstance<NativeFiltersForm>;
   formFilter?: NativeFiltersFormItem;
 };
+
+const CleanFormItem = styled(Form.Item)`
+  margin-bottom: 0;
+`;
 
 const ControlItems: FC<ControlItemsProps> = ({
   disabled,
@@ -62,48 +66,61 @@ const ControlItems: FC<ControlItemsProps> = ({
             controlItem?.config?.renderTrigger,
         )
         .map(controlItem => (
-          <Tooltip
-            placement="left"
-            title={
-              controlItem.config.affectsDataMask &&
-              disabled &&
-              t('Populate "Default value" to enable this control')
-            }
-          >
-            <StyledCheckboxFormItem
-              key={controlItem.name}
-              name={['filters', filterId, 'controlValues', controlItem.name]}
-              initialValue={
-                filterToEdit?.controlValues?.[controlItem.name] ??
-                controlItem?.config?.default
+          <>
+            <CleanFormItem
+              name={['filters', filterId, 'requiredFirst', controlItem.name]}
+              hidden
+              initialValue={controlItem.config.requiredFirst}
+            />
+            <Tooltip
+              placement="left"
+              title={
+                controlItem.config.affectsDataMask &&
+                disabled &&
+                t('Populate "Default value" to enable this control')
               }
-              valuePropName="checked"
-              colon={false}
             >
-              <Checkbox
-                disabled={controlItem.config.affectsDataMask && disabled}
-                onChange={() => {
-                  if (!controlItem.config.resetConfig) {
-                    forceUpdate();
-                    return;
-                  }
-                  setNativeFilterFieldValues(form, filterId, {
-                    defaultDataMask: null,
-                  });
-                  forceUpdate();
-                }}
+              <StyledCheckboxFormItem
+                key={controlItem.name}
+                name={['filters', filterId, 'controlValues', controlItem.name]}
+                initialValue={
+                  filterToEdit?.controlValues?.[controlItem.name] ??
+                  controlItem?.config?.default
+                }
+                valuePropName="checked"
+                colon={false}
               >
-                {controlItem.config.label}{' '}
-                {controlItem.config.description && (
-                  <InfoTooltipWithTrigger
-                    placement="top"
-                    label={controlItem.config.name}
-                    tooltip={controlItem.config.description}
-                  />
-                )}
-              </Checkbox>
-            </StyledCheckboxFormItem>
-          </Tooltip>
+                <Checkbox
+                  disabled={controlItem.config.affectsDataMask && disabled}
+                  onChange={({ target: { checked } }) => {
+                    if (controlItem.config.requiredFirst) {
+                      setNativeFilterFieldValues(form, filterId, {
+                        requiredFirst: {
+                          ...formFilter?.requiredFirst,
+                          [controlItem.name]: checked,
+                        },
+                      });
+                    }
+                    if (controlItem.config.resetConfig) {
+                      setNativeFilterFieldValues(form, filterId, {
+                        defaultDataMask: null,
+                      });
+                    }
+                    forceUpdate();
+                  }}
+                >
+                  {controlItem.config.label}{' '}
+                  {controlItem.config.description && (
+                    <InfoTooltipWithTrigger
+                      placement="top"
+                      label={controlItem.config.name}
+                      tooltip={controlItem.config.description}
+                    />
+                  )}
+                </Checkbox>
+              </StyledCheckboxFormItem>
+            </Tooltip>
+          </>
         ))}
     </>
   );

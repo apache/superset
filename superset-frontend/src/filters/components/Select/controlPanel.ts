@@ -93,6 +93,7 @@ const config: ControlPanelConfig = {
               resetConfig: true,
               affectsDataMask: true,
               renderTrigger: true,
+              requiredFirst: true,
               description: t('Select first item by default'),
             },
           },
