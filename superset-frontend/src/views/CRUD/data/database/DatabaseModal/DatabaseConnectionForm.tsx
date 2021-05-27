@@ -21,6 +21,7 @@ import { SupersetTheme, JsonObject } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
 import { Input, Select, Upload, Button } from 'src/common/components';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
+import { DeleteFilled } from '@ant-design/icons';
 import {
   StyledFormHeader,
   formScrollableStyles,
@@ -28,7 +29,6 @@ import {
   CredentialInfoForm,
 } from './styles';
 import { DatabaseForm } from '../types';
-import { DeleteFilled } from '@ant-design/icons';
 
 export const FormFieldOrder = [
   'host',
@@ -81,10 +81,11 @@ const credentialsInfo = ({
           </div>
         ) : (
           <div className="input-container">
+            <label className="label-select">Upload Credentials</label>
             {!fileToUpload && (
               <>
-                <label className="label-select">Upload Credentials</label>
                 <Button
+                  className="input-upload-btn"
                   onClick={() =>
                     document.getElementById('selectedFile').click()
                   }
@@ -96,7 +97,17 @@ const credentialsInfo = ({
             {fileToUpload && (
               <div className="input-upload-current">
                 {fileToUpload}
-                <DeleteFilled onClick={() => setFileToUpload(null)} />
+                <DeleteFilled
+                  onClick={() => {
+                    setFileToUpload(null);
+                    changeMethods.onParametersUploadFileChange({
+                      target: {
+                        name: 'encrypted_extra',
+                        value: '',
+                      },
+                    });
+                  }}
+                />
               </div>
             )}
 

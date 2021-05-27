@@ -375,5 +375,8 @@ export const CredentialInfoForm = styled.div`
       display: flex;
       justify-content: space-between;
     }
+    .input-upload-btn {
+      width: ${({ theme }) => theme.gridUnit * 32}px
+    }
   }
 `;
