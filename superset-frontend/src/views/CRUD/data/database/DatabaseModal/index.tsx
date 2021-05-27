@@ -538,10 +538,21 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <Select
                 defaultValue={'bigquery'}
                 style={{ width: '100%' }}
-                onChange={option => console.log('hi')}
+                onChange={option => {
+                  console.log(option);
+                  setDB({
+                    type: ActionType.dbSelected,
+                    payload: {
+                      configuration_method: CONFIGURATION_METHOD.DYNAMIC_FORM,
+                      engine: option,
+                    },
+                  });
+                }}
               >
-                {availableDbs?.databases?.map((engine) => (
-                  <Select.Option key={engine.engine} >{engine.name}</Select.Option>
+                {availableDbs?.databases?.map(database => (
+                  <Select.Option value={database.engine} key={database.engine}>
+                    {database.name}
+                  </Select.Option>
                 ))}
               </Select>
             </>
