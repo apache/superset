@@ -49,7 +49,7 @@ ma_plugin = MarshmallowPlugin()
 
 class BigQueryParametersSchema(Schema):
     credentials_info = EncryptedField(
-        description="Contents of BigQuery JSON credentials.",
+        required=True, description="Contents of BigQuery JSON credentials.",
     )
 
 
@@ -67,7 +67,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
     max_column_name_length = 128
 
     parameters_schema = BigQueryParametersSchema()
-    drivername = engine
+    default_driver = "bigquery"
     sqlalchemy_uri_placeholder = "bigquery://{project_id}"
 
     # BigQuery doesn't maintain context when running multiple statements in the
@@ -307,11 +307,13 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     @classmethod
     def build_sqlalchemy_uri(
-        cls, _: BigQueryParametersType, encrypted_extra: Optional[Dict[str, str]] = None
+        cls, _: BigQueryParametersType, encrypted_extra: Optional[Dict[str, Any]] = None
     ) -> str:
         if encrypted_extra:
-            project_id = encrypted_extra.get("project_id")
-            return f"{cls.drivername}://{project_id}"
+            project_id = encrypted_extra.get("credentials_info", {}).get("project_id")
+
+        if project_id:
+            return f"{cls.engine}+{cls.default_driver}://{project_id}"
 
         raise SupersetGenericDBErrorException(
             message="Big Query encrypted_extra is not available.",

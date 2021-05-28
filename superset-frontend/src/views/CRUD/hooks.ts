@@ -687,10 +687,18 @@ export function useDatabaseValidation() {
                       extra,
                       message,
                     }: {
-                      extra: { invalid: string[] };
+                      extra: { invalid?: string[] };
                       message: string;
                     },
-                  ) => ({ ...obj, [extra.invalid[0]]: message }),
+                  ) => {
+                    // if extra.invalid doesn't exist then the
+                    // error can't be mapped to a parameter
+                    // so leave it alone
+                    if (extra.invalid) {
+                      return { ...obj, [extra.invalid[0]]: message };
+                    }
+                    return obj;
+                  },
                   {},
                 );
               setValidationErrors(parsedErrors);

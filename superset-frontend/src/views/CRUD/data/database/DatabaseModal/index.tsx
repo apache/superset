@@ -301,8 +301,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       setDB({
         type: ActionType.dbSelected,
         payload: {
-          configuration_method: CONFIGURATION_METHOD.DYNAMIC_FORM,
-          engine: 'postgresql',
+          configuration_method: CONFIGURATION_METHOD.SQLALCHEMY_URI,
         }, // todo hook this up to step 1
       });
     }

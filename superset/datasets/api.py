@@ -267,7 +267,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             name: pk
           - in: query
             schema:
-              type: bool
+              type: boolean
             name: override_columns
           requestBody:
             description: Dataset schema
@@ -681,7 +681,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                       type: string
                     overwrite:
                       description: overwrite existing datasets?
-                      type: bool
+                      type: boolean
           responses:
             200:
               description: Dataset import result

@@ -370,18 +370,34 @@ function ExploreViewContainer(props) {
 
   function renderErrorMessage() {
     // Returns an error message as a node if any errors are in the store
-    const errors = Object.entries(props.controls)
-      .filter(
-        ([, control]) =>
-          control.validationErrors && control.validationErrors.length > 0,
-      )
-      .map(([key, control]) => (
-        <div key={key}>
-          {t('Control labeled ')}
-          <strong>{` "${control.label}" `}</strong>
-          {control.validationErrors.join('. ')}
+    const controlsWithErrors = Object.values(props.controls).filter(
+      control =>
+        control.validationErrors && control.validationErrors.length > 0,
+    );
+    if (controlsWithErrors.length === 0) {
+      return null;
+    }
+
+    const errorMessages = controlsWithErrors.map(
+      control => control.validationErrors,
+    );
+    const uniqueErrorMessages = [...new Set(errorMessages.flat())];
+
+    const errors = uniqueErrorMessages
+      .map(message => {
+        const matchingLabels = controlsWithErrors
+          .filter(control => control.validationErrors?.includes(message))
+          .map(control => control.label);
+        return [matchingLabels, message];
+      })
+      .map(([labels, message]) => (
+        <div key={message}>
+          {labels.length > 1 ? t('Controls labeled ') : t('Control labeled ')}
+          <strong>{` ${labels.join(', ')}`}</strong>
+          <span>: {message}</span>
         </div>
       ));
+
     let errorMessage;
     if (errors.length > 0) {
       errorMessage = <div style={{ textAlign: 'left' }}>{errors}</div>;
