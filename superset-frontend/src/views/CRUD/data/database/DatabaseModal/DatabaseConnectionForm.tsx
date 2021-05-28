@@ -19,7 +19,7 @@
 import React, { FormEvent, useState } from 'react';
 import { SupersetTheme, JsonObject } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
-import { Input, Select, Upload, Button } from 'src/common/components';
+import { Select, Button } from 'src/common/components';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import { DeleteFilled } from '@ant-design/icons';
 import {
@@ -29,6 +29,11 @@ import {
   CredentialInfoForm,
 } from './styles';
 import { DatabaseForm } from '../types';
+
+enum CredentialInfoOptions {
+  jsonUpload,
+  copyPaste,
+}
 
 export const FormFieldOrder = [
   'host',
@@ -59,77 +64,75 @@ const credentialsInfo = ({
   const [fileToUpload, setFileToUpload] = useState<string>(null);
   return (
     <CredentialInfoForm>
-      <>
-        <label className="label-select">
-          How do you want to enter service account credentials?
-        </label>
-        <Select
-          defaultValue={'file'}
-          style={{ width: '100%' }}
-          onChange={option => setUploadOption(option)}
-        >
-          <Select value="file">Upload JSON file</Select>
-          <Select value="paste">Copy and Paste JSON credentials</Select>
-        </Select>
-        {uploadOption === 'paste' ? (
-          <div className="input-container" onChange={changeMethods.onChange}>
-            <label className="label-select">Service Account</label>
-            <textarea className="input-form" name="encrypted_extra" />
-            <label className="label-paste">
-              Copy and paste the entire service account .json file here
-            </label>
-          </div>
-        ) : (
-          <div className="input-container">
-            <label className="label-select">Upload Credentials</label>
-            {!fileToUpload && (
-              <>
-                <Button
-                  className="input-upload-btn"
-                  onClick={() =>
-                    document.getElementById('selectedFile').click()
-                  }
-                >
-                  Choose File
-                </Button>
-              </>
-            )}
-            {fileToUpload && (
-              <div className="input-upload-current">
-                {fileToUpload}
-                <DeleteFilled
-                  onClick={() => {
-                    setFileToUpload(null);
-                    changeMethods.onParametersUploadFileChange({
-                      target: {
-                        name: 'encrypted_extra',
-                        value: '',
-                      },
-                    });
-                  }}
-                />
-              </div>
-            )}
+      <label className="label-select">
+        How do you want to enter service account credentials?
+      </label>
+      <Select
+        defaultValue={CredentialInfoOptions.jsonUpload}
+        style={{ width: '100%' }}
+        onChange={setUploadOption}
+      >
+        <Select.Option value={CredentialInfoOptions.jsonUpload}>
+          Upload JSON file
+        </Select.Option>
+        <Select.Option value={CredentialInfoOptions.copyPaste}>
+          Copy and Paste JSON credentials
+        </Select.Option>
+      </Select>
+      {uploadOption === 'paste' ? (
+        <div className="input-container" onChange={changeMethods.onChange}>
+          <span className="label-select">Service Account</span>
+          <textarea className="input-form" name="encrypted_extra" />
+          <span className="label-paste">
+            Copy and paste the entire service account .json file here
+          </span>
+        </div>
+      ) : (
+        <div className="input-container">
+          <span className="label-select">Upload Credentials</span>
+          {!fileToUpload && (
+            <Button
+              className="input-upload-btn"
+              onClick={() => document.getElementById('selectedFile').click()}
+            >
+              Choose File
+            </Button>
+          )}
+          {fileToUpload && (
+            <div className="input-upload-current">
+              {fileToUpload}
+              <DeleteFilled
+                onClick={() => {
+                  setFileToUpload(null);
+                  changeMethods.onParametersUploadFileChange({
+                    target: {
+                      name: 'encrypted_extra',
+                      value: '',
+                    },
+                  });
+                }}
+              />
+            </div>
+          )}
 
-            <input
-              id="selectedFile"
-              className="input-upload"
-              type="file"
-              onChange={async event => {
-                const file = event?.target?.files[0];
-                setFileToUpload(file.name);
-                changeMethods.onParametersUploadFileChange({
-                  target: {
-                    name: 'encrypted_extra',
-                    value: await file.text(),
-                  },
-                });
-                document.getElementById('selectedFile').value = null;
-              }}
-            />
-          </div>
-        )}
-      </>
+          <input
+            id="selectedFile"
+            className="input-upload"
+            type="file"
+            onChange={async event => {
+              const file = event?.target?.files[0];
+              setFileToUpload(file.name);
+              changeMethods.onParametersUploadFileChange({
+                target: {
+                  name: 'encrypted_extra',
+                  value: await file.text(),
+                },
+              });
+              document.getElementById('selectedFile').value = null;
+            }}
+          />
+        </div>
+      )}
     </CredentialInfoForm>
   );
 };
