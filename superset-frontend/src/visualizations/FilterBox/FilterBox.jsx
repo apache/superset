@@ -158,6 +158,8 @@ class FilterBox extends React.PureComponent {
     if (options !== null) {
       if (Array.isArray(options)) {
         vals = options.map(opt => (typeof opt === 'string' ? opt : opt.value));
+      } else if (Object.values(TIME_FILTER_MAP).includes(fltr)) {
+        vals = options.value ?? options;
       } else {
         // must use array member for legacy extra_filters's value
         vals = ensureIsArray(options.value ?? options);
