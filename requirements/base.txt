@@ -27,7 +27,7 @@ backoff==1.10.0
     # via apache-superset
 billiard==3.6.3.0
     # via celery
-bleach==3.2.1
+bleach==3.3.0
     # via apache-superset
 brotli==1.0.9
     # via flask-compress
