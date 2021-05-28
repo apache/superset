@@ -22,18 +22,18 @@ import moment from 'moment';
 import Card from 'src/components/Card';
 import ProgressBar from 'src/components/ProgressBar';
 import Label from 'src/components/Label';
-import { t, css, styled } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
 import { fDuration } from 'src/modules/dates';
-import Icon from 'src/components/Icon';
 import Icons from 'src/components/Icons';
+import Icon from 'src/components/Icon';
 import { Tooltip } from 'src/components/Tooltip';
-import { IconTooltip } from '../../components/IconTooltip';
-import ResultSet from './ResultSet';
-import ModalTrigger from '../../components/ModalTrigger';
-import HighlightedSql from './HighlightedSql';
+import ResultSet from '../ResultSet';
+import ModalTrigger from '../../../components/ModalTrigger';
+import HighlightedSql from '../HighlightedSql';
+import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
 
 const propTypes = {
   columns: PropTypes.array,
@@ -55,27 +55,6 @@ const openQuery = id => {
   window.open(url);
 };
 
-const StaticPosition = css`
-  position: static;
-`;
-
-const verticalAlign = css`
-  vertical-align: 0em;
-  svg {
-    height: 0.9em;
-  }
-`;
-
-const StyledTooltip = styled(IconTooltip)`
-  padding-right: ${({ theme }) => theme.gridUnit * 2}px;
-  span {
-    color: ${({ theme }) => theme.colors.grayscale.base};
-    &: hover {
-      color: ${({ theme }) => theme.colors.primary.base};
-    }
-  }
-`;
-
 const StatusIcon = styled(Icon, {
   shouldForwardProp: prop => prop !== 'status',
 })`
@@ -90,11 +69,17 @@ const StatusIcon = styled(Icon, {
 `;
 
 const QueryTable = props => {
+  const setHeaders = column => {
+    if (column === 'sql') {
+      return column.toUpperCase();
+    }
+    return column.charAt(0).toUpperCase().concat(column.slice(1));
+  };
   const columns = useMemo(
     () =>
       props.columns.map(column => ({
         accessor: column,
-        Header: () => column.charAt(0).toUpperCase().concat(column.slice(1)),
+        Header: () => setHeaders(column),
         disableSortBy: true,
       })),
     [props.columns],
