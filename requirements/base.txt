@@ -56,7 +56,7 @@ cron-descriptor==1.2.24
     # via apache-superset
 croniter==0.3.36
     # via apache-superset
-cryptography==3.2.1
+cryptography==3.3.2
     # via apache-superset
 decorator==4.4.2
     # via retry
