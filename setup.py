@@ -73,7 +73,7 @@ setup(
         "contextlib2",
         "croniter>=0.3.28",
         "cron-descriptor",
-        "cryptography>=3.2.1",
+        "cryptography>=3.3.2",
         "flask>=1.1.0, <2.0.0",
         "flask-appbuilder>=3.3.0, <4.0.0",
         "flask-caching",
