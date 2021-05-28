@@ -148,6 +148,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
       );
 
     // Sets other activity data in parallel with recents api call
+
     getUserOwnedObjects(id, 'dashboard')
       .then(r => {
         setDashboardData(r);

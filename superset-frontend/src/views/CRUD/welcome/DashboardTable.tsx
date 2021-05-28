@@ -55,6 +55,9 @@ function DashboardTable({
   showThumbnails,
 }: DashboardTableProps) {
   const history = useHistory();
+  const filterStore = getFromLocalStorage(HOMEPAGE_DASHBOARD_FILTER, null);
+  const defaultFilter = filterStore?.tab || 'Mine';
+
   const {
     state: { loading, resourceCollection: dashboards },
     setResourceCollection: setDashboards,
@@ -66,7 +69,7 @@ function DashboardTable({
     t('dashboard'),
     addDangerToast,
     true,
-    mine,
+    defaultFilter === 'Favorite' ? [] : mine,
     [],
     false,
   );
@@ -76,15 +79,13 @@ function DashboardTable({
     dashboardIds,
     addDangerToast,
   );
+
   const [editModal, setEditModal] = useState<Dashboard>();
-  const [dashboardFilter, setDashboardFilter] = useState('Mine');
+  const [dashboardFilter, setDashboardFilter] = useState(defaultFilter);
 
   useEffect(() => {
-    const filter = getFromLocalStorage(HOMEPAGE_DASHBOARD_FILTER, null);
-    if (!filter) {
-      setDashboardFilter('Mine');
-    } else setDashboardFilter(filter.tab);
-  }, []);
+    getData(dashboardFilter);
+  }, [dashboardFilter]);
 
   const handleDashboardEdit = (edits: Dashboard) =>
     SupersetClient.get({
@@ -124,14 +125,6 @@ function DashboardTable({
     }
     return filters;
   };
-  const subMenus = [];
-  if (dashboards.length > 0 && dashboardFilter === 'favorite') {
-    subMenus.push({
-      name: 'Favorite',
-      label: t('Favorite'),
-      onClick: () => setDashboardFilter('Favorite'),
-    });
-  }
 
   const getData = (filter: string) =>
     fetchData({
@@ -156,11 +149,9 @@ function DashboardTable({
             name: 'Favorite',
             label: t('Favorite'),
             onClick: () => {
-              getData('Favorite').then(() => {
-                setDashboardFilter('Favorite');
-                setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, {
-                  tab: TableTabTypes.FAVORITE,
-                });
+              setDashboardFilter('Favorite');
+              setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, {
+                tab: TableTabTypes.FAVORITE,
               });
             },
           },
@@ -168,11 +159,9 @@ function DashboardTable({
             name: 'Mine',
             label: t('Mine'),
             onClick: () => {
-              getData('Mine').then(() => {
-                setDashboardFilter('Mine');
-                setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, {
-                  tab: TableTabTypes.MINE,
-                });
+              setDashboardFilter('Mine');
+              setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, {
+                tab: TableTabTypes.MINE,
               });
             },
           },
