@@ -39,6 +39,7 @@ import AdhocFilter, {
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import columnType from 'src/explore/components/controls/FilterControl/columnType';
+import { CheckOutlined, StopOutlined } from '@ant-design/icons';
 
 const SelectWithLabel = styled(Select)`
   .ant-select-selector {
@@ -417,6 +418,9 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
             onSearch={val => this.setState({ currentSuggestionSearch: val })}
             onSelect={this.clearSuggestionSearch}
             onBlur={this.clearSuggestionSearch}
+            menuItemSelectedIcon={
+              operator === 'NOT IN' ? <StopOutlined /> : <CheckOutlined />
+            }
           >
             {this.state.suggestions.map(suggestion => (
               <Select.Option value={suggestion} key={suggestion}>
@@ -430,7 +434,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
                 suggestion => suggestion === currentSuggestionSearch,
               ) && (
                 <Select.Option value={currentSuggestionSearch}>
-                  {currentSuggestionSearch}
+                  {`${t('Create "%s"', currentSuggestionSearch)}`}
                 </Select.Option>
               )}
           </SelectWithLabel>

@@ -282,7 +282,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             suggestion => suggestion === currentSuggestionSearch,
           ) && (
             <Option value={currentSuggestionSearch}>
-              {currentSuggestionSearch}
+              {`${t('Create "%s"', currentSuggestionSearch)}`}
             </Option>
           )}
       </StyledSelect>
