@@ -1605,6 +1605,39 @@ class TestDatabaseApi(SupersetTestCase):
             ]
         }
 
+    @mock.patch("superset.databases.api.get_available_engine_specs")
+    @mock.patch("superset.databases.api.app")
+    def test_available_no_default(self, app, get_available_engine_specs):
+        app.config = {"PREFERRED_DATABASES": ["MySQL"]}
+        get_available_engine_specs.return_value = {
+            MySQLEngineSpec: {"mysqlconnector"},
+            HanaEngineSpec: {""},
+        }
+
+        self.login(username="admin")
+        uri = "api/v1/database/available/"
+
+        rv = self.client.get(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert response == {
+            "databases": [
+                {
+                    "available_drivers": ["mysqlconnector"],
+                    "default_driver": "mysqldb",
+                    "engine": "mysql",
+                    "name": "MySQL",
+                    "preferred": True,
+                },
+                {
+                    "available_drivers": [""],
+                    "engine": "hana",
+                    "name": "SAP HANA",
+                    "preferred": False,
+                },
+            ]
+        }
+
     def test_validate_parameters_invalid_payload_format(self):
         self.login(username="admin")
         url = "api/v1/database/validate_parameters"
