@@ -32,7 +32,7 @@ import ColumnElement from './ColumnElement';
 import ShowSQL from './ShowSQL';
 import ModalTrigger from '../../components/ModalTrigger';
 import Loading from '../../components/Loading';
-import { RightOutlined } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 
 const propTypes = {
   table: PropTypes.object,
@@ -268,8 +268,6 @@ const TableElement = props => {
           position: 'fixed',
           right: '16px',
           left: 'auto',
-          height: '1em',
-          width: '1em',
           fontSize: '12px',
           transform: 'rotate(90deg)',
           display: 'flex',
@@ -278,9 +276,9 @@ const TableElement = props => {
         aria-label="Collapse"
         tooltip={t(`${!isActive ? 'Expand' : 'Collapse'} table preview`)}
       >
-        <RightOutlined
-          className="anticon"
-          style={isActive ? { transform: 'rotate(180deg)' } : null}
+        <Icons.RightOutlined
+          iconSize={'s'}
+          style={isActive ? { transform: 'rotateY(180deg)' } : null}
         />
       </IconTooltip>
     );
