@@ -38,7 +38,7 @@ import React, {
 import { Select } from 'src/common/components';
 import debounce from 'lodash/debounce';
 import { SLOW_DEBOUNCE } from 'src/constants';
-import { CheckOutlined, StopOutlined } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 import { PluginFilterSelectProps, SelectValue } from './types';
 import { StyledSelect, Styles } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -265,7 +265,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         loading={isRefreshing}
         maxTagCount={5}
         menuItemSelectedIcon={
-          inverseSelection ? <StopOutlined /> : <CheckOutlined />
+          inverseSelection ? (
+            <Icons.StopOutlined iconSize="m" />
+          ) : (
+            <Icons.CheckOutlined iconSize="m" />
+          )
         }
       >
         {sortedData.map(row => {
