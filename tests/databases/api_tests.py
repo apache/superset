@@ -1506,7 +1506,7 @@ class TestDatabaseApi(SupersetTestCase):
                 },
                 {
                     "available_drivers": ["psycopg2"],
-                    "default_driver": "",
+                    "default_driver": "psycopg2",
                     "engine": "redshift",
                     "name": "Amazon Redshift",
                     "parameters": {
@@ -1548,6 +1548,7 @@ class TestDatabaseApi(SupersetTestCase):
                         "type": "object",
                     },
                     "preferred": False,
+                    "sqlalchemy_uri_placeholder": "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
                 },
                 {
                     "available_drivers": ["mysqlconnector", "mysqldb"],
@@ -1594,39 +1595,6 @@ class TestDatabaseApi(SupersetTestCase):
                     },
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
-                },
-                {
-                    "available_drivers": [""],
-                    "engine": "hana",
-                    "name": "SAP HANA",
-                    "preferred": False,
-                },
-            ]
-        }
-
-    @mock.patch("superset.databases.api.get_available_engine_specs")
-    @mock.patch("superset.databases.api.app")
-    def test_available_no_default(self, app, get_available_engine_specs):
-        app.config = {"PREFERRED_DATABASES": ["MySQL"]}
-        get_available_engine_specs.return_value = {
-            MySQLEngineSpec: {"mysqlconnector"},
-            HanaEngineSpec: {""},
-        }
-
-        self.login(username="admin")
-        uri = "api/v1/database/available/"
-
-        rv = self.client.get(uri)
-        response = json.loads(rv.data.decode("utf-8"))
-        assert rv.status_code == 200
-        assert response == {
-            "databases": [
-                {
-                    "available_drivers": ["mysqlconnector"],
-                    "default_driver": "mysqldb",
-                    "engine": "mysql",
-                    "name": "MySQL",
-                    "preferred": True,
                 },
                 {
                     "available_drivers": [""],
