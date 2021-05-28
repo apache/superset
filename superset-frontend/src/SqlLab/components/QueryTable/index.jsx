@@ -55,17 +55,64 @@ const openQuery = id => {
   window.open(url);
 };
 
+const statusAttributes = {
+  success: {
+    color: ({ theme }) => theme.colors.success.base,
+    config: {
+      name: 'check',
+      label: t('Success'),
+      status: 'success',
+    },
+  },
+  failed: {
+    color: ({ theme }) => theme.colors.error.base,
+    config: {
+      name: 'x-small',
+      label: t('Failed'),
+      status: 'failed',
+    },
+  },
+  stopped: {
+    color: ({ theme }) => theme.colors.error.base,
+    config: {
+      name: 'x-small',
+      label: t('Failed'),
+      status: 'failed',
+    },
+  },
+  running: {
+    color: ({ theme }) => theme.colors.primary.base,
+    config: {
+      name: 'running',
+      label: t('Running'),
+      status: 'running',
+    },
+  },
+  timed_out: {
+    color: ({ theme }) => theme.colors.grayscale.light1,
+    config: {
+      name: 'offline',
+      label: t('Offline'),
+      status: 'offline',
+    },
+  },
+  scheduled: {
+    name: 'queued',
+    label: t('Scheduled'),
+    status: 'queued',
+  },
+  pending: {
+    name: 'queued',
+    label: t('Scheduled'),
+    status: 'queued',
+  },
+};
+
 const StatusIcon = styled(Icon, {
   shouldForwardProp: prop => prop !== 'status',
 })`
-  color: ${({ status, theme }) => {
-    if (status === 'success') return theme.colors.success.base;
-    if (status === 'failed') return theme.colors.error.base;
-    if (status === 'running') return theme.colors.primary.base;
-    if (status === 'offline') return theme.colors.grayscale.light1;
-
-    return theme.colors.grayscale.base;
-  }};
+  color: ${({ status, theme }) =>
+    statusAttributes[status]?.color || theme.colors.grayscale.base};
 `;
 
 const QueryTable = props => {
@@ -115,36 +162,6 @@ const QueryTable = props => {
           q.duration = fDuration(q.startDttm, q.endDttm);
         }
         const time = moment(q.startDttm).format().split('T');
-        const statusConfig = {
-          name: '',
-          label: '',
-          status: '',
-        };
-        if (q.state === 'success') {
-          statusConfig.name = 'check';
-          statusConfig.label = t('Success');
-          statusConfig.status = 'success';
-        }
-        if (q.state === 'failed' || q.state === 'stopped') {
-          statusConfig.name = 'x-small';
-          statusConfig.label = t('Failed');
-          statusConfig.status = 'failed';
-        }
-        if (q.state === 'running') {
-          statusConfig.name = 'running';
-          statusConfig.label = t('Running');
-          statusConfig.status = 'running';
-        }
-        if (q.state === 'timed_out') {
-          statusConfig.name = 'offline';
-          statusConfig.label = t('Offline');
-          statusConfig.status = 'offline';
-        }
-        if (q.state === 'scheduled' || q.state === 'pending') {
-          statusConfig.name = 'queued';
-          statusConfig.label = t('Scheduled');
-          statusConfig.status = 'queued';
-        }
         q.time = (
           <div>
             <span>
@@ -237,11 +254,14 @@ const QueryTable = props => {
             />
           );
         q.state = (
-          <Tooltip title={statusConfig.label} placement="bottom">
+          <Tooltip
+            title={statusAttributes[q.state].config.label}
+            placement="bottom"
+          >
             <span>
               <StatusIcon
-                name={statusConfig.name}
-                status={statusConfig.status}
+                name={statusAttributes[q.state].config.name}
+                status={statusAttributes[q.state].config.status}
               />
             </span>
           </Tooltip>
