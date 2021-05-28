@@ -33,7 +33,38 @@ import getLeafComponentIdFromPath from '../../util/getLeafComponentIdFromPath';
 import { componentShape } from '../../util/propShapes';
 import { NEW_TAB_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
-import { TAB_TYPE } from '../../util/componentTypes';
+import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
+import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
+
+const findTabsWithChartsInScope = (
+  dashboardLayout,
+  chartsInScope,
+  childId,
+  tabId,
+  tabsToHighlight,
+) => {
+  if (
+    dashboardLayout[childId].type === CHART_TYPE &&
+    chartsInScope.includes(dashboardLayout[childId].meta.chartId)
+  ) {
+    tabsToHighlight.add(tabId);
+  }
+  if (
+    dashboardLayout[childId].children.length === 0 ||
+    (dashboardLayout[childId].type === TAB_TYPE && tabsToHighlight.has(childId))
+  ) {
+    return;
+  }
+  dashboardLayout[childId].children.forEach(subChildId =>
+    findTabsWithChartsInScope(
+      dashboardLayout,
+      chartsInScope,
+      subChildId,
+      tabId,
+      tabsToHighlight,
+    ),
+  );
+};
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -268,11 +299,30 @@ class Tabs extends React.PureComponent {
       renderHoverMenu,
       isComponentVisible: isCurrentTabVisible,
       editMode,
+      focusedFilterScope,
+      dashboardLayout,
     } = this.props;
 
     const { children: tabIds } = tabsComponent;
     const { tabIndex: selectedTabIndex, activeKey } = this.state;
 
+    const tabsToHighlight = new Set();
+    if (focusedFilterScope) {
+      const chartsInScope = getChartIdsInFilterScope({
+        filterScope: focusedFilterScope.scope,
+      });
+      tabIds.forEach(tabId => {
+        if (!tabsToHighlight.has(tabId)) {
+          findTabsWithChartsInScope(
+            dashboardLayout,
+            chartsInScope,
+            tabId,
+            tabId,
+            tabsToHighlight,
+          );
+        }
+      });
+    }
     return (
       <DragDroppable
         component={tabsComponent}
@@ -322,6 +372,9 @@ class Tabs extends React.PureComponent {
                       columnWidth={columnWidth}
                       onDropOnTab={this.handleDropOnTab}
                       isFocused={activeKey === tabId}
+                      isHighlighted={
+                        activeKey !== tabId && tabsToHighlight.has(tabId)
+                      }
                     />
                   }
                 >
