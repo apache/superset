@@ -1,0 +1,11 @@
+schemaVersion: "2.0.0"
+fileExistenceTests:
+- name: superset_home
+  path: /app/superset_home
+  uid: 1000
+  gid: 1000
+metadataTest:
+  env:
+  - key: SUPERSET_HOME
+    value: /app/superset_home
+  exposedPorts: ["8088"]

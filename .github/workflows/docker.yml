@@ -34,6 +34,12 @@ jobs:
           docker build --target ci -t ${{ github.sha }} -t "pr-${{ github.event.pull_request.number }}" .
           docker save ${{ github.sha }} | gzip > ./build/${{ github.sha }}.tar.gz
 
+      - name: Test built image
+        uses: brpaz/structure-tests-action@v1.1.2
+        with:
+         image: "pr-${{ github.event.pull_request.number }}"
+         configFile: docker/container_image_test.yml
+
       - name: Upload build artifacts
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v2
