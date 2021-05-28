@@ -107,6 +107,7 @@ function mapStateToProps(
   const component = dashboardLayout[id];
   const props = {
     component,
+    dashboardLayout,
     parentComponent: dashboardLayout[parentId],
     editMode: dashboardState.editMode,
     undoLength: undoableLayout.past.length,
