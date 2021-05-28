@@ -231,6 +231,8 @@ class TableColumn(Model, BaseColumn):
     @property
     def type_generic(self) -> Optional[utils.GenericDataType]:
         column_spec = self.db_engine_spec.get_column_spec(self.type)
+        if self.is_dttm:
+            return GenericDataType.TEMPORAL
         return column_spec.generic_type if column_spec else None
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
