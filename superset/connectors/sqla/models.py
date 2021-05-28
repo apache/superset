@@ -684,7 +684,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         col.update(
                             {
                                 "type": db_type,
-                                "general_type": type_spec.generic_type
+                                "generic_type": type_spec.generic_type
                                 if type_spec
                                 else None,
                                 "is_dttm": type_spec.is_dttm if type_spec else None,
@@ -694,7 +694,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 # from different drivers that fall outside CompileError
                 except Exception:  # pylint: disable=broad-except
                     col.update(
-                        {"type": "UNKNOWN", "general_type": None, "is_dttm": None,}
+                        {"type": "UNKNOWN", "generic_type": None, "is_dttm": None,}
                     )
         return cols
 
