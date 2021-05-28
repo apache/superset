@@ -132,10 +132,10 @@ describe('Welcome', () => {
     const savedQueryCall = fetchMock.calls(/saved_query\/\?q/);
     const recentCall = fetchMock.calls(/superset\/recent_activity\/*/);
     const dashboardCall = fetchMock.calls(/dashboard\/\?q/);
-    expect(chartCall).toHaveLength(1);
+    expect(chartCall).toHaveLength(2);
     expect(recentCall).toHaveLength(1);
     expect(savedQueryCall).toHaveLength(1);
-    expect(dashboardCall).toHaveLength(1);
+    expect(dashboardCall).toHaveLength(2);
   });
 });
 
