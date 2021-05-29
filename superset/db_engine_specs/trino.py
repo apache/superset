@@ -86,7 +86,7 @@ class TrinoEngineSpec(BaseEngineSpec):
         url = make_url(uri)
         backend_name = url.get_backend_name()
 
-        # Must be Presto connection, enable impersonation, and set optional param
+        # Must be Trino connection, enable impersonation, and set optional param
         # auth=LDAP|KERBEROS
         # Set principal_username=$effective_username
         if backend_name == "trino" and username is not None:
