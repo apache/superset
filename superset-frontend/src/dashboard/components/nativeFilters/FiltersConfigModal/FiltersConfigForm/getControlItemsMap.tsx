@@ -25,11 +25,11 @@ import { Checkbox } from 'src/common/components';
 import { FormInstance } from 'antd/lib/form';
 import { getChartControlPanelRegistry, styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
+import { FormItem } from 'src/components/Form';
 import { getControlItems, setNativeFilterFieldValues } from './utils';
 import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
 import { StyledRowFormItem } from './FiltersConfigForm';
 import { Filter } from '../../types';
-import { FormItem } from 'src/components/Form';
 
 export interface ControlItemsProps {
   disabled: boolean;
