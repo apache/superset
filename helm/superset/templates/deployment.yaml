@@ -56,7 +56,7 @@ spec:
         app: {{ template "superset.name" . }}
         release: {{ .Release.Name }}
     spec:
-    {{- if .Values.serviceAccount.create -}}
+    {{- if .Values.serviceAccount.create }}
       serviceAccountName: {{ template "superset.name" . }}
     {{- end }}
       securityContext:
