@@ -16,9 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as GwwkChartsChartPlugin } from './plugin-chart-gwwk-charts/src/Charts';
-export { default as GwwkDatasetsChartPlugin } from './plugin-chart-gwwk-charts/src/Datasets';
-export { default as GwwkDashboardsChartPlugin } from './plugin-chart-gwwk-charts/src/Dashboards';
-export { default as IframeDemoChartPlugin } from './plugin-chart-iframe-demo/src/plugin';
-export { default as CccsGridChartPlugin } from './plugin-chart-cccs-grid/src/plugin';
-export { default as StatusIndicatorChartPlugin } from './plugin-chart-status-indicator/src/chart';
+import { GwwkChartsChartPlugin } from '../src';
+
+/**
+ * The example tests in this file act as a starting point, and
+ * we encourage you to build more. These tests check that the
+ * plugin loads properly, and focus on `transformProps`
+ * to ake sure that data, controls, and props are all
+ * treated correctly (e.g. formData from plugin controls
+ * properly transform the data and/or any resulting props).
+ */
+describe('@superset-ui/plugin-chart-iframe-demo', () => {
+  it('exists', () => {
+    expect(GwwkChartsChartPlugin).toBeDefined();
+  });
+});

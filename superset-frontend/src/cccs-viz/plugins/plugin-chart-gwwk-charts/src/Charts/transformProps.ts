@@ -16,9 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as GwwkChartsChartPlugin } from './plugin-chart-gwwk-charts/src/Charts';
-export { default as GwwkDatasetsChartPlugin } from './plugin-chart-gwwk-charts/src/Datasets';
-export { default as GwwkDashboardsChartPlugin } from './plugin-chart-gwwk-charts/src/Dashboards';
-export { default as IframeDemoChartPlugin } from './plugin-chart-iframe-demo/src/plugin';
-export { default as CccsGridChartPlugin } from './plugin-chart-cccs-grid/src/plugin';
-export { default as StatusIndicatorChartPlugin } from './plugin-chart-status-indicator/src/chart';
+import { ChartProps, TimeseriesDataRecord } from '@superset-ui/core';
+import { getSelectedValues } from '../utils'
+
+export default function transformProps(chartProps: ChartProps) {
+  const { width, height, formData, queriesData } = chartProps;
+  const { mode, boldText, headerFontSize, headerText } = formData;
+  let data = queriesData[0].data as TimeseriesDataRecord[];
+  console.log('formData via TransformProps.ts', formData);
+
+  const selected_values = getSelectedValues(formData)
+
+  return {
+    width,
+    height,
+    data,
+    // and now your control data, manipulated as needed, and passed through as props!
+    selected_values,
+    mode,
+    boldText,
+    headerFontSize,
+    headerText
+  };
+}

@@ -16,9 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as GwwkChartsChartPlugin } from './plugin-chart-gwwk-charts/src/Charts';
-export { default as GwwkDatasetsChartPlugin } from './plugin-chart-gwwk-charts/src/Datasets';
-export { default as GwwkDashboardsChartPlugin } from './plugin-chart-gwwk-charts/src/Dashboards';
-export { default as IframeDemoChartPlugin } from './plugin-chart-iframe-demo/src/plugin';
-export { default as CccsGridChartPlugin } from './plugin-chart-cccs-grid/src/plugin';
-export { default as StatusIndicatorChartPlugin } from './plugin-chart-status-indicator/src/chart';
+import { t, validateNonEmpty } from '@superset-ui/core';
+import { ControlPanelConfig } from '@superset-ui/chart-controls';
+
+const config: ControlPanelConfig = {
+  // For control input types, see: superset-frontend/src/explore/components/controls/index.js
+  controlPanelSections: [
+    {
+      label: t('Query'),
+      expanded: true,
+      controlSetRows: [
+        ['adhoc_filters']],
+    },
+    {
+      label: t('Controls'),
+      expanded: true,
+      controlSetRows: [
+      ],
+    },
+  ],
+
+  controlOverrides: {
+    series: {
+      validators: [validateNonEmpty],
+      clearable: false,
+    },
+    row_limit: {
+      default: 1000,
+    },
+  },
+};
+
+export default config;

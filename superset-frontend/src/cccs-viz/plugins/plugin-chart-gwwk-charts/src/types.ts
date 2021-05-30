@@ -16,9 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as GwwkChartsChartPlugin } from './plugin-chart-gwwk-charts/src/Charts';
-export { default as GwwkDatasetsChartPlugin } from './plugin-chart-gwwk-charts/src/Datasets';
-export { default as GwwkDashboardsChartPlugin } from './plugin-chart-gwwk-charts/src/Dashboards';
-export { default as IframeDemoChartPlugin } from './plugin-chart-iframe-demo/src/plugin';
-export { default as CccsGridChartPlugin } from './plugin-chart-cccs-grid/src/plugin';
-export { default as StatusIndicatorChartPlugin } from './plugin-chart-status-indicator/src/chart';
+import { QueryFormData, supersetTheme, TimeseriesDataRecord } from '@superset-ui/core';
+
+export interface GwwkChartsStylesProps {
+  height: number;
+  width: number;
+  headerFontSize: keyof typeof supersetTheme.typography.sizes;
+  boldText: boolean;
+}
+
+interface GwwkChartsCustomizeProps {
+  headerText: string;
+}
+
+export type GwwkChartsQueryFormData = QueryFormData &
+  GwwkChartsStylesProps &
+  GwwkChartsCustomizeProps;
+
+export type GwwkChartsProps = GwwkChartsStylesProps &
+  GwwkChartsCustomizeProps & {
+    data: TimeseriesDataRecord[];
+    selected_values: string[];
+    mode: string;
+    // add typing here for the props you pass in from transformProps.ts!
+  };
