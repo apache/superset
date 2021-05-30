@@ -433,6 +433,7 @@ const FiltersConfigForm = (
         filterId,
         filterType: formFilter.filterType,
         filterToEdit,
+        formFilter,
       })
     : {};
 
@@ -564,22 +565,22 @@ const FiltersConfigForm = (
         >
           <Collapse.Panel
             forceRender
-              header={FilterPanels.basic.name}
-              key={FilterPanels.basic.key}
-            >
-              {hasFilledDataset && (
-                <CleanFormItem
-                  name={['filters', filterId, 'defaultValueFormData']}
-                  hidden
-                  initialValue={newFormData}
-                />
-              )}
+            header={FilterPanels.basic.name}
+            key={FilterPanels.basic.key}
+          >
+            {hasFilledDataset && (
               <CleanFormItem
-                name={['filters', filterId, 'defaultValueQueriesData']}
+                name={['filters', filterId, 'defaultValueFormData']}
                 hidden
-                initialValue={null}
+                initialValue={newFormData}
               />
-              <CollapsibleControl
+            )}
+            <CleanFormItem
+              name={['filters', filterId, 'defaultValueQueriesData']}
+              hidden
+              initialValue={null}
+            />
+            <CollapsibleControl
               title={t('Filter has default value')}
               checked={hasDefaultValue}
               onChange={value => setHasDefaultValue(value)}
@@ -600,9 +601,11 @@ const FiltersConfigForm = (
                       if (hasValue) {
                         return Promise.resolve();
                       }
-                      return Promise.reject(
-                        new Error(t('Default value is required')),
-                      );
+                      return Promise.resolve();
+                      // TODO: Some values does default value empty and disabled so there is no value
+                      // return Promise.reject(
+                      //   new Error(t('Default value is required')),
+                      // );
                     },
                   },
                 ]}
@@ -642,10 +645,10 @@ const FiltersConfigForm = (
                 {t('Apply changes instantly')}
               </Checkbox>
             </StyledRowFormItem>
-            </Collapse.Panel>
-            {((hasDataset && hasAdditionalFilters) || hasMetrics) && (
-              <Collapse.Panel
-                forceRender
+          </Collapse.Panel>
+          {((hasDataset && hasAdditionalFilters) || hasMetrics) && (
+            <Collapse.Panel
+              forceRender
               header={FilterPanels.advanced.name}
               key={FilterPanels.advanced.key}
             >

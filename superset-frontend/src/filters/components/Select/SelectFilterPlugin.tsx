@@ -29,12 +29,7 @@ import {
   t,
   tn,
 } from '@superset-ui/core';
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Select } from 'src/common/components';
 import debounce from 'lodash/debounce';
 import { SLOW_DEBOUNCE } from 'src/constants';
@@ -131,8 +126,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     (values: SelectValue) => {
       const emptyFilter =
         enableEmptyFilter && !inverseSelection && !values?.length;
-    const suffix =
-      inverseSelection && values?.length ? ` (${t('excluded')})` : '';
+
+      const suffix =
+        inverseSelection && values?.length ? ` (${t('excluded')})` : '';
 
       dispatchDataMask({
         type: 'filterState',
