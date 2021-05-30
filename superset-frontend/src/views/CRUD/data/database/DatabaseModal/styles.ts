@@ -81,7 +81,6 @@ export const antDModalNoPaddingStyles = css`
   .ant-modal-body {
     padding-left: 0;
     padding-right: 0;
-    margin-bottom: 110px;
   }
 `;
 

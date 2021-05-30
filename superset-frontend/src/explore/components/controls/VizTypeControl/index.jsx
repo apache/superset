@@ -19,14 +19,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Input, Row, Col } from 'src/common/components';
-import { Behavior, t, getChartMetadataRegistry } from '@superset-ui/core';
+import { t, getChartMetadataRegistry } from '@superset-ui/core';
 import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
 import Modal from 'src/components/Modal';
 import { Tooltip } from 'src/components/Tooltip';
 import Label from 'src/components/Label';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import './VizTypeControl.less';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 
 const propTypes = {
   description: PropTypes.string,
@@ -107,11 +107,6 @@ function VizSupportValidation({ vizType }) {
     </div>
   );
 }
-
-const nativeFilterGate = behaviors =>
-  !behaviors.includes(Behavior.NATIVE_FILTER) ||
-  (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
-    behaviors.includes(Behavior.INTERACTIVE_CHART));
 
 const VizTypeControl = props => {
   const [showModal, setShowModal] = useState(false);

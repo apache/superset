@@ -76,8 +76,8 @@ const addFilterFlow = async () => {
   userEvent.click(screen.getByTestId(getTestId('collapsable')));
   userEvent.click(screen.getByTestId(getTestId('create-filter')));
   // select filter
-  userEvent.click(screen.getByText('Select filter'));
-  userEvent.click(screen.getByText('Time filter'));
+  userEvent.click(screen.getByText('Value'));
+  userEvent.click(screen.getByText('Time range'));
   userEvent.type(screen.getByTestId(getModalTestId('name-input')), FILTER_NAME);
   userEvent.click(screen.getByText('Save'));
   await screen.findByText('All Filters (1)');

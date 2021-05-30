@@ -309,7 +309,8 @@ class TableColumn(Model, BaseColumn):
         ],
     ) -> str:
         """Convert datetime object to a SQL expression string"""
-        sql = self.db_engine_spec.convert_dttm(self.type, dttm) if self.type else None
+        dttm_type = self.type or ("DATETIME" if self.is_dttm else None)
+        sql = self.db_engine_spec.convert_dttm(dttm_type, dttm) if dttm_type else None
 
         if sql:
             return sql

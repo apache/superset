@@ -20,6 +20,7 @@
 import {
   AppSection,
   DataMask,
+  DataRecord,
   ensureIsArray,
   ExtraFormData,
   GenericDataType,
@@ -28,11 +29,17 @@ import {
   t,
   tn,
 } from '@superset-ui/core';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { Select } from 'src/common/components';
 import debounce from 'lodash/debounce';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { useImmerReducer } from 'use-immer';
+import { CheckOutlined, StopOutlined } from '@ant-design/icons';
 import { PluginFilterSelectProps, SelectValue } from './types';
 import { StyledSelect, Styles } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -45,7 +52,7 @@ type DataMaskAction =
       type: 'filterState';
       __cache: JsonObject;
       extraFormData: ExtraFormData;
-      filterState: { value: SelectValue; isInitialized?: boolean };
+      filterState: { value: SelectValue; label?: string };
     };
 
 function reducer(
@@ -95,6 +102,23 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   } = formData;
   const groupby = ensureIsArray<string>(formData.groupby);
   const [col] = groupby;
+  const [selectedValues, setSelectedValues] = useState<SelectValue>(
+    filterState.value,
+  );
+  const sortedData = useMemo(() => {
+    const firstData: DataRecord[] = [];
+    const restData: DataRecord[] = [];
+    data.forEach(row => {
+      // @ts-ignore
+      if (selectedValues?.includes(row[col])) {
+        firstData.push(row);
+      } else {
+        restData.push(row);
+      }
+    });
+    return [...firstData, ...restData];
+  }, [col, selectedValues, data]);
+  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [currentSuggestionSearch, setCurrentSuggestionSearch] = useState('');
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
@@ -107,6 +131,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     (values: SelectValue) => {
       const emptyFilter =
         enableEmptyFilter && !inverseSelection && !values?.length;
+    const suffix =
+      inverseSelection && values?.length ? ` (${t('excluded')})` : '';
 
       dispatchDataMask({
         type: 'filterState',
@@ -118,6 +144,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           inverseSelection,
         ),
         filterState: {
+          label: `${(values || []).join(', ')}${suffix}`,
           value:
             appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem
               ? undefined
@@ -135,6 +162,12 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       JSON.stringify(filterState),
     ],
   );
+
+  useEffect(() => {
+    if (!isDropdownVisible) {
+      setSelectedValues(filterState.value);
+    }
+  }, [JSON.stringify(filterState.value)]);
 
   const isDisabled =
     appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem;
@@ -173,6 +206,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const handleBlur = () => {
     clearSuggestionSearch();
     unsetFocusedFilter();
+    setSelectedValues(filterState.value);
   };
 
   const datatype: GenericDataType = coltypeMap[col];
@@ -240,13 +274,18 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         onSearch={searchWrapper}
         onSelect={clearSuggestionSearch}
         onBlur={handleBlur}
+        onDropdownVisibleChange={setIsDropdownVisible}
         onFocus={setFocusedFilter}
         // @ts-ignore
         onChange={handleChange}
         ref={inputRef}
         loading={isRefreshing}
+        maxTagCount={5}
+        menuItemSelectedIcon={
+          inverseSelection ? <StopOutlined /> : <CheckOutlined />
+        }
       >
-        {data.map(row => {
+        {sortedData.map(row => {
           const [value] = groupby.map(col => row[col]);
           return (
             // @ts-ignore

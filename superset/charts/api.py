@@ -63,7 +63,7 @@ from superset.charts.schemas import (
     screenshot_query_schema,
     thumbnail_query_schema,
 )
-from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.exceptions import QueryObjectValidationError
@@ -977,7 +977,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     @expose("/import/", methods=["POST"])
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
@@ -1029,6 +1028,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         with ZipFile(upload) as bundle:
             contents = get_contents_from_bundle(bundle)
 
+        if not contents:
+            raise NoValidFilesFoundError()
+
         passwords = (
             json.loads(request.form["passwords"])
             if "passwords" in request.form
@@ -1039,12 +1041,5 @@ class ChartRestApi(BaseSupersetModelRestApi):
         command = ImportChartsCommand(
             contents, passwords=passwords, overwrite=overwrite
         )
-        try:
-            command.run()
-            return self.response(200, message="OK")
-        except CommandInvalidError as exc:
-            logger.warning("Import chart failed")
-            return self.response_422(message=exc.normalized_messages())
-        except Exception as exc:  # pylint: disable=broad-except
-            logger.exception("Import chart failed")
-            return self.response_500(message=str(exc))
+        command.run()
+        return self.response(200, message="OK")

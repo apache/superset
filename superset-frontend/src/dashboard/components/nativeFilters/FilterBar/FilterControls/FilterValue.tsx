@@ -47,6 +47,9 @@ import { useCascadingFilters } from './state';
 const FilterItem = styled.div`
   min-height: ${({ theme }) => theme.gridUnit * 11}px;
   padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+  & > div > div {
+    height: auto;
+  }
 `;
 
 const FilterValue: React.FC<FilterProps> = ({
