@@ -109,6 +109,10 @@ image:
 imagePullSecrets: []
 
 
+serviceAccount:
+  create: true
+  annotations: {}
+
 service:
   type: ClusterIP
   port: 8088
