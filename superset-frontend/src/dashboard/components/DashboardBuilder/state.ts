@@ -19,17 +19,21 @@
 import { useSelector } from 'react-redux';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { useEffect, useState } from 'react';
+import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
+import { RootState } from 'src/dashboard/types';
 import {
   useFilters,
   useNativeFiltersDataMask,
 } from '../nativeFilters/FilterBar/state';
 import { Filter } from '../nativeFilters/types';
-import { RootState } from '../../types';
 
 // eslint-disable-next-line import/prefer-default-export
 export const useNativeFilters = () => {
   const [isInitialized, setIsInitialized] = useState(false);
-  const [dashboardFiltersOpen, setDashboardFiltersOpen] = useState(true);
+  const [dashboardFiltersOpen, setDashboardFiltersOpen] = useState(
+    getUrlParam(URL_PARAMS.showFilters) ?? true,
+  );
   const showNativeFilters = useSelector<RootState, boolean>(
     state => state.dashboardInfo.metadata?.show_native_filters,
   );
