@@ -27,6 +27,7 @@ import { Row, Col, Grid } from 'antd';
 import Icon from 'src/components/Icon';
 import RightMenu from './MenuRight';
 import { Languages } from './LanguagePicker';
+import { URL_PARAMS } from '../../constants';
 
 interface BrandProps {
   path: string;
@@ -158,7 +159,7 @@ export function Menu({
     return () => window.removeEventListener('resize', windowResize);
   }, []);
 
-  const standalone = getUrlParam('standalone', 'boolean');
+  const standalone = getUrlParam(URL_PARAMS.standalone);
   if (standalone) return <></>;
 
   const renderSubMenu = ({
