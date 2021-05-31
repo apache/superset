@@ -244,6 +244,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     data.length === 0
       ? t('No data')
       : tn('%s option', '%s options', data.length, data.length);
+  const Icon = inverseSelection ? Icons.StopOutlined : Icons.CheckOutlined;
+
   return (
     <Styles height={height} width={width}>
       <StyledSelect
@@ -264,13 +266,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         ref={inputRef}
         loading={isRefreshing}
         maxTagCount={5}
-        menuItemSelectedIcon={
-          inverseSelection ? (
-            <Icons.StopOutlined iconSize="m" />
-          ) : (
-            <Icons.CheckOutlined iconSize="m" />
-          )
-        }
+        menuItemSelectedIcon={<Icon iconSize="m" />}
       >
         {sortedData.map(row => {
           const [value] = groupby.map(col => row[col]);
