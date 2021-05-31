@@ -279,10 +279,10 @@ export default class ResultSet extends React.PureComponent<
     // Remove the special filters entry from the templateParams
     // before saving the dataset.
     if (templateParams) {
-      const p = JSON.parse(templateParams)
+      const p = JSON.parse(templateParams);
       if (p.filters) {
-        delete p['filters']
-        templateParams = JSON.stringify(p)
+        delete p._filters;
+        templateParams = JSON.stringify(p);
       }
     }
 
