@@ -168,7 +168,7 @@ class HeaderActionsDropdown extends React.PureComponent {
           window.location.pathname,
           getActiveFilters(),
           window.location.hash,
-          getUrlParam(URL_PARAMS.standalone, 'number'),
+          getUrlParam(URL_PARAMS.standalone),
         );
         window.location.replace(url);
         break;
