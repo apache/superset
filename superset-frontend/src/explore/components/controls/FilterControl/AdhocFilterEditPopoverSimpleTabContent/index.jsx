@@ -39,6 +39,7 @@ import AdhocFilter, {
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import columnType from 'src/explore/components/controls/FilterControl/columnType';
+import Icons from 'src/components/Icons';
 
 const SelectWithLabel = styled(Select)`
   .ant-select-selector {
@@ -368,6 +369,8 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       labelText: comparator?.length > 0 && this.createSuggestionsPlaceholder(),
       autoFocus: focusComparator,
     };
+    const Icon =
+      operator === 'NOT IN' ? Icons.StopOutlined : Icons.CheckOutlined;
 
     return (
       <>
@@ -417,6 +420,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
             onSearch={val => this.setState({ currentSuggestionSearch: val })}
             onSelect={this.clearSuggestionSearch}
             onBlur={this.clearSuggestionSearch}
+            menuItemSelectedIcon={<Icon iconSize="m" />}
           >
             {this.state.suggestions.map(suggestion => (
               <Select.Option value={suggestion} key={suggestion}>
@@ -430,7 +434,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
                 suggestion => suggestion === currentSuggestionSearch,
               ) && (
                 <Select.Option value={currentSuggestionSearch}>
-                  {currentSuggestionSearch}
+                  {`${t('Create "%s"', currentSuggestionSearch)}`}
                 </Select.Option>
               )}
           </SelectWithLabel>
