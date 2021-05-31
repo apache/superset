@@ -85,37 +85,46 @@ const defaultProps = {
  * If ChartHolder were a function component, this could be implemented as a hook instead.
  */
 const FilterFocusHighlight = React.forwardRef(
-  ({ chartId, focusedFilterScope, ...otherProps }, ref) => {
+  ({ chartId, focusedFilterScope, nativeFilters, ...otherProps }, ref) => {
     const theme = useTheme();
-    if (!focusedFilterScope) return <div ref={ref} {...otherProps} />;
+    const focusedNativeFilterId = nativeFilters.focusedFilterId;
+    if (!(focusedFilterScope || focusedNativeFilterId))
+      return <div ref={ref} {...otherProps} />;
 
     // we use local styles here instead of a conditionally-applied class,
     // because adding any conditional class to this container
     // causes performance issues in Chrome.
 
     // default to the "de-emphasized" state
-    let styles = { opacity: 0.3, pointerEvents: 'none' };
+    const unfocusedChartStyles = { opacity: 0.3, pointerEvents: 'none' };
+    const focusedChartStyles = {
+      borderColor: theme.colors.primary.light2,
+      opacity: 1,
+      boxShadow: `0px 0px ${theme.gridUnit * 2}px ${
+        theme.colors.primary.light2
+      }`,
+      pointerEvents: 'auto',
+    };
 
-    if (
+    if (focusedNativeFilterId) {
+      if (
+        nativeFilters.filters[focusedNativeFilterId].chartsInScope.includes(
+          chartId,
+        )
+      ) {
+        return <div ref={ref} style={focusedChartStyles} {...otherProps} />;
+      }
+    } else if (
       chartId === focusedFilterScope.chartId ||
       getChartIdsInFilterScope({
         filterScope: focusedFilterScope.scope,
       }).includes(chartId)
     ) {
-      // apply the "highlighted" state if this chart
-      // contains a filter being focused, or is in scope of a focused filter.
-      styles = {
-        borderColor: theme.colors.primary.light2,
-        opacity: 1,
-        boxShadow: `0px 0px ${theme.gridUnit * 2}px ${
-          theme.colors.primary.light2
-        }`,
-        pointerEvents: 'auto',
-      };
+      return <div ref={ref} style={focusedChartStyles} {...otherProps} />;
     }
 
     // inline styles are used here due to a performance issue when adding/changing a class, which causes a reflow
-    return <div ref={ref} style={styles} {...otherProps} />;
+    return <div ref={ref} style={unfocusedChartStyles} {...otherProps} />;
   },
 );
 
@@ -233,6 +242,7 @@ class ChartHolder extends React.Component {
       isComponentVisible,
       dashboardId,
       focusedFilterScope,
+      nativeFilters,
     } = this.props;
 
     // inherit the size of parent columns
@@ -291,6 +301,7 @@ class ChartHolder extends React.Component {
             <FilterFocusHighlight
               chartId={chartId}
               focusedFilterScope={focusedFilterScope}
+              nativeFilters={nativeFilters}
               ref={dragSourceRef}
               data-test="dashboard-component-chart-holder"
               className={cx(
