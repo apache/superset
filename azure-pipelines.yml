@@ -5,7 +5,7 @@
 
 
 trigger:
-- master
+- cccs-*
 
 resources:
 - repo: self
