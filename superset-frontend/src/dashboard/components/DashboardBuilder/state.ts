@@ -49,16 +49,16 @@ export const useNativeFilters = () => {
     ({ requiredFirst }) => requiredFirst,
   );
   const dataMask = useNativeFiltersDataMask();
-  const showDashboard = isInitialized
-    ? true
-    : !nativeFiltersEnabled ||
-      !(
-        nativeFiltersEnabled &&
-        requiredFirstFilter.length &&
-        requiredFirstFilter.find(
-          ({ id }) => dataMask[id]?.filterState?.value === undefined,
-        )
-      );
+  const showDashboard =
+    isInitialized ||
+    !nativeFiltersEnabled ||
+    !(
+      nativeFiltersEnabled &&
+      requiredFirstFilter.length &&
+      requiredFirstFilter.find(
+        ({ id }) => dataMask[id]?.filterState?.value === undefined,
+      )
+    );
 
   const toggleDashboardFiltersOpen = (visible?: boolean) => {
     setDashboardFiltersOpen(visible ?? !dashboardFiltersOpen);

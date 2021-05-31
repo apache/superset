@@ -46,10 +46,10 @@ import {
   DashboardStandaloneMode,
 } from 'src/dashboard/util/constants';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
+import Loading from 'src/components/Loading';
 import { StickyVerticalBar } from '../StickyVerticalBar';
 import { shouldFocusTabs, getRootLevelTabsComponent } from './utils';
 import DashboardContainer from './DashboardContainer';
-import Loading from '../../../components/Loading';
 import { useNativeFilters } from './state';
 
 const TABS_HEIGHT = 47;
