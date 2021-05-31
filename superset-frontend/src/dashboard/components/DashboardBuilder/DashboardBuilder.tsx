@@ -131,7 +131,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
       : undefined;
 
   const hideDashboardHeader =
-    getUrlParam(URL_PARAMS.standalone, 'number') ===
+    getUrlParam(URL_PARAMS.standalone) ===
     DashboardStandaloneMode.HIDE_NAV_AND_TITLE;
 
   const barTopOffset =

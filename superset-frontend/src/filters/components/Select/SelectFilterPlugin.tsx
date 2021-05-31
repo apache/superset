@@ -34,7 +34,7 @@ import { Select } from 'src/common/components';
 import debounce from 'lodash/debounce';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { useImmerReducer } from 'use-immer';
-import { CheckOutlined, StopOutlined } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 import { PluginFilterSelectProps, SelectValue } from './types';
 import { StyledSelect, Styles } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -257,6 +257,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     data.length === 0
       ? t('No data')
       : tn('%s option', '%s options', data.length, data.length);
+  const Icon = inverseSelection ? Icons.StopOutlined : Icons.CheckOutlined;
+
   return (
     <Styles height={height} width={width}>
       <StyledSelect
@@ -277,9 +279,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         ref={inputRef}
         loading={isRefreshing}
         maxTagCount={5}
-        menuItemSelectedIcon={
-          inverseSelection ? <StopOutlined /> : <CheckOutlined />
-        }
+        menuItemSelectedIcon={<Icon iconSize="m" />}
       >
         {sortedData.map(row => {
           const [value] = groupby.map(col => row[col]);
@@ -295,7 +295,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             suggestion => suggestion === currentSuggestionSearch,
           ) && (
             <Option value={currentSuggestionSearch}>
-              {currentSuggestionSearch}
+              {`${t('Create "%s"', currentSuggestionSearch)}`}
             </Option>
           )}
       </StyledSelect>
