@@ -23,7 +23,7 @@ import { ButtonProps as AntdButtonProps } from 'antd/lib/button';
 
 export interface IconButtonProps extends AntdButtonProps {
   buttonText: string;
-  logo: string;
+  icon: string;
   altText?: string;
 }
 
@@ -93,11 +93,11 @@ const StyledBottom = styled.div`
 `;
 
 const IconButton = styled(
-  ({ logo, altText, buttonText, ...props }: IconButtonProps) => (
+  ({ icon, altText, buttonText, ...props }: IconButtonProps) => (
     <StyledButton {...props}>
       <StyledImage>
         <img
-          src={logo || '/images/icons/image.svg'}
+          src={icon || '/images/icons/image.svg'}
           alt={altText || 'Default database log'}
         />
       </StyledImage>

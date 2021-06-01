@@ -28,7 +28,7 @@ export const InteractiveIconButton = (args: IconButtonProps) => (
   <IconButton
     buttonText={args.buttonText}
     altText={args.altText}
-    logo={args.logo}
+    icon={args.icon}
     href={args.href}
     target={args.target}
     htmlType={args.htmlType}
@@ -43,7 +43,7 @@ InteractiveIconButton.args = {
 };
 
 InteractiveIconButton.argTypes = {
-  logo: {
+  icon: {
     defaultValue: '/images/icons/sql.svg',
     control: {
       type: 'select',
