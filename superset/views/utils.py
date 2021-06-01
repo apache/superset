@@ -127,13 +127,16 @@ def loads_request_json(request_json_data: str) -> Dict[Any, Any]:
 def get_form_data(  # pylint: disable=too-many-locals
     slice_id: Optional[int] = None, use_slice_data: bool = False
 ) -> Tuple[Dict[str, Any], Optional[Slice]]:
-    form_data = {}
+    form_data: Dict[str, Any] = {}
     # chart data API requests are JSON
     request_json_data = (
         request.json["queries"][0]
         if request.is_json and "queries" in request.json
         else None
     )
+
+    add_sqllab_custom_filters(form_data)
+
     request_form_data = request.form.get("form_data")
     request_args_data = request.args.get("form_data")
     if request_json_data:
@@ -194,6 +197,26 @@ def get_form_data(  # pylint: disable=too-many-locals
         )
 
     return form_data, slc
+
+
+def add_sqllab_custom_filters(form_data: Dict[Any, Any]) -> Any:
+    """
+    SQLLab can include a "filters" attribute in the templateParams.
+    The filters attribute is a list of filters to include in the
+    request. Useful for testing templates in SQLLab.
+    """
+    try:
+        data = json.loads(request.data)
+        if isinstance(data, dict):
+            params_str = data.get("templateParams")
+            if isinstance(params_str, str):
+                params = json.loads(params_str)
+                if isinstance(params, dict):
+                    filters = params.get("filters")
+                    if filters:
+                        form_data.update({"filters": filters})
+    except (TypeError, json.JSONDecodeError):
+        data = {}
 
 
 def get_datasource_info(

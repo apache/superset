@@ -271,8 +271,21 @@ export default class ResultSet extends React.PureComponent<
       return;
     }
 
-    const { schema, sql, dbId, templateParams } = this.props.query;
+    const { schema, sql, dbId } = this.props.query;
+    let { templateParams } = this.props.query;
     const selectedColumns = this.props.query?.results?.selected_columns || [];
+
+    // The filters param is only used to test jinja templates.
+    // Remove the special filters entry from the templateParams
+    // before saving the dataset.
+    if (templateParams) {
+      const p = JSON.parse(templateParams);
+      if (p.filters) {
+        /* eslint-disable-next-line no-underscore-dangle */
+        delete p._filters;
+        templateParams = JSON.stringify(p);
+      }
+    }
 
     this.props.actions
       .createDatasource({
