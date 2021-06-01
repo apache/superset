@@ -25,7 +25,7 @@ import React, {
   Reducer,
 } from 'react';
 import Tabs from 'src/components/Tabs';
-import { Alert } from 'src/common/components';
+import { Alert, Select } from 'src/common/components';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -59,6 +59,7 @@ import {
   formHelperStyles,
   formStyles,
   StyledBasicTab,
+  SelectDatabaseStyles,
 } from './styles';
 
 const DOCUMENTATION_LINK =
@@ -119,7 +120,7 @@ type DBReducerActionType =
   | {
       type: ActionType.configMethodChange;
       payload: { configuration_method: CONFIGURATION_METHOD };
-    };
+    }
 
 function dbReducer(
   state: Partial<DatabaseObject> | null,
@@ -166,13 +167,16 @@ function dbReducer(
         ...action.payload,
       };
     case ActionType.dbSelected:
+      return {
+        ...action.payload,
+      };
     case ActionType.configMethodChange:
       return {
         ...action.payload,
       };
     case ActionType.reset:
     default:
-      return {};
+      return null;
   }
 }
 
@@ -195,6 +199,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [validationErrors, getValidation] = useDatabaseValidation();
   const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
   const [dbName, setDbName] = useState('');
+  const [isLoading, setLoading] = useState<boolean>(false);
   const conf = useCommonConf();
 
   const isEditMode = !!databaseId;
@@ -298,12 +303,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (show) {
       setTabKey(DEFAULT_TAB_KEY);
       getAvailableDbs();
-      setDB({
-        type: ActionType.dbSelected,
-        payload: {
-          configuration_method: CONFIGURATION_METHOD.SQLALCHEMY_URI,
-        }, // todo hook this up to step 1
-      });
+      setLoading(true);
     }
     if (databaseId && show) {
       fetchDB();
@@ -321,6 +321,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       setDbName(dbFetched.database_name);
     }
   }, [dbFetched]);
+
+  useEffect(() => {
+    if (isLoading) {
+      setLoading(false);
+    }
+  }, [availableDbs, isLoading]);
 
   const tabChange = (key: string) => {
     setTabKey(key);
@@ -537,6 +543,31 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             getValidation={() => getValidation(db)}
             validationErrors={validationErrors}
           />
+          {!isLoading && !db && (
+            <SelectDatabaseStyles>
+              <label className="label-select">
+                What database would you like to connect?
+              </label>
+              <Select
+                style={{ width: '100%' }}
+                onChange={option => {
+                  setDB({
+                    type: ActionType.dbSelected,
+                    payload: {
+                      configuration_method: CONFIGURATION_METHOD.DYNAMIC_FORM,
+                      engine: option,
+                    },
+                  });
+                }}
+              >
+                {availableDbs?.databases?.map(database => (
+                  <Select.Option value={database.engine} key={database.engine}>
+                    {database.name}
+                  </Select.Option>
+                ))}
+              </Select>
+            </SelectDatabaseStyles>
+          )}
           <Button
             buttonStyle="link"
             onClick={() =>

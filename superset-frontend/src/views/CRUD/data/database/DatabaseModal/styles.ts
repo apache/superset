@@ -337,3 +337,7 @@ export const EditHeaderSubtitle = styled.div`
   font-size: ${({ theme }) => theme.typography.sizes.l}px;
   font-weight: bold;
 `;
+
+export const SelectDatabaseStyles = styled.div`
+  margin: ${({ theme }) => theme.gridUnit * 4}px;
+`;

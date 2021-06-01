@@ -276,7 +276,9 @@ class DatabaseParametersSchemaMixin:
                 )
             engine_spec = engine_specs[engine]
 
-            if not hasattr(engine_spec, "build_sqlalchemy_uri"):
+            if not hasattr(engine_spec, "build_sqlalchemy_uri") or not hasattr(
+                engine_spec, "parameters_schema"
+            ):
                 raise ValidationError(
                     [
                         _(
@@ -285,6 +287,9 @@ class DatabaseParametersSchemaMixin:
                         )
                     ]
                 )
+
+            # validate parameters
+            parameters = engine_spec.parameters_schema.load(parameters)  # type: ignore
 
             serialized_encrypted_extra = data.get("encrypted_extra", "{}")
             try:
