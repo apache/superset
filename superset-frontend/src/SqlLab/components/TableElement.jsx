@@ -21,18 +21,17 @@ import PropTypes from 'prop-types';
 import Collapse from 'src/components/Collapse';
 import Card from 'src/components/Card';
 import ButtonGroup from 'src/components/ButtonGroup';
-import shortid from 'shortid';
 import { t, styled } from '@superset-ui/core';
 import { debounce } from 'lodash';
 
 import { Tooltip } from 'src/components/Tooltip';
+import Icons from 'src/components/Icons';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { IconTooltip } from '../../components/IconTooltip';
 import ColumnElement from './ColumnElement';
 import ShowSQL from './ShowSQL';
 import ModalTrigger from '../../components/ModalTrigger';
 import Loading from '../../components/Loading';
-import Icons from 'src/components/Icons';
 
 const propTypes = {
   table: PropTypes.object,
@@ -65,17 +64,6 @@ const TableElement = props => {
 
   const setHover = hovered => {
     debounce(() => setHovered(hovered), 100)();
-  };
-
-  const popSelectStar = () => {
-    const qe = {
-      id: shortid.generate(),
-      title: table.name,
-      dbId: table.dbId,
-      autorun: true,
-      sql: table.selectStar,
-    };
-    actions.addQueryEditor(qe);
   };
 
   const removeTable = () => {
@@ -189,41 +177,39 @@ const TableElement = props => {
     );
   };
 
-  const renderHeader = () => {
-    return (
-      <div
-        className="clearfix header-container"
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
+  const renderHeader = () => (
+    <div
+      className="clearfix header-container"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <Tooltip
+        id="copy-to-clipboard-tooltip"
+        placement="topLeft"
+        style={{ cursor: 'pointer' }}
+        title={table.name}
+        trigger={['hover']}
       >
-        <Tooltip
-          id="copy-to-clipboard-tooltip"
-          placement="topLeft"
-          style={{ cursor: 'pointer' }}
-          title={table.name}
-          trigger={['hover']}
-        >
-          <StyledSpan data-test="collapse" className="table-name">
-            <strong>{table.name}</strong>
-          </StyledSpan>
-        </Tooltip>
+        <StyledSpan data-test="collapse" className="table-name">
+          <strong>{table.name}</strong>
+        </StyledSpan>
+      </Tooltip>
 
-        <div className="pull-right header-right-side">
-          {table.isMetadataLoading || table.isExtraMetadataLoading ? (
-            <Loading position="inline" />
-          ) : (
-            <Fade
-              data-test="fade"
-              hovered={hovered}
-              onClick={e => e.stopPropagation()}
-            >
-              {renderControls()}
-            </Fade>
-          )}
-        </div>
+      <div className="pull-right header-right-side">
+        {table.isMetadataLoading || table.isExtraMetadataLoading ? (
+          <Loading position="inline" />
+        ) : (
+          <Fade
+            data-test="fade"
+            hovered={hovered}
+            onClick={e => e.stopPropagation()}
+          >
+            {renderControls()}
+          </Fade>
+        )}
       </div>
-    );
-  };
+    </div>
+  );
 
   const renderBody = () => {
     let cols;
@@ -261,35 +247,33 @@ const TableElement = props => {
     return metadata;
   };
 
-  const collapseExpandIcon = () => {
-    return (
-      <IconTooltip
-        style={{
-          position: 'fixed',
-          right: '16px',
-          left: 'auto',
-          fontSize: '12px',
-          transform: 'rotate(90deg)',
-          display: 'flex',
-          alignItems: 'center',
-        }}
-        aria-label="Collapse"
-        tooltip={t(`${!isActive ? 'Expand' : 'Collapse'} table preview`)}
-      >
-        <Icons.RightOutlined
-          iconSize={'s'}
-          style={isActive ? { transform: 'rotateY(180deg)' } : null}
-        />
-      </IconTooltip>
-    );
-  };
+  const collapseExpandIcon = () => (
+    <IconTooltip
+      style={{
+        position: 'fixed',
+        right: '16px',
+        left: 'auto',
+        fontSize: '12px',
+        transform: 'rotate(90deg)',
+        display: 'flex',
+        alignItems: 'center',
+      }}
+      aria-label="Collapse"
+      tooltip={t(`${!isActive ? 'Expand' : 'Collapse'} table preview`)}
+    >
+      <Icons.RightOutlined
+        iconSize="s"
+        style={isActive ? { transform: 'rotateY(180deg)' } : null}
+      />
+    </IconTooltip>
+  );
 
   return (
     <Collapse.Panel
       {...props}
       header={renderHeader()}
       className="TableElement"
-      forceRender={true}
+      forceRender
       expandIcon={collapseExpandIcon}
     >
       {renderBody()}
