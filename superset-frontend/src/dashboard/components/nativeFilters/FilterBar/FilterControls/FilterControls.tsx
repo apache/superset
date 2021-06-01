@@ -19,10 +19,12 @@
 import React, { FC, useMemo, useState } from 'react';
 import { DataMask, styled, t } from '@superset-ui/core';
 import { css } from '@emotion/react';
+import { useSelector } from 'react-redux';
 import * as portals from 'react-reverse-portal';
 import { DataMaskState } from 'src/dataMask/types';
 import { Collapse } from 'src/common/components';
 import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
+import { RootState } from 'src/dashboard/types';
 import CascadePopover from '../CascadeFilters/CascadePopover';
 import { buildCascadeFiltersTree } from './utils';
 import { useFilters } from '../state';
@@ -51,6 +53,9 @@ const FilterControls: FC<FilterControlsProps> = ({
   const [visiblePopoverId, setVisiblePopoverId] = useState<string | null>(null);
   const filters = useFilters();
   const dashboardLayout = useDashboardLayout();
+  const lastFocusedTabId = useSelector<RootState, string | null>(
+    state => state.dashboardState?.lastFocusedTabId,
+  );
   const filterValues = Object.values<Filter>(filters);
   const portalNodes = React.useMemo(() => {
     const nodes = new Array(filterValues.length);
@@ -74,19 +79,11 @@ const FilterControls: FC<FilterControlsProps> = ({
     element => element.type === TAB_TYPE,
   );
   const showCollapsePanel = dashboardHasTabs && cascadeFilters.length > 0;
-  if (
-    !directPathToChild ||
-    directPathToChild.length === 0 ||
-    !dashboardHasTabs
-  ) {
+  if (!lastFocusedTabId || !dashboardHasTabs) {
     filtersInScope = cascadeFilters;
   } else {
     cascadeFilters.forEach((filter, index) => {
-      if (
-        cascadeFilters[index].tabsInScope?.includes(
-          directPathToChild[directPathToChild.length - 1],
-        )
-      ) {
+      if (cascadeFilters[index].tabsInScope?.includes(lastFocusedTabId)) {
         filtersInScope.push(filter);
       } else {
         filtersOutOfScope.push(filter);
