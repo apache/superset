@@ -326,6 +326,12 @@ class DatabaseValidateParametersSchema(Schema):
         allow_none=True,
         validate=server_cert_validator,
     )
+    configuration_method = EnumField(
+        ConfigurationMethod,
+        by_value=True,
+        allow_none=True,
+        description=configuration_method_description,
+    )
 
 
 class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):

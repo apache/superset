@@ -33,6 +33,7 @@ import {
   testDatabaseConnection,
   useSingleViewResource,
   useAvailableDatabases,
+  useDatabaseValidation,
 } from 'src/views/CRUD/hooks';
 import { useCommonConf } from 'src/views/CRUD/data/database/state';
 import {
@@ -50,10 +51,9 @@ import {
   antDModalStyles,
   antDTabsStyles,
   buttonLinkStyles,
-  CreateHeader,
+  TabHeader,
   CreateHeaderSubtitle,
   CreateHeaderTitle,
-  EditHeader,
   EditHeaderSubtitle,
   EditHeaderTitle,
   formHelperStyles,
@@ -109,7 +109,7 @@ type DBReducerActionType =
   | {
       type: ActionType.dbSelected;
       payload: {
-        parameters: { engine?: string };
+        engine?: string;
         configuration_method: CONFIGURATION_METHOD;
       };
     }
@@ -127,8 +127,6 @@ function dbReducer(
 ): Partial<DatabaseObject> | null {
   const trimmedState = {
     ...(state || {}),
-    database_name: state?.database_name?.trim() || '',
-    sqlalchemy_uri: state?.sqlalchemy_uri || '',
   };
 
   switch (action.type) {
@@ -163,9 +161,7 @@ function dbReducer(
       };
     case ActionType.fetched:
       return {
-        parameters: {
-          engine: trimmedState.parameters?.engine,
-        },
+        engine: trimmedState.engine,
         configuration_method: trimmedState.configuration_method,
         ...action.payload,
       };
@@ -196,13 +192,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   >(dbReducer, null);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
+  const [validationErrors, getValidation] = useDatabaseValidation();
   const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
+  const [dbName, setDbName] = useState('');
   const conf = useCommonConf();
 
   const isEditMode = !!databaseId;
   const useSqlAlchemyForm =
     db?.configuration_method === CONFIGURATION_METHOD.SQLALCHEMY_URI;
   const useTabLayout = isEditMode || useSqlAlchemyForm;
+
   // Database fetch logic
   const {
     state: { loading: dbLoading, resource: dbFetched },
@@ -248,14 +247,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         // don't pass parameters if using the sqlalchemy uri
         delete update.parameters;
       }
-      updateResource(db.id as number, update as DatabaseObject).then(result => {
-        if (result) {
-          if (onDatabaseAdd) {
-            onDatabaseAdd();
-          }
-          onClose();
+      const result = await updateResource(
+        db.id as number,
+        update as DatabaseObject,
+      );
+      if (result) {
+        if (onDatabaseAdd) {
+          onDatabaseAdd();
         }
-      });
+        onClose();
+      }
     } else if (db) {
       // Create
       const dbId = await createResource(update as DatabaseObject);
@@ -300,7 +301,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       setDB({
         type: ActionType.dbSelected,
         payload: {
-          parameters: {},
           configuration_method: CONFIGURATION_METHOD.SQLALCHEMY_URI,
         }, // todo hook this up to step 1
       });
@@ -316,6 +316,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         type: ActionType.fetched,
         payload: dbFetched,
       });
+      // keep a copy of the name separate for display purposes
+      // because it shouldn't change when the form is updated
+      setDbName(dbFetched.database_name);
     }
   }, [dbFetched]);
 
@@ -326,7 +329,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const dbModel: DatabaseForm =
     availableDbs?.databases?.find(
       (available: { engine: string | undefined }) =>
-        available.engine === db?.parameters?.engine,
+        available.engine === db?.engine,
     ) || {};
 
   const disableSave =
@@ -362,12 +365,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     >
       {isEditMode ? (
-        <EditHeader>
+        <TabHeader>
           <EditHeaderTitle>{db?.backend}</EditHeaderTitle>
-          <EditHeaderSubtitle>{db?.database_name}</EditHeaderSubtitle>
-        </EditHeader>
+          <EditHeaderSubtitle>{dbName}</EditHeaderSubtitle>
+        </TabHeader>
       ) : (
-        <CreateHeader>
+        <TabHeader>
           <CreateHeaderTitle>Enter Primary Credentials</CreateHeaderTitle>
           <CreateHeaderSubtitle>
             Need help? Learn how to connect your database{' '}
@@ -380,7 +383,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             </a>
             .
           </CreateHeaderSubtitle>
-        </CreateHeader>
+        </TabHeader>
       )}
       <hr />
       <Tabs
@@ -512,6 +515,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 value: target.value,
               })
             }
+            getValidation={() => getValidation(db)}
+            validationErrors={validationErrors}
           />
           <Button
             buttonStyle="link"
