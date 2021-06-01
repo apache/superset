@@ -100,7 +100,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
       onHide={onHide}
       primaryButtonName={t('Add')}
       show={show}
-      title={<>{t('Add dataset')}</>}
+      title={t('Add dataset')}
     >
       <TableSelectorContainer>
         <TableSelector
