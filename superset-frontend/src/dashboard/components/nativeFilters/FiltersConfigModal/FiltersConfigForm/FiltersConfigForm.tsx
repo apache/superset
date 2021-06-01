@@ -229,6 +229,7 @@ const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
 
 const BASIC_CONTROL_ITEMS = ['enableEmptyFilter', 'multiSelect'];
 
+// TODO: Rename the filter plugins and remove this mapping
 const FILTER_TYPE_NAME_MAPPING = {
   [t('Select filter')]: t('Value'),
   [t('Range filter')]: t('Numerical range'),
@@ -254,7 +255,12 @@ const FiltersConfigForm = (
   ref: React.RefObject<any>,
 ) => {
   const [metrics, setMetrics] = useState<Metric[]>([]);
-  const [activeTabKey, setActiveTabKey] = useState<string | undefined>();
+  const [activeTabKey, setActiveTabKey] = useState<string>(
+    FilterTabs.configuration.key,
+  );
+  const [activeFilterPanelKey, setActiveFilterPanelKey] = useState<
+    string | string[]
+  >(FilterPanels.basic.key);
   const [hasDefaultValue, setHasDefaultValue] = useState(
     !!filterToEdit?.defaultDataMask?.filterState?.value,
   );
@@ -410,10 +416,6 @@ const FiltersConfigForm = (
     [],
   );
 
-  if (removed) {
-    return <RemovedFilter onClick={() => restoreFilter(filterId)} />;
-  }
-
   const parentFilterOptions = parentFilters.map(filter => ({
     value: filter.id,
     label: filter.title,
@@ -422,6 +424,14 @@ const FiltersConfigForm = (
   const parentFilter = parentFilterOptions.find(
     ({ value }) => value === filterToEdit?.cascadeParentIds[0],
   );
+
+  const hasParentFilter = !!parentFilter;
+
+  const hasPreFilter =
+    !!filterToEdit?.adhoc_filters || !!filterToEdit?.time_range;
+
+  const hasSorting =
+    typeof filterToEdit?.controlValues?.sortAscending === 'boolean';
 
   const showDefaultValue = !hasDataset || (!isDataDirty && hasFilledDataset);
 
@@ -447,9 +457,27 @@ const FiltersConfigForm = (
     forceUpdate();
   };
 
+  let hasCheckedAdvancedControl = hasParentFilter || hasPreFilter || hasSorting;
+  if (!hasCheckedAdvancedControl) {
+    hasCheckedAdvancedControl = Object.keys(controlItems)
+      .filter(key => !BASIC_CONTROL_ITEMS.includes(key))
+      .some(key => controlItems[key].checked);
+  }
+
+  useEffect(() => {
+    const activeFilterPanelKey = [FilterPanels.basic.key];
+    if (hasCheckedAdvancedControl) {
+      activeFilterPanelKey.push(FilterPanels.advanced.key);
+    }
+    setActiveFilterPanelKey(activeFilterPanelKey);
+  }, [hasCheckedAdvancedControl]);
+
+  if (removed) {
+    return <RemovedFilter onClick={() => restoreFilter(filterId)} />;
+  }
+
   return (
     <StyledTabs
-      defaultActiveKey={FilterTabs.configuration.key}
       activeKey={activeTabKey}
       onChange={activeKey => setActiveTabKey(activeKey)}
       centered
@@ -559,7 +587,8 @@ const FiltersConfigForm = (
           </StyledRowContainer>
         )}
         <StyledCollapse
-          defaultActiveKey={FilterPanels.basic.key}
+          activeKey={activeFilterPanelKey}
+          onChange={key => setActiveFilterPanelKey(key)}
           expandIconPosition="right"
         >
           <Collapse.Panel
@@ -630,7 +659,7 @@ const FiltersConfigForm = (
             </CollapsibleControl>
             {Object.keys(controlItems)
               .filter(key => BASIC_CONTROL_ITEMS.includes(key))
-              .map(key => controlItems[key])}
+              .map(key => controlItems[key].element)}
             <StyledRowFormItem
               name={['filters', filterId, 'isInstant']}
               initialValue={filterToEdit?.isInstant || false}
@@ -650,7 +679,7 @@ const FiltersConfigForm = (
               {isCascadingFilter && (
                 <CollapsibleControl
                   title={t('Filter is hierarchical')}
-                  checked={!!parentFilter}
+                  checked={hasParentFilter}
                   onChange={checked => {
                     if (checked) {
                       // execute after render
@@ -687,13 +716,11 @@ const FiltersConfigForm = (
               )}
               {Object.keys(controlItems)
                 .filter(key => !BASIC_CONTROL_ITEMS.includes(key))
-                .map(key => controlItems[key])}
+                .map(key => controlItems[key].element)}
               {hasDataset && hasAdditionalFilters && (
                 <CollapsibleControl
                   title={t('Pre-filter available values')}
-                  checked={
-                    !!filterToEdit?.adhoc_filters || !!filterToEdit?.time_range
-                  }
+                  checked={hasPreFilter}
                   onChange={checked => {
                     if (checked) {
                       // execute after render
@@ -757,72 +784,71 @@ const FiltersConfigForm = (
                   </StyledRowFormItem>
                 </CollapsibleControl>
               )}
-              <CollapsibleControl
-                title={t('Sort filter values')}
-                onChange={checked => onSortChanged(checked || undefined)}
-                checked={
-                  typeof filterToEdit?.controlValues?.sortAscending ===
-                  'boolean'
-                }
-              >
-                <StyledRowContainer>
-                  <StyledFormItem
-                    name={[
-                      'filters',
-                      filterId,
-                      'controlValues',
-                      'sortAscending',
-                    ]}
-                    initialValue={filterToEdit?.controlValues?.sortAscending}
-                    label={<StyledLabel>{t('Sort type')}</StyledLabel>}
-                  >
-                    <Select
-                      form={form}
-                      filterId={filterId}
-                      name="sortAscending"
-                      options={[
-                        {
-                          value: true,
-                          label: t('Sort ascending'),
-                        },
-                        {
-                          value: false,
-                          label: t('Sort descending'),
-                        },
-                      ]}
-                      onChange={({ value }: { value: boolean }) =>
-                        onSortChanged(value)
-                      }
-                    />
-                  </StyledFormItem>
-                  {hasMetrics && (
+              {formFilter?.filterType !== 'filter_range' && (
+                <CollapsibleControl
+                  title={t('Sort filter values')}
+                  onChange={checked => onSortChanged(checked || undefined)}
+                  checked={hasSorting}
+                >
+                  <StyledRowContainer>
                     <StyledFormItem
-                      name={['filters', filterId, 'sortMetric']}
-                      initialValue={filterToEdit?.sortMetric}
-                      label={<StyledLabel>{t('Sort Metric')}</StyledLabel>}
-                      data-test="field-input"
+                      name={[
+                        'filters',
+                        filterId,
+                        'controlValues',
+                        'sortAscending',
+                      ]}
+                      initialValue={filterToEdit?.controlValues?.sortAscending}
+                      label={<StyledLabel>{t('Sort type')}</StyledLabel>}
                     >
-                      <SelectControl
+                      <Select
                         form={form}
                         filterId={filterId}
-                        name="sortMetric"
-                        options={metrics.map((metric: Metric) => ({
-                          value: metric.metric_name,
-                          label: metric.verbose_name ?? metric.metric_name,
-                        }))}
-                        onChange={(value: string | null): void => {
-                          if (value !== undefined) {
-                            setNativeFilterFieldValues(form, filterId, {
-                              sortMetric: value,
-                            });
-                            forceUpdate();
-                          }
-                        }}
+                        name="sortAscending"
+                        options={[
+                          {
+                            value: true,
+                            label: t('Sort ascending'),
+                          },
+                          {
+                            value: false,
+                            label: t('Sort descending'),
+                          },
+                        ]}
+                        onChange={({ value }: { value: boolean }) =>
+                          onSortChanged(value)
+                        }
                       />
                     </StyledFormItem>
-                  )}
-                </StyledRowContainer>
-              </CollapsibleControl>
+                    {hasMetrics && (
+                      <StyledFormItem
+                        name={['filters', filterId, 'sortMetric']}
+                        initialValue={filterToEdit?.sortMetric}
+                        label={<StyledLabel>{t('Sort Metric')}</StyledLabel>}
+                        data-test="field-input"
+                      >
+                        <SelectControl
+                          form={form}
+                          filterId={filterId}
+                          name="sortMetric"
+                          options={metrics.map((metric: Metric) => ({
+                            value: metric.metric_name,
+                            label: metric.verbose_name ?? metric.metric_name,
+                          }))}
+                          onChange={(value: string | null): void => {
+                            if (value !== undefined) {
+                              setNativeFilterFieldValues(form, filterId, {
+                                sortMetric: value,
+                              });
+                              forceUpdate();
+                            }
+                          }}
+                        />
+                      </StyledFormItem>
+                    )}
+                  </StyledRowContainer>
+                </CollapsibleControl>
+              )}
             </Collapse.Panel>
           )}
         </StyledCollapse>

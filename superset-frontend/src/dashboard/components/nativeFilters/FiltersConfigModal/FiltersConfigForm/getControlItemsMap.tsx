@@ -50,7 +50,10 @@ export default function getControlItemsMap({
   const controlPanelRegistry = getChartControlPanelRegistry();
   const controlItems =
     getControlItems(controlPanelRegistry.get(filterType)) ?? [];
-  const map = {};
+  const map: Record<
+    string,
+    { element: React.ReactNode; checked: boolean }
+  > = {};
 
   controlItems
     .filter(
@@ -59,6 +62,9 @@ export default function getControlItemsMap({
         controlItem.name !== 'sortAscending',
     )
     .forEach(controlItem => {
+      const initialValue =
+        filterToEdit?.controlValues?.[controlItem.name] ??
+        controlItem?.config?.default;
       const element = (
         <Tooltip
           key={controlItem.name}
@@ -72,10 +78,7 @@ export default function getControlItemsMap({
           <StyledRowFormItem
             key={controlItem.name}
             name={['filters', filterId, 'controlValues', controlItem.name]}
-            initialValue={
-              filterToEdit?.controlValues?.[controlItem.name] ??
-              controlItem?.config?.default
-            }
+            initialValue={initialValue}
             valuePropName="checked"
             colon={false}
           >
@@ -104,7 +107,7 @@ export default function getControlItemsMap({
           </StyledRowFormItem>
         </Tooltip>
       );
-      map[controlItem.name] = element;
+      map[controlItem.name] = { element, checked: initialValue };
     });
   return map;
 }
