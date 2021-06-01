@@ -96,10 +96,7 @@ const IconButton = styled(
   ({ icon, altText, buttonText, ...props }: IconButtonProps) => (
     <StyledButton {...props}>
       <StyledImage>
-        <img
-          src={icon || '/images/icons/image.svg'}
-          alt={altText || 'Default database log'}
-        />
+        <img src={icon} alt={altText} />
       </StyledImage>
       <StyledBottom>
         <StyledInner>{buttonText}</StyledInner>
