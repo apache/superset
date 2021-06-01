@@ -60,7 +60,7 @@ const StyledInner = styled.div`
   &::before {
     content: '...';
     inset-block-end: 0; /* "bottom" */
-    inset-inline-end: ${({ theme }) => theme.gridUnit * 2}px; /* "right" */
+    inset-inline-end: 8px; /* "right" */
     position: absolute;
   }
 
@@ -68,7 +68,7 @@ const StyledInner = styled.div`
     background-color: ${({ theme }) => theme.colors.grayscale.light4};
     content: '';
     height: 1rem;
-    inset-inline-end: ${({ theme }) => theme.gridUnit * 2}px; /* "right" */
+    inset-inline-end: 8px; /* "right" */
     position: absolute;
     top: 4px;
     width: 1rem;
