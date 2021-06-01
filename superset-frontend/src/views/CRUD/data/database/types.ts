@@ -34,6 +34,7 @@ export type DatabaseObject = {
     database_name?: string;
     host?: string;
     port?: number;
+    engine?: string;
     database?: string;
     username?: string;
     password?: string;

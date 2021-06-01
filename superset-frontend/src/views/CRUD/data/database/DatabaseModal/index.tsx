@@ -41,6 +41,7 @@ import {
   DatabaseForm,
   CONFIGURATION_METHOD,
 } from 'src/views/CRUD/data/database/types';
+import Label from 'src/components/Label';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 
@@ -120,7 +121,7 @@ type DBReducerActionType =
   | {
       type: ActionType.configMethodChange;
       payload: { configuration_method: CONFIGURATION_METHOD };
-    }
+    };
 
 function dbReducer(
   state: Partial<DatabaseObject> | null,
@@ -162,8 +163,6 @@ function dbReducer(
       };
     case ActionType.fetched:
       return {
-        engine: trimmedState.engine,
-        configuration_method: trimmedState.configuration_method,
         ...action.payload,
       };
     case ActionType.dbSelected:
@@ -248,10 +247,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...update } = db || {};
     if (db?.id) {
-      if (db.sqlalchemy_uri) {
-        // don't pass parameters if using the sqlalchemy uri
-        delete update.parameters;
-      }
       const result = await updateResource(
         db.id as number,
         update as DatabaseObject,
@@ -335,9 +330,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const dbModel: DatabaseForm =
     availableDbs?.databases?.find(
       (available: { engine: string | undefined }) =>
-        available.engine === db?.engine,
+        // TODO: we need a centralized engine in one place
+        available.engine === db?.parameters?.engine || db?.engine,
     ) || {};
-
   const disableSave =
     !hasConnectedDb &&
     (useSqlAlchemyForm
@@ -348,7 +343,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         !!dbModel.parameters.required.filter(field =>
           FALSY_FORM_VALUES.includes(db?.parameters?.[field]),
         ).length);
-
   return useTabLayout ? (
     <Modal
       css={(theme: SupersetTheme) => [
@@ -545,12 +539,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           />
           {!isLoading && !db && (
             <SelectDatabaseStyles>
-              <label className="label-select">
+              <Label className="label-select">
                 What database would you like to connect?
-              </label>
+              </Label>
               <Select
                 style={{ width: '100%' }}
-                onChange={option => {
+                onChange={(option: string) => {
                   setDB({
                     type: ActionType.dbSelected,
                     payload: {
@@ -560,7 +554,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   });
                 }}
               >
-                {availableDbs?.databases?.map(database => (
+                {availableDbs?.databases?.map((database: DatabaseForm) => (
                   <Select.Option value={database.engine} key={database.engine}>
                     {database.name}
                   </Select.Option>
