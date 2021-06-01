@@ -309,15 +309,15 @@ describe('DatabaseModal', () => {
       });
       render(<DatabaseModal {...dbProps} />, { useRedux: true });
 
-      await screen.findByText(/todo/i);
+      await screen.findByText(/edit database/i);
 
       // // it should have tabs
       const tabs = screen.getAllByRole('tab');
       expect(tabs.length).toEqual(2);
 
       // it should show a TODO for now
-      const todoText = screen.getAllByText(/todo/i);
-      expect(todoText[0]).toBeVisible();
+      const headerText = screen.getByText(/edit database/i);
+      expect(headerText).toBeVisible();
     });
   });
 });
