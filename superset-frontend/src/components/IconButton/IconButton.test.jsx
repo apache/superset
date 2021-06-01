@@ -29,8 +29,9 @@ describe('IconButton', () => {
   it('renders an IconButton', () => {
     render(<IconButton {...defaultProps} />);
 
-    const logo = screen.getByRole('img', { name: /default database log/i });
+    const logo = screen.getByRole('img');
     const buttonText = screen.getByText(/this is the iconbutton text/i);
+    screen.logTestingPlaygroundURL();
 
     expect(logo).toBeVisible();
     expect(buttonText).toBeVisible();
