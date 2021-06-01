@@ -1274,7 +1274,7 @@ There is a special ``_filters`` parameter which can be used to test filters used
         "_filters": {
             "col": "action_type",
             "op": "IN",
-            "val": ["sell", "buy"] 
+            "val": ["sell", "buy"]
     }
 
 .. code-block:: python
