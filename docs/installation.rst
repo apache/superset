@@ -1256,6 +1256,37 @@ in this dictionary are made available for users to use in their SQL.
         'my_crazy_macro': lambda x: x*2,
     }
 
+Default values for jinja templates can be specified via ``Parameters`` menu in the SQL Lab user interface.
+In the UI you can assign a set of parameters as JSON
+
+.. code-block:: JSON
+    {
+        "my_table": "foo"
+    }
+
+The parameters become available in your SQL (example:SELECT * FROM {{ my_table }} ) by using Jinja templating syntax.
+SQL Lab template parameters are stored with the dataset as TEMPLATE PARAMETERS.
+
+There is a special ``_filters`` parameter which can be used to test filters used in the jinja template.
+
+.. code-block:: JSON
+    {
+        "_filters": {
+            "col": "action_type",
+            "op": "IN",
+            "val": ["sell", "buy"]
+    }
+
+.. code-block:: python
+    SELECT action, count(*) as times
+            FROM logs
+            WHERE
+                action in ({{ "'" + "','".join(filter_values('action_type')) + "'" }})
+            GROUP BY action
+
+Note ``_filters`` is not stored with the dataset. It's only used within the SQL Lab UI.
+
+
 Besides default Jinja templating, SQL lab also supports self-defined template
 processor by setting the ``CUSTOM_TEMPLATE_PROCESSORS`` in your superset configuration.
 The values in this dictionary overwrite the default Jinja template processors of the
