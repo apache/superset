@@ -340,5 +340,7 @@ export const EditHeaderSubtitle = styled.div`
 `;
 
 export const SelectDatabaseStyles = styled.div`
-  margin: ${({ theme }) => theme.gridUnit * 4}px;
+  .preferred {
+    display: flex;
+  }
 `;

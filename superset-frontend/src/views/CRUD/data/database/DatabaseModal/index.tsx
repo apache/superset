@@ -28,6 +28,7 @@ import Tabs from 'src/components/Tabs';
 import { Alert, Select } from 'src/common/components';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
+import IconButton from 'src/components/IconButton';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import {
   testDatabaseConnection,
@@ -120,7 +121,7 @@ type DBReducerActionType =
   | {
       type: ActionType.configMethodChange;
       payload: { configuration_method: CONFIGURATION_METHOD };
-    }
+    };
 
 function dbReducer(
   state: Partial<DatabaseObject> | null,
@@ -524,8 +525,29 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             getValidation={() => getValidation(db)}
             validationErrors={validationErrors}
           />
+          {/* Step 1 */}
           {!isLoading && !db && (
             <SelectDatabaseStyles>
+              <div className="preferred">
+                {availableDbs?.databases
+                  ?.filter(db => db.preferred)
+                  .map(database => (
+                    <IconButton
+                      value={database.engine}
+                      onClick={e => {
+                        console.log(e.target.value);
+                        setDB({
+                          type: ActionType.dbSelected,
+                          payload: {
+                            configuration_method: CONFIGURATION_METHOD.DYNAMIC_FORM,
+                            engine: e.target.value,
+                          },
+                        });
+                      }}
+                      buttonText={database.name}
+                    />
+                  ))}
+              </div>
               <label className="label-select">
                 What database would you like to connect?
               </label>
@@ -549,6 +571,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               </Select>
             </SelectDatabaseStyles>
           )}
+          {/* Step 1 */}
           <Button
             buttonStyle="link"
             onClick={() =>

@@ -1072,10 +1072,10 @@ SQL_VALIDATORS_BY_ENGINE = {
 # use the "engine_name" attribute of the corresponding DB engine spec
 # in `superset/db_engine_specs/`.
 PREFERRED_DATABASES: List[str] = [
-    # "PostgreSQL",
-    # "Presto",
-    # "MySQL",
-    # "SQLite",
+    "PostgreSQL",
+    "Presto",
+    "MySQL",
+    "SQLite",
     # etc.
 ]
 
