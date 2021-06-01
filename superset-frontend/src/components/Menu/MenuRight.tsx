@@ -141,7 +141,7 @@ const RightMenu = ({
             </Menu.Item>
           </Menu.ItemGroup>,
         ]}
-        {(navbarRight.version_string || navbarRight.version_sha) && [
+        {(navbarRight.version_string || navbarRight.version_sha || navbarRight.build_number) && [
           <Menu.Divider key="version-info-divider" />,
           <Menu.ItemGroup key="about-section" title={t('About')}>
             <div className="about-section">
@@ -153,6 +153,11 @@ const RightMenu = ({
               {navbarRight.version_sha && (
                 <div css={versionInfoStyles}>
                   SHA: {navbarRight.version_sha}
+                </div>
+              )}
+              {navbarRight.build_number && (
+                <div css={versionInfoStyles}>
+                  Build: {navbarRight.build_number}
                 </div>
               )}
             </div>
