@@ -1402,7 +1402,7 @@ class BasicParametersMixin:
         errors: List[SupersetError] = []
 
         required = {"host", "port", "username", "database"}
-        present = {key for key in parameters if parameters[key]}  # type: ignore
+        present = {key for key in parameters if parameters.get(key, ())}  # type: ignore
         missing = sorted(required - present)
 
         if missing:
@@ -1415,7 +1415,7 @@ class BasicParametersMixin:
                 ),
             )
 
-        host = parameters["host"]
+        host = parameters.get("host", None)
         if not host:
             return errors
         if not is_hostname_valid(host):
@@ -1429,7 +1429,7 @@ class BasicParametersMixin:
             )
             return errors
 
-        port = parameters["port"]
+        port = parameters.get("port", None)
         if not port:
             return errors
         if not is_port_open(host, port):
