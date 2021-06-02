@@ -684,7 +684,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         col.update(
                             {
                                 "type": db_type,
-                                "generic_type": type_spec.generic_type
+                                "type_generic": type_spec.generic_type
                                 if type_spec
                                 else None,
                                 "is_dttm": type_spec.is_dttm if type_spec else None,
