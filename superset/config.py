@@ -383,8 +383,8 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # for report with type 'report' still send with email and slack message with
     # screenshot and link
     "ALERTS_ATTACH_REPORTS": True,
-    # Enabling FORCE_SSL forces all database connections to be encrypted before
-    # being saved into superset metastore.
+    # Enabling FORCE_DATABASE_CONNECTIONS_SSL forces all database connections to be
+    # encrypted before being saved into superset metastore.
     "FORCE_DATABASE_CONNECTIONS_SSL": False,
 }
 
