@@ -155,8 +155,8 @@ if (!isDevMode) {
   // text loading (webpack 4+)
   plugins.push(
     new MiniCssExtractPlugin({
-      filename: '[name].[chunkhash].entry.css',
-      chunkFilename: '[name].[chunkhash].chunk.css',
+      filename: '[name].[contenthash].entry.css',
+      chunkFilename: '[name].[contenthash].chunk.css',
     }),
   );
   plugins.push(new OptimizeCSSAssetsPlugin());
