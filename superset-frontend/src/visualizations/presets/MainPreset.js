@@ -73,7 +73,10 @@ import {
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable/TimeTableChartPlugin';
-import { 
+import {
+  GwwkChartsChartPlugin,
+  GwwkDatasetsChartPlugin,
+  GwwkDashboardsChartPlugin,
   IframeDemoChartPlugin,
   CccsGridChartPlugin,
   StatusIndicatorChartPlugin,
@@ -85,6 +88,9 @@ export default class MainPreset extends Preset {
       name: 'Legacy charts',
       presets: [new DeckGLChartPreset()],
       plugins: [
+        new GwwkChartsChartPlugin().configure({key: 'gwwk_charts'}),
+        new GwwkDatasetsChartPlugin().configure({key: 'gwwk_datasets'}),
+        new GwwkDashboardsChartPlugin().configure({key: 'gwwk_dashboards'}),
         new StatusIndicatorChartPlugin().configure({key: 'status_indicator'}),
         new IframeDemoChartPlugin().configure({key: 'iframe_demo'}),
         new CccsGridChartPlugin().configure({key: 'cccs_grid'}),
