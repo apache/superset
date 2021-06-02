@@ -418,7 +418,7 @@ class DatasourceEditor extends React.PureComponent {
           is_dttm: col.is_dttm,
         });
         results.added.push(col.name);
-      } else if (currentCol.type !== col.type || col.is_dttm) {
+      } else if (currentCol.type !== col.type || currentCol.is_dttm !== col.is_dttm) {
         // modified column
         finalColumns.push({
           ...currentCol,
