@@ -342,5 +342,13 @@ export const EditHeaderSubtitle = styled.div`
 export const SelectDatabaseStyles = styled.div`
   .preferred {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin: 0 36px;
+  }
+
+  .preferred-item {
+    width: 133px;
+    height: 133px;
   }
 `;

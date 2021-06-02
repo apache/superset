@@ -533,14 +533,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   ?.filter(db => db.preferred)
                   .map(database => (
                     <IconButton
-                      value={database.engine}
-                      onClick={e => {
-                        console.log(e.target.value);
+                      className="preferred-item"
+                      onClick={() => {
                         setDB({
                           type: ActionType.dbSelected,
                           payload: {
                             configuration_method: CONFIGURATION_METHOD.DYNAMIC_FORM,
-                            engine: e.target.value,
+                            engine: database.engine,
                           },
                         });
                       }}
