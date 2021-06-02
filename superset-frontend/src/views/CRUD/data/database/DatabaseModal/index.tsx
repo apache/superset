@@ -371,27 +371,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
       }
     >
-      {isEditMode ? (
+      {isEditMode && (
         <TabHeader>
           <EditHeaderTitle>{db?.backend}</EditHeaderTitle>
           <EditHeaderSubtitle>{dbName}</EditHeaderSubtitle>
         </TabHeader>
-      ) : (
-        <TabHeader>
-          <CreateHeaderTitle>Enter Primary Credentials</CreateHeaderTitle>
-          <CreateHeaderSubtitle>
-            Need help? Learn how to connect your database{' '}
-            <a
-              href={DOCUMENTATION_LINK}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              here
-            </a>
-            .
-          </CreateHeaderSubtitle>
-        </TabHeader>
       )}
+      {/* Add styled header here when not in edit mode*/}
       <hr />
       <Tabs
         defaultActiveKey={DEFAULT_TAB_KEY}
@@ -538,7 +524,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                         setDB({
                           type: ActionType.dbSelected,
                           payload: {
-                            configuration_method: CONFIGURATION_METHOD.DYNAMIC_FORM,
+                            configuration_method:
+                              CONFIGURATION_METHOD.DYNAMIC_FORM,
                             engine: database.engine,
                           },
                         });
@@ -553,10 +540,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <Select
                 style={{ width: '100%' }}
                 onChange={option => {
+                  // todo: centralize this in function
+                  const isDynamic = availableDbs?.databases.filter(
+                    db => db.engine === option,
+                  )[0].parameters !== undefined;
                   setDB({
                     type: ActionType.dbSelected,
                     payload: {
-                      configuration_method: CONFIGURATION_METHOD.DYNAMIC_FORM,
+                      configuration_method: isDynamic
+                        ? CONFIGURATION_METHOD.DYNAMIC_FORM
+                        : CONFIGURATION_METHOD.SQLALCHEMY_URI,
                       engine: option,
                     },
                   });
