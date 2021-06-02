@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 //import { styled } from '@superset-ui/core';
 import { CccsGridProps } from './types';
 
@@ -62,17 +62,77 @@ export default function CccsGrid({
   selectedValues,
   tooltipShowDelay,
   rowSelection,
+  emitFilter = false,
+  filters: initialFilters = {},
 }: CccsGridProps) {
 
+  const [filters, setFilters] = useState(initialFilters);
+  const handleChange = useCallback(filters => {
+    if (!emitFilter) {
+      return;
+    }
 
-  const frameworkComponents = {
-    countryValueRenderer: CountryValueRenderer,
-    ipv4ValueRenderer: Ipv4ValueRenderer,
-    ipv6ValueRenderer: Ipv6ValueRenderer,
-    domainValueRenderer: DomainValueRenderer,
-    customTooltip: CustomTooltip,
+    const groupBy = Object.keys(filters);
+    const groupByValues = Object.values(filters);
+    setDataMask({
+      extraFormData: {
+        filters: groupBy.length === 0 ? [] : groupBy.map(col => {
+          const val = filters == null ? void 0 : filters[col];
+          if (val === null || val === undefined) return {
+            col,
+            op: 'IS NULL'
+          };
+          return {
+            col,
+            op: 'IN',
+            val: val
+          };
+        })
+      },
+      filterState: {
+        value: groupByValues.length ? groupByValues : null
+      }
+    });
+  }, [emitFilter, setDataMask]); // only take relevant page size options
 
-  };
+  const isActiveFilterValue = useCallback(function isActiveFilterValue(key, val) {
+    var _filters$key;
+
+    return !!filters && ((_filters$key = filters[key]) == null ? void 0 : _filters$key.includes(val));
+  }, [filters]);
+  const toggleFilter = useCallback(function toggleFilter(key, val) {
+    const updatedFilters = {
+      ...(filters || {})
+    };
+
+    if (filters && isActiveFilterValue(key, val)) {
+      updatedFilters[key] = filters[key].filter((x: any) => x !== val);
+    } else {
+      updatedFilters[key] = [...((filters == null ? void 0 : filters[key]) || []), val];
+    }
+
+    if (Array.isArray(updatedFilters[key]) && updatedFilters[key].length === 0) {
+      delete updatedFilters[key];
+    }
+
+    setFilters(updatedFilters);
+    handleChange(updatedFilters);
+  }, [filters, handleChange, isActiveFilterValue]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
   // getContextMenuItems = (params) => {
@@ -97,40 +157,15 @@ export default function CccsGrid({
 
 
 
-
-  // What is ownFilters used for???
-
-  const handleChange = useCallback(
-    (values: string[]) => {
-
-      if (!formData.emitFilter) {
-        return;
-      }
-
-      setDataMask({
-        extraFormData: {
-          filters:
-            values.length === 0
-              ? []
-              : [{
-                col: "ip_string",
-                op: 'IN',
-                val: values,
-                }],
-        },
-        filterState: {
-          value: values.length ? values : null,
-        },
-        ownState: {
-          selectedValues: values.length ? values : null,
-        },
-      },);
-    },
-    [setDataMask, selectedValues],
-  );
+  const frameworkComponents = {
+    countryValueRenderer: CountryValueRenderer,
+    ipv4ValueRenderer: Ipv4ValueRenderer,
+    ipv6ValueRenderer: Ipv6ValueRenderer,
+    domainValueRenderer: DomainValueRenderer,
+    customTooltip: CustomTooltip,
+  };
 
   const onGridReady = (params: any) => {
-    //const { name } = props;
     console.log('onGridReady called');
     params.api.forceUpdate();
   };
@@ -138,57 +173,69 @@ export default function CccsGrid({
   const onSelectionChanged = (params: any) => {
     const gridApi = params.api;
     var selectedRows = gridApi.getSelectedRows();
-    const ranges = gridApi.getCellRanges();
-    ranges.startRow
-    ranges.endRow
-    ranges.columns
     gridApi.document.querySelector('#selectedRows').innerHTML =
       selectedRows.length === 1 ? selectedRows[0].athlete : '';
   };
 
-  const onRangeSelectionChanged = (params: any) => {
-    const gridApi = params.api;
-    var cellRanges = gridApi.getCellRanges();
+  let prevStartRow = undefined;
+  let prevEndRow = undefined;
+  let prevColumn = undefined;
 
-    cellRanges.forEach( (range: any) => {
+  const onRangeSelectionChanged = (params: any) => {
+    if(params.finished == false){
+      return;
+    }
+
+    const gridApi = params.api;
+    const cellRanges = gridApi.getCellRanges();
+    //gridApi.clearRangeSelection()
+    console.log(`started ${params.started}`)
+    console.log(`finished ${params.finished}`)
+    console.log(`ranges ${cellRanges.length}`)
+    
+    cellRanges.forEach((range: any) => {
       // get starting and ending row, remember rowEnd could be before rowStart
-      var startRow = Math.min(range.startRow.rowIndex, range.endRow.rowIndex);
-      var endRow = Math.max(range.startRow.rowIndex, range.endRow.rowIndex);
+      const startRow = Math.min(range.startRow.rowIndex, range.endRow.rowIndex);
+      const endRow = Math.max(range.startRow.rowIndex, range.endRow.rowIndex);
+      prevStartRow = startRow;
+      prevEndRow = endRow;
 
       for (var rowIndex = startRow; rowIndex <= endRow; rowIndex++) {
-        range.columns.forEach( (column: any) => {
+        range.columns.forEach((column: any) => {
           const cellRenderer = column.colDef?.cellRenderer;
+          console.log(`rowIndex: ${rowIndex} col: ${column.colDef?.field}`)
+          prevColumn = column.colDef?.field
           if (cellRenderer == 'ipv4ValueRenderer') {
-            var rowModel = gridApi.getModel();
-            var rowNode = rowModel.getRow(rowIndex);
-            var value = gridApi.getValue(column, rowNode);
-            const values = [value];
-            handleChange([...values]);
+            const rowModel = gridApi.getModel();
+            const rowNode = rowModel.getRow(rowIndex);
+            const value = gridApi.getValue(column, rowNode);
+            const col = getEmmitingTarget(column.colDef?.field)
+            toggleFilter(col, value);
           }
         });
       }
     });
-
   }
 
+  function getEmmitingTarget(col: string) {
+    return formData.columnConfig?.[col]?.emittingTarget || col;
+  }
 
   return (
-
-    <div style={{ width, height}}  className="ag-theme-balham" >
-        <AgGridReact
-          modules={AllModules}
-          columnDefs={columnDefs}
-          defaultColDef={DEFAULT_COLUMN_DEF}
-          frameworkComponents={frameworkComponents}
-          enableRangeSelection={true}
-          allowContextMenuWithControlKey={true}
-          //getContextMenuItems={getContextMenuItems}
-          onGridReady={onGridReady}
-          onRangeSelectionChanged={onRangeSelectionChanged}
-          onSelectionChanged={onSelectionChanged}
-          rowData={rowData}
-        />
-      </div>
-
+    <div style={{ width, height }} className="ag-theme-balham" >
+      <AgGridReact
+        modules={AllModules}
+        columnDefs={columnDefs}
+        defaultColDef={DEFAULT_COLUMN_DEF}
+        frameworkComponents={frameworkComponents}
+        enableRangeSelection={true}
+        allowContextMenuWithControlKey={true}
+        //getContextMenuItems={getContextMenuItems}
+        onGridReady={onGridReady}
+        onRangeSelectionChanged={onRangeSelectionChanged}
+        onSelectionChanged={onSelectionChanged}
+        rowData={rowData}
+      />
+    </div>
   );
 }
