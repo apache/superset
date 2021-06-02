@@ -43,7 +43,11 @@ export type Chart = ChartState & {
 
 export type DashboardLayout = { [key: string]: LayoutItem };
 export type DashboardLayoutState = { present: DashboardLayout };
-export type DashboardState = { editMode: boolean; directPathToChild: string[] };
+export type DashboardState = {
+  editMode: boolean;
+  directPathToChild: string[];
+  lastFocusedTabId: string | null;
+};
 export type DashboardInfo = {
   common: {
     flash_messages: string[];
