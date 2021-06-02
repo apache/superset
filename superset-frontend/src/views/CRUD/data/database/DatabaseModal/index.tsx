@@ -346,6 +346,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     </div>
   );
 
+  const renderModalFooter = () => [
+    <Button key="back" onClick={() => {
+        setDB({ type: ActionType.reset });
+    }}>Back</Button>,
+    <Button key="submit" type="primary" onClick={onSave}>
+      Connect
+    </Button>,
+  ];
+
   useEffect(() => {
     if (show) {
       setTabKey(DEFAULT_TAB_KEY);
@@ -423,7 +432,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           <EditHeaderSubtitle>{dbName}</EditHeaderSubtitle>
         </TabHeader>
       )}
-      {/* Add styled header here when not in edit mode*/}
+      {/* Add styled header here when not in edit mode */}
       <hr />
       <Tabs
         defaultActiveKey={DEFAULT_TAB_KEY}
@@ -514,6 +523,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       width="500px"
       show={show}
       title={<h4>{t('Connect a database')}</h4>}
+      footer={renderModalFooter()}
     >
       {hasConnectedDb ? (
         <ExtraOptions
