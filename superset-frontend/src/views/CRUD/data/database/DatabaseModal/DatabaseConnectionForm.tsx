@@ -103,7 +103,7 @@ const databaseField = ({
     placeholder="e.g. world_population"
     label="Database name"
     onChange={changeMethods.onParametersChange}
-    helpText="Copy the name of the PostgreSQL database you are trying to connect to."
+    helpText="Copy the name of the  database you are trying to connect to."
   />
 );
 const usernameField = ({
