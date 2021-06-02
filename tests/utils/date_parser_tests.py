@@ -35,6 +35,10 @@ from tests.base_tests import SupersetTestCase
 def mock_parse_human_datetime(s):
     if s == "now":
         return datetime(2016, 11, 7, 9, 30, 10)
+    elif s == "2018":
+        return datetime(2018, 1, 1)
+    elif s == "2018-9":
+        return datetime(2018, 9, 1)
     elif s == "today":
         return datetime(2016, 11, 7)
     elif s == "yesterday":
@@ -151,6 +155,14 @@ class TestDateParser(SupersetTestCase):
 
         result = datetime_eval("datetime('today'  )")
         expected = datetime(2016, 11, 7)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("datetime('2018')")
+        expected = datetime(2018, 1, 1)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("datetime('2018-9')")
+        expected = datetime(2018, 9, 1)
         self.assertEqual(result, expected)
 
         # Parse compact arguments spelling
