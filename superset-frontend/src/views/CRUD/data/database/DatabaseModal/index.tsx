@@ -300,9 +300,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   };
 
-  const setDatabaseModel = (option) => {
+  const setDatabaseModel = option => {
     const isDynamic =
-      availableDbs?.databases.filter(db => db.engine === option)[0].parameters !== undefined;
+      availableDbs?.databases.filter(db => db.engine === option)[0]
+        .parameters !== undefined;
     setDB({
       type: ActionType.dbSelected,
       payload: {
@@ -314,6 +315,36 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     });
     console.log('isDynamic', isDynamic);
   };
+
+  const renderAvailableSelector = () => (
+    <div className="available">
+      <span className="available-label">
+        Or choose from a list of other databases we support{' '}
+      </span>
+      <label className="label-available-select">supported databases</label>
+      <Select style={{ width: '100%' }} onChange={setDatabaseModel}>
+        {availableDbs?.databases?.map(database => (
+          <Select.Option value={database.engine} key={database.engine}>
+            {database.name}
+          </Select.Option>
+        ))}
+      </Select>
+    </div>
+  );
+
+  const renderPreferredSelector = () => (
+    <div className="preferred">
+      {availableDbs?.databases
+        ?.filter(db => db.preferred)
+        .map(database => (
+          <IconButton
+            className="preferred-item"
+            onClick={() => setDatabaseModel(database.engine)}
+            buttonText={database.name}
+          />
+        ))}
+    </div>
+  );
 
   useEffect(() => {
     if (show) {
@@ -529,27 +560,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           {/* Step 1 */}
           {!isLoading && !db && (
             <SelectDatabaseStyles>
-              <div className="preferred">
-                {availableDbs?.databases
-                  ?.filter(db => db.preferred)
-                  .map(database => (
-                    <IconButton
-                      className="preferred-item"
-                      onClick={() => setDatabaseModel(database.engine)}
-                      buttonText={database.name}
-                    />
-                  ))}
-              </div>
-              <label className="label-select">
-                What database would you like to connect?
-              </label>
-              <Select style={{ width: '100%' }} onChange={setDatabaseModel}>
-                {availableDbs?.databases?.map(database => (
-                  <Select.Option value={database.engine} key={database.engine}>
-                    {database.name}
-                  </Select.Option>
-                ))}
-              </Select>
+              {renderPreferredSelector()}
+              {renderAvailableSelector()}
             </SelectDatabaseStyles>
           )}
           {/* Step 1 */}

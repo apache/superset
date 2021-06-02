@@ -340,15 +340,32 @@ export const EditHeaderSubtitle = styled.div`
 `;
 
 export const SelectDatabaseStyles = styled.div`
+  margin: 0 16px;
+
   .preferred {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    margin: 0 36px;
+    margin-bottom: 32px;
   }
 
   .preferred-item {
     width: 133px;
     height: 133px;
+  }
+
+  .available {
+    .available-label {
+      font-weight: bold;
+      margin-top: 32px;
+      margin-bottom: 16px;
+    }
+  }
+
+
+
+  .label-available-select {
+    text-transform: uppercase;
+    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
   }
 `;
