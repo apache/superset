@@ -16,27 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { FormInstance } from 'antd/lib/form';
 import { SupersetClient, t } from '@superset-ui/core';
 import { useChangeEffect } from 'src/common/hooks/useChangeEffect';
-import { AsyncSelect } from 'src/components/Select';
+import { Select } from 'src/common/components';
 import { useToasts } from 'src/messageToasts/enhancers/withToasts';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
 import { NativeFiltersForm } from '../types';
 
-type ColumnSelectValue = {
-  value: string;
-  label: string;
-};
-
 interface ColumnSelectProps {
   form: FormInstance<NativeFiltersForm>;
   filterId: string;
-  datasetId?: number | null | undefined;
-  value?: ColumnSelectValue | null;
-  onChange?: (value: ColumnSelectValue | null) => void;
+  datasetId?: number;
+  value?: string;
+  onChange?: (value: string) => void;
 }
 
 const localCache = new Map<string, any>();
@@ -56,6 +51,7 @@ export function ColumnSelect({
   value,
   onChange,
 }: ColumnSelectProps) {
+  const [options, setOptions] = useState();
   const { addDangerToast } = useToasts();
   const resetColumnField = useCallback(() => {
     form.setFields([
@@ -67,45 +63,40 @@ export function ColumnSelect({
     if (previous != null) {
       resetColumnField();
     }
+    if (datasetId != null) {
+      cachedSupersetGet({
+        endpoint: `/api/v1/dataset/${datasetId}`,
+      }).then(
+        ({ json: { result } }) => {
+          const columns = result.columns
+            .map((col: any) => col.column_name)
+            .sort((a: string, b: string) => a.localeCompare(b));
+          if (!columns.includes(value)) {
+            resetColumnField();
+          }
+          setOptions(
+            columns.map((column: any) => ({ label: column, value: column })),
+          );
+        },
+        async badResponse => {
+          const { error, message } = await getClientErrorObject(badResponse);
+          let errorText = message || error || t('An error has occurred');
+          if (message === 'Forbidden') {
+            errorText = t('You do not have permission to edit this dashboard');
+          }
+          addDangerToast(errorText);
+        },
+      );
+    }
   });
 
-  function loadOptions() {
-    if (datasetId == null) return [];
-    return cachedSupersetGet({
-      endpoint: `/api/v1/dataset/${datasetId}`,
-    }).then(
-      ({ json: { result } }) => {
-        const columns = result.columns
-          .map((col: any) => col.column_name)
-          .sort((a: string, b: string) => a.localeCompare(b));
-        if (!columns.includes(value)) {
-          resetColumnField();
-        }
-        return columns;
-      },
-      async badResponse => {
-        const { error, message } = await getClientErrorObject(badResponse);
-        let errorText = message || error || t('An error has occurred');
-        if (message === 'Forbidden') {
-          errorText = t('You do not have permission to edit this dashboard');
-        }
-        addDangerToast(errorText);
-        return [];
-      },
-    );
-  }
-
   return (
-    <AsyncSelect
-      // "key" prop makes react render a new instance of the select whenever the dataset changes
-      key={datasetId == null ? '*no dataset*' : datasetId}
-      isDisabled={datasetId == null}
+    <Select
       value={value}
       onChange={onChange}
-      isMulti={false}
-      loadOptions={loadOptions}
-      defaultOptions // load options on render
-      cacheOptions
+      options={options}
+      placeholder={t('Select a column')}
+      showSearch
     />
   );
 }

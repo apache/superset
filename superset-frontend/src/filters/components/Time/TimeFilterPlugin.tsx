@@ -25,7 +25,7 @@ import { Styles } from '../common';
 const DEFAULT_VALUE = 'Last week';
 
 const TimeFilterStyles = styled(Styles)`
-  overflow-x: scroll;
+  overflow-x: auto;
 `;
 
 const ControlContainer = styled.div`

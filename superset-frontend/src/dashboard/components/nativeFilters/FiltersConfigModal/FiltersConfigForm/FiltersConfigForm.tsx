@@ -164,6 +164,8 @@ const StyledCollapse = styled(Collapse)`
 const StyledTabs = styled(Tabs)`
   .ant-tabs-nav {
     position: sticky;
+    margin-left: ${({ theme }) => theme.gridUnit * -4}px;
+    margin-right: ${({ theme }) => theme.gridUnit * -4}px;
     top: 0px;
     background: white;
     z-index: 1;
@@ -180,8 +182,8 @@ const StyledTabs = styled(Tabs)`
 
 const StyledAsterisk = styled.span`
   color: ${({ theme }) => theme.colors.error.base};
-  font-family: SimSun, sans-serif;
-  margin-right: ${({ theme }) => theme.gridUnit - 1}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  margin-left: ${({ theme }) => theme.gridUnit - 1}px;
   &:before {
     content: '*';
   }
@@ -458,6 +460,28 @@ const FiltersConfigForm = (
     forceUpdate();
   };
 
+  const validatePreFilter = () =>
+    setTimeout(
+      () =>
+        form.validateFields([
+          ['filters', filterId, 'adhoc_filters'],
+          ['filters', filterId, 'time_range'],
+        ]),
+      0,
+    );
+
+  const hasTimeRange =
+    formFilter?.time_range && formFilter.time_range !== 'No filter';
+
+  const hasAdhoc = formFilter?.adhoc_filters?.length > 0;
+
+  const preFilterValidator = () => {
+    if (hasTimeRange || hasAdhoc) {
+      return Promise.resolve();
+    }
+    return Promise.reject(new Error(t('Pre-filter is required')));
+  };
+
   let hasCheckedAdvancedControl = hasParentFilter || hasPreFilter || hasSorting;
   if (!hasCheckedAdvancedControl) {
     hasCheckedAdvancedControl = Object.keys(controlItems)
@@ -567,7 +591,7 @@ const FiltersConfigForm = (
                 initialValue={initColumn}
                 label={<StyledLabel>{t('Column')}</StyledLabel>}
                 rules={[
-                  { required: !removed, message: t('Field is required') },
+                  { required: !removed, message: t('Column is required') },
                 ]}
                 data-test="field-input"
               >
@@ -626,7 +650,7 @@ const FiltersConfigForm = (
                   },
                   {
                     validator: (rule, value) => {
-                      const hasValue = !!value.filterState?.value;
+                      const hasValue = !!value?.filterState?.value;
                       if (
                         hasValue ||
                         // TODO: do more generic
@@ -730,14 +754,7 @@ const FiltersConfigForm = (
                   checked={hasPreFilter}
                   onChange={checked => {
                     if (checked) {
-                      // execute after render
-                      setTimeout(
-                        () =>
-                          form.validateFields([
-                            ['filters', filterId, 'adhoc_filters'],
-                          ]),
-                        0,
-                      );
+                      validatePreFilter();
                     }
                   }}
                 >
@@ -747,8 +764,7 @@ const FiltersConfigForm = (
                     required
                     rules={[
                       {
-                        required: true,
-                        message: t('Pre-filter is required'),
+                        validator: preFilterValidator,
                       },
                     ]}
                   >
@@ -765,11 +781,12 @@ const FiltersConfigForm = (
                           adhoc_filters: filters,
                         });
                         forceUpdate();
+                        validatePreFilter();
                       }}
                       label={
                         <span>
-                          <StyledAsterisk />
                           <StyledLabel>{t('Pre-filter')}</StyledLabel>
+                          {!hasTimeRange && <StyledAsterisk />}
                         </span>
                       }
                     />
@@ -778,6 +795,12 @@ const FiltersConfigForm = (
                     name={['filters', filterId, 'time_range']}
                     label={<StyledLabel>{t('Time range')}</StyledLabel>}
                     initialValue={filterToEdit?.time_range || 'No filter'}
+                    required={!hasAdhoc}
+                    rules={[
+                      {
+                        validator: preFilterValidator,
+                      },
+                    ]}
                   >
                     <DateFilterControl
                       name="time_range"
@@ -786,6 +809,7 @@ const FiltersConfigForm = (
                           time_range: timeRange,
                         });
                         forceUpdate();
+                        validatePreFilter();
                       }}
                     />
                   </StyledRowFormItem>
