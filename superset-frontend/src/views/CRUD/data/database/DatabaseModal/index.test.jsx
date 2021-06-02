@@ -290,8 +290,6 @@ describe('DatabaseModal', () => {
       // it should have the correct header text
       const headerText = screen.getByText(/edit database/i);
       expect(headerText).toBeVisible();
-
-      // todo add more when this form is built out
     });
     it('renders the dynamic form when the dynamic_form configuration method is set', async () => {
       fetchMock.get(DATABASE_FETCH_ENDPOINT, {

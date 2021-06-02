@@ -215,7 +215,6 @@ class Database(
             "id": self.id,
             "name": self.database_name,
             "backend": self.backend,
-            "engine": self.backend,
             "configuration_method": self.configuration_method,
             "allow_multi_schema_metadata_fetch": self.allow_multi_schema_metadata_fetch,
             "allows_subquery": self.allows_subquery,
@@ -237,8 +236,6 @@ class Database(
     def backend(self) -> str:
         sqlalchemy_url = make_url(self.sqlalchemy_uri_decrypted)
         return sqlalchemy_url.get_backend_name()  # pylint: disable=no-member
-
-    engine = backend
 
     @property
     def parameters(self) -> Dict[str, Any]:

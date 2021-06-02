@@ -16,76 +16,76 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// import { DATABASE_LIST } from './helper';
+import { DATABASE_LIST } from './helper';
 // TODO: Add new tests with the modal
-// describe('Add database', () => {
-//   beforeEach(() => {
-//     cy.login();
-//   });
+describe('Add database', () => {
+  beforeEach(() => {
+    cy.login();
+  });
 
-//   it('should keep create modal open when error', () => {
-//     cy.visit(DATABASE_LIST);
+  xit('should keep create modal open when error', () => {
+    cy.visit(DATABASE_LIST);
 
-//     // open modal
-//     cy.get('[data-test="btn-create-database"]').click();
+    // open modal
+    cy.get('[data-test="btn-create-database"]').click();
 
-//     // values should be blank
-//     cy.get('[data-test="database-modal"] input[name="database_name"]').should(
-//       'have.value',
-//       '',
-//     );
-//     cy.get('[data-test="database-modal"] input[name="sqlalchemy_uri"]').should(
-//       'have.value',
-//       '',
-//     );
+    // values should be blank
+    cy.get('[data-test="database-modal"] input[name="database_name"]').should(
+      'have.value',
+      '',
+    );
+    cy.get('[data-test="database-modal"] input[name="sqlalchemy_uri"]').should(
+      'have.value',
+      '',
+    );
 
-//     // type values
-//     cy.get('[data-test="database-modal"] input[name="database_name"]')
-//       .focus()
-//       .type('cypress');
-//     cy.get('[data-test="database-modal"] input[name="sqlalchemy_uri"]')
-//       .focus()
-//       .type('bad_db_uri');
+    // type values
+    cy.get('[data-test="database-modal"] input[name="database_name"]')
+      .focus()
+      .type('cypress');
+    cy.get('[data-test="database-modal"] input[name="sqlalchemy_uri"]')
+      .focus()
+      .type('bad_db_uri');
 
-//     // click save
-//     cy.get('[data-test="modal-confirm-button"]:not(:disabled)').click();
+    // click save
+    cy.get('[data-test="modal-confirm-button"]:not(:disabled)').click();
 
-//     // should show error alerts and keep modal open
-//     cy.get('.toast').contains('error');
-//     cy.wait(1000); // wait for potential (incorrect) closing annimation
-//     cy.get('[data-test="database-modal"]').should('be.visible');
+    // should show error alerts and keep modal open
+    cy.get('.toast').contains('error');
+    cy.wait(1000); // wait for potential (incorrect) closing annimation
+    cy.get('[data-test="database-modal"]').should('be.visible');
 
-//     // should be able to close modal
-//     cy.get('[data-test="modal-cancel-button"]').click();
-//     cy.get('[data-test="database-modal"]').should('not.be.visible');
-//   });
+    // should be able to close modal
+    cy.get('[data-test="modal-cancel-button"]').click();
+    cy.get('[data-test="database-modal"]').should('not.be.visible');
+  });
 
-//   it('should keep update modal open when error', () => {
-//     // open modal
-//     cy.get('[data-test="database-edit"]:last').click();
+  xit('should keep update modal open when error', () => {
+    // open modal
+    cy.get('[data-test="database-edit"]:last').click();
 
-//     // it should show saved values
-//     cy.get('[data-test="database-modal"]:last input[name="sqlalchemy_uri"]')
-//       .invoke('val')
-//       .should('not.be.empty');
-//     cy.get('[data-test="database-modal"] input[name="database_name"]')
-//       .invoke('val')
-//       .should('not.be.empty');
+    // it should show saved values
+    cy.get('[data-test="database-modal"]:last input[name="sqlalchemy_uri"]')
+      .invoke('val')
+      .should('not.be.empty');
+    cy.get('[data-test="database-modal"] input[name="database_name"]')
+      .invoke('val')
+      .should('not.be.empty');
 
-//     cy.get('[data-test="database-modal"]:last input[name="sqlalchemy_uri"]')
-//       .focus()
-//       .dblclick()
-//       .type('{selectall}{backspace}bad_uri');
+    cy.get('[data-test="database-modal"]:last input[name="sqlalchemy_uri"]')
+      .focus()
+      .dblclick()
+      .type('{selectall}{backspace}bad_uri');
 
-//     // click save
-//     cy.get('[data-test="modal-confirm-button"]:not(:disabled)').click();
+    // click save
+    cy.get('[data-test="modal-confirm-button"]:not(:disabled)').click();
 
-//     // should show error alerts
-//     // TODO(hugh): Update this test
-//     // cy.get('.toast').contains('error').should('be.visible');
+    // should show error alerts
+    // TODO(hugh): Update this test
+    // cy.get('.toast').contains('error').should('be.visible');
 
-//     // modal should still be open
-//     // cy.wait(1000); // wait for potential (incorrect) closing annimation
-//     // cy.get('[data-test="database-modal"]').should('be.visible');
-//   });
-// });
+    // modal should still be open
+    // cy.wait(1000); // wait for potential (incorrect) closing annimation
+    // cy.get('[data-test="database-modal"]').should('be.visible');
+  });
+});

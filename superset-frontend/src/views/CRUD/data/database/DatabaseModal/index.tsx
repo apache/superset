@@ -331,7 +331,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     availableDbs?.databases?.find(
       (available: { engine: string | undefined }) =>
         // TODO: we need a centralized engine in one place
-        available.engine === db?.engine,
+        available.engine === db?.engine || db?.backend,
     ) || {};
   const disableSave =
     !hasConnectedDb &&
