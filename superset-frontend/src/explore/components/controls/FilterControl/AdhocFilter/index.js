@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CUSTOM_OPERATORS, OPERATORS } from 'src/explore/constants';
+import {
+  CUSTOM_OPERATORS,
+  Operators,
+  OPERATOR_MAPPING,
+} from 'src/explore/constants';
 import { getSimpleSQLExpression } from 'src/explore/exploreUtils';
 
 export const EXPRESSION_TYPES = {
@@ -69,6 +73,7 @@ export default class AdhocFilter {
     if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
       this.subject = adhocFilter.subject;
       this.operator = adhocFilter.operator?.toUpperCase();
+      this.operatorId = adhocFilter.operatorId;
       this.comparator = adhocFilter.comparator;
       this.clause = adhocFilter.clause || CLAUSES.WHERE;
       this.sqlExpression = null;
@@ -81,6 +86,7 @@ export default class AdhocFilter {
       if (adhocFilter.operator && CUSTOM_OPERATORS.has(adhocFilter.operator)) {
         this.subject = adhocFilter.subject;
         this.operator = adhocFilter.operator;
+        this.operatorId = adhocFilter.operatorId;
       } else {
         this.subject = null;
         this.operator = null;
@@ -111,21 +117,21 @@ export default class AdhocFilter {
       adhocFilter.expressionType === this.expressionType &&
       adhocFilter.sqlExpression === this.sqlExpression &&
       adhocFilter.operator === this.operator &&
+      adhocFilter.operatorId === this.operatorId &&
       adhocFilter.comparator === this.comparator &&
       adhocFilter.subject === this.subject
     );
   }
 
   isValid() {
+    const unoryOperators = [
+      Operators.IS_NOT_NULL,
+      Operators.IS_NULL,
+      Operators.IS_TRUE,
+      Operators.IS_FALSE,
+    ].map(op => OPERATOR_MAPPING[op].operation);
     if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
-      if (
-        [
-          OPERATORS['IS TRUE'],
-          OPERATORS['IS FALSE'],
-          OPERATORS['IS NULL'],
-          OPERATORS['IS NOT NULL'],
-        ].indexOf(this.operator) >= 0
-      ) {
+      if (unoryOperators.indexOf(this.operator) >= 0) {
         return !!(this.operator && this.subject);
       }
 
