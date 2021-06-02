@@ -24,7 +24,7 @@ import Icon from 'src/components/Icon';
 import { FilterRemoval } from './types';
 import { REMOVAL_DELAY_SECS } from './utils';
 
-export const FILTER_WIDTH = 200;
+export const FILTER_WIDTH = 180;
 
 export const StyledSpan = styled.span`
   cursor: pointer;
@@ -115,6 +115,7 @@ const FilterTabsContainer = styled(LineEditableTabs)`
       padding-right: ${theme.gridUnit}px;
       padding-bottom: ${theme.gridUnit * 3}px;
       padding-left: ${theme.gridUnit * 3}px;
+      width: 270px;
     }
 
     // extra selector specificity:
@@ -185,6 +186,8 @@ const FilterTabs: FC<FilterTabsProps> = ({
   children,
 }) => (
   <FilterTabsContainer
+    id="native-filters-tabs"
+    type="editable-card"
     tabPosition="left"
     onChange={onChange}
     activeKey={currentFilterId}
@@ -193,7 +196,20 @@ const FilterTabs: FC<FilterTabsProps> = ({
     tabBarExtraContent={{
       left: <StyledHeader>{t('Filters')}</StyledHeader>,
       right: (
-        <StyledAddFilterBox onClick={() => onEdit('', 'add')}>
+        <StyledAddFilterBox
+          onClick={() => {
+            onEdit('', 'add');
+            setTimeout(() => {
+              const element = document.getElementById('native-filters-tabs');
+              if (element) {
+                const navList = element.getElementsByClassName(
+                  'ant-tabs-nav-list',
+                )[0];
+                navList.scrollTop = navList.scrollHeight;
+              }
+            }, 0);
+          }}
+        >
           <PlusOutlined />{' '}
           <span data-test="add-filter-button" aria-label="Add filter">
             {t('Add filter')}
