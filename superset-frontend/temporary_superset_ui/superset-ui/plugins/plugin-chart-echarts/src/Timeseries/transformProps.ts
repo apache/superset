@@ -43,7 +43,7 @@ import {
 import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
 import {
   getPadding,
-  getTooltipFormatter,
+  getTooltipTimeFormatter,
   getXAxisFormatter,
   transformEventAnnotation,
   transformFormulaAnnotation,
@@ -135,7 +135,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     if (max === undefined) max = 1;
   }
 
-  const tooltipFormatter = getTooltipFormatter(tooltipTimeFormat);
+  const tooltipFormatter = getTooltipTimeFormatter(tooltipTimeFormat);
   const xAxisFormatter = getXAxisFormatter(xAxisTimeFormat);
 
   const addYAxisLabelOffset = !!yAxisTitle;

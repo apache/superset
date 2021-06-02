@@ -336,7 +336,7 @@ export function getPadding(
   });
 }
 
-export function getTooltipFormatter(format?: string): TimeFormatter | StringConstructor {
+export function getTooltipTimeFormatter(format?: string): TimeFormatter | StringConstructor {
   if (format === smartDateFormatter.id) {
     return smartDateDetailedFormatter;
   }
