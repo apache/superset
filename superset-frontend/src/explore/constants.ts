@@ -42,6 +42,7 @@ export enum Operators {
   GREATER_THAN_OR_EQUAL,
   IN,
   NOT_IN,
+  ILIKE,
   LIKE,
   REGEX,
   IS_NOT_NULL,
@@ -68,6 +69,7 @@ export const OPERATOR_MAPPING: {
   [Operators.IN]: { display: 'IN', operation: 'IN' },
   [Operators.NOT_IN]: { display: 'NOT IN', operation: 'NOT IN' },
   [Operators.LIKE]: { display: 'LIKE', operation: 'LIKE' },
+  [Operators.ILIKE]: { display: 'LIKE (case insensitive)', operation: 'ILIKE' },
   [Operators.REGEX]: { display: 'REGEX', operation: 'REGEX' },
   [Operators.IS_NOT_NULL]: { display: 'IS NOT NULL', operation: 'IS NOT NULL' },
   [Operators.IS_NULL]: { display: 'IS NULL', operation: 'IS NULL' },
@@ -83,7 +85,7 @@ export const OPERATORS_OPTIONS = Object.values(Operators).filter(
   val => typeof val === 'number',
 ) as Operators[];
 
-export const TABLE_ONLY_OPERATORS = [Operators.LIKE];
+export const TABLE_ONLY_OPERATORS = [Operators.LIKE, Operators.ILIKE];
 export const DRUID_ONLY_OPERATORS = [Operators.REGEX];
 export const HAVING_OPERATORS = [
   Operators.EQUALS,
@@ -140,4 +142,4 @@ export const TIME_FILTER_MAP = {
 };
 
 // TODO: make this configurable per Superset installation
-export const DEFAULT_TIME_RANGE = 'Last week';
+export const DEFAULT_TIME_RANGE = 'No filter';

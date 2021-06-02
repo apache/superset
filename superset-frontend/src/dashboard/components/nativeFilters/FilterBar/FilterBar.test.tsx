@@ -76,8 +76,8 @@ const addFilterFlow = async () => {
   userEvent.click(screen.getByTestId(getTestId('collapsable')));
   userEvent.click(screen.getByTestId(getTestId('create-filter')));
   // select filter
-  userEvent.click(screen.getByText('Select filter'));
-  userEvent.click(screen.getByText('Time filter'));
+  userEvent.click(screen.getByText('Value'));
+  userEvent.click(screen.getByText('Time range'));
   userEvent.type(screen.getByTestId(getModalTestId('name-input')), FILTER_NAME);
   userEvent.click(screen.getByText('Save'));
   await screen.findByText('All Filters (1)');
@@ -90,6 +90,7 @@ const addFilterSetFlow = async () => {
   // check description
   expect(screen.getByText('Filters (1)')).toBeInTheDocument();
   expect(screen.getByText(FILTER_NAME)).toBeInTheDocument();
+
   expect(screen.getAllByText('Last week').length).toBe(2);
 
   // apply filters
@@ -304,7 +305,7 @@ describe('FilterBar', () => {
 
     await addFilterFlow();
 
-    expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+    expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
   });
 
   it('add and apply filter set', async () => {
@@ -316,6 +317,8 @@ describe('FilterBar', () => {
     renderWrapper(openedBarProps, stateWithoutNativeFilters);
 
     await addFilterFlow();
+
+    userEvent.click(screen.getByTestId(getTestId('apply-button')));
 
     await addFilterSetFlow();
 
@@ -340,6 +343,7 @@ describe('FilterBar', () => {
       screen.getByTestId(getTestId('filter-set-wrapper')),
     ).not.toHaveAttribute('data-selected', 'true');
     userEvent.click(screen.getByTestId(getTestId('filter-set-wrapper')));
+    userEvent.click(screen.getAllByText('Filters (1)')[1]);
     expect(await screen.findByText('Last week')).toBeInTheDocument();
     userEvent.click(screen.getByTestId(getTestId('apply-button')));
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
@@ -354,6 +358,8 @@ describe('FilterBar', () => {
     renderWrapper(openedBarProps, stateWithoutNativeFilters);
 
     await addFilterFlow();
+
+    userEvent.click(screen.getByTestId(getTestId('apply-button')));
 
     await addFilterSetFlow();
 

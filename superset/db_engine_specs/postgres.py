@@ -159,9 +159,9 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
     engine = "postgresql"
     engine_aliases = {"postgres"}
 
-    drivername = "postgresql+psycopg2"
+    default_driver = "psycopg2"
     sqlalchemy_uri_placeholder = (
-        "postgresql+psycopg2://user:password@host:port/dbname[?key=value&key=value...]"
+        "postgresql://user:password@host:port/dbname[?key=value&key=value...]"
     )
     # https://www.postgresql.org/docs/9.1/libpq-ssl.html#LIBQ-SSL-CERTIFICATES
     encryption_parameters = {"sslmode": "verify-ca"}

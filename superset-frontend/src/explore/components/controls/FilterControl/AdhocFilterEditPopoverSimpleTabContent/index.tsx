@@ -17,11 +17,8 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import PropTypes from 'prop-types';
 import { NativeSelect as Select } from 'src/components/Select';
 import { t, SupersetClient, styled, JsonObject } from '@superset-ui/core';
-
-import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
 import {
   Operators,
   OPERATORS_OPTIONS,
@@ -39,9 +36,7 @@ import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import columnType from 'src/explore/components/controls/FilterControl/columnType';
 import { Input } from 'src/common/components';
-import { null } from 'mathjs';
 
 const SelectWithLabel = styled(Select)`
   .ant-select-selector {
@@ -56,27 +51,6 @@ const SelectWithLabel = styled(Select)`
     width: max-content;
   }
 `;
-
-const propTypes = {
-  adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
-  onChange: PropTypes.func.isRequired,
-  options: PropTypes.arrayOf(
-    PropTypes.oneOfType([
-      columnType,
-      PropTypes.shape({ saved_metric_name: PropTypes.string.isRequired }),
-      adhocMetricType,
-    ]),
-  ).isRequired,
-  onHeightChange: PropTypes.func.isRequired,
-  datasource: PropTypes.object,
-  partitionColumn: PropTypes.string,
-  popoverRef: PropTypes.object,
-};
-
-interface Operator {
-  display: string;
-  operator: string;
-}
 
 interface ColumnType {
   id: number;
@@ -164,9 +138,11 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         subject,
         clause,
         operator:
-          operator && isOperatorRelevant(operatorId, subject) ? OPERATOR_MAPPING[operatorId] : null,
+          operator && isOperatorRelevant(operatorId, subject)
+            ? OPERATOR_MAPPING[operatorId]
+            : null,
         expressionType: EXPRESSION_TYPES.SIMPLE,
-        operatorId: operatorId,
+        operatorId,
       }),
     );
   };
@@ -185,7 +161,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         ? currentComparator[0]
         : currentComparator;
     }
-    if(operator == Operators.IS_TRUE || operator == Operators.IS_FALSE){
+    if (operator == Operators.IS_TRUE || operator == Operators.IS_FALSE) {
       newComparator = Operators.IS_TRUE == operator;
     }
     if (operator && CUSTOM_OPERATORS.has(operator)) {
@@ -372,7 +348,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   const comparatorSelectProps = {
     allowClear: true,
     showSearch: true,
-    mode: MULTI_OPERATORS.has(operatorId) ? 'tags': undefined,
+    mode: MULTI_OPERATORS.has(operatorId) ? 'tags' : undefined,
     tokenSeparators: [',', '\n', '\t', ';'],
     loading,
     value: comparator,

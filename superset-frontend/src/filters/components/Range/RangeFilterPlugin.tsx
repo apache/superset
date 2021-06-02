@@ -30,6 +30,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     height,
     width,
     setDataMask,
+    setFocusedFilter,
+    unsetFocusedFilter,
     inputRef,
     filterState,
   } = props;
@@ -73,15 +75,17 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       {Number.isNaN(Number(min)) || Number.isNaN(Number(max)) ? (
         <h4>{t('Chosen non-numeric column')}</h4>
       ) : (
-        <Slider
-          range
-          min={min}
-          max={max}
-          value={value}
-          onAfterChange={handleAfterChange}
-          onChange={handleChange}
-          ref={inputRef}
-        />
+        <div onMouseEnter={setFocusedFilter} onMouseLeave={unsetFocusedFilter}>
+          <Slider
+            range
+            min={min}
+            max={max}
+            value={value}
+            onAfterChange={handleAfterChange}
+            onChange={handleChange}
+            ref={inputRef}
+          />
+        </div>
       )}
     </Styles>
   );

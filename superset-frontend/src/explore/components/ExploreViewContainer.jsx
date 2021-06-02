@@ -191,7 +191,7 @@ function ExploreViewContainer(props) {
     const payload = { ...props.form_data };
     const longUrl = getExploreLongUrl(
       props.form_data,
-      props.standalone ? URL_PARAMS.standalone : null,
+      props.standalone ? URL_PARAMS.standalone.name : null,
       false,
     );
     try {
@@ -370,18 +370,34 @@ function ExploreViewContainer(props) {
 
   function renderErrorMessage() {
     // Returns an error message as a node if any errors are in the store
-    const errors = Object.entries(props.controls)
-      .filter(
-        ([, control]) =>
-          control.validationErrors && control.validationErrors.length > 0,
-      )
-      .map(([key, control]) => (
-        <div key={key}>
-          {t('Control labeled ')}
-          <strong>{` "${control.label}" `}</strong>
-          {control.validationErrors.join('. ')}
+    const controlsWithErrors = Object.values(props.controls).filter(
+      control =>
+        control.validationErrors && control.validationErrors.length > 0,
+    );
+    if (controlsWithErrors.length === 0) {
+      return null;
+    }
+
+    const errorMessages = controlsWithErrors.map(
+      control => control.validationErrors,
+    );
+    const uniqueErrorMessages = [...new Set(errorMessages.flat())];
+
+    const errors = uniqueErrorMessages
+      .map(message => {
+        const matchingLabels = controlsWithErrors
+          .filter(control => control.validationErrors?.includes(message))
+          .map(control => control.label);
+        return [matchingLabels, message];
+      })
+      .map(([labels, message]) => (
+        <div key={message}>
+          {labels.length > 1 ? t('Controls labeled ') : t('Control labeled ')}
+          <strong>{` ${labels.join(', ')}`}</strong>
+          <span>: {message}</span>
         </div>
       ));
+
     let errorMessage;
     if (errors.length > 0) {
       errorMessage = <div style={{ textAlign: 'left' }}>{errors}</div>;
@@ -561,7 +577,7 @@ function mapStateToProps(state) {
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },
     {
-      ...dataMask[form_data.slice_id]?.ownState,
+      ...dataMask[form_data.slice_id ?? 0]?.ownState, // 0 - unsaved chart
     },
   );
   const chartKey = Object.keys(charts)[0];
@@ -593,7 +609,7 @@ function mapStateToProps(state) {
     forcedHeight: explore.forced_height,
     chart,
     timeout: explore.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
-    ownState: dataMask[form_data.slice_id]?.ownState,
+    ownState: dataMask[form_data.slice_id ?? 0]?.ownState, // 0 - unsaved chart
     impressionId,
     userId: explore.user_id,
   };

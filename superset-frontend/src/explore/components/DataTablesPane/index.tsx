@@ -107,12 +107,14 @@ export const DataTablesPane = ({
   onCollapseChange,
   chartStatus,
   ownState,
+  errorMessage,
 }: {
   queryFormData: Record<string, any>;
   tableSectionHeight: number;
   chartStatus: string;
   ownState?: JsonObject;
   onCollapseChange: (openPanelName: string) => void;
+  errorMessage?: JSX.Element;
 }) => {
   const [data, setData] = useState<{
     [RESULT_TYPES.results]?: Record<string, any>[];
@@ -196,6 +198,17 @@ export const DataTablesPane = ({
 
   useEffect(() => {
     if (panelOpen && isRequestPending[RESULT_TYPES.results]) {
+      if (errorMessage) {
+        setIsRequestPending(prevState => ({
+          ...prevState,
+          [RESULT_TYPES.results]: false,
+        }));
+        setIsLoading(prevIsLoading => ({
+          ...prevIsLoading,
+          [RESULT_TYPES.results]: false,
+        }));
+        return;
+      }
       if (chartStatus === 'loading') {
         setIsLoading(prevIsLoading => ({
           ...prevIsLoading,
@@ -220,7 +233,14 @@ export const DataTablesPane = ({
       }));
       getData(RESULT_TYPES.samples);
     }
-  }, [panelOpen, isRequestPending, getData, activeTabKey, chartStatus]);
+  }, [
+    panelOpen,
+    isRequestPending,
+    getData,
+    activeTabKey,
+    chartStatus,
+    errorMessage,
+  ]);
 
   const filteredData = {
     [RESULT_TYPES.results]: useFilteredTableData(
@@ -261,6 +281,9 @@ export const DataTablesPane = ({
           showRowCount={false}
         />
       );
+    }
+    if (errorMessage) {
+      return <pre>{errorMessage}</pre>;
     }
     return null;
   };
