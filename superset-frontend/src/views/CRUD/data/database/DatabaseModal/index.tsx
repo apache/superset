@@ -537,7 +537,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       title={<h4>{t('Connect a database')}</h4>}
       footer={renderModalFooter()}
     >
-      {hasConnectedDb ? (
+      {hasConnectedDb ? ( {/* Step 3 */}
         <ExtraOptions
           db={db as DatabaseObject}
           onInputChange={({ target }: { target: HTMLInputElement }) =>
@@ -557,28 +557,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           onEditorChange={(payload: { name: string; json: any }) =>
             onChange(ActionType.editorChange, payload)
           }
-        />
+        /> {/* Step 3 */}
       ) : (
         <>
-          <DatabaseConnectionForm
-            dbModel={dbModel}
-            onParametersChange={({ target }: { target: HTMLInputElement }) =>
-              onChange(ActionType.parametersChange, {
-                type: target.type,
-                name: target.name,
-                checked: target.checked,
-                value: target.value,
-              })
-            }
-            onChange={({ target }: { target: HTMLInputElement }) =>
-              onChange(ActionType.textChange, {
-                name: target.name,
-                value: target.value,
-              })
-            }
-            getValidation={() => getValidation(db)}
-            validationErrors={validationErrors}
-          />
           {/* Step 1 */}
           {!isLoading && !db && (
             <SelectDatabaseStyles>
@@ -587,20 +568,51 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             </SelectDatabaseStyles>
           )}
           {/* Step 1 */}
-          <Button
-            buttonStyle="link"
-            onClick={() =>
-              setDB({
-                type: ActionType.configMethodChange,
-                payload: {
-                  configuration_method: CONFIGURATION_METHOD.SQLALCHEMY_URI,
-                },
-              })
-            }
-            css={buttonLinkStyles}
-          >
-            Connect this database with a SQLAlchemy URI string instead
-          </Button>
+
+          {/* Step 2 */}
+          {!isLoading && db && (
+            <>
+              <DatabaseConnectionForm
+                dbModel={dbModel}
+                onParametersChange={({
+                  target,
+                }: {
+                  target: HTMLInputElement;
+                }) =>
+                  onChange(ActionType.parametersChange, {
+                    type: target.type,
+                    name: target.name,
+                    checked: target.checked,
+                    value: target.value,
+                  })
+                }
+                onChange={({ target }: { target: HTMLInputElement }) =>
+                  onChange(ActionType.textChange, {
+                    name: target.name,
+                    value: target.value,
+                  })
+                }
+                getValidation={() => getValidation(db)}
+                validationErrors={validationErrors}
+              />
+
+              <Button
+                buttonStyle="link"
+                onClick={() =>
+                  setDB({
+                    type: ActionType.configMethodChange,
+                    payload: {
+                      configuration_method: CONFIGURATION_METHOD.SQLALCHEMY_URI,
+                    },
+                  })
+                }
+                css={buttonLinkStyles}
+              >
+                Connect this database with a SQLAlchemy URI string instead
+              </Button>
+              {/* Step 2 */}
+            </>
+          )}
         </>
       )}
     </Modal>
