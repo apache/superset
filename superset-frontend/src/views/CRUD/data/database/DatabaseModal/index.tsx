@@ -535,16 +535,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   .map(database => (
                     <IconButton
                       className="preferred-item"
-                      onClick={() => {
-                        setDB({
-                          type: ActionType.dbSelected,
-                          payload: {
-                            configuration_method:
-                              CONFIGURATION_METHOD.DYNAMIC_FORM,
-                            engine: database.engine,
-                          },
-                        });
-                      }}
+                      onClick={() => setDatabaseModel(database.engine)}
                       buttonText={database.name}
                     />
                   ))}
