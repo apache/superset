@@ -346,14 +346,26 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     </div>
   );
 
-  const renderModalFooter = () => [
-    <Button key="back" onClick={() => {
-        setDB({ type: ActionType.reset });
-    }}>Back</Button>,
-    <Button key="submit" type="primary" onClick={onSave}>
-      Connect
-    </Button>,
-  ];
+  const renderModalFooter = () =>
+    db // if db show back + connect
+      ? [
+          <Button
+            key="back"
+            onClick={() => {
+              setDB({ type: ActionType.reset });
+            }}
+          >
+            Back
+          </Button>,
+          !hasConnectedDb ? ( // if hasConnectedDb show back + finish
+            <Button key="submit" type="primary" onClick={onSave}>
+              Connect
+            </Button>
+          ) : (
+            <Button onClick={onClose}>Finish</Button>
+          ),
+        ]
+      : null;
 
   useEffect(() => {
     if (show) {
