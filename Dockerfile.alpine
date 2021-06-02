@@ -28,7 +28,7 @@ RUN set -eux; \
     apk update; \
     apk add --no-cache \
       patch sed bash \
-      g++ git unzip cmake make linux-headers \
+      autoconf g++ git unzip cmake make linux-headers \
       flex bison \
       curl \
       samurai \
@@ -64,9 +64,10 @@ RUN set -eux; \
     cd /app; \
     mkdir -p superset/static; \
     touch superset/static/version_info.json; \
-    export ARROW_VERSION=1.0.1; \
+    export ARROW_VERSION=3.0.0; \
     export NUMPY_VERSION=1.19.4; \
     export NO_INSTALL_BUILD_TOOLS=true; \
+    export ARROW_VERBOSE_THIRDPARTY_BUILD=ON; \
     /scripts/build_pyarrow.sh; \
     export REQUIREMENTS_TXT=./requirements/local.txt; \
     /scripts/install_requirements.sh; \

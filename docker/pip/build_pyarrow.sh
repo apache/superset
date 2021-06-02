@@ -47,6 +47,11 @@ if [ "$NO_INSTALL_BUILD_TOOLS" != "true" ]; then
   apk_add_repos; toolchain_install; pip_upgrade
 fi
 
+# Install Apache Thrift
+pip_upgrade
+apk_add_repos
+apk add --no-cache thrift-dev@edge_main boost-dev
+
 # Clone Arrow Repo
 if [ "$NO_GIT_CLONE" != "true" ]; then
   git clone \
@@ -99,9 +104,10 @@ cmake -GNinja \
       -DARROW_PYTHON=ON \
       -DARROW_FLIGHT=ON \
       -DARROW_PLASMA=ON \
+      -DARROW_VERBOSE_THIRDPARTY_BUILD=${ARROW_VERBOSE_THIRDPARTY_BUILD:-OFF} \
       "$ARROW_ROOT/cpp"
 
-ninja "-j$PARALLEL_WORKERS"; ninja install
+time cmake --build . --target install -- -j${PARALLEL_WORKERS}
 
 
 # Enviroment vars setup
