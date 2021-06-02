@@ -300,6 +300,21 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   };
 
+  const setDatabaseModel = (option) => {
+    const isDynamic =
+      availableDbs?.databases.filter(db => db.engine === option)[0].parameters !== undefined;
+    setDB({
+      type: ActionType.dbSelected,
+      payload: {
+        configuration_method: isDynamic
+          ? CONFIGURATION_METHOD.DYNAMIC_FORM
+          : CONFIGURATION_METHOD.SQLALCHEMY_URI,
+        engine: option,
+      },
+    });
+    console.log('isDynamic', isDynamic);
+  };
+
   useEffect(() => {
     if (show) {
       setTabKey(DEFAULT_TAB_KEY);
@@ -537,24 +552,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <label className="label-select">
                 What database would you like to connect?
               </label>
-              <Select
-                style={{ width: '100%' }}
-                onChange={option => {
-                  // todo: centralize this in function
-                  const isDynamic = availableDbs?.databases.filter(
-                    db => db.engine === option,
-                  )[0].parameters !== undefined;
-                  setDB({
-                    type: ActionType.dbSelected,
-                    payload: {
-                      configuration_method: isDynamic
-                        ? CONFIGURATION_METHOD.DYNAMIC_FORM
-                        : CONFIGURATION_METHOD.SQLALCHEMY_URI,
-                      engine: option,
-                    },
-                  });
-                }}
-              >
+              <Select style={{ width: '100%' }} onChange={setDatabaseModel}>
                 {availableDbs?.databases?.map(database => (
                   <Select.Option value={database.engine} key={database.engine}>
                     {database.name}
