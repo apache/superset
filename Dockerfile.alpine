@@ -153,9 +153,17 @@ RUN set -eux; \
         libimagequant \
         libjpeg \
         patch \
-        chromium-chromedriver; \
+        sed \
+        chromium chromium-chromedriver; \
     \
     rm -rf /var/cache/apk/*
+
+COPY ./docker/pip/ /scripts
+RUN set -eux; \
+    \
+    bash -c 'source /scripts/libsetup.sh && apk_add_repos'; \
+    apk add --no-cache \
+        thrift-dev@edge_main
 
 COPY --from=superset-py /usr/local/lib/python3.7/site-packages/ /usr/local/lib/python3.7/site-packages/
 # Copying site-packages doesn't move the CLIs, so let's copy them one by one
