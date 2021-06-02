@@ -106,13 +106,12 @@ describe('dashboard filters list view', () => {
     cy.get('[data-test="table-row"]').should('not.exist');
   });
 
-  xit('should filter by published correctly', () => {
+  it('should filter by published correctly', () => {
     // filter by published
     cy.get('.Select__control').eq(2).click();
     cy.get('.Select__menu').contains('Published').click();
     cy.get('[data-test="table-row"]').should('have.length', 2);
     cy.get('[data-test="table-row"]')
-      .first()
       .contains('USA Births Names')
       .should('be.visible');
     cy.get('.Select__control').eq(2).click();
