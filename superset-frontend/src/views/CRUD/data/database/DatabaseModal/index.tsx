@@ -537,7 +537,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       title={<h4>{t('Connect a database')}</h4>}
       footer={renderModalFooter()}
     >
-      {hasConnectedDb ? ( {/* Step 3 */}
+      {hasConnectedDb ? (
         <ExtraOptions
           db={db as DatabaseObject}
           onInputChange={({ target }: { target: HTMLInputElement }) =>
@@ -557,7 +557,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           onEditorChange={(payload: { name: string; json: any }) =>
             onChange(ActionType.editorChange, payload)
           }
-        /> {/* Step 3 */}
+        />
       ) : (
         <>
           {/* Step 1 */}
