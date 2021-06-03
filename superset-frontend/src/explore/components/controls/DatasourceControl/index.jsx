@@ -124,11 +124,11 @@ class DatasourceControl extends React.PureComponent {
   onDatasourceSave(datasource) {
     this.props.actions.setDatasource(datasource);
     // remove time column in the form_data
-    const timeCol = this.props.form_data?.granularity_sqla;
+    const timeCol = this.props.form_data?.granularity_sqla; // eslint-disable-line camelcase
     const { columns } = this.props.datasource;
     if (
       datasource.type === 'table' &&
-      !columns.find(({ column_name }) => column_name === timeCol)?.is_dttm
+      !columns.find(({ column_name }) => column_name === timeCol)?.is_dttm // eslint-disable-line camelcase
     ) {
       this.props.actions.setControlValue('granularity_sqla', null);
     }
