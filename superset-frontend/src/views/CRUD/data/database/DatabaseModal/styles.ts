@@ -42,6 +42,15 @@ export const StyledFormHeader = styled.header`
     font-weight: bold;
     font-size: ${({ theme }) => theme.typography.sizes.l}px;
   }
+
+  .select-db {
+    .helper {
+      margin-top: 0;
+    }
+    h4 {
+      margin: 0 0 29px;
+    }
+  }
 `;
 
 export const antdCollapseStyles = (theme: SupersetTheme) => css`

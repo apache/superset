@@ -61,6 +61,7 @@ import {
   formStyles,
   StyledBasicTab,
   SelectDatabaseStyles,
+  StyledFormHeader,
 } from './styles';
 
 const DOCUMENTATION_LINK =
@@ -563,6 +564,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           {/* Step 1 */}
           {!isLoading && !db && (
             <SelectDatabaseStyles>
+              <StyledFormHeader>
+                <div className="select-db">
+                  <p className="helper"> Step 1 of 3 </p>
+                  <h4>Select a database to connect</h4>
+                </div>
+              </StyledFormHeader>
               {renderPreferredSelector()}
               {renderAvailableSelector()}
             </SelectDatabaseStyles>
