@@ -227,6 +227,8 @@ class DatabaseParametersSchemaMixin:
     When using this mixin make sure that `sqlalchemy_uri` is not required.
     """
 
+    # currently in a put request we are not passing in an engine,
+    # but rather a backend. In a future PR we will address that
     engine = fields.String(allow_none=True, description="SQLAlchemy engine to use")
     parameters = fields.Dict(
         keys=fields.String(),
@@ -256,7 +258,11 @@ class DatabaseParametersSchemaMixin:
 
         # TODO (betodealmeida): remove second expression after making sure
         # frontend is not passing engine inside parameters
-        engine = data.pop("engine", None) or parameters.pop("engine", None)
+        engine = (
+            data.pop("engine", None)
+            or parameters.pop("engine", None)
+            or data.pop("backend", None)
+        )
 
         configuration_method = data.get("configuration_method")
         if configuration_method == ConfigurationMethod.DYNAMIC_FORM:
@@ -312,7 +318,7 @@ class DatabaseValidateParametersSchema(Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
 
-    engine = fields.String(required=True, description="SQLAlchemy engine to use")
+    engine = fields.String(allow_none=True, description="SQLAlchemy engine to use")
     parameters = fields.Dict(
         keys=fields.String(),
         values=fields.Raw(allow_none=True),

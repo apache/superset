@@ -21,9 +21,9 @@ import { SupersetTheme, JsonObject } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import {
-  StyledFormHeader,
   formScrollableStyles,
   validatedFormStyles,
+  StyledFormHeader,
 } from './styles';
 import { DatabaseForm, DatabaseObject } from '../types';
 
@@ -197,14 +197,12 @@ const DatabaseConnectionForm = ({
   getValidation: () => void;
 }) => (
   <>
-    {!isEditMode && (
-      <StyledFormHeader>
-        <h4>Enter the required {name} credentials</h4>
-        <p className="helper">
-          Need help? Learn more about connecting to {name}.
-        </p>
-      </StyledFormHeader>
-    )}
+    <StyledFormHeader>
+      <h4>Enter the required {name} credentials</h4>
+      <p className="helper">
+        Need help? Learn more about connecting to {name}.
+      </p>
+    </StyledFormHeader>
     <div
       // @ts-ignore
       css={(theme: SupersetTheme) => [

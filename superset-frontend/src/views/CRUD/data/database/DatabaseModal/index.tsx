@@ -130,7 +130,6 @@ function dbReducer(
   const trimmedState = {
     ...(state || {}),
   };
-
   switch (action.type) {
     case ActionType.inputChange:
       if (action.payload.type === 'checkbox') {
@@ -162,13 +161,7 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.fetched:
-      return {
-        ...action.payload,
-      };
     case ActionType.dbSelected:
-      return {
-        ...action.payload,
-      };
     case ActionType.configMethodChange:
       return {
         ...action.payload,
@@ -370,6 +363,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           <EditHeaderSubtitle>{dbName}</EditHeaderSubtitle>
         </TabHeader>
       ) : (
+        // TODO: Fix headers when we get rid of tabs
         <TabHeader>
           <CreateHeaderTitle>Enter Primary Credentials</CreateHeaderTitle>
           <CreateHeaderSubtitle>
@@ -430,27 +424,29 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               validationErrors={validationErrors}
             />
           )}
-          <Alert
-            css={(theme: SupersetTheme) => antDAlertStyles(theme)}
-            message="Additional fields may be required"
-            description={
-              <>
-                Select databases require additional fields to be completed in
-                the Advanced tab to successfully connect the database. Learn
-                what requirements your databases has{' '}
-                <a
-                  href={DOCUMENTATION_LINK}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  here
-                </a>
-                .
-              </>
-            }
-            type="info"
-            showIcon
-          />
+          {!isEditMode && (
+            <Alert
+              css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+              message="Additional fields may be required"
+              description={
+                <>
+                  Select databases require additional fields to be completed in
+                  the Advanced tab to successfully connect the database. Learn
+                  what requirements your databases has{' '}
+                  <a
+                    href={DOCUMENTATION_LINK}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    here
+                  </a>
+                  .
+                </>
+              }
+              type="info"
+              showIcon
+            />
+          )}
         </StyledBasicTab>
         <Tabs.TabPane tab={<span>{t('Advanced')}</span>} key="2">
           <ExtraOptions
