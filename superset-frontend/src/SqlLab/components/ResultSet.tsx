@@ -540,7 +540,7 @@ export default class ResultSet extends React.PureComponent<
     let limitMessage;
     const limitReached = results?.displayLimitReached;
     const limit = queryLimit || results.query.limit;
-    const isAdmin = !!this.props.user?.roles.Admin;
+    const isAdmin = !!this.props.user?.roles?.Admin;
     const displayMaxRowsReachedMessage = {
       withAdmin: t(
         `The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. `,

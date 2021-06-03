@@ -162,6 +162,9 @@ function dbReducer(
       };
     case ActionType.fetched:
     case ActionType.dbSelected:
+      return {
+        ...action.payload,
+      };
     case ActionType.configMethodChange:
       return {
         ...action.payload,

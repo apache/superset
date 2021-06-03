@@ -318,7 +318,7 @@ class DatabaseValidateParametersSchema(Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
 
-    engine = fields.String(allow_none=True, description="SQLAlchemy engine to use")
+    engine = fields.String(required=True, description="SQLAlchemy engine to use")
     parameters = fields.Dict(
         keys=fields.String(),
         values=fields.Raw(allow_none=True),

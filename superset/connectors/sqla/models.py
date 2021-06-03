@@ -679,13 +679,25 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             for col in cols:
                 try:
                     if isinstance(col["type"], TypeEngine):
-                        col["type"] = db_engine_spec.column_datatype_to_string(
+                        db_type = db_engine_spec.column_datatype_to_string(
                             col["type"], db_dialect
+                        )
+                        type_spec = db_engine_spec.get_column_spec(db_type)
+                        col.update(
+                            {
+                                "type": db_type,
+                                "type_generic": type_spec.generic_type
+                                if type_spec
+                                else None,
+                                "is_dttm": type_spec.is_dttm if type_spec else None,
+                            }
                         )
                 # Broad exception catch, because there are multiple possible exceptions
                 # from different drivers that fall outside CompileError
                 except Exception:  # pylint: disable=broad-except
-                    col["type"] = "UNKNOWN"
+                    col.update(
+                        {"type": "UNKNOWN", "generic_type": None, "is_dttm": None,}
+                    )
         return cols
 
     @property
