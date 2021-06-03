@@ -280,7 +280,8 @@ export default class ResultSet extends React.PureComponent<
     // before saving the dataset.
     if (templateParams) {
       const p = JSON.parse(templateParams);
-      if (p.filters) {
+      /* eslint-disable-next-line no-underscore-dangle */
+      if (p._filters) {
         /* eslint-disable-next-line no-underscore-dangle */
         delete p._filters;
         templateParams = JSON.stringify(p);
