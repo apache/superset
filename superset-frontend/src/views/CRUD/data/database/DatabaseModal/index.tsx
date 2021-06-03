@@ -446,6 +446,24 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           <EditHeaderSubtitle>{dbName}</EditHeaderSubtitle>
         </TabHeader>
       )}
+      {/* Show Legacy Header */}
+      {useSqlAlchemyForm && (
+        <TabHeader>
+          <p className="helper"> Step 2 of 2 </p>
+          <CreateHeaderTitle>Enter Primary Credentials</CreateHeaderTitle>
+          <CreateHeaderSubtitle>
+            Need help? Learn how to connect your database{' '}
+            <a
+              href={DOCUMENTATION_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              here
+            </a>
+            .
+          </CreateHeaderSubtitle>
+        </TabHeader>
+      )}
       {/* Add styled header here when not in edit mode */}
       <hr />
       <Tabs

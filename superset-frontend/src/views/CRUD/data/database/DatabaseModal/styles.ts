@@ -322,6 +322,12 @@ export const TabHeader = styled.div`
   padding: 0px;
   margin: 0 ${({ theme }) => theme.gridUnit * 4}px
     ${({ theme }) => theme.gridUnit * 8}px;
+
+  .helper {
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    margin: 0px;
+  }
 `;
 
 export const CreateHeaderTitle = styled.div`
@@ -370,8 +376,6 @@ export const SelectDatabaseStyles = styled.div`
       margin-bottom: 16px;
     }
   }
-
-
 
   .label-available-select {
     text-transform: uppercase;
