@@ -1678,10 +1678,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
                     "level": "error",
                     "extra": {
-                        "messages": {
-                            "engine": ["Missing data for required field."],
-                            "foo": ["Unknown field."],
-                        },
+                        "messages": {"engine": ["Missing data for required field."],},
                         "issue_codes": [
                             {
                                 "code": 1020,

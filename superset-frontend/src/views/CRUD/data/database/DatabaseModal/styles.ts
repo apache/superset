@@ -85,7 +85,6 @@ export const antDModalNoPaddingStyles = css`
 `;
 
 export const formScrollableStyles = (theme: SupersetTheme) => css`
-  overflow-y: scroll;
   padding-left: ${theme.gridUnit * 4}px;
   padding-right: ${theme.gridUnit * 4}px;
 `;
