@@ -366,7 +366,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <Button onClick={onClose}>Finish</Button>
           ),
         ]
-      : null;
+      : [];
 
   useEffect(() => {
     if (show) {
@@ -438,6 +438,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       title={
         <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
       }
+      footer={renderModalFooter()}
     >
       {isEditMode && (
         <TabHeader>
