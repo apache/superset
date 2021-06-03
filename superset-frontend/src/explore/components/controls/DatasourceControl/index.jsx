@@ -35,6 +35,7 @@ const propTypes = {
   onChange: PropTypes.func,
   value: PropTypes.string,
   datasource: PropTypes.object.isRequired,
+  form_data: PropTypes.object.isRequired,
   isEditable: PropTypes.bool,
   onDatasourceSave: PropTypes.func,
 };
@@ -122,6 +123,15 @@ class DatasourceControl extends React.PureComponent {
 
   onDatasourceSave(datasource) {
     this.props.actions.setDatasource(datasource);
+    // remove time column in the form_data
+    const timeCol = this.props.form_data?.granularity_sqla;
+    const { columns } = this.props.datasource;
+    if (
+      datasource.type === 'table' &&
+      !columns.find(({ column_name }) => column_name === timeCol)?.is_dttm
+    ) {
+      this.props.actions.setControlValue('granularity_sqla', null);
+    }
     if (this.props.onDatasourceSave) {
       this.props.onDatasourceSave(datasource);
     }
