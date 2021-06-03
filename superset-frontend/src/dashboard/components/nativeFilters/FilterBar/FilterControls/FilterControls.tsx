@@ -72,6 +72,7 @@ const FilterControls: FC<FilterControlsProps> = ({
     }));
     return buildCascadeFiltersTree(filtersWithValue);
   }, [filterValues, dataMaskSelected]);
+  const cascadeFilterIds = new Set(cascadeFilters.map(item => item.id));
 
   let filtersInScope: CascadeFilter[] = [];
   const filtersOutOfScope: CascadeFilter[] = [];
@@ -93,23 +94,25 @@ const FilterControls: FC<FilterControlsProps> = ({
 
   return (
     <Wrapper>
-      {portalNodes.map((node, index) => (
-        <portals.InPortal node={node}>
-          <CascadePopover
-            data-test="cascade-filters-control"
-            key={cascadeFilters[index].id}
-            visible={visiblePopoverId === cascadeFilters[index].id}
-            onVisibleChange={visible =>
-              setVisiblePopoverId(visible ? cascadeFilters[index].id : null)
-            }
-            filter={cascadeFilters[index]}
-            onFilterSelectionChange={onFilterSelectionChange}
-            directPathToChild={directPathToChild}
-          />
-        </portals.InPortal>
-      ))}
+      {portalNodes
+        .filter((node, index) => cascadeFilterIds.has(filterValues[index].id))
+        .map((node, index) => (
+          <portals.InPortal node={node}>
+            <CascadePopover
+              data-test="cascade-filters-control"
+              key={cascadeFilters[index].id}
+              visible={visiblePopoverId === cascadeFilters[index].id}
+              onVisibleChange={visible =>
+                setVisiblePopoverId(visible ? cascadeFilters[index].id : null)
+              }
+              filter={cascadeFilters[index]}
+              onFilterSelectionChange={onFilterSelectionChange}
+              directPathToChild={directPathToChild}
+            />
+          </portals.InPortal>
+        ))}
       {filtersInScope.map(filter => {
-        const index = cascadeFilters.findIndex(f => f.id === filter.id);
+        const index = filterValues.findIndex(f => f.id === filter.id);
         return <portals.OutPortal node={portalNodes[index]} />;
       })}
       {showCollapsePanel && (
