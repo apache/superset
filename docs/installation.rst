@@ -1271,10 +1271,11 @@ There is a special ``_filters`` parameter which can be used to test filters used
 
 .. code-block:: JSON
     {
-        "_filters": {
+        "_filters": [ {
             "col": "action_type",
             "op": "IN",
             "val": ["sell", "buy"]
+            } ]
     }
 
 .. code-block:: python
