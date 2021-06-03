@@ -74,3 +74,8 @@ py-format: pre-commit
 
 js-format:
 	cd superset-frontend; npm run prettier
+
+translate:
+	pybabel extract -F superset/translations/babel.cfg -o superset/translations/messages.pot -k _ -k __ -k t -k tn -k tct -k st .
+	pybabel update -i superset/translations/messages.pot -d superset/translations --ignore-obsolete
+	./scripts/po2json.sh

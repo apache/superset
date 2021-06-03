@@ -17,6 +17,8 @@
  */
 
 /* eslint-disable global-require */
+import { t } from '@superset-ui/core';
+
 const loadModule = () => {
   let module;
   try {
@@ -29,5 +31,28 @@ const loadModule = () => {
 };
 
 const supersetText = loadModule();
+
+// if the translation is the same as the string passed in
+// then the translation doesn't exist, so return the value
+// To use this properly, you should pass in an already translated string
+// as the value. i.e.,
+// const docsText = t('SQLAlchemy docs');
+// return (
+//  st(
+//   'DATABASE_MODAL.SQLALCHEMY_DISPLAY_TEXT',
+//    SQLALCHEMY_DISPLAY_TEXT,
+//    docsText,
+//  )
+// )
+// params: overwrite key, overwrite value, default value
+export const st = (oKey: string, oValue: string | undefined, dValue: string) =>
+  t(oKey) === oKey ? oValue || dValue : t(oKey);
+
+export type SupersetTextType = {
+  DATABASE_MODAL?: {
+    SQLALCHEMY_DISPLAY_TEXT?: string;
+    SQLALCHEMY_DOCS_URL?: string;
+  };
+};
 
 export default supersetText;

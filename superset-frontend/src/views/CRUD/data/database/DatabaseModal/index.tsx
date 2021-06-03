@@ -45,7 +45,6 @@ import {
   getDatabaseImages,
   getConnectionAlert,
 } from 'src/views/CRUD/hooks';
-import { useCommonConf } from 'src/views/CRUD/data/database/state';
 import {
   DatabaseObject,
   DatabaseForm,
@@ -338,7 +337,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [dbName, setDbName] = useState('');
   const [editNewDb, setEditNewDb] = useState<boolean>(false);
   const [isLoading, setLoading] = useState<boolean>(false);
-  const conf = useCommonConf();
   const dbImages = getDatabaseImages();
   const connectionAlert = getConnectionAlert();
   const isEditMode = !!databaseId;
@@ -877,7 +875,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     value: target.value,
                   })
                 }
-                conf={conf}
                 testConnection={testConnection}
                 isEditMode={isEditMode}
               />

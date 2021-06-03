@@ -1012,7 +1012,7 @@ LANGUAGES = {
 ### Extracting new strings for translation
 
 ```bash
-pybabel extract -F superset/translations/babel.cfg -o superset/translations/messages.pot -k _ -k __ -k t -k tn -k tct .
+pybabel extract -F superset/translations/babel.cfg -o superset/translations/messages.pot -k _ -k __ -k t -k tn -k tct -k st .
 ```
 
 This will update the template file `superset/translations/messages.pot` with current application strings. Do not forget to update
