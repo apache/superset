@@ -17,15 +17,27 @@
  * under the License.
  */
 import React, { FormEvent } from 'react';
-import { SupersetTheme, JsonObject } from '@superset-ui/core';
+import {
+  SupersetTheme,
+  JsonObject,
+  isFeatureEnabled,
+  FeatureFlag,
+  t,
+} from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
+import { Switch } from 'src/common/components';
+import { Tooltip } from 'src/components/Tooltip';
+import InfoTooltip from 'src/components/InfoTooltip';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import {
   formScrollableStyles,
   validatedFormStyles,
   StyledFormHeader,
+  toggleStyle,
+  infoTooltip,
 } from './styles';
 import { DatabaseForm, DatabaseObject } from '../types';
+import { useTheme } from '@emotion/react';
 
 export const FormFieldOrder = [
   'host',
@@ -34,6 +46,7 @@ export const FormFieldOrder = [
   'username',
   'password',
   'database_name',
+  'encryption',
 ];
 
 interface FieldPropTypes {
@@ -44,6 +57,7 @@ interface FieldPropTypes {
   validationErrors: JsonObject | null;
   getValidation: () => void;
   db?: DatabaseObject;
+  isEditMode?: boolean;
 }
 
 const hostField = ({
@@ -165,6 +179,22 @@ const displayField = ({
     helpText="Pick a nickname for this database to display as in Superset."
   />
 );
+const forceSSLField = ({ changeMethods, isEditMode }: FieldPropTypes) =>
+  !isEditMode && (
+    <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
+      <Tooltip title={t('SSL is required for Preset')}>
+        <Switch
+          checked={isFeatureEnabled(FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL)}
+          onClick={changeMethods.onParametersChange}
+        />
+        <span css={toggleStyle}>SSL</span>
+      </Tooltip>
+      <InfoTooltip
+        tooltip={t('SSL mode "require" will be used')}
+        placement="bottomRight"
+      />
+    </div>
+  );
 
 const FORM_FIELD_MAP = {
   host: hostField,
@@ -173,6 +203,7 @@ const FORM_FIELD_MAP = {
   username: usernameField,
   password: passwordField,
   database_name: displayField,
+  encryption: forceSSLField,
 };
 
 const DatabaseConnectionForm = ({
@@ -197,12 +228,14 @@ const DatabaseConnectionForm = ({
   getValidation: () => void;
 }) => (
   <>
-    <StyledFormHeader>
-      <h4>Enter the required {name} credentials</h4>
-      <p className="helper">
-        Need help? Learn more about connecting to {name}.
-      </p>
-    </StyledFormHeader>
+    {!isEditMode && (
+      <StyledFormHeader>
+        <h4>Enter the required {name} credentials</h4>
+        <p className="helper">
+          Need help? Learn more about connecting to {name}.
+        </p>
+      </StyledFormHeader>
+    )}
     <div
       // @ts-ignore
       css={(theme: SupersetTheme) => [
@@ -223,6 +256,7 @@ const DatabaseConnectionForm = ({
             getValidation,
             db,
             key: field,
+            isEditMode,
           }),
         )}
     </div>
