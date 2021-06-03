@@ -21,16 +21,14 @@ import { styled, t, DataMask } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
 import Icon from 'src/components/Icon';
 import { Pill } from 'src/dashboard/components/FiltersBadge/Styles';
-import { useSelector } from 'react-redux';
-import { getInitialDataMask } from 'src/dataMask/reducer';
-import { DataMaskWithId } from 'src/dataMask/types';
+import { DataMaskStateWithId } from 'src/dataMask/types';
 import FilterControl from 'src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControl';
 import CascadeFilterControl from 'src/dashboard/components/nativeFilters/FilterBar/CascadeFilters/CascadeFilterControl';
 import { CascadeFilter } from 'src/dashboard/components/nativeFilters/FilterBar/CascadeFilters/types';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
-import { RootState } from 'src/dashboard/types';
 
 interface CascadePopoverProps {
+  dataMaskSelected: DataMaskStateWithId;
   filter: CascadeFilter;
   visible: boolean;
   directPathToChild?: string[];
@@ -76,6 +74,7 @@ const StyledPill = styled(Pill)`
 `;
 
 const CascadePopover: React.FC<CascadePopoverProps> = ({
+  dataMaskSelected,
   filter,
   visible,
   onVisibleChange,
@@ -83,9 +82,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   directPathToChild,
 }) => {
   const [currentPathToChild, setCurrentPathToChild] = useState<string[]>();
-  const dataMask = useSelector<RootState, DataMaskWithId>(
-    state => state.dataMask[filter.id] ?? getInitialDataMask(filter.id),
-  );
+  const dataMask = dataMaskSelected[filter.id];
 
   useEffect(() => {
     setCurrentPathToChild(directPathToChild);
@@ -98,7 +95,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   const getActiveChildren = useCallback(
     (filter: CascadeFilter): CascadeFilter[] | null => {
       const children = filter.cascadeChildren || [];
-      const currentValue = dataMask.filterState?.value;
+      const currentValue = dataMask?.filterState?.value;
 
       const activeChildren = children.flatMap(
         childFilter => getActiveChildren(childFilter) || [],
@@ -147,6 +144,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   if (!filter.cascadeChildren?.length) {
     return (
       <FilterControl
+        dataMaskSelected={dataMaskSelected}
         filter={filter}
         directPathToChild={directPathToChild}
         onFilterSelectionChange={onFilterSelectionChange}
@@ -166,6 +164,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
 
   const content = (
     <CascadeFilterControl
+      dataMaskSelected={dataMaskSelected}
       data-test="cascade-filters-control"
       key={filter.id}
       filter={filter}
@@ -188,6 +187,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
       <div>
         {activeFilters.map(activeFilter => (
           <FilterControl
+            dataMaskSelected={dataMaskSelected}
             key={activeFilter.id}
             filter={activeFilter}
             onFilterSelectionChange={onFilterSelectionChange}

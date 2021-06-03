@@ -21,7 +21,7 @@ import { DataMask, styled, t } from '@superset-ui/core';
 import { css } from '@emotion/react';
 import { useSelector } from 'react-redux';
 import * as portals from 'react-reverse-portal';
-import { DataMaskState } from 'src/dataMask/types';
+import { DataMaskStateWithId } from 'src/dataMask/types';
 import { Collapse } from 'src/common/components';
 import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
 import { RootState } from 'src/dashboard/types';
@@ -41,7 +41,7 @@ const Wrapper = styled.div`
 
 type FilterControlsProps = {
   directPathToChild?: string[];
-  dataMaskSelected: DataMaskState;
+  dataMaskSelected: DataMaskStateWithId;
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
 };
 
@@ -101,6 +101,7 @@ const FilterControls: FC<FilterControlsProps> = ({
             <CascadePopover
               data-test="cascade-filters-control"
               key={cascadeFilters[index].id}
+              dataMaskSelected={dataMaskSelected}
               visible={visiblePopoverId === cascadeFilters[index].id}
               onVisibleChange={visible =>
                 setVisiblePopoverId(visible ? cascadeFilters[index].id : null)
