@@ -16,17 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { DataMask } from '@superset-ui/core';
-import { DataMaskStateWithId } from 'src/dataMask/types';
-import { Filter } from '../../types';
+import { styled, css } from '@superset-ui/core';
+import { IconTooltip } from '../../../components/IconTooltip';
 
-export interface FilterProps {
-  dataMaskSelected?: DataMaskStateWithId;
-  filter: Filter & {
-    dataMask?: DataMask;
-  };
-  icon?: React.ReactElement;
-  directPathToChild?: string[];
-  onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
-}
+export const StaticPosition = css`
+  position: static;
+`;
+
+export const verticalAlign = css`
+  vertical-align: 0em;
+  svg {
+    height: 0.9em;
+  }
+`;
+
+export const StyledTooltip = styled(IconTooltip)`
+  padding-right: ${({ theme }) => theme.gridUnit * 2}px;
+  span {
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    &: hover {
+      color: ${({ theme }) => theme.colors.primary.base};
+    }
+  }
+`;

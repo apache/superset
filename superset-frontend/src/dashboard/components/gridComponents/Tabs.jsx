@@ -31,40 +31,13 @@ import findTabIndexByComponentId from '../../util/findTabIndexByComponentId';
 import getDirectPathToTabIndex from '../../util/getDirectPathToTabIndex';
 import getLeafComponentIdFromPath from '../../util/getLeafComponentIdFromPath';
 import { componentShape } from '../../util/propShapes';
-import { NEW_TAB_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
+import {
+  NEW_TAB_ID,
+  DASHBOARD_ROOT_ID,
+  DASHBOARD_GRID_ID,
+} from '../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
-import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
-import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
-
-const findTabsWithChartsInScope = (
-  dashboardLayout,
-  chartsInScope,
-  childId,
-  tabId,
-  tabsToHighlight,
-) => {
-  if (
-    dashboardLayout[childId].type === CHART_TYPE &&
-    chartsInScope.includes(dashboardLayout[childId].meta.chartId)
-  ) {
-    tabsToHighlight.add(tabId);
-  }
-  if (
-    dashboardLayout[childId].children.length === 0 ||
-    (dashboardLayout[childId].type === TAB_TYPE && tabsToHighlight.has(childId))
-  ) {
-    return;
-  }
-  dashboardLayout[childId].children.forEach(subChildId =>
-    findTabsWithChartsInScope(
-      dashboardLayout,
-      chartsInScope,
-      subChildId,
-      tabId,
-      tabsToHighlight,
-    ),
-  );
-};
+import { TAB_TYPE } from '../../util/componentTypes';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -299,29 +272,27 @@ class Tabs extends React.PureComponent {
       renderHoverMenu,
       isComponentVisible: isCurrentTabVisible,
       editMode,
-      focusedFilterScope,
+      nativeFilters,
       dashboardLayout,
+      lastFocusedTabId,
+      setLastFocusedTab,
     } = this.props;
 
     const { children: tabIds } = tabsComponent;
     const { tabIndex: selectedTabIndex, activeKey } = this.state;
 
-    const tabsToHighlight = new Set();
-    if (focusedFilterScope) {
-      const chartsInScope = getChartIdsInFilterScope({
-        filterScope: focusedFilterScope.scope,
-      });
-      tabIds.forEach(tabId => {
-        if (!tabsToHighlight.has(tabId)) {
-          findTabsWithChartsInScope(
-            dashboardLayout,
-            chartsInScope,
-            tabId,
-            tabId,
-            tabsToHighlight,
-          );
-        }
-      });
+    // On dashboards with top level tabs, set initial focus to the active top level tab
+    const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
+    const rootChildId = dashboardRoot.children[0];
+    const isTopLevelTabs = rootChildId !== DASHBOARD_GRID_ID;
+    if (isTopLevelTabs && !lastFocusedTabId) {
+      setLastFocusedTab(activeKey);
+    }
+
+    let tabsToHighlight;
+    if (nativeFilters.focusedFilterId) {
+      tabsToHighlight =
+        nativeFilters.filters[nativeFilters.focusedFilterId].tabsInScope;
     }
     return (
       <DragDroppable
@@ -357,6 +328,7 @@ class Tabs extends React.PureComponent {
               onEdit={this.handleEdit}
               data-test="nav-list"
               type={editMode ? 'editable-card' : 'card'}
+              onTabClick={setLastFocusedTab}
             >
               {tabIds.map((tabId, tabIndex) => (
                 <LineEditableTabs.TabPane
@@ -373,7 +345,7 @@ class Tabs extends React.PureComponent {
                       onDropOnTab={this.handleDropOnTab}
                       isFocused={activeKey === tabId}
                       isHighlighted={
-                        activeKey !== tabId && tabsToHighlight.has(tabId)
+                        activeKey !== tabId && tabsToHighlight?.includes(tabId)
                       }
                     />
                   }

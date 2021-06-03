@@ -271,8 +271,21 @@ export default class ResultSet extends React.PureComponent<
       return;
     }
 
-    const { schema, sql, dbId, templateParams } = this.props.query;
+    const { schema, sql, dbId } = this.props.query;
+    let { templateParams } = this.props.query;
     const selectedColumns = this.props.query?.results?.selected_columns || [];
+
+    // The filters param is only used to test jinja templates.
+    // Remove the special filters entry from the templateParams
+    // before saving the dataset.
+    if (templateParams) {
+      const p = JSON.parse(templateParams);
+      if (p.filters) {
+        /* eslint-disable-next-line no-underscore-dangle */
+        delete p._filters;
+        templateParams = JSON.stringify(p);
+      }
+    }
 
     this.props.actions
       .createDatasource({
@@ -527,7 +540,7 @@ export default class ResultSet extends React.PureComponent<
     let limitMessage;
     const limitReached = results?.displayLimitReached;
     const limit = queryLimit || results.query.limit;
-    const isAdmin = !!this.props.user?.roles.Admin;
+    const isAdmin = !!this.props.user?.roles?.Admin;
     const displayMaxRowsReachedMessage = {
       withAdmin: t(
         `The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. `,

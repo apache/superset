@@ -122,7 +122,7 @@ type DBReducerActionType =
   | {
       type: ActionType.configMethodChange;
       payload: { configuration_method: CONFIGURATION_METHOD };
-    };
+    }
 
 function dbReducer(
   state: Partial<DatabaseObject> | null,
