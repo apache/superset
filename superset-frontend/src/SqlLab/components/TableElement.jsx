@@ -112,7 +112,7 @@ const TableElement = props => {
 
   const renderControls = () => {
     let keyLink;
-    if (table?.indexes.length > 0) {
+    if (table?.indexes?.length) {
       keyLink = (
         <ModalTrigger
           modalTitle={
@@ -137,7 +137,7 @@ const TableElement = props => {
         {keyLink}
         <IconTooltip
           className={
-            `fa fa-sort-${!sortColumns ? 'alpha' : 'numeric'}-asc ` +
+            `fa fa-sort-${sortColumns ? 'numeric' : 'alpha'}-asc ` +
             'pull-left sort-cols m-l-2 pointer'
           }
           onClick={toggleSortColumns}
@@ -259,7 +259,7 @@ const TableElement = props => {
         alignItems: 'center',
       }}
       aria-label="Collapse"
-      tooltip={t(`${!isActive ? 'Expand' : 'Collapse'} table preview`)}
+      tooltip={t(`${isActive ? 'Collapse' : 'Expand'} table preview`)}
     >
       <Icons.RightOutlined
         iconSize="s"
