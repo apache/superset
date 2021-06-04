@@ -163,13 +163,11 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.fetched:
-<<<<<<< HEAD
-    case ActionType.dbSelected:
       return {
+        engine: trimmedState.engine,
+        configuration_method: trimmedState.configuration_method,
         ...action.payload,
       };
-=======
->>>>>>> pexdax/db-connection-ui-show-preferred
     case ActionType.dbSelected:
       return {
         ...action.payload,
