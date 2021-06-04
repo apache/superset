@@ -355,13 +355,13 @@ export const EditHeaderSubtitle = styled.div`
 `;
 
 export const SelectDatabaseStyles = styled.div`
-  margin: 0 16px;
+  margin: 0 ${({ theme }) => theme.gridUnit * 8}px;
 
   .preferred {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    margin-bottom: 32px;
+    margin-bottom: ${({ theme }) => theme.gridUnit * 16}px;
   }
 
   .preferred-item {
@@ -372,8 +372,8 @@ export const SelectDatabaseStyles = styled.div`
   .available {
     .available-label {
       font-weight: bold;
-      margin-top: 32px;
-      margin-bottom: 16px;
+      margin-top: ${({ theme }) => theme.gridUnit * 16}px;
+      margin-bottom: ${({ theme }) => theme.gridUnit * 8}px;
     }
   }
 

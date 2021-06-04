@@ -122,7 +122,7 @@ type DBReducerActionType =
   | {
       type: ActionType.configMethodChange;
       payload: { configuration_method: CONFIGURATION_METHOD };
-    }
+    };
 
 function dbReducer(
   state: Partial<DatabaseObject> | null,
@@ -301,9 +301,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   };
 
-  const setDatabaseModel = option => {
+  const setDatabaseModel = engine => {
     const isDynamic =
-      availableDbs?.databases.filter(db => db.engine === option)[0]
+      availableDbs?.databases.filter(db => db.engine === engine)[0]
         .parameters !== undefined;
     setDB({
       type: ActionType.dbSelected,
@@ -311,10 +311,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         configuration_method: isDynamic
           ? CONFIGURATION_METHOD.DYNAMIC_FORM
           : CONFIGURATION_METHOD.SQLALCHEMY_URI,
-        engine: option,
+        engine,
       },
     });
-    console.log('isDynamic', isDynamic);
   };
 
   const renderAvailableSelector = () => (
@@ -323,7 +322,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         Or choose from a list of other databases we support{' '}
       </span>
       <label className="label-available-select">supported databases</label>
-      <Select style={{ width: '100%' }} onChange={setDatabaseModel}>
+      <Select
+        style={{ width: '100%' }}
+        onChange={setDatabaseModel}
+        placeholder="Choose a database..."
+      >
         {availableDbs?.databases?.map(database => (
           <Select.Option value={database.engine} key={database.engine}>
             {database.name}
