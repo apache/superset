@@ -21,9 +21,9 @@ import PropTypes from 'prop-types';
 import Button from 'src/components/Button';
 import { t, styled, css } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
+import Icons from 'src/components/Icons';
 import TableElement from './TableElement';
 import TableSelector from '../../components/TableSelector';
-import Icons from 'src/components/Icons';
 import { IconTooltip } from '../../components/IconTooltip';
 
 const propTypes = {
