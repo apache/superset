@@ -35,10 +35,7 @@ export default function getDashboardUrl(
   );
 
   if (standalone) {
-    newSearchParams.set(
-      URL_PARAMS.standalone.name,
-      standalone.toString(),
-    );
+    newSearchParams.set(URL_PARAMS.standalone.name, standalone.toString());
   }
 
   const hashSection = hash ? `#${hash}` : '';
