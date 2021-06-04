@@ -154,7 +154,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     });
   };
 
-
   useEffect(() => {
     if (!isDropdownVisible) {
       setSelectedValues(filterState.value);
