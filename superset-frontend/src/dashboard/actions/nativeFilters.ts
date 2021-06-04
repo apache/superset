@@ -92,7 +92,7 @@ export const setFilterConfiguration = (
     }
     return { ...oldFilter, ...filter };
   });
-  console.log({ filterConfig, oldFilters, mergedFilterConfig });
+
   try {
     const response = await updateDashboard({
       json_metadata: JSON.stringify({
