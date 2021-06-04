@@ -360,6 +360,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       ? !(db?.database_name?.trim() && db?.sqlalchemy_uri)
       : // disable the button if there is no dbModel.parameters or if
         // any required fields are falsy
+        !db?.database_name?.trim() ||
         !dbModel?.parameters ||
         !!dbModel.parameters.required.filter(field =>
           FALSY_FORM_VALUES.includes(db?.parameters?.[field]),
