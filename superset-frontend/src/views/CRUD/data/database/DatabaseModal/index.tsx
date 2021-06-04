@@ -593,7 +593,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         />
       ) : (
         <>
-<<<<<<< HEAD
           {/* Step 1 */}
           {!isLoading && !db && (
             <SelectDatabaseStyles>
@@ -639,36 +638,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <Button
                 buttonStyle="link"
                 onClick={() =>
-=======
-          <DatabaseConnectionForm
-            db={db}
-            dbModel={dbModel}
-            onParametersChange={({ target }: { target: HTMLInputElement }) =>
-              onChange(ActionType.parametersChange, {
-                type: target.type,
-                name: target.name,
-                checked: target.checked,
-                value: target.value,
-              })
-            }
-            onChange={({ target }: { target: HTMLInputElement }) =>
-              onChange(ActionType.textChange, {
-                name: target.name,
-                value: target.value,
-              })
-            }
-            getValidation={() => getValidation(db)}
-            validationErrors={validationErrors}
-          />
-          {!isLoading && !db && (
-            <SelectDatabaseStyles>
-              <Label className="label-select">
-                What database would you like to connect?
-              </Label>
-              <Select
-                style={{ width: '100%' }}
-                onChange={(option: string) => {
->>>>>>> b8e668712e64993e700e83f7b3b76a44bf515969
                   setDB({
                     type: ActionType.configMethodChange,
                     payload: {
@@ -678,20 +647,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 }
                 css={buttonLinkStyles}
               >
-<<<<<<< HEAD
                 Connect this database with a SQLAlchemy URI string instead
               </Button>
               {/* Step 2 */}
             </>
-=======
-                {availableDbs?.databases?.map((database: DatabaseForm) => (
-                  <Select.Option value={database.engine} key={database.engine}>
-                    {database.name}
-                  </Select.Option>
-                ))}
-              </Select>
-            </SelectDatabaseStyles>
->>>>>>> b8e668712e64993e700e83f7b3b76a44bf515969
           )}
         </>
       )}
