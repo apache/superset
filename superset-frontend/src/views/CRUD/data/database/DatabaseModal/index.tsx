@@ -132,6 +132,7 @@ function dbReducer(
   const trimmedState = {
     ...(state || {}),
   };
+
   switch (action.type) {
     case ActionType.inputChange:
       if (action.payload.type === 'checkbox') {
@@ -346,6 +347,24 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     </div>
   );
 
+  const dbModel: DatabaseForm =
+    availableDbs?.databases?.find(
+      (available: { engine: string | undefined }) =>
+        // TODO: we need a centralized engine in one place
+        available.engine === db?.engine || db?.backend,
+    ) || {};
+
+  const disableSave =
+    !hasConnectedDb &&
+    (useSqlAlchemyForm
+      ? !(db?.database_name?.trim() && db?.sqlalchemy_uri)
+      : // disable the button if there is no dbModel.parameters or if
+        // any required fields are falsy
+        !dbModel?.parameters ||
+        !!dbModel.parameters.required.filter(field =>
+          FALSY_FORM_VALUES.includes(db?.parameters?.[field]),
+        ).length);
+
   const renderModalFooter = () =>
     db // if db show back + connect
       ? [
@@ -358,7 +377,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             Back
           </Button>,
           !hasConnectedDb ? ( // if hasConnectedDb show back + finish
-            <Button key="submit" type="primary" onClick={onSave}>
+            <Button
+              key="submit"
+              type="primary"
+              onClick={onSave}
+              disabled={disableSave}
+            >
               Connect
             </Button>
           ) : (
@@ -400,22 +424,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setTabKey(key);
   };
 
-  const dbModel: DatabaseForm =
-    availableDbs?.databases?.find(
-      (available: { engine: string | undefined }) =>
-        // TODO: we need a centralized engine in one place
-        available.engine === db?.engine || db?.backend,
-    ) || {};
-  const disableSave =
-    !hasConnectedDb &&
-    (useSqlAlchemyForm
-      ? !(db?.database_name?.trim() && db?.sqlalchemy_uri)
-      : // disable the button if there is no dbModel.parameters or if
-        // any required fields are falsy
-        !dbModel?.parameters ||
-        !!dbModel.parameters.required.filter(field =>
-          FALSY_FORM_VALUES.includes(db?.parameters?.[field]),
-        ).length);
   return useTabLayout ? (
     <Modal
       css={(theme: SupersetTheme) => [
