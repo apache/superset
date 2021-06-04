@@ -22,7 +22,7 @@ import { StickyContainer, Sticky } from 'react-sticky';
 import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 
-const Wrapper = styled.div`
+const Wrapper = styled.div<{ openWidth: number }>`
   position: relative;
   width: ${({ theme }) => theme.gridUnit * 8}px;
   flex: 0 0 ${({ theme }) => theme.gridUnit * 8}px;
@@ -33,7 +33,7 @@ const Wrapper = styled.div`
     transition-delay: ${({ theme }) => theme.transitionTiming * 2}s;
   } */
   &.open {
-    width: 250px;
+    width: ${({ openWidth }) => openWidth}px;
     flex: 0 0 250px;
     /* &.animated {
       transition-delay: 0s;
@@ -50,7 +50,7 @@ const Contents = styled.div`
 
 export interface SVBProps {
   topOffset: number;
-  width?: number;
+  openWidth: number;
   filtersOpen: boolean;
 }
 
@@ -65,8 +65,9 @@ export const StickyVerticalBar: React.FC<SVBProps> = ({
   topOffset,
   children,
   filtersOpen,
+  openWidth,
 }) => (
-  <Wrapper className={cx({ open: filtersOpen })}>
+  <Wrapper className={cx({ open: filtersOpen })} openWidth={openWidth}>
     <StickyContainer>
       <Sticky topOffset={-topOffset} bottomOffset={Infinity}>
         {({
@@ -79,6 +80,7 @@ export const StickyVerticalBar: React.FC<SVBProps> = ({
           distanceFromTop: number;
         }) => (
           <Contents
+            id="sticky-vertical-bar"
             style={
               isSticky
                 ? {

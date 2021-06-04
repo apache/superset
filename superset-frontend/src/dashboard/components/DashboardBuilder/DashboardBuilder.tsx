@@ -55,6 +55,7 @@ import DashboardContainer from './DashboardContainer';
 
 const TABS_HEIGHT = 47;
 const HEADER_HEIGHT = 67;
+const NATIVE_FILTER_BAR_WIDTH = 255;
 
 type DashboardBuilderProps = {};
 
@@ -161,6 +162,11 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     (hideDashboardHeader ? 0 : HEADER_HEIGHT) +
     (topLevelTabs ? TABS_HEIGHT : 0);
 
+  const tabsPaddingLeft =
+    nativeFiltersEnabled && !editMode && dashboardFiltersOpen
+      ? NATIVE_FILTER_BAR_WIDTH + 20
+      : 8;
+
   useEffect(() => {
     if (
       filterValues.length === 0 &&
@@ -219,6 +225,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
                       renderTabContent={false}
                       renderHoverMenu={false}
                       onChangeTab={handleChangeTab}
+                      paddingLeft={tabsPaddingLeft}
                     />
                   </WithPopoverMenu>
                 )}
@@ -235,9 +242,11 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
           <StickyVerticalBar
             filtersOpen={dashboardFiltersOpen}
             topOffset={barTopOffset}
+            openWidth={NATIVE_FILTER_BAR_WIDTH}
           >
             <ErrorBoundary>
               <FilterBar
+                width={NATIVE_FILTER_BAR_WIDTH}
                 filtersOpen={dashboardFiltersOpen}
                 toggleFiltersBar={toggleDashboardFiltersOpen}
                 directPathToChild={directPathToChild}

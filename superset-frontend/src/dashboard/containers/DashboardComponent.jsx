@@ -59,6 +59,7 @@ const propTypes = {
   directPathLastUpdated: PropTypes.number,
   dashboardId: PropTypes.number.isRequired,
   isComponentVisible: PropTypes.bool,
+  paddingLeft: PropTypes.number,
 };
 
 const defaultProps = {

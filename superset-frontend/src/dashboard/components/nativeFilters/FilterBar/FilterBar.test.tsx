@@ -208,7 +208,7 @@ describe('FilterBar', () => {
   const renderWrapper = (props = closedBarProps, state?: object) =>
     render(
       <Provider store={state ? getMockStore(state) : mockStore}>
-        <FilterBar {...props} />
+        <FilterBar {...props} width={250} />
       </Provider>,
     );
 

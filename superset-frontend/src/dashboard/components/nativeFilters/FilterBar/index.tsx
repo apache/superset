@@ -50,22 +50,20 @@ import EditSection from './FilterSets/EditSection';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
 
-const BAR_WIDTH = `250px`;
-
 export const FILTER_BAR_TEST_ID = 'filter-bar';
 export const getFilterBarTestId = testWithId(FILTER_BAR_TEST_ID);
 
-const BarWrapper = styled.div`
+const BarWrapper = styled.div<{ width: number }>`
   width: ${({ theme }) => theme.gridUnit * 8}px;
   & .ant-tabs-top > .ant-tabs-nav {
     margin: 0;
   }
   &.open {
-    width: ${BAR_WIDTH}; // arbitrary...
+    min-width: ${({ width }) => width}px; // arbitrary...
   }
 `;
 
-const Bar = styled.div`
+const Bar = styled.div<{ width: number }>`
   & .ant-typography-edit-content {
     left: 0;
     margin-top: 0;
@@ -76,7 +74,7 @@ const Bar = styled.div`
   left: 0;
   flex-direction: column;
   flex-grow: 1;
-  width: ${BAR_WIDTH}; // arbitrary...
+  min-width: ${({ width }) => width}px; // arbitrary...
   background: ${({ theme }) => theme.colors.grayscale.light5};
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   min-height: 100%;
@@ -149,12 +147,14 @@ const StyledTabs = styled(Tabs)`
 `;
 
 export interface FiltersBarProps {
+  width: number;
   filtersOpen: boolean;
   toggleFiltersBar: any;
   directPathToChild?: string[];
 }
 
 const FilterBar: React.FC<FiltersBarProps> = ({
+  width,
   filtersOpen,
   toggleFiltersBar,
   directPathToChild,
@@ -212,7 +212,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const isInitialized = useInitialization();
 
   return (
-    <BarWrapper {...getFilterBarTestId()} className={cx({ open: filtersOpen })}>
+    <BarWrapper
+      {...getFilterBarTestId()}
+      className={cx({ open: filtersOpen })}
+      width={width}
+    >
       <CollapsedBar
         {...getFilterBarTestId('collapsable')}
         className={cx({ open: !filtersOpen })}
@@ -224,7 +228,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         />
         <Icon name="filter" {...getFilterBarTestId('filter-icon')} />
       </CollapsedBar>
-      <Bar className={cx({ open: filtersOpen })}>
+      <Bar className={cx({ open: filtersOpen })} width={width}>
         <Header
           toggleFiltersBar={toggleFiltersBar}
           onApply={handleApply}

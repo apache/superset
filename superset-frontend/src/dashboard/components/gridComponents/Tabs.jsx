@@ -50,6 +50,7 @@ const propTypes = {
   editMode: PropTypes.bool.isRequired,
   renderHoverMenu: PropTypes.bool,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
+  paddingLeft: PropTypes.number,
 
   // actions (from DashboardComponent.jsx)
   logEvent: PropTypes.func.isRequired,
@@ -78,11 +79,16 @@ const defaultProps = {
   onResizeStart() {},
   onResize() {},
   onResizeStop() {},
+  paddingLeft: 8,
 };
 
 const StyledTabsContainer = styled.div`
   width: 100%;
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
+
+  &.dashboard-component.dashboard-component-tabs {
+    padding-left: ${({ paddingLeft }) => paddingLeft}px;
+  }
 
   .dashboard-component-tabs-content {
     min-height: ${({ theme }) => theme.gridUnit * 12}px;
@@ -276,6 +282,7 @@ class Tabs extends React.PureComponent {
       dashboardLayout,
       lastFocusedTabId,
       setLastFocusedTab,
+      paddingLeft,
     } = this.props;
 
     const { children: tabIds } = tabsComponent;
@@ -311,6 +318,7 @@ class Tabs extends React.PureComponent {
           <StyledTabsContainer
             className="dashboard-component dashboard-component-tabs"
             data-test="dashboard-component-tabs"
+            paddingLeft={paddingLeft}
           >
             {editMode && renderHoverMenu && (
               <HoverMenu innerRef={tabsDragSourceRef} position="left">
