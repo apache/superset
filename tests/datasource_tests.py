@@ -79,7 +79,7 @@ class TestDatasource(SupersetTestCase):
         table = SqlaTable(
             table_name="dummy_sql_table_with_template_params",
             database=get_example_database(),
-            sql="select {{ foo }}",
+            sql="select {{ foo }} as intcol",
             template_params=json.dumps({"foo": "123"}),
         )
         session.add(table)
@@ -88,7 +88,7 @@ class TestDatasource(SupersetTestCase):
         table = self.get_table_by_name("dummy_sql_table_with_template_params")
         url = f"/datasource/external_metadata/table/{table.id}/"
         resp = self.get_json_resp(url)
-        assert {o.get("name") for o in resp} == {"123"}
+        assert {o.get("name") for o in resp} == {"intcol"}
         session.delete(table)
         session.commit()
 
