@@ -1539,6 +1539,7 @@ Second step: Create a `CustomSsoSecurityManager` that extends `SupersetSecurityM
 
 .. code-block:: python
 
+    import logging
     from superset.security import SupersetSecurityManager
 
     class CustomSsoSecurityManager(SupersetSecurityManager):
