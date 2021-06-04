@@ -96,7 +96,7 @@ export const antDModalNoPaddingStyles = css`
 export const infoTooltip = (theme: SupersetTheme) => css`
   svg {
     vertical-align: bottom;
-    margin-bottom: ${theme.gridUnit * 0.5}px;
+    margin-bottom: ${theme.gridUnit * 0.25}px;
   }
 `;
 

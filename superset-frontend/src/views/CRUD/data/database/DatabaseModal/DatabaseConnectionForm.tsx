@@ -20,7 +20,6 @@ import React, { FormEvent } from 'react';
 import { SupersetTheme, JsonObject, t } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
 import { Switch } from 'src/common/components';
-import { Tooltip } from 'src/components/Tooltip';
 import InfoTooltip from 'src/components/InfoTooltip';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import {
@@ -180,23 +179,21 @@ const forceSSLField = ({
   sslForced,
 }: FieldPropTypes) => (
   <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-    <Tooltip title={t('SSL is required for Preset')}>
-      <Switch
-        disabled={sslForced && !isEditMode}
-        checked={db?.parameters?.encryption || sslForced}
-        onChange={changed => {
-          changeMethods.onParametersChange({
-            target: {
-              type: 'toggle',
-              name: 'encryption',
-              checked: true,
-              value: changed,
-            },
-          });
-        }}
-      />
-      <span css={toggleStyle}>SSL</span>
-    </Tooltip>
+    <Switch
+      disabled={sslForced && !isEditMode}
+      checked={db?.parameters?.encryption || sslForced}
+      onChange={changed => {
+        changeMethods.onParametersChange({
+          target: {
+            type: 'toggle',
+            name: 'encryption',
+            checked: true,
+            value: changed,
+          },
+        });
+      }}
+    />
+    <span css={toggleStyle}>SSL</span>
     <InfoTooltip
       tooltip={t('SSL will be enabled in the database connection')}
       placement="bottomRight"
