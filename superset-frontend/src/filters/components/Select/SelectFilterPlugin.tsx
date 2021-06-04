@@ -158,6 +158,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     if (!isDropdownVisible) {
       setSelectedValues(filterState.value);
     }
+    updateDataMask(filterState.value);
   }, [JSON.stringify(filterState.value)]);
 
   const isDisabled =
