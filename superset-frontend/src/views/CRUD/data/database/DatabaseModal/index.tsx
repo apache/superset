@@ -84,7 +84,7 @@ enum ActionType {
   inputChange,
   parametersChange,
   reset,
-  textChange
+  textChange,
 }
 
 interface DBReducerPayloadType {

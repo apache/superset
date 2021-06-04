@@ -29,7 +29,6 @@ import {
   StyledFormHeader,
 } from './styles';
 import { DatabaseForm, DatabaseObject } from '../types';
-import { null } from 'mathjs';
 
 enum CredentialInfoOptions {
   jsonUpload,
