@@ -91,7 +91,7 @@ const statusAttributes = {
   fetching: {
     color: ({ theme }) => theme.colors.primary.base,
     config: {
-      name: 'fetching',
+      name: 'queued',
       label: t('fetching'),
       status: 'fetching',
     },
@@ -273,10 +273,12 @@ const QueryTable = props => {
             placement="bottom"
           >
             <span>
-              <StatusIcon
-                name={statusAttributes[q.state].config.name}
-                status={statusAttributes[q.state].config.status}
-              />
+              {q.state && (
+                <StatusIcon
+                  name={statusAttributes[q.state].config.name}
+                  status={statusAttributes[q.state].config.status}
+                />
+              )}
             </span>
           </Tooltip>
         );
