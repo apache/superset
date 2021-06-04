@@ -273,12 +273,10 @@ const QueryTable = props => {
             placement="bottom"
           >
             <span>
-              {q.state && (
-                <StatusIcon
-                  name={statusAttributes[q.state].config.name}
-                  status={statusAttributes[q.state].config.status}
-                />
-              
+              <StatusIcon
+                name={statusAttributes[q.state].config.name}
+                status={statusAttributes[q.state].config.status}
+              />
             </span>
           </Tooltip>
         );
