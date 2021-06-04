@@ -32,7 +32,7 @@ import ModalTrigger from '../../components/ModalTrigger';
 import Loading from '../../components/Loading';
 
 // I don't think this makes sense to have
-// Shouldn't be rendering component if table and actions are passed in
+// Shouldn't be rendering component if table and actions are'nt passed in
 // ----------------------
 // const defaultProps = {
 //   actions: {},
@@ -40,7 +40,13 @@ import Loading from '../../components/Loading';
 // };
 // ----------------------
 
-interface tableType {
+interface Column {
+  name: string;
+  keys?: { type: ColumnKeyTypeType }[];
+  type: string;
+}
+
+interface Table {
   name: string;
   partitions?: {
     partitionQuery: string;
@@ -51,20 +57,14 @@ interface tableType {
   view: string;
   isMetadataLoading: boolean;
   isExtraMetadataLoading: boolean;
-  columns: columnType[];
-}
-
-interface columnType {
-  name: string;
-  keys?: { type: ColumnKeyTypeType }[];
-  type: string;
+  columns: Column[];
 }
 
 interface TableElementProps {
-  table: tableType;
+  table: Table;
   actions: {
-    removeDataPreview(table: tableType): void;
-    removeTable(table: tableType): void;
+    removeDataPreview(table: Table): void;
+    removeTable(table: Table): void;
   };
   isActive: boolean;
   key: string | number;
@@ -243,7 +243,7 @@ const TableElement = (props: TableElementProps) => {
     if (table.columns) {
       cols = table.columns.slice();
       if (sortColumns) {
-        cols.sort((a: columnType, b: columnType) => {
+        cols.sort((a: Column, b: Column) => {
           const colA = a.name.toUpperCase();
           const colB = b.name.toUpperCase();
           return colA < colB ? -1 : colA > colB ? 1 : 0;
