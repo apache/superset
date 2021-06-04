@@ -27,7 +27,7 @@ import { NavBarProps, MenuObjectProps } from './Menu';
 export const dropdownItems = [
   {
     label: t('SQL query'),
-    url: '/superset/sqllab',
+    url: '/superset/sqllab?new=true',
     icon: 'fa-fw fa-search',
   },
   {

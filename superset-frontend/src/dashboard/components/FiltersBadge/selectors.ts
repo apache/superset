@@ -226,7 +226,10 @@ export const selectNativeIndicatorsForChart = (
       )
       .map(nativeFilter => {
         const column = nativeFilter.targets[0]?.column?.name;
-        let value = dataMask[nativeFilter.id]?.filterState?.value ?? null;
+        let value =
+          dataMask[nativeFilter.id]?.filterState?.label ??
+          dataMask[nativeFilter.id]?.filterState?.value ??
+          null;
         if (!Array.isArray(value) && value !== null) {
           value = [value];
         }
@@ -252,7 +255,10 @@ export const selectNativeIndicatorsForChart = (
         ),
       )
       .map(chartConfig => {
-        let value = dataMask[chartConfig.id]?.filterState?.value ?? null;
+        let value =
+          dataMask[chartConfig.id]?.filterState?.label ??
+          dataMask[chartConfig.id]?.filterState?.value ??
+          null;
         if (!Array.isArray(value) && value !== null) {
           value = [value];
         }

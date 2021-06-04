@@ -23,12 +23,12 @@ import { Select, Button } from 'src/common/components';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import { DeleteFilled } from '@ant-design/icons';
 import {
-  StyledFormHeader,
   formScrollableStyles,
   validatedFormStyles,
   CredentialInfoForm,
+  StyledFormHeader,
 } from './styles';
-import { DatabaseForm } from '../types';
+import { DatabaseForm, DatabaseObject } from '../types';
 
 enum CredentialInfoOptions {
   jsonUpload,
@@ -52,6 +52,7 @@ interface FieldPropTypes {
   } & { onParametersUploadFileChange: (value: any) => string };
   validationErrors: JsonObject | null;
   getValidation: () => void;
+  db?: DatabaseObject;
 }
 
 const credentialsInfo = ({
@@ -142,10 +143,12 @@ const hostField = ({
   changeMethods,
   getValidation,
   validationErrors,
+  db,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="host"
     name="host"
+    value={db?.parameters?.host}
     required={required}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.host}
@@ -160,11 +163,13 @@ const portField = ({
   changeMethods,
   getValidation,
   validationErrors,
+  db,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="port"
     name="port"
     required={required}
+    value={db?.parameters?.port}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.port}
     placeholder="e.g. 5432"
@@ -178,17 +183,19 @@ const databaseField = ({
   changeMethods,
   getValidation,
   validationErrors,
+  db,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="database"
     name="database"
     required={required}
+    value={db?.parameters?.database}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.database}
     placeholder="e.g. world_population"
     label="Database name"
     onChange={changeMethods.onParametersChange}
-    helpText="Copy the name of the PostgreSQL database you are trying to connect to."
+    helpText="Copy the name of the  database you are trying to connect to."
   />
 );
 const usernameField = ({
@@ -196,11 +203,13 @@ const usernameField = ({
   changeMethods,
   getValidation,
   validationErrors,
+  db,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="username"
     name="username"
     required={required}
+    value={db?.parameters?.username}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.username}
     placeholder="e.g. Analytics"
@@ -213,11 +222,14 @@ const passwordField = ({
   changeMethods,
   getValidation,
   validationErrors,
+  db,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="password"
     name="password"
     required={required}
+    type="password"
+    value={db?.parameters?.password}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.password}
     placeholder="e.g. ********"
@@ -230,11 +242,13 @@ const displayField = ({
   changeMethods,
   getValidation,
   validationErrors,
+  db,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="database_name"
     name="database_name"
     required={required}
+    value={db?.database_name}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.database_name}
     placeholder=""
@@ -261,8 +275,12 @@ const DatabaseConnectionForm = ({
   onParametersUploadFileChange,
   validationErrors,
   getValidation,
+  db,
+  isEditMode = false,
 }: {
+  isEditMode?: boolean;
   dbModel: DatabaseForm;
+  db: Partial<DatabaseObject> | null;
   onParametersChange: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
@@ -277,6 +295,7 @@ const DatabaseConnectionForm = ({
 }) => (
   <>
     <StyledFormHeader>
+      <p className="helper"> Step 2 of 3 </p>
       <h4>Enter the required {name} credentials</h4>
       <p className="helper">
         Need help? Learn more about connecting to {name}.
@@ -304,6 +323,7 @@ const DatabaseConnectionForm = ({
             },
             validationErrors,
             getValidation,
+            db,
             key: field,
           }),
         )}

@@ -298,10 +298,6 @@ export default class SelectControl extends React.PureComponent {
         css={theme => css`
           .type-label {
             margin-right: ${theme.gridUnit * 2}px;
-            width: ${theme.gridUnit * 7}px;
-            display: inline-block;
-            text-align: center;
-            font-weight: ${theme.typography.weights.bold};
           }
         `}
       >

@@ -30,7 +30,14 @@ export type DatabaseObject = {
   created_by?: null | DatabaseUser;
   changed_on_delta_humanized?: string;
   changed_on?: string;
-  parameters?: { database_name?: string };
+  parameters?: {
+    database_name?: string;
+    host?: string;
+    port?: number;
+    database?: string;
+    username?: string;
+    password?: string;
+  };
   configuration_method: CONFIGURATION_METHOD;
   engine?: string;
 

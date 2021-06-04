@@ -17,13 +17,13 @@
  * under the License.
  */
 import { DATABASE_LIST } from './helper';
-
+// TODO: Add new tests with the modal
 describe('Add database', () => {
   beforeEach(() => {
     cy.login();
   });
 
-  it('should keep create modal open when error', () => {
+  xit('should keep create modal open when error', () => {
     cy.visit(DATABASE_LIST);
 
     // open modal
@@ -60,7 +60,7 @@ describe('Add database', () => {
     cy.get('[data-test="database-modal"]').should('not.be.visible');
   });
 
-  it('should keep update modal open when error', () => {
+  xit('should keep update modal open when error', () => {
     // open modal
     cy.get('[data-test="database-edit"]:last').click();
 

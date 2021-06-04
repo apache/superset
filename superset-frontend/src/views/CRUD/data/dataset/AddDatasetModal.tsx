@@ -20,7 +20,6 @@ import React, { FunctionComponent, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { isEmpty, isNil } from 'lodash';
-import Icon from 'src/components/Icon';
 import Modal from 'src/components/Modal';
 import TableSelector from 'src/components/TableSelector';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -38,10 +37,6 @@ interface DatasetModalProps {
   onHide: () => void;
   show: boolean;
 }
-
-const StyledIcon = styled(Icon)`
-  margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
-`;
 
 const TableSelectorContainer = styled.div`
   padding-bottom: 340px;
@@ -105,12 +100,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
       onHide={onHide}
       primaryButtonName={t('Add')}
       show={show}
-      title={
-        <>
-          <StyledIcon name="warning-solid" />
-          {t('Add dataset')}
-        </>
-      }
+      title={t('Add dataset')}
     >
       <TableSelectorContainer>
         <TableSelector
