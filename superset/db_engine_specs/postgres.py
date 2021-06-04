@@ -82,7 +82,7 @@ CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile(
 )
 COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
     r'postgresql error: column "(?P<column_name>.+?)" '
-    "does not exist\s+LINE (?P<location>\d+?)"
+    r"does not exist\s+LINE (?P<location>\d+?)"
 )
 
 
