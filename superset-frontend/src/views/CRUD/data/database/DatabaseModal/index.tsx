@@ -33,6 +33,7 @@ import Tabs from 'src/components/Tabs';
 import { Alert, Select } from 'src/common/components';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
+import IconButton from 'src/components/IconButton';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import {
   testDatabaseConnection,
@@ -65,6 +66,7 @@ import {
   formStyles,
   StyledBasicTab,
   SelectDatabaseStyles,
+  StyledFormHeader,
 } from './styles';
 
 const DOCUMENTATION_LINK =
@@ -165,6 +167,11 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.fetched:
+      return {
+        engine: trimmedState.engine,
+        configuration_method: trimmedState.configuration_method,
+        ...action.payload,
+      };
     case ActionType.dbSelected:
       return {
         ...action.payload,
@@ -296,6 +303,77 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   };
 
+  const setDatabaseModel = (engine: string) => {
+    const isDynamic =
+      availableDbs?.databases.filter(
+        (db: DatabaseObject) => db.engine === engine,
+      )[0].parameters !== undefined;
+    setDB({
+      type: ActionType.dbSelected,
+      payload: {
+        configuration_method: isDynamic
+          ? CONFIGURATION_METHOD.DYNAMIC_FORM
+          : CONFIGURATION_METHOD.SQLALCHEMY_URI,
+        engine,
+      },
+    });
+  };
+
+  const renderAvailableSelector = () => (
+    <div className="available">
+      <span className="available-label">
+        Or choose from a list of other databases we support{' '}
+      </span>
+      <Label className="label-available-select">supported databases</Label>
+      <Select
+        style={{ width: '100%' }}
+        onChange={setDatabaseModel}
+        placeholder="Choose a database..."
+      >
+        {availableDbs?.databases?.map((database: DatabaseForm) => (
+          <Select.Option value={database.engine} key={database.engine}>
+            {database.name}
+          </Select.Option>
+        ))}
+      </Select>
+    </div>
+  );
+
+  const renderPreferredSelector = () => (
+    <div className="preferred">
+      {availableDbs?.databases
+        ?.filter((db: DatabaseForm) => db.preferred)
+        .map((database: DatabaseForm) => (
+          <IconButton
+            icon="preferred-item"
+            onClick={() => setDatabaseModel(database.engine)}
+            buttonText={database.name}
+          />
+        ))}
+    </div>
+  );
+
+  const renderModalFooter = () =>
+    db // if db show back + connect
+      ? [
+          <Button
+            key="back"
+            onClick={() => {
+              setDB({ type: ActionType.reset });
+            }}
+          >
+            Back
+          </Button>,
+          !hasConnectedDb ? ( // if hasConnectedDb show back + finish
+            <Button key="submit" buttonStyle="primary" onClick={onSave}>
+              Connect
+            </Button>
+          ) : (
+            <Button onClick={onClose}>Finish</Button>
+          ),
+        ]
+      : [];
+
   useEffect(() => {
     if (show) {
       setTabKey(DEFAULT_TAB_KEY);
@@ -365,15 +443,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       title={
         <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
       }
+      footer={renderModalFooter()}
     >
-      {isEditMode ? (
+      {isEditMode && (
         <TabHeader>
           <EditHeaderTitle>{db?.backend}</EditHeaderTitle>
           <EditHeaderSubtitle>{dbName}</EditHeaderSubtitle>
         </TabHeader>
-      ) : (
-        // TODO: Fix headers when we get rid of tabs
+      )}
+      {/* Show Legacy Header */}
+      {useSqlAlchemyForm && (
         <TabHeader>
+          <p className="helper"> Step 2 of 2 </p>
           <CreateHeaderTitle>Enter Primary Credentials</CreateHeaderTitle>
           <CreateHeaderSubtitle>
             Need help? Learn how to connect your database{' '}
@@ -388,6 +469,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           </CreateHeaderSubtitle>
         </TabHeader>
       )}
+      {/* Add styled header here when not in edit mode */}
       <hr />
       <Tabs
         defaultActiveKey={DEFAULT_TAB_KEY}
@@ -499,6 +581,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       width="500px"
       show={show}
       title={<h4>{t('Connect a database')}</h4>}
+      footer={renderModalFooter()}
     >
       {hasConnectedDb ? (
         <ExtraOptions
@@ -523,66 +606,67 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         />
       ) : (
         <>
-          <DatabaseConnectionForm
-            db={db}
-            sslForced={sslForced}
-            dbModel={dbModel}
-            onParametersChange={({ target }: { target: HTMLInputElement }) =>
-              onChange(ActionType.parametersChange, {
-                type: target.type,
-                name: target.name,
-                checked: target.checked,
-                value: target.value,
-              })
-            }
-            onChange={({ target }: { target: HTMLInputElement }) =>
-              onChange(ActionType.textChange, {
-                name: target.name,
-                value: target.value,
-              })
-            }
-            getValidation={() => getValidation(db)}
-            validationErrors={validationErrors}
-          />
+          {/* Step 1 */}
           {!isLoading && !db && (
             <SelectDatabaseStyles>
-              <Label className="label-select">
-                What database would you like to connect?
-              </Label>
-              <Select
-                style={{ width: '100%' }}
-                onChange={(option: string) => {
-                  setDB({
-                    type: ActionType.dbSelected,
-                    payload: {
-                      configuration_method: CONFIGURATION_METHOD.DYNAMIC_FORM,
-                      engine: option,
-                    },
-                  });
-                }}
-              >
-                {availableDbs?.databases?.map((database: DatabaseForm) => (
-                  <Select.Option value={database.engine} key={database.engine}>
-                    {database.name}
-                  </Select.Option>
-                ))}
-              </Select>
+              <StyledFormHeader>
+                <div className="select-db">
+                  <p className="helper"> Step 1 of 3 </p>
+                  <h4>Select a database to connect</h4>
+                </div>
+              </StyledFormHeader>
+              {renderPreferredSelector()}
+              {renderAvailableSelector()}
             </SelectDatabaseStyles>
           )}
-          <Button
-            buttonStyle="link"
-            onClick={() =>
-              setDB({
-                type: ActionType.configMethodChange,
-                payload: {
-                  configuration_method: CONFIGURATION_METHOD.SQLALCHEMY_URI,
-                },
-              })
-            }
-            css={buttonLinkStyles}
-          >
-            Connect this database with a SQLAlchemy URI string instead
-          </Button>
+          {/* Step 1 */}
+
+          {/* Step 2 */}
+          {!isLoading && db && (
+            <>
+              <DatabaseConnectionForm
+                db={db}
+                sslForced={sslForced}
+                dbModel={dbModel}
+                onParametersChange={({
+                  target,
+                }: {
+                  target: HTMLInputElement;
+                }) =>
+                  onChange(ActionType.parametersChange, {
+                    type: target.type,
+                    name: target.name,
+                    checked: target.checked,
+                    value: target.value,
+                  })
+                }
+                onChange={({ target }: { target: HTMLInputElement }) =>
+                  onChange(ActionType.textChange, {
+                    name: target.name,
+                    value: target.value,
+                  })
+                }
+                getValidation={() => getValidation(db)}
+                validationErrors={validationErrors}
+              />
+
+              <Button
+                buttonStyle="link"
+                onClick={() =>
+                  setDB({
+                    type: ActionType.configMethodChange,
+                    payload: {
+                      configuration_method: CONFIGURATION_METHOD.SQLALCHEMY_URI,
+                    },
+                  })
+                }
+                css={buttonLinkStyles}
+              >
+                Connect this database with a SQLAlchemy URI string instead
+              </Button>
+              {/* Step 2 */}
+            </>
+          )}
         </>
       )}
     </Modal>

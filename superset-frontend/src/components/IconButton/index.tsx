@@ -32,6 +32,7 @@ const StyledButton = styled(Button)`
   display: flex;
   flex-direction: column;
   padding: 0;
+  width: 33%;
 `;
 const StyledImage = styled.div`
   margin: ${({ theme }) => theme.gridUnit * 8}px 0;
@@ -76,8 +77,6 @@ const StyledInner = styled.div`
 `;
 
 const StyledBottom = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 6}px
-    ${({ theme }) => theme.gridUnit * 4}px;
   border-radius: 0 0 ${({ theme }) => theme.borderRadius}px
     ${({ theme }) => theme.borderRadius}px;
   background-color: ${({ theme }) => theme.colors.grayscale.light4};
