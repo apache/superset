@@ -41,6 +41,7 @@ import {
   DatabaseForm,
   CONFIGURATION_METHOD,
 } from 'src/views/CRUD/data/database/types';
+import Label from 'src/components/Label';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 
@@ -129,7 +130,6 @@ function dbReducer(
   const trimmedState = {
     ...(state || {}),
   };
-
   switch (action.type) {
     case ActionType.inputChange:
       if (action.payload.type === 'checkbox') {
@@ -161,9 +161,8 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.fetched:
+    case ActionType.dbSelected:
       return {
-        engine: trimmedState.engine,
-        configuration_method: trimmedState.configuration_method,
         ...action.payload,
       };
     case ActionType.dbSelected:
@@ -248,10 +247,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...update } = db || {};
     if (db?.id) {
-      if (db.sqlalchemy_uri) {
-        // don't pass parameters if using the sqlalchemy uri
-        delete update.parameters;
-      }
       const result = await updateResource(
         db.id as number,
         update as DatabaseObject,
@@ -335,9 +330,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const dbModel: DatabaseForm =
     availableDbs?.databases?.find(
       (available: { engine: string | undefined }) =>
-        available.engine === db?.engine,
+        // TODO: we need a centralized engine in one place
+        available.engine === db?.engine || db?.backend,
     ) || {};
-
   const disableSave =
     !hasConnectedDb &&
     (useSqlAlchemyForm
@@ -348,7 +343,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         !!dbModel.parameters.required.filter(field =>
           FALSY_FORM_VALUES.includes(db?.parameters?.[field]),
         ).length);
-
   return useTabLayout ? (
     <Modal
       css={(theme: SupersetTheme) => [
@@ -376,6 +370,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           <EditHeaderSubtitle>{dbName}</EditHeaderSubtitle>
         </TabHeader>
       ) : (
+        // TODO: Fix headers when we get rid of tabs
         <TabHeader>
           <CreateHeaderTitle>Enter Primary Credentials</CreateHeaderTitle>
           <CreateHeaderSubtitle>
@@ -414,31 +409,51 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               testConnection={testConnection}
             />
           ) : (
-            <div>
-              <p>TODO: form</p>
-            </div>
+            <DatabaseConnectionForm
+              isEditMode
+              dbModel={dbModel}
+              db={db as DatabaseObject}
+              onParametersChange={({ target }: { target: HTMLInputElement }) =>
+                onChange(ActionType.parametersChange, {
+                  type: target.type,
+                  name: target.name,
+                  checked: target.checked,
+                  value: target.value,
+                })
+              }
+              onChange={({ target }: { target: HTMLInputElement }) =>
+                onChange(ActionType.textChange, {
+                  name: target.name,
+                  value: target.value,
+                })
+              }
+              getValidation={() => getValidation(db)}
+              validationErrors={validationErrors}
+            />
           )}
-          <Alert
-            css={(theme: SupersetTheme) => antDAlertStyles(theme)}
-            message="Additional fields may be required"
-            description={
-              <>
-                Select databases require additional fields to be completed in
-                the Advanced tab to successfully connect the database. Learn
-                what requirements your databases has{' '}
-                <a
-                  href={DOCUMENTATION_LINK}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  here
-                </a>
-                .
-              </>
-            }
-            type="info"
-            showIcon
-          />
+          {!isEditMode && (
+            <Alert
+              css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+              message="Additional fields may be required"
+              description={
+                <>
+                  Select databases require additional fields to be completed in
+                  the Advanced tab to successfully connect the database. Learn
+                  what requirements your databases has{' '}
+                  <a
+                    href={DOCUMENTATION_LINK}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    here
+                  </a>
+                  .
+                </>
+              }
+              type="info"
+              showIcon
+            />
+          )}
         </StyledBasicTab>
         <Tabs.TabPane tab={<span>{t('Advanced')}</span>} key="2">
           <ExtraOptions
@@ -506,6 +521,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       ) : (
         <>
           <DatabaseConnectionForm
+            db={db}
             dbModel={dbModel}
             onParametersChange={({ target }: { target: HTMLInputElement }) =>
               onChange(ActionType.parametersChange, {
@@ -526,12 +542,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           />
           {!isLoading && !db && (
             <SelectDatabaseStyles>
-              <label className="label-select">
+              <Label className="label-select">
                 What database would you like to connect?
-              </label>
+              </Label>
               <Select
                 style={{ width: '100%' }}
-                onChange={option => {
+                onChange={(option: string) => {
                   setDB({
                     type: ActionType.dbSelected,
                     payload: {
@@ -541,7 +557,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   });
                 }}
               >
-                {availableDbs?.databases?.map(database => (
+                {availableDbs?.databases?.map((database: DatabaseForm) => (
                   <Select.Option value={database.engine} key={database.engine}>
                     {database.name}
                   </Select.Option>
