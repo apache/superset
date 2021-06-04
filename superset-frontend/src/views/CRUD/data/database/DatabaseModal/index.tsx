@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, SupersetTheme } from '@superset-ui/core';
+import {
+  t,
+  SupersetTheme,
+  FeatureFlag,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import React, {
   FunctionComponent,
   useEffect,
@@ -195,8 +200,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [dbName, setDbName] = useState('');
   const [isLoading, setLoading] = useState<boolean>(false);
   const conf = useCommonConf();
-
   const isEditMode = !!databaseId;
+  const sslForced = isFeatureEnabled(
+    FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
+  );
   const useSqlAlchemyForm =
     db?.configuration_method === CONFIGURATION_METHOD.SQLALCHEMY_URI;
   const useTabLayout = isEditMode || useSqlAlchemyForm;
@@ -406,6 +413,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           ) : (
             <DatabaseConnectionForm
               isEditMode
+              sslForced={sslForced}
               dbModel={dbModel}
               db={db as DatabaseObject}
               onParametersChange={({ target }: { target: HTMLInputElement }) =>
@@ -517,6 +525,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         <>
           <DatabaseConnectionForm
             db={db}
+            sslForced={sslForced}
             dbModel={dbModel}
             onParametersChange={({ target }: { target: HTMLInputElement }) =>
               onChange(ActionType.parametersChange, {

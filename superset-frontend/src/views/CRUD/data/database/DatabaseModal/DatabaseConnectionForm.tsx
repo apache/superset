@@ -17,13 +17,7 @@
  * under the License.
  */
 import React, { FormEvent } from 'react';
-import {
-  SupersetTheme,
-  JsonObject,
-  isFeatureEnabled,
-  FeatureFlag,
-  t,
-} from '@superset-ui/core';
+import { SupersetTheme, JsonObject, t } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
 import { Switch } from 'src/common/components';
 import { Tooltip } from 'src/components/Tooltip';
@@ -37,7 +31,6 @@ import {
   infoTooltip,
 } from './styles';
 import { DatabaseForm, DatabaseObject } from '../types';
-import { useTheme } from '@emotion/react';
 
 export const FormFieldOrder = [
   'host',
@@ -58,6 +51,7 @@ interface FieldPropTypes {
   getValidation: () => void;
   db?: DatabaseObject;
   isEditMode?: boolean;
+  sslForced?: boolean;
 }
 
 const hostField = ({
@@ -179,22 +173,36 @@ const displayField = ({
     helpText="Pick a nickname for this database to display as in Superset."
   />
 );
-const forceSSLField = ({ changeMethods, isEditMode }: FieldPropTypes) =>
-  !isEditMode && (
-    <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-      <Tooltip title={t('SSL is required for Preset')}>
-        <Switch
-          checked={isFeatureEnabled(FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL)}
-          onClick={changeMethods.onParametersChange}
-        />
-        <span css={toggleStyle}>SSL</span>
-      </Tooltip>
-      <InfoTooltip
-        tooltip={t('SSL mode "require" will be used')}
-        placement="bottomRight"
+const forceSSLField = ({
+  isEditMode,
+  changeMethods,
+  db,
+  sslForced,
+}: FieldPropTypes) => (
+  <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
+    <Tooltip title={t('SSL is required for Preset')}>
+      <Switch
+        disabled={sslForced && !isEditMode}
+        checked={db?.parameters?.encryption || sslForced}
+        onChange={changed => {
+          changeMethods.onParametersChange({
+            target: {
+              type: 'toggle',
+              name: 'encryption',
+              checked: true,
+              value: changed,
+            },
+          });
+        }}
       />
-    </div>
-  );
+      <span css={toggleStyle}>SSL</span>
+    </Tooltip>
+    <InfoTooltip
+      tooltip={t('SSL mode "require" will be used')}
+      placement="bottomRight"
+    />
+  </div>
+);
 
 const FORM_FIELD_MAP = {
   host: hostField,
@@ -214,8 +222,10 @@ const DatabaseConnectionForm = ({
   getValidation,
   db,
   isEditMode = false,
+  sslForced,
 }: {
   isEditMode?: boolean;
+  sslForced: boolean;
   dbModel: DatabaseForm;
   db: Partial<DatabaseObject> | null;
   onParametersChange: (
@@ -257,6 +267,7 @@ const DatabaseConnectionForm = ({
             db,
             key: field,
             isEditMode,
+            sslForced,
           }),
         )}
     </div>
