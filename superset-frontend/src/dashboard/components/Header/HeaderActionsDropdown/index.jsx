@@ -164,12 +164,11 @@ class HeaderActionsDropdown extends React.PureComponent {
         break;
       }
       case MENU_KEYS.TOGGLE_FULLSCREEN: {
-        const hasStandalone = !!getUrlParam(URL_PARAMS.standalone);
         const url = getDashboardUrl(
           window.location.pathname,
           getActiveFilters(),
           window.location.hash,
-          !hasStandalone,
+          !getUrlParam(URL_PARAMS.standalone),
         );
         window.location.replace(url);
         break;
