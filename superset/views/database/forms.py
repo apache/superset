@@ -96,14 +96,14 @@ class CsvToDatabaseForm(DynamicForm):
             FileRequired(),
             FileAllowed(
                 config["ALLOWED_EXTENSIONS"].intersection(
-                    config["CSV_EXTENSIONS"].union(config["OTHER_EXTENSIONS"])
+                    config["CSV_EXTENSIONS"].union(config["COLMNAR_EXTENSIONS"])
                 ),
                 _(
                     "Only the following file extensions are allowed: "
                     "%(allowed_extensions)s",
                     allowed_extensions=", ".join(
                         config["ALLOWED_EXTENSIONS"].intersection(
-                            config["CSV_EXTENSIONS"].union(config["OTHER_EXTENSIONS"])
+                            config["CSV_EXTENSIONS"].union(config["COLMNAR_EXTENSIONS"])
                         )
                     ),
                 ),
