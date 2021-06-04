@@ -198,6 +198,7 @@ const DatabaseConnectionForm = ({
 }) => (
   <>
     <StyledFormHeader>
+      <p className="helper"> Step 2 of 3 </p>
       <h4>Enter the required {name} credentials</h4>
       <p className="helper">
         Need help? Learn more about connecting to {name}.

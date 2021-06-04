@@ -42,6 +42,15 @@ export const StyledFormHeader = styled.header`
     font-weight: bold;
     font-size: ${({ theme }) => theme.typography.sizes.l}px;
   }
+
+  .select-db {
+    .helper {
+      margin-top: 0;
+    }
+    h4 {
+      margin: 0 0 29px;
+    }
+  }
 `;
 
 export const antdCollapseStyles = (theme: SupersetTheme) => css`
@@ -312,6 +321,12 @@ export const TabHeader = styled.div`
   padding: 0px;
   margin: 0 ${({ theme }) => theme.gridUnit * 4}px
     ${({ theme }) => theme.gridUnit * 8}px;
+
+  .helper {
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    margin: 0px;
+  }
 `;
 
 export const CreateHeaderTitle = styled.div`
@@ -339,5 +354,30 @@ export const EditHeaderSubtitle = styled.div`
 `;
 
 export const SelectDatabaseStyles = styled.div`
-  margin: ${({ theme }) => theme.gridUnit * 4}px;
+  margin: 0 ${({ theme }) => theme.gridUnit * 8}px;
+
+  .preferred {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin-bottom: ${({ theme }) => theme.gridUnit * 16}px;
+  }
+
+  .preferred-item {
+    width: 133px;
+    height: 133px;
+  }
+
+  .available {
+    .available-label {
+      font-weight: bold;
+      margin-top: ${({ theme }) => theme.gridUnit * 16}px;
+      margin-bottom: ${({ theme }) => theme.gridUnit * 8}px;
+    }
+  }
+
+  .label-available-select {
+    text-transform: uppercase;
+    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+  }
 `;
