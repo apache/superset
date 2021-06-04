@@ -131,9 +131,11 @@ function dbReducer(
   state: Partial<DatabaseObject> | null,
   action: DBReducerActionType,
 ): Partial<DatabaseObject> | null {
-  const trimmedState = {
+  let trimmedState = {
     ...(state || {}),
   };
+
+  console.log(state, action);
   switch (action.type) {
     case ActionType.inputChange:
       if (action.payload.type === 'checkbox') {
@@ -147,6 +149,13 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.parametersChange:
+      if (action.payload.name === 'encrypted_extra') {
+        trimmedState.encrypted_extra = action.payload.value;
+        return {
+          ...trimmedState,
+          parameters: {},
+        };
+      }
       return {
         ...trimmedState,
         parameters: {
@@ -419,16 +428,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         // TODO: we need a centralized engine in one place
         available.engine === db?.engine || db?.backend,
     ) || {};
-  const disableSave =
-    !hasConnectedDb &&
-    (useSqlAlchemyForm
-      ? !(db?.database_name?.trim() && db?.sqlalchemy_uri)
-      : // disable the button if there is no dbModel.parameters or if
-        // any required fields are falsy
-        !dbModel?.parameters ||
-        !!dbModel.parameters.required.filter(field =>
-          FALSY_FORM_VALUES.includes(db?.parameters?.[field]),
-        ).length);
+
   return useTabLayout ? (
     <Modal
       css={(theme: SupersetTheme) => [
@@ -438,7 +438,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         formHelperStyles(theme),
       ]}
       name="database"
-      disablePrimaryButton={disableSave}
       data-test="database-modal"
       height="600px"
       onHandledPrimaryAction={onSave}
@@ -578,7 +577,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         formStyles(theme),
       ]}
       name="database"
-      disablePrimaryButton={disableSave}
       height="600px"
       onHandledPrimaryAction={onSave}
       onHide={onClose}

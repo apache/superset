@@ -29,6 +29,7 @@ import {
   StyledFormHeader,
 } from './styles';
 import { DatabaseForm, DatabaseObject } from '../types';
+import { null } from 'mathjs';
 
 enum CredentialInfoOptions {
   jsonUpload,
@@ -105,7 +106,7 @@ const credentialsInfo = ({
               <DeleteFilled
                 onClick={() => {
                   setFileToUpload(null);
-                  changeMethods.onParametersUploadFileChange({
+                  changeMethods.onParametersChange({
                     target: {
                       name: 'encrypted_extra',
                       value: '',
@@ -123,10 +124,12 @@ const credentialsInfo = ({
             onChange={async event => {
               const file = event?.target?.files[0];
               setFileToUpload(file.name);
-              changeMethods.onParametersUploadFileChange({
+              changeMethods.onParametersChange({
                 target: {
+                  type: null,
                   name: 'encrypted_extra',
                   value: await file.text(),
+                  checked: false,
                 },
               });
               document.getElementById('selectedFile').value = null;
@@ -315,7 +318,7 @@ const DatabaseConnectionForm = ({
             key === 'database_name',
         ).map(field =>
           FORM_FIELD_MAP[field]({
-            required: parameters.required.includes(field),
+            required: parameters.required?.includes(field),
             changeMethods: {
               onParametersChange,
               onChange,
