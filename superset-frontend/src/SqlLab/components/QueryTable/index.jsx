@@ -278,7 +278,7 @@ const QueryTable = props => {
                   name={statusAttributes[q.state].config.name}
                   status={statusAttributes[q.state].config.status}
                 />
-              )}
+              
             </span>
           </Tooltip>
         );
