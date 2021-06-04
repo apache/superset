@@ -42,7 +42,6 @@ import {
   DatabaseForm,
   CONFIGURATION_METHOD,
 } from 'src/views/CRUD/data/database/types';
-import Label from 'src/components/Label';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 
@@ -85,8 +84,7 @@ enum ActionType {
   inputChange,
   parametersChange,
   reset,
-  textChange,
-  parametersUploadFileChange,
+  textChange
 }
 
 interface DBReducerPayloadType {
@@ -104,8 +102,7 @@ type DBReducerActionType =
         | ActionType.textChange
         | ActionType.inputChange
         | ActionType.editorChange
-        | ActionType.parametersChange
-        | ActionType.parametersUploadFileChange;
+        | ActionType.parametersChange;
       payload: DBReducerPayloadType;
     }
   | {
@@ -135,7 +132,6 @@ function dbReducer(
     ...(state || {}),
   };
 
-  console.log(state, action);
   switch (action.type) {
     case ActionType.inputChange:
       if (action.payload.type === 'checkbox') {
@@ -150,9 +146,9 @@ function dbReducer(
       };
     case ActionType.parametersChange:
       if (action.payload.name === 'encrypted_extra') {
-        trimmedState.encrypted_extra = action.payload.value;
         return {
           ...trimmedState,
+          encrypted_extra: action.payload.value,
           parameters: {},
         };
       }
@@ -187,11 +183,6 @@ function dbReducer(
       return {
         ...action.payload,
       };
-    case ActionType.parametersUploadFileChange:
-      return {
-        ...trimmedState,
-        [action.payload.name]: action.payload.value,
-      };
     case ActionType.reset:
     default:
       return null;
@@ -199,7 +190,6 @@ function dbReducer(
 }
 
 const DEFAULT_TAB_KEY = '1';
-const FALSY_FORM_VALUES = [undefined, null, ''];
 
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   addDangerToast,
