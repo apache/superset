@@ -49,7 +49,7 @@ ma_plugin = MarshmallowPlugin()
 
 class BigQueryParametersSchema(Schema):
     credentials_info = EncryptedField(
-        required=True, description="Contents of BigQuery JSON credentials.",
+        description="Contents of BigQuery JSON credentials.",
     )
 
 
@@ -313,7 +313,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
             project_id = encrypted_extra.get("credentials_info", {}).get("project_id")
 
         if project_id:
-            return f"{cls.engine}+{cls.default_driver}://{project_id}"
+            return f"{cls.default_driver}://{project_id}"
 
         raise SupersetGenericDBErrorException(
             message="Big Query encrypted_extra is not available.",

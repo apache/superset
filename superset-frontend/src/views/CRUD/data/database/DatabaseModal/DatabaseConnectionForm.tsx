@@ -16,16 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FormEvent } from 'react';
+import React, { FormEvent, useState } from 'react';
 import { SupersetTheme, JsonObject } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
+import { Select, Button } from 'src/common/components';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
+import { DeleteFilled } from '@ant-design/icons';
 import {
   formScrollableStyles,
   validatedFormStyles,
+  CredentialInfoForm,
   StyledFormHeader,
 } from './styles';
 import { DatabaseForm, DatabaseObject } from '../types';
+
+enum CredentialInfoOptions {
+  jsonUpload,
+  copyPaste,
+}
 
 export const FormFieldOrder = [
   'host',
@@ -34,17 +42,103 @@ export const FormFieldOrder = [
   'username',
   'password',
   'database_name',
+  'credentials_info',
 ];
 
 interface FieldPropTypes {
   required: boolean;
   changeMethods: { onParametersChange: (value: any) => string } & {
     onChange: (value: any) => string;
-  };
+  } & { onParametersUploadFileChange: (value: any) => string };
   validationErrors: JsonObject | null;
   getValidation: () => void;
   db?: DatabaseObject;
 }
+
+const credentialsInfo = ({
+  required,
+  changeMethods,
+  getValidation,
+  validationErrors,
+}: FieldPropTypes) => {
+  const [uploadOption, setUploadOption] = useState<string>('upload');
+  const [fileToUpload, setFileToUpload] = useState<string>(null);
+  return (
+    <CredentialInfoForm>
+      <label className="label-select">
+        How do you want to enter service account credentials?
+      </label>
+      <Select
+        defaultValue={CredentialInfoOptions.jsonUpload}
+        style={{ width: '100%' }}
+        onChange={setUploadOption}
+      >
+        <Select.Option value={CredentialInfoOptions.jsonUpload}>
+          Upload JSON file
+        </Select.Option>
+        <Select.Option value={CredentialInfoOptions.copyPaste}>
+          Copy and Paste JSON credentials
+        </Select.Option>
+      </Select>
+      {uploadOption === 'paste' ? (
+        <div className="input-container" onChange={changeMethods.onChange}>
+          <span className="label-select">Service Account</span>
+          <textarea className="input-form" name="encrypted_extra" />
+          <span className="label-paste">
+            Copy and paste the entire service account .json file here
+          </span>
+        </div>
+      ) : (
+        <div className="input-container">
+          <span className="label-select">Upload Credentials</span>
+          {!fileToUpload && (
+            <Button
+              className="input-upload-btn"
+              onClick={() => document.getElementById('selectedFile').click()}
+            >
+              Choose File
+            </Button>
+          )}
+          {fileToUpload && (
+            <div className="input-upload-current">
+              {fileToUpload}
+              <DeleteFilled
+                onClick={() => {
+                  setFileToUpload(null);
+                  changeMethods.onParametersChange({
+                    target: {
+                      name: 'encrypted_extra',
+                      value: '',
+                    },
+                  });
+                }}
+              />
+            </div>
+          )}
+
+          <input
+            id="selectedFile"
+            className="input-upload"
+            type="file"
+            onChange={async event => {
+              const file = event?.target?.files[0];
+              setFileToUpload(file.name);
+              changeMethods.onParametersChange({
+                target: {
+                  type: null,
+                  name: 'encrypted_extra',
+                  value: await file.text(),
+                  checked: false,
+                },
+              });
+              document.getElementById('selectedFile').value = null;
+            }}
+          />
+        </div>
+      )}
+    </CredentialInfoForm>
+  );
+};
 
 const hostField = ({
   required,
@@ -173,12 +267,14 @@ const FORM_FIELD_MAP = {
   username: usernameField,
   password: passwordField,
   database_name: displayField,
+  credentials_info: credentialsInfo,
 };
 
 const DatabaseConnectionForm = ({
   dbModel: { name, parameters },
   onParametersChange,
   onChange,
+  onParametersUploadFileChange,
   validationErrors,
   getValidation,
   db,
@@ -191,6 +287,9 @@ const DatabaseConnectionForm = ({
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
   onChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onParametersUploadFileChange: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
   validationErrors: JsonObject | null;
@@ -218,8 +317,12 @@ const DatabaseConnectionForm = ({
             key === 'database_name',
         ).map(field =>
           FORM_FIELD_MAP[field]({
-            required: parameters.required.includes(field),
-            changeMethods: { onParametersChange, onChange },
+            required: parameters.required?.includes(field),
+            changeMethods: {
+              onParametersChange,
+              onChange,
+              onParametersUploadFileChange,
+            },
             validationErrors,
             getValidation,
             db,

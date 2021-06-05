@@ -42,7 +42,6 @@ import {
   DatabaseForm,
   CONFIGURATION_METHOD,
 } from 'src/views/CRUD/data/database/types';
-import Label from 'src/components/Label';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 
@@ -132,6 +131,7 @@ function dbReducer(
   const trimmedState = {
     ...(state || {}),
   };
+
   switch (action.type) {
     case ActionType.inputChange:
       if (action.payload.type === 'checkbox') {
@@ -145,6 +145,13 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.parametersChange:
+      if (action.payload.name === 'encrypted_extra') {
+        return {
+          ...trimmedState,
+          encrypted_extra: action.payload.value,
+          parameters: {},
+        };
+      }
       return {
         ...trimmedState,
         parameters: {
@@ -183,7 +190,6 @@ function dbReducer(
 }
 
 const DEFAULT_TAB_KEY = '1';
-const FALSY_FORM_VALUES = [undefined, null, ''];
 
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   addDangerToast,
@@ -262,6 +268,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     } else if (db) {
       // Create
+      if (update.encrypted_extra) {
+        // wrap encrypted_extra in credentials_info
+        update.encrypted_extra = JSON.stringify({
+          credentials_info: JSON.parse(update.encrypted_extra),
+        });
+      }
       const dbId = await createResource(update as DatabaseObject);
       if (dbId) {
         setHasConnectedDb(true);
@@ -406,16 +418,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         // TODO: we need a centralized engine in one place
         available.engine === db?.engine || db?.backend,
     ) || {};
-  const disableSave =
-    !hasConnectedDb &&
-    (useSqlAlchemyForm
-      ? !(db?.database_name?.trim() && db?.sqlalchemy_uri)
-      : // disable the button if there is no dbModel.parameters or if
-        // any required fields are falsy
-        !dbModel?.parameters ||
-        !!dbModel.parameters.required.filter(field =>
-          FALSY_FORM_VALUES.includes(db?.parameters?.[field]),
-        ).length);
+
   return useTabLayout ? (
     <Modal
       css={(theme: SupersetTheme) => [
@@ -425,7 +428,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         formHelperStyles(theme),
       ]}
       name="database"
-      disablePrimaryButton={disableSave}
       data-test="database-modal"
       height="600px"
       onHandledPrimaryAction={onSave}
@@ -565,7 +567,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         formStyles(theme),
       ]}
       name="database"
-      disablePrimaryButton={disableSave}
       height="600px"
       onHandledPrimaryAction={onSave}
       onHide={onClose}
