@@ -128,7 +128,7 @@ function dbReducer(
   state: Partial<DatabaseObject> | null,
   action: DBReducerActionType,
 ): Partial<DatabaseObject> | null {
-  let trimmedState = {
+  const trimmedState = {
     ...(state || {}),
   };
 
