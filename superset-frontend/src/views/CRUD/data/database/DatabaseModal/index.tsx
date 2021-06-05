@@ -37,12 +37,15 @@ import {
   useDatabaseValidation,
 } from 'src/views/CRUD/hooks';
 import { useCommonConf } from 'src/views/CRUD/data/database/state';
+import SupersetText from 'src/utils/textUtils';
 import {
   DatabaseObject,
   DatabaseForm,
   CONFIGURATION_METHOD,
 } from 'src/views/CRUD/data/database/types';
 import Label from 'src/components/Label';
+import supersetText from 'src/utils/textUtils';
+import { cos } from 'mathjs';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 
@@ -124,6 +127,13 @@ type DBReducerActionType =
       type: ActionType.configMethodChange;
       payload: { configuration_method: CONFIGURATION_METHOD };
     };
+
+const getPreferredImage = async (engine) => {
+  const config = await SupersetText;
+  return config.DATABASE_CONNECTION.images[engine];
+};
+
+getPreferredImage('postgresql');
 
 function dbReducer(
   state: Partial<DatabaseObject> | null,
@@ -341,6 +351,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             className="preferred-item"
             onClick={() => setDatabaseModel(database.engine)}
             buttonText={database.name}
+            icon={getPreferredImage('postgresql')}
           />
         ))}
     </div>

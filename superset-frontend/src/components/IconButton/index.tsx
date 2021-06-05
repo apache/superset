@@ -43,7 +43,8 @@ const StyledImage = styled.div`
   }
 
   img {
-    width: fit-content;
+    width: 100%;
+    height: 100%;
 
     &:first-of-type {
       margin-right: 0;
