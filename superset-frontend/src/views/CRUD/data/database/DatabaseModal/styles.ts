@@ -93,6 +93,17 @@ export const antDModalNoPaddingStyles = css`
   }
 `;
 
+export const infoTooltip = (theme: SupersetTheme) => css`
+  svg {
+    vertical-align: bottom;
+    margin-bottom: ${theme.gridUnit * 0.25}px;
+  }
+`;
+
+export const toggleStyle = (theme: SupersetTheme) => css`
+  padding-left: ${theme.gridUnit * 2}px;
+`;
+
 export const formScrollableStyles = (theme: SupersetTheme) => css`
   padding-left: ${theme.gridUnit * 4}px;
   padding-right: ${theme.gridUnit * 4}px;

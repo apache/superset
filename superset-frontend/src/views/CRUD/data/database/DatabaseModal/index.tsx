@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, SupersetTheme } from '@superset-ui/core';
+import {
+  t,
+  SupersetTheme,
+  FeatureFlag,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import React, {
   FunctionComponent,
   useEffect,
@@ -44,7 +49,6 @@ import {
 } from 'src/views/CRUD/data/database/types';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
-
 import DatabaseConnectionForm from './DatabaseConnectionForm';
 import {
   antDAlertStyles,
@@ -209,8 +213,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [dbName, setDbName] = useState('');
   const [isLoading, setLoading] = useState<boolean>(false);
   const conf = useCommonConf();
-
   const isEditMode = !!databaseId;
+  const sslForced = isFeatureEnabled(
+    FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
+  );
   const useSqlAlchemyForm =
     db?.configuration_method === CONFIGURATION_METHOD.SQLALCHEMY_URI;
   const useTabLayout = isEditMode || useSqlAlchemyForm;
@@ -309,10 +315,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   };
 
-  const setDatabaseModel = engine => {
+  const setDatabaseModel = (engine: string) => {
     const isDynamic =
-      availableDbs?.databases.filter(db => db.engine === engine)[0]
-        .parameters !== undefined;
+      availableDbs?.databases.filter(
+        (db: DatabaseObject) => db.engine === engine,
+      )[0].parameters !== undefined;
     setDB({
       type: ActionType.dbSelected,
       payload: {
@@ -329,13 +336,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       <span className="available-label">
         Or choose from a list of other databases we support{' '}
       </span>
-      <label className="label-available-select">supported databases</label>
+      <Label className="label-available-select">supported databases</Label>
       <Select
         style={{ width: '100%' }}
         onChange={setDatabaseModel}
         placeholder="Choose a database..."
       >
-        {availableDbs?.databases?.map(database => (
+        {availableDbs?.databases?.map((database: DatabaseForm) => (
           <Select.Option value={database.engine} key={database.engine}>
             {database.name}
           </Select.Option>
@@ -347,10 +354,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const renderPreferredSelector = () => (
     <div className="preferred">
       {availableDbs?.databases
-        ?.filter(db => db.preferred)
-        .map(database => (
+        ?.filter((db: DatabaseForm) => db.preferred)
+        .map((database: DatabaseForm) => (
           <IconButton
-            className="preferred-item"
+            icon="preferred-item"
             onClick={() => setDatabaseModel(database.engine)}
             buttonText={database.name}
           />
@@ -370,7 +377,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             Back
           </Button>,
           !hasConnectedDb ? ( // if hasConnectedDb show back + finish
-            <Button key="submit" type="primary" onClick={onSave}>
+            <Button key="submit" buttonStyle="primary" onClick={onSave}>
               Connect
             </Button>
           ) : (
@@ -490,6 +497,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           ) : (
             <DatabaseConnectionForm
               isEditMode
+              sslForced={sslForced}
               dbModel={dbModel}
               db={db as DatabaseObject}
               onParametersChange={({ target }: { target: HTMLInputElement }) =>
@@ -618,6 +626,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           {!isLoading && db && (
             <>
               <DatabaseConnectionForm
+                db={db}
+                sslForced={sslForced}
                 dbModel={dbModel}
                 onParametersChange={({
                   target,
