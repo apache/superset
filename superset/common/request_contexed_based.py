@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 def get_user_roles() -> List[Role]:
     if g.user.is_anonymous:
         public_role = conf.get("AUTH_ROLE_PUBLIC")
-        return [security_manager.find_role(public_role)] if public_role else []
+        return [security_manager.get_public_role()] if public_role else []
     return g.user.roles
 
 
