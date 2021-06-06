@@ -383,6 +383,9 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # for report with type 'report' still send with email and slack message with
     # screenshot and link
     "ALERTS_ATTACH_REPORTS": True,
+    # Enabling FORCE_DATABASE_CONNECTIONS_SSL forces all database connections to be
+    # encrypted before being saved into superset metastore.
+    "FORCE_DATABASE_CONNECTIONS_SSL": False,
 }
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
@@ -1028,16 +1031,12 @@ WEBDRIVER_WINDOW = {"dashboard": (1600, 2000), "slice": (3000, 1200)}
 WEBDRIVER_AUTH_FUNC = None
 
 # Any config options to be passed as-is to the webdriver
-WEBDRIVER_CONFIGURATION: Dict[Any, Any] = {}
+WEBDRIVER_CONFIGURATION: Dict[Any, Any] = {"service_log_path": "/dev/null"}
 
 # Additional args to be passed as arguments to the config object
 # Note: these options are Chrome-specific. For FF, these should
 # only include the "--headless" arg
-WEBDRIVER_OPTION_ARGS = [
-    "--force-device-scale-factor=2.0",
-    "--high-dpi-support=2.0",
-    "--headless",
-]
+WEBDRIVER_OPTION_ARGS = ["--headless", "--marionette"]
 
 # The base URL to query for accessing the user interface
 WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
@@ -1073,13 +1072,13 @@ SQL_VALIDATORS_BY_ENGINE = {
 
 # A list of preferred databases, in order. These databases will be
 # displayed prominently in the "Add Database" dialog. You should
-# use the "engine" attribute of the corresponding DB engine spec in
-# `superset/db_engine_specs/`.
+# use the "engine_name" attribute of the corresponding DB engine spec
+# in `superset/db_engine_specs/`.
 PREFERRED_DATABASES: List[str] = [
-    # "postgresql",
-    # "presto",
-    # "mysql",
-    # "sqlite",
+    # "PostgreSQL",
+    # "Presto",
+    # "MySQL",
+    # "SQLite",
     # etc.
 ]
 

@@ -44,7 +44,6 @@ describe('Select buildQuery', () => {
     expect(query.groupby).toEqual(['my_col']);
     expect(query.filters).toEqual([{ col: 'my_col', op: 'IS NOT NULL' }]);
     expect(query.metrics).toEqual([]);
-    expect(query.apply_fetch_values_predicate).toEqual(true);
     expect(query.orderby).toEqual([]);
   });
 

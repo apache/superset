@@ -47,16 +47,20 @@ import { useCascadingFilters } from './state';
 const FilterItem = styled.div`
   min-height: ${({ theme }) => theme.gridUnit * 11}px;
   padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+  & > div > div {
+    height: auto;
+  }
 `;
 
 const FilterValue: React.FC<FilterProps> = ({
+  dataMaskSelected,
   filter,
   directPathToChild,
   onFilterSelectionChange,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
-  const cascadingFilters = useCascadingFilters(id);
+  const cascadingFilters = useCascadingFilters(id, dataMaskSelected);
   const [state, setState] = useState<ChartDataResponseResult[]>([]);
   const [error, setError] = useState<string>('');
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});

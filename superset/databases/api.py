@@ -28,7 +28,7 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
 from superset import app, event_logger
-from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.commands.create import CreateDatabaseCommand
@@ -38,7 +38,6 @@ from superset.databases.commands.exceptions import (
     DatabaseCreateFailedError,
     DatabaseDeleteDatasetsExistFailedError,
     DatabaseDeleteFailedError,
-    DatabaseImportError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
     DatabaseUpdateFailedError,
@@ -749,7 +748,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/import/", methods=["POST"])
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
@@ -775,7 +773,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                       type: string
                     overwrite:
                       description: overwrite existing databases?
-                      type: bool
+                      type: boolean
           responses:
             200:
               description: Database import result
@@ -801,6 +799,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         with ZipFile(upload) as bundle:
             contents = get_contents_from_bundle(bundle)
 
+        if not contents:
+            raise NoValidFilesFoundError()
+
         passwords = (
             json.loads(request.form["passwords"])
             if "passwords" in request.form
@@ -811,15 +812,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         command = ImportDatabasesCommand(
             contents, passwords=passwords, overwrite=overwrite
         )
-        try:
-            command.run()
-            return self.response(200, message="OK")
-        except CommandInvalidError as exc:
-            logger.warning("Import database failed")
-            return self.response_422(message=exc.normalized_messages())
-        except DatabaseImportError as exc:
-            logger.error("Import database failed", exc_info=True)
-            return self.response_500(message=str(exc))
+        command.run()
+        return self.response(200, message="OK")
 
     @expose("/<int:pk>/function_names/", methods=["GET"])
     @protect()
@@ -886,14 +880,26 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                         name:
                           description: Name of the database
                           type: string
+                        engine:
+                          description: Name of the SQLAlchemy engine
+                          type: string
+                        available_drivers:
+                          description: Installed drivers for the engine
+                          type: array
+                          items:
+                            type: string
+                        default_driver:
+                          description: Default driver for the engine
+                          type: string
                         preferred:
                           description: Is the database preferred?
-                          type: bool
+                          type: boolean
                         sqlalchemy_uri_placeholder:
                           description: Example placeholder for the SQLAlchemy URI
                           type: string
                         parameters:
                           description: JSON schema defining the needed parameters
+                          type: object
             400:
               $ref: '#/components/responses/400'
             500:
@@ -901,15 +907,22 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         """
         preferred_databases: List[str] = app.config.get("PREFERRED_DATABASES", [])
         available_databases = []
-        for engine_spec in get_available_engine_specs():
+        for engine_spec, drivers in get_available_engine_specs().items():
             payload: Dict[str, Any] = {
                 "name": engine_spec.engine_name,
                 "engine": engine_spec.engine,
-                "preferred": engine_spec.engine in preferred_databases,
+                "available_drivers": sorted(drivers),
+                "preferred": engine_spec.engine_name in preferred_databases,
             }
 
-            if hasattr(engine_spec, "parameters_json_schema") and hasattr(
-                engine_spec, "sqlalchemy_uri_placeholder"
+            if hasattr(engine_spec, "default_driver"):
+                payload["default_driver"] = engine_spec.default_driver  # type: ignore
+
+            # show configuration parameters for DBs that support it
+            if (
+                hasattr(engine_spec, "parameters_json_schema")
+                and hasattr(engine_spec, "sqlalchemy_uri_placeholder")
+                and getattr(engine_spec, "default_driver") in drivers
             ):
                 payload[
                     "parameters"
@@ -920,13 +933,25 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
             available_databases.append(payload)
 
-        available_databases.sort(
-            key=lambda payload: preferred_databases.index(payload["engine"])
-            if payload["engine"] in preferred_databases
-            else len(preferred_databases)
+        # sort preferred first
+        response = sorted(
+            (payload for payload in available_databases if payload["preferred"]),
+            key=lambda payload: preferred_databases.index(payload["name"]),
         )
 
-        return self.response(200, databases=available_databases)
+        # add others
+        response.extend(
+            sorted(
+                (
+                    payload
+                    for payload in available_databases
+                    if not payload["preferred"]
+                ),
+                key=lambda payload: payload["name"],
+            )
+        )
+
+        return self.response(200, databases=response)
 
     @expose("/validate_parameters", methods=["POST"])
     @protect()
