@@ -57,6 +57,8 @@ export interface Filter {
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
   requiredFirst?: boolean;
+  tabsInScope?: string[];
+  chartsInScope?: number[];
 }
 
 export type FilterConfiguration = Filter[];

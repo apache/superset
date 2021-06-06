@@ -17,16 +17,22 @@
  * under the License.
  */
 import React from 'react';
-import { DataMask } from '@superset-ui/core';
-import { DataMaskStateWithId } from 'src/dataMask/types';
-import { Filter } from '../../types';
+import { render, screen } from 'spec/helpers/testing-library';
+import IconButton from 'src/components/IconButton';
 
-export interface FilterProps {
-  dataMaskSelected?: DataMaskStateWithId;
-  filter: Filter & {
-    dataMask?: DataMask;
-  };
-  icon?: React.ReactElement;
-  directPathToChild?: string[];
-  onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
-}
+const defaultProps = {
+  buttonText: 'This is the IconButton text',
+  icon: '/images/icons/sql.svg',
+};
+
+describe('IconButton', () => {
+  it('renders an IconButton', () => {
+    render(<IconButton {...defaultProps} />);
+
+    const icon = screen.getByRole('img');
+    const buttonText = screen.getByText(/this is the iconbutton text/i);
+
+    expect(icon).toBeVisible();
+    expect(buttonText).toBeVisible();
+  });
+});
