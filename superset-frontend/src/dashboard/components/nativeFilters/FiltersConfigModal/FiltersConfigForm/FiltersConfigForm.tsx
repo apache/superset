@@ -627,14 +627,16 @@ const FiltersConfigForm = (
                   {
                     validator: (rule, value) => {
                       const hasValue = !!value.filterState?.value;
-                      if (hasValue) {
+                      if (
+                        hasValue ||
+                        // TODO: do more generic
+                        formFilter.controlValues?.defaultToFirstItem
+                      ) {
                         return Promise.resolve();
                       }
-                      return Promise.resolve();
-                      // TODO: Some values does default value empty and disabled so there is no value
-                      // return Promise.reject(
-                      //   new Error(t('Default value is required')),
-                      // );
+                      return Promise.reject(
+                        new Error(t('Default value is required')),
+                      );
                     },
                   },
                 ]}

@@ -77,7 +77,11 @@ export default function getControlItemsMap({
           <CleanFormItem
             name={['filters', filterId, 'requiredFirst', controlItem.name]}
             hidden
-            initialValue={controlItem.config.requiredFirst}
+            initialValue={
+              filterToEdit?.controlValues?.[controlItem.name] ??
+              (controlItem?.config?.default &&
+                controlItem.name === 'requiredFirst')
+            }
           />
           <Tooltip
             key={controlItem.name}
@@ -91,9 +95,7 @@ export default function getControlItemsMap({
             <StyledRowFormItem
               key={controlItem.name}
               name={['filters', filterId, 'controlValues', controlItem.name]}
-              initialValue={
-                initialValue
-              }
+              initialValue={initialValue}
               valuePropName="checked"
               colon={false}
             >
