@@ -40,7 +40,7 @@ class FilterSetCreateFailedError(CreateFailedError):
     def __init__(
         self, dashboard_id: str, reason: str = "", exception: Optional[Exception] = None
     ) -> None:
-        super().__init__((self.base_massage % dashboard_id) + reason, exception)
+        super().__init__((self.base_message % dashboard_id) + reason, exception)
 
 
 class FilterSetUpdateFailedError(UpdateFailedError):
@@ -49,7 +49,7 @@ class FilterSetUpdateFailedError(UpdateFailedError):
     def __init__(
         self, filterset_id: str, reason: str = "", exception: Optional[Exception] = None
     ) -> None:
-        super().__init__((self.base_massage % filterset_id) + reason, exception)
+        super().__init__((self.base_message % filterset_id) + reason, exception)
 
 
 class FilterSetDeleteFailedError(DeleteFailedError):
@@ -58,7 +58,7 @@ class FilterSetDeleteFailedError(DeleteFailedError):
     def __init__(
         self, filterset_id: str, reason: str = "", exception: Optional[Exception] = None
     ) -> None:
-        super().__init__((self.base_massage % filterset_id) + reason, exception)
+        super().__init__((self.base_message % filterset_id) + reason, exception)
 
 
 class UserIsNotDashboardOwnerError(FilterSetCreateFailedError):
