@@ -35,4 +35,5 @@ def get_user_roles() -> List[Role]:
 
 def is_user_admin() -> bool:
     user_roles = [role.name.lower() for role in list(get_user_roles())]
-    return "admin" in user_roles
+    admin_role = conf.get("AUTH_ROLE_ADMIN").lower()
+    return admin_role in user_roles
