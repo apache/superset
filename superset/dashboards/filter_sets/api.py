@@ -126,7 +126,53 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
     def get_list(self, **kwargs: Any) -> Response:
         """
             Gets a dashboard's Filter-sets
+         ---
+        get:
+          description: >-
+            Get a dashboard's list of filter sets
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: Either the id of the dashboard
+          responses:
+            200:
+              description: FilterSets
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          description: Name of the Filter set
+                          type: string
+                        json_metadata:
+                          description: metadata of the filter set
+                          type: string
+                        description:
+                          description: A description field of the filter set
+                          type: string
+                        owner_id:
+                          description: A description field of the filter set
+                          type: integer
+                        owner_type:
+                          description: the Type of the owner ( Dashboard/User)
+                          type: integer
+                        parameters:
+                          description: JSON schema defining the needed parameters
+            302:
+              description: Redirects to the current digest
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
         """
+
         dashboard_id: Optional[int] = kwargs.get("dashboard_id", None)
         if not DashboardDAO.find_by_id(cast(int, dashboard_id)):
             return self.response(404, message="dashboard '%s' not found" % dashboard_id)
