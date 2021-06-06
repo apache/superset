@@ -210,7 +210,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/FilterSetPostSchema'
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
           responses:
             201:
               description: Filter set added
@@ -222,7 +222,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
                       id:
                         type: number
                       result:
-                        $ref: '#/components/schemas/FilterSetPostSchema'
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
             302:
               description: Redirects to the current digest
             400:
@@ -279,7 +279,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/FilterSetPutSchema'
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
           responses:
             200:
               description: Filter set changed
@@ -291,7 +291,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
                       id:
                         type: number
                       result:
-                        $ref: '#/components/schemas/FilterSetPutSchema'
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
             400:
               $ref: '#/components/responses/400'
             401:
