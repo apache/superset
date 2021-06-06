@@ -66,7 +66,7 @@ msgstr "Datasety"
 #: superset-frontend/src/views/CRUD/welcome/Welcome.tsx:246 superset/app.py:265
 #: superset/views/chart/mixin.py:26 superset/views/dashboard/mixin.py:81
 msgid "Charts"
-msgstr ""
+msgstr "Grafy"
 
 #: superset-frontend/src/profile/components/CreatedContent.tsx:73
 #: superset-frontend/src/profile/components/Favorites.tsx:74
@@ -78,23 +78,23 @@ msgstr ""
 
 #: superset/app.py:282
 msgid "Plugins"
-msgstr ""
+msgstr "Pluginy"
 
 #: superset/app.py:290 superset/views/css_templates.py:38
 msgid "CSS Templates"
-msgstr ""
+msgstr "CSS šablóny"
 
 #: superset/app.py:300
 msgid "Row level security"
-msgstr ""
+msgstr "Bezpečnosť na úrovni riadkov"
 
 #: superset/app.py:302 superset/app.py:413 superset/app.py:478
 msgid "Security"
-msgstr ""
+msgstr "Bezpečnosť"
 
 #: superset/app.py:342
 msgid "Import Dashboards"
-msgstr ""
+msgstr "Importovať dashboard"
 
 #: superset/app.py:351
 msgid "SQL Editor"
@@ -106,19 +106,19 @@ msgstr ""
 
 #: superset/app.py:359
 msgid "Saved Queries"
-msgstr ""
+msgstr "Uložené dotazy"
 
 #: superset/app.py:366
 msgid "Query History"
-msgstr ""
+msgstr "História dotazov"
 
 #: superset/app.py:378
 msgid "Upload a CSV"
-msgstr ""
+msgstr "Nahrať CSV"
 
 #: superset/app.py:393
 msgid "Upload Excel"
-msgstr ""
+msgstr "Nahrať Excel"
 
 #: superset/app.py:411
 msgid "Action Log"
