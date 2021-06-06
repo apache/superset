@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import io
 import os
 import tempfile
+import zipfile
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -422,12 +424,18 @@ class ColumnarToDatabaseView(SimpleFormView):
     def form_post(self, form: ColumnarToDatabaseForm) -> Response:
         database = form.con.data
         columnar_table = Table(table=form.name.data, schema=form.schema.data)
-        file_type = {file.filename.split(".")[-1] for file in form.columnar_file.data}
+        files = form.columnar_file.data
+        file_type = {file.filename.split(".")[-1] for file in files}
+
+        if file_type == {'zip'}:
+            zipfile_ob = zipfile.ZipFile(form.columnar_file.data[0])
+            file_type = {filename.split(".")[-1] for filename in zipfile_ob.namelist()}
+            files = [io.BytesIO((zipfile_ob.open(filename).read(),filename)[0]) for filename in zipfile_ob.namelist()]
 
         if len(file_type) > 1:
             message = _(
                 "Multiple file extensions are not allowed for columnar uploads."
-                "Please make sure all files are of the same extension.",
+                " Please make sure all files are of the same extension.",
             )
             flash(message, "danger")
             return redirect("/columnartodatabaseview/form")
@@ -459,7 +467,7 @@ class ColumnarToDatabaseView(SimpleFormView):
             return redirect("/columnartodatabaseview/form")
 
         try:
-            chunks = [read(file, **kwargs) for file in form.columnar_file.data]
+            chunks = [read(file, **kwargs) for file in files]
             df = pd.concat(chunks)
 
             database = (
