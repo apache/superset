@@ -185,6 +185,7 @@ class SupersetAppInitializer:
             CsvToDatabaseView,
             DatabaseView,
             ExcelToDatabaseView,
+            ColumnarToDatabaseView,
         )
         from superset.views.datasource import Datasource
         from superset.views.dynamic_plugins import DynamicPluginsView
@@ -311,6 +312,7 @@ class SupersetAppInitializer:
         appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
         appbuilder.add_view_no_menu(CsvToDatabaseView)
         appbuilder.add_view_no_menu(ExcelToDatabaseView)
+        appbuilder.add_view_no_menu(ColumnarToDatabaseView)
         appbuilder.add_view_no_menu(Dashboard)
         appbuilder.add_view_no_menu(DashboardModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
@@ -378,6 +380,18 @@ class SupersetAppInitializer:
                 "Upload a CSV",
                 label=__("Upload a CSV"),
                 href="/csvtodatabaseview/form",
+                icon="fa-upload",
+                category="Data",
+                category_label=__("Data"),
+                category_icon="fa-wrench",
+            )
+        if self.config["COLUMNAR_EXTENSIONS"].intersection(
+            self.config["ALLOWED_EXTENSIONS"]
+        ):
+            appbuilder.add_link(
+                "Upload a Columnar file",
+                label=__("Upload a Columnar file"),
+                href="/columnartodatabaseview/form",
                 icon="fa-upload",
                 category="Data",
                 category_label=__("Data"),

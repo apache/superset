@@ -38,7 +38,7 @@ from superset.typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
-from .forms import CsvToDatabaseForm, ExcelToDatabaseForm
+from .forms import CsvToDatabaseForm, ExcelToDatabaseForm, ColumnarToDatabaseForm
 from .mixins import DatabaseMixin
 from .validators import schema_allows_csv_upload, sqlalchemy_uri_validator
 
@@ -407,4 +407,137 @@ class ExcelToDatabaseView(SimpleFormView):
         )
         flash(message, "info")
         stats_logger.incr("successful_excel_upload")
+        return redirect("/tablemodelview/list/")
+
+
+class ColumnarToDatabaseView(SimpleFormView):
+    form = ColumnarToDatabaseForm
+    form_template = "superset/form_view/columnar_to_database_view/edit.html"
+    form_title = _("Columnar to Database configuration")
+    add_columns = ["database", "schema", "table_name"]
+
+    def form_get(self, form: ColumnarToDatabaseForm) -> None:
+        form.if_exists.data = "fail"
+
+    def form_post(self, form: ColumnarToDatabaseForm) -> Response:
+        database = form.con.data
+        columnar_table = Table(table=form.name.data, schema=form.schema.data)
+        file_type = {file.filename.split(".")[-1] for file in form.columnar_file.data}
+
+        if len(file_type) > 1:
+            message = _(
+                "Multiple file extensions are not allowed for columnar uploads."
+                "Please make sure all files are of the same extension.",
+            )
+            flash(message, "danger")
+            return redirect("/columnartodatabaseview/form")
+
+        read = pd.read_parquet
+        kwargs = {
+            "columns": form.usecols.data,
+        }
+
+        if not schema_allows_csv_upload(database, columnar_table.schema):
+            message = _(
+                'Database "%(database_name)s" schema "%(schema_name)s" '
+                "is not allowed for columnar uploads. Please contact your Superset Admin.",
+                database_name=database.database_name,
+                schema_name=columnar_table.schema,
+            )
+            flash(message, "danger")
+            return redirect("/columnartodatabaseview/form")
+
+        if "." in columnar_table.table and columnar_table.schema:
+            message = _(
+                "You cannot specify a namespace both in the name of the table: "
+                '"%(columnar_table.table)s" and in the schema field: '
+                '"%(columnar_table.schema)s". Please remove one',
+                table=columnar_table.table,
+                schema=columnar_table.schema,
+            )
+            flash(message, "danger")
+            return redirect("/columnartodatabaseview/form")
+
+        try:
+            chunks = [read(file, **kwargs) for file in form.columnar_file.data]
+            df = pd.concat(chunks)
+
+            database = (
+                db.session.query(models.Database)
+                .filter_by(id=form.data.get("con").data.get("id"))
+                .one()
+            )
+
+            database.db_engine_spec.df_to_sql(
+                database,
+                columnar_table,
+                df,
+                to_sql_kwargs={
+                    "chunksize": 1000,
+                    "if_exists": form.if_exists.data,
+                    "index": form.index.data,
+                    "index_label": form.index_label.data,
+                },
+            )
+
+            # Connect table to the database that should be used for exploration.
+            # E.g. if hive was used to upload a csv, presto will be a better option
+            # to explore the table.
+            expore_database = database
+            explore_database_id = database.explore_database_id
+            if explore_database_id:
+                expore_database = (
+                    db.session.query(models.Database)
+                    .filter_by(id=explore_database_id)
+                    .one_or_none()
+                    or database
+                )
+
+            sqla_table = (
+                db.session.query(SqlaTable)
+                .filter_by(
+                    table_name=columnar_table.table,
+                    schema=columnar_table.schema,
+                    database_id=expore_database.id,
+                )
+                .one_or_none()
+            )
+
+            if sqla_table:
+                sqla_table.fetch_metadata()
+            if not sqla_table:
+                sqla_table = SqlaTable(table_name=columnar_table.table)
+                sqla_table.database = expore_database
+                sqla_table.database_id = database.id
+                sqla_table.user_id = g.user.get_id()
+                sqla_table.schema = columnar_table.schema
+                sqla_table.fetch_metadata()
+                db.session.add(sqla_table)
+            db.session.commit()
+        except Exception as ex:  # pylint: disable=broad-except
+            db.session.rollback()
+            message = _(
+                'Unable to upload Columnar file "%(filename)s" to table '
+                '"%(table_name)s" in database "%(db_name)s". '
+                "Error message: %(error_msg)s",
+                filename=[file.filename for file in form.columnar_file.data],
+                table_name=form.name.data,
+                db_name=database.database_name,
+                error_msg=str(ex),
+            )
+
+            flash(message, "danger")
+            stats_logger.incr("failed_columnar_upload")
+            return redirect("/columnartodatabaseview/form")
+
+        # Go back to welcome page / splash screen
+        message = _(
+            'Columnar file "%(columnar_filename)s" uploaded to table "%(table_name)s" in '
+            'database "%(db_name)s"',
+            columnar_filename=[file.filename for file in form.columnar_file.data],
+            table_name=str(columnar_table),
+            db_name=sqla_table.database.database_name,
+        )
+        flash(message, "info")
+        stats_logger.incr("successful_columnar_upload")
         return redirect("/tablemodelview/list/")
