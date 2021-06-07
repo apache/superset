@@ -76,6 +76,7 @@ export const useFilterUpdates = (
 // Load filters after charts loaded
 export const useInitialization = () => {
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const filters = useFilters();
   const charts = useSelector<RootState, ChartsState>(state => state.charts);
 
   // We need to know how much charts now shown on dashboard to know how many of all charts should be loaded
@@ -87,6 +88,11 @@ export const useInitialization = () => {
   }
   useEffect(() => {
     if (isInitialized) {
+      return;
+    }
+
+    if (Object.values(filters).find(({ requiredFirst }) => requiredFirst)) {
+      setIsInitialized(true);
       return;
     }
 
