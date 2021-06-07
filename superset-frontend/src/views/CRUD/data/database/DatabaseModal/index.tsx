@@ -40,9 +40,9 @@ import {
   useSingleViewResource,
   useAvailableDatabases,
   useDatabaseValidation,
+  getDatabaseImages,
 } from 'src/views/CRUD/hooks';
 import { useCommonConf } from 'src/views/CRUD/data/database/state';
-import SupersetText from 'src/utils/textUtils';
 import {
   DatabaseObject,
   DatabaseForm,
@@ -129,13 +129,6 @@ type DBReducerActionType =
       payload: { configuration_method: CONFIGURATION_METHOD };
     };
 
-const getPreferredImage = async (engine) => {
-  const config = await SupersetText;
-  return config.DATABASE_CONNECTION.images[engine];
-};
-
-getPreferredImage('postgresql');
-
 function dbReducer(
   state: Partial<DatabaseObject> | null,
   action: DBReducerActionType,
@@ -221,6 +214,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [dbName, setDbName] = useState('');
   const [isLoading, setLoading] = useState<boolean>(false);
   const conf = useCommonConf();
+  const dbImages = getDatabaseImages();
   const isEditMode = !!databaseId;
   const sslForced = isFeatureEnabled(
     FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
@@ -367,7 +361,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             className="preferred-item"
             onClick={() => setDatabaseModel(database.engine)}
             buttonText={database.name}
-            icon={getPreferredImage('postgresql')}
+            icon={dbImages[database.engine]}
           />
         ))}
     </div>
