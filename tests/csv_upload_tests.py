@@ -19,6 +19,7 @@
 import json
 import logging
 import os
+import shutil
 from typing import Dict, Optional
 
 from unittest import mock
@@ -43,7 +44,10 @@ CSV_UPLOAD_DATABASE = "csv_explore_db"
 CSV_FILENAME1 = "testCSV1.csv"
 CSV_FILENAME2 = "testCSV2.csv"
 EXCEL_FILENAME = "testExcel.xlsx"
-PARQUET_FILENAME = "testParquet.parquet"
+PARQUET_FILENAME1 = "testZip/testParquet1.parquet"
+PARQUET_FILENAME2 = "testZip/testParquet2.parquet"
+ZIP_DIRNAME = "testZip"
+ZIP_FILENAME = "testZip.zip"
 
 EXCEL_UPLOAD_TABLE = "excel_upload"
 CSV_UPLOAD_TABLE = "csv_upload"
@@ -94,10 +98,14 @@ def create_csv_files():
 
 
 @pytest.fixture()
-def create_parquet_files():
-    pd.DataFrame({"a": ["john", "paul"], "b": [1, 2]}).to_parquet(PARQUET_FILENAME)
+def create_columnar_files():
+    os.mkdir(ZIP_DIRNAME)
+    pd.DataFrame({"a": ["john", "paul"], "b": [1, 2]}).to_parquet(PARQUET_FILENAME1)
+    pd.DataFrame({"a": ["max", "bob"], "b": [3, 4]}).to_parquet(PARQUET_FILENAME2)
+    shutil.make_archive(ZIP_DIRNAME, "zip", ZIP_DIRNAME)
     yield
-    os.remove(PARQUET_FILENAME)
+    os.remove(ZIP_FILENAME)
+    shutil.rmtree(ZIP_DIRNAME)
 
 
 @pytest.fixture()
@@ -142,6 +150,20 @@ def upload_excel(
     if extra:
         form_data.update(extra)
     return get_resp(test_client, "/exceltodatabaseview/form", data=form_data)
+
+
+def upload_columnar(filename: str, table_name: str, extra: Optional[Dict[str, str]] = None):
+    columnar_upload_db_id = get_upload_db().id
+    form_data = {
+        "columnar_file": open(filename, "rb"),
+        "name": table_name,
+        "con": columnar_upload_db_id,
+        "if_exists": "fail",
+        "index_label": "test_label",
+    }
+    if extra:
+        form_data.update(extra)
+    return get_resp(test_client, "/columnartodatabaseview/form", data=form_data)
 
 
 def mock_upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
@@ -353,37 +375,48 @@ def test_import_excel(setup_csv_upload, create_excel_files):
 
 
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
-def test_import_parquet(setup_csv_upload, create_parquet_files):
+def test_import_parquet(setup_csv_upload, create_columnar_files):
     if utils.backend() == "hive":
         pytest.skip("Hive doesn't allow parquet upload.")
 
-    success_msg = (
-        f'CSV file "{PARQUET_FILENAME}" uploaded to table "{PARQUET_UPLOAD_TABLE}"'
+    success_msg_f1 = (
+        f'Columnar file "[\'{PARQUET_FILENAME1}\']" uploaded to table "{PARQUET_UPLOAD_TABLE}"'
     )
 
     # initial upload with fail mode
-    resp = upload_csv(PARQUET_FILENAME, PARQUET_UPLOAD_TABLE)
-    assert success_msg in resp
+    resp = upload_columnar(PARQUET_FILENAME1, PARQUET_UPLOAD_TABLE)
+    assert success_msg_f1 in resp
 
     # upload again with fail mode; should fail
-    fail_msg = f'Unable to upload CSV file "{PARQUET_FILENAME}" to table "{PARQUET_UPLOAD_TABLE}"'
-    resp = upload_csv(PARQUET_FILENAME, PARQUET_UPLOAD_TABLE)
+    fail_msg = f'Unable to upload Columnar file "[\'{PARQUET_FILENAME1}\']" to table "{PARQUET_UPLOAD_TABLE}"'
+    resp = upload_columnar(PARQUET_FILENAME1, PARQUET_UPLOAD_TABLE)
     assert fail_msg in resp
 
     if utils.backend() != "hive":
         # upload again with append mode
-        resp = upload_csv(
-            PARQUET_FILENAME, PARQUET_UPLOAD_TABLE, extra={"if_exists": "append"}
+        resp = upload_columnar(
+            PARQUET_FILENAME1, PARQUET_UPLOAD_TABLE, extra={"if_exists": "append"}
         )
-        assert success_msg in resp
+        assert success_msg_f1 in resp
+
+    # upload again with replace mode and specific columns
+    resp = upload_columnar(
+        PARQUET_FILENAME1,
+        PARQUET_UPLOAD_TABLE,
+        extra={"if_exists": "replace", "usecols": '["a"]'},
+    )
+    assert success_msg_f1 in resp
+
+    # make sure only specified column name was read
+    table = SupersetTestCase.get_table_by_name(PARQUET_UPLOAD_TABLE)
+    assert "b" not in table.column_names
 
     # upload again with replace mode
-    resp = upload_csv(
-        PARQUET_FILENAME, PARQUET_UPLOAD_TABLE, extra={"if_exists": "replace"}
+    resp = upload_columnar(
+        PARQUET_FILENAME1, PARQUET_UPLOAD_TABLE, extra={"if_exists": "replace"}
     )
-    assert success_msg in resp
+    assert success_msg_f1 in resp
 
-    # make sure that john and empty string are replaced with None
     data = (
         get_upload_db()
         .get_sqla_engine()
@@ -391,3 +424,18 @@ def test_import_parquet(setup_csv_upload, create_parquet_files):
         .fetchall()
     )
     assert data == [("john", 1), ("paul", 2)]
+
+    # replace table with zip file
+    resp = upload_columnar(ZIP_FILENAME, PARQUET_UPLOAD_TABLE, extra={"if_exists": "replace"})
+    success_msg_f2 = (
+        f'Columnar file "[\'{ZIP_FILENAME}\']" uploaded to table "{PARQUET_UPLOAD_TABLE}"'
+    )
+    assert success_msg_f2 in resp
+
+    data = (
+        get_upload_db()
+        .get_sqla_engine()
+        .execute(f"SELECT * from {PARQUET_UPLOAD_TABLE}")
+        .fetchall()
+    )
+    assert data == [("john", 1), ("paul", 2), ("max", 3), ("bob", 4)]
