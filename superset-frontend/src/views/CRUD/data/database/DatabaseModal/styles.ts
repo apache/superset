@@ -93,6 +93,17 @@ export const antDModalNoPaddingStyles = css`
   }
 `;
 
+export const infoTooltip = (theme: SupersetTheme) => css`
+  svg {
+    vertical-align: bottom;
+    margin-bottom: ${theme.gridUnit * 0.25}px;
+  }
+`;
+
+export const toggleStyle = (theme: SupersetTheme) => css`
+  padding-left: ${theme.gridUnit * 2}px;
+`;
+
 export const formScrollableStyles = (theme: SupersetTheme) => css`
   padding-left: ${theme.gridUnit * 4}px;
   padding-right: ${theme.gridUnit * 4}px;
@@ -352,6 +363,46 @@ export const EditHeaderSubtitle = styled.div`
   font-size: ${({ theme }) => theme.typography.sizes.l}px;
   font-weight: bold;
 `;
+
+export const CredentialInfoForm = styled.div`
+  .label-select {
+    text-transform: uppercase;
+    color: ${({ theme }) => theme.colors.grayscale.dark1};
+    font-size: 11px;
+    margin: 0 0 ${({ theme }) => theme.gridUnit * 2}px;
+  }
+
+  .label-paste {
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+    font-size: 11px;
+    line-height: 16px;
+  }
+
+  .input-container {
+    margin: ${({ theme }) => theme.gridUnit * 7}px 0;
+    display: flex;
+    flex-direction: column;
+}
+  }
+  .input-form {
+    height: 100px;
+    width: 100%;
+    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    resize: vertical;
+  }
+
+  .input-container {
+    .input-upload {
+      display: none;
+    }
+    .input-upload-current {
+      display: flex;
+      justify-content: space-between;
+    }
+    .input-upload-btn {
+      width: ${({ theme }) => theme.gridUnit * 32}px
+    }
+  }`;
 
 export const SelectDatabaseStyles = styled.div`
   margin: 0 ${({ theme }) => theme.gridUnit * 8}px;

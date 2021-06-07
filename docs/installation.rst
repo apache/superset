@@ -433,7 +433,7 @@ For other strategies, check the `superset/tasks/cache.py` file.
 Caching Thumbnails
 ------------------
 
-This is an optional feature that can be turned on by activating it's feature flag on config:
+This is an optional feature that can be turned on by activating its feature flag on config:
 
 .. code-block:: python
 
@@ -972,7 +972,7 @@ environment variable: ::
 Event Logging
 -------------
 
-Superset by default logs special action event on it's database. These log can be accessed on the UI navigating to
+Superset by default logs special action event on its database. These logs can be accessed on the UI navigating to
 "Security" -> "Action Log". You can freely customize these logs by implementing your own event log class.
 
 Example of a simple JSON to Stdout class::
@@ -1358,7 +1358,7 @@ The available validators and names can be found in `sql_validators/`.
 **Scheduling queries**
 
 You can optionally allow your users to schedule queries directly in SQL Lab.
-This is done by addding extra metadata to saved queries, which are then picked
+This is done by adding extra metadata to saved queries, which are then picked
 up by an external scheduled (like [Apache Airflow](https://airflow.apache.org/)).
 
 To allow scheduled queries, add the following to your `config.py`:
