@@ -297,7 +297,7 @@ class ExtraCache:
         filters: List[Filter] = []
 
         for flt in form_data.get("adhoc_filters", []):
-            val: Union[str, List[str]] = flt.get("comparator")
+            val: Union[Any, List[Any]] = flt.get("comparator")
             op: str = flt["operator"].upper() if "operator" in flt else None
             # fltOpName: str = flt.get("filterOptionName")
             if (

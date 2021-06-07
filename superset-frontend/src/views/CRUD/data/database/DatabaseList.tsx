@@ -29,8 +29,9 @@ import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import ListView, { FilterOperator, Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
-import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
 import ImportModelsModal from 'src/components/ImportModal/index';
+import DatabaseModal from './DatabaseModal';
+
 import { DatabaseObject } from './types';
 
 const PAGE_SIZE = 25;

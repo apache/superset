@@ -85,11 +85,19 @@ export const setFilterConfiguration = (
     endpoint: `/api/v1/dashboard/${id}`,
   });
 
+  const mergedFilterConfig = filterConfig.map(filter => {
+    const oldFilter = oldFilters[filter.id];
+    if (!oldFilter) {
+      return filter;
+    }
+    return { ...oldFilter, ...filter };
+  });
+
   try {
     const response = await updateDashboard({
       json_metadata: JSON.stringify({
         ...metadata,
-        native_filter_configuration: filterConfig,
+        native_filter_configuration: mergedFilterConfig,
       }),
     });
     dispatch(
@@ -99,12 +107,20 @@ export const setFilterConfiguration = (
     );
     dispatch({
       type: SET_FILTER_CONFIG_COMPLETE,
-      filterConfig,
+      filterConfig: mergedFilterConfig,
     });
-    dispatch(setDataMaskForFilterConfigComplete(filterConfig, oldFilters));
+    dispatch(
+      setDataMaskForFilterConfigComplete(mergedFilterConfig, oldFilters),
+    );
   } catch (err) {
-    dispatch({ type: SET_FILTER_CONFIG_FAIL, filterConfig });
-    dispatch({ type: SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL, filterConfig });
+    dispatch({
+      type: SET_FILTER_CONFIG_FAIL,
+      filterConfig: mergedFilterConfig,
+    });
+    dispatch({
+      type: SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL,
+      filterConfig: mergedFilterConfig,
+    });
   }
 };
 
