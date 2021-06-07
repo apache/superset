@@ -182,10 +182,10 @@ class SupersetAppInitializer:
             DashboardModelViewAsync,
         )
         from superset.views.database.views import (
+            ColumnarToDatabaseView,
             CsvToDatabaseView,
             DatabaseView,
             ExcelToDatabaseView,
-            ColumnarToDatabaseView,
         )
         from superset.views.datasource import Datasource
         from superset.views.dynamic_plugins import DynamicPluginsView

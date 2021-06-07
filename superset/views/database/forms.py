@@ -21,7 +21,13 @@ from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
 from flask_appbuilder.forms import DynamicForm
 from flask_babel import lazy_gettext as _
 from flask_wtf.file import FileAllowed, FileField, FileRequired
-from wtforms import BooleanField, IntegerField, SelectField, StringField, MultipleFileField
+from wtforms import (
+    BooleanField,
+    IntegerField,
+    MultipleFileField,
+    SelectField,
+    StringField,
+)
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
@@ -423,7 +429,9 @@ class ColumnarToDatabaseForm(DynamicForm):
         return [
             columnar_enabled_db
             for columnar_enabled_db in columnar_enabled_dbs
-            if ColumnarToDatabaseForm.at_least_one_schema_is_allowed(columnar_enabled_db)
+            if ColumnarToDatabaseForm.at_least_one_schema_is_allowed(
+                columnar_enabled_db
+            )
         ]
 
     @staticmethod
@@ -473,7 +481,9 @@ class ColumnarToDatabaseForm(DynamicForm):
         validators=[
             DataRequired(),
             FileAllowed(
-                config["ALLOWED_EXTENSIONS"].intersection(config["COLUMNAR_EXTENSIONS"]),
+                config["ALLOWED_EXTENSIONS"].intersection(
+                    config["COLUMNAR_EXTENSIONS"]
+                ),
                 _(
                     "Only the following file extensions are allowed: "
                     "%(allowed_extensions)s",

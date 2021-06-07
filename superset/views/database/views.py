@@ -40,7 +40,7 @@ from superset.typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
-from .forms import CsvToDatabaseForm, ExcelToDatabaseForm, ColumnarToDatabaseForm
+from .forms import ColumnarToDatabaseForm, CsvToDatabaseForm, ExcelToDatabaseForm
 from .mixins import DatabaseMixin
 from .validators import schema_allows_csv_upload, sqlalchemy_uri_validator
 
@@ -412,10 +412,13 @@ class ColumnarToDatabaseView(SimpleFormView):
         files = form.columnar_file.data
         file_type = {file.filename.split(".")[-1] for file in files}
 
-        if file_type == {'zip'}:
+        if file_type == {"zip"}:
             zipfile_ob = zipfile.ZipFile(form.columnar_file.data[0])
             file_type = {filename.split(".")[-1] for filename in zipfile_ob.namelist()}
-            files = [io.BytesIO((zipfile_ob.open(filename).read(),filename)[0]) for filename in zipfile_ob.namelist()]
+            files = [
+                io.BytesIO((zipfile_ob.open(filename).read(), filename)[0])
+                for filename in zipfile_ob.namelist()
+            ]
 
         if len(file_type) > 1:
             message = _(

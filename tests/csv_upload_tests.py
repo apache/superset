@@ -98,6 +98,13 @@ def create_csv_files():
 
 
 @pytest.fixture()
+def create_excel_files():
+    pd.DataFrame({"a": ["john", "paul"], "b": [1, 2]}).to_excel(EXCEL_FILENAME)
+    yield
+    os.remove(EXCEL_FILENAME)
+
+
+@pytest.fixture()
 def create_columnar_files():
     os.mkdir(ZIP_DIRNAME)
     pd.DataFrame({"a": ["john", "paul"], "b": [1, 2]}).to_parquet(PARQUET_FILENAME1)
@@ -106,13 +113,6 @@ def create_columnar_files():
     yield
     os.remove(ZIP_FILENAME)
     shutil.rmtree(ZIP_DIRNAME)
-
-
-@pytest.fixture()
-def create_excel_files():
-    pd.DataFrame({"a": ["john", "paul"], "b": [1, 2]}).to_excel(EXCEL_FILENAME)
-    yield
-    os.remove(EXCEL_FILENAME)
 
 
 def get_upload_db():
@@ -152,7 +152,9 @@ def upload_excel(
     return get_resp(test_client, "/exceltodatabaseview/form", data=form_data)
 
 
-def upload_columnar(filename: str, table_name: str, extra: Optional[Dict[str, str]] = None):
+def upload_columnar(
+    filename: str, table_name: str, extra: Optional[Dict[str, str]] = None
+):
     columnar_upload_db_id = get_upload_db().id
     form_data = {
         "columnar_file": open(filename, "rb"),
@@ -379,9 +381,7 @@ def test_import_parquet(setup_csv_upload, create_columnar_files):
     if utils.backend() == "hive":
         pytest.skip("Hive doesn't allow parquet upload.")
 
-    success_msg_f1 = (
-        f'Columnar file "[\'{PARQUET_FILENAME1}\']" uploaded to table "{PARQUET_UPLOAD_TABLE}"'
-    )
+    success_msg_f1 = f'Columnar file "[\'{PARQUET_FILENAME1}\']" uploaded to table "{PARQUET_UPLOAD_TABLE}"'
 
     # initial upload with fail mode
     resp = upload_columnar(PARQUET_FILENAME1, PARQUET_UPLOAD_TABLE)
@@ -426,10 +426,10 @@ def test_import_parquet(setup_csv_upload, create_columnar_files):
     assert data == [("john", 1), ("paul", 2)]
 
     # replace table with zip file
-    resp = upload_columnar(ZIP_FILENAME, PARQUET_UPLOAD_TABLE, extra={"if_exists": "replace"})
-    success_msg_f2 = (
-        f'Columnar file "[\'{ZIP_FILENAME}\']" uploaded to table "{PARQUET_UPLOAD_TABLE}"'
+    resp = upload_columnar(
+        ZIP_FILENAME, PARQUET_UPLOAD_TABLE, extra={"if_exists": "replace"}
     )
+    success_msg_f2 = f'Columnar file "[\'{ZIP_FILENAME}\']" uploaded to table "{PARQUET_UPLOAD_TABLE}"'
     assert success_msg_f2 in resp
 
     data = (
