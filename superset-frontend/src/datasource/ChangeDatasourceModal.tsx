@@ -31,6 +31,7 @@ import Button from 'src/components/Button';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import Dataset from 'src/types/Dataset';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
+import { SLOW_DEBOUNCE } from 'src/constants';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import Loading from 'src/components/Loading';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -93,13 +94,6 @@ const TABLE_COLUMNS = [
   'creator',
 ].map(col => ({ accessor: col, Header: col }));
 
-const emptyRequest = {
-  pageIndex: 0,
-  pageSize: DATASET_PAGE_SIZE,
-  filters: [],
-  sortBy: DATASET_SORT_BY,
-};
-
 const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   addDangerToast,
   addSuccessToast,
@@ -109,12 +103,13 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   show,
 }) => {
   const [filter, setFilter] = useState<any>(undefined);
+  const [pageIndex, setPageIndex] = useState<number>(0);
   const [confirmChange, setConfirmChange] = useState(false);
   const [confirmedDataset, setConfirmedDataset] = useState<Datasource>();
   const searchRef = useRef<AntdInput>(null);
 
   const {
-    state: { loading, resourceCollection },
+    state: { loading, resourceCollection, resourceCount },
     fetchData,
   } = useListViewResource<Dataset>('dataset', t('dataset'), addDangerToast);
 
@@ -123,10 +118,17 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     setConfirmedDataset(datasource);
   }, []);
 
+  const fetchDataPayload = {
+    pageIndex,
+    pageSize: DATASET_PAGE_SIZE,
+    filters: [],
+    sortBy: DATASET_SORT_BY,
+  };
+
   useDebouncedEffect(
     () => {
       fetchData({
-        ...emptyRequest,
+        ...fetchDataPayload,
         ...(filter && {
           filters: [
             {
@@ -138,8 +140,8 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         }),
       });
     },
-    300,
-    [filter],
+    SLOW_DEBOUNCE,
+    [filter, pageIndex],
   );
 
   useEffect(() => {
@@ -163,6 +165,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   const changeSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     const searchValue = event.target.value ?? '';
     setFilter(searchValue);
+    setPageIndex(0);
   };
 
   const handleChangeConfirm = () => {
@@ -266,8 +269,12 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
                 columns={TABLE_COLUMNS}
                 data={renderTableView()}
                 pageSize={DATASET_PAGE_SIZE}
+                initialPageIndex={pageIndex}
+                totalCount={resourceCount}
+                onGotoPage={page => setPageIndex(page)}
                 className="table-condensed"
                 emptyWrapperType={EmptyWrapperType.Small}
+                manualPagination
                 scrollTable
               />
             )}

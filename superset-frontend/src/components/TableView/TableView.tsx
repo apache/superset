@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { useFilters, usePagination, useSortBy, useTable } from 'react-table';
 import { Empty } from 'src/common/components';
@@ -34,6 +34,9 @@ export interface TableViewProps {
   columns: any[];
   data: any[];
   pageSize?: number;
+  totalCount?: number;
+  manualPagination?: boolean;
+  onGotoPage?: (page: number) => void;
   initialPageIndex?: number;
   initialSortBy?: SortColumns;
   loading?: boolean;
@@ -92,6 +95,7 @@ const TableView = ({
   columns,
   data,
   pageSize: initialPageSize,
+  totalCount = data.length,
   initialPageIndex,
   initialSortBy = [],
   loading = false,
@@ -99,6 +103,8 @@ const TableView = ({
   emptyWrapperType = EmptyWrapperType.Default,
   noDataText,
   showRowCount = true,
+  manualPagination = false,
+  onGotoPage = () => {},
   ...props
 }: TableViewProps) => {
   const initialState = {
@@ -122,11 +128,19 @@ const TableView = ({
       columns,
       data,
       initialState,
+      manualPagination,
+      pageCount: Math.ceil(totalCount / initialState.pageSize),
     },
     useFilters,
     useSortBy,
     usePagination,
   );
+
+  useEffect(() => {
+    if (manualPagination && pageIndex !== initialState.pageIndex) {
+      onGotoPage(pageIndex);
+    }
+  }, [pageIndex]);
 
   const content = withPagination ? page : rows;
 
