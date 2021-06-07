@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from flask import Request
 from marshmallow import ValidationError
@@ -67,8 +67,8 @@ class ChartDataCommand(BaseCommand):
 
         return return_value
 
-    def run_async(self) -> Dict[str, Any]:
-        job_metadata = async_query_manager.init_job(self._async_channel_id)
+    def run_async(self, user_id: Optional[str]) -> Dict[str, Any]:
+        job_metadata = async_query_manager.init_job(self._async_channel_id, user_id)
         load_chart_data_into_cache.delay(job_metadata, self._form_data)
 
         return job_metadata

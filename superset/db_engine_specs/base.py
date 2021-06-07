@@ -1328,7 +1328,7 @@ class BasicParametersMixin:
     individual parameters, instead of the full SQLAlchemy URI. This
     mixin is for the most common pattern of URI:
 
-        drivername://user:password@host:port/dbname[?key=value&key=value...]
+        engine+driver://user:password@host:port/dbname[?key=value&key=value...]
 
     """
 
@@ -1336,11 +1336,11 @@ class BasicParametersMixin:
     parameters_schema = BasicParametersSchema()
 
     # recommended driver name for the DB engine spec
-    drivername = ""
+    default_driver = ""
 
     # placeholder with the SQLAlchemy URI template
     sqlalchemy_uri_placeholder = (
-        "drivername://user:password@host:port/dbname[?key=value&key=value...]"
+        "engine+driver://user:password@host:port/dbname[?key=value&key=value...]"
     )
 
     # query parameter to enable encryption in the database connection
@@ -1348,7 +1348,11 @@ class BasicParametersMixin:
     encryption_parameters: Dict[str, str] = {}
 
     @classmethod
-    def build_sqlalchemy_uri(cls, parameters: BasicParametersType) -> str:
+    def build_sqlalchemy_uri(
+        cls,
+        parameters: BasicParametersType,
+        encryted_extra: Optional[Dict[str, str]] = None,
+    ) -> str:
         query = parameters.get("query", {})
         if parameters.get("encryption"):
             if not cls.encryption_parameters:
@@ -1357,7 +1361,7 @@ class BasicParametersMixin:
 
         return str(
             URL(
-                cls.drivername,
+                f"{cls.engine}+{cls.default_driver}".rstrip("+"),  # type: ignore
                 username=parameters.get("username"),
                 password=parameters.get("password"),
                 host=parameters["host"],
@@ -1368,7 +1372,9 @@ class BasicParametersMixin:
         )
 
     @classmethod
-    def get_parameters_from_uri(cls, uri: str) -> BasicParametersType:
+    def get_parameters_from_uri(
+        cls, uri: str, encrypted_extra: Optional[Dict[str, Any]] = None
+    ) -> BasicParametersType:
         url = make_url(uri)
         encryption = all(
             item in url.query.items() for item in cls.encryption_parameters.items()
@@ -1396,7 +1402,7 @@ class BasicParametersMixin:
         errors: List[SupersetError] = []
 
         required = {"host", "port", "username", "database"}
-        present = {key for key in parameters if parameters[key]}  # type: ignore
+        present = {key for key in parameters if parameters.get(key, ())}  # type: ignore
         missing = sorted(required - present)
 
         if missing:
@@ -1409,7 +1415,7 @@ class BasicParametersMixin:
                 ),
             )
 
-        host = parameters["host"]
+        host = parameters.get("host", None)
         if not host:
             return errors
         if not is_hostname_valid(host):
@@ -1423,7 +1429,7 @@ class BasicParametersMixin:
             )
             return errors
 
-        port = parameters["port"]
+        port = parameters.get("port", None)
         if not port:
             return errors
         if not is_port_open(host, port):

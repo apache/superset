@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 x-superset-image: &superset-image apache/superset:latest-dev
+x-superset-user: &superset-user root
 x-superset-depends-on: &superset-depends-on
   - db
   - redis
@@ -55,7 +56,7 @@ services:
     restart: unless-stopped
     ports:
       - 8088:8088
-    user: "root"
+    user: *superset-user
     depends_on: *superset-depends-on
     volumes: *superset-volumes
     environment:
@@ -95,7 +96,7 @@ services:
     command: ["/app/docker/docker-init.sh"]
     env_file: docker/.env
     depends_on: *superset-depends-on
-    user: "root"
+    user: *superset-user
     volumes: *superset-volumes
     environment:
       CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
@@ -115,7 +116,7 @@ services:
     env_file: docker/.env
     restart: unless-stopped
     depends_on: *superset-depends-on
-    user: "root"
+    user: *superset-user
     volumes: *superset-volumes
 
   superset-worker-beat:
@@ -125,7 +126,7 @@ services:
     env_file: docker/.env
     restart: unless-stopped
     depends_on: *superset-depends-on
-    user: "root"
+    user: *superset-user
     volumes: *superset-volumes
 
   superset-tests-worker:
@@ -141,7 +142,7 @@ services:
       REDIS_HOST: localhost
     network_mode: host
     depends_on: *superset-depends-on
-    user: "root"
+    user: *superset-user
     volumes: *superset-volumes
 
 volumes:

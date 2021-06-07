@@ -19,7 +19,7 @@
 
 /* eslint-disable no-param-reassign */
 import { HandlerFunction, styled, t } from '@superset-ui/core';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import cx from 'classnames';
 import Icon from 'src/components/Icon';
@@ -37,11 +37,7 @@ import { testWithId } from 'src/utils/testUtils';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
 import Loading from 'src/components/Loading';
 import { getInitialDataMask } from 'src/dataMask/reducer';
-import {
-  getOnlyExtraFormData,
-  mapParentFiltersToChildren,
-  TabIds,
-} from './utils';
+import { getOnlyExtraFormData, TabIds } from './utils';
 import FilterSets from './FilterSets';
 import {
   useNativeFiltersDataMask,
@@ -175,10 +171,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const filterValues = Object.values<Filter>(filters);
   const dataMaskApplied: DataMaskStateWithId = useNativeFiltersDataMask();
   const [isFilterSetChanged, setIsFilterSetChanged] = useState(false);
-  const cascadeChildren = useMemo(
-    () => mapParentFiltersToChildren(filterValues),
-    [filterValues],
-  );
+
+  useEffect(() => {
+    setDataMaskSelected(() => dataMaskApplied);
+  }, [JSON.stringify(dataMaskApplied), setDataMaskSelected]);
 
   const handleFilterSelectionChange = (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
@@ -186,12 +182,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   ) => {
     setIsFilterSetChanged(tab !== TabIds.AllFilters);
     setDataMaskSelected(draft => {
-      const children = cascadeChildren[filter.id] || [];
-      // force instant updating on initialization or for parent filters
-      if (filter.isInstant || children.length > 0) {
-        dispatch(updateDataMask(filter.id, dataMask));
-      }
-
       draft[filter.id] = {
         ...(getInitialDataMask(filter.id) as DataMaskWithId),
         ...dataMask,

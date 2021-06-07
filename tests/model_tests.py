@@ -158,6 +158,33 @@ class TestDatabaseModel(SupersetTestCase):
         }
 
     @mock.patch("superset.models.core.create_engine")
+    def test_impersonate_user_trino(self, mocked_create_engine):
+        uri = "trino://localhost"
+        principal_user = "logged_in_user"
+
+        model = Database(database_name="test_database", sqlalchemy_uri=uri)
+
+        model.impersonate_user = True
+        model.get_sqla_engine(user_name=principal_user)
+        call_args = mocked_create_engine.call_args
+
+        assert str(call_args[0][0]) == "trino://localhost"
+
+        assert call_args[1]["connect_args"] == {
+            "user": "logged_in_user",
+        }
+
+        uri = "trino://original_user:original_user_password@localhost"
+        model = Database(database_name="test_database", sqlalchemy_uri=uri)
+        model.impersonate_user = True
+        model.get_sqla_engine(user_name=principal_user)
+        call_args = mocked_create_engine.call_args
+
+        assert str(call_args[0][0]) == "trino://original_user@localhost"
+
+        assert call_args[1]["connect_args"] == {"user": "logged_in_user"}
+
+    @mock.patch("superset.models.core.create_engine")
     def test_impersonate_user_hive(self, mocked_create_engine):
         uri = "hive://localhost"
         principal_user = "logged_in_user"

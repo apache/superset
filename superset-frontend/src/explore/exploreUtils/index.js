@@ -103,7 +103,7 @@ export function getExploreLongUrl(
     search[key] = extraSearch[key];
   });
   search.form_data = safeStringify(formData);
-  if (endpointType === URL_PARAMS.standalone) {
+  if (endpointType === URL_PARAMS.standalone.name) {
     search.standalone = DashboardStandaloneMode.HIDE_NAV;
   }
   const url = uri.directory(directory).search(search).toString();
@@ -176,7 +176,7 @@ export function getExploreUrl({
   if (endpointType === 'csv') {
     search.csv = 'true';
   }
-  if (endpointType === URL_PARAMS.standalone) {
+  if (endpointType === URL_PARAMS.standalone.name) {
     search.standalone = '1';
   }
   if (endpointType === 'query') {

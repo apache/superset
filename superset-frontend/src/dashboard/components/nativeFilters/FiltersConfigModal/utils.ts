@@ -64,7 +64,7 @@ export const validateForm = async (
         addValidationError(
           filterId,
           'isInstant',
-          'For parent filters changes must be applied instantly',
+          'For hierarchical filters changes must be applied instantly',
         );
       }
     };
@@ -114,25 +114,13 @@ export const validateForm = async (
 };
 
 export const createHandleSave = (
-  form: FormInstance<NativeFiltersForm>,
-  currentFilterId: string,
   filterConfigMap: Record<string, Filter>,
   filterIds: string[],
   removedFilters: Record<string, FilterRemoval>,
-  setCurrentFilterId: Function,
   resetForm: Function,
   saveForm: Function,
+  values: NativeFiltersForm,
 ) => async () => {
-  const values: NativeFiltersForm | null = await validateForm(
-    form,
-    currentFilterId,
-    filterConfigMap,
-    filterIds,
-    removedFilters,
-    setCurrentFilterId,
-  );
-  if (values === null) return;
-
   const newFilterConfig: FilterConfiguration = filterIds
     .filter(id => !removedFilters[id])
     .map(id => {

@@ -16,16 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.color-scheme-container {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  align-items: center;
+import React from 'react';
+import { render, screen } from 'spec/helpers/testing-library';
+import IconButton from 'src/components/IconButton';
 
-  li {
-    flex-basis: 9px;
-    height: 10px;
-    margin: 9px 1px;
-  }
-}
+const defaultProps = {
+  buttonText: 'This is the IconButton text',
+  icon: '/images/icons/sql.svg',
+};
+
+describe('IconButton', () => {
+  it('renders an IconButton', () => {
+    render(<IconButton {...defaultProps} />);
+
+    const icon = screen.getByRole('img');
+    const buttonText = screen.getByText(/this is the iconbutton text/i);
+
+    expect(icon).toBeVisible();
+    expect(buttonText).toBeVisible();
+  });
+});

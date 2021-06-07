@@ -50,16 +50,21 @@ jest.mock('src/dashboard/actions/dashboardState');
 
 describe('DashboardBuilder', () => {
   let favStarStub;
+  let focusedTabStub;
 
   beforeAll(() => {
     // this is invoked on mount, so we stub it instead of making a request
     favStarStub = sinon
       .stub(dashboardStateActions, 'fetchFaveStar')
       .returns({ type: 'mock-action' });
+    focusedTabStub = sinon
+      .stub(dashboardStateActions, 'setLastFocusedTab')
+      .returns({ type: 'mock-action' });
   });
 
   afterAll(() => {
     favStarStub.restore();
+    focusedTabStub.restore();
   });
 
   function setup(overrideState = {}, overrideStore) {
@@ -126,12 +131,6 @@ describe('DashboardBuilder', () => {
     const parentSize = wrapper.find(ParentSize);
     expect(parentSize.find(Tabs)).toHaveLength(1);
     expect(parentSize.find(Tabs.TabPane)).toHaveLength(2);
-  });
-
-  it('should have default animated=true on Tabs for perf', () => {
-    const wrapper = setup({ dashboardLayout: undoableDashboardLayoutWithTabs });
-    const tabProps = wrapper.find(ParentSize).find(Tabs).props();
-    expect(tabProps.animated).toEqual(true);
   });
 
   it('should render a TabPane and DashboardGrid for first Tab', () => {

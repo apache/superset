@@ -432,7 +432,10 @@ def test_base_parameters_mixin():
         "query": {"foo": "bar"},
         "encryption": True,
     }
-    sqlalchemy_uri = PostgresEngineSpec.build_sqlalchemy_uri(parameters)
+    encrypted_extra = None
+    sqlalchemy_uri = PostgresEngineSpec.build_sqlalchemy_uri(
+        parameters, encrypted_extra
+    )
     assert sqlalchemy_uri == (
         "postgresql+psycopg2://username:password@localhost:5432/dbname?"
         "foo=bar&sslmode=verify-ca"

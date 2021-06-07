@@ -131,11 +131,9 @@ export const StyledNav = styled(AntdMenu)`
     }
   }
 
-  @media (min-width: 767px) {
-    &:not(.ant-menu-dark) > .ant-menu-submenu,
-    &:not(.ant-menu-dark) > .ant-menu-item {
-      margin: 0px;
-    }
+  &:not(.ant-menu-dark) > .ant-menu-submenu,
+  &:not(.ant-menu-dark) > .ant-menu-item {
+    margin: 0px;
   }
 
   & > .ant-menu-item > a {

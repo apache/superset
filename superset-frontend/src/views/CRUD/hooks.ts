@@ -18,7 +18,7 @@
  */
 import rison from 'rison';
 import { useState, useEffect, useCallback } from 'react';
-import { makeApi, SupersetClient, t } from '@superset-ui/core';
+import { makeApi, SupersetClient, t, JsonObject } from '@superset-ui/core';
 
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import { FetchDataConfig } from 'src/components/ListView';
@@ -277,7 +277,7 @@ export function useSingleViewResource<D extends object = any>(
         .then(
           ({ json = {} }) => {
             updateState({
-              resource: json.result,
+              resource: { id: json.id, ...json.result },
               error: null,
             });
             return json.id;
@@ -643,3 +643,74 @@ export const testDatabaseConnection = (
     }),
   );
 };
+
+export function useAvailableDatabases() {
+  const [availableDbs, setAvailableDbs] = useState<JsonObject | null>(null);
+
+  const getAvailable = useCallback(() => {
+    SupersetClient.get({
+      endpoint: `/api/v1/database/available`,
+    }).then(({ json }) => {
+      setAvailableDbs(json);
+    });
+  }, [setAvailableDbs]);
+
+  return [availableDbs, getAvailable] as const;
+}
+
+export function useDatabaseValidation() {
+  const [validationErrors, setValidationErrors] = useState<JsonObject | null>(
+    null,
+  );
+  const getValidation = useCallback(
+    (database: Partial<DatabaseObject> | null) => {
+      SupersetClient.post({
+        endpoint: '/api/v1/database/validate_parameters',
+        body: JSON.stringify(database),
+        headers: { 'Content-Type': 'application/json' },
+      })
+        .then(() => {
+          setValidationErrors(null);
+        })
+        .catch(e => {
+          if (typeof e.json === 'function') {
+            e.json().then(({ errors = [] }: JsonObject) => {
+              const parsedErrors = errors
+                .filter(
+                  (error: { error_type: string }) =>
+                    error.error_type !== 'CONNECTION_MISSING_PARAMETERS_ERROR',
+                )
+                .reduce(
+                  (
+                    obj: {},
+                    {
+                      extra,
+                      message,
+                    }: {
+                      extra: { invalid?: string[] };
+                      message: string;
+                    },
+                  ) => {
+                    // if extra.invalid doesn't exist then the
+                    // error can't be mapped to a parameter
+                    // so leave it alone
+                    if (extra.invalid) {
+                      return { ...obj, [extra.invalid[0]]: message };
+                    }
+                    return obj;
+                  },
+                  {},
+                );
+              setValidationErrors(parsedErrors);
+            });
+          } else {
+            // eslint-disable-next-line no-console
+            console.error(e);
+          }
+        });
+    },
+    [setValidationErrors],
+  );
+
+  return [validationErrors, getValidation] as const;
+}

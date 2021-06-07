@@ -35,6 +35,7 @@ import {
   SET_DIRECT_PATH,
   SET_FOCUSED_FILTER_FIELD,
   UNSET_FOCUSED_FILTER_FIELD,
+  SET_LAST_FOCUSED_TAB,
 } from '../actions/dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -131,6 +132,12 @@ export default function dashboardStateReducer(state = {}, action) {
         ...state,
         directPathToChild: action.path,
         directPathLastUpdated: Date.now(),
+      };
+    },
+    [SET_LAST_FOCUSED_TAB]() {
+      return {
+        ...state,
+        lastFocusedTabId: action.tabId,
       };
     },
     [SET_FOCUSED_FILTER_FIELD]() {
