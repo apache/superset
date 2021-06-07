@@ -48,7 +48,6 @@ import {
   DatabaseForm,
   CONFIGURATION_METHOD,
 } from 'src/views/CRUD/data/database/types';
-import Label from 'src/components/Label';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
@@ -345,7 +344,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       <span className="available-label">
         Or choose from a list of other databases we support{' '}
       </span>
-      <Label className="label-available-select">supported databases</Label>
       <Select
         style={{ width: '100%' }}
         onChange={setDatabaseModel}
@@ -366,7 +364,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         ?.filter((db: DatabaseForm) => db.preferred)
         .map((database: DatabaseForm) => (
           <IconButton
-            icon="preferred-item"
+            className="preferred-item"
             onClick={() => setDatabaseModel(database.engine)}
             buttonText={database.name}
             icon={getPreferredImage('postgresql')}

@@ -83,7 +83,6 @@ const StyledBottom = styled.div`
   background-color: ${({ theme }) => theme.colors.grayscale.light4};
   width: 100%;
   line-height: 1.5em;
-  overflow: hidden;
   white-space: no-wrap;
   text-overflow: ellipsis;
 
