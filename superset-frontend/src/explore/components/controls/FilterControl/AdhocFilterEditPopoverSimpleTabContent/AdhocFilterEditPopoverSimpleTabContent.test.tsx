@@ -284,4 +284,35 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       expect(isOperatorRelevant(operator, 'value')).toBe(true);
     });
   });
+  it('sets comparator to true when operator is IS_TRUE', () => {
+    const { props } = setup();
+    const { onOperatorChange } = useSimpleTabFilterProps(props);
+    onOperatorChange(Operators.IS_TRUE);
+    expect(props.onChange.calledOnce).toBe(true);
+    expect(props.onChange.lastCall.args[0].operatorId).toBe(Operators.IS_TRUE);
+    expect(props.onChange.lastCall.args[0].operator).toBe('==');
+    expect(props.onChange.lastCall.args[0].comparator).toBe(true);
+  });
+  it('sets comparator to false when operator is IS_FALSE', () => {
+    const { props } = setup();
+    const { onOperatorChange } = useSimpleTabFilterProps(props);
+    onOperatorChange(Operators.IS_FALSE);
+    expect(props.onChange.calledOnce).toBe(true);
+    expect(props.onChange.lastCall.args[0].operatorId).toBe(Operators.IS_FALSE);
+    expect(props.onChange.lastCall.args[0].operator).toBe('==');
+    expect(props.onChange.lastCall.args[0].comparator).toBe(false);
+  });
+  it('sets comparator to null when operator is IS_NULL or IS_NOT_NULL', () => {
+    const { props } = setup();
+    const { onOperatorChange } = useSimpleTabFilterProps(props);
+    [Operators.IS_NULL, Operators.IS_NOT_NULL].forEach(op => {
+      onOperatorChange(op);
+      expect(props.onChange.called).toBe(true);
+      expect(props.onChange.lastCall.args[0].operatorId).toBe(op);
+      expect(props.onChange.lastCall.args[0].operator).toBe(
+        OPERATOR_MAPPING[op].operation,
+      );
+      expect(props.onChange.lastCall.args[0].comparator).toBe(null);
+    });
+  });
 });

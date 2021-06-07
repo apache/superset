@@ -76,6 +76,20 @@ export default class AdhocFilter {
       this.operator = adhocFilter.operator?.toUpperCase();
       this.operatorId = adhocFilter.operatorId;
       this.comparator = adhocFilter.comparator;
+      if (
+        [Operators.IS_TRUE, Operators.IS_FALSE].indexOf(
+          adhocFilter.operatorId,
+        ) >= 0
+      ) {
+        this.comparator = adhocFilter.operatorId === Operators.IS_TRUE;
+      }
+      if (
+        [Operators.IS_NULL, Operators.IS_NOT_NULL].indexOf(
+          adhocFilter.operatorId,
+        ) >= 0
+      ) {
+        this.comparator = null;
+      }
       this.clause = adhocFilter.clause || CLAUSES.WHERE;
       this.sqlExpression = null;
     } else if (this.expressionType === EXPRESSION_TYPES.SQL) {
@@ -125,14 +139,19 @@ export default class AdhocFilter {
   }
 
   isValid() {
-    const unoryOperators = [Operators.IS_NOT_NULL, Operators.IS_NULL].map(
+    const nullCheckOperators = [Operators.IS_NOT_NULL, Operators.IS_NULL].map(
+      op => OPERATOR_MAPPING[op].operation,
+    );
+    const truthCheckOperators = [Operators.IS_TRUE, Operators.IS_FALSE].map(
       op => OPERATOR_MAPPING[op].operation,
     );
     if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
-      if (unoryOperators.indexOf(this.operator) >= 0) {
+      if (nullCheckOperators.indexOf(this.operator) >= 0) {
         return !!(this.operator && this.subject);
       }
-
+      if (truthCheckOperators.indexOf(this.operator) >= 0) {
+        return !!(this.subject && this.comparator !== null);
+      }
       if (this.operator && this.subject && this.clause) {
         if (Array.isArray(this.comparator)) {
           if (this.comparator.length > 0) {

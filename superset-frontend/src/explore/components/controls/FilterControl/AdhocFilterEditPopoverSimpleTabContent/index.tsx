@@ -366,7 +366,8 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     notFoundContent: t('Type a value here'),
     disabled: DISABLE_INPUT_OPERATORS.includes(operatorId),
     placeholder: createSuggestionsPlaceholder(),
-    labelText: comparator?.length > 0 && createSuggestionsPlaceholder(),
+    labelText:
+      comparator && comparator.length > 0 && createSuggestionsPlaceholder(),
     autoFocus: shouldFocusComparator,
   };
 

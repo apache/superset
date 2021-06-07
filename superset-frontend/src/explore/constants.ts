@@ -28,11 +28,6 @@ export const AGGREGATES = {
 };
 export const AGGREGATES_OPTIONS = Object.values(AGGREGATES);
 
-interface Operator {
-  display: string;
-  operation: string;
-}
-
 export enum Operators {
   EQUALS = 1,
   NOT_EQUALS,
