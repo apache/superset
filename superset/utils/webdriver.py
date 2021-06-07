@@ -16,7 +16,7 @@
 # under the License.
 
 import logging
-import time
+from time import sleep
 from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
 
 from flask import current_app
@@ -103,7 +103,7 @@ class WebDriverProxy:
         img: Optional[bytes] = None
         selenium_headstart = current_app.config["SCREENSHOT_SELENIUM_HEADSTART"]
         logger.debug("Sleeping for %i seconds", selenium_headstart)
-        time.sleep(selenium_headstart)
+        sleep(selenium_headstart)
 
         try:
             logger.debug("Wait for the presence of %s", element_name)
