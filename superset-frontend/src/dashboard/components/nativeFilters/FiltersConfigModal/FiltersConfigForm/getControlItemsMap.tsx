@@ -23,10 +23,11 @@ import {
 import React from 'react';
 import { Checkbox } from 'src/common/components';
 import { FormInstance } from 'antd/lib/form';
-import { getChartControlPanelRegistry, t } from '@superset-ui/core';
+import { getChartControlPanelRegistry, styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
+import { FormItem } from 'src/components/Form';
 import { getControlItems, setNativeFilterFieldValues } from './utils';
-import { NativeFiltersForm } from '../types';
+import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
 import { StyledRowFormItem } from './FiltersConfigForm';
 import { Filter } from '../../types';
 
@@ -37,7 +38,12 @@ export interface ControlItemsProps {
   filterId: string;
   filterType: string;
   filterToEdit?: Filter;
+  formFilter?: NativeFiltersFormItem;
 }
+
+const CleanFormItem = styled(FormItem)`
+  margin-bottom: 0;
+`;
 
 export default function getControlItemsMap({
   disabled,
@@ -46,6 +52,7 @@ export default function getControlItemsMap({
   filterId,
   filterType,
   filterToEdit,
+  formFilter,
 }: ControlItemsProps) {
   const controlPanelRegistry = getChartControlPanelRegistry();
   const controlItems =
@@ -66,46 +73,61 @@ export default function getControlItemsMap({
         filterToEdit?.controlValues?.[controlItem.name] ??
         controlItem?.config?.default;
       const element = (
-        <Tooltip
-          key={controlItem.name}
-          placement="left"
-          title={
-            controlItem.config.affectsDataMask &&
-            disabled &&
-            t('Populate "Default value" to enable this control')
-          }
-        >
-          <StyledRowFormItem
+        <>
+          <CleanFormItem
+            name={['filters', filterId, 'requiredFirst', controlItem.name]}
+            hidden
+            initialValue={
+              controlItem?.config?.requiredFirst && filterToEdit?.requiredFirst
+            }
+          />
+          <Tooltip
             key={controlItem.name}
-            name={['filters', filterId, 'controlValues', controlItem.name]}
-            initialValue={initialValue}
-            valuePropName="checked"
-            colon={false}
+            placement="left"
+            title={
+              controlItem.config.affectsDataMask &&
+              disabled &&
+              t('Populate "Default value" to enable this control')
+            }
           >
-            <Checkbox
-              disabled={controlItem.config.affectsDataMask && disabled}
-              onChange={() => {
-                if (!controlItem.config.resetConfig) {
-                  forceUpdate();
-                  return;
-                }
-                setNativeFilterFieldValues(form, filterId, {
-                  defaultDataMask: null,
-                });
-                forceUpdate();
-              }}
+            <StyledRowFormItem
+              key={controlItem.name}
+              name={['filters', filterId, 'controlValues', controlItem.name]}
+              initialValue={initialValue}
+              valuePropName="checked"
+              colon={false}
             >
-              {controlItem.config.label}{' '}
-              {controlItem.config.description && (
-                <InfoTooltipWithTrigger
-                  placement="top"
-                  label={controlItem.config.name}
-                  tooltip={controlItem.config.description}
-                />
-              )}
-            </Checkbox>
-          </StyledRowFormItem>
-        </Tooltip>
+              <Checkbox
+                disabled={controlItem.config.affectsDataMask && disabled}
+                onChange={({ target: { checked } }) => {
+                  if (controlItem.config.requiredFirst) {
+                    setNativeFilterFieldValues(form, filterId, {
+                      requiredFirst: {
+                        ...formFilter?.requiredFirst,
+                        [controlItem.name]: checked,
+                      },
+                    });
+                  }
+                  if (controlItem.config.resetConfig) {
+                    setNativeFilterFieldValues(form, filterId, {
+                      defaultDataMask: null,
+                    });
+                  }
+                  forceUpdate();
+                }}
+              >
+                {controlItem.config.label}{' '}
+                {controlItem.config.description && (
+                  <InfoTooltipWithTrigger
+                    placement="top"
+                    label={controlItem.config.name}
+                    tooltip={controlItem.config.description}
+                  />
+                )}
+              </Checkbox>
+            </StyledRowFormItem>
+          </Tooltip>
+        </>
       );
       map[controlItem.name] = { element, checked: initialValue };
     });

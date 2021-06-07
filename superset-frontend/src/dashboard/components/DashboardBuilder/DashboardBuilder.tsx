@@ -18,7 +18,7 @@
  */
 /* eslint-env browser */
 import cx from 'classnames';
-import React, { FC, useEffect, useState } from 'react';
+import React, { FC } from 'react';
 import { Sticky, StickyContainer } from 'react-sticky';
 import { JsonObject, styled } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
@@ -30,7 +30,6 @@ import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { URL_PARAMS } from 'src/constants';
 import { useDispatch, useSelector } from 'react-redux';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -47,11 +46,11 @@ import {
   DashboardStandaloneMode,
 } from 'src/dashboard/util/constants';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
+import Loading from 'src/components/Loading';
 import { StickyVerticalBar } from '../StickyVerticalBar';
 import { shouldFocusTabs, getRootLevelTabsComponent } from './utils';
-import { useFilters } from '../nativeFilters/FilterBar/state';
-import { Filter } from '../nativeFilters/types';
 import DashboardContainer from './DashboardContainer';
+import { useNativeFilters } from './state';
 
 const TABS_HEIGHT = 47;
 const HEADER_HEIGHT = 67;
@@ -99,34 +98,12 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
-  const showNativeFilters = useSelector<RootState, boolean>(
-    state => state.dashboardInfo.metadata?.show_native_filters,
-  );
-  const canEdit = useSelector<RootState, boolean>(
-    ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
-  );
   const editMode = useSelector<RootState, boolean>(
     state => state.dashboardState.editMode,
   );
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
-
-  const filters = useFilters();
-  const filterValues = Object.values<Filter>(filters);
-
-  const nativeFiltersEnabled =
-    showNativeFilters &&
-    isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-    (canEdit || (!canEdit && filterValues.length !== 0));
-
-  const [dashboardFiltersOpen, setDashboardFiltersOpen] = useState(
-    getUrlParam(URL_PARAMS.showFilters) ?? true,
-  );
-
-  const toggleDashboardFiltersOpen = (visible?: boolean) => {
-    setDashboardFiltersOpen(visible ?? !dashboardFiltersOpen);
-  };
 
   const handleChangeTab = ({
     pathToTabIndex,
@@ -161,15 +138,12 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     (hideDashboardHeader ? 0 : HEADER_HEIGHT) +
     (topLevelTabs ? TABS_HEIGHT : 0);
 
-  useEffect(() => {
-    if (
-      filterValues.length === 0 &&
-      dashboardFiltersOpen &&
-      nativeFiltersEnabled
-    ) {
-      toggleDashboardFiltersOpen(false);
-    }
-  }, [filterValues.length]);
+  const {
+    showDashboard,
+    dashboardFiltersOpen,
+    toggleDashboardFiltersOpen,
+    nativeFiltersEnabled,
+  } = useNativeFilters();
 
   return (
     <StickyContainer
@@ -245,7 +219,11 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             </ErrorBoundary>
           </StickyVerticalBar>
         )}
-        <DashboardContainer topLevelTabs={topLevelTabs} />
+        {showDashboard ? (
+          <DashboardContainer topLevelTabs={topLevelTabs} />
+        ) : (
+          <Loading />
+        )}
         {editMode && <BuilderComponentPane topOffset={barTopOffset} />}
       </StyledDashboardContent>
       <ToastPresenter />
