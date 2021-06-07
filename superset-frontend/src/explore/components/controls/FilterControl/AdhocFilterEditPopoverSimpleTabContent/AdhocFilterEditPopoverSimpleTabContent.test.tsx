@@ -25,14 +25,17 @@ import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import { AGGREGATES } from 'src/explore/constants';
+import { AGGREGATES, Operators, OPERATOR_MAPPING } from 'src/explore/constants';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
-import AdhocFilterEditPopoverSimpleTabContent from '.';
+import AdhocFilterEditPopoverSimpleTabContent, {
+  useSimpleTabFilterProps,
+} from '.';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
   subject: 'value',
-  operator: '>',
+  operatorId: Operators.GREATER_THAN,
+  operator: OPERATOR_MAPPING[Operators.GREATER_THAN].operation,
   comparator: '10',
   clause: CLAUSES.WHERE,
 });
@@ -40,7 +43,8 @@ const simpleAdhocFilter = new AdhocFilter({
 const simpleMultiAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
   subject: 'value',
-  operator: 'IN',
+  operatorId: Operators.IN,
+  operator: OPERATOR_MAPPING[Operators.IN].operation,
   comparator: ['10'],
   clause: CLAUSES.WHERE,
 });
@@ -55,6 +59,7 @@ const simpleCustomFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
   subject: 'ds',
   operator: 'LATEST PARTITION',
+  operatorId: Operators.LATEST_PARTITION,
 });
 
 const options = [
@@ -65,21 +70,25 @@ const options = [
   sumValueAdhocMetric,
 ];
 
-function setup(overrides) {
+function setup(overrides?: object) {
   const onChange = sinon.spy();
-  const onHeightChange = sinon.spy();
   const props = {
     adhocFilter: simpleAdhocFilter,
     onChange,
-    onHeightChange,
     options,
-    datasource: {},
+    datasource: {
+      id: 'test-id',
+      columns: [],
+      type: 'postgres',
+      filter_select: false,
+    },
+    partitionColumn: 'test',
     ...overrides,
   };
   const wrapper = shallow(
     <AdhocFilterEditPopoverSimpleTabContent {...props} />,
   );
-  return { wrapper, onChange, onHeightChange };
+  return { wrapper, props };
 }
 
 describe('AdhocFilterEditPopoverSimpleTabContent', () => {
@@ -88,70 +97,114 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
     expect(wrapper).toExist();
   });
 
-  it('passes the new adhocFilter to onChange after onSubjectChange', () => {
-    const { wrapper, onChange } = setup();
-    wrapper.instance().onSubjectChange(1);
-    expect(onChange.calledOnce).toBe(true);
-    expect(onChange.lastCall.args[0]).toEqual(
-      simpleAdhocFilter.duplicateWith({ subject: 'source' }),
-    );
+  it('shows boolean only operators when subject is boolean', () => {
+    const { props } = setup({
+      adhocFilter: new AdhocFilter({
+        expressionType: EXPRESSION_TYPES.SIMPLE,
+        subject: 'value',
+        operatorId: null,
+        operator: null,
+        comparator: null,
+        clause: null,
+      }),
+      datasource: {
+        columns: [
+          {
+            id: 3,
+            column_name: 'value',
+            type: 'BOOL',
+          },
+        ],
+      },
+    });
+    const { isOperatorRelevant } = useSimpleTabFilterProps(props);
+    [
+      Operators.IS_TRUE,
+      Operators.IS_FALSE,
+      Operators.IS_NULL,
+      Operators.IS_FALSE,
+    ].map(operator => expect(isOperatorRelevant(operator, 'value')).toBe(true));
+  });
+  it('shows boolean only operators when subject is number', () => {
+    const { props } = setup({
+      adhocFilter: new AdhocFilter({
+        expressionType: EXPRESSION_TYPES.SIMPLE,
+        subject: 'value',
+        operatorId: null,
+        operator: null,
+        comparator: null,
+        clause: null,
+      }),
+      datasource: {
+        columns: [
+          {
+            id: 3,
+            column_name: 'value',
+            type: 'INT',
+          },
+        ],
+      },
+    });
+    const { isOperatorRelevant } = useSimpleTabFilterProps(props);
+    [
+      Operators.IS_TRUE,
+      Operators.IS_FALSE,
+      Operators.IS_NULL,
+      Operators.IS_NOT_NULL,
+    ].map(operator => expect(isOperatorRelevant(operator, 'value')).toBe(true));
   });
 
-  it('may alter the clause in onSubjectChange if the old clause is not appropriate', () => {
-    const { wrapper, onChange } = setup();
-    wrapper.instance().onSubjectChange(sumValueAdhocMetric.optionName);
-    expect(onChange.calledOnce).toBe(true);
-    expect(onChange.lastCall.args[0]).toEqual(
-      simpleAdhocFilter.duplicateWith({
-        subject: sumValueAdhocMetric.label,
-        clause: CLAUSES.HAVING,
+  it('will convert from individual comparator to array if the operator changes to multi', () => {
+    const { props } = setup();
+    const { onOperatorChange } = useSimpleTabFilterProps(props);
+    onOperatorChange(Operators.IN);
+    expect(props.onChange.calledOnce).toBe(true);
+    expect(props.onChange.lastCall.args[0].comparator).toEqual(['10']);
+    expect(props.onChange.lastCall.args[0].operatorId).toEqual(Operators.IN);
+  });
+
+  it('will convert from array to individual comparators if the operator changes from multi', () => {
+    const { props } = setup({
+      adhocFilter: simpleMultiAdhocFilter,
+    });
+    const { onOperatorChange } = useSimpleTabFilterProps(props);
+    onOperatorChange(Operators.LESS_THAN);
+    expect(props.onChange.calledOnce).toBe(true);
+    expect(props.onChange.lastCall.args[0]).toEqual(
+      simpleMultiAdhocFilter.duplicateWith({
+        operatorId: Operators.LESS_THAN,
+        operator: '<',
+        comparator: '10',
       }),
     );
   });
 
-  it('will convert from individual comparator to array if the operator changes to multi', () => {
-    const { wrapper, onChange } = setup();
-    wrapper.instance().onOperatorChange('IN');
-    expect(onChange.calledOnce).toBe(true);
-    expect(onChange.lastCall.args[0]).toEqual(
-      simpleAdhocFilter.duplicateWith({ operator: 'IN', comparator: ['10'] }),
-    );
-  });
-
-  it('will convert from array to individual comparators if the operator changes from multi', () => {
-    const { wrapper, onChange } = setup({
-      adhocFilter: simpleMultiAdhocFilter,
-    });
-    wrapper.instance().onOperatorChange('<');
-    expect(onChange.calledOnce).toBe(true);
-    expect(onChange.lastCall.args[0]).toEqual(
-      simpleMultiAdhocFilter.duplicateWith({ operator: '<', comparator: '10' }),
-    );
-  });
-
   it('passes the new adhocFilter to onChange after onComparatorChange', () => {
-    const { wrapper, onChange } = setup();
-    wrapper.instance().onComparatorChange('20');
-    expect(onChange.calledOnce).toBe(true);
-    expect(onChange.lastCall.args[0]).toEqual(
+    const { props } = setup();
+    const { onComparatorChange } = useSimpleTabFilterProps(props);
+    onComparatorChange('20');
+    expect(props.onChange.calledOnce).toBe(true);
+    expect(props.onChange.lastCall.args[0]).toEqual(
       simpleAdhocFilter.duplicateWith({ comparator: '20' }),
     );
   });
 
   it('will filter operators for table datasources', () => {
-    const { wrapper } = setup({ datasource: { type: 'table' } });
-    expect(wrapper.instance().isOperatorRelevant('REGEX')).toBe(false);
-    expect(wrapper.instance().isOperatorRelevant('LIKE')).toBe(true);
+    const { props } = setup({ datasource: { type: 'table' } });
+    const { isOperatorRelevant } = useSimpleTabFilterProps(props);
+    expect(isOperatorRelevant(Operators.REGEX, 'value')).toBe(false);
+    expect(isOperatorRelevant(Operators.LIKE, 'value')).toBe(true);
   });
 
   it('will filter operators for druid datasources', () => {
-    const { wrapper } = setup({ datasource: { type: 'druid' } });
-    expect(wrapper.instance().isOperatorRelevant('REGEX')).toBe(true);
-    expect(wrapper.instance().isOperatorRelevant('LIKE')).toBe(false);
+    const { props } = setup({ datasource: { type: 'druid' } });
+    const { isOperatorRelevant } = useSimpleTabFilterProps(props);
+    expect(isOperatorRelevant(Operators.REGEX, 'value')).toBe(true);
+    expect(isOperatorRelevant(Operators.LIKE, 'value')).toBe(false);
   });
 
   it('will show LATEST PARTITION operator', () => {
-    const { wrapper } = setup({
+    const { props } = setup({
       datasource: {
         type: 'table',
         datasource_name: 'table1',
@@ -160,13 +213,9 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       adhocFilter: simpleCustomFilter,
       partitionColumn: 'ds',
     });
-
-    expect(
-      wrapper.instance().isOperatorRelevant('LATEST PARTITION', 'ds'),
-    ).toBe(true);
-    expect(
-      wrapper.instance().isOperatorRelevant('LATEST PARTITION', 'value'),
-    ).toBe(false);
+    const { isOperatorRelevant } = useSimpleTabFilterProps(props);
+    expect(isOperatorRelevant(Operators.LATEST_PARTITION, 'ds')).toBe(true);
+    expect(isOperatorRelevant(Operators.LATEST_PARTITION, 'value')).toBe(false);
   });
 
   it('will generate custom sqlExpression for LATEST PARTITION operator', () => {
@@ -174,7 +223,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       expressionType: EXPRESSION_TYPES.SIMPLE,
       subject: 'ds',
     });
-    const { wrapper, onChange } = setup({
+    const { props } = setup({
       datasource: {
         type: 'table',
         datasource_name: 'table1',
@@ -183,12 +232,14 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       adhocFilter: testAdhocFilter,
       partitionColumn: 'ds',
     });
-
-    wrapper.instance().onOperatorChange('LATEST PARTITION');
-    expect(onChange.lastCall.args[0]).toEqual(
+    const { onOperatorChange } = useSimpleTabFilterProps(props);
+    onOperatorChange(Operators.LATEST_PARTITION);
+    expect(props.onChange.calledOnce).toBe(true);
+    expect(props.onChange.lastCall.args[0]).toEqual(
       testAdhocFilter.duplicateWith({
         subject: 'ds',
         operator: 'LATEST PARTITION',
+        operatorId: Operators.LATEST_PARTITION,
         comparator: null,
         clause: 'WHERE',
         expressionType: 'SQL',
@@ -196,47 +247,8 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       }),
     );
   });
-  it('will display boolean operators only when column type is boolean', () => {
-    const { wrapper } = setup({
-      datasource: {
-        type: 'table',
-        datasource_name: 'table1',
-        schema: 'schema',
-        columns: [{ column_name: 'value', type: 'BOOL' }],
-      },
-      adhocFilter: simpleAdhocFilter,
-    });
-    const booleanOnlyOperators = [
-      'IS TRUE',
-      'IS FALSE',
-      'IS NULL',
-      'IS NOT NULL',
-    ];
-    booleanOnlyOperators.forEach(operator => {
-      expect(wrapper.instance().isOperatorRelevant(operator, 'value')).toBe(
-        true,
-      );
-    });
-  });
-  it('will display boolean operators when column type is number', () => {
-    const { wrapper } = setup({
-      datasource: {
-        type: 'table',
-        datasource_name: 'table1',
-        schema: 'schema',
-        columns: [{ column_name: 'value', type: 'INT' }],
-      },
-      adhocFilter: simpleAdhocFilter,
-    });
-    const booleanOnlyOperators = ['IS TRUE', 'IS FALSE'];
-    booleanOnlyOperators.forEach(operator => {
-      expect(wrapper.instance().isOperatorRelevant(operator, 'value')).toBe(
-        true,
-      );
-    });
-  });
   it('will not display boolean operators when column type is string', () => {
-    const { wrapper } = setup({
+    const { props } = setup({
       datasource: {
         type: 'table',
         datasource_name: 'table1',
@@ -245,15 +257,14 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       },
       adhocFilter: simpleAdhocFilter,
     });
-    const booleanOnlyOperators = ['IS TRUE', 'IS FALSE'];
+    const { isOperatorRelevant } = useSimpleTabFilterProps(props);
+    const booleanOnlyOperators = [Operators.IS_TRUE, Operators.IS_FALSE];
     booleanOnlyOperators.forEach(operator => {
-      expect(wrapper.instance().isOperatorRelevant(operator, 'value')).toBe(
-        false,
-      );
+      expect(isOperatorRelevant(operator, 'value')).toBe(false);
     });
   });
   it('will display boolean operators when column is an expression', () => {
-    const { wrapper } = setup({
+    const { props } = setup({
       datasource: {
         type: 'table',
         datasource_name: 'table1',
@@ -267,11 +278,10 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       },
       adhocFilter: simpleAdhocFilter,
     });
-    const booleanOnlyOperators = ['IS TRUE', 'IS FALSE'];
+    const { isOperatorRelevant } = useSimpleTabFilterProps(props);
+    const booleanOnlyOperators = [Operators.IS_TRUE, Operators.IS_FALSE];
     booleanOnlyOperators.forEach(operator => {
-      expect(wrapper.instance().isOperatorRelevant(operator, 'value')).toBe(
-        true,
-      );
+      expect(isOperatorRelevant(operator, 'value')).toBe(true);
     });
   });
 });

@@ -57,7 +57,7 @@ function translateToSql(adhocMetric, { useSimple } = {}) {
   if (adhocMetric.expressionType === EXPRESSION_TYPES.SIMPLE || useSimple) {
     const { subject, comparator } = adhocMetric;
     const operator =
-      adhocMetric.operator && CUSTOM_OPERATORS.has(adhocMetric.operator)
+      adhocMetric.operatorId && CUSTOM_OPERATORS.has(adhocMetric.operatorId)
         ? OPERATORS_TO_SQL[adhocMetric.operator](adhocMetric)
         : OPERATORS_TO_SQL[adhocMetric.operator];
     return getSimpleSQLExpression(subject, operator, comparator);
@@ -125,12 +125,9 @@ export default class AdhocFilter {
   }
 
   isValid() {
-    const unoryOperators = [
-      Operators.IS_NOT_NULL,
-      Operators.IS_NULL,
-      Operators.IS_TRUE,
-      Operators.IS_FALSE,
-    ].map(op => OPERATOR_MAPPING[op].operation);
+    const unoryOperators = [Operators.IS_NOT_NULL, Operators.IS_NULL].map(
+      op => OPERATOR_MAPPING[op].operation,
+    );
     if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
       if (unoryOperators.indexOf(this.operator) >= 0) {
         return !!(this.operator && this.subject);
