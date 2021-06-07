@@ -180,11 +180,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     setDataMaskSelected(draft => {
       // force instant updating on initialization or for parent filters when dataMaskSelected has filter
       if (
-        dataMaskSelected[filter.id] &&
+        (dataMaskSelected[filter.id] && filter.isInstant) ||
         // filterState.value === undefined - means that value not initialized
-        dataMask.filterState?.value !== undefined &&
-        dataMaskSelected[filter.id]?.filterState?.value === undefined &&
-        filter.requiredFirst
+        (dataMask.filterState?.value !== undefined &&
+          dataMaskSelected[filter.id]?.filterState?.value === undefined &&
+          filter.requiredFirst)
       ) {
         dispatch(updateDataMask(filter.id, dataMask));
       }
