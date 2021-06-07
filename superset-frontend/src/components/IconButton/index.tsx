@@ -35,7 +35,6 @@ const StyledButton = styled(Button)`
   width: 33%;
 `;
 const StyledImage = styled.div`
-  margin: ${({ theme }) => theme.gridUnit * 8}px 0;
   padding: ${({ theme }) => theme.gridUnit * 4}px;
 
   &:first-of-type {

@@ -27,7 +27,6 @@ import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import SupersetText from 'src/utils/textUtils';
-import supersetText from 'src/utils/textUtils';
 import { FavoriteStatus, ImportResourceName, DatabaseObject } from './types';
 
 interface ListViewResourceState<D extends object = any> {
