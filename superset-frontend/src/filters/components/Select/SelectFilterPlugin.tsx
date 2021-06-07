@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* eslint-disable no-param-reassign */
 import {
   AppSection,
   DataMask,
@@ -28,16 +29,11 @@ import {
   t,
   tn,
 } from '@superset-ui/core';
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useReducer,
-  useState,
-} from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Select } from 'src/common/components';
 import debounce from 'lodash/debounce';
 import { SLOW_DEBOUNCE } from 'src/constants';
+import { useImmerReducer } from 'use-immer';
 import Icons from 'src/components/Icons';
 import { PluginFilterSelectProps, SelectValue } from './types';
 import { StyledSelect, Styles } from '../common';
@@ -49,40 +45,32 @@ type DataMaskAction =
   | { type: 'ownState'; ownState: JsonObject }
   | {
       type: 'filterState';
+      __cache: JsonObject;
       extraFormData: ExtraFormData;
       filterState: { value: SelectValue; label?: string };
     };
 
-function reducer(state: DataMask, action: DataMaskAction): DataMask {
+function reducer(
+  draft: Required<DataMask> & { __cache?: JsonObject },
+  action: DataMaskAction,
+) {
   switch (action.type) {
     case 'ownState':
-      return {
-        ...state,
-        ownState: {
-          ...(state.ownState || {}),
-          ...action.ownState,
-        },
+      draft.ownState = {
+        ...draft.ownState,
+        ...action.ownState,
       };
+      return draft;
     case 'filterState':
-      return {
-        ...state,
-        extraFormData: action.extraFormData,
-        filterState: {
-          ...(state.filterState || {}),
-          ...action.filterState,
-        },
-      };
+      draft.extraFormData = action.extraFormData;
+      // eslint-disable-next-line no-underscore-dangle
+      draft.__cache = action.__cache;
+      draft.filterState = { ...draft.filterState, ...action.filterState };
+      return draft;
     default:
-      return {
-        ...state,
-      };
+      return draft;
   }
 }
-
-type DataMaskReducer = (
-  prevState: DataMask,
-  action: DataMaskAction,
-) => DataMask;
 
 export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const {
@@ -127,32 +115,49 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [col, selectedValues, data]);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [currentSuggestionSearch, setCurrentSuggestionSearch] = useState('');
-  const [dataMask, dispatchDataMask] = useReducer<DataMaskReducer>(reducer, {
+  const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
+    extraFormData: {},
     filterState,
     ownState: {
       coltypeMap,
     },
   });
-  const updateDataMask = (values: SelectValue) => {
-    const emptyFilter =
-      enableEmptyFilter && !inverseSelection && !values?.length;
-    const suffix =
-      inverseSelection && values?.length ? ` (${t('excluded')})` : '';
+  const updateDataMask = useCallback(
+    (values: SelectValue) => {
+      const emptyFilter =
+        enableEmptyFilter && !inverseSelection && !values?.length;
 
-    dispatchDataMask({
-      type: 'filterState',
-      extraFormData: getSelectExtraFormData(
-        col,
-        values,
-        emptyFilter,
-        inverseSelection,
-      ),
-      filterState: {
-        value: values,
-        label: `${(values || []).join(', ')}${suffix}`,
-      },
-    });
-  };
+      const suffix =
+        inverseSelection && values?.length ? ` (${t('excluded')})` : '';
+
+      dispatchDataMask({
+        type: 'filterState',
+        __cache: filterState,
+        extraFormData: getSelectExtraFormData(
+          col,
+          values,
+          emptyFilter,
+          inverseSelection,
+        ),
+        filterState: {
+          label: `${(values || []).join(', ')}${suffix}`,
+          value:
+            appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem
+              ? undefined
+              : values,
+        },
+      });
+    },
+    [
+      appSection,
+      col,
+      defaultToFirstItem,
+      dispatchDataMask,
+      enableEmptyFilter,
+      inverseSelection,
+      JSON.stringify(filterState),
+    ],
+  );
 
   useEffect(() => {
     if (!isDropdownVisible) {
@@ -216,15 +221,19 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   };
 
   useEffect(() => {
-    const firstItem: SelectValue = data[0]
-      ? (groupby.map(col => data[0][col]) as string[])
-      : null;
-    if (isDisabled) {
+    if (defaultToFirstItem && filterState.value === undefined) {
+      // initialize to first value if set to default to first item
+      const firstItem: SelectValue = data[0]
+        ? (groupby.map(col => data[0][col]) as string[])
+        : null;
+      // firstItem[0] !== undefined for a case when groupby changed but new data still not fetched
+      // TODO: still need repopulate default value in config modal when column changed
+      if (firstItem && firstItem[0] !== undefined) {
+        updateDataMask(firstItem);
+      }
+    } else if (isDisabled) {
       // empty selection if filter is disabled
       updateDataMask(null);
-    } else if (!isDisabled && defaultToFirstItem && firstItem) {
-      // initialize to first value if set to default to first item
-      updateDataMask(firstItem);
     } else {
       // reset data mask based on filter state
       updateDataMask(filterState.value);
@@ -235,6 +244,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     defaultToFirstItem,
     enableEmptyFilter,
     inverseSelection,
+    updateDataMask,
+    data,
+    groupby,
+    JSON.stringify(filterState),
   ]);
 
   useEffect(() => {

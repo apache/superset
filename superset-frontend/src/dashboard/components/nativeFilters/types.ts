@@ -56,6 +56,7 @@ export interface Filter {
   sortMetric?: string | null;
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
+  requiredFirst?: boolean;
   tabsInScope?: string[];
   chartsInScope?: number[];
 }
