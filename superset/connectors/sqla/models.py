@@ -1386,6 +1386,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             qry = select([col]).select_from(qry.alias("rowcount_qry"))
             labels_expected = [label]
 
+        print(qry)
+
         return SqlaQuery(
             extra_cache_keys=extra_cache_keys,
             labels_expected=labels_expected,
