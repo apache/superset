@@ -192,6 +192,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
             ? filterOptions.saved_metric_name
             : getMetricExpression(filterOptions.saved_metric_name),
         operator: OPERATOR_MAPPING[Operators.GREATER_THAN].operation,
+        operatorId: Operators.GREATER_THAN,
         comparator: 0,
         clause: CLAUSES.HAVING,
       });
@@ -208,6 +209,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
             ? filterOptions.label
             : new AdhocMetric(option).translateToSql(),
         operator: OPERATOR_MAPPING[Operators.GREATER_THAN].operation,
+        operatorId: Operators.GREATER_THAN,
         comparator: 0,
         clause: CLAUSES.HAVING,
       });
@@ -218,6 +220,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
         expressionType: EXPRESSION_TYPES.SIMPLE,
         subject: filterOptions.column_name,
         operator: OPERATOR_MAPPING[Operators.EQUALS].operation,
+        operatorId: Operators.EQUALS,
         comparator: '',
         clause: CLAUSES.WHERE,
         isNew: true,

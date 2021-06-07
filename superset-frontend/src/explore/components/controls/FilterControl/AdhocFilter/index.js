@@ -53,11 +53,16 @@ const OPERATORS_TO_SQL = {
     `= '{{ presto.latest_partition('${datasource.schema}.${datasource.datasource_name}') }}'`,
 };
 
+const CUSTOM_OPERATIONS = [...CUSTOM_OPERATORS].map(
+  op => OPERATOR_MAPPING[op].operation,
+);
+
 function translateToSql(adhocMetric, { useSimple } = {}) {
   if (adhocMetric.expressionType === EXPRESSION_TYPES.SIMPLE || useSimple) {
     const { subject, comparator } = adhocMetric;
     const operator =
-      adhocMetric.operatorId && CUSTOM_OPERATORS.has(adhocMetric.operatorId)
+      adhocMetric.operator &&
+      CUSTOM_OPERATIONS.indexOf(adhocMetric.operator) >= 0
         ? OPERATORS_TO_SQL[adhocMetric.operator](adhocMetric)
         : OPERATORS_TO_SQL[adhocMetric.operator];
     return getSimpleSQLExpression(subject, operator, comparator);
@@ -98,7 +103,10 @@ export default class AdhocFilter {
           ? adhocFilter.sqlExpression
           : translateToSql(adhocFilter, { useSimple: true });
       this.clause = adhocFilter.clause;
-      if (adhocFilter.operator && CUSTOM_OPERATORS.has(adhocFilter.operator)) {
+      if (
+        adhocFilter.operator &&
+        CUSTOM_OPERATIONS.indexOf(adhocFilter.operator) >= 0
+      ) {
         this.subject = adhocFilter.subject;
         this.operator = adhocFilter.operator;
         this.operatorId = adhocFilter.operatorId;
