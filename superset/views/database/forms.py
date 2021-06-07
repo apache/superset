@@ -95,15 +95,13 @@ class CsvToDatabaseForm(DynamicForm):
         validators=[
             FileRequired(),
             FileAllowed(
-                config["ALLOWED_EXTENSIONS"].intersection(
-                    config["CSV_EXTENSIONS"].union(config["COLUMNAR_EXTENSIONS"])
-                ),
+                config["ALLOWED_EXTENSIONS"].intersection(config["CSV_EXTENSIONS"]),
                 _(
                     "Only the following file extensions are allowed: "
                     "%(allowed_extensions)s",
                     allowed_extensions=", ".join(
                         config["ALLOWED_EXTENSIONS"].intersection(
-                            config["CSV_EXTENSIONS"].union(config["COLUMNAR_EXTENSIONS"])
+                            config["CSV_EXTENSIONS"]
                         )
                     ),
                 ),
