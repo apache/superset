@@ -28,8 +28,7 @@ export default function injectCustomCss(css: string) {
   const className = 'CssEditor-css';
   const head = document.head || document.getElementsByTagName('head')[0];
   const style: HTMLStyleElement =
-    (document.querySelector(`.${className}`) as any) ||
-    createStyleElement(className);
+    document.querySelector(`.${className}`) || createStyleElement(className);
 
   if ('styleSheet' in style) {
     // The original, non-typescript code referenced `style.styleSheet`.
