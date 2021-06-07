@@ -24,6 +24,15 @@ function createStyleElement(className: string) {
   return style;
 }
 
+// The original, non-typescript code referenced `style.styleSheet`.
+// I can't find what sort of element would have a styleSheet property,
+// so have created this type to satisfy TS without changing behavior.
+type MysteryStyleElement = {
+  styleSheet: {
+    cssText: string;
+  };
+};
+
 export default function injectCustomCss(css: string) {
   const className = 'CssEditor-css';
   const head = document.head || document.getElementsByTagName('head')[0];
@@ -31,15 +40,6 @@ export default function injectCustomCss(css: string) {
     document.querySelector(`.${className}`) || createStyleElement(className);
 
   if ('styleSheet' in style) {
-    // The original, non-typescript code referenced `style.styleSheet`.
-    // I can't find what sort of element would have a styleSheet property,
-    // and don't know in what situation this condition would be true,
-    // so have created this type to satisfy TS without changing behavior.
-    type MysteryStyleElement = {
-      styleSheet: {
-        cssText: string;
-      };
-    };
     (style as MysteryStyleElement).styleSheet.cssText = css;
   } else {
     style.innerHTML = css;
