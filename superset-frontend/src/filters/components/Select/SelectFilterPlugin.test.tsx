@@ -200,6 +200,9 @@ describe('SelectFilterPlugin', () => {
     userEvent.click(screen.getByRole('combobox'));
     userEvent.click(screen.getByTitle('girl'));
     expect(setDataMask).toHaveBeenCalledWith({
+      __cache: {
+        value: ['boy'],
+      },
       extraFormData: {
         filters: [
           {
