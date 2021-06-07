@@ -75,7 +75,7 @@ logger = logging.getLogger(__name__)
 
 class FilterSetRestApi(BaseSupersetModelRestApi):
     # pylint: disable=W0221
-
+    include_route_methods = {"get_list", "put", "post", "delete"}
     datamodel = SQLAInterface(FilterSet)
     resource_name = "dashboard"
     class_permission_name = FILTER_SET_API_PERMISSIONS_NAME

@@ -215,6 +215,7 @@ class SupersetAppInitializer:
         appbuilder.add_api(CacheRestApi)
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(CssTemplateRestApi)
+        appbuilder.add_api(FilterSetRestApi)
         appbuilder.add_api(DashboardRestApi)
         appbuilder.add_api(DatabaseRestApi)
         appbuilder.add_api(DatasetRestApi)
@@ -549,8 +550,6 @@ class SupersetAppInitializer:
         appbuilder.add_separator(
             "Data", cond=lambda: bool(self.config["DRUID_IS_ACTIVE"])
         )
-
-        appbuilder.add_api(FilterSetRestApi)
 
     def init_app_in_ctx(self) -> None:
         """
