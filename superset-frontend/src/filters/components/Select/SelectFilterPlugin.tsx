@@ -97,6 +97,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   } = formData;
   const groupby = ensureIsArray<string>(formData.groupby);
   const [col] = groupby;
+  const [initialColtypeMap] = useState(coltypeMap);
   const [selectedValues, setSelectedValues] = useState<SelectValue>(
     filterState.value,
   );
@@ -118,9 +119,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
     filterState,
-    ownState: {
-      coltypeMap,
-    },
   });
   const updateDataMask = useCallback(
     (values: SelectValue) => {
@@ -174,6 +172,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       dispatchDataMask({
         type: 'ownState',
         ownState: {
+          coltypeMap: initialColtypeMap,
           search: val,
         },
       });
@@ -194,6 +193,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       dispatchDataMask({
         type: 'ownState',
         ownState: {
+          coltypeMap: initialColtypeMap,
           search: null,
         },
       });
