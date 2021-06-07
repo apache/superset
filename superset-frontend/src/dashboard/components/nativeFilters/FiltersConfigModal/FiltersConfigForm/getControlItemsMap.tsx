@@ -78,9 +78,7 @@ export default function getControlItemsMap({
             name={['filters', filterId, 'requiredFirst', controlItem.name]}
             hidden
             initialValue={
-              filterToEdit?.controlValues?.[controlItem.name] ??
-              (controlItem?.config?.default &&
-                controlItem.name === 'requiredFirst')
+              controlItem?.config?.requiredFirst && filterToEdit?.requiredFirst
             }
           />
           <Tooltip
