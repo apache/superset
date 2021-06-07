@@ -78,7 +78,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               description: t(
                 'User must select a value for this filter when filter is in single select mode. ' +
-                  'If selection is empty, an always false filter is emitted (when using this option, default value can’t be set)',
+                  'If selection is empty, an always false filter is emitted.',
               ),
             },
           },
@@ -95,7 +95,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               requiredFirst: true,
               description: t(
-                'Select first item by default (requires repopulate Default Value if column field changed)',
+                'Select first item by default (when using this option, default value can’t be set)',
               ),
             },
           },
