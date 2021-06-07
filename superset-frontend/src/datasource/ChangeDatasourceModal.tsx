@@ -35,6 +35,10 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import Loading from 'src/components/Loading';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { Input, AntdInput } from 'src/common/components';
+import {
+  PAGE_SIZE as DATASET_PAGE_SIZE,
+  SORT_BY as DATASET_SORT_BY,
+} from 'src/views/CRUD/data/dataset/constants';
 
 const CONFIRM_WARNING_MESSAGE = t(
   'Warning! Changing the dataset may break the chart if the metadata does not exist.',
@@ -91,9 +95,9 @@ const TABLE_COLUMNS = [
 
 const emptyRequest = {
   pageIndex: 0,
-  pageSize: 20,
+  pageSize: DATASET_PAGE_SIZE,
   filters: [],
-  sortBy: [{ id: 'changed_on_delta_humanized' }],
+  sortBy: DATASET_SORT_BY,
 };
 
 const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
@@ -261,7 +265,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
               <TableView
                 columns={TABLE_COLUMNS}
                 data={renderTableView()}
-                pageSize={20}
+                pageSize={DATASET_PAGE_SIZE}
                 className="table-condensed"
                 emptyWrapperType={EmptyWrapperType.Small}
                 scrollTable
