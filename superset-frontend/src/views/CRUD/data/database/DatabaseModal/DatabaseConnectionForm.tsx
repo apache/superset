@@ -176,6 +176,7 @@ const portField = ({
   <ValidatedInput
     id="port"
     name="port"
+    type="number"
     required={required}
     value={db?.parameters?.port}
     validationMethods={{ onBlur: getValidation }}
