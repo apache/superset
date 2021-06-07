@@ -53,7 +53,8 @@ const DashboardPage: FC = () => {
     if (dashboardResource.result) {
       document.title = dashboardResource.result.dashboard_title;
       if (dashboardResource.result.css) {
-        // cleans up custom css when dashboardpage unmounts or result changes
+        // returning will clean up custom css
+        // when dashboard unmounts or changes
         return injectCustomCss(dashboardResource.result.css);
       }
     }
