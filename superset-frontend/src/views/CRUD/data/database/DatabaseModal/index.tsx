@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, SupersetTheme } from '@superset-ui/core';
+import {
+  t,
+  SupersetTheme,
+  FeatureFlag,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import React, {
   FunctionComponent,
   useEffect,
@@ -42,10 +47,8 @@ import {
   DatabaseForm,
   CONFIGURATION_METHOD,
 } from 'src/views/CRUD/data/database/types';
-import Label from 'src/components/Label';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
-
 import DatabaseConnectionForm from './DatabaseConnectionForm';
 import {
   antDAlertStyles,
@@ -132,6 +135,7 @@ function dbReducer(
   const trimmedState = {
     ...(state || {}),
   };
+
   switch (action.type) {
     case ActionType.inputChange:
       if (action.payload.type === 'checkbox') {
@@ -145,6 +149,13 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.parametersChange:
+      if (action.payload.name === 'encrypted_extra') {
+        return {
+          ...trimmedState,
+          encrypted_extra: action.payload.value,
+          parameters: {},
+        };
+      }
       return {
         ...trimmedState,
         parameters: {
@@ -183,7 +194,6 @@ function dbReducer(
 }
 
 const DEFAULT_TAB_KEY = '1';
-const FALSY_FORM_VALUES = [undefined, null, ''];
 
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   addDangerToast,
@@ -203,8 +213,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [dbName, setDbName] = useState('');
   const [isLoading, setLoading] = useState<boolean>(false);
   const conf = useCommonConf();
-
   const isEditMode = !!databaseId;
+  const sslForced = isFeatureEnabled(
+    FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
+  );
   const useSqlAlchemyForm =
     db?.configuration_method === CONFIGURATION_METHOD.SQLALCHEMY_URI;
   const useTabLayout = isEditMode || useSqlAlchemyForm;
@@ -262,6 +274,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     } else if (db) {
       // Create
+      if (update.encrypted_extra) {
+        // wrap encrypted_extra in credentials_info
+        update.encrypted_extra = JSON.stringify({
+          credentials_info: JSON.parse(update.encrypted_extra),
+        });
+      }
       const dbId = await createResource(update as DatabaseObject);
       if (dbId) {
         setHasConnectedDb(true);
@@ -297,10 +315,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   };
 
-  const setDatabaseModel = engine => {
+  const setDatabaseModel = (engine: string) => {
     const isDynamic =
-      availableDbs?.databases.filter(db => db.engine === engine)[0]
-        .parameters !== undefined;
+      availableDbs?.databases.filter(
+        (db: DatabaseObject) => db.engine === engine,
+      )[0].parameters !== undefined;
     setDB({
       type: ActionType.dbSelected,
       payload: {
@@ -317,13 +336,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       <span className="available-label">
         Or choose from a list of other databases we support{' '}
       </span>
-      <label className="label-available-select">supported databases</label>
+      <Label className="label-available-select">supported databases</Label>
       <Select
         style={{ width: '100%' }}
         onChange={setDatabaseModel}
         placeholder="Choose a database..."
       >
-        {availableDbs?.databases?.map(database => (
+        {availableDbs?.databases?.map((database: DatabaseForm) => (
           <Select.Option value={database.engine} key={database.engine}>
             {database.name}
           </Select.Option>
@@ -335,10 +354,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const renderPreferredSelector = () => (
     <div className="preferred">
       {availableDbs?.databases
-        ?.filter(db => db.preferred)
-        .map(database => (
+        ?.filter((db: DatabaseForm) => db.preferred)
+        .map((database: DatabaseForm) => (
           <IconButton
-            className="preferred-item"
+            icon="preferred-item"
             onClick={() => setDatabaseModel(database.engine)}
             buttonText={database.name}
           />
@@ -358,7 +377,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             Back
           </Button>,
           !hasConnectedDb ? ( // if hasConnectedDb show back + finish
-            <Button key="submit" type="primary" onClick={onSave}>
+            <Button key="submit" buttonStyle="primary" onClick={onSave}>
               Connect
             </Button>
           ) : (
@@ -406,16 +425,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         // TODO: we need a centralized engine in one place
         available.engine === db?.engine || db?.backend,
     ) || {};
-  const disableSave =
-    !hasConnectedDb &&
-    (useSqlAlchemyForm
-      ? !(db?.database_name?.trim() && db?.sqlalchemy_uri)
-      : // disable the button if there is no dbModel.parameters or if
-        // any required fields are falsy
-        !dbModel?.parameters ||
-        !!dbModel.parameters.required.filter(field =>
-          FALSY_FORM_VALUES.includes(db?.parameters?.[field]),
-        ).length);
+
   return useTabLayout ? (
     <Modal
       css={(theme: SupersetTheme) => [
@@ -425,7 +435,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         formHelperStyles(theme),
       ]}
       name="database"
-      disablePrimaryButton={disableSave}
       data-test="database-modal"
       height="600px"
       onHandledPrimaryAction={onSave}
@@ -488,6 +497,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           ) : (
             <DatabaseConnectionForm
               isEditMode
+              sslForced={sslForced}
               dbModel={dbModel}
               db={db as DatabaseObject}
               onParametersChange={({ target }: { target: HTMLInputElement }) =>
@@ -565,7 +575,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         formStyles(theme),
       ]}
       name="database"
-      disablePrimaryButton={disableSave}
       height="600px"
       onHandledPrimaryAction={onSave}
       onHide={onClose}
@@ -617,6 +626,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           {!isLoading && db && (
             <>
               <DatabaseConnectionForm
+                db={db}
+                sslForced={sslForced}
                 dbModel={dbModel}
                 onParametersChange={({
                   target,
