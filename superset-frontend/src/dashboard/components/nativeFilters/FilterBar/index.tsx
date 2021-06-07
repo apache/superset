@@ -178,7 +178,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   ) => {
     setIsFilterSetChanged(tab !== TabIds.AllFilters);
     setDataMaskSelected(draft => {
-      // force instant updating on initialization or for parent filters when dataMaskSelected has filter
+      // force instant updating on initialization for filters with `requiredFirst` is true or instant filters
       if (
         (dataMaskSelected[filter.id] && filter.isInstant) ||
         // filterState.value === undefined - means that value not initialized
