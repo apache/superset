@@ -30,7 +30,7 @@ const selectMultipleProps = {
     enableEmptyFilter: true,
     defaultToFirstItem: false,
     inverseSelection: false,
-    searchAllOptions: true,
+    searchAllOptions: false,
     datasource: '3__table',
     groupby: ['gender'],
     adhocFilters: [],
@@ -48,7 +48,7 @@ const selectMultipleProps = {
   },
   height: 20,
   hooks: {},
-  ownState: { coltypeMap: { gender: 1 }, search: null },
+  ownState: {},
   filterState: { value: ['boy'] },
   queriesData: [
     {
@@ -92,11 +92,6 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         value: ['boy'],
       },
-      ownState: {
-        coltypeMap: {
-          gender: 1,
-        },
-      },
     });
     expect(setDataMask).toHaveBeenCalledWith({
       __cache: {
@@ -114,11 +109,6 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: 'boy',
         value: ['boy'],
-      },
-      ownState: {
-        coltypeMap: {
-          gender: 1,
-        },
       },
     });
     userEvent.click(screen.getByRole('combobox'));
@@ -139,12 +129,6 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: 'boy, girl',
         value: ['boy', 'girl'],
-      },
-      ownState: {
-        coltypeMap: {
-          gender: 1,
-        },
-        search: null,
       },
     });
   });
@@ -169,11 +153,6 @@ describe('SelectFilterPlugin', () => {
         label: '',
         value: null,
       },
-      ownState: {
-        coltypeMap: {
-          gender: 1,
-        },
-      },
     });
   });
 
@@ -188,11 +167,6 @@ describe('SelectFilterPlugin', () => {
       filterState: {
         label: '',
         value: null,
-      },
-      ownState: {
-        coltypeMap: {
-          gender: 1,
-        },
       },
     });
   });
@@ -216,6 +190,27 @@ describe('SelectFilterPlugin', () => {
       },
       filterState: {
         label: 'girl (excluded)',
+        value: ['girl'],
+      },
+    });
+  });
+
+  it('Add ownState with column types when search all options', () => {
+    getWrapper({ searchAllOptions: true, multiSelect: false });
+    userEvent.click(screen.getByRole('combobox'));
+    userEvent.click(screen.getByTitle('girl'));
+    expect(setDataMask).toHaveBeenCalledWith({
+      extraFormData: {
+        filters: [
+          {
+            col: 'gender',
+            op: 'IN',
+            val: ['girl'],
+          },
+        ],
+      },
+      filterState: {
+        label: 'girl',
         value: ['girl'],
       },
       ownState: {
