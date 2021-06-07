@@ -16,28 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint camelcase: 0 */
+import React from 'react';
+import { render, screen } from 'spec/helpers/testing-library';
+import IconButton from 'src/components/IconButton';
 
-export function formatSelectOptions(options) {
-  return options.map(opt => [opt, opt.toString()]);
-}
+const defaultProps = {
+  buttonText: 'This is the IconButton text',
+  icon: '/images/icons/sql.svg',
+};
 
-export function getDatasourceParameter(datasourceId, datasourceType) {
-  return `${datasourceId}__${datasourceType}`;
-}
+describe('IconButton', () => {
+  it('renders an IconButton', () => {
+    render(<IconButton {...defaultProps} />);
 
-export function mainMetric(savedMetrics) {
-  // Using 'count' as default metric if it exists, otherwise using whatever one shows up first
-  let metric;
-  if (savedMetrics && savedMetrics.length > 0) {
-    savedMetrics.forEach(m => {
-      if (m.metric_name === 'count') {
-        metric = 'count';
-      }
-    });
-    if (!metric) {
-      metric = savedMetrics[0].metric_name;
-    }
-  }
-  return metric;
-}
+    const icon = screen.getByRole('img');
+    const buttonText = screen.getByText(/this is the iconbutton text/i);
+
+    expect(icon).toBeVisible();
+    expect(buttonText).toBeVisible();
+  });
+});

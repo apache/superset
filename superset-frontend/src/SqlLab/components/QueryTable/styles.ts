@@ -16,28 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint camelcase: 0 */
+import { styled, css } from '@superset-ui/core';
+import { IconTooltip } from '../../../components/IconTooltip';
 
-export function formatSelectOptions(options) {
-  return options.map(opt => [opt, opt.toString()]);
-}
+export const StaticPosition = css`
+  position: static;
+`;
 
-export function getDatasourceParameter(datasourceId, datasourceType) {
-  return `${datasourceId}__${datasourceType}`;
-}
+export const verticalAlign = css`
+  vertical-align: 0em;
+  svg {
+    height: 0.9em;
+  }
+`;
 
-export function mainMetric(savedMetrics) {
-  // Using 'count' as default metric if it exists, otherwise using whatever one shows up first
-  let metric;
-  if (savedMetrics && savedMetrics.length > 0) {
-    savedMetrics.forEach(m => {
-      if (m.metric_name === 'count') {
-        metric = 'count';
-      }
-    });
-    if (!metric) {
-      metric = savedMetrics[0].metric_name;
+export const StyledTooltip = styled(IconTooltip)`
+  padding-right: ${({ theme }) => theme.gridUnit * 2}px;
+  span {
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    &: hover {
+      color: ${({ theme }) => theme.colors.primary.base};
     }
   }
-  return metric;
-}
+`;

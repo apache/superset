@@ -102,6 +102,10 @@ class TestDatabaseModel(SupersetTestCase):
             self.assertEqual(col.is_numeric, db_col_type == GenericDataType.NUMERIC)
             self.assertEqual(col.is_string, db_col_type == GenericDataType.STRING)
 
+        for str_type, db_col_type in test_cases.items():
+            col = TableColumn(column_name="foo", type=str_type, table=tbl, is_dttm=True)
+            self.assertTrue(col.is_temporal)
+
     @patch("superset.jinja_context.g")
     def test_extra_cache_keys(self, flask_g):
         flask_g.user.username = "abc"

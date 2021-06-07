@@ -36,6 +36,7 @@ import { sliceId } from 'spec/fixtures/mockChartQueries';
 import dashboardInfo from 'spec/fixtures/mockDashboardInfo';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import { sliceEntitiesForChart } from 'spec/fixtures/mockSliceEntities';
+import { nativeFiltersInfo } from '../../fixtures/mockNativeFilters';
 
 describe('ChartHolder', () => {
   const props = {
@@ -55,6 +56,7 @@ describe('ChartHolder', () => {
     handleComponentDrop() {},
     updateComponents() {},
     deleteComponent() {},
+    nativeFilters: nativeFiltersInfo.filters,
   };
 
   function setup(overrideProps) {

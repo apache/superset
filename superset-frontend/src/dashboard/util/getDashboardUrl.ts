@@ -30,12 +30,12 @@ export default function getDashboardUrl(
   // convert flattened { [id_column]: values } object
   // to nested filter object
   newSearchParams.set(
-    URL_PARAMS.preselectFilters,
+    URL_PARAMS.preselectFilters.name,
     JSON.stringify(serializeActiveFilterValues(filters)),
   );
 
   if (standalone) {
-    newSearchParams.set(URL_PARAMS.standalone, standalone.toString());
+    newSearchParams.set(URL_PARAMS.standalone.name, standalone.toString());
   }
 
   const hashSection = hash ? `#${hash}` : '';
