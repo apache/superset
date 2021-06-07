@@ -23,7 +23,6 @@ import { sections } from '@superset-ui/chart-controls';
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
 const druidIsActive = !!bootstrapData?.common?.conf?.DRUID_IS_ACTIVE;
-
 const druidSection = druidIsActive
   ? [
       [
