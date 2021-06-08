@@ -243,7 +243,7 @@ class Database(
         encrypted_extra = self.get_encrypted_extra()
         try:
             parameters = self.db_engine_spec.get_parameters_from_uri(uri, encrypted_extra=encrypted_extra)  # type: ignore
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             parameters = {}
 
         return parameters
