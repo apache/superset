@@ -40,6 +40,7 @@ const createProps = () => ({
   addSuccessToast: jest.fn(),
   exploreChart: jest.fn(),
   exportCSV: jest.fn(),
+  exportFullCSV: jest.fn(),
   forceRefresh: jest.fn(),
   handleToggleFullSize: jest.fn(),
   toggleExpandSlice: jest.fn(),
@@ -89,7 +90,6 @@ const createProps = () => ({
   showControls: true,
   supersetCanShare: true,
   formData: {},
-  exportFullCSV: jest.fn(),
 });
 
 test('Should render', () => {
@@ -124,7 +124,6 @@ test('Should render default props', () => {
   delete props.sliceCanEdit;
 
   render(<SliceHeaderControls {...props} />, { useRedux: true });
-
   userEvent.click(screen.getByRole('menuitem', { name: 'Maximize chart' }));
   userEvent.click(screen.getByRole('menuitem', { name: /Force refresh/ }));
   userEvent.click(
@@ -150,6 +149,27 @@ test('Should "export to CSV"', () => {
   userEvent.click(screen.getByRole('menuitem', { name: 'Export CSV' }));
   expect(props.exportCSV).toBeCalledTimes(1);
   expect(props.exportCSV).toBeCalledWith(371);
+});
+
+test('Should "export full CSV"', () => {
+  const props = createProps();
+  props.slice.viz_type = 'table';
+  render(<SliceHeaderControls {...props} />, { useRedux: true });
+  expect(screen.queryByRole('menuitem', { name: 'Export full CSV' })).not.toBe(
+    null,
+  );
+  expect(props.exportFullCSV).toBeCalledTimes(0);
+  userEvent.click(screen.getByRole('menuitem', { name: 'Export full CSV' }));
+  expect(props.exportFullCSV).toBeCalledTimes(1);
+  expect(props.exportFullCSV).toBeCalledWith(371);
+});
+
+test('Should not show export full CSV if report is not table', () => {
+  const props = createProps();
+  render(<SliceHeaderControls {...props} />, { useRedux: true });
+  expect(screen.queryByRole('menuitem', { name: 'Export full CSV' })).toBe(
+    null,
+  );
 });
 
 test('Should "View chart in Explore"', () => {

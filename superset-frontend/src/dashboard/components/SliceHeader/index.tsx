@@ -167,8 +167,6 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             )}
             <FiltersBadge chartId={slice.slice_id} />
             <SliceHeaderControls
-              // TODO: Fix this
-              // @ts-ignore
               slice={slice}
               isCached={isCached}
               isExpanded={isExpanded}

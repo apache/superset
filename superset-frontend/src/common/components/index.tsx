@@ -228,7 +228,9 @@ export const TextArea = styled(AntdInput.TextArea)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
 `;
 
-export const NoAnimationDropdown = (props: DropDownProps) => (
+export const NoAnimationDropdown = (
+  props: DropDownProps & { children?: React.ReactNode },
+) => (
   <Dropdown
     overlayStyle={{ zIndex: 4000, animationDuration: '0s' }}
     {...props}

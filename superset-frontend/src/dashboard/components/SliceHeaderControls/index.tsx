@@ -103,10 +103,10 @@ interface Props {
   showControls: boolean;
   isFullSize?: boolean;
   formData: object;
-  toggleExpandSlice: (sliceId: number) => void;
+  toggleExpandSlice?: (sliceId: number) => void;
   forceRefresh: (sliceId: number, dashboardId: number) => void;
-  exploreChart: (sliceId: number) => void;
-  exportCSV: (sliceId: number) => void;
+  exploreChart?: (sliceId: number) => void;
+  exportCSV?: (sliceId: number) => void;
   exportFullCSV?: (sliceId: number) => void;
   addSuccessToast: (message: string) => void;
   handleToggleFullSize: () => void;
@@ -159,13 +159,18 @@ class SliceHeaderControls extends React.PureComponent<Props, State> {
         this.setState({ showCrossFilterScopingModal: true });
         break;
       case MENU_KEYS.TOGGLE_CHART_DESCRIPTION:
-        this.props.toggleExpandSlice(this.props.slice.slice_id);
+        // eslint-disable-next-line no-unused-expressions
+        this.props.toggleExpandSlice &&
+          this.props.toggleExpandSlice(this.props.slice.slice_id);
         break;
       case MENU_KEYS.EXPLORE_CHART:
-        this.props.exploreChart(this.props.slice.slice_id);
+        // eslint-disable-next-line no-unused-expressions
+        this.props.exploreChart &&
+          this.props.exploreChart(this.props.slice.slice_id);
         break;
       case MENU_KEYS.EXPORT_CSV:
-        this.props.exportCSV(this.props.slice.slice_id);
+        // eslint-disable-next-line no-unused-expressions
+        this.props.exportCSV && this.props.exportCSV(this.props.slice.slice_id);
         break;
       case MENU_KEYS.RESIZE_LABEL:
         this.props.handleToggleFullSize();
@@ -199,14 +204,14 @@ class SliceHeaderControls extends React.PureComponent<Props, State> {
   render() {
     const {
       slice,
-      isCached,
-      cachedDttm,
-      updatedDttm,
-      componentId,
-      addSuccessToast,
-      addDangerToast,
       isFullSize,
-      supersetCanShare,
+      componentId,
+      cachedDttm = [],
+      updatedDttm = null,
+      addSuccessToast = () => {},
+      addDangerToast = () => {},
+      supersetCanShare = false,
+      isCached = [],
     } = this.props;
     const crossFilterItems = getChartMetadataRegistry().items;
     const isTable = slice.viz_type === 'table';
@@ -314,7 +319,7 @@ class SliceHeaderControls extends React.PureComponent<Props, State> {
         )}
         {this.props.supersetCanCSV && isTable && (
           <Menu.Item key={MENU_KEYS.EXPORT_FULL_CSV}>
-            {t('Export Full CSV')}
+            {t('Export full CSV')}
           </Menu.Item>
         )}
         {isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
@@ -345,13 +350,8 @@ class SliceHeaderControls extends React.PureComponent<Props, State> {
           overlay={menu}
           trigger={['click']}
           placement="bottomRight"
-          dropdownAlign={{
-            offset: [-40, 4],
-          }}
-          // TODO: remove the ts-ignore, use !! or type casting
-          // @ts-ignore
           getPopupContainer={triggerNode =>
-            triggerNode.closest(SCREENSHOT_NODE_SELECTOR)
+            triggerNode.closest(SCREENSHOT_NODE_SELECTOR) as HTMLElement
           }
         >
           <span
