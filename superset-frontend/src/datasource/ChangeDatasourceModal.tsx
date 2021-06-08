@@ -275,6 +275,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
                 className="table-condensed"
                 emptyWrapperType={EmptyWrapperType.Small}
                 manualPagination
+                isPaginationSticky
                 scrollTable
               />
             )}
