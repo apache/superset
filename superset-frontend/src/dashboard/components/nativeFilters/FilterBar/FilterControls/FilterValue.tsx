@@ -53,13 +53,14 @@ const FilterItem = styled.div`
 `;
 
 const FilterValue: React.FC<FilterProps> = ({
+  dataMaskSelected,
   filter,
   directPathToChild,
   onFilterSelectionChange,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
-  const cascadingFilters = useCascadingFilters(id);
+  const cascadingFilters = useCascadingFilters(id, dataMaskSelected);
   const [state, setState] = useState<ChartDataResponseResult[]>([]);
   const [error, setError] = useState<string>('');
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
@@ -73,7 +74,7 @@ const FilterValue: React.FC<FilterProps> = ({
   const { name: groupby } = column;
   const hasDataSource = !!datasetId;
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
-  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(true);
   const dispatch = useDispatch();
   useEffect(() => {
     const newFormData = getFormData({

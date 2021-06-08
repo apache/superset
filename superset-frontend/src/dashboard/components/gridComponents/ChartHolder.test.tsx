@@ -18,12 +18,13 @@
  */
 
 import React from 'react';
+import userEvent from '@testing-library/user-event';
+import { waitFor } from '@testing-library/react';
 import { render, screen } from 'spec/helpers/testing-library';
 import mockState from 'spec/fixtures/mockState';
 import { sliceId as chartId } from 'spec/fixtures/mockChartQueries';
+import { nativeFiltersInfo } from 'spec/javascripts/dashboard/fixtures/mockNativeFilters';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
-import userEvent from '@testing-library/user-event';
-import { waitFor } from '@testing-library/react';
 import { ChartHolder } from './index';
 import { CHART_TYPE, ROW_TYPE } from '../../util/componentTypes';
 
@@ -60,6 +61,7 @@ describe('ChartHolder', () => {
     editMode: false,
     isComponentVisible: true,
     dashboardId: 123,
+    nativeFilters: nativeFiltersInfo.filters,
   };
 
   const renderWrapper = (props = defaultProps, state = mockState) =>
