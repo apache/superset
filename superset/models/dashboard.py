@@ -175,13 +175,19 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         if is_user_admin():
             return self._filter_sets
         current_user = g.user.id
-        mapa: Dict[str, List[Any]] = {"Dashboard": [], "User": []}
+        filter_sets_by_owner_type: Dict[str, List[Any]] = {"Dashboard": [], "User": []}
         for fs in self._filter_sets:
-            mapa[fs.owner_type].append(fs)
-        rv = list(
-            filter(lambda filter_set: filter_set.owner_id == current_user, mapa["User"])
+            filter_sets_by_owner_type[fs.owner_type].append(fs)
+        user_filter_sets = list(
+            filter(
+                lambda filter_set: filter_set.owner_id == current_user,
+                filter_sets_by_owner_type["User"],
+            )
         )
-        return {fs.id: fs for fs in rv + mapa["Dashboard"]}
+        return {
+            fs.id: fs
+            for fs in user_filter_sets + filter_sets_by_owner_type["Dashboard"]
+        }
 
     @property
     def table_names(self) -> str:
