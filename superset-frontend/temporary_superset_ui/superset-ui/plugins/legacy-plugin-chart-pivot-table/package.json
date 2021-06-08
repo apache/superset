@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-pivot-table",
-  "version": "0.17.53",
+  "version": "0.17.54",
   "description": "Superset Legacy Chart - Pivot Table",
   "sideEffects": [
     "*.css"
@@ -28,7 +28,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/chart-controls": "0.17.53",
+    "@superset-ui/chart-controls": "0.17.54",
     "@superset-ui/core": "0.17.53",
     "d3": "^3.5.17",
     "datatables.net-bs": "^1.10.15",
