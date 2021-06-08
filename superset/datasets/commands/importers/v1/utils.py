@@ -98,11 +98,12 @@ def import_dataset(
             except TypeError:
                 logger.info("Unable to encode `%s` field: %s", key, config[key])
     for metric in config.get("metrics", []):
-        if metric.get("extra"):
+        if metric.get("extra") is not None:
             try:
                 metric["extra"] = json.dumps(metric["extra"])
             except TypeError:
                 logger.info("Unable to encode `extra` field: %s", metric["extra"])
+                metric["extra"] = None
 
     # should we delete columns and metrics not present in the current import?
     sync = ["columns", "metrics"] if overwrite else []
