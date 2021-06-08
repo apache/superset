@@ -57,7 +57,10 @@ const HEADER_HEIGHT = 67;
 
 type DashboardBuilderProps = {};
 
-const StyledDashboardContent = styled.div<{ dashboardFiltersOpen: boolean }>`
+const StyledDashboardContent = styled.div<{
+  dashboardFiltersOpen: boolean;
+  editMode: boolean;
+}>`
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
@@ -75,13 +78,15 @@ const StyledDashboardContent = styled.div<{ dashboardFiltersOpen: boolean }>`
     width: 100%;
     flex-grow: 1;
     position: relative;
-    margin: ${({ theme }) => theme.gridUnit * 6}px
-      ${({ theme }) => theme.gridUnit * 8}px
-      ${({ theme }) => theme.gridUnit * 6}px
-      ${({ theme, dashboardFiltersOpen }) => {
-        if (dashboardFiltersOpen) return theme.gridUnit * 8;
+    margin-top: ${({ theme }) => theme.gridUnit * 6}px;
+    margin-right: ${({ theme }) => theme.gridUnit * 8}px;
+    margin-bottom: ${({ theme }) => theme.gridUnit * 6}px;
+    margin-left: ${({ theme, dashboardFiltersOpen, editMode }) => {
+      if (!dashboardFiltersOpen && !editMode) {
         return 0;
-      }}px;
+      }
+      return theme.gridUnit * 8;
+    }}px;
   }
 
   .dashboard-component-chart-holder {
@@ -204,6 +209,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
       <StyledDashboardContent
         className="dashboard-content"
         dashboardFiltersOpen={dashboardFiltersOpen}
+        editMode={editMode}
       >
         {nativeFiltersEnabled && !editMode && (
           <StickyVerticalBar
