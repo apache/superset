@@ -21,10 +21,11 @@ from typing import Optional
 
 import prison
 from flask_appbuilder.security.sqla.models import User
+from unittest.mock import patch
 
-import tests.test_app
 from superset import db
 from superset.models.core import Log
+from superset.views.log.api import LogRestApi
 
 from .base_tests import SupersetTestCase
 
@@ -63,6 +64,16 @@ class TestLogApi(SupersetTestCase):
         db.session.add(log)
         db.session.commit()
         return log
+
+    def test_not_enabled(self):
+        with patch.object(LogRestApi, "is_enabled", return_value=False):
+            admin_user = self.get_user("admin")
+            self.insert_log("some_action", admin_user)
+            self.login(username="admin")
+            arguments = {"filters": [{"col": "action", "opr": "sw", "value": "some_"}]}
+            uri = f"api/v1/log/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            self.assertEqual(rv.status_code, 404)
 
     def test_get_list(self):
         """

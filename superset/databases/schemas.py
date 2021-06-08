@@ -28,7 +28,6 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError
 
 from superset.db_engine_specs import get_engine_specs
-from superset.db_engine_specs.base import BasicParametersMixin
 from superset.exceptions import CertificateException, SupersetSecurityException
 from superset.models.core import ConfigurationMethod, PASSWORD_MASK
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
@@ -40,6 +39,7 @@ database_schemas_query_schema = {
 }
 
 database_name_description = "A database name to identify this connection."
+port_description = "Port number for the database connection."
 cache_timeout_description = (
     "Duration (in seconds) of the caching timeout for charts of this database. "
     "A timeout of 0 indicates that the cache never expires. "
@@ -227,10 +227,17 @@ class DatabaseParametersSchemaMixin:
     When using this mixin make sure that `sqlalchemy_uri` is not required.
     """
 
+    engine = fields.String(allow_none=True, description="SQLAlchemy engine to use")
     parameters = fields.Dict(
         keys=fields.String(),
         values=fields.Raw(),
         description="DB-specific parameters for configuration",
+    )
+    configuration_method = EnumField(
+        ConfigurationMethod,
+        by_value=True,
+        description=configuration_method_description,
+        missing=ConfigurationMethod.SQLALCHEMY_FORM,
     )
 
     # pylint: disable=no-self-use, unused-argument
@@ -245,9 +252,15 @@ class DatabaseParametersSchemaMixin:
         parameters (eg, username, password, host, etc.), instead of requiring
         the constructed SQLAlchemy URI to be passed.
         """
-        parameters = data.pop("parameters", None)
-        if parameters:
-            if "engine" not in parameters:
+        parameters = data.pop("parameters", {})
+
+        # TODO (betodealmeida): remove second expression after making sure
+        # frontend is not passing engine inside parameters
+        engine = data.pop("engine", None) or parameters.pop("engine", None)
+
+        configuration_method = data.get("configuration_method")
+        if configuration_method == ConfigurationMethod.DYNAMIC_FORM:
+            if not engine:
                 raise ValidationError(
                     [
                         _(
@@ -256,26 +269,38 @@ class DatabaseParametersSchemaMixin:
                         )
                     ]
                 )
-            engine = parameters["engine"]
-
             engine_specs = get_engine_specs()
             if engine not in engine_specs:
                 raise ValidationError(
                     [_('Engine "%(engine)s" is not a valid engine.', engine=engine,)]
                 )
             engine_spec = engine_specs[engine]
-            if not issubclass(engine_spec, BasicParametersMixin):
+
+            if not hasattr(engine_spec, "build_sqlalchemy_uri") or not hasattr(
+                engine_spec, "parameters_schema"
+            ):
                 raise ValidationError(
                     [
                         _(
-                            'Engine spec "%(engine_spec)s" does not support '
-                            "being configured via individual parameters.",
-                            engine_spec=engine_spec.__name__,
+                            'Engine spec "InvalidEngine" does not support '
+                            "being configured via individual parameters."
                         )
                     ]
                 )
 
-            data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(parameters)
+            # validate parameters
+            parameters = engine_spec.parameters_schema.load(parameters)  # type: ignore
+
+            serialized_encrypted_extra = data.get("encrypted_extra", "{}")
+            try:
+                encrypted_extra = json.loads(serialized_encrypted_extra)
+            except json.decoder.JSONDecodeError:
+                encrypted_extra = {}
+
+            data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(  # type: ignore
+                parameters, encrypted_extra
+            )
+
         return data
 
 
@@ -301,6 +326,12 @@ class DatabaseValidateParametersSchema(Schema):
         allow_none=True,
         validate=server_cert_validator,
     )
+    configuration_method = EnumField(
+        ConfigurationMethod,
+        by_value=True,
+        allow_none=True,
+        description=configuration_method_description,
+    )
 
 
 class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
@@ -319,11 +350,6 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     allow_ctas = fields.Boolean(description=allow_ctas_description)
     allow_cvas = fields.Boolean(description=allow_cvas_description)
     allow_dml = fields.Boolean(description=allow_dml_description)
-    configuration_method = EnumField(
-        ConfigurationMethod,
-        by_value=True,
-        description=configuration_method_description,
-    )
     force_ctas_schema = fields.String(
         description=force_ctas_schema_description,
         allow_none=True,
@@ -361,12 +387,6 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
         description=cache_timeout_description, allow_none=True
     )
     expose_in_sqllab = fields.Boolean(description=expose_in_sqllab_description)
-    configuration_method = EnumField(
-        ConfigurationMethod,
-        by_value=True,
-        allow_none=True,
-        description=configuration_method_description,
-    )
     allow_run_async = fields.Boolean(description=allow_run_async_description)
     allow_csv_upload = fields.Boolean(description=allow_csv_upload_description)
     allow_ctas = fields.Boolean(description=allow_ctas_description)
@@ -552,3 +572,15 @@ class ImportV1DatabaseSchema(Schema):
         password = make_url(uri).password
         if password == PASSWORD_MASK and data.get("password") is None:
             raise ValidationError("Must provide a password for the database")
+
+
+class EncryptedField(fields.String):
+    pass
+
+
+def encrypted_field_properties(self, field: Any, **_) -> Dict[str, Any]:  # type: ignore
+    ret = {}
+    if isinstance(field, EncryptedField):
+        if self.openapi_version.major > 2:
+            ret["x-encrypted-extra"] = True
+    return ret

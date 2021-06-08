@@ -64,7 +64,7 @@ import {
   legacyValidateInteger,
   validateNonEmpty,
 } from '@superset-ui/core';
-import { formatSelectOptions, mainMetric } from 'src/modules/utils';
+import { formatSelectOptions } from 'src/modules/utils';
 import { TIME_FILTER_LABELS } from './constants';
 import { StyledColumnOption } from './components/optionRenderers';
 
@@ -152,10 +152,6 @@ const metrics = {
   multi: true,
   label: t('Metrics'),
   validators: [validateNonEmpty],
-  default: c => {
-    const metric = mainMetric(c.savedMetrics);
-    return metric ? [metric] : null;
-  },
   mapStateToProps: state => {
     const { datasource } = state;
     return {
@@ -171,7 +167,6 @@ const metric = {
   multi: false,
   label: t('Metric'),
   description: t('Metric'),
-  default: props => mainMetric(props.savedMetrics),
 };
 
 export function columnChoices(datasource) {
@@ -346,7 +341,7 @@ export const controls = {
     type: 'DateFilterControl',
     freeForm: true,
     label: TIME_FILTER_LABELS.time_range,
-    default: t('Last week'), // this value is translated, but the backend wouldn't understand a translated value?
+    default: t('No filter'), // this value is translated, but the backend wouldn't understand a translated value?
     description: t(
       'The time range for the visualization. All relative times, e.g. "Last month", ' +
         '"Last 7 days", "now", etc. are evaluated on the server using the server\'s ' +

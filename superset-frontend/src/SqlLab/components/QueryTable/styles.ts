@@ -16,39 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../../../stylesheets/less/variables.less';
+import { styled, css } from '@superset-ui/core';
+import { IconTooltip } from '../../../components/IconTooltip';
 
-.viztype-label {
-  margin-top: 10px;
-  text-align: center;
-  font-size: @font-size-m;
-}
+export const StaticPosition = css`
+  position: static;
+`;
 
-.viztype-selector-container {
-  cursor: pointer;
-  margin-top: 10px;
-  margin-bottom: 10px;
-
-  &:hover img {
-    border: 1px solid @gray-heading;
+export const verticalAlign = css`
+  vertical-align: 0em;
+  svg {
+    height: 0.9em;
   }
+`;
 
-  &.selected {
-    cursor: not-allowed;
-    opacity: 1;
-
-    img {
-      border: 1px solid @almost-black;
+export const StyledTooltip = styled(IconTooltip)`
+  padding-right: ${({ theme }) => theme.gridUnit * 2}px;
+  span {
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    &: hover {
+      color: ${({ theme }) => theme.colors.primary.base};
     }
   }
-
-  img {
-    border: 1px solid @gray-light;
-    border-radius: @border-radius-large;
-    transition: border-color @timing-normal;
-  }
-}
-
-.viztype-control-search-box {
-  margin-bottom: 10px;
-}
+`;

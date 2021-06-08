@@ -28,8 +28,19 @@ const TimeFilterStyles = styled(Styles)`
   overflow-x: scroll;
 `;
 
+const ControlContainer = styled.div`
+  display: inline-block;
+`;
+
 export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
-  const { formData, setDataMask, width, filterState } = props;
+  const {
+    formData,
+    setDataMask,
+    setFocusedFilter,
+    unsetFocusedFilter,
+    width,
+    filterState,
+  } = props;
   const { defaultValue } = formData;
 
   const [value, setValue] = useState<string>(defaultValue ?? DEFAULT_VALUE);
@@ -56,11 +67,16 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
   return (
     // @ts-ignore
     <TimeFilterStyles width={width}>
-      <DateFilterControl
-        value={value}
-        name="time_range"
-        onChange={handleTimeRangeChange}
-      />
+      <ControlContainer
+        onMouseEnter={setFocusedFilter}
+        onMouseLeave={unsetFocusedFilter}
+      >
+        <DateFilterControl
+          value={value}
+          name="time_range"
+          onChange={handleTimeRangeChange}
+        />
+      </ControlContainer>
     </TimeFilterStyles>
   );
 }

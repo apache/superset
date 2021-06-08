@@ -16,19 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export default function injectCustomCss(css) {
+
+function createStyleElement(className: string) {
+  const style = document.createElement('style');
+  style.className = className;
+  style.type = 'text/css';
+  return style;
+}
+
+// The original, non-typescript code referenced `style.styleSheet`.
+// I can't find what sort of element would have a styleSheet property,
+// so have created this type to satisfy TS without changing behavior.
+type MysteryStyleElement = {
+  styleSheet: {
+    cssText: string;
+  };
+};
+
+export default function injectCustomCss(css: string) {
   const className = 'CssEditor-css';
   const head = document.head || document.getElementsByTagName('head')[0];
-  let style = document.querySelector(`.${className}`);
+  const style: HTMLStyleElement =
+    document.querySelector(`.${className}`) || createStyleElement(className);
 
-  if (!style) {
-    style = document.createElement('style');
-    style.className = className;
-    style.type = 'text/css';
-  }
-
-  if (style.styleSheet) {
-    style.styleSheet.cssText = css;
+  if ('styleSheet' in style) {
+    (style as MysteryStyleElement).styleSheet.cssText = css;
   } else {
     style.innerHTML = css;
   }
@@ -45,4 +57,8 @@ export default function injectCustomCss(css) {
    */
 
   head.appendChild(style);
+
+  return function removeCustomCSS() {
+    style.remove();
+  };
 }
