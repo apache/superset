@@ -26,6 +26,7 @@ import React, {
 import Alert from 'src/components/Alert';
 import { SupersetClient, t, styled } from '@superset-ui/core';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
+import { ServerPagination, SortByType } from 'src/components/TableView/types';
 import StyledModal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -104,6 +105,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
 }) => {
   const [filter, setFilter] = useState<any>(undefined);
   const [pageIndex, setPageIndex] = useState<number>(0);
+  const [sortBy, setSortBy] = useState<SortByType>(DATASET_SORT_BY);
   const [confirmChange, setConfirmChange] = useState(false);
   const [confirmedDataset, setConfirmedDataset] = useState<Datasource>();
   const searchRef = useRef<AntdInput>(null);
@@ -118,17 +120,17 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     setConfirmedDataset(datasource);
   }, []);
 
-  const fetchDataPayload = {
+  const fetchDatasetPayload = {
     pageIndex,
     pageSize: DATASET_PAGE_SIZE,
     filters: [],
-    sortBy: DATASET_SORT_BY,
+    sortBy,
   };
 
   useDebouncedEffect(
     () => {
       fetchData({
-        ...fetchDataPayload,
+        ...fetchDatasetPayload,
         ...(filter && {
           filters: [
             {
@@ -141,7 +143,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       });
     },
     SLOW_DEBOUNCE,
-    [filter, pageIndex],
+    [filter, pageIndex, sortBy],
   );
 
   useEffect(() => {
@@ -215,6 +217,14 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     return data;
   };
 
+  const onServerPagination = (args: ServerPagination) => {
+    setPageIndex(args.pageIndex);
+    if (args.sortBy) {
+      // ensure default sort by
+      setSortBy(args.sortBy.length > 0 ? args.sortBy : DATASET_SORT_BY);
+    }
+  };
+
   return (
     <StyledModal
       show={show}
@@ -270,11 +280,12 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
                 data={renderTableView()}
                 pageSize={DATASET_PAGE_SIZE}
                 initialPageIndex={pageIndex}
+                initialSortBy={sortBy}
                 totalCount={resourceCount}
-                onGotoPage={page => setPageIndex(page)}
+                onServerPagination={onServerPagination}
                 className="table-condensed"
                 emptyWrapperType={EmptyWrapperType.Small}
-                manualPagination
+                serverPagination
                 isPaginationSticky
                 scrollTable
               />

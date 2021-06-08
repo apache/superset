@@ -17,11 +17,12 @@
  * under the License.
  */
 import React, { useEffect } from 'react';
+import isEqual from 'lodash/isEqual';
 import { styled, t } from '@superset-ui/core';
 import { useFilters, usePagination, useSortBy, useTable } from 'react-table';
 import { Empty } from 'src/common/components';
 import { TableCollection, Pagination } from 'src/components/dataViewCommon';
-import { SortColumns } from './types';
+import { SortByType, ServerPagination } from './types';
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -35,10 +36,10 @@ export interface TableViewProps {
   data: any[];
   pageSize?: number;
   totalCount?: number;
-  manualPagination?: boolean;
-  onGotoPage?: (page: number) => void;
+  serverPagination?: boolean;
+  onServerPagination?: (args: ServerPagination) => void;
   initialPageIndex?: number;
-  initialSortBy?: SortColumns;
+  initialSortBy?: SortByType;
   loading?: boolean;
   withPagination?: boolean;
   emptyWrapperType?: EmptyWrapperType;
@@ -103,8 +104,8 @@ const TableView = ({
   emptyWrapperType = EmptyWrapperType.Default,
   noDataText,
   showRowCount = true,
-  manualPagination = false,
-  onGotoPage = () => {},
+  serverPagination = false,
+  onServerPagination = () => {},
   ...props
 }: TableViewProps) => {
   const initialState = {
@@ -122,13 +123,14 @@ const TableView = ({
     prepareRow,
     pageCount,
     gotoPage,
-    state: { pageIndex, pageSize },
+    state: { pageIndex, pageSize, sortBy },
   } = useTable(
     {
       columns,
       data,
       initialState,
-      manualPagination,
+      manualPagination: serverPagination,
+      manualSortBy: serverPagination,
       pageCount: Math.ceil(totalCount / initialState.pageSize),
     },
     useFilters,
@@ -137,10 +139,21 @@ const TableView = ({
   );
 
   useEffect(() => {
-    if (manualPagination && pageIndex !== initialState.pageIndex) {
-      onGotoPage(pageIndex);
+    if (serverPagination && pageIndex !== initialState.pageIndex) {
+      onServerPagination({
+        pageIndex,
+      });
     }
   }, [pageIndex]);
+
+  useEffect(() => {
+    if (serverPagination && !isEqual(sortBy, initialState.sortBy)) {
+      onServerPagination({
+        pageIndex: 0,
+        sortBy,
+      });
+    }
+  }, [sortBy]);
 
   const content = withPagination ? page : rows;
 
