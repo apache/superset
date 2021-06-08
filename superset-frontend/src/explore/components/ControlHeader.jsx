@@ -98,7 +98,6 @@ export default class ControlHeader extends React.Component {
             css={{
               marginBottom: 0,
               position: 'relative',
-              whiteSpace: 'nowrap',
             }}
           >
             {this.props.leftNode && <span>{this.props.leftNode}</span>}
