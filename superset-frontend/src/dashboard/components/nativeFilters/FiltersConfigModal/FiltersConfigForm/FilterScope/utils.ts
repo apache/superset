@@ -45,7 +45,11 @@ export const buildTree = (
   ) {
     const currentTreeItem = {
       key: node.id,
-      title: node.meta.sliceName || node.meta.text || node.id.toString(),
+      title:
+        node.meta.sliceNameOverride ||
+        node.meta.sliceName ||
+        node.meta.text ||
+        node.id.toString(),
       children: [],
     };
     treeItem.children.push(currentTreeItem);
