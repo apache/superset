@@ -21,11 +21,17 @@ import { buildQueryContext, getMetricLabel, QueryFormData } from '@superset-ui/c
 export default function buildQuery(formData: QueryFormData) {
   return buildQueryContext(formData, baseQueryObject => {
     const metricLabels = (baseQueryObject.metrics || []).map(getMetricLabel);
+    const { timeseries_limit_metric, order_desc, orderby } = baseQueryObject;
     return [
       {
         ...baseQueryObject,
         groupby: formData.groupby || [],
         is_timeseries: true,
+        orderby: orderby?.length
+          ? orderby
+          : timeseries_limit_metric
+          ? [[timeseries_limit_metric, !order_desc]]
+          : [],
         post_processing: [
           {
             operation: 'pivot',
