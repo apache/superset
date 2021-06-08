@@ -16,18 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FormEvent, useEvent } from 'react';
+import React, { FormEvent } from 'react';
 import { SupersetTheme, JsonObject, t } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
 import { Switch, Select, Button } from 'src/common/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import { DeleteFilled } from '@ant-design/icons';
+import Label from 'src/components/Label';
 import {
   formScrollableStyles,
   validatedFormStyles,
   CredentialInfoForm,
-  StyledFormHeader,
   toggleStyle,
   infoTooltip,
 } from './styles';
@@ -49,8 +49,12 @@ export const FormFieldOrder = [
   'credentials_info',
 ];
 
+const selectedFile = document.getElementById('selectedFile');
+
 interface FieldPropTypes {
   required: boolean;
+  onParametersChange: (value: any) => string;
+  onParametersUploadFileChange: (value: any) => string;
   changeMethods: { onParametersChange: (value: any) => string } & {
     onChange: (value: any) => string;
   } & { onParametersUploadFileChange: (value: any) => string };
@@ -59,92 +63,96 @@ interface FieldPropTypes {
   db?: DatabaseObject;
   isEditMode?: boolean;
   sslForced?: boolean;
+  uploadOption?: string | null;
+  setUploadOption: (obj: any) => void;
+  fileToUpload?: string;
+  setFileToUpload: (obj: any) => void;
 }
 
 const credentialsInfo = ({
-  required,
   changeMethods,
-  getValidation,
-  validationErrors,
-}: FieldPropTypes) => {
-  const [uploadOption, setUploadOption] = useState<string>('upload');
-  const [fileToUpload, setFileToUpload] = useState<string>(null);
-  return (
-    <CredentialInfoForm>
-      <label className="label-select">
-        How do you want to enter service account credentials?
-      </label>
-      <Select
-        defaultValue={CredentialInfoOptions.jsonUpload}
-        style={{ width: '100%' }}
-        onChange={setUploadOption}
-      >
-        <Select.Option value={CredentialInfoOptions.jsonUpload}>
-          Upload JSON file
-        </Select.Option>
-        <Select.Option value={CredentialInfoOptions.copyPaste}>
-          Copy and Paste JSON credentials
-        </Select.Option>
-      </Select>
-      {uploadOption === 'paste' ? (
-        <div className="input-container" onChange={changeMethods.onChange}>
-          <span className="label-select">Service Account</span>
-          <textarea className="input-form" name="encrypted_extra" />
-          <span className="label-paste">
-            Copy and paste the entire service account .json file here
-          </span>
-        </div>
-      ) : (
-        <div className="input-container">
-          <span className="label-select">Upload Credentials</span>
-          {!fileToUpload && (
-            <Button
-              className="input-upload-btn"
-              onClick={() => document.getElementById('selectedFile').click()}
-            >
-              Choose File
-            </Button>
-          )}
-          {fileToUpload && (
-            <div className="input-upload-current">
-              {fileToUpload}
-              <DeleteFilled
-                onClick={() => {
-                  setFileToUpload(null);
-                  changeMethods.onParametersChange({
-                    target: {
-                      name: 'encrypted_extra',
-                      value: '',
-                    },
-                  });
-                }}
-              />
-            </div>
-          )}
+  uploadOption,
+  setUploadOption,
+  fileToUpload,
+  setFileToUpload,
+}: FieldPropTypes) => (
+  <CredentialInfoForm>
+    <Label className="label-select">
+      How do you want to enter service account credentials?
+    </Label>
+    <Select
+      defaultValue={CredentialInfoOptions.jsonUpload}
+      style={{ width: '100%' }}
+      onChange={setUploadOption}
+    >
+      <Select.Option value={CredentialInfoOptions.jsonUpload}>
+        Upload JSON file
+      </Select.Option>
+      <Select.Option value={CredentialInfoOptions.copyPaste}>
+        Copy and Paste JSON credentials
+      </Select.Option>
+    </Select>
+    {uploadOption === 'paste' ? (
+      <div className="input-container" onChange={changeMethods.onChange}>
+        <span className="label-select">Service Account</span>
+        <textarea className="input-form" name="encrypted_extra" />
+        <span className="label-paste">
+          Copy and paste the entire service account .json file here
+        </span>
+      </div>
+    ) : (
+      <div className="input-container">
+        <span className="label-select">Upload Credentials</span>
+        {!fileToUpload && (
+          <Button
+            className="input-upload-btn"
+            onClick={() => selectedFile?.click()}
+          >
+            Choose File
+          </Button>
+        )}
+        {fileToUpload && (
+          <div className="input-upload-current">
+            {fileToUpload}
+            <DeleteFilled
+              onClick={() => {
+                setFileToUpload(null);
+                changeMethods.onParametersChange({
+                  target: {
+                    name: 'encrypted_extra',
+                    value: '',
+                  },
+                });
+              }}
+            />
+          </div>
+        )}
 
-          <input
-            id="selectedFile"
-            className="input-upload"
-            type="file"
-            onChange={async event => {
-              const file = event?.target?.files[0];
-              setFileToUpload(file.name);
-              changeMethods.onParametersChange({
-                target: {
-                  type: null,
-                  name: 'encrypted_extra',
-                  value: await file.text(),
-                  checked: false,
-                },
-              });
-              document.getElementById('selectedFile').value = null;
-            }}
-          />
-        </div>
-      )}
-    </CredentialInfoForm>
-  );
-};
+        <input
+          id="selectedFile"
+          className="input-upload"
+          type="file"
+          onChange={async event => {
+            let file;
+            if (event.target.files) {
+              file = event.target.files[0];
+            }
+            setFileToUpload(file?.name);
+            changeMethods.onParametersChange({
+              target: {
+                type: null,
+                name: 'encrypted_extra',
+                value: await file?.text(),
+                checked: false,
+              },
+            });
+            (selectedFile as HTMLInputElement).value = '';
+          }}
+        />
+      </div>
+    )}
+  </CredentialInfoForm>
+);
 
 const hostField = ({
   required,
@@ -306,7 +314,7 @@ const FORM_FIELD_MAP = {
 };
 
 const DatabaseConnectionForm = ({
-  dbModel: { name, parameters },
+  dbModel: { parameters },
   onParametersChange,
   onChange,
   onParametersUploadFileChange,
@@ -315,7 +323,15 @@ const DatabaseConnectionForm = ({
   db,
   isEditMode = false,
   sslForced,
+  uploadOption,
+  setUploadOption,
+  fileToUpload,
+  setFileToUpload,
 }: {
+  uploadOption: string;
+  setUploadOption: (obj: string) => void;
+  fileToUpload: string | null;
+  setFileToUpload: (obj: string | null) => void;
   isEditMode?: boolean;
   sslForced: boolean;
   dbModel: DatabaseForm;
@@ -326,21 +342,13 @@ const DatabaseConnectionForm = ({
   onChange: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
-  onParametersUploadFileChange: (
+  onParametersUploadFileChange?: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
   validationErrors: JsonObject | null;
   getValidation: () => void;
 }) => (
   <>
-    {!isEditMode && (
-      <StyledFormHeader>
-        <h4>Enter the required {name} credentials</h4>
-        <p className="helper">
-          Need help? Learn more about connecting to {name}.
-        </p>
-      </StyledFormHeader>
-    )}
     <div
       // @ts-ignore
       css={(theme: SupersetTheme) => [
@@ -367,6 +375,10 @@ const DatabaseConnectionForm = ({
             key: field,
             isEditMode,
             sslForced,
+            uploadOption,
+            setUploadOption,
+            fileToUpload,
+            setFileToUpload,
           }),
         )}
     </div>

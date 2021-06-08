@@ -47,6 +47,7 @@ import {
   DatabaseForm,
   CONFIGURATION_METHOD,
 } from 'src/views/CRUD/data/database/types';
+import Label from 'src/components/Label';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
@@ -232,6 +233,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     t('database'),
     addDangerToast,
   );
+  const [uploadOption, setUploadOption] = useState<string>('upload');
+  const [fileToUpload, setFileToUpload] = useState<string | null>(null);
+
+  const dbModel: DatabaseForm =
+    availableDbs?.databases?.find(
+      (available: { engine: string | undefined }) =>
+        // TODO: we need a centralized engine in one place
+        available.engine === db?.engine || db?.backend,
+    ) || {};
 
   // Test Connection logic
   const testConnection = () => {
@@ -365,6 +375,65 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     </div>
   );
 
+  const renderModalHeader = () => {
+    if (isEditMode) {
+      return (
+        <>
+          <EditHeaderTitle>{db?.backend}</EditHeaderTitle>
+          <EditHeaderSubtitle>{dbName}</EditHeaderSubtitle>
+        </>
+      );
+    }
+    if (useSqlAlchemyForm) {
+      return (
+        <>
+          <p className="helper"> Step 2 of 2 </p>
+          <CreateHeaderTitle>Enter Primary Credentials</CreateHeaderTitle>
+          <CreateHeaderSubtitle>
+            Need help? Learn how to connect your database{' '}
+            <a
+              href={DOCUMENTATION_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              here
+            </a>
+            .
+          </CreateHeaderSubtitle>
+        </>
+      );
+    }
+    if (!isLoading && !db) {
+      return (
+        <StyledFormHeader>
+          <div className="select-db">
+            <p className="helper"> Step 1 of 3 </p>
+            <h4>Select a database to connect</h4>
+          </div>
+        </StyledFormHeader>
+      );
+    }
+    if (!isEditMode && db && !isLoading && !hasConnectedDb) {
+      return (
+        <StyledFormHeader>
+          <p className="helper"> Step 2 of 3 </p>
+          <h4>Enter the required {dbModel.name} credentials</h4>
+          <p className="helper">
+            Need help? Learn more about connecting to {dbModel.name}.
+          </p>
+        </StyledFormHeader>
+      );
+    }
+    if (hasConnectedDb) {
+      return (
+        <StyledFormHeader>
+          <p className="helper"> Step 3 of 3 </p>
+        </StyledFormHeader>
+      );
+    }
+    return <></>;
+  };
+
   const renderModalFooter = () =>
     db // if db show back + connect
       ? [
@@ -419,13 +488,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setTabKey(key);
   };
 
-  const dbModel: DatabaseForm =
-    availableDbs?.databases?.find(
-      (available: { engine: string | undefined }) =>
-        // TODO: we need a centralized engine in one place
-        available.engine === db?.engine || db?.backend,
-    ) || {};
-
   return useTabLayout ? (
     <Modal
       css={(theme: SupersetTheme) => [
@@ -447,31 +509,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
       footer={renderModalFooter()}
     >
-      {isEditMode && (
-        <TabHeader>
-          <EditHeaderTitle>{db?.backend}</EditHeaderTitle>
-          <EditHeaderSubtitle>{dbName}</EditHeaderSubtitle>
-        </TabHeader>
-      )}
-      {/* Show Legacy Header */}
-      {useSqlAlchemyForm && (
-        <TabHeader>
-          <p className="helper"> Step 2 of 2 </p>
-          <CreateHeaderTitle>Enter Primary Credentials</CreateHeaderTitle>
-          <CreateHeaderSubtitle>
-            Need help? Learn how to connect your database{' '}
-            <a
-              href={DOCUMENTATION_LINK}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              here
-            </a>
-            .
-          </CreateHeaderSubtitle>
-        </TabHeader>
-      )}
-      {/* Add styled header here when not in edit mode */}
+      <TabHeader>{renderModalHeader()}</TabHeader>
       <hr />
       <Tabs
         defaultActiveKey={DEFAULT_TAB_KEY}
@@ -516,6 +554,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               }
               getValidation={() => getValidation(db)}
               validationErrors={validationErrors}
+              uploadOption={uploadOption}
+              setUploadOption={setUploadOption}
+              fileToUpload={fileToUpload}
+              setFileToUpload={setFileToUpload}
             />
           )}
           {!isEditMode && (
@@ -585,37 +627,35 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       footer={renderModalFooter()}
     >
       {hasConnectedDb ? (
-        <ExtraOptions
-          db={db as DatabaseObject}
-          onInputChange={({ target }: { target: HTMLInputElement }) =>
-            onChange(ActionType.inputChange, {
-              type: target.type,
-              name: target.name,
-              checked: target.checked,
-              value: target.value,
-            })
-          }
-          onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
-            onChange(ActionType.textChange, {
-              name: target.name,
-              value: target.value,
-            })
-          }
-          onEditorChange={(payload: { name: string; json: any }) =>
-            onChange(ActionType.editorChange, payload)
-          }
-        />
+        <>
+          {renderModalHeader()}
+          <ExtraOptions
+            db={db as DatabaseObject}
+            onInputChange={({ target }: { target: HTMLInputElement }) =>
+              onChange(ActionType.inputChange, {
+                type: target.type,
+                name: target.name,
+                checked: target.checked,
+                value: target.value,
+              })
+            }
+            onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
+              onChange(ActionType.textChange, {
+                name: target.name,
+                value: target.value,
+              })
+            }
+            onEditorChange={(payload: { name: string; json: any }) =>
+              onChange(ActionType.editorChange, payload)
+            }
+          />
+        </>
       ) : (
         <>
           {/* Step 1 */}
           {!isLoading && !db && (
             <SelectDatabaseStyles>
-              <StyledFormHeader>
-                <div className="select-db">
-                  <p className="helper"> Step 1 of 3 </p>
-                  <h4>Select a database to connect</h4>
-                </div>
-              </StyledFormHeader>
+              {renderModalHeader()}
               {renderPreferredSelector()}
               {renderAvailableSelector()}
             </SelectDatabaseStyles>
@@ -625,6 +665,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           {/* Step 2 */}
           {!isLoading && db && (
             <>
+              {renderModalHeader()}
               <DatabaseConnectionForm
                 db={db}
                 sslForced={sslForced}
@@ -649,6 +690,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 }
                 getValidation={() => getValidation(db)}
                 validationErrors={validationErrors}
+                uploadOption={uploadOption}
+                setUploadOption={setUploadOption}
+                fileToUpload={fileToUpload}
+                setFileToUpload={setFileToUpload}
               />
 
               <Button

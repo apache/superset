@@ -405,8 +405,6 @@ export const CredentialInfoForm = styled.div`
   }`;
 
 export const SelectDatabaseStyles = styled.div`
-  margin: 0 ${({ theme }) => theme.gridUnit * 8}px;
-
   .preferred {
     display: flex;
     flex-wrap: wrap;
