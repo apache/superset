@@ -149,8 +149,9 @@ const datasourceControl: SharedControlConfig<'DatasourceControl'> = {
   label: t('Datasource'),
   default: null,
   description: null,
-  mapStateToProps: ({ datasource }) => ({
+  mapStateToProps: ({ datasource, form_data }) => ({
     datasource,
+    form_data,
   }),
 };
 
