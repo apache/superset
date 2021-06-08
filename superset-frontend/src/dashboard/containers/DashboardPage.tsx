@@ -26,7 +26,6 @@ import {
   useDashboardDatasets,
 } from 'src/common/hooks/apiResources';
 import { ResourceStatus } from 'src/common/hooks/apiResources/apiResources';
-import { usePrevious } from 'src/common/hooks/usePrevious';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 
@@ -42,14 +41,10 @@ const DashboardContainer = React.lazy(
 const DashboardPage: FC = () => {
   const dispatch = useDispatch();
   const { idOrSlug } = useParams<{ idOrSlug: string }>();
-  const [isLoaded, setLoaded] = useState(false);
+  const [isHydrated, setHydrated] = useState(false);
   const dashboardResource = useDashboard(idOrSlug);
   const chartsResource = useDashboardCharts(idOrSlug);
   const datasetsResource = useDashboardDatasets(idOrSlug);
-  const isLoading = [dashboardResource, chartsResource, datasetsResource].some(
-    resource => resource.status === ResourceStatus.LOADING,
-  );
-  const wasLoading = usePrevious(isLoading);
   const error = [dashboardResource, chartsResource, datasetsResource].find(
     resource => resource.status === ResourceStatus.ERROR,
   )?.error;
@@ -57,16 +52,22 @@ const DashboardPage: FC = () => {
   useEffect(() => {
     if (dashboardResource.result) {
       document.title = dashboardResource.result.dashboard_title;
+      if (dashboardResource.result.css) {
+        // returning will clean up custom css
+        // when dashboard unmounts or changes
+        return injectCustomCss(dashboardResource.result.css);
+      }
     }
+    return () => {};
   }, [dashboardResource.result]);
 
+  const shouldBeHydrated =
+    dashboardResource.status === ResourceStatus.COMPLETE &&
+    chartsResource.status === ResourceStatus.COMPLETE &&
+    datasetsResource.status === ResourceStatus.COMPLETE;
+
   useEffect(() => {
-    if (
-      wasLoading &&
-      dashboardResource.status === ResourceStatus.COMPLETE &&
-      chartsResource.status === ResourceStatus.COMPLETE &&
-      datasetsResource.status === ResourceStatus.COMPLETE
-    ) {
+    if (shouldBeHydrated) {
       dispatch(
         hydrateDashboard(
           dashboardResource.result,
@@ -74,20 +75,13 @@ const DashboardPage: FC = () => {
           datasetsResource.result,
         ),
       );
-      injectCustomCss(dashboardResource.result.css);
-      setLoaded(true);
+      setHydrated(true);
     }
-  }, [
-    dispatch,
-    wasLoading,
-    dashboardResource,
-    chartsResource,
-    datasetsResource,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldBeHydrated]);
 
   if (error) throw error; // caught in error boundary
-
-  if (!isLoaded) return <Loading />;
+  if (!isHydrated) return <Loading />;
   return <DashboardContainer />;
 };
 
