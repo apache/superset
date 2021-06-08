@@ -84,7 +84,6 @@ class TestSqlLab(SupersetTestCase):
         self.assertLess(0, len(data["data"]))
 
         data = self.run_sql("SELECT * FROM unexistant_table", "2")
-        print(data)
         assert (
             data["errors"][0]["error_type"] == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
         )
