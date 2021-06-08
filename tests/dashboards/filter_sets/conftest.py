@@ -152,7 +152,7 @@ def dashboard() -> Generator[Dashboard, None, None]:
     try:
         with app.app_context() as ctx:
             dashboard_owner_user = security_manager.find_user(DASHBOARD_OWNER_USERNAME)
-            database = create_database("test_database")
+            database = create_database("test_database_filter_sets")
             datasource = create_datasource_table(
                 name="test_datasource", database=database, owners=[dashboard_owner_user]
             )
