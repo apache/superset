@@ -93,6 +93,10 @@ const StyledTabsContainer = styled.div`
   .ant-tabs {
     overflow: visible;
 
+    .ant-tabs-nav-wrap {
+      min-height: ${({ theme }) => theme.gridUnit * 12.5}px;
+    }
+
     .ant-tabs-content-holder {
       overflow: visible;
     }

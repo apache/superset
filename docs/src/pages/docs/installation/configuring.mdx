@@ -113,6 +113,8 @@ RequestHeader set X-Forwarded-Proto "https"
 Beyond FAB supported providers (Github, Twitter, LinkedIn, Google, Azure, etc), its easy to connect
 Superset with other OAuth2 Authorization Server implementations that support “code” authorization.
 
+Make sure the pip package [`Authlib`](https://authlib.org/) is installed on the webserver.
+
 First, configure authorization in Superset `superset_config.py`.
 
 ```python
@@ -174,6 +176,10 @@ This file must be located at the same directory than `superset_config.py` with t
 from custom_sso_security_manager import CustomSsoSecurityManager
 CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
 ```
+
+Notice that the redirect URL will be `https://<superset-webserver>/oauth-authorized/<provider-name>`
+When configuring an OAuth2 authorization provider if needed. For instance, the redirect URL will
+be `https://<superset-webserver>/oauth-authorized/egaSSO` for the above configuration.
 
 ### Feature Flags
 

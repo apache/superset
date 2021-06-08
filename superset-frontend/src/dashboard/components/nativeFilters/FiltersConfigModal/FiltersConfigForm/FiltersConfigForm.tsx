@@ -443,6 +443,7 @@ const FiltersConfigForm = (
         filterId,
         filterType: formFilter.filterType,
         filterToEdit,
+        formFilter,
       })
     : {};
 
@@ -592,6 +593,7 @@ const FiltersConfigForm = (
           expandIconPosition="right"
         >
           <Collapse.Panel
+            forceRender
             header={FilterPanels.basic.name}
             key={FilterPanels.basic.key}
           >
@@ -625,7 +627,11 @@ const FiltersConfigForm = (
                   {
                     validator: (rule, value) => {
                       const hasValue = !!value.filterState?.value;
-                      if (hasValue) {
+                      if (
+                        hasValue ||
+                        // TODO: do more generic
+                        formFilter.controlValues?.defaultToFirstItem
+                      ) {
                         return Promise.resolve();
                       }
                       return Promise.reject(
@@ -673,6 +679,7 @@ const FiltersConfigForm = (
           </Collapse.Panel>
           {((hasDataset && hasAdditionalFilters) || hasMetrics) && (
             <Collapse.Panel
+              forceRender
               header={FilterPanels.advanced.name}
               key={FilterPanels.advanced.key}
             >

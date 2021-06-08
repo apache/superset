@@ -18,7 +18,7 @@
  */
 
 /* eslint-disable no-param-reassign */
-import { HandlerFunction, styled, t } from '@superset-ui/core';
+import { DataMask, HandlerFunction, styled, t } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import cx from 'classnames';
@@ -26,11 +26,7 @@ import Icon from 'src/components/Icon';
 import { Tabs } from 'src/common/components';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { updateDataMask } from 'src/dataMask/actions';
-import {
-  DataMaskState,
-  DataMaskStateWithId,
-  DataMaskWithId,
-} from 'src/dataMask/types';
+import { DataMaskStateWithId, DataMaskWithId } from 'src/dataMask/types';
 import { useImmer } from 'use-immer';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { testWithId } from 'src/utils/testUtils';
@@ -178,10 +174,21 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   const handleFilterSelectionChange = (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
-    dataMask: Partial<DataMaskState>,
+    dataMask: Partial<DataMask>,
   ) => {
     setIsFilterSetChanged(tab !== TabIds.AllFilters);
     setDataMaskSelected(draft => {
+      // force instant updating on initialization for filters with `requiredFirst` is true or instant filters
+      if (
+        (dataMaskSelected[filter.id] && filter.isInstant) ||
+        // filterState.value === undefined - means that value not initialized
+        (dataMask.filterState?.value !== undefined &&
+          dataMaskSelected[filter.id]?.filterState?.value === undefined &&
+          filter.requiredFirst)
+      ) {
+        dispatch(updateDataMask(filter.id, dataMask));
+      }
+
       draft[filter.id] = {
         ...(getInitialDataMask(filter.id) as DataMaskWithId),
         ...dataMask,

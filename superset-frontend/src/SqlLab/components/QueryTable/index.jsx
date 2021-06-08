@@ -88,6 +88,14 @@ const statusAttributes = {
       status: 'running',
     },
   },
+  fetching: {
+    color: ({ theme }) => theme.colors.primary.base,
+    config: {
+      name: 'queued',
+      label: t('fetching'),
+      status: 'fetching',
+    },
+  },
   timed_out: {
     color: ({ theme }) => theme.colors.grayscale.light1,
     config: {
@@ -97,14 +105,20 @@ const statusAttributes = {
     },
   },
   scheduled: {
-    name: 'queued',
-    label: t('Scheduled'),
-    status: 'queued',
+    color: ({ theme }) => theme.colors.greyscale.base,
+    config: {
+      name: 'queued',
+      label: t('Scheduled'),
+      status: 'queued',
+    },
   },
   pending: {
-    name: 'queued',
-    label: t('Scheduled'),
-    status: 'queued',
+    color: ({ theme }) => theme.colors.greyscale.base,
+    config: {
+      name: 'queued',
+      label: t('Scheduled'),
+      status: 'queued',
+    },
   },
 };
 
