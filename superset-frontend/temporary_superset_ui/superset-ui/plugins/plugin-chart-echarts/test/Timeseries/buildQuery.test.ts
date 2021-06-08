@@ -33,4 +33,33 @@ describe('Timeseries buildQuery', () => {
     expect(query.groupby).toEqual(['foo']);
     expect(query.metrics).toEqual(['bar', 'baz']);
   });
+
+  it('should order by timeseries limit if orderby unspecified', () => {
+    const queryContext = buildQuery({
+      ...formData,
+      timeseries_limit_metric: 'bar',
+      order_desc: true,
+    });
+    const [query] = queryContext.queries;
+    expect(query.groupby).toEqual(['foo']);
+    expect(query.metrics).toEqual(['bar', 'baz']);
+    expect(query.timeseries_limit_metric).toEqual('bar');
+    expect(query.order_desc).toEqual(true);
+    expect(query.orderby).toEqual([['bar', false]]);
+  });
+
+  it('should not order by timeseries limit if orderby provided', () => {
+    const queryContext = buildQuery({
+      ...formData,
+      timeseries_limit_metric: 'bar',
+      order_desc: true,
+      orderby: [['foo', true]],
+    });
+    const [query] = queryContext.queries;
+    expect(query.groupby).toEqual(['foo']);
+    expect(query.metrics).toEqual(['bar', 'baz']);
+    expect(query.timeseries_limit_metric).toEqual('bar');
+    expect(query.order_desc).toEqual(true);
+    expect(query.orderby).toEqual([['foo', true]]);
+  });
 });

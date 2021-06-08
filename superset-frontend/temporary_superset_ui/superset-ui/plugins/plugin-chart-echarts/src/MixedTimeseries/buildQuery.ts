@@ -60,6 +60,7 @@ export default function buildQuery(formData: QueryFormData) {
       {
         ...baseQueryObject,
         is_timeseries: true,
+        orderby: timeseries_limit_metric ? [[timeseries_limit_metric, !order_desc]] : [],
         post_processing: [
           {
             operation: 'pivot',
@@ -82,6 +83,7 @@ export default function buildQuery(formData: QueryFormData) {
       {
         ...baseQueryObject,
         is_timeseries: true,
+        orderby: timeseries_limit_metric_b ? [[timeseries_limit_metric_b, !order_desc_b]] : [],
         post_processing: [
           {
             operation: 'pivot',
