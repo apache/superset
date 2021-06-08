@@ -27,10 +27,10 @@ revision = "27ae655e4247"
 down_revision = "d8bc074f7aad"
 
 from alembic import op
+from flask import g
 from flask_appbuilder import Model
-from flask_appbuilder.models.mixins import AuditMixin
 from sqlalchemy import Column, ForeignKey, Integer, Table
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import relationship
 
 from superset import db
@@ -60,6 +60,29 @@ dashboard_user = Table(
     Column("user_id", Integer, ForeignKey("ab_user.id")),
     Column("dashboard_id", Integer, ForeignKey("dashboards.id")),
 )
+
+
+class AuditMixin:
+    @classmethod
+    def get_user_id(cls):
+        try:
+            return g.user.id
+        except Exception:
+            return None
+
+    @declared_attr
+    def created_by_fk(cls):
+        return Column(
+            Integer, ForeignKey("ab_user.id"), default=cls.get_user_id, nullable=False
+        )
+
+    @declared_attr
+    def created_by(cls):
+        return relationship(
+            "User",
+            primaryjoin="%s.created_by_fk == User.id" % cls.__name__,
+            enable_typechecks=False,
+        )
 
 
 class Slice(Base, AuditMixin):
