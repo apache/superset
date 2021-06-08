@@ -19,7 +19,7 @@
 import urllib.request
 from io import BytesIO
 from unittest import skipUnless
-from unittest.mock import patch
+from unittest.mock import ANY, call, patch
 
 from flask_testing import LiveServerTestCase
 from sqlalchemy.sql import func
@@ -29,7 +29,8 @@ from superset.extensions import machine_auth_provider_factory
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
-from superset.utils.urls import get_url_host
+from superset.utils.urls import get_url_host, get_url_path
+from superset.utils.webdriver import WebDriverProxy
 from tests.conftest import with_feature_flags
 from tests.test_app import app
 
@@ -59,6 +60,47 @@ class TestThumbnailsSeleniumLive(LiveServerTestCase):
                 f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/",
             )
             self.assertEqual(response.getcode(), 202)
+
+
+class TestWebDriverProxy(SupersetTestCase):
+    @patch("superset.utils.webdriver.WebDriverWait")
+    @patch("superset.utils.webdriver.firefox")
+    @patch("superset.utils.webdriver.sleep")
+    def test_screenshot_selenium_headstart(
+        self, mock_sleep, mock_webdriver, mock_webdriver_wait
+    ):
+        webdriver = WebDriverProxy("firefox")
+        user = security_manager.get_user_by_username(
+            app.config["THUMBNAIL_SELENIUM_USER"]
+        )
+        url = get_url_path("Superset.slice", slice_id=1, standalone="true")
+        app.config["SCREENSHOT_SELENIUM_HEADSTART"] = 5
+        webdriver.get_screenshot(url, "chart-container", user=user)
+        assert mock_sleep.call_args_list[0] == call(5)
+
+    @patch("superset.utils.webdriver.WebDriverWait")
+    @patch("superset.utils.webdriver.firefox")
+    def test_screenshot_selenium_locate_wait(self, mock_webdriver, mock_webdriver_wait):
+        app.config["SCREENSHOT_LOCATE_WAIT"] = 15
+        webdriver = WebDriverProxy("firefox")
+        user = security_manager.get_user_by_username(
+            app.config["THUMBNAIL_SELENIUM_USER"]
+        )
+        url = get_url_path("Superset.slice", slice_id=1, standalone="true")
+        webdriver.get_screenshot(url, "chart-container", user=user)
+        assert mock_webdriver_wait.call_args_list[0] == call(ANY, 15)
+
+    @patch("superset.utils.webdriver.WebDriverWait")
+    @patch("superset.utils.webdriver.firefox")
+    def test_screenshot_selenium_load_wait(self, mock_webdriver, mock_webdriver_wait):
+        app.config["SCREENSHOT_LOAD_WAIT"] = 15
+        webdriver = WebDriverProxy("firefox")
+        user = security_manager.get_user_by_username(
+            app.config["THUMBNAIL_SELENIUM_USER"]
+        )
+        url = get_url_path("Superset.slice", slice_id=1, standalone="true")
+        webdriver.get_screenshot(url, "chart-container", user=user)
+        assert mock_webdriver_wait.call_args_list[1] == call(ANY, 15)
 
 
 class TestThumbnails(SupersetTestCase):

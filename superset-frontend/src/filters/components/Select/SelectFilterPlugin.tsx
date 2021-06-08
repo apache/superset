@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* eslint-disable no-param-reassign */
 import {
   AppSection,
   DataMask,
+  DataRecord,
   ensureIsArray,
   ExtraFormData,
   GenericDataType,
@@ -27,10 +29,12 @@ import {
   t,
   tn,
 } from '@superset-ui/core';
-import React, { useCallback, useEffect, useReducer, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Select } from 'src/common/components';
 import debounce from 'lodash/debounce';
 import { SLOW_DEBOUNCE } from 'src/constants';
+import { useImmerReducer } from 'use-immer';
+import Icons from 'src/components/Icons';
 import { PluginFilterSelectProps, SelectValue } from './types';
 import { StyledSelect, Styles } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -41,40 +45,32 @@ type DataMaskAction =
   | { type: 'ownState'; ownState: JsonObject }
   | {
       type: 'filterState';
+      __cache: JsonObject;
       extraFormData: ExtraFormData;
-      filterState: { value: SelectValue };
+      filterState: { value: SelectValue; label?: string };
     };
 
-function reducer(state: DataMask, action: DataMaskAction): DataMask {
+function reducer(
+  draft: DataMask & { __cache?: JsonObject },
+  action: DataMaskAction,
+) {
   switch (action.type) {
     case 'ownState':
-      return {
-        ...state,
-        ownState: {
-          ...(state.ownState || {}),
-          ...action.ownState,
-        },
+      draft.ownState = {
+        ...draft.ownState,
+        ...action.ownState,
       };
+      return draft;
     case 'filterState':
-      return {
-        ...state,
-        extraFormData: action.extraFormData,
-        filterState: {
-          ...(state.filterState || {}),
-          ...action.filterState,
-        },
-      };
+      draft.extraFormData = action.extraFormData;
+      // eslint-disable-next-line no-underscore-dangle
+      draft.__cache = action.__cache;
+      draft.filterState = { ...draft.filterState, ...action.filterState };
+      return draft;
     default:
-      return {
-        ...state,
-      };
+      return draft;
   }
 }
-
-type DataMaskReducer = (
-  prevState: DataMask,
-  action: DataMaskAction,
-) => DataMask;
 
 export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const {
@@ -101,30 +97,72 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   } = formData;
   const groupby = ensureIsArray<string>(formData.groupby);
   const [col] = groupby;
-  const [currentSuggestionSearch, setCurrentSuggestionSearch] = useState('');
-  const [dataMask, dispatchDataMask] = useReducer<DataMaskReducer>(reducer, {
-    filterState,
-    ownState: {
-      coltypeMap,
-    },
-  });
-  const updateDataMask = (values: SelectValue) => {
-    const emptyFilter =
-      enableEmptyFilter && !inverseSelection && !values?.length;
-
-    dispatchDataMask({
-      type: 'filterState',
-      extraFormData: getSelectExtraFormData(
-        col,
-        values,
-        emptyFilter,
-        inverseSelection,
-      ),
-      filterState: {
-        value: values,
-      },
+  const [initialColtypeMap] = useState(coltypeMap);
+  const [selectedValues, setSelectedValues] = useState<SelectValue>(
+    filterState.value,
+  );
+  const sortedData = useMemo(() => {
+    const firstData: DataRecord[] = [];
+    const restData: DataRecord[] = [];
+    data.forEach(row => {
+      // @ts-ignore
+      if (selectedValues?.includes(row[col])) {
+        firstData.push(row);
+      } else {
+        restData.push(row);
+      }
     });
-  };
+    return [...firstData, ...restData];
+  }, [col, selectedValues, data]);
+  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const [currentSuggestionSearch, setCurrentSuggestionSearch] = useState('');
+  const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
+    extraFormData: {},
+    filterState,
+  });
+  const updateDataMask = useCallback(
+    (values: SelectValue) => {
+      const emptyFilter =
+        enableEmptyFilter && !inverseSelection && !values?.length;
+
+      const suffix =
+        inverseSelection && values?.length ? ` (${t('excluded')})` : '';
+
+      dispatchDataMask({
+        type: 'filterState',
+        __cache: filterState,
+        extraFormData: getSelectExtraFormData(
+          col,
+          values,
+          emptyFilter,
+          inverseSelection,
+        ),
+        filterState: {
+          label: `${(values || []).join(', ')}${suffix}`,
+          value:
+            appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem
+              ? undefined
+              : values,
+        },
+      });
+    },
+    [
+      appSection,
+      col,
+      defaultToFirstItem,
+      dispatchDataMask,
+      enableEmptyFilter,
+      inverseSelection,
+      JSON.stringify(filterState),
+    ],
+  );
+
+  useEffect(() => {
+    if (!isDropdownVisible) {
+      setSelectedValues(filterState.value);
+    }
+    updateDataMask(filterState.value);
+  }, [JSON.stringify(filterState.value)]);
 
   const isDisabled =
     appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem;
@@ -134,6 +172,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       dispatchDataMask({
         type: 'ownState',
         ownState: {
+          coltypeMap: initialColtypeMap,
           search: val,
         },
       });
@@ -154,6 +193,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       dispatchDataMask({
         type: 'ownState',
         ownState: {
+          coltypeMap: initialColtypeMap,
           search: null,
         },
       });
@@ -163,6 +203,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const handleBlur = () => {
     clearSuggestionSearch();
     unsetFocusedFilter();
+    setSelectedValues(filterState.value);
   };
 
   const datatype: GenericDataType = coltypeMap[col];
@@ -180,15 +221,19 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   };
 
   useEffect(() => {
-    const firstItem: SelectValue = data[0]
-      ? (groupby.map(col => data[0][col]) as string[])
-      : null;
-    if (isDisabled) {
+    if (defaultToFirstItem && filterState.value === undefined) {
+      // initialize to first value if set to default to first item
+      const firstItem: SelectValue = data[0]
+        ? (groupby.map(col => data[0][col]) as string[])
+        : null;
+      // firstItem[0] !== undefined for a case when groupby changed but new data still not fetched
+      // TODO: still need repopulate default value in config modal when column changed
+      if (firstItem && firstItem[0] !== undefined) {
+        updateDataMask(firstItem);
+      }
+    } else if (isDisabled) {
       // empty selection if filter is disabled
       updateDataMask(null);
-    } else if (!isDisabled && defaultToFirstItem && firstItem) {
-      // initialize to first value if set to default to first item
-      updateDataMask(firstItem);
     } else {
       // reset data mask based on filter state
       updateDataMask(filterState.value);
@@ -199,6 +244,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     defaultToFirstItem,
     enableEmptyFilter,
     inverseSelection,
+    updateDataMask,
+    data,
+    groupby,
+    JSON.stringify(filterState),
   ]);
 
   useEffect(() => {
@@ -209,6 +258,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     data.length === 0
       ? t('No data')
       : tn('%s option', '%s options', data.length, data.length);
+  const Icon = inverseSelection ? Icons.StopOutlined : Icons.CheckOutlined;
+
   return (
     <Styles height={height} width={width}>
       <StyledSelect
@@ -222,14 +273,16 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         onSearch={searchWrapper}
         onSelect={clearSuggestionSearch}
         onBlur={handleBlur}
+        onDropdownVisibleChange={setIsDropdownVisible}
         onFocus={setFocusedFilter}
         // @ts-ignore
         onChange={handleChange}
         ref={inputRef}
         loading={isRefreshing}
         maxTagCount={5}
+        menuItemSelectedIcon={<Icon iconSize="m" />}
       >
-        {data.map(row => {
+        {sortedData.map(row => {
           const [value] = groupby.map(col => row[col]);
           return (
             // @ts-ignore
@@ -243,7 +296,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             suggestion => suggestion === currentSuggestionSearch,
           ) && (
             <Option value={currentSuggestionSearch}>
-              {currentSuggestionSearch}
+              {`${t('Create "%s"', currentSuggestionSearch)}`}
             </Option>
           )}
       </StyledSelect>

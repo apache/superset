@@ -130,3 +130,24 @@ def test_database_parameters_schema_no_mixin(get_engine_specs):
                 )
             ]
         }
+
+
+@mock.patch("superset.databases.schemas.get_engine_specs")
+def test_database_parameters_schema_mixin_invalid_type(get_engine_specs):
+    get_engine_specs.return_value = {"dummy_engine": DummyEngine}
+    payload = {
+        "engine": "dummy_engine",
+        "configuration_method": ConfigurationMethod.DYNAMIC_FORM,
+        "parameters": {
+            "username": "username",
+            "password": "password",
+            "host": "localhost",
+            "port": "badport",
+            "database": "dbname",
+        },
+    }
+    schema = DummySchema()
+    try:
+        schema.load(payload)
+    except ValidationError as err:
+        assert err.messages == {"port": ["Not a valid integer."]}
