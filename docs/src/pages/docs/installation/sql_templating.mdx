@@ -137,13 +137,13 @@ and your coworker in the USA the following SQL Lab URL `www.example.com/superset
 **Skipping Cache**
 
 If you have enabled caching, you will need to chain the `{{ cache_key_wrapper() }}`
-function to avoid retreiving the
+function to avoid retrieving the
 same current_username or current_user_id for different users.
 
 Here's an example:
 
-- Skip cache when retreiving current user_id:  `{{ cache_key_wrapper(current_user_id()) }}`
-- Skip cache when retreiving current username: `{{ cache_key_wrapper(current_username()) }}`
+- Skip cache when retrieving current user_id:  `{{ cache_key_wrapper(current_user_id()) }}`
+- Skip cache when retrieving current username: `{{ cache_key_wrapper(current_username()) }}`
 
 **Filter Values**
 
