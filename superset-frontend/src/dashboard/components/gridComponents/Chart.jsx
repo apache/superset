@@ -87,7 +87,8 @@ const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
 );
 const OVERFLOWABLE_VIZ_TYPES = new Set(['filter_box']);
 const DEFAULT_HEADER_HEIGHT = 22;
-
+// superset backend supports upto a million rows
+const MAXIMUM_NUMBER_OF_ROWS_IN_CSV = 1000000;
 const ChartOverlay = styled.div`
   position: absolute;
   top: 0;
@@ -109,6 +110,7 @@ export default class Chart extends React.Component {
     this.handleFilterMenuClose = this.handleFilterMenuClose.bind(this);
     this.exploreChart = this.exploreChart.bind(this);
     this.exportCSV = this.exportCSV.bind(this);
+    this.exportFullCSV = this.exportFullCSV.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
     this.resize = this.resize.bind(this);
     this.setDescriptionRef = this.setDescriptionRef.bind(this);
@@ -225,16 +227,22 @@ export default class Chart extends React.Component {
     exploreChart(this.props.formData);
   }
 
-  exportCSV() {
+  exportCSV(isFullCSV = false) {
     this.props.logEvent(LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART, {
       slice_id: this.props.slice.slice_id,
       is_cached: this.props.isCached,
     });
     exportChart({
-      formData: this.props.formData,
+      formData: isFullCSV
+        ? { ...this.props.formData, row_limit: MAXIMUM_NUMBER_OF_ROWS_IN_CSV }
+        : this.props.formData,
       resultType: 'results',
       resultFormat: 'csv',
     });
+  }
+
+  exportFullCSV() {
+    this.exportCSV(true);
   }
 
   forceRefresh() {
@@ -320,6 +328,7 @@ export default class Chart extends React.Component {
           annotationQuery={chart.annotationQuery}
           exploreChart={this.exploreChart}
           exportCSV={this.exportCSV}
+          exportFullCSV={this.exportFullCSV}
           updateSliceName={updateSliceName}
           sliceName={sliceName}
           supersetCanExplore={supersetCanExplore}

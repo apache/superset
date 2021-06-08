@@ -40,6 +40,7 @@ type SliceHeaderProps = {
   forceRefresh?: () => void;
   exploreChart?: () => void;
   exportCSV?: () => void;
+  exportFullCSV?: () => void;
   editMode?: boolean;
   isFullSize?: boolean;
   annotationQuery?: object;
@@ -88,6 +89,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   supersetCanShare = false,
   supersetCanCSV = false,
   sliceCanEdit = false,
+  exportFullCSV,
   slice,
   componentId,
   dashboardId,
@@ -176,6 +178,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
               forceRefresh={forceRefresh}
               exploreChart={exploreChart}
               exportCSV={exportCSV}
+              exportFullCSV={exportFullCSV}
               supersetCanExplore={supersetCanExplore}
               supersetCanShare={supersetCanShare}
               supersetCanCSV={supersetCanCSV}

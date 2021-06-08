@@ -107,7 +107,7 @@ interface Props {
   forceRefresh: (sliceId: number, dashboardId: number) => void;
   exploreChart: (sliceId: number) => void;
   exportCSV: (sliceId: number) => void;
-  exportFullCSV: (sliceId: number) => void;
+  exportFullCSV?: (sliceId: number) => void;
   addSuccessToast: (message: string) => void;
   handleToggleFullSize: () => void;
 }
@@ -171,7 +171,9 @@ class SliceHeaderControls extends React.PureComponent<Props, State> {
         this.props.handleToggleFullSize();
         break;
       case MENU_KEYS.EXPORT_FULL_CSV:
-        this.props.exportFullCSV(this.props.slice.slice_id);
+        // eslint-disable-next-line no-unused-expressions
+        this.props.exportFullCSV &&
+          this.props.exportFullCSV(this.props.slice.slice_id);
         break;
       case MENU_KEYS.DOWNLOAD_AS_IMAGE: {
         // menu closes with a delay, we need to hide it manually,
@@ -207,6 +209,7 @@ class SliceHeaderControls extends React.PureComponent<Props, State> {
       supersetCanShare,
     } = this.props;
     const crossFilterItems = getChartMetadataRegistry().items;
+    const isTable = slice.viz_type === 'table';
     const isCrossFilter = Object.entries(crossFilterItems)
       // @ts-ignore
       .filter(([, { value }]) =>
@@ -309,7 +312,7 @@ class SliceHeaderControls extends React.PureComponent<Props, State> {
         {this.props.supersetCanCSV && (
           <Menu.Item key={MENU_KEYS.EXPORT_CSV}>{t('Export CSV')}</Menu.Item>
         )}
-        {this.props.supersetCanCSV && (
+        {this.props.supersetCanCSV && isTable && (
           <Menu.Item key={MENU_KEYS.EXPORT_FULL_CSV}>
             {t('Export Full CSV')}
           </Menu.Item>
