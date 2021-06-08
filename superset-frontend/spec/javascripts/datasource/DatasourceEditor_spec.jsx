@@ -21,6 +21,9 @@ import { shallow } from 'enzyme';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
+import userEvent from '@testing-library/user-event';
+import { render, screen } from 'spec/helpers/testing-library';
+
 import { Radio } from 'src/components/Radio';
 
 import Icon from 'src/components/Icon';
@@ -54,6 +57,10 @@ describe('DatasourceEditor', () => {
     el = <DatasourceEditor {...props} store={store} />;
     wrapper = shallow(el).dive();
     inst = wrapper.instance();
+  });
+
+  afterEach(() => {
+    wrapper.unmount();
   });
 
   it('is valid', () => {
@@ -207,5 +214,23 @@ describe('DatasourceEditor', () => {
     expect(icon).toHaveLength(0);
 
     isFeatureEnabledMock.mockRestore();
+  });
+});
+
+describe('DatasourceEditor RTL', () => {
+  it('properly renders the metric information', async () => {
+    render(<DatasourceEditor {...props} />, { useRedux: true });
+    const metricButton = screen.getByTestId('collection-tab-Metrics');
+    userEvent.click(metricButton);
+    const expandToggle = await screen.findAllByLabelText(/toggle expand/i);
+    userEvent.click(expandToggle[0]);
+    const certificationDetails = await screen.findByPlaceholderText(
+      /certification details/i,
+    );
+    expect(certificationDetails.value).toEqual('foo');
+    const warningMarkdown = await await screen.findByPlaceholderText(
+      /certified by/i,
+    );
+    expect(warningMarkdown.value).toEqual('someone');
   });
 });

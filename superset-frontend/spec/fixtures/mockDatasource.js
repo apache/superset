@@ -45,6 +45,8 @@ export default {
         verbose_name: 'sum__num',
         metric_name: 'sum__num',
         description: null,
+        extra:
+          '{"certification":{"details":"foo", "certified_by":"someone"},"warning_markdown":"bar"}',
       },
       {
         expression: 'AVG(birth_names.num)',
