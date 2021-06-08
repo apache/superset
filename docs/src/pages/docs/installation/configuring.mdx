@@ -177,9 +177,28 @@ from custom_sso_security_manager import CustomSsoSecurityManager
 CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
 ```
 
-Notice that the redirect URL will be `https://<superset-webserver>/oauth-authorized/<provider-name>`
-When configuring an OAuth2 authorization provider if needed. For instance, the redirect URL will
-be `https://<superset-webserver>/oauth-authorized/egaSSO` for the above configuration.
+**Notes**
+
+- The redirect URL will be `https://<superset-webserver>/oauth-authorized/<provider-name>`
+  When configuring an OAuth2 authorization provider if needed. For instance, the redirect URL will
+  be `https://<superset-webserver>/oauth-authorized/egaSSO` for the above configuration.
+
+- If an OAuth2 authorization server supports OpenID Connect 1.0, you could configure its configuration
+  document URL only without providing `api_base_url`, `access_token_url`, `authorize_url` and other
+  required options like user info endpoint, jwks uri etc. For instance:
+  ```python
+  OAUTH_PROVIDERS = [
+    {   'name':'egaSSO',
+        'token_key':'access_token', # Name of the token in the response of access_token_url
+        'icon':'fa-address-card',   # Icon for the provider
+        'remote_app': {
+            'client_id':'myClientId',  # Client Id (Identify Superset application)
+            'client_secret':'MySecret', # Secret for this Client Id (Identify Superset application)
+            'server_metadata_url': 'https://myAuthorizationServer/.well-known/openid-configuration'
+        }
+    }
+  ]
+  ```
 
 ### Feature Flags
 
