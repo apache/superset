@@ -70,7 +70,7 @@ const TableViewStyles = styled.div<{
     height: 43px;
   }
 
-  th[role=columnheader] {
+  th[role='columnheader'] {
     z-index: 1;
   }
 
