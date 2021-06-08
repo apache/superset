@@ -71,7 +71,7 @@ security_manager: BaseSecurityManager = sm
 
 
 @pytest.fixture(autouse=True)
-def expire_on_commit_true() -> None:
+def expire_on_commit_true() -> Generator[None, None, None]:
     ctx: AppContext
     with app.app_context() as ctx:
         ctx.app.appbuilder.get_session.configure(expire_on_commit=False)
