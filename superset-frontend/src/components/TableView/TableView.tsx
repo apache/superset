@@ -61,13 +61,17 @@ const TableViewStyles = styled.div<{
   ${({ scrollTable, theme }) =>
     scrollTable &&
     `
-    height: 300px;
+    height: 380px;
     margin-bottom: ${theme.gridUnit * 4}px;
     overflow: auto;
   `}
 
-  .table-cell.table-cell {
-    vertical-align: top;
+  .table-row {
+    height: 43px;
+  }
+
+  th[role=columnheader] {
+    z-index: 1;
   }
 
   .pagination-container {
@@ -209,7 +213,7 @@ const TableView = ({
                   '%s-%s of %s',
                   pageSize * pageIndex + (page.length && 1),
                   pageSize * pageIndex + page.length,
-                  data.length,
+                  totalCount,
                 )}
             </div>
           )}
