@@ -41,6 +41,7 @@ import {
   PAGE_SIZE as DATASET_PAGE_SIZE,
   SORT_BY as DATASET_SORT_BY,
 } from 'src/views/CRUD/data/dataset/constants';
+import FacePile from '../components/FacePile';
 
 const CONFIRM_WARNING_MESSAGE = t(
   'Warning! Changing the dataset may break the chart if the metadata does not exist.',
@@ -86,14 +87,6 @@ const StyledSpan = styled.span`
     color: ${({ theme }) => theme.colors.primary.dark2};
   }
 `;
-
-const TABLE_COLUMNS = [
-  'name',
-  'type',
-  'schema',
-  'connection',
-  'creator',
-].map(col => ({ accessor: col, Header: col }));
 
 const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   addDangerToast,
@@ -196,26 +189,46 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     setConfirmChange(false);
   };
 
-  const renderTableView = () => {
-    const data = resourceCollection.map((ds: any) => ({
-      rawName: ds.table_name,
-      connection: ds.database.database_name,
-      schema: ds.schema,
-      name: (
+  const columns = [
+    {
+      Cell: ({ row: { original } }: any) => (
         <StyledSpan
           role="button"
           tabIndex={0}
           data-test="datasource-link"
-          onClick={() => selectDatasource({ type: 'table', ...ds })}
+          onClick={() => selectDatasource({ type: 'table', ...original })}
         >
-          {ds.table_name}
+          {original?.table_name}
         </StyledSpan>
       ),
-      type: ds.kind,
-    }));
-
-    return data;
-  };
+      Header: t('Name'),
+      accessor: 'table_name',
+    },
+    {
+      Header: t('Type'),
+      accessor: 'kind',
+      disableSortBy: true,
+    },
+    {
+      Header: t('Schema'),
+      accessor: 'schema',
+    },
+    {
+      Header: t('Connection'),
+      accessor: 'database.database_name',
+      disableSortBy: true,
+    },
+    {
+      Cell: ({
+        row: {
+          original: { owners = [] },
+        },
+      }: any) => <FacePile users={owners} />,
+      Header: t('Owners'),
+      id: 'owners',
+      disableSortBy: true,
+    },
+  ];
 
   const onServerPagination = (args: ServerPagination) => {
     setPageIndex(args.pageIndex);
@@ -276,8 +289,8 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
             {loading && <Loading />}
             {!loading && (
               <TableView
-                columns={TABLE_COLUMNS}
-                data={renderTableView()}
+                columns={columns}
+                data={resourceCollection}
                 pageSize={DATASET_PAGE_SIZE}
                 initialPageIndex={pageIndex}
                 initialSortBy={sortBy}
