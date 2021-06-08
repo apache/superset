@@ -1255,6 +1255,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
 
     @classmethod
+    def is_select_query(cls, parsed_query: ParsedQuery) -> bool:
+        """
+        Determine if the statement should be considered as SELECT statement.
+        Some query dialects do not contain "SELECT" word in queries (eg. Kusto)
+        """
+        return parsed_query.is_select()
+
+    @classmethod
     @utils.memoized
     def get_column_spec(
         cls,
