@@ -31,15 +31,6 @@ import ShowSQL from './ShowSQL';
 import ModalTrigger from '../../components/ModalTrigger';
 import Loading from '../../components/Loading';
 
-// I don't think this makes sense to have
-// Shouldn't be rendering component if table and actions are'nt passed in
-// ----------------------
-// const defaultProps = {
-//   actions: {},
-//   table: null,
-// };
-// ----------------------
-
 interface Column {
   name: string;
   keys?: { type: ColumnKeyTypeType }[];
@@ -279,7 +270,5 @@ const TableElement = (props: TableElementProps) => {
     </Collapse.Panel>
   );
 };
-
-// TableElement.defaultProps = defaultProps;
 
 export default TableElement;
