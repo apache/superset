@@ -395,27 +395,30 @@ export function useImportResource(
     typeof payload === 'string' &&
     payload.includes('already exists and `overwrite=true` was not passed');
 
-  const getPasswordsNeeded = (
-    errMsg: Record<string, Record<string, string[] | string>>,
-  ) =>
-    Object.entries(errMsg)
-      .filter(([, validationErrors]) => isNeedsPassword(validationErrors))
-      .map(([fileName]) => fileName);
+  const getPasswordsNeeded = (errors: Record<string, any>[]) =>
+    errors
+      .map(error =>
+        Object.entries(error.extra)
+          .filter(([, payload]) => isNeedsPassword(payload))
+          .map(([fileName]) => fileName),
+      )
+      .flat();
 
-  const getAlreadyExists = (
-    errMsg: Record<string, Record<string, string[] | string>>,
-  ) =>
-    Object.entries(errMsg)
-      .filter(([, validationErrors]) => isAlreadyExists(validationErrors))
-      .map(([fileName]) => fileName);
+  const getAlreadyExists = (errors: Record<string, any>[]) =>
+    errors
+      .map(error =>
+        Object.entries(error.extra)
+          .filter(([, payload]) => isAlreadyExists(payload))
+          .map(([fileName]) => fileName),
+      )
+      .flat();
 
-  const hasTerminalValidation = (
-    errMsg: Record<string, Record<string, string[] | string>>,
-  ) =>
-    Object.values(errMsg).some(
-      validationErrors =>
-        !isNeedsPassword(validationErrors) &&
-        !isAlreadyExists(validationErrors),
+  const hasTerminalValidation = (errors: Record<string, any>[]) =>
+    errors.some(
+      error =>
+        !Object.values(error.extra).some(
+          payload => isNeedsPassword(payload) || isAlreadyExists(payload),
+        ),
     );
 
   const importResource = useCallback(
@@ -452,29 +455,28 @@ export function useImportResource(
         .then(() => true)
         .catch(response =>
           getClientErrorObject(response).then(error => {
-            const errMsg = error.message || error.error;
-            if (typeof errMsg === 'string') {
+            if (!error.errors) {
               handleErrorMsg(
                 t(
                   'An error occurred while importing %s: %s',
                   resourceLabel,
-                  parsedErrorMessage(errMsg),
+                  error.message || error.error,
                 ),
               );
               return false;
             }
-            if (hasTerminalValidation(errMsg)) {
+            if (hasTerminalValidation(error.errors)) {
               handleErrorMsg(
                 t(
                   'An error occurred while importing %s: %s',
                   resourceLabel,
-                  parsedErrorMessage(errMsg),
+                  error.errors.map(payload => payload.message).join('\n'),
                 ),
               );
             } else {
               updateState({
-                passwordsNeeded: getPasswordsNeeded(errMsg),
-                alreadyExists: getAlreadyExists(errMsg),
+                passwordsNeeded: getPasswordsNeeded(error.errors),
+                alreadyExists: getAlreadyExists(error.errors),
               });
             }
             return false;
