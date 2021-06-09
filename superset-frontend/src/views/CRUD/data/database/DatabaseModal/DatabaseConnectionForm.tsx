@@ -284,7 +284,7 @@ const queryField = ({
     errorMessage={validationErrors?.query}
     placeholder="e.g. additional parameters"
     label="Additional Parameters"
-    onChange={changeMethods.onChange}
+    onChange={changeMethods.onParametersChange}
     helpText="Add additional custom parameters"
   />
 );
