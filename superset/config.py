@@ -475,11 +475,17 @@ THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_NO_NULL_WARNING": True,
 }
 
-# Used for thumbnails and other api: Time in seconds before selenium
+# Time in seconds before selenium
 # times out after trying to locate an element on the page and wait
-# for that element to load for an alert screenshot.
+# for that element to load for a screenshot.
 SCREENSHOT_LOCATE_WAIT = 10
+# Time in seconds before selenium
+# times out after waiting for all DOM class elements named "loading" are gone.
 SCREENSHOT_LOAD_WAIT = 60
+# Selenium destroy retries
+SCREENSHOT_SELENIUM_RETRIES = 5
+# Give selenium an headstart, in seconds
+SCREENSHOT_SELENIUM_HEADSTART = 3
 
 # ---------------------------------------------------
 # Image and file configuration

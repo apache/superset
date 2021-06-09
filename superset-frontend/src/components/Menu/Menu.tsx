@@ -91,6 +91,9 @@ const StyledHeader = styled.header`
     flex-direction: column;
     justify-content: center;
   }
+  .main-nav .ant-menu-submenu-title > svg {
+    top: ${({ theme }) => theme.gridUnit * 5.25}px;
+  }
   @media (max-width: 767px) {
     .navbar-brand {
       float: none;
