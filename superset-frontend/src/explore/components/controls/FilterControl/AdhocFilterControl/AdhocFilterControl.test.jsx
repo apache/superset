@@ -129,13 +129,16 @@ describe('AdhocFilterControl', () => {
 
     const newAdhocFilter = onChange.lastCall.args[0][1];
     expect(newAdhocFilter instanceof AdhocFilter).toBe(true);
-    const newA = new AdhocFilter({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
-      subject: columns[0].column_name,
-      operator: OPERATOR_MAPPING[Operators.EQUALS].operation,
-      comparator: '',
-      clause: CLAUSES.WHERE,
-    });
-    expect(newAdhocFilter.equals(newA)).toBe(true);
+    expect(
+      newAdhocFilter.equals(
+        new AdhocFilter({
+          expressionType: EXPRESSION_TYPES.SIMPLE,
+          subject: columns[0].column_name,
+          operator: OPERATOR_MAPPING[Operators.EQUALS].operation,
+          comparator: '',
+          clause: CLAUSES.WHERE,
+        }),
+      ),
+    ).toBe(true);
   });
 });

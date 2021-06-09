@@ -70,7 +70,7 @@ const options = [
   sumValueAdhocMetric,
 ];
 
-function setup(overrides?: object) {
+function setup(overrides?: Record<string, any>) {
   const onChange = sinon.spy();
   const props = {
     adhocFilter: simpleAdhocFilter,

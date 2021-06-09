@@ -18,7 +18,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { NativeSelect as Select } from 'src/components/Select';
-import { t, SupersetClient, styled, JsonObject } from '@superset-ui/core';
+import { t, SupersetClient, styled } from '@superset-ui/core';
 import {
   Operators,
   OPERATORS_OPTIONS,
@@ -37,6 +37,7 @@ import AdhocFilter, {
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Input, SelectProps } from 'src/common/components';
+import { noOp } from 'src/utils/common';
 
 const SelectWithLabel = styled(Select)`
   .ant-select-selector {
@@ -107,7 +108,8 @@ export const useSimpleTabFilterProps = (props: Props) => {
     );
     const isColumnBoolean =
       !!column && (column.type === 'BOOL' || column.type === 'BOOLEAN');
-    const isColumnNumber = !!column && column.type === 'INT';
+    const isColumnNumber =
+      !!column && (column.type === 'INT' || column.type === 'INTEGER');
     const isColumnFunction = !!column && !!column.expression;
 
     if (operator && CUSTOM_OPERATORS.has(operator)) {
@@ -131,10 +133,11 @@ export const useSimpleTabFilterProps = (props: Props) => {
         HAVING_OPERATORS.indexOf(operator) === -1)
     );
   };
-  const onSubjectChange = (id: string) => {
+  const onSubjectChange = (id: string | number) => {
     const option = props.options.find(
-      // @ts-ignore
-      option => option.id === id || option.optionName === id,
+      option =>
+        ('id' in option && option.id === id) ||
+        ('optionName' in option && option.optionName === id),
     );
 
     let subject = '';
@@ -230,10 +233,10 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     isOperatorRelevant,
     onComparatorChange,
   } = useSimpleTabFilterProps(props);
-  const [suggestions, setSuggestions] = useState<JsonObject>([]);
-  const [abortActiveRequest, setAbortActiveRequest] = useState<
-    (() => void) | null
-  >(null);
+  const [suggestions, setSuggestions] = useState<Record<string, any>>([]);
+  const [abortActiveRequest, setAbortActiveRequest] = useState<() => void>(
+    noOp,
+  );
   const [currentSuggestionSearch, setCurrentSuggestionSearch] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -244,10 +247,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
       const having = props.adhocFilter.clause === CLAUSES.HAVING;
 
       if (col && datasource && datasource.filter_select && !having) {
-        if (abortActiveRequest) {
-          abortActiveRequest();
-        }
-
+        abortActiveRequest();
         const controller = new AbortController();
         const { signal } = controller;
         setAbortActiveRequest(controller.abort);
@@ -259,12 +259,12 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         })
           .then(({ json }) => {
             setSuggestions(json);
-            setAbortActiveRequest(null);
+            setAbortActiveRequest(noOp);
             setLoading(false);
           })
           .catch(() => {
             setSuggestions([]);
-            setAbortActiveRequest(null);
+            setAbortActiveRequest(noOp);
             setLoading(false);
           });
       }
@@ -276,15 +276,6 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     onComparatorChange(event.target.value);
-  };
-
-  const focusComparator = (
-    ref: HTMLInputElement | null,
-    shouldFocus: boolean,
-  ) => {
-    if (ref && shouldFocus) {
-      ref.focus();
-    }
   };
 
   const renderSubjectOptionLabel = (option: ColumnType) => (
@@ -457,12 +448,11 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         <Input
           data-test="adhoc-filter-simple-value"
           name="filter-value"
-          ref={ref =>
-            focusComparator(
-              ref as HTMLInputElement | null,
-              shouldFocusComparator,
-            )
-          }
+          ref={ref => {
+            if (ref && shouldFocusComparator) {
+              ref.blur();
+            }
+          }}
           onChange={onInputComparatorChange}
           value={comparator}
           placeholder={t('Filter value (case sensitive)')}

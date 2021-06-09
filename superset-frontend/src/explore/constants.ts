@@ -29,22 +29,22 @@ export const AGGREGATES = {
 export const AGGREGATES_OPTIONS = Object.values(AGGREGATES);
 
 export enum Operators {
-  EQUALS = 1,
-  NOT_EQUALS,
-  LESS_THAN,
-  GREATER_THAN,
-  LESS_THAN_OR_EQUAL,
-  GREATER_THAN_OR_EQUAL,
-  IN,
-  NOT_IN,
-  ILIKE,
-  LIKE,
-  REGEX,
-  IS_NOT_NULL,
-  IS_NULL,
-  LATEST_PARTITION,
-  IS_TRUE,
-  IS_FALSE,
+  EQUALS = 'EQUALS',
+  NOT_EQUALS = 'NOT_EQUALS',
+  LESS_THAN = 'LESS_THAN',
+  GREATER_THAN = 'GREATER_THAN',
+  LESS_THAN_OR_EQUAL = 'LESS_THAN_OR_EQUAL',
+  GREATER_THAN_OR_EQUAL = 'GREATER_THAN_OR_EQUAL',
+  IN = 'IN',
+  NOT_IN = 'NOT_IN',
+  ILIKE = 'ILIKE',
+  LIKE = 'LIKE',
+  REGEX = 'REGEX',
+  IS_NOT_NULL = 'IS_NOT_NULL',
+  IS_NULL = 'IS_NULL',
+  LATEST_PARTITION = 'LATEST_PARTITION',
+  IS_TRUE = 'IS_TRUE',
+  IS_FALSE = 'IS_FALSE',
 }
 
 export interface OperatorType {
@@ -52,9 +52,7 @@ export interface OperatorType {
   operation: string;
 }
 
-export const OPERATOR_MAPPING: {
-  [operation: number]: OperatorType;
-} = {
+export const OPERATOR_MAPPING: { [key in Operators]: OperatorType } = {
   [Operators.EQUALS]: { display: 'equals', operation: '==' },
   [Operators.NOT_EQUALS]: { display: 'not equals', operation: '!=' },
   [Operators.GREATER_THAN]: { display: '>', operation: '>' },
@@ -76,9 +74,7 @@ export const OPERATOR_MAPPING: {
   [Operators.IS_FALSE]: { display: 'IS FALSE', operation: '==' },
 };
 
-export const OPERATORS_OPTIONS = Object.values(Operators).filter(
-  val => typeof val === 'number',
-) as Operators[];
+export const OPERATORS_OPTIONS = Object.values(Operators) as Operators[];
 
 export const TABLE_ONLY_OPERATORS = [Operators.LIKE, Operators.ILIKE];
 export const DRUID_ONLY_OPERATORS = [Operators.REGEX];
