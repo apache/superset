@@ -57,11 +57,7 @@ interface TableElementProps {
     removeDataPreview: (table: Table) => void;
     removeTable: (table: Table) => void;
   };
-  isActive: boolean;
-  panelKey: string | number;
-  expandIcon: any;
-  onItemClick: any;
-  openMotion: any;
+  key: string | number;
 }
 
 const StyledSpan = styled.span`
@@ -77,15 +73,7 @@ const Fade = styled.div`
   opacity: ${(props: { hovered: boolean }) => (props.hovered ? 1 : 0)};
 `;
 
-const TableElement = ({
-  table,
-  actions,
-  isActive,
-  expandIcon,
-  onItemClick,
-  openMotion,
-  panelKey,
-}: TableElementProps) => {
+const TableElement = ({ table, actions, key, ...props }: TableElementProps) => {
   const [sortColumns, setSortColumns] = useState(false);
   const [hovered, setHovered] = useState(false);
 
@@ -270,14 +258,11 @@ const TableElement = ({
 
   return (
     <Collapse.Panel
+      {...props}
+      key={key}
       header={renderHeader()}
       className="TableElement"
       forceRender
-      isActive={isActive}
-      expandIcon={expandIcon}
-      onItemClick={onItemClick}
-      openMotion={openMotion}
-      panelKey={panelKey}
     >
       {renderBody()}
     </Collapse.Panel>
