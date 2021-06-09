@@ -62,7 +62,7 @@ export interface ButtonProps {
   href?: string;
   htmlType?: 'button' | 'submit' | 'reset';
   cta?: boolean;
-  loading?: boolean;
+  loading?: boolean | { delay: number };
 }
 
 export default function Button(props: ButtonProps) {
