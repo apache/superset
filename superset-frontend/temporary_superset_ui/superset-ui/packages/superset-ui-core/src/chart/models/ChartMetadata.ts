@@ -16,6 +16,10 @@ export interface ChartMetadataConfig {
   thumbnail: string;
   useLegacyApi?: boolean;
   behaviors?: Behavior[];
+  deprecated?: boolean;
+  exampleGallery?: string[];
+  tags?: string[];
+  categories?: string[];
 }
 
 export default class ChartMetadata {
@@ -43,6 +47,14 @@ export default class ChartMetadata {
 
   enableNoResults: boolean;
 
+  deprecated: boolean;
+
+  exampleGallery: string[];
+
+  tags: string[];
+
+  categories: string[];
+
   constructor(config: ChartMetadataConfig) {
     const {
       name,
@@ -56,6 +68,10 @@ export default class ChartMetadata {
       behaviors = [],
       datasourceCount = 1,
       enableNoResults = true,
+      deprecated = false,
+      exampleGallery = [],
+      tags = [],
+      categories = [],
     } = config;
 
     this.name = name;
@@ -78,6 +94,10 @@ export default class ChartMetadata {
     this.behaviors = behaviors;
     this.datasourceCount = datasourceCount;
     this.enableNoResults = enableNoResults;
+    this.deprecated = deprecated;
+    this.exampleGallery = exampleGallery;
+    this.tags = tags;
+    this.categories = categories;
   }
 
   canBeAnnotationType(type: string): boolean {
@@ -85,18 +105,6 @@ export default class ChartMetadata {
   }
 
   clone() {
-    return new ChartMetadata({
-      canBeAnnotationTypes: this.canBeAnnotationTypes,
-      credits: this.credits,
-      description: this.description,
-      name: this.name,
-      show: this.show,
-      supportedAnnotationTypes: this.supportedAnnotationTypes,
-      thumbnail: this.thumbnail,
-      useLegacyApi: this.useLegacyApi,
-      behaviors: this.behaviors,
-      datasourceCount: this.datasourceCount,
-      enableNoResults: this.enableNoResults,
-    });
+    return new ChartMetadata(this);
   }
 }
