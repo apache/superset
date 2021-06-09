@@ -165,8 +165,8 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   }, [passwordsNeeded, setPasswordFields]);
 
   useEffect(() => {
+    setNeedsOverwriteConfirm(alreadyExists.length > 0);
     if (alreadyExists.length > 0) {
-      setNeedsOverwriteConfirm(true);
       setImportingModel(false);
     }
   }, [alreadyExists, setNeedsOverwriteConfirm]);
