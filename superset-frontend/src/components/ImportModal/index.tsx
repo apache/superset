@@ -24,7 +24,6 @@ import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
 import Modal from 'src/components/Modal';
 import { Upload } from 'src/common/components';
-import Loading from 'src/components/Loading';
 import { useImportResource } from 'src/views/CRUD/hooks';
 import { ImportResourceName } from 'src/views/CRUD/types';
 
@@ -292,31 +291,23 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       show={show}
       title={<h4>{t('Import %s', resourceLabel)}</h4>}
     >
-      {importingModel ? (
-        <>
-          <Loading position="inline-centered" />
-        </>
-      ) : (
-        <>
-          <StyledInputContainer>
-            <Upload
-              name="modelFile"
-              id="modelFile"
-              data-test="model-file-input"
-              accept=".yaml,.json,.yml,.zip"
-              fileList={fileList}
-              onChange={changeFile}
-              onRemove={removeFile}
-              // upload is handled by hook
-              customRequest={() => {}}
-            >
-              <Button>Select file</Button>
-            </Upload>
-          </StyledInputContainer>
-          {renderPasswordFields()}
-          {renderOverwriteConfirmation()}
-        </>
-      )}
+      <StyledInputContainer>
+        <Upload
+          name="modelFile"
+          id="modelFile"
+          data-test="model-file-input"
+          accept=".yaml,.json,.yml,.zip"
+          fileList={fileList}
+          onChange={changeFile}
+          onRemove={removeFile}
+          // upload is handled by hook
+          customRequest={() => {}}
+        >
+          <Button loading={importingModel}>Select file</Button>
+        </Upload>
+      </StyledInputContainer>
+      {renderPasswordFields()}
+      {renderOverwriteConfirmation()}
     </Modal>
   );
 };
