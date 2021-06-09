@@ -330,7 +330,7 @@ describe('RTL', () => {
     userEvent.click(importButton);
 
     // Grab "Choose File" input from import modal
-    const chooseFileInput = screen.getByLabelText(/file\*/i);
+    const chooseFileInput = screen.getByTestId('model-file-input');
     // Upload mocked import file
     userEvent.upload(chooseFileInput, mockImportFile);
 

@@ -16,11 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useEffect, useRef, useState } from 'react';
+import React, { FunctionComponent, useEffect, useState } from 'react';
+import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import { styled, t } from '@superset-ui/core';
 
-import Icon from 'src//components/Icon';
+import Button from 'src/components/Button';
+import Icon from 'src/components/Icon';
 import Modal from 'src/components/Modal';
+import { Upload } from 'src/common/components';
 import { useImportResource } from 'src/views/CRUD/hooks';
 import { ImportResourceName } from 'src/views/CRUD/types';
 
@@ -127,24 +130,19 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   setPasswordFields = () => {},
 }) => {
   const [isHidden, setIsHidden] = useState<boolean>(true);
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [passwords, setPasswords] = useState<Record<string, string>>({});
   const [needsOverwriteConfirm, setNeedsOverwriteConfirm] = useState<boolean>(
     false,
   );
   const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
 
   const clearModal = () => {
-    setUploadFile(null);
+    setFileList([]);
     setPasswordFields([]);
     setPasswords({});
     setNeedsOverwriteConfirm(false);
     setConfirmedOverwrite(false);
-    if (fileInputRef && fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
   };
 
   const handleErrorMsg = (msg: string) => {
@@ -173,11 +171,15 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   };
 
   const onUpload = () => {
-    if (uploadFile === null) {
+    if (!(fileList[0]?.originFileObj instanceof File)) {
       return;
     }
 
-    importResource(uploadFile, passwords, confirmedOverwrite).then(result => {
+    importResource(
+      fileList[0].originFileObj,
+      passwords,
+      confirmedOverwrite,
+    ).then(result => {
       if (result) {
         addSuccessToast(t('The import was successful'));
         clearModal();
@@ -186,9 +188,18 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     });
   };
 
-  const changeFile = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { files } = event.target as HTMLInputElement;
-    setUploadFile((files && files[0]) || null);
+  const changeFile = (info: UploadChangeParam) => {
+    setFileList([
+      {
+        ...info.file,
+        status: 'done',
+      },
+    ]);
+  };
+
+  const removeFile = (removedFile: UploadFile) => {
+    setFileList(fileList.filter(file => file.uid !== removedFile.uid));
+    return false;
   };
 
   const confirmOverwrite = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -259,7 +270,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       name="model"
       className="import-model-modal"
       disablePrimaryButton={
-        uploadFile === null || (needsOverwriteConfirm && !confirmedOverwrite)
+        fileList.length === 0 || (needsOverwriteConfirm && !confirmedOverwrite)
       }
       onHandledPrimaryAction={onUpload}
       onHide={hide}
@@ -270,21 +281,19 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       title={<h4>{t('Import %s', resourceLabel)}</h4>}
     >
       <StyledInputContainer>
-        <div className="control-label">
-          <label htmlFor="modelFile">
-            {t('File')}
-            <span className="required">*</span>
-          </label>
-        </div>
-        <input
-          ref={fileInputRef}
-          data-test="model-file-input"
+        <Upload
           name="modelFile"
           id="modelFile"
-          type="file"
+          data-test="model-file-input"
           accept=".yaml,.json,.yml,.zip"
+          fileList={fileList}
           onChange={changeFile}
-        />
+          onRemove={removeFile}
+          // upload is handled by hook
+          customRequest={() => {}}
+        >
+          <Button>Select file</Button>
+        </Upload>
       </StyledInputContainer>
       {renderPasswordFields()}
       {renderOverwriteConfirmation()}
