@@ -69,7 +69,7 @@ describe('DatabaseModal', () => {
       });
       userEvent.click(sqlLabSettingsTab);
 
-      const exposeInSqlLab = screen.getByText('Expose in SQL Lab');
+      const exposeInSqlLab = screen.getByText('Expose database in SQL Lab');
       const exposeChoicesForm = exposeInSqlLab.parentElement.nextSibling;
       const schemaField = screen.getByText('CTAS & CVAS SCHEMA').parentElement;
       expect(exposeChoicesForm).not.toHaveClass('open');
@@ -93,9 +93,8 @@ describe('DatabaseModal', () => {
     userEvent.click(sqlLabSettingsTab);
 
     // Grab all SQL Lab settings by their labels
-    // const exposeInSqlLab = screen.getByText('Expose in SQL Lab');
     const exposeInSqlLab = screen.getByRole('checkbox', {
-      name: /expose in sql lab/i,
+      name: /expose database in sql lab/i,
     });
 
     expect(exposeInSqlLab).not.toBeChecked();
@@ -107,7 +106,7 @@ describe('DatabaseModal', () => {
       .getAllByRole('checkbox')
       .filter(checkbox => !checkbox.checked);
 
-    expect(checkboxes.length).toEqual(4);
+    expect(checkboxes.length).toEqual(6);
   });
 
   it('renders the schema field when allowCTAS is checked', () => {
