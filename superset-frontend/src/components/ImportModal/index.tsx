@@ -17,13 +17,13 @@
  * under the License.
  */
 import React, { FunctionComponent, useEffect, useState } from 'react';
-import { Upload } from 'antd';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import { styled, t } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
 import Modal from 'src/components/Modal';
+import { Upload } from 'src/common/components';
 import { useImportResource } from 'src/views/CRUD/hooks';
 import { ImportResourceName } from 'src/views/CRUD/types';
 
@@ -192,7 +192,6 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     setFileList([
       {
         ...info.file,
-        fileName: info.file.name,
         status: 'done',
       },
     ]);
@@ -290,7 +289,8 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
           fileList={fileList}
           onChange={changeFile}
           onRemove={removeFile}
-          beforeUpload={() => false}
+          // upload is handled by hook
+          customRequest={() => {}}
         >
           <Button>Select file</Button>
         </Upload>
