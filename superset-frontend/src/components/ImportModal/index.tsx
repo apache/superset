@@ -136,6 +136,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   );
   const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [importingModel, setImportingModel] = useState<boolean>(false);
 
   const clearModal = () => {
     setFileList([]);
@@ -143,6 +144,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     setPasswords({});
     setNeedsOverwriteConfirm(false);
     setConfirmedOverwrite(false);
+    setImportingModel(false);
   };
 
   const handleErrorMsg = (msg: string) => {
@@ -157,10 +159,16 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
 
   useEffect(() => {
     setPasswordFields(passwordsNeeded);
+    if (passwordsNeeded.length > 0) {
+      setImportingModel(false);
+    }
   }, [passwordsNeeded, setPasswordFields]);
 
   useEffect(() => {
     setNeedsOverwriteConfirm(alreadyExists.length > 0);
+    if (alreadyExists.length > 0) {
+      setImportingModel(false);
+    }
   }, [alreadyExists, setNeedsOverwriteConfirm]);
 
   // Functions
@@ -175,6 +183,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       return;
     }
 
+    setImportingModel(true);
     importResource(
       fileList[0].originFileObj,
       passwords,
@@ -270,7 +279,9 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       name="model"
       className="import-model-modal"
       disablePrimaryButton={
-        fileList.length === 0 || (needsOverwriteConfirm && !confirmedOverwrite)
+        fileList.length === 0 ||
+        (needsOverwriteConfirm && !confirmedOverwrite) ||
+        importingModel
       }
       onHandledPrimaryAction={onUpload}
       onHide={hide}
@@ -292,7 +303,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
           // upload is handled by hook
           customRequest={() => {}}
         >
-          <Button>Select file</Button>
+          <Button loading={importingModel}>Select file</Button>
         </Upload>
       </StyledInputContainer>
       {renderPasswordFields()}
