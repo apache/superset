@@ -24,6 +24,7 @@ import {
   Input as AntdInput,
   InputNumber as AntdInputNumber,
   Skeleton,
+  Upload,
 } from 'antd';
 import { DropDownProps } from 'antd/lib/dropdown';
 /*
