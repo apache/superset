@@ -21,6 +21,7 @@ import React, { useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { PluginFilterTimeProps } from './types';
 import { Styles } from '../common';
+import { NO_TIME_RANGE } from '../../../explore/constants';
 
 const TimeFilterStyles = styled(Styles)`
   overflow-x: scroll;
@@ -40,13 +41,16 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
   } = props;
 
   const handleTimeRangeChange = (timeRange?: string): void => {
+    const isSet = timeRange && timeRange !== NO_TIME_RANGE;
     setDataMask({
-      extraFormData: timeRange
+      extraFormData: isSet
         ? {
             time_range: timeRange,
           }
         : {},
-      filterState: { value: timeRange },
+      filterState: {
+        value: isSet ? timeRange : undefined,
+      },
     });
   };
 
