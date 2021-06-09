@@ -82,6 +82,8 @@ enum ActionType {
   parametersChange,
   reset,
   textChange,
+  extraInputChange,
+  extraEditorChange,
 }
 
 interface DBReducerPayloadType {
@@ -96,6 +98,8 @@ interface DBReducerPayloadType {
 type DBReducerActionType =
   | {
       type:
+        | ActionType.extraEditorChange
+        | ActionType.extraInputChange
         | ActionType.textChange
         | ActionType.inputChange
         | ActionType.editorChange
@@ -130,6 +134,25 @@ function dbReducer(
   };
 
   switch (action.type) {
+    case ActionType.extraEditorChange:
+      return {
+        ...trimmedState,
+        extra_json: {
+          ...trimmedState.extra_json,
+          [action.payload.name]: action.payload.json,
+        },
+      };
+    case ActionType.extraInputChange:
+      return {
+        ...trimmedState,
+        extra_json: {
+          ...trimmedState.extra_json,
+          [action.payload.name]:
+            action.payload.type === 'checkbox'
+              ? action.payload.checked
+              : action.payload.value,
+        },
+      };
     case ActionType.inputChange:
       if (action.payload.type === 'checkbox') {
         return {
@@ -197,6 +220,23 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [dbName, setDbName] = useState('');
   const conf = useCommonConf();
 
+  // Using this to structure extra_json in onSave
+  // const extraValues = {
+  //   metadata_cache_timeout: {
+  //     schema_cache_timeout: db?.extra_json?.schema_cache_timeout,
+  //     table_cache_timeout: db?.extra_json?.table_cache_timeout,
+  //   },
+  //   cost_query_enabled: db?.extra_json?.cost_query_enabled,
+  //   allows_virtual_table_explore: db?.extra_json?.allows_virtual_table_explore,
+  //   schemas_allowed_for_csv_upload:
+  //     db?.extra_json?.schemas_allowed_for_csv_upload,
+  //   impersonate_user: db?.extra_json?.impersonate_user,
+  //   allow_csv_upload: db?.extra_json?.allow_csv_upload,
+  //   version: db?.extra_json?.version,
+  //   metadata_params: db?.extra_json?.metadata_params,
+  //   engine_params: db?.extra_json?.engine_params,
+  // };
+
   const isEditMode = !!databaseId;
   const useSqlAlchemyForm =
     db?.configuration_method === CONFIGURATION_METHOD.SQLALCHEMY_URI;
@@ -224,7 +264,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     const connection = {
       sqlalchemy_uri: db?.sqlalchemy_uri || '',
       database_name: db?.database_name?.trim() || undefined,
-      impersonate_user: db?.impersonate_user || undefined,
+      impersonate_user: db?.extra_json?.impersonate_user || undefined,
       extra: db?.extra || undefined,
       encrypted_extra: db?.encrypted_extra || undefined,
       server_cert: db?.server_cert || undefined,
@@ -247,6 +287,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         // don't pass parameters if using the sqlalchemy uri
         delete update.parameters;
       }
+
+      // // Structure extra_json
+      // const extraValuesStructured = {
+      //   ...extraValues,
+      //   ...db?.extra_json,
+      // };
+
+      // Add values back to extra field
+      update.extra = JSON.stringify(db?.extra_json, null, '  ');
+
       const result = await updateResource(
         db.id as number,
         update as DatabaseObject,
@@ -357,7 +407,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       height="600px"
       onHandledPrimaryAction={onSave}
       onHide={onClose}
-      primaryButtonName={isEditMode ? t('Save') : t('Connect')}
+      primaryButtonName={isEditMode ? t('Finish') : t('Connect')}
       width="500px"
       show={show}
       title={
@@ -454,6 +504,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             onEditorChange={(payload: { name: string; json: any }) =>
               onChange(ActionType.editorChange, payload)
             }
+            onExtraInputChange={({ target }: { target: HTMLInputElement }) => {
+              onChange(ActionType.extraInputChange, {
+                type: target.type,
+                name: target.name,
+                checked: target.checked,
+                value: target.value,
+              });
+            }}
+            onExtraEditorChange={(payload: { name: string; json: any }) =>
+              onChange(ActionType.extraEditorChange, payload)
+            }
           />
         </Tabs.TabPane>
       </Tabs>
@@ -495,6 +556,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           }
           onEditorChange={(payload: { name: string; json: any }) =>
             onChange(ActionType.editorChange, payload)
+          }
+          onExtraInputChange={({ target }: { target: HTMLInputElement }) => {
+            onChange(ActionType.extraInputChange, {
+              type: target.type,
+              name: target.name,
+              checked: target.checked,
+              value: target.value,
+            });
+          }}
+          onExtraEditorChange={(payload: { name: string; json: any }) =>
+            onChange(ActionType.extraEditorChange, payload)
           }
         />
       ) : (

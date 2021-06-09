@@ -22,7 +22,7 @@ import { JsonEditor } from 'src/components/AsyncAceEditor';
 import Tabs from 'src/components/Tabs';
 
 const CTAS_CVAS_SCHEMA_FORM_HEIGHT = 102;
-const EXPOSE_IN_SQLLAB_FORM_HEIGHT = CTAS_CVAS_SCHEMA_FORM_HEIGHT + 52;
+const EXPOSE_IN_SQLLAB_FORM_HEIGHT = CTAS_CVAS_SCHEMA_FORM_HEIGHT + 153;
 const EXPOSE_ALL_FORM_HEIGHT = EXPOSE_IN_SQLLAB_FORM_HEIGHT + 102;
 
 const anticonHeight = 12;
@@ -189,9 +189,6 @@ export const validatedFormStyles = (theme: SupersetTheme) => css`
 
 export const StyledInputContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit * 6}px;
-  &.mb-0 {
-    margin-bottom: 0;
-  }
   &.mb-8 {
     margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
   }
@@ -337,4 +334,8 @@ export const EditHeaderSubtitle = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   font-size: ${({ theme }) => theme.typography.sizes.l}px;
   font-weight: bold;
+`;
+
+export const no_margin_bottom = css`
+  margin-bottom: 0;
 `;
