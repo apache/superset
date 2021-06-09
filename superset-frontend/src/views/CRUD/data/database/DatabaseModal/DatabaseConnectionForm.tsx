@@ -45,9 +45,9 @@ export const FormFieldOrder = [
   'username',
   'password',
   'database_name',
+  'query',
   'encryption',
   'credentials_info',
-  'query',
 ];
 
 interface FieldPropTypes {
@@ -282,10 +282,10 @@ const queryField = ({
     value={db?.query}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.query}
-    placeholder=""
+    placeholder="e.g. additional parameters"
     label="Additional Parameters"
     onChange={changeMethods.onChange}
-    helpText="Pick a nickname for this database to display as in Superset."
+    helpText="Add additional custom parameters"
   />
 );
 
