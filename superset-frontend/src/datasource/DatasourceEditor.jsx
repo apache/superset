@@ -307,7 +307,21 @@ class DatasourceEditor extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      datasource: props.datasource,
+      datasource: {
+        ...props.datasource,
+        metrics: props.datasource.metrics?.map(metric => {
+          const {
+            certification: { details, certified_by: certifiedBy } = {},
+            warning_markdown: warningMarkdown,
+          } = JSON.parse(metric.extra || '{}') || {};
+          return {
+            ...metric,
+            certification_details: details || '',
+            warning_markdown: warningMarkdown || '',
+            certified_by: certifiedBy,
+          };
+        }),
+      },
       errors: [],
       isDruid:
         props.datasource.type === 'druid' ||
@@ -936,18 +950,7 @@ class DatasourceEditor extends React.PureComponent {
             </Fieldset>
           </FormContainer>
         }
-        collection={this.state.datasource.metrics?.map(metric => {
-          const {
-            certification: { details, certified_by: certifiedBy } = {},
-            warning_markdown: warningMarkdown,
-          } = JSON.parse(metric.extra || '{}') || {};
-          return {
-            ...metric,
-            certification_details: details || '',
-            warning_markdown: warningMarkdown || '',
-            certified_by: certifiedBy,
-          };
-        })}
+        collection={this.state.datasource.metrics}
         allowAddItem
         onChange={this.onDatasourcePropChange.bind(this, 'metrics')}
         itemGenerator={() => ({
