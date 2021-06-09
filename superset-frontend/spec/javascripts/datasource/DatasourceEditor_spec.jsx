@@ -233,4 +233,21 @@ describe('DatasourceEditor RTL', () => {
     );
     expect(warningMarkdown.value).toEqual('someone');
   });
+  it('properly updates the metric information', async () => {
+    render(<DatasourceEditor {...props} />, {
+      useRedux: true,
+    });
+    const metricButton = screen.getByTestId('collection-tab-Metrics');
+    userEvent.click(metricButton);
+    const expandToggle = await screen.findAllByLabelText(/toggle expand/i);
+    userEvent.click(expandToggle[1]);
+    const certifiedBy = await screen.findByPlaceholderText(/certified by/i);
+    userEvent.type(certifiedBy, 'I am typing a new name');
+    const certificationDetails = await screen.findByPlaceholderText(
+      /certification details/i,
+    );
+    expect(certifiedBy.value).toEqual('I am typing a new name');
+    userEvent.type(certificationDetails, 'I am typing something new');
+    expect(certificationDetails.value).toEqual('I am typing something new');
+  });
 });
