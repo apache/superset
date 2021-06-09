@@ -20,6 +20,7 @@
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
+import { FeatureFlag } from 'src/featureFlags';
 import SliceHeaderControls from '.';
 
 jest.mock('src/common/components', () => {
@@ -151,7 +152,23 @@ test('Should "export to CSV"', () => {
   expect(props.exportCSV).toBeCalledWith(371);
 });
 
+test('Export full CSV is under featureflag', () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: false,
+  };
+  const props = createProps();
+  props.slice.viz_type = 'table';
+  render(<SliceHeaderControls {...props} />, { useRedux: true });
+  expect(screen.queryByRole('menuitem', { name: 'Export full CSV' })).toBe(
+    null,
+  );
+});
 test('Should "export full CSV"', () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+  };
   const props = createProps();
   props.slice.viz_type = 'table';
   render(<SliceHeaderControls {...props} />, { useRedux: true });
@@ -165,6 +182,10 @@ test('Should "export full CSV"', () => {
 });
 
 test('Should not show export full CSV if report is not table', () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+  };
   const props = createProps();
   render(<SliceHeaderControls {...props} />, { useRedux: true });
   expect(screen.queryByRole('menuitem', { name: 'Export full CSV' })).toBe(

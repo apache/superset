@@ -100,7 +100,6 @@ interface Props {
   supersetCanShare: boolean;
   supersetCanCSV: boolean;
   sliceCanEdit: boolean;
-  showControls: boolean;
   isFullSize?: boolean;
   formData: object;
   toggleExpandSlice?: (sliceId: number) => void;
@@ -317,11 +316,13 @@ class SliceHeaderControls extends React.PureComponent<Props, State> {
         {this.props.supersetCanCSV && (
           <Menu.Item key={MENU_KEYS.EXPORT_CSV}>{t('Export CSV')}</Menu.Item>
         )}
-        {this.props.supersetCanCSV && isTable && (
-          <Menu.Item key={MENU_KEYS.EXPORT_FULL_CSV}>
-            {t('Export full CSV')}
-          </Menu.Item>
-        )}
+        {isFeatureEnabled(FeatureFlag.ALLOW_FULL_CSV_EXPORT) &&
+          this.props.supersetCanCSV &&
+          isTable && (
+            <Menu.Item key={MENU_KEYS.EXPORT_FULL_CSV}>
+              {t('Export full CSV')}
+            </Menu.Item>
+          )}
         {isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
           isCrossFilter && (
             <Menu.Item key={MENU_KEYS.CROSS_FILTER_SCOPING}>

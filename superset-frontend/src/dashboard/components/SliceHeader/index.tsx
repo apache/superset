@@ -25,12 +25,17 @@ import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
 import FiltersBadge from 'src/dashboard/containers/FiltersBadge';
 import Icon from 'src/components/Icon';
 import { RootState } from 'src/dashboard/types';
-import { Slice } from 'src/types/Chart';
 import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
 
 type SliceHeaderProps = {
   innerRef?: string;
-  slice: Slice;
+  slice: {
+    description: string;
+    viz_type: string;
+    slice_name: string;
+    slice_id: number;
+    slice_description: string;
+  };
   isExpanded?: boolean;
   isCached?: boolean[];
   cachedDttm?: string[];
