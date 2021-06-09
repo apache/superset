@@ -43,9 +43,9 @@ interface Table {
     partitionQuery: string;
     latest: object[];
   };
-  indexes: object[];
-  selectStar: string;
-  view: string;
+  indexes?: object[];
+  selectStar?: string;
+  view?: string;
   isMetadataLoading: boolean;
   isExtraMetadataLoading: boolean;
   columns: Column[];
@@ -54,11 +54,14 @@ interface Table {
 interface TableElementProps {
   table: Table;
   actions: {
-    removeDataPreview(table: Table): void;
-    removeTable(table: Table): void;
+    removeDataPreview: (table: Table) => void;
+    removeTable: (table: Table) => void;
   };
   isActive: boolean;
-  key: string | number;
+  panelKey: string | number;
+  expandIcon: any;
+  onItemClick: any;
+  openMotion: any;
 }
 
 const StyledSpan = styled.span`
@@ -74,11 +77,17 @@ const Fade = styled.div`
   opacity: ${(props: { hovered: boolean }) => (props.hovered ? 1 : 0)};
 `;
 
-const TableElement = (props: TableElementProps) => {
+const TableElement = ({
+  table,
+  actions,
+  isActive,
+  expandIcon,
+  onItemClick,
+  openMotion,
+  panelKey,
+}: TableElementProps) => {
   const [sortColumns, setSortColumns] = useState(false);
   const [hovered, setHovered] = useState(false);
-
-  const { table, actions } = props;
 
   const setHover = (hovered: boolean) => {
     debounce(() => setHovered(hovered), 100)();
@@ -261,10 +270,14 @@ const TableElement = (props: TableElementProps) => {
 
   return (
     <Collapse.Panel
-      {...props}
       header={renderHeader()}
       className="TableElement"
       forceRender
+      isActive={isActive}
+      expandIcon={expandIcon}
+      onItemClick={onItemClick}
+      openMotion={openMotion}
+      panelKey={panelKey}
     >
       {renderBody()}
     </Collapse.Panel>
