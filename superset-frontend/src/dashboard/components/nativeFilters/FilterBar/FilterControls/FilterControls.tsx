@@ -80,10 +80,15 @@ const FilterControls: FC<FilterControlsProps> = ({
     element => element.type === TAB_TYPE,
   );
   const showCollapsePanel = dashboardHasTabs && cascadeFilters.length > 0;
-  if (!activeTabs || !dashboardHasTabs) {
+
+  // we check native filters scopes only on dashboards with tabs
+  if (!dashboardHasTabs) {
     filtersInScope = cascadeFilters;
   } else {
     cascadeFilters.forEach((filter, index) => {
+      // Filter is in scope if any of it's charts is visible.
+      // Chart is visible if it's placed in an active tab tree or if it's not attached to any tab.
+      // Chart is in an active tab tree if all of it's ancestors of type TAB are active
       const isFilterInScope = cascadeFilters[index].chartsInScope?.some(
         chartId => {
           const chartLayoutItem = Object.values(dashboardLayout).find(
