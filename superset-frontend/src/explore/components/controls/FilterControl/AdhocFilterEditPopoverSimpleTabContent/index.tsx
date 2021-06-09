@@ -37,7 +37,6 @@ import AdhocFilter, {
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Input, SelectProps } from 'src/common/components';
-import { noOp } from 'src/utils/common';
 
 const SelectWithLabel = styled(Select)`
   .ant-select-selector {
@@ -234,11 +233,11 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     onComparatorChange,
   } = useSimpleTabFilterProps(props);
   const [suggestions, setSuggestions] = useState<Record<string, any>>([]);
-  const [abortActiveRequest, setAbortActiveRequest] = useState<() => void>(
-    noOp,
-  );
   const [currentSuggestionSearch, setCurrentSuggestionSearch] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [
+    loadingComparatorSuggestions,
+    setLoadingComparatorSuggestions,
+  ] = useState(false);
 
   useEffect(() => {
     const refreshComparatorSuggestions = () => {
@@ -247,30 +246,28 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
       const having = props.adhocFilter.clause === CLAUSES.HAVING;
 
       if (col && datasource && datasource.filter_select && !having) {
-        abortActiveRequest();
         const controller = new AbortController();
         const { signal } = controller;
-        setAbortActiveRequest(controller.abort);
-        setLoading(true);
-
+        if (loadingComparatorSuggestions) {
+          controller.abort();
+        }
+        setLoadingComparatorSuggestions(true);
         SupersetClient.get({
           signal,
           endpoint: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
         })
           .then(({ json }) => {
             setSuggestions(json);
-            setAbortActiveRequest(noOp);
-            setLoading(false);
+            setLoadingComparatorSuggestions(false);
           })
           .catch(() => {
             setSuggestions([]);
-            setAbortActiveRequest(noOp);
-            setLoading(false);
+            setLoadingComparatorSuggestions(false);
           });
       }
     };
     refreshComparatorSuggestions();
-  }, [abortActiveRequest, props]);
+  }, [props.adhocFilter.subject]);
 
   const onInputComparatorChange = (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -351,7 +348,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     showSearch: true,
     mode: MULTI_OPERATORS.has(operatorId) ? 'tags' : undefined,
     tokenSeparators: [',', '\n', '\t', ';'],
-    loading,
+    loading: loadingComparatorSuggestions,
     value: comparator,
     onChange: onComparatorChange,
     notFoundContent: t('Type a value here'),
