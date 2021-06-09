@@ -58,19 +58,12 @@ import {
   antDTabsStyles,
   buttonLinkStyles,
   TabHeader,
-  CreateHeaderSubtitle,
-  CreateHeaderTitle,
-  EditHeaderSubtitle,
-  EditHeaderTitle,
   formHelperStyles,
   formStyles,
   StyledBasicTab,
   SelectDatabaseStyles,
-  StyledFormHeader,
 } from './styles';
-
-const DOCUMENTATION_LINK =
-  'https://superset.apache.org/docs/databases/installing-database-drivers';
+import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
@@ -375,65 +368,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     </div>
   );
 
-  const renderModalHeader = () => {
-    if (isEditMode) {
-      return (
-        <>
-          <EditHeaderTitle>{db?.backend}</EditHeaderTitle>
-          <EditHeaderSubtitle>{dbName}</EditHeaderSubtitle>
-        </>
-      );
-    }
-    if (useSqlAlchemyForm) {
-      return (
-        <>
-          <p className="helper"> Step 2 of 2 </p>
-          <CreateHeaderTitle>Enter Primary Credentials</CreateHeaderTitle>
-          <CreateHeaderSubtitle>
-            Need help? Learn how to connect your database{' '}
-            <a
-              href={DOCUMENTATION_LINK}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              here
-            </a>
-            .
-          </CreateHeaderSubtitle>
-        </>
-      );
-    }
-    if (!isLoading && !db) {
-      return (
-        <StyledFormHeader>
-          <div className="select-db">
-            <p className="helper"> Step 1 of 3 </p>
-            <h4>Select a database to connect</h4>
-          </div>
-        </StyledFormHeader>
-      );
-    }
-    if (!isEditMode && db && !isLoading && !hasConnectedDb) {
-      return (
-        <StyledFormHeader>
-          <p className="helper"> Step 2 of 3 </p>
-          <h4>Enter the required {dbModel.name} credentials</h4>
-          <p className="helper">
-            Need help? Learn more about connecting to {dbModel.name}.
-          </p>
-        </StyledFormHeader>
-      );
-    }
-    if (hasConnectedDb) {
-      return (
-        <StyledFormHeader>
-          <p className="helper"> Step 3 of 3 </p>
-        </StyledFormHeader>
-      );
-    }
-    return <></>;
-  };
-
   const renderModalFooter = () =>
     db // if db show back + connect
       ? [
@@ -509,7 +443,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
       footer={renderModalFooter()}
     >
-      <TabHeader>{renderModalHeader()}</TabHeader>
+      <TabHeader>
+        <ModalHeader
+          isLoading={isLoading}
+          isEditMode={isEditMode}
+          useSqlAlchemyForm={useSqlAlchemyForm}
+          hasConnectedDb={hasConnectedDb}
+          db={db}
+          dbName={dbName}
+          dbModel={dbModel}
+        />
+      </TabHeader>
       <hr />
       <Tabs
         defaultActiveKey={DEFAULT_TAB_KEY}
@@ -628,7 +572,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     >
       {hasConnectedDb ? (
         <>
-          {renderModalHeader()}
+          <ModalHeader
+            isLoading={isLoading}
+            isEditMode={isEditMode}
+            useSqlAlchemyForm={useSqlAlchemyForm}
+            hasConnectedDb={hasConnectedDb}
+            db={db}
+            dbName={dbName}
+            dbModel={dbModel}
+          />
+
           <ExtraOptions
             db={db as DatabaseObject}
             onInputChange={({ target }: { target: HTMLInputElement }) =>
@@ -653,66 +606,80 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       ) : (
         <>
           {/* Step 1 */}
-          {!isLoading && !db && (
-            <SelectDatabaseStyles>
-              {renderModalHeader()}
-              {renderPreferredSelector()}
-              {renderAvailableSelector()}
-            </SelectDatabaseStyles>
-          )}
-          {/* Step 1 */}
+          {!isLoading &&
+            (!db ? (
+              <SelectDatabaseStyles>
+                <ModalHeader
+                  isLoading={isLoading}
+                  isEditMode={isEditMode}
+                  useSqlAlchemyForm={useSqlAlchemyForm}
+                  hasConnectedDb={hasConnectedDb}
+                  db={db}
+                  dbName={dbName}
+                  dbModel={dbModel}
+                />
+                {renderPreferredSelector()}
+                {renderAvailableSelector()}
+              </SelectDatabaseStyles>
+            ) : (
+              <>
+                <ModalHeader
+                  isLoading={isLoading}
+                  isEditMode={isEditMode}
+                  useSqlAlchemyForm={useSqlAlchemyForm}
+                  hasConnectedDb={hasConnectedDb}
+                  db={db}
+                  dbName={dbName}
+                  dbModel={dbModel}
+                />
+                <DatabaseConnectionForm
+                  db={db}
+                  sslForced={sslForced}
+                  dbModel={dbModel}
+                  onParametersChange={({
+                    target,
+                  }: {
+                    target: HTMLInputElement;
+                  }) =>
+                    onChange(ActionType.parametersChange, {
+                      type: target.type,
+                      name: target.name,
+                      checked: target.checked,
+                      value: target.value,
+                    })
+                  }
+                  onChange={({ target }: { target: HTMLInputElement }) =>
+                    onChange(ActionType.textChange, {
+                      name: target.name,
+                      value: target.value,
+                    })
+                  }
+                  getValidation={() => getValidation(db)}
+                  validationErrors={validationErrors}
+                  uploadOption={uploadOption}
+                  setUploadOption={setUploadOption}
+                  fileToUpload={fileToUpload}
+                  setFileToUpload={setFileToUpload}
+                />
 
-          {/* Step 2 */}
-          {!isLoading && db && (
-            <>
-              {renderModalHeader()}
-              <DatabaseConnectionForm
-                db={db}
-                sslForced={sslForced}
-                dbModel={dbModel}
-                onParametersChange={({
-                  target,
-                }: {
-                  target: HTMLInputElement;
-                }) =>
-                  onChange(ActionType.parametersChange, {
-                    type: target.type,
-                    name: target.name,
-                    checked: target.checked,
-                    value: target.value,
-                  })
-                }
-                onChange={({ target }: { target: HTMLInputElement }) =>
-                  onChange(ActionType.textChange, {
-                    name: target.name,
-                    value: target.value,
-                  })
-                }
-                getValidation={() => getValidation(db)}
-                validationErrors={validationErrors}
-                uploadOption={uploadOption}
-                setUploadOption={setUploadOption}
-                fileToUpload={fileToUpload}
-                setFileToUpload={setFileToUpload}
-              />
-
-              <Button
-                buttonStyle="link"
-                onClick={() =>
-                  setDB({
-                    type: ActionType.configMethodChange,
-                    payload: {
-                      configuration_method: CONFIGURATION_METHOD.SQLALCHEMY_URI,
-                    },
-                  })
-                }
-                css={buttonLinkStyles}
-              >
-                Connect this database with a SQLAlchemy URI string instead
-              </Button>
-              {/* Step 2 */}
-            </>
-          )}
+                <Button
+                  buttonStyle="link"
+                  onClick={() =>
+                    setDB({
+                      type: ActionType.configMethodChange,
+                      payload: {
+                        configuration_method:
+                          CONFIGURATION_METHOD.SQLALCHEMY_URI,
+                      },
+                    })
+                  }
+                  css={buttonLinkStyles}
+                >
+                  Connect this database with a SQLAlchemy URI string instead
+                </Button>
+                {/* Step 2 */}
+              </>
+            ))}
         </>
       )}
     </Modal>
