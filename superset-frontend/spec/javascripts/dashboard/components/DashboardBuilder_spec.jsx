@@ -50,16 +50,21 @@ jest.mock('src/dashboard/actions/dashboardState');
 
 describe('DashboardBuilder', () => {
   let favStarStub;
+  let focusedTabStub;
 
   beforeAll(() => {
     // this is invoked on mount, so we stub it instead of making a request
     favStarStub = sinon
       .stub(dashboardStateActions, 'fetchFaveStar')
       .returns({ type: 'mock-action' });
+    focusedTabStub = sinon
+      .stub(dashboardStateActions, 'setLastFocusedTab')
+      .returns({ type: 'mock-action' });
   });
 
   afterAll(() => {
     favStarStub.restore();
+    focusedTabStub.restore();
   });
 
   function setup(overrideState = {}, overrideStore) {

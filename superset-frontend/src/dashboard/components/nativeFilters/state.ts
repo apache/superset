@@ -19,6 +19,7 @@
 import { useSelector } from 'react-redux';
 import { useMemo } from 'react';
 import { Filter, FilterConfiguration } from './types';
+import { DashboardLayout } from '../../types';
 
 const defaultFilterConfiguration: Filter[] = [];
 
@@ -43,5 +44,11 @@ export function useFilterConfigMap() {
         return acc;
       }, {} as Record<string, Filter>),
     [filterConfig],
+  );
+}
+
+export function useDashboardLayout() {
+  return useSelector<any, DashboardLayout>(
+    state => state.dashboardLayout?.present,
   );
 }

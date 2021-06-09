@@ -1264,7 +1264,7 @@ To do this, you'll need to:
 - Start up a celery worker
 
   ```shell script
-  celery worker --app=superset.tasks.celery_app:app -Ofair
+  celery --app=superset.tasks.celery_app:app worker -Ofair
   ```
 
 Note that:
