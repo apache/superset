@@ -369,7 +369,7 @@ export const CredentialInfoForm = styled.div`
     text-transform: uppercase;
     color: ${({ theme }) => theme.colors.grayscale.dark1};
     font-size: 11px;
-    margin: 0 0 ${({ theme }) => theme.gridUnit * 2}px;
+    margin: 0 5px ${({ theme }) => theme.gridUnit * 2}px;
   }
 
   .label-paste {

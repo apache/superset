@@ -48,7 +48,6 @@ import {
   DatabaseForm,
   CONFIGURATION_METHOD,
 } from 'src/views/CRUD/data/database/types';
-import Label from 'src/components/Label';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';

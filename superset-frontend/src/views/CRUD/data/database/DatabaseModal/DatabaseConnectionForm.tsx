@@ -23,7 +23,7 @@ import { Switch, Select, Button } from 'src/common/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import { DeleteFilled } from '@ant-design/icons';
-import Label from 'src/components/Label';
+import { SelectValue } from 'src/filters/components/Select/types';
 import {
   formScrollableStyles,
   validatedFormStyles,
@@ -70,19 +70,19 @@ interface FieldPropTypes {
 }
 
 const CredentialsInfo = ({ changeMethods }: FieldPropTypes) => {
-  const [uploadOption, setUploadOption] = useState<string>('upload');
+  const [uploadOption, setUploadOption] = useState<SelectValue | number>(0);
   const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
     null,
   );
   return (
     <CredentialInfoForm>
-      <Label className="label-select">
+      <span className="label-select">
         How do you want to enter service account credentials?
-      </Label>
+      </span>
       <Select
         defaultValue={CredentialInfoOptions.jsonUpload}
         style={{ width: '100%' }}
-        onChange={setUploadOption}
+        onChange={option => setUploadOption(option)}
       >
         <Select.Option value={CredentialInfoOptions.jsonUpload}>
           Upload JSON file
@@ -91,7 +91,7 @@ const CredentialsInfo = ({ changeMethods }: FieldPropTypes) => {
           Copy and Paste JSON credentials
         </Select.Option>
       </Select>
-      {uploadOption === 'paste' ? (
+      {uploadOption === CredentialInfoOptions.copyPaste ? (
         <div className="input-container" onChange={changeMethods.onChange}>
           <span className="label-select">Service Account</span>
           <textarea className="input-form" name="encrypted_extra" />
@@ -105,7 +105,7 @@ const CredentialsInfo = ({ changeMethods }: FieldPropTypes) => {
           {!fileToUpload && (
             <Button
               className="input-upload-btn"
-              onClick={() => selectedFile?.click()}
+              onClick={() => document?.getElementById('selectedFile').click()}
             >
               Choose File
             </Button>
