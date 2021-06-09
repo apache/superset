@@ -96,9 +96,31 @@ In this section, we'll walkthrough the  pre-defined Jinja macros in Superset.
 
 The `{{ current_username() }}` macro returns the username of the currently logged in user.
 
+If you have caching enabled in your Superset configuration, then by defaul the the `username` value will be used
+by Superset when calculating the cache key. A cache key is a unique identifer that determines if there's a
+cache hit in the future and Superset can retrieve cached data.
+
+You can disable the inclusion of the `username` value in the calculation of the
+cache key by adding the following parameter to your Jinja code:
+
+```
+{{ current_username(add_to_cache_keys=False) }}
+```
+
 **Current User ID**
 
-The `{{ current_uer_id()}}` macro returns the user_id of the currently logged in user.
+The `{{ current_user_id()}}` macro returns the user_id of the currently logged in user.
+
+If you have caching enabled in your Superset configuration, then by defaul the the `user_id` value will be used
+by Superset when calculating the cache key. A cache key is a unique identifer that determines if there's a
+cache hit in the future and Superset can retrieve cached data.
+
+You can disable the inclusion of the `user_id` value in the calculation of the
+cache key by adding the following parameter to your Jinja code:
+
+```
+{{ current_user_id(add_to_cache_keys=False) }}
+```
 
 **Custom URL Parameters**
 
@@ -136,14 +158,15 @@ and your coworker in the USA the following SQL Lab URL `www.example.com/superset
 
 **Skipping Cache**
 
-If you have enabled caching, you will need to chain the `{{ cache_key_wrapper() }}`
-function to avoid retrieving the
-same current_username or current_user_id for different users.
+The `{{ cache_key_wrapper() }}` function explicitly instructs Superset to add a value to the
+accumulated list of values used in the the calculation of the cache key.
 
-Here's an example:
+This function is only needed when you want to wrap your own custom function return values
+in the cache key. You can gain more context
+[here](https://github.com/apache/superset/blob/efd70077014cbed62e493372d33a2af5237eaadf/superset/jinja_context.py#L133-L148).
 
-- Skip cache when retrieving current user_id:  `{{ cache_key_wrapper(current_user_id()) }}`
-- Skip cache when retrieving current username: `{{ cache_key_wrapper(current_username()) }}`
+Note that this function powers the caching of the `user_id` and `username` values
+in the `current_user_id()` and `current_username()` function calls (if you have caching enabled).
 
 **Filter Values**
 
