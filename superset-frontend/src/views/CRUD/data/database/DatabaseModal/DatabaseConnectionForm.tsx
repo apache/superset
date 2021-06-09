@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FormEvent, useEvent } from 'react';
+import React, { FormEvent, useState } from 'react';
 import { SupersetTheme, JsonObject, t } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
 import { Switch, Select, Button } from 'src/common/components';
@@ -47,6 +47,7 @@ export const FormFieldOrder = [
   'database_name',
   'encryption',
   'credentials_info',
+  'query',
 ];
 
 interface FieldPropTypes {
@@ -266,6 +267,28 @@ const displayField = ({
     helpText="Pick a nickname for this database to display as in Superset."
   />
 );
+
+const queryField = ({
+  required,
+  changeMethods,
+  getValidation,
+  validationErrors,
+  db,
+}: FieldPropTypes) => (
+  <ValidatedInput
+    id="query"
+    name="query"
+    required={required}
+    value={db?.query}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.query}
+    placeholder=""
+    label="Additional Parameters"
+    onChange={changeMethods.onChange}
+    helpText="Pick a nickname for this database to display as in Superset."
+  />
+);
+
 const forceSSLField = ({
   isEditMode,
   changeMethods,
@@ -302,6 +325,7 @@ const FORM_FIELD_MAP = {
   username: usernameField,
   password: passwordField,
   database_name: displayField,
+  query: queryField,
   encryption: forceSSLField,
   credentials_info: credentialsInfo,
 };
