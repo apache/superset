@@ -62,6 +62,11 @@ const alertIconStyles = (theme: SupersetTheme, hasError: boolean) => css`
     }`}
 `;
 const StyledFormGroup = styled('div')`
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
   margin-bottom: ${({ theme }) => theme.gridUnit * 5}px;
   .ant-form-item {
     margin-bottom: 0;
