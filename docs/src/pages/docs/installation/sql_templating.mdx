@@ -156,7 +156,7 @@ and your coworker in the USA the following SQL Lab URL `www.example.com/superset
     WHERE country_code = 'US'
     ```
 
-**Skipping Cache**
+**Explicitly Including Values in Cache Key**
 
 The `{{ cache_key_wrapper() }}` function explicitly instructs Superset to add a value to the
 accumulated list of values used in the the calculation of the cache key.
