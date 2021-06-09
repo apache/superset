@@ -30,6 +30,18 @@ import { DatabaseForm, DatabaseObject } from '../types';
 export const DOCUMENTATION_LINK =
   'https://superset.apache.org/docs/databases/installing-database-drivers';
 
+const irregularDocumentationLinks = {
+  postgresql: 'https://superset.apache.org/docs/databases/postgres',
+  mssql: 'https://superset.apache.org/docs/databases/sql-server',
+};
+
+const documentationLink = (engine: string | undefined) => {
+  if (!engine) return null;
+  if (!irregularDocumentationLinks[engine]) {
+    return `https://superset.apache.org/docs/databases/${engine}`;
+  }
+  return irregularDocumentationLinks[engine];
+};
 const ModalHeader = ({
   isLoading,
   isEditMode,
@@ -69,6 +81,20 @@ const ModalHeader = ({
   const hasConnectedDbHeader = (
     <StyledFormHeader>
       <p className="helper"> Step 3 of 3 </p>
+      <h4>
+        Your database was successfully connected! Here are some optional
+        settings for your database
+      </h4>
+      <p className="helper">
+        Need help? Learn more about{' '}
+        <a
+          href={documentationLink(db?.engine)}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          connecting to {dbModel.name}
+        </a>
+      </p>
     </StyledFormHeader>
   );
   const hasDbHeader = (

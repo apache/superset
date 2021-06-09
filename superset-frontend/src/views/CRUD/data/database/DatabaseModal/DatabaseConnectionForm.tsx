@@ -23,7 +23,6 @@ import { Switch, Select, Button } from 'src/common/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import { DeleteFilled } from '@ant-design/icons';
-import { SelectValue } from 'src/filters/components/Select/types';
 import {
   formScrollableStyles,
   validatedFormStyles,
@@ -63,14 +62,10 @@ interface FieldPropTypes {
   db?: DatabaseObject;
   isEditMode?: boolean;
   sslForced?: boolean;
-  uploadOption?: string | null;
-  setUploadOption: (obj: any) => void;
-  fileToUpload?: string;
-  setFileToUpload: (obj: any) => void;
 }
 
 const CredentialsInfo = ({ changeMethods }: FieldPropTypes) => {
-  const [uploadOption, setUploadOption] = useState<SelectValue | number>(0);
+  const [uploadOption, setUploadOption] = useState<number>(0);
   const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
     null,
   );
@@ -105,7 +100,7 @@ const CredentialsInfo = ({ changeMethods }: FieldPropTypes) => {
           {!fileToUpload && (
             <Button
               className="input-upload-btn"
-              onClick={() => document?.getElementById('selectedFile').click()}
+              onClick={() => document?.getElementById('selectedFile')?.click()}
             >
               Choose File
             </Button>
