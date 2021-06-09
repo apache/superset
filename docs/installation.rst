@@ -1080,11 +1080,11 @@ have the same configuration.
 
 * To start a Celery worker to leverage the configuration run: ::
 
-    celery worker --app=superset.tasks.celery_app:app --pool=prefork -O fair -c 4
+    celery --app=superset.tasks.celery_app:app worker --pool=prefork -O fair -c 4
 
 * To start a job which schedules periodic background jobs, run ::
 
-    celery beat --app=superset.tasks.celery_app:app
+    celery --app=superset.tasks.celery_app:app beat
 
 To setup a result backend, you need to pass an instance of a derivative
 of ``from cachelib.base.BaseCache`` to the ``RESULTS_BACKEND``
