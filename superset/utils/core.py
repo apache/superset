@@ -263,6 +263,7 @@ class QueryStatus(str, Enum):  # pylint: disable=too-few-public-methods
     RUNNING: str = "running"
     SCHEDULED: str = "scheduled"
     SUCCESS: str = "success"
+    FETCHING: str = "fetching"
     TIMED_OUT: str = "timed_out"
 
 
