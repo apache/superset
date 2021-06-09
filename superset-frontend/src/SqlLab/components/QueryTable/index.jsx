@@ -120,6 +120,14 @@ const statusAttributes = {
       status: 'queued',
     },
   },
+  error: {
+    color: ({ theme }) => theme.colors.error.base,
+    config: {
+      name: 'error',
+      label: t('Unknown Status'),
+      status: 'unknown status!',
+    },
+  },
 };
 
 const StatusIcon = styled(Icon, {
@@ -172,6 +180,8 @@ const QueryTable = props => {
     return props.queries
       .map(query => {
         const q = { ...query };
+        const status = statusAttributes[q.state] || statusAttributes.error;
+
         if (q.endDttm) {
           q.duration = fDuration(q.startDttm, q.endDttm);
         }
@@ -268,14 +278,11 @@ const QueryTable = props => {
             />
           );
         q.state = (
-          <Tooltip
-            title={statusAttributes[q.state].config.label}
-            placement="bottom"
-          >
+          <Tooltip title={status.config.label} placement="bottom">
             <span>
               <StatusIcon
-                name={statusAttributes[q.state].config.name}
-                status={statusAttributes[q.state].config.status}
+                name={status.config.name}
+                status={status.config.status}
               />
             </span>
           </Tooltip>
