@@ -24,7 +24,7 @@ import * as portals from 'react-reverse-portal';
 import { DataMaskStateWithId } from 'src/dataMask/types';
 import { Collapse } from 'src/common/components';
 import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
-import { RootState } from 'src/dashboard/types';
+import { ActiveTabs, RootState } from 'src/dashboard/types';
 import CascadePopover from '../CascadeFilters/CascadePopover';
 import { buildCascadeFiltersTree } from './utils';
 import { useFilters } from '../state';
@@ -53,8 +53,8 @@ const FilterControls: FC<FilterControlsProps> = ({
   const [visiblePopoverId, setVisiblePopoverId] = useState<string | null>(null);
   const filters = useFilters();
   const dashboardLayout = useDashboardLayout();
-  const lastFocusedTabId = useSelector<RootState, string | null>(
-    state => state.dashboardState?.lastFocusedTabId,
+  const activeTabs = useSelector<RootState, ActiveTabs>(
+    state => state.dashboardState?.activeTabs,
   );
   const filterValues = Object.values<Filter>(filters);
   const portalNodes = React.useMemo(() => {
@@ -80,11 +80,26 @@ const FilterControls: FC<FilterControlsProps> = ({
     element => element.type === TAB_TYPE,
   );
   const showCollapsePanel = dashboardHasTabs && cascadeFilters.length > 0;
-  if (!lastFocusedTabId || !dashboardHasTabs) {
+  if (!activeTabs || !dashboardHasTabs) {
     filtersInScope = cascadeFilters;
   } else {
     cascadeFilters.forEach((filter, index) => {
-      if (cascadeFilters[index].tabsInScope?.includes(lastFocusedTabId)) {
+      const isFilterInScope = cascadeFilters[index].chartsInScope?.some(
+        chartId => {
+          const chartLayoutItem = Object.values(dashboardLayout).find(
+            layoutItem => layoutItem.meta?.chartId === chartId,
+          );
+          const tabParents = chartLayoutItem?.parents.filter(
+            (parent: string) => dashboardLayout[parent].type === TAB_TYPE,
+          );
+          return (
+            tabParents?.length === 0 ||
+            tabParents?.every(tab => activeTabs.includes(tab))
+          );
+        },
+      );
+
+      if (isFilterInScope) {
         filtersInScope.push(filter);
       } else {
         filtersOutOfScope.push(filter);
