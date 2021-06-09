@@ -25,7 +25,7 @@ import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import { AGGREGATES, Operators, OPERATOR_MAPPING } from 'src/explore/constants';
+import { AGGREGATES, Operators, OPERATOR_ENUM_TO_OPERATOR_TYPE } from 'src/explore/constants';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocFilterEditPopoverSimpleTabContent, {
   useSimpleTabFilterProps,
@@ -35,7 +35,7 @@ const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
   subject: 'value',
   operatorId: Operators.GREATER_THAN,
-  operator: OPERATOR_MAPPING[Operators.GREATER_THAN].operation,
+  operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
   comparator: '10',
   clause: CLAUSES.WHERE,
 });
@@ -44,7 +44,7 @@ const simpleMultiAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
   subject: 'value',
   operatorId: Operators.IN,
-  operator: OPERATOR_MAPPING[Operators.IN].operation,
+  operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.IN].operation,
   comparator: ['10'],
   clause: CLAUSES.WHERE,
 });
@@ -310,7 +310,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       expect(props.onChange.called).toBe(true);
       expect(props.onChange.lastCall.args[0].operatorId).toBe(op);
       expect(props.onChange.lastCall.args[0].operator).toBe(
-        OPERATOR_MAPPING[op].operation,
+        OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
       );
       expect(props.onChange.lastCall.args[0].comparator).toBe(null);
     });

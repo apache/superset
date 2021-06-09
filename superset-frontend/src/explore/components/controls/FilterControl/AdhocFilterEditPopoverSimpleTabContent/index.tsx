@@ -29,7 +29,7 @@ import {
   CUSTOM_OPERATORS,
   DISABLE_INPUT_OPERATORS,
   AGGREGATES,
-  OPERATOR_MAPPING,
+  OPERATOR_ENUM_TO_OPERATOR_TYPE,
 } from 'src/explore/constants';
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
 import AdhocFilter, {
@@ -159,7 +159,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
         clause,
         operator:
           operator && isOperatorRelevant(operatorId, subject)
-            ? OPERATOR_MAPPING[operatorId].operation
+            ? OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId].operation
             : null,
         expressionType: EXPRESSION_TYPES.SIMPLE,
         operatorId,
@@ -189,7 +189,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
           subject: props.adhocFilter.subject,
           clause: CLAUSES.WHERE,
           operatorId,
-          operator: OPERATOR_MAPPING[operatorId].operation,
+          operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId].operation,
           expressionType: EXPRESSION_TYPES.SQL,
           datasource: props.datasource,
         }),
@@ -198,7 +198,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
       props.onChange(
         props.adhocFilter.duplicateWith({
           operatorId,
-          operator: OPERATOR_MAPPING[operatorId].operation,
+          operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId].operation,
           comparator: newComparator,
           expressionType: EXPRESSION_TYPES.SIMPLE,
         }),
@@ -332,7 +332,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
       '%s operator(s)',
       OPERATORS_OPTIONS.filter(op => isOperatorRelevant(op, subject)).length,
     ),
-    value: OPERATOR_MAPPING[operatorId]?.display,
+    value: OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId]?.display,
     onChange: onOperatorChange,
     autoFocus: !!subjectSelectProps.value && !operator,
     name: 'select-operator',
@@ -411,7 +411,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
         {OPERATORS_OPTIONS.filter(op => isOperatorRelevant(op, subject)).map(
           option => (
             <Select.Option value={option} key={option}>
-              {OPERATOR_MAPPING[option].display}
+              {OPERATOR_ENUM_TO_OPERATOR_TYPE[option].display}
             </Select.Option>
           ),
         )}

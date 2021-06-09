@@ -52,7 +52,9 @@ export interface OperatorType {
   operation: string;
 }
 
-export const OPERATOR_MAPPING: { [key in Operators]: OperatorType } = {
+export const OPERATOR_ENUM_TO_OPERATOR_TYPE: {
+  [key in Operators]: OperatorType;
+} = {
   [Operators.EQUALS]: { display: 'equals', operation: '==' },
   [Operators.NOT_EQUALS]: { display: 'not equals', operation: '!=' },
   [Operators.GREATER_THAN]: { display: '>', operation: '>' },

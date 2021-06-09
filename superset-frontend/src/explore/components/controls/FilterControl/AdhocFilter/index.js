@@ -19,7 +19,7 @@
 import {
   CUSTOM_OPERATORS,
   Operators,
-  OPERATOR_MAPPING,
+  OPERATOR_ENUM_TO_OPERATOR_TYPE,
 } from 'src/explore/constants';
 import { getSimpleSQLExpression } from 'src/explore/exploreUtils';
 
@@ -54,7 +54,7 @@ const OPERATORS_TO_SQL = {
 };
 
 const CUSTOM_OPERATIONS = [...CUSTOM_OPERATORS].map(
-  op => OPERATOR_MAPPING[op].operation,
+  op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
 );
 
 function translateToSql(adhocMetric, { useSimple } = {}) {
@@ -148,10 +148,10 @@ export default class AdhocFilter {
 
   isValid() {
     const nullCheckOperators = [Operators.IS_NOT_NULL, Operators.IS_NULL].map(
-      op => OPERATOR_MAPPING[op].operation,
+      op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
     );
     const truthCheckOperators = [Operators.IS_TRUE, Operators.IS_FALSE].map(
-      op => OPERATOR_MAPPING[op].operation,
+      op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
     );
     if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
       if (nullCheckOperators.indexOf(this.operator) >= 0) {
