@@ -146,7 +146,7 @@ const credentialsInfo = ({
                 checked: false,
               },
             });
-            (selectedFile as HTMLInputElement).value = '';
+            (selectedFile as HTMLInputElement).value = null as any;
           }}
         />
       </div>
