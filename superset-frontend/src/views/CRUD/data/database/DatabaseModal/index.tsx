@@ -228,8 +228,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     t('database'),
     addDangerToast,
   );
-  const [uploadOption, setUploadOption] = useState<string>('upload');
-  const [fileToUpload, setFileToUpload] = useState<string | null>(null);
 
   const dbModel: DatabaseForm =
     availableDbs?.databases?.find(
@@ -500,10 +498,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               }
               getValidation={() => getValidation(db)}
               validationErrors={validationErrors}
-              uploadOption={uploadOption}
-              setUploadOption={setUploadOption}
-              fileToUpload={fileToUpload}
-              setFileToUpload={setFileToUpload}
             />
           )}
           {!isEditMode && (
@@ -658,10 +652,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   }
                   getValidation={() => getValidation(db)}
                   validationErrors={validationErrors}
-                  uploadOption={uploadOption}
-                  setUploadOption={setUploadOption}
-                  fileToUpload={fileToUpload}
-                  setFileToUpload={setFileToUpload}
                 />
 
                 <Button
