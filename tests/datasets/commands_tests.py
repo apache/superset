@@ -328,7 +328,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         assert metric.expression == "count(1)"
         assert metric.description is None
         assert metric.d3format is None
-        assert metric.extra is None
+        assert metric.extra == "{}"
         assert metric.warning_text is None
 
         assert len(dataset.columns) == 1
