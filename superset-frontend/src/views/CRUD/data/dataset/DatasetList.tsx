@@ -275,7 +275,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         size: 'md',
       },
       {
-        Header: t('Source'),
+        Header: t('Database'),
         accessor: 'database.database_name',
         size: 'lg',
       },

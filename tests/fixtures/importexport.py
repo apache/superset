@@ -384,7 +384,7 @@ dataset_config: Dict[str, Any] = {
             "expression": "count(1)",
             "description": None,
             "d3format": None,
-            "extra": None,
+            "extra": {},
             "warning_text": None,
         },
     ],

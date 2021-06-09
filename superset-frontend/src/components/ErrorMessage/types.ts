@@ -88,6 +88,7 @@ export type ErrorMessageComponentProps<
 > = {
   error: SupersetError<ExtraType>;
   source?: ErrorSource;
+  subtitle?: React.ReactNode;
 };
 
 export type ErrorMessageComponent = React.ComponentType<ErrorMessageComponentProps>;

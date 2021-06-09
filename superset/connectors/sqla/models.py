@@ -638,7 +638,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         db_engine_spec = self.db_engine_spec
         if self.sql:
             engine = self.database.get_sqla_engine(schema=self.schema)
-            sql = self.get_template_processor().process_template(self.sql)
+            sql = self.get_template_processor().process_template(
+                self.sql, **self.template_params_dict
+            )
             parsed_query = ParsedQuery(sql)
             if not db_engine_spec.is_readonly_query(parsed_query):
                 raise SupersetSecurityException(

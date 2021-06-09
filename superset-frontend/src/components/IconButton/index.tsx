@@ -17,9 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { styled } from '@superset-ui/core';
+import { styled, supersetTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import { ButtonProps as AntdButtonProps } from 'antd/lib/button';
+import Icon from 'src/components/Icon';
 
 export interface IconButtonProps extends AntdButtonProps {
   buttonText: string;
@@ -35,7 +36,6 @@ const StyledButton = styled(Button)`
   width: 33%;
 `;
 const StyledImage = styled.div`
-  margin: ${({ theme }) => theme.gridUnit * 8}px 0;
   padding: ${({ theme }) => theme.gridUnit * 4}px;
 
   &:first-of-type {
@@ -43,7 +43,8 @@ const StyledImage = styled.div`
   }
 
   img {
-    width: fit-content;
+    width: 100%;
+    height: 100%;
 
     &:first-of-type {
       margin-right: 0;
@@ -82,7 +83,6 @@ const StyledBottom = styled.div`
   background-color: ${({ theme }) => theme.colors.grayscale.light4};
   width: 100%;
   line-height: 1.5em;
-  overflow: hidden;
   white-space: no-wrap;
   text-overflow: ellipsis;
 
@@ -95,8 +95,17 @@ const IconButton = styled(
   ({ icon, altText, buttonText, ...props }: IconButtonProps) => (
     <StyledButton {...props}>
       <StyledImage>
-        <img src={icon} alt={altText} />
+        {icon && <img src={icon} alt={altText} />}
+        {!icon && (
+          <Icon
+            color={supersetTheme.colors.primary.base}
+            height={100}
+            width={100}
+            name="default-database"
+          />
+        )}
       </StyledImage>
+
       <StyledBottom>
         <StyledInner>{buttonText}</StyledInner>
       </StyledBottom>

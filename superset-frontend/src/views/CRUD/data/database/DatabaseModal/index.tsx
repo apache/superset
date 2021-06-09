@@ -40,6 +40,7 @@ import {
   useSingleViewResource,
   useAvailableDatabases,
   useDatabaseValidation,
+  getDatabaseImages,
 } from 'src/views/CRUD/hooks';
 import { useCommonConf } from 'src/views/CRUD/data/database/state';
 import {
@@ -207,6 +208,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [dbName, setDbName] = useState('');
   const [isLoading, setLoading] = useState<boolean>(false);
   const conf = useCommonConf();
+  const dbImages = getDatabaseImages();
   const isEditMode = !!databaseId;
   const sslForced = isFeatureEnabled(
     FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
@@ -226,8 +228,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     t('database'),
     addDangerToast,
   );
-  const [uploadOption, setUploadOption] = useState<string>('upload');
-  const [fileToUpload, setFileToUpload] = useState<string | null>(null);
 
   const dbModel: DatabaseForm =
     availableDbs?.databases?.find(
@@ -339,7 +339,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       <span className="available-label">
         Or choose from a list of other databases we support{' '}
       </span>
-      <Label className="label-available-select">supported databases</Label>
       <Select
         style={{ width: '100%' }}
         onChange={setDatabaseModel}
@@ -360,9 +359,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         ?.filter((db: DatabaseForm) => db.preferred)
         .map((database: DatabaseForm) => (
           <IconButton
-            icon="preferred-item"
+            className="preferred-item"
             onClick={() => setDatabaseModel(database.engine)}
             buttonText={database.name}
+            icon={dbImages[database.engine]}
           />
         ))}
     </div>
@@ -498,10 +498,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               }
               getValidation={() => getValidation(db)}
               validationErrors={validationErrors}
-              uploadOption={uploadOption}
-              setUploadOption={setUploadOption}
-              fileToUpload={fileToUpload}
-              setFileToUpload={setFileToUpload}
             />
           )}
           {!isEditMode && (
@@ -656,10 +652,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   }
                   getValidation={() => getValidation(db)}
                   validationErrors={validationErrors}
-                  uploadOption={uploadOption}
-                  setUploadOption={setUploadOption}
-                  fileToUpload={fileToUpload}
-                  setFileToUpload={setFileToUpload}
                 />
 
                 <Button

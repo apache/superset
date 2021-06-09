@@ -93,6 +93,7 @@ export type LayoutItem = {
     chartId: number;
     height: number;
     sliceName?: string;
+    sliceNameOverride?: string;
     text?: string;
     uuid: string;
     width: number;

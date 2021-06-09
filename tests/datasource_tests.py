@@ -73,6 +73,25 @@ class TestDatasource(SupersetTestCase):
         session.delete(table)
         session.commit()
 
+    def test_external_metadata_for_virtual_table_template_params(self):
+        self.login(username="admin")
+        session = db.session
+        table = SqlaTable(
+            table_name="dummy_sql_table_with_template_params",
+            database=get_example_database(),
+            sql="select {{ foo }} as intcol",
+            template_params=json.dumps({"foo": "123"}),
+        )
+        session.add(table)
+        session.commit()
+
+        table = self.get_table_by_name("dummy_sql_table_with_template_params")
+        url = f"/datasource/external_metadata/table/{table.id}/"
+        resp = self.get_json_resp(url)
+        assert {o.get("name") for o in resp} == {"intcol"}
+        session.delete(table)
+        session.commit()
+
     def test_external_metadata_for_malicious_virtual_table(self):
         self.login(username="admin")
         table = SqlaTable(
