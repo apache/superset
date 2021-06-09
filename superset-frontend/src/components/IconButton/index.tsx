@@ -17,9 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { styled } from '@superset-ui/core';
+import { styled, supersetTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import { ButtonProps as AntdButtonProps } from 'antd/lib/button';
+import Icon from 'src/components/Icon';
 
 export interface IconButtonProps extends AntdButtonProps {
   buttonText: string;
@@ -94,8 +95,17 @@ const IconButton = styled(
   ({ icon, altText, buttonText, ...props }: IconButtonProps) => (
     <StyledButton {...props}>
       <StyledImage>
-        <img src={icon} alt={altText} />
+        {icon && <img src={icon} alt={altText} />}
+        {!icon && (
+          <Icon
+            color={supersetTheme.colors.primary.base}
+            height={100}
+            width={100}
+            name="default-database"
+          />
+        )}
       </StyledImage>
+
       <StyledBottom>
         <StyledInner>{buttonText}</StyledInner>
       </StyledBottom>
