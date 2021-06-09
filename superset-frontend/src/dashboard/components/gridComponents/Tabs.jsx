@@ -127,18 +127,13 @@ class Tabs extends React.PureComponent {
   }
 
   componentDidMount() {
-    this.props.setActiveTabs([
-      ...this.props.activeTabs,
-      this.state.activeKey,
-    ]);
+    this.props.setActiveTabs([...this.props.activeTabs, this.state.activeKey]);
   }
 
   componentDidUpdate(prevProps, prevState) {
     if (prevState.activeKey !== this.state.activeKey) {
       this.props.setActiveTabs([
-        ...this.props.activeTabs.filter(
-          tabId => tabId !== prevState.activeKey,
-        ),
+        ...this.props.activeTabs.filter(tabId => tabId !== prevState.activeKey),
         this.state.activeKey,
       ]);
     }
@@ -291,8 +286,6 @@ class Tabs extends React.PureComponent {
       isComponentVisible: isCurrentTabVisible,
       editMode,
       nativeFilters,
-      activeTabs,
-      setActiveTabs,
     } = this.props;
 
     const { children: tabIds } = tabsComponent;

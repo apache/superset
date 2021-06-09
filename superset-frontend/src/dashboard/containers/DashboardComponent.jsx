@@ -35,10 +35,7 @@ import {
   updateComponents,
   handleComponentDrop,
 } from '../actions/dashboardLayout';
-import {
-  setDirectPathToChild,
-  setActiveTabs,
-} from '../actions/dashboardState';
+import { setDirectPathToChild, setActiveTabs } from '../actions/dashboardState';
 
 const propTypes = {
   id: PropTypes.string,
