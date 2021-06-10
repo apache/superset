@@ -150,24 +150,22 @@ function ChartTable({
           {
             name: 'Favorite',
             label: t('Favorite'),
-            onClick: () =>
-              getData('Favorite').then(() => {
-                setChartFilter('Favorite');
-                setInLocalStorage(HOMEPAGE_CHART_FILTER, {
-                  tab: TableTabTypes.FAVORITE,
-                });
-              }),
+            onClick: () => {
+              setChartFilter('Favorite');
+              setInLocalStorage(HOMEPAGE_CHART_FILTER, {
+                tab: TableTabTypes.FAVORITE,
+              })
+            }
           },
           {
             name: 'Mine',
             label: t('Mine'),
-            onClick: () =>
-              getData('Mine').then(() => {
-                setChartFilter('Mine');
-                setInLocalStorage(HOMEPAGE_CHART_FILTER, {
-                  tab: TableTabTypes.MINE,
-                });
-              }),
+            onClick: () => {
+              setChartFilter('Mine');
+              setInLocalStorage(HOMEPAGE_CHART_FILTER, {
+                tab: TableTabTypes.MINE,
+              });
+            }
           },
         ]}
         buttons={[
