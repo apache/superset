@@ -52,9 +52,10 @@ export type DatabaseObject = {
 
   // Extra
   extra_json?: {
-    schema_cache_timeout?: string; // in Performance
-    table_cache_timeout?: string; // in Performance
-    metadata_cache_timeout?: {}; // No field, holds schema and table timeout
+    metadata_cache_timeout?: {
+      schema_cache_timeout?: string; // in Performance
+      table_cache_timeout?: string; // in Performance
+    }; // No field, holds schema and table timeout
     cost_query_enabled?: boolean; // in SQL Lab
     allows_virtual_table_explore?: boolean; // in SQL Lab
     schemas_allowed_for_csv_upload?: string; // in Security

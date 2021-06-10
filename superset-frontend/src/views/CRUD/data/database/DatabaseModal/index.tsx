@@ -41,6 +41,7 @@ import {
   DatabaseForm,
   CONFIGURATION_METHOD,
 } from 'src/views/CRUD/data/database/types';
+import { typeOf } from 'mathjs';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 
@@ -135,6 +136,10 @@ function dbReducer(
 
   switch (action.type) {
     case ActionType.extraEditorChange:
+      console.log(
+        'trimmedState.extra_json',
+        typeOf(trimmedState.extra_json?.metadata_params),
+      );
       return {
         ...trimmedState,
         extra_json: {
@@ -183,10 +188,14 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.fetched:
+      console.log(action.payload.extra_json);
       return {
         engine: trimmedState.engine,
         configuration_method: trimmedState.configuration_method,
         ...action.payload,
+        extra_json: {
+          ...JSON.parse(action.payload.extra || ''),
+        },
       };
     case ActionType.dbSelected:
     case ActionType.configMethodChange:
@@ -219,23 +228,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
   const [dbName, setDbName] = useState('');
   const conf = useCommonConf();
-
-  // Using this to structure extra_json in onSave
-  // const extraValues = {
-  //   metadata_cache_timeout: {
-  //     schema_cache_timeout: db?.extra_json?.schema_cache_timeout,
-  //     table_cache_timeout: db?.extra_json?.table_cache_timeout,
-  //   },
-  //   cost_query_enabled: db?.extra_json?.cost_query_enabled,
-  //   allows_virtual_table_explore: db?.extra_json?.allows_virtual_table_explore,
-  //   schemas_allowed_for_csv_upload:
-  //     db?.extra_json?.schemas_allowed_for_csv_upload,
-  //   impersonate_user: db?.extra_json?.impersonate_user,
-  //   allow_csv_upload: db?.extra_json?.allow_csv_upload,
-  //   version: db?.extra_json?.version,
-  //   metadata_params: db?.extra_json?.metadata_params,
-  //   engine_params: db?.extra_json?.engine_params,
-  // };
 
   const isEditMode = !!databaseId;
   const useSqlAlchemyForm =
@@ -288,14 +280,51 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         delete update.parameters;
       }
 
-      // // Structure extra_json
+      // const extraValues = {
+      //   metadata_cache_timeout: {
+      //     schema_cache_timeout:
+      //       db?.extra_json?.metadata_cache_timeout?.schema_cache_timeout || '',
+      //     table_cache_timeout:
+      //       db?.extra_json?.metadata_cache_timeout?.table_cache_timeout || '',
+      //   },
+      //   cost_query_enabled: db?.extra_json?.cost_query_enabled || undefined,
+      //   allows_virtual_table_explore:
+      //     db?.extra_json?.allows_virtual_table_explore || undefined,
+      //   schemas_allowed_for_csv_upload:
+      //     db?.extra_json?.schemas_allowed_for_csv_upload || '',
+      //   impersonate_user: db?.extra_json?.impersonate_user || undefined,
+      //   allow_csv_upload: db?.extra_json?.allow_csv_upload || undefined,
+      //   version: db?.extra_json?.version || '',
+      //   metadata_params: db?.extra_json?.metadata_params || {},
+      //   engine_params: db?.extra_json?.engine_params || {},
+      // };
+
+      // console.log('extraValues', extraValues);
+
+      // Structure extra_json
       // const extraValuesStructured = {
       //   ...extraValues,
       //   ...db?.extra_json,
       // };
 
+      // console.log('extraValuesStructured', extraValuesStructured);
+
+      console.log(
+        'db?.extra_json',
+        JSON.parse(db?.extra_json?.metadata_params),
+      );
+
+      const updateExtraMDP = JSON.parse(db?.extra_json?.metadata_params);
+      // update?.extra_json?.metadata_params = updateExtraMDP;
+      console.log(updateExtraMDP);
+
       // Add values back to extra field
-      update.extra = JSON.stringify(db?.extra_json, null, '  ');
+      update.extra = JSON.stringify(
+        { ...db?.extra_json, metadata_params: updateExtraMDP },
+        null,
+        '  ',
+      );
+      console.log('update.extra', update.extra);
 
       const result = await updateResource(
         db.id as number,
@@ -512,9 +541,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 value: target.value,
               });
             }}
-            onExtraEditorChange={(payload: { name: string; json: any }) =>
-              onChange(ActionType.extraEditorChange, payload)
-            }
+            onExtraEditorChange={(payload: { name: string; json: any }) => {
+              console.log('payload in onExtraEditorChange', payload);
+              onChange(ActionType.extraEditorChange, payload);
+            }}
           />
         </Tabs.TabPane>
       </Tabs>

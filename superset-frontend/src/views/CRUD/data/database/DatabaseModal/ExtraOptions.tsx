@@ -48,6 +48,7 @@ const ExtraOptions = ({
 }) => {
   const expandableModalIsOpen = !!db?.expose_in_sqllab;
   const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
+  const MDPstring = JSON.stringify(db?.extra_json?.metadata_params);
 
   return (
     <Collapse
@@ -237,7 +238,10 @@ const ExtraOptions = ({
             <input
               type="number"
               name="schema_cache_timeout"
-              value={db?.extra_json?.schema_cache_timeout || ''}
+              value={
+                db?.extra_json?.metadata_cache_timeout?.schema_cache_timeout ||
+                ''
+              }
               placeholder={t('Enter duration in seconds')}
               onChange={onExtraInputChange}
               data-test="schema-cache-timeout-test"
@@ -256,7 +260,10 @@ const ExtraOptions = ({
             <input
               type="number"
               name="table_cache_timeout"
-              value={db?.extra_json?.table_cache_timeout || ''}
+              value={
+                db?.extra_json?.metadata_cache_timeout?.table_cache_timeout ||
+                ''
+              }
               placeholder={t('Enter duration in seconds')}
               onChange={onExtraInputChange}
               data-test="table-cache-timeout-test"
@@ -412,9 +419,9 @@ const ExtraOptions = ({
           <div className="input-container">
             <StyledJsonEditor
               name="metadata_params"
-              value={db?.extra_json?.metadata_params || '{}'}
+              value={MDPstring || '{}'}
               placeholder={t('Metadata Parameters')}
-              onChange={(json: string) =>
+              onChange={(json: object) =>
                 onExtraEditorChange({ json, name: 'metadata_params' })
               }
               width="100%"
@@ -434,9 +441,9 @@ const ExtraOptions = ({
           <div className="input-container">
             <StyledJsonEditor
               name="engine_params"
-              value={db?.extra_json?.engine_params || '{}'}
+              value={JSON.stringify(db?.extra_json?.engine_params || {})}
               placeholder={t('Engine Parameters')}
-              onChange={(json: string) =>
+              onChange={(json: object) =>
                 onExtraEditorChange({ json, name: 'engine_params' })
               }
               width="100%"
