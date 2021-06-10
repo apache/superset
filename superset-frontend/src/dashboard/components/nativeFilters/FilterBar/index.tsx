@@ -24,6 +24,7 @@ import { useDispatch } from 'react-redux';
 import cx from 'classnames';
 import Icon from 'src/components/Icon';
 import { Tabs } from 'src/common/components';
+import { usePrevious } from 'src/common/hooks/usePrevious';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { updateDataMask } from 'src/dataMask/actions';
 import { DataMaskStateWithId, DataMaskWithId } from 'src/dataMask/types';
@@ -164,6 +165,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const filterSetFilterValues = Object.values(filterSets);
   const [tab, setTab] = useState(TabIds.AllFilters);
   const filters = useFilters();
+  const previousFilters = usePrevious(filters);
   const filterValues = Object.values<Filter>(filters);
   const dataMaskApplied: DataMaskStateWithId = useNativeFiltersDataMask();
   const [isFilterSetChanged, setIsFilterSetChanged] = useState(false);
@@ -171,6 +173,21 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   useEffect(() => {
     setDataMaskSelected(() => dataMaskApplied);
   }, [JSON.stringify(dataMaskApplied), setDataMaskSelected]);
+
+  // reset filter state if filter type changes
+  useEffect(() => {
+    setDataMaskSelected(draft => {
+      Object.values(filters).forEach(filter => {
+        if (filter.filterType !== previousFilters?.[filter.id]?.filterType) {
+          draft[filter.id] = getInitialDataMask(filter.id) as DataMaskWithId;
+        }
+      });
+    });
+  }, [
+    JSON.stringify(filters),
+    JSON.stringify(previousFilters),
+    setDataMaskSelected,
+  ]);
 
   const handleFilterSelectionChange = (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
