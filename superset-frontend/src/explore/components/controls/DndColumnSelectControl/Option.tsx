@@ -32,7 +32,6 @@ const StyledInfoTooltipWithTrigger = styled(InfoTooltipWithTrigger)`
   margin: 0 ${({ theme }) => theme.gridUnit}px;
 `;
 
-
 export default function Option(props: OptionProps) {
   const theme = useTheme();
   return (
