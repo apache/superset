@@ -20,7 +20,12 @@ import rison from 'rison';
 import { useState, useEffect, useCallback } from 'react';
 import { makeApi, SupersetClient, t, JsonObject } from '@superset-ui/core';
 
-import { createErrorHandler } from 'src/views/CRUD/utils';
+import {
+  createErrorHandler,
+  getAlreadyExists,
+  getPasswordsNeeded,
+  hasTerminalValidation,
+} from 'src/views/CRUD/utils';
 import { FetchDataConfig } from 'src/components/ListView';
 import { FilterValue } from 'src/components/ListView/types';
 import Chart, { Slice } from 'src/types/Chart';
@@ -383,43 +388,6 @@ export function useImportResource(
   function updateState(update: Partial<ImportResourceState>) {
     setState(currentState => ({ ...currentState, ...update }));
   }
-
-  /* eslint-disable no-underscore-dangle */
-  const isNeedsPassword = (payload: any) =>
-    typeof payload === 'object' &&
-    Array.isArray(payload._schema) &&
-    payload._schema.length === 1 &&
-    payload._schema[0] === 'Must provide a password for the database';
-
-  const isAlreadyExists = (payload: any) =>
-    typeof payload === 'string' &&
-    payload.includes('already exists and `overwrite=true` was not passed');
-
-  const getPasswordsNeeded = (errors: Record<string, any>[]) =>
-    errors
-      .map(error =>
-        Object.entries(error.extra)
-          .filter(([, payload]) => isNeedsPassword(payload))
-          .map(([fileName]) => fileName),
-      )
-      .flat();
-
-  const getAlreadyExists = (errors: Record<string, any>[]) =>
-    errors
-      .map(error =>
-        Object.entries(error.extra)
-          .filter(([, payload]) => isAlreadyExists(payload))
-          .map(([fileName]) => fileName),
-      )
-      .flat();
-
-  const hasTerminalValidation = (errors: Record<string, any>[]) =>
-    errors.some(
-      error =>
-        !Object.values(error.extra).some(
-          payload => isNeedsPassword(payload) || isAlreadyExists(payload),
-        ),
-    );
 
   const importResource = useCallback(
     (
