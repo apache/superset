@@ -34,10 +34,6 @@ import { TimeFilterPlugin, SelectFilterPlugin } from 'src/filters/components';
 import { DATE_FILTER_CONTROL_TEST_ID } from 'src/explore/components/controls/DateFilterControl/DateFilterLabel';
 import fetchMock from 'fetch-mock';
 import { waitFor } from '@testing-library/react';
-import mockDatasource, {
-  id as datasourceId,
-  datasourceId as fullDatasourceId,
-} from 'spec/fixtures/mockDatasource';
 import FilterBar, { FILTER_BAR_TEST_ID } from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 
@@ -57,8 +53,25 @@ class MainPreset extends Preset {
   }
 }
 
-fetchMock.get(`glob:*/api/v1/dataset/${datasourceId}`, {
-  result: [mockDatasource[fullDatasourceId]],
+fetchMock.get(`glob:*/api/v1/dataset/1`, {
+  description_columns: {},
+  id: 1,
+  label_columns: {
+    columns: 'Columns',
+    table_name: 'Table Name',
+  },
+  result: {
+    metrics: [],
+    columns: [
+      {
+        column_name: 'Column A',
+        id: 1,
+      },
+    ],
+    table_name: 'birth_names',
+    id: 1,
+  },
+  show_columns: ['id', 'table_name'],
 });
 
 const getTestId = testWithId<string>(FILTER_BAR_TEST_ID, true);
