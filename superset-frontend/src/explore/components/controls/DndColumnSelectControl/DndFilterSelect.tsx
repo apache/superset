@@ -273,6 +273,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
             onShiftOptions={onShiftOptions}
             type={DndItemType.FilterOption}
             withCaret
+            isExtra={adhocFilter.isExtra}
           >
             <Tooltip title={label}>{label}</Tooltip>
           </OptionWrapper>
