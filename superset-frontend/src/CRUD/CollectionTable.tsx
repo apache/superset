@@ -91,7 +91,7 @@ const CrudTableWrapper = styled.div<{ stickyHeader?: boolean }>`
       }
     `}
   th span {
-    vertical-align: ${({theme}) => theme.gridUnit * -2}px;
+    vertical-align: ${({ theme }) => theme.gridUnit * -2}px;
   }
 `;
 
@@ -210,7 +210,7 @@ export default class CRUDCollection extends React.PureComponent<
   sortColumn(col: string, sort = 0) {
     const { sortColumns } = this.props;
     // default sort logic sorting string, boolean and number
-    const compareSort = (m:Sort, n:Sort) => {
+    const compareSort = (m: Sort, n: Sort) => {
       if (typeof m === 'string') {
         return (m || ' ').localeCompare(n);
       }
