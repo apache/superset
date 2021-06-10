@@ -38,6 +38,7 @@ interface Column {
 }
 
 interface Table {
+  id: string;
   name: string;
   partitions?: {
     partitionQuery: string;
@@ -57,7 +58,6 @@ interface TableElementProps {
     removeDataPreview: (table: Table) => void;
     removeTable: (table: Table) => void;
   };
-  key: string | number;
 }
 
 const StyledSpan = styled.span`
@@ -73,7 +73,14 @@ const Fade = styled.div`
   opacity: ${(props: { hovered: boolean }) => (props.hovered ? 1 : 0)};
 `;
 
-const TableElement = ({ table, actions, key, ...props }: TableElementProps) => {
+// Note about TableElement props:
+// The antd Collapse component is expecting its children to be `Collapse.Panel`s and
+// is quietly passing extra props that need to be on the panels for them to work correctly.
+// These props are not defined in their TypeScript type for Panel though because
+// this logic is happening in the Collapse component itself. We have gotten around the TypeScript
+// errors by using the rest and spread operators to pass the necessary extra props to the Panels.
+
+const TableElement = ({ table, actions, ...props }: TableElementProps) => {
   const [sortColumns, setSortColumns] = useState(false);
   const [hovered, setHovered] = useState(false);
 
@@ -259,7 +266,7 @@ const TableElement = ({ table, actions, key, ...props }: TableElementProps) => {
   return (
     <Collapse.Panel
       {...props}
-      key={key}
+      key={table.id}
       header={renderHeader()}
       className="TableElement"
       forceRender
