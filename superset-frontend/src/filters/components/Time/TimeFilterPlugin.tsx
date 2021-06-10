@@ -17,12 +17,11 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { PluginFilterTimeProps } from './types';
 import { Styles } from '../common';
-
-const DEFAULT_VALUE = 'Last week';
+import { NO_TIME_RANGE } from '../../../explore/constants';
 
 const TimeFilterStyles = styled(Styles)`
   overflow-x: scroll;
@@ -34,35 +33,30 @@ const ControlContainer = styled.div`
 
 export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
   const {
-    formData,
     setDataMask,
     setFocusedFilter,
     unsetFocusedFilter,
     width,
     filterState,
   } = props;
-  const { defaultValue } = formData;
 
-  const [value, setValue] = useState<string>(defaultValue ?? DEFAULT_VALUE);
-
-  const handleTimeRangeChange = (timeRange: string): void => {
-    setValue(timeRange);
-
+  const handleTimeRangeChange = (timeRange?: string): void => {
+    const isSet = timeRange && timeRange !== NO_TIME_RANGE;
     setDataMask({
-      extraFormData: {
-        time_range: timeRange,
+      extraFormData: isSet
+        ? {
+            time_range: timeRange,
+          }
+        : {},
+      filterState: {
+        value: isSet ? timeRange : undefined,
       },
-      filterState: { value: timeRange },
     });
   };
 
   useEffect(() => {
-    handleTimeRangeChange(filterState.value ?? DEFAULT_VALUE);
+    handleTimeRangeChange(filterState.value);
   }, [filterState.value]);
-
-  useEffect(() => {
-    handleTimeRangeChange(defaultValue ?? DEFAULT_VALUE);
-  }, [defaultValue]);
 
   return (
     // @ts-ignore
@@ -72,7 +66,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
         onMouseLeave={unsetFocusedFilter}
       >
         <DateFilterControl
-          value={value}
+          value={filterState.value}
           name="time_range"
           onChange={handleTimeRangeChange}
         />

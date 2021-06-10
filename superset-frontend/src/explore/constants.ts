@@ -107,3 +107,4 @@ export const TIME_FILTER_MAP = {
 
 // TODO: make this configurable per Superset installation
 export const DEFAULT_TIME_RANGE = 'No filter';
+export const NO_TIME_RANGE = 'No filter';
