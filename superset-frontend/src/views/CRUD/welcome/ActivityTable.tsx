@@ -56,7 +56,7 @@ enum SetTabType {
   EDITED = 'Edited',
   CREATED = 'Created',
   VIEWED = 'Viewed',
-  EXAMPLE = 'Example',
+  EXAMPLE = 'Examples',
 }
 /**
  * Recent activity objects fetched by `getRecentAcitivtyObjs`.
@@ -75,6 +75,7 @@ interface ActivityProps {
   activeChild: string;
   setActiveChild: (arg0: string) => void;
   activityData: ActivityData;
+  loadedCount: number;
 }
 
 const ActivityContainer = styled.div`
@@ -168,10 +169,10 @@ export default function ActivityTable({
   setActiveChild,
   activityData,
   user,
+  loadedCount
 }: ActivityProps) {
   const [editedObjs, setEditedObjs] = useState<Array<ActivityData>>();
   const [loadingState, setLoadingState] = useState(false);
-
   useEffect(() => {
     if (activeChild === 'Edited') {
       setLoadingState(true);
@@ -195,9 +196,9 @@ export default function ActivityTable({
       label: t('Edited'),
       onClick: () => {
         setActiveChild('Edited');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, {
-          activity: SetTabType.EDITED,
-        });
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER,
+          SetTabType.EDITED
+        );
         getEditedCards();
       },
     },
@@ -206,9 +207,9 @@ export default function ActivityTable({
       label: t('Created'),
       onClick: () => {
         setActiveChild('Created');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, {
-          activity: SetTabType.CREATED,
-        });
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER,
+          SetTabType.CREATED
+        );
       },
     },
   ];
@@ -219,9 +220,9 @@ export default function ActivityTable({
       label: t('Viewed'),
       onClick: () => {
         setActiveChild('Viewed');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, {
-          activity: SetTabType.VIEWED,
-        });
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER,
+          SetTabType.VIEWED
+        );
       },
     });
   } else {
@@ -230,7 +231,7 @@ export default function ActivityTable({
       label: t('Examples'),
       onClick: () => {
         setActiveChild('Examples');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, { activity: 'Examples' });
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, SetTabType.EXAMPLE);
       },
     });
   }
@@ -259,7 +260,8 @@ export default function ActivityTable({
         );
       },
     );
-  if (loadingState && !editedObjs) {
+
+  if (loadingState && !editedObjs || loadedCount !== 3) {
     return <Loading position="inline" />;
   }
   return (

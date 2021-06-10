@@ -62,7 +62,7 @@ function ChartTable({
 }: ChartTableProps) {
   const history = useHistory();
   const filterStore = getFromLocalStorage(HOMEPAGE_CHART_FILTER, null);
-  const defaultFilter = filterStore?.tab || 'Mine';
+  const defaultFilter = filterStore || TableTabTypes.MINE;
 
   const {
     state: { loading, resourceCollection: charts, bulkSelectEnabled },
@@ -152,9 +152,9 @@ function ChartTable({
             label: t('Favorite'),
             onClick: () => {
               setChartFilter('Favorite');
-              setInLocalStorage(HOMEPAGE_CHART_FILTER, {
-                tab: TableTabTypes.FAVORITE,
-              });
+              setInLocalStorage(HOMEPAGE_CHART_FILTER,
+                TableTabTypes.FAVORITE,
+              );
             },
           },
           {
@@ -162,9 +162,9 @@ function ChartTable({
             label: t('Mine'),
             onClick: () => {
               setChartFilter('Mine');
-              setInLocalStorage(HOMEPAGE_CHART_FILTER, {
-                tab: TableTabTypes.MINE,
-              });
+              setInLocalStorage(HOMEPAGE_CHART_FILTER,
+                TableTabTypes.MINE,
+              );
             },
           },
         ]}

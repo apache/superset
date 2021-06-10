@@ -105,7 +105,7 @@ const WelcomeNav = styled.div`
 
 function Welcome({ user, addDangerToast }: WelcomeProps) {
   const recent = `/superset/recent_activity/${user.userId}/?limit=6`;
-  const [activeChild, setActiveChild] = useState('Viewed');
+  const [activeChild, setActiveChild] = useState('Loading');
   const [checked, setChecked] = useState(true);
   const [activityData, setActivityData] = useState<ActivityData | null>(null);
   const [chartData, setChartData] = useState<Array<object> | null>(null);
@@ -113,6 +113,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   const [dashboardData, setDashboardData] = useState<Array<object> | null>(
     null,
   );
+  const [loadedCount, setLoadedCount] = useState(0);
 
   const userid = user.userId;
   const id = userid.toString();
@@ -129,12 +130,12 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           data.Viewed = filtered;
           if (!activeTab) {
             setActiveChild('Viewed');
-          } else setActiveChild(activeTab.activity);
+          } else setActiveChild(activeTab);
         } else {
           data.Examples = res.examples;
           if (activeTab === 'Viewed' || !activeTab) {
             setActiveChild('Examples');
-          } else setActiveChild(activeTab.activity);
+          } else setActiveChild(activeTab);
         }
         setActivityData(activityData => ({ ...activityData, ...data }));
       })
@@ -152,9 +153,11 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     getUserOwnedObjects(id, 'dashboard')
       .then(r => {
         setDashboardData(r);
+        setLoadedCount(loadedCount => loadedCount + 1)
       })
       .catch((err: unknown) => {
         setDashboardData([]);
+        setLoadedCount(loadedCount => loadedCount + 1)
         addDangerToast(
           t('There was an issues fetching your dashboards: %s', err),
         );
@@ -162,17 +165,21 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     getUserOwnedObjects(id, 'chart')
       .then(r => {
         setChartData(r);
+        setLoadedCount(loadedCount => loadedCount + 1)
       })
       .catch((err: unknown) => {
         setChartData([]);
+        setLoadedCount(loadedCount => loadedCount + 1)
         addDangerToast(t('There was an issues fetching your chart: %s', err));
       });
     getUserOwnedObjects(id, 'saved_query')
       .then(r => {
         setQueryData(r);
+        setLoadedCount(loadedCount => loadedCount + 1)
       })
       .catch((err: unknown) => {
         setQueryData([]);
+        setLoadedCount(loadedCount => loadedCount + 1)
         addDangerToast(
           t('There was an issues fetching your saved queries: %s', err),
         );
@@ -208,12 +215,13 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
       </WelcomeNav>
       <Collapse defaultActiveKey={['1', '2', '3', '4']} ghost bigger>
         <Collapse.Panel header={t('Recents')} key="1">
-          {activityData && (activityData.Viewed || activityData.Examples) ? (
+          {activityData && (activityData.Viewed || activityData.Examples || activityData.Created) && activeChild !== 'Loading' ? (
             <ActivityTable
               user={user}
               activeChild={activeChild}
               setActiveChild={setActiveChild}
               activityData={activityData}
+              loadedCount={loadedCount}
             />
           ) : (
             <Loading position="inline" />

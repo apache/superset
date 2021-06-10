@@ -56,7 +56,7 @@ function DashboardTable({
 }: DashboardTableProps) {
   const history = useHistory();
   const filterStore = getFromLocalStorage(HOMEPAGE_DASHBOARD_FILTER, null);
-  const defaultFilter = filterStore?.tab || 'Mine';
+  const defaultFilter = filterStore || TableTabTypes.MINE;
 
   const {
     state: { loading, resourceCollection: dashboards },
@@ -150,9 +150,9 @@ function DashboardTable({
             label: t('Favorite'),
             onClick: () => {
               setDashboardFilter('Favorite');
-              setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, {
-                tab: TableTabTypes.FAVORITE,
-              });
+              setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER,
+                TableTabTypes.FAVORITE,
+              );
             },
           },
           {
@@ -160,9 +160,9 @@ function DashboardTable({
             label: t('Mine'),
             onClick: () => {
               setDashboardFilter('Mine');
-              setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, {
-                tab: TableTabTypes.MINE,
-              });
+              setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER,
+                TableTabTypes.MINE,
+              );
             },
           },
         ]}
