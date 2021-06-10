@@ -97,8 +97,8 @@ export default class BoundsControl extends React.Component {
 
   onChange() {
     const mm = this.state.minMax;
-    const min = parseFloat(mm[0]) || null;
-    const max = parseFloat(mm[1]) || null;
+    const min = parseFloat(mm[0]) ?? null;
+    const max = parseFloat(mm[1]) ?? null;
     this.props.onChange([min, max]);
   }
 
