@@ -138,7 +138,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           inverseSelection,
         ),
         filterState: {
-          label: `${(values || []).join(', ')}${suffix}`,
+          label: values?.length
+            ? `${(values || []).join(', ')}${suffix}`
+            : undefined,
           value:
             appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem
               ? undefined
