@@ -44,6 +44,7 @@ export const FormFieldOrder = [
   'username',
   'password',
   'database_name',
+  'query',
   'encryption',
   'credentials_info',
 ];
@@ -269,6 +270,28 @@ const displayField = ({
     helpText="Pick a nickname for this database to display as in Superset."
   />
 );
+
+const queryField = ({
+  required,
+  changeMethods,
+  getValidation,
+  validationErrors,
+  db,
+}: FieldPropTypes) => (
+  <ValidatedInput
+    id="query"
+    name="query"
+    required={required}
+    value={db?.query}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.query}
+    placeholder="e.g. additional parameters"
+    label="Additional Parameters"
+    onChange={changeMethods.onParametersChange}
+    helpText="Add additional custom parameters"
+  />
+);
+
 const forceSSLField = ({
   isEditMode,
   changeMethods,
@@ -305,6 +328,7 @@ const FORM_FIELD_MAP = {
   username: usernameField,
   password: passwordField,
   database_name: displayField,
+  query: queryField,
   encryption: forceSSLField,
   credentials_info: CredentialsInfo,
 };
