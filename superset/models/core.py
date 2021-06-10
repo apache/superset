@@ -381,7 +381,7 @@ class Database(
             cursor = conn.cursor()
             if hasattr(cursor, 'fetch_size'):
                 cursor.fetch_size = config['ROW_LIMIT']
-                
+
             for sql_ in sqls[:-1]:
                 _log_query(sql_)
                 self.db_engine_spec.execute(cursor, sql_)
