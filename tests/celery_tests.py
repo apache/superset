@@ -141,6 +141,8 @@ def get_select_star(table: str, schema: Optional[str] = None):
 
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 def test_run_sync_query_dont_exist(setup_sqllab, ctas_method):
+    examples_db = get_example_database()
+    engine_name = examples_db.db_engine_spec.engine_name
     sql_dont_exist = "SELECT name FROM table_dont_exist"
     result = run_sql(sql_dont_exist, cta=True, ctas_method=ctas_method)
     if backend() == "sqlite" and ctas_method == CtasMethod.VIEW:
@@ -157,7 +159,8 @@ def test_run_sync_query_dont_exist(setup_sqllab, ctas_method):
                     "code": 1002,
                     "message": "Issue 1002 - The database returned an unexpected error.",
                 }
-            ]
+            ],
+            "engine_name": engine_name,
         }
 
 
