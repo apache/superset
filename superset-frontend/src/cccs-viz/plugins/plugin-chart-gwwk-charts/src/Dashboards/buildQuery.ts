@@ -17,7 +17,6 @@
  * under the License.
  */
 import { buildQueryContext, QueryFormData } from '@superset-ui/core';
-import { getSearchKeywords } from '../utils';
 
 /**
  * The buildQuery function is used to create an instance of QueryContext that's

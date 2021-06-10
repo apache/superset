@@ -1,5 +1,5 @@
 import { ChartProps } from '@superset-ui/core';
-import transformProps from '../../src/plugin/transformProps';
+import transformProps from '../../src/Charts/transformProps';
 
 describe('GwwkCharts tranformProps', () => {
   const formData = {
