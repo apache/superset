@@ -150,7 +150,8 @@ function DashboardTable({
             label: t('Favorite'),
             onClick: () => {
               setDashboardFilter('Favorite');
-              setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER,
+              setInLocalStorage(
+                HOMEPAGE_DASHBOARD_FILTER,
                 TableTabTypes.FAVORITE,
               );
             },
@@ -160,9 +161,7 @@ function DashboardTable({
             label: t('Mine'),
             onClick: () => {
               setDashboardFilter('Mine');
-              setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER,
-                TableTabTypes.MINE,
-              );
+              setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, TableTabTypes.MINE);
             },
           },
         ]}

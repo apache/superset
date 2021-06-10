@@ -153,11 +153,11 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     getUserOwnedObjects(id, 'dashboard')
       .then(r => {
         setDashboardData(r);
-        setLoadedCount(loadedCount => loadedCount + 1)
+        setLoadedCount(loadedCount => loadedCount + 1);
       })
       .catch((err: unknown) => {
         setDashboardData([]);
-        setLoadedCount(loadedCount => loadedCount + 1)
+        setLoadedCount(loadedCount => loadedCount + 1);
         addDangerToast(
           t('There was an issues fetching your dashboards: %s', err),
         );
@@ -165,21 +165,21 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     getUserOwnedObjects(id, 'chart')
       .then(r => {
         setChartData(r);
-        setLoadedCount(loadedCount => loadedCount + 1)
+        setLoadedCount(loadedCount => loadedCount + 1);
       })
       .catch((err: unknown) => {
         setChartData([]);
-        setLoadedCount(loadedCount => loadedCount + 1)
+        setLoadedCount(loadedCount => loadedCount + 1);
         addDangerToast(t('There was an issues fetching your chart: %s', err));
       });
     getUserOwnedObjects(id, 'saved_query')
       .then(r => {
         setQueryData(r);
-        setLoadedCount(loadedCount => loadedCount + 1)
+        setLoadedCount(loadedCount => loadedCount + 1);
       })
       .catch((err: unknown) => {
         setQueryData([]);
-        setLoadedCount(loadedCount => loadedCount + 1)
+        setLoadedCount(loadedCount => loadedCount + 1);
         addDangerToast(
           t('There was an issues fetching your saved queries: %s', err),
         );
@@ -215,7 +215,11 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
       </WelcomeNav>
       <Collapse defaultActiveKey={['1', '2', '3', '4']} ghost bigger>
         <Collapse.Panel header={t('Recents')} key="1">
-          {activityData && (activityData.Viewed || activityData.Examples || activityData.Created) && activeChild !== 'Loading' ? (
+          {activityData &&
+          (activityData.Viewed ||
+            activityData.Examples ||
+            activityData.Created) &&
+          activeChild !== 'Loading' ? (
             <ActivityTable
               user={user}
               activeChild={activeChild}

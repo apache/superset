@@ -169,7 +169,7 @@ export default function ActivityTable({
   setActiveChild,
   activityData,
   user,
-  loadedCount
+  loadedCount,
 }: ActivityProps) {
   const [editedObjs, setEditedObjs] = useState<Array<ActivityData>>();
   const [loadingState, setLoadingState] = useState(false);
@@ -196,9 +196,7 @@ export default function ActivityTable({
       label: t('Edited'),
       onClick: () => {
         setActiveChild('Edited');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER,
-          SetTabType.EDITED
-        );
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, SetTabType.EDITED);
         getEditedCards();
       },
     },
@@ -207,9 +205,7 @@ export default function ActivityTable({
       label: t('Created'),
       onClick: () => {
         setActiveChild('Created');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER,
-          SetTabType.CREATED
-        );
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, SetTabType.CREATED);
       },
     },
   ];
@@ -220,9 +216,7 @@ export default function ActivityTable({
       label: t('Viewed'),
       onClick: () => {
         setActiveChild('Viewed');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER,
-          SetTabType.VIEWED
-        );
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, SetTabType.VIEWED);
       },
     });
   } else {
@@ -261,7 +255,7 @@ export default function ActivityTable({
       },
     );
 
-  if (loadingState && !editedObjs || loadedCount !== 3) {
+  if ((loadingState && !editedObjs) || loadedCount !== 3) {
     return <Loading position="inline" />;
   }
   return (
