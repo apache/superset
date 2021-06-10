@@ -333,6 +333,20 @@ const FiltersConfigForm = (
 
   useBackendFormUpdate(form, filterId);
 
+  const setNativeFilterFieldValuesWrapper = (values: object) => {
+    setNativeFilterFieldValues(form, filterId, values);
+    setError('');
+    forceUpdate();
+  };
+
+  const setErrorWrapper = (error: string) => {
+    setNativeFilterFieldValues(form, filterId, {
+      defaultValueQueriesData: null,
+    });
+    setError(error);
+    forceUpdate();
+  };
+
   const refreshHandler = useCallback(() => {
     if (!hasDataset || !formFilter?.dataset?.value) {
       forceUpdate();
@@ -343,12 +357,10 @@ const FiltersConfigForm = (
       groupby: formFilter?.column,
       ...formFilter,
     });
-    setNativeFilterFieldValues(form, filterId, {
+    setNativeFilterFieldValuesWrapper({
       defaultValueQueriesData: null,
       isDataDirty: false,
     });
-    setError('');
-    forceUpdate();
     getChartDataRequest({
       formData,
       force: false,
@@ -360,11 +372,9 @@ const FiltersConfigForm = (
           const result = 'result' in response ? response.result[0] : response;
           waitForAsyncData(result)
             .then((asyncResult: ChartDataResponseResult[]) => {
-              setNativeFilterFieldValues(form, filterId, {
+              setNativeFilterFieldValuesWrapper({
                 defaultValueQueriesData: asyncResult,
               });
-              setError('');
-              forceUpdate();
             })
             .catch((error: ClientErrorObject) => {
               setError(
@@ -372,16 +382,14 @@ const FiltersConfigForm = (
               );
             });
         } else {
-          setNativeFilterFieldValues(form, filterId, {
+          setNativeFilterFieldValuesWrapper({
             defaultValueQueriesData: response.result,
           });
-          setError('');
-          forceUpdate();
         }
       })
       .catch((error: Response) => {
         error.json().then(body => {
-          setError(
+          setErrorWrapper(
             body.message || error.statusText || t('Check configuration'),
           );
         });
