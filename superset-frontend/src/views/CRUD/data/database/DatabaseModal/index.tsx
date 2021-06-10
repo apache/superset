@@ -282,10 +282,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           credentials_info: JSON.parse(update.encrypted_extra),
         });
       }
-      if (update.parameters.query) {
+      if (update?.parameters?.query) {
         // convert query params into dictionary
         update.parameters.query = JSON.parse(
-          `{"${decodeURI(db.parameters.query || '')
+          `{"${decodeURI(db.parameters?.query || '')
             .replace(/"/g, '\\"')
             .replace(/&/g, '","')
             .replace(/=/g, '":"')}"}`,
