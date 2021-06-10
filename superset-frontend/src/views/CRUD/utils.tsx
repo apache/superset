@@ -322,3 +322,40 @@ export const CardStyles = styled.div`
     text-decoration: none;
   }
 `;
+
+export /* eslint-disable no-underscore-dangle */
+const isNeedsPassword = (payload: any) =>
+  typeof payload === 'object' &&
+  Array.isArray(payload._schema) &&
+  payload._schema.length === 1 &&
+  payload._schema[0] === 'Must provide a password for the database';
+
+export const isAlreadyExists = (payload: any) =>
+  typeof payload === 'string' &&
+  payload.includes('already exists and `overwrite=true` was not passed');
+
+export const getPasswordsNeeded = (errors: Record<string, any>[]) =>
+  errors
+    .map(error =>
+      Object.entries(error.extra)
+        .filter(([, payload]) => isNeedsPassword(payload))
+        .map(([fileName]) => fileName),
+    )
+    .flat();
+
+export const getAlreadyExists = (errors: Record<string, any>[]) =>
+  errors
+    .map(error =>
+      Object.entries(error.extra)
+        .filter(([, payload]) => isAlreadyExists(payload))
+        .map(([fileName]) => fileName),
+    )
+    .flat();
+
+export const hasTerminalValidation = (errors: Record<string, any>[]) =>
+  errors.some(
+    error =>
+      !Object.values(error.extra).some(
+        payload => isNeedsPassword(payload) || isAlreadyExists(payload),
+      ),
+  );
