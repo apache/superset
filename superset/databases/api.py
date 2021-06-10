@@ -21,7 +21,7 @@ from io import BytesIO
 from typing import Any, Dict, List, Optional
 from zipfile import ZipFile
 
-from flask import g, request, Response, send_file
+from flask import g, make_response, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
@@ -722,6 +722,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        token = request.args.get("token")
         requested_ids = kwargs["rison"]
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
         root = f"database_export_{timestamp}"
@@ -739,12 +740,16 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 return self.response_404()
         buf.seek(0)
 
-        return send_file(
-            buf,
-            mimetype="application/zip",
-            as_attachment=True,
-            attachment_filename=filename,
+        response = make_response(
+            send_file(
+                buf,
+                mimetype="application/zip",
+                as_attachment=True,
+                attachment_filename=filename,
+            )
         )
+        response.set_cookie(token, "done")
+        return response
 
     @expose("/import/", methods=["POST"])
     @protect()

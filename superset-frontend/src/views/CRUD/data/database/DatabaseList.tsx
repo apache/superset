@@ -19,6 +19,9 @@
 import { SupersetClient, t, styled } from '@superset-ui/core';
 import React, { useState, useMemo } from 'react';
 import rison from 'rison';
+import shortid from 'shortid';
+import Loading from 'src/components/Loading';
+import parseCookie from 'src/utils/parseCookie';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
@@ -97,6 +100,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   );
   const [importingDatabase, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
+  const [preparingExport, setPreparingExport] = useState<boolean>(false);
 
   const openDatabaseImportModal = () => {
     showImportModal(true);
@@ -168,6 +172,8 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     ...commonMenuData,
   };
 
+  let exportTimer: number;
+
   if (canCreate) {
     menuData.buttons = [
       {
@@ -203,8 +209,19 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   }
 
   function handleDatabaseExport(database: DatabaseObject) {
+    const token = shortid.generate();
+    exportTimer = window.setInterval(() => {
+      const cookie = parseCookie();
+      if (cookie[token] === 'done') {
+        setPreparingExport(false);
+        window.clearInterval(exportTimer);
+      }
+    }, 200);
+    setPreparingExport(true);
     return window.location.assign(
-      `/api/v1/database/export/?q=${rison.encode([database.id])}`,
+      `/api/v1/database/export/?q=${rison.encode([
+        database.id,
+      ])}&token=${token}`,
     );
   }
 
@@ -469,6 +486,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
       />
+      {preparingExport && <Loading />}
     </>
   );
 }
