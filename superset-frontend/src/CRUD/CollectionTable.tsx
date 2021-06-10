@@ -46,6 +46,8 @@ interface CRUDCollectionProps {
   stickyHeader?: boolean;
 }
 
+type Sort = number | string | boolean | any;
+
 interface CRUDCollectionState {
   collection: object;
   collectionArray: Array<object>;
@@ -89,7 +91,7 @@ const CrudTableWrapper = styled.div<{ stickyHeader?: boolean }>`
       }
     `}
   th span {
-    vertical-align: -8px;
+    vertical-align: ${({theme}) => theme.gridUnit * -2}px;
   }
 `;
 
@@ -208,7 +210,7 @@ export default class CRUDCollection extends React.PureComponent<
   sortColumn(col: string, sort = 0) {
     const { sortColumns } = this.props;
     // default sort logic sorting string, boolean and number
-    const compareSort = (m: any, n: any) => {
+    const compareSort = (m:Sort, n:Sort) => {
       if (typeof m === 'string') {
         return (m || ' ').localeCompare(n);
       }
