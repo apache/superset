@@ -126,6 +126,8 @@ const TIMESERIES_VIZ_TYPES = [
   'time_pivot',
 ];
 
+const CHART_ID_PREFIX = 'chart-id-';
+
 const propTypes = {
   data: PropTypes.oneOfType([
     PropTypes.arrayOf(
@@ -309,10 +311,18 @@ function nvd3Vis(element, props) {
   const container = element;
   container.innerHTML = '';
   const activeAnnotationLayers = annotationLayers.filter(layer => layer.show);
-  const chartId =
-    container.parentElement && container.parentElement.id !== ''
-      ? container.parentElement.id
-      : null;
+
+  // Search for the chart id in a parent div from the nvd3 chart
+  let chartContainer = container;
+  let chartId = null;
+  while (chartContainer.parentElement) {
+    if (chartContainer.parentElement.id.startsWith(CHART_ID_PREFIX)) {
+      chartId = chartContainer.parentElement.id;
+      break;
+    }
+
+    chartContainer = chartContainer.parentElement;
+  }
 
   let chart;
   let width = maxWidth;
