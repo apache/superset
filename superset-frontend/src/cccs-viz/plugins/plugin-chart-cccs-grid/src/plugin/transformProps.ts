@@ -48,11 +48,23 @@ export default function transformProps(chartProps: ChartProps) {
    * function during development with hot reloading, changes won't
    * be seen until restarting the development server.
    */
-  const { datasource, hooks, width, height, formData, queriesData } = chartProps;
-  const { boldText, headerFontSize, headerText, emitFilter } = formData;
+  const {
+    datasource,
+    hooks,
+    width,
+    height,
+    rawFormData: formData,
+    queriesData,
+  } = chartProps;
+  const {
+    boldText,
+    headerFontSize,
+    headerText,
+    table_filter: tableFilter,
+  } = formData;
   const data = queriesData[0].data as TimeseriesDataRecord[];
 
-  const { setDataMask = () => {} } = hooks;
+  const { setDataMask = () => { } } = hooks;
 
   const columns = datasource?.columns as Column[];
 
@@ -100,6 +112,6 @@ export default function transformProps(chartProps: ChartProps) {
     boldText,
     headerFontSize,
     headerText,
-    emitFilter,
+    emitFilter: tableFilter,
   };
 }

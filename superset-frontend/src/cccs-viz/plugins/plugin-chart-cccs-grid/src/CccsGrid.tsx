@@ -67,6 +67,10 @@ export default function CccsGrid({
 }: CccsGridProps) {
 
   const [filters, setFilters] = useState(initialFilters);
+
+  const [prevRow, setPrevRow] = useState(-1);
+  const [prevColumn, setPrevColmun] = useState('');
+
   const handleChange = useCallback(filters => {
     if (!emitFilter) {
       return;
@@ -94,46 +98,6 @@ export default function CccsGrid({
       }
     });
   }, [emitFilter, setDataMask]); // only take relevant page size options
-
-  const isActiveFilterValue = useCallback(function isActiveFilterValue(key, val) {
-    var _filters$key;
-
-    return !!filters && ((_filters$key = filters[key]) == null ? void 0 : _filters$key.includes(val));
-  }, [filters]);
-  const toggleFilter = useCallback(function toggleFilter(key, val) {
-    const updatedFilters = {
-      ...(filters || {})
-    };
-
-    if (filters && isActiveFilterValue(key, val)) {
-      updatedFilters[key] = filters[key].filter((x: any) => x !== val);
-    } else {
-      updatedFilters[key] = [...((filters == null ? void 0 : filters[key]) || []), val];
-    }
-
-    if (Array.isArray(updatedFilters[key]) && updatedFilters[key].length === 0) {
-      delete updatedFilters[key];
-    }
-
-    setFilters(updatedFilters);
-    handleChange(updatedFilters);
-  }, [filters, handleChange, isActiveFilterValue]);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   // getContextMenuItems = (params) => {
   //   var result = [
@@ -177,48 +141,72 @@ export default function CccsGrid({
       selectedRows.length === 1 ? selectedRows[0].athlete : '';
   };
 
-  let prevStartRow = undefined;
-  let prevEndRow = undefined;
-  let prevColumn = undefined;
+
+  function isSingleCellSelection(cellRanges: any): boolean {
+    if (cellRanges.length != 1) {
+      return false;
+    }
+    const range = cellRanges[0];
+    return range.startRow.rowIndex == range.endRow.rowIndex && range.columns.length == 1;
+  }
+
+  function isSameSingleSelection(range: any): boolean {
+    const singleRow = Math.min(range.startRow.rowIndex, range.endRow.rowIndex);
+    return prevRow == singleRow && prevColumn == range.columns[0].colId;
+  }
+
+  function cacheSingleSelection(range: any) {
+    const singleRow = Math.min(range.startRow.rowIndex, range.endRow.rowIndex);
+    setPrevRow(singleRow);
+    setPrevColmun(range.columns[0].colId);
+  }
 
   const onRangeSelectionChanged = (params: any) => {
-    if(params.finished == false){
+    if (params.finished == false) {
       return;
     }
 
     const gridApi = params.api;
-    const cellRanges = gridApi.getCellRanges();
-    //gridApi.clearRangeSelection()
-    console.log(`started ${params.started}`)
-    console.log(`finished ${params.finished}`)
-    console.log(`ranges ${cellRanges.length}`)
-    
-    cellRanges.forEach((range: any) => {
-      // get starting and ending row, remember rowEnd could be before rowStart
-      const startRow = Math.min(range.startRow.rowIndex, range.endRow.rowIndex);
-      const endRow = Math.max(range.startRow.rowIndex, range.endRow.rowIndex);
-      prevStartRow = startRow;
-      prevEndRow = endRow;
-
-      for (var rowIndex = startRow; rowIndex <= endRow; rowIndex++) {
-        range.columns.forEach((column: any) => {
-          const cellRenderer = column.colDef?.cellRenderer;
-          console.log(`rowIndex: ${rowIndex} col: ${column.colDef?.field}`)
-          prevColumn = column.colDef?.field
-          if (cellRenderer == 'ipv4ValueRenderer') {
-            const rowModel = gridApi.getModel();
-            const rowNode = rowModel.getRow(rowIndex);
-            const value = gridApi.getValue(column, rowNode);
-            const col = getEmmitingTarget(column.colDef?.field)
-            toggleFilter(col, value);
-          }
-        });
+    let cellRanges = gridApi.getCellRanges();
+    if (isSingleCellSelection(cellRanges)) {
+      // Did user re-select the same single cell
+      if (isSameSingleSelection(cellRanges[0])) {
+        // clear selection in ag-grid
+        gridApi.clearRangeSelection();
+        // new cell ranges should be empty now
+        cellRanges = gridApi.getCellRanges();
       }
+      else {
+        // remember the single cell selection
+        cacheSingleSelection(cellRanges[0]);
+      }
+    }
+
+    const updatedFilters = {};
+    cellRanges.forEach((range: any) => {
+      range.columns.forEach((column: any) => {
+        const cellRenderer = column.colDef?.cellRenderer;
+        const col = getEmitTarget(column.colDef?.field)
+        updatedFilters[col] = updatedFilters[col] || [];
+        if (cellRenderer == 'ipv4ValueRenderer') {
+          const startRow = Math.min(range.startRow.rowIndex, range.endRow.rowIndex);
+          const endRow = Math.max(range.startRow.rowIndex, range.endRow.rowIndex);
+          for (let rowIndex = startRow; rowIndex <= endRow; rowIndex++) {
+            const value = gridApi.getValue(column, gridApi.getModel().getRow(rowIndex));
+            if (!updatedFilters[col].includes(value)) {
+              updatedFilters[col].push(value);
+            }
+          }
+        }
+      });
     });
+
+    setFilters(updatedFilters);
+    handleChange(updatedFilters);
   }
 
-  function getEmmitingTarget(col: string) {
-    return formData.columnConfig?.[col]?.emittingTarget || col;
+  function getEmitTarget(col: string) {
+    return formData.column_config?.[col]?.emitTarget || col;
   }
 
   return (
