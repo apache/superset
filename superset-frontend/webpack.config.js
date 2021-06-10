@@ -50,10 +50,11 @@ const {
 } = parsedArgs;
 const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1].includes('webpack-dev-server');
+const ASSET_BASE_URL = process.env.ASSET_BASE_URL || '';
 
 const output = {
   path: BUILD_DIR,
-  publicPath: '/static/assets/', // necessary for lazy-loaded chunks
+  publicPath: `${ASSET_BASE_URL}/static/assets/`,
 };
 if (isDevMode) {
   output.filename = '[name].[hash:8].entry.js';
