@@ -2432,6 +2432,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             database = query.database
             db_engine_spec = database.db_engine_spec
             errors = db_engine_spec.extract_errors(msg)
+            _session.close()
             if errors:
                 raise SupersetErrorsException(errors)
             raise SupersetGenericDBErrorException(msg)
