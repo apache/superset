@@ -29,7 +29,10 @@ import {
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { URL_PARAMS } from 'src/constants';
-import { MULTI_OPERATORS, OPERATOR_ENUM_TO_OPERATOR_TYPE } from 'src/explore/constants';
+import {
+  MULTI_OPERATORS,
+  OPERATOR_ENUM_TO_OPERATOR_TYPE,
+} from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 
 const MAX_URL_LENGTH = 8000;

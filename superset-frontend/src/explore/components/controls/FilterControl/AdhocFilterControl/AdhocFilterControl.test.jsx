@@ -27,7 +27,11 @@ import AdhocFilter, {
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { LabelsContainer } from 'src/explore/components/controls/OptionControls';
-import { AGGREGATES, Operators, OPERATOR_ENUM_TO_OPERATOR_TYPE } from 'src/explore/constants';
+import {
+  AGGREGATES,
+  Operators,
+  OPERATOR_ENUM_TO_OPERATOR_TYPE,
+} from 'src/explore/constants';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocFilterControl from '.';
 
@@ -92,7 +96,8 @@ describe('AdhocFilterControl', () => {
         new AdhocFilter({
           expressionType: EXPRESSION_TYPES.SQL,
           subject: savedMetric.expression,
-          operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
+          operator:
+            OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
           comparator: 0,
           clause: CLAUSES.HAVING,
         }),
@@ -111,7 +116,8 @@ describe('AdhocFilterControl', () => {
         new AdhocFilter({
           expressionType: EXPRESSION_TYPES.SQL,
           subject: sumValueAdhocMetric.label,
-          operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
+          operator:
+            OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
           comparator: 0,
           clause: CLAUSES.HAVING,
         }),

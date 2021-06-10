@@ -20,7 +20,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { logging, SupersetClient, t, Metric } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/components/Tooltip';
-import { Operators, OPERATOR_ENUM_TO_OPERATOR_TYPE } from 'src/explore/constants';
+import {
+  Operators,
+  OPERATOR_ENUM_TO_OPERATOR_TYPE,
+} from 'src/explore/constants';
 import { OptionSortType } from 'src/explore/types';
 import {
   DndFilterSelectProps,
@@ -191,7 +194,8 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
           props.datasource.type === 'druid'
             ? filterOptions.saved_metric_name
             : getMetricExpression(filterOptions.saved_metric_name),
-        operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
+        operator:
+          OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
         operatorId: Operators.GREATER_THAN,
         comparator: 0,
         clause: CLAUSES.HAVING,
@@ -208,7 +212,8 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
           props.datasource.type === 'druid'
             ? filterOptions.label
             : new AdhocMetric(option).translateToSql(),
-        operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
+        operator:
+          OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
         operatorId: Operators.GREATER_THAN,
         comparator: 0,
         clause: CLAUSES.HAVING,
