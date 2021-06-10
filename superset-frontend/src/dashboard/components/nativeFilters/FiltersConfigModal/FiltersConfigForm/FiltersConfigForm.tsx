@@ -57,6 +57,7 @@ import { getChartDataRequest } from 'src/chart/chartAction';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import Tabs from 'src/components/Tabs';
+import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import { ColumnSelect } from './ColumnSelect';
 import { NativeFiltersForm } from '../types';
 import {
@@ -256,6 +257,7 @@ const FiltersConfigForm = (
   }: FiltersConfigFormProps,
   ref: React.RefObject<any>,
 ) => {
+  const [error, setError] = useState<string>('');
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [activeTabKey, setActiveTabKey] = useState<string>(
     FilterTabs.configuration.key,
@@ -333,6 +335,20 @@ const FiltersConfigForm = (
 
   useBackendFormUpdate(form, filterId);
 
+  const setNativeFilterFieldValuesWrapper = (values: object) => {
+    setNativeFilterFieldValues(form, filterId, values);
+    setError('');
+    forceUpdate();
+  };
+
+  const setErrorWrapper = (error: string) => {
+    setNativeFilterFieldValues(form, filterId, {
+      defaultValueQueriesData: null,
+    });
+    setError(error);
+    forceUpdate();
+  };
+
   const refreshHandler = useCallback(() => {
     if (!hasDataset || !formFilter?.dataset?.value) {
       forceUpdate();
@@ -343,40 +359,43 @@ const FiltersConfigForm = (
       groupby: formFilter?.column,
       ...formFilter,
     });
-    setNativeFilterFieldValues(form, filterId, {
+    setNativeFilterFieldValuesWrapper({
       defaultValueQueriesData: null,
       isDataDirty: false,
     });
-    forceUpdate();
     getChartDataRequest({
       formData,
       force: false,
       requestParams: { dashboardId: 0 },
-    }).then(response => {
-      if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
-        // deal with getChartDataRequest transforming the response data
-        const result = 'result' in response ? response.result[0] : response;
-        waitForAsyncData(result)
-          .then((asyncResult: ChartDataResponseResult[]) => {
-            setNativeFilterFieldValues(form, filterId, {
-              defaultValueQueriesData: asyncResult,
+    })
+      .then(response => {
+        if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+          // deal with getChartDataRequest transforming the response data
+          const result = 'result' in response ? response.result[0] : response;
+          waitForAsyncData(result)
+            .then((asyncResult: ChartDataResponseResult[]) => {
+              setNativeFilterFieldValuesWrapper({
+                defaultValueQueriesData: asyncResult,
+              });
+            })
+            .catch((error: ClientErrorObject) => {
+              setError(
+                error.message || error.error || t('Check configuration'),
+              );
             });
-            forceUpdate();
-          })
-          .catch((error: ClientErrorObject) => {
-            // TODO: show error once this logic is moved into new NativeFilter
-            //  component
-            console.error(
-              error.message || error.error || t('Check configuration'),
-            );
+        } else {
+          setNativeFilterFieldValuesWrapper({
+            defaultValueQueriesData: response.result,
           });
-      } else {
-        setNativeFilterFieldValues(form, filterId, {
-          defaultValueQueriesData: response.result,
+        }
+      })
+      .catch((error: Response) => {
+        error.json().then(body => {
+          setErrorWrapper(
+            body.message || error.statusText || t('Check configuration'),
+          );
         });
-        forceUpdate();
-      }
-    });
+      });
   }, [filterId, forceUpdate, form, formFilter, hasDataset]);
 
   const defaultDatasetSelectOptions = Object.values(loadedDatasets).map(
@@ -665,7 +684,13 @@ const FiltersConfigForm = (
                   },
                 ]}
               >
-                {showDefaultValue ? (
+                {error ? (
+                  <BasicErrorAlert
+                    title={t('Cannot load filter')}
+                    body={error}
+                    level="error"
+                  />
+                ) : showDefaultValue ? (
                   <DefaultValue
                     setDataMask={dataMask => {
                       setNativeFilterFieldValues(form, filterId, {
