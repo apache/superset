@@ -154,8 +154,8 @@ function ChartTable({
               setChartFilter('Favorite');
               setInLocalStorage(HOMEPAGE_CHART_FILTER, {
                 tab: TableTabTypes.FAVORITE,
-              })
-            }
+              });
+            },
           },
           {
             name: 'Mine',
@@ -165,7 +165,7 @@ function ChartTable({
               setInLocalStorage(HOMEPAGE_CHART_FILTER, {
                 tab: TableTabTypes.MINE,
               });
-            }
+            },
           },
         ]}
         buttons={[

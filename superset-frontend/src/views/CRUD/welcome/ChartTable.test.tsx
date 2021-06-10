@@ -30,7 +30,6 @@ import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
-const chartsEndpointEmpty = 'glob:*/api/v1/chart/?*';
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
 const chartsInfoEndpoint = 'glob:*/api/v1/chart/_info*';
 const chartFavoriteStatusEndpoint = 'glob:*/api/v1/chart/favorite_status*';
@@ -91,8 +90,6 @@ describe('ChartTable', () => {
   });
 
   it('display EmptyState if there is no data', async () => {
-    //console.log('wrapper', wrapper.debug());
-    //fetchMock.calls(chartsEndpoint, 'overwrite');
     await act(async () => {
       wrapper = mount(
         <ChartTable
