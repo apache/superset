@@ -24,7 +24,7 @@ import { Styles } from '../common';
 import { NO_TIME_RANGE } from '../../../explore/constants';
 
 const TimeFilterStyles = styled(Styles)`
-  overflow-x: scroll;
+  overflow-x: auto;
 `;
 
 const ControlContainer = styled.div`
