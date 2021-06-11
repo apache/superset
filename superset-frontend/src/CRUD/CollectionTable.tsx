@@ -48,6 +48,12 @@ interface CRUDCollectionProps {
 
 type Sort = number | string | boolean | any;
 
+enum SortOrder {
+  asc = 1,
+  desc = 2,
+  unsort = 0,
+}
+
 interface CRUDCollectionState {
   collection: object;
   collectionArray: Array<object>;
@@ -207,7 +213,7 @@ export default class CRUDCollection extends React.PureComponent<
     }));
   }
 
-  sortColumn(col: string, sort = 0) {
+  sortColumn(col: string, sort = SortOrder.unsort) {
     const { sortColumns } = this.props;
     // default sort logic sorting string, boolean and number
     const compareSort = (m: Sort, n: Sort) => {
@@ -219,7 +225,7 @@ export default class CRUDCollection extends React.PureComponent<
     return () => {
       if (sortColumns?.includes(col)) {
         // display in unsorted order if no sort specified
-        if (sort === 0) {
+        if (sort === SortOrder.unsort) {
           const collection = createKeyedCollection(this.props.collection);
           this.setState({
             collectionArray: createCollectionArray(collection),
@@ -234,7 +240,8 @@ export default class CRUDCollection extends React.PureComponent<
           const sorted = [
             ...prevState.collectionArray,
           ].sort((a: object, b: object) => compareSort(a[col], b[col]));
-          const newCollection = sort === 1 ? sorted : sorted.reverse();
+          const newCollection =
+            sort === SortOrder.asc ? sorted : sorted.reverse();
           return {
             ...prevState,
             collectionArray: newCollection,
@@ -247,10 +254,10 @@ export default class CRUDCollection extends React.PureComponent<
   }
 
   renderSortIcon(col: string) {
-    if (this.state.sortColumn === col && this.state.sort === 1) {
+    if (this.state.sortColumn === col && this.state.sort === SortOrder.asc) {
       return <Icons.SortAsc onClick={this.sortColumn(col, 2)} />;
     }
-    if (this.state.sortColumn === col && this.state.sort === 2) {
+    if (this.state.sortColumn === col && this.state.sort === SortOrder.desc) {
       return <Icons.SortDesc onClick={this.sortColumn(col, 0)} />;
     }
     return <Icons.Sort onClick={this.sortColumn(col, 1)} />;
