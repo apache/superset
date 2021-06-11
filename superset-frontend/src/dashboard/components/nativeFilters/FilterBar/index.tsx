@@ -178,7 +178,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   useEffect(() => {
     setDataMaskSelected(draft => {
       Object.values(filters).forEach(filter => {
-        if (filter.filterType !== previousFilters?.[filter.id]?.filterType) {
+        if (
+          filter.filterType !== previousFilters?.[filter.id]?.filterType &&
+          previousFilters?.[filter.id]?.filterType !== undefined
+        ) {
           draft[filter.id] = getInitialDataMask(filter.id) as DataMaskWithId;
         }
       });
