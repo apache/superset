@@ -550,7 +550,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 </>
               }
               type="info"
-              showIcon
             />
           )}
         </StyledBasicTab>
