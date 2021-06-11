@@ -38,7 +38,7 @@ export default function buildQuery(formData: QueryFormData) {
 
   /*
   We receive a filter such as ip_string IN ('1.1.1.1').
-  our job is to determine the type of this filter and to use
+  Our job is to determine the type of this filter and to use
   this type to find datasets which have columns of that type.
   We do this by filtering the cccs_explore_launcher table
   by its found_column_type.
