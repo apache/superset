@@ -442,7 +442,7 @@
       ],
       "Database": ["数据库"],
       "Last Changed": ["更新时间"],
-      "Schema": ["模式"],
+      "Schema": ["Schema"],
       "Offset": ["偏移"],
       "Table Name": ["表名"],
       "Fetch Values Predicate": ["取值谓词"],
@@ -2098,7 +2098,7 @@
       "Nothing triggered": ["无触发"],
       "Alert Triggered, In Grace Period": ["警报已触发，在宽限期内"],
       "Email": ["电子邮件"],
-      "Slack": ["懒惰"],
+      "Slack": ["Slack"],
       "annotation": ["注释"],
       "There was an issue deleting the selected annotations: %s": [
         "删除所选注释时出现问题：%s"
@@ -2249,9 +2249,7 @@
       "Connection": ["测试连接"],
       "Database name": ["数据库名称"],
       "Name your dataset": ["命名数据集"],
-      "dialect+driver://username:password@host:port/database": [
-        "方言+驱动程序://用户名:密码@主机:端口/数据库"
-      ],
+      "dialect+driver://username:password@host:port/database": [""],
       "Test connection": ["测试连接"],
       "Refer to the ": ["参考 "],
       "SQLAlchemy docs": ["SQLAlchemy 文档"],
