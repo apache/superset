@@ -30,7 +30,7 @@
     "@superset-ui/core": "0.17.56",
     "@types/mathjs": "^6.0.7",
     "d3-array": "^1.2.0",
-    "echarts": "^5.1.1",
+    "echarts": "^5.1.2",
     "lodash": "^4.17.15",
     "mathjs": "^8.0.1"
   },

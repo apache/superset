@@ -93,7 +93,6 @@ export default function EchartsTreemap({
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
       selectedValues={selectedValues}
-      forceClear
     />
   );
 }
