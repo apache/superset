@@ -70,10 +70,10 @@ const controlPanel: ControlPanelConfig = {
         ],
         [
           {
-            // TODO: Set renderTrigger to true without getting intermittent errors in echart
             name: 'root_node_id',
             config: {
               ...optionalEntity,
+              renderTrigger: true,
               type: 'TextControl',
               label: t('Root node id'),
               description: t('Id of root node of the tree.'),
