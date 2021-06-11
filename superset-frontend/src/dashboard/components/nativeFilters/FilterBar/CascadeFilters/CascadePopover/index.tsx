@@ -32,6 +32,7 @@ interface CascadePopoverProps {
   filter: CascadeFilter;
   visible: boolean;
   directPathToChild?: string[];
+  inView?: boolean;
   onVisibleChange: (visible: boolean) => void;
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
 }
@@ -80,6 +81,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   onVisibleChange,
   onFilterSelectionChange,
   directPathToChild,
+  inView,
 }) => {
   const [currentPathToChild, setCurrentPathToChild] = useState<string[]>();
   const dataMask = dataMaskSelected[filter.id];
@@ -148,6 +150,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
         filter={filter}
         directPathToChild={directPathToChild}
         onFilterSelectionChange={onFilterSelectionChange}
+        inView={inView}
       />
     );
   }
@@ -192,6 +195,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
             filter={activeFilter}
             onFilterSelectionChange={onFilterSelectionChange}
             directPathToChild={currentPathToChild}
+            inView={inView}
             icon={
               <>
                 {filter.cascadeChildren.length !== 0 && (

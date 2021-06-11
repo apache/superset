@@ -47,6 +47,7 @@ const FilterControl: React.FC<FilterProps> = ({
   icon,
   onFilterSelectionChange,
   directPathToChild,
+  inView,
 }) => {
   const { name = '<undefined>' } = filter;
   return (
@@ -62,6 +63,7 @@ const FilterControl: React.FC<FilterProps> = ({
         filter={filter}
         directPathToChild={directPathToChild}
         onFilterSelectionChange={onFilterSelectionChange}
+        inView={inView}
       />
     </StyledFilterControlContainer>
   );
