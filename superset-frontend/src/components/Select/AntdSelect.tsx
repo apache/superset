@@ -169,8 +169,6 @@ const SelectComponent = ({
     }
   };
 
-  console.log('ALL OPTIONS', selectOptions);
-
   return (
     <AntdSelect
       aria-label={ariaLabel || name}

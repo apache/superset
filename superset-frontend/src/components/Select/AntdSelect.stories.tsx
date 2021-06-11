@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import Select, { SelectProps, OptionsPromise } from './Select';
+import Select, { SelectProps, OptionsPromise } from './AntdSelect';
 
 export default {
   title: 'Select',
@@ -26,9 +26,7 @@ export default {
 
 export const InteractiveSelect = (args: SelectProps) => <Select {...args} />;
 
-async function fetchUserList(username: string): OptionsPromise {
-  console.log('fetching user', username);
-
+async function fetchUserList(username: string): Promise<OptionsPromise> {
   return fetch('https://randomuser.me/api/?results=5')
     .then(response => response.json())
     .then(body =>
