@@ -342,7 +342,7 @@ class DatabaseValidateParametersSchema(Schema):
     configuration_method = EnumField(
         ConfigurationMethod,
         by_value=True,
-        allow_none=True,
+        required=True,
         description=configuration_method_description,
     )
 
