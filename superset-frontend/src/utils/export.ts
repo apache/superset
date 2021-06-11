@@ -38,7 +38,7 @@ export default function handleResourceExport(
   document.body.appendChild(iframe);
 
   const timer = window.setInterval(() => {
-    const cookie = parseCookie();
+    const cookie: { [cookieId: string]: string } = parseCookie();
     if (cookie[token] === 'done') {
       window.clearInterval(timer);
       document.body.removeChild(iframe);
