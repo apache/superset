@@ -85,24 +85,22 @@ const FilterControls: FC<FilterControlsProps> = ({
   if (!dashboardHasTabs) {
     filtersInScope = cascadeFilters;
   } else {
-    cascadeFilters.forEach((filter, index) => {
+    cascadeFilters.forEach(filter => {
       // Filter is in scope if any of it's charts is visible.
       // Chart is visible if it's placed in an active tab tree or if it's not attached to any tab.
       // Chart is in an active tab tree if all of it's ancestors of type TAB are active
-      const isFilterInScope = cascadeFilters[index].chartsInScope?.some(
-        chartId => {
-          const chartLayoutItem = Object.values(dashboardLayout).find(
-            layoutItem => layoutItem.meta?.chartId === chartId,
-          );
-          const tabParents = chartLayoutItem?.parents.filter(
-            (parent: string) => dashboardLayout[parent].type === TAB_TYPE,
-          );
-          return (
-            tabParents?.length === 0 ||
-            tabParents?.every(tab => activeTabs.includes(tab))
-          );
-        },
-      );
+      const isFilterInScope = filter.chartsInScope?.some(chartId => {
+        const chartLayoutItem = Object.values(dashboardLayout).find(
+          layoutItem => layoutItem.meta?.chartId === chartId,
+        );
+        const tabParents = chartLayoutItem?.parents.filter(
+          (parent: string) => dashboardLayout[parent].type === TAB_TYPE,
+        );
+        return (
+          tabParents?.length === 0 ||
+          tabParents?.every(tab => activeTabs.includes(tab))
+        );
+      });
 
       if (isFilterInScope) {
         filtersInScope.push(filter);
