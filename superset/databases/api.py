@@ -21,7 +21,7 @@ from io import BytesIO
 from typing import Any, Dict, List, Optional
 from zipfile import ZipFile
 
-from flask import g, make_response, request, Response, send_file
+from flask import g, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
@@ -740,16 +740,14 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 return self.response_404()
         buf.seek(0)
 
-        response = make_response(
-            send_file(
-                buf,
-                mimetype="application/zip",
-                as_attachment=True,
-                attachment_filename=filename,
-            )
+        response = send_file(
+            buf,
+            mimetype="application/zip",
+            as_attachment=True,
+            attachment_filename=filename,
         )
         if token:
-            response.set_cookie(token, "done")
+            response.set_cookie(token, "done", max_age=600)
         return response
 
     @expose("/import/", methods=["POST"])

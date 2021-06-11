@@ -18,10 +18,7 @@
  */
 import { SupersetClient, t, styled } from '@superset-ui/core';
 import React, { useState, useMemo } from 'react';
-import rison from 'rison';
-import shortid from 'shortid';
 import Loading from 'src/components/Loading';
-import parseCookie from 'src/utils/parseCookie';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
@@ -33,6 +30,7 @@ import Icons from 'src/components/Icons';
 import ListView, { FilterOperator, Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import ImportModelsModal from 'src/components/ImportModal/index';
+import handleResourceExport from 'src/utils/export';
 import DatabaseModal from './DatabaseModal';
 
 import { DatabaseObject } from './types';
@@ -172,8 +170,6 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     ...commonMenuData,
   };
 
-  let exportTimer: number;
-
   if (canCreate) {
     menuData.buttons = [
       {
@@ -209,20 +205,14 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   }
 
   function handleDatabaseExport(database: DatabaseObject) {
-    const token = shortid.generate();
-    exportTimer = window.setInterval(() => {
-      const cookie = parseCookie();
-      if (cookie[token] === 'done') {
-        setPreparingExport(false);
-        window.clearInterval(exportTimer);
-      }
-    }, 200);
+    if (database.id === undefined) {
+      return;
+    }
+
+    handleResourceExport('database', [database.id], () => {
+      setPreparingExport(false);
+    });
     setPreparingExport(true);
-    return window.location.assign(
-      `/api/v1/database/export/?q=${rison.encode([
-        database.id,
-      ])}&token=${token}`,
-    );
   }
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];

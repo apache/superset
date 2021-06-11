@@ -219,32 +219,6 @@ export function handleChartDelete(
   );
 }
 
-export function handleBulkChartExport(chartsToExport: Chart[]) {
-  return window.location.assign(
-    `/api/v1/chart/export/?q=${rison.encode(
-      chartsToExport.map(({ id }) => id),
-    )}`,
-  );
-}
-
-export function handleBulkDashboardExport(dashboardsToExport: Dashboard[]) {
-  return window.location.assign(
-    `/api/v1/dashboard/export/?q=${rison.encode(
-      dashboardsToExport.map(({ id }) => id),
-    )}`,
-  );
-}
-
-export function handleBulkSavedQueryExport(
-  savedQueriesToExport: SavedQueryObject[],
-) {
-  return window.location.assign(
-    `/api/v1/saved_query/export/?q=${rison.encode(
-      savedQueriesToExport.map(({ id }) => id),
-    )}`,
-  );
-}
-
 export function handleDashboardDelete(
   { id, dashboard_title: dashboardTitle }: Dashboard,
   refreshData: (config?: FetchDataConfig | null) => void,
