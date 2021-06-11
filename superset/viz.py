@@ -614,12 +614,14 @@ class BaseViz:
         return content
 
     def get_csv(self) -> Optional[str]:
-        df = self.get_df()
+        df = self.get_df_payload()["df"]  # leverage caching logic
         columns = list(df.columns)
-        verbose_map = self.datasource.data.get("verbose_map", {})
-        df.columns = [verbose_map.get(column, column) for column in columns]
+        verbose_map = self.datasource.data.get('verbose_map', {})
+        
+        if verbose_map:
+            df.columns = [verbose_map.get(column, column) for column in columns]
         include_index = not isinstance(df.index, pd.RangeIndex)
-        return df.to_csv(index=include_index, **config["CSV_EXPORT"])
+        return csv.df_to_escaped_csv(df, index=include_index, **config["CSV_EXPORT"])
 
     def get_data(self, df: pd.DataFrame) -> VizData:
         return df.to_dict(orient="records")
