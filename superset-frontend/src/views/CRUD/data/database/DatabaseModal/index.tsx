@@ -361,6 +361,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         ))}
       </Select>
       <Alert
+        showIcon
         css={(theme: SupersetTheme) => antDAlertStyles(theme)}
         type="info"
         message={t('Want to add a new database?')}
@@ -532,6 +533,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <Alert
               css={(theme: SupersetTheme) => antDAlertStyles(theme)}
               message="Additional fields may be required"
+              showIcon
               description={
                 <>
                   Select databases require additional fields to be completed in
@@ -548,7 +550,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 </>
               }
               type="info"
-              showIcon
             />
           )}
         </StyledBasicTab>
@@ -660,6 +661,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   <Alert
                     css={(theme: SupersetTheme) => antDAlertStyles(theme)}
                     type="info"
+                    showIcon
                     message={t('Whitelisting IPs')}
                     description={connectionAlert.WHITELISTED_IPS}
                   />
