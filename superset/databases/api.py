@@ -748,7 +748,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 attachment_filename=filename,
             )
         )
-        response.set_cookie(token, "done")
+        if token:
+            response.set_cookie(token, "done")
         return response
 
     @expose("/import/", methods=["POST"])
