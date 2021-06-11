@@ -174,7 +174,7 @@ function DashboardList(props: DashboardListProps) {
 
   const handleBulkDashboardExport = (dashboardsToExport: Dashboard[]) => {
     const ids = dashboardsToExport.map(({ id }) => id);
-    handleResourceExport('chart', ids, () => {
+    handleResourceExport('dashboard', ids, () => {
       setPreparingExport(false);
     });
     setPreparingExport(true);

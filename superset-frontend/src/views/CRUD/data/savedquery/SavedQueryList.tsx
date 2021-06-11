@@ -244,7 +244,7 @@ function SavedQueryList({
     savedQueriesToExport: SavedQueryObject[],
   ) => {
     const ids = savedQueriesToExport.map(({ id }) => id);
-    handleResourceExport('chart', ids, () => {
+    handleResourceExport('saved_query', ids, () => {
       setPreparingExport(false);
     });
     setPreparingExport(true);
