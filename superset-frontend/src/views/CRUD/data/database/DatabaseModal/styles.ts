@@ -446,8 +446,4 @@ export const SelectDatabaseStyles = styled.div`
     font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
     margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
   }
-
-  .ant-alert {
-    margin: ${({ theme }) => theme.gridUnit * 4}px;
-  }
 `;

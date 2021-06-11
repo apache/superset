@@ -625,12 +625,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 />
                 {renderPreferredSelector()}
                 {renderAvailableSelector()}
-                <Alert
-                  description="Any databases that allow connections via SQLAlchemy URIs can be added. Learn about how to connect a database driver here."
-                  message="Want to add a new database?"
-                  showIcon
-                  type="info"
-                />
               </SelectDatabaseStyles>
             ) : (
               <>
