@@ -598,7 +598,7 @@ export const copyQueryLink = (
 
 export const getDatabaseImages = () => SupersetText.DB_IMAGES;
 
-export const getConnectionAlert = () => SupersetText.ALERTS;
+export const getConnectionAlert = () => SupersetText.DB_CONNECTION_ALERTS;
 
 export const testDatabaseConnection = (
   connection: DatabaseObject,
