@@ -41,6 +41,7 @@ import {
   useAvailableDatabases,
   useDatabaseValidation,
   getDatabaseImages,
+  getConnectionAlert,
 } from 'src/views/CRUD/hooks';
 import { useCommonConf } from 'src/views/CRUD/data/database/state';
 import {
@@ -208,6 +209,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [isLoading, setLoading] = useState<boolean>(false);
   const conf = useCommonConf();
   const dbImages = getDatabaseImages();
+  const connectionAlert = getConnectionAlert();
   const isEditMode = !!databaseId;
   const sslForced = isFeatureEnabled(
     FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
@@ -358,6 +360,24 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           </Select.Option>
         ))}
       </Select>
+      <Alert
+        css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+        type="info"
+        message={t('Want to add a new database?')}
+        description={
+          <>
+            Any databases that allow connetions via SQL Alchemy URIs can be
+            added. Learn about how to connect a database driver{' '}
+            <a
+              href={DOCUMENTATION_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              here.
+            </a>
+          </>
+        }
+      />
     </div>
   );
 
@@ -636,6 +656,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   dbName={dbName}
                   dbModel={dbModel}
                 />
+                {connectionAlert && (
+                  <Alert
+                    css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+                    type="info"
+                    message={t('Whitelisting IPs')}
+                    description={connectionAlert.WHITELISTED_IPS}
+                  />
+                )}
                 <DatabaseConnectionForm
                   db={db}
                   sslForced={sslForced}
