@@ -420,7 +420,7 @@
         "源数据库中存在的表的名称"
       ],
       "Schema, as used only in some databases like Postgres, Redshift and DB2": [
-        "模式，只在一些数据库中使用，比如Postgres、Redshift和DB2"
+        "Schema，只在一些数据库中使用，比如Postgres、Redshift和DB2"
       ],
       "This fields acts a Superset view, meaning that Superset will run a query against this string as a subquery.": [
         "这个字段执行Superset视图时，意味着Superset将以子查询的形式对字符串运行查询。"
@@ -447,7 +447,7 @@
       "Table Name": ["表名"],
       "Fetch Values Predicate": ["取值谓词"],
       "Main Datetime Column": ["主日期列"],
-      "SQL Lab View": ["SQL Lab 视图"],
+      "SQL Lab View": ["SQL 工具箱视图"],
       "Template parameters": ["模板参数"],
       "The table was created. As part of this two-phase configuration process, you should now click the edit button by the new table to configure it.": [
         "表被创建。作为这两个阶段配置过程的一部分，您现在应该单击新表的编辑按钮来配置它。"
@@ -992,25 +992,25 @@
         "允许用户在 SQL 编辑器中运行非 SELECT 语句（UPDATE，DELETE，CREATE，...）"
       ],
       "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema": [
-        "当在 SQL 编辑器中允许 CREATE TABLE AS 选项时，此选项可以此模式中强制创建表"
+        "当在 SQL 工具箱中允许 CREATE TABLE AS 选项时，此选项可以此 Schema 中强制创建表"
       ],
       "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
         "如果使用Presto，SQL 工具箱中的所有查询都将被当前登录的用户执行，并且这些用户必须拥有运行它们的权限。<br/>如果启用 Hive 和hive.server2.enable.doAs，将作为服务帐户运行查询，但会根据hive.server2.proxy.user的属性伪装当前登录用户。"
       ],
       "Allow SQL Lab to fetch a list of all tables and all views across all database schemas. For large data warehouse with thousands of tables, this can be expensive and put strain on the system.": [
-        "允许 sql lab 获取所有数据库架构中的所有表和所有视图的列表。对于具有数千个表的大型数据仓库, 这可能会很耗费性能, 并给系统带来压力。"
+        "允许 SQL 工具箱获取所有数据库架构中的所有表和所有视图的列表。对于具有数千个表的大型数据仓库, 这可能会很耗费性能, 并给系统带来压力。"
       ],
       "Duration (in seconds) of the caching timeout for charts of this database. A timeout of 0 indicates that the cache never expires. Note this defaults to the global timeout if undefined.": [
         "此数据库图表的缓存超时持续时间(以秒为单位)。超时为0表示缓存永远不会过期。注意，如果未定义，这默认为全局超时。"
       ],
       "If selected, please set the schemas allowed for csv upload in Extra.": [
-        "如果选择，请额外设置csv上传允许的模式。"
+        "如果选择，请额外设置允许csv上传的 Schema。"
       ],
       "Expose in SQL Lab": ["在 SQL 工具箱中公开"],
       "Allow CREATE TABLE AS": ["允许 CREATE TABLE AS"],
       "Allow CREATE VIEW AS": ["允许 CREATE TABLE AS"],
       "Allow DML": ["允许 DML"],
-      "CTAS Schema": ["CTAS 模式"],
+      "CTAS Schema": [""],
       "SQLAlchemy URI": ["SQLAlchemy URI"],
       "Chart Cache Timeout": ["表缓存超时"],
       "Secure Extra": ["安全"],
@@ -1071,7 +1071,7 @@
       "Unknown error": ["未知错误"],
       "Query was stopped.": ["查询被终止。"],
       "Unable to migrate table schema state to backend. Superset will retry later. Please contact your administrator if this problem persists.": [
-        "无法将表结构状态迁移到后端。系统将稍后重试。如果此问题仍然存在，请与管理员联系。"
+        "无法将表 Schema 状态迁移到后端。系统将稍后重试。如果此问题仍然存在，请与管理员联系。"
       ],
       "Unable to migrate query state to backend. Superset will retry later. Please contact your administrator if this problem persists.": [
         "无法将查询状态迁移到后端。系统将稍后重试。如果此问题仍然存在，请与管理员联系。"
@@ -1097,7 +1097,7 @@
         "设置tab页数据库ID时出错。请与管理员联系。"
       ],
       "An error occurred while setting the tab schema. Please contact your administrator.": [
-        "设置tab页结构时出错。请与管理员联系。"
+        "设置tab页 Schema 时出错。请与管理员联系。"
       ],
       "An error occurred while setting the tab autorun. Please contact your administrator.": [
         "设置tab页自动运行时出错。请与管理员联系。"
@@ -1122,13 +1122,13 @@
         "获取表格元数据时发生错误。请与管理员联系。"
       ],
       "An error occurred while expanding the table schema. Please contact your administrator.": [
-        "展开表结构时出错。请与管理员联系。"
+        "展开表 Schema 时出错。请与管理员联系。"
       ],
       "An error occurred while collapsing the table schema. Please contact your administrator.": [
-        "收起表结构时出错。请与管理员联系。"
+        "收起表 Schema 时出错。请与管理员联系。"
       ],
       "An error occurred while removing the table schema. Please contact your administrator.": [
-        "删除表结构时出错。请与管理员联系。"
+        "删除表 Schema 时出错。请与管理员联系。"
       ],
       "Shared query": ["已分享的查询"],
       "The datasource couldn't be loaded": ["这个查询无法被加载"],
@@ -1136,7 +1136,7 @@
         "创建数据源时发生错误"
       ],
       "SQL Lab uses your browser's local storage to store queries and results.\n Currently, you are using ${currentUsage.toFixed(\n            2,\n          )} KB out of ${LOCALSTORAGE_MAX_USAGE_KB} KB. storage space.\n To keep SQL Lab from crashing, please delete some query tabs.\n You can re-access these queries by using the Save feature before you delete the tab. Note that you will need to close other SQL Lab windows before you do this.": [
-        "SQL Lab 使用浏览器的本地存储来存储查询和结果。\n目前，您正在使用${currentUsage.toFixed(\n            2,\n          )} KB / ${LOCALSTORAGE_MAX_USAGE_KB} KB 的存储空间。\n为了防止SQLLab崩溃，请删除一些查询tab页。\n在删除tab页之前，可以使用 \"保存\" 功能重新访问这些查询。请注意，在执行此操作之前，需要关闭其他SQLLab窗口。"
+        "SQL 工具箱使用浏览器的本地存储来存储查询和结果。\n目前，您正在使用${currentUsage.toFixed(\n            2,\n          )} KB / ${LOCALSTORAGE_MAX_USAGE_KB} KB 的存储空间。\n为了防止SQLLab崩溃，请删除一些查询tab页。\n在删除tab页之前，可以使用 \"保存\" 功能重新访问这些查询。请注意，在执行此操作之前，需要关闭其他SQLLab窗口。"
       ],
       "Estimate selected query cost": ["运行选定的查询"],
       "Estimate cost": ["运行选定的查询"],
@@ -1375,11 +1375,11 @@
       "Error while fetching database list": ["获取数据库列表时出错"],
       "Database:": ["数据库："],
       "Select a database": ["选择一个数据库"],
-      "Force refresh schema list": ["强制刷新数据"],
+      "Force refresh schema list": ["强制刷新 schema 列表"],
       "Select a schema (%s)": ["选择一个schema（%s）"],
-      "Schema:": ["模式。"],
+      "Schema:": [""],
       "datasource": ["数据源"],
-      "schema": ["模式"],
+      "schema": [""],
       "delete": ["删除"],
       "Type \"%s\" to confirm": ["键入 \"%s\" 来确认"],
       "DELETE": ["删除"],
@@ -1395,7 +1395,7 @@
       "Type to search ...": ["输入搜索条件 ..."],
       "Select table ": ["选择表"],
       "Force refresh table list": ["强制刷新数据"],
-      "See table schema": ["选择表"],
+      "See table schema": ["选择表 schema"],
       "%s%s": ["%s%s"],
       "Share dashboard": ["分享看板"],
       "This may be triggered by:": ["这可能由以下因素触发："],
@@ -2098,7 +2098,7 @@
       "Nothing triggered": ["无触发"],
       "Alert Triggered, In Grace Period": ["警报已触发，在宽限期内"],
       "Email": ["电子邮件"],
-      "Slack": ["Slack"],
+      "Slack": ["懒惰"],
       "annotation": ["注释"],
       "There was an issue deleting the selected annotations: %s": [
         "删除所选注释时出现问题：%s"
@@ -2249,7 +2249,9 @@
       "Connection": ["测试连接"],
       "Database name": ["数据库名称"],
       "Name your dataset": ["命名数据集"],
-      "dialect+driver://username:password@host:port/database": [""],
+      "dialect+driver://username:password@host:port/database": [
+        "方言+驱动程序://用户名:密码@主机:端口/数据库"
+      ],
       "Test connection": ["测试连接"],
       "Refer to the ": ["参考 "],
       "SQLAlchemy docs": ["SQLAlchemy 文档"],
@@ -2261,14 +2263,14 @@
       "Operate the database in asynchronous mode, meaning that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.": [
         "以异步模式操作数据库，这意味着查询是在远程worker上执行的，而不是在web服务器本身上执行的, 这假设您有一个Celery worker setup以及一个执行后端。有关更多信息，请参考安装文档。"
       ],
-      "SQL Lab settings": ["SQL Lab 设置"],
+      "SQL Lab settings": ["SQL 工具箱设置"],
       "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...)": [
         "允许用户在 SQL 编辑器中运行非 SELECT 语句（UPDATE，DELETE，CREATE，...）"
       ],
       "Allow multi schema metadata fetch": ["允许多Schema元数据获取"],
-      "CTAS schema": ["CTAS 模式"],
+      "CTAS schema": [""],
       "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema.": [
-        "当在 SQL 编辑器中允许 CREATE TABLE AS 选项时，此选项可以此模式中强制创建表"
+        "当在 SQL 编辑器中允许 CREATE TABLE AS 选项时，此选项可以此 Schema 中强制创建表"
       ],
       "Secure extra": ["安全"],
       "JSON string containing additional connection configuration.": [
@@ -2288,7 +2290,7 @@
       ],
       "Allow data upload": ["允许数据上传"],
       "If selected, please set the schemas allowed for data upload in Extra.": [
-        "如果选中，请额外设置允许数据上传的schema。"
+        "如果选中，请额外设置允许数据上传的 schema。"
       ],
       "JSON string containing extra configuration elements.": [
         "包含额外配置元素的JSON字符串。"
@@ -2300,13 +2302,13 @@
         "2. metadata_cache_timeout 是获取该数据库元数据的缓存超时设置（秒）。可以这样进行设置：\"metadata_cache_timeout\": {\"schema_cache_timeout\": 600, \"table_cache_timeout\": 600}。如果未设置，则不会为该功能启用缓存。如果超时时间设置为0，则表示缓存永不过期。"
       ],
       "3. The schemas_allowed_for_csv_upload is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as \"schemas_allowed_for_csv_upload\": [\"public\", \"csv_upload\"]. If database flavor does not support schema or any schema is allowed to be accessed, just leave the list empty.": [
-        "3. schemas_allowed_for_csv_upload 是CSV文件允许上传的schema，该结构以逗号进行分割。 可以这样进行设置：\"schemas_allowed_for_csv_upload\": [\"public\", \"csv_upload\"]。如果数据库风格不支持schema或任何schema都被允许，请将列表留空。"
+        "3. schemas_allowed_for_csv_upload 是CSV文件允许上传的schema，该 Schema 以逗号进行分割。 可以这样进行设置：\"schemas_allowed_for_csv_upload\": [\"public\", \"csv_upload\"]。如果数据库风格不支持schema或任何schema都被允许，请将列表留空。"
       ],
       "4. The version field is a string specifying this db's version. This should be used with Presto DBs so that the syntax is correct.": [
         "4. version 字段是指定此数据库版本的字符串。这应该与Presto DBs一起使用，以便语法正确。"
       ],
       "5. The allows_virtual_table_explore field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.": [
-        "5. allows_virtual_table_explore 字段是一个布尔值，它指定是否显示 SQL Lab 结果中的explore按钮。"
+        "5. allows_virtual_table_explore 字段是一个布尔值，它指定是否显示 SQL 工具箱结果中的explore按钮。"
       ],
       "Error while saving dataset: %s": ["保存数据集时出错：%s"],
       "Add dataset": ["添加数据集"],
@@ -2329,7 +2331,7 @@
       ],
       "An error occurred while fetching datasets: %s": ["获取数据集时出错：%s"],
       "An error occurred while fetching schema values: %s": [
-        "获取结构信息时出错：%s"
+        "获取 Schema 信息时出错：%s"
       ],
       "There was an issue deleting the selected datasets: %s": [
         "删除选定的数据集时出现问题：%s"
@@ -2409,7 +2411,7 @@
       "DASHBOARD": ["看板"],
       "CHART": ["图表"],
       "You don't have any favorites yet!": ["您还没有任何的收藏！"],
-      "SQL Lab queries": ["SQL工具箱查询"],
+      "SQL Lab queries": ["SQL 工具箱查询"],
       "See all": ["查看所有"],
       "saved queries": ["已保存查询"],
       "dashboards": ["看板"],
@@ -3090,7 +3092,7 @@
         "不允许将数据库用于csv上载"
       ],
       "Failed to fetch schemas allowed for csv upload in this database! Please contact your Superset Admin!": [
-        "无法获取此数据库中允许csv上载的结构！请联系系统的管理员！"
+        "无法获取此数据库中允许csv上传的 Schema！请联系系统的管理员！"
       ],
       "One or many columns to group by": ["需要进行分组的一列或多列"],
       "One or many columns to pivot as columns": [

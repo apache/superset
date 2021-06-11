@@ -243,7 +243,7 @@
         "Параметры слоя аннотации недействительны."
       ],
       "Annotation layer could not be deleted.": [
-        "Слой аннотации не может быть удалён."
+        "Слой аннотаций не может быть удалён."
       ],
       "Annotation layer could not be created.": [
         "Слой аннотаций не может быть создан."
@@ -280,23 +280,6 @@
       ],
       "There are associated alerts or reports: %s,": [
         "Существуют оповещения или рассылки: %s,"
-      ],
-      "Database does not exist": ["База данных не существует"],
-      "Dashboards do not exist": ["Дашборды отсутствуют"],
-      "Datasource type is required when datasource_id is given": [
-        "Тип источника данных обязателен, если задан ID"
-      ],
-      "Chart parameters are invalid.": ["Параметры графика недействительны."],
-      "Chart could not be created.": ["График не может быть создан."],
-      "Chart could not be updated.": ["График не может быть обновлён."],
-      "Chart could not be deleted.": ["График не может быть удалён."],
-      "There are associated alerts or reports": [
-        "Существуют привязанные оповещения или рассылки"
-      ],
-      "Changing this chart is forbidden": ["Изменение этого графика запрещено"],
-      "Charts could not be deleted.": ["Графики не могут быть удалены."],
-      "Import chart failed for an unknown reason": [
-        "Импорт графика не удался по неизвестной причине"
       ],
       "Database does not exist": ["База данных не существует"],
       "Dashboards do not exist": ["Дашборды отсутствуют"],
@@ -2239,9 +2222,9 @@
         "Произошла ошибка при удалении %s: %s"
       ],
       "report": ["рассылка"],
-      "alert": ["предупреждение"],
+      "alert": ["оповещение"],
       "reports": ["рассылки"],
-      "alerts": ["предупреждения"],
+      "alerts": ["оповещения"],
       "There was an issue deleting the selected %s: %s": [
         "Произошла ошибка при удалении выбранных %s: %s"
       ],
@@ -2627,7 +2610,7 @@
       "Are you sure you want to delete the selected queries?": [
         "Вы уверены, что хотите удалить выбранные запросы?"
       ],
-      "Query name": ["Страна"],
+      "Query name": ["Имя запроса"],
       "Edited": ["Редактировано"],
       "Created": ["Создано"],
       "Viewed": ["Просмотрено"],

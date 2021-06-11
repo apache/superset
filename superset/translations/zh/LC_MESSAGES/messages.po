@@ -1238,7 +1238,7 @@ msgstr "源数据库中存在的表的名称"
 
 #: superset/connectors/sqla/views.py:402
 msgid "Schema, as used only in some databases like Postgres, Redshift and DB2"
-msgstr "模式，只在一些数据库中使用，比如Postgres、Redshift和DB2"
+msgstr "Schema，只在一些数据库中使用，比如Postgres、Redshift和DB2"
 
 #: superset/connectors/sqla/views.py:409
 msgid "This fields acts a Superset view, meaning that Superset will run a query against this string as a subquery."
@@ -1291,7 +1291,7 @@ msgstr "更新时间"
 #: superset/connectors/sqla/views.py:456 superset/views/database/forms.py:118
 #: superset/views/database/forms.py:315
 msgid "Schema"
-msgstr "模式"
+msgstr ""
 
 #: superset/connectors/sqla/views.py:458
 msgid "Offset"
@@ -1312,7 +1312,7 @@ msgstr "主日期列"
 
 #: superset/connectors/sqla/views.py:465
 msgid "SQL Lab View"
-msgstr "SQL Lab 视图"
+msgstr "SQL 工具箱视图"
 
 #: superset-frontend/src/SqlLab/components/TemplateParamsEditor.jsx:125
 #: superset-frontend/src/datasource/DatasourceEditor.jsx:616
@@ -2799,7 +2799,7 @@ msgstr "允许用户在 SQL 编辑器中运行非 SELECT 语句（UPDATE，DELET
 
 #: superset/views/database/mixins.py:119
 msgid "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema"
-msgstr "当在 SQL 编辑器中允许 CREATE TABLE AS 选项时，此选项可以此模式中强制创建表"
+msgstr "当在 SQL 工具箱中允许 CREATE TABLE AS 选项时，此选项可以此 Schema 中强制创建表"
 
 #: superset/views/database/mixins.py:162
 msgid "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property."
@@ -2808,7 +2808,7 @@ msgstr "如果使用Presto，SQL 工具箱中的所有查询都将被当前登�
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:523
 #: superset/views/database/mixins.py:169
 msgid "Allow SQL Lab to fetch a list of all tables and all views across all database schemas. For large data warehouse with thousands of tables, this can be expensive and put strain on the system."
-msgstr "允许 sql lab 获取所有数据库架构中的所有表和所有视图的列表。对于具有数千个表的大型数据仓库, 这可能会很耗费性能, 并给系统带来压力。"
+msgstr "允许 SQL 工具箱获取所有数据库架构中的所有表和所有视图的列表。对于具有数千个表的大型数据仓库, 这可能会很耗费性能, 并给系统带来压力。"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:428
 #: superset/views/database/mixins.py:174
@@ -2817,7 +2817,7 @@ msgstr "此数据库图表的缓存超时持续时间(以秒为单位)。超时�
 
 #: superset/views/database/mixins.py:179
 msgid "If selected, please set the schemas allowed for csv upload in Extra."
-msgstr "如果选择，请额外设置csv上传允许的模式。"
+msgstr "如果选择，请额外设置允许csv上传的 Schema。"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:253
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:358
@@ -2843,7 +2843,7 @@ msgstr "允许 DML"
 
 #: superset/views/database/mixins.py:189
 msgid "CTAS Schema"
-msgstr "CTAS 模式"
+msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:384
 #: superset/views/database/mixins.py:193
@@ -2994,7 +2994,7 @@ msgstr "查询被终止。"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:422
 msgid "Unable to migrate table schema state to backend. Superset will retry later. Please contact your administrator if this problem persists."
-msgstr "无法将表结构状态迁移到后端。系统将稍后重试。如果此问题仍然存在，请与管理员联系。"
+msgstr "无法将表 Schema 状态迁移到后端。系统将稍后重试。如果此问题仍然存在，请与管理员联系。"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:440
 msgid "Unable to migrate query state to backend. Superset will retry later. Please contact your administrator if this problem persists."
@@ -3035,7 +3035,7 @@ msgstr "设置tab页数据库ID时出错。请与管理员联系。"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:749
 msgid "An error occurred while setting the tab schema. Please contact your administrator."
-msgstr "设置tab页结构时出错。请与管理员联系。"
+msgstr "设置tab页 Schema 时出错。请与管理员联系。"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:782
 msgid "An error occurred while setting the tab autorun. Please contact your administrator."
@@ -3081,15 +3081,15 @@ msgstr "获取表格元数据时发生错误。请与管理员联系。"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1103
 msgid "An error occurred while expanding the table schema. Please contact your administrator."
-msgstr "展开表结构时出错。请与管理员联系。"
+msgstr "展开表 Schema 时出错。请与管理员联系。"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1127
 msgid "An error occurred while collapsing the table schema. Please contact your administrator."
-msgstr "收起表结构时出错。请与管理员联系。"
+msgstr "收起表 Schema 时出错。请与管理员联系。"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1150
 msgid "An error occurred while removing the table schema. Please contact your administrator."
-msgstr "删除表结构时出错。请与管理员联系。"
+msgstr "删除表 Schema 时出错。请与管理员联系。"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1183
 msgid "Shared query"
@@ -3111,7 +3111,7 @@ msgid "SQL Lab uses your browser's local storage to store queries and results.\n
 "          )} KB out of ${LOCALSTORAGE_MAX_USAGE_KB} KB. storage space.\n"
 " To keep SQL Lab from crashing, please delete some query tabs.\n"
 " You can re-access these queries by using the Save feature before you delete the tab. Note that you will need to close other SQL Lab windows before you do this."
-msgstr "SQL Lab 使用浏览器的本地存储来存储查询和结果。\n"
+msgstr "SQL 工具箱使用浏览器的本地存储来存储查询和结果。\n"
 "目前，您正在使用${currentUsage.toFixed(\n"
 "            2,\n"
 "          )} KB / ${LOCALSTORAGE_MAX_USAGE_KB} KB 的存储空间。\n"
@@ -3990,7 +3990,7 @@ msgstr "选择一个数据库"
 
 #: superset-frontend/src/components/DatabaseSelector.tsx:253
 msgid "Force refresh schema list"
-msgstr "强制刷新数据"
+msgstr "强制刷新 schema 列表"
 
 #: superset-frontend/src/components/DatabaseSelector.tsx:260
 msgid "Select a schema (%s)"
@@ -3998,7 +3998,7 @@ msgstr "选择一个schema（%s）"
 
 #: superset-frontend/src/components/DatabaseSelector.tsx:265
 msgid "Schema:"
-msgstr "模式。"
+msgstr ""
 
 #: superset-frontend/src/components/DatabaseSelector.tsx:279
 msgid "datasource"
@@ -4006,7 +4006,7 @@ msgstr "数据源"
 
 #: superset-frontend/src/components/DatabaseSelector.tsx:281
 msgid "schema"
-msgstr "模式"
+msgstr ""
 
 #: superset-frontend/src/components/DeleteModal.tsx:61
 msgid "delete"
@@ -4065,7 +4065,7 @@ msgstr "强制刷新数据"
 
 #: superset-frontend/src/components/TableSelector.tsx:375
 msgid "See table schema"
-msgstr "选择表"
+msgstr "选择表 schema"
 
 #: superset-frontend/src/components/URLShortLinkButton.jsx:59
 #: superset-frontend/src/components/URLShortLinkModal.tsx:77
@@ -6755,7 +6755,7 @@ msgstr "以异步模式操作数据库，这意味着查询是在远程worker上
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:455
 msgid "SQL Lab settings"
-msgstr "SQL Lab 设置"
+msgstr "SQL 工具箱设置"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:507
 msgid "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...)"
@@ -6768,11 +6768,11 @@ msgstr "允许多Schema元数据获取"
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:533
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:539
 msgid "CTAS schema"
-msgstr "CTAS 模式"
+msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:544
 msgid "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema."
-msgstr "当在 SQL 编辑器中允许 CREATE TABLE AS 选项时，此选项可以此模式中强制创建表"
+msgstr "当在 SQL 编辑器中允许 CREATE TABLE AS 选项时，此选项可以此 Schema 中强制创建表"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:553
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:558
@@ -6806,7 +6806,7 @@ msgstr "允许数据上传"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:630
 msgid "If selected, please set the schemas allowed for data upload in Extra."
-msgstr "如果选中，请额外设置允许数据上传的schema。"
+msgstr "如果选中，请额外设置允许数据上传的 schema。"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:650
 msgid "JSON string containing extra configuration elements."
@@ -6822,7 +6822,7 @@ msgstr "2. metadata_cache_timeout 是获取该数据库元数据的缓存超时�
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:669
 msgid "3. The schemas_allowed_for_csv_upload is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as \"schemas_allowed_for_csv_upload\": [\"public\", \"csv_upload\"]. If database flavor does not support schema or any schema is allowed to be accessed, just leave the list empty."
-msgstr "3. schemas_allowed_for_csv_upload 是CSV文件允许上传的schema，该结构以逗号进行分割。 可以这样进行设置：\"schemas_allowed_for_csv_upload\": [\"public\", \"csv_upload\"]。如果数据库风格不支持schema或任何schema都被允许，请将列表留空。"
+msgstr "3. schemas_allowed_for_csv_upload 是CSV文件允许上传的schema，该 Schema 以逗号进行分割。 可以这样进行设置：\"schemas_allowed_for_csv_upload\": [\"public\", \"csv_upload\"]。如果数据库风格不支持schema或任何schema都被允许，请将列表留空。"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:678
 msgid "4. The version field is a string specifying this db's version. This should be used with Presto DBs so that the syntax is correct."
@@ -6830,7 +6830,7 @@ msgstr "4. version 字段是指定此数据库版本的字符串。这应该与P
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:684
 msgid "5. The allows_virtual_table_explore field is a boolean specifying whether or not the Explore button in SQL Lab results is shown."
-msgstr "5. allows_virtual_table_explore 字段是一个布尔值，它指定是否显示 SQL Lab 结果中的explore按钮。"
+msgstr "5. allows_virtual_table_explore 字段是一个布尔值，它指定是否显示 SQL 工具箱结果中的explore按钮。"
 
 #: superset-frontend/src/views/CRUD/data/dataset/AddDatasetModal.tsx:100
 msgid "Error while saving dataset: %s"
@@ -6876,7 +6876,7 @@ msgstr "获取数据集时出错：%s"
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:365
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:390
 msgid "An error occurred while fetching schema values: %s"
-msgstr "获取结构信息时出错：%s"
+msgstr "获取 Schema 信息时出错：%s"
 
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:533
 msgid "There was an issue deleting the selected datasets: %s"
@@ -7093,7 +7093,7 @@ msgstr "您还没有任何的收藏！"
 
 #: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:147
 msgid "SQL Lab queries"
-msgstr "SQL工具箱查询"
+msgstr "SQL 工具箱查询"
 
 #: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:147
 msgid "See all"
@@ -9174,7 +9174,7 @@ msgstr "不允许将数据库用于csv上载"
 
 #: 
 msgid "Failed to fetch schemas allowed for csv upload in this database! Please contact your Superset Admin!"
-msgstr "无法获取此数据库中允许csv上载的结构！请联系系统的管理员！"
+msgstr "无法获取此数据库中允许csv上传的 Schema！请联系系统的管理员！"
 
 #: 
 msgid "One or many columns to group by"
