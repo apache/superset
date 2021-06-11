@@ -173,15 +173,6 @@ export default function ActivityTable({
 }: ActivityProps) {
   const [editedObjs, setEditedObjs] = useState<Array<ActivityData>>();
   const [loadingState, setLoadingState] = useState(false);
-  useEffect(() => {
-    if (activeChild === 'Edited') {
-      setLoadingState(true);
-      getEditedObjects(user.userId).then(r => {
-        setEditedObjs([...r.editedChart, ...r.editedDash]);
-        setLoadingState(false);
-      });
-    }
-  }, []);
 
   const getEditedCards = () => {
     setLoadingState(true);
@@ -190,6 +181,14 @@ export default function ActivityTable({
       setLoadingState(false);
     });
   };
+
+  useEffect(() => {
+    if (activeChild === 'Edited') {
+      setLoadingState(true);
+      getEditedCards();
+    }
+  }, [activeChild]);
+
   const tabs = [
     {
       name: 'Edited',
@@ -197,7 +196,6 @@ export default function ActivityTable({
       onClick: () => {
         setActiveChild('Edited');
         setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, SetTabType.EDITED);
-        getEditedCards();
       },
     },
     {
@@ -255,7 +253,7 @@ export default function ActivityTable({
       },
     );
 
-  if ((loadingState && !editedObjs) || loadedCount !== 3) {
+  if ((loadingState && !editedObjs) || loadedCount < 3) {
     return <Loading position="inline" />;
   }
   return (

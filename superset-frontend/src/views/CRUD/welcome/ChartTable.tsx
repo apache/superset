@@ -62,7 +62,7 @@ function ChartTable({
 }: ChartTableProps) {
   const history = useHistory();
   const filterStore = getFromLocalStorage(HOMEPAGE_CHART_FILTER, null);
-  const defaultFilter = filterStore || TableTabTypes.MINE;
+  const initialFilter = filterStore || TableTabTypes.MINE;
 
   const {
     state: { loading, resourceCollection: charts, bulkSelectEnabled },
@@ -75,7 +75,7 @@ function ChartTable({
     t('chart'),
     addDangerToast,
     true,
-    defaultFilter === 'Favorite' ? [] : mine,
+    initialFilter === 'Favorite' ? [] : mine,
     [],
     false,
   );
@@ -93,7 +93,7 @@ function ChartTable({
     closeChartEditModal,
   } = useChartEditModal(setCharts, charts);
 
-  const [chartFilter, setChartFilter] = useState(defaultFilter);
+  const [chartFilter, setChartFilter] = useState(initialFilter);
 
   useEffect(() => {
     getData(chartFilter);
