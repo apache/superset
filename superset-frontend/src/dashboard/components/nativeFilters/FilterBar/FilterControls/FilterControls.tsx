@@ -19,18 +19,14 @@
 import React, { FC, useMemo, useState } from 'react';
 import { DataMask, styled, t } from '@superset-ui/core';
 import { css } from '@emotion/react';
-import { useSelector } from 'react-redux';
 import * as portals from 'react-reverse-portal';
 import { DataMaskStateWithId } from 'src/dataMask/types';
 import { Collapse } from 'src/common/components';
-import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
-import { ActiveTabs, RootState } from 'src/dashboard/types';
 import CascadePopover from '../CascadeFilters/CascadePopover';
 import { buildCascadeFiltersTree } from './utils';
 import { useFilters } from '../state';
 import { Filter } from '../../types';
-import { CascadeFilter } from '../CascadeFilters/types';
-import { useDashboardLayout } from '../../state';
+import { useDashboardHasTabs, useSelectFiltersInScope } from '../../state';
 
 const Wrapper = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
@@ -52,10 +48,6 @@ const FilterControls: FC<FilterControlsProps> = ({
 }) => {
   const [visiblePopoverId, setVisiblePopoverId] = useState<string | null>(null);
   const filters = useFilters();
-  const dashboardLayout = useDashboardLayout();
-  const activeTabs = useSelector<RootState, ActiveTabs>(
-    state => state.dashboardState?.activeTabs,
-  );
   const filterValues = Object.values<Filter>(filters);
   const portalNodes = React.useMemo(() => {
     const nodes = new Array(filterValues.length);
@@ -74,41 +66,11 @@ const FilterControls: FC<FilterControlsProps> = ({
   }, [filterValues, dataMaskSelected]);
   const cascadeFilterIds = new Set(cascadeFilters.map(item => item.id));
 
-  let filtersInScope: CascadeFilter[] = [];
-  const filtersOutOfScope: CascadeFilter[] = [];
-  const dashboardHasTabs = Object.values(dashboardLayout).some(
-    element => element.type === TAB_TYPE,
+  const [filtersInScope, filtersOutOfScope] = useSelectFiltersInScope(
+    cascadeFilters,
   );
+  const dashboardHasTabs = useDashboardHasTabs();
   const showCollapsePanel = dashboardHasTabs && cascadeFilters.length > 0;
-
-  // we check native filters scopes only on dashboards with tabs
-  if (!dashboardHasTabs) {
-    filtersInScope = cascadeFilters;
-  } else {
-    cascadeFilters.forEach(filter => {
-      // Filter is in scope if any of it's charts is visible.
-      // Chart is visible if it's placed in an active tab tree or if it's not attached to any tab.
-      // Chart is in an active tab tree if all of it's ancestors of type TAB are active
-      const isFilterInScope = filter.chartsInScope?.some(chartId => {
-        const chartLayoutItem = Object.values(dashboardLayout).find(
-          layoutItem => layoutItem.meta?.chartId === chartId,
-        );
-        const tabParents = chartLayoutItem?.parents.filter(
-          (parent: string) => dashboardLayout[parent].type === TAB_TYPE,
-        );
-        return (
-          tabParents?.length === 0 ||
-          tabParents?.every(tab => activeTabs.includes(tab))
-        );
-      });
-
-      if (isFilterInScope) {
-        filtersInScope.push(filter);
-      } else {
-        filtersOutOfScope.push(filter);
-      }
-    });
-  }
 
   return (
     <Wrapper>
