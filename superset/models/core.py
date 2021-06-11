@@ -239,15 +239,12 @@ class Database(
 
     @property
     def parameters(self) -> Dict[str, Any]:
-        # Build parameters if db_engine_spec is a subclass of BasicParametersMixin
-        parameters = {"engine": self.backend}
-
-        if hasattr(self.db_engine_spec, "parameters_schema") and hasattr(
-            self.db_engine_spec, "get_parameters_from_uri"
-        ):
-            uri = make_url(self.sqlalchemy_uri_decrypted)
-            encrypted_extra = self.get_encrypted_extra()
-            return {**parameters, **self.db_engine_spec.get_parameters_from_uri(uri, encrypted_extra=encrypted_extra)}  # type: ignore
+        uri = make_url(self.sqlalchemy_uri_decrypted)
+        encrypted_extra = self.get_encrypted_extra()
+        try:
+            parameters = self.db_engine_spec.get_parameters_from_uri(uri, encrypted_extra=encrypted_extra)  # type: ignore
+        except Exception:  # pylint: disable=broad-except
+            parameters = {}
 
         return parameters
 

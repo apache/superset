@@ -29,6 +29,7 @@ import sqlalchemy.sql.sqltypes
 import sqlalchemy_utils
 from flask_appbuilder import Model
 from sqlalchemy import Column, inspect, MetaData, Table
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from sqlalchemy.sql.visitors import VisitableType
@@ -146,6 +147,9 @@ def get_type_generator(sqltype: sqlalchemy.sql.sqltypes) -> Callable[[], Any]:
     if isinstance(sqltype, sqlalchemy_utils.types.uuid.UUIDType):
         return uuid4
 
+    if isinstance(sqltype, postgresql.base.UUID):
+        return lambda: str(uuid4())
+
     if isinstance(sqltype, sqlalchemy.sql.sqltypes.BLOB):
         length = random.randrange(sqltype.length or 255)
         return lambda: os.urandom(length)
@@ -153,7 +157,7 @@ def get_type_generator(sqltype: sqlalchemy.sql.sqltypes) -> Callable[[], Any]:
     logger.warning(
         "Unknown type %s. Please add it to `get_type_generator`.", type(sqltype)
     )
-    return lambda: "UNKNOWN TYPE"
+    return lambda: b"UNKNOWN TYPE"
 
 
 def add_data(
