@@ -107,7 +107,7 @@ const RightMenu = ({
           ))}
         </SubMenu>
       )}
-      <SubMenu title="Settings" icon={<Icon name="triangle-down" />}>
+      <SubMenu title={t('Settings')} icon={<Icon name="triangle-down" />}>
         {settings.map((section, index) => [
           <Menu.ItemGroup key={`${section.label}`} title={section.label}>
             {section.childs?.map(child => {

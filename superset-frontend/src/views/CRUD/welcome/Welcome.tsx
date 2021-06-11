@@ -194,11 +194,11 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   return (
     <WelcomeContainer>
       <WelcomeNav>
-        <span className="navbar-brand">Home</span>
+        <span className="navbar-brand">{t('Home')}</span>
         {isFeatureEnabled(FeatureFlag.THUMBNAILS) ? (
           <div className="switch">
             <Switch checked={checked} onChange={handleToggle} />
-            <span>Thumbnails</span>
+            <span>{t('Thumbnails')}</span>
           </div>
         ) : null}
       </WelcomeNav>
