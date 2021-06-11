@@ -21,7 +21,7 @@ describe('GwwkCharts tranformProps', () => {
     }],
   });
 
-  it('should tranform chart props for viz', () => {
+  it('should transform chart props for viz', () => {
     expect(transformProps(chartProps)).toEqual({
       width: 800,
       height: 600,
