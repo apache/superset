@@ -89,12 +89,13 @@ const FilterControls: FC<FilterControlsProps> = ({
               filter={cascadeFilters[index]}
               onFilterSelectionChange={onFilterSelectionChange}
               directPathToChild={directPathToChild}
+              inView={false}
             />
           </portals.InPortal>
         ))}
       {filtersInScope.map(filter => {
         const index = filterValues.findIndex(f => f.id === filter.id);
-        return <portals.OutPortal node={portalNodes[index]} />;
+        return <portals.OutPortal node={portalNodes[index]} inView />;
       })}
       {showCollapsePanel && (
         <Collapse
@@ -132,7 +133,7 @@ const FilterControls: FC<FilterControlsProps> = ({
           >
             {filtersOutOfScope.map(filter => {
               const index = cascadeFilters.findIndex(f => f.id === filter.id);
-              return <portals.OutPortal node={portalNodes[index]} />;
+              return <portals.OutPortal node={portalNodes[index]} inView />;
             })}
           </Collapse.Panel>
         </Collapse>
