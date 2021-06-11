@@ -278,6 +278,34 @@ class TestDatabaseApi(SupersetTestCase):
         }
         assert rv.status_code == 400
 
+    def test_create_database_no_configuration_method(self):
+        """
+        Database API: Test create with no config method.
+        """
+        extra = {
+            "metadata_params": {},
+            "engine_params": {},
+            "metadata_cache_timeout": {},
+            "schemas_allowed_for_csv_upload": [],
+        }
+
+        self.login(username="admin")
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+        database_data = {
+            "database_name": "test-create-database",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "server_cert": None,
+            "extra": json.dumps(extra),
+        }
+
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 201
+        self.assertIn("sqlalchemy_form", response["result"]["configuration_method"])
+
     def test_create_database_server_cert_validate(self):
         """
         Database API: Test create server cert validation
@@ -1708,6 +1736,7 @@ class TestDatabaseApi(SupersetTestCase):
         payload = {
             "engine": "postgresql",
             "parameters": defaultdict(dict),
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
         }
         payload["parameters"].update(
             {
