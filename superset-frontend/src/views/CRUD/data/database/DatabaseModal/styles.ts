@@ -406,27 +406,48 @@ export const CredentialInfoForm = styled.div`
 
 export const SelectDatabaseStyles = styled.div`
   .preferred {
+    .superset-button {
+      margin-left: 0;
+    }
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    margin-bottom: ${({ theme }) => theme.gridUnit * 16}px;
+    margin: ${({ theme }) => theme.gridUnit * 4}px;
   }
 
   .preferred-item {
-    width: 133px;
-    height: 133px;
+    width: 30%;
+    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+
+    svg {
+      width: ${({ theme }) => theme.typography.sizes.xl * 2}px;
+      margin-top: -${({ theme }) => theme.gridUnit * 5}px;
+      margin-left: ${({ theme }) => theme.gridUnit * 6}px;
+      margin-bottom: -${({ theme }) => theme.gridUnit * 9}px;
+    }
   }
 
   .available {
+    margin: ${({ theme }) => theme.gridUnit * 4}px;
     .available-label {
+      font-size: ${({ theme }) => theme.typography.sizes.l * 1.1}px;
       font-weight: bold;
-      margin-top: ${({ theme }) => theme.gridUnit * 16}px;
-      margin-bottom: ${({ theme }) => theme.gridUnit * 8}px;
+      margin: ${({ theme }) => theme.gridUnit * 6}px 0;
     }
   }
 
   .label-available-select {
     text-transform: uppercase;
     font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+  }
+
+  .control-label {
+    color: ${({ theme }) => theme.colors.grayscale.dark1};
+    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  }
+
+  .ant-alert {
+    margin: ${({ theme }) => theme.gridUnit * 4}px;
   }
 `;

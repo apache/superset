@@ -33,7 +33,6 @@ const StyledButton = styled(Button)`
   display: flex;
   flex-direction: column;
   padding: 0;
-  width: 33%;
 `;
 const StyledImage = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
@@ -43,8 +42,7 @@ const StyledImage = styled.div`
   }
 
   img {
-    width: 100%;
-    height: 100%;
+    width: fit-content;
 
     &:first-of-type {
       margin-right: 0;
@@ -59,10 +57,14 @@ const StyledInner = styled.div`
   position: relative;
   white-space: break-spaces;
 
+  &:first-of-type {
+    margin-right: 0;
+  }
+
   &::before {
     content: '...';
     inset-block-end: 0; /* "bottom" */
-    inset-inline-end: 8px; /* "right" */
+    inset-inline-end: ${({ theme }) => theme.gridUnit * 2}px; /* "right" */
     position: absolute;
   }
 
@@ -70,19 +72,21 @@ const StyledInner = styled.div`
     background-color: ${({ theme }) => theme.colors.grayscale.light4};
     content: '';
     height: 1rem;
-    inset-inline-end: 8px; /* "right" */
+    inset-inline-end: ${({ theme }) => theme.gridUnit * 2}px; /* "right" */
     position: absolute;
-    top: 4px;
+    top: ${({ theme }) => theme.gridUnit * 2}px;
     width: 1rem;
   }
 `;
 
 const StyledBottom = styled.div`
+  padding: ${({ theme }) => theme.gridUnit * 5}px 0;
   border-radius: 0 0 ${({ theme }) => theme.borderRadius}px
     ${({ theme }) => theme.borderRadius}px;
   background-color: ${({ theme }) => theme.colors.grayscale.light4};
   width: 100%;
   line-height: 1.5em;
+  overflow: hidden;
   white-space: no-wrap;
   text-overflow: ellipsis;
 
