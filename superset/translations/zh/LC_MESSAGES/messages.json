@@ -442,7 +442,7 @@
       ],
       "Database": ["数据库"],
       "Last Changed": ["更新时间"],
-      "Schema": ["Schema"],
+      "Schema": [""],
       "Offset": ["偏移"],
       "Table Name": ["表名"],
       "Fetch Values Predicate": ["取值谓词"],
