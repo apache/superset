@@ -26,7 +26,7 @@ import { GwwkChartsChartPlugin } from '../src';
  * treated correctly (e.g. formData from plugin controls
  * properly transform the data and/or any resulting props).
  */
-describe('@superset-ui/plugin-chart-iframe-demo', () => {
+describe('@superset-ui/plugin-chart-gwwk-charts', () => {
   it('exists', () => {
     expect(GwwkChartsChartPlugin).toBeDefined();
   });
