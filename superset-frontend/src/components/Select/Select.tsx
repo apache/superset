@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo } from 'react';
+import React, {
+  KeyboardEvent,
+  ReactElement,
+  SyntheticEvent,
+  useState,
+  useMemo,
+  useRef,
+} from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Select as AntdSelect, Spin } from 'antd';
 import {
@@ -31,7 +38,6 @@ type PickedSelectProps = Pick<
   AntdSelectType,
   | 'allowClear'
   | 'autoFocus'
-  | 'aria-label'
   | 'value'
   | 'defaultValue'
   | 'disabled'
@@ -49,11 +55,12 @@ export type AntdOptionsType = Exclude<AntdSelectType['options'], undefined>;
 export type OptionsPromise = (search: string) => Promise<AntdOptionsType>;
 export interface SelectProps extends PickedSelectProps {
   allowNewOptions?: boolean;
-  header?: React.ReactElement;
+  ariaLabel: string;
+  header?: ReactElement;
   name?: string; // discourage usage
-  notFoundContent?: React.ReactElement;
+  notFoundContent?: ReactElement;
   options: AntdOptionsType & OptionsPromise;
-  onPaste(e: React.SyntheticEvent): void;
+  onPaste(e: SyntheticEvent): void;
 }
 
 // unexposed default behaviors
@@ -78,8 +85,10 @@ const Loading = () => {
 
 const SelectComponent = ({
   allowNewOptions = false,
+  ariaLabel,
   loading,
   mode,
+  name,
   notFoundContent,
   options,
   showSearch,
@@ -88,11 +97,11 @@ const SelectComponent = ({
 }: SelectProps) => {
   const isAsync = typeof options === 'function';
   const shouldShowSearch = isAsync || allowNewOptions ? true : showSearch;
-  const selectOptions = options && Array.isArray(options) ? options : [];
-  const [allOptions, setOptions] = useState<AntdOptionsType>(selectOptions);
+  const initialOptions = options && Array.isArray(options) ? options : [];
+  const [selectOptions, setOptions] = useState<AntdOptionsType>(initialOptions);
   const [selectValue, setSelectValue] = useState(value);
   const [isLoading, setLoading] = useState(loading);
-  const fetchRef = React.useRef(0);
+  const fetchRef = useRef(0);
 
   const handleSelectMode = () => {
     if (allowNewOptions && mode === 'multiple') return 'tags';
@@ -115,19 +124,19 @@ const SelectComponent = ({
     }
   };
 
-  const handleNewOption = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleNewOption = (e: KeyboardEvent<HTMLInputElement>) => {
     // enable option creation for single mode
     if (allowNewOptions && mode !== 'tags' && mode !== 'multiple') {
       const { value } = e.currentTarget;
       if (value) {
-        const hasOption = allOptions.find(opt => opt.value === value);
+        const hasOption = selectOptions.find(opt => opt.value === value);
         if (!hasOption) {
           if (e.keyCode === 13) {
             const newOption = {
               label: value,
               value,
             };
-            setOptions([...allOptions, newOption]);
+            setOptions([...selectOptions, newOption]);
             setSelectValue(value);
           }
         }
@@ -160,10 +169,11 @@ const SelectComponent = ({
     }
   };
 
-  console.log('ALL OPTIONS', allOptions);
+  console.log('ALL OPTIONS', selectOptions);
 
   return (
     <AntdSelect
+      aria-label={ariaLabel || name}
       loading={isLoading}
       maxTagCount={MAX_TAG_COUNT}
       mode={handleSelectMode()}
@@ -172,7 +182,7 @@ const SelectComponent = ({
       onDeselect={handleOnDeselect}
       onSearch={handleOnSearch}
       onSelect={handleOnSelect}
-      options={allOptions}
+      options={selectOptions}
       showSearch={shouldShowSearch}
       tokenSeparators={TOKEN_SEPARATORS}
       value={selectValue}
