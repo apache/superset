@@ -218,7 +218,7 @@ export default class CRUDCollection extends React.PureComponent<
     };
     return () => {
       if (sortColumns?.includes(col)) {
-        // display in random order if no sort specified
+        // display in unsorted order if no sort specified
         if (sort === 0) {
           const collection = createKeyedCollection(this.props.collection);
           this.setState({
@@ -231,13 +231,10 @@ export default class CRUDCollection extends React.PureComponent<
 
         this.setState(prevState => {
           // newly ordered collection
-          const newCollection = prevState.collectionArray
-            .sort((a: object, b: object) =>
-              sort === 1
-                ? compareSort(a[col], b[col])
-                : compareSort(b[col], a[col]),
-            )
-            .map((v: object) => v);
+          const sorted = [
+            ...prevState.collectionArray,
+          ].sort((a: object, b: object) => compareSort(a[col], b[col]));
+          const newCollection = sort === 1 ? sorted : sorted.reverse();
           return {
             ...prevState,
             collectionArray: newCollection,
