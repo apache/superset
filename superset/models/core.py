@@ -246,7 +246,7 @@ class Database(
         except Exception:  # pylint: disable=broad-except
             parameters = {}
 
-        return {}
+        return parameters
 
     @property
     def metadata_cache_timeout(self) -> Dict[str, Any]:
