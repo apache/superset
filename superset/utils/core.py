@@ -218,7 +218,7 @@ class FilterOperator(str, Enum):
 
 class PostProcessingBoxplotWhiskerType(str, Enum):
     """
-    Calculate cell contibution to row/column total
+    Calculate cell contribution to row/column total
     """
 
     TUKEY = "tukey"
@@ -228,7 +228,7 @@ class PostProcessingBoxplotWhiskerType(str, Enum):
 
 class PostProcessingContributionOrientation(str, Enum):
     """
-    Calculate cell contibution to row/column total
+    Calculate cell contribution to row/column total
     """
 
     ROW = "row"
@@ -263,6 +263,7 @@ class QueryStatus(str, Enum):  # pylint: disable=too-few-public-methods
     RUNNING: str = "running"
     SCHEDULED: str = "scheduled"
     SUCCESS: str = "success"
+    FETCHING: str = "fetching"
     TIMED_OUT: str = "timed_out"
 
 

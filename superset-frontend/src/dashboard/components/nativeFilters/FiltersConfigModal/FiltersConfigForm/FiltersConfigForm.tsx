@@ -57,6 +57,7 @@ import { getChartDataRequest } from 'src/chart/chartAction';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import Tabs from 'src/components/Tabs';
+import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import { ColumnSelect } from './ColumnSelect';
 import { NativeFiltersForm } from '../types';
 import {
@@ -164,6 +165,8 @@ const StyledCollapse = styled(Collapse)`
 const StyledTabs = styled(Tabs)`
   .ant-tabs-nav {
     position: sticky;
+    margin-left: ${({ theme }) => theme.gridUnit * -4}px;
+    margin-right: ${({ theme }) => theme.gridUnit * -4}px;
     top: 0px;
     background: white;
     z-index: 1;
@@ -180,8 +183,8 @@ const StyledTabs = styled(Tabs)`
 
 const StyledAsterisk = styled.span`
   color: ${({ theme }) => theme.colors.error.base};
-  font-family: SimSun, sans-serif;
-  margin-right: ${({ theme }) => theme.gridUnit - 1}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  margin-left: ${({ theme }) => theme.gridUnit - 1}px;
   &:before {
     content: '*';
   }
@@ -254,6 +257,7 @@ const FiltersConfigForm = (
   }: FiltersConfigFormProps,
   ref: React.RefObject<any>,
 ) => {
+  const [error, setError] = useState<string>('');
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [activeTabKey, setActiveTabKey] = useState<string>(
     FilterTabs.configuration.key,
@@ -331,6 +335,20 @@ const FiltersConfigForm = (
 
   useBackendFormUpdate(form, filterId);
 
+  const setNativeFilterFieldValuesWrapper = (values: object) => {
+    setNativeFilterFieldValues(form, filterId, values);
+    setError('');
+    forceUpdate();
+  };
+
+  const setErrorWrapper = (error: string) => {
+    setNativeFilterFieldValues(form, filterId, {
+      defaultValueQueriesData: null,
+    });
+    setError(error);
+    forceUpdate();
+  };
+
   const refreshHandler = useCallback(() => {
     if (!hasDataset || !formFilter?.dataset?.value) {
       forceUpdate();
@@ -341,40 +359,43 @@ const FiltersConfigForm = (
       groupby: formFilter?.column,
       ...formFilter,
     });
-    setNativeFilterFieldValues(form, filterId, {
+    setNativeFilterFieldValuesWrapper({
       defaultValueQueriesData: null,
       isDataDirty: false,
     });
-    forceUpdate();
     getChartDataRequest({
       formData,
       force: false,
       requestParams: { dashboardId: 0 },
-    }).then(response => {
-      if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
-        // deal with getChartDataRequest transforming the response data
-        const result = 'result' in response ? response.result[0] : response;
-        waitForAsyncData(result)
-          .then((asyncResult: ChartDataResponseResult[]) => {
-            setNativeFilterFieldValues(form, filterId, {
-              defaultValueQueriesData: asyncResult,
+    })
+      .then(response => {
+        if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+          // deal with getChartDataRequest transforming the response data
+          const result = 'result' in response ? response.result[0] : response;
+          waitForAsyncData(result)
+            .then((asyncResult: ChartDataResponseResult[]) => {
+              setNativeFilterFieldValuesWrapper({
+                defaultValueQueriesData: asyncResult,
+              });
+            })
+            .catch((error: ClientErrorObject) => {
+              setError(
+                error.message || error.error || t('Check configuration'),
+              );
             });
-            forceUpdate();
-          })
-          .catch((error: ClientErrorObject) => {
-            // TODO: show error once this logic is moved into new NativeFilter
-            //  component
-            console.error(
-              error.message || error.error || t('Check configuration'),
-            );
+        } else {
+          setNativeFilterFieldValuesWrapper({
+            defaultValueQueriesData: response.result,
           });
-      } else {
-        setNativeFilterFieldValues(form, filterId, {
-          defaultValueQueriesData: response.result,
+        }
+      })
+      .catch((error: Response) => {
+        error.json().then(body => {
+          setErrorWrapper(
+            body.message || error.statusText || t('Check configuration'),
+          );
         });
-        forceUpdate();
-      }
-    });
+      });
   }, [filterId, forceUpdate, form, formFilter, hasDataset]);
 
   const defaultDatasetSelectOptions = Object.values(loadedDatasets).map(
@@ -443,6 +464,7 @@ const FiltersConfigForm = (
         filterId,
         filterType: formFilter.filterType,
         filterToEdit,
+        formFilter,
       })
     : {};
 
@@ -455,6 +477,28 @@ const FiltersConfigForm = (
       },
     });
     forceUpdate();
+  };
+
+  const validatePreFilter = () =>
+    setTimeout(
+      () =>
+        form.validateFields([
+          ['filters', filterId, 'adhoc_filters'],
+          ['filters', filterId, 'time_range'],
+        ]),
+      0,
+    );
+
+  const hasTimeRange =
+    formFilter?.time_range && formFilter.time_range !== 'No filter';
+
+  const hasAdhoc = formFilter?.adhoc_filters?.length > 0;
+
+  const preFilterValidator = () => {
+    if (hasTimeRange || hasAdhoc) {
+      return Promise.resolve();
+    }
+    return Promise.reject(new Error(t('Pre-filter is required')));
   };
 
   let hasCheckedAdvancedControl = hasParentFilter || hasPreFilter || hasSorting;
@@ -566,7 +610,7 @@ const FiltersConfigForm = (
                 initialValue={initColumn}
                 label={<StyledLabel>{t('Column')}</StyledLabel>}
                 rules={[
-                  { required: !removed, message: t('Field is required') },
+                  { required: !removed, message: t('Column is required') },
                 ]}
                 data-test="field-input"
               >
@@ -592,6 +636,7 @@ const FiltersConfigForm = (
           expandIconPosition="right"
         >
           <Collapse.Panel
+            forceRender
             header={FilterPanels.basic.name}
             key={FilterPanels.basic.key}
           >
@@ -624,8 +669,12 @@ const FiltersConfigForm = (
                   },
                   {
                     validator: (rule, value) => {
-                      const hasValue = !!value.filterState?.value;
-                      if (hasValue) {
+                      const hasValue = !!value?.filterState?.value;
+                      if (
+                        hasValue ||
+                        // TODO: do more generic
+                        formFilter.controlValues?.defaultToFirstItem
+                      ) {
                         return Promise.resolve();
                       }
                       return Promise.reject(
@@ -635,7 +684,13 @@ const FiltersConfigForm = (
                   },
                 ]}
               >
-                {showDefaultValue ? (
+                {error ? (
+                  <BasicErrorAlert
+                    title={t('Cannot load filter')}
+                    body={error}
+                    level="error"
+                  />
+                ) : showDefaultValue ? (
                   <DefaultValue
                     setDataMask={dataMask => {
                       setNativeFilterFieldValues(form, filterId, {
@@ -673,6 +728,7 @@ const FiltersConfigForm = (
           </Collapse.Panel>
           {((hasDataset && hasAdditionalFilters) || hasMetrics) && (
             <Collapse.Panel
+              forceRender
               header={FilterPanels.advanced.name}
               key={FilterPanels.advanced.key}
             >
@@ -723,14 +779,7 @@ const FiltersConfigForm = (
                   checked={hasPreFilter}
                   onChange={checked => {
                     if (checked) {
-                      // execute after render
-                      setTimeout(
-                        () =>
-                          form.validateFields([
-                            ['filters', filterId, 'adhoc_filters'],
-                          ]),
-                        0,
-                      );
+                      validatePreFilter();
                     }
                   }}
                 >
@@ -740,8 +789,7 @@ const FiltersConfigForm = (
                     required
                     rules={[
                       {
-                        required: true,
-                        message: t('Pre-filter is required'),
+                        validator: preFilterValidator,
                       },
                     ]}
                   >
@@ -758,11 +806,12 @@ const FiltersConfigForm = (
                           adhoc_filters: filters,
                         });
                         forceUpdate();
+                        validatePreFilter();
                       }}
                       label={
                         <span>
-                          <StyledAsterisk />
                           <StyledLabel>{t('Pre-filter')}</StyledLabel>
+                          {!hasTimeRange && <StyledAsterisk />}
                         </span>
                       }
                     />
@@ -771,6 +820,12 @@ const FiltersConfigForm = (
                     name={['filters', filterId, 'time_range']}
                     label={<StyledLabel>{t('Time range')}</StyledLabel>}
                     initialValue={filterToEdit?.time_range || 'No filter'}
+                    required={!hasAdhoc}
+                    rules={[
+                      {
+                        validator: preFilterValidator,
+                      },
+                    ]}
                   >
                     <DateFilterControl
                       name="time_range"
@@ -779,6 +834,7 @@ const FiltersConfigForm = (
                           time_range: timeRange,
                         });
                         forceUpdate();
+                        validatePreFilter();
                       }}
                     />
                   </StyledRowFormItem>

@@ -307,7 +307,21 @@ class DatasourceEditor extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      datasource: props.datasource,
+      datasource: {
+        ...props.datasource,
+        metrics: props.datasource.metrics?.map(metric => {
+          const {
+            certification: { details, certified_by: certifiedBy } = {},
+            warning_markdown: warningMarkdown,
+          } = JSON.parse(metric.extra || '{}') || {};
+          return {
+            ...metric,
+            certification_details: details || '',
+            warning_markdown: warningMarkdown || '',
+            certified_by: certifiedBy,
+          };
+        }),
+      },
       errors: [],
       isDruid:
         props.datasource.type === 'druid' ||
@@ -379,6 +393,7 @@ class DatasourceEditor extends React.PureComponent {
   }
 
   setColumns(obj) {
+    // update calculatedColumns or databaseColumns
     this.setState(obj, this.validateAndChange);
   }
 
@@ -414,13 +429,18 @@ class DatasourceEditor extends React.PureComponent {
           type: col.type,
           groupby: true,
           filterable: true,
+          is_dttm: col.is_dttm,
         });
         results.added.push(col.name);
-      } else if (currentCol.type !== col.type) {
+      } else if (
+        currentCol.type !== col.type ||
+        currentCol.is_dttm !== col.is_dttm
+      ) {
         // modified column
         finalColumns.push({
           ...currentCol,
           type: col.type,
+          is_dttm: col.is_dttm,
         });
         results.modified.push(col.name);
       } else {

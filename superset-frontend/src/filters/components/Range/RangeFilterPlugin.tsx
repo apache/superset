@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { getNumberFormatter, NumberFormats, t } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Slider } from 'src/common/components';
 import { PluginFilterRangeProps } from './types';
@@ -35,6 +35,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     inputRef,
     filterState,
   } = props;
+  const numberFormatter = getNumberFormatter(NumberFormats.SMART_NUMBER);
+
   const [row] = data;
   // @ts-ignore
   const { min, max }: { min: number; max: number } = row;
@@ -43,15 +45,55 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const [value, setValue] = useState<[number, number]>(
     defaultValue ?? [min, max],
   );
+  const [marks, setMarks] = useState<{ [key: number]: string }>({});
 
-  const handleAfterChange = (value: [number, number]) => {
-    const [lower, upper] = value;
+  const getBounds = (
+    value: [number, number],
+  ): { lower: number | null; upper: number | null } => {
+    const [lowerRaw, upperRaw] = value;
+    return {
+      lower: lowerRaw > min ? lowerRaw : null,
+      upper: upperRaw < max ? upperRaw : null,
+    };
+  };
+
+  const getLabel = (lower: number | null, upper: number | null): string => {
+    if (lower !== null && upper !== null) {
+      return `${numberFormatter(lower)} ≤ x ≤ ${numberFormatter(upper)}`;
+    }
+    if (lower !== null) {
+      return `x ≥ ${numberFormatter(lower)}`;
+    }
+    if (upper !== null) {
+      return `x ≤ ${numberFormatter(upper)}`;
+    }
+    return '';
+  };
+
+  const getMarks = (
+    lower: number | null,
+    upper: number | null,
+  ): { [key: number]: string } => {
+    const newMarks: { [key: number]: string } = {};
+    if (lower !== null) {
+      newMarks[lower] = numberFormatter(lower);
+    }
+    if (upper !== null) {
+      newMarks[upper] = numberFormatter(upper);
+    }
+    return newMarks;
+  };
+
+  const handleAfterChange = (value: [number, number]): void => {
     setValue(value);
+    const { lower, upper } = getBounds(value);
+    setMarks(getMarks(lower, upper));
 
     setDataMask({
       extraFormData: getRangeExtraFormData(col, lower, upper),
       filterState: {
-        value,
+        value: lower !== null || upper !== null ? value : null,
+        label: getLabel(lower, upper),
       },
     });
   };
@@ -64,12 +106,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     handleAfterChange(filterState.value ?? [min, max]);
   }, [JSON.stringify(filterState.value)]);
 
-  useEffect(() => {
-    handleAfterChange(defaultValue ?? [min, max]);
-    // I think after Config Modal update some filter it re-creates default value for all other filters
-    // so we can process it like this `JSON.stringify` or start to use `Immer`
-  }, [JSON.stringify(defaultValue)]);
-
   return (
     <Styles height={height} width={width}>
       {Number.isNaN(Number(min)) || Number.isNaN(Number(max)) ? (
@@ -80,10 +116,12 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             range
             min={min}
             max={max}
-            value={value}
+            value={value ?? [min, max]}
             onAfterChange={handleAfterChange}
             onChange={handleChange}
+            tipFormatter={value => numberFormatter(value)}
             ref={inputRef}
+            marks={marks}
           />
         </div>
       )}

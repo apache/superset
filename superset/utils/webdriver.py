@@ -16,12 +16,16 @@
 # under the License.
 
 import logging
-import time
+from time import sleep
 from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
 
 from flask import current_app
 from retry.api import retry_call
-from selenium.common.exceptions import TimeoutException, WebDriverException
+from selenium.common.exceptions import (
+    StaleElementReferenceException,
+    TimeoutException,
+    WebDriverException,
+)
 from selenium.webdriver import chrome, firefox
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
@@ -32,11 +36,6 @@ from superset.extensions import machine_auth_provider_factory
 
 WindowSize = Tuple[int, int]
 logger = logging.getLogger(__name__)
-
-# Time in seconds, we will wait for the page to load and render
-SELENIUM_CHECK_INTERVAL = 2
-SELENIUM_RETRIES = 5
-SELENIUM_HEADSTART = 3
 
 
 if TYPE_CHECKING:
@@ -95,18 +94,17 @@ class WebDriverProxy:
             pass
 
     def get_screenshot(
-        self,
-        url: str,
-        element_name: str,
-        user: "User",
-        retries: int = SELENIUM_RETRIES,
+        self, url: str, element_name: str, user: "User",
     ) -> Optional[bytes]:
+
         driver = self.auth(user)
         driver.set_window_size(*self._window)
         driver.get(url)
         img: Optional[bytes] = None
-        logger.debug("Sleeping for %i seconds", SELENIUM_HEADSTART)
-        time.sleep(SELENIUM_HEADSTART)
+        selenium_headstart = current_app.config["SCREENSHOT_SELENIUM_HEADSTART"]
+        logger.debug("Sleeping for %i seconds", selenium_headstart)
+        sleep(selenium_headstart)
+
         try:
             logger.debug("Wait for the presence of %s", element_name)
             element = WebDriverWait(driver, self._screenshot_locate_wait).until(
@@ -120,11 +118,14 @@ class WebDriverProxy:
             img = element.screenshot_as_png
         except TimeoutException:
             logger.error("Selenium timed out requesting url %s", url, exc_info=True)
+        except StaleElementReferenceException:
+            logger.error(
+                "Selenium timed out while waiting for chart(s) to load %s",
+                url,
+                exc_info=True,
+            )
         except WebDriverException as ex:
             logger.error(ex, exc_info=True)
-            # Some webdrivers do not support screenshots for elements.
-            # In such cases, take a screenshot of the entire page.
-            img = driver.screenshot()  # pylint: disable=no-member
         finally:
-            self.destroy(driver, retries)
+            self.destroy(driver, current_app.config["SCREENSHOT_SELENIUM_RETRIES"])
         return img

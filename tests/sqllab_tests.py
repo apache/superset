@@ -75,6 +75,9 @@ class TestSqlLab(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_json(self):
+        examples_db = get_example_database()
+        engine_name = examples_db.db_engine_spec.engine_name
+
         self.login("admin")
 
         data = self.run_sql("SELECT * FROM birth_names LIMIT 10", "1")
@@ -91,7 +94,8 @@ class TestSqlLab(SupersetTestCase):
                     "code": 1002,
                     "message": "Issue 1002 - The database returned an unexpected error.",
                 }
-            ]
+            ],
+            "engine_name": engine_name,
         }
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
