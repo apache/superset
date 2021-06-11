@@ -1675,7 +1675,12 @@ class TestDatabaseApi(SupersetTestCase):
                     "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
                     "level": "error",
                     "extra": {
-                        "messages": {"engine": ["Missing data for required field."],},
+                        "messages": {
+                            "configuration_method": [
+                                "Missing data for required field."
+                            ],
+                            "engine": ["Missing data for required field."],
+                        },
                         "issue_codes": [
                             {
                                 "code": 1020,
@@ -1691,6 +1696,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(username="admin")
         url = "api/v1/database/validate_parameters"
         payload = {
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
             "engine": "postgresql",
             "parameters": defaultdict(dict),
         }
