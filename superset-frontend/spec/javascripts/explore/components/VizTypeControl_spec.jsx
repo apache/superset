@@ -59,11 +59,14 @@ describe('VizTypeControl', () => {
     expect(wrapper.find(Modal)).toExist();
   });
 
-  it('calls onChange when toggled', () => {
-    const select = wrapper.find('.viztype-selector-container').first();
+  it('calls onChange when submitted', () => {
+    const select = wrapper.find('VizThumbnailContainer').first();
     select.simulate('click');
+    expect(defaultProps.onChange.called).toBe(false);
+    wrapper.find('.modal-confirm-button').first().simulate('click');
     expect(defaultProps.onChange.called).toBe(true);
   });
+
   it('filters images based on text input', () => {
     expect(wrapper.find('img')).toHaveLength(2);
     wrapper.find(Input).simulate('change', {

@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Input, Row, Col } from 'src/common/components';
-import { t, getChartMetadataRegistry } from '@superset-ui/core';
+import { t, getChartMetadataRegistry, styled } from '@superset-ui/core';
 import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
 import Modal from 'src/components/Modal';
 import { Tooltip } from 'src/components/Tooltip';
@@ -42,7 +42,7 @@ const defaultProps = {
   labelType: 'default',
 };
 
-const registry = getChartMetadataRegistry();
+const metadataRegistry = getChartMetadataRegistry();
 
 const DEFAULT_ORDER = [
   'line',
@@ -97,7 +97,7 @@ export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
 
 function VizSupportValidation({ vizType }) {
   const state = useDynamicPluginContext();
-  if (state.loading || registry.has(vizType)) {
+  if (state.loading || metadataRegistry.has(vizType)) {
     return null;
   }
   return (
@@ -108,10 +108,64 @@ function VizSupportValidation({ vizType }) {
   );
 }
 
+const UnpaddedModal = styled(Modal)`
+  .ant-modal-body {
+    padding: 0;
+  }
+`;
+
+const VizPickerLayout = styled.div`
+  display: grid;
+  grid-template-rows: auto auto 25%;
+  max-height: 70vh;
+`;
+
+const SectionTitle = styled.h3`
+  margin-top: 0;
+  font-size: ${({ theme }) => theme.gridUnit * 4}px;
+  font-weight: 500;
+  line-height: ${({ theme }) => theme.gridUnit * 6}px;
+`;
+
+const IconPane = styled(Row)`
+  overflow: auto;
+  padding: ${({ theme }) => theme.gridUnit * 4}px;
+`;
+
+const DetailsPane = styled.div`
+  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  padding: ${({ theme }) => theme.gridUnit * 4}px;
+`;
+
+const SearchPane = styled.div`
+  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  padding: ${({ theme }) => theme.gridUnit * 4}px;
+`;
+
+const VizThumbnailContainer = styled.div`
+  cursor: pointer;
+
+  img {
+    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border-radius: ${({ theme }) => theme.gridUnit}px;
+    transition: border-color ${({ theme }) => theme.transitionTiming};
+  }
+
+  &.selected img {
+    border: 2px solid ${({ theme }) => theme.colors.primary.light2};
+  }
+
+  &:hover:not(.selected) img {
+    border: 1px solid ${({ theme }) => theme.colors.grayscale.light1};
+  }
+`;
+
 const VizTypeControl = props => {
+  const { value: initialValue, onChange } = props;
   const [showModal, setShowModal] = useState(false);
   const [filter, setFilter] = useState('');
   const searchRef = useRef(null);
+  const [selectedViz, setSelectedViz] = useState(initialValue);
 
   useEffect(() => {
     if (showModal) {
@@ -119,10 +173,10 @@ const VizTypeControl = props => {
     }
   }, [showModal]);
 
-  const onChange = vizType => {
-    props.onChange(vizType);
+  const onSubmit = useCallback(() => {
+    onChange(selectedViz);
     setShowModal(false);
-  };
+  }, [selectedViz, onChange]);
 
   const toggleModal = () => {
     setShowModal(prevState => !prevState);
@@ -133,16 +187,15 @@ const VizTypeControl = props => {
   };
 
   const renderItem = entry => {
-    const { value } = props;
     const { key, value: type } = entry;
-    const isSelected = key === value;
+    const isSelected = key === selectedViz;
 
     return (
-      <div
+      <VizThumbnailContainer
         role="button"
         tabIndex={0}
-        className={`viztype-selector-container ${isSelected ? 'selected' : ''}`}
-        onClick={() => onChange(key)}
+        className={isSelected && 'selected'}
+        onClick={() => setSelectedViz(key)}
       >
         <img
           alt={type.name}
@@ -156,26 +209,25 @@ const VizTypeControl = props => {
         >
           {type.name}
         </div>
-      </div>
+      </VizThumbnailContainer>
     );
   };
 
-  const { value, labelType } = props;
+  const { labelType } = props;
   const filterString = filter.toLowerCase();
   const filterStringParts = filterString.split(' ');
 
-  const a = DEFAULT_ORDER.filter(type => registry.has(type));
-  const filteredTypes = a
-    .filter(type => {
-      const behaviors = registry.get(type)?.behaviors || [];
-      return nativeFilterGate(behaviors);
-    })
+  const filteredTypes = DEFAULT_ORDER.filter(
+    type =>
+      metadataRegistry.has(type) &&
+      nativeFilterGate(metadataRegistry.get(type).behaviors || []),
+  )
     .map(type => ({
       key: type,
-      value: registry.get(type),
+      value: metadataRegistry.get(type),
     }))
     .concat(
-      registry
+      metadataRegistry
         .entries()
         .filter(entry => {
           const behaviors = entry.value?.behaviors || [];
@@ -188,6 +240,12 @@ const VizTypeControl = props => {
         part => entry.value.name.toLowerCase().indexOf(part) !== -1,
       ),
     );
+
+  const labelContent = metadataRegistry.has(initialValue)
+    ? metadataRegistry.get(initialValue).name
+    : `${initialValue}`;
+
+  const selectedVizMetadata = metadataRegistry.get(selectedViz);
 
   return (
     <div>
@@ -203,37 +261,50 @@ const VizTypeControl = props => {
             type={labelType}
             data-test="visualization-type"
           >
-            {registry.has(value) ? registry.get(value).name : `${value}`}
+            {labelContent}
           </Label>
-          <VizSupportValidation vizType={value} />
+          <VizSupportValidation vizType={initialValue} />
         </>
       </Tooltip>
-      <Modal
+      <UnpaddedModal
         show={showModal}
         onHide={toggleModal}
         title={t('Select a visualization type')}
+        primaryButtonName={t('Create')}
+        onHandledPrimaryAction={onSubmit}
         responsive
-        hideFooter
         forceRender
       >
-        <div className="viztype-control-search-box">
-          <Input
-            ref={searchRef}
-            type="text"
-            value={filter}
-            placeholder={t('Search')}
-            onChange={changeSearch}
-            data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__search-input`}
-          />
-        </div>
-        <Row data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__viz-row`} gutter={16}>
-          {filteredTypes.map(entry => (
-            <Col xs={12} sm={8} md={6} lg={4} key={`grid-col-${entry.key}`}>
-              {renderItem(entry)}
-            </Col>
-          ))}
-        </Row>
-      </Modal>
+        <VizPickerLayout>
+          <SearchPane>
+            <Input
+              ref={searchRef}
+              type="text"
+              value={filter}
+              placeholder={t('Search')}
+              onChange={changeSearch}
+              data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__search-input`}
+            />
+          </SearchPane>
+          <IconPane
+            data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__viz-row`}
+            gutter={16}
+          >
+            {filteredTypes.map(entry => (
+              <Col xs={10} sm={6} md={4} lg={3} key={entry.key}>
+                {renderItem(entry)}
+              </Col>
+            ))}
+          </IconPane>
+          <DetailsPane>
+            <SectionTitle>{selectedVizMetadata?.name}</SectionTitle>
+            <p>
+              {selectedVizMetadata?.description ||
+                t('No description available.')}
+            </p>
+          </DetailsPane>
+        </VizPickerLayout>
+      </UnpaddedModal>
     </div>
   );
 };
