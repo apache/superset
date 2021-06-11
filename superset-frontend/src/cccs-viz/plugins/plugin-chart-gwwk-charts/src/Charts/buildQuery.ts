@@ -41,7 +41,7 @@ export default function buildQuery(formData: QueryFormData) {
   our job is to determine the type of this filter and to use
   this type to find datasets which have columns of that type.
   We do this by filtering the cccs_explore_launcher table
-  by it's found_column_type.
+  by its found_column_type.
 
    */
 
@@ -68,4 +68,3 @@ export default function buildQuery(formData: QueryFormData) {
     ]
   });
 }
-
