@@ -20,7 +20,12 @@ import rison from 'rison';
 import { useState, useEffect, useCallback } from 'react';
 import { makeApi, SupersetClient, t, JsonObject } from '@superset-ui/core';
 
-import { createErrorHandler } from 'src/views/CRUD/utils';
+import {
+  createErrorHandler,
+  getAlreadyExists,
+  getPasswordsNeeded,
+  hasTerminalValidation,
+} from 'src/views/CRUD/utils';
 import { FetchDataConfig } from 'src/components/ListView';
 import { FilterValue } from 'src/components/ListView/types';
 import Chart, { Slice } from 'src/types/Chart';
@@ -384,40 +389,6 @@ export function useImportResource(
     setState(currentState => ({ ...currentState, ...update }));
   }
 
-  /* eslint-disable no-underscore-dangle */
-  const isNeedsPassword = (payload: any) =>
-    typeof payload === 'object' &&
-    Array.isArray(payload._schema) &&
-    payload._schema.length === 1 &&
-    payload._schema[0] === 'Must provide a password for the database';
-
-  const isAlreadyExists = (payload: any) =>
-    typeof payload === 'string' &&
-    payload.includes('already exists and `overwrite=true` was not passed');
-
-  const getPasswordsNeeded = (
-    errMsg: Record<string, Record<string, string[] | string>>,
-  ) =>
-    Object.entries(errMsg)
-      .filter(([, validationErrors]) => isNeedsPassword(validationErrors))
-      .map(([fileName]) => fileName);
-
-  const getAlreadyExists = (
-    errMsg: Record<string, Record<string, string[] | string>>,
-  ) =>
-    Object.entries(errMsg)
-      .filter(([, validationErrors]) => isAlreadyExists(validationErrors))
-      .map(([fileName]) => fileName);
-
-  const hasTerminalValidation = (
-    errMsg: Record<string, Record<string, string[] | string>>,
-  ) =>
-    Object.values(errMsg).some(
-      validationErrors =>
-        !isNeedsPassword(validationErrors) &&
-        !isAlreadyExists(validationErrors),
-    );
-
   const importResource = useCallback(
     (
       bundle: File,
@@ -452,29 +423,28 @@ export function useImportResource(
         .then(() => true)
         .catch(response =>
           getClientErrorObject(response).then(error => {
-            const errMsg = error.message || error.error;
-            if (typeof errMsg === 'string') {
+            if (!error.errors) {
               handleErrorMsg(
                 t(
                   'An error occurred while importing %s: %s',
                   resourceLabel,
-                  parsedErrorMessage(errMsg),
+                  error.message || error.error,
                 ),
               );
               return false;
             }
-            if (hasTerminalValidation(errMsg)) {
+            if (hasTerminalValidation(error.errors)) {
               handleErrorMsg(
                 t(
                   'An error occurred while importing %s: %s',
                   resourceLabel,
-                  parsedErrorMessage(errMsg),
+                  error.errors.map(payload => payload.message).join('\n'),
                 ),
               );
             } else {
               updateState({
-                passwordsNeeded: getPasswordsNeeded(errMsg),
-                alreadyExists: getAlreadyExists(errMsg),
+                passwordsNeeded: getPasswordsNeeded(error.errors),
+                alreadyExists: getAlreadyExists(error.errors),
               });
             }
             return false;
@@ -656,4 +626,61 @@ export function useAvailableDatabases() {
   }, [setAvailableDbs]);
 
   return [availableDbs, getAvailable] as const;
+}
+
+export function useDatabaseValidation() {
+  const [validationErrors, setValidationErrors] = useState<JsonObject | null>(
+    null,
+  );
+  const getValidation = useCallback(
+    (database: Partial<DatabaseObject> | null) => {
+      SupersetClient.post({
+        endpoint: '/api/v1/database/validate_parameters',
+        body: JSON.stringify(database),
+        headers: { 'Content-Type': 'application/json' },
+      })
+        .then(() => {
+          setValidationErrors(null);
+        })
+        .catch(e => {
+          if (typeof e.json === 'function') {
+            e.json().then(({ errors = [] }: JsonObject) => {
+              const parsedErrors = errors
+                .filter(
+                  (error: { error_type: string }) =>
+                    error.error_type !== 'CONNECTION_MISSING_PARAMETERS_ERROR',
+                )
+                .reduce(
+                  (
+                    obj: {},
+                    {
+                      extra,
+                      message,
+                    }: {
+                      extra: { invalid?: string[] };
+                      message: string;
+                    },
+                  ) => {
+                    // if extra.invalid doesn't exist then the
+                    // error can't be mapped to a parameter
+                    // so leave it alone
+                    if (extra.invalid) {
+                      return { ...obj, [extra.invalid[0]]: message };
+                    }
+                    return obj;
+                  },
+                  {},
+                );
+              setValidationErrors(parsedErrors);
+            });
+          } else {
+            // eslint-disable-next-line no-console
+            console.error(e);
+          }
+        });
+    },
+    [setValidationErrors],
+  );
+
+  return [validationErrors, getValidation] as const;
 }

@@ -29,7 +29,10 @@ import {
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { URL_PARAMS } from 'src/constants';
-import { MULTI_OPERATORS } from 'src/explore/constants';
+import {
+  MULTI_OPERATORS,
+  OPERATOR_ENUM_TO_OPERATOR_TYPE,
+} from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 
 const MAX_URL_LENGTH = 8000;
@@ -103,7 +106,7 @@ export function getExploreLongUrl(
     search[key] = extraSearch[key];
   });
   search.form_data = safeStringify(formData);
-  if (endpointType === URL_PARAMS.standalone) {
+  if (endpointType === URL_PARAMS.standalone.name) {
     search.standalone = DashboardStandaloneMode.HIDE_NAV;
   }
   const url = uri.directory(directory).search(search).toString();
@@ -176,7 +179,7 @@ export function getExploreUrl({
   if (endpointType === 'csv') {
     search.csv = 'true';
   }
-  if (endpointType === URL_PARAMS.standalone) {
+  if (endpointType === URL_PARAMS.standalone.name) {
     search.standalone = '1';
   }
   if (endpointType === 'query') {
@@ -319,7 +322,10 @@ export const useDebouncedEffect = (effect, delay, deps) => {
 };
 
 export const getSimpleSQLExpression = (subject, operator, comparator) => {
-  const isMulti = MULTI_OPERATORS.has(operator);
+  const isMulti =
+    [...MULTI_OPERATORS]
+      .map(op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation)
+      .indexOf(operator) >= 0;
   let expression = subject ?? '';
   if (subject && operator) {
     expression += ` ${operator}`;

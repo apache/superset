@@ -31,6 +31,9 @@ export interface NativeFiltersFormItem {
   controlValues: {
     [key: string]: any;
   };
+  requiredFirst: {
+    [key: string]: boolean;
+  };
   defaultValue: any;
   defaultDataMask: DataMask;
   parentFilter: {

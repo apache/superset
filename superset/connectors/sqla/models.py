@@ -230,6 +230,8 @@ class TableColumn(Model, BaseColumn):
 
     @property
     def type_generic(self) -> Optional[utils.GenericDataType]:
+        if self.is_dttm:
+            return GenericDataType.TEMPORAL
         column_spec = self.db_engine_spec.get_column_spec(self.type)
         return column_spec.generic_type if column_spec else None
 
@@ -309,7 +311,8 @@ class TableColumn(Model, BaseColumn):
         ],
     ) -> str:
         """Convert datetime object to a SQL expression string"""
-        sql = self.db_engine_spec.convert_dttm(self.type, dttm) if self.type else None
+        dttm_type = self.type or ("DATETIME" if self.is_dttm else None)
+        sql = self.db_engine_spec.convert_dttm(dttm_type, dttm) if dttm_type else None
 
         if sql:
             return sql
@@ -635,7 +638,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         db_engine_spec = self.db_engine_spec
         if self.sql:
             engine = self.database.get_sqla_engine(schema=self.schema)
-            sql = self.get_template_processor().process_template(self.sql)
+            sql = self.get_template_processor().process_template(
+                self.sql, **self.template_params_dict
+            )
             parsed_query = ParsedQuery(sql)
             if not db_engine_spec.is_readonly_query(parsed_query):
                 raise SupersetSecurityException(
@@ -676,13 +681,25 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             for col in cols:
                 try:
                     if isinstance(col["type"], TypeEngine):
-                        col["type"] = db_engine_spec.column_datatype_to_string(
+                        db_type = db_engine_spec.column_datatype_to_string(
                             col["type"], db_dialect
+                        )
+                        type_spec = db_engine_spec.get_column_spec(db_type)
+                        col.update(
+                            {
+                                "type": db_type,
+                                "type_generic": type_spec.generic_type
+                                if type_spec
+                                else None,
+                                "is_dttm": type_spec.is_dttm if type_spec else None,
+                            }
                         )
                 # Broad exception catch, because there are multiple possible exceptions
                 # from different drivers that fall outside CompileError
                 except Exception:  # pylint: disable=broad-except
-                    col["type"] = "UNKNOWN"
+                    col.update(
+                        {"type": "UNKNOWN", "generic_type": None, "is_dttm": None,}
+                    )
         return cols
 
     @property
@@ -1239,6 +1256,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         where_clause_and.append(col_obj.get_sqla_col() <= eq)
                     elif op == utils.FilterOperator.LIKE.value:
                         where_clause_and.append(col_obj.get_sqla_col().like(eq))
+                    elif op == utils.FilterOperator.ILIKE.value:
+                        where_clause_and.append(col_obj.get_sqla_col().ilike(eq))
                     else:
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)

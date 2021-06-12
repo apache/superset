@@ -36,6 +36,7 @@ import { CardContainer } from 'src/views/CRUD/utils';
 import { HOMEPAGE_CHART_FILTER } from 'src/views/CRUD/storageKeys';
 import ChartCard from 'src/views/CRUD/chart/ChartCard';
 import Chart from 'src/types/Chart';
+import handleResourceExport from 'src/utils/export';
 import Loading from 'src/components/Loading';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import SubMenu from 'src/components/Menu/SubMenu';
@@ -94,10 +95,19 @@ function ChartTable({
   } = useChartEditModal(setCharts, charts);
 
   const [chartFilter, setChartFilter] = useState(initialFilter);
+  const [preparingExport, setPreparingExport] = useState<boolean>(false);
 
   useEffect(() => {
     getData(chartFilter);
   }, [chartFilter]);
+
+  const handleBulkChartExport = (chartsToExport: Chart[]) => {
+    const ids = chartsToExport.map(({ id }) => id);
+    handleResourceExport('chart', ids, () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
+  };
 
   const getFilters = (filterName: string) => {
     const filters = [];
@@ -207,12 +217,14 @@ function ChartTable({
               addSuccessToast={addSuccessToast}
               favoriteStatus={favoriteStatus[e.id]}
               saveFavoriteStatus={saveFavoriteStatus}
+              handleBulkChartExport={handleBulkChartExport}
             />
           ))}
         </CardContainer>
       ) : (
         <EmptyState tableName="CHARTS" tab={chartFilter} />
       )}
+      {preparingExport && <Loading />}
     </ErrorBoundary>
   );
 }

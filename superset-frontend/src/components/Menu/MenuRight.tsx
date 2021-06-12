@@ -27,7 +27,7 @@ import { NavBarProps, MenuObjectProps } from './Menu';
 export const dropdownItems = [
   {
     label: t('SQL query'),
-    url: '/superset/sqllab',
+    url: '/superset/sqllab?new=true',
     icon: 'fa-fw fa-search',
   },
   {
@@ -59,6 +59,9 @@ const StyledDiv = styled.div<{ align: string }>`
   justify-content: ${({ align }) => align};
   align-items: center;
   margin-right: ${({ theme }) => theme.gridUnit}px;
+  .ant-menu-submenu-title > svg {
+    top: ${({ theme }) => theme.gridUnit * 5.25}px;
+  }
 `;
 
 const StyledAnchor = styled.a`

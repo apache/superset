@@ -24,6 +24,7 @@ import {
   DashboardTableProps,
   TableTabTypes,
 } from 'src/views/CRUD/types';
+import handleResourceExport from 'src/utils/export';
 import { useHistory } from 'react-router-dom';
 import {
   setInLocalStorage,
@@ -82,10 +83,19 @@ function DashboardTable({
 
   const [editModal, setEditModal] = useState<Dashboard>();
   const [dashboardFilter, setDashboardFilter] = useState(defaultFilter);
+  const [preparingExport, setPreparingExport] = useState<boolean>(false);
 
   useEffect(() => {
     getData(dashboardFilter);
   }, [dashboardFilter]);
+
+  const handleBulkDashboardExport = (dashboardsToExport: Dashboard[]) => {
+    const ids = dashboardsToExport.map(({ id }) => id);
+    handleResourceExport('dashboard', ids, () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
+  };
 
   const handleDashboardEdit = (edits: Dashboard) =>
     SupersetClient.get({
@@ -219,6 +229,7 @@ function DashboardTable({
               }
               saveFavoriteStatus={saveFavoriteStatus}
               favoriteStatus={favoriteStatus[e.id]}
+              handleBulkDashboardExport={handleBulkDashboardExport}
             />
           ))}
         </CardContainer>
@@ -226,6 +237,7 @@ function DashboardTable({
       {dashboards.length === 0 && (
         <EmptyState tableName="DASHBOARDS" tab={dashboardFilter} />
       )}
+      {preparingExport && <Loading />}
     </>
   );
 }

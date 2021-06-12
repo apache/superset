@@ -23,9 +23,19 @@ export const BOOL_TRUE_DISPLAY = 'True';
 export const BOOL_FALSE_DISPLAY = 'False';
 
 export const URL_PARAMS = {
-  standalone: 'standalone',
-  preselectFilters: 'preselect_filters',
-};
+  standalone: {
+    name: 'standalone',
+    type: 'number',
+  },
+  preselectFilters: {
+    name: 'preselect_filters',
+    type: 'object',
+  },
+  showFilters: {
+    name: 'show_filters',
+    type: 'boolean',
+  },
+} as const;
 
 /**
  * Faster debounce delay for inputs without expensive operation.

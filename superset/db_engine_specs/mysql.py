@@ -58,11 +58,10 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     engine_name = "MySQL"
     max_column_name_length = 64
 
-    drivername = "mysql+mysqldb"
+    default_driver = "mysqldb"
     sqlalchemy_uri_placeholder = (
         "mysql://user:password@host:port/dbname[?key=value&key=value...]"
     )
-
     encryption_parameters = {"ssl": "1"}
 
     column_type_mappings: Tuple[

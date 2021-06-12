@@ -110,7 +110,7 @@ describe('FiltersConfigModal', () => {
 
     function addFilter() {
       act(() => {
-        wrapper.find('button[aria-label="Add tab"]').at(0).simulate('click');
+        wrapper.find('[aria-label="Add filter"]').at(0).simulate('click');
       });
     }
 

@@ -25,8 +25,8 @@ import backoff
 import msgpack
 import pyarrow as pa
 import simplejson as json
+from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
-from celery.task.base import Task
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm import Session
 from werkzeug.local import LocalProxy
@@ -217,7 +217,7 @@ def execute_sql_statement(
         query.select_as_cta_used = True
 
     # Do not apply limit to the CTA queries when SQLLAB_CTAS_NO_LIMIT is set to true
-    if parsed_query.is_select() and not (
+    if db_engine_spec.is_select_query(parsed_query) and not (
         query.select_as_cta_used and SQLLAB_CTAS_NO_LIMIT
     ):
         if SQL_MAX_ROW and (not query.limit or query.limit > SQL_MAX_ROW):

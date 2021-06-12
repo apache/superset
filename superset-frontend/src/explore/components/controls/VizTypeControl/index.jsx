@@ -19,14 +19,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Input, Row, Col } from 'src/common/components';
-import { Behavior, t, getChartMetadataRegistry } from '@superset-ui/core';
+import { t, getChartMetadataRegistry } from '@superset-ui/core';
 import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
 import Modal from 'src/components/Modal';
 import { Tooltip } from 'src/components/Tooltip';
 import Label from 'src/components/Label';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import './VizTypeControl.less';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 
 const propTypes = {
   description: PropTypes.string,
@@ -93,6 +93,8 @@ const DEFAULT_ORDER = [
 
 const typesWithDefaultOrder = new Set(DEFAULT_ORDER);
 
+export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
+
 function VizSupportValidation({ vizType }) {
   const state = useDynamicPluginContext();
   if (state.loading || registry.has(vizType)) {
@@ -105,11 +107,6 @@ function VizSupportValidation({ vizType }) {
     </div>
   );
 }
-
-const nativeFilterGate = behaviors =>
-  !behaviors.includes(Behavior.NATIVE_FILTER) ||
-  (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
-    behaviors.includes(Behavior.INTERACTIVE_CHART));
 
 const VizTypeControl = props => {
   const [showModal, setShowModal] = useState(false);
@@ -153,7 +150,10 @@ const VizTypeControl = props => {
           className={`viztype-selector ${isSelected ? 'selected' : ''}`}
           src={type.thumbnail}
         />
-        <div className="viztype-label" data-test="viztype-label">
+        <div
+          className="viztype-label"
+          data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__viztype-label`}
+        >
           {type.name}
         </div>
       </div>
@@ -162,8 +162,10 @@ const VizTypeControl = props => {
 
   const { value, labelType } = props;
   const filterString = filter.toLowerCase();
+  const filterStringParts = filterString.split(' ');
 
-  const filteredTypes = DEFAULT_ORDER.filter(type => registry.has(type))
+  const a = DEFAULT_ORDER.filter(type => registry.has(type));
+  const filteredTypes = a
     .filter(type => {
       const behaviors = registry.get(type)?.behaviors || [];
       return nativeFilterGate(behaviors);
@@ -181,7 +183,11 @@ const VizTypeControl = props => {
         })
         .filter(({ key }) => !typesWithDefaultOrder.has(key)),
     )
-    .filter(entry => entry.value.name.toLowerCase().includes(filterString));
+    .filter(entry =>
+      filterStringParts.every(
+        part => entry.value.name.toLowerCase().indexOf(part) !== -1,
+      ),
+    );
 
   return (
     <div>
@@ -217,9 +223,10 @@ const VizTypeControl = props => {
             value={filter}
             placeholder={t('Search')}
             onChange={changeSearch}
+            data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__search-input`}
           />
         </div>
-        <Row data-test="viz-row" gutter={16}>
+        <Row data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__viz-row`} gutter={16}>
           {filteredTypes.map(entry => (
             <Col xs={12} sm={8} md={6} lg={4} key={`grid-col-${entry.key}`}>
               {renderItem(entry)}

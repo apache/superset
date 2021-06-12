@@ -59,6 +59,10 @@ spec:
         command: {{  tpl (toJson .Values.init.command) . }}
         resources:
 {{ toYaml .Values.init.resources | indent 10 }}
+{{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.imagePullSecrets | indent 8 }}
+      {{- end }}
       volumes:
         - name: superset-config
           secret:
