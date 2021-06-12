@@ -29,7 +29,7 @@ import rison from 'rison';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FetchDataConfig } from 'src/components/ListView';
 import SupersetText from 'src/utils/textUtils';
-import { Dashboard, Filters, SavedQueryObject } from './types';
+import { Dashboard, Filters } from './types';
 
 const createFetchResourceMethod = (method: string) => (
   resource: string,
@@ -216,32 +216,6 @@ export function handleChartDelete(
     () => {
       addDangerToast(t('There was an issue deleting: %s', sliceName));
     },
-  );
-}
-
-export function handleBulkChartExport(chartsToExport: Chart[]) {
-  return window.location.assign(
-    `/api/v1/chart/export/?q=${rison.encode(
-      chartsToExport.map(({ id }) => id),
-    )}`,
-  );
-}
-
-export function handleBulkDashboardExport(dashboardsToExport: Dashboard[]) {
-  return window.location.assign(
-    `/api/v1/dashboard/export/?q=${rison.encode(
-      dashboardsToExport.map(({ id }) => id),
-    )}`,
-  );
-}
-
-export function handleBulkSavedQueryExport(
-  savedQueriesToExport: SavedQueryObject[],
-) {
-  return window.location.assign(
-    `/api/v1/saved_query/export/?q=${rison.encode(
-      savedQueriesToExport.map(({ id }) => id),
-    )}`,
   );
 }
 
