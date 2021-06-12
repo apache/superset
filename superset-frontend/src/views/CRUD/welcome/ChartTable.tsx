@@ -29,8 +29,11 @@ import {
 } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useHistory } from 'react-router-dom';
+import { TableTabTypes } from 'src/views/CRUD/types';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { User } from 'src/types/bootstrapTypes';
+import { CardContainer } from 'src/views/CRUD/utils';
+import { HOMEPAGE_CHART_FILTER } from 'src/views/CRUD/storageKeys';
 import ChartCard from 'src/views/CRUD/chart/ChartCard';
 import Chart from 'src/types/Chart';
 import handleResourceExport from 'src/utils/export';
@@ -38,7 +41,6 @@ import Loading from 'src/components/Loading';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
-import { CardContainer } from '../utils';
 
 const PAGE_SIZE = 3;
 
@@ -60,6 +62,9 @@ function ChartTable({
   showThumbnails,
 }: ChartTableProps) {
   const history = useHistory();
+  const filterStore = getFromLocalStorage(HOMEPAGE_CHART_FILTER, null);
+  const initialFilter = filterStore || TableTabTypes.MINE;
+
   const {
     state: { loading, resourceCollection: charts, bulkSelectEnabled },
     setResourceCollection: setCharts,
@@ -71,12 +76,11 @@ function ChartTable({
     t('chart'),
     addDangerToast,
     true,
-    mine,
+    initialFilter === 'Favorite' ? [] : mine,
     [],
     false,
   );
 
-  useEffect(() => {});
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
     'chart',
@@ -90,15 +94,12 @@ function ChartTable({
     closeChartEditModal,
   } = useChartEditModal(setCharts, charts);
 
-  const [chartFilter, setChartFilter] = useState('Mine');
+  const [chartFilter, setChartFilter] = useState(initialFilter);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
 
   useEffect(() => {
-    const filter = getFromLocalStorage('chart', null);
-    if (!filter) {
-      setChartFilter('Mine');
-    } else setChartFilter(filter.tab);
-  }, []);
+    getData(chartFilter);
+  }, [chartFilter]);
 
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
@@ -159,20 +160,18 @@ function ChartTable({
           {
             name: 'Favorite',
             label: t('Favorite'),
-            onClick: () =>
-              getData('Favorite').then(() => {
-                setChartFilter('Favorite');
-                setInLocalStorage('chart', { tab: 'Favorite' });
-              }),
+            onClick: () => {
+              setChartFilter('Favorite');
+              setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.FAVORITE);
+            },
           },
           {
             name: 'Mine',
             label: t('Mine'),
-            onClick: () =>
-              getData('Mine').then(() => {
-                setChartFilter('Mine');
-                setInLocalStorage('chart', { tab: 'Mine' });
-              }),
+            onClick: () => {
+              setChartFilter('Mine');
+              setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.MINE);
+            },
           },
         ]}
         buttons={[
