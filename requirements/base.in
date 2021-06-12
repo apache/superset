@@ -15,6 +15,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
--e file:.
+#-e file:.
+-e .
 pyrsistent>=0.16.1,<0.17
 zipp==3.4.1
