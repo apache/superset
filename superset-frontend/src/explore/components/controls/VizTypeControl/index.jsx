@@ -117,7 +117,7 @@ const UnpaddedModal = styled(Modal)`
 const VizPickerLayout = styled.div`
   display: grid;
   grid-template-rows: auto auto 30%;
-  max-height: 70vh;
+  height: 70vh;
 `;
 
 const SectionTitle = styled.h3`
