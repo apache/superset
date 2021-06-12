@@ -29,7 +29,6 @@ import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   createErrorHandler,
   createFetchRelated,
-  handleBulkChartExport,
   handleChartDelete,
 } from 'src/views/CRUD/utils';
 import {
@@ -37,6 +36,7 @@ import {
   useFavoriteStatus,
   useListViewResource,
 } from 'src/views/CRUD/hooks';
+import handleResourceExport from 'src/utils/export';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import FaveStar from 'src/components/FaveStar';
@@ -47,6 +47,7 @@ import ListView, {
   ListViewProps,
   SelectOption,
 } from 'src/components/ListView';
+import Loading from 'src/components/Loading';
 import { getFromLocalStorage } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
@@ -156,6 +157,7 @@ function ChartList(props: ChartListProps) {
 
   const [importingChart, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
+  const [preparingExport, setPreparingExport] = useState<boolean>(false);
 
   const openChartImportModal = () => {
     showImportModal(true);
@@ -176,6 +178,14 @@ function ChartList(props: ChartListProps) {
   const canExport =
     hasPerm('can_read') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
+
+  const handleBulkChartExport = (chartsToExport: Chart[]) => {
+    const ids = chartsToExport.map(({ id }) => id);
+    handleResourceExport('chart', ids, () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
+  };
 
   function handleBulkChartDelete(chartsToDelete: Chart[]) {
     SupersetClient.delete({
@@ -540,6 +550,7 @@ function ChartList(props: ChartListProps) {
         loading={loading}
         favoriteStatus={favoriteStatus[chart.id]}
         saveFavoriteStatus={saveFavoriteStatus}
+        handleBulkChartExport={handleBulkChartExport}
       />
     );
   }
@@ -653,6 +664,7 @@ function ChartList(props: ChartListProps) {
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
       />
+      {preparingExport && <Loading />}
     </>
   );
 }

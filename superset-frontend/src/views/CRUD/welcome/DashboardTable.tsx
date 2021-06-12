@@ -20,6 +20,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps } from 'src/views/CRUD/types';
+import handleResourceExport from 'src/utils/export';
 import { useHistory } from 'react-router-dom';
 import {
   setInLocalStorage,
@@ -72,6 +73,7 @@ function DashboardTable({
   );
   const [editModal, setEditModal] = useState<Dashboard>();
   const [dashboardFilter, setDashboardFilter] = useState('Mine');
+  const [preparingExport, setPreparingExport] = useState<boolean>(false);
 
   useEffect(() => {
     const filter = getFromLocalStorage('dashboard', null);
@@ -79,6 +81,14 @@ function DashboardTable({
       setDashboardFilter('Mine');
     } else setDashboardFilter(filter.tab);
   }, []);
+
+  const handleBulkDashboardExport = (dashboardsToExport: Dashboard[]) => {
+    const ids = dashboardsToExport.map(({ id }) => id);
+    handleResourceExport('dashboard', ids, () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
+  };
 
   const handleDashboardEdit = (edits: Dashboard) =>
     SupersetClient.get({
@@ -221,6 +231,7 @@ function DashboardTable({
               }
               saveFavoriteStatus={saveFavoriteStatus}
               favoriteStatus={favoriteStatus[e.id]}
+              handleBulkDashboardExport={handleBulkDashboardExport}
             />
           ))}
         </CardContainer>
@@ -228,6 +239,7 @@ function DashboardTable({
       {dashboards.length === 0 && (
         <EmptyState tableName="DASHBOARDS" tab={dashboardFilter} />
       )}
+      {preparingExport && <Loading />}
     </>
   );
 }
