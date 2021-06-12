@@ -57,6 +57,6 @@ test('receives 0 value', async () => {
   const minInput = screen.getAllByRole('spinbutton')[0];
   userEvent.type(minInput, '0');
   await waitFor(() =>
-    expect(defaultProps.onChange).toHaveBeenCalledWith([0, null]),
+    expect(defaultProps.onChange).toHaveBeenLastCalledWith([0, null]),
   );
 });
