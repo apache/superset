@@ -4,17 +4,17 @@ updates:
     directory: "/superset-frontend/"
     schedule:
       interval: "daily"
-    labels:
-      - npm
-      - dependabot
+#    labels:
+#      - npm
+#      - dependabot
 
   - package-ecosystem: "pip"
     directory: "/requirements/"
     schedule:
       interval: "daily"
-    labels:
-      - pip
-      - dependabot
+#    labels:
+#      - pip
+#      - dependabot
 
 #  - package-ecosystem: "npm"
 #    directory: ".github/actions"
