@@ -196,6 +196,7 @@ const VizTypeControl = props => {
         tabIndex={0}
         className={isSelected && 'selected'}
         onClick={() => setSelectedViz(key)}
+        data-test="viztype-selector-container"
       >
         <img
           alt={type.name}

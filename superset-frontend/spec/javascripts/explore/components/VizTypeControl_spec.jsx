@@ -18,11 +18,10 @@
  */
 import React from 'react';
 import sinon from 'sinon';
-import { shallow } from 'enzyme';
+import userEvent from '@testing-library/user-event';
 import { getChartMetadataRegistry, ChartMetadata } from '@superset-ui/core';
+import { render, screen } from 'spec/helpers/testing-library';
 import VizTypeControl from 'src/explore/components/controls/VizTypeControl';
-import Modal from 'src/components/Modal';
-import { Input } from 'src/common/components';
 
 const defaultProps = {
   name: 'viz_type',
@@ -32,8 +31,6 @@ const defaultProps = {
 };
 
 describe('VizTypeControl', () => {
-  let wrapper;
-
   const registry = getChartMetadataRegistry();
   registry
     .registerValue(
@@ -52,28 +49,26 @@ describe('VizTypeControl', () => {
     );
 
   beforeEach(() => {
-    wrapper = shallow(<VizTypeControl {...defaultProps} />);
-  });
-
-  it('renders a Modal', () => {
-    expect(wrapper.find(Modal)).toExist();
+    render(<VizTypeControl {...defaultProps} />);
   });
 
   it('calls onChange when submitted', () => {
-    const select = wrapper.find('VizThumbnailContainer').first();
-    select.simulate('click');
+    const thumbnail = screen.getAllByTestId('viztype-selector-container')[0];
+    const submit = screen.getByText('Create');
+    userEvent.click(thumbnail);
     expect(defaultProps.onChange.called).toBe(false);
-    wrapper.find('.modal-confirm-button').first().simulate('click');
+    userEvent.click(submit);
     expect(defaultProps.onChange.called).toBe(true);
   });
 
   it('filters images based on text input', () => {
-    expect(wrapper.find('img')).toHaveLength(2);
-    wrapper.find(Input).simulate('change', {
-      target: {
-        value: 'vis2',
-      },
-    });
-    expect(wrapper.find('img')).toExist();
+    const thumbnails = screen.getAllByTestId('viztype-selector-container');
+    expect(thumbnails).toHaveLength(2);
+
+    const searchInput = screen.getByPlaceholderText('Search');
+    userEvent.type(searchInput, 'vis2');
+
+    const thumbnail = screen.getByTestId('viztype-selector-container');
+    expect(thumbnail).toBeInTheDocument();
   });
 });
