@@ -149,7 +149,7 @@ function DashboardTable({
             name: 'Favorite',
             label: t('Favorite'),
             onClick: () => {
-              setDashboardFilter('Favorite');
+              setDashboardFilter(TableTabTypes.FAVORITE);
               setInLocalStorage(
                 HOMEPAGE_DASHBOARD_FILTER,
                 TableTabTypes.FAVORITE,
@@ -160,7 +160,7 @@ function DashboardTable({
             name: 'Mine',
             label: t('Mine'),
             onClick: () => {
-              setDashboardFilter('Mine');
+              setDashboardFilter(TableTabTypes.MINE);
               setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, TableTabTypes.MINE);
             },
           },

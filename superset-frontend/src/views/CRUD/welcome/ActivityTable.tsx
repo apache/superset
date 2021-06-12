@@ -253,16 +253,14 @@ export default function ActivityTable({
       },
     );
 
-  if ((loadingState && !editedObjs) || loadedCount < 3) {
+  const doneFetching = loadedCount < 3;
+
+  if ((loadingState && !editedObjs) || doneFetching) {
     return <Loading position="inline" />;
   }
   return (
     <>
-      <SubMenu
-        activeChild={activeChild}
-        // eslint-disable-next-line react/no-children-prop
-        tabs={tabs}
-      />
+      <SubMenu activeChild={activeChild} tabs={tabs} />
       {activityData[activeChild]?.length > 0 ||
       (activeChild === 'Edited' && editedObjs && editedObjs.length > 0) ? (
         <ActivityContainer>{renderActivity()}</ActivityContainer>
