@@ -361,7 +361,7 @@ const ExtraOptions = ({
               name="schemas_allowed_for_csv_upload"
               value={db?.extra_json?.schemas_allowed_for_csv_upload || ''}
               placeholder={t('Select one or multiple schemas')}
-              onChange={onInputChange}
+              onChange={onExtraInputChange}
             />
           </div>
           <div className="helper">

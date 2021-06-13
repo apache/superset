@@ -145,6 +145,20 @@ function dbReducer(
         },
       };
     case ActionType.extraInputChange:
+      console.log(action)
+      if (action.payload.name === 'schema_cache_timeout' || action.payload.name === 'table_cache_timeout') {
+        return {
+          ...trimmedState,
+          extra_json: {
+            ...trimmedState.extra_json,
+            metadata_cache_timeout: {
+              ...trimmedState.extra_json?.metadata_cache_timeout,
+              [action.payload.name]: action.payload.value,
+            }
+          },
+        };
+      }
+      console.log('after', action)
       return {
         ...trimmedState,
         extra_json: {
@@ -192,7 +206,7 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.fetched:
-      console.log(action.payload);
+      console.log('payload', action.payload);
       let extra_json = {
         ...JSON.parse(action.payload.extra || ''),
       };
@@ -202,9 +216,6 @@ function dbReducer(
         ...extra_json,
         metadata_params: JSON.stringify(extra_json.metadata_params),
         engine_params: JSON.stringify(extra_json.engine_params),
-        metadata_cache_timeout: JSON.stringify(
-          extra_json.metadata_cache_timeout,
-        ),
         schemas_allowed_for_csv_upload: JSON.stringify(
           extra_json.schemas_allowed_for_csv_upload,
         ),
