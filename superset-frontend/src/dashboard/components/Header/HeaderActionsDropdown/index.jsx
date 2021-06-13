@@ -307,7 +307,9 @@ class HeaderActionsDropdown extends React.PureComponent {
 
         {!editMode && (
           <Menu.Item key={MENU_KEYS.TOGGLE_FULLSCREEN}>
-            {getUrlParam(URL_PARAMS.standalone)? t('Exit fullscreen') : t('Enter fullscreen')}
+            {getUrlParam(URL_PARAMS.standalone)
+              ? t('Exit fullscreen')
+              : t('Enter fullscreen')}
           </Menu.Item>
         )}
       </Menu>
