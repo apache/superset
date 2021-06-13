@@ -20,6 +20,7 @@ import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 import Interweave from 'interweave';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useSafeState } from 'src/common/hooks/useSafeState';
 import Icon, { IconName } from 'src/components/Icon';
 import { ToastType } from 'src/messageToasts/constants';
 import { ToastMeta } from '../types';
@@ -45,7 +46,7 @@ interface ToastPresenterProps {
 
 export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
   const hideTimer = useRef<ReturnType<typeof setTimeout>>();
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useSafeState(false);
   const showToast = () => {
     setVisible(true);
   };

@@ -232,7 +232,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
         )}
         {editMode && <BuilderComponentPane topOffset={barTopOffset} />}
       </StyledDashboardContent>
-      <ToastPresenter />
+      {/* <ToastPresenter /> */}
     </StickyContainer>
   );
 };
