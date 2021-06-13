@@ -66,6 +66,7 @@ const ExtraOptions = ({
         }
         key="1"
       >
+        {console.log(db)}
         <StyledInputContainer css={{ ...no_margin_bottom }}>
           <div className="input-container">
             <IndeterminateCheckbox
@@ -372,8 +373,8 @@ const ExtraOptions = ({
             <IndeterminateCheckbox
               id="impersonate_user"
               indeterminate={false}
-              checked={!!db?.extra_json?.impersonate_user}
-              onChange={onExtraInputChange}
+              checked={!!db?.impersonate_user}
+              onChange={onInputChange}
               labelText={t('Impersonate logged in user (Presto & Hive)')}
             />
             <InfoTooltip
@@ -392,8 +393,8 @@ const ExtraOptions = ({
             <IndeterminateCheckbox
               id="allow_csv_upload"
               indeterminate={false}
-              checked={!!db?.extra_json?.allow_csv_upload}
-              onChange={onExtraInputChange}
+              checked={!!db?.allow_csv_upload}
+              onChange={onInputChange}
               labelText={t('Allow data upload')}
             />
             <InfoTooltip

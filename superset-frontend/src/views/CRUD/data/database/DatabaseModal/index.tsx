@@ -159,6 +159,7 @@ function dbReducer(
         },
       };
     case ActionType.inputChange:
+      console.log('action', action);
       if (action.payload.type === 'checkbox') {
         return {
           ...trimmedState,
@@ -287,6 +288,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const onSave = async () => {
+    console.log('db', db);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...update } = db || {};
     if (db?.id) {
@@ -294,6 +296,35 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         // don't pass parameters if using the sqlalchemy uri
         delete update.parameters;
       }
+
+      // const extraValues = {
+      //   metadata_cache_timeout: {
+      //     schema_cache_timeout:
+      //       db?.extra_json?.metadata_cache_timeout?.schema_cache_timeout || '',
+      //     table_cache_timeout:
+      //       db?.extra_json?.metadata_cache_timeout?.table_cache_timeout || '',
+      //   },
+      //   cost_query_enabled: db?.extra_json?.cost_query_enabled || undefined,
+      //   allows_virtual_table_explore:
+      //     db?.extra_json?.allows_virtual_table_explore || undefined,
+      //   schemas_allowed_for_csv_upload:
+      //     db?.extra_json?.schemas_allowed_for_csv_upload || '',
+      //   impersonate_user: db?.extra_json?.impersonate_user || undefined,
+      //   allow_csv_upload: db?.extra_json?.allow_csv_upload || undefined,
+      //   version: db?.extra_json?.version || '',
+      //   metadata_params: db?.extra_json?.metadata_params || {},
+      //   engine_params: db?.extra_json?.engine_params || {},
+      // };
+
+      // console.log('extraValues', extraValues);
+
+      // Structure extra_json
+      // const extraValuesStructured = {
+      //   ...extraValues,
+      //   ...db?.extra_json,
+      // };
+
+      // console.log('extraValuesStructured', extraValuesStructured);
 
       // Add values back to extra field
       update.extra = JSON.stringify(
