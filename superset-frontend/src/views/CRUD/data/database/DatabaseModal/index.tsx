@@ -84,6 +84,8 @@ enum ActionType {
   parametersChange,
   reset,
   textChange,
+  extraInputChange,
+  extraEditorChange,
 }
 
 interface DBReducerPayloadType {
@@ -98,6 +100,8 @@ interface DBReducerPayloadType {
 type DBReducerActionType =
   | {
       type:
+        | ActionType.extraEditorChange
+        | ActionType.extraInputChange
         | ActionType.textChange
         | ActionType.inputChange
         | ActionType.editorChange
@@ -132,6 +136,25 @@ function dbReducer(
   };
 
   switch (action.type) {
+    case ActionType.extraEditorChange:
+      return {
+        ...trimmedState,
+        extra_json: {
+          ...trimmedState.extra_json,
+          [action.payload.name]: action.payload.json,
+        },
+      };
+    case ActionType.extraInputChange:
+      return {
+        ...trimmedState,
+        extra_json: {
+          ...trimmedState.extra_json,
+          [action.payload.name]:
+            action.payload.type === 'checkbox'
+              ? action.payload.checked
+              : action.payload.value,
+        },
+      };
     case ActionType.inputChange:
       if (action.payload.type === 'checkbox') {
         return {
@@ -169,10 +192,28 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.fetched:
+      console.log(action.payload);
+      let extra_json = {
+        ...JSON.parse(action.payload.extra || ''),
+      };
+
+      // convert all the keys in this payload into strings
+      extra_json = {
+        ...extra_json,
+        metadata_params: JSON.stringify(extra_json.metadata_params),
+        engine_params: JSON.stringify(extra_json.engine_params),
+        metadata_cache_timeout: JSON.stringify(
+          extra_json.metadata_cache_timeout,
+        ),
+        schemas_allowed_for_csv_upload: JSON.stringify(
+          extra_json.schemas_allowed_for_csv_upload,
+        ),
+      };
       return {
+        ...action.payload,
         engine: trimmedState.engine,
         configuration_method: trimmedState.configuration_method,
-        ...action.payload,
+        extra_json,
       };
     case ActionType.dbSelected:
       return {
@@ -573,6 +614,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             onEditorChange={(payload: { name: string; json: any }) =>
               onChange(ActionType.editorChange, payload)
             }
+            onExtraInputChange={({ target }: { target: HTMLInputElement }) => {
+              onChange(ActionType.extraInputChange, {
+                type: target.type,
+                name: target.name,
+                checked: target.checked,
+                value: target.value,
+              });
+            }}
+            onExtraEditorChange={(payload: { name: string; json: any }) => {
+              onChange(ActionType.extraEditorChange, payload);
+            }}
           />
         </Tabs.TabPane>
       </Tabs>
@@ -625,6 +677,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             }
             onEditorChange={(payload: { name: string; json: any }) =>
               onChange(ActionType.editorChange, payload)
+            }
+            onExtraInputChange={({ target }: { target: HTMLInputElement }) => {
+              onChange(ActionType.extraInputChange, {
+                type: target.type,
+                name: target.name,
+                checked: target.checked,
+                value: target.value,
+              });
+            }}
+            onExtraEditorChange={(payload: { name: string; json: any }) =>
+              onChange(ActionType.extraEditorChange, payload)
             }
           />
         </>

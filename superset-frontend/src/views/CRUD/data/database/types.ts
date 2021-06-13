@@ -58,10 +58,24 @@ export type DatabaseObject = {
   // Security
   encrypted_extra?: string;
   server_cert?: string;
+  allow_csv_upload?: boolean;
+  impersonate_user?: boolean;
 
   // Extra
-  impersonate_user?: boolean;
-  allow_csv_upload?: boolean;
+  extra_json?: {
+    engine_params?: {};
+    metadata_params?: {};
+    metadata_cache_timeout?: {
+      schema_cache_timeout?: number; // in Performance
+      table_cache_timeout?: number; // in Performance
+    }; // No field, holds schema and table timeout
+    allows_virtual_table_explore?: boolean; // in SQL Lab
+    schemas_allowed_for_csv_upload?: []; // in Security
+    version?: string;
+
+    // todo: ask beto where this should live
+    cost_query_enabled?: boolean; // in SQL Lab
+  };
   extra?: string;
 };
 
