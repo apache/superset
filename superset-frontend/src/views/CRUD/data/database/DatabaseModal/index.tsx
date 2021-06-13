@@ -188,14 +188,29 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.fetched:
-      console.log(action.payload.extra_json);
+      console.log(action.payload);
+      let extra_json = {
+        ...JSON.parse(action.payload.extra || ''),
+      };
+
+      // convert all the keys in this payload into strings
+      extra_json = {
+        ...extra_json,
+        metadata_params: JSON.stringify(extra_json.metadata_params),
+        engine_params: JSON.stringify(extra_json.engine_params),
+        metadata_cache_timeout: JSON.stringify(
+          extra_json.metadata_cache_timeout,
+        ),
+        schemas_allowed_for_csv_upload: JSON.stringify(
+          extra_json.schemas_allowed_for_csv_upload,
+        ),
+      };
+
       return {
         engine: trimmedState.engine,
         configuration_method: trimmedState.configuration_method,
         ...action.payload,
-        extra_json: {
-          ...JSON.parse(action.payload.extra || ''),
-        },
+        extra_json,
       };
     case ActionType.dbSelected:
     case ActionType.configMethodChange:
@@ -279,44 +294,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         // don't pass parameters if using the sqlalchemy uri
         delete update.parameters;
       }
-
-      // const extraValues = {
-      //   metadata_cache_timeout: {
-      //     schema_cache_timeout:
-      //       db?.extra_json?.metadata_cache_timeout?.schema_cache_timeout || '',
-      //     table_cache_timeout:
-      //       db?.extra_json?.metadata_cache_timeout?.table_cache_timeout || '',
-      //   },
-      //   cost_query_enabled: db?.extra_json?.cost_query_enabled || undefined,
-      //   allows_virtual_table_explore:
-      //     db?.extra_json?.allows_virtual_table_explore || undefined,
-      //   schemas_allowed_for_csv_upload:
-      //     db?.extra_json?.schemas_allowed_for_csv_upload || '',
-      //   impersonate_user: db?.extra_json?.impersonate_user || undefined,
-      //   allow_csv_upload: db?.extra_json?.allow_csv_upload || undefined,
-      //   version: db?.extra_json?.version || '',
-      //   metadata_params: db?.extra_json?.metadata_params || {},
-      //   engine_params: db?.extra_json?.engine_params || {},
-      // };
-
-      // console.log('extraValues', extraValues);
-
-      // Structure extra_json
-      // const extraValuesStructured = {
-      //   ...extraValues,
-      //   ...db?.extra_json,
-      // };
-
-      // console.log('extraValuesStructured', extraValuesStructured);
-
-      console.log(
-        'db?.extra_json',
-        JSON.parse(db?.extra_json?.metadata_params),
-      );
-
-      const updateExtraMDP = JSON.parse(db?.extra_json?.metadata_params);
-      // update?.extra_json?.metadata_params = updateExtraMDP;
-      console.log(updateExtraMDP);
 
       // Add values back to extra field
       update.extra = JSON.stringify(

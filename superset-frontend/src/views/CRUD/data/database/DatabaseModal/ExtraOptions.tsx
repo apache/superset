@@ -48,7 +48,6 @@ const ExtraOptions = ({
 }) => {
   const expandableModalIsOpen = !!db?.expose_in_sqllab;
   const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
-  const MDPstring = JSON.stringify(db?.extra_json?.metadata_params);
 
   return (
     <Collapse
@@ -419,7 +418,7 @@ const ExtraOptions = ({
           <div className="input-container">
             <StyledJsonEditor
               name="metadata_params"
-              value={MDPstring || '{}'}
+              value={db?.extra_json?.metadata_params || '{}'}
               placeholder={t('Metadata Parameters')}
               onChange={(json: object) =>
                 onExtraEditorChange({ json, name: 'metadata_params' })
