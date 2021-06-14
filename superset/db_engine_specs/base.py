@@ -42,7 +42,8 @@ from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import current_app, g
 from flask_babel import gettext as __, lazy_gettext as _
-from marshmallow import fields, Schema
+from marshmallow import fields, Schema, validate
+from marshmallow.validate import Range
 from sqlalchemy import column, DateTime, select, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Compiled, Dialect
@@ -1307,7 +1308,11 @@ class BasicParametersSchema(Schema):
     username = fields.String(required=True, allow_none=True, description=__("Username"))
     password = fields.String(allow_none=True, description=__("Password"))
     host = fields.String(required=True, description=__("Hostname or IP address"))
-    port = fields.Integer(required=True, description=__("Database port"))
+    port = fields.Integer(
+        required=True,
+        description=__("Database port"),
+        validate=Range(min=1024, max=49151),
+    )
     database = fields.String(required=True, description=__("Database name"))
     query = fields.Dict(
         keys=fields.Str(), values=fields.Raw(), description=__("Additional parameters")
@@ -1438,7 +1443,7 @@ class BasicParametersMixin:
             return errors
 
         port = parameters.get("port", None)
-        if not port or type(port) is str:
+        if not port:
             return errors
         if not is_port_open(host, port):
             errors.append(
