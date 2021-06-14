@@ -24,6 +24,63 @@ export default {
   component: Select,
 };
 
+const options = [
+  { label: 'Such an incredibly awesome long long label', value: 'A' },
+  { label: 'Another incredibly awesome long long label', value: 'B' },
+  { label: 'Just a label', value: 'C' },
+  { label: 'D', value: 'D' },
+];
+
+const selectTypes = [
+  {
+    id: 'topLeft',
+    style: { top: '0', left: '0' },
+  },
+  {
+    id: 'topRight',
+    style: { top: '0', right: '0' },
+  },
+  {
+    id: 'bottomLeft',
+    style: { bottom: '0', left: '0' },
+  },
+  {
+    id: 'bottomRight',
+    style: { bottom: '0', right: '0' },
+  },
+];
+
+export const SelectGallery = () => (
+  <>
+    {selectTypes.map(type => (
+      <div
+        key={type.id}
+        style={{
+          ...type.style,
+          width: '120px',
+          position: 'absolute',
+        }}
+      >
+        <Select ariaLabel={`gallery-${type.id}`} options={options} />
+      </div>
+    ))}
+  </>
+);
+
+SelectGallery.story = {
+  parameters: {
+    actions: {
+      disable: true,
+    },
+    controls: {
+      disable: true,
+    },
+    knobs: {
+      disable: true,
+    },
+  },
+};
+
 export const InteractiveSelect = (args: SelectProps) => <Select {...args} />;
 
 async function fetchUserList(username: string): Promise<OptionsPromise> {
@@ -43,8 +100,8 @@ async function fetchUserList(username: string): Promise<OptionsPromise> {
 }
 
 InteractiveSelect.args = {
-  showSearch: false,
   allowNewOptions: false,
+  header: <span>Header</span>,
   options: [
     {
       label: 'Test',
@@ -55,6 +112,7 @@ InteractiveSelect.args = {
       value: 'Test B',
     },
   ],
+  showSearch: false,
 };
 
 InteractiveSelect.argTypes = {

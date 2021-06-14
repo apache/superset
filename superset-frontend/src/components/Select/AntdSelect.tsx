@@ -16,13 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  ReactElement,
-  SyntheticEvent,
-  useMemo,
-  useState,
-  useRef,
-} from 'react';
+import React, { ReactNode, useMemo, useState, useRef } from 'react';
 import { styled } from '@superset-ui/core';
 import { Select as AntdSelect, Spin } from 'antd';
 import {
@@ -54,11 +48,10 @@ export type OptionsPromise = (search: string) => Promise<AntdOptionsType>;
 export interface SelectProps extends PickedSelectProps {
   allowNewOptions?: boolean;
   ariaLabel: string;
-  header?: ReactElement;
+  header?: ReactNode;
   name?: string; // discourage usage
-  notFoundContent?: ReactElement;
-  options: AntdOptionsType & OptionsPromise;
-  onPaste(e: SyntheticEvent): void;
+  notFoundContent?: ReactNode;
+  options: AntdOptionsType | OptionsPromise;
 }
 
 // unexposed default behaviors
@@ -74,7 +67,7 @@ const Loading = () => {
   `;
   return (
     <StyledLoading>
-      <Spin size="large" />
+      <Spin />
     </StyledLoading>
   );
 };
@@ -82,10 +75,11 @@ const Loading = () => {
 const SelectComponent = ({
   allowNewOptions = false,
   ariaLabel,
+  header = null,
   loading,
   mode,
   name,
-  notFoundContent,
+  notFoundContent = null,
   options,
   showSearch,
   value,
@@ -174,22 +168,25 @@ const SelectComponent = ({
   };
 
   return (
-    <AntdSelect
-      aria-label={ariaLabel || name}
-      getPopupContainer={triggerNode => triggerNode.parentNode}
-      loading={isLoading}
-      maxTagCount={MAX_TAG_COUNT}
-      mode={handleSelectMode()}
-      notFoundContent={isLoading ? <Loading /> : notFoundContent}
-      onDeselect={handleOnDeselect}
-      onSearch={handleOnSearch}
-      onSelect={handleOnSelect}
-      options={selectOptions}
-      showSearch={shouldShowSearch}
-      tokenSeparators={TOKEN_SEPARATORS}
-      value={selectValue}
-      {...props}
-    />
+    <>
+      {header}
+      <AntdSelect
+        aria-label={ariaLabel || name}
+        getPopupContainer={triggerNode => triggerNode.parentNode}
+        loading={isLoading}
+        maxTagCount={MAX_TAG_COUNT}
+        mode={handleSelectMode()}
+        notFoundContent={isLoading ? <Loading /> : notFoundContent}
+        onDeselect={handleOnDeselect}
+        onSearch={handleOnSearch}
+        onSelect={handleOnSelect}
+        options={selectOptions}
+        showSearch={shouldShowSearch}
+        tokenSeparators={TOKEN_SEPARATORS}
+        value={selectValue}
+        {...props}
+      />
+    </>
   );
 };
 
