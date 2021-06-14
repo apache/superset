@@ -422,7 +422,7 @@ Make sure your machine meets the [OS dependencies](https://superset.apache.org/d
 
 Ensure Python versions >3.7, Then proceed with:
 
-```bash
+````bash
 # Create a virtual environment and activate it (recommended)
 python3 -m venv venv # setup a python3 virtualenv
 source venv/bin/activate
@@ -465,7 +465,7 @@ $ make superset
 
 # Setup pre-commit only
 $ make pre-commit
-```
+````
 
 **Note: the FLASK_APP env var should not need to be set, as it's currently controlled
 via `.flaskenv`, however if needed, it should be set to `superset.app:create_app()`**
@@ -517,6 +517,7 @@ nvm use --lts
 ```
 
 Or if you use the default macOS starting with Catalina shell `zsh`, try:
+
 ```zsh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh)"
 ```
@@ -628,6 +629,7 @@ tox -e pre-commit
 ```
 
 Or by running pre-commit manually:
+
 ```bash
 pre-commit run --all-files
 ```
@@ -655,7 +657,7 @@ npm run lint
 
 ### Python
 
-Parameters in the `config.py` (which are accessible via the Flask app.config dictionary) are assummed to always be defined and thus should be accessed directly via,
+Parameters in the `config.py` (which are accessible via the Flask app.config dictionary) are assumed to always be defined and thus should be accessed directly via,
 
 ```python
 blueprints = app.config["BLUEPRINTS"]
@@ -740,6 +742,7 @@ There is also a utility script included in the Superset codebase to run python t
 found here](https://github.com/apache/superset/tree/master/scripts/tests)
 
 To run all tests for example, run this script from the root directory:
+
 ```bash
 scripts/tests/run.sh
 ```
@@ -851,6 +854,7 @@ superset:
 ```
 
 Start Superset as usual
+
 ```bash
 docker-compose up
 ```
@@ -858,12 +862,14 @@ docker-compose up
 Install the required libraries and packages to the docker container
 
 Enter the superset_app container
+
 ```bash
 docker exec -it superset_app /bin/bash
 root@39ce8cf9d6ab:/app#
 ```
 
 Run the following commands inside the container
+
 ```bash
 apt update
 apt install -y gdb
@@ -883,11 +889,13 @@ root        10     6  7 14:09 ?        00:00:07 /usr/local/bin/python /usr/bin/f
 ```
 
 Inject debugpy into the running Flask process. In this case PID 6.
+
 ```bash
 python3 -m debugpy --listen 0.0.0.0:5678 --pid 6
 ```
 
 Verify that debugpy is listening on port 5678
+
 ```bash
 netstat -tunap
 
@@ -898,6 +906,7 @@ tcp        0      0 0.0.0.0:8088            0.0.0.0:*               LISTEN      
 ```
 
 You are now ready to attach a debugger to the process. Using VSCode you can configure a launch configuration file .vscode/launch.json like so.
+
 ```
 {
     "version": "0.2.0",
@@ -923,7 +932,6 @@ You are now ready to attach a debugger to the process. Using VSCode you can conf
 
 VSCode will not stop on breakpoints right away. We've attached to PID 6 however it does not yet know of any sub-processes. In order to "wakeup" the debugger you need to modify a python file. This will trigger Flask to reload the code and create a new sub-process. This new sub-process will be detected by VSCode and breakpoints will be activated.
 
-
 ### Debugging Server App in Kubernetes Environment
 
 To debug Flask running in POD inside kubernetes cluster. You'll need to make sure the pod runs as root and is granted the SYS_TRACE capability.These settings should not be used in production environments.
@@ -947,7 +955,6 @@ kubectl port-forward  pod/superset-<some random id> 5678:5678
 ```
 
 You can now launch your VSCode debugger with the same config as above. VSCode will connect to to 127.0.0.1:5678 which is forwarded by kubectl to your remote kubernetes POD.
-
 
 ### Storybook
 
