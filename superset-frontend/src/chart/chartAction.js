@@ -395,7 +395,17 @@ export function exploreJSON(
         if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
           // deal with getChartDataRequest transforming the response data
           const result = 'result' in response ? response.result[0] : response;
-          return waitForAsyncData(result);
+          const awaitingChartData =
+            'job_id' in result && 'channel_id' in result;
+          if (awaitingChartData) {
+            // Query is running asynchronously and we must await the
+            // results, either by polling or listening for websocket messages.
+            return waitForAsyncData(result);
+          } else {
+            // Query results returned synchronously, meaning query was already cached.
+            // We can return the result immediately.
+            return Promise.resolve([result]);
+          }
         }
         return queriesResponse;
       })
