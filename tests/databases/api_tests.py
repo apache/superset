@@ -1674,14 +1674,11 @@ class TestDatabaseApi(SupersetTestCase):
         assert response == {
             "errors": [
                 {
-                    "message": "An error happened when validating the request",
+                    "message": "Missing data for required field.",
                     "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
                     "level": "error",
                     "extra": {
-                        "messages": {
-                            "engine": ["Missing data for required field."],
-                            "foo": ["Unknown field."],
-                        },
+                        "invalid": ["engine"],
                         "issue_codes": [
                             {
                                 "code": 1020,
@@ -1689,7 +1686,21 @@ class TestDatabaseApi(SupersetTestCase):
                             }
                         ],
                     },
-                }
+                },
+                {
+                    "message": "Unknown field.",
+                    "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
+                    "level": "error",
+                    "extra": {
+                        "invalid": ["foo"],
+                        "issue_codes": [
+                            {
+                                "code": 1020,
+                                "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                            }
+                        ],
+                    },
+                },
             ]
         }
 
