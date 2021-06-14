@@ -33,7 +33,7 @@ import { getRootLevelTabIndex } from './utils';
 import { Filters } from '../../reducers/types';
 import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';
-import { setFilterConfiguration } from '../../actions/nativeFilters';
+import { setFilterScopes } from '../../actions/nativeFilters';
 
 type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
@@ -63,9 +63,9 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const nativeFiltersValues = Object.values(nativeFilters);
   const scopes = nativeFiltersValues.map(filter => filter.scope);
   useEffect(() => {
-    nativeFiltersValues.forEach(filter => {
+    const filterScopes = nativeFiltersValues.map(filter => {
       const filterScope = filter.scope;
-      const chartsInScope = getChartIdsInFilterScope({
+      const chartsInScope: number[] = getChartIdsInFilterScope({
         filterScope: {
           scope: filterScope.rootPath,
           // @ts-ignore
@@ -76,12 +76,13 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
         dashboardLayout,
         chartsInScope,
       );
-      Object.assign(filter, {
-        chartsInScope,
+      return {
+        filterId: filter.id,
         tabsInScope: Array.from(tabsInScope),
-      });
+        chartsInScope,
+      };
     });
-    dispatch(setFilterConfiguration(nativeFiltersValues));
+    dispatch(setFilterScopes(filterScopes));
   }, [JSON.stringify(scopes), JSON.stringify(dashboardLayout)]);
 
   const childIds: string[] = topLevelTabs

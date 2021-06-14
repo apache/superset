@@ -49,6 +49,11 @@ export interface SetFilterConfigFail {
   type: typeof SET_FILTER_CONFIG_FAIL;
   filterConfig: FilterConfiguration;
 }
+export const SET_FILTER_SCOPES = 'SET_FILTER_SCOPES';
+export interface SetFilterScopes {
+  type: typeof SET_FILTER_SCOPES;
+  filterConfig: FilterConfiguration;
+}
 export const SET_FILTER_SETS_CONFIG_BEGIN = 'SET_FILTER_SETS_CONFIG_BEGIN';
 export interface SetFilterSetsConfigBegin {
   type: typeof SET_FILTER_SETS_CONFIG_BEGIN;
@@ -122,6 +127,25 @@ export const setFilterConfiguration = (
       filterConfig: mergedFilterConfig,
     });
   }
+};
+
+export const setFilterScopes = (
+  filterScopes: {
+    filterId: string;
+    chartsInScope: number[];
+    tabsInScope: string[];
+  }[],
+) => async (dispatch: Dispatch, getState: () => any) => {
+  const filters = getState().nativeFilters?.filters;
+  const filtersWithScopes = filterScopes.map(scope => ({
+    ...filters[scope.filterId],
+    chartsInScope: scope.chartsInScope,
+    tabsInScope: scope.tabsInScope,
+  }));
+  dispatch({
+    type: SET_FILTER_SCOPES,
+    filterConfig: filtersWithScopes,
+  });
 };
 
 type BootstrapData = {
@@ -227,6 +251,7 @@ export type AnyFilterAction =
   | SetFilterSetsConfigBegin
   | SetFilterSetsConfigComplete
   | SetFilterSetsConfigFail
+  | SetFilterScopes
   | SaveFilterSets
   | SetBootstrapData
   | SetFocusedNativeFilter
