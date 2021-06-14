@@ -243,7 +243,7 @@ export default function DataSourcePanel({
             {lists.metrics.length > DEFAULT_MAX_METRIC_LENGTH ? (
               <ButtonContainer>
                 <Button onClick={() => setShowAllMetrics(!showAllMetrics)}>
-                  {showAllMetrics ? t('Show Less...') : t('Show all...')}
+                  {showAllMetrics ? t('Show less...') : t('Show all...')}
                 </Button>
               </ButtonContainer>
             ) : (
