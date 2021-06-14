@@ -42,7 +42,7 @@ from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import current_app, g
 from flask_babel import gettext as __, lazy_gettext as _
-from marshmallow import fields, Schema, validate
+from marshmallow import fields, Schema
 from marshmallow.validate import Range
 from sqlalchemy import column, DateTime, select, types
 from sqlalchemy.engine.base import Engine
@@ -1311,7 +1311,7 @@ class BasicParametersSchema(Schema):
     port = fields.Integer(
         required=True,
         description=__("Database port"),
-        validate=Range(min=1024, max=49151),
+        validate=Range(min=0, max=2 ** 16, max_inclusive=False),
     )
     database = fields.String(required=True, description=__("Database name"))
     query = fields.Dict(

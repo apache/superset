@@ -1790,3 +1790,31 @@ class TestDatabaseApi(SupersetTestCase):
                 },
             ]
         }
+
+    @mock.patch("superset.db_engine_specs.base.is_hostname_valid")
+    @mock.patch("superset.db_engine_specs.base.is_port_open")
+    def test_validate_parameters_invalid_port(self, is_hostname_valid, is_port_open):
+        is_hostname_valid.return_value = True
+        is_port_open.return_value = True
+        self.login(username="admin")
+        url = "api/v1/database/validate_parameters"
+        payload = {
+            "engine": "postgresql",
+            "parameters": defaultdict(dict),
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
+        }
+        payload["parameters"].update(
+            {
+                "host": "localhost",
+                "port": 65536,
+                "username": "postgres",
+                "password": "",
+                "database": "postgres",
+                "query": {},
+            }
+        )
+        rv = self.client.post(url, json=payload)
+        # response = json.loads(rv.data.decode("utf-8"))
+
+        # TODO(AAfghahi): Add response based on new PR
+        assert rv.status_code == 422
