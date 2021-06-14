@@ -129,7 +129,7 @@ export default function DataSourcePanel({
   const [showAllColumns, setShowAllColumns] = useState(false);
 
   const DEFAULT_MAX_COLUMNS_LENGTH = 50;
-  const DEFAULT_MAX_METRIC_LENGTH = 50;
+  const DEFAULT_MAX_METRICS_LENGTH = 50;
 
   const search = debounce((value: string) => {
     if (value === '') {
