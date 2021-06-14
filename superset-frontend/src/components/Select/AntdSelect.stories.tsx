@@ -44,7 +44,17 @@ async function fetchUserList(username: string): Promise<OptionsPromise> {
 
 InteractiveSelect.args = {
   showSearch: false,
-  options: fetchUserList,
+  allowNewOptions: false,
+  options: [
+    {
+      label: 'Test',
+      value: 'Test',
+    },
+    {
+      label: 'Test B',
+      value: 'Test B',
+    },
+  ],
 };
 
 InteractiveSelect.argTypes = {

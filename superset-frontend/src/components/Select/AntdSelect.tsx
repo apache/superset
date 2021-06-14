@@ -32,6 +32,7 @@ import {
   LabeledValue as AntdLabeledValue,
 } from 'antd/lib/select';
 import debounce from 'lodash/debounce';
+import { select } from '@storybook/addon-knobs';
 
 type AntdSelectType = AntdSelectProps<AntdSelectValue>;
 type PickedSelectProps = Pick<
@@ -66,7 +67,6 @@ export interface SelectProps extends PickedSelectProps {
 // unexposed default behaviors
 const MAX_TAG_COUNT = 4;
 const CLOSE_ON_SCROLL_OUT = true;
-const GET_POPUP_CONTAINER = '';
 const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
 const DEBOUNCE_TIMEOUT = 800;
 
@@ -100,6 +100,7 @@ const SelectComponent = ({
   const initialOptions = options && Array.isArray(options) ? options : [];
   const [selectOptions, setOptions] = useState<AntdOptionsType>(initialOptions);
   const [selectValue, setSelectValue] = useState(value);
+  const [lastSearch, setLastSearch] = useState('');
   const [isLoading, setLoading] = useState(loading);
   const fetchRef = useRef(0);
 
@@ -124,26 +125,6 @@ const SelectComponent = ({
     }
   };
 
-  const handleNewOption = (e: KeyboardEvent<HTMLInputElement>) => {
-    // enable option creation for single mode
-    if (allowNewOptions && mode !== 'tags' && mode !== 'multiple') {
-      const { value } = e.currentTarget;
-      if (value) {
-        const hasOption = selectOptions.find(opt => opt.value === value);
-        if (!hasOption) {
-          if (e.keyCode === 13) {
-            const newOption = {
-              label: value,
-              value,
-            };
-            setOptions([...selectOptions, newOption]);
-            setSelectValue(value);
-          }
-        }
-      }
-    }
-  };
-
   const handleFetch = useMemo(() => {
     const fetchOptions = options as OptionsPromise;
     const loadOptions = (value: string) => {
@@ -163,20 +144,46 @@ const SelectComponent = ({
     return debounce(loadOptions, DEBOUNCE_TIMEOUT);
   }, [options]);
 
-  const handleOnSearch = (search: string) => {
-    if (isAsync && search) {
-      handleFetch(search);
+  const handleNewOptions = (options: AntdOptionsType) =>
+    options.filter(
+      opt =>
+        (opt.value !== '' && opt.value !== lastSearch) ||
+        opt.value === selectValue,
+    );
+
+  const handleOnSearch = (searchValue: string) => {
+    if (isAsync && searchValue) {
+      handleFetch(searchValue);
+    }
+    // enables option creation for single mode replicating the default tags mode behavior
+    if (!isAsync && allowNewOptions && mode !== 'tags' && mode !== 'multiple') {
+      const hasOption = selectOptions.find(opt =>
+        opt.value.toLowerCase().includes(searchValue.toLowerCase()),
+      );
+      if (!hasOption) {
+        const newOption = {
+          label: searchValue,
+          value: searchValue,
+        };
+        setOptions(handleNewOptions([...selectOptions, newOption]));
+        setLastSearch(searchValue);
+      }
+      if (!searchValue && !/^\s*$/.test(lastSearch)) {
+        setOptions(handleNewOptions(selectOptions));
+      }
     }
   };
+
+  console.log('SELECT OPTIONS', selectOptions);
 
   return (
     <AntdSelect
       aria-label={ariaLabel || name}
+      getPopupContainer={triggerNode => triggerNode.parentNode}
       loading={isLoading}
       maxTagCount={MAX_TAG_COUNT}
       mode={handleSelectMode()}
-      onInputKeyDown={handleNewOption}
-      notFoundContent={isLoading ? <Loading /> : notFoundContent}
+      // notFoundContent={isLoading ? <Loading /> : notFoundContent}
       onDeselect={handleOnDeselect}
       onSearch={handleOnSearch}
       onSelect={handleOnSelect}
