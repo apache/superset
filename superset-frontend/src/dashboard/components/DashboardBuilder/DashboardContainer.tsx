@@ -64,7 +64,10 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const nativeFiltersValues = Object.values(nativeFilters);
   const scopes = nativeFiltersValues.map(filter => filter.scope);
   useEffect(() => {
-    if (!isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) || nativeFiltersValues.length === 0) {
+    if (
+      !isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) ||
+      nativeFiltersValues.length === 0
+    ) {
       return;
     }
     const filterScopes = nativeFiltersValues.map(filter => {
