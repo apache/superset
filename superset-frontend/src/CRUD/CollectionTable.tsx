@@ -59,8 +59,9 @@ interface CRUDCollectionState {
   collectionArray: Array<object>;
   expandedColumns: object;
   sortColumn: string;
-  sort: number;
+  sort: SortOrder;
 }
+
 function createCollectionArray(collection: object) {
   return Object.keys(collection).map(k => collection[k]);
 }
