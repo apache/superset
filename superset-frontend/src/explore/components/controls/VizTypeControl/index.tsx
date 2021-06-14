@@ -16,14 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, {
+  ChangeEventHandler,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import PropTypes from 'prop-types';
 import { Input, Row, Col } from 'src/common/components';
-import { t, getChartMetadataRegistry, styled } from '@superset-ui/core';
+import {
+  t,
+  getChartMetadataRegistry,
+  styled,
+  ChartMetadata,
+} from '@superset-ui/core';
 import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
 import Modal from 'src/components/Modal';
 import { Tooltip } from 'src/components/Tooltip';
-import Label from 'src/components/Label';
+import Label, { Type } from 'src/components/Label';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import './VizTypeControl.less';
@@ -35,6 +46,20 @@ const propTypes = {
   onChange: PropTypes.func,
   value: PropTypes.string.isRequired,
   labelType: PropTypes.string,
+};
+
+interface VizTypeControlProps {
+  description?: string;
+  label?: string;
+  name: string;
+  onChange: (vizType: string) => void;
+  value: string;
+  labelType?: Type;
+}
+
+type VizEntry = {
+  key: string;
+  value: ChartMetadata;
 };
 
 const defaultProps = {
@@ -95,7 +120,7 @@ const typesWithDefaultOrder = new Set(DEFAULT_ORDER);
 
 export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
 
-function VizSupportValidation({ vizType }) {
+function VizSupportValidation({ vizType }: { vizType: string }) {
   const state = useDynamicPluginContext();
   if (state.loading || metadataRegistry.has(vizType)) {
     return null;
@@ -160,16 +185,16 @@ const VizThumbnailContainer = styled.div`
   }
 `;
 
-const VizTypeControl = props => {
+const VizTypeControl = (props: VizTypeControlProps) => {
   const { value: initialValue, onChange } = props;
   const [showModal, setShowModal] = useState(false);
   const [filter, setFilter] = useState('');
-  const searchRef = useRef(null);
+  const searchRef = useRef<any>(null);
   const [selectedViz, setSelectedViz] = useState(initialValue);
 
   useEffect(() => {
     if (showModal) {
-      setTimeout(() => searchRef?.current?.focus(), 200);
+      setTimeout(() => searchRef.current?.focus(), 200);
     }
   }, [showModal]);
 
@@ -182,11 +207,11 @@ const VizTypeControl = props => {
     setShowModal(prevState => !prevState);
   };
 
-  const changeSearch = event => {
+  const changeSearch: ChangeEventHandler<HTMLInputElement> = event => {
     setFilter(event.target.value);
   };
 
-  const renderItem = entry => {
+  const renderItem = (entry: VizEntry) => {
     const { key, value: type } = entry;
     const isSelected = key === selectedViz;
 
@@ -194,7 +219,7 @@ const VizTypeControl = props => {
       <VizThumbnailContainer
         role="button"
         tabIndex={0}
-        className={isSelected && 'selected'}
+        className={isSelected ? 'selected' : ''}
         onClick={() => setSelectedViz(key)}
         data-test="viztype-selector-container"
       >
@@ -221,10 +246,12 @@ const VizTypeControl = props => {
   const filteredTypes = DEFAULT_ORDER.filter(
     type =>
       metadataRegistry.has(type) &&
-      nativeFilterGate(metadataRegistry.get(type).behaviors || []),
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      nativeFilterGate(metadataRegistry.get(type)!.behaviors || []),
   )
     .map(type => ({
       key: type,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       value: metadataRegistry.get(type),
     }))
     .concat(
@@ -238,13 +265,12 @@ const VizTypeControl = props => {
     )
     .filter(entry =>
       filterStringParts.every(
-        part => entry.value.name.toLowerCase().indexOf(part) !== -1,
+        part => entry.value?.name.toLowerCase().indexOf(part) !== -1,
       ),
     );
 
-  const labelContent = metadataRegistry.has(initialValue)
-    ? metadataRegistry.get(initialValue).name
-    : `${initialValue}`;
+  const labelContent =
+    metadataRegistry.get(initialValue)?.name || `${initialValue}`;
 
   const selectedVizMetadata = metadataRegistry.get(selectedViz);
 
@@ -274,7 +300,6 @@ const VizTypeControl = props => {
         primaryButtonName={t('Create')}
         onHandledPrimaryAction={onSubmit}
         responsive
-        forceRender
       >
         <VizPickerLayout>
           <SearchPane>
@@ -291,7 +316,7 @@ const VizTypeControl = props => {
             data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__viz-row`}
             gutter={16}
           >
-            {filteredTypes.map(entry => (
+            {filteredTypes.map((entry: VizEntry) => (
               <Col xs={10} sm={6} md={4} lg={3} key={entry.key}>
                 {renderItem(entry)}
               </Col>
