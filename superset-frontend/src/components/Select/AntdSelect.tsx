@@ -17,22 +17,19 @@
  * under the License.
  */
 import React, {
-  KeyboardEvent,
   ReactElement,
   SyntheticEvent,
-  useState,
   useMemo,
+  useState,
   useRef,
 } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import { Select as AntdSelect, Spin } from 'antd';
 import {
   SelectProps as AntdSelectProps,
   SelectValue as AntdSelectValue,
-  LabeledValue as AntdLabeledValue,
 } from 'antd/lib/select';
 import debounce from 'lodash/debounce';
-import { select } from '@storybook/addon-knobs';
 
 type AntdSelectType = AntdSelectProps<AntdSelectValue>;
 type PickedSelectProps = Pick<
@@ -66,7 +63,6 @@ export interface SelectProps extends PickedSelectProps {
 
 // unexposed default behaviors
 const MAX_TAG_COUNT = 4;
-const CLOSE_ON_SCROLL_OUT = true;
 const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
 const DEBOUNCE_TIMEOUT = 800;
 
@@ -121,7 +117,10 @@ const SelectComponent = ({
 
   const handleOnDeselect = (option: any) => {
     if (Array.isArray(selectValue)) {
-      setSelectValue([...(selectValue as []).filter(opt => opt !== option)]);
+      const selectedValues = [
+        ...(selectValue as []).filter(opt => opt !== option),
+      ];
+      setSelectValue(selectedValues);
     }
   };
 
@@ -174,8 +173,6 @@ const SelectComponent = ({
     }
   };
 
-  console.log('SELECT OPTIONS', selectOptions);
-
   return (
     <AntdSelect
       aria-label={ariaLabel || name}
@@ -183,7 +180,7 @@ const SelectComponent = ({
       loading={isLoading}
       maxTagCount={MAX_TAG_COUNT}
       mode={handleSelectMode()}
-      // notFoundContent={isLoading ? <Loading /> : notFoundContent}
+      notFoundContent={isLoading ? <Loading /> : notFoundContent}
       onDeselect={handleOnDeselect}
       onSearch={handleOnSearch}
       onSelect={handleOnSelect}
