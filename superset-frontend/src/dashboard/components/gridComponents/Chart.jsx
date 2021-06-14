@@ -53,6 +53,7 @@ const propTypes = {
   slice: slicePropShape.isRequired,
   sliceName: PropTypes.string.isRequired,
   timeout: PropTypes.number.isRequired,
+  maxRows: PropTypes.number.isRequired,
   // all active filter fields in dashboard
   filters: PropTypes.object.isRequired,
   refreshChart: PropTypes.func.isRequired,
@@ -87,8 +88,7 @@ const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
 );
 const OVERFLOWABLE_VIZ_TYPES = new Set(['filter_box']);
 const DEFAULT_HEADER_HEIGHT = 22;
-// superset backend supports upto a million rows
-const MAXIMUM_NUMBER_OF_ROWS_IN_CSV = 1000000;
+
 const ChartOverlay = styled.div`
   position: absolute;
   top: 0;
@@ -234,7 +234,7 @@ export default class Chart extends React.Component {
     });
     exportChart({
       formData: isFullCSV
-        ? { ...this.props.formData, row_limit: MAXIMUM_NUMBER_OF_ROWS_IN_CSV }
+        ? { ...this.props.formData, row_limit: this.props.maxRows }
         : this.props.formData,
       resultType: 'results',
       resultFormat: 'csv',
@@ -286,7 +286,6 @@ export default class Chart extends React.Component {
     } = this.props;
 
     const { width } = this.state;
-
     // this prevents throwing in the case that a gridComponent
     // references a chart that is not associated with the dashboard
     if (!chart || !slice) {
