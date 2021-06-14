@@ -198,7 +198,7 @@ export default function DataSourcePanel({
     : lists.metrics.slice(0, DEFAULT_MAX_COLUMNS_LENGTH);
   const columnSlice = showAllColumns
     ? lists.columns
-    : lists.columns.slice(0, DEFAULT_MAX_METRIC_LENGTH);
+    : lists.columns.slice(0, DEFAULT_MAX_METRICS_LENGTH);
 
   const mainBody = (
     <>
@@ -240,7 +240,7 @@ export default function DataSourcePanel({
                 )}
               </LabelContainer>
             ))}
-            {lists.metrics.length > DEFAULT_MAX_METRIC_LENGTH ? (
+            {lists.metrics.length > DEFAULT_MAX_METRICS_LENGTH ? (
               <ButtonContainer>
                 <Button onClick={() => setShowAllMetrics(!showAllMetrics)}>
                   {showAllMetrics ? t('Show less...') : t('Show all...')}
