@@ -169,10 +169,19 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.fetched:
+      let query = '';
+      if (action.payload?.parameters?.query) {
+        // convert query into URI params string
+        query = new URLSearchParams(action.payload.parameters.query).toString();
+      }
       return {
         engine: trimmedState.engine,
         configuration_method: trimmedState.configuration_method,
         ...action.payload,
+        parameters: {
+          ...action.payload.parameters,
+          query,
+        },
       };
     case ActionType.dbSelected:
       return {
@@ -266,6 +275,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...update } = db || {};
     if (db?.id) {
+      if (update?.parameters?.query) {
+        // convert query params into dictionary
+        update.parameters.query = JSON.parse(
+          `{"${decodeURI(db.parameters?.query || '')
+            .replace(/"/g, '\\"')
+            .replace(/&/g, '","')
+            .replace(/=/g, '":"')}"}`,
+        );
+      } else {
+        update.parameters.query = {};
+      }
+
       const result = await updateResource(
         db.id as number,
         update as DatabaseObject,
