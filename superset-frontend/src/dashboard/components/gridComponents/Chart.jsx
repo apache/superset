@@ -53,6 +53,7 @@ const propTypes = {
   slice: slicePropShape.isRequired,
   sliceName: PropTypes.string.isRequired,
   timeout: PropTypes.number.isRequired,
+  maxRows: PropTypes.number.isRequired,
   // all active filter fields in dashboard
   filters: PropTypes.object.isRequired,
   refreshChart: PropTypes.func.isRequired,
@@ -109,6 +110,7 @@ export default class Chart extends React.Component {
     this.handleFilterMenuClose = this.handleFilterMenuClose.bind(this);
     this.exploreChart = this.exploreChart.bind(this);
     this.exportCSV = this.exportCSV.bind(this);
+    this.exportFullCSV = this.exportFullCSV.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
     this.resize = this.resize.bind(this);
     this.setDescriptionRef = this.setDescriptionRef.bind(this);
@@ -225,16 +227,22 @@ export default class Chart extends React.Component {
     exploreChart(this.props.formData);
   }
 
-  exportCSV() {
+  exportCSV(isFullCSV = false) {
     this.props.logEvent(LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART, {
       slice_id: this.props.slice.slice_id,
       is_cached: this.props.isCached,
     });
     exportChart({
-      formData: this.props.formData,
+      formData: isFullCSV
+        ? { ...this.props.formData, row_limit: this.props.maxRows }
+        : this.props.formData,
       resultType: 'results',
       resultFormat: 'csv',
     });
+  }
+
+  exportFullCSV() {
+    this.exportCSV(true);
   }
 
   forceRefresh() {
@@ -278,7 +286,6 @@ export default class Chart extends React.Component {
     } = this.props;
 
     const { width } = this.state;
-
     // this prevents throwing in the case that a gridComponent
     // references a chart that is not associated with the dashboard
     if (!chart || !slice) {
@@ -320,6 +327,7 @@ export default class Chart extends React.Component {
           annotationQuery={chart.annotationQuery}
           exploreChart={this.exploreChart}
           exportCSV={this.exportCSV}
+          exportFullCSV={this.exportFullCSV}
           updateSliceName={updateSliceName}
           sliceName={sliceName}
           supersetCanExplore={supersetCanExplore}
