@@ -33,6 +33,7 @@ import {
   LabeledValue as AntdLabeledValue,
 } from 'antd/lib/select';
 import debounce from 'lodash/debounce';
+import { hasOption } from './utils';
 
 type AntdSelectAllProps = AntdSelectProps<AntdSelectValue>;
 type PickedSelectProps = Pick<
@@ -121,18 +122,15 @@ const SelectComponent = ({
   ...props
 }: SelectProps) => {
   const isAsync = typeof options === 'function';
+  const isSingleMode =
+    mode !== ESelectTypes.TAGS && mode !== ESelectTypes.MULTIPLE;
   const shouldShowSearch = isAsync || allowNewOptions ? true : showSearch;
   const initialOptions = options && Array.isArray(options) ? options : [];
   const [selectOptions, setOptions] = useState<OptionsType>(initialOptions);
   const [selectValue, setSelectValue] = useState(value);
   const [lastSearch, setLastSearch] = useState('');
   const [isLoading, setLoading] = useState(loading);
-  const hasOption = selectOptions.find(
-    opt =>
-      opt.value.toLowerCase().includes(lastSearch.toLowerCase()) ||
-      (typeof opt.label === 'string' &&
-        opt.label.toLowerCase().includes(lastSearch.toLowerCase())),
-  );
+
   const fetchRef = useRef(0);
 
   const handleSelectMode = () => {
@@ -200,26 +198,22 @@ const SelectComponent = ({
     );
 
   const handleOnSearch = (searchValue: string) => {
-    setLastSearch(searchValue);
-
     // enables option creation for single mode
-    if (
-      !isAsync &&
-      allowNewOptions &&
-      mode !== ESelectTypes.TAGS &&
-      mode !== ESelectTypes.MULTIPLE
-    ) {
-      if (!hasOption) {
+    if (allowNewOptions && isSingleMode && !isAsync) {
+      if (!hasOption(searchValue, selectOptions)) {
         const newOption = {
           label: searchValue,
           value: searchValue,
         };
         setOptions(handleNewOptions([...selectOptions, newOption]));
       }
+      // delete new option if any on cancelling search
       if (lastSearch && !searchValue) {
+        selectOptions.pop();
         setOptions(handleNewOptions(selectOptions));
       }
     }
+    setLastSearch(searchValue);
   };
 
   const handlePagination = (e: UIEvent<HTMLElement>) => {
@@ -233,16 +227,13 @@ const SelectComponent = ({
     }
   };
 
-  const handleFilterOption = (
-    search: string,
-    option: { props: AntdLabeledValue },
-  ) => {
+  const handleFilterOption = (search: string, option: AntdLabeledValue) => {
     const searchValue = search.toLowerCase();
     if (filterOption && typeof filterOption === 'boolean') return filterOption;
     if (filterOption && typeof filterOption === 'function') {
-      return filterOption(search);
+      return filterOption(search, option);
     }
-    const { value, label } = option.props;
+    const { value, label } = option;
     if (
       value &&
       label &&
@@ -257,11 +248,27 @@ const SelectComponent = ({
     return true;
   };
 
+  const handleSortOptions = (isDropdownOpen: boolean) => {
+    if (!isDropdownOpen && selectValue) {
+      const currentValue = selectValue as string[] | string;
+      const topOptions = selectOptions.filter(opt =>
+        currentValue?.includes(opt.value),
+      );
+
+      setOptions([
+        ...topOptions,
+        ...selectOptions.filter(
+          opt => !topOptions.find(tOpt => tOpt.value === opt.value),
+        ),
+      ]);
+    }
+  };
+
   useEffect(() => {
-    if (isAsync && !hasOption) {
+    if (isAsync && !hasOption(lastSearch, selectOptions)) {
       handleFetch(lastSearch);
     }
-  }, [isAsync, handleFetch, hasOption, lastSearch]);
+  }, [isAsync, handleFetch, lastSearch, selectOptions]);
 
   console.log('SELECT OPTIONS', selectOptions);
 
@@ -273,13 +280,14 @@ const SelectComponent = ({
         dropdownRender={originNode => (
           <DropdownContent content={originNode} loading={isLoading} />
         )}
-        filterOption={handleFilterOption}
+        filterOption={handleFilterOption as any}
         getPopupContainer={triggerNode => triggerNode.parentNode}
         loading={isLoading}
         maxTagCount={MAX_TAG_COUNT}
         mode={handleSelectMode()}
         notFoundContent={notFoundContent}
         onDeselect={handleOnDeselect}
+        onDropdownVisibleChange={handleSortOptions}
         onPopupScroll={handlePagination}
         onSearch={handleOnSearch}
         onSelect={handleOnSelect}
