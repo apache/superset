@@ -130,6 +130,7 @@ function dbReducer(
   const trimmedState = {
     ...(state || {}),
   };
+  let query = '';
 
   switch (action.type) {
     case ActionType.inputChange:
@@ -169,10 +170,11 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.fetched:
-      let query = '';
       if (action.payload?.parameters?.query) {
         // convert query into URI params string
-        query = new URLSearchParams(action.payload.parameters.query).toString();
+        query = new URLSearchParams(
+          action.payload.parameters.query as string,
+        ).toString();
       }
       return {
         engine: trimmedState.engine,
@@ -278,12 +280,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (update?.parameters?.query) {
       // convert query params into dictionary
       update.parameters.query = JSON.parse(
-        `{"${decodeURI(update?.parameters?.query || '')
+        `{"${decodeURI((update?.parameters?.query as string) || '')
           .replace(/"/g, '\\"')
           .replace(/&/g, '","')
           .replace(/=/g, '":"')}"}`,
       );
-    } else {
+    } else if (update.parameters) {
       update.parameters.query = {};
     }
 
@@ -309,7 +311,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (update?.parameters?.query) {
         // convert query params into dictionary
         update.parameters.query = JSON.parse(
-          `{"${decodeURI(db.parameters?.query || '')
+          `{"${decodeURI((db.parameters?.query as string) || '')
             .replace(/"/g, '\\"')
             .replace(/&/g, '","')
             .replace(/=/g, '":"')}"}`,
