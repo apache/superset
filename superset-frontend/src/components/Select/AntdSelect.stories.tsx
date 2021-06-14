@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import Select, { SelectProps, OptionsPromise } from './AntdSelect';
+import Select, { SelectProps } from './AntdSelect';
 
 export default {
   title: 'Select',
@@ -81,10 +81,10 @@ AtEveryCorner.story = {
   },
 };
 
-export const InteractiveSelect = (args: SelectProps) => <Select {...args} />;
-
-async function fetchUserList(username: string): Promise<OptionsPromise> {
-  return fetch('https://randomuser.me/api/?results=5')
+async function fetchUserList(username: string, page = 0) {
+  return fetch(
+    `https://randomuser.me/api/?offset=${page}&search=${username}&results=20`,
+  )
     .then(response => response.json())
     .then(body =>
       body.results.map(
@@ -99,19 +99,29 @@ async function fetchUserList(username: string): Promise<OptionsPromise> {
     );
 }
 
+export const AsyncSelect = () => (
+  <Select ariaLabel="async-select" options={fetchUserList} paginatedFetch />
+);
+
+AsyncSelect.story = {
+  parameters: {
+    actions: {
+      disable: true,
+    },
+    controls: {
+      disable: true,
+    },
+    knobs: {
+      disable: true,
+    },
+  },
+};
+
+export const InteractiveSelect = (args: SelectProps) => <Select {...args} />;
+
 InteractiveSelect.args = {
   allowNewOptions: false,
-  header: <span>Header</span>,
-  options: [
-    {
-      label: 'Test',
-      value: 'Test',
-    },
-    {
-      label: 'Test B',
-      value: 'Test B',
-    },
-  ],
+  options,
   showSearch: false,
 };
 

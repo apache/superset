@@ -16,18 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useMemo, useState, useRef } from 'react';
+import React, {
+  ReactElement,
+  ReactNode,
+  UIEvent,
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+} from 'react';
 import { styled } from '@superset-ui/core';
 import { Select as AntdSelect, Spin } from 'antd';
 import {
   SelectProps as AntdSelectProps,
   SelectValue as AntdSelectValue,
+  LabeledValue as AntdLabeledValue,
 } from 'antd/lib/select';
 import debounce from 'lodash/debounce';
 
-type AntdSelectType = AntdSelectProps<AntdSelectValue>;
+type AntdSelectAllProps = AntdSelectProps<AntdSelectValue>;
 type PickedSelectProps = Pick<
-  AntdSelectType,
+  AntdSelectAllProps,
   | 'allowClear'
   | 'autoFocus'
   | 'value'
@@ -42,16 +51,24 @@ type PickedSelectProps = Pick<
   | 'showSearch'
   | 'value'
 >;
-
-export type AntdOptionsType = Exclude<AntdSelectType['options'], undefined>;
-export type OptionsPromise = (search: string) => Promise<AntdOptionsType>;
+export type OptionsType = Exclude<AntdSelectAllProps['options'], undefined>;
+export type OptionsPromise = (
+  search: string,
+  page?: number,
+) => Promise<OptionsType>;
+export enum ESelectTypes {
+  MULTIPLE = 'multiple',
+  TAGS = 'tags',
+  SINGLE = '',
+}
 export interface SelectProps extends PickedSelectProps {
   allowNewOptions?: boolean;
   ariaLabel: string;
   header?: ReactNode;
   name?: string; // discourage usage
   notFoundContent?: ReactNode;
-  options: AntdOptionsType | OptionsPromise;
+  options: OptionsType | OptionsPromise;
+  paginatedFetch?: boolean;
 }
 
 // unexposed default behaviors
@@ -59,27 +76,45 @@ const MAX_TAG_COUNT = 4;
 const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
 const DEBOUNCE_TIMEOUT = 800;
 
-const Loading = () => {
-  const StyledLoading = styled.div`
-    display: flex;
-    width: 100%;
-    justify-content: center;
-  `;
-  return (
-    <StyledLoading>
-      <Spin />
-    </StyledLoading>
+const DropdownContent = ({
+  content,
+  loading,
+}: {
+  content: ReactElement;
+  loading?: boolean;
+}) => {
+  const Loading = () => {
+    const StyledLoading = styled.div`
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    `;
+    return (
+      <StyledLoading>
+        <Spin />
+      </StyledLoading>
+    );
+  };
+  return loading ? (
+    <>
+      {content}
+      <Loading />
+    </>
+  ) : (
+    content
   );
 };
 
 const SelectComponent = ({
   allowNewOptions = false,
   ariaLabel,
+  filterOption,
   header = null,
   loading,
   mode,
   name,
   notFoundContent = null,
+  paginatedFetch = false,
   options,
   showSearch,
   value,
@@ -88,31 +123,41 @@ const SelectComponent = ({
   const isAsync = typeof options === 'function';
   const shouldShowSearch = isAsync || allowNewOptions ? true : showSearch;
   const initialOptions = options && Array.isArray(options) ? options : [];
-  const [selectOptions, setOptions] = useState<AntdOptionsType>(initialOptions);
+  const [selectOptions, setOptions] = useState<OptionsType>(initialOptions);
   const [selectValue, setSelectValue] = useState(value);
   const [lastSearch, setLastSearch] = useState('');
   const [isLoading, setLoading] = useState(loading);
+  const hasOption = selectOptions.find(
+    opt =>
+      opt.value.toLowerCase().includes(lastSearch.toLowerCase()) ||
+      (typeof opt.label === 'string' &&
+        opt.label.toLowerCase().includes(lastSearch.toLowerCase())),
+  );
   const fetchRef = useRef(0);
 
   const handleSelectMode = () => {
-    if (allowNewOptions && mode === 'multiple') return 'tags';
-    if (!allowNewOptions && mode === 'tags') return 'multiple';
+    if (allowNewOptions && mode === ESelectTypes.MULTIPLE) {
+      return ESelectTypes.TAGS;
+    }
+    if (!allowNewOptions && mode === ESelectTypes.TAGS) {
+      return ESelectTypes.MULTIPLE;
+    }
     return mode;
   };
 
-  const handleOnSelect = (option: any) => {
-    if (mode === 'multiple' || mode === 'tags') {
+  const handleOnSelect = (value: any) => {
+    if (mode === ESelectTypes.MULTIPLE || mode === ESelectTypes.TAGS) {
       const currentSelected = Array.isArray(selectValue) ? selectValue : [];
-      setSelectValue([...currentSelected, option]);
+      setSelectValue([...currentSelected, value]);
       return;
     }
-    setSelectValue(option);
+    setSelectValue(value);
   };
 
-  const handleOnDeselect = (option: any) => {
+  const handleOnDeselect = (value: any) => {
     if (Array.isArray(selectValue)) {
       const selectedValues = [
-        ...(selectValue as []).filter(opt => opt !== option),
+        ...(selectValue as []).filter(opt => opt !== value),
       ];
       setSelectValue(selectedValues);
     }
@@ -120,24 +165,34 @@ const SelectComponent = ({
 
   const handleFetch = useMemo(() => {
     const fetchOptions = options as OptionsPromise;
-    const loadOptions = (value: string) => {
-      fetchRef.current += 1;
+    const loadOptions = (value: string, paginate?: 'paginate') => {
+      if (paginate) {
+        fetchRef.current += 1;
+      } else {
+        fetchRef.current = 0;
+      }
       const fetchId = fetchRef.current;
-      setOptions([]);
+      const page = paginatedFetch ? fetchId : undefined;
+
       setLoading(true);
 
-      fetchOptions(value).then((newOptions: AntdOptionsType) => {
-        if (fetchId !== fetchRef.current) {
-          return;
-        }
-        setOptions(newOptions);
+      fetchOptions(value, page).then((newOptions: OptionsType) => {
+        if (fetchId !== fetchRef.current) return;
+
+        setOptions(prevOptions => [
+          ...prevOptions,
+          ...newOptions.filter(
+            newOpt =>
+              !prevOptions.find(prevOpt => prevOpt.value === newOpt.value),
+          ),
+        ]);
         setLoading(false);
       });
     };
     return debounce(loadOptions, DEBOUNCE_TIMEOUT);
-  }, [options]);
+  }, [options, paginatedFetch]);
 
-  const handleNewOptions = (options: AntdOptionsType) =>
+  const handleNewOptions = (options: OptionsType) =>
     options.filter(
       opt =>
         (opt.value !== '' && opt.value !== lastSearch) ||
@@ -145,39 +200,87 @@ const SelectComponent = ({
     );
 
   const handleOnSearch = (searchValue: string) => {
-    if (isAsync && searchValue) {
-      handleFetch(searchValue);
-    }
-    // enables option creation for single mode replicating the default tags mode behavior
-    if (!isAsync && allowNewOptions && mode !== 'tags' && mode !== 'multiple') {
-      const hasOption = selectOptions.find(opt =>
-        opt.value.toLowerCase().includes(searchValue.toLowerCase()),
-      );
+    setLastSearch(searchValue);
+
+    // enables option creation for single mode
+    if (
+      !isAsync &&
+      allowNewOptions &&
+      mode !== ESelectTypes.TAGS &&
+      mode !== ESelectTypes.MULTIPLE
+    ) {
       if (!hasOption) {
         const newOption = {
           label: searchValue,
           value: searchValue,
         };
         setOptions(handleNewOptions([...selectOptions, newOption]));
-        setLastSearch(searchValue);
       }
-      if (!searchValue && !/^\s*$/.test(lastSearch)) {
+      if (lastSearch && !searchValue) {
         setOptions(handleNewOptions(selectOptions));
       }
     }
   };
+
+  const handlePagination = (e: UIEvent<HTMLElement>) => {
+    const vScroll = e.currentTarget;
+    if (
+      isAsync &&
+      paginatedFetch &&
+      vScroll.scrollTop === vScroll.scrollHeight - vScroll.offsetHeight
+    ) {
+      handleFetch(lastSearch, 'paginate');
+    }
+  };
+
+  const handleFilterOption = (
+    search: string,
+    option: { props: AntdLabeledValue },
+  ) => {
+    const searchValue = search.toLowerCase();
+    if (filterOption && typeof filterOption === 'boolean') return filterOption;
+    if (filterOption && typeof filterOption === 'function') {
+      return filterOption(search);
+    }
+    const { value, label } = option.props;
+    if (
+      value &&
+      label &&
+      typeof value === 'string' &&
+      typeof label === 'string'
+    ) {
+      return (
+        value.toLowerCase().includes(searchValue) ||
+        label.toLowerCase().includes(searchValue)
+      );
+    }
+    return true;
+  };
+
+  useEffect(() => {
+    if (isAsync && !hasOption) {
+      handleFetch(lastSearch);
+    }
+  }, [isAsync, handleFetch, hasOption, lastSearch]);
+
+  console.log('SELECT OPTIONS', selectOptions);
 
   return (
     <>
       {header}
       <AntdSelect
         aria-label={ariaLabel || name}
+        dropdownRender={originNode => (
+          <DropdownContent content={originNode} loading={isLoading} />
+        )}
+        filterOption={handleFilterOption}
         getPopupContainer={triggerNode => triggerNode.parentNode}
         loading={isLoading}
         maxTagCount={MAX_TAG_COUNT}
         mode={handleSelectMode()}
-        notFoundContent={isLoading ? <Loading /> : notFoundContent}
+        notFoundContent={notFoundContent}
         onDeselect={handleOnDeselect}
+        onPopupScroll={handlePagination}
         onSearch={handleOnSearch}
         onSelect={handleOnSelect}
         options={selectOptions}
