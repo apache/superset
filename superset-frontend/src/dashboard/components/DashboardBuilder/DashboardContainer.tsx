@@ -18,10 +18,11 @@
  */
 // ParentSize uses resize observer so the dashboard will update size
 // when its container size changes, due to e.g., builder side panel opening
-import { ParentSize } from '@vx/responsive';
-import Tabs from 'src/components/Tabs';
 import React, { FC, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { ParentSize } from '@vx/responsive';
+import Tabs from 'src/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
 import { DashboardLayout, LayoutItem, RootState } from 'src/dashboard/types';
@@ -43,9 +44,9 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
-  const nativeFilters = useSelector<RootState, Filters>(
-    state => state.nativeFilters.filters,
-  );
+  const nativeFilters =
+    useSelector<RootState, Filters>(state => state.nativeFilters?.filters) ??
+    {};
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
@@ -63,6 +64,9 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const nativeFiltersValues = Object.values(nativeFilters);
   const scopes = nativeFiltersValues.map(filter => filter.scope);
   useEffect(() => {
+    if (!isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)) {
+      return;
+    }
     const filterScopes = nativeFiltersValues.map(filter => {
       const filterScope = filter.scope;
       const chartsInScope: number[] = getChartIdsInFilterScope({
