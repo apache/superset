@@ -31,7 +31,7 @@ const options = [
   { label: 'D', value: 'D' },
 ];
 
-const selectTypes = [
+const selectPositions = [
   {
     id: 'topLeft',
     style: { top: '0', left: '0' },
@@ -50,24 +50,24 @@ const selectTypes = [
   },
 ];
 
-export const SelectGallery = () => (
+export const AtEveryCorner = () => (
   <>
-    {selectTypes.map(type => (
+    {selectPositions.map(position => (
       <div
-        key={type.id}
+        key={position.id}
         style={{
-          ...type.style,
+          ...position.style,
           width: '120px',
           position: 'absolute',
         }}
       >
-        <Select ariaLabel={`gallery-${type.id}`} options={options} />
+        <Select ariaLabel={`gallery-${position.id}`} options={options} />
       </div>
     ))}
   </>
 );
 
-SelectGallery.story = {
+AtEveryCorner.story = {
   parameters: {
     actions: {
       disable: true,
