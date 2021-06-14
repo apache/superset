@@ -1746,7 +1746,10 @@ class TestDatabaseApi(SupersetTestCase):
 
     @mock.patch("superset.db_engine_specs.base.is_hostname_valid")
     @mock.patch("superset.db_engine_specs.base.is_port_open")
-    def test_validate_parameters_valid(self, is_port_open, is_hostname_valid):
+    @mock.patch("superset.databases.api.ValidateDatabaseParametersCommand")
+    def test_validate_parameters_valid_payload(
+        self, ValidateDatabaseParametersCommand, is_port_open, is_hostname_valid
+    ):
         is_hostname_valid.return_value = True
         is_port_open.return_value = True
 
@@ -1759,7 +1762,7 @@ class TestDatabaseApi(SupersetTestCase):
         payload["parameters"].update(
             {
                 "host": "localhost",
-                "port": 5432,
+                "port": 6789,
                 "username": "superset",
                 "password": "XXX",
                 "database": "test",
