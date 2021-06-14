@@ -38,6 +38,7 @@ describe('Chart', () => {
     updateSliceName() {},
 
     // from redux
+    maxRows: 666,
     chart: chartQueries[queryId],
     formData: chartQueries[queryId].formData,
     datasource: mockDatasource[sliceEntities.slices[queryId].datasource],
@@ -121,16 +122,14 @@ describe('Chart', () => {
     );
     exploreUtils.exportChart.restore();
   });
-  it('should call exportChart with row_limit 1000000 when exportFullCSV is clicked', () => {
+  it('should call exportChart with row_limit props.maxRows when exportFullCSV is clicked', () => {
     const stubbedExportCSV = sinon
       .stub(exploreUtils, 'exportChart')
       .returns(() => {});
     const wrapper = setup();
     wrapper.instance().exportFullCSV(props.slice.sliceId);
     expect(stubbedExportCSV.calledOnce).toBe(true);
-    expect(stubbedExportCSV.lastCall.args[0].formData.row_limit).toEqual(
-      1000000,
-    );
+    expect(stubbedExportCSV.lastCall.args[0].formData.row_limit).toEqual(666);
     exploreUtils.exportChart.restore();
   });
 });
