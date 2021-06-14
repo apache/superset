@@ -49,9 +49,9 @@ export interface SetFilterConfigFail {
   type: typeof SET_FILTER_CONFIG_FAIL;
   filterConfig: FilterConfiguration;
 }
-export const SET_FILTER_SCOPES = 'SET_FILTER_SCOPES';
-export interface SetFilterScopes {
-  type: typeof SET_FILTER_SCOPES;
+export const SET_IN_SCOPE_STATUS_OF_FILTERS = 'SET_IN_SCOPE_STATUS_OF_FILTERS';
+export interface SetInScopeStatusOfFilters {
+  type: typeof SET_IN_SCOPE_STATUS_OF_FILTERS;
   filterConfig: FilterConfiguration;
 }
 export const SET_FILTER_SETS_CONFIG_BEGIN = 'SET_FILTER_SETS_CONFIG_BEGIN';
@@ -129,7 +129,7 @@ export const setFilterConfiguration = (
   }
 };
 
-export const setFilterScopes = (
+export const setInScopeStatusOfFilters = (
   filterScopes: {
     filterId: string;
     chartsInScope: number[];
@@ -143,7 +143,7 @@ export const setFilterScopes = (
     tabsInScope: scope.tabsInScope,
   }));
   dispatch({
-    type: SET_FILTER_SCOPES,
+    type: SET_IN_SCOPE_STATUS_OF_FILTERS,
     filterConfig: filtersWithScopes,
   });
 };
@@ -251,7 +251,7 @@ export type AnyFilterAction =
   | SetFilterSetsConfigBegin
   | SetFilterSetsConfigComplete
   | SetFilterSetsConfigFail
-  | SetFilterScopes
+  | SetInScopeStatusOfFilters
   | SaveFilterSets
   | SetBootstrapData
   | SetFocusedNativeFilter

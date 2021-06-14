@@ -34,7 +34,7 @@ import { getRootLevelTabIndex } from './utils';
 import { Filters } from '../../reducers/types';
 import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';
-import { setFilterScopes } from '../../actions/nativeFilters';
+import { setInScopeStatusOfFilters } from '../../actions/nativeFilters';
 
 type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
@@ -86,7 +86,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
         chartsInScope,
       };
     });
-    dispatch(setFilterScopes(filterScopes));
+    dispatch(setInScopeStatusOfFilters(filterScopes));
   }, [JSON.stringify(scopes), JSON.stringify(dashboardLayout)]);
 
   const childIds: string[] = topLevelTabs

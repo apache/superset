@@ -20,7 +20,7 @@ import {
   AnyFilterAction,
   SAVE_FILTER_SETS,
   SET_FILTER_CONFIG_COMPLETE,
-  SET_FILTER_SCOPES,
+  SET_IN_SCOPE_STATUS_OF_FILTERS,
   SET_FILTER_SETS_CONFIG_COMPLETE,
   SET_FOCUSED_NATIVE_FILTER,
   UNSET_FOCUSED_NATIVE_FILTER,
@@ -93,7 +93,7 @@ export default function nativeFilterReducer(
       };
 
     case SET_FILTER_CONFIG_COMPLETE:
-    case SET_FILTER_SCOPES:
+    case SET_IN_SCOPE_STATUS_OF_FILTERS:
       return getInitialState({ filterConfig: action.filterConfig, state });
 
     case SET_FILTER_SETS_CONFIG_COMPLETE:
