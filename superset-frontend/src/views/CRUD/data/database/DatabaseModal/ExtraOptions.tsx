@@ -66,7 +66,6 @@ const ExtraOptions = ({
         }
         key="1"
       >
-        {console.log(db)}
         <StyledInputContainer css={{ ...no_margin_bottom }}>
           <div className="input-container">
             <IndeterminateCheckbox
