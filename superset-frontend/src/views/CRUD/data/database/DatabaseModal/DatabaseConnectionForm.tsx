@@ -236,12 +236,13 @@ const passwordField = ({
   getValidation,
   validationErrors,
   db,
+  isEditMode,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="password"
     name="password"
     required={required}
-    type="password"
+    type={isEditMode && 'password'}
     value={db?.parameters?.password}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.password}

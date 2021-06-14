@@ -1438,7 +1438,7 @@ class BasicParametersMixin:
             return errors
 
         port = parameters.get("port", None)
-        if not port:
+        if not port or type(port) is str:
             return errors
         if not is_port_open(host, port):
             errors.append(
