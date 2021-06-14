@@ -74,6 +74,7 @@ class TableColumnInlineView(  # pylint: disable=too-many-ancestors
         "verbose_name",
         "description",
         "type",
+        "business_type",
         "groupby",
         "filterable",
         "table",
@@ -86,6 +87,7 @@ class TableColumnInlineView(  # pylint: disable=too-many-ancestors
         "column_name",
         "verbose_name",
         "type",
+        "business_type",
         "groupby",
         "filterable",
         "is_dttm",
@@ -143,6 +145,7 @@ class TableColumnInlineView(  # pylint: disable=too-many-ancestors
         "is_dttm": _("Is temporal"),
         "python_date_format": _("Datetime Format"),
         "type": _("Type"),
+        "business_type": _("Business Type"),
     }
     validators_columns = {
         "python_date_format": [
