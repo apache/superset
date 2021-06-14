@@ -434,9 +434,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def get_samples(self, viz_obj: BaseViz) -> FlaskResponse:
         return self.json_response({"data": viz_obj.get_samples()})
 
-    def send_data_payload_response(
-        self, viz_obj: BaseViz, payload: Any
-    ) -> FlaskResponse:
+    @staticmethod
+    def send_data_payload_response(viz_obj: BaseViz, payload: Any) -> FlaskResponse:
         return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
 
     def generate_json(
