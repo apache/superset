@@ -333,8 +333,8 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     @classmethod
     def validate_parameters(
-        cls, parameters: BigQueryParametersType
-    ) -> List[SupersetError]:  # pylint: disable=unused-argument
+        cls, parameters: BigQueryParametersType  # pylint: disable=unused-argument
+    ) -> List[SupersetError]:
         return []
 
     @classmethod
