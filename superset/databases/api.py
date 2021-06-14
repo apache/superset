@@ -41,6 +41,7 @@ from superset.databases.commands.exceptions import (
     DatabaseInvalidError,
     DatabaseNotFoundError,
     DatabaseUpdateFailedError,
+    InvalidParametersError,
 )
 from superset.databases.commands.export import ExportDatabasesCommand
 from superset.databases.commands.importers.dispatcher import ImportDatabasesCommand
@@ -65,6 +66,7 @@ from superset.databases.schemas import (
 )
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import InvalidPayloadFormatError, InvalidPayloadSchemaError
 from superset.extensions import security_manager
 from superset.models.core import Database
@@ -999,7 +1001,17 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             payload = DatabaseValidateParametersSchema().load(request.json)
         except ValidationError as error:
-            raise InvalidPayloadSchemaError(error)
+            # {'port': ['Not a valid integer.']}
+            errors = [
+                SupersetError(
+                    message="\n".join(messages),
+                    error_type=SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={"invalid": [attribute]},
+                )
+                for attribute, messages in error.messages.items()
+            ]
+            raise InvalidParametersError(errors)
 
         command = ValidateDatabaseParametersCommand(g.user, payload)
         command.run()

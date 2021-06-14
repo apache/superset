@@ -1734,6 +1734,74 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
     @mock.patch("superset.db_engine_specs.base.is_hostname_valid")
+    @mock.patch("superset.db_engine_specs.base.is_port_open")
+    def test_validate_parameters_valid(self, is_port_open, is_hostname_valid):
+        is_hostname_valid.return_value = True
+        is_port_open.return_value = True
+
+        self.login(username="admin")
+        url = "api/v1/database/validate_parameters"
+        payload = {
+            "engine": "postgresql",
+            "parameters": defaultdict(dict),
+        }
+        payload["parameters"].update(
+            {
+                "host": "localhost",
+                "port": 5432,
+                "username": "superset",
+                "password": "XXX",
+                "database": "test",
+                "query": {},
+            }
+        )
+        rv = self.client.post(url, json=payload)
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+    def test_validate_parameters_invalid_port(self):
+        self.login(username="admin")
+        url = "api/v1/database/validate_parameters"
+        payload = {
+            "engine": "postgresql",
+            "parameters": defaultdict(dict),
+        }
+        payload["parameters"].update(
+            {
+                "host": "localhost",
+                "port": "string",
+                "username": "superset",
+                "password": "XXX",
+                "database": "test",
+                "query": {},
+            }
+        )
+        rv = self.client.post(url, json=payload)
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "Not a valid integer.",
+                    "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
+                    "level": "error",
+                    "extra": {
+                        "invalid": ["port"],
+                        "issue_codes": [
+                            {
+                                "code": 1020,
+                                "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
+
+    @mock.patch("superset.db_engine_specs.base.is_hostname_valid")
     def test_validate_parameters_invalid_host(self, is_hostname_valid):
         is_hostname_valid.return_value = False
 
