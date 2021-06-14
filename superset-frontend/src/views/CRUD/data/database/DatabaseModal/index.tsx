@@ -325,6 +325,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           ...update.extra_json,
           metadata_params: JSON.parse(update?.extra_json?.metadata_params),
           engine_params: JSON.parse(update?.extra_json?.engine_params),
+          schemas_allowed_for_csv_upload: JSON.parse(update?.extra_json?.schemas_allowed_for_csv_upload),
         });
       }
 
@@ -362,6 +363,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           ...update.extra_json,
           metadata_params: JSON.parse(update?.extra_json?.metadata_params),
           engine_params: JSON.parse(update?.extra_json?.engine_params),
+          schemas_allowed_for_csv_upload: JSON.parse(update?.extra_json?.schemas_allowed_for_csv_upload),
         });
       }
 
