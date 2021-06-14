@@ -181,6 +181,7 @@ class TableColumn(Model, BaseColumn):
         "is_dttm",
         "is_active",
         "type",
+        "business_type",
         "groupby",
         "filterable",
         "expression",
@@ -349,6 +350,7 @@ class TableColumn(Model, BaseColumn):
             "groupby",
             "is_dttm",
             "type",
+            "business_type",
             "python_date_format",
         )
         return {s: getattr(self, s) for s in attrs if hasattr(self, s)}
