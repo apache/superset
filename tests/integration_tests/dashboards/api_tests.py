@@ -1109,7 +1109,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         for slice in slices:
             self.assertIn(user_alpha1, slice.owners)
             self.assertIn(user_alpha2, slice.owners)
-            self.assertIn(admin, slice.owners)
+            self.assertNotIn(admin, slice.owners)
             # Revert owners on slice
             slice.owners = []
             db.session.commit()
@@ -1153,18 +1153,44 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         """
         Dashboard API: Test update set new owner to current user
         """
-        gamma_id = self.get_user("gamma").id
+        gamma = self.get_user("gamma")
         admin = self.get_user("admin")
-        dashboard_id = self.insert_dashboard("title1", "slug1", [gamma_id]).id
-        dashboard_data = {"dashboard_title": "title1_changed"}
+        dashboard_id = self.insert_dashboard("title1", "slug1", [gamma.id]).id
+        dashboard_data = {"dashboard_title": "title1_changed", "owners": [admin.id]}
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.client.put(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(Dashboard).get(dashboard_id)
+        self.assertNotIn(gamma, model.owners)
         self.assertIn(admin, model.owners)
         for slc in model.slices:
+            self.assertNotIn(gamma, slc.owners)
             self.assertIn(admin, slc.owners)
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dashboard_new_owner_not_admin(self):
+        """
+        Dashboard API: Test update set new owner to different user than admin
+        """
+        gamma = self.get_user("gamma")
+        alpha = self.get_user("alpha")
+        admin = self.get_user("admin")
+        dashboard_id = self.insert_dashboard("title1", "slug1", [gamma.id]).id
+        dashboard_data = {"dashboard_title": "title1_changed", "owners": [alpha.id]}
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        rv = self.client.put(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Dashboard).get(dashboard_id)
+        self.assertNotIn(gamma, model.owners)
+        self.assertNotIn(admin, model.owners)
+        self.assertIn(alpha, model.owners)
+        for slc in model.slices:
+            self.assertNotIn(gamma, slc.owners)
+            self.assertNotIn(admin, slc.owners)
+            self.assertIn(alpha, slc.owners)
         db.session.delete(model)
         db.session.commit()
 

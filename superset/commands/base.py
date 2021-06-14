@@ -55,7 +55,7 @@ class CreateMixin:
 
         :param user: current user
         :param owner_ids: list of owners by id's
-        :raises OwnersNotFoundValidationError: if at least one owner id can't be resolved
+        :raises OwnersNotFoundValidationError: if at least one owner can't be resolved
         :returns: Final list of owners
         """
         return populate_owners(user, owner_ids, default_to_user=True)
@@ -72,7 +72,7 @@ class UpdateMixin:
 
         :param user: current user
         :param owner_ids: list of owners by id's
-        :raises OwnersNotFoundValidationError: if at least one owner id can't be resolved
+        :raises OwnersNotFoundValidationError: if at least one owner can't be resolved
         :returns: Final list of owners
         """
         return populate_owners(user, owner_ids, default_to_user=False)

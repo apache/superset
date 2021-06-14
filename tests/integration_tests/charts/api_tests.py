@@ -568,7 +568,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(model.created_by, admin)
         self.assertEqual(model.slice_name, "title1_changed")
         self.assertEqual(model.description, "description1")
-        self.assertIn(admin, model.owners)
+        self.assertNotIn(admin, model.owners)
         self.assertIn(gamma, model.owners)
         self.assertEqual(model.viz_type, "viz_type1")
         self.assertEqual(model.params, """{"a": 1}""")
@@ -587,12 +587,13 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         gamma = self.get_user("gamma")
         admin = self.get_user("admin")
         chart_id = self.insert_chart("title", [gamma.id], 1).id
-        chart_data = {"slice_name": "title1_changed"}
+        chart_data = {"slice_name": "title1_changed", "owners": [admin.id]}
         self.login(username="admin")
         uri = f"api/v1/chart/{chart_id}"
         rv = self.put_assert_metric(uri, chart_data, "put")
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(Slice).get(chart_id)
+        self.assertNotIn(gamma, model.owners)
         self.assertIn(admin, model.owners)
         db.session.delete(model)
         db.session.commit()
