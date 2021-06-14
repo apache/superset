@@ -38,7 +38,7 @@ export type DatabaseObject = {
     username?: string;
     password?: string;
     encryption?: boolean;
-    query?: string;
+    query?: string | object;
   };
   configuration_method: CONFIGURATION_METHOD;
   engine?: string;

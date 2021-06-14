@@ -130,6 +130,7 @@ function dbReducer(
   const trimmedState = {
     ...(state || {}),
   };
+  let query = '';
 
   switch (action.type) {
     case ActionType.inputChange:
@@ -169,10 +170,20 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.fetched:
+      if (action.payload?.parameters?.query) {
+        // convert query into URI params string
+        query = new URLSearchParams(
+          action.payload.parameters.query as string,
+        ).toString();
+      }
       return {
         engine: trimmedState.engine,
         configuration_method: trimmedState.configuration_method,
         ...action.payload,
+        parameters: {
+          ...action.payload.parameters,
+          query,
+        },
       };
     case ActionType.dbSelected:
       return {
@@ -265,6 +276,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onSave = async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...update } = db || {};
+
+    if (update?.parameters?.query) {
+      // convert query params into dictionary
+      update.parameters.query = JSON.parse(
+        `{"${decodeURI((update?.parameters?.query as string) || '')
+          .replace(/"/g, '\\"')
+          .replace(/&/g, '","')
+          .replace(/=/g, '":"')}"}`,
+      );
+    } else if (update.parameters) {
+      update.parameters.query = {};
+    }
+
     if (db?.id) {
       const result = await updateResource(
         db.id as number,
@@ -287,7 +311,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (update?.parameters?.query) {
         // convert query params into dictionary
         update.parameters.query = JSON.parse(
-          `{"${decodeURI(db.parameters?.query || '')
+          `{"${decodeURI((db.parameters?.query as string) || '')
             .replace(/"/g, '\\"')
             .replace(/&/g, '","')
             .replace(/=/g, '":"')}"}`,
