@@ -145,8 +145,10 @@ function dbReducer(
         },
       };
     case ActionType.extraInputChange:
-      console.log(action)
-      if (action.payload.name === 'schema_cache_timeout' || action.payload.name === 'table_cache_timeout') {
+      if (
+        action.payload.name === 'schema_cache_timeout' ||
+        action.payload.name === 'table_cache_timeout'
+      ) {
         return {
           ...trimmedState,
           extra_json: {
@@ -154,11 +156,10 @@ function dbReducer(
             metadata_cache_timeout: {
               ...trimmedState.extra_json?.metadata_cache_timeout,
               [action.payload.name]: action.payload.value,
-            }
+            },
           },
         };
       }
-      console.log('after', action)
       return {
         ...trimmedState,
         extra_json: {
@@ -318,6 +319,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...update } = db || {};
     if (db?.id) {
+      if (update?.extra_json) {
+        // convert extra_json to back to string
+        update.extra = JSON.stringify({
+          ...update.extra_json,
+          metadata_params: JSON.parse(update?.extra_json?.metadata_params),
+          engine_params: JSON.parse(update?.extra_json?.engine_params),
+        });
+      }
+
       const result = await updateResource(
         db.id as number,
         update as DatabaseObject,
@@ -345,6 +355,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             .replace(/=/g, '":"')}"}`,
         );
       }
+
+      if (update?.extra_json) {
+        // convert extra_json to back to string
+        update.extra = JSON.stringify({
+          ...update.extra_json,
+          metadata_params: JSON.parse(update?.extra_json?.metadata_params),
+          engine_params: JSON.parse(update?.extra_json?.engine_params),
+        });
+      }
+
       const dbId = await createResource(update as DatabaseObject);
       if (dbId) {
         setHasConnectedDb(true);
