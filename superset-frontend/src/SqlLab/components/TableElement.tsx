@@ -73,13 +73,6 @@ const Fade = styled.div`
   opacity: ${(props: { hovered: boolean }) => (props.hovered ? 1 : 0)};
 `;
 
-// Note about TableElement props:
-// The antd Collapse component is expecting its children to be `Collapse.Panel`s and
-// is quietly passing extra props that need to be on the panels for them to work correctly.
-// These props are not defined in their TypeScript type for Panel though because
-// this logic is happening in the Collapse component itself. We have gotten around the TypeScript
-// errors by using the rest and spread operators to pass the necessary extra props to the Panels.
-
 const TableElement = ({ table, actions, ...props }: TableElementProps) => {
   const [sortColumns, setSortColumns] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -114,15 +107,15 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
           />
         );
       }
-      const latest = Object.entries(table.partitions?.latest || []).map(
-        ([key, value]) => `${key}=${value}`,
-      );
-      const latestString: string = latest.join('/');
+      const latest = Object.entries(table.partitions?.latest || [])
+        .map(([key, value]) => `${key}=${value}`)
+        .join('/');
+
       header = (
         <Card size="small">
           <div>
             <small>
-              {t('latest partition:')} {latestString}
+              {t('latest partition:')} {latest}
             </small>{' '}
             {partitionClipBoard}
           </div>
