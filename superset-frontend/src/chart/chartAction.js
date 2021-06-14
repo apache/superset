@@ -401,11 +401,10 @@ export function exploreJSON(
             // Query is running asynchronously and we must await the
             // results, either by polling or listening for websocket messages.
             return waitForAsyncData(result);
-          } else {
-            // Query results returned synchronously, meaning query was already cached.
-            // We can return the result immediately.
-            return Promise.resolve([result]);
           }
+          // Query results returned synchronously, meaning query was already cached.
+          // We can return the result immediately.
+          return Promise.resolve([result]);
         }
         return queriesResponse;
       })
