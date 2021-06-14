@@ -68,4 +68,4 @@ export function hasOption(search: string, options: AntdOptionsType) {
       (typeof opt.label === 'string' &&
         opt.label.toLowerCase().includes(searchOption)),
   );
-};
+}

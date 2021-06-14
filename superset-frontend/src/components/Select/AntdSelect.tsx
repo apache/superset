@@ -177,6 +177,7 @@ const SelectComponent = ({
       fetchOptions(value, page).then((newOptions: OptionsType) => {
         if (fetchId !== fetchRef.current) return;
 
+        // merges with existing and creates unique options
         setOptions(prevOptions => [
           ...prevOptions,
           ...newOptions.filter(
@@ -205,9 +206,10 @@ const SelectComponent = ({
           label: searchValue,
           value: searchValue,
         };
+        // adds a custom option
         setOptions(handleNewOptions([...selectOptions, newOption]));
       }
-      // delete new option if any on cancelling search
+      // deletes a custom option if any on cancelling search
       if (lastSearch && !searchValue) {
         selectOptions.pop();
         setOptions(handleNewOptions(selectOptions));
@@ -269,8 +271,6 @@ const SelectComponent = ({
       handleFetch(lastSearch);
     }
   }, [isAsync, handleFetch, lastSearch, selectOptions]);
-
-  console.log('SELECT OPTIONS', selectOptions);
 
   return (
     <>
