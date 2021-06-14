@@ -57,6 +57,7 @@ const FilterValue: React.FC<FilterProps> = ({
   filter,
   directPathToChild,
   onFilterSelectionChange,
+  inView = true,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
@@ -65,6 +66,7 @@ const FilterValue: React.FC<FilterProps> = ({
   const [error, setError] = useState<string>('');
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
   const [ownState, setOwnState] = useState<JsonObject>({});
+  const [inViewFirstTime, setInViewFirstTime] = useState(inView);
   const inputRef = useRef<HTMLInputElement>(null);
   const [target] = targets;
   const {
@@ -76,7 +78,17 @@ const FilterValue: React.FC<FilterProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(true);
   const dispatch = useDispatch();
+
   useEffect(() => {
+    if (!inViewFirstTime && inView) {
+      setInViewFirstTime(true);
+    }
+  }, [inView, inViewFirstTime, setInViewFirstTime]);
+
+  useEffect(() => {
+    if (!inViewFirstTime) {
+      return;
+    }
     const newFormData = getFormData({
       ...filter,
       datasetId,
@@ -134,6 +146,7 @@ const FilterValue: React.FC<FilterProps> = ({
         });
     }
   }, [
+    inViewFirstTime,
     cascadingFilters,
     datasetId,
     groupby,

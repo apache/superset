@@ -16,18 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { DataMask } from '@superset-ui/core';
-import { DataMaskStateWithId } from 'src/dataMask/types';
-import { Filter } from '../../types';
 
-export interface FilterProps {
-  dataMaskSelected?: DataMaskStateWithId;
-  filter: Filter & {
-    dataMask?: DataMask;
-  };
-  icon?: React.ReactElement;
-  directPathToChild?: string[];
-  onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
-  inView?: boolean;
-}
+// storage keys for welcome page sticky tabs..
+export const HOMEPAGE_CHART_FILTER = 'homepage_chart_filter';
+export const HOMEPAGE_ACTIVITY_FILTER = 'homepage_activity_filter';
+export const HOMEPAGE_DASHBOARD_FILTER = 'homepage_dashboard_filter';

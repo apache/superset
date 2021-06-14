@@ -32,6 +32,7 @@ Join our growing community!
 - [Hostnfly](https://www.hostnfly.com/) [@alexisrosuel]
 - [Lime](https://www.limebike.com/) [@cxmcc]
 - [Lyft](https://www.lyft.com/)
+- [Ontruck](https://www.ontruck.com/)
 
 ### Financial Services
 - [Aktia Bank plc](https://www.aktia.com) [@villebro]
