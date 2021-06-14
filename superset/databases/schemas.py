@@ -335,7 +335,9 @@ class DatabaseValidateParametersSchema(Schema):
     )
 
     @validates_schema
-    def validate_parameters(self, data: Dict[str, Any], **kwargs: Any) -> None:
+    def validate_parameters(
+        self, data: Dict[str, Any], **kwargs: Any
+    ) -> None:  # pylint: disable=no-self-use, unused-argument
         """
         Validate the DB engine spec specific parameters schema.
         """

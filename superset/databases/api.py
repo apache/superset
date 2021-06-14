@@ -67,7 +67,7 @@ from superset.databases.schemas import (
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import InvalidPayloadFormatError, InvalidPayloadSchemaError
+from superset.exceptions import InvalidPayloadFormatError
 from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.typing import FlaskResponse
