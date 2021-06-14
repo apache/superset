@@ -274,19 +274,20 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onSave = async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...update } = db || {};
-    if (db?.id) {
-      if (update?.parameters?.query) {
-        // convert query params into dictionary
-        update.parameters.query = JSON.parse(
-          `{"${decodeURI(db.parameters?.query || '')
-            .replace(/"/g, '\\"')
-            .replace(/&/g, '","')
-            .replace(/=/g, '":"')}"}`,
-        );
-      } else {
-        update.parameters.query = {};
-      }
 
+    if (update?.parameters?.query) {
+      // convert query params into dictionary
+      update.parameters.query = JSON.parse(
+        `{"${decodeURI(update?.parameters?.query || '')
+          .replace(/"/g, '\\"')
+          .replace(/&/g, '","')
+          .replace(/=/g, '":"')}"}`,
+      );
+    } else {
+      update.parameters.query = {};
+    }
+
+    if (db?.id) {
       const result = await updateResource(
         db.id as number,
         update as DatabaseObject,
