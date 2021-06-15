@@ -315,6 +315,9 @@ def get_engine_spec(engine: Optional[str]) -> Type[BaseEngineSpec]:
 
 
 class DatabaseValidateParametersSchema(Schema):
+    class Meta:  # pylint: disable=too-few-public-methods
+        unknown = EXCLUDE
+
     engine = fields.String(required=True, description="SQLAlchemy engine to use")
     parameters = fields.Dict(
         keys=fields.String(),

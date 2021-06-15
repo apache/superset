@@ -1705,9 +1705,9 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(username="admin")
         url = "api/v1/database/validate_parameters"
         payload = {
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
             "engine": "postgresql",
             "parameters": defaultdict(dict),
-            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
         }
         payload["parameters"].update(
             {
@@ -1887,7 +1887,7 @@ class TestDatabaseApi(SupersetTestCase):
         payload["parameters"].update(
             {
                 "host": "localhost",
-                "port": 5432,
+                "port": 65536,
                 "username": "",
                 "password": "",
                 "database": "",
@@ -1901,32 +1901,18 @@ class TestDatabaseApi(SupersetTestCase):
         assert response == {
             "errors": [
                 {
-                    "message": "One or more parameters are missing: database, username",
-                    "error_type": "CONNECTION_MISSING_PARAMETERS_ERROR",
-                    "level": "warning",
-                    "extra": {
-                        "missing": ["database", "username"],
-                        "issue_codes": [
-                            {
-                                "code": 1018,
-                                "message": "Issue 1018 - One or more parameters needed to configure a database are missing.",
-                            }
-                        ],
-                    },
-                },
-                {
-                    "message": "The hostname provided can't be resolved.",
-                    "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
+                    "message": "Must be greater than or equal to 0 and less than 65536.",
+                    "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
                     "level": "error",
                     "extra": {
-                        "invalid": ["host"],
+                        "invalid": ["port"],
                         "issue_codes": [
                             {
-                                "code": 1007,
-                                "message": "Issue 1007 - The hostname provided can't be resolved.",
+                                "code": 1020,
+                                "message": "Issue 1020 - The submitted payload has the incorrect schema.",
                             }
                         ],
                     },
-                },
+                }
             ]
         }
