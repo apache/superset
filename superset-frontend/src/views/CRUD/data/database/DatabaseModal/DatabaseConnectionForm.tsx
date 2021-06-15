@@ -198,18 +198,29 @@ const databaseField = ({
   validationErrors,
   db,
 }: FieldPropTypes) => (
-  <ValidatedInput
-    id="database"
-    name="database"
-    required={required}
-    value={db?.parameters?.database}
-    validationMethods={{ onBlur: getValidation }}
-    errorMessage={validationErrors?.database}
-    placeholder="e.g. world_population"
-    label="Database name"
-    onChange={changeMethods.onParametersChange}
-    helpText="Copy the name of the  database you are trying to connect to."
-  />
+  <div
+    style={{ border: '2px solid red' }}
+    css={(theme: SupersetTheme) => infoTooltip(theme)}
+  >
+    <InfoTooltip
+      tooltip={t('Copy the name of the database you are trying to connect to.')}
+      placement="left"
+    />
+
+    <ValidatedInput
+      style={{ border: '2px solid green' }}
+      id="database"
+      name="database"
+      required={required}
+      value={db?.parameters?.database}
+      validationMethods={{ onBlur: getValidation }}
+      errorMessage={validationErrors?.database}
+      placeholder="e.g. world_population"
+      label="Database name"
+      onChange={changeMethods.onParametersChange}
+      helpText="Copy the name of the  database you are trying to connect to."
+    />
+  </div>
 );
 const usernameField = ({
   required,
@@ -257,18 +268,26 @@ const displayField = ({
   validationErrors,
   db,
 }: FieldPropTypes) => (
-  <ValidatedInput
-    id="database_name"
-    name="database_name"
-    required={required}
-    value={db?.database_name}
-    validationMethods={{ onBlur: getValidation }}
-    errorMessage={validationErrors?.database_name}
-    placeholder=""
-    label="Display Name"
-    onChange={changeMethods.onChange}
-    helpText="Pick a nickname for this database to display as in Superset."
-  />
+  <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
+    <InfoTooltip
+      tooltip={t(
+        'Pick a nickname for this database to display as in Superset.',
+      )}
+      placement="rightBottom"
+    />
+    <ValidatedInput
+      id="database_name"
+      name="database_name"
+      required={required}
+      value={db?.database_name}
+      validationMethods={{ onBlur: getValidation }}
+      errorMessage={validationErrors?.database_name}
+      placeholder=""
+      label="Display Name"
+      onChange={changeMethods.onChange}
+      helpText="Pick a nickname for this database to display as in Superset."
+    />
+  </div>
 );
 
 const queryField = ({
@@ -278,18 +297,24 @@ const queryField = ({
   validationErrors,
   db,
 }: FieldPropTypes) => (
-  <ValidatedInput
-    id="query"
-    name="query"
-    required={required}
-    value={db?.parameters?.query}
-    validationMethods={{ onBlur: getValidation }}
-    errorMessage={validationErrors?.query}
-    placeholder="e.g. additional parameters"
-    label="Additional Parameters"
-    onChange={changeMethods.onParametersChange}
-    helpText="Add additional custom parameters"
-  />
+  <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
+    <InfoTooltip
+      tooltip={t('Add additional custom parameters')}
+      placement="rightBottom"
+    />
+    <ValidatedInput
+      id="query"
+      name="query"
+      required={required}
+      value={db?.parameters?.query}
+      validationMethods={{ onBlur: getValidation }}
+      errorMessage={validationErrors?.query}
+      placeholder="e.g. additional parameters"
+      label="Additional Parameters"
+      onChange={changeMethods.onParametersChange}
+      helpText="Add additional custom parameters"
+    />
+  </div>
 );
 
 const forceSSLField = ({
