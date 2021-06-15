@@ -112,15 +112,7 @@ def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
                         "Unable to load dialect %s: %s", attribute.dialect, ex
                     )
                     continue
-
-                try:
-                    drivers[attr].add(attribute.dialect.driver)
-                except AttributeError:
-                    logger.warning(
-                        "Dialect does not have default_driver set: %s",
-                        attribute.dialect,
-                    )
-                    continue
+                drivers[attr].add(attribute.dialect.driver)
 
     # installed 3rd-party dialects
     for ep in iter_entry_points("sqlalchemy.dialects"):
@@ -129,7 +121,10 @@ def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
         except Exception:  # pylint: disable=broad-except
             logger.warning("Unable to load SQLAlchemy dialect: %s", dialect)
         else:
-            drivers[dialect.name].add(dialect.driver)
+            if hasattr(dialect, "driver"):
+                drivers[dialect.name].add(dialect.driver)
+            else:
+                drivers[dialect.name].add(dialect.name)
 
     engine_specs = get_engine_specs()
     return {
