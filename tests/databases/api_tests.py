@@ -1691,11 +1691,11 @@ class TestDatabaseApi(SupersetTestCase):
                     },
                 },
                 {
-                    "message": "Unknown field.",
+                    "message": "Missing data for required field.",
                     "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
                     "level": "error",
                     "extra": {
-                        "invalid": ["foo"],
+                        "invalid": ["configuration_method"],
                         "issue_codes": [
                             {
                                 "code": 1020,
