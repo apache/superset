@@ -1001,7 +1001,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             payload = DatabaseValidateParametersSchema().load(request.json)
         except ValidationError as error:
-            # {'port': ['Not a valid integer.']}
             errors = [
                 SupersetError(
                     message="\n".join(messages),
