@@ -26,6 +26,7 @@ class DremioEngineSpec(BaseEngineSpec):
     engine = "dremio"
     engine_name = "Dremio"
 
+    default_driver = "dremio"
     _time_grain_expressions = {
         None: "{col}",
         "PT1S": "DATE_TRUNC('second', {col})",

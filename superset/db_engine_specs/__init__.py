@@ -112,7 +112,15 @@ def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
                         "Unable to load dialect %s: %s", attribute.dialect, ex
                     )
                     continue
-                drivers[attr].add(attribute.dialect.driver)
+
+                try:
+                    drivers[attr].add(attribute.dialect.driver)
+                except AttributeError:
+                    logger.warning(
+                        "Dialect does not have default_driver set: %s",
+                        attribute.dialect,
+                    )
+                    continue
 
     # installed 3rd-party dialects
     for ep in iter_entry_points("sqlalchemy.dialects"):
