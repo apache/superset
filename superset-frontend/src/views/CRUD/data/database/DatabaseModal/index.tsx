@@ -134,6 +134,7 @@ function dbReducer(
   const trimmedState = {
     ...(state || {}),
   };
+  let query = '';
 
   let extra_json = {
     ...JSON.parse(action.payload.extra || ''),
@@ -220,11 +221,23 @@ function dbReducer(
           extra_json.schemas_allowed_for_csv_upload,
         ),
       };
+
+      if (action.payload?.parameters?.query) {
+        // convert query into URI params string
+        query = new URLSearchParams(
+          action.payload.parameters.query as string,
+        ).toString();
+      }
+
       return {
         ...action.payload,
         engine: trimmedState.engine,
         configuration_method: trimmedState.configuration_method,
         extra_json,
+        parameters: {
+          ...action.payload.parameters,
+          query,
+        },
       };
     case ActionType.dbSelected:
       return {
@@ -317,6 +330,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onSave = async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...update } = db || {};
+
+    if (update?.parameters?.query) {
+      // convert query params into dictionary
+      update.parameters.query = JSON.parse(
+        `{"${decodeURI((update?.parameters?.query as string) || '')
+          .replace(/"/g, '\\"')
+          .replace(/&/g, '","')
+          .replace(/=/g, '":"')}"}`,
+      );
+    } else if (update.parameters) {
+      update.parameters.query = {};
+    }
+
     if (db?.id) {
       if (update?.extra_json) {
         // convert extra_json to back to string
@@ -351,7 +377,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (update?.parameters?.query) {
         // convert query params into dictionary
         update.parameters.query = JSON.parse(
-          `{"${decodeURI(db.parameters?.query || '')
+          `{"${decodeURI((db.parameters?.query as string) || '')
             .replace(/"/g, '\\"')
             .replace(/&/g, '","')
             .replace(/=/g, '":"')}"}`,
