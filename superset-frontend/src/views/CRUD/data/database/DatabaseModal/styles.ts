@@ -416,15 +416,8 @@ export const SelectDatabaseStyles = styled.div`
   }
 
   .preferred-item {
-    width: 30%;
-    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
-
-    svg {
-      width: ${({ theme }) => theme.typography.sizes.xl * 2}px;
-      margin-top: -${({ theme }) => theme.gridUnit * 5}px;
-      margin-left: ${({ theme }) => theme.gridUnit * 6}px;
-      margin-bottom: -${({ theme }) => theme.gridUnit * 9}px;
-    }
+    width: 32%;
+    margin-bottom: ${({ theme }) => theme.gridUnit * 2.5}px;
   }
 
   .available {
