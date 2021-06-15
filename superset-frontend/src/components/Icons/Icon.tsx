@@ -19,7 +19,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import AntdIcon from '@ant-design/icons';
-import { styled } from '@superset-ui/core';
+import { styled, useTheme } from '@superset-ui/core';
 import { ReactComponent as TransparentIcon } from 'images/icons/transparent.svg';
 import IconType from './IconType';
 
@@ -33,9 +33,11 @@ const AntdIconComponent = ({
 }: Omit<IconType, 'ref' | 'css'>) => (
   <AntdIcon viewBox={viewBox || '0 0 24 24'} {...rest} />
 );
+  
+const theme = useTheme();
 
 export const StyledIcon = styled(AntdIconComponent)<IconType>`
-  ${({ iconColor }) => iconColor && `color: ${iconColor};`};
+  ${({ iconColor }) => iconColor ? `color: ${iconColor};` : `color: ${theme.colors.grayscale.base};`};
   font-size: ${({ iconSize, theme }) =>
     iconSize
       ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
