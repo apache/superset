@@ -1,7 +1,7 @@
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
+placement* distributed with this work for additional information
  * regarding copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
@@ -34,6 +34,7 @@ import { Alert, Select } from 'src/common/components';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import IconButton from 'src/components/IconButton';
+import InfoTooltip from 'src/components/InfoTooltip';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import {
   testDatabaseConnection,
@@ -63,6 +64,7 @@ import {
   formStyles,
   StyledBasicTab,
   SelectDatabaseStyles,
+  infoTooltip,
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 
@@ -817,22 +819,28 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   getValidation={() => getValidation(db)}
                   validationErrors={validationErrors}
                 />
-
-                <Button
-                  buttonStyle="link"
-                  onClick={() =>
-                    setDB({
-                      type: ActionType.configMethodChange,
-                      payload: {
-                        configuration_method:
-                          CONFIGURATION_METHOD.SQLALCHEMY_URI,
-                      },
-                    })
-                  }
-                  css={buttonLinkStyles}
-                >
-                  Connect this database with a SQLAlchemy URI string instead
-                </Button>
+                <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
+                  <Button
+                    buttonStyle="link"
+                    onClick={() =>
+                      setDB({
+                        type: ActionType.configMethodChange,
+                        payload: {
+                          configuration_method:
+                            CONFIGURATION_METHOD.SQLALCHEMY_URI,
+                        },
+                      })
+                    }
+                    css={buttonLinkStyles}
+                  >
+                    Connect this database with a SQLAlchemy URI string instead
+                    <InfoTooltip
+                      tooltip={t(
+                        'Click this link to switch to an alternate form that allows you to input the SQLAlchemy URL for this database manually.',
+                      )}
+                    />
+                  </Button>
+                </div>
                 {/* Step 2 */}
               </>
             ))}

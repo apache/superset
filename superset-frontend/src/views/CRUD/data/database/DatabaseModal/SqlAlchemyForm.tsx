@@ -19,7 +19,8 @@
 import React, { EventHandler, ChangeEvent, MouseEvent } from 'react';
 import { t, SupersetTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';
-import { StyledInputContainer, wideButton } from './styles';
+import InfoTooltip from 'src/components/InfoTooltip'
+import { StyledInputContainer, wideButton, infoTooltip, buttonLinkStyles} from './styles';
 
 import { DatabaseObject } from '../types';
 
@@ -92,6 +93,30 @@ const SqlAlchemyTab = ({
     >
       {t('Test connection')}
     </Button>
+      {/*Button link needs config. Commented code taken from ./index.tsx */}
+      <div css={(theme: SupersetTheme)=> infoTooltip(theme)}>
+          <Button
+              buttonStyle="link"
+              onClick={() =>
+                alert('Fix this link and delete line 101 in ./SqlAlchemyForm.tsx')
+                  
+              //    setDB({
+              //        type: ActionType.configMethodChange,
+              //        payload: {
+              //            configuration_method:
+              //            CONFIGURATION_METHOD.????????????
+              //},
+              //})
+              
+              }
+              css={buttonLinkStyles}
+          >
+          Connect this database using the dynamic form instead 
+              <InfoTooltip
+                  tooltip={t('Click this link to switch to an alternate form that exposes only the required fields needed to connect this database.')}
+            />
+          </Button>
+      </div>
   </>
 );
 

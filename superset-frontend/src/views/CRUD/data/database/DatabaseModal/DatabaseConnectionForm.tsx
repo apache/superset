@@ -315,7 +315,7 @@ const forceSSLField = ({
     />
     <span css={toggleStyle}>SSL</span>
     <InfoTooltip
-      tooltip={t('SSL will be enabled in the database connection')}
+      tooltip={t('SSL Mode "require" will be used.')}
       placement="bottomRight"
     />
   </div>
