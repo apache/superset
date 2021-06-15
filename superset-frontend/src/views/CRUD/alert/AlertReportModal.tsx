@@ -1070,7 +1070,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </StyledSectionTitle>
               <StyledInputContainer>
                 <div className="control-label">
-                  {t('Source')}
+                  {t('Database')}
                   <span className="required">*</span>
                 </div>
                 <div className="input-container">
