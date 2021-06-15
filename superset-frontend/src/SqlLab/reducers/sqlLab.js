@@ -519,21 +519,18 @@ export default function sqlLabReducer(state = {}, action) {
           }
           const prevState = state.queries[id].state;
           const currentState = changedQuery.state;
-          let updatedState = {
+          newQueries[id] = {
+            ...state.queries[id],
             ...changedQuery,
-          };
-          if (currentState === 'success') {
             // race condition:
-            // because of asyc behavior, sql lab may still poll a couple of seconds
+            // because of async behavior, sql lab may still poll a couple of seconds
             // when it started fetching or finished rendering results
-            if (['fetching', 'success'].includes(prevState)) {
-              updatedState = {
-                ...updatedState,
-                state: prevState,
-              };
-            }
-          }
-          newQueries[id] = { ...state.queries[id], ...updatedState };
+            state:
+              currentState === 'success' &&
+              ['fetching', 'success'].includes(prevState)
+                ? prevState
+                : currentState,
+          };
           change = true;
         }
       });
