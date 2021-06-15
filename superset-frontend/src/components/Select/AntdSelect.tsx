@@ -19,6 +19,7 @@
 import React, {
   ReactElement,
   ReactNode,
+  RefObject,
   UIEvent,
   useEffect,
   useMemo,
@@ -27,12 +28,14 @@ import React, {
 } from 'react';
 import { styled } from '@superset-ui/core';
 import { Select as AntdSelect, Spin } from 'antd';
+import Icons from 'src/components/Icons';
 import {
   SelectProps as AntdSelectProps,
   SelectValue as AntdSelectValue,
   LabeledValue as AntdLabeledValue,
 } from 'antd/lib/select';
 import debounce from 'lodash/debounce';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { hasOption } from './utils';
 
 type AntdSelectAllProps = AntdSelectProps<AntdSelectValue>;
@@ -77,33 +80,52 @@ const MAX_TAG_COUNT = 4;
 const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
 const DEBOUNCE_TIMEOUT = 800;
 
-const DropdownContent = ({
-  content,
-  loading,
-}: {
-  content: ReactElement;
-  loading?: boolean;
-}) => {
-  const Loading = () => {
-    const StyledLoading = styled.div`
-      display: flex;
-      justify-content: center;
-      width: 100%;
-    `;
-    return (
+const Loading = ({ content }: { content: ReactElement }) => {
+  const StyledLoading = styled.div`
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  `;
+  return (
+    <>
+      {content}
       <StyledLoading>
         <Spin />
       </StyledLoading>
-    );
-  };
-  return loading ? (
-    <>
-      {content}
-      <Loading />
     </>
-  ) : (
-    content
   );
+};
+
+const Error = ({ error }: { error: string }) => {
+  const StyledError = styled.div`
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    color: ${({ theme }) => theme.colors.error};
+  `;
+  return (
+    <StyledError>
+      <Icons.Error /> {error}
+    </StyledError>
+  );
+};
+
+const DropdownContent = ({
+  content,
+  loading,
+  error,
+}: {
+  content: ReactElement;
+  error?: string;
+  loading?: boolean;
+}) => {
+  if (loading) {
+    return <Loading content={content} />;
+  }
+  if (error) {
+    return <Error error={error} />;
+  }
+  return content;
 };
 
 const SelectComponent = ({
@@ -114,7 +136,7 @@ const SelectComponent = ({
   loading,
   mode,
   name,
-  notFoundContent = null,
+  notFoundContent,
   paginatedFetch = false,
   options,
   showSearch,
@@ -128,9 +150,10 @@ const SelectComponent = ({
   const initialOptions = options && Array.isArray(options) ? options : [];
   const [selectOptions, setOptions] = useState<OptionsType>(initialOptions);
   const [selectValue, setSelectValue] = useState(value);
-  const [lastSearch, setLastSearch] = useState('');
+  const [searchedValue, setSearchedValue] = useState('');
   const [isLoading, setLoading] = useState(loading);
-
+  const [error, setError] = useState('');
+  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const fetchRef = useRef(0);
 
   const handleSelectMode = () => {
@@ -143,13 +166,39 @@ const SelectComponent = ({
     return mode;
   };
 
-  const handleOnSelect = (value: any) => {
-    if (mode === ESelectTypes.MULTIPLE || mode === ESelectTypes.TAGS) {
-      const currentSelected = Array.isArray(selectValue) ? selectValue : [];
-      setSelectValue([...currentSelected, value]);
-      return;
+  const handleTopOptions = (selectedValue: any) => {
+    // bringing selected options to the top of the list
+    if (selectedValue) {
+      const currentValue = selectedValue as string[] | string;
+      const topOptions = selectOptions.filter(opt =>
+        currentValue?.includes(opt.value),
+      );
+      const otherOptions = selectOptions.filter(
+        opt => !topOptions.find(tOpt => tOpt.value === opt.value),
+      );
+      // fallback for custom options in tags mode as they
+      // do not appear in the selectOptions state
+      if (!isSingleMode && Array.isArray(currentValue)) {
+        // eslint-disable-next-line no-restricted-syntax
+        for (const val of currentValue) {
+          if (!topOptions.find(tOpt => tOpt.value === val)) {
+            topOptions.push({ label: val, value: val });
+          }
+        }
+      }
+      setOptions([...topOptions, ...otherOptions]);
     }
-    setSelectValue(value);
+  };
+
+  const handleOnSelect = (selectedValue: any) => {
+    if (!isSingleMode) {
+      const currentSelected = Array.isArray(selectValue) ? selectValue : [];
+      setSelectValue([...currentSelected, selectedValue]);
+    } else {
+      setSelectValue(selectedValue);
+      // in single mode the sorting must happen on selection
+      handleTopOptions(selectedValue);
+    }
   };
 
   const handleOnDeselect = (value: any) => {
@@ -173,49 +222,56 @@ const SelectComponent = ({
       const page = paginatedFetch ? fetchId : undefined;
 
       setLoading(true);
-
-      fetchOptions(value, page).then((newOptions: OptionsType) => {
-        if (fetchId !== fetchRef.current) return;
-
-        // merges with existing and creates unique options
-        setOptions(prevOptions => [
-          ...prevOptions,
-          ...newOptions.filter(
-            newOpt =>
-              !prevOptions.find(prevOpt => prevOpt.value === newOpt.value),
-          ),
-        ]);
-        setLoading(false);
-      });
+      fetchOptions(value, page)
+        .then((newOptions: OptionsType) => {
+          if (fetchId !== fetchRef.current) return;
+          if (newOptions && Array.isArray(newOptions) && newOptions.length) {
+            // merges with existing and creates unique options
+            setOptions(prevOptions => [
+              ...prevOptions,
+              ...newOptions.filter(
+                newOpt =>
+                  !prevOptions.find(prevOpt => prevOpt.value === newOpt.value),
+              ),
+            ]);
+          }
+        })
+        .catch(response =>
+          getClientErrorObject(response).then(e => {
+            const { error } = e;
+            setError(error);
+          }),
+        )
+        .finally(() => setLoading(false));
     };
     return debounce(loadOptions, DEBOUNCE_TIMEOUT);
   }, [options, paginatedFetch]);
 
-  const handleNewOptions = (options: OptionsType) =>
-    options.filter(
-      opt =>
-        (opt.value !== '' && opt.value !== lastSearch) ||
-        opt.value === selectValue,
-    );
-
   const handleOnSearch = (searchValue: string) => {
-    // enables option creation for single mode
-    if (allowNewOptions && isSingleMode && !isAsync) {
-      if (!hasOption(searchValue, selectOptions)) {
+    const search = searchValue.trim();
+    // enables option creation
+    if (allowNewOptions && isSingleMode) {
+      const lastOption = selectOptions[selectOptions.length - 1].value;
+      // replaces the last search value entered with the new one
+      // only when the value wasn't part of the original options
+      if (
+        lastOption === searchedValue &&
+        !initialOptions.find(o => o.value === searchedValue)
+      ) {
+        selectOptions.pop();
+        setOptions(selectOptions);
+      }
+      if (search && !hasOption(search, selectOptions)) {
         const newOption = {
-          label: searchValue,
-          value: searchValue,
+          label: search,
+          value: search,
         };
         // adds a custom option
-        setOptions(handleNewOptions([...selectOptions, newOption]));
-      }
-      // deletes a custom option if any on cancelling search
-      if (lastSearch && !searchValue) {
-        selectOptions.pop();
-        setOptions(handleNewOptions(selectOptions));
+        const newOptions = [...selectOptions, newOption];
+        setOptions(newOptions);
       }
     }
-    setLastSearch(searchValue);
+    setSearchedValue(search);
   };
 
   const handlePagination = (e: UIEvent<HTMLElement>) => {
@@ -225,7 +281,7 @@ const SelectComponent = ({
       paginatedFetch &&
       vScroll.scrollTop === vScroll.scrollHeight - vScroll.offsetHeight
     ) {
-      handleFetch(lastSearch, 'paginate');
+      handleFetch(searchedValue, 'paginate');
     }
   };
 
@@ -250,44 +306,49 @@ const SelectComponent = ({
     return true;
   };
 
-  const handleSortOptions = (isDropdownOpen: boolean) => {
-    if (!isDropdownOpen && selectValue) {
-      const currentValue = selectValue as string[] | string;
-      const topOptions = selectOptions.filter(opt =>
-        currentValue?.includes(opt.value),
-      );
-
-      setOptions([
-        ...topOptions,
-        ...selectOptions.filter(
-          opt => !topOptions.find(tOpt => tOpt.value === opt.value),
-        ),
-      ]);
+  const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
+    setIsDropdownVisible(isDropdownVisible);
+    // multiple or tags mode keep the dropdown visible while selecting options
+    // this waits for the dropdown to be closed before sorting the top options
+    if (!isSingleMode && !isDropdownVisible) {
+      handleTopOptions(selectValue);
     }
   };
 
   useEffect(() => {
-    if (isAsync && !hasOption(lastSearch, selectOptions)) {
-      handleFetch(lastSearch);
+    const foundOption = hasOption(searchedValue, selectOptions);
+    if (isAsync && !foundOption) {
+      handleFetch(searchedValue);
     }
-  }, [isAsync, handleFetch, lastSearch, selectOptions]);
+  }, [allowNewOptions, isAsync, handleFetch, searchedValue, selectOptions]);
 
   return (
     <>
       {header}
       <AntdSelect
         aria-label={ariaLabel || name}
-        dropdownRender={originNode => (
-          <DropdownContent content={originNode} loading={isLoading} />
-        )}
+        dropdownRender={(
+          originNode: ReactElement & { ref?: RefObject<HTMLElement> },
+        ) => {
+          if (!isDropdownVisible) {
+            originNode.ref?.current?.scrollTo({ top: 0 });
+          }
+          return (
+            <DropdownContent
+              content={originNode}
+              error={error}
+              loading={isLoading}
+            />
+          );
+        }}
         filterOption={handleFilterOption as any}
         getPopupContainer={triggerNode => triggerNode.parentNode}
         loading={isLoading}
         maxTagCount={MAX_TAG_COUNT}
         mode={handleSelectMode()}
-        notFoundContent={notFoundContent}
+        notFoundContent={isLoading ? null : notFoundContent}
         onDeselect={handleOnDeselect}
-        onDropdownVisibleChange={handleSortOptions}
+        onDropdownVisibleChange={handleOnDropdownVisibleChange}
         onPopupScroll={handlePagination}
         onSearch={handleOnSearch}
         onSelect={handleOnSelect}

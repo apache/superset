@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import Select, { SelectProps } from './AntdSelect';
+import Select, { OptionsType, SelectProps } from './AntdSelect';
 
 export default {
   title: 'Select',
@@ -25,10 +25,24 @@ export default {
 };
 
 const options = [
-  { label: 'Such an incredibly awesome long long label', value: 'A' },
-  { label: 'Another incredibly awesome long long label', value: 'B' },
-  { label: 'Just a label', value: 'C' },
+  {
+    label: 'Such an incredibly awesome long long label',
+    value: 'Such an incredibly awesome long long label',
+  },
+  {
+    label: 'Another incredibly awesome long long label',
+    value: 'Another incredibly awesome long long label',
+  },
+  { label: 'Just a label', value: 'Just a label' },
+  { label: 'A', value: 'A' },
+  { label: 'B', value: 'B' },
+  { label: 'C', value: 'C' },
   { label: 'D', value: 'D' },
+  { label: 'E', value: 'E' },
+  { label: 'F', value: 'F' },
+  { label: 'G', value: 'G' },
+  { label: 'H', value: 'H' },
+  { label: 'I', value: 'I' },
 ];
 
 const selectPositions = [
@@ -81,36 +95,82 @@ AtEveryCorner.story = {
   },
 };
 
-async function fetchUserList(username: string, page = 0) {
-  return fetch(
-    `https://randomuser.me/api/?offset=${page}&search=${username}&results=20`,
-  )
-    .then(response => response.json())
-    .then(body =>
-      body.results.map(
-        (user: {
-          name: { first: string; last: string };
-          login: { username: string };
-        }) => ({
-          label: `${user.name.first} ${user.name.last}`,
-          value: user.login.username,
-        }),
-      ),
+async function fetchUserList(username: string, page = 0): Promise<OptionsType> {
+  return new Promise((resolve, reject) => {
+    const users = [
+      'John',
+      'Liam',
+      'Olivia',
+      'Emma',
+      'Noah',
+      'Ava',
+      'Oliver',
+      'Elijah',
+      'Charlotte',
+    ];
+
+    let results: { label: string; value: string }[] = [];
+
+    if (!username) {
+      results = users.slice(0, 4).map(u => ({
+        label: u,
+        value: u,
+      }));
+    } else {
+      const foundUsers = users.find(u => u.includes(username));
+      if (foundUsers && Array.isArray(foundUsers)) {
+        results = foundUsers.map(u => ({ label: u, value: u }));
+      }
+      if (foundUsers && typeof foundUsers === 'string') {
+        const u = foundUsers;
+        results = [{ label: u, value: u }];
+      }
+    }
+
+    // eslint-disable-next-line no-console
+    console.warn(
+      `Emulating network request for search string: ${
+        username || '"empty"'
+      } and page: ${page} with results: [${results
+        .map(u => u.value)
+        .join(', ')}]`,
     );
+
+    setTimeout(() => {
+      resolve(results);
+    }, 300);
+  });
 }
 
-export const AsyncSelect = () => (
-  <Select ariaLabel="async-select" options={fetchUserList} paginatedFetch />
+async function fetchUserListError(): Promise<OptionsType> {
+  return new Promise((_, reject) => {
+    // eslint-disable-next-line prefer-promise-reject-errors
+    reject('This is an error');
+  });
+}
+
+export const AsyncSelect = (args: SelectProps & { withError: boolean }) => (
+  <Select
+    {...args}
+    options={args.withError ? fetchUserListError : fetchUserList}
+  />
 );
+
+AsyncSelect.args = {
+  withError: false,
+  allowNewOptions: false,
+  paginatedFetch: true,
+  options: fetchUserList,
+};
+
+AsyncSelect.argTypes = {
+  mode: {
+    control: { type: 'select', options: ['single', 'multiple', 'tags'] },
+  },
+};
 
 AsyncSelect.story = {
   parameters: {
-    actions: {
-      disable: true,
-    },
-    controls: {
-      disable: true,
-    },
     knobs: {
       disable: true,
     },
