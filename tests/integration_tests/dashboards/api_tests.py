@@ -1149,48 +1149,45 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         db.session.delete(model)
         db.session.commit()
 
-    def test_update_dashboard_new_owner(self):
-        """
-        Dashboard API: Test update set new owner to current user
-        """
-        gamma = self.get_user("gamma")
-        admin = self.get_user("admin")
-        dashboard_id = self.insert_dashboard("title1", "slug1", [gamma.id]).id
-        dashboard_data = {"dashboard_title": "title1_changed", "owners": [admin.id]}
-        self.login(username="admin")
-        uri = f"api/v1/dashboard/{dashboard_id}"
-        rv = self.client.put(uri, json=dashboard_data)
-        self.assertEqual(rv.status_code, 200)
-        model = db.session.query(Dashboard).get(dashboard_id)
-        self.assertNotIn(gamma, model.owners)
-        self.assertIn(admin, model.owners)
-        for slc in model.slices:
-            self.assertNotIn(gamma, slc.owners)
-            self.assertIn(admin, slc.owners)
-        db.session.delete(model)
-        db.session.commit()
-
     def test_update_dashboard_new_owner_not_admin(self):
         """
-        Dashboard API: Test update set new owner to different user than admin
+        Dashboard API: Test update set new owner implicitly adds logged in owner
         """
         gamma = self.get_user("gamma")
         alpha = self.get_user("alpha")
+        dashboard_id = self.insert_dashboard("title1", "slug1", [alpha.id]).id
+        dashboard_data = {"dashboard_title": "title1_changed", "owners": [gamma.id]}
+        self.login(username="alpha")
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        rv = self.client.put(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Dashboard).get(dashboard_id)
+        self.assertIn(gamma, model.owners)
+        self.assertIn(alpha, model.owners)
+        for slc in model.slices:
+            self.assertIn(gamma, slc.owners)
+            self.assertIn(alpha, slc.owners)
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dashboard_new_owner_admin(self):
+        """
+        Dashboard API: Test update set new owner as admin to other than current user
+        """
+        gamma = self.get_user("gamma")
         admin = self.get_user("admin")
-        dashboard_id = self.insert_dashboard("title1", "slug1", [gamma.id]).id
-        dashboard_data = {"dashboard_title": "title1_changed", "owners": [alpha.id]}
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
+        dashboard_data = {"dashboard_title": "title1_changed", "owners": [gamma.id]}
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.client.put(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(Dashboard).get(dashboard_id)
-        self.assertNotIn(gamma, model.owners)
+        self.assertIn(gamma, model.owners)
         self.assertNotIn(admin, model.owners)
-        self.assertIn(alpha, model.owners)
         for slc in model.slices:
-            self.assertNotIn(gamma, slc.owners)
+            self.assertIn(gamma, slc.owners)
             self.assertNotIn(admin, slc.owners)
-            self.assertIn(alpha, slc.owners)
         db.session.delete(model)
         db.session.commit()
 
