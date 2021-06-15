@@ -69,7 +69,7 @@ def load_random_time_series_data(
         "row_limit": config["ROW_LIMIT"],
         "since": "2019-01-01",
         "until": "2019-02-01",
-        "metric": "count",
+        "metrics": ["count"],
         "viz_type": "cal_heatmap",
         "domain_granularity": "month",
         "subdomain_granularity": "day",
