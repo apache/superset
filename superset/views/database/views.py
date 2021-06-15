@@ -436,7 +436,8 @@ class ColumnarToDatabaseView(SimpleFormView):
         if not schema_allows_csv_upload(database, columnar_table.schema):
             message = _(
                 'Database "%(database_name)s" schema "%(schema_name)s" '
-                "is not allowed for columnar uploads. Please contact your Superset Admin.",
+                "is not allowed for columnar uploads. "
+                "Please contact your Superset Admin.",
                 database_name=database.database_name,
                 schema_name=columnar_table.schema,
             )
@@ -528,8 +529,8 @@ class ColumnarToDatabaseView(SimpleFormView):
 
         # Go back to welcome page / splash screen
         message = _(
-            'Columnar file "%(columnar_filename)s" uploaded to table "%(table_name)s" in '
-            'database "%(db_name)s"',
+            'Columnar file "%(columnar_filename)s" uploaded to table "%(table_name)s" '
+            'in database "%(db_name)s"',
             columnar_filename=[file.filename for file in form.columnar_file.data],
             table_name=str(columnar_table),
             db_name=sqla_table.database.database_name,
