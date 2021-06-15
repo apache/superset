@@ -25,8 +25,8 @@ import backoff
 import msgpack
 import pyarrow as pa
 import simplejson as json
+from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
-from celery.task.base import Task
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm import Session
 from werkzeug.local import LocalProxy

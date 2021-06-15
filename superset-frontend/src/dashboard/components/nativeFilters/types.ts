@@ -55,6 +55,7 @@ export interface Filter {
   };
   sortMetric?: string | null;
   adhoc_filters?: AdhocFilter[];
+  granularity_sqla?: string;
   time_range?: string;
   requiredFirst?: boolean;
   tabsInScope?: string[];
