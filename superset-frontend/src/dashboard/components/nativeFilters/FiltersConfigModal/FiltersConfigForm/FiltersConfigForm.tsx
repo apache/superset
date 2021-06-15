@@ -20,6 +20,7 @@ import {
   AdhocFilter,
   Behavior,
   ChartDataResponseResult,
+  Column,
   getChartMetadataRegistry,
   JsonResponse,
   styled,
@@ -29,6 +30,7 @@ import {
 import {
   ColumnMeta,
   DatasourceMeta,
+  InfoTooltipWithTrigger,
   Metric,
 } from '@superset-ui/chart-controls';
 import { FormInstance } from 'antd/lib/form';
@@ -838,6 +840,39 @@ const FiltersConfigForm = (
                       }}
                     />
                   </StyledRowFormItem>
+                  {hasTimeRange && (
+                    <StyledRowFormItem
+                      name={['filters', filterId, 'granularity_sqla']}
+                      label={
+                        <>
+                          <StyledLabel>{t('Time column')}</StyledLabel>&nbsp;
+                          <InfoTooltipWithTrigger
+                            placement="top"
+                            tooltip={t(
+                              'Optional time column if time range should apply to another column than the default time column',
+                            )}
+                          />
+                        </>
+                      }
+                      initialValue={filterToEdit?.granularity_sqla}
+                    >
+                      <ColumnSelect
+                        allowClear
+                        form={form}
+                        formField="granularity_sqla"
+                        filterId={filterId}
+                        filterValues={(column: Column) => !!column.is_dttm}
+                        datasetId={datasetId}
+                        onChange={column => {
+                          // We need reset default value when when column changed
+                          setNativeFilterFieldValues(form, filterId, {
+                            granularity_sqla: column,
+                          });
+                          forceUpdate();
+                        }}
+                      />
+                    </StyledRowFormItem>
+                  )}
                 </CollapsibleControl>
               )}
               {formFilter?.filterType !== 'filter_range' && (
@@ -846,63 +881,71 @@ const FiltersConfigForm = (
                   onChange={checked => onSortChanged(checked || undefined)}
                   checked={hasSorting}
                 >
-                  <StyledRowContainer>
-                    <StyledFormItem
-                      name={[
-                        'filters',
-                        filterId,
-                        'controlValues',
-                        'sortAscending',
+                  <StyledFormItem
+                    name={[
+                      'filters',
+                      filterId,
+                      'controlValues',
+                      'sortAscending',
+                    ]}
+                    initialValue={filterToEdit?.controlValues?.sortAscending}
+                    label={<StyledLabel>{t('Sort type')}</StyledLabel>}
+                  >
+                    <Select
+                      form={form}
+                      filterId={filterId}
+                      name="sortAscending"
+                      options={[
+                        {
+                          value: true,
+                          label: t('Sort ascending'),
+                        },
+                        {
+                          value: false,
+                          label: t('Sort descending'),
+                        },
                       ]}
-                      initialValue={filterToEdit?.controlValues?.sortAscending}
-                      label={<StyledLabel>{t('Sort type')}</StyledLabel>}
+                      onChange={({ value }: { value: boolean }) =>
+                        onSortChanged(value)
+                      }
+                    />
+                  </StyledFormItem>
+                  {hasMetrics && (
+                    <StyledRowFormItem
+                      name={['filters', filterId, 'sortMetric']}
+                      initialValue={filterToEdit?.sortMetric}
+                      label={
+                        <>
+                          <StyledLabel>{t('Sort Metric')}</StyledLabel>&nbsp;
+                          <InfoTooltipWithTrigger
+                            placement="top"
+                            tooltip={t(
+                              'If a metric is specified, sorting will be done based on the metric value',
+                            )}
+                          />
+                        </>
+                      }
+                      data-test="field-input"
                     >
-                      <Select
+                      <SelectControl
                         form={form}
                         filterId={filterId}
-                        name="sortAscending"
-                        options={[
-                          {
-                            value: true,
-                            label: t('Sort ascending'),
-                          },
-                          {
-                            value: false,
-                            label: t('Sort descending'),
-                          },
-                        ]}
-                        onChange={({ value }: { value: boolean }) =>
-                          onSortChanged(value)
-                        }
+                        name="sortMetric"
+                        options={metrics.map((metric: Metric) => ({
+                          value: metric.metric_name,
+                          label: metric.verbose_name ?? metric.metric_name,
+                        }))}
+                        onChange={(value: string | null): void => {
+                          if (value !== undefined) {
+                            setNativeFilterFieldValues(form, filterId, {
+                              sortMetric: value,
+                            });
+                            forceUpdate();
+                          }
+                        }}
                       />
-                    </StyledFormItem>
-                    {hasMetrics && (
-                      <StyledFormItem
-                        name={['filters', filterId, 'sortMetric']}
-                        initialValue={filterToEdit?.sortMetric}
-                        label={<StyledLabel>{t('Sort Metric')}</StyledLabel>}
-                        data-test="field-input"
-                      >
-                        <SelectControl
-                          form={form}
-                          filterId={filterId}
-                          name="sortMetric"
-                          options={metrics.map((metric: Metric) => ({
-                            value: metric.metric_name,
-                            label: metric.verbose_name ?? metric.metric_name,
-                          }))}
-                          onChange={(value: string | null): void => {
-                            if (value !== undefined) {
-                              setNativeFilterFieldValues(form, filterId, {
-                                sortMetric: value,
-                              });
-                              forceUpdate();
-                            }
-                          }}
-                        />
-                      </StyledFormItem>
-                    )}
-                  </StyledRowContainer>
+                    </StyledRowFormItem>
+                  )}
                 </CollapsibleControl>
               )}
             </Collapse.Panel>

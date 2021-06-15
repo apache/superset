@@ -141,6 +141,7 @@ const DetailsPanelPopover = ({
             }
             &.ant-popover {
               color: ${theme.colors.grayscale.light4};
+              z-index: 99;
             }
           }
         `}

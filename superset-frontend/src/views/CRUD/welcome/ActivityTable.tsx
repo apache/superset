@@ -24,9 +24,10 @@ import { setInLocalStorage } from 'src/utils/localStorageHelpers';
 import Loading from 'src/components/Loading';
 import ListViewCard from 'src/components/ListViewCard';
 import SubMenu from 'src/components/Menu/SubMenu';
+import { mq, CardStyles, getEditedObjects } from 'src/views/CRUD/utils';
+import { HOMEPAGE_ACTIVITY_FILTER } from 'src/views/CRUD/storageKeys';
 import { Chart } from 'src/types/Chart';
 import { Dashboard, SavedQueryObject } from 'src/views/CRUD/types';
-import { mq, CardStyles, getEditedObjects } from 'src/views/CRUD/utils';
 
 import { ActivityData } from './Welcome';
 import EmptyState from './EmptyState';
@@ -51,6 +52,12 @@ interface RecentDashboard extends RecentActivity {
   item_type: 'dashboard';
 }
 
+enum SetTabType {
+  EDITED = 'Edited',
+  CREATED = 'Created',
+  VIEWED = 'Viewed',
+  EXAMPLE = 'Examples',
+}
 /**
  * Recent activity objects fetched by `getRecentAcitivtyObjs`.
  */
@@ -68,6 +75,7 @@ interface ActivityProps {
   activeChild: string;
   setActiveChild: (arg0: string) => void;
   activityData: ActivityData;
+  loadedCount: number;
 }
 
 const ActivityContainer = styled.div`
@@ -161,19 +169,10 @@ export default function ActivityTable({
   setActiveChild,
   activityData,
   user,
+  loadedCount,
 }: ActivityProps) {
   const [editedObjs, setEditedObjs] = useState<Array<ActivityData>>();
   const [loadingState, setLoadingState] = useState(false);
-
-  useEffect(() => {
-    if (activeChild === 'Edited') {
-      setLoadingState(true);
-      getEditedObjects(user.userId).then(r => {
-        setEditedObjs([...r.editedChart, ...r.editedDash]);
-        setLoadingState(false);
-      });
-    }
-  }, []);
 
   const getEditedCards = () => {
     setLoadingState(true);
@@ -182,14 +181,21 @@ export default function ActivityTable({
       setLoadingState(false);
     });
   };
+
+  useEffect(() => {
+    if (activeChild === 'Edited') {
+      setLoadingState(true);
+      getEditedCards();
+    }
+  }, [activeChild]);
+
   const tabs = [
     {
       name: 'Edited',
       label: t('Edited'),
       onClick: () => {
         setActiveChild('Edited');
-        setInLocalStorage('activity', { activity: 'Edited' });
-        getEditedCards();
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, SetTabType.EDITED);
       },
     },
     {
@@ -197,7 +203,7 @@ export default function ActivityTable({
       label: t('Created'),
       onClick: () => {
         setActiveChild('Created');
-        setInLocalStorage('activity', { activity: 'Created' });
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, SetTabType.CREATED);
       },
     },
   ];
@@ -208,7 +214,7 @@ export default function ActivityTable({
       label: t('Viewed'),
       onClick: () => {
         setActiveChild('Viewed');
-        setInLocalStorage('activity', { activity: 'Viewed' });
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, SetTabType.VIEWED);
       },
     });
   } else {
@@ -217,7 +223,7 @@ export default function ActivityTable({
       label: t('Examples'),
       onClick: () => {
         setActiveChild('Examples');
-        setInLocalStorage('activity', { activity: 'Examples' });
+        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, SetTabType.EXAMPLE);
       },
     });
   }
@@ -246,16 +252,15 @@ export default function ActivityTable({
         );
       },
     );
-  if (loadingState && !editedObjs) {
+
+  const doneFetching = loadedCount < 3;
+
+  if ((loadingState && !editedObjs) || doneFetching) {
     return <Loading position="inline" />;
   }
   return (
     <>
-      <SubMenu
-        activeChild={activeChild}
-        // eslint-disable-next-line react/no-children-prop
-        tabs={tabs}
-      />
+      <SubMenu activeChild={activeChild} tabs={tabs} />
       {activityData[activeChild]?.length > 0 ||
       (activeChild === 'Edited' && editedObjs && editedObjs.length > 0) ? (
         <ActivityContainer>{renderActivity()}</ActivityContainer>
