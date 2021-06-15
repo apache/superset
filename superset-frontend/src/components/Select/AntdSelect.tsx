@@ -227,8 +227,8 @@ const SelectComponent = ({
     return debounce(loadOptions, DEBOUNCE_TIMEOUT);
   }, [options, paginatedFetch]);
 
-  const handleOnSearch = (searchValue: string) => {
-    const search = searchValue.trim();
+  const handleOnSearch = (search: string) => {
+    const searchValue = search.trim();
     // enables option creation
     if (allowNewOptions && isSingleMode) {
       const lastOption = selectOptions[selectOptions.length - 1].value;
@@ -241,17 +241,17 @@ const SelectComponent = ({
         selectOptions.pop();
         setOptions(selectOptions);
       }
-      if (search && !hasOption(search, selectOptions)) {
+      if (searchValue && !hasOption(searchValue, selectOptions)) {
         const newOption = {
-          label: search,
-          value: search,
+          label: searchValue,
+          value: searchValue,
         };
         // adds a custom option
         const newOptions = [...selectOptions, newOption];
         setOptions(newOptions);
       }
     }
-    setSearchedValue(search);
+    setSearchedValue(searchValue);
   };
 
   const handlePagination = (e: UIEvent<HTMLElement>) => {
@@ -266,7 +266,7 @@ const SelectComponent = ({
   };
 
   const handleFilterOption = (search: string, option: AntdLabeledValue) => {
-    const searchValue = search.toLowerCase();
+    const searchValue = search.trim().toLowerCase();
     if (filterOption && typeof filterOption === 'boolean') return filterOption;
     if (filterOption && typeof filterOption === 'function') {
       return filterOption(search, option);
@@ -297,11 +297,18 @@ const SelectComponent = ({
 
   useEffect(() => {
     const foundOption = hasOption(searchedValue, selectOptions);
-    if (isAsync && !foundOption) {
+    if (isAsync && !foundOption && !allowNewOptions) {
       setLoading(true);
       handleFetch(searchedValue);
     }
   }, [allowNewOptions, isAsync, handleFetch, searchedValue, selectOptions]);
+
+  useEffect(() => {
+    if (isAsync && allowNewOptions) {
+      setLoading(true);
+      handleFetch(searchedValue);
+    }
+  }, [allowNewOptions, isAsync, handleFetch, searchedValue]);
 
   return (
     <>
