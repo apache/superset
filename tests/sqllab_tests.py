@@ -42,6 +42,7 @@ from superset.sql_lab import (
 )
 from superset.sql_parse import CtasMethod
 from superset.utils.core import (
+    backend,
     datetime_to_epoch,
     get_example_database,
     get_main_database,
@@ -84,19 +85,40 @@ class TestSqlLab(SupersetTestCase):
         self.assertLess(0, len(data["data"]))
 
         data = self.run_sql("SELECT * FROM unexistant_table", "2")
-        assert (
-            data["errors"][0]["error_type"] == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
-        )
-        assert data["errors"][0]["level"] == ErrorLevel.ERROR
-        assert data["errors"][0]["extra"] == {
-            "issue_codes": [
-                {
-                    "code": 1002,
-                    "message": "Issue 1002 - The database returned an unexpected error.",
-                }
-            ],
-            "engine_name": engine_name,
-        }
+        if backend() == "presto":
+            assert (
+                data["errors"][0]["error_type"]
+                == SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR
+            )
+            assert data["errors"][0]["level"] == ErrorLevel.ERROR
+            assert data["errors"][0]["extra"] == {
+                "engine_name": "Presto",
+                "issue_codes": [
+                    {
+                        "code": 1003,
+                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                    },
+                    {
+                        "code": 1005,
+                        "message": "Issue 1005 - The table was deleted or renamed in the database.",
+                    },
+                ],
+            }
+        else:
+            assert (
+                data["errors"][0]["error_type"]
+                == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
+            )
+            assert data["errors"][0]["level"] == ErrorLevel.ERROR
+            assert data["errors"][0]["extra"] == {
+                "issue_codes": [
+                    {
+                        "code": 1002,
+                        "message": "Issue 1002 - The database returned an unexpected error.",
+                    }
+                ],
+                "engine_name": engine_name,
+            }
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_json_to_saved_query_info(self):
