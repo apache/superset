@@ -15,14 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, List, Optional
 from urllib import parse
 
+import simplejson as json
 from sqlalchemy.engine.url import make_url, URL
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
-import simplejson as json
+
 
 class TrinoEngineSpec(BaseEngineSpec):
     engine = "trino"
@@ -106,7 +107,7 @@ class TrinoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
-       return True
+        return True
 
     @classmethod
     def estimate_statement_cost(  # pylint: disable=too-many-locals
@@ -183,4 +184,3 @@ class TrinoEngineSpec(BaseEngineSpec):
             cost.append(statement_cost)
 
         return cost
-
