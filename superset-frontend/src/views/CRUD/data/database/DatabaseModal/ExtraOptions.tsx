@@ -66,7 +66,7 @@ const ExtraOptions = ({
         }
         key="1"
       >
-        <StyledInputContainer css={{ ...no_margin_bottom }}>
+        <StyledInputContainer css={no_margin_bottom}>
           <div className="input-container">
             <IndeterminateCheckbox
               id="expose_in_sqllab"
@@ -85,7 +85,7 @@ const ExtraOptions = ({
               'ctas-open': createAsOpen,
             })}
           >
-            <StyledInputContainer css={{ ...no_margin_bottom }}>
+            <StyledInputContainer css={no_margin_bottom}>
               <div className="input-container">
                 <IndeterminateCheckbox
                   id="allow_ctas"
@@ -99,7 +99,7 @@ const ExtraOptions = ({
                 />
               </div>
             </StyledInputContainer>
-            <StyledInputContainer css={{ ...no_margin_bottom }}>
+            <StyledInputContainer css={no_margin_bottom}>
               <div className="input-container">
                 <IndeterminateCheckbox
                   id="allow_cvas"
@@ -132,7 +132,7 @@ const ExtraOptions = ({
                 </div>
               </StyledInputContainer>
             </StyledInputContainer>
-            <StyledInputContainer css={{ ...no_margin_bottom }}>
+            <StyledInputContainer css={no_margin_bottom}>
               <div className="input-container">
                 <IndeterminateCheckbox
                   id="allow_dml"
@@ -148,7 +148,7 @@ const ExtraOptions = ({
                 />
               </div>
             </StyledInputContainer>
-            <StyledInputContainer css={{ ...no_margin_bottom }}>
+            <StyledInputContainer css={no_margin_bottom}>
               <div className="input-container">
                 <IndeterminateCheckbox
                   id="allow_multi_schema_metadata_fetch"
@@ -166,7 +166,7 @@ const ExtraOptions = ({
                 />
               </div>
             </StyledInputContainer>
-            <StyledInputContainer css={{ ...no_margin_bottom }}>
+            <StyledInputContainer css={no_margin_bottom}>
               <div className="input-container">
                 <IndeterminateCheckbox
                   id="cost_query_enabled"
@@ -275,7 +275,7 @@ const ExtraOptions = ({
             )}
           </div>
         </StyledInputContainer>
-        <StyledInputContainer css={{ ...no_margin_bottom }}>
+        <StyledInputContainer css={{ no_margin_bottom }}>
           <div className="input-container">
             <IndeterminateCheckbox
               id="allow_run_async"
@@ -367,7 +367,7 @@ const ExtraOptions = ({
             {t('A list of schemas that CSVs are allowed to upload to.')}
           </div>
         </StyledInputContainer>
-        <StyledInputContainer css={{ ...no_margin_bottom }}>
+        <StyledInputContainer css={{ no_margin_bottom }}>
           <div className="input-container">
             <IndeterminateCheckbox
               id="impersonate_user"
