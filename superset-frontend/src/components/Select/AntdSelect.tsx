@@ -27,7 +27,7 @@ import React, {
   useRef,
 } from 'react';
 import { styled, t } from '@superset-ui/core';
-import { Select as AntdSelect, Spin } from 'antd';
+import { Select as AntdSelect } from 'antd';
 import Icons from 'src/components/Icons';
 import {
   SelectProps as AntdSelectProps,
