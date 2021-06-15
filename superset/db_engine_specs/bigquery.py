@@ -16,15 +16,21 @@
 # under the License.
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 
 import pandas as pd
+from apispec import APISpec
+from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
+from marshmallow import Schema
 from sqlalchemy import literal_column
 from sqlalchemy.sql.expression import ColumnClause
+from typing_extensions import TypedDict
 
+from superset.databases.schemas import encrypted_field_properties, EncryptedField
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.errors import SupersetErrorType
+from superset.errors import SupersetError, SupersetErrorType
+from superset.exceptions import SupersetGenericDBErrorException
 from superset.sql_parse import Table
 from superset.utils import core as utils
 from superset.utils.hashing import md5_sha_from_str
@@ -38,6 +44,18 @@ CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
     + "permission in project (?P<project>.+?)"
 )
 
+ma_plugin = MarshmallowPlugin()
+
+
+class BigQueryParametersSchema(Schema):
+    credentials_info = EncryptedField(
+        required=True, description="Contents of BigQuery JSON credentials.",
+    )
+
+
+class BigQueryParametersType(TypedDict):
+    credentials_info: Dict[str, Any]
+
 
 class BigQueryEngineSpec(BaseEngineSpec):
     """Engine spec for Google's BigQuery
@@ -47,6 +65,10 @@ class BigQueryEngineSpec(BaseEngineSpec):
     engine = "bigquery"
     engine_name = "Google BigQuery"
     max_column_name_length = 128
+
+    parameters_schema = BigQueryParametersSchema()
+    default_driver = "bigquery"
+    sqlalchemy_uri_placeholder = "bigquery://{project_id}"
 
     # BigQuery doesn't maintain context when running multiple statements in the
     # same cursor, so we need to run all statements at once
@@ -95,7 +117,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
         "P1Y": "{func}({col}, YEAR)",
     }
 
-    custom_errors = {
+    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
         CONNECTION_DATABASE_PERMISSIONS_REGEX: (
             __(
                 "We were unable to connect to your database. Please "
@@ -103,6 +125,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
                 "and Job User roles on the project."
             ),
             SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
+            {},
         ),
     }
 
@@ -281,3 +304,55 @@ class BigQueryEngineSpec(BaseEngineSpec):
                 to_gbq_kwargs[key] = to_sql_kwargs[key]
 
         pandas_gbq.to_gbq(df, **to_gbq_kwargs)
+
+    @classmethod
+    def build_sqlalchemy_uri(
+        cls, _: BigQueryParametersType, encrypted_extra: Optional[Dict[str, Any]] = None
+    ) -> str:
+        if encrypted_extra:
+            project_id = encrypted_extra.get("credentials_info", {}).get("project_id")
+
+        if project_id:
+            return f"{cls.engine}+{cls.default_driver}://{project_id}"
+
+        raise SupersetGenericDBErrorException(
+            message="Big Query encrypted_extra is not available.",
+        )
+
+    @classmethod
+    def get_parameters_from_uri(
+        cls, _: str, encrypted_extra: Optional[Dict[str, str]] = None
+    ) -> Any:
+        # BigQuery doesn't have parameters
+        if encrypted_extra:
+            return encrypted_extra
+
+        raise SupersetGenericDBErrorException(
+            message="Big Query encrypted_extra is not available.",
+        )
+
+    @classmethod
+    def validate_parameters(
+        cls, parameters: BigQueryParametersType  # pylint: disable=unused-argument
+    ) -> List[SupersetError]:
+        return []
+
+    @classmethod
+    def parameters_json_schema(cls) -> Any:
+        """
+        Return configuration parameters as OpenAPI.
+        """
+        if not cls.parameters_schema:
+            return None
+
+        spec = APISpec(
+            title="Database Parameters",
+            version="1.0.0",
+            openapi_version="3.0.0",
+            plugins=[ma_plugin],
+        )
+
+        ma_plugin.init_spec(spec)
+        ma_plugin.converter.add_attribute_function(encrypted_field_properties)
+        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
+        return spec.to_dict()["components"]["schemas"][cls.__name__]

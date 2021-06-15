@@ -29,7 +29,7 @@ import rison from 'rison';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FetchDataConfig } from 'src/components/ListView';
 import SupersetText from 'src/utils/textUtils';
-import { Dashboard, Filters, SavedQueryObject } from './types';
+import { Dashboard, Filters } from './types';
 
 const createFetchResourceMethod = (method: string) => (
   resource: string,
@@ -219,32 +219,6 @@ export function handleChartDelete(
   );
 }
 
-export function handleBulkChartExport(chartsToExport: Chart[]) {
-  return window.location.assign(
-    `/api/v1/chart/export/?q=${rison.encode(
-      chartsToExport.map(({ id }) => id),
-    )}`,
-  );
-}
-
-export function handleBulkDashboardExport(dashboardsToExport: Dashboard[]) {
-  return window.location.assign(
-    `/api/v1/dashboard/export/?q=${rison.encode(
-      dashboardsToExport.map(({ id }) => id),
-    )}`,
-  );
-}
-
-export function handleBulkSavedQueryExport(
-  savedQueriesToExport: SavedQueryObject[],
-) {
-  return window.location.assign(
-    `/api/v1/saved_query/export/?q=${rison.encode(
-      savedQueriesToExport.map(({ id }) => id),
-    )}`,
-  );
-}
-
 export function handleDashboardDelete(
   { id, dashboard_title: dashboardTitle }: Dashboard,
   refreshData: (config?: FetchDataConfig | null) => void,
@@ -301,15 +275,13 @@ export const mq = breakpoints.map(bp => `@media (max-width: ${bp}px)`);
 export const CardContainer = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(31%, 31%));
-  ${[mq[3]]} {
+  ${mq[3]} {
     grid-template-columns: repeat(auto-fit, minmax(31%, 31%));
   }
-
-  ${[mq[2]]} {
+  ${mq[2]} {
     grid-template-columns: repeat(auto-fit, minmax(48%, 48%));
   }
-
-  ${[mq[1]]} {
+  ${mq[1]} {
     grid-template-columns: repeat(auto-fit, minmax(50%, 80%));
   }
   grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
@@ -324,3 +296,40 @@ export const CardStyles = styled.div`
     text-decoration: none;
   }
 `;
+
+export /* eslint-disable no-underscore-dangle */
+const isNeedsPassword = (payload: any) =>
+  typeof payload === 'object' &&
+  Array.isArray(payload._schema) &&
+  payload._schema.length === 1 &&
+  payload._schema[0] === 'Must provide a password for the database';
+
+export const isAlreadyExists = (payload: any) =>
+  typeof payload === 'string' &&
+  payload.includes('already exists and `overwrite=true` was not passed');
+
+export const getPasswordsNeeded = (errors: Record<string, any>[]) =>
+  errors
+    .map(error =>
+      Object.entries(error.extra)
+        .filter(([, payload]) => isNeedsPassword(payload))
+        .map(([fileName]) => fileName),
+    )
+    .flat();
+
+export const getAlreadyExists = (errors: Record<string, any>[]) =>
+  errors
+    .map(error =>
+      Object.entries(error.extra)
+        .filter(([, payload]) => isAlreadyExists(payload))
+        .map(([fileName]) => fileName),
+    )
+    .flat();
+
+export const hasTerminalValidation = (errors: Record<string, any>[]) =>
+  errors.some(
+    error =>
+      !Object.values(error.extra).some(
+        payload => isNeedsPassword(payload) || isAlreadyExists(payload),
+      ),
+  );

@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 x-superset-image: &superset-image apache/superset:latest-dev
+x-superset-user: &superset-user root
 x-superset-depends-on: &superset-depends-on
   - db
   - redis
@@ -55,11 +56,39 @@ services:
     restart: unless-stopped
     ports:
       - 8088:8088
-    user: "root"
+    user: *superset-user
     depends_on: *superset-depends-on
     volumes: *superset-volumes
     environment:
       CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
+
+  superset-websocket:
+    container_name: superset_websocket
+    build: ./superset-websocket
+    image: superset-websocket
+    ports:
+      - 8080:8080
+    depends_on:
+      - redis
+    # Mount everything in superset-websocket into container and
+    # then exclude node_modules and dist with bogus volume mount.
+    # This is necessary because host and container need to have
+    # their own, separate versions of these files. .dockerignore
+    # does not seem to work when starting the service through
+    # docker-compose.
+    #
+    # For example, node_modules may contain libs with native bindings.
+    # Those bindings need to be compiled for each OS and the container
+    # OS is not necessarily the same as host OS.
+    volumes:
+      - ./superset-websocket:/home/superset-websocket
+      - /home/superset-websocket/node_modules
+      - /home/superset-websocket/dist
+    environment:
+      - PORT=8080
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_SSL=false
 
   superset-init:
     image: *superset-image
@@ -67,7 +96,7 @@ services:
     command: ["/app/docker/docker-init.sh"]
     env_file: docker/.env
     depends_on: *superset-depends-on
-    user: "root"
+    user: *superset-user
     volumes: *superset-volumes
     environment:
       CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
@@ -87,7 +116,7 @@ services:
     env_file: docker/.env
     restart: unless-stopped
     depends_on: *superset-depends-on
-    user: "root"
+    user: *superset-user
     volumes: *superset-volumes
 
   superset-worker-beat:
@@ -97,7 +126,7 @@ services:
     env_file: docker/.env
     restart: unless-stopped
     depends_on: *superset-depends-on
-    user: "root"
+    user: *superset-user
     volumes: *superset-volumes
 
   superset-tests-worker:
@@ -113,7 +142,7 @@ services:
       REDIS_HOST: localhost
     network_mode: host
     depends_on: *superset-depends-on
-    user: "root"
+    user: *superset-user
     volumes: *superset-volumes
 
 volumes:

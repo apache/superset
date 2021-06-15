@@ -48,6 +48,7 @@ function mapStateToProps(
     datasources,
     sliceEntities,
     nativeFilters,
+    common,
   },
   ownProps,
 ) {
@@ -89,6 +90,7 @@ function mapStateToProps(
     sliceCanEdit: !!dashboardInfo.slice_can_edit,
     ownState: dataMask[id]?.ownState,
     filterState: dataMask[id]?.filterState,
+    maxRows: common.conf.SQL_MAX_ROW,
   };
 }
 

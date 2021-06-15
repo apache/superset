@@ -17,7 +17,8 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { ColumnMeta, ColumnOption } from '@superset-ui/chart-controls';
+import { tn } from '@superset-ui/core';
+import { ColumnMeta } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
 import { LabelProps } from 'src/explore/components/controls/DndColumnSelectControl/types';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
@@ -25,9 +26,10 @@ import OptionWrapper from 'src/explore/components/controls/DndColumnSelectContro
 import { OptionSelector } from 'src/explore/components/controls/DndColumnSelectControl/utils';
 import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
+import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 
 export const DndColumnSelect = (props: LabelProps) => {
-  const { value, options } = props;
+  const { value, options, multi = true } = props;
   const optionSelector = new OptionSelector(options, value);
   const [values, setValues] = useState<ColumnMeta[]>(optionSelector.values);
 
@@ -43,6 +45,7 @@ export const DndColumnSelect = (props: LabelProps) => {
   };
 
   const canDrop = (item: DatasourcePanelDndItem) =>
+    (multi || optionSelector.values.length === 0) &&
     !optionSelector.has((item.value as ColumnMeta).column_name);
 
   const onClickClose = (index: number) => {
@@ -66,7 +69,7 @@ export const DndColumnSelect = (props: LabelProps) => {
         onShiftOptions={onShiftOptions}
         type={DndItemType.ColumnOption}
       >
-        <ColumnOption column={column} showType />
+        <StyledColumnOption column={column} showType />
       </OptionWrapper>
     ));
 
@@ -76,6 +79,8 @@ export const DndColumnSelect = (props: LabelProps) => {
       canDrop={canDrop}
       valuesRenderer={valuesRenderer}
       accept={DndItemType.Column}
+      displayGhostButton={multi || optionSelector.values.length === 0}
+      ghostButtonText={tn('Drop column', 'Drop columns', multi ? 2 : 1)}
       {...props}
     />
   );

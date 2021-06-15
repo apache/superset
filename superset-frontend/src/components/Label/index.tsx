@@ -87,6 +87,8 @@ export default function Label(props: LabelProps) {
 
   return (
     <Tag
+      onClick={onClick}
+      {...rest}
       css={{
         transition: `background-color ${transitionTiming}s`,
         whiteSpace: 'nowrap',
@@ -99,14 +101,13 @@ export default function Label(props: LabelProps) {
         padding: '0.35em 0.8em',
         lineHeight: 1,
         color,
+        maxWidth: '100%',
         '&:hover': {
           backgroundColor: backgroundColorHover,
           borderColor: borderColorHover,
           opacity: 1,
         },
       }}
-      onClick={onClick}
-      {...rest}
     >
       {children}
     </Tag>

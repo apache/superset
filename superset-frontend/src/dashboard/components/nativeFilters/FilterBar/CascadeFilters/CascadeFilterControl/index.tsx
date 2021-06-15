@@ -22,8 +22,10 @@ import Icon from 'src/components/Icon';
 import FilterControl from 'src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControl';
 import { CascadeFilter } from 'src/dashboard/components/nativeFilters/FilterBar/CascadeFilters/types';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
+import { DataMaskStateWithId } from 'src/dataMask/types';
 
 export interface CascadeFilterControlProps {
+  dataMaskSelected?: DataMaskStateWithId;
   filter: CascadeFilter;
   directPathToChild?: string[];
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
@@ -45,6 +47,7 @@ const StyledCaretIcon = styled(Icon)`
 `;
 
 const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
+  dataMaskSelected,
   filter,
   directPathToChild,
   onFilterSelectionChange,
@@ -53,6 +56,7 @@ const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
     <StyledFilterControlBox>
       <StyledCaretIcon name="caret-down" />
       <FilterControl
+        dataMaskSelected={dataMaskSelected}
         filter={filter}
         directPathToChild={directPathToChild}
         onFilterSelectionChange={onFilterSelectionChange}
@@ -63,6 +67,7 @@ const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
       {filter.cascadeChildren?.map(childFilter => (
         <li key={childFilter.id}>
           <CascadeFilterControl
+            dataMaskSelected={dataMaskSelected}
             filter={childFilter}
             directPathToChild={directPathToChild}
             onFilterSelectionChange={onFilterSelectionChange}

@@ -31,6 +31,9 @@ export interface NativeFiltersFormItem {
   controlValues: {
     [key: string]: any;
   };
+  requiredFirst: {
+    [key: string]: boolean;
+  };
   defaultValue: any;
   defaultDataMask: DataMask;
   parentFilter: {
@@ -41,6 +44,7 @@ export interface NativeFiltersFormItem {
   isInstant: boolean;
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
+  granularity_sqla?: string;
 }
 
 export interface NativeFiltersForm {

@@ -37,7 +37,7 @@ from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.types import String, TypeEngine
 
-from superset.db_engine_specs.base import BaseEngineSpec, BaseParametersMixin
+from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
@@ -80,6 +80,10 @@ CONNECTION_HOST_DOWN_REGEX = re.compile(
 CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile(
     'database "(?P<database>.*?)" does not exist'
 )
+COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
+    r'postgresql error: column "(?P<column_name>.+?)" '
+    r"does not exist\s+LINE (?P<location>\d+?)"
+)
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
@@ -100,26 +104,31 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         "P1Y": "DATE_TRUNC('year', {col})",
     }
 
-    custom_errors = {
+    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
         CONNECTION_INVALID_USERNAME_REGEX: (
             __('The username "%(username)s" does not exist.'),
             SupersetErrorType.CONNECTION_INVALID_USERNAME_ERROR,
+            {"invalid": ["username"]},
         ),
         CONNECTION_INVALID_PASSWORD_REGEX: (
             __('The password provided for username "%(username)s" is incorrect.'),
             SupersetErrorType.CONNECTION_INVALID_PASSWORD_ERROR,
+            {"invalid": ["username", "password"]},
         ),
         CONNECTION_INVALID_PASSWORD_NEEDED_REGEX: (
             __("Please re-enter the password."),
             SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            {"invalid": ["password"]},
         ),
         CONNECTION_INVALID_HOSTNAME_REGEX: (
             __('The hostname "%(hostname)s" cannot be resolved.'),
             SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+            {"invalid": ["host"]},
         ),
         CONNECTION_PORT_CLOSED_REGEX: (
             __('Port %(port)s on hostname "%(hostname)s" refused the connection.'),
             SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
+            {"invalid": ["host", "port"]},
         ),
         CONNECTION_HOST_DOWN_REGEX: (
             __(
@@ -127,10 +136,20 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
                 "reached on port %(port)s."
             ),
             SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+            {"invalid": ["host", "port"]},
         ),
         CONNECTION_UNKNOWN_DATABASE_REGEX: (
             __('Unable to connect to database "%(database)s".'),
             SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+            {"invalid": ["database"]},
+        ),
+        COLUMN_DOES_NOT_EXIST_REGEX: (
+            __(
+                'We can\'t seem to resolve the column "%(column_name)s" at '
+                "line %(location)s.",
+            ),
+            SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+            {},
         ),
     }
 
@@ -148,14 +167,16 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         return "(timestamp 'epoch' + {col} * interval '1 second')"
 
 
-class PostgresEngineSpec(PostgresBaseEngineSpec, BaseParametersMixin):
+class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
     engine = "postgresql"
     engine_aliases = {"postgres"}
 
-    drivername = "postgresql+psycopg2"
+    default_driver = "psycopg2"
     sqlalchemy_uri_placeholder = (
-        "postgresql+psycopg2://user:password@host:port/dbname[?key=value&key=value...]"
+        "postgresql://user:password@host:port/dbname[?key=value&key=value...]"
     )
+    # https://www.postgresql.org/docs/9.1/libpq-ssl.html#LIBQ-SSL-CERTIFICATES
+    encryption_parameters = {"sslmode": "verify-ca"}
 
     max_column_name_length = 63
     try_remove_schema_from_table_name = False

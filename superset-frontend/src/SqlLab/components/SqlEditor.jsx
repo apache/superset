@@ -483,6 +483,7 @@ class SqlEditor extends React.PureComponent {
           actions={this.props.actions}
           height={southPaneHeight}
           displayLimit={this.props.displayLimit}
+          defaultQueryLimit={this.props.defaultQueryLimit}
         />
       </Split>
     );
