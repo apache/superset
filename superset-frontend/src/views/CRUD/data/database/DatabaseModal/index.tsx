@@ -449,9 +449,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const renderAvailableSelector = () => (
     <div className="available">
-      <span className="available-label">
-        Or choose from a list of other databases we support{' '}
-      </span>
+      <h4 className="available-label">
+        Or choose from a list of other databases we support:
+      </h4>
+      <div className="control-label">Supported databases</div>
       <Select
         style={{ width: '100%' }}
         onChange={setDatabaseModel}
@@ -494,7 +495,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             className="preferred-item"
             onClick={() => setDatabaseModel(database.engine)}
             buttonText={database.name}
-            icon={dbImages && dbImages[database.engine]}
+            icon={dbImages?.[database.engine]}
           />
         ))}
     </div>
