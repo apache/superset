@@ -1671,16 +1671,11 @@ class TestDatabaseApi(SupersetTestCase):
         assert response == {
             "errors": [
                 {
-                    "message": "An error happened when validating the request",
+                    "message": "Missing data for required field.",
                     "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
                     "level": "error",
                     "extra": {
-                        "messages": {
-                            "configuration_method": [
-                                "Missing data for required field."
-                            ],
-                            "engine": ["Missing data for required field."],
-                        },
+                        "invalid": ["engine"],
                         "issue_codes": [
                             {
                                 "code": 1020,
@@ -1688,7 +1683,21 @@ class TestDatabaseApi(SupersetTestCase):
                             }
                         ],
                     },
-                }
+                },
+                {
+                    "message": "Unknown field.",
+                    "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
+                    "level": "error",
+                    "extra": {
+                        "invalid": ["foo"],
+                        "issue_codes": [
+                            {
+                                "code": 1020,
+                                "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                            }
+                        ],
+                    },
+                },
             ]
         }
 
@@ -1696,9 +1705,9 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(username="admin")
         url = "api/v1/database/validate_parameters"
         payload = {
-            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
             "engine": "postgresql",
             "parameters": defaultdict(dict),
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
         }
         payload["parameters"].update(
             {
@@ -1726,6 +1735,79 @@ class TestDatabaseApi(SupersetTestCase):
                             {
                                 "code": 1018,
                                 "message": "Issue 1018 - One or more parameters needed to configure a database are missing.",
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
+
+    @mock.patch("superset.db_engine_specs.base.is_hostname_valid")
+    @mock.patch("superset.db_engine_specs.base.is_port_open")
+    @mock.patch("superset.databases.api.ValidateDatabaseParametersCommand")
+    def test_validate_parameters_valid_payload(
+        self, ValidateDatabaseParametersCommand, is_port_open, is_hostname_valid
+    ):
+        is_hostname_valid.return_value = True
+        is_port_open.return_value = True
+
+        self.login(username="admin")
+        url = "api/v1/database/validate_parameters"
+        payload = {
+            "engine": "postgresql",
+            "parameters": defaultdict(dict),
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
+        }
+        payload["parameters"].update(
+            {
+                "host": "localhost",
+                "port": 6789,
+                "username": "superset",
+                "password": "XXX",
+                "database": "test",
+                "query": {},
+            }
+        )
+        rv = self.client.post(url, json=payload)
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+    def test_validate_parameters_invalid_port(self):
+        self.login(username="admin")
+        url = "api/v1/database/validate_parameters"
+        payload = {
+            "engine": "postgresql",
+            "parameters": defaultdict(dict),
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
+        }
+        payload["parameters"].update(
+            {
+                "host": "localhost",
+                "port": "string",
+                "username": "superset",
+                "password": "XXX",
+                "database": "test",
+                "query": {},
+            }
+        )
+        rv = self.client.post(url, json=payload)
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "Not a valid integer.",
+                    "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
+                    "level": "error",
+                    "extra": {
+                        "invalid": ["port"],
+                        "issue_codes": [
+                            {
+                                "code": 1020,
+                                "message": "Issue 1020 - The submitted payload has the incorrect schema.",
                             }
                         ],
                     },
@@ -1792,10 +1874,9 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
     @mock.patch("superset.db_engine_specs.base.is_hostname_valid")
-    @mock.patch("superset.db_engine_specs.base.is_port_open")
-    def test_validate_parameters_invalid_port(self, is_hostname_valid, is_port_open):
+    def test_validate_parameters_invalid_port_range(self, is_hostname_valid):
         is_hostname_valid.return_value = True
-        is_port_open.return_value = True
+
         self.login(username="admin")
         url = "api/v1/database/validate_parameters"
         payload = {
@@ -1806,15 +1887,46 @@ class TestDatabaseApi(SupersetTestCase):
         payload["parameters"].update(
             {
                 "host": "localhost",
-                "port": 65536,
-                "username": "postgres",
+                "port": 5432,
+                "username": "",
                 "password": "",
-                "database": "postgres",
+                "database": "",
                 "query": {},
             }
         )
         rv = self.client.post(url, json=payload)
-        # response = json.loads(rv.data.decode("utf-8"))
+        response = json.loads(rv.data.decode("utf-8"))
 
-        # TODO(AAfghahi): Add response based on new PR
         assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "One or more parameters are missing: database, username",
+                    "error_type": "CONNECTION_MISSING_PARAMETERS_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "missing": ["database", "username"],
+                        "issue_codes": [
+                            {
+                                "code": 1018,
+                                "message": "Issue 1018 - One or more parameters needed to configure a database are missing.",
+                            }
+                        ],
+                    },
+                },
+                {
+                    "message": "The hostname provided can't be resolved.",
+                    "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
+                    "level": "error",
+                    "extra": {
+                        "invalid": ["host"],
+                        "issue_codes": [
+                            {
+                                "code": 1007,
+                                "message": "Issue 1007 - The hostname provided can't be resolved.",
+                            }
+                        ],
+                    },
+                },
+            ]
+        }

@@ -16,7 +16,7 @@
 # under the License.
 import inspect
 import json
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Type
 
 from flask import current_app
 from flask_babel import lazy_gettext as _
@@ -27,7 +27,7 @@ from sqlalchemy import MetaData
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError
 
-from superset.db_engine_specs import get_engine_specs
+from superset.db_engine_specs import BaseEngineSpec, get_engine_specs
 from superset.exceptions import CertificateException, SupersetSecurityException
 from superset.models.core import ConfigurationMethod, PASSWORD_MASK
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
@@ -227,8 +227,6 @@ class DatabaseParametersSchemaMixin:
     When using this mixin make sure that `sqlalchemy_uri` is not required.
     """
 
-    # currently in a put request we are not passing in an engine,
-    # but rather a backend. In a future PR we will address that
     engine = fields.String(allow_none=True, description="SQLAlchemy engine to use")
     parameters = fields.Dict(
         keys=fields.String(),
@@ -255,9 +253,7 @@ class DatabaseParametersSchemaMixin:
         the constructed SQLAlchemy URI to be passed.
         """
         parameters = data.pop("parameters", {})
-
-        # TODO (betodealmeida): remove second expression after making sure
-        # frontend is not passing engine inside parameters
+        # TODO(AAfghahi) standardize engine.
         engine = (
             data.pop("engine", None)
             or parameters.pop("engine", None)
@@ -266,21 +262,7 @@ class DatabaseParametersSchemaMixin:
 
         configuration_method = data.get("configuration_method")
         if configuration_method == ConfigurationMethod.DYNAMIC_FORM:
-            if not engine:
-                raise ValidationError(
-                    [
-                        _(
-                            "An engine must be specified when passing "
-                            "individual parameters to a database."
-                        )
-                    ]
-                )
-            engine_specs = get_engine_specs()
-            if engine not in engine_specs:
-                raise ValidationError(
-                    [_('Engine "%(engine)s" is not a valid engine.', engine=engine,)]
-                )
-            engine_spec = engine_specs[engine]
+            engine_spec = get_engine_spec(engine)
 
             if not hasattr(engine_spec, "build_sqlalchemy_uri") or not hasattr(
                 engine_spec, "parameters_schema"
@@ -314,10 +296,25 @@ class DatabaseParametersSchemaMixin:
         return data
 
 
-class DatabaseValidateParametersSchema(Schema):
-    class Meta:  # pylint: disable=too-few-public-methods
-        unknown = EXCLUDE
+def get_engine_spec(engine: Optional[str]) -> Type[BaseEngineSpec]:
+    if not engine:
+        raise ValidationError(
+            [
+                _(
+                    "An engine must be specified when passing "
+                    "individual parameters to a database."
+                )
+            ]
+        )
+    engine_specs = get_engine_specs()
+    if engine not in engine_specs:
+        raise ValidationError(
+            [_('Engine "%(engine)s" is not a valid engine.', engine=engine,)]
+        )
+    return engine_specs[engine]
 
+
+class DatabaseValidateParametersSchema(Schema):
     engine = fields.String(required=True, description="SQLAlchemy engine to use")
     parameters = fields.Dict(
         keys=fields.String(),
@@ -345,6 +342,17 @@ class DatabaseValidateParametersSchema(Schema):
         required=True,
         description=configuration_method_description,
     )
+
+    @validates_schema
+    def validate_parameters(  # pylint: disable=no-self-use
+        self, data: Dict[str, Any], **kwargs: Any  # pylint: disable=unused-argument
+    ) -> None:
+        """
+        Validate the DB engine spec specific parameters schema.
+        """
+        # TODO (aafghahi): use a single parameter
+        engine_spec = get_engine_spec(data.get("engine") or data.get("backend"))
+        engine_spec.parameters_schema.load(data["parameters"])  # type: ignore
 
 
 class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
