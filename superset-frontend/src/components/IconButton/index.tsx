@@ -21,6 +21,7 @@ import { styled, supersetTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import { ButtonProps as AntdButtonProps } from 'antd/lib/button';
 import Icon from 'src/components/Icon';
+import LinesEllipsis from 'react-lines-ellipsis';
 
 export interface IconButtonProps extends AntdButtonProps {
   buttonText: string;
@@ -33,19 +34,26 @@ const StyledButton = styled(Button)`
   display: flex;
   flex-direction: column;
   padding: 0;
-  width: 33%;
 `;
+
 const StyledImage = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
+  height: ${({ theme }) => theme.gridUnit * 18}px;
+  margin: ${({ theme }) => theme.gridUnit * 3}px 0;
 
   &:first-of-type {
     margin-right: 0;
   }
 
   img {
-    width: 100%;
-    height: 100%;
-
+    width: ${({ theme }) => theme.gridUnit * 10}px;
+    height: ${({ theme }) => theme.gridUnit * 10}px;
+    margin: 0;
+    &:first-of-type {
+      margin-right: 0;
+    }
+  }
+  svg {
     &:first-of-type {
       margin-right: 0;
     }
@@ -54,35 +62,27 @@ const StyledImage = styled.div`
 
 const StyledInner = styled.div`
   max-height: calc(1.5em * 2);
-  overflow: hidden;
-  padding-right: 1rem;
-  position: relative;
   white-space: break-spaces;
 
-  &::before {
-    content: '...';
-    inset-block-end: 0; /* "bottom" */
-    inset-inline-end: 8px; /* "right" */
-    position: absolute;
+  &:first-of-type {
+    margin-right: 0;
   }
 
-  &::after {
-    background-color: ${({ theme }) => theme.colors.grayscale.light4};
-    content: '';
-    height: 1rem;
-    inset-inline-end: 8px; /* "right" */
-    position: absolute;
-    top: 4px;
-    width: 1rem;
+  .LinesEllipsis {
+    &:first-of-type {
+      margin-right: 0;
+    }
   }
 `;
 
 const StyledBottom = styled.div`
+  padding: ${({ theme }) => theme.gridUnit * 4}px 0;
   border-radius: 0 0 ${({ theme }) => theme.borderRadius}px
     ${({ theme }) => theme.borderRadius}px;
   background-color: ${({ theme }) => theme.colors.grayscale.light4};
   width: 100%;
   line-height: 1.5em;
+  overflow: hidden;
   white-space: no-wrap;
   text-overflow: ellipsis;
 
@@ -99,15 +99,23 @@ const IconButton = styled(
         {!icon && (
           <Icon
             color={supersetTheme.colors.primary.base}
-            height={100}
-            width={100}
+            height="40"
+            width="40"
+            viewBox="0 0 18 18"
             name="default-database"
           />
         )}
       </StyledImage>
 
       <StyledBottom>
-        <StyledInner>{buttonText}</StyledInner>
+        <StyledInner>
+          <LinesEllipsis
+            text={buttonText}
+            maxLine="2"
+            basedOn="words"
+            trimRight
+          />
+        </StyledInner>
       </StyledBottom>
     </StyledButton>
   ),

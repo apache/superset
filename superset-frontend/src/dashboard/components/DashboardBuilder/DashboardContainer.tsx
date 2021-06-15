@@ -18,10 +18,11 @@
  */
 // ParentSize uses resize observer so the dashboard will update size
 // when its container size changes, due to e.g., builder side panel opening
-import { ParentSize } from '@vx/responsive';
-import Tabs from 'src/components/Tabs';
 import React, { FC, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { ParentSize } from '@vx/responsive';
+import Tabs from 'src/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
 import { DashboardLayout, LayoutItem, RootState } from 'src/dashboard/types';
@@ -33,7 +34,7 @@ import { getRootLevelTabIndex } from './utils';
 import { Filters } from '../../reducers/types';
 import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';
-import { setFilterConfiguration } from '../../actions/nativeFilters';
+import { setInScopeStatusOfFilters } from '../../actions/nativeFilters';
 
 type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
@@ -43,9 +44,9 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
-  const nativeFilters = useSelector<RootState, Filters>(
-    state => state.nativeFilters.filters,
-  );
+  const nativeFilters =
+    useSelector<RootState, Filters>(state => state.nativeFilters?.filters) ??
+    {};
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
@@ -63,9 +64,15 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const nativeFiltersValues = Object.values(nativeFilters);
   const scopes = nativeFiltersValues.map(filter => filter.scope);
   useEffect(() => {
-    nativeFiltersValues.forEach(filter => {
+    if (
+      !isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) ||
+      nativeFiltersValues.length === 0
+    ) {
+      return;
+    }
+    const filterScopes = nativeFiltersValues.map(filter => {
       const filterScope = filter.scope;
-      const chartsInScope = getChartIdsInFilterScope({
+      const chartsInScope: number[] = getChartIdsInFilterScope({
         filterScope: {
           scope: filterScope.rootPath,
           // @ts-ignore
@@ -76,12 +83,13 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
         dashboardLayout,
         chartsInScope,
       );
-      Object.assign(filter, {
-        chartsInScope,
+      return {
+        filterId: filter.id,
         tabsInScope: Array.from(tabsInScope),
-      });
+        chartsInScope,
+      };
     });
-    dispatch(setFilterConfiguration(nativeFiltersValues));
+    dispatch(setInScopeStatusOfFilters(filterScopes));
   }, [JSON.stringify(scopes), JSON.stringify(dashboardLayout)]);
 
   const childIds: string[] = topLevelTabs

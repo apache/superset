@@ -35,10 +35,7 @@ import {
   updateComponents,
   handleComponentDrop,
 } from '../actions/dashboardLayout';
-import {
-  setDirectPathToChild,
-  setLastFocusedTab,
-} from '../actions/dashboardState';
+import { setDirectPathToChild, setActiveTabs } from '../actions/dashboardState';
 
 const propTypes = {
   id: PropTypes.string,
@@ -104,7 +101,7 @@ function mapStateToProps(
     redoLength: undoableLayout.future.length,
     filters: getActiveFilters(),
     directPathToChild: dashboardState.directPathToChild,
-    lastFocusedTabId: dashboardState.lastFocusedTabId,
+    activeTabs: dashboardState.activeTabs,
     directPathLastUpdated: dashboardState.directPathLastUpdated,
     dashboardId: dashboardInfo.id,
     nativeFilters,
@@ -141,7 +138,7 @@ function mapDispatchToProps(dispatch) {
       updateComponents,
       handleComponentDrop,
       setDirectPathToChild,
-      setLastFocusedTab,
+      setActiveTabs,
       logEvent,
     },
     dispatch,

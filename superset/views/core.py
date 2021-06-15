@@ -78,6 +78,7 @@ from superset.exceptions import (
     CertificateException,
     DatabaseNotFound,
     SerializationError,
+    SupersetErrorsException,
     SupersetException,
     SupersetGenericDBErrorException,
     SupersetSecurityException,
@@ -2426,7 +2427,15 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             raise SupersetGenericDBErrorException(utils.error_msg_from_exception(ex))
 
         if data.get("status") == QueryStatus.FAILED:
-            raise SupersetGenericDBErrorException(data["error"])
+            msg = data["error"]
+            query = _session.query(Query).filter_by(id=query_id).one()
+            database = query.database
+            db_engine_spec = database.db_engine_spec
+            errors = db_engine_spec.extract_errors(msg)
+            _session.close()
+            if errors:
+                raise SupersetErrorsException(errors)
+            raise SupersetGenericDBErrorException(msg)
         return json_success(payload)
 
     @has_access_api

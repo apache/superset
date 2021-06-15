@@ -65,8 +65,8 @@ const buildQuery: BuildQuery<PluginFilterSelectQueryFormData> = (
         metrics: sortMetric ? [sortMetric] : [],
         filters: filters.concat(extra_filters),
         orderby:
-          sortMetric || sortAscending
-            ? sortColumns.map(column => [column, sortAscending])
+          sortMetric || sortAscending !== undefined
+            ? sortColumns.map(column => [column, !!sortAscending])
             : [],
       },
     ];
