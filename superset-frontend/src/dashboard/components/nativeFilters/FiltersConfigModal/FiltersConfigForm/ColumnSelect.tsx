@@ -18,7 +18,7 @@
  */
 import React, { useCallback, useState } from 'react';
 import { FormInstance } from 'antd/lib/form';
-import { SupersetClient, t } from '@superset-ui/core';
+import { Column, SupersetClient, t } from '@superset-ui/core';
 import { useChangeEffect } from 'src/common/hooks/useChangeEffect';
 import { Select } from 'src/common/components';
 import { useToasts } from 'src/messageToasts/enhancers/withToasts';
@@ -27,7 +27,10 @@ import { cacheWrapper } from 'src/utils/cacheWrapper';
 import { NativeFiltersForm } from '../types';
 
 interface ColumnSelectProps {
+  allowClear?: boolean;
+  filterValues?: (column: Column) => boolean;
   form: FormInstance<NativeFiltersForm>;
+  formField?: string;
   filterId: string;
   datasetId?: number;
   value?: string;
@@ -45,7 +48,10 @@ const cachedSupersetGet = cacheWrapper(
 /** Special purpose AsyncSelect that selects a column from a dataset */
 // eslint-disable-next-line import/prefer-default-export
 export function ColumnSelect({
+  allowClear = false,
+  filterValues = () => true,
   form,
+  formField = 'column',
   filterId,
   datasetId,
   value,
@@ -55,7 +61,7 @@ export function ColumnSelect({
   const { addDangerToast } = useToasts();
   const resetColumnField = useCallback(() => {
     form.setFields([
-      { name: ['filters', filterId, 'column'], touched: false, value: null },
+      { name: ['filters', filterId, formField], touched: false, value: null },
     ]);
   }, [form, filterId]);
 
@@ -69,6 +75,7 @@ export function ColumnSelect({
       }).then(
         ({ json: { result } }) => {
           const columns = result.columns
+            .filter(filterValues)
             .map((col: any) => col.column_name)
             .sort((a: string, b: string) => a.localeCompare(b));
           if (!columns.includes(value)) {
@@ -97,6 +104,7 @@ export function ColumnSelect({
       options={options}
       placeholder={t('Select a column')}
       showSearch
+      allowClear={allowClear}
     />
   );
 }

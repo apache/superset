@@ -29,7 +29,7 @@ import Label from 'src/components/Label';
 import { Dropdown, Menu } from 'src/common/components';
 import FaveStar from 'src/components/FaveStar';
 import FacePile from 'src/components/FacePile';
-import { handleChartDelete, handleBulkChartExport, CardStyles } from '../utils';
+import { handleChartDelete, CardStyles } from '../utils';
 
 interface ChartCardProps {
   chart: Chart;
@@ -45,6 +45,7 @@ interface ChartCardProps {
   chartFilter?: string;
   userId?: number;
   showThumbnails?: boolean;
+  handleBulkChartExport: (chartsToExport: Chart[]) => void;
 }
 
 export default function ChartCard({
@@ -61,6 +62,7 @@ export default function ChartCard({
   favoriteStatus,
   chartFilter,
   userId,
+  handleBulkChartExport,
 }: ChartCardProps) {
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');

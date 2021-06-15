@@ -344,9 +344,9 @@ export function setDirectPathToChild(path) {
   return { type: SET_DIRECT_PATH, path };
 }
 
-export const SET_LAST_FOCUSED_TAB = 'SET_LAST_FOCUSED_TAB';
-export function setLastFocusedTab(tabId) {
-  return { type: SET_LAST_FOCUSED_TAB, tabId };
+export const SET_ACTIVE_TABS = 'SET_ACTIVE_TABS';
+export function setActiveTabs(tabIds) {
+  return { type: SET_ACTIVE_TABS, tabIds };
 }
 
 export const SET_FOCUSED_FILTER_FIELD = 'SET_FOCUSED_FILTER_FIELD';

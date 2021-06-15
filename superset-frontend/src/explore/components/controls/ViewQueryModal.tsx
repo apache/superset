@@ -80,7 +80,7 @@ const ViewQueryModal: React.FC<Props> = props => {
   };
   useEffect(() => {
     loadChartData('query');
-  }, [props.latestQueryFormData]);
+  }, [JSON.stringify(props.latestQueryFormData)]);
 
   if (isLoading) {
     return <Loading />;

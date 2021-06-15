@@ -136,10 +136,6 @@ function dbReducer(
   };
   let query = '';
 
-  let extra_json = {
-    ...JSON.parse(action.payload.extra || ''),
-  };
-
   switch (action.type) {
     case ActionType.extraEditorChange:
       return {
@@ -213,6 +209,10 @@ function dbReducer(
       };
     case ActionType.fetched:
       // convert all the keys in this payload into strings
+      // eslint-disable-next-line no-case-declarations
+      let extra_json = {
+        ...JSON.parse(action.payload.extra || ''),
+      };
       extra_json = {
         ...extra_json,
         metadata_params: JSON.stringify(extra_json.metadata_params),
@@ -348,10 +348,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         // convert extra_json to back to string
         update.extra = JSON.stringify({
           ...update.extra_json,
-          metadata_params: JSON.parse(update?.extra_json?.metadata_params),
-          engine_params: JSON.parse(update?.extra_json?.engine_params),
+          metadata_params: JSON.parse(
+            update?.extra_json?.metadata_params as string,
+          ),
+          engine_params: JSON.parse(
+            update?.extra_json?.engine_params as string,
+          ),
           schemas_allowed_for_csv_upload: JSON.parse(
-            update?.extra_json?.schemas_allowed_for_csv_upload,
+            update?.extra_json?.schemas_allowed_for_csv_upload as string,
           ),
         });
       }
@@ -388,10 +392,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         // convert extra_json to back to string
         update.extra = JSON.stringify({
           ...update.extra_json,
-          metadata_params: JSON.parse(update?.extra_json?.metadata_params),
-          engine_params: JSON.parse(update?.extra_json?.engine_params),
+          metadata_params: JSON.parse(
+            update?.extra_json?.metadata_params as string,
+          ),
+          engine_params: JSON.parse(
+            update?.extra_json?.engine_params as string,
+          ),
           schemas_allowed_for_csv_upload: JSON.parse(
-            update?.extra_json?.schemas_allowed_for_csv_upload,
+            update?.extra_json?.schemas_allowed_for_csv_upload as string,
           ),
         });
       }
@@ -449,9 +457,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const renderAvailableSelector = () => (
     <div className="available">
-      <span className="available-label">
-        Or choose from a list of other databases we support{' '}
-      </span>
+      <h4 className="available-label">
+        Or choose from a list of other databases we support:
+      </h4>
+      <div className="control-label">Supported databases</div>
       <Select
         style={{ width: '100%' }}
         onChange={setDatabaseModel}
@@ -494,7 +503,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             className="preferred-item"
             onClick={() => setDatabaseModel(database.engine)}
             buttonText={database.name}
-            icon={dbImages && dbImages[database.engine]}
+            icon={dbImages?.[database.engine]}
           />
         ))}
     </div>

@@ -41,12 +41,13 @@ export type Chart = ChartState & {
   };
 };
 
+export type ActiveTabs = string[];
 export type DashboardLayout = { [key: string]: LayoutItem };
 export type DashboardLayoutState = { present: DashboardLayout };
 export type DashboardState = {
   editMode: boolean;
   directPathToChild: string[];
-  lastFocusedTabId: string | null;
+  activeTabs: ActiveTabs;
 };
 export type DashboardInfo = {
   common: {
