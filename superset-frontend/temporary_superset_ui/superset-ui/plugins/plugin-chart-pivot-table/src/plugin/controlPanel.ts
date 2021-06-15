@@ -23,6 +23,7 @@ import {
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
+import { MetricsLayoutEnum } from '../types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -57,6 +58,22 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.metrics,
               validators: [validateNonEmpty],
+            },
+          },
+        ],
+        [
+          {
+            name: 'metricsLayout',
+            config: {
+              type: 'RadioButtonControl',
+              renderTrigger: true,
+              label: t('Apply metrics on'),
+              default: MetricsLayoutEnum.COLUMNS,
+              options: [
+                [MetricsLayoutEnum.COLUMNS, t('Columns')],
+                [MetricsLayoutEnum.ROWS, t('Rows')],
+              ],
+              description: t('Use metrics as a top level group for columns or for rows'),
             },
           },
         ],
