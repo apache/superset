@@ -24,7 +24,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import { t, styled, supersetTheme } from '@superset-ui/core';
+import { t, styled, supersetTheme, withTheme } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 import StyledModal from 'src/components/Modal';
@@ -564,7 +564,7 @@ class SqlEditor extends React.PureComponent {
       this.props.database || {};
 
     const showMenu = allowCTAS || allowCVAS;
-
+    const { theme } = this.props;
     const runMenuBtn = (
       <Menu>
         {allowCTAS && (
@@ -639,9 +639,7 @@ class SqlEditor extends React.PureComponent {
                         this.props.defaultQueryLimit,
                     )}
                   </span>
-                  <Icons.TriangleDown
-                    iconColor={supersetTheme.colors.grayscale.base}
-                  />
+                  <Icons.TriangleDown iconColor={theme.colors.grayscale.base} />
                 </a>
               </Dropdown>
             </LimitSelectStyled>
@@ -669,7 +667,7 @@ class SqlEditor extends React.PureComponent {
             <ShareSqlLabQuery queryEditor={qe} />
           </span>
           <Dropdown overlay={this.renderDropdown()} trigger="click">
-            <Icons.MoreHoriz iconColor={supersetTheme.colors.grayscale.base} />
+            <Icons.MoreHoriz iconColor={theme.colors.grayscale.base} />
           </Dropdown>
         </div>
       </StyledToolbar>
@@ -785,4 +783,5 @@ function mapDispatchToProps(dispatch) {
   );
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(SqlEditor);
+const themedSqlEditor = withTheme(SqlEditor);
+export default connect(mapStateToProps, mapDispatchToProps)(themedSqlEditor);
