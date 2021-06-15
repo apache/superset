@@ -84,6 +84,8 @@ enum ActionType {
   parametersChange,
   reset,
   textChange,
+  extraInputChange,
+  extraEditorChange,
 }
 
 interface DBReducerPayloadType {
@@ -98,6 +100,8 @@ interface DBReducerPayloadType {
 type DBReducerActionType =
   | {
       type:
+        | ActionType.extraEditorChange
+        | ActionType.extraInputChange
         | ActionType.textChange
         | ActionType.inputChange
         | ActionType.editorChange
@@ -130,8 +134,47 @@ function dbReducer(
   const trimmedState = {
     ...(state || {}),
   };
+  let query = '';
+
+  let extra_json = {
+    ...JSON.parse(action.payload.extra || ''),
+  };
 
   switch (action.type) {
+    case ActionType.extraEditorChange:
+      return {
+        ...trimmedState,
+        extra_json: {
+          ...trimmedState.extra_json,
+          [action.payload.name]: action.payload.json,
+        },
+      };
+    case ActionType.extraInputChange:
+      if (
+        action.payload.name === 'schema_cache_timeout' ||
+        action.payload.name === 'table_cache_timeout'
+      ) {
+        return {
+          ...trimmedState,
+          extra_json: {
+            ...trimmedState.extra_json,
+            metadata_cache_timeout: {
+              ...trimmedState.extra_json?.metadata_cache_timeout,
+              [action.payload.name]: action.payload.value,
+            },
+          },
+        };
+      }
+      return {
+        ...trimmedState,
+        extra_json: {
+          ...trimmedState.extra_json,
+          [action.payload.name]:
+            action.payload.type === 'checkbox'
+              ? action.payload.checked
+              : action.payload.value,
+        },
+      };
     case ActionType.inputChange:
       if (action.payload.type === 'checkbox') {
         return {
@@ -169,10 +212,32 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.fetched:
+      // convert all the keys in this payload into strings
+      extra_json = {
+        ...extra_json,
+        metadata_params: JSON.stringify(extra_json.metadata_params),
+        engine_params: JSON.stringify(extra_json.engine_params),
+        schemas_allowed_for_csv_upload: JSON.stringify(
+          extra_json.schemas_allowed_for_csv_upload,
+        ),
+      };
+
+      if (action.payload?.parameters?.query) {
+        // convert query into URI params string
+        query = new URLSearchParams(
+          action.payload.parameters.query as string,
+        ).toString();
+      }
+
       return {
+        ...action.payload,
         engine: trimmedState.engine,
         configuration_method: trimmedState.configuration_method,
-        ...action.payload,
+        extra_json,
+        parameters: {
+          ...action.payload.parameters,
+          query,
+        },
       };
     case ActionType.dbSelected:
       return {
@@ -265,7 +330,32 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onSave = async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...update } = db || {};
+
+    if (update?.parameters?.query) {
+      // convert query params into dictionary
+      update.parameters.query = JSON.parse(
+        `{"${decodeURI((update?.parameters?.query as string) || '')
+          .replace(/"/g, '\\"')
+          .replace(/&/g, '","')
+          .replace(/=/g, '":"')}"}`,
+      );
+    } else if (update.parameters) {
+      update.parameters.query = {};
+    }
+
     if (db?.id) {
+      if (update?.extra_json) {
+        // convert extra_json to back to string
+        update.extra = JSON.stringify({
+          ...update.extra_json,
+          metadata_params: JSON.parse(update?.extra_json?.metadata_params),
+          engine_params: JSON.parse(update?.extra_json?.engine_params),
+          schemas_allowed_for_csv_upload: JSON.parse(
+            update?.extra_json?.schemas_allowed_for_csv_upload,
+          ),
+        });
+      }
+
       const result = await updateResource(
         db.id as number,
         update as DatabaseObject,
@@ -287,12 +377,25 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (update?.parameters?.query) {
         // convert query params into dictionary
         update.parameters.query = JSON.parse(
-          `{"${decodeURI(db.parameters?.query || '')
+          `{"${decodeURI((db.parameters?.query as string) || '')
             .replace(/"/g, '\\"')
             .replace(/&/g, '","')
             .replace(/=/g, '":"')}"}`,
         );
       }
+
+      if (update?.extra_json) {
+        // convert extra_json to back to string
+        update.extra = JSON.stringify({
+          ...update.extra_json,
+          metadata_params: JSON.parse(update?.extra_json?.metadata_params),
+          engine_params: JSON.parse(update?.extra_json?.engine_params),
+          schemas_allowed_for_csv_upload: JSON.parse(
+            update?.extra_json?.schemas_allowed_for_csv_upload,
+          ),
+        });
+      }
+
       const dbId = await createResource(update as DatabaseObject);
       if (dbId) {
         setHasConnectedDb(true);
@@ -573,6 +676,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             onEditorChange={(payload: { name: string; json: any }) =>
               onChange(ActionType.editorChange, payload)
             }
+            onExtraInputChange={({ target }: { target: HTMLInputElement }) => {
+              onChange(ActionType.extraInputChange, {
+                type: target.type,
+                name: target.name,
+                checked: target.checked,
+                value: target.value,
+              });
+            }}
+            onExtraEditorChange={(payload: { name: string; json: any }) => {
+              onChange(ActionType.extraEditorChange, payload);
+            }}
           />
         </Tabs.TabPane>
       </Tabs>
@@ -625,6 +739,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             }
             onEditorChange={(payload: { name: string; json: any }) =>
               onChange(ActionType.editorChange, payload)
+            }
+            onExtraInputChange={({ target }: { target: HTMLInputElement }) => {
+              onChange(ActionType.extraInputChange, {
+                type: target.type,
+                name: target.name,
+                checked: target.checked,
+                value: target.value,
+              });
+            }}
+            onExtraEditorChange={(payload: { name: string; json: any }) =>
+              onChange(ActionType.extraEditorChange, payload)
             }
           />
         </>
