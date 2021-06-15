@@ -34,7 +34,6 @@
     "strictNullChecks": true,
     "suppressImplicitAnyIndexErrors": true,
     "target": "esnext",
-    "typeRoots": ["./src/types/react-lines-ellipsis.d.ts"],
     "types": [
       "@emotion/react/types/css-prop",
       "jest",

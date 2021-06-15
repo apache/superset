@@ -63,14 +63,14 @@ export type DatabaseObject = {
 
   // Extra
   extra_json?: {
-    engine_params?: {};
-    metadata_params?: {};
+    engine_params?: {} | string;
+    metadata_params?: {} | string;
     metadata_cache_timeout?: {
       schema_cache_timeout?: number; // in Performance
       table_cache_timeout?: number; // in Performance
     }; // No field, holds schema and table timeout
     allows_virtual_table_explore?: boolean; // in SQL Lab
-    schemas_allowed_for_csv_upload?: []; // in Security
+    schemas_allowed_for_csv_upload?: [] | string; // in Security
     version?: string;
 
     // todo: ask beto where this should live

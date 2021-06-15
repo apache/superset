@@ -348,10 +348,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         // convert extra_json to back to string
         update.extra = JSON.stringify({
           ...update.extra_json,
-          metadata_params: JSON.parse(update?.extra_json?.metadata_params),
-          engine_params: JSON.parse(update?.extra_json?.engine_params),
+          metadata_params: JSON.parse(
+            update?.extra_json?.metadata_params as string,
+          ),
+          engine_params: JSON.parse(
+            update?.extra_json?.engine_params as string,
+          ),
           schemas_allowed_for_csv_upload: JSON.parse(
-            update?.extra_json?.schemas_allowed_for_csv_upload,
+            update?.extra_json?.schemas_allowed_for_csv_upload as string,
           ),
         });
       }
@@ -388,10 +392,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         // convert extra_json to back to string
         update.extra = JSON.stringify({
           ...update.extra_json,
-          metadata_params: JSON.parse(update?.extra_json?.metadata_params),
-          engine_params: JSON.parse(update?.extra_json?.engine_params),
+          metadata_params: JSON.parse(
+            update?.extra_json?.metadata_params as string,
+          ),
+          engine_params: JSON.parse(
+            update?.extra_json?.engine_params as string,
+          ),
           schemas_allowed_for_csv_upload: JSON.parse(
-            update?.extra_json?.schemas_allowed_for_csv_upload,
+            update?.extra_json?.schemas_allowed_for_csv_upload as string,
           ),
         });
       }
