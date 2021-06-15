@@ -18,19 +18,22 @@
  */
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import React, { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import rison from 'rison';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
   createFetchRelated,
   createErrorHandler,
   handleDashboardDelete,
-  handleBulkDashboardExport,
 } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import handleResourceExport from 'src/utils/export';
+import Loading from 'src/components/Loading';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import ListView, {
   ListViewProps,
+  Filter,
   Filters,
   FilterOperator,
 } from 'src/components/ListView';
@@ -121,6 +124,7 @@ function DashboardList(props: DashboardListProps) {
 
   const [importingDashboard, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
+  const [preparingExport, setPreparingExport] = useState<boolean>(false);
 
   const openDashboardImportModal = () => {
     showImportModal(true);
@@ -168,6 +172,14 @@ function DashboardList(props: DashboardListProps) {
     );
   }
 
+  const handleBulkDashboardExport = (dashboardsToExport: Dashboard[]) => {
+    const ids = dashboardsToExport.map(({ id }) => id);
+    handleResourceExport('dashboard', ids, () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
+  };
+
   function handleBulkDashboardDelete(dashboardsToDelete: Dashboard[]) {
     return SupersetClient.delete({
       endpoint: `/api/v1/dashboard/?q=${rison.encode(
@@ -188,29 +200,33 @@ function DashboardList(props: DashboardListProps) {
 
   const columns = useMemo(
     () => [
-      {
-        Cell: ({
-          row: {
-            original: { id },
-          },
-        }: any) => (
-          <FaveStar
-            itemId={id}
-            saveFaveStar={saveFavoriteStatus}
-            isStarred={favoriteStatus[id]}
-          />
-        ),
-        Header: '',
-        id: 'id',
-        disableSortBy: true,
-        size: 'xs',
-      },
+      ...(props.user.userId
+        ? [
+            {
+              Cell: ({
+                row: {
+                  original: { id },
+                },
+              }: any) => (
+                <FaveStar
+                  itemId={id}
+                  saveFaveStar={saveFavoriteStatus}
+                  isStarred={favoriteStatus[id]}
+                />
+              ),
+              Header: '',
+              id: 'id',
+              disableSortBy: true,
+              size: 'xs',
+            },
+          ]
+        : []),
       {
         Cell: ({
           row: {
             original: { url, dashboard_title: dashboardTitle },
           },
-        }: any) => <a href={url}>{dashboardTitle}</a>,
+        }: any) => <Link to={url}>{dashboardTitle}</Link>,
         Header: t('Title'),
         accessor: 'dashboard_title',
       },
@@ -356,8 +372,26 @@ function DashboardList(props: DashboardListProps) {
         disableSortBy: true,
       },
     ],
-    [canEdit, canDelete, canExport, favoriteStatus],
+    [
+      canEdit,
+      canDelete,
+      canExport,
+      ...(props.user.userId ? [favoriteStatus] : []),
+    ],
   );
+
+  const favoritesFilter: Filter = {
+    Header: t('Favorite'),
+    id: 'id',
+    urlDisplay: 'favorite',
+    input: 'select',
+    operator: FilterOperator.dashboardIsFav,
+    unfilteredLabel: t('Any'),
+    selects: [
+      { label: t('Yes'), value: true },
+      { label: t('No'), value: false },
+    ],
+  };
 
   const filters: Filters = [
     {
@@ -413,18 +447,7 @@ function DashboardList(props: DashboardListProps) {
         { label: t('Draft'), value: false },
       ],
     },
-    {
-      Header: t('Favorite'),
-      id: 'id',
-      urlDisplay: 'favorite',
-      input: 'select',
-      operator: FilterOperator.dashboardIsFav,
-      unfilteredLabel: t('Any'),
-      selects: [
-        { label: t('Yes'), value: true },
-        { label: t('No'), value: false },
-      ],
-    },
+    ...(props.user.userId ? [favoritesFilter] : []),
     {
       Header: t('Search'),
       id: 'dashboard_title',
@@ -474,6 +497,7 @@ function DashboardList(props: DashboardListProps) {
         openDashboardEditModal={openDashboardEditModal}
         saveFavoriteStatus={saveFavoriteStatus}
         favoriteStatus={favoriteStatus[dashboard.id]}
+        handleBulkDashboardExport={handleBulkDashboardExport}
       />
     );
   }
@@ -592,6 +616,7 @@ function DashboardList(props: DashboardListProps) {
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
       />
+      {preparingExport && <Loading />}
     </>
   );
 }

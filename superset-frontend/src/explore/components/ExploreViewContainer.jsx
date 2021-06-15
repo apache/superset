@@ -21,15 +21,15 @@ import React, { useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { styled, t, supersetTheme, css } from '@superset-ui/core';
+import { styled, t, css, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { Resizable } from 're-resizable';
 
 import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
-import { Global } from '@emotion/core';
+import { Global } from '@emotion/react';
 import { Tooltip } from 'src/components/Tooltip';
 import { usePrevious } from 'src/common/hooks/usePrevious';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import {
   getFromLocalStorage,
   setInLocalStorage,
@@ -85,6 +85,7 @@ const Styles = styled.div`
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
+  flex-basis: 100vh;
   align-items: stretch;
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   .explore-column {
@@ -169,6 +170,7 @@ function ExploreViewContainer(props) {
   const [showingModal, setShowingModal] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  const theme = useTheme();
   const width = `${windowSize.width}px`;
   const navHeight = props.standalone ? 0 : 90;
   const height = props.forcedHeight
@@ -189,7 +191,7 @@ function ExploreViewContainer(props) {
     const payload = { ...props.form_data };
     const longUrl = getExploreLongUrl(
       props.form_data,
-      props.standalone ? URL_PARAMS.standalone : null,
+      props.standalone ? URL_PARAMS.standalone.name : null,
       false,
     );
     try {
@@ -368,18 +370,34 @@ function ExploreViewContainer(props) {
 
   function renderErrorMessage() {
     // Returns an error message as a node if any errors are in the store
-    const errors = Object.entries(props.controls)
-      .filter(
-        ([, control]) =>
-          control.validationErrors && control.validationErrors.length > 0,
-      )
-      .map(([key, control]) => (
-        <div key={key}>
-          {t('Control labeled ')}
-          <strong>{` "${control.label}" `}</strong>
-          {control.validationErrors.join('. ')}
+    const controlsWithErrors = Object.values(props.controls).filter(
+      control =>
+        control.validationErrors && control.validationErrors.length > 0,
+    );
+    if (controlsWithErrors.length === 0) {
+      return null;
+    }
+
+    const errorMessages = controlsWithErrors.map(
+      control => control.validationErrors,
+    );
+    const uniqueErrorMessages = [...new Set(errorMessages.flat())];
+
+    const errors = uniqueErrorMessages
+      .map(message => {
+        const matchingLabels = controlsWithErrors
+          .filter(control => control.validationErrors?.includes(message))
+          .map(control => control.label);
+        return [matchingLabels, message];
+      })
+      .map(([labels, message]) => (
+        <div key={message}>
+          {labels.length > 1 ? t('Controls labeled ') : t('Control labeled ')}
+          <strong>{` ${labels.join(', ')}`}</strong>
+          <span>: {message}</span>
         </div>
       ));
+
     let errorMessage;
     if (errors.length > 0) {
       errorMessage = <div style={{ textAlign: 'left' }}>{errors}</div>;
@@ -471,11 +489,10 @@ function ExploreViewContainer(props) {
             className="action-button"
             onClick={toggleCollapse}
           >
-            <Icon
-              name="expand"
-              color={supersetTheme.colors.primary.base}
+            <Icons.Expand
               className="collapse-icon"
-              width={16}
+              iconColor={theme.colors.primary.base}
+              iconSize="l"
             />
           </span>
         </div>
@@ -495,15 +512,18 @@ function ExploreViewContainer(props) {
         >
           <span role="button" tabIndex={0} className="action-button">
             <Tooltip title={t('Open Datasource tab')}>
-              <Icon
-                name="collapse"
-                color={supersetTheme.colors.primary.base}
+              <Icons.Collapse
                 className="collapse-icon"
-                width={16}
+                iconColor={theme.colors.primary.base}
+                iconSize="l"
               />
             </Tooltip>
           </span>
-          <Icon name="dataset-physical" width={16} />
+          <Icons.DatasetPhysical
+            css={{ marginTop: theme.gridUnit * 2 }}
+            iconSize="l"
+            iconColor={theme.colors.grayscale.base}
+          />
         </div>
       ) : null}
       <Resizable
@@ -557,7 +577,7 @@ function mapStateToProps(state) {
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },
     {
-      ...dataMask[form_data.slice_id]?.ownState,
+      ...dataMask[form_data.slice_id ?? 0]?.ownState, // 0 - unsaved chart
     },
   );
   const chartKey = Object.keys(charts)[0];
@@ -589,8 +609,9 @@ function mapStateToProps(state) {
     forcedHeight: explore.forced_height,
     chart,
     timeout: explore.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
-    ownState: dataMask[form_data.slice_id]?.ownState,
+    ownState: dataMask[form_data.slice_id ?? 0]?.ownState, // 0 - unsaved chart
     impressionId,
+    userId: explore.user_id,
   };
 }
 

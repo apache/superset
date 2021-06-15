@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Optional
+from typing import Any, Dict, Optional
 from urllib import parse
 
-from sqlalchemy.engine.url import URL
+from sqlalchemy.engine.url import make_url, URL
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
@@ -69,3 +69,37 @@ class TrinoEngineSpec(BaseEngineSpec):
             selected_schema = parse.quote(selected_schema, safe="")
             database = database.split("/")[0] + "/" + selected_schema
             uri.database = database
+
+    @classmethod
+    def update_impersonation_config(
+        cls, connect_args: Dict[str, Any], uri: str, username: Optional[str],
+    ) -> None:
+        """
+        Update a configuration dictionary
+        that can set the correct properties for impersonating users
+        :param connect_args: config to be updated
+        :param uri: URI string
+        :param impersonate_user: Flag indicating if impersonation is enabled
+        :param username: Effective username
+        :return: None
+        """
+        url = make_url(uri)
+        backend_name = url.get_backend_name()
+
+        # Must be Trino connection, enable impersonation, and set optional param
+        # auth=LDAP|KERBEROS
+        # Set principal_username=$effective_username
+        if backend_name == "trino" and username is not None:
+            connect_args["user"] = username
+
+    @classmethod
+    def modify_url_for_impersonation(
+        cls, url: URL, impersonate_user: bool, username: Optional[str]
+    ) -> None:
+        """
+        Modify the SQL Alchemy URL object with the user to impersonate if applicable.
+        :param url: SQLAlchemy URL object
+        :param impersonate_user: Flag indicating if impersonation is enabled
+        :param username: Effective username
+        """
+        # Do nothing and let update_impersonation_config take care of impersonation

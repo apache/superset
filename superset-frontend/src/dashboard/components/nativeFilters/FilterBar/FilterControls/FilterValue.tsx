@@ -25,13 +25,20 @@ import {
   t,
   Behavior,
   ChartDataResponseResult,
+  JsonObject,
+  getChartMetadataRegistry,
 } from '@superset-ui/core';
+import { useDispatch } from 'react-redux';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import Loading from 'src/components/Loading';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import {
+  setFocusedNativeFilter,
+  unsetFocusedNativeFilter,
+} from 'src/dashboard/actions/nativeFilters';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FilterProps } from './types';
 import { getFormData } from '../../utils';
@@ -40,18 +47,26 @@ import { useCascadingFilters } from './state';
 const FilterItem = styled.div`
   min-height: ${({ theme }) => theme.gridUnit * 11}px;
   padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+  & > div > div {
+    height: auto;
+  }
 `;
 
 const FilterValue: React.FC<FilterProps> = ({
+  dataMaskSelected,
   filter,
   directPathToChild,
   onFilterSelectionChange,
+  inView = true,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
-  const cascadingFilters = useCascadingFilters(id);
+  const metadata = getChartMetadataRegistry().get(filterType);
+  const cascadingFilters = useCascadingFilters(id, dataMaskSelected);
   const [state, setState] = useState<ChartDataResponseResult[]>([]);
   const [error, setError] = useState<string>('');
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
+  const [ownState, setOwnState] = useState<JsonObject>({});
+  const [inViewFirstTime, setInViewFirstTime] = useState(inView);
   const inputRef = useRef<HTMLInputElement>(null);
   const [target] = targets;
   const {
@@ -60,8 +75,20 @@ const FilterValue: React.FC<FilterProps> = ({
   }: Partial<{ datasetId: number; column: { name?: string } }> = target;
   const { name: groupby } = column;
   const hasDataSource = !!datasetId;
-  const [loading, setLoading] = useState<boolean>(hasDataSource);
+  const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(true);
+  const dispatch = useDispatch();
+
   useEffect(() => {
+    if (!inViewFirstTime && inView) {
+      setInViewFirstTime(true);
+    }
+  }, [inView, inViewFirstTime, setInViewFirstTime]);
+
+  useEffect(() => {
+    if (!inViewFirstTime) {
+      return;
+    }
     const newFormData = getFormData({
       ...filter,
       datasetId,
@@ -71,16 +98,22 @@ const FilterValue: React.FC<FilterProps> = ({
       adhoc_filters,
       time_range,
     });
-    if (!areObjectsEqual(formData, newFormData)) {
+    const filterOwnState = filter.dataMask?.ownState || {};
+    if (
+      !areObjectsEqual(formData, newFormData) ||
+      !areObjectsEqual(ownState, filterOwnState)
+    ) {
       setFormData(newFormData);
+      setOwnState(filterOwnState);
       if (!hasDataSource) {
         return;
       }
+      setIsRefreshing(true);
       getChartDataRequest({
         formData: newFormData,
         force: false,
         requestParams: { dashboardId: 0 },
-        ownState: filter.dataMask?.ownState,
+        ownState: filterOwnState,
       })
         .then(response => {
           if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
@@ -88,27 +121,32 @@ const FilterValue: React.FC<FilterProps> = ({
             const result = 'result' in response ? response.result[0] : response;
             waitForAsyncData(result)
               .then((asyncResult: ChartDataResponseResult[]) => {
-                setLoading(false);
+                setIsRefreshing(false);
+                setIsLoading(false);
                 setState(asyncResult);
               })
               .catch((error: ClientErrorObject) => {
                 setError(
                   error.message || error.error || t('Check configuration'),
                 );
-                setLoading(false);
+                setIsRefreshing(false);
+                setIsLoading(false);
               });
           } else {
             setState(response.result);
             setError('');
-            setLoading(false);
+            setIsRefreshing(false);
+            setIsLoading(false);
           }
         })
         .catch((error: Response) => {
           setError(error.statusText);
-          setLoading(false);
+          setIsRefreshing(false);
+          setIsLoading(false);
         });
     }
   }, [
+    inViewFirstTime,
     cascadingFilters,
     datasetId,
     groupby,
@@ -130,6 +168,9 @@ const FilterValue: React.FC<FilterProps> = ({
   const setDataMask = (dataMask: DataMask) =>
     onFilterSelectionChange(filter, dataMask);
 
+  const setFocusedFilter = () => dispatch(setFocusedNativeFilter(id));
+  const unsetFocusedFilter = () => dispatch(unsetFocusedNativeFilter());
+
   if (error) {
     return (
       <BasicErrorAlert
@@ -142,7 +183,7 @@ const FilterValue: React.FC<FilterProps> = ({
 
   return (
     <FilterItem data-test="form-item-value">
-      {loading ? (
+      {isLoading ? (
         <Loading position="inline-centered" />
       ) : (
         <SuperChart
@@ -155,7 +196,9 @@ const FilterValue: React.FC<FilterProps> = ({
           behaviors={[Behavior.NATIVE_FILTER]}
           filterState={filter.dataMask?.filterState}
           ownState={filter.dataMask?.ownState}
-          hooks={{ setDataMask }}
+          enableNoResults={metadata?.enableNoResults}
+          isRefreshing={isRefreshing}
+          hooks={{ setDataMask, setFocusedFilter, unsetFocusedFilter }}
         />
       )}
     </FilterItem>

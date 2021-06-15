@@ -25,8 +25,8 @@ import backoff
 import msgpack
 import pyarrow as pa
 import simplejson as json
+from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
-from celery.task.base import Task
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm import Session
 from werkzeug.local import LocalProxy
@@ -217,7 +217,7 @@ def execute_sql_statement(
         query.select_as_cta_used = True
 
     # Do not apply limit to the CTA queries when SQLLAB_CTAS_NO_LIMIT is set to true
-    if parsed_query.is_select() and not (
+    if db_engine_spec.is_select_query(parsed_query) and not (
         query.select_as_cta_used and SQLLAB_CTAS_NO_LIMIT
     ):
         if SQL_MAX_ROW and (not query.limit or query.limit > SQL_MAX_ROW):
@@ -232,6 +232,7 @@ def execute_sql_statement(
     # Hook to allow environment-specific mutation (usually comments) to the SQL
     sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
     try:
+        query.executed_sql = sql
         if log_query:
             log_query(
                 query.database.sqlalchemy_uri,
@@ -242,7 +243,6 @@ def execute_sql_statement(
                 security_manager,
                 log_params,
             )
-        query.executed_sql = sql
         session.commit()
         with stats_timing("sqllab.query.time_executing_query", stats_logger):
             logger.debug("Query %d: Running query: %s", query.id, sql)

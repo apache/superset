@@ -21,10 +21,9 @@ import {
   DataRecord,
   FilterState,
   QueryFormData,
-  SetDataMaskHook,
 } from '@superset-ui/core';
 import { RefObject } from 'react';
-import { PluginFilterStylesProps } from '../types';
+import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
 
 interface PluginFilterTimeColumnCustomizeProps {
   defaultValue?: string[] | null;
@@ -38,10 +37,9 @@ export type PluginFilterTimeColumnQueryFormData = QueryFormData &
 export type PluginFilterTimeColumnProps = PluginFilterStylesProps & {
   behaviors: Behavior[];
   data: DataRecord[];
-  setDataMask: SetDataMaskHook;
   filterState: FilterState;
   formData: PluginFilterTimeColumnQueryFormData;
-};
+} & PluginFilterHooks;
 
 export const DEFAULT_FORM_DATA: PluginFilterTimeColumnCustomizeProps = {
   defaultValue: null,

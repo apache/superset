@@ -46,9 +46,11 @@ const propTypes = {
   editMode: PropTypes.bool.isRequired,
   renderHoverMenu: PropTypes.bool,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
+  activeTabs: PropTypes.arrayOf(PropTypes.string),
 
   // actions (from DashboardComponent.jsx)
   logEvent: PropTypes.func.isRequired,
+  setActiveTabs: PropTypes.func,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -71,6 +73,8 @@ const defaultProps = {
   availableColumnCount: 0,
   columnWidth: 0,
   directPathToChild: [],
+  activeTabs: [],
+  setActiveTabs() {},
   onResizeStart() {},
   onResize() {},
   onResizeStop() {},
@@ -88,6 +92,10 @@ const StyledTabsContainer = styled.div`
 
   .ant-tabs {
     overflow: visible;
+
+    .ant-tabs-nav-wrap {
+      min-height: ${({ theme }) => theme.gridUnit * 12.5}px;
+    }
 
     .ant-tabs-content-holder {
       overflow: visible;
@@ -120,6 +128,19 @@ class Tabs extends React.PureComponent {
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleDeleteTab = this.handleDeleteTab.bind(this);
     this.handleDropOnTab = this.handleDropOnTab.bind(this);
+  }
+
+  componentDidMount() {
+    this.props.setActiveTabs([...this.props.activeTabs, this.state.activeKey]);
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.activeKey !== this.state.activeKey) {
+      this.props.setActiveTabs([
+        ...this.props.activeTabs.filter(tabId => tabId !== prevState.activeKey),
+        this.state.activeKey,
+      ]);
+    }
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -268,11 +289,17 @@ class Tabs extends React.PureComponent {
       renderHoverMenu,
       isComponentVisible: isCurrentTabVisible,
       editMode,
+      nativeFilters,
     } = this.props;
 
     const { children: tabIds } = tabsComponent;
     const { tabIndex: selectedTabIndex, activeKey } = this.state;
 
+    let tabsToHighlight;
+    if (nativeFilters.focusedFilterId) {
+      tabsToHighlight =
+        nativeFilters.filters[nativeFilters.focusedFilterId].tabsInScope;
+    }
     return (
       <DragDroppable
         component={tabsComponent}
@@ -322,6 +349,9 @@ class Tabs extends React.PureComponent {
                       columnWidth={columnWidth}
                       onDropOnTab={this.handleDropOnTab}
                       isFocused={activeKey === tabId}
+                      isHighlighted={
+                        activeKey !== tabId && tabsToHighlight?.includes(tabId)
+                      }
                     />
                   }
                 >

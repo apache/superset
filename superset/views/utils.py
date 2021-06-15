@@ -124,22 +124,31 @@ def loads_request_json(request_json_data: str) -> Dict[Any, Any]:
         return {}
 
 
-def get_form_data(
+def get_form_data(  # pylint: disable=too-many-locals
     slice_id: Optional[int] = None, use_slice_data: bool = False
 ) -> Tuple[Dict[str, Any], Optional[Slice]]:
-    form_data = {}
+    form_data: Dict[str, Any] = {}
     # chart data API requests are JSON
     request_json_data = (
         request.json["queries"][0]
         if request.is_json and "queries" in request.json
         else None
     )
+
+    add_sqllab_custom_filters(form_data)
+
     request_form_data = request.form.get("form_data")
     request_args_data = request.args.get("form_data")
     if request_json_data:
         form_data.update(request_json_data)
     if request_form_data:
-        form_data.update(loads_request_json(request_form_data))
+        parsed_form_data = loads_request_json(request_form_data)
+        # some chart data api requests are form_data
+        queries = parsed_form_data.get("queries")
+        if isinstance(queries, list):
+            form_data.update(queries[0])
+        else:
+            form_data.update(parsed_form_data)
     # request params can overwrite the body
     if request_args_data:
         form_data.update(loads_request_json(request_args_data))
@@ -188,6 +197,26 @@ def get_form_data(
         )
 
     return form_data, slc
+
+
+def add_sqllab_custom_filters(form_data: Dict[Any, Any]) -> Any:
+    """
+    SQLLab can include a "filters" attribute in the templateParams.
+    The filters attribute is a list of filters to include in the
+    request. Useful for testing templates in SQLLab.
+    """
+    try:
+        data = json.loads(request.data)
+        if isinstance(data, dict):
+            params_str = data.get("templateParams")
+            if isinstance(params_str, str):
+                params = json.loads(params_str)
+                if isinstance(params, dict):
+                    filters = params.get("_filters")
+                    if filters:
+                        form_data.update({"filters": filters})
+    except (TypeError, json.JSONDecodeError):
+        data = {}
 
 
 def get_datasource_info(
@@ -290,7 +319,7 @@ def get_time_range_endpoints(
             if not slc:
                 slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
 
-            if slc:
+            if slc and slc.datasource:
                 endpoints = slc.datasource.database.get_extra().get(
                     "time_range_endpoints"
                 )
@@ -533,7 +562,7 @@ def check_slice_perms(_self: Any, slice_id: int) -> None:
 
     form_data, slc = get_form_data(slice_id, use_slice_data=True)
 
-    if slc:
+    if slc and slc.datasource:
         try:
             viz_obj = get_viz(
                 datasource_type=slc.datasource.type,

@@ -50,16 +50,21 @@ jest.mock('src/dashboard/actions/dashboardState');
 
 describe('DashboardBuilder', () => {
   let favStarStub;
+  let activeTabsStub;
 
   beforeAll(() => {
     // this is invoked on mount, so we stub it instead of making a request
     favStarStub = sinon
       .stub(dashboardStateActions, 'fetchFaveStar')
       .returns({ type: 'mock-action' });
+    activeTabsStub = sinon
+      .stub(dashboardStateActions, 'setActiveTabs')
+      .returns({ type: 'mock-action' });
   });
 
   afterAll(() => {
     favStarStub.restore();
+    activeTabsStub.restore();
   });
 
   function setup(overrideState = {}, overrideStore) {
@@ -128,12 +133,6 @@ describe('DashboardBuilder', () => {
     expect(parentSize.find(Tabs.TabPane)).toHaveLength(2);
   });
 
-  it('should set animated=true on Tabs for perf', () => {
-    const wrapper = setup({ dashboardLayout: undoableDashboardLayoutWithTabs });
-    const tabProps = wrapper.find(ParentSize).find(Tabs).props();
-    expect(tabProps.animated).toBe(true);
-  });
-
   it('should render a TabPane and DashboardGrid for first Tab', () => {
     const wrapper = setup({ dashboardLayout: undoableDashboardLayoutWithTabs });
     const parentSize = wrapper.find(ParentSize);
@@ -182,7 +181,7 @@ describe('DashboardBuilder', () => {
       dashboardLayout: undoableDashboardLayoutWithTabs,
     });
 
-    expect(wrapper.find(Tabs).prop('activeKey')).toBe(DASHBOARD_GRID_ID);
+    expect(wrapper.find(Tabs).at(1).prop('activeKey')).toBe(DASHBOARD_GRID_ID);
 
     wrapper
       .find('.dashboard-component-tabs .ant-tabs .ant-tabs-tab')

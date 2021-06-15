@@ -50,20 +50,21 @@ const {
 } = parsedArgs;
 const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1].includes('webpack-dev-server');
+const ASSET_BASE_URL = process.env.ASSET_BASE_URL || '';
 
 const output = {
   path: BUILD_DIR,
-  publicPath: '/static/assets/', // necessary for lazy-loaded chunks
+  publicPath: `${ASSET_BASE_URL}/static/assets/`,
 };
 if (isDevMode) {
   output.filename = '[name].[hash:8].entry.js';
   output.chunkFilename = '[name].[hash:8].chunk.js';
 } else if (nameChunks) {
-  output.filename = '[name].[chunkhash].entry.js';
-  output.chunkFilename = '[name].[chunkhash].chunk.js';
+  output.filename = '[name].[contenthash].entry.js';
+  output.chunkFilename = '[name].[contenthash].chunk.js';
 } else {
-  output.filename = '[name].[chunkhash].entry.js';
-  output.chunkFilename = '[chunkhash].chunk.js';
+  output.filename = '[name].[contenthash].entry.js';
+  output.chunkFilename = '[contenthash].chunk.js';
 }
 
 const plugins = [
@@ -155,8 +156,8 @@ if (!isDevMode) {
   // text loading (webpack 4+)
   plugins.push(
     new MiniCssExtractPlugin({
-      filename: '[name].[chunkhash].entry.css',
-      chunkFilename: '[name].[chunkhash].chunk.css',
+      filename: '[name].[contenthash].entry.css',
+      chunkFilename: '[name].[contenthash].chunk.css',
     }),
   );
   plugins.push(new OptimizeCSSAssetsPlugin());
@@ -202,14 +203,13 @@ const config = {
     fs: 'empty',
   },
   entry: {
-    theme: path.join(APP_DIR, '/src/theme.ts'),
     preamble: PREAMBLE,
+    theme: path.join(APP_DIR, '/src/theme.ts'),
+    menu: addPreamble('src/views/menu.tsx'),
+    spa: addPreamble('/src/views/index.tsx'),
     addSlice: addPreamble('/src/addSlice/index.tsx'),
     explore: addPreamble('/src/explore/index.jsx'),
-    dashboard: addPreamble('/src/dashboard/index.jsx'),
     sqllab: addPreamble('/src/SqlLab/index.tsx'),
-    crudViews: addPreamble('/src/views/index.tsx'),
-    menu: addPreamble('src/views/menu.tsx'),
     profile: addPreamble('/src/profile/index.tsx'),
     showSavedQuery: [path.join(APP_DIR, '/src/showSavedQuery/index.jsx')],
   },
@@ -259,7 +259,6 @@ const config = {
               'antd',
               '@ant-design.*',
               '.*bootstrap',
-              'react-bootstrap-slider',
               'moment',
               'jquery',
               'core-js.*',
@@ -292,9 +291,6 @@ const config = {
       'react-dom': '@hot-loader/react-dom',
       // Force using absolute import path of some packages in the root node_modules,
       // as they can be dependencies of other packages via `npm link`.
-      // Both `@emotion/core` and `@superset-ui/core` remember some globals within
-      // module after imported, which will not be available everywhere if two
-      // different copies of the same module are imported in different places.
       '@superset-ui/core': path.resolve(
         APP_DIR,
         './node_modules/@superset-ui/core',

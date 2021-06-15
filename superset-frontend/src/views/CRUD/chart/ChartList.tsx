@@ -17,35 +17,37 @@
  * under the License.
  */
 import {
-  SupersetClient,
   getChartMetadataRegistry,
-  t,
   styled,
+  SupersetClient,
+  t,
 } from '@superset-ui/core';
 import React, { useMemo, useState } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
-  createFetchRelated,
   createErrorHandler,
-  handleBulkChartExport,
+  createFetchRelated,
   handleChartDelete,
 } from 'src/views/CRUD/utils';
 import {
-  useListViewResource,
-  useFavoriteStatus,
   useChartEditModal,
+  useFavoriteStatus,
+  useListViewResource,
 } from 'src/views/CRUD/hooks';
+import handleResourceExport from 'src/utils/export';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import FaveStar from 'src/components/FaveStar';
 import ListView, {
-  ListViewProps,
-  Filters,
-  SelectOption,
+  Filter,
   FilterOperator,
+  Filters,
+  ListViewProps,
+  SelectOption,
 } from 'src/components/ListView';
+import Loading from 'src/components/Loading';
 import { getFromLocalStorage } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
@@ -53,6 +55,7 @@ import ImportModelsModal from 'src/components/ImportModal/index';
 import Chart from 'src/types/Chart';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
+import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import ChartCard from './ChartCard';
 
 const PAGE_SIZE = 25;
@@ -154,6 +157,7 @@ function ChartList(props: ChartListProps) {
 
   const [importingChart, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
+  const [preparingExport, setPreparingExport] = useState<boolean>(false);
 
   const openChartImportModal = () => {
     showImportModal(true);
@@ -175,6 +179,14 @@ function ChartList(props: ChartListProps) {
     hasPerm('can_read') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
+  const handleBulkChartExport = (chartsToExport: Chart[]) => {
+    const ids = chartsToExport.map(({ id }) => id);
+    handleResourceExport('chart', ids, () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
+  };
+
   function handleBulkChartDelete(chartsToDelete: Chart[]) {
     SupersetClient.delete({
       endpoint: `/api/v1/chart/?q=${rison.encode(
@@ -195,23 +207,27 @@ function ChartList(props: ChartListProps) {
 
   const columns = useMemo(
     () => [
-      {
-        Cell: ({
-          row: {
-            original: { id },
-          },
-        }: any) => (
-          <FaveStar
-            itemId={id}
-            saveFaveStar={saveFavoriteStatus}
-            isStarred={favoriteStatus[id]}
-          />
-        ),
-        Header: '',
-        id: 'id',
-        disableSortBy: true,
-        size: 'xs',
-      },
+      ...(props.user.userId
+        ? [
+            {
+              Cell: ({
+                row: {
+                  original: { id },
+                },
+              }: any) => (
+                <FaveStar
+                  itemId={id}
+                  saveFaveStar={saveFavoriteStatus}
+                  isStarred={favoriteStatus[id]}
+                />
+              ),
+              Header: '',
+              id: 'id',
+              disableSortBy: true,
+              size: 'xs',
+            },
+          ]
+        : []),
       {
         Cell: ({
           row: {
@@ -377,8 +393,26 @@ function ChartList(props: ChartListProps) {
         hidden: !canEdit && !canDelete,
       },
     ],
-    [canEdit, canDelete, canExport, favoriteStatus],
+    [
+      canEdit,
+      canDelete,
+      canExport,
+      ...(props.user.userId ? [favoriteStatus] : []),
+    ],
   );
+
+  const favoritesFilter: Filter = {
+    Header: t('Favorite'),
+    id: 'id',
+    urlDisplay: 'favorite',
+    input: 'select',
+    operator: FilterOperator.chartIsFav,
+    unfilteredLabel: t('Any'),
+    selects: [
+      { label: t('Yes'), value: true },
+      { label: t('No'), value: false },
+    ],
+  };
 
   const filters: Filters = [
     {
@@ -431,6 +465,7 @@ function ChartList(props: ChartListProps) {
       unfilteredLabel: t('All'),
       selects: registry
         .keys()
+        .filter(k => nativeFilterGate(registry.get(k)?.behaviors || []))
         .map(k => ({ label: registry.get(k)?.name || k, value: k }))
         .sort((a, b) => {
           if (!a.label || !b.label) {
@@ -465,18 +500,7 @@ function ChartList(props: ChartListProps) {
       ),
       paginate: false,
     },
-    {
-      Header: t('Favorite'),
-      id: 'id',
-      urlDisplay: 'favorite',
-      input: 'select',
-      operator: FilterOperator.chartIsFav,
-      unfilteredLabel: t('Any'),
-      selects: [
-        { label: t('Yes'), value: true },
-        { label: t('No'), value: false },
-      ],
-    },
+    ...(props.user.userId ? [favoritesFilter] : []),
     {
       Header: t('Search'),
       id: 'slice_name',
@@ -526,6 +550,7 @@ function ChartList(props: ChartListProps) {
         loading={loading}
         favoriteStatus={favoriteStatus[chart.id]}
         saveFavoriteStatus={saveFavoriteStatus}
+        handleBulkChartExport={handleBulkChartExport}
       />
     );
   }
@@ -639,6 +664,7 @@ function ChartList(props: ChartListProps) {
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
       />
+      {preparingExport && <Loading />}
     </>
   );
 }

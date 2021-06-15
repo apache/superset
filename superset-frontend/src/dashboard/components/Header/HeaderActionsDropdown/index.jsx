@@ -168,7 +168,7 @@ class HeaderActionsDropdown extends React.PureComponent {
           window.location.pathname,
           getActiveFilters(),
           window.location.hash,
-          getUrlParam(URL_PARAMS.standalone, 'number'),
+          !getUrlParam(URL_PARAMS.standalone),
         );
         window.location.replace(url);
         break;
@@ -307,7 +307,9 @@ class HeaderActionsDropdown extends React.PureComponent {
 
         {!editMode && (
           <Menu.Item key={MENU_KEYS.TOGGLE_FULLSCREEN}>
-            {t('Toggle fullscreen')}
+            {getUrlParam(URL_PARAMS.standalone)
+              ? t('Exit fullscreen')
+              : t('Enter fullscreen')}
           </Menu.Item>
         )}
       </Menu>
@@ -317,7 +319,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         overlay={menu}
         trigger={['click']}
         getPopupContainer={triggerNode =>
-          triggerNode.closest(SCREENSHOT_NODE_SELECTOR)
+          triggerNode.closest('.dashboard-header')
         }
       >
         <DropdownButton id="save-dash-split-button" role="button">

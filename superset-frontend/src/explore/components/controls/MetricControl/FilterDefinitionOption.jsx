@@ -18,11 +18,10 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ColumnOption, ColumnTypeLabel } from '@superset-ui/chart-controls';
 
 import columnType from './columnType';
-import AdhocMetricStaticOption from './AdhocMetricStaticOption';
 import adhocMetricType from './adhocMetricType';
+import { StyledColumnOption } from '../../optionRenderers';
 
 const propTypes = {
   option: PropTypes.oneOfType([
@@ -35,17 +34,23 @@ const propTypes = {
 export default function FilterDefinitionOption({ option }) {
   if (option.saved_metric_name) {
     return (
-      <div>
-        <ColumnTypeLabel type="expression" />
-        <span className="option-label">{option.saved_metric_name}</span>
-      </div>
+      <StyledColumnOption
+        column={{ column_name: option.saved_metric_name, type: 'expression' }}
+        showType
+      />
     );
   }
   if (option.column_name) {
-    return <ColumnOption column={option} showType />;
+    return <StyledColumnOption column={option} showType />;
   }
   if (option.label) {
-    return <AdhocMetricStaticOption adhocMetric={option} showType />;
+    return (
+      <StyledColumnOption
+        column={{ column_name: option.label, type: 'expression' }}
+        showType
+      />
+    );
   }
+  return null;
 }
 FilterDefinitionOption.propTypes = propTypes;

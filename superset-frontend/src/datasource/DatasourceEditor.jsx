@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Col } from 'react-bootstrap';
+import { Row, Col } from 'src/common/components';
 import { Radio } from 'src/components/Radio';
 import Card from 'src/components/Card';
 import Alert from 'src/components/Alert';
@@ -141,6 +141,7 @@ function ColumnCollectionTable({
     <CollectionTable
       collection={columns}
       tableColumns={['column_name', 'type', 'is_dttm', 'filterable', 'groupby']}
+      sortColumns={['column_name', 'type', 'is_dttm', 'filterable', 'groupby']}
       allowDeletes
       allowAddItem={allowAddItem}
       itemGenerator={itemGenerator}
@@ -239,7 +240,7 @@ function ColumnCollectionTable({
           ) : (
             v
           ),
-        type: d => <Label>{d}</Label>,
+        type: d => (d ? <Label>{d}</Label> : null),
         is_dttm: checkboxGenerator,
         filterable: checkboxGenerator,
         groupby: checkboxGenerator,
@@ -307,7 +308,21 @@ class DatasourceEditor extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      datasource: props.datasource,
+      datasource: {
+        ...props.datasource,
+        metrics: props.datasource.metrics?.map(metric => {
+          const {
+            certification: { details, certified_by: certifiedBy } = {},
+            warning_markdown: warningMarkdown,
+          } = JSON.parse(metric.extra || '{}') || {};
+          return {
+            ...metric,
+            certification_details: details || '',
+            warning_markdown: warningMarkdown || '',
+            certified_by: certifiedBy,
+          };
+        }),
+      },
       errors: [],
       isDruid:
         props.datasource.type === 'druid' ||
@@ -379,6 +394,7 @@ class DatasourceEditor extends React.PureComponent {
   }
 
   setColumns(obj) {
+    // update calculatedColumns or databaseColumns
     this.setState(obj, this.validateAndChange);
   }
 
@@ -414,13 +430,18 @@ class DatasourceEditor extends React.PureComponent {
           type: col.type,
           groupby: true,
           filterable: true,
+          is_dttm: col.is_dttm,
         });
         results.added.push(col.name);
-      } else if (currentCol.type !== col.type) {
+      } else if (
+        currentCol.type !== col.type ||
+        currentCol.is_dttm !== col.is_dttm
+      ) {
         // modified column
         finalColumns.push({
           ...currentCol,
           type: col.type,
+          is_dttm: col.is_dttm,
         });
         results.modified.push(col.name);
       } else {
@@ -548,6 +569,7 @@ class DatasourceEditor extends React.PureComponent {
           control={<TextControl controlId="default_endpoint" />}
         />
         <Field
+          inline
           fieldKey="filter_select_enabled"
           label={t('Autocomplete filters')}
           description={t('Whether to populate autocomplete filters options')}
@@ -773,7 +795,7 @@ class DatasourceEditor extends React.PureComponent {
             </div>
           )}
           {this.state.datasourceType === DATASOURCE_TYPES.physical.key && (
-            <Col md={6}>
+            <Col xs={24} md={12}>
               {this.state.isSqla && (
                 <Field
                   fieldKey="tableSelector"
@@ -860,6 +882,7 @@ class DatasourceEditor extends React.PureComponent {
     return (
       <CollectionTable
         tableColumns={['metric_name', 'verbose_name', 'expression']}
+        sortColumns={['metric_name', 'verbose_name', 'expression']}
         columnLabels={{
           metric_name: t('Metric'),
           verbose_name: t('Label'),
@@ -1085,14 +1108,14 @@ class DatasourceEditor extends React.PureComponent {
             />
           </Tabs.TabPane>
           <Tabs.TabPane key={4} tab={t('Settings')}>
-            <div>
-              <Col md={6}>
+            <Row gutter={16}>
+              <Col xs={24} md={12}>
                 <FormContainer>{this.renderSettingsFieldset()}</FormContainer>
               </Col>
-              <Col md={6}>
+              <Col xs={24} md={12}>
                 <FormContainer>{this.renderAdvancedFieldset()}</FormContainer>
               </Col>
-            </div>
+            </Row>
           </Tabs.TabPane>
         </StyledTableTabs>
       </DatasourceContainer>

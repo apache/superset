@@ -18,11 +18,12 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import g, make_response, redirect, request, Response, send_file, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
@@ -31,7 +32,7 @@ from werkzeug.wsgi import FileWrapper
 
 from superset import is_feature_enabled, thumbnail_cache
 from superset.charts.schemas import ChartEntityResponseSchema
-from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.commands.bulk_delete import BulkDeleteDashboardCommand
@@ -42,7 +43,6 @@ from superset.dashboards.commands.exceptions import (
     DashboardCreateFailedError,
     DashboardDeleteFailedError,
     DashboardForbiddenError,
-    DashboardImportError,
     DashboardInvalidError,
     DashboardNotFoundError,
     DashboardUpdateFailedError,
@@ -88,6 +88,13 @@ logger = logging.getLogger(__name__)
 
 class DashboardRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Dashboard)
+
+    @before_request(only=["thumbnail"])
+    def ensure_thumbnails_enabled(self) -> Optional[Response]:
+        if not is_feature_enabled("THUMBNAILS"):
+            return self.response_404()
+        return None
+
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
         RouteMethod.IMPORT,
@@ -96,6 +103,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "favorite_status",
         "get_charts",
         "get_datasets",
+        "thumbnail",
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -205,11 +213,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     }
     openapi_spec_methods = openapi_spec_methods_override
     """ Overrides GET methods OpenApi descriptions """
-
-    def __init__(self) -> None:
-        if is_feature_enabled("THUMBNAILS"):
-            self.include_route_methods = self.include_route_methods | {"thumbnail"}
-        super().__init__()
 
     def __repr__(self) -> str:
         """Deterministic string representation of the API instance for etag_cache."""
@@ -703,6 +706,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         requested_ids = kwargs["rison"]
 
         if is_feature_enabled("VERSIONED_EXPORT"):
+            token = request.args.get("token")
             timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
             root = f"dashboard_export_{timestamp}"
             filename = f"{root}.zip"
@@ -719,12 +723,15 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     return self.response_404()
             buf.seek(0)
 
-            return send_file(
+            response = send_file(
                 buf,
                 mimetype="application/zip",
                 as_attachment=True,
                 attachment_filename=filename,
             )
+            if token:
+                response.set_cookie(token, "done", max_age=600)
+            return response
 
         query = self.datamodel.session.query(Dashboard).filter(
             Dashboard.id.in_(requested_ids)
@@ -884,7 +891,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     @expose("/import/", methods=["POST"])
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
@@ -910,7 +916,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                       type: string
                     overwrite:
                       description: overwrite existing databases?
-                      type: bool
+                      type: boolean
           responses:
             200:
               description: Dashboard import result
@@ -940,6 +946,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             upload.seek(0)
             contents = {upload.filename: upload.read()}
 
+        if not contents:
+            raise NoValidFilesFoundError()
+
         passwords = (
             json.loads(request.form["passwords"])
             if "passwords" in request.form
@@ -950,12 +959,5 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         command = ImportDashboardsCommand(
             contents, passwords=passwords, overwrite=overwrite
         )
-        try:
-            command.run()
-            return self.response(200, message="OK")
-        except CommandInvalidError as exc:
-            logger.warning("Import dashboard failed")
-            return self.response_422(message=exc.normalized_messages())
-        except DashboardImportError as exc:
-            logger.exception("Import dashboard failed")
-            return self.response_500(message=str(exc))
+        command.run()
+        return self.response(200, message="OK")

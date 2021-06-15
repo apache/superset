@@ -19,14 +19,14 @@
 import React, { useState } from 'react';
 import cx from 'classnames';
 import { t } from '@superset-ui/core';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import copyTextToClipboard from 'src/utils/copy';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useUrlShortener } from 'src/common/hooks/useUrlShortener';
 import EmbedCodeButton from './EmbedCodeButton';
-import ConnectedDisplayQueryButton from './DisplayQueryButton';
 import { exportChart, getExploreLongUrl } from '../exploreUtils';
+import ExploreAdditionalActionsMenu from './ExploreAdditionalActionsMenu';
 
 type ActionButtonProps = {
   icon: React.ReactElement;
@@ -39,7 +39,7 @@ type ActionButtonProps = {
 };
 
 type ExploreActionButtonsProps = {
-  actions: { redirectSQLLab: Function; openPropertiesModal: Function };
+  actions: { redirectSQLLab: () => void; openPropertiesModal: () => void };
   canDownloadCSV: boolean;
   chartStatus: string;
   latestQueryFormData: {};
@@ -68,7 +68,11 @@ const ActionButton = (props: ActionButtonProps) => {
       <div
         role="button"
         tabIndex={0}
-        css={{ '&:focus, &:focus:active': { outline: 0 } }}
+        css={{
+          display: 'flex',
+          alignItems: 'center',
+          '&:focus, &:focus:active': { outline: 0 },
+        }}
         className={className || 'btn btn-default btn-sm'}
         style={{ height: 30 }}
         {...rest}
@@ -86,7 +90,6 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
     canDownloadCSV,
     chartStatus,
     latestQueryFormData,
-    queriesResponse,
     slice,
     addDangerToast,
   } = props;
@@ -145,14 +148,7 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
       {latestQueryFormData && (
         <>
           <ActionButton
-            icon={
-              <Icon
-                name="link"
-                width={15}
-                height={15}
-                style={{ marginTop: 1 }}
-              />
-            }
+            icon={<Icons.Link iconSize="l" />}
             tooltip={copyTooltip}
             onClick={doCopyLink}
             data-test="short-link-button"
@@ -161,26 +157,19 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
             }
           />
           <ActionButton
-            icon={
-              <Icon
-                name="email"
-                width={15}
-                height={15}
-                style={{ marginTop: 1 }}
-              />
-            }
+            icon={<Icons.Email iconSize="l" />}
             tooltip={t('Share chart by email')}
             onClick={doShareEmail}
           />
           <EmbedCodeButton latestQueryFormData={latestQueryFormData} />
           <ActionButton
-            icon={<i className="fa fa-file-code-o" />}
+            icon={<Icons.FileTextOutlined iconSize="m" />}
             text=".JSON"
             tooltip={t('Export to .JSON format')}
             onClick={doExportJson}
           />
           <ActionButton
-            icon={<i className="fa fa-file-text-o" />}
+            icon={<Icons.FileExcelOutlined iconSize="m" />}
             text=".CSV"
             tooltip={t('Export to .CSV format')}
             onClick={doExportCSV}
@@ -188,8 +177,7 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
           />
         </>
       )}
-      <ConnectedDisplayQueryButton
-        queryResponse={queriesResponse?.[0]}
+      <ExploreAdditionalActionsMenu
         latestQueryFormData={latestQueryFormData}
         chartStatus={chartStatus}
         onOpenInEditor={actions.redirectSQLLab}

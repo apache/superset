@@ -32,23 +32,22 @@ import pytz
 import random
 import re
 import unittest
-from unittest import mock, skipUnless
+from unittest import mock
 
 import pandas as pd
 import sqlalchemy as sqla
 from sqlalchemy.exc import SQLAlchemyError
 from superset.models.cache import CacheKey
 from superset.utils.core import get_example_database
+from tests.conftest import with_feature_flags
 from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.test_app import app
 import superset.views.utils
 from superset import (
     dataframe,
     db,
-    jinja_context,
     security_manager,
     sql_lab,
-    is_feature_enabled,
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -657,10 +656,19 @@ class TestCore(SupersetTestCase):
         db.session.delete(model_url)
         db.session.commit()
 
-    @skipUnless(
-        (is_feature_enabled("KV_STORE")), "skipping as /kv/ endpoints are not enabled"
-    )
-    def test_kv(self):
+    @with_feature_flags(KV_STORE=False)
+    def test_kv_disabled(self):
+        self.login(username="admin")
+
+        resp = self.client.get("/kv/10001/")
+        self.assertEqual(404, resp.status_code)
+
+        value = json.dumps({"data": "this is a test"})
+        resp = self.client.post("/kv/store/", data=dict(data=value))
+        self.assertEqual(resp.status_code, 404)
+
+    @with_feature_flags(KV_STORE=True)
+    def test_kv_enabled(self):
         self.login(username="admin")
 
         resp = self.client.get("/kv/10001/")

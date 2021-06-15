@@ -65,7 +65,7 @@ const editModeOnProps = {
 
 function setup(props: HeaderDropdownProps) {
   return (
-    <div className="dashboard">
+    <div className="dashboard-header">
       <HeaderActionsDropdown {...props} />
     </div>
   );
@@ -112,7 +112,7 @@ test('should render the menu items', async () => {
   expect(screen.getByText('Refresh dashboard')).toBeInTheDocument();
   expect(screen.getByText('Set auto-refresh interval')).toBeInTheDocument();
   expect(screen.getByText('Download as image')).toBeInTheDocument();
-  expect(screen.getByText('Toggle fullscreen')).toBeInTheDocument();
+  expect(screen.getByText('Enter fullscreen')).toBeInTheDocument();
 });
 
 test('should render the menu items in edit mode', async () => {

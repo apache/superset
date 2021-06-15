@@ -18,7 +18,7 @@
  */
 import { SupersetClient, t, styled } from '@superset-ui/core';
 import React, { useState, useMemo } from 'react';
-import rison from 'rison';
+import Loading from 'src/components/Loading';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
@@ -30,7 +30,9 @@ import Icons from 'src/components/Icons';
 import ListView, { FilterOperator, Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import ImportModelsModal from 'src/components/ImportModal/index';
+import handleResourceExport from 'src/utils/export';
 import DatabaseModal from './DatabaseModal';
+
 import { DatabaseObject } from './types';
 
 const PAGE_SIZE = 25;
@@ -96,6 +98,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   );
   const [importingDatabase, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
+  const [preparingExport, setPreparingExport] = useState<boolean>(false);
 
   const openDatabaseImportModal = () => {
     showImportModal(true);
@@ -147,10 +150,13 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     );
   }
 
-  function handleDatabaseEdit(database: DatabaseObject) {
-    // Set database and open modal
+  function handleDatabaseEditModal({
+    database = null,
+    modalOpen = false,
+  }: { database?: DatabaseObject | null; modalOpen?: boolean } = {}) {
+    // Set database and modal
     setCurrentDatabase(database);
-    setDatabaseModalOpen(true);
+    setDatabaseModalOpen(modalOpen);
   }
 
   const canCreate = hasPerm('can_write');
@@ -176,8 +182,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         buttonStyle: 'primary',
         onClick: () => {
           // Ensure modal will be opened in add mode
-          setCurrentDatabase(null);
-          setDatabaseModalOpen(true);
+          handleDatabaseEditModal({ modalOpen: true });
         },
       },
     ];
@@ -200,9 +205,14 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   }
 
   function handleDatabaseExport(database: DatabaseObject) {
-    return window.location.assign(
-      `/api/v1/database/export/?q=${rison.encode([database.id])}`,
-    );
+    if (database.id === undefined) {
+      return;
+    }
+
+    handleResourceExport('database', [database.id], () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
   }
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
@@ -298,7 +308,8 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
-          const handleEdit = () => handleDatabaseEdit(original);
+          const handleEdit = () =>
+            handleDatabaseEditModal({ database: original, modalOpen: true });
           const handleDelete = () => openDatabaseDeleteModal(original);
           const handleExport = () => handleDatabaseExport(original);
           if (!canEdit && !canDelete && !canExport) {
@@ -414,9 +425,9 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     <>
       <SubMenu {...menuData} />
       <DatabaseModal
-        database={currentDatabase}
+        databaseId={currentDatabase?.id}
         show={databaseModalOpen}
-        onHide={() => setDatabaseModalOpen(false)}
+        onHide={handleDatabaseEditModal}
         onDatabaseAdd={() => {
           refreshData();
         }}
@@ -465,6 +476,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
       />
+      {preparingExport && <Loading />}
     </>
   );
 }

@@ -24,6 +24,13 @@ from unittest.mock import Mock, patch
 from tests.test_app import app
 
 from superset import db, security_manager
+from superset.connectors.druid.views import (
+    Druid,
+    DruidClusterModelView,
+    DruidColumnInlineView,
+    DruidDatasourceModelView,
+    DruidMetricInlineView,
+)
 
 from .base_tests import SupersetTestCase
 
@@ -583,6 +590,78 @@ class TestDruid(SupersetTestCase):
         resp = self.get_json_resp(url)
         col_names = {o.get("name") for o in resp}
         self.assertEqual(col_names, {"__time", "dim1", "dim2", "metric1"})
+
+
+class TestDruidViewEnabling(SupersetTestCase):
+    def test_druid_disabled(self):
+        with patch.object(Druid, "is_enabled", return_value=False):
+            self.login("admin")
+            uri = "/druid/refresh_datasources/"
+            rv = self.client.get(uri)
+            self.assertEqual(rv.status_code, 404)
+
+    def test_druid_enabled(self):
+        with patch.object(Druid, "is_enabled", return_value=True):
+            self.login("admin")
+            uri = "/druid/refresh_datasources/"
+            rv = self.client.get(uri)
+            self.assertLess(rv.status_code, 400)
+
+    def test_druid_cluster_disabled(self):
+        with patch.object(DruidClusterModelView, "is_enabled", return_value=False):
+            self.login("admin")
+            uri = "/druidclustermodelview/list/"
+            rv = self.client.get(uri)
+            self.assertEqual(rv.status_code, 404)
+
+    def test_druid_cluster_enabled(self):
+        with patch.object(DruidClusterModelView, "is_enabled", return_value=True):
+            self.login("admin")
+            uri = "/druidclustermodelview/list/"
+            rv = self.client.get(uri)
+            self.assertLess(rv.status_code, 400)
+
+    def test_druid_column_disabled(self):
+        with patch.object(DruidColumnInlineView, "is_enabled", return_value=False):
+            self.login("admin")
+            uri = "/druidcolumninlineview/list/"
+            rv = self.client.get(uri)
+            self.assertEqual(rv.status_code, 404)
+
+    def test_druid_column_enabled(self):
+        with patch.object(DruidColumnInlineView, "is_enabled", return_value=True):
+            self.login("admin")
+            uri = "/druidcolumninlineview/list/"
+            rv = self.client.get(uri)
+            self.assertLess(rv.status_code, 400)
+
+    def test_druid_datasource_disabled(self):
+        with patch.object(DruidDatasourceModelView, "is_enabled", return_value=False):
+            self.login("admin")
+            uri = "/druiddatasourcemodelview/list/"
+            rv = self.client.get(uri)
+            self.assertEqual(rv.status_code, 404)
+
+    def test_druid_datasource_enabled(self):
+        with patch.object(DruidDatasourceModelView, "is_enabled", return_value=True):
+            self.login("admin")
+            uri = "/druiddatasourcemodelview/list/"
+            rv = self.client.get(uri)
+            self.assertLess(rv.status_code, 400)
+
+    def test_druid_metric_disabled(self):
+        with patch.object(DruidMetricInlineView, "is_enabled", return_value=False):
+            self.login("admin")
+            uri = "/druidmetricinlineview/list/"
+            rv = self.client.get(uri)
+            self.assertEqual(rv.status_code, 404)
+
+    def test_druid_metric_enabled(self):
+        with patch.object(DruidMetricInlineView, "is_enabled", return_value=True):
+            self.login("admin")
+            uri = "/druidmetricinlineview/list/"
+            rv = self.client.get(uri)
+            self.assertLess(rv.status_code, 400)
 
 
 if __name__ == "__main__":
