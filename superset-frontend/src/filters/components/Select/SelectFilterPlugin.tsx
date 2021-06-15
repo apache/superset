@@ -29,12 +29,20 @@ import {
   t,
   tn,
 } from '@superset-ui/core';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  RefObject,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { Select } from 'src/common/components';
 import debounce from 'lodash/debounce';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { useImmerReducer } from 'use-immer';
 import Icons from 'src/components/Icons';
+import { usePrevious } from 'src/common/hooks/usePrevious';
 import { PluginFilterSelectProps, SelectValue } from './types';
 import { StyledSelect, Styles } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -115,6 +123,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     return [...firstData, ...restData];
   }, [col, selectedValues, data]);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const wasDropdownVisible = usePrevious(isDropdownVisible);
   const [currentSuggestionSearch, setCurrentSuggestionSearch] = useState('');
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
@@ -276,6 +285,14 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         onSelect={clearSuggestionSearch}
         onBlur={handleBlur}
         onDropdownVisibleChange={setIsDropdownVisible}
+        dropdownRender={(
+          originNode: ReactElement & { ref?: RefObject<HTMLElement> },
+        ) => {
+          if (isDropdownVisible && !wasDropdownVisible) {
+            originNode.ref?.current?.scrollTo({ top: 0 });
+          }
+          return originNode;
+        }}
         onFocus={setFocusedFilter}
         // @ts-ignore
         onChange={handleChange}
