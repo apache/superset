@@ -122,6 +122,7 @@ def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
             logger.warning("Unable to load SQLAlchemy dialect: %s", dialect)
         else:
             if hasattr(dialect, "driver"):
+                # If driver is not available in dialect default to name attribute
                 drivers[dialect.name].add(dialect.driver)
             else:
                 drivers[dialect.name].add(dialect.name)
