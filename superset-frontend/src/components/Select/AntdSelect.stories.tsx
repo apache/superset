@@ -95,8 +95,9 @@ AtEveryCorner.story = {
   },
 };
 
-async function fetchUserList(username: string, page = 0): Promise<OptionsType> {
-  return new Promise((resolve, reject) => {
+async function fetchUserList(search: string, page = 0): Promise<OptionsType> {
+  const username = search.trim().toLowerCase();
+  return new Promise(resolve => {
     const users = [
       'John',
       'Liam',
@@ -107,17 +108,58 @@ async function fetchUserList(username: string, page = 0): Promise<OptionsType> {
       'Oliver',
       'Elijah',
       'Charlotte',
+      'Diego',
+      'Evan',
+      'Michael',
+      'Giovanni',
+      'Luca',
+      'Paolo',
+      'Francesca',
+      'Chiara',
+      'Sara',
+      'Valentina',
+      'Jessica',
+      'Angelica',
+      'Mario',
+      'Marco',
+      'Andrea',
+      'Luigi',
+      'Quarto',
+      'Quinto',
+      'Sesto',
+      'Franco',
+      'Sandro',
+      'Alehandro',
+      'Johnny',
+      'Nikole',
+      'Igor',
+      'Sipatha',
+      'Thami',
+      'Munei',
+      'Guilherme',
+      'Umair',
+      'Ashfaq',
+      'Amna',
+      'Irfan',
+      'George',
+      'Naseer',
+      'Mohammad',
+      'Rick',
+      'Saliya',
+      'Claire',
+      'Benedetta',
+      'Ilenia',
     ];
 
     let results: { label: string; value: string }[] = [];
 
     if (!username) {
-      results = users.slice(0, 4).map(u => ({
+      results = users.map(u => ({
         label: u,
         value: u,
       }));
     } else {
-      const foundUsers = users.find(u => u.includes(username));
+      const foundUsers = users.find(u => u.toLowerCase().includes(username));
       if (foundUsers && Array.isArray(foundUsers)) {
         results = foundUsers.map(u => ({ label: u, value: u }));
       }
@@ -126,6 +168,9 @@ async function fetchUserList(username: string, page = 0): Promise<OptionsType> {
         results = [{ label: u, value: u }];
       }
     }
+    const offset = !page ? 0 : page * 10;
+    const resultsNum = !page ? 10 : (page + 1) * 10;
+    results = results.length ? results.splice(offset, resultsNum) : [];
 
     // eslint-disable-next-line no-console
     console.warn(
@@ -138,7 +183,7 @@ async function fetchUserList(username: string, page = 0): Promise<OptionsType> {
 
     setTimeout(() => {
       resolve(results);
-    }, 300);
+    }, 500);
   });
 }
 
@@ -159,8 +204,7 @@ export const AsyncSelect = (args: SelectProps & { withError: boolean }) => (
 AsyncSelect.args = {
   withError: false,
   allowNewOptions: false,
-  paginatedFetch: true,
-  options: fetchUserList,
+  paginatedFetch: false,
 };
 
 AsyncSelect.argTypes = {

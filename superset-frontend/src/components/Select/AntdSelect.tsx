@@ -26,7 +26,7 @@ import React, {
   useState,
   useRef,
 } from 'react';
-import { styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { Select as AntdSelect, Spin } from 'antd';
 import Icons from 'src/components/Icons';
 import {
@@ -80,22 +80,6 @@ const MAX_TAG_COUNT = 4;
 const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
 const DEBOUNCE_TIMEOUT = 800;
 
-const Loading = ({ content }: { content: ReactElement }) => {
-  const StyledLoading = styled.div`
-    display: flex;
-    justify-content: center;
-    width: 100%;
-  `;
-  return (
-    <>
-      {content}
-      <StyledLoading>
-        <Spin />
-      </StyledLoading>
-    </>
-  );
-};
-
 const Error = ({ error }: { error: string }) => {
   const StyledError = styled.div`
     display: flex;
@@ -112,16 +96,12 @@ const Error = ({ error }: { error: string }) => {
 
 const DropdownContent = ({
   content,
-  loading,
   error,
 }: {
   content: ReactElement;
   error?: string;
   loading?: boolean;
 }) => {
-  if (loading) {
-    return <Loading content={content} />;
-  }
   if (error) {
     return <Error error={error} />;
   }
@@ -138,6 +118,7 @@ const SelectComponent = ({
   name,
   notFoundContent,
   paginatedFetch = false,
+  placeholder = t('Select ...'),
   options,
   showSearch,
   value,
@@ -221,7 +202,6 @@ const SelectComponent = ({
       const fetchId = fetchRef.current;
       const page = paginatedFetch ? fetchId : undefined;
 
-      setLoading(true);
       fetchOptions(value, page)
         .then((newOptions: OptionsType) => {
           if (fetchId !== fetchRef.current) return;
@@ -318,6 +298,7 @@ const SelectComponent = ({
   useEffect(() => {
     const foundOption = hasOption(searchedValue, selectOptions);
     if (isAsync && !foundOption) {
+      setLoading(true);
       handleFetch(searchedValue);
     }
   }, [allowNewOptions, isAsync, handleFetch, searchedValue, selectOptions]);
@@ -333,13 +314,7 @@ const SelectComponent = ({
           if (!isDropdownVisible) {
             originNode.ref?.current?.scrollTo({ top: 0 });
           }
-          return (
-            <DropdownContent
-              content={originNode}
-              error={error}
-              loading={isLoading}
-            />
-          );
+          return <DropdownContent content={originNode} error={error} />;
         }}
         filterOption={handleFilterOption as any}
         getPopupContainer={triggerNode => triggerNode.parentNode}
@@ -353,6 +328,7 @@ const SelectComponent = ({
         onSearch={handleOnSearch}
         onSelect={handleOnSelect}
         options={selectOptions}
+        placeholder={shouldShowSearch ? t('Search ...') : placeholder}
         showSearch={shouldShowSearch}
         tokenSeparators={TOKEN_SEPARATORS}
         value={selectValue}
