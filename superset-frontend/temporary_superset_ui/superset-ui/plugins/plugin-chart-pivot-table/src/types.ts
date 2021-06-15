@@ -33,6 +33,11 @@ export interface PivotTableStylesProps {
 export type FilterType = Record<string, DataRecordValue>;
 export type SelectedFiltersType = Record<string, DataRecordValue[]>;
 
+export enum MetricsLayoutEnum {
+  ROWS = 'ROWS',
+  COLUMNS = 'COLUMNS',
+}
+
 interface PivotTableCustomizeProps {
   groupbyRows: string[];
   groupbyColumns: string[];
@@ -51,6 +56,7 @@ interface PivotTableCustomizeProps {
   emitFilter?: boolean;
   selectedFilters?: SelectedFiltersType;
   verboseMap?: JsonObject;
+  metricsLayout?: MetricsLayoutEnum;
 }
 
 export type PivotTableQueryFormData = QueryFormData &
