@@ -136,10 +136,6 @@ function dbReducer(
   };
   let query = '';
 
-  let extra_json = {
-    ...JSON.parse(action.payload.extra || ''),
-  };
-
   switch (action.type) {
     case ActionType.extraEditorChange:
       return {
@@ -213,6 +209,10 @@ function dbReducer(
       };
     case ActionType.fetched:
       // convert all the keys in this payload into strings
+      // eslint-disable-next-line no-case-declarations
+      let extra_json = {
+        ...JSON.parse(action.payload.extra || ''),
+      };
       extra_json = {
         ...extra_json,
         metadata_params: JSON.stringify(extra_json.metadata_params),
