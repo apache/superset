@@ -73,6 +73,7 @@ export default function transformProps(chartProps: ChartProps) {
     rowTotals,
     valueFormat,
     emitFilter,
+    metricsLayout,
   } = formData;
   const { selectedFilters } = filterState;
 
@@ -97,5 +98,6 @@ export default function transformProps(chartProps: ChartProps) {
     setDataMask,
     selectedFilters,
     verboseMap,
+    metricsLayout,
   };
 }
