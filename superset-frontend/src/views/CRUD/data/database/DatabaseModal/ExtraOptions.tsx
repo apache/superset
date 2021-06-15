@@ -27,23 +27,24 @@ import {
   StyledJsonEditor,
   StyledExpandableForm,
   antdCollapseStyles,
+  no_margin_bottom,
 } from './styles';
 import { DatabaseObject } from '../types';
-
-const defaultExtra =
-  '{\n  "metadata_params": {},\n  "engine_params": {},' +
-  '\n  "metadata_cache_timeout": {},\n  "schemas_allowed_for_csv_upload": [] \n}';
 
 const ExtraOptions = ({
   db,
   onInputChange,
   onTextChange,
   onEditorChange,
+  onExtraInputChange,
+  onExtraEditorChange,
 }: {
   db: DatabaseObject | null;
   onInputChange: EventHandler<ChangeEvent<HTMLInputElement>>;
   onTextChange: EventHandler<ChangeEvent<HTMLTextAreaElement>>;
   onEditorChange: Function;
+  onExtraInputChange: EventHandler<ChangeEvent<HTMLInputElement>>;
+  onExtraEditorChange: Function;
 }) => {
   const expandableModalIsOpen = !!db?.expose_in_sqllab;
   const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
@@ -59,20 +60,20 @@ const ExtraOptions = ({
           <div>
             <h4>SQL Lab</h4>
             <p className="helper">
-              Configure how this database will function in SQL Lab.
+              Adjust how this database will interact with SQL Lab.
             </p>
           </div>
         }
         key="1"
       >
-        <StyledInputContainer className="mb-0">
+        <StyledInputContainer css={no_margin_bottom}>
           <div className="input-container">
             <IndeterminateCheckbox
               id="expose_in_sqllab"
               indeterminate={false}
               checked={!!db?.expose_in_sqllab}
               onChange={onInputChange}
-              labelText={t('Expose in SQL Lab')}
+              labelText={t('Expose database in SQL Lab')}
             />
             <InfoTooltip
               tooltip={t('Allow this database to be queried in SQL Lab')}
@@ -84,7 +85,7 @@ const ExtraOptions = ({
               'ctas-open': createAsOpen,
             })}
           >
-            <StyledInputContainer className="mb-0">
+            <StyledInputContainer css={no_margin_bottom}>
               <div className="input-container">
                 <IndeterminateCheckbox
                   id="allow_ctas"
@@ -98,7 +99,7 @@ const ExtraOptions = ({
                 />
               </div>
             </StyledInputContainer>
-            <StyledInputContainer className="mb-0">
+            <StyledInputContainer css={no_margin_bottom}>
               <div className="input-container">
                 <IndeterminateCheckbox
                   id="allow_cvas"
@@ -120,19 +121,18 @@ const ExtraOptions = ({
                     type="text"
                     name="force_ctas_schema"
                     value={db?.force_ctas_schema || ''}
-                    placeholder={t('Search or select schema')}
+                    placeholder={t('Create or select schema...')}
                     onChange={onInputChange}
                   />
                 </div>
                 <div className="helper">
                   {t(
-                    'When allowing CREATE TABLE AS option in SQL Lab, this option ' +
-                      'forces the table to be created in this schema.',
+                    'Force all tables and views to be created in this schema when clicking CTAS or CVAS in SQL Lab.',
                   )}
                 </div>
               </StyledInputContainer>
             </StyledInputContainer>
-            <StyledInputContainer className="mb-0">
+            <StyledInputContainer css={no_margin_bottom}>
               <div className="input-container">
                 <IndeterminateCheckbox
                   id="allow_dml"
@@ -148,20 +148,52 @@ const ExtraOptions = ({
                 />
               </div>
             </StyledInputContainer>
-            <StyledInputContainer>
+            <StyledInputContainer css={no_margin_bottom}>
               <div className="input-container">
                 <IndeterminateCheckbox
                   id="allow_multi_schema_metadata_fetch"
                   indeterminate={false}
                   checked={!!db?.allow_multi_schema_metadata_fetch}
                   onChange={onInputChange}
-                  labelText={t('Allow multi schema metadata fetch')}
+                  labelText={t('Allow Multi Schema Metadata Fetch')}
                 />
                 <InfoTooltip
                   tooltip={t(
                     'Allow SQL Lab to fetch a list of all tables and all views across all database ' +
                       'schemas. For large data warehouse with thousands of tables, this can be ' +
                       'expensive and put strain on the system.',
+                  )}
+                />
+              </div>
+            </StyledInputContainer>
+            <StyledInputContainer css={no_margin_bottom}>
+              <div className="input-container">
+                <IndeterminateCheckbox
+                  id="cost_query_enabled"
+                  indeterminate={false}
+                  checked={!!db?.extra_json?.cost_query_enabled}
+                  onChange={onExtraInputChange}
+                  labelText={t('Enable query cost estimation')}
+                />
+                <InfoTooltip
+                  tooltip={t(
+                    'For Presto and Postgres, shows a button to compute cost before running a query.',
+                  )}
+                />
+              </div>
+            </StyledInputContainer>
+            <StyledInputContainer>
+              <div className="input-container">
+                <IndeterminateCheckbox
+                  id="allows_virtual_table_explore"
+                  indeterminate={false}
+                  checked={!!db?.extra_json?.allows_virtual_table_explore}
+                  onChange={onExtraInputChange}
+                  labelText={t('Allow this database to be explored')}
+                />
+                <InfoTooltip
+                  tooltip={t(
+                    'When enabled, users are able to visualize SQL Lab results in Explore.',
                   )}
                 />
               </div>
@@ -174,7 +206,7 @@ const ExtraOptions = ({
           <div>
             <h4>Performance</h4>
             <p className="helper">
-              Adjust settings that will impact the performance of this database.
+              Adjust performance settings of this database.
             </p>
           </div>
         }
@@ -187,7 +219,7 @@ const ExtraOptions = ({
               type="number"
               name="cache_timeout"
               value={db?.cache_timeout || ''}
-              placeholder={t('Chart cache timeout')}
+              placeholder={t('Enter duration in seconds')}
               onChange={onInputChange}
             />
           </div>
@@ -199,7 +231,51 @@ const ExtraOptions = ({
             )}
           </div>
         </StyledInputContainer>
-        <StyledInputContainer className="mb-0">
+        <StyledInputContainer>
+          <div className="control-label">{t('Schema cache timeout')}</div>
+          <div className="input-container">
+            <input
+              type="number"
+              name="schema_cache_timeout"
+              value={
+                db?.extra_json?.metadata_cache_timeout?.schema_cache_timeout ||
+                ''
+              }
+              placeholder={t('Enter duration in seconds')}
+              onChange={onExtraInputChange}
+              data-test="schema-cache-timeout-test"
+            />
+          </div>
+          <div className="helper">
+            {t(
+              'Duration (in seconds) of the metadata caching timeout for schemas of ' +
+                'this database. If left unset, the cache never expires.',
+            )}
+          </div>
+        </StyledInputContainer>
+        <StyledInputContainer>
+          <div className="control-label">{t('Table cache timeout')}</div>
+          <div className="input-container">
+            <input
+              type="number"
+              name="table_cache_timeout"
+              value={
+                db?.extra_json?.metadata_cache_timeout?.table_cache_timeout ||
+                ''
+              }
+              placeholder={t('Enter duration in seconds')}
+              onChange={onExtraInputChange}
+              data-test="table-cache-timeout-test"
+            />
+          </div>
+          <div className="helper">
+            {t(
+              'Duration (in seconds) of the metadata caching timeout for tables of ' +
+                'this database. If left unset, the cache never expires. ',
+            )}
+          </div>
+        </StyledInputContainer>
+        <StyledInputContainer css={{ no_margin_bottom }}>
           <div className="input-container">
             <IndeterminateCheckbox
               id="allow_run_async"
@@ -246,13 +322,11 @@ const ExtraOptions = ({
           </div>
           <div className="helper">
             <div>
-              {t('JSON string containing additional connection configuration.')}
-            </div>
-            <div>
               {t(
-                'This is used to provide connection information for systems like Hive, ' +
-                  'Presto, and BigQuery, which do not conform to the username:password syntax ' +
-                  'normally used by SQLAlchemy.',
+                'JSON string containing additional connection configuration. ' +
+                  'This is used to provide connection information for systems ' +
+                  'like Hive, Presto and BigQuery whih do not conform to the ' +
+                  'username:password syntax normally used by SQLAlchemy.',
               )}
             </div>
           </div>
@@ -263,41 +337,48 @@ const ExtraOptions = ({
             <textarea
               name="server_cert"
               value={db?.server_cert || ''}
-              placeholder={t('Root certificate')}
+              placeholder={t('Enter CA_BUNDLE')}
               onChange={onTextChange}
             />
           </div>
           <div className="helper">
             {t(
-              'Optional CA_BUNDLE contents to validate HTTPS requests. Only available on ' +
-                'certain database engines.',
+              'JSON string containing additional connection configuration. ' +
+                'This is used to provide connection information for systems ' +
+                'like Hive, Presto and BigQuery whih do not conform to the ' +
+                'username:password syntax normally used by SQLAlchemy.',
             )}
           </div>
         </StyledInputContainer>
-      </Collapse.Panel>
-      <Collapse.Panel
-        header={
-          <div>
-            <h4>Other</h4>
-            <p className="helper">Additional settings.</p>
+        <StyledInputContainer>
+          <div className="control-label">
+            {t('Schemas allowed for CSV upload')}
           </div>
-        }
-        key="4"
-      >
-        <StyledInputContainer className="mb-0">
+          <div className="input-container">
+            <input
+              type="text"
+              name="schemas_allowed_for_csv_upload"
+              value={db?.extra_json?.schemas_allowed_for_csv_upload || ''}
+              placeholder={t('Select one or multiple schemas')}
+              onChange={onExtraInputChange}
+            />
+          </div>
+          <div className="helper">
+            {t('A list of schemas that CSVs are allowed to upload to.')}
+          </div>
+        </StyledInputContainer>
+        <StyledInputContainer css={{ no_margin_bottom }}>
           <div className="input-container">
             <IndeterminateCheckbox
               id="impersonate_user"
               indeterminate={false}
               checked={!!db?.impersonate_user}
               onChange={onInputChange}
-              labelText={t(
-                'Impersonate Logged In User (Presto, Trino, Hive, and GSheets)',
-              )}
+              labelText={t('Impersonate logged in user (Presto & Hive)')}
             />
             <InfoTooltip
               tooltip={t(
-                'If Presto or Trino, all the queries in SQL Lab are going to be executed as the ' +
+                'If Presto, all the queries in SQL Lab are going to be executed as the ' +
                   'currently logged on user who must have permission to run them. If Hive ' +
                   'and hive.server2.enable.doAs is enabled, will run the queries as ' +
                   'service account, but impersonate the currently logged on user via ' +
@@ -306,7 +387,7 @@ const ExtraOptions = ({
             />
           </div>
         </StyledInputContainer>
-        <StyledInputContainer className="mb-0">
+        <StyledInputContainer css={{ ...no_margin_bottom }}>
           <div className="input-container">
             <IndeterminateCheckbox
               id="allow_csv_upload"
@@ -322,15 +403,25 @@ const ExtraOptions = ({
             />
           </div>
         </StyledInputContainer>
-        <StyledInputContainer className="extra-container">
-          <div className="control-label">{t('Extra')}</div>
+      </Collapse.Panel>
+      <Collapse.Panel
+        header={
+          <div>
+            <h4>Other</h4>
+            <p className="helper">Additional settings.</p>
+          </div>
+        }
+        key="4"
+      >
+        <StyledInputContainer>
+          <div className="control-label">{t('Metadata Parameters')}</div>
           <div className="input-container">
             <StyledJsonEditor
-              name="extra"
-              value={db?.extra ?? defaultExtra}
-              placeholder={t('Secure extra')}
+              name="metadata_params"
+              value={db?.extra_json?.metadata_params || '{}'}
+              placeholder={t('Metadata Parameters')}
               onChange={(json: string) =>
-                onEditorChange({ json, name: 'extra' })
+                onExtraEditorChange({ json, name: 'metadata_params' })
               }
               width="100%"
               height="160px"
@@ -338,45 +429,52 @@ const ExtraOptions = ({
           </div>
           <div className="helper">
             <div>
-              {t('JSON string containing extra configuration elements.')}
-            </div>
-            <div>
               {t(
-                '1. The engine_params object gets unpacked into the sqlalchemy.create_engine ' +
-                  'call, while the metadata_params gets unpacked into the sqlalchemy.MetaData ' +
-                  'call.',
+                'The metadata_params object gets unpacked into the sqlalchemy.MetaData call.',
               )}
             </div>
+          </div>
+        </StyledInputContainer>
+        <StyledInputContainer>
+          <div className="control-label">{t('Engine Parameters')}</div>
+          <div className="input-container">
+            <StyledJsonEditor
+              name="engine_params"
+              value={db?.extra_json?.engine_params || '{}'}
+              placeholder={t('Engine Parameters')}
+              onChange={(json: string) =>
+                onExtraEditorChange({ json, name: 'engine_params' })
+              }
+              width="100%"
+              height="160px"
+            />
+          </div>
+          <div className="helper">
             <div>
               {t(
-                '2. The metadata_cache_timeout is a cache timeout setting in seconds for ' +
-                  'metadata fetch of this database. Specify it as "metadata_cache_timeout": ' +
-                  '{"schema_cache_timeout": 600, "table_cache_timeout": 600}. If unset, cache ' +
-                  'will not be enabled for the functionality. A timeout of 0 indicates that ' +
-                  'the cache never expires.',
+                'The engine_params object gets unpacked into the sqlalchemy.create_engine call.',
               )}
             </div>
-            <div>
-              {t(
-                '3. The schemas_allowed_for_csv_upload is a comma separated list of schemas ' +
-                  'that CSVs are allowed to upload to. Specify it as ' +
-                  '"schemas_allowed_for_csv_upload": ["public", "csv_upload"]. If database ' +
-                  'flavor does not support schema or any schema is allowed to be accessed, ' +
-                  'just leave the list empty.',
-              )}
-            </div>
-            <div>
-              {t(
-                "4. The version field is a string specifying this db's version. This " +
-                  'should be used with Presto DBs so that the syntax is correct.',
-              )}
-            </div>
-            <div>
-              {t(
-                '5. The allows_virtual_table_explore field is a boolean specifying whether ' +
-                  'or not the Explore button in SQL Lab results is shown.',
-              )}
-            </div>
+          </div>
+        </StyledInputContainer>
+        <StyledInputContainer>
+          <div className="control-label" data-test="version-label-test">
+            {t('Version')}
+          </div>
+          <div className="input-container" data-test="version-spinbutton-test">
+            <input
+              type="number"
+              name="version"
+              value={db?.extra_json?.version || ''}
+              placeholder={t('Version number')}
+              onChange={onExtraInputChange}
+            />
+          </div>
+          <div className="helper">
+            {t(
+              'Specify this database’s version. This should be used with ' +
+                'Presto databases so that the syntax is correct.',
+            )}
           </div>
         </StyledInputContainer>
       </Collapse.Panel>
