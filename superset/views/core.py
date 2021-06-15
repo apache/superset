@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=comparison-with-callable, line-too-long, too-many-branches
-import dataclasses
 import logging
 import re
 from contextlib import closing
