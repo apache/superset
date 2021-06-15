@@ -67,6 +67,12 @@ const StyledInner = styled.div`
   &:first-of-type {
     margin-right: 0;
   }
+
+  .LinesEllipsis {
+    &:first-of-type {
+      margin-right: 0;
+    }
+  }
 `;
 
 const StyledBottom = styled.div`
