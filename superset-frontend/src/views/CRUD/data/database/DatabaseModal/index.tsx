@@ -237,7 +237,7 @@ function dbReducer(
 
       if (action.payload?.parameters?.credentials_info) {
         // deserialize credentials info for big query editting
-        action.payload.parameters.credentials_info = JSON.stringify(
+        deserializeExtraJSON = JSON.stringify(
           action.payload?.parameters.credentials_info,
         );
       }
