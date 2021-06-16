@@ -163,6 +163,7 @@ function DashboardList(props: DashboardListProps) {
             return dashboard;
           }),
         );
+        refreshData();
       },
       createErrorHandler(errMsg =>
         addDangerToast(
