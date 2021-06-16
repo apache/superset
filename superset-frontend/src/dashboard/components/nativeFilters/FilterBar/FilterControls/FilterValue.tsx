@@ -115,7 +115,7 @@ const FilterValue: React.FC<FilterProps> = ({
         requestParams: { dashboardId: 0 },
         ownState: filterOwnState,
       })
-        .then(({response, json}) => {
+        .then(({ response, json }) => {
           if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
             // deal with getChartDataRequest transforming the response data
             const result = 'result' in json ? json.result[0] : json;
@@ -139,7 +139,9 @@ const FilterValue: React.FC<FilterProps> = ({
                   setIsLoading(false);
                 });
             } else {
-                throw new Error(`Received unexpected response status (${response.status}) while fetching chart data`);
+              throw new Error(
+                `Received unexpected response status (${response.status}) while fetching chart data`,
+              );
             }
           } else {
             setState(json.result);

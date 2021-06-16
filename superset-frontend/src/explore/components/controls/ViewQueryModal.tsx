@@ -58,7 +58,7 @@ const ViewQueryModal: React.FC<Props> = props => {
       resultFormat: 'json',
       resultType,
     })
-      .then(({json}) => {
+      .then(({ json }) => {
         // Only displaying the first query is currently supported
         const result = json.result[0];
         setLanguage(result.language);

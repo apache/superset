@@ -149,7 +149,7 @@ export const DataTablesPane = ({
         resultType,
         ownState,
       })
-        .then(({json}) => {
+        .then(({ json }) => {
           // Only displaying the first query is currently supported
           const result = json.result[0];
           setData(prevData => ({ ...prevData, [resultType]: result.data }));
