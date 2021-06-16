@@ -64,7 +64,7 @@ export type DatabaseObject = {
 
   // Extra
   extra_json?: {
-    engine_params?: {} | string | object;
+    engine_params?: {} | string;
     metadata_params?: {} | string;
     metadata_cache_timeout?: {
       schema_cache_timeout?: number; // in Performance
