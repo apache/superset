@@ -63,7 +63,7 @@ interface FieldPropTypes {
   db?: DatabaseObject;
   isEditMode?: boolean;
   sslForced?: boolean;
-  name?: string;
+  defaultDBName?: string;
 }
 
 const CredentialsInfo = ({ changeMethods }: FieldPropTypes) => {
@@ -258,13 +258,13 @@ const displayField = ({
   getValidation,
   validationErrors,
   db,
-  name,
+  defaultDBName,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="database_name"
     name="database_name"
     required={required}
-    value={db?.database_name || name}
+    value={db?.database_name || defaultDBName}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.database_name}
     placeholder=""
@@ -337,7 +337,7 @@ const FORM_FIELD_MAP = {
 };
 
 const DatabaseConnectionForm = ({
-  dbModel: { name, parameters },
+  dbModel: { name: defaultDBName, parameters },
   onParametersChange,
   onChange,
   onParametersUploadFileChange,
@@ -384,7 +384,7 @@ const DatabaseConnectionForm = ({
               onChange,
               onParametersUploadFileChange,
             },
-            name,
+            defaultDBName,
             validationErrors,
             getValidation,
             db,
