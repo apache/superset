@@ -38,6 +38,7 @@ export type DatabaseObject = {
     username?: string;
     password?: string;
     encryption?: boolean;
+    credentials_info?: string;
     query?: string | object;
   };
   configuration_method: CONFIGURATION_METHOD;
@@ -108,6 +109,11 @@ export type DatabaseForm = {
         type: string;
       };
       username: {
+        description: string;
+        nullable: boolean;
+        type: string;
+      };
+      credentials_info: {
         description: string;
         nullable: boolean;
         type: string;
