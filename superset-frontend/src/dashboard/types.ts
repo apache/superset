@@ -41,9 +41,14 @@ export type Chart = ChartState & {
   };
 };
 
+export type ActiveTabs = string[];
 export type DashboardLayout = { [key: string]: LayoutItem };
 export type DashboardLayoutState = { present: DashboardLayout };
-export type DashboardState = { editMode: boolean; directPathToChild: string[] };
+export type DashboardState = {
+  editMode: boolean;
+  directPathToChild: string[];
+  activeTabs: ActiveTabs;
+};
 export type DashboardInfo = {
   common: {
     flash_messages: string[];
@@ -89,6 +94,7 @@ export type LayoutItem = {
     chartId: number;
     height: number;
     sliceName?: string;
+    sliceNameOverride?: string;
     text?: string;
     uuid: string;
     width: number;

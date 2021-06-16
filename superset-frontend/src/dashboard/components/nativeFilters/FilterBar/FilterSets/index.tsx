@@ -22,7 +22,7 @@ import { DataMask, HandlerFunction, styled, t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { DataMaskState, DataMaskWithId } from 'src/dataMask/types';
 import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
-import { Filters, FilterSet, FilterSets } from 'src/dashboard/reducers/types';
+import { Filters, FilterSet } from 'src/dashboard/reducers/types';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { findExistingFilterSet, generateFiltersSetId } from './utils';
 import { Filter } from '../../types';

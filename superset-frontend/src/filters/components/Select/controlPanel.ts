@@ -25,6 +25,7 @@ const {
   inverseSelection,
   multiSelect,
   defaultToFirstItem,
+  searchAllOptions,
   sortAscending,
 } = DEFAULT_FORM_DATA;
 
@@ -92,7 +93,10 @@ const config: ControlPanelConfig = {
               resetConfig: true,
               affectsDataMask: true,
               renderTrigger: true,
-              description: t('Select first item by default'),
+              requiredFirst: true,
+              description: t(
+                'Select first item by default (when using this option, default value can’t be set)',
+              ),
             },
           },
         ],
@@ -106,6 +110,23 @@ const config: ControlPanelConfig = {
               label: t('Inverse selection'),
               default: inverseSelection,
               description: t('Exclude selected values'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'searchAllOptions',
+            config: {
+              type: 'CheckboxControl',
+              renderTrigger: true,
+              affectsDataMask: true,
+              label: t('Search all filter options'),
+              default: searchAllOptions,
+              description: t(
+                'By default, each filter loads at most 1000 choices at the initial page load. ' +
+                  'Check this box if you have more than 1000 filter values and want to enable dynamically ' +
+                  'searching that loads filter values as users type (may add stress to your database).',
+              ),
             },
           },
         ],

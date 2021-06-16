@@ -18,30 +18,23 @@
  */
 
 /* eslint-disable no-param-reassign */
-import { HandlerFunction, styled, t } from '@superset-ui/core';
-import React, { useMemo, useState } from 'react';
+import { DataMask, HandlerFunction, styled, t } from '@superset-ui/core';
+import React, { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import cx from 'classnames';
 import Icon from 'src/components/Icon';
 import { Tabs } from 'src/common/components';
+import { usePrevious } from 'src/common/hooks/usePrevious';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { updateDataMask } from 'src/dataMask/actions';
-import {
-  DataMaskState,
-  DataMaskStateWithId,
-  DataMaskWithId,
-} from 'src/dataMask/types';
+import { DataMaskStateWithId, DataMaskWithId } from 'src/dataMask/types';
 import { useImmer } from 'use-immer';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { testWithId } from 'src/utils/testUtils';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
 import Loading from 'src/components/Loading';
 import { getInitialDataMask } from 'src/dataMask/reducer';
-import {
-  getOnlyExtraFormData,
-  mapParentFiltersToChildren,
-  TabIds,
-} from './utils';
+import { getOnlyExtraFormData, TabIds } from './utils';
 import FilterSets from './FilterSets';
 import {
   useNativeFiltersDataMask,
@@ -172,23 +165,47 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const filterSetFilterValues = Object.values(filterSets);
   const [tab, setTab] = useState(TabIds.AllFilters);
   const filters = useFilters();
+  const previousFilters = usePrevious(filters);
   const filterValues = Object.values<Filter>(filters);
   const dataMaskApplied: DataMaskStateWithId = useNativeFiltersDataMask();
   const [isFilterSetChanged, setIsFilterSetChanged] = useState(false);
-  const cascadeChildren = useMemo(
-    () => mapParentFiltersToChildren(filterValues),
-    [filterValues],
-  );
+
+  useEffect(() => {
+    setDataMaskSelected(() => dataMaskApplied);
+  }, [JSON.stringify(dataMaskApplied), setDataMaskSelected]);
+
+  // reset filter state if filter type changes
+  useEffect(() => {
+    setDataMaskSelected(draft => {
+      Object.values(filters).forEach(filter => {
+        if (
+          filter.filterType !== previousFilters?.[filter.id]?.filterType &&
+          previousFilters?.[filter.id]?.filterType !== undefined
+        ) {
+          draft[filter.id] = getInitialDataMask(filter.id) as DataMaskWithId;
+        }
+      });
+    });
+  }, [
+    JSON.stringify(filters),
+    JSON.stringify(previousFilters),
+    setDataMaskSelected,
+  ]);
 
   const handleFilterSelectionChange = (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
-    dataMask: Partial<DataMaskState>,
+    dataMask: Partial<DataMask>,
   ) => {
     setIsFilterSetChanged(tab !== TabIds.AllFilters);
     setDataMaskSelected(draft => {
-      const children = cascadeChildren[filter.id] || [];
-      // force instant updating on initialization or for parent filters
-      if (filter.isInstant || children.length > 0) {
+      // force instant updating on initialization for filters with `requiredFirst` is true or instant filters
+      if (
+        (dataMaskSelected[filter.id] && filter.isInstant) ||
+        // filterState.value === undefined - means that value not initialized
+        (dataMask.filterState?.value !== undefined &&
+          dataMaskSelected[filter.id]?.filterState?.value === undefined &&
+          filter.requiredFirst)
+      ) {
         dispatch(updateDataMask(filter.id, dataMask));
       }
 

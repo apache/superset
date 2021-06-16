@@ -34,6 +34,7 @@ class TestRedshiftDbEngineSpec(TestDbEngineSpec):
                 message='Either the username "wronguser" or the password is incorrect.',
                 level=ErrorLevel.ERROR,
                 extra={
+                    "invalid": ["username", "password"],
                     "engine_name": "Amazon Redshift",
                     "issue_codes": [
                         {
@@ -62,6 +63,7 @@ class TestRedshiftDbEngineSpec(TestDbEngineSpec):
                 message='The hostname "badhost" cannot be resolved.',
                 level=ErrorLevel.ERROR,
                 extra={
+                    "invalid": ["host"],
                     "engine_name": "Amazon Redshift",
                     "issue_codes": [
                         {
@@ -90,6 +92,7 @@ could not connect to server: Connection refused
                 message='Port 12345 on hostname "localhost" refused the connection.',
                 level=ErrorLevel.ERROR,
                 extra={
+                    "invalid": ["host", "port"],
                     "engine_name": "Amazon Redshift",
                     "issue_codes": [
                         {"code": 1008, "message": "Issue 1008 - The port is closed."}
@@ -123,6 +126,7 @@ psql: error: could not connect to server: Operation timed out
                             "and can't be reached on the provided port.",
                         }
                     ],
+                    "invalid": ["host", "port"],
                 },
             )
         ]
@@ -153,6 +157,7 @@ psql: error: could not connect to server: Operation timed out
                             "and can't be reached on the provided port.",
                         }
                     ],
+                    "invalid": ["host", "port"],
                 },
             )
         ]
@@ -174,6 +179,7 @@ psql: error: could not connect to server: Operation timed out
                             "spelled incorrectly or does not exist.",
                         }
                     ],
+                    "invalid": ["database"],
                 },
             )
         ]

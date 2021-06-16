@@ -78,6 +78,7 @@ from superset.exceptions import (
     CertificateException,
     DatabaseNotFound,
     SerializationError,
+    SupersetErrorsException,
     SupersetException,
     SupersetGenericDBErrorException,
     SupersetSecurityException,
@@ -611,7 +612,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     async_channel_id = async_query_manager.parse_jwt_from_request(
                         request
                     )["channel"]
-                    job_metadata = async_query_manager.init_job(async_channel_id)
+                    job_metadata = async_query_manager.init_job(
+                        async_channel_id, g.user.get_id()
+                    )
                     load_explore_json_into_cache.delay(
                         job_metadata, form_data, response_type, force
                     )
@@ -2424,7 +2427,15 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             raise SupersetGenericDBErrorException(utils.error_msg_from_exception(ex))
 
         if data.get("status") == QueryStatus.FAILED:
-            raise SupersetGenericDBErrorException(data["error"])
+            msg = data["error"]
+            query = _session.query(Query).filter_by(id=query_id).one()
+            database = query.database
+            db_engine_spec = database.db_engine_spec
+            errors = db_engine_spec.extract_errors(msg)
+            _session.close()
+            if errors:
+                raise SupersetErrorsException(errors)
+            raise SupersetGenericDBErrorException(msg)
         return json_success(payload)
 
     @has_access_api
@@ -2905,7 +2916,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             except json.JSONDecodeError:
                 pass
 
-        payload["user"] = bootstrap_user_data(g.user)
+        payload["user"] = bootstrap_user_data(g.user, include_perms=True)
         bootstrap_data = json.dumps(
             payload, default=utils.pessimistic_json_iso_dttm_ser
         )

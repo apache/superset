@@ -23,10 +23,11 @@ import { Global } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MainNav as DropdownMenu, MenuMode } from 'src/common/components';
 import { Link } from 'react-router-dom';
-import { Row, Col } from 'antd';
+import { Row, Col, Grid } from 'antd';
 import Icon from 'src/components/Icon';
 import RightMenu from './MenuRight';
 import { Languages } from './LanguagePicker';
+import { URL_PARAMS } from '../../constants';
 
 interface BrandProps {
   path: string;
@@ -90,6 +91,9 @@ const StyledHeader = styled.header`
     flex-direction: column;
     justify-content: center;
   }
+  .main-nav .ant-menu-submenu-title > svg {
+    top: ${({ theme }) => theme.gridUnit * 5.25}px;
+  }
   @media (max-width: 767px) {
     .navbar-brand {
       float: none;
@@ -137,11 +141,14 @@ const StyledHeader = styled.header`
 
 const { SubMenu } = DropdownMenu;
 
+const { useBreakpoint } = Grid;
+
 export function Menu({
   data: { menu, brand, navbar_right: navbarRight, settings },
   isFrontendRoute = () => false,
 }: MenuProps) {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
+  const screens = useBreakpoint();
 
   useEffect(() => {
     function handleResize() {
@@ -155,7 +162,7 @@ export function Menu({
     return () => window.removeEventListener('resize', windowResize);
   }, []);
 
-  const standalone = getUrlParam('standalone', 'boolean');
+  const standalone = getUrlParam(URL_PARAMS.standalone);
   if (standalone) return <></>;
 
   const renderSubMenu = ({
@@ -216,7 +223,7 @@ export function Menu({
         `}
       />
       <Row>
-        <Col lg={12} md={24} sm={24} xs={24}>
+        <Col md={16} xs={24}>
           <a className="navbar-brand" href={brand.path}>
             <img width={brand.width} src={brand.icon} alt={brand.alt} />
           </a>
@@ -245,8 +252,9 @@ export function Menu({
             })}
           </DropdownMenu>
         </Col>
-        <Col lg={12} md={24} sm={24} xs={24}>
+        <Col md={8} xs={24}>
           <RightMenu
+            align={screens.md ? 'flex-end' : 'flex-start'}
             settings={settings}
             navbarRight={navbarRight}
             isFrontendRoute={isFrontendRoute}
