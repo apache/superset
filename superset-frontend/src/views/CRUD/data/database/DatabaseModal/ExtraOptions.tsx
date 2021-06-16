@@ -299,9 +299,7 @@ const ExtraOptions = ({
         header={
           <div>
             <h4>Security</h4>
-            <p className="helper">
-              Add connection information for other systems.
-            </p>
+            <p className="helper">Add extra connection information.</p>
           </div>
         }
         key="3"
@@ -325,7 +323,7 @@ const ExtraOptions = ({
               {t(
                 'JSON string containing additional connection configuration. ' +
                   'This is used to provide connection information for systems ' +
-                  'like Hive, Presto and BigQuery whih do not conform to the ' +
+                  'like Hive, Presto and BigQuery which do not conform to the ' +
                   'username:password syntax normally used by SQLAlchemy.',
               )}
             </div>
