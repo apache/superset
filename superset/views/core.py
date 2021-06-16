@@ -2175,7 +2175,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     message=__("Results backend is not configured."),
                     error_type=SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR,
                     level=ErrorLevel.ERROR,
-                    extra={},
                 )
             )
 

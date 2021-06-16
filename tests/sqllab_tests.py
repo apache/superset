@@ -29,7 +29,8 @@ import prison
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs import BaseEngineSpec
-from superset.errors import ErrorLevel, SupersetErrorType
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetErrorException
 from superset.models.core import Database
 from superset.models.sql_lab import LimitingFactor, Query, SavedQuery
 from superset.result_set import SupersetResultSet
@@ -805,7 +806,7 @@ class TestSqlLab(SupersetTestCase):
 
         # try invalid CTAS
         sql = "DROP TABLE my_table"
-        with pytest.raises(SqlLabException) as excinfo:
+        with pytest.raises(SupersetErrorException) as excinfo:
             execute_sql_statements(
                 query_id=1,
                 rendered_query=sql,
@@ -817,11 +818,18 @@ class TestSqlLab(SupersetTestCase):
                 expand_data=False,
                 log_params=None,
             )
-        assert str(excinfo.value) == (
-            "CTAS (create table as select) can only be run with "
-            "a query where the last statement is a SELECT. Please "
-            "make sure your query has a SELECT as its last "
-            "statement. Then, try running your query again."
+        assert excinfo.value.error == SupersetError(
+            message="CTAS (create table as select) can only be run with a query where the last statement is a SELECT. Please make sure your query has a SELECT as its last statement. Then, try running your query again.",
+            error_type=SupersetErrorType.INVALID_CTAS_QUERY_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={
+                "issue_codes": [
+                    {
+                        "code": 1023,
+                        "message": "Issue 1023 - The CTAS (create table as select) doesn't have a SELECT statement at the end. Please make sure your query has a SELECT as its last statement. Then, try running your query again.",
+                    }
+                ]
+            },
         )
 
         # try invalid CVAS
@@ -832,7 +840,7 @@ class TestSqlLab(SupersetTestCase):
             SELECT @value AS foo;
             -- comment
         """
-        with pytest.raises(SqlLabException) as excinfo:
+        with pytest.raises(SupersetErrorException) as excinfo:
             execute_sql_statements(
                 query_id=1,
                 rendered_query=sql,
@@ -844,11 +852,22 @@ class TestSqlLab(SupersetTestCase):
                 expand_data=False,
                 log_params=None,
             )
-        assert str(excinfo.value) == (
-            "CVAS (create view as select) can only be run with a "
-            "query with a single SELECT statement. Please make "
-            "sure your query has only a SELECT statement. Then, "
-            "try running your query again."
+        assert excinfo.value.error == SupersetError(
+            message="CVAS (create view as select) can only be run with a query with a single SELECT statement. Please make sure your query has only a SELECT statement. Then, try running your query again.",
+            error_type=SupersetErrorType.INVALID_CVAS_QUERY_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={
+                "issue_codes": [
+                    {
+                        "code": 1024,
+                        "message": "Issue 1024 - CVAS (create view as select) query has more than one statement.",
+                    },
+                    {
+                        "code": 1025,
+                        "message": "Issue 1025 - CVAS (create view as select) query is not a SELECT statement.",
+                    },
+                ]
+            },
         )
 
     @mock.patch("superset.sql_lab.get_query")

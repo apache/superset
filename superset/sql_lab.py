@@ -226,7 +226,6 @@ def execute_sql_statement(
                 message=__("Only SELECT statements are allowed against this database."),
                 error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR,
                 level=ErrorLevel.ERROR,
-                extra={},
             )
         )
     if apply_ctas:
@@ -374,7 +373,6 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
                 message=__("Results backend is not configured."),
                 error_type=SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR,
                 level=ErrorLevel.ERROR,
-                extra={},
             )
         )
 
@@ -400,11 +398,15 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
         and query.ctas_method == CtasMethod.TABLE
         and not parsed_query.is_valid_ctas()
     ):
-        raise SqlLabException(
-            _(
-                "CTAS (create table as select) can only be run with a query where "
-                "the last statement is a SELECT. Please make sure your query has "
-                "a SELECT as its last statement. Then, try running your query again."
+        raise SupersetErrorException(
+            SupersetError(
+                message=__(
+                    "CTAS (create table as select) can only be run with a query where "
+                    "the last statement is a SELECT. Please make sure your query has "
+                    "a SELECT as its last statement. Then, try running your query again."
+                ),
+                error_type=SupersetErrorType.INVALID_CTAS_QUERY_ERROR,
+                level=ErrorLevel.ERROR,
             )
         )
     if (
@@ -412,11 +414,15 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
         and query.ctas_method == CtasMethod.VIEW
         and not parsed_query.is_valid_cvas()
     ):
-        raise SqlLabException(
-            _(
-                "CVAS (create view as select) can only be run with a query with "
-                "a single SELECT statement. Please make sure your query has only "
-                "a SELECT statement. Then, try running your query again."
+        raise SupersetErrorException(
+            SupersetError(
+                message=__(
+                    "CVAS (create view as select) can only be run with a query with "
+                    "a single SELECT statement. Please make sure your query has only "
+                    "a SELECT statement. Then, try running your query again."
+                ),
+                error_type=SupersetErrorType.INVALID_CVAS_QUERY_ERROR,
+                level=ErrorLevel.ERROR,
             )
         )
 

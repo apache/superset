@@ -68,6 +68,8 @@ class SupersetErrorType(str, Enum):
     MISSING_TEMPLATE_PARAMS_ERROR = "MISSING_TEMPLATE_PARAMS_ERROR"
     RESULTS_BACKEND_NOT_CONFIGURED_ERROR = "RESULTS_BACKEND_NOT_CONFIGURED_ERROR"
     DML_NOT_ALLOWED_ERROR = "DML_NOT_ALLOWED_ERROR"
+    INVALID_CTAS_QUERY_ERROR = "INVALID_CTAS_QUERY_ERROR"
+    INVALID_CVAS_QUERY_ERROR = "INVALID_CVAS_QUERY_ERROR"
 
     # Generic errors
     GENERIC_COMMAND_ERROR = "GENERIC_COMMAND_ERROR"
@@ -266,6 +268,30 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
                 "Issue 1020 - The submitted payload has the incorrect schema."
             ),
         }
+    ],
+    SupersetErrorType.INVALID_CTAS_QUERY_ERROR: [
+        {
+            "code": 1023,
+            "message": _(
+                "Issue 1023 - The CTAS (create table as select) doesn't have a "
+                "SELECT statement at the end. Please make sure your query has a "
+                "SELECT as its last statement. Then, try running your query again."
+            ),
+        },
+    ],
+    SupersetErrorType.INVALID_CVAS_QUERY_ERROR: [
+        {
+            "code": 1024,
+            "message": _(
+                "Issue 1024 - CVAS (create view as select) query has more than one statement."
+            ),
+        },
+        {
+            "code": 1025,
+            "message": _(
+                "Issue 1025 - CVAS (create view as select) query is not a SELECT statement."
+            ),
+        },
     ],
 }
 
