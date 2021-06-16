@@ -229,6 +229,13 @@ function dbReducer(
         ).toString();
       }
 
+      if (action.payload?.parameters?.credentials_info) {
+        // deserialize credentials info for big query editting
+        action.payload.parameters.credentials_info = JSON.stringify(
+          action.payload?.parameters.credentials_info,
+        );
+      }
+
       return {
         ...action.payload,
         engine: trimmedState.engine,
@@ -299,7 +306,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     availableDbs?.databases?.find(
       (available: { engine: string | undefined }) =>
         // TODO: we need a centralized engine in one place
-        available.engine === db?.engine || db?.backend,
+        available.engine === db?.backend || db?.engine,
     ) || {};
 
   // Test Connection logic

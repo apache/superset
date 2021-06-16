@@ -65,32 +65,40 @@ interface FieldPropTypes {
   sslForced?: boolean;
 }
 
-const CredentialsInfo = ({ changeMethods }: FieldPropTypes) => {
-  const [uploadOption, setUploadOption] = useState<number>(0);
+const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
+  const [uploadOption, setUploadOption] = useState<number>(1);
   const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
     null,
   );
   return (
     <CredentialInfoForm>
-      <span className="label-select">
-        How do you want to enter service account credentials?
-      </span>
-      <Select
-        defaultValue={CredentialInfoOptions.jsonUpload}
-        style={{ width: '100%' }}
-        onChange={option => setUploadOption(option)}
-      >
-        <Select.Option value={CredentialInfoOptions.jsonUpload}>
-          Upload JSON file
-        </Select.Option>
-        <Select.Option value={CredentialInfoOptions.copyPaste}>
-          Copy and Paste JSON credentials
-        </Select.Option>
-      </Select>
+      {!isEditMode && (
+        <>
+          <span className="label-select">
+            How do you want to enter service account credentials?
+          </span>
+          <Select
+            style={{ width: '100%' }}
+            onChange={option => setUploadOption(option)}
+          >
+            <Select.Option value={CredentialInfoOptions.jsonUpload}>
+              Upload JSON file
+            </Select.Option>
+
+            <Select.Option value={CredentialInfoOptions.copyPaste}>
+              Copy and Paste JSON credentials
+            </Select.Option>
+          </Select>
+        </>
+      )}
       {uploadOption === CredentialInfoOptions.copyPaste ? (
         <div className="input-container" onChange={changeMethods.onChange}>
           <span className="label-select">Service Account</span>
-          <textarea className="input-form" name="encrypted_extra" />
+          <textarea
+            className="input-form"
+            name="encrypted_extra"
+            value={db?.parameters?.credentials_info}
+          />
           <span className="label-paste">
             Copy and paste the entire service account .json file here
           </span>
