@@ -50,8 +50,8 @@ envFromSecret: '{{ template "superset.fullname" . }}-env'
 extraEnv: {}
   # Extend timeout to allow long running queries.
   # GUNICORN_TIMEOUT: 300
-  
-  
+
+
    # OAUTH_HOME_DOMAIN: ..
   # # If a whitelist is not set, any address that can use your OAuth2 endpoint will be able to login.
   # #   this includes any random Gmail address if your OAuth2 Web App is set to External.
