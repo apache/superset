@@ -83,6 +83,27 @@ class SupersetAppInitializer:
         self.config = app.config
         self.manifest: Dict[Any, Any] = {}
 
+    def init_app(self) -> None:
+        """
+        Main entry point which will delegate to other methods in
+        order to fully init the app
+        """
+        self.pre_init()
+        self.configure_logging()
+        self.setup_db()
+        self.configure_celery()
+        self.setup_event_logger()
+        self.setup_bundle_manifest()
+        self.register_blueprints()
+        self.configure_wtf()
+        self.configure_middlewares()
+        self.configure_cache()
+
+        with self.flask_app.app_context():  # type: ignore
+            self.init_app_in_ctx()
+
+        self.post_init()
+
     def pre_init(self) -> None:
         """
         Called before all other init tasks are complete
@@ -92,10 +113,18 @@ class SupersetAppInitializer:
         if not os.path.exists(self.config["DATA_DIR"]):
             os.makedirs(self.config["DATA_DIR"])
 
-    def post_init(self) -> None:
-        """
-        Called after any other init tasks
-        """
+    def configure_logging(self) -> None:
+        self.config["LOGGING_CONFIGURATOR"].configure_logging(
+            self.config, self.flask_app.debug
+        )
+
+    def setup_db(self) -> None:
+        db.init_app(self.flask_app)
+
+        with self.flask_app.app_context():  # type: ignore
+            pessimistic_connection_handling(db.engine)
+
+        migrate.init_app(self.flask_app, db=db, directory=APP_DIR + "/migrations")
 
     def configure_celery(self) -> None:
         celery_app.config_from_object(self.config["CELERY_CONFIG"])
@@ -116,6 +145,143 @@ class SupersetAppInitializer:
                     return task_base.__call__(self, *args, **kwargs)
 
         celery_app.Task = AppContextTask
+
+    def setup_event_logger(self) -> None:
+        _event_logger["event_logger"] = get_event_logger_from_cfg_value(
+            self.flask_app.config.get("EVENT_LOGGER", DBEventLogger())
+        )
+
+    def setup_bundle_manifest(self) -> None:
+        manifest_processor.init_app(self.flask_app)
+
+    def register_blueprints(self) -> None:
+        for bp in self.config["BLUEPRINTS"]:
+            try:
+                logger.info("Registering blueprint: %s", bp.name)
+                self.flask_app.register_blueprint(bp)
+            except Exception:  # pylint: disable=broad-except
+                logger.exception("blueprint registration failed")
+
+    def configure_wtf(self) -> None:
+        if self.config["WTF_CSRF_ENABLED"]:
+            csrf.init_app(self.flask_app)
+            csrf_exempt_list = self.config["WTF_CSRF_EXEMPT_LIST"]
+            for ex in csrf_exempt_list:
+                csrf.exempt(ex)
+
+    def configure_middlewares(self) -> None:
+        if self.config["ENABLE_CORS"]:
+            from flask_cors import CORS
+
+            CORS(self.flask_app, **self.config["CORS_OPTIONS"])
+
+        if self.config["ENABLE_PROXY_FIX"]:
+            from werkzeug.middleware.proxy_fix import ProxyFix
+
+            self.flask_app.wsgi_app = ProxyFix(  # type: ignore
+                self.flask_app.wsgi_app, **self.config["PROXY_FIX_CONFIG"]
+            )
+
+        if self.config["ENABLE_CHUNK_ENCODING"]:
+
+            class ChunkedEncodingFix:  # pylint: disable=too-few-public-methods
+                def __init__(self, app: Flask) -> None:
+                    self.app = app
+
+                def __call__(
+                    self, environ: Dict[str, Any], start_response: Callable[..., Any]
+                ) -> Any:
+                    # Setting wsgi.input_terminated tells werkzeug.wsgi to ignore
+                    # content-length and read the stream till the end.
+                    if environ.get("HTTP_TRANSFER_ENCODING", "").lower() == "chunked":
+                        environ["wsgi.input_terminated"] = True
+                    return self.app(environ, start_response)
+
+            self.flask_app.wsgi_app = ChunkedEncodingFix(  # type: ignore
+                self.flask_app.wsgi_app  # type: ignore
+            )
+
+        if self.config["UPLOAD_FOLDER"]:
+            try:
+                os.makedirs(self.config["UPLOAD_FOLDER"])
+            except OSError:
+                pass
+
+        for middleware in self.config["ADDITIONAL_MIDDLEWARE"]:
+            self.flask_app.wsgi_app = middleware(  # type: ignore
+                self.flask_app.wsgi_app
+            )
+
+        # Flask-Compress
+        Compress(self.flask_app)
+
+        if self.config["TALISMAN_ENABLED"]:
+            talisman.init_app(self.flask_app, **self.config["TALISMAN_CONFIG"])
+
+    def configure_cache(self) -> None:
+        cache_manager.init_app(self.flask_app)
+        results_backend_manager.init_app(self.flask_app)
+
+    def init_app_in_ctx(self) -> None:
+        """
+        Runs init logic in the context of the app
+        """
+        self.configure_feature_flags()
+        self.configure_fab()
+        self.configure_url_map_converters()
+        self.configure_data_sources()
+        self.configure_auth_provider()
+        self.configure_async_queries()
+
+        # Hook that provides administrators a handle on the Flask APP
+        # after initialization
+        flask_app_mutator = self.config["FLASK_APP_MUTATOR"]
+        if flask_app_mutator:
+            flask_app_mutator(self.flask_app)
+
+        self.init_views()
+
+    def configure_feature_flags(self) -> None:
+        feature_flag_manager.init_app(self.flask_app)
+
+    def configure_fab(self) -> None:
+        if self.config["SILENCE_FAB"]:
+            logging.getLogger("flask_appbuilder").setLevel(logging.ERROR)
+
+        custom_sm = self.config["CUSTOM_SECURITY_MANAGER"] or SupersetSecurityManager
+        if not issubclass(custom_sm, SupersetSecurityManager):
+            raise Exception(
+                """Your CUSTOM_SECURITY_MANAGER must now extend SupersetSecurityManager,
+                 not FAB's security manager.
+                 See [4565] in UPDATING.md"""
+            )
+
+        appbuilder.indexview = SupersetIndexView
+        appbuilder.base_template = "superset/base.html"
+        appbuilder.security_manager_class = custom_sm
+        appbuilder.init_app(self.flask_app, db.session)
+
+    def configure_url_map_converters(self) -> None:
+        #
+        # Doing local imports here as model importing causes a reference to
+        # app.config to be invoked and we need the current_app to have been setup
+        #
+        from superset.utils.url_map_converters import (
+            ObjectTypeConverter,
+            RegexConverter,
+        )
+
+        self.flask_app.url_map.converters["regex"] = RegexConverter
+        self.flask_app.url_map.converters["object_type"] = ObjectTypeConverter
+
+    def configure_data_sources(self) -> None:
+        # Registering sources
+        module_datasource_map = self.config["DEFAULT_MODULE_DS_MAP"]
+        module_datasource_map.update(self.config["ADDITIONAL_MODULE_DS_MAP"])
+        ConnectorRegistry.register_sources(module_datasource_map)
+
+    def configure_auth_provider(self) -> None:
+        machine_auth_provider_factory.init_app(self.flask_app)
 
     def init_views(self) -> None:
         #
@@ -524,177 +690,11 @@ class SupersetAppInitializer:
                 )
             appbuilder.add_separator("Data")
 
-    def init_app_in_ctx(self) -> None:
-        """
-        Runs init logic in the context of the app
-        """
-        self.configure_feature_flags()
-        self.configure_fab()
-        self.configure_url_map_converters()
-        self.configure_data_sources()
-        self.configure_auth_provider()
-        self.configure_async_queries()
-
-        # Hook that provides administrators a handle on the Flask APP
-        # after initialization
-        flask_app_mutator = self.config["FLASK_APP_MUTATOR"]
-        if flask_app_mutator:
-            flask_app_mutator(self.flask_app)
-
-        self.init_views()
-
-    def init_app(self) -> None:
-        """
-        Main entry point which will delegate to other methods in
-        order to fully init the app
-        """
-        self.pre_init()
-        self.setup_db()
-        self.configure_celery()
-        self.setup_event_logger()
-        self.setup_bundle_manifest()
-        self.register_blueprints()
-        self.configure_wtf()
-        self.configure_logging()
-        self.configure_middlewares()
-        self.configure_cache()
-
-        with self.flask_app.app_context():  # type: ignore
-            self.init_app_in_ctx()
-
-        self.post_init()
-
-    def configure_auth_provider(self) -> None:
-        machine_auth_provider_factory.init_app(self.flask_app)
-
-    def setup_event_logger(self) -> None:
-        _event_logger["event_logger"] = get_event_logger_from_cfg_value(
-            self.flask_app.config.get("EVENT_LOGGER", DBEventLogger())
-        )
-
-    def configure_data_sources(self) -> None:
-        # Registering sources
-        module_datasource_map = self.config["DEFAULT_MODULE_DS_MAP"]
-        module_datasource_map.update(self.config["ADDITIONAL_MODULE_DS_MAP"])
-        ConnectorRegistry.register_sources(module_datasource_map)
-
-    def configure_cache(self) -> None:
-        cache_manager.init_app(self.flask_app)
-        results_backend_manager.init_app(self.flask_app)
-
-    def configure_feature_flags(self) -> None:
-        feature_flag_manager.init_app(self.flask_app)
-
-    def configure_fab(self) -> None:
-        if self.config["SILENCE_FAB"]:
-            logging.getLogger("flask_appbuilder").setLevel(logging.ERROR)
-
-        custom_sm = self.config["CUSTOM_SECURITY_MANAGER"] or SupersetSecurityManager
-        if not issubclass(custom_sm, SupersetSecurityManager):
-            raise Exception(
-                """Your CUSTOM_SECURITY_MANAGER must now extend SupersetSecurityManager,
-                 not FAB's security manager.
-                 See [4565] in UPDATING.md"""
-            )
-
-        appbuilder.indexview = SupersetIndexView
-        appbuilder.base_template = "superset/base.html"
-        appbuilder.security_manager_class = custom_sm
-        appbuilder.init_app(self.flask_app, db.session)
-
-    def configure_url_map_converters(self) -> None:
-        #
-        # Doing local imports here as model importing causes a reference to
-        # app.config to be invoked and we need the current_app to have been setup
-        #
-        from superset.utils.url_map_converters import (
-            ObjectTypeConverter,
-            RegexConverter,
-        )
-
-        self.flask_app.url_map.converters["regex"] = RegexConverter
-        self.flask_app.url_map.converters["object_type"] = ObjectTypeConverter
-
-    def configure_middlewares(self) -> None:
-        if self.config["ENABLE_CORS"]:
-            from flask_cors import CORS
-
-            CORS(self.flask_app, **self.config["CORS_OPTIONS"])
-
-        if self.config["ENABLE_PROXY_FIX"]:
-            from werkzeug.middleware.proxy_fix import ProxyFix
-
-            self.flask_app.wsgi_app = ProxyFix(  # type: ignore
-                self.flask_app.wsgi_app, **self.config["PROXY_FIX_CONFIG"]
-            )
-
-        if self.config["ENABLE_CHUNK_ENCODING"]:
-
-            class ChunkedEncodingFix:  # pylint: disable=too-few-public-methods
-                def __init__(self, app: Flask) -> None:
-                    self.app = app
-
-                def __call__(
-                    self, environ: Dict[str, Any], start_response: Callable[..., Any]
-                ) -> Any:
-                    # Setting wsgi.input_terminated tells werkzeug.wsgi to ignore
-                    # content-length and read the stream till the end.
-                    if environ.get("HTTP_TRANSFER_ENCODING", "").lower() == "chunked":
-                        environ["wsgi.input_terminated"] = True
-                    return self.app(environ, start_response)
-
-            self.flask_app.wsgi_app = ChunkedEncodingFix(  # type: ignore
-                self.flask_app.wsgi_app  # type: ignore
-            )
-
-        if self.config["UPLOAD_FOLDER"]:
-            try:
-                os.makedirs(self.config["UPLOAD_FOLDER"])
-            except OSError:
-                pass
-
-        for middleware in self.config["ADDITIONAL_MIDDLEWARE"]:
-            self.flask_app.wsgi_app = middleware(  # type: ignore
-                self.flask_app.wsgi_app
-            )
-
-        # Flask-Compress
-        Compress(self.flask_app)
-
-        if self.config["TALISMAN_ENABLED"]:
-            talisman.init_app(self.flask_app, **self.config["TALISMAN_CONFIG"])
-
-    def configure_logging(self) -> None:
-        self.config["LOGGING_CONFIGURATOR"].configure_logging(
-            self.config, self.flask_app.debug
-        )
-
-    def setup_db(self) -> None:
-        db.init_app(self.flask_app)
-
-        with self.flask_app.app_context():  # type: ignore
-            pessimistic_connection_handling(db.engine)
-
-        migrate.init_app(self.flask_app, db=db, directory=APP_DIR + "/migrations")
-
-    def configure_wtf(self) -> None:
-        if self.config["WTF_CSRF_ENABLED"]:
-            csrf.init_app(self.flask_app)
-            csrf_exempt_list = self.config["WTF_CSRF_EXEMPT_LIST"]
-            for ex in csrf_exempt_list:
-                csrf.exempt(ex)
-
     def configure_async_queries(self) -> None:
         if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
             async_query_manager.init_app(self.flask_app)
 
-    def register_blueprints(self) -> None:
-        for bp in self.config["BLUEPRINTS"]:
-            try:
-                logger.info("Registering blueprint: %s", bp.name)
-                self.flask_app.register_blueprint(bp)
-            except Exception:  # pylint: disable=broad-except
-                logger.exception("blueprint registration failed")
-
-    def setup_bundle_manifest(self) -> None:
-        manifest_processor.init_app(self.flask_app)
+    def post_init(self) -> None:
+        """
+        Called after any other init tasks
+        """
