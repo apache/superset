@@ -211,7 +211,15 @@ Please check that the request payload has the expected schema.
 ## Issue 1021
 
 ```
-Results backend isn't configured.
+Results backend needed for asynchronous queries is not configured.
 ```
 
 Your instance of Superset doesn't have a results backend configured, which is needed for asynchronous queries. Please contact an administrator for further assistance.
+
+## Issue 1022
+
+```
+Database does not allow data manipulation.
+```
+
+Only `SELECT` statements are allowed against this database. Please contact an administrator if you need to run DML (data manipulation language) on this database.

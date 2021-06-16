@@ -57,6 +57,11 @@ export default function setupErrorMessages() {
     DatabaseErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.DML_NOT_ALLOWED_ERROR,
+    // XXX: new error component
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.CONNECTION_INVALID_HOSTNAME_ERROR,
     DatabaseErrorMessage,
   );

@@ -36,7 +36,7 @@ from superset import app, results_backend, results_backend_use_msgpack, security
 from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException
+from superset.exceptions import SupersetErrorException, SupersetErrorsException
 from superset.extensions import celery_app
 from superset.models.core import Database
 from superset.models.sql_lab import LimitingFactor, Query
@@ -88,25 +88,34 @@ class SqlLabTimeoutException(SqlLabException):
 
 
 def handle_query_error(
-    msg: str, query: Query, session: Session, payload: Optional[Dict[str, Any]] = None
+    ex: Exception,
+    query: Query,
+    session: Session,
+    payload: Optional[Dict[str, Any]] = None,
+    prefix_message: str = "",
 ) -> Dict[str, Any]:
     """Local method handling error while processing the SQL"""
     payload = payload or {}
+    msg = f"{prefix_message} {str(ex)}".strip()
     troubleshooting_link = config["TROUBLESHOOTING_LINK"]
     query.error_message = msg
     query.status = QueryStatus.FAILED
     query.tmp_table_name = None
 
     # extract DB-specific errors (invalid column, eg)
-    errors = [
-        dataclasses.asdict(error)
-        for error in query.database.db_engine_spec.extract_errors(msg)
-    ]
+    if isinstance(ex, SupersetErrorException):
+        errors = [ex.error]
+    elif isinstance(ex, SupersetErrorsException):
+        errors = ex.errors
+    else:
+        errors = query.database.db_engine_spec.extract_errors(str(ex))
+
+    errors_payload = [dataclasses.asdict(error) for error in errors]
     if errors:
-        query.set_extra_json_key("errors", errors)
+        query.set_extra_json_key("errors", errors_payload)
 
     session.commit()
-    payload.update({"status": query.status, "error": msg, "errors": errors})
+    payload.update({"status": query.status, "error": msg, "errors": errors_payload})
     if troubleshooting_link:
         payload["link"] = troubleshooting_link
     return payload
@@ -188,7 +197,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
             logger.debug("Query %d: %s", query_id, ex)
             stats_logger.incr("error_sqllab_unhandled")
             query = get_query(query_id, session)
-            return handle_query_error(str(ex), query, session)
+            return handle_query_error(ex, query, session)
 
 
 # pylint: disable=too-many-arguments, too-many-locals
@@ -212,8 +221,13 @@ def execute_sql_statement(
     increased_limit = None if query.limit is None else query.limit + 1
 
     if not db_engine_spec.is_readonly_query(parsed_query) and not database.allow_dml:
-        raise SqlLabSecurityException(
-            _("Only `SELECT` statements are allowed against this database")
+        raise SupersetErrorException(
+            SupersetError(
+                message=__("Only SELECT statements are allowed against this database."),
+                error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={},
+            )
         )
     if apply_ctas:
         if not query.tmp_table_name:
@@ -357,7 +371,7 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
     if database.allow_run_async and not results_backend:
         raise SupersetErrorException(
             SupersetError(
-                message=__("Results backend isn't configured"),
+                message=__("Results backend is not configured."),
                 error_type=SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={},
@@ -447,9 +461,14 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
                 )
             except Exception as ex:  # pylint: disable=broad-except
                 msg = str(ex)
-                if statement_count > 1:
-                    msg = f"[Statement {i+1} out of {statement_count}] " + msg
-                payload = handle_query_error(msg, query, session, payload)
+                prefix_message = (
+                    f"[Statement {i+1} out of {statement_count}]"
+                    if statement_count > 1
+                    else ""
+                )
+                payload = handle_query_error(
+                    ex, query, session, payload, prefix_message
+                )
                 return payload
 
         # Commit the connection so CTA queries will create the table.

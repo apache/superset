@@ -67,6 +67,7 @@ class SupersetErrorType(str, Enum):
     # Sql Lab errors
     MISSING_TEMPLATE_PARAMS_ERROR = "MISSING_TEMPLATE_PARAMS_ERROR"
     RESULTS_BACKEND_NOT_CONFIGURED_ERROR = "RESULTS_BACKEND_NOT_CONFIGURED_ERROR"
+    DML_NOT_ALLOWED_ERROR = "DML_NOT_ALLOWED_ERROR"
 
     # Generic errors
     GENERIC_COMMAND_ERROR = "GENERIC_COMMAND_ERROR"
@@ -152,10 +153,15 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
         {
             "code": 1021,
             "message": _(
-                "Issue 1021 - Your instance of Superset doesn't have a results "
-                "backend configured, which is needed for asynchronous queries. "
-                "Please contact an administrator for further assistance."
+                "Issue 1021 - Results backend needed for asynchronous queries "
+                "is not configured."
             ),
+        },
+    ],
+    SupersetErrorType.DML_NOT_ALLOWED_ERROR: [
+        {
+            "code": 1022,
+            "message": _("Issue 1022 - Database does not allow data manipulation."),
         },
     ],
     SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR: [

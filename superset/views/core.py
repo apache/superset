@@ -2172,7 +2172,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if not results_backend:
             raise SupersetErrorException(
                 SupersetError(
-                    message=__("Results backend isn't configured"),
+                    message=__("Results backend is not configured."),
                     error_type=SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR,
                     level=ErrorLevel.ERROR,
                     extra={},
@@ -2458,7 +2458,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 raise SupersetErrorsException(
                     [SupersetError(**params) for params in data["errors"]]
                 )
-
             # old string-only error message
             raise SupersetGenericDBErrorException(data["error"])
 
