@@ -90,6 +90,7 @@ class SupersetAppInitializer:
         """
         self.pre_init()
         self.configure_logging()
+        self.configure_feature_flags()
         self.setup_db()
         self.configure_celery()
         self.setup_event_logger()
@@ -117,6 +118,9 @@ class SupersetAppInitializer:
         self.config["LOGGING_CONFIGURATOR"].configure_logging(
             self.config, self.flask_app.debug
         )
+
+    def configure_feature_flags(self) -> None:
+        feature_flag_manager.init_app(self.flask_app)
 
     def setup_db(self) -> None:
         db.init_app(self.flask_app)
@@ -226,7 +230,6 @@ class SupersetAppInitializer:
         """
         Runs init logic in the context of the app
         """
-        self.configure_feature_flags()
         self.configure_fab()
         self.configure_url_map_converters()
         self.configure_data_sources()
@@ -240,9 +243,6 @@ class SupersetAppInitializer:
             flask_app_mutator(self.flask_app)
 
         self.init_views()
-
-    def configure_feature_flags(self) -> None:
-        feature_flag_manager.init_app(self.flask_app)
 
     def configure_fab(self) -> None:
         if self.config["SILENCE_FAB"]:
