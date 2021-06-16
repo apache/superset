@@ -56,7 +56,10 @@ def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    dashboards = session.query(Dashboard).all()
+    dashboards = session.query(Dashboard).filter(or_(
+        Dashboard.json_metadata.like('%"show_native_filters"%'),
+        Dashboard.json_metadata.like('%"native_filter_configuration"%'),
+    )).all()
     for i, dashboard in enumerate(dashboards):
         print(
             f"scanning dashboard ({i + 1}/{len(dashboards)}) dashboard: {dashboard.id} >>>>"
