@@ -108,8 +108,23 @@ const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
           </span>
         </div>
       ) : (
-        <div className="input-container">
-          <span className="label-select">Upload Credentials</span>
+        <div
+          className="input-container"
+          css={(theme: SupersetTheme) => infoTooltip(theme)}
+        >
+          {/*This is missing a reqired marker. Need clarification what element to add reqired to.*/}
+          <span
+            css={{ display: 'flex', alignItems: 'center' }}
+            className="label-select"
+          >
+            Upload Credentials{' '}
+            <InfoTooltip
+              tooltip={t(
+                'Use the JSON file you automatically downloaded when creating your service account in Google BigQuery.',
+              )}
+            />
+          </span>
+
           {!fileToUpload && (
             <Button
               className="input-upload-btn"
