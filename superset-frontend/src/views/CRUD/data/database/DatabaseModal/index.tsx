@@ -443,7 +443,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const setDatabaseModel = (engine: string) => {
-    console.log(engine);
     const selectedDbModel = availableDbs?.databases.filter(
       (db: DatabaseObject) => db.engine === engine,
     )[0];
