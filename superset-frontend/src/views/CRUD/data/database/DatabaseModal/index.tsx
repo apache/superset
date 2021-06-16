@@ -116,6 +116,7 @@ type DBReducerActionType =
   | {
       type: ActionType.dbSelected;
       payload: {
+        database_name?: string;
         engine?: string;
         configuration_method: CONFIGURATION_METHOD;
       };
@@ -342,7 +343,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onSave = async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...update } = db || {};
-
     if (update?.parameters?.query) {
       // convert query params into dictionary
       update.parameters.query = JSON.parse(
@@ -389,15 +389,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         update.encrypted_extra = JSON.stringify({
           credentials_info: JSON.parse(update.encrypted_extra),
         });
-      }
-      if (update?.parameters?.query) {
-        // convert query params into dictionary
-        update.parameters.query = JSON.parse(
-          `{"${decodeURI((db.parameters?.query as string) || '')
-            .replace(/"/g, '\\"')
-            .replace(/&/g, '","')
-            .replace(/=/g, '":"')}"}`,
-        );
       }
 
       if (update?.extra_json) {
@@ -452,13 +443,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const setDatabaseModel = (engine: string) => {
-    const isDynamic =
-      availableDbs?.databases.filter(
-        (db: DatabaseObject) => db.engine || db.backend === engine,
-      )[0].parameters !== undefined;
+    const selectedDbModel = availableDbs?.databases.filter(
+      (db: DatabaseObject) => db.engine || db.backend === engine,
+    )[0];
+    const { name, parameters } = selectedDbModel;
+    const isDynamic = parameters !== undefined;
     setDB({
       type: ActionType.dbSelected,
       payload: {
+        database_name: name,
         configuration_method: isDynamic
           ? CONFIGURATION_METHOD.DYNAMIC_FORM
           : CONFIGURATION_METHOD.SQLALCHEMY_URI,
@@ -478,11 +471,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onChange={setDatabaseModel}
         placeholder="Choose a database..."
       >
-        {availableDbs?.databases?.map((database: DatabaseForm) => (
-          <Select.Option value={database.engine} key={database.engine}>
-            {database.name}
-          </Select.Option>
-        ))}
+        {availableDbs?.databases
+          ?.sort((a: DatabaseForm, b: DatabaseForm) =>
+            a.name.localeCompare(b.name),
+          )
+          .map((database: DatabaseForm) => (
+            <Select.Option value={database.engine} key={database.engine}>
+              {database.name}
+            </Select.Option>
+          ))}
       </Select>
       <Alert
         showIcon
@@ -524,14 +521,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const renderModalFooter = () =>
     db // if db show back + connect
       ? [
-          <StyledFooterButton
-            key="back"
-            onClick={() => {
-              setDB({ type: ActionType.reset });
-            }}
-          >
-            Back
-          </StyledFooterButton>,
+          !hasConnectedDb && (
+            <StyledFooterButton
+              key="back"
+              onClick={() => {
+                setDB({ type: ActionType.reset });
+              }}
+            >
+              Back
+            </StyledFooterButton>
+          ),
           !hasConnectedDb ? ( // if hasConnectedDb show back + finish
             <StyledFooterButton
               key="submit"
