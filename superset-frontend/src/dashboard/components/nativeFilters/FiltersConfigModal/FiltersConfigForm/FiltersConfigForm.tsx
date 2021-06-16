@@ -59,6 +59,8 @@ import { getChartDataRequest } from 'src/chart/chartAction';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import Tabs from 'src/components/Tabs';
+import Icons from 'src/components/Icons';
+import { Tooltip } from 'src/components/Tooltip';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import { ColumnSelect } from './ColumnSelect';
 import { NativeFiltersForm } from '../types';
@@ -134,6 +136,17 @@ export const StyledLabel = styled.span`
 
 const CleanFormItem = styled(FormItem)`
   margin-bottom: 0;
+`;
+
+const DefaultValueContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+`;
+
+const RefreshIcon = styled(Icons.Refresh)`
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  color: ${({ theme }) => theme.colors.primary.base};
 `;
 
 const StyledCollapse = styled(Collapse)`
@@ -351,54 +364,57 @@ const FiltersConfigForm = (
     forceUpdate();
   };
 
-  const refreshHandler = useCallback(() => {
-    if (!hasDataset || !formFilter?.dataset?.value) {
-      forceUpdate();
-      return;
-    }
-    const formData = getFormData({
-      datasetId: formFilter?.dataset?.value,
-      groupby: formFilter?.column,
-      ...formFilter,
-    });
-    setNativeFilterFieldValuesWrapper({
-      defaultValueQueriesData: null,
-      isDataDirty: false,
-    });
-    getChartDataRequest({
-      formData,
-      force: false,
-      requestParams: { dashboardId: 0 },
-    })
-      .then(response => {
-        if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
-          // deal with getChartDataRequest transforming the response data
-          const result = 'result' in response ? response.result[0] : response;
-          waitForAsyncData(result)
-            .then((asyncResult: ChartDataResponseResult[]) => {
-              setNativeFilterFieldValuesWrapper({
-                defaultValueQueriesData: asyncResult,
-              });
-            })
-            .catch((error: ClientErrorObject) => {
-              setError(
-                error.message || error.error || t('Check configuration'),
-              );
-            });
-        } else {
-          setNativeFilterFieldValuesWrapper({
-            defaultValueQueriesData: response.result,
-          });
-        }
-      })
-      .catch((error: Response) => {
-        error.json().then(body => {
-          setErrorWrapper(
-            body.message || error.statusText || t('Check configuration'),
-          );
-        });
+  const refreshHandler = useCallback(
+    (force = false) => {
+      if (!hasDataset || !formFilter?.dataset?.value) {
+        forceUpdate();
+        return;
+      }
+      const formData = getFormData({
+        datasetId: formFilter?.dataset?.value,
+        groupby: formFilter?.column,
+        ...formFilter,
       });
-  }, [filterId, forceUpdate, form, formFilter, hasDataset]);
+      setNativeFilterFieldValuesWrapper({
+        defaultValueQueriesData: null,
+        isDataDirty: false,
+      });
+      getChartDataRequest({
+        formData,
+        force,
+        requestParams: { dashboardId: 0 },
+      })
+        .then(response => {
+          if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+            // deal with getChartDataRequest transforming the response data
+            const result = 'result' in response ? response.result[0] : response;
+            waitForAsyncData(result)
+              .then((asyncResult: ChartDataResponseResult[]) => {
+                setNativeFilterFieldValuesWrapper({
+                  defaultValueQueriesData: asyncResult,
+                });
+              })
+              .catch((error: ClientErrorObject) => {
+                setError(
+                  error.message || error.error || t('Check configuration'),
+                );
+              });
+          } else {
+            setNativeFilterFieldValuesWrapper({
+              defaultValueQueriesData: response.result,
+            });
+          }
+        })
+        .catch((error: Response) => {
+          error.json().then(body => {
+            setErrorWrapper(
+              body.message || error.statusText || t('Check configuration'),
+            );
+          });
+        });
+    },
+    [filterId, forceUpdate, form, formFilter, hasDataset],
+  );
 
   const defaultDatasetSelectOptions = Object.values(loadedDatasets).map(
     datasetToSelectOption,
@@ -693,22 +709,27 @@ const FiltersConfigForm = (
                     level="error"
                   />
                 ) : showDefaultValue ? (
-                  <DefaultValue
-                    setDataMask={dataMask => {
-                      setNativeFilterFieldValues(form, filterId, {
-                        defaultDataMask: dataMask,
-                      });
-                      form.validateFields([
-                        ['filters', filterId, 'defaultDataMask'],
-                      ]);
-                      forceUpdate();
-                    }}
-                    filterId={filterId}
-                    hasDataset={hasDataset}
-                    form={form}
-                    formData={newFormData}
-                    enableNoResults={enableNoResults}
-                  />
+                  <DefaultValueContainer>
+                    <DefaultValue
+                      setDataMask={dataMask => {
+                        setNativeFilterFieldValues(form, filterId, {
+                          defaultDataMask: dataMask,
+                        });
+                        form.validateFields([
+                          ['filters', filterId, 'defaultDataMask'],
+                        ]);
+                        forceUpdate();
+                      }}
+                      filterId={filterId}
+                      hasDataset={hasDataset}
+                      form={form}
+                      formData={newFormData}
+                      enableNoResults={enableNoResults}
+                    />
+                    <Tooltip title={t('Refresh the default values')}>
+                      <RefreshIcon onClick={() => refreshHandler(true)} />
+                    </Tooltip>
+                  </DefaultValueContainer>
                 ) : (
                   t('Fill all required fields to enable "Default Value"')
                 )}

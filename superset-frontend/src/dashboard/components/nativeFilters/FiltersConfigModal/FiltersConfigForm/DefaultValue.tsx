@@ -61,7 +61,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
     <Loading position="inline-centered" />
   ) : (
     <SuperChart
-      height={25}
+      height={32}
       width={formFilter?.filterType === 'filter_time' ? 350 : 250}
       appSection={AppSection.FILTER_CONFIG_MODAL}
       behaviors={[Behavior.NATIVE_FILTER]}
