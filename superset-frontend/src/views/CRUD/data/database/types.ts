@@ -38,6 +38,7 @@ export type DatabaseObject = {
     username?: string;
     password?: string;
     encryption?: boolean;
+    credentials_info?: string;
     query?: string | object;
   };
   configuration_method: CONFIGURATION_METHOD;
@@ -63,7 +64,7 @@ export type DatabaseObject = {
 
   // Extra
   extra_json?: {
-    engine_params?: {} | string;
+    engine_params?: {} | string | object;
     metadata_params?: {} | string;
     metadata_cache_timeout?: {
       schema_cache_timeout?: number; // in Performance

@@ -210,17 +210,18 @@ function dbReducer(
     case ActionType.fetched:
       // convert all the keys in this payload into strings
       // eslint-disable-next-line no-case-declarations
-      let extra_json = {};
+      let deserializeExtraJSON = {};
       if (action.payload.extra) {
-        extra_json = {
+        const extra_json = {
           ...JSON.parse(action.payload.extra || ''),
-        };
-        extra_json = {
-          ...extra_json,
-          metadata_params: JSON.stringify(extra_json.metadata_params),
-          engine_params: JSON.stringify(extra_json.engine_params),
+        } as DatabaseObject['extra_json'];
+
+        deserializeExtraJSON = {
+          ...JSON.parse(action.payload.extra || ''),
+          metadata_params: JSON.stringify(extra_json?.metadata_params),
+          engine_params: JSON.stringify(extra_json?.engine_params),
           schemas_allowed_for_csv_upload: JSON.stringify(
-            extra_json.schemas_allowed_for_csv_upload,
+            extra_json?.schemas_allowed_for_csv_upload,
           ),
         };
       }
@@ -243,7 +244,7 @@ function dbReducer(
         ...action.payload,
         engine: trimmedState.engine,
         configuration_method: trimmedState.configuration_method,
-        extra_json,
+        extra_json: deserializeExtraJSON,
         parameters: {
           ...action.payload.parameters,
           query,
@@ -454,8 +455,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       availableDbs?.databases.filter(
         (db: DatabaseObject) => db.engine || db.backend === engine,
       )[0].parameters !== undefined;
-
-    console.log('choosing', engine);
     setDB({
       type: ActionType.dbSelected,
       payload: {
