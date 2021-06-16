@@ -726,9 +726,11 @@ const FiltersConfigForm = (
                       formData={newFormData}
                       enableNoResults={enableNoResults}
                     />
-                    <Tooltip title={t('Refresh the default values')}>
-                      <RefreshIcon onClick={() => refreshHandler(true)} />
-                    </Tooltip>
+                    {hasDataset && datasetId && (
+                      <Tooltip title={t('Refresh the default values')}>
+                        <RefreshIcon onClick={() => refreshHandler(true)} />
+                      </Tooltip>
+                    )}
                   </DefaultValueContainer>
                 ) : (
                   t('Fill all required fields to enable "Default Value"')
