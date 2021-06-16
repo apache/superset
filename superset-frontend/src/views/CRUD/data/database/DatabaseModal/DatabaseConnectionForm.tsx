@@ -66,7 +66,9 @@ interface FieldPropTypes {
 }
 
 const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
-  const [uploadOption, setUploadOption] = useState<number>(CredentialInfoOptions.copyPaste.valueOf());
+  const [uploadOption, setUploadOption] = useState<number>(
+    CredentialInfoOptions.copyPaste.valueOf(),
+  );
   const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
     null,
   );
