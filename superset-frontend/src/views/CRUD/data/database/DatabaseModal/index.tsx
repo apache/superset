@@ -541,6 +541,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         ]
       : [];
 
+  const renderEditModalFooter = () => (
+    <>
+      <StyledFooterButton key="close" onClick={onClose}>
+        Close
+      </StyledFooterButton>
+      <StyledFooterButton key="submit" buttonStyle="primary" onClick={onSave}>
+        Finish
+      </StyledFooterButton>
+    </>
+  );
   useEffect(() => {
     if (show) {
       setTabKey(DEFAULT_TAB_KEY);
@@ -593,7 +603,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       title={
         <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
       }
-      footer={renderModalFooter()}
+      footer={isEditMode ? renderEditModalFooter() : renderModalFooter()}
     >
       <TabHeader>
         <ModalHeader
