@@ -23,6 +23,7 @@ from collections import defaultdict
 from io import BytesIO
 from unittest import mock
 from zipfile import is_zipfile, ZipFile
+from operator import itemgetter
 
 import prison
 import pytest
@@ -1463,6 +1464,8 @@ class TestDatabaseApi(SupersetTestCase):
                             "port": {
                                 "description": "Database port",
                                 "format": "int32",
+                                "maximum": 65536,
+                                "minimum": 0,
                                 "type": "integer",
                             },
                             "query": {
@@ -1528,6 +1531,8 @@ class TestDatabaseApi(SupersetTestCase):
                             "port": {
                                 "description": "Database port",
                                 "format": "int32",
+                                "maximum": 65536,
+                                "minimum": 0,
                                 "type": "integer",
                             },
                             "query": {
@@ -1574,6 +1579,8 @@ class TestDatabaseApi(SupersetTestCase):
                             "port": {
                                 "description": "Database port",
                                 "format": "int32",
+                                "maximum": 65536,
+                                "minimum": 0,
                                 "type": "integer",
                             },
                             "query": {
@@ -1668,38 +1675,74 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
-        assert response == {
-            "errors": [
-                {
-                    "message": "Missing data for required field.",
-                    "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
-                    "level": "error",
-                    "extra": {
-                        "invalid": ["engine"],
-                        "issue_codes": [
-                            {
-                                "code": 1020,
-                                "message": "Issue 1020 - The submitted payload has the incorrect schema.",
-                            }
-                        ],
+        invalid_schema = response["errors"][0]["extra"]["invalid"][0]
+        # This is done because this array of errors does not have a deterministic order
+        if invalid_schema == "engine":
+            assert response == {
+                "errors": [
+                    {
+                        "message": "Missing data for required field.",
+                        "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
+                        "level": "error",
+                        "extra": {
+                            "invalid": ["engine"],
+                            "issue_codes": [
+                                {
+                                    "code": 1020,
+                                    "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                                }
+                            ],
+                        },
                     },
-                },
-                {
-                    "message": "Unknown field.",
-                    "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
-                    "level": "error",
-                    "extra": {
-                        "invalid": ["foo"],
-                        "issue_codes": [
-                            {
-                                "code": 1020,
-                                "message": "Issue 1020 - The submitted payload has the incorrect schema.",
-                            }
-                        ],
+                    {
+                        "message": "Missing data for required field.",
+                        "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
+                        "level": "error",
+                        "extra": {
+                            "invalid": ["configuration_method"],
+                            "issue_codes": [
+                                {
+                                    "code": 1020,
+                                    "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                                }
+                            ],
+                        },
                     },
-                },
-            ]
-        }
+                ]
+            }
+        else:
+            assert response == {
+                "errors": [
+                    {
+                        "message": "Missing data for required field.",
+                        "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
+                        "level": "error",
+                        "extra": {
+                            "invalid": ["configuration_method"],
+                            "issue_codes": [
+                                {
+                                    "code": 1020,
+                                    "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                                }
+                            ],
+                        },
+                    },
+                    {
+                        "message": "Missing data for required field.",
+                        "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
+                        "level": "error",
+                        "extra": {
+                            "invalid": ["engine"],
+                            "issue_codes": [
+                                {
+                                    "code": 1020,
+                                    "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                                }
+                            ],
+                        },
+                    },
+                ]
+            }
 
     def test_validate_parameters_missing_fields(self):
         self.login(username="admin")
@@ -1756,6 +1799,7 @@ class TestDatabaseApi(SupersetTestCase):
         payload = {
             "engine": "postgresql",
             "parameters": defaultdict(dict),
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
         }
         payload["parameters"].update(
             {
@@ -1779,6 +1823,7 @@ class TestDatabaseApi(SupersetTestCase):
         payload = {
             "engine": "postgresql",
             "parameters": defaultdict(dict),
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
         }
         payload["parameters"].update(
             {
@@ -1868,5 +1913,49 @@ class TestDatabaseApi(SupersetTestCase):
                         ],
                     },
                 },
+            ]
+        }
+
+    @mock.patch("superset.db_engine_specs.base.is_hostname_valid")
+    def test_validate_parameters_invalid_port_range(self, is_hostname_valid):
+        is_hostname_valid.return_value = True
+
+        self.login(username="admin")
+        url = "api/v1/database/validate_parameters"
+        payload = {
+            "engine": "postgresql",
+            "parameters": defaultdict(dict),
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
+        }
+        payload["parameters"].update(
+            {
+                "host": "localhost",
+                "port": 65536,
+                "username": "",
+                "password": "",
+                "database": "",
+                "query": {},
+            }
+        )
+        rv = self.client.post(url, json=payload)
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "Must be greater than or equal to 0 and less than 65536.",
+                    "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
+                    "level": "error",
+                    "extra": {
+                        "invalid": ["port"],
+                        "issue_codes": [
+                            {
+                                "code": 1020,
+                                "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                            }
+                        ],
+                    },
+                }
             ]
         }

@@ -63,34 +63,46 @@ interface FieldPropTypes {
   db?: DatabaseObject;
   isEditMode?: boolean;
   sslForced?: boolean;
+  defaultDBName?: string;
 }
 
-const CredentialsInfo = ({ changeMethods }: FieldPropTypes) => {
-  const [uploadOption, setUploadOption] = useState<number>(0);
+const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
+  const [uploadOption, setUploadOption] = useState<number>(
+    CredentialInfoOptions.copyPaste.valueOf(),
+  );
   const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
     null,
   );
   return (
     <CredentialInfoForm>
-      <span className="label-select">
-        How do you want to enter service account credentials?
-      </span>
-      <Select
-        defaultValue={CredentialInfoOptions.jsonUpload}
-        style={{ width: '100%' }}
-        onChange={option => setUploadOption(option)}
-      >
-        <Select.Option value={CredentialInfoOptions.jsonUpload}>
-          Upload JSON file
-        </Select.Option>
-        <Select.Option value={CredentialInfoOptions.copyPaste}>
-          Copy and Paste JSON credentials
-        </Select.Option>
-      </Select>
+      {!isEditMode && (
+        <>
+          <span className="label-select">
+            How do you want to enter service account credentials?
+          </span>
+          <Select
+            defaultValue={uploadOption}
+            style={{ width: '100%' }}
+            onChange={option => setUploadOption(option)}
+          >
+            <Select.Option value={CredentialInfoOptions.jsonUpload}>
+              Upload JSON file
+            </Select.Option>
+
+            <Select.Option value={CredentialInfoOptions.copyPaste}>
+              Copy and Paste JSON credentials
+            </Select.Option>
+          </Select>
+        </>
+      )}
       {uploadOption === CredentialInfoOptions.copyPaste ? (
         <div className="input-container" onChange={changeMethods.onChange}>
           <span className="label-select">Service Account</span>
-          <textarea className="input-form" name="encrypted_extra" />
+          <textarea
+            className="input-form"
+            name="encrypted_extra"
+            value={db?.parameters?.credentials_info}
+          />
           <span className="label-paste">
             Copy and paste the entire service account .json file here
           </span>
@@ -236,12 +248,13 @@ const passwordField = ({
   getValidation,
   validationErrors,
   db,
+  isEditMode,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="password"
     name="password"
     required={required}
-    type="password"
+    type={isEditMode && 'password'}
     value={db?.parameters?.password}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.password}
@@ -256,12 +269,13 @@ const displayField = ({
   getValidation,
   validationErrors,
   db,
+  defaultDBName,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="database_name"
     name="database_name"
     required={required}
-    value={db?.database_name}
+    value={db?.database_name || defaultDBName}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.database_name}
     placeholder=""
@@ -334,7 +348,7 @@ const FORM_FIELD_MAP = {
 };
 
 const DatabaseConnectionForm = ({
-  dbModel: { parameters },
+  dbModel: { name: defaultDBName, parameters },
   onParametersChange,
   onChange,
   onParametersUploadFileChange,
@@ -381,6 +395,7 @@ const DatabaseConnectionForm = ({
               onChange,
               onParametersUploadFileChange,
             },
+            defaultDBName,
             validationErrors,
             getValidation,
             db,

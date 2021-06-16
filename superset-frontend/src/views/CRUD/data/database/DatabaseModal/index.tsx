@@ -65,6 +65,7 @@ import {
   StyledBasicTab,
   SelectDatabaseStyles,
   infoTooltip,
+  StyledFooterButton,
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 
@@ -212,17 +213,21 @@ function dbReducer(
     case ActionType.fetched:
       // convert all the keys in this payload into strings
       // eslint-disable-next-line no-case-declarations
-      let extra_json = {
-        ...JSON.parse(action.payload.extra || ''),
-      };
-      extra_json = {
-        ...extra_json,
-        metadata_params: JSON.stringify(extra_json.metadata_params),
-        engine_params: JSON.stringify(extra_json.engine_params),
-        schemas_allowed_for_csv_upload: JSON.stringify(
-          extra_json.schemas_allowed_for_csv_upload,
-        ),
-      };
+      let deserializeExtraJSON = {};
+      if (action.payload.extra) {
+        const extra_json = {
+          ...JSON.parse(action.payload.extra || ''),
+        } as DatabaseObject['extra_json'];
+
+        deserializeExtraJSON = {
+          ...JSON.parse(action.payload.extra || ''),
+          metadata_params: JSON.stringify(extra_json?.metadata_params),
+          engine_params: JSON.stringify(extra_json?.engine_params),
+          schemas_allowed_for_csv_upload: JSON.stringify(
+            extra_json?.schemas_allowed_for_csv_upload,
+          ),
+        };
+      }
 
       if (action.payload?.parameters?.query) {
         // convert query into URI params string
@@ -231,11 +236,18 @@ function dbReducer(
         ).toString();
       }
 
+      if (action.payload?.parameters?.credentials_info) {
+        // deserialize credentials info for big query editting
+        action.payload.parameters.credentials_info = JSON.stringify(
+          action.payload?.parameters.credentials_info,
+        );
+      }
+
       return {
         ...action.payload,
         engine: trimmedState.engine,
         configuration_method: trimmedState.configuration_method,
-        extra_json,
+        extra_json: deserializeExtraJSON,
         parameters: {
           ...action.payload.parameters,
           query,
@@ -301,7 +313,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     availableDbs?.databases?.find(
       (available: { engine: string | undefined }) =>
         // TODO: we need a centralized engine in one place
-        available.engine === db?.engine || db?.backend,
+        available.engine === (isEditMode ? db?.backend : db?.engine),
     ) || {};
 
   // Test Connection logic
@@ -350,10 +362,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         // convert extra_json to back to string
         update.extra = JSON.stringify({
           ...update.extra_json,
-          metadata_params: JSON.parse(update?.extra_json?.metadata_params),
-          engine_params: JSON.parse(update?.extra_json?.engine_params),
+          metadata_params: JSON.parse(
+            update?.extra_json?.metadata_params as string,
+          ),
+          engine_params: JSON.parse(
+            update?.extra_json?.engine_params as string,
+          ),
           schemas_allowed_for_csv_upload: JSON.parse(
-            update?.extra_json?.schemas_allowed_for_csv_upload,
+            update?.extra_json?.schemas_allowed_for_csv_upload as string,
           ),
         });
       }
@@ -390,10 +406,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         // convert extra_json to back to string
         update.extra = JSON.stringify({
           ...update.extra_json,
-          metadata_params: JSON.parse(update?.extra_json?.metadata_params),
-          engine_params: JSON.parse(update?.extra_json?.engine_params),
+          metadata_params: JSON.parse(
+            update?.extra_json?.metadata_params as string,
+          ),
+          engine_params: JSON.parse(
+            update?.extra_json?.engine_params as string,
+          ),
           schemas_allowed_for_csv_upload: JSON.parse(
-            update?.extra_json?.schemas_allowed_for_csv_upload,
+            update?.extra_json?.schemas_allowed_for_csv_upload as string,
           ),
         });
       }
@@ -436,7 +456,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const setDatabaseModel = (engine: string) => {
     const isDynamic =
       availableDbs?.databases.filter(
-        (db: DatabaseObject) => db.engine === engine,
+        (db: DatabaseObject) => db.engine || db.backend === engine,
       )[0].parameters !== undefined;
     setDB({
       type: ActionType.dbSelected,
@@ -456,7 +476,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       </h4>
       <div className="control-label">Supported databases</div>
       <Select
-        style={{ width: '100%' }}
+        className="available-select"
         onChange={setDatabaseModel}
         placeholder="Choose a database..."
       >
@@ -506,24 +526,44 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const renderModalFooter = () =>
     db // if db show back + connect
       ? [
-          <Button
+          <StyledFooterButton
             key="back"
             onClick={() => {
               setDB({ type: ActionType.reset });
             }}
           >
             Back
-          </Button>,
+          </StyledFooterButton>,
           !hasConnectedDb ? ( // if hasConnectedDb show back + finish
-            <Button key="submit" buttonStyle="primary" onClick={onSave}>
+            <StyledFooterButton
+              key="submit"
+              buttonStyle="primary"
+              onClick={onSave}
+            >
               Connect
-            </Button>
+            </StyledFooterButton>
           ) : (
-            <Button onClick={onClose}>Finish</Button>
+            <StyledFooterButton
+              key="submit"
+              buttonStyle="primary"
+              onClick={onClose}
+            >
+              Finish
+            </StyledFooterButton>
           ),
         ]
       : [];
 
+  const renderEditModalFooter = () => (
+    <>
+      <StyledFooterButton key="close" onClick={onClose}>
+        Close
+      </StyledFooterButton>
+      <StyledFooterButton key="submit" buttonStyle="primary" onClick={onSave}>
+        Finish
+      </StyledFooterButton>
+    </>
+  );
   useEffect(() => {
     if (show) {
       setTabKey(DEFAULT_TAB_KEY);
@@ -576,7 +616,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       title={
         <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
       }
-      footer={renderModalFooter()}
+      footer={isEditMode ? renderEditModalFooter() : renderModalFooter()}
     >
       <TabHeader>
         <ModalHeader

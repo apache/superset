@@ -20,6 +20,7 @@
 import { styled, css, SupersetTheme } from '@superset-ui/core';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 import Tabs from 'src/components/Tabs';
+import Button from 'src/components/Button';
 
 const CTAS_CVAS_SCHEMA_FORM_HEIGHT = 102;
 const EXPOSE_IN_SQLLAB_FORM_HEIGHT = CTAS_CVAS_SCHEMA_FORM_HEIGHT + 153;
@@ -29,6 +30,10 @@ const anticonHeight = 12;
 
 export const no_margin_bottom = css`
   margin-bottom: 0;
+`;
+
+export const marginBottom = (theme: SupersetTheme) => css`
+  margin-bottom: ${theme.gridUnit * 4}px;
 `;
 
 export const StyledFormHeader = styled.header`
@@ -123,15 +128,21 @@ export const antDModalStyles = (theme: SupersetTheme) => css`
     color: ${theme.colors.grayscale.dark1};
     opacity: 1;
   }
+
   .ant-modal-title > h4 {
     font-weight: bold;
+  }
+
+  .ant-modal-body {
+    height: ${theme.gridUnit * 180.5}px;
   }
 `;
 
 export const antDAlertStyles = (theme: SupersetTheme) => css`
   border: 1px solid ${theme.colors.info.base};
   padding: ${theme.gridUnit * 4}px;
-  margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 3}px 0;
+  margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 3}px
+    ${theme.gridUnit * 4}px;
   .ant-alert-message {
     color: ${theme.colors.info.dark2};
     font-size: ${theme.typography.sizes.s + 1}px;
@@ -431,6 +442,9 @@ export const SelectDatabaseStyles = styled.div`
       font-weight: bold;
       margin: ${({ theme }) => theme.gridUnit * 6}px 0;
     }
+    .available-select {
+      width: 100%;
+    }
   }
 
   .label-available-select {
@@ -443,4 +457,8 @@ export const SelectDatabaseStyles = styled.div`
     font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
     margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
   }
+`;
+
+export const StyledFooterButton = styled(Button)`
+  width: ${({ theme }) => theme.gridUnit * 40}px;
 `;
