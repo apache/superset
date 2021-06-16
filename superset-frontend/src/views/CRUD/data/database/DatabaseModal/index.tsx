@@ -472,7 +472,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         placeholder="Choose a database..."
       >
         {availableDbs?.databases
-          ?.sort((a: DatabaseForm, b: DatabaseForm) => a.name.localeCompare(b.name))
+          ?.sort((a: DatabaseForm, b: DatabaseForm) =>
+            a.name.localeCompare(b.name),
+          )
           .map((database: DatabaseForm) => (
             <Select.Option value={database.engine} key={database.engine}>
               {database.name}
