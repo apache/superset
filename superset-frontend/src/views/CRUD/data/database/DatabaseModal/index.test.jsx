@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import fetchMock from 'fetch-mock';
-import userEvent from '@testing-library/user-event';
+// import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
 import DatabaseModal from './index';
 
@@ -110,99 +110,99 @@ describe('DatabaseModal', () => {
   //   expect(checkboxes.length).toEqual(4);
   // });
 
-  it('renders the schema field when allowCTAS is checked', () => {
-    render(<DatabaseModal {...dbProps} />, { useRedux: true });
+  // it('renders the schema field when allowCTAS is checked', () => {
+  //   render(<DatabaseModal {...dbProps} />, { useRedux: true });
 
-    // Select Advanced tab
-    const advancedTab = screen.getByRole('tab', {
-      name: /advanced/i,
-    });
-    userEvent.click(advancedTab);
+  //   // Select Advanced tab
+  //   const advancedTab = screen.getByRole('tab', {
+  //     name: /advanced/i,
+  //   });
+  //   userEvent.click(advancedTab);
 
-    // Select SQL Lab tab
-    const sqlLabSettingsTab = screen.getByRole('tab', {
-      name: /sql lab/i,
-    });
-    userEvent.click(sqlLabSettingsTab);
-    // Grab CTAS & schema field by their labels
-    const allowCTAS = screen.getByLabelText('Allow CREATE TABLE AS');
-    const schemaField = screen.getByText('CTAS & CVAS SCHEMA').parentElement;
+  //   // Select SQL Lab tab
+  //   const sqlLabSettingsTab = screen.getByRole('tab', {
+  //     name: /sql lab/i,
+  //   });
+  //   userEvent.click(sqlLabSettingsTab);
+  //   // Grab CTAS & schema field by their labels
+  //   const allowCTAS = screen.getByLabelText('Allow CREATE TABLE AS');
+  //   const schemaField = screen.getByText('CTAS & CVAS SCHEMA').parentElement;
 
-    // While CTAS & CVAS are unchecked, schema field is not visible
-    expect(schemaField).not.toHaveClass('open');
+  //   // While CTAS & CVAS are unchecked, schema field is not visible
+  //   expect(schemaField).not.toHaveClass('open');
 
-    // Check "Allow CTAS" to reveal schema field
-    userEvent.click(allowCTAS);
-    expect(schemaField).toHaveClass('open');
+  //   // Check "Allow CTAS" to reveal schema field
+  //   userEvent.click(allowCTAS);
+  //   expect(schemaField).toHaveClass('open');
 
-    // Uncheck "Allow CTAS" to hide schema field again
-    userEvent.click(allowCTAS);
-    expect(schemaField).not.toHaveClass('open');
-  });
+  //   // Uncheck "Allow CTAS" to hide schema field again
+  //   userEvent.click(allowCTAS);
+  //   expect(schemaField).not.toHaveClass('open');
+  // });
 
-  it('renders the schema field when allowCVAS is checked', () => {
-    render(<DatabaseModal {...dbProps} />, { useRedux: true });
+  // it('renders the schema field when allowCVAS is checked', () => {
+  //   render(<DatabaseModal {...dbProps} />, { useRedux: true });
 
-    // Select Advanced tab
-    const advancedTab = screen.getByRole('tab', {
-      name: /advanced/i,
-    });
-    userEvent.click(advancedTab);
+  //   // Select Advanced tab
+  //   const advancedTab = screen.getByRole('tab', {
+  //     name: /advanced/i,
+  //   });
+  //   userEvent.click(advancedTab);
 
-    // Select SQL Lab tab
-    const sqlLabSettingsTab = screen.getByRole('tab', {
-      name: /sql lab/i,
-    });
-    userEvent.click(sqlLabSettingsTab);
-    // Grab CVAS by it's label & schema field
-    const allowCVAS = screen.getByText('Allow CREATE VIEW AS');
-    const schemaField = screen.getByText('CTAS & CVAS SCHEMA').parentElement;
+  //   // Select SQL Lab tab
+  //   const sqlLabSettingsTab = screen.getByRole('tab', {
+  //     name: /sql lab/i,
+  //   });
+  //   userEvent.click(sqlLabSettingsTab);
+  //   // Grab CVAS by it's label & schema field
+  //   const allowCVAS = screen.getByText('Allow CREATE VIEW AS');
+  //   const schemaField = screen.getByText('CTAS & CVAS SCHEMA').parentElement;
 
-    // While CTAS & CVAS are unchecked, schema field is not visible
-    expect(schemaField).not.toHaveClass('open');
+  //   // While CTAS & CVAS are unchecked, schema field is not visible
+  //   expect(schemaField).not.toHaveClass('open');
 
-    // Check "Allow CVAS" to reveal schema field
-    userEvent.click(allowCVAS);
-    expect(schemaField).toHaveClass('open');
+  //   // Check "Allow CVAS" to reveal schema field
+  //   userEvent.click(allowCVAS);
+  //   expect(schemaField).toHaveClass('open');
 
-    // Uncheck "Allow CVAS" to hide schema field again
-    userEvent.click(allowCVAS);
-    expect(schemaField).not.toHaveClass('open');
-  });
+  //   // Uncheck "Allow CVAS" to hide schema field again
+  //   userEvent.click(allowCVAS);
+  //   expect(schemaField).not.toHaveClass('open');
+  // });
 
-  it('renders the schema field when both allowCTAS and allowCVAS are checked', () => {
-    render(<DatabaseModal {...dbProps} />, { useRedux: true });
+  // it('renders the schema field when both allowCTAS and allowCVAS are checked', () => {
+  //   render(<DatabaseModal {...dbProps} />, { useRedux: true });
 
-    // Select Advanced tab
-    const advancedTab = screen.getByRole('tab', {
-      name: /advanced/i,
-    });
-    userEvent.click(advancedTab);
+  //   // Select Advanced tab
+  //   const advancedTab = screen.getByRole('tab', {
+  //     name: /advanced/i,
+  //   });
+  //   userEvent.click(advancedTab);
 
-    // Select SQL Lab tab
-    const sqlLabSettingsTab = screen.getByRole('tab', {
-      name: /sql lab/i,
-    });
-    userEvent.click(sqlLabSettingsTab);
-    // Grab CTAS and CVAS by their labels, & schema field
-    const allowCTAS = screen.getByText('Allow CREATE TABLE AS');
-    const allowCVAS = screen.getByText('Allow CREATE VIEW AS');
-    const schemaField = screen.getByText('CTAS & CVAS SCHEMA').parentElement;
+  //   // Select SQL Lab tab
+  //   const sqlLabSettingsTab = screen.getByRole('tab', {
+  //     name: /sql lab/i,
+  //   });
+  //   userEvent.click(sqlLabSettingsTab);
+  //   // Grab CTAS and CVAS by their labels, & schema field
+  //   const allowCTAS = screen.getByText('Allow CREATE TABLE AS');
+  //   const allowCVAS = screen.getByText('Allow CREATE VIEW AS');
+  //   const schemaField = screen.getByText('CTAS & CVAS SCHEMA').parentElement;
 
-    // While CTAS & CVAS are unchecked, schema field is not visible
-    expect(schemaField).not.toHaveClass('open');
+  //   // While CTAS & CVAS are unchecked, schema field is not visible
+  //   expect(schemaField).not.toHaveClass('open');
 
-    // Check both "Allow CTAS" and "Allow CVAS" to reveal schema field
-    userEvent.click(allowCTAS);
-    userEvent.click(allowCVAS);
-    expect(schemaField).toHaveClass('open');
-    // Uncheck both "Allow CTAS" and "Allow CVAS" to hide schema field again
-    userEvent.click(allowCTAS);
-    userEvent.click(allowCVAS);
+  //   // Check both "Allow CTAS" and "Allow CVAS" to reveal schema field
+  //   userEvent.click(allowCTAS);
+  //   userEvent.click(allowCVAS);
+  //   expect(schemaField).toHaveClass('open');
+  //   // Uncheck both "Allow CTAS" and "Allow CVAS" to hide schema field again
+  //   userEvent.click(allowCTAS);
+  //   userEvent.click(allowCVAS);
 
-    // Both checkboxes go unchecked, so the field should no longer render
-    expect(schemaField).not.toHaveClass('open');
-  });
+  //   // Both checkboxes go unchecked, so the field should no longer render
+  //   expect(schemaField).not.toHaveClass('open');
+  // });
   // TODO: rewrite when Modal is complete
   // describe('create database', () => {
   //   beforeEach(() => {
