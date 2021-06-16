@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from collections import defaultdict
 from typing import Dict, List, Optional, Set, Type, TYPE_CHECKING
 
 from flask_babel import _
@@ -98,6 +99,47 @@ class ConnectorRegistry:
                 # proceed to next datasource type
                 pass
         raise NoResultFound(_("Datasource id not found: %(id)s", id=datasource_id))
+
+    @classmethod
+    def get_user_datasources(cls, session: Session) -> List["BaseDatasource"]:
+        from superset import security_manager
+
+        # collect datasources which the user has explicit permissions to
+        user_perms = security_manager.user_view_menu_names("datasource_access")
+        schema_perms = security_manager.user_view_menu_names("schema_access")
+        user_datasources = []
+        for datasource_class in ConnectorRegistry.sources.values():
+            user_datasources.extend(
+                session.query(datasource_class)
+                .filter(
+                    or_(
+                        datasource_class.perm.in_(user_perms),
+                        datasource_class.schema_perm.in_(schema_perms),
+                    )
+                )
+                .all()
+            )
+
+        # get all datasources and organize by database -> schema -> datasource
+        all_datasources = cls.get_all_datasources(session)
+        hierarchy: Dict[
+            "Database", Dict[Optional[str], Set["BaseDatasource"]]
+        ] = defaultdict(lambda: defaultdict(set))
+        for datasource in all_datasources:
+            hierarchy[datasource.database][datasource.schema].add(datasource)
+
+        # add datasources with implicit permission (eg, database access)
+        for database, schemas_tables in hierarchy.items():
+            has_database_access = security_manager.can_access_database(database)
+            for schema, datasources in schemas_tables.items():
+                schema_perm = security_manager.get_schema_perm(database, schema)
+                if has_database_access or (
+                    schema_perm
+                    and security_manager.can_access("schema_access", schema_perm)
+                ):
+                    user_datasources.extend(datasources)
+
+        return user_datasources
 
     @classmethod
     def get_datasource_by_name(  # pylint: disable=too-many-arguments
