@@ -443,8 +443,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const setDatabaseModel = (engine: string) => {
+    console.log(engine);
     const selectedDbModel = availableDbs?.databases.filter(
-      (db: DatabaseObject) => db.engine || db.backend === engine,
+      (db: DatabaseObject) => db.engine === engine,
     )[0];
     const { name, parameters } = selectedDbModel;
     const isDynamic = parameters !== undefined;
