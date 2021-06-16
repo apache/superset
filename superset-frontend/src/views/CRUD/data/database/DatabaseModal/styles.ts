@@ -141,8 +141,7 @@ export const antDModalStyles = (theme: SupersetTheme) => css`
 export const antDAlertStyles = (theme: SupersetTheme) => css`
   border: 1px solid ${theme.colors.info.base};
   padding: ${theme.gridUnit * 4}px;
-  margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 3}px
-    ${theme.gridUnit * 4}px;
+  margin: ${theme.gridUnit * 8}px 0 ${theme.gridUnit * 4}px;
   .ant-alert-message {
     color: ${theme.colors.info.dark2};
     font-size: ${theme.typography.sizes.s + 1}px;
