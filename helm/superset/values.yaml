@@ -48,6 +48,8 @@ envFromSecret: '{{ template "superset.fullname" . }}-env'
 ## Extra environment variables that will be passed into pods
 ##
 extraEnv: {}
+  # Extend timeout to allow long running queries.
+  # GUNICORN_TIMEOUT: 300
 
 ## Extra environment variables to pass as secrets
 ##
@@ -76,6 +78,9 @@ extraSecrets: {}
 # A dictionary of overrides to append at the end of superset_config.py - the name does not matter
 # WARNING: the order is not guaranteed
 configOverrides: {}
+  #  extend_timeout: |
+  #    # Extend timeout to allow long running queries.
+  #    SUPERSET_WEBSERVER_TIMEOUT = ...
   # enable_oauth: |
   #   from flask_appbuilder.security.manager import AUTH_DB
   #   AUTH_TYPE = AUTH_OAUTH
@@ -121,6 +126,10 @@ ingress:
   annotations: {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
+    ## Extend timeout to allow long running queries.
+    # nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    # nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    # nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
   path: /
   hosts:
     - chart-example.local
