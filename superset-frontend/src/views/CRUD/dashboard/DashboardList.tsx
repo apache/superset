@@ -157,13 +157,12 @@ function DashboardList(props: DashboardListProps) {
       ({ json = {} }) => {
         setDashboards(
           dashboards.map(dashboard => {
-            if (dashboard.id === json.id) {
+            if (dashboard.id === json?.result.id) {
               return json.result;
             }
             return dashboard;
           }),
         );
-        refreshData();
       },
       createErrorHandler(errMsg =>
         addDangerToast(
