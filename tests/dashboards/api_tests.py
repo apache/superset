@@ -179,8 +179,10 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         data = json.loads(response.data.decode("utf-8"))
         dashboard = Dashboard.get("world_health")
         expected_dataset_ids = set([s.datasource_id for s in dashboard.slices])
-        actual_dataset_ids = set([dataset["id"] for dataset in data["result"]])
+        result = data["result"]
+        actual_dataset_ids = set([dataset["id"] for dataset in result])
         self.assertEqual(actual_dataset_ids, expected_dataset_ids)
+        self.assertEqual(result[0]["column_types"], [0, 1, 2])
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_dashboard_datasets_not_found(self):

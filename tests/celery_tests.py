@@ -147,6 +147,25 @@ def test_run_sync_query_dont_exist(setup_sqllab, ctas_method):
     result = run_sql(sql_dont_exist, cta=True, ctas_method=ctas_method)
     if backend() == "sqlite" and ctas_method == CtasMethod.VIEW:
         assert QueryStatus.SUCCESS == result["status"], result
+    elif backend() == "presto":
+        assert (
+            result["errors"][0]["error_type"]
+            == SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR
+        )
+        assert result["errors"][0]["level"] == ErrorLevel.ERROR
+        assert result["errors"][0]["extra"] == {
+            "engine_name": "Presto",
+            "issue_codes": [
+                {
+                    "code": 1003,
+                    "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                },
+                {
+                    "code": 1005,
+                    "message": "Issue 1005 - The table was deleted or renamed in the database.",
+                },
+            ],
+        }
     else:
         assert (
             result["errors"][0]["error_type"]

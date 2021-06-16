@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './DeprecatedSelect';
-export * from './styles';
-export { default } from './DeprecatedSelect';
-export { default as OnPasteSelect } from './OnPasteSelect';
-export { NativeSelect, NativeGraySelect } from './NativeSelect';
+
+// storage keys for welcome page sticky tabs..
+export const HOMEPAGE_CHART_FILTER = 'homepage_chart_filter';
+export const HOMEPAGE_ACTIVITY_FILTER = 'homepage_activity_filter';
+export const HOMEPAGE_DASHBOARD_FILTER = 'homepage_dashboard_filter';

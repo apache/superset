@@ -73,6 +73,7 @@ from superset.dashboards.dao import DashboardDAO
 from superset.databases.dao import DatabaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.commands.exceptions import DatasetNotFoundError
+from superset.errors import SupersetError
 from superset.exceptions import (
     CacheLoadError,
     CertificateException,
@@ -2427,15 +2428,15 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             raise SupersetGenericDBErrorException(utils.error_msg_from_exception(ex))
 
         if data.get("status") == QueryStatus.FAILED:
-            msg = data["error"]
-            query = _session.query(Query).filter_by(id=query_id).one()
-            database = query.database
-            db_engine_spec = database.db_engine_spec
-            errors = db_engine_spec.extract_errors(msg)
-            _session.close()
-            if errors:
-                raise SupersetErrorsException(errors)
-            raise SupersetGenericDBErrorException(msg)
+            # new error payload with rich context
+            if data["errors"]:
+                raise SupersetErrorsException(
+                    [SupersetError(**params) for params in data["errors"]]
+                )
+
+            # old string-only error message
+            raise SupersetGenericDBErrorException(data["error"])
+
         return json_success(payload)
 
     @has_access_api

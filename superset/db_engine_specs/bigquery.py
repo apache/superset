@@ -29,7 +29,7 @@ from typing_extensions import TypedDict
 
 from superset.databases.schemas import encrypted_field_properties, EncryptedField
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.errors import SupersetErrorType
+from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.sql_parse import Table
 from superset.utils import core as utils
@@ -330,6 +330,12 @@ class BigQueryEngineSpec(BaseEngineSpec):
         raise SupersetGenericDBErrorException(
             message="Big Query encrypted_extra is not available.",
         )
+
+    @classmethod
+    def validate_parameters(
+        cls, parameters: BigQueryParametersType  # pylint: disable=unused-argument
+    ) -> List[SupersetError]:
+        return []
 
     @classmethod
     def parameters_json_schema(cls) -> Any:

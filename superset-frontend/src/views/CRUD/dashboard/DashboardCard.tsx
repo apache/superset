@@ -19,11 +19,7 @@
 import React from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import { t } from '@superset-ui/core';
-import {
-  handleDashboardDelete,
-  handleBulkDashboardExport,
-  CardStyles,
-} from 'src/views/CRUD/utils';
+import { handleDashboardDelete, CardStyles } from 'src/views/CRUD/utils';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { Dropdown, Menu } from 'src/common/components';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -49,6 +45,7 @@ interface DashboardCardProps {
   dashboardFilter?: string;
   userId?: number;
   showThumbnails?: boolean;
+  handleBulkDashboardExport: (dashboardsToExport: Dashboard[]) => void;
 }
 
 function DashboardCard({
@@ -64,6 +61,7 @@ function DashboardCard({
   favoriteStatus,
   saveFavoriteStatus,
   showThumbnails,
+  handleBulkDashboardExport,
 }: DashboardCardProps) {
   const history = useHistory();
   const canEdit = hasPerm('can_write');
