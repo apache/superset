@@ -112,6 +112,11 @@ export type DatabaseForm = {
         nullable: boolean;
         type: string;
       };
+      credentials_info: {
+        description: string;
+        nullable: boolean;
+        type: string;
+      };
     };
     required: string[];
     type: string;

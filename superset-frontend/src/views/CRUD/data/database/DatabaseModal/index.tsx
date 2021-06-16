@@ -210,17 +210,20 @@ function dbReducer(
     case ActionType.fetched:
       // convert all the keys in this payload into strings
       // eslint-disable-next-line no-case-declarations
-      let extra_json = {
-        ...JSON.parse(action.payload.extra || ''),
-      };
-      extra_json = {
-        ...extra_json,
-        metadata_params: JSON.stringify(extra_json.metadata_params),
-        engine_params: JSON.stringify(extra_json.engine_params),
-        schemas_allowed_for_csv_upload: JSON.stringify(
-          extra_json.schemas_allowed_for_csv_upload,
-        ),
-      };
+      let extra_json = {};
+      if (action.payload.extra) {
+        extra_json = {
+          ...JSON.parse(action.payload.extra || ''),
+        };
+        extra_json = {
+          ...extra_json,
+          metadata_params: JSON.stringify(extra_json.metadata_params),
+          engine_params: JSON.stringify(extra_json.engine_params),
+          schemas_allowed_for_csv_upload: JSON.stringify(
+            extra_json.schemas_allowed_for_csv_upload,
+          ),
+        };
+      }
 
       if (action.payload?.parameters?.query) {
         // convert query into URI params string
@@ -306,7 +309,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     availableDbs?.databases?.find(
       (available: { engine: string | undefined }) =>
         // TODO: we need a centralized engine in one place
-        available.engine === db?.backend || db?.engine,
+        available.engine === (isEditMode ? db?.backend : db?.engine),
     ) || {};
 
   // Test Connection logic
@@ -449,8 +452,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const setDatabaseModel = (engine: string) => {
     const isDynamic =
       availableDbs?.databases.filter(
-        (db: DatabaseObject) => db.engine === engine,
+        (db: DatabaseObject) => db.engine || db.backend === engine,
       )[0].parameters !== undefined;
+
+    console.log('choosing', engine);
     setDB({
       type: ActionType.dbSelected,
       payload: {
