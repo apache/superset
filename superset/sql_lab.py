@@ -28,13 +28,15 @@ import pyarrow as pa
 import simplejson as json
 from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy.orm import Session
 from werkzeug.local import LocalProxy
 
 from superset import app, results_backend, results_backend_use_msgpack, security_manager
 from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetErrorException
 from superset.extensions import celery_app
 from superset.models.core import Database
 from superset.models.sql_lab import LimitingFactor, Query
@@ -353,7 +355,14 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
     db_engine_spec.patch()
 
     if database.allow_run_async and not results_backend:
-        raise SqlLabException("Results backend isn't configured.")
+        raise SupersetErrorException(
+            SupersetError(
+                message=__("Results backend isn't configured"),
+                error_type=SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={},
+            )
+        )
 
     # Breaking down into multiple statements
     parsed_query = ParsedQuery(rendered_query, strip_comments=True)

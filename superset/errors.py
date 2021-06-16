@@ -66,6 +66,7 @@ class SupersetErrorType(str, Enum):
 
     # Sql Lab errors
     MISSING_TEMPLATE_PARAMS_ERROR = "MISSING_TEMPLATE_PARAMS_ERROR"
+    RESULTS_BACKEND_NOT_CONFIGURED_ERROR = "RESULTS_BACKEND_NOT_CONFIGURED_ERROR"
 
     # Generic errors
     GENERIC_COMMAND_ERROR = "GENERIC_COMMAND_ERROR"
@@ -144,6 +145,16 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
             "message": _(
                 "Issue 1006 - One or more parameters specified in the query are "
                 "missing."
+            ),
+        },
+    ],
+    SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR: [
+        {
+            "code": 1021,
+            "message": _(
+                "Issue 1021 - Your instance of Superset doesn't have a results "
+                "backend configured, which is needed for asynchronous queries. "
+                "Please contact an administrator for further assistance."
             ),
         },
     ],

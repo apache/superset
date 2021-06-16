@@ -52,6 +52,11 @@ export default function setupErrorMessages() {
     ParameterErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.RESULTS_BACKEND_NOT_CONFIGURED_ERROR,
+    // XXX: new error component
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.CONNECTION_INVALID_HOSTNAME_ERROR,
     DatabaseErrorMessage,
   );
