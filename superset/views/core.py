@@ -2666,7 +2666,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "exported_format": "csv",
         }
         event_rep = repr(event_info)
-        logger.info("CSV exported: %s", event_rep, extra={"superset_event": event_info})
+        logger.debug(
+            "CSV exported: %s", event_rep, extra={"superset_event": event_info}
+        )
         return response
 
     @api
