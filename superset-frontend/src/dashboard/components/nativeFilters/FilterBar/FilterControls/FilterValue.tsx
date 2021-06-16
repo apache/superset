@@ -188,7 +188,7 @@ const FilterValue: React.FC<FilterProps> = ({
       ) : (
         <SuperChart
           height={20}
-          width={220}
+          width="100%"
           formData={formData}
           // For charts that don't have datasource we need workaround for empty placeholder
           queriesData={hasDataSource ? state : [{ data: [{}] }]}
