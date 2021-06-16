@@ -22,6 +22,8 @@ Revises: 453530256cea
 Create Date: 2021-06-15 23:38:00.497753
 
 """
+
+
 import json
 
 from alembic import op
@@ -30,15 +32,15 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db, is_feature_enabled
 
-
 # revision identifiers, used by Alembic.
-revision = 'bdf5843be159'
-down_revision = '453530256cea'
+revision = "bdf5843be159"
+down_revision = "453530256cea"
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 Base = declarative_base()
+
 
 class Dashboard(Base):
     """Declarative class to do query in upgrade"""
@@ -56,10 +58,16 @@ def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    dashboards = session.query(Dashboard).filter(or_(
-        Dashboard.json_metadata.like('%"show_native_filters"%'),
-        Dashboard.json_metadata.like('%"native_filter_configuration"%'),
-    )).all()
+    dashboards = (
+        session.query(Dashboard)
+        .filter(
+            or_(
+                Dashboard.json_metadata.like('%"show_native_filters"%'),
+                Dashboard.json_metadata.like('%"native_filter_configuration"%'),
+            )
+        )
+        .all()
+    )
     for i, dashboard in enumerate(dashboards):
         print(
             f"scanning dashboard ({i + 1}/{len(dashboards)}) dashboard: {dashboard.id} >>>>"
@@ -76,6 +84,7 @@ def upgrade():
 
     session.commit()
     session.close()
+
 
 def downgrade():
     pass
