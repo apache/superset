@@ -22,7 +22,7 @@ import React, {
   useState,
   ReactNode,
 } from 'react';
-import { styled, SupersetClient, t } from '@superset-ui/core';
+import { styled, SupersetClient, t, css } from '@superset-ui/core';
 import { AsyncSelect, CreatableSelect, Select } from 'src/components/Select';
 
 import { FormLabel } from 'src/components/Form';
@@ -76,6 +76,10 @@ const TableLabel = styled.span`
   > small {
     margin-right: ${({ theme }) => theme.gridUnit}px;
   }
+`;
+
+const smallColor = css`
+  color: rgba(102, 102, 102, 0.7);
 `;
 
 interface TableSelectorProps {
@@ -382,9 +386,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         <FormLabel>
           {t('See table schema')}{' '}
           {schema && (
-            <small>
-              {tableOptions.length} in
-              <i>{schema}</i>
+            <small css={smallColor}>
+              {tableOptions.length} {t(' ')} in {schema}
             </small>
           )}
         </FormLabel>
