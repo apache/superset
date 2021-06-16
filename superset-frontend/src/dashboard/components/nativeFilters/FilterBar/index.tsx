@@ -22,7 +22,7 @@ import { DataMask, HandlerFunction, styled, t } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import cx from 'classnames';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { Tabs } from 'src/common/components';
 import { usePrevious } from 'src/common/hooks/usePrevious';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
@@ -47,22 +47,21 @@ import EditSection from './FilterSets/EditSection';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
 
-const BAR_WIDTH = `250px`;
-
 export const FILTER_BAR_TEST_ID = 'filter-bar';
 export const getFilterBarTestId = testWithId(FILTER_BAR_TEST_ID);
 
-const BarWrapper = styled.div`
+const BarWrapper = styled.div<{ width: number }>`
   width: ${({ theme }) => theme.gridUnit * 8}px;
+
   & .ant-tabs-top > .ant-tabs-nav {
     margin: 0;
   }
   &.open {
-    width: ${BAR_WIDTH}; // arbitrary...
+    width: ${({ width }) => width}px; // arbitrary...
   }
 `;
 
-const Bar = styled.div`
+const Bar = styled.div<{ width: number }>`
   & .ant-typography-edit-content {
     left: 0;
     margin-top: 0;
@@ -73,64 +72,47 @@ const Bar = styled.div`
   left: 0;
   flex-direction: column;
   flex-grow: 1;
-  width: ${BAR_WIDTH}; // arbitrary...
+  width: ${({ width }) => width}px; // arbitrary...
   background: ${({ theme }) => theme.colors.grayscale.light5};
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   min-height: 100%;
   display: none;
-  /* &.animated {
-    display: flex;
-    transform: translateX(-100%);
-    transition: transform ${({ theme }) => theme.transitionTiming}s;
-    transition-delay: 0s;
-  }  */
 
   &.open {
     display: flex;
-    /* &.animated {
-      transform: translateX(0);
-      transition-delay: ${({ theme }) => theme.transitionTiming * 2}s;
-    } */
   }
 `;
 
-const CollapsedBar = styled.div`
+const CollapsedBar = styled.div<{ offset: number }>`
   position: absolute;
-  top: 0;
+  top: ${({ offset }) => offset}px;
   left: 0;
   height: 100%;
   width: ${({ theme }) => theme.gridUnit * 8}px;
   padding-top: ${({ theme }) => theme.gridUnit * 2}px;
   display: none;
   text-align: center;
-  /* &.animated {
-    display: block;
-    transform: translateX(-100%);
-    transition: transform ${({ theme }) => theme.transitionTiming}s;
-    transition-delay: 0s;
-  } */
 
   &.open {
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: ${({ theme }) => theme.gridUnit * 2}px;
-    /* &.animated {
-      transform: translateX(0);
-      transition-delay: ${({ theme }) => theme.transitionTiming * 3}s;
-    } */
   }
 
   svg {
-    width: ${({ theme }) => theme.gridUnit * 4}px;
-    height: ${({ theme }) => theme.gridUnit * 4}px;
     cursor: pointer;
   }
 `;
 
-const StyledCollapseIcon = styled(Icon)`
+const StyledCollapseIcon = styled(Icons.Collapse)`
   color: ${({ theme }) => theme.colors.primary.base};
   margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+`;
+
+const StyledFilterIcon = styled(Icons.Filter)`
+  color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
 const StyledTabs = styled(Tabs)`
@@ -149,12 +131,18 @@ export interface FiltersBarProps {
   filtersOpen: boolean;
   toggleFiltersBar: any;
   directPathToChild?: string[];
+  width: number;
+  height: number | string;
+  offset: number;
 }
 
 const FilterBar: React.FC<FiltersBarProps> = ({
   filtersOpen,
   toggleFiltersBar,
   directPathToChild,
+  width,
+  height,
+  offset,
 }) => {
   const [editFilterSetId, setEditFilterSetId] = useState<string | null>(null);
   const [dataMaskSelected, setDataMaskSelected] = useImmer<DataMaskStateWithId>(
@@ -239,19 +227,24 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const isInitialized = useInitialization();
 
   return (
-    <BarWrapper {...getFilterBarTestId()} className={cx({ open: filtersOpen })}>
+    <BarWrapper
+      {...getFilterBarTestId()}
+      className={cx({ open: filtersOpen })}
+      width={width}
+    >
       <CollapsedBar
         {...getFilterBarTestId('collapsable')}
         className={cx({ open: !filtersOpen })}
         onClick={() => toggleFiltersBar(true)}
+        offset={offset}
       >
         <StyledCollapseIcon
-          name="collapse"
           {...getFilterBarTestId('expand-button')}
+          iconSize="l"
         />
-        <Icon name="filter" {...getFilterBarTestId('filter-icon')} />
+        <StyledFilterIcon {...getFilterBarTestId('filter-icon')} iconSize="l" />
       </CollapsedBar>
-      <Bar className={cx({ open: filtersOpen })}>
+      <Bar className={cx({ open: filtersOpen })} width={width}>
         <Header
           toggleFiltersBar={toggleFiltersBar}
           onApply={handleApply}
@@ -261,7 +254,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           dataMaskApplied={dataMaskApplied}
         />
         {!isInitialized ? (
-          <Loading />
+          <div css={{ height }}>
+            <Loading />
+          </div>
         ) : isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET) ? (
           <StyledTabs
             centered
@@ -272,6 +267,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             <Tabs.TabPane
               tab={t(`All Filters (${filterValues.length})`)}
               key={TabIds.AllFilters}
+              css={{ overflow: 'auto', height }}
             >
               {editFilterSetId && (
                 <EditSection
@@ -291,6 +287,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
               disabled={!!editFilterSetId}
               tab={t(`Filter Sets (${filterSetFilterValues.length})`)}
               key={TabIds.FilterSets}
+              css={{ overflow: 'auto', height }}
             >
               <FilterSets
                 onEditFilterSet={setEditFilterSetId}
