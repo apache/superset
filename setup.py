@@ -97,7 +97,7 @@ setup(
         "python-dateutil",
         "python-dotenv",
         "python-geohash",
-        "pyarrow>=3.0.0, <3.1",
+        "pyarrow>=4.0.1, <4.1",
         "pyyaml>=5.4",
         "PyJWT>=1.7.1, <2",
         "redis",
