@@ -63,6 +63,7 @@ interface FieldPropTypes {
   db?: DatabaseObject;
   isEditMode?: boolean;
   sslForced?: boolean;
+  name?: string;
 }
 
 const CredentialsInfo = ({ changeMethods }: FieldPropTypes) => {
@@ -236,12 +237,13 @@ const passwordField = ({
   getValidation,
   validationErrors,
   db,
+  isEditMode,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="password"
     name="password"
     required={required}
-    type="password"
+    type={isEditMode && 'password'}
     value={db?.parameters?.password}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.password}
@@ -256,12 +258,13 @@ const displayField = ({
   getValidation,
   validationErrors,
   db,
+  name,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="database_name"
     name="database_name"
     required={required}
-    value={db?.database_name}
+    value={db?.database_name || name}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.database_name}
     placeholder=""
@@ -334,7 +337,7 @@ const FORM_FIELD_MAP = {
 };
 
 const DatabaseConnectionForm = ({
-  dbModel: { parameters },
+  dbModel: { name, parameters },
   onParametersChange,
   onChange,
   onParametersUploadFileChange,
@@ -381,6 +384,7 @@ const DatabaseConnectionForm = ({
               onChange,
               onParametersUploadFileChange,
             },
+            name,
             validationErrors,
             getValidation,
             db,

@@ -227,8 +227,6 @@ class DatabaseParametersSchemaMixin:
     When using this mixin make sure that `sqlalchemy_uri` is not required.
     """
 
-    # currently in a put request we are not passing in an engine,
-    # but rather a backend. In a future PR we will address that
     engine = fields.String(allow_none=True, description="SQLAlchemy engine to use")
     parameters = fields.Dict(
         keys=fields.String(),
@@ -255,7 +253,6 @@ class DatabaseParametersSchemaMixin:
         the constructed SQLAlchemy URI to be passed.
         """
         parameters = data.pop("parameters", {})
-
         # TODO(AAfghahi) standardize engine.
         engine = (
             data.pop("engine", None)
