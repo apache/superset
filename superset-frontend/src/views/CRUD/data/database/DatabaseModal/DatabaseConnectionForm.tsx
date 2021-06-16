@@ -66,7 +66,7 @@ interface FieldPropTypes {
 }
 
 const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
-  const [uploadOption, setUploadOption] = useState<number>(1);
+  const [uploadOption, setUploadOption] = useState<number>(CredentialInfoOptions.copyPaste.valueOf());
   const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
     null,
   );
@@ -78,6 +78,7 @@ const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
             How do you want to enter service account credentials?
           </span>
           <Select
+            defaultValue={uploadOption}
             style={{ width: '100%' }}
             onChange={option => setUploadOption(option)}
           >
