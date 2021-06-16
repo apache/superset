@@ -431,6 +431,9 @@ export const SelectDatabaseStyles = styled.div`
       font-weight: bold;
       margin: ${({ theme }) => theme.gridUnit * 6}px 0;
     }
+    .available-select {
+      width: 100%;
+    }
   }
 
   .label-available-select {

@@ -473,7 +473,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       </h4>
       <div className="control-label">Supported databases</div>
       <Select
-        style={{ width: '100%' }}
+        className="available-select"
         onChange={setDatabaseModel}
         placeholder="Choose a database..."
       >
