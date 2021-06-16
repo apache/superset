@@ -20,6 +20,7 @@
 import { styled, css, SupersetTheme } from '@superset-ui/core';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 import Tabs from 'src/components/Tabs';
+import Button from 'src/components/Button';
 
 const CTAS_CVAS_SCHEMA_FORM_HEIGHT = 102;
 const EXPOSE_IN_SQLLAB_FORM_HEIGHT = CTAS_CVAS_SCHEMA_FORM_HEIGHT + 153;
@@ -123,8 +124,13 @@ export const antDModalStyles = (theme: SupersetTheme) => css`
     color: ${theme.colors.grayscale.dark1};
     opacity: 1;
   }
+
   .ant-modal-title > h4 {
     font-weight: bold;
+  }
+
+  .ant-modal-body {
+    height: ${theme.gridUnit * 180.5}px;
   }
 `;
 
@@ -443,4 +449,8 @@ export const SelectDatabaseStyles = styled.div`
     font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
     margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
   }
+`;
+
+export const StyledFooterButton = styled(Button)`
+  width: ${({ theme }) => theme.gridUnit * 40}px;
 `;
