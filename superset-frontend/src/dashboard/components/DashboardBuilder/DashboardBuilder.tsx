@@ -26,7 +26,6 @@ import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
 import IconButton from 'src/dashboard/components/IconButton';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
-import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
 import { URL_PARAMS } from 'src/constants';
@@ -284,7 +283,6 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
           </StyledDashboardContent>
         </div>
       </StyledContent>
-      <ToastPresenter />
     </StyledDiv>
   );
 };
