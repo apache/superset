@@ -239,6 +239,7 @@ init:
     - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; . {{ .Values.configMountPath }}/superset_init.sh"
   enabled: true
   loadExamples: false
+  createAdmin: true
   adminUser:
     username: admin
     firstname: Superset
@@ -259,6 +260,7 @@ init:
     superset db upgrade
     echo "Initializing roles..."
     superset init
+    {{ if .Values.init.createAdmin }}
     echo "Creating admin user..."
     superset fab create-admin \
                     --username {{ .Values.init.adminUser.username }} \
@@ -267,6 +269,7 @@ init:
                     --email {{ .Values.init.adminUser.email }} \
                     --password {{ .Values.init.adminUser.password }} \
                     || true
+    {{- end }}
     {{ if .Values.init.loadExamples }}
     echo "Loading examples..."
     superset load_examples
