@@ -63,6 +63,7 @@ import {
   formStyles,
   StyledBasicTab,
   SelectDatabaseStyles,
+  StyledFooterButton,
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 
@@ -512,20 +513,30 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const renderModalFooter = () =>
     db // if db show back + connect
       ? [
-          <Button
+          <StyledFooterButton
             key="back"
             onClick={() => {
               setDB({ type: ActionType.reset });
             }}
           >
             Back
-          </Button>,
+          </StyledFooterButton>,
           !hasConnectedDb ? ( // if hasConnectedDb show back + finish
-            <Button key="submit" buttonStyle="primary" onClick={onSave}>
+            <StyledFooterButton
+              key="submit"
+              buttonStyle="primary"
+              onClick={onSave}
+            >
               Connect
-            </Button>
+            </StyledFooterButton>
           ) : (
-            <Button onClick={onClose}>Finish</Button>
+            <StyledFooterButton
+              key="submit"
+              buttonStyle="primary"
+              onClick={onClose}
+            >
+              Finish
+            </StyledFooterButton>
           ),
         ]
       : [];
