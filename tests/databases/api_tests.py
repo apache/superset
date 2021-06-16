@@ -1498,7 +1498,6 @@ class TestDatabaseApi(SupersetTestCase):
                                 "x-encrypted-extra": True,
                             }
                         },
-                        "required": ["credentials_info"],
                         "type": "object",
                     },
                     "preferred": True,
