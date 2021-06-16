@@ -207,6 +207,9 @@ def handle_api_exception(
             return json_errors_response(
                 errors=[ex.error], status=ex.status, payload=ex.payload
             )
+        except SupersetErrorsException as ex:
+            logger.warning(ex, exc_info=True)
+            return json_errors_response(errors=ex.errors, status=ex.status)
         except SupersetErrorException as ex:
             logger.warning(ex)
             return json_errors_response(errors=[ex.error], status=ex.status)

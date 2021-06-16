@@ -48,7 +48,11 @@ envFromSecret: '{{ template "superset.fullname" . }}-env'
 ## Extra environment variables that will be passed into pods
 ##
 extraEnv: {}
-  # OAUTH_HOME_DOMAIN: ..
+  # Extend timeout to allow long running queries.
+  # GUNICORN_TIMEOUT: 300
+  
+  
+   # OAUTH_HOME_DOMAIN: ..
   # # If a whitelist is not set, any address that can use your OAuth2 endpoint will be able to login.
   # #   this includes any random Gmail address if your OAuth2 Web App is set to External.
   # OAUTH_WHITELIST_REGEX: ...
@@ -81,6 +85,9 @@ extraSecrets: {}
 # A dictionary of overrides to append at the end of superset_config.py - the name does not matter
 # WARNING: the order is not guaranteed
 configOverrides: {}
+  #  extend_timeout: |
+  #    # Extend timeout to allow long running queries.
+  #    SUPERSET_WEBSERVER_TIMEOUT = ...
   # enable_oauth: |
   #   from flask_appbuilder.security.manager import (AUTH_DB, AUTH_OAUTH)
   #   AUTH_TYPE = AUTH_OAUTH
@@ -135,6 +142,10 @@ ingress:
   annotations: {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
+    ## Extend timeout to allow long running queries.
+    # nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    # nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    # nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
   path: /
   hosts:
     - chart-example.local
@@ -253,6 +264,7 @@ init:
     - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; . {{ .Values.configMountPath }}/superset_init.sh"
   enabled: true
   loadExamples: false
+  createAdmin: true
   adminUser:
     username: admin
     firstname: Superset
@@ -273,6 +285,7 @@ init:
     superset db upgrade
     echo "Initializing roles..."
     superset init
+    {{ if .Values.init.createAdmin }}
     echo "Creating admin user..."
     superset fab create-admin \
                     --username {{ .Values.init.adminUser.username }} \
@@ -281,6 +294,7 @@ init:
                     --email {{ .Values.init.adminUser.email }} \
                     --password {{ .Values.init.adminUser.password }} \
                     || true
+    {{- end }}
     {{ if .Values.init.loadExamples }}
     echo "Loading examples..."
     superset load_examples

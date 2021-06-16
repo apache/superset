@@ -114,6 +114,12 @@ class WebDriverProxy:
             WebDriverWait(driver, self._screenshot_load_wait).until_not(
                 EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
             )
+            logger.debug("Wait for chart to have content")
+            WebDriverWait(driver, self._screenshot_locate_wait).until(
+                EC.visibility_of_all_elements_located(
+                    (By.CLASS_NAME, "slice_container")
+                )
+            )
             logger.info("Taking a PNG screenshot or url %s", url)
             img = element.screenshot_as_png
         except TimeoutException:

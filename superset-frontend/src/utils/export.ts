@@ -16,22 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
-import { EXPRESSION_TYPES, CLAUSES } from './AdhocFilter';
+import parseCookie from 'src/utils/parseCookie';
+import rison from 'rison';
+import shortid from 'shortid';
 
-export default PropTypes.oneOfType([
-  PropTypes.shape({
-    expressionType: PropTypes.oneOf([EXPRESSION_TYPES.SIMPLE]).isRequired,
-    clause: PropTypes.oneOf([CLAUSES.HAVING, CLAUSES.WHERE]).isRequired,
-    subject: PropTypes.string.isRequired,
-    comparator: PropTypes.oneOfType([
-      PropTypes.string,
-      PropTypes.arrayOf(PropTypes.string),
-    ]).isRequired,
-  }),
-  PropTypes.shape({
-    expressionType: PropTypes.oneOf([EXPRESSION_TYPES.SQL]).isRequired,
-    clause: PropTypes.oneOf([CLAUSES.WHERE, CLAUSES.HAVING]).isRequired,
-    sqlExpression: PropTypes.string.isRequired,
-  }),
-]);
+export default function handleResourceExport(
+  resource: string,
+  ids: number[],
+  done: () => void,
+  interval = 200,
+): void {
+  const token = shortid.generate();
+  const url = `/api/v1/${resource}/export/?q=${rison.encode(
+    ids,
+  )}&token=${token}`;
+
+  // create new iframe for export
+  const iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  iframe.src = url;
+  document.body.appendChild(iframe);
+
+  const timer = window.setInterval(() => {
+    const cookie: { [cookieId: string]: string } = parseCookie();
+    if (cookie[token] === 'done') {
+      window.clearInterval(timer);
+      document.body.removeChild(iframe);
+      done();
+    }
+  }, interval);
+}

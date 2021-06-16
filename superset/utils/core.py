@@ -218,7 +218,7 @@ class FilterOperator(str, Enum):
 
 class PostProcessingBoxplotWhiskerType(str, Enum):
     """
-    Calculate cell contibution to row/column total
+    Calculate cell contribution to row/column total
     """
 
     TUKEY = "tukey"
@@ -228,7 +228,7 @@ class PostProcessingBoxplotWhiskerType(str, Enum):
 
 class PostProcessingContributionOrientation(str, Enum):
     """
-    Calculate cell contibution to row/column total
+    Calculate cell contribution to row/column total
     """
 
     ROW = "row"

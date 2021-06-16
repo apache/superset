@@ -16,22 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
-import { EXPRESSION_TYPES, CLAUSES } from './AdhocFilter';
 
-export default PropTypes.oneOfType([
-  PropTypes.shape({
-    expressionType: PropTypes.oneOf([EXPRESSION_TYPES.SIMPLE]).isRequired,
-    clause: PropTypes.oneOf([CLAUSES.HAVING, CLAUSES.WHERE]).isRequired,
-    subject: PropTypes.string.isRequired,
-    comparator: PropTypes.oneOfType([
-      PropTypes.string,
-      PropTypes.arrayOf(PropTypes.string),
-    ]).isRequired,
-  }),
-  PropTypes.shape({
-    expressionType: PropTypes.oneOf([EXPRESSION_TYPES.SQL]).isRequired,
-    clause: PropTypes.oneOf([CLAUSES.WHERE, CLAUSES.HAVING]).isRequired,
-    sqlExpression: PropTypes.string.isRequired,
-  }),
-]);
+// storage keys for welcome page sticky tabs..
+export const HOMEPAGE_CHART_FILTER = 'homepage_chart_filter';
+export const HOMEPAGE_ACTIVITY_FILTER = 'homepage_activity_filter';
+export const HOMEPAGE_DASHBOARD_FILTER = 'homepage_dashboard_filter';
