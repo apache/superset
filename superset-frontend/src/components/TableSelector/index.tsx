@@ -65,6 +65,10 @@ const TableSelectorWrapper = styled.div`
     border-bottom: 1px solid ${({ theme }) => theme.colors.secondary.light5};
     margin: 15px 0;
   }
+
+  .table-length {
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+  }
 `;
 
 const TableLabel = styled.span`
@@ -76,10 +80,6 @@ const TableLabel = styled.span`
   > small {
     margin-right: ${({ theme }) => theme.gridUnit}px;
   }
-`;
-
-const smallColor = css`
-  color: rgba(102, 102, 102, 0.7);
 `;
 
 interface TableSelectorProps {
@@ -386,8 +386,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         <FormLabel>
           {t('See table schema')}{' '}
           {schema && (
-            <small css={smallColor}>
-              {tableOptions.length} {t(' ')} in {schema}
+            <small className="table-length">
+              {tableOptions.length} in {schema}
             </small>
           )}
         </FormLabel>
