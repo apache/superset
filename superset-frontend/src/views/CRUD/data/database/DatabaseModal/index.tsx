@@ -611,9 +611,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     <Modal
       css={(theme: SupersetTheme) => [
         antDTabsStyles,
-        antDModalStyles(theme),
         antDModalNoPaddingStyles,
+        antDModalStyles(theme),
         formHelperStyles(theme),
+        formStyles(theme),
       ]}
       name="database"
       data-test="database-modal"
