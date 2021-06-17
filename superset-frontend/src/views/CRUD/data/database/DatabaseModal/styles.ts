@@ -100,6 +100,7 @@ export const antDModalNoPaddingStyles = css`
   .ant-modal-body {
     padding-left: 0;
     padding-right: 0;
+    padding-top: 0;
   }
 `;
 
@@ -473,8 +474,11 @@ export const StyledFooterButton = styled(Button)`
   width: ${({ theme }) => theme.gridUnit * 40}px;
 `;
 
-export const StyledInfoTooltip = styled(InfoTooltip)`
-  svg {
-    margin-top: ${({ theme }) => theme.gridUnit * 0.5}px;
-  }
+export const StyledStickyHeader = styled.div`
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: ${({ theme }) => theme.colors.grayscale.light5};
+  padding: ${({ theme }) => theme.gridUnit * 4}px 0;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
 `;
