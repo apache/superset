@@ -22,7 +22,7 @@ import React, {
   useState,
   ReactNode,
 } from 'react';
-import { styled, SupersetClient, t, css } from '@superset-ui/core';
+import { styled, SupersetClient, t } from '@superset-ui/core';
 import { AsyncSelect, CreatableSelect, Select } from 'src/components/Select';
 
 import { FormLabel } from 'src/components/Form';
