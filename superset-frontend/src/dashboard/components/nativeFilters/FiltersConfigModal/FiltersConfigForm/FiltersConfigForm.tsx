@@ -26,6 +26,7 @@ import {
   styled,
   SupersetApiError,
   t,
+  GenericDataType,
 } from '@superset-ui/core';
 import {
   ColumnMeta,
@@ -102,7 +103,7 @@ export const StyledFormItem = styled(FormItem)`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
 
   & .ant-form-item-label {
-    padding-bottom: 0px;
+    padding-bottom: 0;
   }
 
   & .ant-form-item-control-input {
@@ -111,12 +112,12 @@ export const StyledFormItem = styled(FormItem)`
 `;
 
 export const StyledRowFormItem = styled(FormItem)`
-  margin-bottom: 0px;
-  padding-bottom: 0px;
+  margin-bottom: 0;
+  padding-bottom: 0;
   min-width: 50%;
 
   & .ant-form-item-label {
-    padding-bottom: 0px;
+    padding-bottom: 0;
   }
 
   .ant-form-item-control-input-content > div > div {
@@ -154,17 +155,17 @@ const StyledCollapse = styled(Collapse)`
   margin-right: ${({ theme }) => theme.gridUnit * -4}px;
   border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  border-radius: 0px;
+  border-radius: 0;
 
   .ant-collapse-header {
     border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     margin-top: -1px;
-    border-radius: 0px;
+    border-radius: 0;
   }
 
   .ant-collapse-content {
-    border: 0px;
+    border: 0;
   }
 
   .ant-collapse-content-box {
@@ -172,8 +173,8 @@ const StyledCollapse = styled(Collapse)`
   }
 
   &.ant-collapse > .ant-collapse-item {
-    border: 0px;
-    border-radius: 0px;
+    border: 0;
+    border-radius: 0;
   }
 `;
 
@@ -182,17 +183,17 @@ const StyledTabs = styled(Tabs)`
     position: sticky;
     margin-left: ${({ theme }) => theme.gridUnit * -4}px;
     margin-right: ${({ theme }) => theme.gridUnit * -4}px;
-    top: 0px;
+    top: 0;
     background: white;
     z-index: 1;
   }
 
   .ant-tabs-nav-list {
-    padding: 0px;
+    padding: 0;
   }
 
   .ant-form-item-label {
-    padding-bottom: 0px;
+    padding-bottom: 0;
   }
 `;
 
@@ -245,6 +246,8 @@ const FILTERS_WITHOUT_COLUMN = [
 
 const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
 
+const TIME_FILTERS = ['filter_time', 'filter_timegrain', 'filter_timecolumn'];
+
 const BASIC_CONTROL_ITEMS = ['enableEmptyFilter', 'multiSelect'];
 
 // TODO: Rename the filter plugins and remove this mapping
@@ -256,6 +259,11 @@ const FILTER_TYPE_NAME_MAPPING = {
   [t('Time grain')]: t('Time grain'),
   [t('Group By')]: t('Group by'),
 };
+
+// TODO: add column_types field to DatasourceMeta
+const hasTemporalColumns = (
+  dataset: DatasourceMeta & { column_types: GenericDataType[] },
+) => dataset?.column_types?.includes(GenericDataType.TEMPORAL);
 
 /**
  * The configuration form for a specific filter.
@@ -283,7 +291,7 @@ const FiltersConfigForm = (
 
   const forceUpdate = useForceUpdate();
   const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
-  const defaultFormFilter = useMemo(() => {}, []);
+  const defaultFormFilter = useMemo(() => ({}), []);
   const formFilter =
     form.getFieldValue('filters')?.[filterId] || defaultFormFilter;
 
@@ -298,6 +306,22 @@ const FiltersConfigForm = (
   const loadedDatasets = useSelector<any, DatasourceMeta>(
     ({ datasources }) => datasources,
   );
+
+  const doLoadedDatasetsHaveTemporalColumns = useMemo(
+    () =>
+      Object.values(loadedDatasets).some(dataset =>
+        hasTemporalColumns(dataset),
+      ),
+    [loadedDatasets],
+  );
+
+  const showTimeRangePicker = useMemo(() => {
+    const currentDataset = Object.values(loadedDatasets).find(
+      dataset => dataset.id === formFilter.dataset?.value,
+    );
+
+    return currentDataset ? hasTemporalColumns(currentDataset) : true;
+  }, [formFilter.dataset?.value, loadedDatasets]);
 
   // @ts-ignore
   const hasDataset = !!nativeFilterItems[formFilter?.filterType]?.value
@@ -576,9 +600,21 @@ const FiltersConfigForm = (
                 const mappedName = name
                   ? FILTER_TYPE_NAME_MAPPING[name]
                   : undefined;
+                const isDisabled =
+                  TIME_FILTERS.includes(filterType) &&
+                  !doLoadedDatasetsHaveTemporalColumns;
                 return {
                   value: filterType,
-                  label: mappedName || name,
+                  label: isDisabled ? (
+                    <Tooltip
+                      title={t('Datasets do not contain a temporal column')}
+                    >
+                      {mappedName || name}
+                    </Tooltip>
+                  ) : (
+                    mappedName || name
+                  ),
+                  isDisabled,
                 };
               })}
               onChange={({ value }: { value: string }) => {
@@ -845,28 +881,30 @@ const FiltersConfigForm = (
                       }
                     />
                   </StyledRowFormItem>
-                  <StyledRowFormItem
-                    name={['filters', filterId, 'time_range']}
-                    label={<StyledLabel>{t('Time range')}</StyledLabel>}
-                    initialValue={filterToEdit?.time_range || 'No filter'}
-                    required={!hasAdhoc}
-                    rules={[
-                      {
-                        validator: preFilterValidator,
-                      },
-                    ]}
-                  >
-                    <DateFilterControl
-                      name="time_range"
-                      onChange={timeRange => {
-                        setNativeFilterFieldValues(form, filterId, {
-                          time_range: timeRange,
-                        });
-                        forceUpdate();
-                        validatePreFilter();
-                      }}
-                    />
-                  </StyledRowFormItem>
+                  {showTimeRangePicker && (
+                    <StyledRowFormItem
+                      name={['filters', filterId, 'time_range']}
+                      label={<StyledLabel>{t('Time range')}</StyledLabel>}
+                      initialValue={filterToEdit?.time_range || 'No filter'}
+                      required={!hasAdhoc}
+                      rules={[
+                        {
+                          validator: preFilterValidator,
+                        },
+                      ]}
+                    >
+                      <DateFilterControl
+                        name="time_range"
+                        onChange={timeRange => {
+                          setNativeFilterFieldValues(form, filterId, {
+                            time_range: timeRange,
+                          });
+                          forceUpdate();
+                          validatePreFilter();
+                        }}
+                      />
+                    </StyledRowFormItem>
+                  )}
                   {hasTimeRange && (
                     <StyledRowFormItem
                       name={['filters', filterId, 'granularity_sqla']}
