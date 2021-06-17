@@ -269,13 +269,12 @@ const displayField = ({
   getValidation,
   validationErrors,
   db,
-  defaultDBName,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="database_name"
     name="database_name"
     required={required}
-    value={db?.database_name || defaultDBName}
+    value={db?.database_name}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.database_name}
     placeholder=""
@@ -348,7 +347,7 @@ const FORM_FIELD_MAP = {
 };
 
 const DatabaseConnectionForm = ({
-  dbModel: { name: defaultDBName, parameters },
+  dbModel: { parameters },
   onParametersChange,
   onChange,
   onParametersUploadFileChange,
@@ -395,7 +394,6 @@ const DatabaseConnectionForm = ({
               onChange,
               onParametersUploadFileChange,
             },
-            defaultDBName,
             validationErrors,
             getValidation,
             db,
