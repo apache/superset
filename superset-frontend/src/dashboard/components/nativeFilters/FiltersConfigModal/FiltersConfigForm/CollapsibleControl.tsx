@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useState } from 'react';
+import React, { ReactNode } from 'react';
 import { styled } from '@superset-ui/core';
 import { Checkbox } from 'src/common/components';
 
@@ -46,15 +46,13 @@ const StyledContainer = styled.div<{ checked: boolean }>`
 
 const CollapsibleControl = (props: CollapsibleControlProps) => {
   const { checked = false, title, children, onChange } = props;
-  const [isChecked, setIsChecked] = useState(checked);
   return (
-    <StyledContainer checked={isChecked}>
+    <StyledContainer checked={checked}>
       <Checkbox
         className="checkbox"
-        checked={isChecked}
+        checked={checked}
         onChange={e => {
           const value = e.target.checked;
-          setIsChecked(value);
           if (onChange) {
             onChange(value);
           }
@@ -62,7 +60,7 @@ const CollapsibleControl = (props: CollapsibleControlProps) => {
       >
         {title}
       </Checkbox>
-      {isChecked && children}
+      {checked && children}
     </StyledContainer>
   );
 };
