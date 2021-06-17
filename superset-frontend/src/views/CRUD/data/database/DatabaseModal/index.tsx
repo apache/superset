@@ -242,13 +242,6 @@ function dbReducer(
         ).toString();
       }
 
-      if (action.payload?.parameters?.credentials_info) {
-        // deserialize credentials info for big query editting
-        deserializeExtraJSON = JSON.stringify(
-          action.payload?.parameters.credentials_info,
-        );
-      }
-
       return {
         ...action.payload,
         engine: trimmedState.engine,
@@ -257,6 +250,9 @@ function dbReducer(
         parameters: {
           ...action.payload.parameters,
           query,
+          credentials_info: JSON.stringify(
+            action.payload?.parameters?.credentials_info || '',
+          ),
         },
       };
     case ActionType.dbSelected:

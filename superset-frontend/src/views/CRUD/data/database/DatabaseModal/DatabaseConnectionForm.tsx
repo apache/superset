@@ -93,7 +93,7 @@ const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
           </Select>
         </>
       )}
-      {uploadOption === CredentialInfoOptions.copyPaste ? (
+      {uploadOption === CredentialInfoOptions.copyPaste || isEditMode ? (
         <div className="input-container" onChange={changeMethods.onChange}>
           <span className="label-select">Service Account</span>
           <textarea
