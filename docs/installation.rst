@@ -342,7 +342,7 @@ as well as the default values in place.
 
 Since ``superset_config.py`` acts as a Flask configuration module, it
 can be used to alter the settings Flask itself,
-as well as Flask extensions like ``flask-wtf``, ``flask-cache``,
+as well as Flask extensions like ``flask-wtf``, ``flask-caching``,
 ``flask-migrate``, and ``flask-appbuilder``. Flask App Builder, the web
 framework used by Superset offers many configuration settings. Please consult
 the `Flask App Builder Documentation
@@ -365,12 +365,12 @@ auth postback endpoint, you can add them to *WTF_CSRF_EXEMPT_LIST*
 Caching
 -------
 
-Superset uses `Flask-Cache <https://pythonhosted.org/Flask-Cache/>`_ for
+Superset uses `Flask-Caching <https://flask-caching.readthedocs.io/>`_ for
 caching purpose. Configuring your caching backend is as easy as providing
 ``CACHE_CONFIG`` and ``DATA_CACHE_CONFIG`, constants in ``superset_config.py``
-that complies with `the Flask-Cache specifications <https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching>`_.
+that complies with `the Flask-Caching specifications <https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching>`_.
 
-Flask-Cache supports multiple caching backends (Redis, Memcached,
+Flask-Caching supports multiple caching backends (Redis, Memcached,
 SimpleCache (in-memory), or the local filesystem). If you are going to use
 Memcached please use the `pylibmc` client library as `python-memcached` does
 not handle storing binary data correctly. If you use Redis, please install
@@ -393,7 +393,7 @@ defined in ``DATA_CACHE_CONFIG``.
 
 It is also possible to pass a custom cache initialization function in the
 config to handle additional caching use cases. The function must return an
-object that is compatible with the `Flask-Cache <https://pythonhosted.org/Flask-Cache/>`_ API.
+object that is compatible with the `Flask-Caching <https://flask-caching.readthedocs.io/>`_ API.
 
 .. code-block:: python
 
