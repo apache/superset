@@ -69,7 +69,7 @@ export const useDefaultValue = (
 
   useEffect(() => {
     setHasDefaultValue();
-  }, [hasDefaultValue, setHasDefaultValue]);
+  }, [setHasDefaultValue]);
 
   return [hasDefaultValue, setHasDefaultValue];
 };
