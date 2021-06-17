@@ -28,7 +28,7 @@ const OPTIONS = [
 ];
 
 export default {
-  title: 'Select',
+  title: 'DeprecatedSelect',
   argTypes: {
     options: {
       type: 'select',

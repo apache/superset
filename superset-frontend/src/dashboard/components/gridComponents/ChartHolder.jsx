@@ -100,9 +100,7 @@ const FilterFocusHighlight = React.forwardRef(
     const focusedChartStyles = {
       borderColor: theme.colors.primary.light2,
       opacity: 1,
-      boxShadow: `0px 0px ${theme.gridUnit * 2}px ${
-        theme.colors.primary.light2
-      }`,
+      boxShadow: `0px 0px ${theme.gridUnit * 2}px ${theme.colors.primary.base}`,
       pointerEvents: 'auto',
     };
 

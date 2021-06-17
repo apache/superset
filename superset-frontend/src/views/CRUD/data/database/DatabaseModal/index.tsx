@@ -59,6 +59,7 @@ import {
   antDModalStyles,
   antDTabsStyles,
   buttonLinkStyles,
+  alchemyButtonLinkStyles,
   TabHeader,
   formHelperStyles,
   formStyles,
@@ -128,7 +129,11 @@ type DBReducerActionType =
     }
   | {
       type: ActionType.configMethodChange;
-      payload: { configuration_method: CONFIGURATION_METHOD };
+      payload: {
+        database_name?: string;
+        engine?: string;
+        configuration_method: CONFIGURATION_METHOD;
+      };
     };
 
 function dbReducer(
@@ -596,6 +601,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setTabKey(key);
   };
 
+  const isDynamic = (engine: string | undefined) =>
+    availableDbs?.databases.filter(
+      (DB: DatabaseObject) => DB.engine === engine,
+    )[0].parameters !== undefined;
+
   return useTabLayout ? (
     <Modal
       css={(theme: SupersetTheme) => [
@@ -637,19 +647,40 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       >
         <StyledBasicTab tab={<span>{t('Basic')}</span>} key="1">
           {useSqlAlchemyForm ? (
-            <SqlAlchemyForm
-              db={db as DatabaseObject}
-              onInputChange={({ target }: { target: HTMLInputElement }) =>
-                onChange(ActionType.inputChange, {
-                  type: target.type,
-                  name: target.name,
-                  checked: target.checked,
-                  value: target.value,
-                })
-              }
-              conf={conf}
-              testConnection={testConnection}
-            />
+            <>
+              <SqlAlchemyForm
+                db={db as DatabaseObject}
+                onInputChange={({ target }: { target: HTMLInputElement }) =>
+                  onChange(ActionType.inputChange, {
+                    type: target.type,
+                    name: target.name,
+                    checked: target.checked,
+                    value: target.value,
+                  })
+                }
+                conf={conf}
+                testConnection={testConnection}
+                isEditMode={isEditMode}
+              />
+              {isDynamic(db?.engine) && (
+                <Button
+                  buttonStyle="link"
+                  onClick={() =>
+                    setDB({
+                      type: ActionType.configMethodChange,
+                      payload: {
+                        database_name: db?.database_name,
+                        configuration_method: CONFIGURATION_METHOD.DYNAMIC_FORM,
+                        engine: db?.engine,
+                      },
+                    })
+                  }
+                  css={theme => alchemyButtonLinkStyles(theme)}
+                >
+                  Connect this database using the dynamic form instead
+                </Button>
+              )}
+            </>
           ) : (
             <DatabaseConnectionForm
               isEditMode
@@ -858,28 +889,30 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   getValidation={() => getValidation(db)}
                   validationErrors={validationErrors}
                 />
-                <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-                  <Button
-                    buttonStyle="link"
-                    onClick={() =>
-                      setDB({
-                        type: ActionType.configMethodChange,
-                        payload: {
-                          configuration_method:
-                            CONFIGURATION_METHOD.SQLALCHEMY_URI,
-                        },
-                      })
-                    }
-                    css={buttonLinkStyles}
-                  >
-                    Connect this database with a SQLAlchemy URI string instead
-                    <InfoTooltip
-                      tooltip={t(
+              <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
+                <Button
+                  buttonStyle="link"
+                  onClick={() =>
+                    setDB({
+                      type: ActionType.configMethodChange,
+                      payload: {
+                        engine: db.engine,
+                        configuration_method:
+                          CONFIGURATION_METHOD.SQLALCHEMY_URI,
+                        database_name: db.database_name,
+                      },
+                    })
+                  }
+                  css={buttonLinkStyles}
+                >
+                  Connect this database with a SQLAlchemy URI string instead
+                  <InfoTooltip
+                    tooltip={t(
                         'Click this link to switch to an alternate form that allows you to input the SQLAlchemy URL for this database manually.',
                       )}
                     />
-                  </Button>
-                </div>
+                </Button>
+               </div> 
                 {/* Step 2 */}
               </>
             ))}

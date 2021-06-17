@@ -121,11 +121,7 @@ def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
         except Exception:  # pylint: disable=broad-except
             logger.warning("Unable to load SQLAlchemy dialect: %s", dialect)
         else:
-            if hasattr(dialect, "driver"):
-                # If driver is not available in dialect default to name attribute
-                drivers[dialect.name].add(dialect.driver)
-            else:
-                drivers[dialect.name].add(dialect.name)
+            drivers[dialect.name].add(getattr(dialect, "driver", dialect.name))
 
     engine_specs = get_engine_specs()
     return {
