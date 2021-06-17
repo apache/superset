@@ -354,9 +354,8 @@ class DatabaseValidateParametersSchema(Schema):
         Validate the DB engine spec specific parameters schema.
         """
         # TODO (aafghahi): Move this onCreate instead of validation
-        # engine_spec = get_engine_spec(data.get("engine") or data.get("backend"))
-        # engine_spec.parameters_schema.load(data["parameters"])  # type: ignore
-        return None
+        engine_spec = get_engine_spec(data.get("engine") or data.get("backend"))
+        engine_spec.parameters_schema.load(data["parameters"])  # type: ignore
 
 
 class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
