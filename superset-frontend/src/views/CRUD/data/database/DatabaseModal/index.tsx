@@ -385,7 +385,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     } else if (db) {
       // Create
-      if (update.engine === 'bigquery' && update.encrypted_extra) {
+      if (
+        update.engine === 'bigquery' &&
+        update.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM &&
+        update.encrypted_extra
+      ) {
         // wrap encrypted_extra in credentials_info only for BigQuery
         update.encrypted_extra = JSON.stringify({
           credentials_info: JSON.parse(update.encrypted_extra),
