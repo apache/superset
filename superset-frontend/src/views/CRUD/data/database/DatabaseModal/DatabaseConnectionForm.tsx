@@ -44,9 +44,9 @@ export const FormFieldOrder = [
   'username',
   'password',
   'database_name',
-  'query',
   'encryption',
   'credentials_info',
+  'query',
 ];
 
 const selectedFile = document.getElementById('selectedFile');
