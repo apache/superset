@@ -53,6 +53,8 @@ const selectedFile = document.getElementById('selectedFile');
 
 interface FieldPropTypes {
   required: boolean;
+    hasTooltip: boolean;
+    tooltipText: (valuse: any) => string;
   onParametersChange: (value: any) => string;
   onParametersUploadFileChange: (value: any) => string;
   changeMethods: { onParametersChange: (value: any) => string } & {
@@ -182,14 +184,27 @@ const hostField = ({
   changeMethods,
   getValidation,
   validationErrors,
+    hasTooltip,
+    tooltipText,
   db,
 }: FieldPropTypes) => (
-    <div style={{border:'2px solid green'}} css={(theme: SupersetTheme) => infoTooltip(theme)}>
+  //<div
+  //  style={{ border: '2px solid green' }}
+  //  css={(theme: SupersetTheme) => infoTooltip(theme)}
+  //>
+  //  <InfoTooltip
+  //    tooltip={t(
+  //      'This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).',
+  //    )}
+  //    placement="topRight"
+  //  />
     <ValidatedInput
       id="host"
       name="host"
       value={db?.parameters?.host}
       required={required}
+        hasTooltip={hasTooltip}
+        tooltipText = {t('This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).')}
       validationMethods={{ onBlur: getValidation }}
       errorMessage={validationErrors?.host}
       placeholder="e.g. 127.0.0.1"
@@ -197,13 +212,7 @@ const hostField = ({
       label="Host"
       onChange={changeMethods.onParametersChange}
     />
-    <InfoTooltip
-      tooltip={t(
-        'This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).',
-      )}
-        placement="topRight"
-    />
-  </div>
+  //</div>
 );
 const portField = ({
   required,

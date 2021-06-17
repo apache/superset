@@ -663,22 +663,30 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 isEditMode={isEditMode}
               />
               {isDynamic(db?.engine) && (
-                <Button
-                  buttonStyle="link"
-                  onClick={() =>
-                    setDB({
-                      type: ActionType.configMethodChange,
-                      payload: {
-                        database_name: db?.database_name,
-                        configuration_method: CONFIGURATION_METHOD.DYNAMIC_FORM,
-                        engine: db?.engine,
-                      },
-                    })
-                  }
-                  css={theme => alchemyButtonLinkStyles(theme)}
-                >
-                  Connect this database using the dynamic form instead
-                </Button>
+                <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
+                  <Button
+                    buttonStyle="link"
+                    onClick={() =>
+                      setDB({
+                        type: ActionType.configMethodChange,
+                        payload: {
+                          database_name: db?.database_name,
+                          configuration_method:
+                            CONFIGURATION_METHOD.DYNAMIC_FORM,
+                          engine: db?.engine,
+                        },
+                      })
+                    }
+                    css={theme => alchemyButtonLinkStyles(theme)}
+                  >
+                    Connect this database using the dynamic form instead
+                    <InfoTooltip
+                      tooltip={t(
+                        'Click this link to switch to an alternate form that exposes only the required fields needed to connect this database.',
+                      )}
+                    />
+                  </Button>
+                </div>
               )}
             </>
           ) : (
@@ -889,30 +897,30 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   getValidation={() => getValidation(db)}
                   validationErrors={validationErrors}
                 />
-              <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-                <Button
-                  buttonStyle="link"
-                  onClick={() =>
-                    setDB({
-                      type: ActionType.configMethodChange,
-                      payload: {
-                        engine: db.engine,
-                        configuration_method:
-                          CONFIGURATION_METHOD.SQLALCHEMY_URI,
-                        database_name: db.database_name,
-                      },
-                    })
-                  }
-                  css={buttonLinkStyles}
-                >
-                  Connect this database with a SQLAlchemy URI string instead
-                  <InfoTooltip
-                    tooltip={t(
+                <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
+                  <Button
+                    buttonStyle="link"
+                    onClick={() =>
+                      setDB({
+                        type: ActionType.configMethodChange,
+                        payload: {
+                          engine: db.engine,
+                          configuration_method:
+                            CONFIGURATION_METHOD.SQLALCHEMY_URI,
+                          database_name: db.database_name,
+                        },
+                      })
+                    }
+                    css={buttonLinkStyles}
+                  >
+                    Connect this database with a SQLAlchemy URI string instead
+                    <InfoTooltip
+                      tooltip={t(
                         'Click this link to switch to an alternate form that allows you to input the SQLAlchemy URL for this database manually.',
                       )}
                     />
-                </Button>
-               </div> 
+                  </Button>
+                </div>
                 {/* Step 2 */}
               </>
             ))}
