@@ -184,18 +184,26 @@ const hostField = ({
   validationErrors,
   db,
 }: FieldPropTypes) => (
-  <ValidatedInput
-    id="host"
-    name="host"
-    value={db?.parameters?.host}
-    required={required}
-    validationMethods={{ onBlur: getValidation }}
-    errorMessage={validationErrors?.host}
-    placeholder="e.g. 127.0.0.1"
-    className="form-group-w-50"
-    label="Host"
-    onChange={changeMethods.onParametersChange}
-  />
+    <div style={{border:'2px solid green'}} css={(theme: SupersetTheme) => infoTooltip(theme)}>
+    <ValidatedInput
+      id="host"
+      name="host"
+      value={db?.parameters?.host}
+      required={required}
+      validationMethods={{ onBlur: getValidation }}
+      errorMessage={validationErrors?.host}
+      placeholder="e.g. 127.0.0.1"
+      className="form-group-w-50"
+      label="Host"
+      onChange={changeMethods.onParametersChange}
+    />
+    <InfoTooltip
+      tooltip={t(
+        'This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).',
+      )}
+        placement="topRight"
+    />
+  </div>
 );
 const portField = ({
   required,
