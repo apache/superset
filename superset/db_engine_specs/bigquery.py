@@ -22,7 +22,7 @@ import pandas as pd
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
-from marshmallow import Schema
+from marshmallow import fields, Schema
 from sqlalchemy import literal_column
 from sqlalchemy.sql.expression import ColumnClause
 from typing_extensions import TypedDict
@@ -51,10 +51,12 @@ class BigQueryParametersSchema(Schema):
     credentials_info = EncryptedField(
         required=False, description="Contents of BigQuery JSON credentials.",
     )
+    query = fields.Dict(required=False)
 
 
 class BigQueryParametersType(TypedDict):
     credentials_info: Dict[str, Any]
+    query: Dict[str, Any]
 
 
 class BigQueryEngineSpec(BaseEngineSpec):
