@@ -22,7 +22,7 @@ import pandas as pd
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
-from marshmallow import Schema
+from marshmallow import fields, Schema
 from sqlalchemy import literal_column
 from sqlalchemy.sql.expression import ColumnClause
 from typing_extensions import TypedDict
@@ -49,12 +49,14 @@ ma_plugin = MarshmallowPlugin()
 
 class BigQueryParametersSchema(Schema):
     credentials_info = EncryptedField(
-        required=True, description="Contents of BigQuery JSON credentials.",
+        required=False, description="Contents of BigQuery JSON credentials.",
     )
+    query = fields.Dict(required=False)
 
 
 class BigQueryParametersType(TypedDict):
     credentials_info: Dict[str, Any]
+    query: Dict[str, Any]
 
 
 class BigQueryEngineSpec(BaseEngineSpec):
@@ -313,7 +315,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
             project_id = encrypted_extra.get("credentials_info", {}).get("project_id")
 
         if project_id:
-            return f"{cls.engine}+{cls.default_driver}://{project_id}"
+            return f"{cls.default_driver}://{project_id}"
 
         raise SupersetGenericDBErrorException(
             message="Big Query encrypted_extra is not available.",

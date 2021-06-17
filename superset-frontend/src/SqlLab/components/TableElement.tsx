@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import PropTypes from 'prop-types';
 import Collapse from 'src/components/Collapse';
 import Card from 'src/components/Card';
 import ButtonGroup from 'src/components/ButtonGroup';
@@ -25,23 +24,41 @@ import { t, styled } from '@superset-ui/core';
 import { debounce } from 'lodash';
 
 import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { IconTooltip } from '../../components/IconTooltip';
-import ColumnElement from './ColumnElement';
+import ColumnElement, { ColumnKeyTypeType } from './ColumnElement';
 import ShowSQL from './ShowSQL';
 import ModalTrigger from '../../components/ModalTrigger';
 import Loading from '../../components/Loading';
 
-const propTypes = {
-  table: PropTypes.object,
-  actions: PropTypes.object,
-};
+interface Column {
+  name: string;
+  keys?: { type: ColumnKeyTypeType }[];
+  type: string;
+}
 
-const defaultProps = {
-  actions: {},
-  table: null,
-};
+interface Table {
+  id: string;
+  name: string;
+  partitions?: {
+    partitionQuery: string;
+    latest: object[];
+  };
+  indexes?: object[];
+  selectStar?: string;
+  view?: string;
+  isMetadataLoading: boolean;
+  isExtraMetadataLoading: boolean;
+  columns: Column[];
+}
+
+interface TableElementProps {
+  table: Table;
+  actions: {
+    removeDataPreview: (table: Table) => void;
+    removeTable: (table: Table) => void;
+  };
+}
 
 const StyledSpan = styled.span`
   color: ${({ theme }) => theme.colors.primary.dark1};
@@ -53,16 +70,14 @@ const StyledSpan = styled.span`
 
 const Fade = styled.div`
   transition: all ${({ theme }) => theme.transitionTiming}s;
-  opacity: ${props => (props.hovered ? 1 : 0)};
+  opacity: ${(props: { hovered: boolean }) => (props.hovered ? 1 : 0)};
 `;
 
-const TableElement = props => {
+const TableElement = ({ table, actions, ...props }: TableElementProps) => {
   const [sortColumns, setSortColumns] = useState(false);
   const [hovered, setHovered] = useState(false);
 
-  const { table, actions, isActive } = props;
-
-  const setHover = hovered => {
+  const setHover = (hovered: boolean) => {
     debounce(() => setHovered(hovered), 100)();
   };
 
@@ -92,10 +107,10 @@ const TableElement = props => {
           />
         );
       }
-      let latest = Object.entries(table.partitions?.latest || []).map(
-        ([key, value]) => `${key}=${value}`,
-      );
-      latest = latest.join('/');
+      const latest = Object.entries(table.partitions?.latest || [])
+        .map(([key, value]) => `${key}=${value}`)
+        .join('/');
+
       header = (
         <Card size="small">
           <div>
@@ -142,9 +157,9 @@ const TableElement = props => {
           }
           onClick={toggleSortColumns}
           tooltip={
-            !sortColumns
-              ? t('Sort columns alphabetically')
-              : t('Original table column order')
+            sortColumns
+              ? t('Original table column order')
+              : t('Sort columns alphabetically')
           }
         />
         {table.selectStar && (
@@ -216,16 +231,10 @@ const TableElement = props => {
     if (table.columns) {
       cols = table.columns.slice();
       if (sortColumns) {
-        cols.sort((a, b) => {
+        cols.sort((a: Column, b: Column) => {
           const colA = a.name.toUpperCase();
           const colB = b.name.toUpperCase();
-          if (colA < colB) {
-            return -1;
-          }
-          if (colA > colB) {
-            return 1;
-          }
-          return 0;
+          return colA < colB ? -1 : colA > colB ? 1 : 0;
         });
       }
     }
@@ -247,41 +256,17 @@ const TableElement = props => {
     return metadata;
   };
 
-  const collapseExpandIcon = () => (
-    <IconTooltip
-      style={{
-        position: 'fixed',
-        right: '16px',
-        left: 'auto',
-        fontSize: '12px',
-        transform: 'rotate(90deg)',
-        display: 'flex',
-        alignItems: 'center',
-      }}
-      aria-label="Collapse"
-      tooltip={t(`${isActive ? 'Collapse' : 'Expand'} table preview`)}
-    >
-      <Icons.RightOutlined
-        iconSize="s"
-        style={isActive ? { transform: 'rotateY(180deg)' } : null}
-      />
-    </IconTooltip>
-  );
-
   return (
     <Collapse.Panel
       {...props}
+      key={table.id}
       header={renderHeader()}
       className="TableElement"
       forceRender
-      expandIcon={collapseExpandIcon}
     >
       {renderBody()}
     </Collapse.Panel>
   );
 };
-
-TableElement.propTypes = propTypes;
-TableElement.defaultProps = defaultProps;
 
 export default TableElement;

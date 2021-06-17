@@ -1496,9 +1496,9 @@ class TestDatabaseApi(SupersetTestCase):
                                 "description": "Contents of BigQuery JSON credentials.",
                                 "type": "string",
                                 "x-encrypted-extra": True,
-                            }
+                            },
+                            "query": {"type": "object"},
                         },
-                        "required": ["credentials_info"],
                         "type": "object",
                     },
                     "preferred": True,
@@ -1675,74 +1675,39 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
-        invalid_schema = response["errors"][0]["extra"]["invalid"][0]
-        # This is done because this array of errors does not have a deterministic order
-        if invalid_schema == "engine":
-            assert response == {
-                "errors": [
-                    {
-                        "message": "Missing data for required field.",
-                        "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
-                        "level": "error",
-                        "extra": {
-                            "invalid": ["engine"],
-                            "issue_codes": [
-                                {
-                                    "code": 1020,
-                                    "message": "Issue 1020 - The submitted payload has the incorrect schema.",
-                                }
-                            ],
-                        },
+        response["errors"].sort(key=lambda error: error["extra"]["invalid"][0])
+        assert response == {
+            "errors": [
+                {
+                    "message": "Missing data for required field.",
+                    "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
+                    "level": "error",
+                    "extra": {
+                        "invalid": ["configuration_method"],
+                        "issue_codes": [
+                            {
+                                "code": 1020,
+                                "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                            }
+                        ],
                     },
-                    {
-                        "message": "Missing data for required field.",
-                        "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
-                        "level": "error",
-                        "extra": {
-                            "invalid": ["configuration_method"],
-                            "issue_codes": [
-                                {
-                                    "code": 1020,
-                                    "message": "Issue 1020 - The submitted payload has the incorrect schema.",
-                                }
-                            ],
-                        },
+                },
+                {
+                    "message": "Missing data for required field.",
+                    "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
+                    "level": "error",
+                    "extra": {
+                        "invalid": ["engine"],
+                        "issue_codes": [
+                            {
+                                "code": 1020,
+                                "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                            }
+                        ],
                     },
-                ]
-            }
-        else:
-            assert response == {
-                "errors": [
-                    {
-                        "message": "Missing data for required field.",
-                        "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
-                        "level": "error",
-                        "extra": {
-                            "invalid": ["configuration_method"],
-                            "issue_codes": [
-                                {
-                                    "code": 1020,
-                                    "message": "Issue 1020 - The submitted payload has the incorrect schema.",
-                                }
-                            ],
-                        },
-                    },
-                    {
-                        "message": "Missing data for required field.",
-                        "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
-                        "level": "error",
-                        "extra": {
-                            "invalid": ["engine"],
-                            "issue_codes": [
-                                {
-                                    "code": 1020,
-                                    "message": "Issue 1020 - The submitted payload has the incorrect schema.",
-                                }
-                            ],
-                        },
-                    },
-                ]
-            }
+                },
+            ]
+        }
 
     def test_validate_parameters_missing_fields(self):
         self.login(username="admin")

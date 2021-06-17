@@ -32,6 +32,10 @@ export const no_margin_bottom = css`
   margin-bottom: 0;
 `;
 
+export const marginBottom = (theme: SupersetTheme) => css`
+  margin-bottom: ${theme.gridUnit * 4}px;
+`;
+
 export const StyledFormHeader = styled.header`
   border-bottom: ${({ theme }) => `${theme.gridUnit * 0.25}px solid
     ${theme.colors.grayscale.light2};`}
@@ -138,7 +142,7 @@ export const antDModalStyles = (theme: SupersetTheme) => css`
 export const antDAlertStyles = (theme: SupersetTheme) => css`
   border: 1px solid ${theme.colors.info.base};
   padding: ${theme.gridUnit * 4}px;
-  margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 3}px 0;
+  margin: ${theme.gridUnit * 8}px 0 ${theme.gridUnit * 4}px;
   .ant-alert-message {
     color: ${theme.colors.info.dark2};
     font-size: ${theme.typography.sizes.s + 1}px;
@@ -336,6 +340,13 @@ export const buttonLinkStyles = css`
   text-transform: initial;
 `;
 
+export const alchemyButtonLinkStyles = (theme: SupersetTheme) => css`
+  font-weight: 400;
+  text-transform: initial;
+  padding: ${theme.gridUnit * 8}px 0 0;
+  margin-left: 0px;
+`;
+
 export const TabHeader = styled.div`
   display: flex;
   flex-direction: column;
@@ -437,6 +448,9 @@ export const SelectDatabaseStyles = styled.div`
       font-size: ${({ theme }) => theme.typography.sizes.l * 1.1}px;
       font-weight: bold;
       margin: ${({ theme }) => theme.gridUnit * 6}px 0;
+    }
+    .available-select {
+      width: 100%;
     }
   }
 

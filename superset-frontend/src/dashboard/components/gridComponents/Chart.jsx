@@ -21,20 +21,22 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { styled } from '@superset-ui/core';
 
-import { exploreChart, exportChart } from '../../../explore/exploreUtils';
-import SliceHeader from '../SliceHeader';
-import ChartContainer from '../../../chart/ChartContainer';
-import MissingChart from '../MissingChart';
-import { slicePropShape, chartPropShape } from '../../util/propShapes';
+import { exploreChart, exportChart } from 'src/explore/exploreUtils';
+import ChartContainer from 'src/chart/ChartContainer';
 import {
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
   LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
   LOG_ACTIONS_FORCE_REFRESH_CHART,
-} from '../../../logger/LogUtils';
+} from 'src/logger/LogUtils';
+import { areObjectsEqual } from 'src/reduxUtils';
+
+import SliceHeader from '../SliceHeader';
+import MissingChart from '../MissingChart';
+import { slicePropShape, chartPropShape } from '../../util/propShapes';
+
 import { isFilterBox } from '../../util/activeDashboardFilters';
 import getFilterValuesByFilterId from '../../util/getFilterValuesByFilterId';
-import { areObjectsEqual } from '../../../reduxUtils';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
