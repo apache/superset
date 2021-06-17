@@ -33,6 +33,7 @@ import {
 } from '@superset-ui/core';
 import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
 import Modal from 'src/components/Modal';
+import Tabs from 'src/components/Tabs';
 import { Tooltip } from 'src/components/Tooltip';
 import Label, { Type } from 'src/components/Label';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -157,6 +158,51 @@ const IconPane = styled(Row)`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
+const CategoriesTabs = styled(Tabs)`
+  overflow: auto;
+
+  .ant-tabs-nav {
+    width: 20%;
+  }
+
+  .ant-tabs-content-holder {
+    overflow: auto;
+  }
+
+  & > .ant-tabs-nav .ant-tabs-ink-bar {
+    visibility: hidden;
+  }
+
+  .ant-tabs-tab-btn {
+    text-transform: capitalize;
+  }
+
+  ${({ theme }) => `
+   &.ant-tabs-left > .ant-tabs-nav .ant-tabs-tab {
+      margin: ${theme.gridUnit * 2}px;
+      margin-bottom: 0;
+      padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
+
+      .ant-tabs-tab-btn {
+        display: block;
+        text-align: left;
+      }
+
+      &:hover,
+      &-active {
+        color: ${theme.colors.grayscale.dark1};
+        border-radius: ${theme.borderRadius}px;
+        background-color: ${theme.colors.secondary.light4};
+
+        .ant-tabs-tab-remove > svg {
+          color: ${theme.colors.grayscale.base};
+          transition: all 0.3s;
+        }
+      }
+    }
+  `}
+`;
+
 const DetailsPane = styled.div`
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   padding: ${({ theme }) => theme.gridUnit * 4}px;
@@ -243,7 +289,7 @@ const VizTypeControl = (props: VizTypeControlProps) => {
   const filterString = filter.toLowerCase();
   const filterStringParts = filterString.split(' ');
 
-  const filteredTypes = DEFAULT_ORDER.filter(
+  const categories = DEFAULT_ORDER.filter(
     type =>
       metadataRegistry.has(type) &&
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -267,7 +313,17 @@ const VizTypeControl = (props: VizTypeControlProps) => {
       filterStringParts.every(
         part => entry.value?.name.toLowerCase().indexOf(part) !== -1,
       ),
-    );
+    )
+    .reduce((acc, entry: VizEntry) => {
+      const category = entry.value?.categories?.[0];
+      if (entry.value && category) {
+        if (!acc[category]) {
+          acc[category] = [];
+        }
+        acc[category].push(entry);
+      }
+      return acc;
+    }, {} as Record<string, VizEntry[]>);
 
   const labelContent =
     metadataRegistry.get(initialValue)?.name || `${initialValue}`;
@@ -312,16 +368,22 @@ const VizTypeControl = (props: VizTypeControlProps) => {
               data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__search-input`}
             />
           </SearchPane>
-          <IconPane
-            data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__viz-row`}
-            gutter={16}
-          >
-            {filteredTypes.map((entry: VizEntry) => (
-              <Col xs={10} sm={6} md={4} lg={3} key={entry.key}>
-                {renderItem(entry)}
-              </Col>
+          <CategoriesTabs tabPosition="left">
+            {Object.entries(categories).map(([category, vizTypes]) => (
+              <Tabs.TabPane tab={category} key={category}>
+                <IconPane
+                  data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__viz-row`}
+                  gutter={16}
+                >
+                  {vizTypes.map(entry => (
+                    <Col xs={12} sm={8} md={6} lg={4} key={entry.key}>
+                      {renderItem(entry)}
+                    </Col>
+                  ))}
+                </IconPane>
+              </Tabs.TabPane>
             ))}
-          </IconPane>
+          </CategoriesTabs>
           <DetailsPane>
             <SectionTitle>{selectedVizMetadata?.name}</SectionTitle>
             <p>
