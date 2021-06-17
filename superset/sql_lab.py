@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import dataclasses
 import logging
 import uuid
 from contextlib import closing
@@ -25,8 +26,8 @@ import backoff
 import msgpack
 import pyarrow as pa
 import simplejson as json
+from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
-from celery.task.base import Task
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm import Session
 from werkzeug.local import LocalProxy
@@ -93,8 +94,17 @@ def handle_query_error(
     query.error_message = msg
     query.status = QueryStatus.FAILED
     query.tmp_table_name = None
+
+    # extract DB-specific errors (invalid column, eg)
+    errors = [
+        dataclasses.asdict(error)
+        for error in query.database.db_engine_spec.extract_errors(msg)
+    ]
+    if errors:
+        query.set_extra_json_key("errors", errors)
+
     session.commit()
-    payload.update({"status": query.status, "error": msg})
+    payload.update({"status": query.status, "error": msg, "errors": errors})
     if troubleshooting_link:
         payload["link"] = troubleshooting_link
     return payload
@@ -217,7 +227,7 @@ def execute_sql_statement(
         query.select_as_cta_used = True
 
     # Do not apply limit to the CTA queries when SQLLAB_CTAS_NO_LIMIT is set to true
-    if parsed_query.is_select() and not (
+    if db_engine_spec.is_select_query(parsed_query) and not (
         query.select_as_cta_used and SQLLAB_CTAS_NO_LIMIT
     ):
         if SQL_MAX_ROW and (not query.limit or query.limit > SQL_MAX_ROW):

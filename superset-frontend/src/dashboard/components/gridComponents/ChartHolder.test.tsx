@@ -18,14 +18,19 @@
  */
 
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import mockState from 'spec/fixtures/mockState';
-import { sliceId as chartId } from 'spec/fixtures/mockChartQueries';
-import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import userEvent from '@testing-library/user-event';
 import { waitFor } from '@testing-library/react';
-import { ChartHolder } from './index';
+import { sliceId as chartId } from 'spec/fixtures/mockChartQueries';
+import { nativeFiltersInfo } from 'spec/javascripts/dashboard/fixtures/mockNativeFilters';
+import newComponentFactory from 'src/dashboard/util/newComponentFactory';
+import { getMockStore } from 'spec/fixtures/mockStore';
+import { initialState } from 'spec/javascripts/sqllab/fixtures';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { Provider } from 'react-redux';
+import { screen, render } from 'spec/helpers/testing-library';
 import { CHART_TYPE, ROW_TYPE } from '../../util/componentTypes';
+import { ChartHolder } from './index';
 
 describe('ChartHolder', () => {
   const defaultProps = {
@@ -60,14 +65,19 @@ describe('ChartHolder', () => {
     editMode: false,
     isComponentVisible: true,
     dashboardId: 123,
+    nativeFilters: nativeFiltersInfo.filters,
   };
-
-  const renderWrapper = (props = defaultProps, state = mockState) =>
-    render(<ChartHolder {...props} />, {
-      useRedux: true,
-      initialState: state,
-      useDnd: true,
-    });
+  const mockStore = getMockStore({
+    ...initialState,
+  });
+  const renderWrapper = () =>
+    render(
+      <Provider store={mockStore}>
+        <DndProvider backend={HTML5Backend}>
+          <ChartHolder {...defaultProps} />{' '}
+        </DndProvider>
+      </Provider>,
+    );
 
   it('toggle full size', async () => {
     renderWrapper();

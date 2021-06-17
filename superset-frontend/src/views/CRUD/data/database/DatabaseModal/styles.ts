@@ -163,13 +163,6 @@ export const formStyles = (theme: SupersetTheme) => css`
         margin-left: ${theme.gridUnit * 8}px;
       }
     }
-    .text-danger {
-      color: ${theme.colors.error.base};
-      font-size: ${theme.typography.sizes.s - 1}px;
-      strong {
-        font-weight: normal;
-      }
-    }
   }
   .control-label {
     color: ${theme.colors.grayscale.dark1};
@@ -180,13 +173,17 @@ export const formStyles = (theme: SupersetTheme) => css`
     font-size: ${theme.typography.sizes.s - 1}px;
     margin-top: ${theme.gridUnit * 1.5}px;
   }
-  .ant-modal-body {
-    padding-top: 0;
-    margin-bottom: 0;
-  }
   .ant-tabs-content-holder {
     overflow: auto;
     max-height: 475px;
+  }
+`;
+
+export const validatedFormStyles = (theme: SupersetTheme) => css`
+  label {
+    color: ${theme.colors.grayscale.dark1};
+    font-size: ${theme.typography.sizes.s - 1}px;
+    margin-bottom: 0;
   }
 `;
 
@@ -309,23 +306,13 @@ export const buttonLinkStyles = css`
   text-transform: initial;
 `;
 
-export const EditHeader = styled.div`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 0px;
-  margin: ${({ theme }) => theme.gridUnit * 4}px
-    ${({ theme }) => theme.gridUnit * 4}px
-    ${({ theme }) => theme.gridUnit * 9}px;
-`;
-
-export const CreateHeader = styled.div`
+export const TabHeader = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding: 0px;
   margin: 0 ${({ theme }) => theme.gridUnit * 4}px
-    ${({ theme }) => theme.gridUnit * 6}px;
+    ${({ theme }) => theme.gridUnit * 8}px;
 `;
 
 export const CreateHeaderTitle = styled.div`
@@ -342,12 +329,12 @@ export const CreateHeaderSubtitle = styled.div`
 
 export const EditHeaderTitle = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.light1};
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
   text-transform: uppercase;
 `;
 
 export const EditHeaderSubtitle = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark1};
-  font-size: ${({ theme }) => theme.typography.sizes.xl}px;
+  font-size: ${({ theme }) => theme.typography.sizes.l}px;
   font-weight: bold;
 `;

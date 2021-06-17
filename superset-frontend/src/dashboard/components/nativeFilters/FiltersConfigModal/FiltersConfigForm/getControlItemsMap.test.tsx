@@ -83,8 +83,12 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-function renderControlItems(controlItemsMap: {}): any {
-  return render(<>{Object.values(controlItemsMap).map(value => value)}</>);
+function renderControlItems(
+  controlItemsMap: ReturnType<typeof getControlItemsMap>,
+) {
+  return render(
+    <>{Object.values(controlItemsMap).map(value => value.element)}</>,
+  );
 }
 
 test('Should render null when has no "formFilter"', () => {

@@ -26,12 +26,14 @@ import {
   AdhocFilter,
   FeatureFlag,
 } from '@superset-ui/core';
-import { Charts } from 'src/dashboard/types';
+import { Charts, DashboardLayout } from 'src/dashboard/types';
 import { RefObject } from 'react';
 import { DataMaskStateWithId } from 'src/dataMask/types';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
 import { isFeatureEnabled } from 'src/featureFlags';
 import { Filter } from './types';
+import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
+import { DASHBOARD_GRID_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 
 export const getFormData = ({
   datasetId,
@@ -44,6 +46,7 @@ export const getFormData = ({
   sortMetric,
   adhoc_filters,
   time_range,
+  granularity_sqla,
 }: Partial<Filter> & {
   datasetId?: number;
   inputRef?: RefObject<HTMLInputElement>;
@@ -72,7 +75,7 @@ export const getFormData = ({
     adhoc_filters: adhoc_filters ?? [],
     extra_filters: [],
     extra_form_data: cascadingFilters,
-    granularity_sqla: 'ds',
+    granularity_sqla,
     metrics: ['count'],
     row_limit: 1000,
     showSearch: true,
@@ -142,3 +145,73 @@ export function nativeFilterGate(behaviors: Behavior[]): boolean {
       behaviors.includes(Behavior.INTERACTIVE_CHART))
   );
 }
+
+const isComponentATab = (
+  dashboardLayout: DashboardLayout,
+  componentId: string,
+) => dashboardLayout[componentId].type === TAB_TYPE;
+
+const findTabsWithChartsInScopeHelper = (
+  dashboardLayout: DashboardLayout,
+  chartsInScope: number[],
+  componentId: string,
+  tabIds: string[],
+  tabsToHighlight: Set<string>,
+) => {
+  if (
+    dashboardLayout[componentId].type === CHART_TYPE &&
+    chartsInScope.includes(dashboardLayout[componentId].meta.chartId)
+  ) {
+    tabIds.forEach(tabsToHighlight.add, tabsToHighlight);
+  }
+  if (
+    dashboardLayout[componentId].children.length === 0 ||
+    (isComponentATab(dashboardLayout, componentId) &&
+      tabsToHighlight.has(componentId))
+  ) {
+    return;
+  }
+  dashboardLayout[componentId].children.forEach(childId =>
+    findTabsWithChartsInScopeHelper(
+      dashboardLayout,
+      chartsInScope,
+      childId,
+      isComponentATab(dashboardLayout, childId) ? [...tabIds, childId] : tabIds,
+      tabsToHighlight,
+    ),
+  );
+};
+
+export const findTabsWithChartsInScope = (
+  dashboardLayout: DashboardLayout,
+  chartsInScope: number[],
+) => {
+  const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
+  const rootChildId = dashboardRoot.children[0];
+  const hasTopLevelTabs = rootChildId !== DASHBOARD_GRID_ID;
+  const tabsInScope = new Set<string>();
+  if (hasTopLevelTabs) {
+    dashboardLayout[rootChildId].children?.forEach(tabId =>
+      findTabsWithChartsInScopeHelper(
+        dashboardLayout,
+        chartsInScope,
+        tabId,
+        [tabId],
+        tabsInScope,
+      ),
+    );
+  } else {
+    Object.values(dashboardLayout)
+      .filter(element => element.type === TAB_TYPE)
+      .forEach(element =>
+        findTabsWithChartsInScopeHelper(
+          dashboardLayout,
+          chartsInScope,
+          element.id,
+          [element.id],
+          tabsInScope,
+        ),
+      );
+  }
+  return tabsInScope;
+};

@@ -25,7 +25,7 @@ describe('Select buildQuery', () => {
     datasource: '5__table',
     groupby: ['my_col'],
     viz_type: 'filter_select',
-    sortAscending: false,
+    sortAscending: undefined,
     sortMetric: undefined,
     filters: undefined,
     enableEmptyFilter: false,
@@ -44,11 +44,10 @@ describe('Select buildQuery', () => {
     expect(query.groupby).toEqual(['my_col']);
     expect(query.filters).toEqual([{ col: 'my_col', op: 'IS NOT NULL' }]);
     expect(query.metrics).toEqual([]);
-    expect(query.apply_fetch_values_predicate).toEqual(true);
     expect(query.orderby).toEqual([]);
   });
 
-  it('should handle sort metric correctly', () => {
+  it('should sort descending by metric', () => {
     const queryContext = buildQuery({
       ...formData,
       sortMetric: 'my_metric',
@@ -59,6 +58,43 @@ describe('Select buildQuery', () => {
     expect(query.groupby).toEqual(['my_col']);
     expect(query.metrics).toEqual(['my_metric']);
     expect(query.orderby).toEqual([['my_metric', false]]);
+  });
+
+  it('should sort ascending by metric', () => {
+    const queryContext = buildQuery({
+      ...formData,
+      sortMetric: 'my_metric',
+      sortAscending: true,
+    });
+    expect(queryContext.queries.length).toEqual(1);
+    const [query] = queryContext.queries;
+    expect(query.groupby).toEqual(['my_col']);
+    expect(query.metrics).toEqual(['my_metric']);
+    expect(query.orderby).toEqual([['my_metric', true]]);
+  });
+
+  it('should sort ascending by column', () => {
+    const queryContext = buildQuery({
+      ...formData,
+      sortAscending: true,
+    });
+    expect(queryContext.queries.length).toEqual(1);
+    const [query] = queryContext.queries;
+    expect(query.groupby).toEqual(['my_col']);
+    expect(query.metrics).toEqual([]);
+    expect(query.orderby).toEqual([['my_col', true]]);
+  });
+
+  it('should sort descending by column', () => {
+    const queryContext = buildQuery({
+      ...formData,
+      sortAscending: false,
+    });
+    expect(queryContext.queries.length).toEqual(1);
+    const [query] = queryContext.queries;
+    expect(query.groupby).toEqual(['my_col']);
+    expect(query.metrics).toEqual([]);
+    expect(query.orderby).toEqual([['my_col', false]]);
   });
 
   it('should add text search parameter to query filter', () => {

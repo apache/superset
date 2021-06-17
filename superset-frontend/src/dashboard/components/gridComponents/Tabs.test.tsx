@@ -20,11 +20,12 @@
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { nativeFiltersInfo } from 'spec/javascripts/dashboard/fixtures/mockNativeFilters';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
-
+import emptyDashboardLayout from 'src/dashboard/fixtures/emptyDashboardLayout';
 import Tabs from './Tabs';
 
 jest.mock('src/dashboard/containers/DashboardComponent', () =>
@@ -110,6 +111,8 @@ const createProps = () => ({
   onChangeTab: jest.fn(),
   deleteComponent: jest.fn(),
   updateComponents: jest.fn(),
+  dashboardLayout: emptyDashboardLayout,
+  nativeFilters: nativeFiltersInfo.filters,
 });
 
 beforeEach(() => {

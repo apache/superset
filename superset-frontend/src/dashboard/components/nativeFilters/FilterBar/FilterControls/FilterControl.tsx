@@ -42,10 +42,12 @@ const StyledFilterControlContainer = styled.div`
 `;
 
 const FilterControl: React.FC<FilterProps> = ({
+  dataMaskSelected,
   filter,
   icon,
   onFilterSelectionChange,
   directPathToChild,
+  inView,
 }) => {
   const { name = '<undefined>' } = filter;
   return (
@@ -57,9 +59,11 @@ const FilterControl: React.FC<FilterProps> = ({
         <div data-test="filter-icon">{icon}</div>
       </StyledFilterControlTitleBox>
       <FilterValue
+        dataMaskSelected={dataMaskSelected}
         filter={filter}
         directPathToChild={directPathToChild}
         onFilterSelectionChange={onFilterSelectionChange}
+        inView={inView}
       />
     </StyledFilterControlContainer>
   );

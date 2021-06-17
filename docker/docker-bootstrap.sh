@@ -38,10 +38,10 @@ fi
 
 if [[ "${1}" == "worker" ]]; then
   echo "Starting Celery worker..."
-  celery worker --app=superset.tasks.celery_app:app -Ofair -l INFO
+  celery --app=superset.tasks.celery_app:app worker -Ofair -l INFO
 elif [[ "${1}" == "beat" ]]; then
   echo "Starting Celery beat..."
-  celery beat --app=superset.tasks.celery_app:app --pidfile /tmp/celerybeat.pid -l INFO -s "${SUPERSET_HOME}"/celerybeat-schedule
+  celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid -l INFO -s "${SUPERSET_HOME}"/celerybeat-schedule
 elif [[ "${1}" == "app" ]]; then
   echo "Starting web app..."
   flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0

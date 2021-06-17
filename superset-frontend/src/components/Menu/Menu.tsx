@@ -27,6 +27,7 @@ import { Row, Col, Grid } from 'antd';
 import Icon from 'src/components/Icon';
 import RightMenu from './MenuRight';
 import { Languages } from './LanguagePicker';
+import { URL_PARAMS } from '../../constants';
 
 interface BrandProps {
   path: string;
@@ -89,6 +90,9 @@ const StyledHeader = styled.header`
     display: flex;
     flex-direction: column;
     justify-content: center;
+  }
+  .main-nav .ant-menu-submenu-title > svg {
+    top: ${({ theme }) => theme.gridUnit * 5.25}px;
   }
   @media (max-width: 767px) {
     .navbar-brand {
@@ -158,7 +162,7 @@ export function Menu({
     return () => window.removeEventListener('resize', windowResize);
   }, []);
 
-  const standalone = getUrlParam('standalone', 'boolean');
+  const standalone = getUrlParam(URL_PARAMS.standalone);
   if (standalone) return <></>;
 
   const renderSubMenu = ({

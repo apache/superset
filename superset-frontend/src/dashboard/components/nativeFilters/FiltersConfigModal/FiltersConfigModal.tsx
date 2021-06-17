@@ -183,7 +183,11 @@ export function FiltersConfigModal({
     filterIds
       .filter(filterId => filterId !== id && !removedFilters[filterId])
       .filter(filterId =>
-        CASCADING_FILTERS.includes(formValues.filters[filterId]?.filterType),
+        CASCADING_FILTERS.includes(
+          formValues.filters[filterId]
+            ? formValues.filters[filterId].filterType
+            : filterConfigMap[filterId]?.filterType,
+        ),
       )
       .map(id => ({
         id,
@@ -231,7 +235,7 @@ export function FiltersConfigModal({
     <StyledModalWrapper
       visible={isOpen}
       maskClosable={false}
-      title={t('Filters configuration')}
+      title={t('Filters configuration and scoping')}
       width="50%"
       destroyOnClose
       onCancel={handleCancel}

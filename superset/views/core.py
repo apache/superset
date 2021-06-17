@@ -73,11 +73,13 @@ from superset.dashboards.dao import DashboardDAO
 from superset.databases.dao import DatabaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.commands.exceptions import DatasetNotFoundError
+from superset.errors import SupersetError
 from superset.exceptions import (
     CacheLoadError,
     CertificateException,
     DatabaseNotFound,
     SerializationError,
+    SupersetErrorsException,
     SupersetException,
     SupersetGenericDBErrorException,
     SupersetSecurityException,
@@ -2426,7 +2428,15 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             raise SupersetGenericDBErrorException(utils.error_msg_from_exception(ex))
 
         if data.get("status") == QueryStatus.FAILED:
+            # new error payload with rich context
+            if data["errors"]:
+                raise SupersetErrorsException(
+                    [SupersetError(**params) for params in data["errors"]]
+                )
+
+            # old string-only error message
             raise SupersetGenericDBErrorException(data["error"])
+
         return json_success(payload)
 
     @has_access_api
@@ -2656,7 +2666,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "exported_format": "csv",
         }
         event_rep = repr(event_info)
-        logger.info("CSV exported: %s", event_rep, extra={"superset_event": event_info})
+        logger.debug(
+            "CSV exported: %s", event_rep, extra={"superset_event": event_info}
+        )
         return response
 
     @api
