@@ -26,9 +26,11 @@ import {
   GenericDataType,
   JsonObject,
   smartDateDetailedFormatter,
+  styled,
   t,
   tn,
 } from '@superset-ui/core';
+import { FormItem } from 'src/components/Form';
 import React, {
   RefObject,
   ReactElement,
@@ -79,6 +81,10 @@ function reducer(
       return draft;
   }
 }
+
+const Error = styled.div`
+  color: ${({ theme }) => theme.colors.error.base};
+`;
 
 export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const {
@@ -273,52 +279,57 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   return (
     <Styles height={height} width={width}>
-      <StyledSelect
-        allowClear={!enableEmptyFilter}
-        // @ts-ignore
-        value={filterState.value || []}
-        disabled={isDisabled}
-        showSearch={showSearch}
-        mode={multiSelect ? 'multiple' : undefined}
-        placeholder={placeholderText}
-        onSearch={searchWrapper}
-        onSelect={clearSuggestionSearch}
-        onBlur={handleBlur}
-        onDropdownVisibleChange={setIsDropdownVisible}
-        dropdownRender={(
-          originNode: ReactElement & { ref?: RefObject<HTMLElement> },
-        ) => {
-          if (isDropdownVisible && !wasDropdownVisible) {
-            originNode.ref?.current?.scrollTo({ top: 0 });
-          }
-          return originNode;
-        }}
-        onFocus={setFocusedFilter}
-        // @ts-ignore
-        onChange={handleChange}
-        ref={inputRef}
-        loading={isRefreshing}
-        maxTagCount={5}
-        menuItemSelectedIcon={<Icon iconSize="m" />}
+      <FormItem
+        validateStatus={filterState.validateStatus}
+        extra={<Error>{filterState.validateMessage}</Error>}
       >
-        {sortedData.map(row => {
-          const [value] = groupby.map(col => row[col]);
-          return (
-            // @ts-ignore
-            <Option key={`${value}`} value={value}>
-              {labelFormatter(value, datatype)}
-            </Option>
-          );
-        })}
-        {currentSuggestionSearch &&
-          !ensureIsArray(filterState.value).some(
-            suggestion => suggestion === currentSuggestionSearch,
-          ) && (
-            <Option value={currentSuggestionSearch}>
-              {`${t('Create "%s"', currentSuggestionSearch)}`}
-            </Option>
-          )}
-      </StyledSelect>
+        <StyledSelect
+          allowClear={!enableEmptyFilter}
+          // @ts-ignore
+          value={filterState.value || []}
+          disabled={isDisabled}
+          showSearch={showSearch}
+          mode={multiSelect ? 'multiple' : undefined}
+          placeholder={placeholderText}
+          onSearch={searchWrapper}
+          onSelect={clearSuggestionSearch}
+          onBlur={handleBlur}
+          onDropdownVisibleChange={setIsDropdownVisible}
+          dropdownRender={(
+            originNode: ReactElement & { ref?: RefObject<HTMLElement> },
+          ) => {
+            if (isDropdownVisible && !wasDropdownVisible) {
+              originNode.ref?.current?.scrollTo({ top: 0 });
+            }
+            return originNode;
+          }}
+          onFocus={setFocusedFilter}
+          // @ts-ignore
+          onChange={handleChange}
+          ref={inputRef}
+          loading={isRefreshing}
+          maxTagCount={5}
+          menuItemSelectedIcon={<Icon iconSize="m" />}
+        >
+          {sortedData.map(row => {
+            const [value] = groupby.map(col => row[col]);
+            return (
+              // @ts-ignore
+              <Option key={`${value}`} value={value}>
+                {labelFormatter(value, datatype)}
+              </Option>
+            );
+          })}
+          {currentSuggestionSearch &&
+            !ensureIsArray(filterState.value).some(
+              suggestion => suggestion === currentSuggestionSearch,
+            ) && (
+              <Option value={currentSuggestionSearch}>
+                {`${t('Create "%s"', currentSuggestionSearch)}`}
+              </Option>
+            )}
+        </StyledSelect>
+      </FormItem>
     </Styles>
   );
 }

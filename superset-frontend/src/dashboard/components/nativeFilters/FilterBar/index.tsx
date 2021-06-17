@@ -29,12 +29,11 @@ import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { updateDataMask } from 'src/dataMask/actions';
 import { DataMaskStateWithId, DataMaskWithId } from 'src/dataMask/types';
 import { useImmer } from 'use-immer';
-import { areObjectsEqual } from 'src/reduxUtils';
 import { testWithId } from 'src/utils/testUtils';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
 import Loading from 'src/components/Loading';
 import { getInitialDataMask } from 'src/dataMask/reducer';
-import { getOnlyExtraFormData, TabIds } from './utils';
+import { checkIsApplyDisabled, TabIds } from './utils';
 import FilterSets from './FilterSets';
 import {
   useNativeFiltersDataMask,
@@ -214,16 +213,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   };
 
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);
-
-  const dataSelectedValues = Object.values(dataMaskSelected);
-  const dataAppliedValues = Object.values(dataMaskApplied);
-  const isApplyDisabled =
-    areObjectsEqual(
-      getOnlyExtraFormData(dataMaskSelected),
-      getOnlyExtraFormData(dataMaskApplied),
-      { ignoreUndefined: true },
-    ) || dataSelectedValues.length !== dataAppliedValues.length;
-
+  const isApplyDisabled = checkIsApplyDisabled(
+    dataMaskSelected,
+    dataMaskApplied,
+    filterValues,
+  );
   const isInitialized = useInitialization();
 
   return (
