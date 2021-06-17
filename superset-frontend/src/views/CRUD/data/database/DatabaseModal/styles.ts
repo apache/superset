@@ -339,6 +339,13 @@ export const buttonLinkStyles = css`
   text-transform: initial;
 `;
 
+export const alchemyButtonLinkStyles = (theme: SupersetTheme) => css`
+  font-weight: 400;
+  text-transform: initial;
+  padding: ${theme.gridUnit * 8}px 0 0;
+  margin-left: 0px;
+`;
+
 export const TabHeader = styled.div`
   display: flex;
   flex-direction: column;
