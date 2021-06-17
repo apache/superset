@@ -1192,7 +1192,12 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
         return default
 
     #fetching payload from jwt_token
-    jwt_payload = jwt.decode(token,MOBI_SECRET_KEY,algorithms=['HS256'])
+    # jwt_payload = jwt.decode(token,MOBI_SECRET_KEY,algorithms=['HS256'])
+    try:
+        jwt_payload = jwt.decode(token,MOBI_SECRET_KEY,algorithms=['HS256'],options={"verify_signature": False})
+    except Exception:
+        logger.exception("Token expired!")
+        raise Exception("Url expired, Please reload!")
     logger.info("jwt_payload is :", jwt_payload)
 
     #fetchning mobi filter from payload
