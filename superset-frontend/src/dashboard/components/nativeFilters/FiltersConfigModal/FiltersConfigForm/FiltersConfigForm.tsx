@@ -590,23 +590,29 @@ const FiltersConfigForm = (
             {...getFiltersConfigModalTestId('filter-type')}
           >
             <Select
-              options={nativeFilterVizTypes
-                .filter(
-                  filterType =>
-                    !TIME_FILTERS.includes(filterType) ||
-                    doLoadedDatasetsHaveTemporalColumns,
-                )
-                .map(filterType => {
-                  // @ts-ignore
-                  const name = nativeFilterItems[filterType]?.value.name;
-                  const mappedName = name
-                    ? FILTER_TYPE_NAME_MAPPING[name]
-                    : undefined;
-                  return {
-                    value: filterType,
-                    label: mappedName || name,
-                  };
-                })}
+              options={nativeFilterVizTypes.map(filterType => {
+                // @ts-ignore
+                const name = nativeFilterItems[filterType]?.value.name;
+                const mappedName = name
+                  ? FILTER_TYPE_NAME_MAPPING[name]
+                  : undefined;
+                const isDisabled =
+                  TIME_FILTERS.includes(filterType) &&
+                  !doLoadedDatasetsHaveTemporalColumns;
+                return {
+                  value: filterType,
+                  label: isDisabled ? (
+                    <Tooltip
+                      title={t('Datasets do not contain a temporal column')}
+                    >
+                      {mappedName || name}
+                    </Tooltip>
+                  ) : (
+                    mappedName || name
+                  ),
+                  isDisabled,
+                };
+              })}
               onChange={({ value }: { value: string }) => {
                 setNativeFilterFieldValues(form, filterId, {
                   filterType: value,
