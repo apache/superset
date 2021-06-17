@@ -687,9 +687,6 @@ const FiltersConfigForm = (
                 required={formFilter?.controlValues?.enableEmptyFilter}
                 rules={[
                   {
-                    required: formFilter?.controlValues?.enableEmptyFilter,
-                  },
-                  {
                     validator: (rule, value) => {
                       const hasValue = !!value?.filterState?.value;
                       if (
