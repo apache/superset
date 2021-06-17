@@ -242,13 +242,6 @@ function dbReducer(
         ).toString();
       }
 
-      if (action.payload?.parameters?.credentials_info) {
-        // deserialize credentials info for big query editting
-        deserializeExtraJSON = JSON.stringify(
-          action.payload?.parameters.credentials_info,
-        );
-      }
-
       return {
         ...action.payload,
         engine: trimmedState.engine,
@@ -257,6 +250,9 @@ function dbReducer(
         parameters: {
           ...action.payload.parameters,
           query,
+          credentials_info: JSON.stringify(
+            action.payload?.parameters?.credentials_info || '',
+          ),
         },
       };
     case ActionType.dbSelected:
@@ -358,8 +354,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           .replace(/&/g, '","')
           .replace(/=/g, '":"')}"}`,
       );
-    } else if (update.parameters) {
-      update.parameters.query = {};
     }
 
     if (db?.id) {
@@ -391,8 +385,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     } else if (db) {
       // Create
-      if (update.encrypted_extra) {
-        // wrap encrypted_extra in credentials_info
+      if (
+        update.engine === 'bigquery' &&
+        update.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM &&
+        update.encrypted_extra
+      ) {
+        // wrap encrypted_extra in credentials_info only for BigQuery
         update.encrypted_extra = JSON.stringify({
           credentials_info: JSON.parse(update.encrypted_extra),
         });

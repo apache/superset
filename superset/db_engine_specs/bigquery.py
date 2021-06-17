@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import re
+import urllib
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 
@@ -24,6 +25,7 @@ from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from sqlalchemy import literal_column
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql.expression import ColumnClause
 from typing_extensions import TypedDict
 
@@ -309,13 +311,17 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     @classmethod
     def build_sqlalchemy_uri(
-        cls, _: BigQueryParametersType, encrypted_extra: Optional[Dict[str, Any]] = None
+        cls,
+        parameters: BigQueryParametersType,
+        encrypted_extra: Optional[Dict[str, Any]] = None,
     ) -> str:
+        query = parameters.get("query", {})
+        query_params = urllib.parse.urlencode(query)
         if encrypted_extra:
             project_id = encrypted_extra.get("credentials_info", {}).get("project_id")
 
         if project_id:
-            return f"{cls.default_driver}://{project_id}"
+            return f"{cls.default_driver}://{project_id}/?{query_params}"
 
         raise SupersetGenericDBErrorException(
             message="Big Query encrypted_extra is not available.",
@@ -323,11 +329,13 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_parameters_from_uri(
-        cls, _: str, encrypted_extra: Optional[Dict[str, str]] = None
+        cls, uri: str, encrypted_extra: Optional[Dict[str, str]] = None
     ) -> Any:
-        # BigQuery doesn't have parameters
+        value = make_url(uri)
+
+        # Building parameters from encrypted_extra and uri
         if encrypted_extra:
-            return encrypted_extra
+            return {**encrypted_extra, "query": value.query}
 
         raise SupersetGenericDBErrorException(
             message="Big Query encrypted_extra is not available.",
