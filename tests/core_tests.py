@@ -1412,7 +1412,7 @@ class TestCore(SupersetTestCase):
             "client_id_1",
             user_name=username,
             raise_on_error=True,
-            sql_editor_id=tab_state_id,
+            sql_editor_id=str(tab_state_id),
         )
         # run an orphan query (no tab)
         self.run_sql(
