@@ -687,5 +687,5 @@ export function useDatabaseValidation() {
     [setValidationErrors],
   );
 
-  return [validationErrors, getValidation] as const;
+  return [validationErrors, getValidation, setValidationErrors] as const;
 }
