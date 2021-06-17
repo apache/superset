@@ -49,6 +49,7 @@ import {
   DatabaseForm,
   CONFIGURATION_METHOD,
 } from 'src/views/CRUD/data/database/types';
+import Loading from 'src/components/Loading';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
@@ -376,7 +377,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           ),
         });
       }
-
+      setLoading(true);
       const result = await updateResource(
         db.id as number,
         update as DatabaseObject,
@@ -411,7 +412,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           ),
         });
       }
-
+      setLoading(true);
       const dbId = await createResource(update as DatabaseObject);
       if (dbId) {
         setHasConnectedDb(true);
@@ -425,6 +426,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         }
       }
     }
+    setLoading(false);
   };
 
   const onChange = (type: any, payload: any) => {
@@ -593,7 +595,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (isLoading) {
       setLoading(false);
     }
-  }, [availableDbs, isLoading]);
+  }, [availableDbs]);
 
   const tabChange = (key: string) => {
     setTabKey(key);
@@ -910,6 +912,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             ))}
         </>
       )}
+      {isLoading && <Loading />}
     </Modal>
   );
 };
