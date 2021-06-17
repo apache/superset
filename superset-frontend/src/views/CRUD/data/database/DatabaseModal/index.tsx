@@ -358,8 +358,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           .replace(/&/g, '","')
           .replace(/=/g, '":"')}"}`,
       );
-    } else if (update.parameters) {
-      update.parameters.query = {};
     }
 
     if (db?.id) {

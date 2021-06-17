@@ -44,12 +44,10 @@ export const FormFieldOrder = [
   'username',
   'password',
   'database_name',
+  'credentials_info',
   'query',
   'encryption',
-  'credentials_info',
 ];
-
-const selectedFile = document.getElementById('selectedFile');
 
 interface FieldPropTypes {
   required: boolean;
@@ -68,7 +66,7 @@ interface FieldPropTypes {
 
 const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
   const [uploadOption, setUploadOption] = useState<number>(
-    CredentialInfoOptions.copyPaste.valueOf(),
+    CredentialInfoOptions.jsonUpload.valueOf(),
   );
   const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
     null,
@@ -153,7 +151,9 @@ const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
                   checked: false,
                 },
               });
-              (selectedFile as HTMLInputElement).value = null as any;
+              (document.getElementById(
+                'selectedFile',
+              ) as HTMLInputElement).value = null as any;
             }}
           />
         </div>
@@ -269,13 +269,12 @@ const displayField = ({
   getValidation,
   validationErrors,
   db,
-  defaultDBName,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="database_name"
     name="database_name"
     required={required}
-    value={db?.database_name || defaultDBName}
+    value={db?.database_name}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.database_name}
     placeholder=""
@@ -348,7 +347,7 @@ const FORM_FIELD_MAP = {
 };
 
 const DatabaseConnectionForm = ({
-  dbModel: { name: defaultDBName, parameters },
+  dbModel: { parameters },
   onParametersChange,
   onChange,
   onParametersUploadFileChange,
@@ -395,7 +394,6 @@ const DatabaseConnectionForm = ({
               onChange,
               onParametersUploadFileChange,
             },
-            defaultDBName,
             validationErrors,
             getValidation,
             db,
