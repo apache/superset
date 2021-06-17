@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import dataclasses
 import logging
 import uuid
 from contextlib import closing
@@ -93,8 +94,17 @@ def handle_query_error(
     query.error_message = msg
     query.status = QueryStatus.FAILED
     query.tmp_table_name = None
+
+    # extract DB-specific errors (invalid column, eg)
+    errors = [
+        dataclasses.asdict(error)
+        for error in query.database.db_engine_spec.extract_errors(msg)
+    ]
+    if errors:
+        query.set_extra_json_key("errors", errors)
+
     session.commit()
-    payload.update({"status": query.status, "error": msg})
+    payload.update({"status": query.status, "error": msg, "errors": errors})
     if troubleshooting_link:
         payload["link"] = troubleshooting_link
     return payload
