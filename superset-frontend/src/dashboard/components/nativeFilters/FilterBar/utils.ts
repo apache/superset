@@ -49,7 +49,7 @@ export const getOnlyExtraFormData = (data: DataMaskStateWithId) =>
     {},
   );
 
-export const checkIsMissedRequiredValue = (
+export const checkIsMissingRequiredValue = (
   filter: Filter,
   filterState?: FilterState,
 ) => {
@@ -64,7 +64,7 @@ export const checkIsMissedRequiredValue = (
 export const checkIsApplyDisabled = (
   dataMaskSelected: DataMaskStateWithId,
   dataMaskApplied: DataMaskStateWithId,
-  filterValues: Filter[],
+  filters: Filter[],
 ) => {
   const dataSelectedValues = Object.values(dataMaskSelected);
   const dataAppliedValues = Object.values(dataMaskApplied);
@@ -76,8 +76,8 @@ export const checkIsApplyDisabled = (
       { ignoreUndefined: true },
     ) ||
     dataSelectedValues.length !== dataAppliedValues.length ||
-    filterValues.some(filter =>
-      checkIsMissedRequiredValue(
+    filters.some(filter =>
+      checkIsMissingRequiredValue(
         filter,
         dataMaskSelected?.[filter?.id]?.filterState,
       ),
