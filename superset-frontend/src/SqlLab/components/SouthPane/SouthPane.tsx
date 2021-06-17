@@ -118,6 +118,9 @@ export default function SouthPane({
     }
     let results;
     if (latestQuery) {
+      if (latestQuery?.extra?.errors) {
+        latestQuery.errors = latestQuery.extra.errors;
+      }
       if (
         isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) &&
         latestQuery.state === 'success' &&

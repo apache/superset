@@ -16,8 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './DeprecatedSelect';
-export * from './styles';
-export { default } from './DeprecatedSelect';
-export { default as OnPasteSelect } from './OnPasteSelect';
-export { NativeSelect, NativeGraySelect } from './NativeSelect';
+class IntersectionObserver {
+  disconnect() {
+    return null;
+  }
+
+  observe() {
+    return null;
+  }
+
+  takeRecords() {
+    return null;
+  }
+
+  unobserve() {
+    return null;
+  }
+}
+
+export { IntersectionObserver };

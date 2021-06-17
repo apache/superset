@@ -1496,7 +1496,8 @@ class TestDatabaseApi(SupersetTestCase):
                                 "description": "Contents of BigQuery JSON credentials.",
                                 "type": "string",
                                 "x-encrypted-extra": True,
-                            }
+                            },
+                            "query": {"type": "object"},
                         },
                         "type": "object",
                     },
