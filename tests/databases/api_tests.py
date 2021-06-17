@@ -1807,18 +1807,18 @@ class TestDatabaseApi(SupersetTestCase):
         assert response == {
             "errors": [
                 {
-                    "message": "Not a valid integer.",
-                    "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
-                    "level": "error",
+                    "error_type": "CONNECTION_INVALID_PORT_ERROR",
                     "extra": {
                         "invalid": ["port"],
                         "issue_codes": [
                             {
-                                "code": 1020,
-                                "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                                "code": 1021,
+                                "message": "Issue 1021 - Port number is invalid.",
                             }
                         ],
                     },
+                    "level": "error",
+                    "message": "The port must be an integer between 0 and 65535 (inclusive).",
                 }
             ]
         }
