@@ -620,6 +620,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         datasource_id=datasource_id,
                         form_data=form_data,
                         force_cached=True,
+                        force=force,
                     )
                     payload = viz_obj.get_payload()
                 except CacheLoadError:
