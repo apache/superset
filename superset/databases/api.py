@@ -1005,15 +1005,22 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             payload = DatabaseValidateParametersSchema().load(request.json)
         except ValidationError as error:
-            errors = [
-                SupersetError(
-                    message="\n".join(messages),
-                    error_type=SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR,
-                    level=ErrorLevel.ERROR,
-                    extra={"invalid": [attribute]},
+            errors = []
+            for attribute, messages in error.messages.items():
+                if messages == ["Missing data for required field."]:
+                    level = ErrorLevel.WARNING
+                    key = "missing"
+                else:
+                    level = ErrorLevel.ERROR
+                    key = "invalid"
+                errors.append(
+                    SupersetError(
+                        message="\n".join(messages),
+                        error_type=SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR,
+                        level=level,
+                        extra={key: [attribute]},
+                    )
                 )
-                for attribute, messages in error.messages.items()
-            ]
             raise InvalidParametersError(errors)
 
         command = ValidateDatabaseParametersCommand(g.user, payload)
