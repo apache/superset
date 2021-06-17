@@ -251,7 +251,7 @@ export default function transformProps(
       animation: false,
       width: '100%',
       height: '100%',
-      nodeClick: dashboardId ? undefined : 'zoomToNode',
+      nodeClick: undefined,
       roam: !dashboardId,
       breadcrumb: {
         show: false,
