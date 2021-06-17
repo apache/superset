@@ -553,7 +553,6 @@ class SupersetAppInitializer:
         """
         Runs init logic in the context of the app
         """
-        self.configure_feature_flags()
         self.configure_fab()
         self.configure_url_map_converters()
         self.configure_data_sources()
@@ -576,6 +575,9 @@ class SupersetAppInitializer:
         self.pre_init()
         # Configuration of logging must be done first to apply the formatter properly
         self.configure_logging()
+        # Configuration of feature_flags must be done first to allow init features
+        # conditionally
+        self.configure_feature_flags()
         self.configure_db_encrypt()
         self.setup_db()
         self.configure_celery()
