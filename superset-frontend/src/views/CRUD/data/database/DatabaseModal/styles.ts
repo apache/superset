@@ -141,8 +141,7 @@ export const antDModalStyles = (theme: SupersetTheme) => css`
 export const antDAlertStyles = (theme: SupersetTheme) => css`
   border: 1px solid ${theme.colors.info.base};
   padding: ${theme.gridUnit * 4}px;
-  margin: ${theme.gridUnit * 8}px 0
-    ${theme.gridUnit * 4}px;
+  margin: ${theme.gridUnit * 8}px 0 ${theme.gridUnit * 4}px;
   .ant-alert-message {
     color: ${theme.colors.info.dark2};
     font-size: ${theme.typography.sizes.s + 1}px;
@@ -338,6 +337,13 @@ export const StyledBasicTab = styled(Tabs.TabPane)`
 export const buttonLinkStyles = css`
   font-weight: 400;
   text-transform: initial;
+`;
+
+export const alchemyButtonLinkStyles = (theme: SupersetTheme) => css`
+  font-weight: 400;
+  text-transform: initial;
+  padding: ${theme.gridUnit * 8}px 0 0;
+  margin-left: 0px;
 `;
 
 export const TabHeader = styled.div`
