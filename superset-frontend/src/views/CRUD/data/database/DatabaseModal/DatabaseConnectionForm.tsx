@@ -273,7 +273,7 @@ const displayField = ({
   <ValidatedInput
     id="database_name"
     name="database_name"
-    required={required}
+    required
     value={db?.database_name}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.database_name}
