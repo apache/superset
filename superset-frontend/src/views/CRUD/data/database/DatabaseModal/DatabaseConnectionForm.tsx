@@ -49,8 +49,6 @@ export const FormFieldOrder = [
   'encryption',
 ];
 
-const selectedFile = document.getElementById('selectedFile');
-
 interface FieldPropTypes {
   required: boolean;
   onParametersChange: (value: any) => string;
@@ -68,7 +66,7 @@ interface FieldPropTypes {
 
 const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
   const [uploadOption, setUploadOption] = useState<number>(
-    CredentialInfoOptions.copyPaste.valueOf(),
+    CredentialInfoOptions.jsonUpload.valueOf(),
   );
   const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
     null,
@@ -153,7 +151,9 @@ const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
                   checked: false,
                 },
               });
-              (selectedFile as HTMLInputElement).value = null as any;
+              (document.getElementById(
+                'selectedFile',
+              ) as HTMLInputElement).value = null as any;
             }}
           />
         </div>
