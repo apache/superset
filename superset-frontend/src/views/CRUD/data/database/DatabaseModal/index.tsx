@@ -245,7 +245,7 @@ function dbReducer(
       return {
         ...action.payload,
         engine: trimmedState.engine,
-        configuration_method: trimmedState.configuration_method,
+        configuration_method: action.payload.configuration_method,
         extra_json: deserializeExtraJSON,
         parameters: {
           ...action.payload.parameters,
@@ -664,7 +664,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 testConnection={testConnection}
                 isEditMode={isEditMode}
               />
-              {isDynamic(db?.engine) && (
+              {isDynamic(db?.backend || db?.engine) && (
                 <Button
                   buttonStyle="link"
                   onClick={() =>
