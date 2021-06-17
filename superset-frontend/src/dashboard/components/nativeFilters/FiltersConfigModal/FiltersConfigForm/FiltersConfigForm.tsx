@@ -69,7 +69,7 @@ import {
   setNativeFilterFieldValues,
   useForceUpdate,
 } from './utils';
-import { useBackendFormUpdate } from './state';
+import { useBackendFormUpdate, useDefaultValue } from './state';
 import { getFormData } from '../../utils';
 import { Filter } from '../../types';
 import getControlItemsMap from './getControlItemsMap';
@@ -280,14 +280,13 @@ const FiltersConfigForm = (
   const [activeFilterPanelKey, setActiveFilterPanelKey] = useState<
     string | string[]
   >(FilterPanels.basic.key);
-  const [hasDefaultValue, setHasDefaultValue] = useState(
-    !!filterToEdit?.defaultDataMask?.filterState?.value,
-  );
+
   const forceUpdate = useForceUpdate();
   const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
   const defaultFormFilter = useMemo(() => {}, []);
   const formFilter =
     form.getFieldValue('filters')?.[filterId] || defaultFormFilter;
+
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
     // @ts-ignore
@@ -430,6 +429,11 @@ const FiltersConfigForm = (
     groupby: hasColumn ? formFilter?.column : undefined,
     ...formFilter,
   });
+
+  const [hasDefaultValue, setHasDefaultValue] = useDefaultValue(
+    formFilter,
+    filterToEdit,
+  );
 
   useEffect(() => {
     if (hasDataset && hasFilledDataset && hasDefaultValue && isDataDirty) {
@@ -672,6 +676,7 @@ const FiltersConfigForm = (
             />
             <CollapsibleControl
               title={t('Filter has default value')}
+              initialValue={hasDefaultValue}
               checked={hasDefaultValue}
               onChange={value => setHasDefaultValue(value)}
             >
@@ -680,18 +685,17 @@ const FiltersConfigForm = (
                 initialValue={filterToEdit?.defaultDataMask}
                 data-test="default-input"
                 label={<StyledLabel>{t('Default Value')}</StyledLabel>}
-                required
+                required={formFilter?.controlValues?.enableEmptyFilter}
                 rules={[
-                  {
-                    required: true,
-                  },
                   {
                     validator: (rule, value) => {
                       const hasValue = !!value?.filterState?.value;
                       if (
                         hasValue ||
                         // TODO: do more generic
-                        formFilter.controlValues?.defaultToFirstItem
+                        formFilter.controlValues?.defaultToFirstItem ||
+                        // Not marked as required
+                        !formFilter.controlValues?.enableEmptyFilter
                       ) {
                         return Promise.resolve();
                       }
@@ -760,7 +764,7 @@ const FiltersConfigForm = (
               {isCascadingFilter && (
                 <CollapsibleControl
                   title={t('Filter is hierarchical')}
-                  checked={hasParentFilter}
+                  initialValue={hasParentFilter}
                   onChange={checked => {
                     if (checked) {
                       // execute after render
@@ -801,7 +805,7 @@ const FiltersConfigForm = (
               {hasDataset && hasAdditionalFilters && (
                 <CollapsibleControl
                   title={t('Pre-filter available values')}
-                  checked={hasPreFilter}
+                  initialValue={hasPreFilter}
                   onChange={checked => {
                     if (checked) {
                       validatePreFilter();
@@ -902,7 +906,7 @@ const FiltersConfigForm = (
                 <CollapsibleControl
                   title={t('Sort filter values')}
                   onChange={checked => onSortChanged(checked || undefined)}
-                  checked={hasSorting}
+                  initialValue={hasSorting}
                 >
                   <StyledFormItem
                     name={[

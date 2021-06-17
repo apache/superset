@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useState } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import { styled } from '@superset-ui/core';
 import { Checkbox } from 'src/common/components';
 
 interface CollapsibleControlProps {
+  initialValue?: boolean;
   checked?: boolean;
   title: string;
   children: ReactNode;
@@ -45,8 +46,23 @@ const StyledContainer = styled.div<{ checked: boolean }>`
 `;
 
 const CollapsibleControl = (props: CollapsibleControlProps) => {
-  const { checked = false, title, children, onChange } = props;
-  const [isChecked, setIsChecked] = useState(checked);
+  const {
+    checked,
+    title,
+    children,
+    onChange = () => {},
+    initialValue = false,
+  } = props;
+  const [isChecked, setIsChecked] = useState(initialValue);
+
+  useEffect(() => {
+    // if external `checked` changed to `undefined`, it means that we work now in uncontrolled mode with local state
+    // and we need ignore external value
+    if (checked !== undefined) {
+      setIsChecked(checked);
+    }
+  }, [checked]);
+
   return (
     <StyledContainer checked={isChecked}>
       <Checkbox
@@ -54,10 +70,12 @@ const CollapsibleControl = (props: CollapsibleControlProps) => {
         checked={isChecked}
         onChange={e => {
           const value = e.target.checked;
-          setIsChecked(value);
-          if (onChange) {
-            onChange(value);
+          // external `checked` value has more priority then local state
+          if (checked === undefined) {
+            // uncontrolled mode
+            setIsChecked(value);
           }
+          onChange(value);
         }}
       >
         {title}
