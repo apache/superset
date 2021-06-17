@@ -71,7 +71,7 @@ const Bar = styled.div<{ width: number }>`
   left: 0;
   flex-direction: column;
   flex-grow: 1;
-  width: ${({ width }) => width}px; // arbitrary...
+  width: ${({ width }) => width}px;
   background: ${({ theme }) => theme.colors.grayscale.light5};
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
@@ -293,11 +293,13 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             </Tabs.TabPane>
           </StyledTabs>
         ) : (
-          <FilterControls
-            dataMaskSelected={dataMaskSelected}
-            directPathToChild={directPathToChild}
-            onFilterSelectionChange={handleFilterSelectionChange}
-          />
+          <div css={{ overflow: 'auto', height }}>
+            <FilterControls
+              dataMaskSelected={dataMaskSelected}
+              directPathToChild={directPathToChild}
+              onFilterSelectionChange={handleFilterSelectionChange}
+            />
+          </div>
         )}
       </Bar>
     </BarWrapper>
