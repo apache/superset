@@ -34,6 +34,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import { useElementOnScreen } from 'src/common/hooks/useElementOnScreen';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   deleteTopLevelTabs,
   handleComponentDrop,
@@ -55,7 +56,8 @@ const TABS_HEIGHT = 50;
 const HEADER_HEIGHT = 72;
 const CLOSED_FILTER_BAR_WIDTH = 32;
 const OPEN_FILTER_BAR_WIDTH = 260;
-const FILTER_BAR_HEADER_HEIGHT = 128;
+const FILTER_BAR_HEADER_HEIGHT = 80;
+const FILTER_BAR_TABS_HEIGHT = 46;
 
 type DashboardBuilderProps = {};
 
@@ -192,7 +194,16 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const [containerRef, isSticky] = useElementOnScreen<HTMLDivElement>({
     threshold: [1],
   });
-  const offset = FILTER_BAR_HEADER_HEIGHT + (isSticky ? 0 : MAIN_HEADER_HEIGHT);
+
+  const filterSetEnabled = isFeatureEnabled(
+    FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET,
+  );
+
+  const offset =
+    FILTER_BAR_HEADER_HEIGHT +
+    (isSticky ? 0 : MAIN_HEADER_HEIGHT) +
+    (filterSetEnabled ? FILTER_BAR_TABS_HEIGHT : 0);
+
   const filterBarHeight = `calc(100vh - ${offset}px)`;
   const filterBarOffset = dashboardFiltersOpen ? 0 : barTopOffset + 20;
 
