@@ -185,8 +185,6 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
         <BoundingBox>
           <ParentSize debounceTime={debounceTime}>
             {({ width, height }) =>
-              width > 0 &&
-              height > 0 &&
               this.renderChart(
                 widthInfo.isDynamic ? Math.floor(width) : widthInfo.value,
                 heightInfo.isDynamic ? Math.floor(height) : heightInfo.value,
