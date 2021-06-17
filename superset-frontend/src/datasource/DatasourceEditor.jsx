@@ -30,7 +30,6 @@ import Tabs from 'src/components/Tabs';
 import CertifiedIcon from 'src/components/CertifiedIcon';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import DatabaseSelector from 'src/components/DatabaseSelector';
-import Icon from 'src/components/Icon';
 import Label from 'src/components/Label';
 import Loading from 'src/components/Loading';
 import TableSelector from 'src/components/TableSelector';
@@ -51,6 +50,7 @@ import Field from 'src/CRUD/Field';
 
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import Icons from 'src/components/Icons';
 
 const DatasourceContainer = styled.div`
   .change-warning {
@@ -93,6 +93,9 @@ const EditLockContainer = styled.div`
   align-items: center;
   a {
     padding: 0 10px;
+  }
+  span[role=img] {
+    margin-top: -3px; 
   }
 `;
 
@@ -671,6 +674,7 @@ class DatasourceEditor extends React.PureComponent {
   renderSpatialTab() {
     const { datasource } = this.state;
     const { spatials, all_cols: allCols } = datasource;
+    console.log('Icons', Icons)
     return (
       <Tabs.TabPane
         tab={<CollectionTabTitle collection={spatials} title={t('Spatial')} />}
@@ -842,10 +846,16 @@ class DatasourceEditor extends React.PureComponent {
         {this.allowEditSource && (
           <EditLockContainer>
             <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
-              <Icon
-                color={supersetTheme.colors.grayscale.base}
-                name={this.state.isEditMode ? 'lock-unlocked' : 'lock-locked'}
-              />
+              {
+                this.state.isEditMode ?
+                  <Icons.LockUnlocked
+                    iconColor={supersetTheme.colors.grayscale.base}
+                  />
+                :
+                  <Icons.LockLocked
+                    iconColor={supersetTheme.colors.grayscale.base}
+                  />
+              }
             </span>
             {!this.state.isEditMode && (
               <div>{t('Click the lock to make changes.')}</div>
