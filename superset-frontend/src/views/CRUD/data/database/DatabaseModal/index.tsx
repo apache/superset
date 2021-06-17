@@ -66,6 +66,7 @@ import {
   StyledBasicTab,
   SelectDatabaseStyles,
   StyledFooterButton,
+  StyledStickyHeader,
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 
@@ -610,9 +611,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     <Modal
       css={(theme: SupersetTheme) => [
         antDTabsStyles,
-        antDModalStyles(theme),
         antDModalNoPaddingStyles,
+        antDModalStyles(theme),
         formHelperStyles(theme),
+        formStyles(theme),
       ]}
       name="database"
       data-test="database-modal"
@@ -627,17 +629,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
       footer={isEditMode ? renderEditModalFooter() : renderModalFooter()}
     >
-      <TabHeader>
-        <ModalHeader
-          isLoading={isLoading}
-          isEditMode={isEditMode}
-          useSqlAlchemyForm={useSqlAlchemyForm}
-          hasConnectedDb={hasConnectedDb}
-          db={db}
-          dbName={dbName}
-          dbModel={dbModel}
-        />
-      </TabHeader>
+      <StyledStickyHeader>
+        <TabHeader>
+          <ModalHeader
+            isLoading={isLoading}
+            isEditMode={isEditMode}
+            useSqlAlchemyForm={useSqlAlchemyForm}
+            hasConnectedDb={hasConnectedDb}
+            db={db}
+            dbName={dbName}
+            dbModel={dbModel}
+          />
+        </TabHeader>
+      </StyledStickyHeader>
       <hr />
       <Tabs
         defaultActiveKey={DEFAULT_TAB_KEY}
