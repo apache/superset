@@ -202,8 +202,7 @@ const FilterValue: React.FC<FilterProps> = ({
           behaviors={[Behavior.NATIVE_FILTER]}
           filterState={{
             ...filter.dataMask?.filterState,
-            validateMessage:
-              isMissedRequiredValue && t('Default value is required'),
+            validateMessage: isMissedRequiredValue && t('Value is required'),
             validateStatus: isMissedRequiredValue && 'error',
           }}
           ownState={filter.dataMask?.ownState}
