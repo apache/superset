@@ -500,8 +500,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               target="_blank"
               rel="noopener noreferrer"
             >
-              here.
+              here
             </a>
+            .
           </>
         }
       />
@@ -717,6 +718,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     href={DOCUMENTATION_LINK}
                     target="_blank"
                     rel="noopener noreferrer"
+                    className="additional-fields-alert-description"
                   >
                     here
                   </a>

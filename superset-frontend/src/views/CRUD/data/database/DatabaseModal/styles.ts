@@ -21,6 +21,7 @@ import { styled, css, SupersetTheme } from '@superset-ui/core';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
+import InfoTooltip from 'src/components/InfoTooltip';
 
 const CTAS_CVAS_SCHEMA_FORM_HEIGHT = 102;
 const EXPOSE_IN_SQLLAB_FORM_HEIGHT = CTAS_CVAS_SCHEMA_FORM_HEIGHT + 153;
@@ -151,6 +152,9 @@ export const antDAlertStyles = (theme: SupersetTheme) => css`
     color: ${theme.colors.info.dark2};
     font-size: ${theme.typography.sizes.s + 1}px;
     line-height: ${theme.gridUnit * 4}px;
+    a {
+      text-decoration: underline;
+    }
     .ant-alert-icon {
       margin-right: ${theme.gridUnit * 2.5}px;
       font-size: ${theme.typography.sizes.l + 1}px;
@@ -467,4 +471,10 @@ export const SelectDatabaseStyles = styled.div`
 
 export const StyledFooterButton = styled(Button)`
   width: ${({ theme }) => theme.gridUnit * 40}px;
+`;
+
+export const StyledInfoTooltip = styled(InfoTooltip)`
+  svg {
+    margin-top: ${({ theme }) => theme.gridUnit * 0.5}px;
+  }
 `;

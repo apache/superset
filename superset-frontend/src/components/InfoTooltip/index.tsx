@@ -42,6 +42,7 @@ export interface InfoTooltipProps {
   trigger?: string | Array<string>;
   overlayStyle?: any;
   bgColor?: string;
+  viewBox?: string;
 }
 
 const StyledTooltip = styled(Tooltip)`
@@ -65,6 +66,7 @@ export default function InfoTooltip({
   trigger = 'hover',
   overlayStyle = defaultOverlayStyle,
   bgColor = defaultColor,
+  viewBox,
 }: InfoTooltipProps) {
   return (
     <StyledTooltip
@@ -74,7 +76,7 @@ export default function InfoTooltip({
       overlayStyle={overlayStyle}
       color={bgColor}
     >
-      <Icon name="info-solid-small" />
+      <Icon name="info-solid-small" viewBox={viewBox} />
     </StyledTooltip>
   );
 }
