@@ -92,7 +92,11 @@ const Header: FC<HeaderProps> = ({
   const handleClearAll = () => {
     filterValues.forEach(filter => {
       setDataMaskSelected(draft => {
-        draft[filter.id] = getInitialDataMask(filter.id);
+        draft[filter.id] = getInitialDataMask(filter.id, {
+          filterState: {
+            value: null,
+          },
+        });
       });
     });
   };

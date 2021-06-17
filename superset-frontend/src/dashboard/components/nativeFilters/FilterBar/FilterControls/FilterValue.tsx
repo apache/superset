@@ -43,6 +43,7 @@ import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FilterProps } from './types';
 import { getFormData } from '../../utils';
 import { useCascadingFilters } from './state';
+import { checkIsMissingRequiredValue } from '../utils';
 
 const FilterItem = styled.div`
   min-height: ${({ theme }) => theme.gridUnit * 11}px;
@@ -181,6 +182,11 @@ const FilterValue: React.FC<FilterProps> = ({
     );
   }
 
+  const isMissingRequiredValue = checkIsMissingRequiredValue(
+    filter,
+    filter.dataMask?.filterState,
+  );
+
   return (
     <FilterItem data-test="form-item-value">
       {isLoading ? (
@@ -194,7 +200,11 @@ const FilterValue: React.FC<FilterProps> = ({
           queriesData={hasDataSource ? state : [{ data: [{}] }]}
           chartType={filterType}
           behaviors={[Behavior.NATIVE_FILTER]}
-          filterState={filter.dataMask?.filterState}
+          filterState={{
+            ...filter.dataMask?.filterState,
+            validateMessage: isMissingRequiredValue && t('Value is required'),
+            validateStatus: isMissingRequiredValue && 'error',
+          }}
           ownState={filter.dataMask?.ownState}
           enableNoResults={metadata?.enableNoResults}
           isRefreshing={isRefreshing}

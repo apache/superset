@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import { Preset } from '@superset-ui/core';
+import fetchMock from 'fetch-mock';
+import userEvent, { specialChars } from '@testing-library/user-event';
 import {
   SelectFilterPlugin,
   RangeFilterPlugin,
@@ -25,9 +28,7 @@ import {
   TimeGrainFilterPlugin,
 } from 'src/filters/components';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import fetchMock from 'fetch-mock';
-import React from 'react';
-import userEvent, { specialChars } from '@testing-library/user-event';
+import mockDatasource, { datasourceId } from 'spec/fixtures/mockDatasource';
 import {
   FiltersConfigModal,
   FiltersConfigModalProps,
@@ -49,7 +50,18 @@ class MainPreset extends Preset {
 }
 
 const initialStoreState = {
-  datasources: [{ id: 1, table_name: 'Datasource 1' }],
+  datasources: mockDatasource,
+};
+
+const storeWithDatasourceWithoutTemporalColumns = {
+  ...initialStoreState,
+  datasources: {
+    ...initialStoreState.datasources,
+    [datasourceId]: {
+      ...initialStoreState.datasources[datasourceId],
+      column_types: [0, 1],
+    },
+  },
 };
 
 fetchMock.get('glob:*/api/v1/dataset/1', {
@@ -114,6 +126,7 @@ const DEFAULT_VALUE_REQUIRED_REGEX = /^default value is required$/i;
 const PARENT_REQUIRED_REGEX = /^parent filter is required$/i;
 const PRE_FILTER_REQUIRED_REGEX = /^pre-filter is required$/i;
 const FILL_REQUIRED_FIELDS_REGEX = /fill all required fields to enable/;
+const TIME_RANGE_PREFILTER_REGEX = /^time range$/i;
 
 const props: FiltersConfigModalProps = {
   isOpen: true,
@@ -128,7 +141,7 @@ beforeAll(() => {
 
 function defaultRender(
   overrides?: Partial<FiltersConfigModalProps>,
-  initialState?: {},
+  initialState = initialStoreState,
 ) {
   return render(<FiltersConfigModal {...props} {...overrides} />, {
     useRedux: true,
@@ -243,6 +256,20 @@ test('renders a time grain filter type', () => {
   expect(screen.queryByText(ADVANCED_REGEX)).not.toBeInTheDocument();
 });
 
+test('render time filter types as disabled if there are no temporal columns in the dataset', () => {
+  defaultRender(undefined, storeWithDatasourceWithoutTemporalColumns);
+  userEvent.click(screen.getByText(VALUE_REGEX));
+  expect(screen.getByText(TIME_RANGE_REGEX).closest('div')).toHaveClass(
+    'Select__option--is-disabled',
+  );
+  expect(screen.getByText(TIME_GRAIN_REGEX).closest('div')).toHaveClass(
+    'Select__option--is-disabled',
+  );
+  expect(screen.getByText(TIME_COLUMN_REGEX).closest('div')).toHaveClass(
+    'Select__option--is-disabled',
+  );
+});
+
 test('validates the name', async () => {
   defaultRender();
   userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
@@ -287,6 +314,14 @@ test('validates the pre-filter value', async () => {
   ).toBeInTheDocument();
 });
 
+test("doesn't render time range pre-filter if there are no temporal columns in datasource", async () => {
+  defaultRender(undefined, storeWithDatasourceWithoutTemporalColumns);
+  userEvent.click(screen.getByText(ADVANCED_REGEX));
+  userEvent.click(getCheckbox(PRE_FILTER_REGEX));
+  expect(
+    screen.queryByText(TIME_RANGE_PREFILTER_REGEX),
+  ).not.toBeInTheDocument();
+});
 /*
   TODO
     adds a new value filter type with all fields filled
