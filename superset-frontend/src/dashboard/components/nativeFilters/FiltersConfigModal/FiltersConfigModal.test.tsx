@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import { Preset } from '@superset-ui/core';
+import fetchMock from 'fetch-mock';
+import userEvent, { specialChars } from '@testing-library/user-event';
 import {
   SelectFilterPlugin,
   RangeFilterPlugin,
@@ -25,9 +28,7 @@ import {
   TimeGrainFilterPlugin,
 } from 'src/filters/components';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import fetchMock from 'fetch-mock';
-import React from 'react';
-import userEvent, { specialChars } from '@testing-library/user-event';
+import mockDatasource from 'spec/fixtures/mockDatasource';
 import {
   FiltersConfigModal,
   FiltersConfigModalProps,
@@ -49,7 +50,7 @@ class MainPreset extends Preset {
 }
 
 const initialStoreState = {
-  datasources: [{ id: 1, table_name: 'Datasource 1' }],
+  datasources: mockDatasource,
 };
 
 fetchMock.get('glob:*/api/v1/dataset/1', {
@@ -128,7 +129,7 @@ beforeAll(() => {
 
 function defaultRender(
   overrides?: Partial<FiltersConfigModalProps>,
-  initialState?: {},
+  initialState = initialStoreState,
 ) {
   return render(<FiltersConfigModal {...props} {...overrides} />, {
     useRedux: true,
