@@ -103,7 +103,7 @@ export const StyledFormItem = styled(FormItem)`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
 
   & .ant-form-item-label {
-    padding-bottom: 0px;
+    padding-bottom: 0;
   }
 
   & .ant-form-item-control-input {
@@ -112,12 +112,12 @@ export const StyledFormItem = styled(FormItem)`
 `;
 
 export const StyledRowFormItem = styled(FormItem)`
-  margin-bottom: 0px;
-  padding-bottom: 0px;
+  margin-bottom: 0;
+  padding-bottom: 0;
   min-width: 50%;
 
   & .ant-form-item-label {
-    padding-bottom: 0px;
+    padding-bottom: 0;
   }
 
   .ant-form-item-control-input-content > div > div {
@@ -155,17 +155,17 @@ const StyledCollapse = styled(Collapse)`
   margin-right: ${({ theme }) => theme.gridUnit * -4}px;
   border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  border-radius: 0px;
+  border-radius: 0;
 
   .ant-collapse-header {
     border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     margin-top: -1px;
-    border-radius: 0px;
+    border-radius: 0;
   }
 
   .ant-collapse-content {
-    border: 0px;
+    border: 0;
   }
 
   .ant-collapse-content-box {
@@ -173,8 +173,8 @@ const StyledCollapse = styled(Collapse)`
   }
 
   &.ant-collapse > .ant-collapse-item {
-    border: 0px;
-    border-radius: 0px;
+    border: 0;
+    border-radius: 0;
   }
 `;
 
@@ -183,17 +183,17 @@ const StyledTabs = styled(Tabs)`
     position: sticky;
     margin-left: ${({ theme }) => theme.gridUnit * -4}px;
     margin-right: ${({ theme }) => theme.gridUnit * -4}px;
-    top: 0px;
+    top: 0;
     background: white;
     z-index: 1;
   }
 
   .ant-tabs-nav-list {
-    padding: 0px;
+    padding: 0;
   }
 
   .ant-form-item-label {
-    padding-bottom: 0px;
+    padding-bottom: 0;
   }
 `;
 
