@@ -498,7 +498,7 @@ function ChartList(props: ChartListProps) {
           ),
         ),
       ),
-      paginate: false,
+      paginate: true,
     },
     ...(props.user.userId ? [favoritesFilter] : []),
     {
