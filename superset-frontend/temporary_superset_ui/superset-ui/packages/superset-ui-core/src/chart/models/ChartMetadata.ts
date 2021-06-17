@@ -4,6 +4,11 @@ interface LookupTable {
   [key: string]: boolean;
 }
 
+export interface ExampleImage {
+  url: string;
+  caption?: string;
+}
+
 export interface ChartMetadataConfig {
   name: string;
   canBeAnnotationTypes?: string[];
@@ -17,9 +22,9 @@ export interface ChartMetadataConfig {
   useLegacyApi?: boolean;
   behaviors?: Behavior[];
   deprecated?: boolean;
-  exampleGallery?: string[];
+  exampleGallery?: ExampleImage[];
   tags?: string[];
-  categories?: string[];
+  category?: string | null;
 }
 
 export default class ChartMetadata {
@@ -49,11 +54,11 @@ export default class ChartMetadata {
 
   deprecated: boolean;
 
-  exampleGallery: string[];
+  exampleGallery: ExampleImage[];
 
   tags: string[];
 
-  categories: string[];
+  category: string | null;
 
   constructor(config: ChartMetadataConfig) {
     const {
@@ -71,7 +76,7 @@ export default class ChartMetadata {
       deprecated = false,
       exampleGallery = [],
       tags = [],
-      categories = [],
+      category = null,
     } = config;
 
     this.name = name;
@@ -97,7 +102,7 @@ export default class ChartMetadata {
     this.deprecated = deprecated;
     this.exampleGallery = exampleGallery;
     this.tags = tags;
-    this.categories = categories;
+    this.category = category;
   }
 
   canBeAnnotationType(type: string): boolean {
