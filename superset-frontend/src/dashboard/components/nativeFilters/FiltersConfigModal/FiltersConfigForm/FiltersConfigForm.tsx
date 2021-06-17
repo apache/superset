@@ -676,6 +676,7 @@ const FiltersConfigForm = (
             />
             <CollapsibleControl
               title={t('Filter has default value')}
+              initialValue={hasDefaultValue}
               checked={hasDefaultValue}
               onChange={value => setHasDefaultValue(value)}
             >
@@ -763,7 +764,7 @@ const FiltersConfigForm = (
               {isCascadingFilter && (
                 <CollapsibleControl
                   title={t('Filter is hierarchical')}
-                  checked={hasParentFilter}
+                  initialValue={hasParentFilter}
                   onChange={checked => {
                     if (checked) {
                       // execute after render
@@ -804,7 +805,7 @@ const FiltersConfigForm = (
               {hasDataset && hasAdditionalFilters && (
                 <CollapsibleControl
                   title={t('Pre-filter available values')}
-                  checked={hasPreFilter}
+                  initialValue={hasPreFilter}
                   onChange={checked => {
                     if (checked) {
                       validatePreFilter();
@@ -905,7 +906,7 @@ const FiltersConfigForm = (
                 <CollapsibleControl
                   title={t('Sort filter values')}
                   onChange={checked => onSortChanged(checked || undefined)}
-                  checked={hasSorting}
+                  initialValue={hasSorting}
                 >
                   <StyledFormItem
                     name={[

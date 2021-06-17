@@ -57,17 +57,19 @@ export const useDefaultValue = (
       formFilter?.controlValues?.enableEmptyFilter,
   );
   const setHasDefaultValue = useCallback(
-    (value: boolean = hasDefaultValue) => {
+    (value?) => {
       setHasPartialDefaultValue(
-        value || formFilter?.controlValues?.enableEmptyFilter,
+        value || formFilter?.controlValues?.enableEmptyFilter
+          ? true
+          : undefined,
       );
     },
-    [formFilter?.controlValues?.enableEmptyFilter, hasDefaultValue],
+    [formFilter?.controlValues?.enableEmptyFilter],
   );
 
   useEffect(() => {
     setHasDefaultValue();
-  }, [setHasDefaultValue]);
+  }, [hasDefaultValue, setHasDefaultValue]);
 
   return [hasDefaultValue, setHasDefaultValue];
 };
