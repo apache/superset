@@ -23,6 +23,11 @@ export type FavoriteStatus = {
   [id: number]: boolean;
 };
 
+export enum TableTabTypes {
+  FAVORITE = 'Favorite',
+  MINE = 'Mine',
+}
+
 export type Filters = {
   col: string;
   opr: string;

@@ -106,7 +106,7 @@ class DatabaseConnectionFailedError(  # pylint: disable=too-many-ancestors
 
 
 class DatabaseDeleteDatasetsExistFailedError(DeleteFailedError):
-    message = _("Cannot delete a database that has tables attached")
+    message = _("Cannot delete a database that has datasets attached")
 
 
 class DatabaseDeleteFailedError(DeleteFailedError):

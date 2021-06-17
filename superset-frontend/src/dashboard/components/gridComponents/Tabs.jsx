@@ -31,11 +31,7 @@ import findTabIndexByComponentId from '../../util/findTabIndexByComponentId';
 import getDirectPathToTabIndex from '../../util/getDirectPathToTabIndex';
 import getLeafComponentIdFromPath from '../../util/getLeafComponentIdFromPath';
 import { componentShape } from '../../util/propShapes';
-import {
-  NEW_TAB_ID,
-  DASHBOARD_ROOT_ID,
-  DASHBOARD_GRID_ID,
-} from '../../util/constants';
+import { NEW_TAB_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
 import { TAB_TYPE } from '../../util/componentTypes';
 
@@ -50,9 +46,11 @@ const propTypes = {
   editMode: PropTypes.bool.isRequired,
   renderHoverMenu: PropTypes.bool,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
+  activeTabs: PropTypes.arrayOf(PropTypes.string),
 
   // actions (from DashboardComponent.jsx)
   logEvent: PropTypes.func.isRequired,
+  setActiveTabs: PropTypes.func,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -75,6 +73,8 @@ const defaultProps = {
   availableColumnCount: 0,
   columnWidth: 0,
   directPathToChild: [],
+  activeTabs: [],
+  setActiveTabs() {},
   onResizeStart() {},
   onResize() {},
   onResizeStop() {},
@@ -92,6 +92,10 @@ const StyledTabsContainer = styled.div`
 
   .ant-tabs {
     overflow: visible;
+
+    .ant-tabs-nav-wrap {
+      min-height: ${({ theme }) => theme.gridUnit * 12.5}px;
+    }
 
     .ant-tabs-content-holder {
       overflow: visible;
@@ -126,6 +130,19 @@ class Tabs extends React.PureComponent {
     this.handleDropOnTab = this.handleDropOnTab.bind(this);
   }
 
+  componentDidMount() {
+    this.props.setActiveTabs([...this.props.activeTabs, this.state.activeKey]);
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.activeKey !== this.state.activeKey) {
+      this.props.setActiveTabs([
+        ...this.props.activeTabs.filter(tabId => tabId !== prevState.activeKey),
+        this.state.activeKey,
+      ]);
+    }
+  }
+
   UNSAFE_componentWillReceiveProps(nextProps) {
     const maxIndex = Math.max(0, nextProps.component.children.length - 1);
     const currTabsIds = this.props.component.children;
@@ -139,7 +156,11 @@ class Tabs extends React.PureComponent {
       const lastTabId = nextTabsIds[nextTabsIds.length - 1];
       // if a new tab is added focus on it immediately
       if (nextTabsIds.length > currTabsIds.length) {
-        this.setState(() => ({ activeKey: lastTabId }));
+        // a new tab's path may be empty, here also need to set tabIndex
+        this.setState(() => ({
+          activeKey: lastTabId,
+          tabIndex: maxIndex,
+        }));
       }
       // if a tab is removed focus on the first
       if (nextTabsIds.length < currTabsIds.length) {
@@ -183,7 +204,7 @@ class Tabs extends React.PureComponent {
       onOk: () => {
         deleteComponent(key, component.id);
         const tabIndex = component.children.indexOf(key);
-        this.handleClickTab(Math.max(0, tabIndex - 1));
+        this.handleDeleteTab(tabIndex);
       },
       okType: 'danger',
       okText: 'DELETE',
@@ -273,21 +294,10 @@ class Tabs extends React.PureComponent {
       isComponentVisible: isCurrentTabVisible,
       editMode,
       nativeFilters,
-      dashboardLayout,
-      lastFocusedTabId,
-      setLastFocusedTab,
     } = this.props;
 
     const { children: tabIds } = tabsComponent;
     const { tabIndex: selectedTabIndex, activeKey } = this.state;
-
-    // On dashboards with top level tabs, set initial focus to the active top level tab
-    const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
-    const rootChildId = dashboardRoot.children[0];
-    const isTopLevelTabs = rootChildId !== DASHBOARD_GRID_ID;
-    if (isTopLevelTabs && !lastFocusedTabId) {
-      setLastFocusedTab(activeKey);
-    }
 
     let tabsToHighlight;
     if (nativeFilters.focusedFilterId) {
@@ -328,7 +338,6 @@ class Tabs extends React.PureComponent {
               onEdit={this.handleEdit}
               data-test="nav-list"
               type={editMode ? 'editable-card' : 'card'}
-              onTabClick={setLastFocusedTab}
             >
               {tabIds.map((tabId, tabIndex) => (
                 <LineEditableTabs.TabPane

@@ -16,32 +16,49 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
+import React, { useState } from 'react';
 import Collapse from 'src/components/Collapse';
 import Card from 'src/components/Card';
 import ButtonGroup from 'src/components/ButtonGroup';
-import shortid from 'shortid';
 import { t, styled } from '@superset-ui/core';
 import { debounce } from 'lodash';
 
 import { Tooltip } from 'src/components/Tooltip';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { IconTooltip } from '../../components/IconTooltip';
-import ColumnElement from './ColumnElement';
+import ColumnElement, { ColumnKeyTypeType } from './ColumnElement';
 import ShowSQL from './ShowSQL';
 import ModalTrigger from '../../components/ModalTrigger';
 import Loading from '../../components/Loading';
 
-const propTypes = {
-  table: PropTypes.object,
-  actions: PropTypes.object,
-};
+interface Column {
+  name: string;
+  keys?: { type: ColumnKeyTypeType }[];
+  type: string;
+}
 
-const defaultProps = {
-  actions: {},
-  table: null,
-};
+interface Table {
+  id: string;
+  name: string;
+  partitions?: {
+    partitionQuery: string;
+    latest: object[];
+  };
+  indexes?: object[];
+  selectStar?: string;
+  view?: string;
+  isMetadataLoading: boolean;
+  isExtraMetadataLoading: boolean;
+  columns: Column[];
+}
+
+interface TableElementProps {
+  table: Table;
+  actions: {
+    removeDataPreview: (table: Table) => void;
+    removeTable: (table: Table) => void;
+  };
+}
 
 const StyledSpan = styled.span`
   color: ${({ theme }) => theme.colors.primary.dark1};
@@ -53,47 +70,27 @@ const StyledSpan = styled.span`
 
 const Fade = styled.div`
   transition: all ${({ theme }) => theme.transitionTiming}s;
-  opacity: ${props => (props.hovered ? 1 : 0)};
+  opacity: ${(props: { hovered: boolean }) => (props.hovered ? 1 : 0)};
 `;
 
-class TableElement extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {
-      sortColumns: false,
-      hovered: false,
-    };
-    this.toggleSortColumns = this.toggleSortColumns.bind(this);
-    this.removeTable = this.removeTable.bind(this);
-    this.setHover = debounce(this.setHover.bind(this), 100);
-  }
+const TableElement = ({ table, actions, ...props }: TableElementProps) => {
+  const [sortColumns, setSortColumns] = useState(false);
+  const [hovered, setHovered] = useState(false);
 
-  setHover(hovered) {
-    this.setState({ hovered });
-  }
+  const setHover = (hovered: boolean) => {
+    debounce(() => setHovered(hovered), 100)();
+  };
 
-  popSelectStar() {
-    const qe = {
-      id: shortid.generate(),
-      title: this.props.table.name,
-      dbId: this.props.table.dbId,
-      autorun: true,
-      sql: this.props.table.selectStar,
-    };
-    this.props.actions.addQueryEditor(qe);
-  }
+  const removeTable = () => {
+    actions.removeDataPreview(table);
+    actions.removeTable(table);
+  };
 
-  removeTable() {
-    this.props.actions.removeDataPreview(this.props.table);
-    this.props.actions.removeTable(this.props.table);
-  }
+  const toggleSortColumns = () => {
+    setSortColumns(prevState => !prevState);
+  };
 
-  toggleSortColumns() {
-    this.setState(prevState => ({ sortColumns: !prevState.sortColumns }));
-  }
-
-  renderWell() {
-    const { table } = this.props;
+  const renderWell = () => {
     let header;
     if (table.partitions) {
       let partitionQuery;
@@ -110,10 +107,10 @@ class TableElement extends React.PureComponent {
           />
         );
       }
-      let latest = Object.entries(table.partitions?.latest || []).map(
-        ([key, value]) => `${key}=${value}`,
-      );
-      latest = latest.join('/');
+      const latest = Object.entries(table.partitions?.latest || [])
+        .map(([key, value]) => `${key}=${value}`)
+        .join('/');
+
       header = (
         <Card size="small">
           <div>
@@ -126,12 +123,11 @@ class TableElement extends React.PureComponent {
       );
     }
     return header;
-  }
+  };
 
-  renderControls() {
+  const renderControls = () => {
     let keyLink;
-    const { table } = this.props;
-    if (table.indexes && table.indexes.length > 0) {
+    if (table?.indexes?.length) {
       keyLink = (
         <ModalTrigger
           modalTitle={
@@ -156,26 +152,28 @@ class TableElement extends React.PureComponent {
         {keyLink}
         <IconTooltip
           className={
-            `fa fa-sort-${!this.state.sortColumns ? 'alpha' : 'numeric'}-asc ` +
+            `fa fa-sort-${sortColumns ? 'numeric' : 'alpha'}-asc ` +
             'pull-left sort-cols m-l-2 pointer'
           }
-          onClick={this.toggleSortColumns}
+          onClick={toggleSortColumns}
           tooltip={
-            !this.state.sortColumns
-              ? t('Sort columns alphabetically')
-              : t('Original table column order')
+            sortColumns
+              ? t('Original table column order')
+              : t('Sort columns alphabetically')
           }
         />
         {table.selectStar && (
           <CopyToClipboard
             copyNode={
-              <IconTooltip aria-label="Copy">
+              <IconTooltip
+                aria-label="Copy"
+                tooltip={t('Copy SELECT statement to the clipboard')}
+              >
                 <i aria-hidden className="fa fa-clipboard pull-left m-l-2" />
               </IconTooltip>
             }
             text={table.selectStar}
             shouldShowText={false}
-            tooltipText={t('Copy SELECT statement to the clipboard')}
           />
         )}
         {table.view && (
@@ -187,101 +185,88 @@ class TableElement extends React.PureComponent {
         )}
         <IconTooltip
           className="fa fa-times table-remove pull-left m-l-2 pointer"
-          onClick={this.removeTable}
+          onClick={removeTable}
           tooltip={t('Remove table preview')}
         />
       </ButtonGroup>
     );
-  }
+  };
 
-  renderHeader() {
-    const { table } = this.props;
-    return (
-      <div
-        className="clearfix header-container"
-        onMouseEnter={() => this.setHover(true)}
-        onMouseLeave={() => this.setHover(false)}
+  const renderHeader = () => (
+    <div
+      className="clearfix header-container"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <Tooltip
+        id="copy-to-clipboard-tooltip"
+        placement="topLeft"
+        style={{ cursor: 'pointer' }}
+        title={table.name}
+        trigger={['hover']}
       >
-        <Tooltip
-          id="copy-to-clipboard-tooltip"
-          placement="topLeft"
-          style={{ cursor: 'pointer' }}
-          title={table.name}
-          trigger={['hover']}
-        >
-          <StyledSpan data-test="collapse" className="table-name">
-            <strong>{table.name}</strong>
-          </StyledSpan>
-        </Tooltip>
+        <StyledSpan data-test="collapse" className="table-name">
+          <strong>{table.name}</strong>
+        </StyledSpan>
+      </Tooltip>
 
-        <div className="pull-right header-right-side">
-          {table.isMetadataLoading || table.isExtraMetadataLoading ? (
-            <Loading position="inline" />
-          ) : (
-            <Fade
-              data-test="fade"
-              hovered={this.state.hovered}
-              onClick={e => e.stopPropagation()}
-            >
-              {this.renderControls()}
-            </Fade>
-          )}
-        </div>
+      <div className="pull-right header-right-side">
+        {table.isMetadataLoading || table.isExtraMetadataLoading ? (
+          <Loading position="inline" />
+        ) : (
+          <Fade
+            data-test="fade"
+            hovered={hovered}
+            onClick={e => e.stopPropagation()}
+          >
+            {renderControls()}
+          </Fade>
+        )}
       </div>
-    );
-  }
+    </div>
+  );
 
-  renderBody() {
-    const { table } = this.props;
+  const renderBody = () => {
     let cols;
     if (table.columns) {
       cols = table.columns.slice();
-      if (this.state.sortColumns) {
-        cols.sort((a, b) => {
+      if (sortColumns) {
+        cols.sort((a: Column, b: Column) => {
           const colA = a.name.toUpperCase();
           const colB = b.name.toUpperCase();
-          if (colA < colB) {
-            return -1;
-          }
-          if (colA > colB) {
-            return 1;
-          }
-          return 0;
+          return colA < colB ? -1 : colA > colB ? 1 : 0;
         });
       }
     }
 
     const metadata = (
       <div
-        onMouseEnter={() => this.setHover(true)}
-        onMouseLeave={() => this.setHover(false)}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
         css={{ paddingTop: 6 }}
       >
-        {this.renderWell()}
+        {renderWell()}
         <div>
-          {cols &&
-            cols.map(col => <ColumnElement column={col} key={col.name} />)}
+          {cols?.map(col => (
+            <ColumnElement column={col} key={col.name} />
+          ))}
         </div>
       </div>
     );
     return metadata;
-  }
+  };
 
-  render() {
-    return (
-      <Collapse.Panel
-        {...this.props}
-        header={this.renderHeader()}
-        className="TableElement"
-        forceRender="true"
-      >
-        {this.renderBody()}
-      </Collapse.Panel>
-    );
-  }
-}
-
-TableElement.propTypes = propTypes;
-TableElement.defaultProps = defaultProps;
+  return (
+    <Collapse.Panel
+      {...props}
+      key={table.id}
+      header={renderHeader()}
+      className="TableElement"
+      forceRender
+    >
+      {renderBody()}
+    </Collapse.Panel>
+  );
+};
 
 export default TableElement;

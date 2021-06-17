@@ -48,11 +48,20 @@ envFromSecret: '{{ template "superset.fullname" . }}-env'
 ## Extra environment variables that will be passed into pods
 ##
 extraEnv: {}
+  # Extend timeout to allow long running queries.
+  # GUNICORN_TIMEOUT: 300
+
+
+   # OAUTH_HOME_DOMAIN: ..
+  # # If a whitelist is not set, any address that can use your OAuth2 endpoint will be able to login.
+  # #   this includes any random Gmail address if your OAuth2 Web App is set to External.
+  # OAUTH_WHITELIST_REGEX: ...
 
 ## Extra environment variables to pass as secrets
 ##
 extraSecretEnv: {}
   # MAPBOX_API_KEY: ...
+  # # Google API Keys: https://console.cloud.google.com/apis/credentials
   # GOOGLE_KEY: ...
   # GOOGLE_SECRET: ...
 
@@ -76,13 +85,17 @@ extraSecrets: {}
 # A dictionary of overrides to append at the end of superset_config.py - the name does not matter
 # WARNING: the order is not guaranteed
 configOverrides: {}
+  #  extend_timeout: |
+  #    # Extend timeout to allow long running queries.
+  #    SUPERSET_WEBSERVER_TIMEOUT = ...
   # enable_oauth: |
-  #   from flask_appbuilder.security.manager import AUTH_DB
+  #   from flask_appbuilder.security.manager import (AUTH_DB, AUTH_OAUTH)
   #   AUTH_TYPE = AUTH_OAUTH
 
   #   OAUTH_PROVIDERS = [
   #       {
   #           "name": "google",
+  #           "whitelist": [ os.getenv("OAUTH_WHITELIST_REGEX", "") ],
   #           "icon": "fa-google",
   #           "token_key": "access_token",
   #           "remote_app": {
@@ -93,9 +106,17 @@ configOverrides: {}
   #               "request_token_url": None,
   #               "access_token_url": "https://accounts.google.com/o/oauth2/token",
   #               "authorize_url": "https://accounts.google.com/o/oauth2/auth",
-  #           },
+  #               "authorize_params": {"hd": os.getenv("OAUTH_HOME_DOMAIN", "")}
+  #           }
   #       }
   #   ]
+  #   # Map Authlib roles to superset roles
+  #   AUTH_ROLE_ADMIN = 'Admin'
+  #   AUTH_ROLE_PUBLIC = 'Public'
+  #   # Will allow user self registration, allowing to create Flask users from Authorized User
+  #   AUTH_USER_REGISTRATION = True
+  #   # The default user self registration role
+  #   AUTH_USER_REGISTRATION_ROLE = "Admin"
 
 configMountPath: "/app/pythonpath"
 
@@ -121,6 +142,10 @@ ingress:
   annotations: {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
+    ## Extend timeout to allow long running queries.
+    # nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    # nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    # nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
   path: /
   hosts:
     - chart-example.local
@@ -203,7 +228,7 @@ supersetCeleryBeat:
   command:
     - "/bin/sh"
     - "-c"
-    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; celery beat --app=superset.tasks.celery_app:app --pidfile /tmp/celerybeat.pid --schedule /tmp/celerybeat-schedule"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid --schedule /tmp/celerybeat-schedule"
   forceReload: false # If true, forces deployment to reload on each upgrade
   initContainers:
     - name: wait-for-postgres
@@ -239,6 +264,7 @@ init:
     - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; . {{ .Values.configMountPath }}/superset_init.sh"
   enabled: true
   loadExamples: false
+  createAdmin: true
   adminUser:
     username: admin
     firstname: Superset
@@ -259,6 +285,7 @@ init:
     superset db upgrade
     echo "Initializing roles..."
     superset init
+    {{ if .Values.init.createAdmin }}
     echo "Creating admin user..."
     superset fab create-admin \
                     --username {{ .Values.init.adminUser.username }} \
@@ -267,6 +294,7 @@ init:
                     --email {{ .Values.init.adminUser.email }} \
                     --password {{ .Values.init.adminUser.password }} \
                     || true
+    {{- end }}
     {{ if .Values.init.loadExamples }}
     echo "Loading examples..."
     superset load_examples

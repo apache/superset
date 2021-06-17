@@ -62,7 +62,7 @@ jobs:
             setup-mysql
       - name: Run celery
         if: steps.check.outcome == 'failure'
-        run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
+        run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
       - name: Python unit tests (MySQL)
         if: steps.check.outcome == 'failure'
         run: |
@@ -126,7 +126,7 @@ jobs:
             setup-postgres
       - name: Run celery
         if: steps.check.outcome == 'failure'
-        run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
+        run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
       - name: Python unit tests (PostgreSQL)
         if: steps.check.outcome == 'failure'
         run: |
@@ -182,7 +182,7 @@ jobs:
             mkdir ${{ github.workspace }}/.temp
       - name: Run celery
         if: steps.check.outcome == 'failure'
-        run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
+        run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
       - name: Python unit tests (SQLite)
         if: steps.check.outcome == 'failure'
         run: |

@@ -43,6 +43,7 @@ import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FilterProps } from './types';
 import { getFormData } from '../../utils';
 import { useCascadingFilters } from './state';
+import { checkIsMissingRequiredValue } from '../utils';
 
 const FilterItem = styled.div`
   min-height: ${({ theme }) => theme.gridUnit * 11}px;
@@ -57,6 +58,7 @@ const FilterValue: React.FC<FilterProps> = ({
   filter,
   directPathToChild,
   onFilterSelectionChange,
+  inView = true,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
@@ -65,6 +67,7 @@ const FilterValue: React.FC<FilterProps> = ({
   const [error, setError] = useState<string>('');
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
   const [ownState, setOwnState] = useState<JsonObject>({});
+  const [inViewFirstTime, setInViewFirstTime] = useState(inView);
   const inputRef = useRef<HTMLInputElement>(null);
   const [target] = targets;
   const {
@@ -74,9 +77,19 @@ const FilterValue: React.FC<FilterProps> = ({
   const { name: groupby } = column;
   const hasDataSource = !!datasetId;
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
-  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(true);
   const dispatch = useDispatch();
+
   useEffect(() => {
+    if (!inViewFirstTime && inView) {
+      setInViewFirstTime(true);
+    }
+  }, [inView, inViewFirstTime, setInViewFirstTime]);
+
+  useEffect(() => {
+    if (!inViewFirstTime) {
+      return;
+    }
     const newFormData = getFormData({
       ...filter,
       datasetId,
@@ -134,6 +147,7 @@ const FilterValue: React.FC<FilterProps> = ({
         });
     }
   }, [
+    inViewFirstTime,
     cascadingFilters,
     datasetId,
     groupby,
@@ -168,6 +182,11 @@ const FilterValue: React.FC<FilterProps> = ({
     );
   }
 
+  const isMissingRequiredValue = checkIsMissingRequiredValue(
+    filter,
+    filter.dataMask?.filterState,
+  );
+
   return (
     <FilterItem data-test="form-item-value">
       {isLoading ? (
@@ -175,13 +194,17 @@ const FilterValue: React.FC<FilterProps> = ({
       ) : (
         <SuperChart
           height={20}
-          width={220}
+          width="100%"
           formData={formData}
           // For charts that don't have datasource we need workaround for empty placeholder
           queriesData={hasDataSource ? state : [{ data: [{}] }]}
           chartType={filterType}
           behaviors={[Behavior.NATIVE_FILTER]}
-          filterState={filter.dataMask?.filterState}
+          filterState={{
+            ...filter.dataMask?.filterState,
+            validateMessage: isMissingRequiredValue && t('Value is required'),
+            validateStatus: isMissingRequiredValue && 'error',
+          }}
           ownState={filter.dataMask?.ownState}
           enableNoResults={metadata?.enableNoResults}
           isRefreshing={isRefreshing}

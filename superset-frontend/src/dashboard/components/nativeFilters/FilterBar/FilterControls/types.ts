@@ -29,4 +29,5 @@ export interface FilterProps {
   icon?: React.ReactElement;
   directPathToChild?: string[];
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
+  inView?: boolean;
 }
