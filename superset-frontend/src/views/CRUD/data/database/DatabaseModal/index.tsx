@@ -285,8 +285,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   >(dbReducer, null);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
-  const [validationErrors, getValidation] = useDatabaseValidation();
-  const [hasErrors, setHasErrors] = useState<boolean>(false);
+  const [
+    validationErrors,
+    getValidation,
+    setValidationErrors,
+  ] = useDatabaseValidation();
   const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
   const [dbName, setDbName] = useState('');
   const [isLoading, setLoading] = useState<boolean>(false);
@@ -303,7 +306,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   // Database fetch logic
   const {
-    state: { loading: dbLoading, resource: dbFetched },
+    state: { loading: dbLoading, resource: dbFetched, error: dbError },
     fetchResource,
     createResource,
     updateResource,
@@ -342,6 +345,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onClose = () => {
     setDB({ type: ActionType.reset });
     setHasConnectedDb(false);
+    setValidationErrors(null); // reset validation errors on close
     onHide();
   };
 
@@ -598,27 +602,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   }, [availableDbs]);
 
-  useEffect(() => {
-    if (validationErrors) {
-      setHasErrors(true);
-    } else {
-      setHasErrors(false);
-    }
-  }, [validationErrors]);
-  // Used as componentDidMount
-
   const tabChange = (key: string) => {
     setTabKey(key);
   };
 
   const errorAlert = () => {
-    const errors = validationErrors;
+    const errors = dbError;
     return (
       <Alert
         type="error"
         css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
         message="Missing Required Fields"
-        description={errors ? errors.port : ''}
+        description={errors?.port || ''}
         showIcon
       />
     );
@@ -787,7 +782,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               onChange(ActionType.extraEditorChange, payload);
             }}
           />
-          {hasErrors && errorAlert}
+          {dbError && errorAlert}
         </Tabs.TabPane>
       </Tabs>
     </Modal>
@@ -935,7 +930,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   Connect this database with a SQLAlchemy URI string instead
                 </Button>
                 {/* Step 2 */}
-                {hasErrors && errorAlert()}
+                {dbError && errorAlert()}
               </>
             ))}
         </>
