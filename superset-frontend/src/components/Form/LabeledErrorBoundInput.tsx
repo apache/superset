@@ -104,10 +104,7 @@ const LabeledErrorBoundInput = ({
       {label}
     </FormLabel>
     {hasTooltip && (
-      <span>
-        {' '}
-        <InfoTooltip tooltip={`${tooltipText}`} />
-      </span>
+      <InfoTooltip tooltip={`${tooltipText}`} viewBox="0 -6 24 24" />
     )}
     <FormItem
       css={(theme: SupersetTheme) => alertIconStyles(theme, !!errorMessage)}

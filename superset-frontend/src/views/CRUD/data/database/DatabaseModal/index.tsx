@@ -299,7 +299,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const connectionAlert = getConnectionAlert();
   const isEditMode = !!databaseId;
   const sslForced = isFeatureEnabled(
-    FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
+    FeatureFlag.FORCE_DATABASE_CONNECTIONS_4SL,
   );
   const useSqlAlchemyForm =
     db?.configuration_method === CONFIGURATION_METHOD.SQLALCHEMY_URI;
@@ -689,12 +689,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     css={theme => alchemyButtonLinkStyles(theme)}
                   >
                     Connect this database using the dynamic form instead
-                    <InfoTooltip
-                      tooltip={t(
-                        'Click this link to switch to an alternate form that exposes only the required fields needed to connect this database.',
-                      )}
-                    />
                   </Button>
+                  <InfoTooltip
+                    tooltip={t(
+                      'Click this link to switch to an alternate form that exposes only the required fields needed to connect this database.',
+                    )}
+                    viewBox="0 -3 24 24"
+                  />
                 </div>
               )}
             </>
@@ -923,12 +924,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     css={buttonLinkStyles}
                   >
                     Connect this database with a SQLAlchemy URI string instead
-                    <InfoTooltip
-                      tooltip={t(
-                        'Click this link to switch to an alternate form that allows you to input the SQLAlchemy URL for this database manually.',
-                      )}
-                    />
                   </Button>
+                  <InfoTooltip
+                    tooltip={t(
+                      'Click this link to switch to an alternate form that allows you to input the SQLAlchemy URL for this database manually.',
+                    )}
+                    viewBox="6 3 24 24"
+                  />
                 </div>
                 {/* Step 2 */}
               </>
