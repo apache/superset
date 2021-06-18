@@ -103,7 +103,7 @@ class QueryObject:
         applied_time_extras: Optional[Dict[str, str]] = None,
         apply_fetch_values_predicate: bool = False,
         granularity: Optional[str] = None,
-        metrics: Optional[List[Union[Dict[str, Any], str]]] = None,
+        metrics: Optional[List[Metric]] = None,
         groupby: Optional[List[str]] = None,
         filters: Optional[List[Dict[str, Any]]] = None,
         time_range: Optional[str] = None,
