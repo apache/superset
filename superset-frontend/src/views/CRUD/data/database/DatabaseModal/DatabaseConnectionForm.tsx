@@ -51,8 +51,8 @@ export const FormFieldOrder = [
 
 interface FieldPropTypes {
   required: boolean;
-  hasTooltip: boolean;
-  tooltipText: (valuse: any) => string;
+  hasTooltip?: boolean;
+  tooltipText?: (valuse: any) => string;
   onParametersChange: (value: any) => string;
   onParametersUploadFileChange: (value: any) => string;
   changeMethods: { onParametersChange: (value: any) => string } & {
@@ -112,7 +112,6 @@ const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
           className="input-container"
           css={(theme: SupersetTheme) => infoTooltip(theme)}
         >
-          {/*This is missing a reqired marker. Need clarification what element to add reqired to.*/}
           <span
             css={{ display: 'flex', alignItems: 'center' }}
             className="label-select"
