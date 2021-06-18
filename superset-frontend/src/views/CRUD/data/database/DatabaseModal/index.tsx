@@ -284,7 +284,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   >(dbReducer, null);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
-  const [validationErrors, getValidation] = useDatabaseValidation();
+  const [
+    validationErrors,
+    getValidation,
+    setValidationErrors,
+  ] = useDatabaseValidation();
   const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
   const [dbName, setDbName] = useState('');
   const [isLoading, setLoading] = useState<boolean>(false);
@@ -340,6 +344,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onClose = () => {
     setDB({ type: ActionType.reset });
     setHasConnectedDb(false);
+    setValidationErrors(null); // reset validation errors on close
     onHide();
   };
 

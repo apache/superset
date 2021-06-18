@@ -346,17 +346,6 @@ class DatabaseValidateParametersSchema(Schema):
         description=configuration_method_description,
     )
 
-    @validates_schema
-    def validate_parameters(  # pylint: disable=no-self-use
-        self, data: Dict[str, Any], **kwargs: Any  # pylint: disable=unused-argument
-    ) -> None:
-        """
-        Validate the DB engine spec specific parameters schema.
-        """
-        # TODO (aafghahi): Move this onCreate instead of validation
-        engine_spec = get_engine_spec(data.get("engine") or data.get("backend"))
-        engine_spec.parameters_schema.load(data["parameters"])  # type: ignore
-
 
 class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     class Meta:  # pylint: disable=too-few-public-methods
