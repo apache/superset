@@ -93,6 +93,8 @@ const LabeledErrorBoundInput = ({
     <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
       <FormLabel htmlFor={id} required={required}>
         {label}
+
+        {/*The params for this show up in storybook, but nothing changes when I toggle true/false */}
         {hasTooltip && <InfoTooltip tooltip={`${tooltipText}`} />}
       </FormLabel>
     </div>
