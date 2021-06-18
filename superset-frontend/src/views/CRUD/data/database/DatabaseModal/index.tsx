@@ -540,32 +540,43 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const renderModalFooter = () =>
     db // if db show back + connect
       ? [
-          !hasConnectedDb && (
-            <StyledFooterButton
-              key="back"
-              onClick={() => {
-                setDB({ type: ActionType.reset });
-              }}
-            >
-              Back
-            </StyledFooterButton>
-          ),
-          !hasConnectedDb ? ( // if hasConnectedDb show back + finish
-            <StyledFooterButton
-              key="submit"
-              buttonStyle="primary"
-              onClick={onSave}
-            >
-              Connect
-            </StyledFooterButton>
+          !hasConnectedDb ? (
+            <>
+              <StyledFooterButton
+                key="back"
+                onClick={() => {
+                  setDB({ type: ActionType.reset });
+                }}
+              >
+                Back
+              </StyledFooterButton>
+              <StyledFooterButton
+                key="submit"
+                buttonStyle="primary"
+                onClick={onSave}
+              >
+                Connect
+              </StyledFooterButton>
+            </>
           ) : (
-            <StyledFooterButton
-              key="submit"
-              buttonStyle="primary"
-              onClick={onClose}
-            >
-              Finish
-            </StyledFooterButton>
+            <>
+              {console.log(db)}
+              <StyledFooterButton
+                key="back"
+                onClick={() => {
+                  setDB({ type: ActionType.reset });
+                }}
+              >
+                Back
+              </StyledFooterButton>
+              <StyledFooterButton
+                key="submit"
+                buttonStyle="primary"
+                onClick={onClose}
+              >
+                Finish
+              </StyledFooterButton>
+            </>
           ),
         ]
       : [];
@@ -875,8 +886,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     css={(theme: SupersetTheme) => antDAlertStyles(theme)}
                     type="info"
                     showIcon
-                    message={t('Whitelisting IPs')}
-                    description={connectionAlert.WHITELISTED_IPS}
+                    message={t('IP Allowlist')}
+                    description={connectionAlert.ALLOWED_IPS}
                   />
                 )}
                 <DatabaseConnectionForm
