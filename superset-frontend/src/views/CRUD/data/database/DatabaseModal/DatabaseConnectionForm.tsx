@@ -96,12 +96,13 @@ const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
         </>
       )}
       {uploadOption === CredentialInfoOptions.copyPaste || isEditMode ? (
-        <div className="input-container" onChange={changeMethods.onChange}>
+        <div className="input-container">
           <span className="label-select">Service Account</span>
           <textarea
             className="input-form"
-            name="encrypted_extra"
+            name="credentials_info"
             value={db?.parameters?.credentials_info}
+            onChange={changeMethods.onParametersChange}
           />
           <span className="label-paste">
             Copy and paste the entire service account .json file here
@@ -140,7 +141,7 @@ const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
                   setFileToUpload(null);
                   changeMethods.onParametersChange({
                     target: {
-                      name: 'encrypted_extra',
+                      name: 'credentials_info',
                       value: '',
                     },
                   });
@@ -162,7 +163,7 @@ const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
               changeMethods.onParametersChange({
                 target: {
                   type: null,
-                  name: 'encrypted_extra',
+                  name: 'credentials_info',
                   value: await file?.text(),
                   checked: false,
                 },
