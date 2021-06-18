@@ -50,6 +50,7 @@ import {
   DatabaseForm,
   CONFIGURATION_METHOD,
 } from 'src/views/CRUD/data/database/types';
+import Loading from 'src/components/Loading';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
@@ -67,6 +68,7 @@ import {
   SelectDatabaseStyles,
   infoTooltip,
   StyledFooterButton,
+  StyledStickyHeader,
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 
@@ -242,21 +244,17 @@ function dbReducer(
         ).toString();
       }
 
-      if (action.payload?.parameters?.credentials_info) {
-        // deserialize credentials info for big query editting
-        deserializeExtraJSON = JSON.stringify(
-          action.payload?.parameters.credentials_info,
-        );
-      }
-
       return {
         ...action.payload,
         engine: trimmedState.engine,
-        configuration_method: trimmedState.configuration_method,
+        configuration_method: action.payload.configuration_method,
         extra_json: deserializeExtraJSON,
         parameters: {
           ...action.payload.parameters,
           query,
+          credentials_info: JSON.stringify(
+            action.payload?.parameters?.credentials_info || '',
+          ),
         },
       };
     case ActionType.dbSelected:
@@ -288,7 +286,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   >(dbReducer, null);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
-  const [validationErrors, getValidation] = useDatabaseValidation();
+  const [
+    validationErrors,
+    getValidation,
+    setValidationErrors,
+  ] = useDatabaseValidation();
   const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
   const [dbName, setDbName] = useState('');
   const [isLoading, setLoading] = useState<boolean>(false);
@@ -344,6 +346,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onClose = () => {
     setDB({ type: ActionType.reset });
     setHasConnectedDb(false);
+    setValidationErrors(null); // reset validation errors on close
     onHide();
   };
 
@@ -358,8 +361,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           .replace(/&/g, '","')
           .replace(/=/g, '":"')}"}`,
       );
-    } else if (update.parameters) {
-      update.parameters.query = {};
     }
 
     if (db?.id) {
@@ -378,7 +379,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           ),
         });
       }
-
+      setLoading(true);
       const result = await updateResource(
         db.id as number,
         update as DatabaseObject,
@@ -391,8 +392,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     } else if (db) {
       // Create
-      if (update.encrypted_extra) {
-        // wrap encrypted_extra in credentials_info
+      if (
+        update.engine === 'bigquery' &&
+        update.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM &&
+        update.encrypted_extra
+      ) {
+        // wrap encrypted_extra in credentials_info only for BigQuery
         update.encrypted_extra = JSON.stringify({
           credentials_info: JSON.parse(update.encrypted_extra),
         });
@@ -413,7 +418,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           ),
         });
       }
-
+      setLoading(true);
       const dbId = await createResource(update as DatabaseObject);
       if (dbId) {
         setHasConnectedDb(true);
@@ -427,6 +432,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         }
       }
     }
+    setLoading(false);
   };
 
   const onChange = (type: any, payload: any) => {
@@ -595,7 +601,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (isLoading) {
       setLoading(false);
     }
-  }, [availableDbs, isLoading]);
+  }, [availableDbs]);
 
   const tabChange = (key: string) => {
     setTabKey(key);
@@ -610,9 +616,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     <Modal
       css={(theme: SupersetTheme) => [
         antDTabsStyles,
-        antDModalStyles(theme),
         antDModalNoPaddingStyles,
+        antDModalStyles(theme),
         formHelperStyles(theme),
+        formStyles(theme),
       ]}
       name="database"
       data-test="database-modal"
@@ -627,17 +634,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
       footer={isEditMode ? renderEditModalFooter() : renderModalFooter()}
     >
-      <TabHeader>
-        <ModalHeader
-          isLoading={isLoading}
-          isEditMode={isEditMode}
-          useSqlAlchemyForm={useSqlAlchemyForm}
-          hasConnectedDb={hasConnectedDb}
-          db={db}
-          dbName={dbName}
-          dbModel={dbModel}
-        />
-      </TabHeader>
+      <StyledStickyHeader>
+        <TabHeader>
+          <ModalHeader
+            isLoading={isLoading}
+            isEditMode={isEditMode}
+            useSqlAlchemyForm={useSqlAlchemyForm}
+            hasConnectedDb={hasConnectedDb}
+            db={db}
+            dbName={dbName}
+            dbModel={dbModel}
+          />
+        </TabHeader>
+      </StyledStickyHeader>
       <hr />
       <Tabs
         defaultActiveKey={DEFAULT_TAB_KEY}
@@ -662,7 +671,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 testConnection={testConnection}
                 isEditMode={isEditMode}
               />
-              {isDynamic(db?.engine) && (
+              {isDynamic(db?.backend || db?.engine) && (
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
                   <Button
                     buttonStyle="link"
@@ -926,6 +935,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             ))}
         </>
       )}
+      {isLoading && <Loading />}
     </Modal>
   );
 };

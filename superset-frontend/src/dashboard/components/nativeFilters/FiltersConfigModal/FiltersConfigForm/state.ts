@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { FormInstance } from 'antd/lib/form';
-import { NativeFiltersForm } from '../types';
+import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
 import { setNativeFilterFieldValues, useForceUpdate } from './utils';
+import { Filter } from '../../types';
 
 // When some fields in form changed we need re-fetch data for Filter defaultValue
 // eslint-disable-next-line import/prefer-default-export
@@ -45,4 +46,30 @@ export const useBackendFormUpdate = (
     forceUpdate,
     filterId,
   ]);
+};
+
+export const useDefaultValue = (
+  formFilter?: NativeFiltersFormItem,
+  filterToEdit?: Filter,
+) => {
+  const [hasDefaultValue, setHasPartialDefaultValue] = useState(
+    !!filterToEdit?.defaultDataMask?.filterState?.value ||
+      formFilter?.controlValues?.enableEmptyFilter,
+  );
+  const setHasDefaultValue = useCallback(
+    (value?) => {
+      setHasPartialDefaultValue(
+        value || formFilter?.controlValues?.enableEmptyFilter
+          ? true
+          : undefined,
+      );
+    },
+    [formFilter?.controlValues?.enableEmptyFilter],
+  );
+
+  useEffect(() => {
+    setHasDefaultValue();
+  }, [setHasDefaultValue]);
+
+  return [hasDefaultValue, setHasDefaultValue];
 };
