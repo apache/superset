@@ -359,7 +359,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           .replace(/&/g, '","')
           .replace(/=/g, '":"')}"}`,
       );
-    } else {
+    } else if (update?.parameters?.query === '') {
       update.parameters.query = {};
     }
 
