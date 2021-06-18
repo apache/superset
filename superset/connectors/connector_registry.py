@@ -87,7 +87,7 @@ class ConnectorRegistry:
         :return: Datasource corresponding to the id
         :raises NoResultFound: if no datasource is found corresponding to the id
         """
-        for datasource_type, datasource_class in ConnectorRegistry.sources.items():
+        for datasource_class in ConnectorRegistry.sources.values():
             try:
                 return (
                     session.query(datasource_class)
