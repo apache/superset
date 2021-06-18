@@ -84,7 +84,7 @@ def import_chart(
 def import_dashboard(
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     dashboard_to_import: Dashboard,
-    dataset_id_mapping: Dict[int, int],
+    dataset_id_mapping: Optional[Dict[int, int]] = None,
     import_time: Optional[int] = None,
 ) -> int:
     """Imports the dashboard from the object to the database.
@@ -149,8 +149,10 @@ def import_dashboard(
         for native_filter in native_filter_configuration:
             for target in native_filter.get("targets", []):
                 old_dataset_id = target.get("datasetId")
-                if old_dataset_id is not None:
-                    target["datasetId"] = dataset_id_mapping[old_dataset_id]
+                if dataset_id_mapping and old_dataset_id is not None:
+                    target["datasetId"] = dataset_id_mapping.get(
+                        old_dataset_id, old_dataset_id,
+                    )
         dashboard.json_metadata = json.dumps(json_metadata)
 
     logger.info("Started import of the dashboard: %s", dashboard_to_import.to_json())

@@ -342,7 +342,9 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
             for native_filter in native_filter_configuration:
                 session = db.session()
                 for target in native_filter.get("targets", []):
-                    id_ = target["datasetId"]
+                    id_ = target.get("datasetId")
+                    if id_ is None:
+                        continue
                     datasource = ConnectorRegistry.get_datasource_by_id(session, id_)
                     datasource_ids.add((datasource.id, datasource.type))
 
