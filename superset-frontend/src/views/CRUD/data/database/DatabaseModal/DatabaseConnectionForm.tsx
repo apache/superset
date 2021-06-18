@@ -49,8 +49,6 @@ export const FormFieldOrder = [
   'query',
 ];
 
-const selectedFile = document.getElementById('selectedFile');
-
 interface FieldPropTypes {
   required: boolean;
   onParametersChange: (value: any) => string;
@@ -95,13 +93,14 @@ const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
           </Select>
         </>
       )}
-      {uploadOption === CredentialInfoOptions.copyPaste ? (
-        <div className="input-container" onChange={changeMethods.onChange}>
+      {uploadOption === CredentialInfoOptions.copyPaste || isEditMode ? (
+        <div className="input-container">
           <span className="label-select">Service Account</span>
           <textarea
             className="input-form"
-            name="encrypted_extra"
+            name="credentials_info"
             value={db?.parameters?.credentials_info}
+            onChange={changeMethods.onParametersChange}
           />
           <span className="label-paste">
             Copy and paste the entire service account .json file here
@@ -126,7 +125,7 @@ const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
                   setFileToUpload(null);
                   changeMethods.onParametersChange({
                     target: {
-                      name: 'encrypted_extra',
+                      name: 'credentials_info',
                       value: '',
                     },
                   });
@@ -148,12 +147,14 @@ const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
               changeMethods.onParametersChange({
                 target: {
                   type: null,
-                  name: 'encrypted_extra',
+                  name: 'credentials_info',
                   value: await file?.text(),
                   checked: false,
                 },
               });
-              (selectedFile as HTMLInputElement).value = null as any;
+              (document.getElementById(
+                'selectedFile',
+              ) as HTMLInputElement).value = null as any;
             }}
           />
         </div>
@@ -264,18 +265,16 @@ const passwordField = ({
   />
 );
 const displayField = ({
-  required,
   changeMethods,
   getValidation,
   validationErrors,
   db,
-  defaultDBName,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="database_name"
     name="database_name"
-    required={required}
-    value={db?.database_name || defaultDBName}
+    required
+    value={db?.database_name}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.database_name}
     placeholder=""
@@ -348,7 +347,7 @@ const FORM_FIELD_MAP = {
 };
 
 const DatabaseConnectionForm = ({
-  dbModel: { name: defaultDBName, parameters },
+  dbModel: { parameters },
   onParametersChange,
   onChange,
   onParametersUploadFileChange,
@@ -395,7 +394,6 @@ const DatabaseConnectionForm = ({
               onChange,
               onParametersUploadFileChange,
             },
-            defaultDBName,
             validationErrors,
             getValidation,
             db,

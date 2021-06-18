@@ -1445,7 +1445,19 @@ class BasicParametersMixin:
         port = parameters.get("port", None)
         if not port:
             return errors
-        if not is_port_open(host, port):
+        if not (isinstance(port, int) and 0 <= port < 2 ** 16):
+            errors.append(
+                SupersetError(
+                    message=(
+                        "The port must be an integer between 0 and 65535 "
+                        "(inclusive)."
+                    ),
+                    error_type=SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={"invalid": ["port"]},
+                ),
+            )
+        elif not is_port_open(host, port):
             errors.append(
                 SupersetError(
                     message="The port is closed.",

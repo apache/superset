@@ -192,13 +192,6 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.parametersChange:
-      if (action.payload.name === 'encrypted_extra') {
-        return {
-          ...trimmedState,
-          encrypted_extra: action.payload.value,
-          parameters: {},
-        };
-      }
       return {
         ...trimmedState,
         parameters: {
@@ -242,17 +235,25 @@ function dbReducer(
         ).toString();
       }
 
-      if (action.payload?.parameters?.credentials_info) {
-        // deserialize credentials info for big query editting
-        deserializeExtraJSON = JSON.stringify(
-          action.payload?.parameters.credentials_info,
-        );
+      if (action.payload.backend === 'bigquery') {
+        return {
+          ...action.payload,
+          engine: trimmedState.engine,
+          configuration_method: action.payload.configuration_method,
+          extra_json: deserializeExtraJSON,
+          parameters: {
+            query,
+            credentials_info: JSON.stringify(
+              action.payload?.parameters?.credentials_info || '',
+            ),
+          },
+        };
       }
 
       return {
         ...action.payload,
         engine: trimmedState.engine,
-        configuration_method: trimmedState.configuration_method,
+        configuration_method: action.payload.configuration_method,
         extra_json: deserializeExtraJSON,
         parameters: {
           ...action.payload.parameters,
@@ -288,7 +289,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   >(dbReducer, null);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
-  const [validationErrors, getValidation] = useDatabaseValidation();
+  const [
+    validationErrors,
+    getValidation,
+    setValidationErrors,
+  ] = useDatabaseValidation();
   const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
   const [dbName, setDbName] = useState('');
   const [isLoading, setLoading] = useState<boolean>(false);
@@ -344,6 +349,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onClose = () => {
     setDB({ type: ActionType.reset });
     setHasConnectedDb(false);
+    setValidationErrors(null); // reset validation errors on close
     onHide();
   };
 
@@ -358,8 +364,20 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           .replace(/&/g, '","')
           .replace(/=/g, '":"')}"}`,
       );
-    } else if (update.parameters) {
+    } else if (update?.parameters?.query === '') {
       update.parameters.query = {};
+    }
+
+    const engine = update.backend || update.engine;
+    if (
+      engine === 'bigquery' &&
+      update.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM &&
+      update.parameters?.credentials_info
+    ) {
+      // wrap encrypted_extra in credentials_info only for BigQuery
+      update.encrypted_extra = JSON.stringify({
+        credentials_info: JSON.parse(update.parameters?.credentials_info),
+      });
     }
 
     if (db?.id) {
@@ -391,13 +409,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     } else if (db) {
       // Create
-      if (update.encrypted_extra) {
-        // wrap encrypted_extra in credentials_info
-        update.encrypted_extra = JSON.stringify({
-          credentials_info: JSON.parse(update.encrypted_extra),
-        });
-      }
-
       if (update?.extra_json) {
         // convert extra_json to back to string
         update.extra = JSON.stringify({
@@ -605,7 +616,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const isDynamic = (engine: string | undefined) =>
     availableDbs?.databases.filter(
-      (DB: DatabaseObject) => DB.engine === engine,
+      (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
     )[0].parameters !== undefined;
 
   return useTabLayout ? (
@@ -666,7 +677,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 testConnection={testConnection}
                 isEditMode={isEditMode}
               />
-              {isDynamic(db?.engine) && (
+              {isDynamic(db?.backend || db?.engine) && (
                 <Button
                   buttonStyle="link"
                   onClick={() =>

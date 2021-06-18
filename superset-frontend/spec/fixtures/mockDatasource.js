@@ -164,6 +164,7 @@ export default {
         column_name: 'num_girls',
       },
     ],
+    column_types: [0, 1, 2],
     id,
     granularity_sqla: [['ds', 'ds']],
     name: 'birth_names',
