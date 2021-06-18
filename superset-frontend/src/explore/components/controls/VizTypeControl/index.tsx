@@ -309,19 +309,20 @@ const VizTypeControl = (props: VizTypeControlProps) => {
         })
         .filter(({ key }) => !typesWithDefaultOrder.has(key)),
     )
-    .filter(entry =>
-      filterStringParts.every(
-        part => entry.value?.name.toLowerCase().indexOf(part) !== -1,
-      ),
+    .filter(
+      entry =>
+        !!entry.value &&
+        filterStringParts.every(
+          part => entry.value?.name.toLowerCase().indexOf(part) !== -1,
+        ),
     )
-    .reduce((acc, entry: VizEntry) => {
-      const category = entry.value?.categories?.[0];
-      if (entry.value && category) {
-        if (!acc[category]) {
-          acc[category] = [];
-        }
-        acc[category].push(entry);
+    .reduce((acc, entry) => {
+      const category = entry.value?.categories?.[0] || 'Other';
+      if (!acc[category]) {
+        acc[category] = [];
       }
+      // typecast is safe because we filtered out falsy value already
+      acc[category].push(entry as VizEntry);
       return acc;
     }, {} as Record<string, VizEntry[]>);
 
