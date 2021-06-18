@@ -49,6 +49,7 @@ const alertIconStyles = (theme: SupersetTheme, hasError: boolean) => css`
   ${hasError &&
   `.ant-form-item-control-input-content {
       position: relative;
+
       &:after {
         content: ' ';
         display: inline-block;
