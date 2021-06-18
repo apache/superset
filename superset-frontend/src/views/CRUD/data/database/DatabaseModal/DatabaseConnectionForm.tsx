@@ -44,9 +44,9 @@ export const FormFieldOrder = [
   'username',
   'password',
   'database_name',
-  'query',
   'encryption',
   'credentials_info',
+  'query',
 ];
 
 const selectedFile = document.getElementById('selectedFile');
@@ -68,7 +68,7 @@ interface FieldPropTypes {
 
 const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
   const [uploadOption, setUploadOption] = useState<number>(
-    CredentialInfoOptions.copyPaste.valueOf(),
+    CredentialInfoOptions.jsonUpload.valueOf(),
   );
   const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
     null,

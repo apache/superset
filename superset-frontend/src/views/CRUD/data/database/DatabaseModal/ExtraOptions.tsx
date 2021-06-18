@@ -28,7 +28,6 @@ import {
   StyledExpandableForm,
   antdCollapseStyles,
   no_margin_bottom,
-  StyledInfoTooltip,
 } from './styles';
 import { DatabaseObject } from '../types';
 

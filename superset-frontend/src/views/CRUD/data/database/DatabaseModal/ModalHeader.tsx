@@ -24,6 +24,7 @@ import {
   CreateHeaderTitle,
   CreateHeaderSubtitle,
   StyledFormHeader,
+  StyledStickyHeader,
 } from './styles';
 import { DatabaseForm, DatabaseObject } from '../types';
 
@@ -66,8 +67,8 @@ const ModalHeader = ({
     </>
   );
   const useSqlAlchemyFormHeader = (
-    <>
-      <p className="helper"> Step 2 of 2 </p>
+    <StyledFormHeader>
+      <p className="helper"> STEP 2 OF 2 </p>
       <CreateHeaderTitle>Enter Primary Credentials</CreateHeaderTitle>
       <CreateHeaderSubtitle>
         Need help? Learn how to connect your database{' '}
@@ -76,11 +77,11 @@ const ModalHeader = ({
         </a>
         .
       </CreateHeaderSubtitle>
-    </>
+    </StyledFormHeader>
   );
   const hasConnectedDbHeader = (
     <StyledFormHeader>
-      <p className="helper"> Step 3 of 3 </p>
+      <p className="helper"> STEP 3 OF 3 </p>
       <h4>
         Your database was successfully connected! Here are some optional
         settings for your database
@@ -98,18 +99,20 @@ const ModalHeader = ({
     </StyledFormHeader>
   );
   const hasDbHeader = (
-    <StyledFormHeader>
-      <p className="helper"> Step 2 of 3 </p>
-      <h4>Enter the required {dbModel.name} credentials</h4>
-      <p className="helper">
-        Need help? Learn more about connecting to {dbModel.name}.
-      </p>
-    </StyledFormHeader>
+    <StyledStickyHeader>
+      <StyledFormHeader>
+        <p className="helper"> STEP 2 OF 3 </p>
+        <h4>Enter the required {dbModel.name} credentials</h4>
+        <p className="helper">
+          Need help? Learn more about connecting to {dbModel.name}.
+        </p>
+      </StyledFormHeader>
+    </StyledStickyHeader>
   );
   const noDbHeader = (
     <StyledFormHeader>
       <div className="select-db">
-        <p className="helper"> Step 1 of 3 </p>
+        <p className="helper"> STEP 1 OF 3 </p>
         <h4>Select a database to connect</h4>
       </div>
     </StyledFormHeader>

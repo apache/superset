@@ -643,7 +643,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           />
         </TabHeader>
       </StyledStickyHeader>
-      <hr />
       <Tabs
         defaultActiveKey={DEFAULT_TAB_KEY}
         activeKey={tabKey}
