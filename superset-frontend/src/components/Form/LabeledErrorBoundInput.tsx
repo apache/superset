@@ -20,10 +20,8 @@ import React from 'react';
 import { Input } from 'antd';
 import { styled, css, SupersetTheme } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
-import { infoTooltip } from 'src/views/CRUD/data/database/DatabaseModal/styles';
 import FormItem from './FormItem';
 import FormLabel from './FormLabel';
-
 export interface LabeledErrorBoundInputProps {
   label?: string;
   validationMethods:
@@ -38,11 +36,9 @@ export interface LabeledErrorBoundInputProps {
   classname?: string;
   [x: string]: any;
 }
-
 const StyledInput = styled(Input)`
   margin: ${({ theme }) => `${theme.gridUnit}px 0 ${theme.gridUnit * 2}px`};
 `;
-
 const alertIconStyles = (theme: SupersetTheme, hasError: boolean) => css`
   .ant-form-item-children-icon {
     display: none;
@@ -50,7 +46,6 @@ const alertIconStyles = (theme: SupersetTheme, hasError: boolean) => css`
   ${hasError &&
   `.ant-form-item-control-input-content {
       position: relative;
-
       &:after {
         content: ' ';
         display: inline-block;
@@ -76,7 +71,12 @@ const StyledFormGroup = styled('div')`
     margin-bottom: 0;
   }
 `;
-
+const infoTooltip = (theme: SupersetTheme) => css`
+  svg {
+    vertical-align: bottom;
+    margin-bottom: ${theme.gridUnit * 0.25}px;
+  }
+`;
 const LabeledErrorBoundInput = ({
   label,
   validationMethods,
@@ -90,14 +90,19 @@ const LabeledErrorBoundInput = ({
   ...props
 }: LabeledErrorBoundInputProps) => (
   <StyledFormGroup className={className}>
-    <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-      <FormLabel htmlFor={id} required={required}>
-        {label}
-
-        {/*The params for this show up in storybook, but nothing changes when I toggle true/false */}
-        {hasTooltip && <InfoTooltip tooltip={`${tooltipText}`} />}
-      </FormLabel>
-    </div>
+    <FormLabel
+      htmlFor={id}
+      required={required}
+      css={(theme: SupersetTheme) => infoTooltip(theme)}
+    >
+      {label}
+    </FormLabel>
+    {hasTooltip && (
+      <span>
+        {' '}
+        <InfoTooltip tooltip={`${tooltipText}`} />
+      </span>
+    )}
     <FormItem
       css={(theme: SupersetTheme) => alertIconStyles(theme, !!errorMessage)}
       validateTrigger={Object.keys(validationMethods)}
@@ -109,5 +114,4 @@ const LabeledErrorBoundInput = ({
     </FormItem>
   </StyledFormGroup>
 );
-
 export default LabeledErrorBoundInput;
