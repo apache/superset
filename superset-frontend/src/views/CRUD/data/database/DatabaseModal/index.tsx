@@ -418,6 +418,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         });
       }
       setLoading(true);
+      await getValidation(db);
+      await validationErrors;
+      console.log(validationErrors);
       const dbId = await createResource(update as DatabaseObject);
       if (dbId) {
         setHasConnectedDb(true);
@@ -613,7 +616,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         type="error"
         css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
         message="Missing Required Fields"
-        description={errors?.port || ''}
+        description=""
         showIcon
       />
     );
@@ -882,8 +885,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     css={(theme: SupersetTheme) => antDAlertStyles(theme)}
                     type="info"
                     showIcon
-                    message={t('Whitelisting IPs')}
-                    description={connectionAlert.WHITELISTED_IPS}
+                    message={t('Allowlist')}
+                    description={connectionAlert.ALLOWED_IPS}
                   />
                 )}
                 <DatabaseConnectionForm
