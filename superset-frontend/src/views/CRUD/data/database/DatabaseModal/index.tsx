@@ -192,13 +192,6 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.parametersChange:
-      if (action.payload.name === 'encrypted_extra') {
-        return {
-          ...trimmedState,
-          encrypted_extra: action.payload.value,
-          parameters: {},
-        };
-      }
       return {
         ...trimmedState,
         parameters: {
@@ -242,6 +235,21 @@ function dbReducer(
         ).toString();
       }
 
+      if (action.payload.backend === 'bigquery') {
+        return {
+          ...action.payload,
+          engine: trimmedState.engine,
+          configuration_method: action.payload.configuration_method,
+          extra_json: deserializeExtraJSON,
+          parameters: {
+            query,
+            credentials_info: JSON.stringify(
+              action.payload?.parameters?.credentials_info || '',
+            ),
+          },
+        };
+      }
+
       return {
         ...action.payload,
         engine: trimmedState.engine,
@@ -250,9 +258,6 @@ function dbReducer(
         parameters: {
           ...action.payload.parameters,
           query,
-          credentials_info: JSON.stringify(
-            action.payload?.parameters?.credentials_info || '',
-          ),
         },
       };
     case ActionType.dbSelected:
@@ -346,7 +351,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onSave = async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...update } = db || {};
-    if (update?.parameters?.query) {
+    if (update?.parameters?.query || update?.parameters?.query) {
       // convert query params into dictionary
       update.parameters.query = JSON.parse(
         `{"${decodeURI((update?.parameters?.query as string) || '')
@@ -354,6 +359,20 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           .replace(/&/g, '","')
           .replace(/=/g, '":"')}"}`,
       );
+    } else {
+      update.parameters.query = {};
+    }
+
+    const engine = update.backend || update.engine;
+    if (
+      engine === 'bigquery' &&
+      update.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM &&
+      update.parameters?.credentials_info
+    ) {
+      // wrap encrypted_extra in credentials_info only for BigQuery
+      update.encrypted_extra = JSON.stringify({
+        credentials_info: JSON.parse(update.parameters?.credentials_info),
+      });
     }
 
     if (db?.id) {
@@ -385,17 +404,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     } else if (db) {
       // Create
-      if (
-        update.engine === 'bigquery' &&
-        update.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM &&
-        update.encrypted_extra
-      ) {
-        // wrap encrypted_extra in credentials_info only for BigQuery
-        update.encrypted_extra = JSON.stringify({
-          credentials_info: JSON.parse(update.encrypted_extra),
-        });
-      }
-
       if (update?.extra_json) {
         // convert extra_json to back to string
         update.extra = JSON.stringify({
