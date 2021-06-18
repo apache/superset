@@ -58,11 +58,8 @@ export const useDefaultValue = (
   );
   const setHasDefaultValue = useCallback(
     (value?) => {
-      setHasPartialDefaultValue(
-        value || formFilter?.controlValues?.enableEmptyFilter
-          ? true
-          : undefined,
-      );
+      const required = !!formFilter?.controlValues?.enableEmptyFilter;
+      setHasPartialDefaultValue(required ? true : value);
     },
     [formFilter?.controlValues?.enableEmptyFilter],
   );
