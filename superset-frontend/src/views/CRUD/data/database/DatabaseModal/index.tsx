@@ -610,7 +610,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const isDynamic = (engine: string | undefined) =>
     availableDbs?.databases.filter(
-      (DB: DatabaseObject) => DB.engine === engine,
+      (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
     )[0].parameters !== undefined;
 
   return useTabLayout ? (
