@@ -27,7 +27,7 @@ const defaultProps = {
   validationMethods: () => {},
   errorMessage: '',
   helpText: 'This is a line of example help text',
-  hasTooltip: true,
+  hasTooltip: false,
   tooltipText: 'This is a tooltip',
   value: '',
   placeholder: 'Example placeholder text...',
@@ -61,13 +61,16 @@ describe('LabeledErrorBoundInput', () => {
     expect(errorText).toBeVisible();
   });
   it('renders a LabledErrorBoundInput with a InfoTooltip', async () => {
+    defaultProps.hasTooltip = true;
     render(<LabeledErrorBoundInput {...defaultProps} />);
 
     const label = screen.getByText(/username/i);
     const textboxInput = screen.getByRole('textbox');
+    const tooltipIcon = screen.getByTestId('info-solid-small');
 
-    fireEvent.mouseOver(screen.getByTestId('info-solid-small'));
+    fireEvent.mouseOver(tooltipIcon);
 
+    expect(tooltipIcon).toBeVisible();
     expect(label).toBeVisible();
     expect(textboxInput).toBeVisible();
     expect(await screen.findByText('This is a tooltip')).toBeInTheDocument();
