@@ -264,7 +264,6 @@ const passwordField = ({
   />
 );
 const displayField = ({
-  required,
   changeMethods,
   getValidation,
   validationErrors,
