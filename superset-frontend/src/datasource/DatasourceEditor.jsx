@@ -94,9 +94,6 @@ const EditLockContainer = styled.div`
   a {
     padding: 0 10px;
   }
-  span[role='img'] {
-    margin-top: -3px;
-  }
 `;
 
 const ColumnButtonWrapper = styled.div`
