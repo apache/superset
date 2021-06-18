@@ -674,7 +674,6 @@ class DatasourceEditor extends React.PureComponent {
   renderSpatialTab() {
     const { datasource } = this.state;
     const { spatials, all_cols: allCols } = datasource;
-    console.log('Icons', Icons);
     return (
       <Tabs.TabPane
         tab={<CollectionTabTitle collection={spatials} title={t('Spatial')} />}
