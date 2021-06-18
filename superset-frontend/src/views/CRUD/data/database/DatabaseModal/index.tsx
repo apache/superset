@@ -351,7 +351,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onSave = async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...update } = db || {};
-    if (update?.parameters?.query || update?.parameters?.query) {
+    if (update?.parameters?.query) {
       // convert query params into dictionary
       update.parameters.query = JSON.parse(
         `{"${decodeURI((update?.parameters?.query as string) || '')
