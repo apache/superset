@@ -125,7 +125,7 @@ const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
                   setFileToUpload(null);
                   changeMethods.onParametersChange({
                     target: {
-                      name: 'encrypted_extra',
+                      name: 'credentials_info',
                       value: '',
                     },
                   });
@@ -147,7 +147,7 @@ const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
               changeMethods.onParametersChange({
                 target: {
                   type: null,
-                  name: 'encrypted_extra',
+                  name: 'credentials_info',
                   value: await file?.text(),
                   checked: false,
                 },
