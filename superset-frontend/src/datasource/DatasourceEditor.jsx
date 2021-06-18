@@ -94,8 +94,8 @@ const EditLockContainer = styled.div`
   a {
     padding: 0 10px;
   }
-  span[role=img] {
-    margin-top: -3px; 
+  span[role='img'] {
+    margin-top: -3px;
   }
 `;
 
@@ -674,7 +674,7 @@ class DatasourceEditor extends React.PureComponent {
   renderSpatialTab() {
     const { datasource } = this.state;
     const { spatials, all_cols: allCols } = datasource;
-    console.log('Icons', Icons)
+    console.log('Icons', Icons);
     return (
       <Tabs.TabPane
         tab={<CollectionTabTitle collection={spatials} title={t('Spatial')} />}
@@ -846,16 +846,15 @@ class DatasourceEditor extends React.PureComponent {
         {this.allowEditSource && (
           <EditLockContainer>
             <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
-              {
-                this.state.isEditMode ?
-                  <Icons.LockUnlocked
-                    iconColor={supersetTheme.colors.grayscale.base}
-                  />
-                :
-                  <Icons.LockLocked
-                    iconColor={supersetTheme.colors.grayscale.base}
-                  />
-              }
+              {this.state.isEditMode ? (
+                <Icons.LockUnlocked
+                  iconColor={supersetTheme.colors.grayscale.base}
+                />
+              ) : (
+                <Icons.LockLocked
+                  iconColor={supersetTheme.colors.grayscale.base}
+                />
+              )}
             </span>
             {!this.state.isEditMode && (
               <div>{t('Click the lock to make changes.')}</div>
