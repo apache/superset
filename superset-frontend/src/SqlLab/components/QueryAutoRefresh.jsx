@@ -26,8 +26,8 @@ import * as Actions from '../actions/sqlLab';
 
 const QUERY_UPDATE_FREQ = 2000;
 const QUERY_UPDATE_BUFFER_MS = 5000;
-const MAX_QUERY_AGE_TO_POLL = 21600000;
-const QUERY_TIMEOUT_LIMIT = 10000;
+const MAX_QUERY_AGE_TO_POLL = 21_600_000;
+const QUERY_TIMEOUT_LIMIT = 10_000;
 
 class QueryAutoRefresh extends React.PureComponent {
   constructor(props) {

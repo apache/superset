@@ -90,7 +90,7 @@ export const D3_FORMAT_OPTIONS = [
   ['DURATION_SUB', 'Duration in ms (100.40008 => 100ms 400µs 80ns)'],
 ];
 
-const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
+const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10_000, 50_000];
 
 const SERIES_LIMITS = [0, 5, 10, 25, 50, 100, 500];
 
@@ -361,7 +361,7 @@ export const controls = {
     freeForm: true,
     label: t('Row limit'),
     validators: [legacyValidateInteger],
-    default: 10000,
+    default: 10_000,
     choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   },
 

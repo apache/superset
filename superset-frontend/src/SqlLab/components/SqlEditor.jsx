@@ -74,7 +74,7 @@ import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
 import RunQueryActionButton from './RunQueryActionButton';
 
-const LIMIT_DROPDOWN = [10, 100, 1000, 10000, 100000];
+const LIMIT_DROPDOWN = [10, 100, 1000, 10_000, 100_000];
 const SQL_EDITOR_PADDING = 10;
 const INITIAL_NORTH_PERCENT = 30;
 const INITIAL_SOUTH_PERCENT = 70;

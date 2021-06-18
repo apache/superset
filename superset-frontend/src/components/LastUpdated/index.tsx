@@ -21,7 +21,7 @@ import moment, { Moment, MomentInput } from 'moment';
 import { t, styled } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
 
-const REFRESH_INTERVAL = 60000; // every minute
+const REFRESH_INTERVAL = 60_000; // every minute
 
 interface LastUpdatedProps {
   updatedAt: MomentInput;
