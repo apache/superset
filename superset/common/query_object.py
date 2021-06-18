@@ -17,7 +17,7 @@
 # pylint: disable=R
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, NamedTuple, Optional, Union
+from typing import Any, Dict, List, NamedTuple, Optional
 
 from flask_babel import gettext as _
 from pandas import DataFrame
