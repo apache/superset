@@ -184,8 +184,6 @@ const hostField = ({
   changeMethods,
   getValidation,
   validationErrors,
-  hasTooltip,
-  tooltipText,
   db,
 }: FieldPropTypes) => (
   <ValidatedInput
@@ -193,7 +191,7 @@ const hostField = ({
     name="host"
     value={db?.parameters?.host}
     required={required}
-    hasTooltip={true}
+    hasTooltip
     tooltipText={t(
       'This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).',
     )}
