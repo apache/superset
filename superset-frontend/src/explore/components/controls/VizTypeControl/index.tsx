@@ -142,7 +142,7 @@ const UnpaddedModal = styled(Modal)`
 
 const VizPickerLayout = styled.div`
   display: grid;
-  grid-template-rows: auto auto 30%;
+  grid-template-rows: auto 1fr 30%;
   height: 70vh;
 `;
 
@@ -206,6 +206,13 @@ const CategoriesTabs = styled(Tabs)`
 const DetailsPane = styled.div`
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   padding: ${({ theme }) => theme.gridUnit * 4}px;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+`;
+
+const Description = styled.p`
+  overflow: auto;
 `;
 
 const SearchPane = styled.div`
@@ -387,10 +394,10 @@ const VizTypeControl = (props: VizTypeControlProps) => {
           </CategoriesTabs>
           <DetailsPane>
             <SectionTitle>{selectedVizMetadata?.name}</SectionTitle>
-            <p>
+            <Description>
               {selectedVizMetadata?.description ||
                 t('No description available.')}
-            </p>
+            </Description>
           </DetailsPane>
         </VizPickerLayout>
       </UnpaddedModal>
