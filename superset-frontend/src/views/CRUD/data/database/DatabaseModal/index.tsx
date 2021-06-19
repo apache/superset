@@ -356,28 +356,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onSave = async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...update } = db || {};
-    if (update?.parameters?.query) {
-      // convert query params into dictionary
-      update.parameters.query = JSON.parse(
-        `{"${decodeURI((update?.parameters?.query as string) || '')
-          .replace(/"/g, '\\"')
-          .replace(/&/g, '","')
-          .replace(/=/g, '":"')}"}`,
-      );
-    } else if (update?.parameters?.query === '') {
-      update.parameters.query = {};
-    }
 
-    const engine = update.backend || update.engine;
-    if (
-      engine === 'bigquery' &&
-      update.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM &&
-      update.parameters?.credentials_info
-    ) {
-      // wrap encrypted_extra in credentials_info only for BigQuery
-      update.encrypted_extra = JSON.stringify({
-        credentials_info: JSON.parse(update.parameters?.credentials_info),
-      });
+    if (update.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
+      if (update?.parameters?.query) {
+        // convert query params into dictionary
+        update.parameters.query = JSON.parse(
+          `{"${decodeURI((update?.parameters?.query as string) || '')
+            .replace(/"/g, '\\"')
+            .replace(/&/g, '","')
+            .replace(/=/g, '":"')}"}`,
+        );
+      } else if (update?.parameters?.query === '') {
+        update.parameters.query = {};
+      }
+
+      const engine = update.backend || update.engine;
+      if (engine === 'bigquery' && update.parameters?.credentials_info) {
+        // wrap encrypted_extra in credentials_info only for BigQuery
+        update.encrypted_extra = JSON.stringify({
+          credentials_info: JSON.parse(update.parameters?.credentials_info),
+        });
+      }
     }
 
     if (db?.id) {
