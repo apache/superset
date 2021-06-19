@@ -56,9 +56,13 @@ export const useDefaultValue = (
     !!filterToEdit?.defaultDataMask?.filterState?.value ||
       formFilter?.controlValues?.enableEmptyFilter,
   );
+  const [isRequired, setisRequired] = useState(
+    formFilter?.controlValues?.enableEmptyFilter,
+  );
   const setHasDefaultValue = useCallback(
     (value?) => {
-      const required = !!formFilter?.controlValues?.enableEmptyFilter;
+      const required = !!formFilter?.controlValues?.enableEmptyFilter
+      setisRequired(required);
       setHasPartialDefaultValue(required ? true : value);
     },
     [formFilter?.controlValues?.enableEmptyFilter],
@@ -68,5 +72,5 @@ export const useDefaultValue = (
     setHasDefaultValue();
   }, [setHasDefaultValue]);
 
-  return [hasDefaultValue, setHasDefaultValue];
+  return [hasDefaultValue, isRequired, setHasDefaultValue];
 };

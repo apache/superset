@@ -454,7 +454,7 @@ const FiltersConfigForm = (
     ...formFilter,
   });
 
-  const [hasDefaultValue, setHasDefaultValue] = useDefaultValue(
+  const [hasDefaultValue, isRequired, setHasDefaultValue] = useDefaultValue(
     formFilter,
     filterToEdit,
   );
@@ -713,6 +713,7 @@ const FiltersConfigForm = (
             <CollapsibleControl
               title={t('Filter has default value')}
               initialValue={hasDefaultValue}
+              disabled={isRequired}
               checked={hasDefaultValue}
               onChange={value => setHasDefaultValue(value)}
             >

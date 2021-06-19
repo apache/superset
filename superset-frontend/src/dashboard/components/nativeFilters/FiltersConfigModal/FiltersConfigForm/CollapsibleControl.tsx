@@ -22,6 +22,7 @@ import { Checkbox } from 'src/common/components';
 
 interface CollapsibleControlProps {
   initialValue?: boolean;
+  disabled?: boolean;
   checked?: boolean;
   title: string;
   children: ReactNode;
@@ -48,6 +49,7 @@ const StyledContainer = styled.div<{ checked: boolean }>`
 const CollapsibleControl = (props: CollapsibleControlProps) => {
   const {
     checked,
+    disabled,
     title,
     children,
     onChange = () => {},
@@ -68,6 +70,7 @@ const CollapsibleControl = (props: CollapsibleControlProps) => {
       <Checkbox
         className="checkbox"
         checked={isChecked}
+        disabled={disabled}
         onChange={e => {
           const value = e.target.checked;
           // external `checked` value has more priority then local state
