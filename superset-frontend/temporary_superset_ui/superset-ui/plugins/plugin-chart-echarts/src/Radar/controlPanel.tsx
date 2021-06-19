@@ -88,7 +88,6 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['color_scheme'],
-        [<h1 className="section-header">{t('Legend')}</h1>],
         isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)
           ? [
               {
