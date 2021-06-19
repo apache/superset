@@ -96,7 +96,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.typing import FlaskResponse, FormData, Metric
+from superset.typing import AdhocMetric, FlaskResponse, FormData, Metric
 from superset.utils.dates import datetime_to_epoch, EPOCH
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
 
@@ -1494,7 +1494,7 @@ def get_column_name_from_metric(metric: Metric) -> Optional[str]:
     :return: column name if simple metric, otherwise None
     """
     if is_adhoc_metric(metric):
-        metric = cast(Dict[str, Any], metric)
+        metric = cast(AdhocMetric, metric)
         if metric["expressionType"] == AdhocMetricExpressionType.SIMPLE:
             return cast(Dict[str, Any], metric["column"])["column_name"]
     return None

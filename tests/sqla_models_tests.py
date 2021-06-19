@@ -26,7 +26,12 @@ from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.exceptions import QueryObjectValidationError
 from superset.models.core import Database
-from superset.utils.core import GenericDataType, get_example_database, FilterOperator
+from superset.utils.core import (
+    AdhocMetricExpressionType,
+    FilterOperator,
+    GenericDataType,
+    get_example_database,
+)
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 from .base_tests import SupersetTestCase
@@ -166,6 +171,50 @@ class TestDatabaseModel(SupersetTestCase):
         # Cleanup
         for table in [table1, table2, table3]:
             db.session.delete(table)
+        db.session.commit()
+
+    @patch("superset.jinja_context.g")
+    def test_jinja_metrics_and_calc_columns(self, flask_g):
+        flask_g.user.username = "abc"
+        base_query_obj = {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "groupby": ["user", "expr"],
+            "metrics": [
+                {
+                    "expressionType": AdhocMetricExpressionType.SQL,
+                    "sqlExpression": "SUM(case when user = '{{ current_username() }}' "
+                    "then 1 else 0 end)",
+                    "label": "SUM(userid)",
+                }
+            ],
+            "is_timeseries": False,
+            "filter": [],
+        }
+
+        table = SqlaTable(
+            table_name="test_has_jinja_metric_and_expr",
+            sql="SELECT '{{ current_username() }}' as user",
+            database=get_example_database(),
+        )
+        TableColumn(
+            column_name="expr",
+            expression="case when '{{ current_username() }}' = 'abc' "
+            "then 'yes' else 'no' end",
+            type="VARCHAR(100)",
+            table=table,
+        )
+        db.session.commit()
+
+        sqla_query = table.get_sqla_query(**base_query_obj)
+        query = table.database.compile_sqla_query(sqla_query.sqla_query)
+        # assert expression
+        assert "case when 'abc' = 'abc' then 'yes' else 'no' end" in query
+        # assert metric
+        assert "SUM(case when user = 'abc' then 1 else 0 end)" in query
+        # Cleanup
+        db.session.delete(table)
         db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
