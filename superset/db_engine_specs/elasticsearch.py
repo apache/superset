@@ -63,6 +63,11 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
             return f"""CAST('{dttm.isoformat(timespec="seconds")}' AS DATETIME)"""
         return None
 
+    @classmethod
+    def execute(cls, cursor: Any, query: str, **kwargs: Any) -> None:
+        cursor.fetch_size = app.config['ROW_LIMIT']
+        return super().execute(cursor, query, **kwargs)
+
 
 class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
