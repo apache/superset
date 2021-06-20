@@ -37,6 +37,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.reports import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
+from superset.utils.core import backend
 from superset.views.base import generate_download_headers
 
 from tests.base_api_tests import ApiOwnersTestCaseMixin
@@ -182,7 +183,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         result = data["result"]
         actual_dataset_ids = set([dataset["id"] for dataset in result])
         self.assertEqual(actual_dataset_ids, expected_dataset_ids)
-        self.assertEqual(result[0]["column_types"], [0, 1, 2])
+        expected_values = [0, 1] if backend() == "presto" else [0, 1, 2]
+        self.assertEqual(result[0]["column_types"], expected_values)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_dashboard_datasets_not_found(self):

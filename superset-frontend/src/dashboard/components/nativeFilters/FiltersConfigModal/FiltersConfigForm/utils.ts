@@ -19,7 +19,7 @@
 import { flatMapDeep } from 'lodash';
 import { FormInstance } from 'antd/lib/form';
 import React from 'react';
-import { CustomControlItem } from '@superset-ui/chart-controls';
+import { CustomControlItem, DatasourceMeta } from '@superset-ui/chart-controls';
 
 const FILTERS_FIELD_NAME = 'filters';
 
@@ -64,7 +64,9 @@ type DatasetSelectValue = {
   label: string;
 };
 
-export const datasetToSelectOption = (item: any): DatasetSelectValue => ({
+export const datasetToSelectOption = (
+  item: DatasourceMeta & { table_name: string },
+): DatasetSelectValue => ({
   value: item.id,
   label: item.table_name,
 });
