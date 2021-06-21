@@ -107,7 +107,10 @@ def update_id_refs(config: Dict[str, Any], chart_ids: Dict[str, int]) -> Dict[st
 
 
 def import_dashboard(
-    session: Session, config: Dict[str, Any], overwrite: bool = False
+    session: Session,
+    config: Dict[str, Any],
+    overwrite: bool = False,
+    requester_as_owner: bool = False,
 ) -> Dashboard:
     existing = session.query(Dashboard).filter_by(uuid=config["uuid"]).first()
     if existing:
@@ -126,6 +129,9 @@ def import_dashboard(
                 logger.info("Unable to encode `%s` field: %s", key, value)
 
     dashboard = Dashboard.import_from_dict(session, config, recursive=False)
+    logger.info(f"requester_as_owner: {requester_as_owner}")
+    if requester_as_owner:
+        dashboard.reset_ownership()
     if dashboard.id is None:
         session.flush()
 

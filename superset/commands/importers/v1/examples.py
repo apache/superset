@@ -76,6 +76,7 @@ class ImportExamplesCommand(ImportModelsCommand):
         session: Session,
         configs: Dict[str, Any],
         overwrite: bool = False,
+        requester_as_owner: bool = False,
         force_data: bool = False,
     ) -> None:
         # import databases
@@ -124,7 +125,12 @@ class ImportExamplesCommand(ImportModelsCommand):
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 config = update_id_refs(config, chart_ids)
-                dashboard = import_dashboard(session, config, overwrite=overwrite)
+                dashboard = import_dashboard(
+                    session,
+                    config,
+                    overwrite=overwrite,
+                    requester_as_owner=requester_as_owner,
+                )
                 for uuid in find_chart_uuids(config["position"]):
                     chart_id = chart_ids[uuid]
                     if (dashboard.id, chart_id) not in existing_relationships:

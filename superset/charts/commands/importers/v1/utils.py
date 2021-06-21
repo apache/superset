@@ -24,7 +24,10 @@ from superset.models.slice import Slice
 
 
 def import_chart(
-    session: Session, config: Dict[str, Any], overwrite: bool = False
+    session: Session,
+    config: Dict[str, Any],
+    overwrite: bool = False,
+    requester_as_owner: bool = False,
 ) -> Slice:
     existing = session.query(Slice).filter_by(uuid=config["uuid"]).first()
     if existing:
@@ -36,6 +39,8 @@ def import_chart(
     config["params"] = json.dumps(config["params"])
 
     chart = Slice.import_from_dict(session, config, recursive=False)
+    if requester_as_owner:
+        chart.reset_ownership()
     if chart.id is None:
         session.flush()
 

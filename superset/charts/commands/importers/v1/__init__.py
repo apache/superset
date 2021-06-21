@@ -48,7 +48,10 @@ class ImportChartsCommand(ImportModelsCommand):
 
     @staticmethod
     def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
+        session: Session,
+        configs: Dict[str, Any],
+        overwrite: bool = False,
+        requester_as_owner: bool = False,
     ) -> None:
         # discover datasets associated with charts
         dataset_uuids: Set[str] = set()
@@ -95,4 +98,9 @@ class ImportChartsCommand(ImportModelsCommand):
                     }
                 )
                 config["params"].update({"datasource": dataset.uid})
-                import_chart(session, config, overwrite=overwrite)
+                import_chart(
+                    session,
+                    config,
+                    overwrite=overwrite,
+                    requester_as_owner=requester_as_owner,
+                )

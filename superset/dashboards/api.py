@@ -955,9 +955,13 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             else None
         )
         overwrite = request.form.get("overwrite") == "true"
-
+        requester_as_owner = request.form.get("requesterAsOwner")
+        logger.info(f"import formdata {request.form}")
         command = ImportDashboardsCommand(
-            contents, passwords=passwords, overwrite=overwrite
+            contents,
+            passwords=passwords,
+            overwrite=overwrite,
+            requester_as_owner=requester_as_owner,
         )
         command.run()
         return self.response(200, message="OK")

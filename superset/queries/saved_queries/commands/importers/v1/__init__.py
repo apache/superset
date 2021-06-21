@@ -46,7 +46,10 @@ class ImportSavedQueriesCommand(ImportModelsCommand):
 
     @staticmethod
     def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
+        session: Session,
+        configs: Dict[str, Any],
+        overwrite: bool = False,
+        requester_as_owner: bool = False,
     ) -> None:
         # discover databases associated with saved queries
         database_uuids: Set[str] = set()
@@ -58,7 +61,12 @@ class ImportSavedQueriesCommand(ImportModelsCommand):
         database_ids: Dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
-                database = import_database(session, config, overwrite=False)
+                database = import_database(
+                    session,
+                    config,
+                    overwrite=False,
+                    requester_as_owner=requester_as_owner,
+                )
                 database_ids[str(database.uuid)] = database.id
 
         # import saved queries with the correct parent ref

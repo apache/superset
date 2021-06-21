@@ -81,6 +81,7 @@ def import_dataset(
     session: Session,
     config: Dict[str, Any],
     overwrite: bool = False,
+    requester_as_owner: bool = False,
     force_data: bool = False,
 ) -> SqlaTable:
     existing = session.query(SqlaTable).filter_by(uuid=config["uuid"]).first()
@@ -113,6 +114,8 @@ def import_dataset(
 
     # import recursively to include columns and metrics
     dataset = SqlaTable.import_from_dict(session, config, recursive=True, sync=sync)
+    if requester_as_owner:
+        dataset.reset_ownership()
     if dataset.id is None:
         session.flush()
 

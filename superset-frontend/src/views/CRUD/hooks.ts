@@ -394,6 +394,7 @@ export function useImportResource(
       bundle: File,
       databasePasswords: Record<string, string> = {},
       overwrite = false,
+      requesterAsOwner = false,
     ) => {
       // Set loading state
       updateState({
@@ -414,6 +415,10 @@ export function useImportResource(
        */
       if (overwrite) {
         formData.append('overwrite', 'true');
+      }
+
+      if (requesterAsOwner) {
+        formData.append('requesterAsOwner', 'true');
       }
 
       return SupersetClient.post({

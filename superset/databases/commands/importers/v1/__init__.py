@@ -44,13 +44,21 @@ class ImportDatabasesCommand(ImportModelsCommand):
 
     @staticmethod
     def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
+        session: Session,
+        configs: Dict[str, Any],
+        overwrite: bool = False,
+        requester_as_owner: bool = False,
     ) -> None:
         # first import databases
         database_ids: Dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/"):
-                database = import_database(session, config, overwrite=overwrite)
+                database = import_database(
+                    session,
+                    config,
+                    overwrite=overwrite,
+                    requester_as_owner=requester_as_owner,
+                )
                 database_ids[str(database.uuid)] = database.id
 
         # import related datasets
@@ -61,4 +69,9 @@ class ImportDatabasesCommand(ImportModelsCommand):
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
                 # overwrite=False prevents deleting any non-imported columns/metrics
-                import_dataset(session, config, overwrite=False)
+                import_dataset(
+                    session,
+                    config,
+                    overwrite=False,
+                    requester_as_owner=requester_as_owner,
+                )

@@ -24,7 +24,10 @@ from superset.models.core import Database
 
 
 def import_database(
-    session: Session, config: Dict[str, Any], overwrite: bool = False
+    session: Session,
+    config: Dict[str, Any],
+    overwrite: bool = False,
+    requester_as_owner: bool = False,
 ) -> Database:
     existing = session.query(Database).filter_by(uuid=config["uuid"]).first()
     if existing:
@@ -36,6 +39,8 @@ def import_database(
     config["extra"] = json.dumps(config["extra"])
 
     database = Database.import_from_dict(session, config, recursive=False)
+    if requester_as_owner:
+        database.reset_ownership()
     if database.id is None:
         session.flush()
 

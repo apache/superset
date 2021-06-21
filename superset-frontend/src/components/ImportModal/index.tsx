@@ -26,6 +26,7 @@ import Modal from 'src/components/Modal';
 import { Upload } from 'src/common/components';
 import { useImportResource } from 'src/views/CRUD/hooks';
 import { ImportResourceName } from 'src/views/CRUD/types';
+import Checkbox from '../Checkbox';
 
 export const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
@@ -135,6 +136,10 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     false,
   );
   const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
+  const [
+    confirmedRequesterAsOwner,
+    setConfirmedRequesterAsOwner,
+  ] = useState<boolean>(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [importingModel, setImportingModel] = useState<boolean>(false);
 
@@ -144,6 +149,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     setPasswords({});
     setNeedsOverwriteConfirm(false);
     setConfirmedOverwrite(false);
+    setConfirmedRequesterAsOwner(false);
     setImportingModel(false);
   };
 
@@ -188,6 +194,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       fileList[0].originFileObj,
       passwords,
       confirmedOverwrite,
+      confirmedRequesterAsOwner,
     ).then(result => {
       if (result) {
         addSuccessToast(t('The import was successful'));
@@ -269,6 +276,22 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     );
   };
 
+  const renderRequesterAsOwner = () => (
+    <>
+      <StyledInputContainer>
+        <div className="confirm-requester-as-owner">
+          {confirmOverwriteMessage}
+        </div>
+        <div className="control-label">{t('Set My User as owner')}</div>
+        <Checkbox
+          data-test="requester-as-owner-modal-input"
+          onChange={(val?: boolean) => setConfirmedRequesterAsOwner(val)}
+          checked={confirmedRequesterAsOwner}
+        />
+      </StyledInputContainer>
+    </>
+  );
+
   // Show/hide
   if (isHidden && show) {
     setIsHidden(false);
@@ -308,6 +331,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       </StyledInputContainer>
       {renderPasswordFields()}
       {renderOverwriteConfirmation()}
+      {renderRequesterAsOwner()}
     </Modal>
   );
 };

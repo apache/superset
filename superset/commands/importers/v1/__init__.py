@@ -29,7 +29,7 @@ from superset.commands.importers.v1.utils import (
     METADATA_FILE_NAME,
 )
 from superset.dao.base import BaseDAO
-from superset.models.core import Database
+from superset.models.core import Database, logger
 
 
 class ImportModelsCommand(BaseCommand):
@@ -47,11 +47,16 @@ class ImportModelsCommand(BaseCommand):
         self.contents = contents
         self.passwords: Dict[str, str] = kwargs.get("passwords") or {}
         self.overwrite: bool = kwargs.get("overwrite", False)
+        logger.info(f"requesterAsOwner: {kwargs} {args}")
+        self.requester_as_owner: bool = kwargs.get("requester_as_owner", False)
         self._configs: Dict[str, Any] = {}
 
     @staticmethod
     def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
+        session: Session,
+        configs: Dict[str, Any],
+        overwrite: bool = False,
+        requester_as_owner: bool = False,
     ) -> None:
         raise NotImplementedError("Subclasses MUST implement _import")
 
@@ -64,7 +69,9 @@ class ImportModelsCommand(BaseCommand):
 
         # rollback to prevent partial imports
         try:
-            self._import(db.session, self._configs, self.overwrite)
+            self._import(
+                db.session, self._configs, self.overwrite, self.requester_as_owner
+            )
             db.session.commit()
         except Exception:
             db.session.rollback()

@@ -44,7 +44,10 @@ class ImportDatasetsCommand(ImportModelsCommand):
 
     @staticmethod
     def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
+        session: Session,
+        configs: Dict[str, Any],
+        overwrite: bool = False,
+        requester_as_owner: bool = False,
     ) -> None:
         # discover databases associated with datasets
         database_uuids: Set[str] = set()
@@ -56,7 +59,12 @@ class ImportDatasetsCommand(ImportModelsCommand):
         database_ids: Dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
-                database = import_database(session, config, overwrite=False)
+                database = import_database(
+                    session,
+                    config,
+                    overwrite=False,
+                    requester_as_owner=requester_as_owner,
+                )
                 database_ids[str(database.uuid)] = database.id
 
         # import datasets with the correct parent ref
@@ -66,4 +74,9 @@ class ImportDatasetsCommand(ImportModelsCommand):
                 and config["database_uuid"] in database_ids
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
-                import_dataset(session, config, overwrite=overwrite)
+                import_dataset(
+                    session,
+                    config,
+                    overwrite=overwrite,
+                    requester_as_owner=requester_as_owner,
+                )
