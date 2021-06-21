@@ -284,7 +284,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         extra={<Error>{filterState.validateMessage}</Error>}
       >
         <StyledSelect
-          allowClear={!enableEmptyFilter}
+          allowClear
           // @ts-ignore
           value={filterState.value || []}
           disabled={isDisabled}

@@ -129,6 +129,20 @@ export const StyledRowFormItem = styled(FormItem)`
   }
 `;
 
+export const StyledRowSubFormItem = styled(FormItem)`
+  & .ant-form-item-label {
+    padding-bottom: 0;
+  }
+
+  .ant-form-item-control-input-content > div > div {
+    height: auto;
+  }
+
+  & .ant-form-item-control-input {
+    height: auto;
+  }
+`;
+
 export const StyledLabel = styled.span`
   color: ${({ theme }) => theme.colors.grayscale.base};
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
@@ -454,10 +468,12 @@ const FiltersConfigForm = (
     ...formFilter,
   });
 
-  const [hasDefaultValue, setHasDefaultValue] = useDefaultValue(
-    formFilter,
-    filterToEdit,
-  );
+  const [
+    hasDefaultValue,
+    isRequired,
+    defaultValueTooltip,
+    setHasDefaultValue,
+  ] = useDefaultValue(formFilter, filterToEdit);
 
   useEffect(() => {
     if (hasDataset && hasFilledDataset && hasDefaultValue && isDataDirty) {
@@ -539,6 +555,8 @@ const FiltersConfigForm = (
     formFilter?.time_range && formFilter.time_range !== 'No filter';
 
   const hasAdhoc = formFilter?.adhoc_filters?.length > 0;
+
+  const defaultToFirstItem = formFilter?.controlValues?.defaultToFirstItem;
 
   const preFilterValidator = () => {
     if (hasTimeRange || hasAdhoc) {
@@ -713,26 +731,22 @@ const FiltersConfigForm = (
             <CollapsibleControl
               title={t('Filter has default value')}
               initialValue={hasDefaultValue}
+              disabled={isRequired || defaultToFirstItem}
+              tooltip={defaultValueTooltip}
               checked={hasDefaultValue}
               onChange={value => setHasDefaultValue(value)}
             >
-              <StyledRowFormItem
+              <StyledRowSubFormItem
                 name={['filters', filterId, 'defaultDataMask']}
                 initialValue={filterToEdit?.defaultDataMask}
                 data-test="default-input"
                 label={<StyledLabel>{t('Default Value')}</StyledLabel>}
-                required={formFilter?.controlValues?.enableEmptyFilter}
+                required={hasDefaultValue}
                 rules={[
                   {
                     validator: (rule, value) => {
                       const hasValue = !!value?.filterState?.value;
-                      if (
-                        hasValue ||
-                        // TODO: do more generic
-                        formFilter.controlValues?.defaultToFirstItem ||
-                        // Not marked as required
-                        !formFilter.controlValues?.enableEmptyFilter
-                      ) {
+                      if (hasValue) {
                         return Promise.resolve();
                       }
                       return Promise.reject(
@@ -775,7 +789,7 @@ const FiltersConfigForm = (
                 ) : (
                   t('Fill all required fields to enable "Default Value"')
                 )}
-              </StyledRowFormItem>
+              </StyledRowSubFormItem>
             </CollapsibleControl>
             {Object.keys(controlItems)
               .filter(key => BASIC_CONTROL_ITEMS.includes(key))
@@ -814,7 +828,7 @@ const FiltersConfigForm = (
                     }
                   }}
                 >
-                  <StyledRowFormItem
+                  <StyledRowSubFormItem
                     name={['filters', filterId, 'parentFilter']}
                     label={<StyledLabel>{t('Parent filter')}</StyledLabel>}
                     initialValue={parentFilter}
@@ -832,7 +846,7 @@ const FiltersConfigForm = (
                       options={parentFilterOptions}
                       isClearable
                     />
-                  </StyledRowFormItem>
+                  </StyledRowSubFormItem>
                 </CollapsibleControl>
               )}
               {Object.keys(controlItems)
@@ -848,7 +862,7 @@ const FiltersConfigForm = (
                     }
                   }}
                 >
-                  <StyledRowFormItem
+                  <StyledRowSubFormItem
                     name={['filters', filterId, 'adhoc_filters']}
                     initialValue={filterToEdit?.adhoc_filters}
                     required
@@ -880,7 +894,7 @@ const FiltersConfigForm = (
                         </span>
                       }
                     />
-                  </StyledRowFormItem>
+                  </StyledRowSubFormItem>
                   {showTimeRangePicker && (
                     <StyledRowFormItem
                       name={['filters', filterId, 'time_range']}
@@ -976,7 +990,7 @@ const FiltersConfigForm = (
                     />
                   </StyledFormItem>
                   {hasMetrics && (
-                    <StyledRowFormItem
+                    <StyledRowSubFormItem
                       name={['filters', filterId, 'sortMetric']}
                       initialValue={filterToEdit?.sortMetric}
                       label={
@@ -1009,7 +1023,7 @@ const FiltersConfigForm = (
                           }
                         }}
                       />
-                    </StyledRowFormItem>
+                    </StyledRowSubFormItem>
                   )}
                 </CollapsibleControl>
               )}

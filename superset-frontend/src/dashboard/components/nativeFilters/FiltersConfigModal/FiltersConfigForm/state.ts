@@ -18,6 +18,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { FormInstance } from 'antd/lib/form';
+import { t } from '@superset-ui/core';
 import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
 import { setNativeFilterFieldValues, useForceUpdate } from './utils';
 import { Filter } from '../../types';
@@ -56,20 +57,47 @@ export const useDefaultValue = (
     !!filterToEdit?.defaultDataMask?.filterState?.value ||
       formFilter?.controlValues?.enableEmptyFilter,
   );
+  const [isRequired, setisRequired] = useState(
+    formFilter?.controlValues?.enableEmptyFilter,
+  );
+
+  const [defaultValueTooltip, setDefaultValueTooltip] = useState('');
+
+  const defaultToFirstItem = formFilter?.controlValues?.defaultToFirstItem;
+
   const setHasDefaultValue = useCallback(
     (value?) => {
-      setHasPartialDefaultValue(
-        value || formFilter?.controlValues?.enableEmptyFilter
-          ? true
-          : undefined,
-      );
+      const required =
+        !!formFilter?.controlValues?.enableEmptyFilter && !defaultToFirstItem;
+      setisRequired(required);
+      setHasPartialDefaultValue(required ? true : value);
     },
-    [formFilter?.controlValues?.enableEmptyFilter],
+    [formFilter?.controlValues?.enableEmptyFilter, defaultToFirstItem],
   );
 
   useEffect(() => {
-    setHasDefaultValue();
-  }, [setHasDefaultValue]);
+    setHasDefaultValue(
+      defaultToFirstItem
+        ? false
+        : !!formFilter?.defaultDataMask?.filterState?.value,
+    );
+  }, [setHasDefaultValue, defaultToFirstItem]);
 
-  return [hasDefaultValue, setHasDefaultValue];
+  useEffect(() => {
+    let tooltip = '';
+    if (defaultToFirstItem) {
+      tooltip = t(
+        'Default value set automatically when "Default to first item" is checked',
+      );
+    } else if (isRequired) {
+      tooltip = t('Default value must be set when "Required" is checked');
+    } else if (hasDefaultValue) {
+      tooltip = t(
+        'Default value must be set when "Filter has default value" is checked',
+      );
+    }
+    setDefaultValueTooltip(tooltip);
+  }, [hasDefaultValue, isRequired, defaultToFirstItem]);
+
+  return [hasDefaultValue, isRequired, defaultValueTooltip, setHasDefaultValue];
 };
