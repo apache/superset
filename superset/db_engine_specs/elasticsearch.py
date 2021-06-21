@@ -24,6 +24,7 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIProgrammingError,
 )
 from superset.utils import core as utils
+from typing import Any
 
 
 class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
