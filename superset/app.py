@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_app() -> Flask:
-    app = Flask(__name__)
+    app = SupersetApp(__name__)
 
     try:
         # Allow user to override our config completely
@@ -42,3 +42,7 @@ def create_app() -> Flask:
     except Exception as ex:
         logger.exception("Failed to create app")
         raise ex
+
+
+class SupersetApp(Flask):
+    pass
