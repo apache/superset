@@ -143,7 +143,7 @@ class QueryContext:
                 get_metric_names(query_object_clone_dct.get("metrics", []))
             ]
 
-            # rename metrics: SUM(value) => SUM(value) 1 year offset
+            # rename metrics: SUM(value) => SUM(value) 1 year ago
             _columns = list(offset_metrics_df.columns)
             _renamed_columns = [
                 TIME_COMPARISION.join([column, offset]) for column in _columns
