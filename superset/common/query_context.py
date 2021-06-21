@@ -46,9 +46,11 @@ from superset.utils.core import (
     DTTM_ALIAS,
     error_msg_from_exception,
     get_column_names_from_metrics,
+    get_metric_names,
     get_stacktrace,
     normalize_dttm_col,
     QueryStatus,
+    TIME_COMPARISION,
 )
 from superset.utils.date_parser import get_past_or_future
 from superset.views.utils import get_viz
@@ -120,6 +122,7 @@ class QueryContext:
                 query_object_clone.to_dttm = get_past_or_future(offset, outer_to_dttm,)
             except ValueError as ex:
                 raise QueryObjectValidationError(str(ex))
+            # make sure subquery use main query where clause
             query_object_clone.inner_from_dttm = outer_from_dttm
             query_object_clone.inner_to_dttm = outer_to_dttm
             query_object_clone.time_offset = []
@@ -131,13 +134,26 @@ class QueryContext:
                         "when using a Time Comparison."
                     )
                 )
-            result = self.datasource.query(query_object_clone.to_dict())
-            offset_df = result.df
-            offset_df = offset_df.drop(columns=[DTTM_ALIAS])
-            _columns = list(offset_df.columns)
-            _to_columns = [" ".join([column, offset, "offset"]) for column in _columns]
-            offset_df = offset_df.rename(columns=dict(zip(_columns, _to_columns)))
-            df = pd.concat([df, offset_df], axis=1)
+            query_object_clone_dct = query_object_clone.to_dict()
+            result = self.datasource.query(query_object_clone_dct)
+
+            # extract `metrics` columns from extra query
+            offset_metrics_df = result.df
+            offset_metrics_df = offset_metrics_df[
+                get_metric_names(query_object_clone_dct.get("metrics", []))
+            ]
+
+            # rename metrics: SUM(value) => SUM(value) 1 year offset
+            _columns = list(offset_metrics_df.columns)
+            _renamed_columns = [
+                TIME_COMPARISION.join([column, offset]) for column in _columns
+            ]
+            offset_metrics_df = offset_metrics_df.rename(
+                columns=dict(zip(_columns, _renamed_columns))
+            )
+
+            # combine `offset_metrics_df` with main query df
+            df = pd.concat([df, offset_metrics_df], axis=1)
         return df
 
     def get_query_result(self, query_object: QueryObject) -> Dict[str, Any]:

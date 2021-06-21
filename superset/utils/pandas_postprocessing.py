@@ -32,6 +32,7 @@ from superset.utils.core import (
     DTTM_ALIAS,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
+    TIME_COMPARISION,
 )
 
 NUMPY_FUNCTIONS = {
@@ -489,7 +490,9 @@ def compare(
         else:
             # compare_type == "ratio"
             diff_series = df[s_col] / df[c_col]
-        diff_df = diff_series.to_frame(name=f"__{compare_type}__{s_col}__{c_col}")
+        diff_df = diff_series.to_frame(
+            name=TIME_COMPARISION.join([compare_type, s_col, c_col])
+        )
         df = pd.concat([df, diff_df], axis=1)
 
     if drop_original_columns:
