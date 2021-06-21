@@ -114,6 +114,10 @@ const BulkSelectWrapper = styled(Alert)`
     vertical-align: middle;
     position: relative;
   }
+
+  .ant-alert-close-icon {
+    margin-top: ${({ theme }) => theme.gridUnit * 1.5}px;
+  }
 `;
 
 const bulkSelectColumnConfig = {

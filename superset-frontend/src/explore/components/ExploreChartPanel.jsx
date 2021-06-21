@@ -183,9 +183,11 @@ const ExploreChartPanel = props => {
   };
 
   const renderChart = useCallback(() => {
-    const { chart } = props;
+    const { chart, vizType } = props;
     const newHeight =
-      calcSectionHeight(splitSizes[0]) - CHART_PANEL_PADDING_VERTICAL;
+      vizType === 'filter_box'
+        ? calcSectionHeight(100) - CHART_PANEL_PADDING_VERTICAL
+        : calcSectionHeight(splitSizes[0]) - CHART_PANEL_PADDING_VERTICAL;
     const chartWidth = chartPanelWidth - CHART_PANEL_PADDING_HORIZ;
     return (
       chartWidth > 0 && (
@@ -283,6 +285,7 @@ const ExploreChartPanel = props => {
             tableSectionHeight={tableSectionHeight}
             onCollapseChange={onCollapseChange}
             chartStatus={props.chart.chartStatus}
+            errorMessage={props.errorMessage}
           />
         </Split>
       )}

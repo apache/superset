@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Slice } from 'src/types/Chart';
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
@@ -114,7 +113,7 @@ const createProps = () => ({
   supersetCanExplore: true,
   supersetCanCSV: true,
   sliceCanEdit: false,
-  slice: ({
+  slice: {
     slice_id: 312,
     slice_url: '/superset/explore/?form_data=%7B%22slice_id%22%3A%20312%7D',
     slice_name: 'Vaccine Candidates per Phase',
@@ -139,12 +138,13 @@ const createProps = () => ({
     },
     viz_type: 'dist_bar',
     datasource: '58__table',
-    description: null,
+    description: '',
     description_markeddown: '',
     owners: [],
     modified: '<span class="no-wrap">20 hours ago</span>',
     changed_on: 1617143411366,
-  } as unknown) as Slice,
+    slice_description: '',
+  },
   componentId: 'CHART-aGfmWtliqA',
   dashboardId: 26,
   isFullSize: false,

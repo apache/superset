@@ -35,6 +35,7 @@ interface DatabaseErrorExtra {
 function DatabaseErrorMessage({
   error,
   source = 'dashboard',
+  subtitle,
 }: ErrorMessageComponentProps<DatabaseErrorExtra>) {
   const { extra, level, message } = error;
 
@@ -81,7 +82,7 @@ ${extra.issue_codes.map(issueCode => issueCode.message).join('\n')}`;
   return (
     <ErrorAlert
       title={t('%s Error', extra.engine_name || t('DB engine'))}
-      subtitle={message}
+      subtitle={subtitle}
       level={level}
       source={source}
       copyText={copyText}

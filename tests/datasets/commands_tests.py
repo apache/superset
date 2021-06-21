@@ -315,7 +315,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         assert dataset.template_params == "{}"
         assert dataset.filter_select_enabled
         assert dataset.fetch_values_predicate is None
-        assert dataset.extra is None
+        assert dataset.extra == "dttm > sysdate() -10 "
 
         # database is also imported
         assert str(dataset.database.uuid) == "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89"
@@ -328,7 +328,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         assert metric.expression == "count(1)"
         assert metric.description is None
         assert metric.d3format is None
-        assert metric.extra is None
+        assert metric.extra == "{}"
         assert metric.warning_text is None
 
         assert len(dataset.columns) == 1

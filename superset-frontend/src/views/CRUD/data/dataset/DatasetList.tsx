@@ -33,11 +33,13 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DatasourceModal from 'src/datasource/DatasourceModal';
 import DeleteModal from 'src/components/DeleteModal';
+import handleResourceExport from 'src/utils/export';
 import ListView, {
   ListViewProps,
   Filters,
   FilterOperator,
 } from 'src/components/ListView';
+import Loading from 'src/components/Loading';
 import SubMenu, {
   SubMenuProps,
   ButtonProps,
@@ -53,20 +55,12 @@ import ImportModelsModal from 'src/components/ImportModal/index';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import AddDatasetModal from './AddDatasetModal';
-
-const PAGE_SIZE = 25;
-const PASSWORDS_NEEDED_MESSAGE = t(
-  'The passwords for the databases below are needed in order to ' +
-    'import them together with the datasets. Please note that the ' +
-    '"Secure Extra" and "Certificate" sections of ' +
-    'the database configuration are not present in export files, and ' +
-    'should be added manually after the import if they are needed.',
-);
-const CONFIRM_OVERWRITE_MESSAGE = t(
-  'You are importing one or more datasets that already exist. ' +
-    'Overwriting might cause you to lose some of your work. Are you ' +
-    'sure you want to overwrite?',
-);
+import {
+  PAGE_SIZE,
+  SORT_BY,
+  PASSWORDS_NEEDED_MESSAGE,
+  CONFIRM_OVERWRITE_MESSAGE,
+} from './constants';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -139,6 +133,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const [importingDataset, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
+  const [preparingExport, setPreparingExport] = useState<boolean>(false);
 
   const openDatasetImportModal = () => {
     showImportModal(true);
@@ -158,7 +153,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const canCreate = hasPerm('can_write');
   const canExport = hasPerm('can_read');
 
-  const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
+  const initialSort = SORT_BY;
 
   const openDatasetEditModal = useCallback(
     ({ id }: Dataset) => {
@@ -275,7 +270,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         size: 'md',
       },
       {
-        Header: t('Source'),
+        Header: t('Database'),
         accessor: 'database.database_name',
         size: 'lg',
       },
@@ -555,12 +550,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     );
   };
 
-  const handleBulkDatasetExport = (datasetsToExport: Dataset[]) =>
-    window.location.assign(
-      `/api/v1/dataset/export/?q=${rison.encode(
-        datasetsToExport.map(({ id }) => id),
-      )}`,
-    );
+  const handleBulkDatasetExport = (datasetsToExport: Dataset[]) => {
+    const ids = datasetsToExport.map(({ id }) => id);
+    handleResourceExport('dataset', ids, () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
+  };
 
   return (
     <>
@@ -690,6 +686,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
       />
+      {preparingExport && <Loading />}
     </>
   );
 };

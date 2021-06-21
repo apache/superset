@@ -34,6 +34,7 @@ type DefaultValueProps = {
   hasDataset: boolean;
   form: FormInstance<NativeFiltersForm>;
   formData: ReturnType<typeof getFormData>;
+  enableNoResults: boolean;
 };
 
 const DefaultValue: FC<DefaultValueProps> = ({
@@ -42,6 +43,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
   form,
   setDataMask,
   formData,
+  enableNoResults,
 }) => {
   const [loading, setLoading] = useState(hasDataset);
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
@@ -59,8 +61,8 @@ const DefaultValue: FC<DefaultValueProps> = ({
     <Loading position="inline-centered" />
   ) : (
     <SuperChart
-      height={25}
-      width={250}
+      height={32}
+      width={formFilter?.filterType === 'filter_time' ? 350 : 250}
       appSection={AppSection.FILTER_CONFIG_MODAL}
       behaviors={[Behavior.NATIVE_FILTER]}
       formData={formData}
@@ -70,6 +72,8 @@ const DefaultValue: FC<DefaultValueProps> = ({
       }
       chartType={formFilter?.filterType}
       hooks={{ setDataMask }}
+      enableNoResults={enableNoResults}
+      filterState={formFilter.defaultDataMask?.filterState}
     />
   );
 };

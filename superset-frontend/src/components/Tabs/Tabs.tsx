@@ -66,11 +66,6 @@ const StyledTabs = ({
         .ant-tabs-nav-list {
           width: 100%;
         }
-
-        .ant-tabs-tab {
-          width: 0;
-          margin-right: 0;
-        }
       `};
 
       .ant-tabs-tab-btn {

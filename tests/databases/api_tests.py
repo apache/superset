@@ -36,6 +36,9 @@ from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.db_engine_specs.redshift import RedshiftEngineSpec
+from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+from superset.db_engine_specs.hana import HanaEngineSpec
 from superset.errors import SupersetError
 from superset.models.core import Database, ConfigurationMethod
 from superset.models.reports import ReportSchedule, ReportScheduleType
@@ -507,7 +510,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(username="admin")
         database_data = {
             "database_name": "test-database-updated",
-            "configuration_method": ConfigurationMethod.DYNAMIC_FORM,
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
         }
         uri = f"api/v1/database/{test_database.id}"
         rv = self.client.put(uri, json=database_data)
@@ -1205,9 +1208,25 @@ class TestDatabaseApi(SupersetTestCase):
 
         assert rv.status_code == 422
         assert response == {
-            "message": {
-                "databases/imported_database.yaml": "Database already exists and `overwrite=true` was not passed"
-            }
+            "errors": [
+                {
+                    "message": "Error importing database",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "databases/imported_database.yaml": "Database already exists and `overwrite=true` was not passed",
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ],
+                    },
+                }
+            ]
         }
 
         # import with overwrite flag
@@ -1260,7 +1279,25 @@ class TestDatabaseApi(SupersetTestCase):
 
         assert rv.status_code == 422
         assert response == {
-            "message": {"metadata.yaml": {"type": ["Must be equal to Database."]}}
+            "errors": [
+                {
+                    "message": "Error importing database",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "metadata.yaml": {"type": ["Must be equal to Database."]},
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ],
+                    },
+                }
+            ]
         }
 
     def test_import_database_masked_password(self):
@@ -1297,11 +1334,27 @@ class TestDatabaseApi(SupersetTestCase):
 
         assert rv.status_code == 422
         assert response == {
-            "message": {
-                "databases/imported_database.yaml": {
-                    "_schema": ["Must provide a password for the database"]
+            "errors": [
+                {
+                    "message": "Error importing database",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "databases/imported_database.yaml": {
+                            "_schema": ["Must provide a password for the database"]
+                        },
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ],
+                    },
                 }
-            }
+            ]
         }
 
     def test_import_database_masked_password_provided(self):
@@ -1314,7 +1367,7 @@ class TestDatabaseApi(SupersetTestCase):
         masked_database_config = database_config.copy()
         masked_database_config[
             "sqlalchemy_uri"
-        ] = "postgresql://username:XXXXXXXXXX@host:12345/db"
+        ] = "vertica+vertica_python://hackathon:XXXXXXXXXX@host:5433/dbname?ssl=1"
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
@@ -1341,7 +1394,8 @@ class TestDatabaseApi(SupersetTestCase):
         )
         assert database.database_name == "imported_database"
         assert (
-            database.sqlalchemy_uri == "postgresql://username:XXXXXXXXXX@host:12345/db"
+            database.sqlalchemy_uri
+            == "vertica+vertica_python://hackathon:XXXXXXXXXX@host:5433/dbname?ssl=1"
         )
         assert database.password == "SECRET"
 
@@ -1368,22 +1422,26 @@ class TestDatabaseApi(SupersetTestCase):
     @mock.patch("superset.databases.api.get_available_engine_specs")
     @mock.patch("superset.databases.api.app")
     def test_available(self, app, get_available_engine_specs):
-        app.config = {"PREFERRED_DATABASES": ["postgresql"]}
-        get_available_engine_specs.return_value = [
-            MySQLEngineSpec,
-            PostgresEngineSpec,
-        ]
+        app.config = {"PREFERRED_DATABASES": ["PostgreSQL", "Google BigQuery"]}
+        get_available_engine_specs.return_value = {
+            PostgresEngineSpec: {"psycopg2"},
+            BigQueryEngineSpec: {"bigquery"},
+            MySQLEngineSpec: {"mysqlconnector", "mysqldb"},
+            RedshiftEngineSpec: {"psycopg2"},
+            HanaEngineSpec: {""},
+        }
 
         self.login(username="admin")
         uri = "api/v1/database/available/"
 
         rv = self.client.get(uri)
         response = json.loads(rv.data.decode("utf-8"))
-
         assert rv.status_code == 200
         assert response == {
             "databases": [
                 {
+                    "available_drivers": ["psycopg2"],
+                    "default_driver": "psycopg2",
                     "engine": "postgresql",
                     "name": "PostgreSQL",
                     "parameters": {
@@ -1425,9 +1483,158 @@ class TestDatabaseApi(SupersetTestCase):
                         "type": "object",
                     },
                     "preferred": True,
-                    "sqlalchemy_uri_placeholder": "postgresql+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
+                    "sqlalchemy_uri_placeholder": "postgresql://user:password@host:port/dbname[?key=value&key=value...]",
                 },
-                {"engine": "mysql", "name": "MySQL", "preferred": False},
+                {
+                    "available_drivers": ["bigquery"],
+                    "default_driver": "bigquery",
+                    "engine": "bigquery",
+                    "name": "Google BigQuery",
+                    "parameters": {
+                        "properties": {
+                            "credentials_info": {
+                                "description": "Contents of BigQuery JSON credentials.",
+                                "type": "string",
+                                "x-encrypted-extra": True,
+                            }
+                        },
+                        "required": ["credentials_info"],
+                        "type": "object",
+                    },
+                    "preferred": True,
+                    "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
+                },
+                {
+                    "available_drivers": ["psycopg2"],
+                    "default_driver": "psycopg2",
+                    "engine": "redshift",
+                    "name": "Amazon Redshift",
+                    "parameters": {
+                        "properties": {
+                            "database": {
+                                "description": "Database name",
+                                "type": "string",
+                            },
+                            "encryption": {
+                                "description": "Use an encrypted connection to the database",
+                                "type": "boolean",
+                            },
+                            "host": {
+                                "description": "Hostname or IP address",
+                                "type": "string",
+                            },
+                            "password": {
+                                "description": "Password",
+                                "nullable": True,
+                                "type": "string",
+                            },
+                            "port": {
+                                "description": "Database port",
+                                "format": "int32",
+                                "type": "integer",
+                            },
+                            "query": {
+                                "additionalProperties": {},
+                                "description": "Additional parameters",
+                                "type": "object",
+                            },
+                            "username": {
+                                "description": "Username",
+                                "nullable": True,
+                                "type": "string",
+                            },
+                        },
+                        "required": ["database", "host", "port", "username"],
+                        "type": "object",
+                    },
+                    "preferred": False,
+                    "sqlalchemy_uri_placeholder": "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
+                },
+                {
+                    "available_drivers": ["mysqlconnector", "mysqldb"],
+                    "default_driver": "mysqldb",
+                    "engine": "mysql",
+                    "name": "MySQL",
+                    "parameters": {
+                        "properties": {
+                            "database": {
+                                "description": "Database name",
+                                "type": "string",
+                            },
+                            "encryption": {
+                                "description": "Use an encrypted connection to the database",
+                                "type": "boolean",
+                            },
+                            "host": {
+                                "description": "Hostname or IP address",
+                                "type": "string",
+                            },
+                            "password": {
+                                "description": "Password",
+                                "nullable": True,
+                                "type": "string",
+                            },
+                            "port": {
+                                "description": "Database port",
+                                "format": "int32",
+                                "type": "integer",
+                            },
+                            "query": {
+                                "additionalProperties": {},
+                                "description": "Additional parameters",
+                                "type": "object",
+                            },
+                            "username": {
+                                "description": "Username",
+                                "nullable": True,
+                                "type": "string",
+                            },
+                        },
+                        "required": ["database", "host", "port", "username"],
+                        "type": "object",
+                    },
+                    "preferred": False,
+                    "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
+                },
+                {
+                    "available_drivers": [""],
+                    "engine": "hana",
+                    "name": "SAP HANA",
+                    "preferred": False,
+                },
+            ]
+        }
+
+    @mock.patch("superset.databases.api.get_available_engine_specs")
+    @mock.patch("superset.databases.api.app")
+    def test_available_no_default(self, app, get_available_engine_specs):
+        app.config = {"PREFERRED_DATABASES": ["MySQL"]}
+        get_available_engine_specs.return_value = {
+            MySQLEngineSpec: {"mysqlconnector"},
+            HanaEngineSpec: {""},
+        }
+
+        self.login(username="admin")
+        uri = "api/v1/database/available/"
+
+        rv = self.client.get(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert response == {
+            "databases": [
+                {
+                    "available_drivers": ["mysqlconnector"],
+                    "default_driver": "mysqldb",
+                    "engine": "mysql",
+                    "name": "MySQL",
+                    "preferred": True,
+                },
+                {
+                    "available_drivers": [""],
+                    "engine": "hana",
+                    "name": "SAP HANA",
+                    "preferred": False,
+                },
             ]
         }
 
@@ -1467,14 +1674,11 @@ class TestDatabaseApi(SupersetTestCase):
         assert response == {
             "errors": [
                 {
-                    "message": "An error happened when validating the request",
+                    "message": "Missing data for required field.",
                     "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
                     "level": "error",
                     "extra": {
-                        "messages": {
-                            "engine": ["Missing data for required field."],
-                            "foo": ["Unknown field."],
-                        },
+                        "invalid": ["engine"],
                         "issue_codes": [
                             {
                                 "code": 1020,
@@ -1482,7 +1686,21 @@ class TestDatabaseApi(SupersetTestCase):
                             }
                         ],
                     },
-                }
+                },
+                {
+                    "message": "Unknown field.",
+                    "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
+                    "level": "error",
+                    "extra": {
+                        "invalid": ["foo"],
+                        "issue_codes": [
+                            {
+                                "code": 1020,
+                                "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                            }
+                        ],
+                    },
+                },
             ]
         }
 
@@ -1519,6 +1737,77 @@ class TestDatabaseApi(SupersetTestCase):
                             {
                                 "code": 1018,
                                 "message": "Issue 1018 - One or more parameters needed to configure a database are missing.",
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
+
+    @mock.patch("superset.db_engine_specs.base.is_hostname_valid")
+    @mock.patch("superset.db_engine_specs.base.is_port_open")
+    @mock.patch("superset.databases.api.ValidateDatabaseParametersCommand")
+    def test_validate_parameters_valid_payload(
+        self, ValidateDatabaseParametersCommand, is_port_open, is_hostname_valid
+    ):
+        is_hostname_valid.return_value = True
+        is_port_open.return_value = True
+
+        self.login(username="admin")
+        url = "api/v1/database/validate_parameters"
+        payload = {
+            "engine": "postgresql",
+            "parameters": defaultdict(dict),
+        }
+        payload["parameters"].update(
+            {
+                "host": "localhost",
+                "port": 6789,
+                "username": "superset",
+                "password": "XXX",
+                "database": "test",
+                "query": {},
+            }
+        )
+        rv = self.client.post(url, json=payload)
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+    def test_validate_parameters_invalid_port(self):
+        self.login(username="admin")
+        url = "api/v1/database/validate_parameters"
+        payload = {
+            "engine": "postgresql",
+            "parameters": defaultdict(dict),
+        }
+        payload["parameters"].update(
+            {
+                "host": "localhost",
+                "port": "string",
+                "username": "superset",
+                "password": "XXX",
+                "database": "test",
+                "query": {},
+            }
+        )
+        rv = self.client.post(url, json=payload)
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "Not a valid integer.",
+                    "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
+                    "level": "error",
+                    "extra": {
+                        "invalid": ["port"],
+                        "issue_codes": [
+                            {
+                                "code": 1020,
+                                "message": "Issue 1020 - The submitted payload has the incorrect schema.",
                             }
                         ],
                     },

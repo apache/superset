@@ -221,6 +221,7 @@ class Database(
             "allows_cost_estimate": self.allows_cost_estimate,
             "allows_virtual_table_explore": self.allows_virtual_table_explore,
             "explore_database_id": self.explore_database_id,
+            "parameters": self.parameters,
         }
 
     @property
@@ -235,6 +236,17 @@ class Database(
     def backend(self) -> str:
         sqlalchemy_url = make_url(self.sqlalchemy_uri_decrypted)
         return sqlalchemy_url.get_backend_name()  # pylint: disable=no-member
+
+    @property
+    def parameters(self) -> Dict[str, Any]:
+        uri = make_url(self.sqlalchemy_uri_decrypted)
+        encrypted_extra = self.get_encrypted_extra()
+        try:
+            parameters = self.db_engine_spec.get_parameters_from_uri(uri, encrypted_extra=encrypted_extra)  # type: ignore
+        except Exception:  # pylint: disable=broad-except
+            parameters = {}
+
+        return parameters
 
     @property
     def metadata_cache_timeout(self) -> Dict[str, Any]:

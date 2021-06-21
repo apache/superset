@@ -20,49 +20,69 @@ import {
   CustomControlItem,
   InfoTooltipWithTrigger,
 } from '@superset-ui/chart-controls';
-import React, { FC } from 'react';
+import React from 'react';
 import { Checkbox } from 'src/common/components';
 import { FormInstance } from 'antd/lib/form';
-import { getChartControlPanelRegistry, t } from '@superset-ui/core';
+import { getChartControlPanelRegistry, styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
+import { FormItem } from 'src/components/Form';
 import { getControlItems, setNativeFilterFieldValues } from './utils';
 import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
-import { StyledCheckboxFormItem } from './FiltersConfigForm';
+import { StyledRowFormItem } from './FiltersConfigForm';
 import { Filter } from '../../types';
 
-type ControlItemsProps = {
+export interface ControlItemsProps {
   disabled: boolean;
-  filterId: string;
   forceUpdate: Function;
-  filterToEdit?: Filter;
   form: FormInstance<NativeFiltersForm>;
+  filterId: string;
+  filterType: string;
+  filterToEdit?: Filter;
   formFilter?: NativeFiltersFormItem;
-};
+}
 
-const ControlItems: FC<ControlItemsProps> = ({
+const CleanFormItem = styled(FormItem)`
+  margin-bottom: 0;
+`;
+
+export default function getControlItemsMap({
   disabled,
   forceUpdate,
   form,
   filterId,
+  filterType,
   filterToEdit,
   formFilter,
-}) => {
-  const filterType = formFilter?.filterType;
-
-  if (!filterType) return null;
-
+}: ControlItemsProps) {
   const controlPanelRegistry = getChartControlPanelRegistry();
   const controlItems =
     getControlItems(controlPanelRegistry.get(filterType)) ?? [];
-  return (
-    <>
-      {controlItems
-        .filter(
-          (controlItem: CustomControlItem) =>
-            controlItem?.config?.renderTrigger,
-        )
-        .map(controlItem => (
+  const map: Record<
+    string,
+    { element: React.ReactNode; checked: boolean }
+  > = {};
+
+  controlItems
+    .filter(
+      (controlItem: CustomControlItem) =>
+        controlItem?.config?.renderTrigger &&
+        controlItem.name !== 'sortAscending',
+    )
+    .forEach(controlItem => {
+      const initialValue =
+        filterToEdit?.controlValues?.[controlItem.name] ??
+        controlItem?.config?.default;
+      const element = (
+        <>
+          <CleanFormItem
+            name={['filters', filterId, 'requiredFirst', controlItem.name]}
+            hidden
+            initialValue={
+              controlItem?.config?.requiredFirst && filterToEdit?.requiredFirst
+            }
+          />
           <Tooltip
+            key={controlItem.name}
             placement="left"
             title={
               controlItem.config.affectsDataMask &&
@@ -70,30 +90,33 @@ const ControlItems: FC<ControlItemsProps> = ({
               t('Populate "Default value" to enable this control')
             }
           >
-            <StyledCheckboxFormItem
+            <StyledRowFormItem
               key={controlItem.name}
               name={['filters', filterId, 'controlValues', controlItem.name]}
-              initialValue={
-                filterToEdit?.controlValues?.[controlItem.name] ??
-                controlItem?.config?.default
-              }
+              initialValue={initialValue}
               valuePropName="checked"
               colon={false}
             >
               <Checkbox
                 disabled={controlItem.config.affectsDataMask && disabled}
-                onChange={() => {
-                  if (!controlItem.config.resetConfig) {
-                    forceUpdate();
-                    return;
+                onChange={({ target: { checked } }) => {
+                  if (controlItem.config.requiredFirst) {
+                    setNativeFilterFieldValues(form, filterId, {
+                      requiredFirst: {
+                        ...formFilter?.requiredFirst,
+                        [controlItem.name]: checked,
+                      },
+                    });
                   }
-                  setNativeFilterFieldValues(form, filterId, {
-                    defaultDataMask: null,
-                  });
+                  if (controlItem.config.resetConfig) {
+                    setNativeFilterFieldValues(form, filterId, {
+                      defaultDataMask: null,
+                    });
+                  }
                   forceUpdate();
                 }}
               >
-                {controlItem.config.label}{' '}
+                {controlItem.config.label}&nbsp;
                 {controlItem.config.description && (
                   <InfoTooltipWithTrigger
                     placement="top"
@@ -102,10 +125,11 @@ const ControlItems: FC<ControlItemsProps> = ({
                   />
                 )}
               </Checkbox>
-            </StyledCheckboxFormItem>
+            </StyledRowFormItem>
           </Tooltip>
-        ))}
-    </>
-  );
-};
-export default ControlItems;
+        </>
+      );
+      map[controlItem.name] = { element, checked: initialValue };
+    });
+  return map;
+}

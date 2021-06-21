@@ -129,6 +129,12 @@ const DEFAULT_ALERT = {
   grace_period: undefined,
 };
 
+const StyledModal = styled(Modal)`
+  .ant-modal-body {
+    overflow: initial;
+  }
+`;
+
 const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
 `;
@@ -979,7 +985,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   ));
 
   return (
-    <Modal
+    <StyledModal
       className="no-content-padding"
       responsive
       disablePrimaryButton={disableSave}
@@ -1064,7 +1070,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </StyledSectionTitle>
               <StyledInputContainer>
                 <div className="control-label">
-                  {t('Source')}
+                  {t('Database')}
                   <span className="required">*</span>
                 </div>
                 <div className="input-container">
@@ -1308,7 +1314,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           </div>
         </div>
       </StyledSectionContainer>
-    </Modal>
+    </StyledModal>
   );
 };
 

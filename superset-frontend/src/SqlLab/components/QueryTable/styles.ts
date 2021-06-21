@@ -16,16 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-.color-scheme-container {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  align-items: center;
+import { styled, css } from '@superset-ui/core';
+import { IconTooltip } from '../../../components/IconTooltip';
 
-  li {
-    flex-basis: 9px;
-    height: 10px;
-    margin: 9px 1px;
+export const StaticPosition = css`
+  position: static;
+`;
+
+export const verticalAlign = css`
+  vertical-align: 0em;
+  svg {
+    height: 0.9em;
   }
-}
+`;
+
+export const StyledTooltip = styled(IconTooltip)`
+  padding-right: ${({ theme }) => theme.gridUnit * 2}px;
+  span {
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    &: hover {
+      color: ${({ theme }) => theme.colors.primary.base};
+    }
+  }
+`;

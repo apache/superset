@@ -22,7 +22,18 @@ from collections import defaultdict, OrderedDict
 from contextlib import closing
 from dataclasses import dataclass, field  # pylint: disable=wrong-import-order
 from datetime import datetime, timedelta
-from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Type, Union
+from typing import (
+    Any,
+    cast,
+    Dict,
+    Hashable,
+    List,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 import pandas as pd
 import sqlalchemy as sa
@@ -230,6 +241,8 @@ class TableColumn(Model, BaseColumn):
 
     @property
     def type_generic(self) -> Optional[utils.GenericDataType]:
+        if self.is_dttm:
+            return GenericDataType.TEMPORAL
         column_spec = self.db_engine_spec.get_column_spec(self.type)
         return column_spec.generic_type if column_spec else None
 
@@ -239,7 +252,9 @@ class TableColumn(Model, BaseColumn):
         column_spec = db_engine_spec.get_column_spec(self.type)
         type_ = column_spec.sqla_type if column_spec else None
         if self.expression:
-            col = literal_column(self.expression, type_=type_)
+            tp = self.table.get_template_processor()
+            expression = tp.process_template(self.expression)
+            col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
         col = self.table.make_sqla_column_compatible(col, label)
@@ -309,7 +324,8 @@ class TableColumn(Model, BaseColumn):
         ],
     ) -> str:
         """Convert datetime object to a SQL expression string"""
-        sql = self.db_engine_spec.convert_dttm(self.type, dttm) if self.type else None
+        dttm_type = self.type or ("DATETIME" if self.is_dttm else None)
+        sql = self.db_engine_spec.convert_dttm(dttm_type, dttm) if dttm_type else None
 
         if sql:
             return sql
@@ -635,7 +651,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         db_engine_spec = self.db_engine_spec
         if self.sql:
             engine = self.database.get_sqla_engine(schema=self.schema)
-            sql = self.get_template_processor().process_template(self.sql)
+            sql = self.get_template_processor().process_template(
+                self.sql, **self.template_params_dict
+            )
             parsed_query = ParsedQuery(sql)
             if not db_engine_spec.is_readonly_query(parsed_query):
                 raise SupersetSecurityException(
@@ -676,13 +694,25 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             for col in cols:
                 try:
                     if isinstance(col["type"], TypeEngine):
-                        col["type"] = db_engine_spec.column_datatype_to_string(
+                        db_type = db_engine_spec.column_datatype_to_string(
                             col["type"], db_dialect
+                        )
+                        type_spec = db_engine_spec.get_column_spec(db_type)
+                        col.update(
+                            {
+                                "type": db_type,
+                                "type_generic": type_spec.generic_type
+                                if type_spec
+                                else None,
+                                "is_dttm": type_spec.is_dttm if type_spec else None,
+                            }
                         )
                 # Broad exception catch, because there are multiple possible exceptions
                 # from different drivers that fall outside CompileError
                 except Exception:  # pylint: disable=broad-except
-                    col["type"] = "UNKNOWN"
+                    col.update(
+                        {"type": "UNKNOWN", "generic_type": None, "is_dttm": None,}
+                    )
         return cols
 
     @property
@@ -862,7 +892,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         label = utils.get_metric_name(metric)
 
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
-            column_name = metric["column"].get("column_name")
+            column_name = cast(str, metric["column"].get("column_name"))
             table_column: Optional[TableColumn] = columns_by_name.get(column_name)
             if table_column:
                 sqla_column = table_column.get_sqla_col()
@@ -870,7 +900,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 sqla_column = column(column_name)
             sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
-            sqla_metric = literal_column(metric.get("sqlExpression"))
+            tp = self.get_template_processor()
+            expression = tp.process_template(cast(str, metric["sqlExpression"]))
+            sqla_metric = literal_column(expression)
         else:
             raise QueryObjectValidationError("Adhoc metric expressionType is invalid")
 
@@ -985,6 +1017,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         template_kwargs.update(self.template_params_dict)
         extra_cache_keys: List[Any] = []
         template_kwargs["extra_cache_keys"] = extra_cache_keys
+        removed_filters: List[str] = []
+        template_kwargs["removed_filters"] = removed_filters
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.db_engine_spec
         prequeries: List[str] = []
@@ -1041,8 +1075,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         # Since orderby may use adhoc metrics, too; we need to process them first
         orderby_exprs: List[ColumnElement] = []
         for orig_col, ascending in orderby:
-            col: Union[Metric, ColumnElement] = orig_col
+            col: Union[AdhocMetric, ColumnElement] = orig_col
             if isinstance(col, dict):
+                col = cast(AdhocMetric, col)
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists
                     col = self.adhoc_metric_to_sqla(col, columns_by_name)
@@ -1168,6 +1203,12 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             val = flt.get("val")
             op = flt["op"].upper()
             col_obj = columns_by_name.get(col)
+
+            if is_feature_enabled("ENABLE_TEMPLATE_REMOVE_FILTERS"):
+                if col in removed_filters:
+                    # Skip generating SQLA filter when the jinja template handles it.
+                    continue
+
             if col_obj:
                 col_spec = db_engine_spec.get_column_spec(col_obj.type)
                 is_list_target = op in (
@@ -1231,6 +1272,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         where_clause_and.append(col_obj.get_sqla_col() <= eq)
                     elif op == utils.FilterOperator.LIKE.value:
                         where_clause_and.append(col_obj.get_sqla_col().like(eq))
+                    elif op == utils.FilterOperator.ILIKE.value:
+                        where_clause_and.append(col_obj.get_sqla_col().ilike(eq))
                     else:
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)

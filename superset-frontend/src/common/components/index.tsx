@@ -54,6 +54,7 @@ export {
   Tag,
   Tabs,
   Tooltip,
+  Upload,
   Input as AntdInput,
 } from 'antd';
 export { Card as AntdCard } from 'antd';
@@ -131,11 +132,9 @@ export const StyledNav = styled(AntdMenu)`
     }
   }
 
-  @media (min-width: 767px) {
-    &:not(.ant-menu-dark) > .ant-menu-submenu,
-    &:not(.ant-menu-dark) > .ant-menu-item {
-      margin: 0px;
-    }
+  &:not(.ant-menu-dark) > .ant-menu-submenu,
+  &:not(.ant-menu-dark) > .ant-menu-item {
+    margin: 0px;
   }
 
   & > .ant-menu-item > a {
@@ -230,7 +229,9 @@ export const TextArea = styled(AntdInput.TextArea)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
 `;
 
-export const NoAnimationDropdown = (props: DropDownProps) => (
+export const NoAnimationDropdown = (
+  props: DropDownProps & { children?: React.ReactNode },
+) => (
   <Dropdown
     overlayStyle={{ zIndex: 4000, animationDuration: '0s' }}
     {...props}

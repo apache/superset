@@ -37,6 +37,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.reports import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
+from superset.utils.core import backend
 from superset.views.base import generate_download_headers
 
 from tests.base_api_tests import ApiOwnersTestCaseMixin
@@ -179,8 +180,11 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         data = json.loads(response.data.decode("utf-8"))
         dashboard = Dashboard.get("world_health")
         expected_dataset_ids = set([s.datasource_id for s in dashboard.slices])
-        actual_dataset_ids = set([dataset["id"] for dataset in data["result"]])
+        result = data["result"]
+        actual_dataset_ids = set([dataset["id"] for dataset in result])
         self.assertEqual(actual_dataset_ids, expected_dataset_ids)
+        expected_values = [0, 1] if backend() == "presto" else [0, 1, 2]
+        self.assertEqual(result[0]["column_types"], expected_values)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_dashboard_datasets_not_found(self):
@@ -623,6 +627,14 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
                 "dashboard_export/dashboards/imported_dashboard.yaml", "w"
             ) as fp:
                 fp.write(yaml.safe_dump(dashboard_config).encode())
+        buf.seek(0)
+        return buf
+
+    def create_invalid_dashboard_import(self):
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("sql/dump.sql", "w") as fp:
+                fp.write("CREATE TABLE foo (bar INT)".encode())
         buf.seek(0)
         return buf
 
@@ -1392,6 +1404,42 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         db.session.delete(database)
         db.session.commit()
 
+    def test_import_dashboard_invalid_file(self):
+        """
+        Dashboard API: Test import invalid dashboard file
+        """
+        self.login(username="admin")
+        uri = "api/v1/dashboard/import/"
+
+        buf = self.create_invalid_dashboard_import()
+        form_data = {
+            "formData": (buf, "dashboard_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 400
+        assert response == {
+            "errors": [
+                {
+                    "message": "No valid import files were found",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ]
+                    },
+                }
+            ]
+        }
+
     def test_import_dashboard_v0_export(self):
         num_dashboards = db.session.query(Dashboard).count()
 
@@ -1449,9 +1497,25 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
 
         assert rv.status_code == 422
         assert response == {
-            "message": {
-                "dashboards/imported_dashboard.yaml": "Dashboard already exists and `overwrite=true` was not passed"
-            }
+            "errors": [
+                {
+                    "message": "Error importing dashboard",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "dashboards/imported_dashboard.yaml": "Dashboard already exists and `overwrite=true` was not passed",
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ],
+                    },
+                }
+            ]
         }
 
         # import with overwrite flag
@@ -1515,7 +1579,25 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
 
         assert rv.status_code == 422
         assert response == {
-            "message": {"metadata.yaml": {"type": ["Must be equal to Dashboard."]}}
+            "errors": [
+                {
+                    "message": "Error importing dashboard",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "metadata.yaml": {"type": ["Must be equal to Dashboard."]},
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered "
+                                    "an error while running a command."
+                                ),
+                            }
+                        ],
+                    },
+                }
+            ]
         }
 
     def test_get_all_related_roles(self):

@@ -25,21 +25,27 @@ import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
 import FiltersBadge from 'src/dashboard/containers/FiltersBadge';
 import Icon from 'src/components/Icon';
 import { RootState } from 'src/dashboard/types';
-import { Slice } from 'src/types/Chart';
 import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
 
 type SliceHeaderProps = {
   innerRef?: string;
-  slice: Slice;
+  slice: {
+    description: string;
+    viz_type: string;
+    slice_name: string;
+    slice_id: number;
+    slice_description: string;
+  };
   isExpanded?: boolean;
   isCached?: boolean[];
   cachedDttm?: string[];
   updatedDttm?: number;
   updateSliceName?: (arg0: string) => void;
-  toggleExpandSlice?: Function;
-  forceRefresh?: Function;
-  exploreChart?: Function;
-  exportCSV?: Function;
+  toggleExpandSlice?: () => void;
+  forceRefresh?: () => void;
+  exploreChart?: () => void;
+  exportCSV?: () => void;
+  exportFullCSV?: () => void;
   editMode?: boolean;
   isFullSize?: boolean;
   annotationQuery?: object;
@@ -52,9 +58,9 @@ type SliceHeaderProps = {
   componentId: string;
   dashboardId: number;
   filters: object;
-  addSuccessToast: Function;
-  addDangerToast: Function;
-  handleToggleFullSize: Function;
+  addSuccessToast: () => void;
+  addDangerToast: () => void;
+  handleToggleFullSize: () => void;
   chartStatus: string;
   formData: object;
 };
@@ -82,12 +88,13 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   cachedDttm = null,
   updatedDttm = null,
   isCached = [],
-  isExpanded = [],
+  isExpanded = false,
   sliceName = '',
   supersetCanExplore = false,
   supersetCanShare = false,
   supersetCanCSV = false,
   sliceCanEdit = false,
+  exportFullCSV,
   slice,
   componentId,
   dashboardId,
@@ -174,6 +181,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
               forceRefresh={forceRefresh}
               exploreChart={exploreChart}
               exportCSV={exportCSV}
+              exportFullCSV={exportFullCSV}
               supersetCanExplore={supersetCanExplore}
               supersetCanShare={supersetCanShare}
               supersetCanCSV={supersetCanCSV}

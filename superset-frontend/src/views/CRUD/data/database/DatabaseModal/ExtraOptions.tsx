@@ -18,7 +18,7 @@
  */
 import React, { ChangeEvent, EventHandler } from 'react';
 import cx from 'classnames';
-import { t } from '@superset-ui/core';
+import { t, SupersetTheme } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import Collapse from 'src/components/Collapse';
@@ -26,7 +26,8 @@ import {
   StyledInputContainer,
   StyledJsonEditor,
   StyledExpandableForm,
-} from 'src/views/CRUD/data/database/DatabaseModal/styles';
+  antdCollapseStyles,
+} from './styles';
 import { DatabaseObject } from '../types';
 
 const defaultExtra =
@@ -48,7 +49,11 @@ const ExtraOptions = ({
   const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
 
   return (
-    <Collapse expandIconPosition="right" accordion>
+    <Collapse
+      expandIconPosition="right"
+      accordion
+      css={(theme: SupersetTheme) => antdCollapseStyles(theme)}
+    >
       <Collapse.Panel
         header={
           <div>
@@ -286,11 +291,13 @@ const ExtraOptions = ({
               indeterminate={false}
               checked={!!db?.impersonate_user}
               onChange={onInputChange}
-              labelText={t('Impersonate Logged In User (Presto & Hive)')}
+              labelText={t(
+                'Impersonate Logged In User (Presto, Trino, Hive, and GSheets)',
+              )}
             />
             <InfoTooltip
               tooltip={t(
-                'If Presto, all the queries in SQL Lab are going to be executed as the ' +
+                'If Presto or Trino, all the queries in SQL Lab are going to be executed as the ' +
                   'currently logged on user who must have permission to run them. If Hive ' +
                   'and hive.server2.enable.doAs is enabled, will run the queries as ' +
                   'service account, but impersonate the currently logged on user via ' +
