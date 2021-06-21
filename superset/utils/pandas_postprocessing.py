@@ -458,6 +458,7 @@ def compare(
     compare_columns: List[str],
     compare_type: Optional[str],
     drop_original_columns: Optional[bool] = False,
+    precision: Optional[int] = 4,
 ) -> DataFrame:
     """
     Calculate column-by-column changing for select columns.
@@ -468,6 +469,7 @@ def compare(
     :param compare_type: Type of compare. Choice of `absolute`, `percentage` or `ratio`
     :param drop_original_columns: Whether to remove the source columns and
            compare columns.
+    :param precision: Round a change rate to a variable number of decimal places.
     :return: DataFrame with compared columns.
     :raises QueryObjectValidationError: If the request in incorrect.
     """
@@ -486,10 +488,12 @@ def compare(
         if compare_type == "absolute":
             diff_series = df[s_col] - df[c_col]
         elif compare_type == "percentage":
-            diff_series = (df[s_col] - df[c_col]) / df[s_col]
+            diff_series = (
+                ((df[s_col] - df[c_col]) / df[s_col]).astype(float).round(precision)
+            )
         else:
             # compare_type == "ratio"
-            diff_series = df[s_col] / df[c_col]
+            diff_series = (df[s_col] / df[c_col]).astype(float).round(precision)
         diff_df = diff_series.to_frame(
             name=TIME_COMPARISION.join([compare_type, s_col, c_col])
         )
