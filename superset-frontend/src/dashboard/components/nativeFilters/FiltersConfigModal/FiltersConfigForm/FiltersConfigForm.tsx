@@ -302,6 +302,7 @@ const FiltersConfigForm = (
   const [activeFilterPanelKey, setActiveFilterPanelKey] = useState<
     string | string[]
   >(FilterPanels.basic.key);
+  const [defaultValueTooltip, setDefaultValueTooltip] = useState<string>('');
 
   const forceUpdate = useForceUpdate();
   const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
@@ -554,6 +555,20 @@ const FiltersConfigForm = (
 
   const hasAdhoc = formFilter?.adhoc_filters?.length > 0;
 
+  const defaultToFirstItem = formFilter?.controlValues?.defaultToFirstItem;
+
+  useEffect(() => {
+    let tooltip = '';
+    if (defaultToFirstItem) {
+      tooltip = t(
+        'Default value set automatically when "Default to first item" is selected',
+      );
+    } else if (isRequired) {
+      tooltip = t('Default value must be set when "Required" is active');
+    }
+    setDefaultValueTooltip(tooltip);
+  }, [isRequired, defaultToFirstItem]);
+
   const preFilterValidator = () => {
     if (hasTimeRange || hasAdhoc) {
       return Promise.resolve();
@@ -727,11 +742,8 @@ const FiltersConfigForm = (
             <CollapsibleControl
               title={t('Filter has default value')}
               initialValue={hasDefaultValue}
-              disabled={isRequired}
-              tooltip={
-                isRequired &&
-                t('Default value must be set when "Required" is active')
-              }
+              disabled={isRequired || defaultToFirstItem}
+              tooltip={defaultValueTooltip}
               checked={hasDefaultValue}
               onChange={value => setHasDefaultValue(value)}
             >
@@ -740,18 +752,12 @@ const FiltersConfigForm = (
                 initialValue={filterToEdit?.defaultDataMask}
                 data-test="default-input"
                 label={<StyledLabel>{t('Default Value')}</StyledLabel>}
-                required={formFilter?.controlValues?.enableEmptyFilter}
+                required={hasDefaultValue}
                 rules={[
                   {
                     validator: (rule, value) => {
                       const hasValue = !!value?.filterState?.value;
-                      if (
-                        hasValue ||
-                        // TODO: do more generic
-                        formFilter.controlValues?.defaultToFirstItem ||
-                        // Not marked as required
-                        !formFilter.controlValues?.enableEmptyFilter
-                      ) {
+                      if (hasValue) {
                         return Promise.resolve();
                       }
                       return Promise.reject(

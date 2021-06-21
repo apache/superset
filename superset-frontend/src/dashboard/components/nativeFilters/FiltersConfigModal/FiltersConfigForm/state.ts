@@ -59,18 +59,26 @@ export const useDefaultValue = (
   const [isRequired, setisRequired] = useState(
     formFilter?.controlValues?.enableEmptyFilter,
   );
+
+  const defaultToFirstItem = formFilter?.controlValues?.defaultToFirstItem;
+
   const setHasDefaultValue = useCallback(
     (value?) => {
-      const required = !!formFilter?.controlValues?.enableEmptyFilter
+      const required =
+        !!formFilter?.controlValues?.enableEmptyFilter && !defaultToFirstItem;
       setisRequired(required);
       setHasPartialDefaultValue(required ? true : value);
     },
-    [formFilter?.controlValues?.enableEmptyFilter],
+    [formFilter?.controlValues?.enableEmptyFilter, defaultToFirstItem],
   );
 
   useEffect(() => {
-    setHasDefaultValue();
-  }, [setHasDefaultValue]);
+    setHasDefaultValue(
+      defaultToFirstItem
+        ? false
+        : !!formFilter?.defaultDataMask?.filterState?.value,
+    );
+  }, [setHasDefaultValue, defaultToFirstItem]);
 
   return [hasDefaultValue, isRequired, setHasDefaultValue];
 };
