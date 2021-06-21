@@ -85,7 +85,7 @@ const CollapsibleControl = (props: CollapsibleControlProps) => {
         }}
       >
         <>
-          {title}{' '}
+          {title}&nbsp;
           {tooltip && (
             <InfoTooltipWithTrigger placement="top" tooltip={tooltip} />
           )}

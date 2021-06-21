@@ -302,7 +302,6 @@ const FiltersConfigForm = (
   const [activeFilterPanelKey, setActiveFilterPanelKey] = useState<
     string | string[]
   >(FilterPanels.basic.key);
-  const [defaultValueTooltip, setDefaultValueTooltip] = useState<string>('');
 
   const forceUpdate = useForceUpdate();
   const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
@@ -469,10 +468,12 @@ const FiltersConfigForm = (
     ...formFilter,
   });
 
-  const [hasDefaultValue, isRequired, setHasDefaultValue] = useDefaultValue(
-    formFilter,
-    filterToEdit,
-  );
+  const [
+    hasDefaultValue,
+    isRequired,
+    defaultValueTooltip,
+    setHasDefaultValue,
+  ] = useDefaultValue(formFilter, filterToEdit);
 
   useEffect(() => {
     if (hasDataset && hasFilledDataset && hasDefaultValue && isDataDirty) {
@@ -556,18 +557,6 @@ const FiltersConfigForm = (
   const hasAdhoc = formFilter?.adhoc_filters?.length > 0;
 
   const defaultToFirstItem = formFilter?.controlValues?.defaultToFirstItem;
-
-  useEffect(() => {
-    let tooltip = '';
-    if (defaultToFirstItem) {
-      tooltip = t(
-        'Default value set automatically when "Default to first item" is selected',
-      );
-    } else if (isRequired) {
-      tooltip = t('Default value must be set when "Required" is active');
-    }
-    setDefaultValueTooltip(tooltip);
-  }, [isRequired, defaultToFirstItem]);
 
   const preFilterValidator = () => {
     if (hasTimeRange || hasAdhoc) {
