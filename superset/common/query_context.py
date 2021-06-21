@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import copy
 import logging
 from typing import Any, ClassVar, Dict, List, Optional, TYPE_CHECKING, Union
 
@@ -49,6 +50,7 @@ from superset.utils.core import (
     normalize_dttm_col,
     QueryStatus,
 )
+from superset.utils.date_parser import get_past_or_future
 from superset.views.utils import get_viz
 
 if TYPE_CHECKING:
@@ -101,6 +103,43 @@ class QueryContext:
             "result_format": self.result_format,
         }
 
+    def processing_time_offset(
+        self, df: pd.DataFrame, query_object: QueryObject,
+    ) -> pd.DataFrame:
+        # make sure query_object is immutable
+        query_object_clone = copy.copy(query_object)
+
+        time_offset = query_object.time_offset
+        outer_from_dttm = query_object.from_dttm
+        outer_to_dttm = query_object.to_dttm
+        for offset in time_offset:
+            try:
+                query_object_clone.from_dttm = get_past_or_future(
+                    offset, outer_from_dttm,
+                )
+                query_object_clone.to_dttm = get_past_or_future(offset, outer_to_dttm,)
+            except ValueError as ex:
+                raise QueryObjectValidationError(str(ex))
+            query_object_clone.inner_from_dttm = outer_from_dttm
+            query_object_clone.inner_to_dttm = outer_to_dttm
+            query_object_clone.time_offset = []
+
+            if not query_object.from_dttm or not query_object.to_dttm:
+                raise QueryObjectValidationError(
+                    _(
+                        "An enclosed time range (both start and end) must be specified "
+                        "when using a Time Comparison."
+                    )
+                )
+            result = self.datasource.query(query_object_clone.to_dict())
+            offset_df = result.df
+            offset_df = offset_df.drop(columns=[DTTM_ALIAS])
+            _columns = list(offset_df.columns)
+            _to_columns = [" ".join([column, offset, "offset"]) for column in _columns]
+            offset_df = offset_df.rename(columns=dict(zip(_columns, _to_columns)))
+            df = pd.concat([df, offset_df], axis=1)
+        return df
+
     def get_query_result(self, query_object: QueryObject) -> Dict[str, Any]:
         """Returns a pandas dataframe based on the query object"""
 
@@ -133,6 +172,9 @@ class QueryContext:
 
             if self.enforce_numerical_metrics:
                 self.df_metrics_to_num(df, query_object)
+
+            if query_object.time_offset:
+                df = self.processing_time_offset(df, query_object)
 
             df.replace([np.inf, -np.inf], np.nan, inplace=True)
             df = query_object.exec_post_processing(df)

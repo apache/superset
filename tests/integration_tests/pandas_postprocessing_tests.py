@@ -38,6 +38,7 @@ from .fixtures.dataframes import (
     names_df,
     timeseries_df,
     prophet_df,
+    timeseries_df2,
 )
 
 AGGREGATES_SINGLE = {"idx_nulls": {"operator": "sum"}}
@@ -420,6 +421,64 @@ class TestPostProcessing(SupersetTestCase):
             proc.diff,
             df=timeseries_df,
             columns={"abc": "abc"},
+        )
+
+        # diff by columns
+        post_df = proc.diff(df=timeseries_df2, columns={"y": "y", "z": "z"}, axis=1)
+        self.assertListEqual(post_df.columns.tolist(), ["label", "y", "z"])
+        self.assertListEqual(series_to_list(post_df["z"]), [0.0, 2.0, 8.0, 6.0])
+
+    def test_compare(self):
+        # `absolute` comparison
+        post_df = proc.compare(
+            df=timeseries_df2,
+            source_columns=["y"],
+            compare_columns=["z"],
+            compare_type="absolute",
+        )
+        self.assertListEqual(
+            post_df.columns.tolist(), ["label", "y", "z", "__absolute__y__z",]
+        )
+        self.assertListEqual(
+            series_to_list(post_df["__absolute__y__z"]), [0.0, -2.0, -8.0, -6.0],
+        )
+
+        # drop original columns
+        post_df = proc.compare(
+            df=timeseries_df2,
+            source_columns=["y"],
+            compare_columns=["z"],
+            compare_type="absolute",
+            drop_original_columns=True,
+        )
+        self.assertListEqual(post_df.columns.tolist(), ["label", "__absolute__y__z",])
+
+        # `percentage` comparison
+        post_df = proc.compare(
+            df=timeseries_df2,
+            source_columns=["y"],
+            compare_columns=["z"],
+            compare_type="percentage",
+        )
+        self.assertListEqual(
+            post_df.columns.tolist(), ["label", "y", "z", "__percentage__y__z",]
+        )
+        self.assertListEqual(
+            series_to_list(post_df["__percentage__y__z"]), [0.0, -1.0, -4.0, -3],
+        )
+
+        # `ratio` comparison
+        post_df = proc.compare(
+            df=timeseries_df2,
+            source_columns=["y"],
+            compare_columns=["z"],
+            compare_type="ratio",
+        )
+        self.assertListEqual(
+            post_df.columns.tolist(), ["label", "y", "z", "__ratio__y__z",]
+        )
+        self.assertListEqual(
+            series_to_list(post_df["__ratio__y__z"]), [1.0, 0.5, 0.2, 0.25],
         )
 
     def test_cum(self):

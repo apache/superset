@@ -106,6 +106,16 @@ def dttm_from_timetuple(date_: struct_time) -> datetime:
     )
 
 
+def get_past_or_future(
+    human_readable: Optional[str], source_time: Optional[datetime] = None,
+) -> datetime:
+    cal = parsedatetime.Calendar()
+    source_dttm = dttm_from_timetuple(
+        source_time.timetuple() if source_time else datetime.now().timetuple()
+    )
+    return dttm_from_timetuple(cal.parse(human_readable or "", source_dttm)[0])
+
+
 def parse_human_timedelta(
     human_readable: Optional[str], source_time: Optional[datetime] = None,
 ) -> timedelta:
@@ -115,12 +125,10 @@ def parse_human_timedelta(
     >>> parse_human_timedelta('1 day') == timedelta(days=1)
     True
     """
-    cal = parsedatetime.Calendar()
     source_dttm = dttm_from_timetuple(
         source_time.timetuple() if source_time else datetime.now().timetuple()
     )
-    modified_dttm = dttm_from_timetuple(cal.parse(human_readable or "", source_dttm)[0])
-    return modified_dttm - source_dttm
+    return get_past_or_future(human_readable, source_time) - source_dttm
 
 
 def parse_past_timedelta(

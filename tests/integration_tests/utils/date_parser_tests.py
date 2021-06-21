@@ -24,6 +24,7 @@ from superset.charts.commands.exceptions import (
 from superset.utils.date_parser import (
     DateRangeMigration,
     datetime_eval,
+    get_past_or_future,
     get_since_until,
     parse_human_datetime,
     parse_human_timedelta,
@@ -287,6 +288,14 @@ class TestDateParser(SupersetTestCase):
         self.assertEqual(parse_past_timedelta("-1 year"), timedelta(365))
         self.assertEqual(parse_past_timedelta("52 weeks"), timedelta(364))
         self.assertEqual(parse_past_timedelta("1 month"), timedelta(31))
+
+    def test_get_past_or_future(self):
+        # 2020 is a leap year
+        dttm = datetime(2020, 2, 29)
+        self.assertEqual(get_past_or_future("1 year", dttm), datetime(2021, 2, 28))
+        self.assertEqual(get_past_or_future("-1 year", dttm), datetime(2019, 2, 28))
+        self.assertEqual(get_past_or_future("1 month", dttm), datetime(2020, 3, 29))
+        self.assertEqual(get_past_or_future("3 month", dttm), datetime(2020, 5, 29))
 
     def test_parse_human_datetime(self):
         with self.assertRaises(TimeRangeUnclearError):
