@@ -129,6 +129,20 @@ export const StyledRowFormItem = styled(FormItem)`
   }
 `;
 
+export const StyledRowSubFormItem = styled(FormItem)`
+  & .ant-form-item-label {
+    padding-bottom: 0;
+  }
+
+  .ant-form-item-control-input-content > div > div {
+    height: auto;
+  }
+
+  & .ant-form-item-control-input {
+    height: auto;
+  }
+`;
+
 export const StyledLabel = styled.span`
   color: ${({ theme }) => theme.colors.grayscale.base};
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
@@ -714,10 +728,14 @@ const FiltersConfigForm = (
               title={t('Filter has default value')}
               initialValue={hasDefaultValue}
               disabled={isRequired}
+              tooltip={
+                isRequired &&
+                t('Default value must be set when "Required" is active')
+              }
               checked={hasDefaultValue}
               onChange={value => setHasDefaultValue(value)}
             >
-              <StyledRowFormItem
+              <StyledRowSubFormItem
                 name={['filters', filterId, 'defaultDataMask']}
                 initialValue={filterToEdit?.defaultDataMask}
                 data-test="default-input"
@@ -776,7 +794,7 @@ const FiltersConfigForm = (
                 ) : (
                   t('Fill all required fields to enable "Default Value"')
                 )}
-              </StyledRowFormItem>
+              </StyledRowSubFormItem>
             </CollapsibleControl>
             {Object.keys(controlItems)
               .filter(key => BASIC_CONTROL_ITEMS.includes(key))
@@ -815,7 +833,7 @@ const FiltersConfigForm = (
                     }
                   }}
                 >
-                  <StyledRowFormItem
+                  <StyledRowSubFormItem
                     name={['filters', filterId, 'parentFilter']}
                     label={<StyledLabel>{t('Parent filter')}</StyledLabel>}
                     initialValue={parentFilter}
@@ -833,7 +851,7 @@ const FiltersConfigForm = (
                       options={parentFilterOptions}
                       isClearable
                     />
-                  </StyledRowFormItem>
+                  </StyledRowSubFormItem>
                 </CollapsibleControl>
               )}
               {Object.keys(controlItems)
@@ -849,7 +867,7 @@ const FiltersConfigForm = (
                     }
                   }}
                 >
-                  <StyledRowFormItem
+                  <StyledRowSubFormItem
                     name={['filters', filterId, 'adhoc_filters']}
                     initialValue={filterToEdit?.adhoc_filters}
                     required
@@ -881,7 +899,7 @@ const FiltersConfigForm = (
                         </span>
                       }
                     />
-                  </StyledRowFormItem>
+                  </StyledRowSubFormItem>
                   {showTimeRangePicker && (
                     <StyledRowFormItem
                       name={['filters', filterId, 'time_range']}
@@ -977,7 +995,7 @@ const FiltersConfigForm = (
                     />
                   </StyledFormItem>
                   {hasMetrics && (
-                    <StyledRowFormItem
+                    <StyledRowSubFormItem
                       name={['filters', filterId, 'sortMetric']}
                       initialValue={filterToEdit?.sortMetric}
                       label={
@@ -1010,7 +1028,7 @@ const FiltersConfigForm = (
                           }
                         }}
                       />
-                    </StyledRowFormItem>
+                    </StyledRowSubFormItem>
                   )}
                 </CollapsibleControl>
               )}
