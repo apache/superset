@@ -25,6 +25,7 @@ from superset.db_engine_specs.exceptions import (
 )
 from superset.utils import core as utils
 from typing import Any
+from superset import app
 
 
 class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
