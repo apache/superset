@@ -43,6 +43,24 @@ const config: ControlPanelConfig = {
         ],
       ],
     },
+    {
+      label: t('UI Configuration'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'enableEmptyFilter',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Required'),
+              default: false,
+              renderTrigger: true,
+              description: t('User must select a value for this filter.'),
+            },
+          },
+        ],
+      ],
+    },
   ],
 };
 
