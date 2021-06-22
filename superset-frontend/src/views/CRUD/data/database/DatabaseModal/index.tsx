@@ -255,7 +255,7 @@ function dbReducer(
 
       return {
         ...action.payload,
-        engine: trimmedState.engine,
+        engine: action.payload.backend,
         configuration_method: action.payload.configuration_method,
         extra_json: deserializeExtraJSON,
         parameters: {
@@ -364,6 +364,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
     // Clone DB object
     const dbToUpdate = JSON.parse(JSON.stringify(update));
+
+    // Validtion DB
+    await getValidation(dbToUpdate, true);
+    if (validationErrors) {
+      console.log('got validation errors');
+      return;
+    }
+
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
       if (dbToUpdate?.parameters?.query) {
         // convert query params into dictionary

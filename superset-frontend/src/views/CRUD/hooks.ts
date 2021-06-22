@@ -638,7 +638,7 @@ export function useDatabaseValidation() {
     null,
   );
   const getValidation = useCallback(
-    (database: Partial<DatabaseObject> | null) => {
+    (database: Partial<DatabaseObject> | null, onCreate = false) => {
       SupersetClient.post({
         endpoint: '/api/v1/database/validate_parameters',
         body: JSON.stringify(database),
@@ -653,7 +653,8 @@ export function useDatabaseValidation() {
               const parsedErrors = errors
                 .filter(
                   (error: { error_type: string }) =>
-                    error.error_type !== 'CONNECTION_MISSING_PARAMETERS_ERROR',
+                    error.error_type !==
+                      'CONNECTION_MISSING_PARAMETERS_ERROR' || onCreate,
                 )
                 .reduce(
                   (
@@ -662,7 +663,7 @@ export function useDatabaseValidation() {
                       extra,
                       message,
                     }: {
-                      extra: { invalid?: string[] };
+                      extra: { invalid?: string[]; missing?: string[] };
                       message: string;
                     },
                   ) => {
@@ -672,10 +673,18 @@ export function useDatabaseValidation() {
                     if (extra.invalid) {
                       return { ...obj, [extra.invalid[0]]: message };
                     }
+                    if (extra.missing) {
+                      const missingFields = {};
+                      extra.missing.map(d => {
+                        missingFields[d] = 'This is a required field';
+                      });
+                      return { ...obj, ...missingFields };
+                    }
                     return obj;
                   },
                   {},
                 );
+              console.log(parsedErrors);
               setValidationErrors(parsedErrors);
             });
           } else {
