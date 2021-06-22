@@ -22,13 +22,16 @@ import logging
 import os
 import sys
 from types import ModuleType
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, TYPE_CHECKING, Union
 
 from flask import Flask
 from werkzeug.utils import import_string
 
 from superset.initialization import SupersetAppInitializer
 from superset.utils.core import is_test
+
+if TYPE_CHECKING:
+    from keys_management import KeysManagement
 
 logger = logging.getLogger(__name__)
 
@@ -104,4 +107,12 @@ def load_override_config() -> Union[Dict[Any, Any], ModuleType]:
 
 
 class SupersetApp(Flask):
-    pass
+    _keys_management: Optional[KeysManagement]
+
+    @property
+    def keys_management(self) -> Optional[KeysManagement]:
+        return self._keys_management
+
+    @keys_management.setter
+    def keys_management(self, keys_management: KeysManagement) -> None:
+        self._keys_management = keys_management
