@@ -407,7 +407,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         if (onDatabaseAdd) {
           onDatabaseAdd();
         }
-        onClose();
+        if (!editNewDb) {
+          onClose();
+        }
       }
     } else if (db) {
       // Create
@@ -440,8 +442,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         }
       }
     }
-    setLoading(false);
     setEditNewDb(false);
+    setLoading(false);
   };
 
   const onChange = (type: any, payload: any) => {
@@ -544,45 +546,51 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (dbFetched) {
       fetchResource(dbFetched.id as number);
     }
-  }
+    setEditNewDb(true);
+  };
 
-  const renderModalFooter = () =>
-    db // if db show back + connect
-      ? [
-          !hasConnectedDb ? (
-            <>
-              <StyledFooterButton
-                key="back"
-                onClick={() => {
-                  setDB({ type: ActionType.reset });
-                }}
-              >
-                Back
-              </StyledFooterButton>
-              <StyledFooterButton
-                key="submit"
-                buttonStyle="primary"
-                onClick={onSave}
-              >
-                Connect
-              </StyledFooterButton>
-            </>
-          ) : (
-            <>
-              <StyledFooterButton key="back" onClick={() => setEditNewDb(true)}>
-                Back
-              </StyledFooterButton>
-              <StyledFooterButton
-                key="submit"
-                buttonStyle="primary"
-                onClick={onClose}
-              >
-                Finish
-              </StyledFooterButton>
-            </>
-          ),
-        ]
-      : [];
+  const renderModalFooter = () => {
+    if (db) {
+      // if db show back + connenct
+      if (!hasConnectedDb || editNewDb) {
+        return (
+          <>
+            <StyledFooterButton
+              key="back"
+              onClick={() => {
+                setDB({ type: ActionType.reset });
+              }}
+            >
+              Back
+            </StyledFooterButton>
+            <StyledFooterButton
+              key="submit"
+              buttonStyle="primary"
+              onClick={onSave}
+            >
+              Connect
+            </StyledFooterButton>
+          </>
+        );
+      }
+
+      return (
+        <>
+          <StyledFooterButton key="back" onClick={handleBackButton}>
+            Back
+          </StyledFooterButton>
+          <StyledFooterButton
+            key="submit"
+            buttonStyle="primary"
+            onClick={onClose}
+          >
+            Finish
+          </StyledFooterButton>
+        </>
+      );
+    }
+    return [];
+  };
 
   const renderEditModalFooter = () => (
     <>
@@ -625,6 +633,68 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const tabChange = (key: string) => {
     setTabKey(key);
+  };
+
+  const renderExtraOptions = () => {
+    if (!editNewDb) {
+      return (
+        <ExtraOptions
+          db={db as DatabaseObject}
+          onInputChange={({ target }: { target: HTMLInputElement }) =>
+            onChange(ActionType.inputChange, {
+              type: target.type,
+              name: target.name,
+              checked: target.checked,
+              value: target.value,
+            })
+          }
+          onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
+            onChange(ActionType.textChange, {
+              name: target.name,
+              value: target.value,
+            })
+          }
+          onEditorChange={(payload: { name: string; json: any }) =>
+            onChange(ActionType.editorChange, payload)
+          }
+          onExtraInputChange={({ target }: { target: HTMLInputElement }) => {
+            onChange(ActionType.extraInputChange, {
+              type: target.type,
+              name: target.name,
+              checked: target.checked,
+              value: target.value,
+            });
+          }}
+          onExtraEditorChange={(payload: { name: string; json: any }) =>
+            onChange(ActionType.extraEditorChange, payload)
+          }
+        />
+      );
+    }
+    return (
+      <DatabaseConnectionForm
+        isEditMode
+        sslForced={sslForced}
+        dbModel={dbModel}
+        db={dbFetched as DatabaseObject}
+        onParametersChange={({ target }: { target: HTMLInputElement }) =>
+          onChange(ActionType.parametersChange, {
+            type: target.type,
+            name: target.name,
+            checked: target.checked,
+            value: target.value,
+          })
+        }
+        onChange={({ target }: { target: HTMLInputElement }) =>
+          onChange(ActionType.textChange, {
+            name: target.name,
+            value: target.value,
+          })
+        }
+        getValidation={() => getValidation(db)}
+        validationErrors={validationErrors}
+      />
+    );
   };
 
   const isDynamic = (engine: string | undefined) =>
@@ -821,68 +891,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             db={db}
             dbName={dbName}
             dbModel={dbModel}
+            editNewDb={editNewDb}
           />
-          {!editNewDb && (
-            <ExtraOptions
-              db={db as DatabaseObject}
-              onInputChange={({ target }: { target: HTMLInputElement }) =>
-                onChange(ActionType.inputChange, {
-                  type: target.type,
-                  name: target.name,
-                  checked: target.checked,
-                  value: target.value,
-                })
-              }
-              onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
-                onChange(ActionType.textChange, {
-                  name: target.name,
-                  value: target.value,
-                })
-              }
-              onEditorChange={(payload: { name: string; json: any }) =>
-                onChange(ActionType.editorChange, payload)
-              }
-              onExtraInputChange={({
-                target,
-              }: {
-                target: HTMLInputElement;
-              }) => {
-                onChange(ActionType.extraInputChange, {
-                  type: target.type,
-                  name: target.name,
-                  checked: target.checked,
-                  value: target.value,
-                });
-              }}
-              onExtraEditorChange={(payload: { name: string; json: any }) =>
-                onChange(ActionType.extraEditorChange, payload)
-              }
-            />
-          )}
-          {editNewDb && (
-            <DatabaseConnectionForm
-              isEditMode
-              sslForced={sslForced}
-              dbModel={dbModel}
-              db={dbFetched as DatabaseObject}
-              onParametersChange={({ target }: { target: HTMLInputElement }) =>
-                onChange(ActionType.parametersChange, {
-                  type: target.type,
-                  name: target.name,
-                  checked: target.checked,
-                  value: target.value,
-                })
-              }
-              onChange={({ target }: { target: HTMLInputElement }) =>
-                onChange(ActionType.textChange, {
-                  name: target.name,
-                  value: target.value,
-                })
-              }
-              getValidation={() => getValidation(db)}
-              validationErrors={validationErrors}
-            />
-          )}
+          {renderExtraOptions()}
         </>
       ) : (
         <>
