@@ -39,25 +39,30 @@ export const marginBottom = (theme: SupersetTheme) => css`
 export const StyledFormHeader = styled.header`
   border-bottom: ${({ theme }) => `${theme.gridUnit * 0.25}px solid
     ${theme.colors.grayscale.light2};`}
-  padding-left: ${({ theme }) => theme.gridUnit * 4}px;
-  padding-right: ${({ theme }) => theme.gridUnit * 4}px;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  padding: ${({ theme }) => theme.gridUnit * 2}px
+    ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 4}px;
+  line-height: ${({ theme }) => theme.gridUnit * 6}px;
   .helper {
     color: ${({ theme }) => theme.colors.grayscale.base};
     font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    margin: 0;
   }
   h4 {
     color: ${({ theme }) => theme.colors.grayscale.dark2};
     font-weight: bold;
     font-size: ${({ theme }) => theme.typography.sizes.l}px;
+    margin: 0;
+    padding: 0;
   }
 
   .select-db {
     .helper {
-      margin-top: 0;
+      margin: 0;
     }
     h4 {
-      margin: 0 0 29px;
+      margin: 0 0 ${({ theme }) => theme.gridUnit * 6}px;
     }
   }
 `;
@@ -87,6 +92,9 @@ export const antdCollapseStyles = (theme: SupersetTheme) => css`
 `;
 
 export const antDTabsStyles = css`
+  .ant-tabs-top {
+    margin-top: 0;
+  }
   .ant-tabs-top > .ant-tabs-nav {
     margin-bottom: 0;
   }
@@ -104,6 +112,7 @@ export const antDModalNoPaddingStyles = css`
 `;
 
 export const infoTooltip = (theme: SupersetTheme) => css`
+  margin-bottom: ${theme.gridUnit * 5}px;
   svg {
     vertical-align: bottom;
     margin-bottom: ${theme.gridUnit * 0.25}px;
@@ -115,11 +124,14 @@ export const toggleStyle = (theme: SupersetTheme) => css`
 `;
 
 export const formScrollableStyles = (theme: SupersetTheme) => css`
-  padding-left: ${theme.gridUnit * 4}px;
-  padding-right: ${theme.gridUnit * 4}px;
+  padding: ${theme.gridUnit * 4}px ${theme.gridUnit * 4}px 0;
 `;
 
 export const antDModalStyles = (theme: SupersetTheme) => css`
+  .ant-select-dropdown {
+    height: ${theme.gridUnit * 40}px;
+  }
+
   .ant-modal-header {
     padding: ${theme.gridUnit * 4.5}px ${theme.gridUnit * 4}px
       ${theme.gridUnit * 4}px;
@@ -142,16 +154,23 @@ export const antDModalStyles = (theme: SupersetTheme) => css`
 export const antDAlertStyles = (theme: SupersetTheme) => css`
   border: 1px solid ${theme.colors.info.base};
   padding: ${theme.gridUnit * 4}px;
-  margin: ${theme.gridUnit * 8}px 0 ${theme.gridUnit * 4}px;
+  margin: ${theme.gridUnit * 4}px 0;
+
   .ant-alert-message {
     color: ${theme.colors.info.dark2};
     font-size: ${theme.typography.sizes.s + 1}px;
     font-weight: bold;
   }
+
   .ant-alert-description {
     color: ${theme.colors.info.dark2};
     font-size: ${theme.typography.sizes.s + 1}px;
     line-height: ${theme.gridUnit * 4}px;
+
+    a {
+      text-decoration: underline;
+    }
+
     .ant-alert-icon {
       margin-right: ${theme.gridUnit * 2.5}px;
       font-size: ${theme.typography.sizes.l + 1}px;
@@ -195,6 +214,7 @@ export const formStyles = (theme: SupersetTheme) => css`
       width: ${`calc(50% - ${theme.gridUnit * 4}px)`};
       & + .form-group-w-50 {
         margin-left: ${theme.gridUnit * 8}px;
+        margin-bottom: ${theme.gridUnit * 10}px;
       }
     }
   }
@@ -330,8 +350,7 @@ export const StyledExpandableForm = styled.div`
 `;
 
 export const StyledBasicTab = styled(Tabs.TabPane)`
-  padding-left: ${({ theme }) => theme.gridUnit * 4}px;
-  padding-right: ${({ theme }) => theme.gridUnit * 4}px;
+  padding: 0 ${({ theme }) => theme.gridUnit * 4}px;
   margin-top: ${({ theme }) => theme.gridUnit * 6}px;
 `;
 
@@ -352,8 +371,6 @@ export const TabHeader = styled.div`
   flex-direction: column;
   justify-content: center;
   padding: 0px;
-  margin: 0 ${({ theme }) => theme.gridUnit * 4}px
-    ${({ theme }) => theme.gridUnit * 8}px;
 
   .helper {
     color: ${({ theme }) => theme.colors.grayscale.base};
@@ -366,7 +383,6 @@ export const CreateHeaderTitle = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
   font-weight: bold;
   font-size: ${({ theme }) => theme.typography.sizes.m}px;
-  padding: ${({ theme }) => theme.gridUnit * 1}px 0;
 `;
 
 export const CreateHeaderSubtitle = styled.div`
@@ -473,8 +489,6 @@ export const StyledFooterButton = styled(Button)`
 export const StyledStickyHeader = styled.div`
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: ${({ theme }) => theme.zIndex.max};
   background: ${({ theme }) => theme.colors.grayscale.light5};
-  padding: ${({ theme }) => theme.gridUnit * 4}px 0;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
 `;

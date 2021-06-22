@@ -341,10 +341,8 @@ const ExtraOptions = ({
           </div>
           <div className="helper">
             {t(
-              'JSON string containing additional connection configuration. ' +
-                'This is used to provide connection information for systems ' +
-                'like Hive, Presto and BigQuery whih do not conform to the ' +
-                'username:password syntax normally used by SQLAlchemy.',
+              'Optional CA_BUNDLE contents to validate HTTPS requests. Only ' +
+                'available on certain database engines.',
             )}
           </div>
         </StyledInputContainer>

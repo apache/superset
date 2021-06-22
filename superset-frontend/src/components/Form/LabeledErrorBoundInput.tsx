@@ -19,6 +19,7 @@
 import React from 'react';
 import { Input } from 'antd';
 import { styled, css, SupersetTheme } from '@superset-ui/core';
+import InfoTooltip from 'src/components/InfoTooltip';
 import FormItem from './FormItem';
 import FormLabel from './FormLabel';
 
@@ -30,6 +31,8 @@ export interface LabeledErrorBoundInputProps {
   errorMessage: string | null;
   helpText?: string;
   required?: boolean;
+  hasTooltip?: boolean;
+  tooltipText?: string | null;
   id?: string;
   classname?: string;
   [x: string]: any;
@@ -61,6 +64,7 @@ const alertIconStyles = (theme: SupersetTheme, hasError: boolean) => css`
       }
     }`}
 `;
+
 const StyledFormGroup = styled('div')`
   input::-webkit-outer-spin-button,
   input::-webkit-inner-spin-button {
@@ -73,20 +77,36 @@ const StyledFormGroup = styled('div')`
   }
 `;
 
+const infoTooltip = (theme: SupersetTheme) => css`
+  svg {
+    vertical-align: bottom;
+    margin-bottom: ${theme.gridUnit * 0.25}px;
+  }
+`;
+
 const LabeledErrorBoundInput = ({
   label,
   validationMethods,
   errorMessage,
   helpText,
   required = false,
+  hasTooltip = false,
+  tooltipText,
   id,
   className,
   ...props
 }: LabeledErrorBoundInputProps) => (
   <StyledFormGroup className={className}>
-    <FormLabel htmlFor={id} required={required}>
+    <FormLabel
+      htmlFor={id}
+      required={required}
+      css={(theme: SupersetTheme) => infoTooltip(theme)}
+    >
       {label}
     </FormLabel>
+    {hasTooltip && (
+      <InfoTooltip tooltip={`${tooltipText}`} viewBox="0 -6 24 24" />
+    )}
     <FormItem
       css={(theme: SupersetTheme) => alertIconStyles(theme, !!errorMessage)}
       validateTrigger={Object.keys(validationMethods)}
