@@ -30,7 +30,8 @@ import React, {
   Reducer,
 } from 'react';
 import Tabs from 'src/components/Tabs';
-import { Alert, Select } from 'src/common/components';
+import { Select } from 'src/common/components';
+import Alert from 'src/components/Alert';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import IconButton from 'src/components/IconButton';
@@ -502,6 +503,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       </Select>
       <Alert
         showIcon
+        closable={false}
         css={(theme: SupersetTheme) => antDAlertStyles(theme)}
         type="info"
         message={t('Want to add a new database?')}
@@ -722,6 +724,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           )}
           {!isEditMode && (
             <Alert
+              closable={false}
               css={(theme: SupersetTheme) => antDAlertStyles(theme)}
               message="Additional fields may be required"
               showIcon
@@ -873,6 +876,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 />
                 {connectionAlert && (
                   <Alert
+                    closable={false}
                     css={(theme: SupersetTheme) => antDAlertStyles(theme)}
                     type="info"
                     showIcon

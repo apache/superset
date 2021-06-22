@@ -61,10 +61,10 @@ const ModalHeader = ({
   dbModel: DatabaseForm;
 }) => {
   const isEditHeader = (
-    <>
+    <StyledFormHeader>
       <EditHeaderTitle>{db?.backend}</EditHeaderTitle>
       <EditHeaderSubtitle>{dbName}</EditHeaderSubtitle>
-    </>
+    </StyledFormHeader>
   );
   const useSqlAlchemyFormHeader = (
     <StyledFormHeader>

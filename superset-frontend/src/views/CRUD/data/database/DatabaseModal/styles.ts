@@ -128,6 +128,10 @@ export const formScrollableStyles = (theme: SupersetTheme) => css`
 `;
 
 export const antDModalStyles = (theme: SupersetTheme) => css`
+  .ant-select-dropdown {
+    height: ${theme.gridUnit * 40}px;
+  }
+
   .ant-modal-header {
     padding: ${theme.gridUnit * 4.5}px ${theme.gridUnit * 4}px
       ${theme.gridUnit * 4}px;
@@ -151,18 +155,22 @@ export const antDAlertStyles = (theme: SupersetTheme) => css`
   border: 1px solid ${theme.colors.info.base};
   padding: ${theme.gridUnit * 4}px;
   margin: ${theme.gridUnit * 4}px 0;
+
   .ant-alert-message {
     color: ${theme.colors.info.dark2};
     font-size: ${theme.typography.sizes.s + 1}px;
     font-weight: bold;
   }
+
   .ant-alert-description {
     color: ${theme.colors.info.dark2};
     font-size: ${theme.typography.sizes.s + 1}px;
     line-height: ${theme.gridUnit * 4}px;
+
     a {
       text-decoration: underline;
     }
+
     .ant-alert-icon {
       margin-right: ${theme.gridUnit * 2.5}px;
       font-size: ${theme.typography.sizes.l + 1}px;
