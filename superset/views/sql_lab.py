@@ -228,10 +228,12 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose("<int:tab_state_id>/query/<client_id>", methods=["DELETE"])
     def delete_query(  # pylint: disable=no-self-use
-        self, tab_state_id: str, client_id: str
+        self, tab_state_id: int, client_id: str
     ) -> FlaskResponse:
         db.session.query(Query).filter_by(
-            client_id=client_id, user_id=g.user.get_id(), sql_editor_id=tab_state_id
+            client_id=client_id,
+            user_id=g.user.get_id(),
+            sql_editor_id=str(tab_state_id),
         ).delete(synchronize_session=False)
         db.session.commit()
         return json_success(json.dumps("OK"))
