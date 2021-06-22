@@ -187,6 +187,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [show, setShow] = useState<boolean>(false);
   const guessedFrame = useMemo(() => guessFrame(value), [value]);
   const [frame, setFrame] = useState<FrameType>(guessedFrame);
+  const [lastFetchedTimeRange, setLastFetchedTimeRange] = useState(value);
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalResponse, setEvalResponse] = useState<string>(value);
@@ -223,20 +224,26 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         }
         setValidTimeRange(true);
       }
+      setLastFetchedTimeRange(value);
     });
   }, [value]);
 
   useDebouncedEffect(
     () => {
-      fetchTimeRange(timeRangeValue, endpoints).then(({ value, error }) => {
-        if (error) {
-          setEvalResponse(error || '');
-          setValidTimeRange(false);
-        } else {
-          setEvalResponse(value || '');
-          setValidTimeRange(true);
-        }
-      });
+      if (lastFetchedTimeRange !== timeRangeValue) {
+        fetchTimeRange(timeRangeValue, endpoints).then(
+          ({ value: actualRange, error }) => {
+            if (error) {
+              setEvalResponse(error || '');
+              setValidTimeRange(false);
+            } else {
+              setEvalResponse(actualRange || '');
+              setValidTimeRange(true);
+            }
+            setLastFetchedTimeRange(timeRangeValue);
+          },
+        );
+      }
     },
     SLOW_DEBOUNCE,
     [timeRangeValue],
