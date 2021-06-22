@@ -210,19 +210,21 @@ const portField = ({
   validationErrors,
   db,
 }: FieldPropTypes) => (
-  <ValidatedInput
-    id="port"
-    name="port"
-    type="number"
-    required={required}
-    value={db?.parameters?.port}
-    validationMethods={{ onBlur: getValidation }}
-    errorMessage={validationErrors?.port}
-    placeholder="e.g. 5432"
-    className="form-group-w-50"
-    label="Port"
-    onChange={changeMethods.onParametersChange}
-  />
+  <>
+    <ValidatedInput
+      id="port"
+      name="port"
+      type="number"
+      required={required}
+      value={db?.parameters?.port as number}
+      validationMethods={{ onBlur: getValidation }}
+      errorMessage={validationErrors?.port}
+      placeholder="e.g. 5432"
+      className="form-group-w-50"
+      label="Port"
+      onChange={changeMethods.onParametersChange}
+    />
+  </>
 );
 const databaseField = ({
   required,

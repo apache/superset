@@ -56,6 +56,7 @@ import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
 import {
+  antDErrorAlertStyles,
   antDAlertStyles,
   antDModalNoPaddingStyles,
   antDModalStyles,
@@ -314,7 +315,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   // Database fetch logic
   const {
-    state: { loading: dbLoading, resource: dbFetched },
+    state: { loading: dbLoading, resource: dbFetched, error: dbError },
     fetchResource,
     createResource,
     updateResource,
@@ -641,6 +642,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setTabKey(key);
   };
 
+  const errorAlert = () => (
+    <Alert
+      type="error"
+      css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
+      message="Missing Required Fields"
+      description="Please complete all required fields."
+      showIcon
+    />
+  );
+
   const renderFinishState = () => {
     if (!editNewDb) {
       return (
@@ -876,6 +887,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               onChange(ActionType.extraEditorChange, payload);
             }}
           />
+          {dbError && errorAlert()}
         </Tabs.TabPane>
       </Tabs>
     </Modal>
@@ -1001,6 +1013,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   />
                 </div>
                 {/* Step 2 */}
+                {dbError && errorAlert()}
               </>
             ))}
         </>
