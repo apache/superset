@@ -108,7 +108,7 @@ class QueryContext:
     def processing_time_offset(
         self, df: pd.DataFrame, query_object: QueryObject,
     ) -> Tuple[pd.DataFrame, List[str]]:
-        # make sure query_object is immutable
+        # ensure query_object is immutable
         query_object_clone = copy.copy(query_object)
         rv_sql = []
 
@@ -139,23 +139,26 @@ class QueryContext:
             result = self.datasource.query(query_object_clone_dct)
             rv_sql.append(result.query)
 
-            # extract `metrics` columns from extra query
-            offset_metrics_df = result.df
-            offset_metrics_df = offset_metrics_df[
-                get_metric_names(query_object_clone_dct.get("metrics", []))
-            ]
-
             # rename metrics: SUM(value) => SUM(value) 1 year ago
-            _columns = list(offset_metrics_df.columns)
-            _renamed_columns = [
-                TIME_COMPARISION.join([column, offset]) for column in _columns
-            ]
-            offset_metrics_df = offset_metrics_df.rename(
-                columns=dict(zip(_columns, _renamed_columns))
-            )
+            columns_name_mapping = {
+                metric: TIME_COMPARISION.join([metric, offset])
+                for metric in get_metric_names(
+                    query_object_clone_dct.get("metrics", [])
+                )
+            }
 
-            # combine `offset_metrics_df` with main query df
-            df = pd.concat([df, offset_metrics_df], axis=1)
+            offset_metrics_df = result.df
+            if offset_metrics_df.empty:
+                df[[*columns_name_mapping.values()]] = np.NaN
+            else:
+                # extract `metrics` columns from extra query
+                offset_metrics_df = offset_metrics_df[columns_name_mapping.keys()]
+                offset_metrics_df = offset_metrics_df.rename(
+                    columns=columns_name_mapping
+                )
+
+                # combine `offset_metrics_df` with main query df
+                df = pd.concat([df, offset_metrics_df], axis=1)
         return df, rv_sql
 
     def get_query_result(self, query_object: QueryObject) -> Dict[str, Any]:
