@@ -608,7 +608,11 @@ const FiltersConfigForm = (
       }
     });
     return excluded;
-  }, [charts, formFilter?.dataset?.value, loadedDatasets]);
+  }, [
+    JSON.stringify(charts),
+    formFilter?.dataset?.value,
+    JSON.stringify(loadedDatasets),
+  ]);
 
   if (removed) {
     return <RemovedFilter onClick={() => restoreFilter(filterId)} />;
