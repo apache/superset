@@ -711,7 +711,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 # from different drivers that fall outside CompileError
                 except Exception:  # pylint: disable=broad-except
                     col.update(
-                        {"type": "UNKNOWN", "generic_type": None, "is_dttm": None,}
+                        {"type": "UNKNOWN", "type_generic": None, "is_dttm": None,}
                     )
         return cols
 
