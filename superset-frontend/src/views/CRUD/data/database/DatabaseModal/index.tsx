@@ -296,6 +296,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   ] = useDatabaseValidation();
   const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
   const [dbName, setDbName] = useState('');
+  const [editNewDb, setEditNewDb] = useState<boolean>(false);
   const [isLoading, setLoading] = useState<boolean>(false);
   const conf = useCommonConf();
   const dbImages = getDatabaseImages();
@@ -350,6 +351,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setDB({ type: ActionType.reset });
     setHasConnectedDb(false);
     setValidationErrors(null); // reset validation errors on close
+    setEditNewDb(false);
     onHide();
   };
 
@@ -406,7 +408,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         if (onDatabaseAdd) {
           onDatabaseAdd();
         }
-        onClose();
+        if (!editNewDb) {
+          onClose();
+        }
       }
     } else if (db) {
       // Create
@@ -439,6 +443,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         }
       }
     }
+    setEditNewDb(false);
     setLoading(false);
   };
 
@@ -538,10 +543,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     </div>
   );
 
-  const renderModalFooter = () =>
-    db // if db show back + connect
-      ? [
-          !hasConnectedDb && (
+  const handleBackButtonOnFinish = () => {
+    if (dbFetched) {
+      fetchResource(dbFetched.id as number);
+    }
+    setEditNewDb(true);
+  };
+
+  const renderModalFooter = () => {
+    if (db) {
+      // if db show back + connenct
+      if (!hasConnectedDb || editNewDb) {
+        return (
+          <>
             <StyledFooterButton
               key="back"
               onClick={() => {
@@ -550,8 +564,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             >
               Back
             </StyledFooterButton>
-          ),
-          !hasConnectedDb ? ( // if hasConnectedDb show back + finish
             <StyledFooterButton
               key="submit"
               buttonStyle="primary"
@@ -559,17 +571,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             >
               Connect
             </StyledFooterButton>
-          ) : (
-            <StyledFooterButton
-              key="submit"
-              buttonStyle="primary"
-              onClick={onClose}
-            >
-              Finish
-            </StyledFooterButton>
-          ),
-        ]
-      : [];
+          </>
+        );
+      }
+
+      return (
+        <>
+          <StyledFooterButton key="back" onClick={handleBackButtonOnFinish}>
+            Back
+          </StyledFooterButton>
+          <StyledFooterButton
+            key="submit"
+            buttonStyle="primary"
+            onClick={onClose}
+          >
+            Finish
+          </StyledFooterButton>
+        </>
+      );
+    }
+    return [];
+  };
 
   const renderEditModalFooter = () => (
     <>
@@ -612,6 +634,68 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const tabChange = (key: string) => {
     setTabKey(key);
+  };
+
+  const renderFinishState = () => {
+    if (!editNewDb) {
+      return (
+        <ExtraOptions
+          db={db as DatabaseObject}
+          onInputChange={({ target }: { target: HTMLInputElement }) =>
+            onChange(ActionType.inputChange, {
+              type: target.type,
+              name: target.name,
+              checked: target.checked,
+              value: target.value,
+            })
+          }
+          onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
+            onChange(ActionType.textChange, {
+              name: target.name,
+              value: target.value,
+            })
+          }
+          onEditorChange={(payload: { name: string; json: any }) =>
+            onChange(ActionType.editorChange, payload)
+          }
+          onExtraInputChange={({ target }: { target: HTMLInputElement }) => {
+            onChange(ActionType.extraInputChange, {
+              type: target.type,
+              name: target.name,
+              checked: target.checked,
+              value: target.value,
+            });
+          }}
+          onExtraEditorChange={(payload: { name: string; json: any }) =>
+            onChange(ActionType.extraEditorChange, payload)
+          }
+        />
+      );
+    }
+    return (
+      <DatabaseConnectionForm
+        isEditMode
+        sslForced={sslForced}
+        dbModel={dbModel}
+        db={dbFetched as DatabaseObject}
+        onParametersChange={({ target }: { target: HTMLInputElement }) =>
+          onChange(ActionType.parametersChange, {
+            type: target.type,
+            name: target.name,
+            checked: target.checked,
+            value: target.value,
+          })
+        }
+        onChange={({ target }: { target: HTMLInputElement }) =>
+          onChange(ActionType.textChange, {
+            name: target.name,
+            value: target.value,
+          })
+        }
+        getValidation={() => getValidation(db)}
+        validationErrors={validationErrors}
+      />
+    );
   };
 
   const isDynamic = (engine: string | undefined) =>
@@ -808,39 +892,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             db={db}
             dbName={dbName}
             dbModel={dbModel}
+            editNewDb={editNewDb}
           />
-
-          <ExtraOptions
-            db={db as DatabaseObject}
-            onInputChange={({ target }: { target: HTMLInputElement }) =>
-              onChange(ActionType.inputChange, {
-                type: target.type,
-                name: target.name,
-                checked: target.checked,
-                value: target.value,
-              })
-            }
-            onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
-              onChange(ActionType.textChange, {
-                name: target.name,
-                value: target.value,
-              })
-            }
-            onEditorChange={(payload: { name: string; json: any }) =>
-              onChange(ActionType.editorChange, payload)
-            }
-            onExtraInputChange={({ target }: { target: HTMLInputElement }) => {
-              onChange(ActionType.extraInputChange, {
-                type: target.type,
-                name: target.name,
-                checked: target.checked,
-                value: target.value,
-              });
-            }}
-            onExtraEditorChange={(payload: { name: string; json: any }) =>
-              onChange(ActionType.extraEditorChange, payload)
-            }
-          />
+          {renderFinishState()}
         </>
       ) : (
         <>
@@ -876,8 +930,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     css={(theme: SupersetTheme) => antDAlertStyles(theme)}
                     type="info"
                     showIcon
-                    message={t('Whitelisting IPs')}
-                    description={connectionAlert.WHITELISTED_IPS}
+                    message={t('IP Allowlist')}
+                    description={connectionAlert.ALLOWED_IPS}
                   />
                 )}
                 <DatabaseConnectionForm
