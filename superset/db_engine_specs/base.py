@@ -1441,6 +1441,7 @@ class BasicParametersMixin:
                 ),
             )
             return errors
+
         port = parameters.get("port", None)
         if not port:
             return errors
@@ -1449,7 +1450,7 @@ class BasicParametersMixin:
         except (ValueError, TypeError):
             errors.append(
                 SupersetError(
-                    message="Port must be a valid integer",
+                    message="Port must be a valid integer.",
                     error_type=SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
                     level=ErrorLevel.ERROR,
                     extra={"invalid": ["port"]},
