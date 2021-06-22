@@ -58,7 +58,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
     handleTimeRangeChange(filterState.value);
   }, [filterState.value]);
 
-  return (
+  return props.formData?.inView ? (
     // @ts-ignore
     <TimeFilterStyles width={width}>
       <ControlContainer
@@ -72,5 +72,5 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
         />
       </ControlContainer>
     </TimeFilterStyles>
-  );
+  ) : null;
 }
