@@ -51,6 +51,8 @@ export const FormFieldOrder = [
 
 interface FieldPropTypes {
   required: boolean;
+  hasTooltip?: boolean;
+  tooltipText?: (valuse: any) => string;
   onParametersChange: (value: any) => string;
   onParametersUploadFileChange: (value: any) => string;
   changeMethods: { onParametersChange: (value: any) => string } & {
@@ -94,20 +96,35 @@ const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
         </>
       )}
       {uploadOption === CredentialInfoOptions.copyPaste || isEditMode ? (
-        <div className="input-container" onChange={changeMethods.onChange}>
+        <div className="input-container">
           <span className="label-select">Service Account</span>
           <textarea
             className="input-form"
-            name="encrypted_extra"
+            name="credentials_info"
             value={db?.parameters?.credentials_info}
+            onChange={changeMethods.onParametersChange}
           />
           <span className="label-paste">
             Copy and paste the entire service account .json file here
           </span>
         </div>
       ) : (
-        <div className="input-container">
-          <span className="label-select">Upload Credentials</span>
+        <div
+          className="input-container"
+          css={(theme: SupersetTheme) => infoTooltip(theme)}
+        >
+          <span
+            css={{ display: 'flex', alignItems: 'center' }}
+            className="label-select"
+          >
+            Upload Credentials{' '}
+            <InfoTooltip
+              tooltip={t(
+                'Use the JSON file you automatically downloaded when creating your service account in Google BigQuery.',
+              )}
+            />
+          </span>
+
           {!fileToUpload && (
             <Button
               className="input-upload-btn"
@@ -124,7 +141,7 @@ const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
                   setFileToUpload(null);
                   changeMethods.onParametersChange({
                     target: {
-                      name: 'encrypted_extra',
+                      name: 'credentials_info',
                       value: '',
                     },
                   });
@@ -146,7 +163,7 @@ const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
               changeMethods.onParametersChange({
                 target: {
                   type: null,
-                  name: 'encrypted_extra',
+                  name: 'credentials_info',
                   value: await file?.text(),
                   checked: false,
                 },
@@ -174,6 +191,10 @@ const hostField = ({
     name="host"
     value={db?.parameters?.host}
     required={required}
+    hasTooltip
+    tooltipText={t(
+      'This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).',
+    )}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.host}
     placeholder="e.g. 127.0.0.1"
@@ -329,8 +350,8 @@ const forceSSLField = ({
     />
     <span css={toggleStyle}>SSL</span>
     <InfoTooltip
-      tooltip={t('SSL will be enabled in the database connection')}
-      placement="bottomRight"
+      tooltip={t('SSL Mode "require" will be used.')}
+      placement="right"
     />
   </div>
 );
