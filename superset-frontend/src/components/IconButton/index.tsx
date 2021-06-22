@@ -133,6 +133,7 @@ const IconButton = styled(
     background-color: ${({ theme }) => theme.colors.grayscale.light5};
     color: ${({ theme }) => theme.colors.grayscale.dark2};
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    box-shadow: 4px 4px 20px ${({ theme }) => theme.colors.grayscale.light2};
   }
 `;
 

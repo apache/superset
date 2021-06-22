@@ -65,7 +65,7 @@ export default function InfoTooltip({
   trigger = 'hover',
   overlayStyle = defaultOverlayStyle,
   bgColor = defaultColor,
-  viewBox,
+  viewBox = '0 -2 24 24',
 }: InfoTooltipProps) {
   return (
     <StyledTooltip
