@@ -22,8 +22,9 @@ import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  category: t('Geospatial'),
   credits: ['https://bl.ocks.org/john-guerra'],
-  description: '',
+  description: t('Choropleth maps of various countries, illustrating a metric by region.'),
   name: t('Country Map'),
   thumbnail,
   useLegacyApi: true,

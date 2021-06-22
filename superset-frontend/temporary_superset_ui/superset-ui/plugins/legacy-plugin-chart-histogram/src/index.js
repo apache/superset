@@ -18,11 +18,19 @@
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from './transformProps';
+import example1 from './images/example1.jpg';
+import example2 from './images/example2.jpg';
+import example3 from './images/example3.jpg';
 import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   description: '',
+  exampleGallery: [
+    { url: example1, caption: t('Population age data') },
+    { url: example2 },
+    { url: example3 },
+  ],
   name: t('Histogram'),
   thumbnail,
   useLegacyApi: true,

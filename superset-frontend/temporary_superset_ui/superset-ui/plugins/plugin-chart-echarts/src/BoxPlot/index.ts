@@ -20,6 +20,7 @@ import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
+import example from './images/BoxPlot.jpg';
 import thumbnail from './images/thumbnail.png';
 import { BoxPlotQueryFormData, EchartsBoxPlotChartProps } from './types';
 
@@ -44,8 +45,10 @@ export default class EchartsBoxPlotChartPlugin extends ChartPlugin<
       loadChart: () => import('./EchartsBoxPlot'),
       metadata: new ChartMetadata({
         behaviors: [Behavior.INTERACTIVE_CHART],
+        category: t('Distribution'),
         credits: ['https://echarts.apache.org'],
         description: 'Box Plot (Apache ECharts)',
+        exampleGallery: [{ url: example, caption: t('A Box Plot') }],
         name: t('Box Plot'),
         thumbnail,
       }),

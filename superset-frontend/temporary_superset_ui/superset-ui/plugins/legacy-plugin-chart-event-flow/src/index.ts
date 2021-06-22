@@ -21,6 +21,7 @@ import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  category: t('Distribution'),
   credits: ['https://github.com/williaster/data-ui'],
   description: '',
   name: t('Event Flow'),
