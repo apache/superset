@@ -19,9 +19,9 @@
 import { styled } from '@superset-ui/core';
 import React, { useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
+import { NO_TIME_RANGE } from 'src/explore/constants';
 import { PluginFilterTimeProps } from './types';
 import { Styles } from '../common';
-import { NO_TIME_RANGE } from '../../../explore/constants';
 
 const TimeFilterStyles = styled(Styles)`
   overflow-x: auto;
@@ -79,7 +79,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
     handleTimeRangeChange(filterState.value);
   }, [filterState.value]);
 
-  return (
+  return props.formData?.inView ? (
     // @ts-ignore
     <TimeFilterStyles width={width} height={height}>
       <ControlContainer
@@ -92,11 +92,11 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
         onMouseLeave={unsetFocusedFilter}
       >
         <DateFilterControl
-          value={filterState.value}
+          value={filterState.value || NO_TIME_RANGE}
           name="time_range"
           onChange={handleTimeRangeChange}
         />
       </ControlContainer>
     </TimeFilterStyles>
-  );
+  ) : null;
 }
