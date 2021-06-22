@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { FC } from 'react';
+import React, { FC, useCallback, useEffect, useState } from 'react';
 import { t, styled } from '@superset-ui/core';
 import { Radio } from 'src/components/Radio';
 import { Form, Typography } from 'src/common/components';
@@ -34,6 +34,7 @@ type FilterScopeProps = {
   scope?: Scope;
   formScoping?: Scoping;
   chartId?: number;
+  initiallyExcludedCharts?: number[];
 };
 
 const Wrapper = styled.div`
@@ -56,11 +57,41 @@ const FilterScope: FC<FilterScopeProps> = ({
   scope,
   updateFormValues,
   chartId,
+  initiallyExcludedCharts,
 }) => {
-  const initialScope = scope || getDefaultScopeValue(chartId);
-  const initialScoping = isScopingAll(initialScope, chartId)
-    ? Scoping.all
-    : Scoping.specific;
+  const [initialScope] = useState(
+    scope || getDefaultScopeValue(chartId, initiallyExcludedCharts),
+  );
+  const [initialScoping] = useState(
+    isScopingAll(initialScope, chartId) ? Scoping.all : Scoping.specific,
+  );
+  const [hasScopeBeenModified, setHasScopeBeenModified] = useState(!!scope);
+
+  const onUpdateFormValues = useCallback(
+    (formValues: any) => {
+      updateFormValues(formValues);
+      setHasScopeBeenModified(true);
+    },
+    [updateFormValues],
+  );
+
+  useEffect(() => {
+    if (scope || hasScopeBeenModified) {
+      return;
+    }
+
+    const newScope = getDefaultScopeValue(chartId, initiallyExcludedCharts);
+    updateFormValues({
+      scope: newScope,
+      scoping: isScopingAll(newScope, chartId) ? Scoping.all : Scoping.specific,
+    });
+  }, [
+    chartId,
+    hasScopeBeenModified,
+    initiallyExcludedCharts,
+    scope,
+    updateFormValues,
+  ]);
 
   return (
     <Wrapper>
@@ -92,11 +123,12 @@ const FilterScope: FC<FilterScopeProps> = ({
       </Typography.Text>
       {(formScoping ?? initialScoping) === Scoping.specific && (
         <ScopingTree
-          updateFormValues={updateFormValues}
+          updateFormValues={onUpdateFormValues}
           initialScope={initialScope}
           formScope={formScope}
           forceUpdate={forceUpdate}
           chartId={chartId}
+          initiallyExcludedCharts={initiallyExcludedCharts}
         />
       )}
       <CleanFormItem

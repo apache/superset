@@ -63,6 +63,12 @@ import Tabs from 'src/components/Tabs';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
+import {
+  Chart,
+  ChartsState,
+  DatasourcesState,
+  RootState,
+} from 'src/dashboard/types';
 import { ColumnSelect } from './ColumnSelect';
 import { NativeFiltersForm } from '../types';
 import {
@@ -317,9 +323,10 @@ const FiltersConfigForm = (
     )
     .map(([key]) => key);
 
-  const loadedDatasets = useSelector<any, DatasourceMeta>(
+  const loadedDatasets = useSelector<RootState, DatasourcesState>(
     ({ datasources }) => datasources,
   );
+  const charts = useSelector<RootState, ChartsState>(({ charts }) => charts);
 
   const doLoadedDatasetsHaveTemporalColumns = useMemo(
     () =>
@@ -499,6 +506,11 @@ const FiltersConfigForm = (
     [],
   );
 
+  const updateFormValues = useCallback(
+    (values: any) => setNativeFilterFieldValues(form, filterId, values),
+    [filterId, form],
+  );
+
   const parentFilterOptions = parentFilters.map(filter => ({
     value: filter.id,
     label: filter.title,
@@ -579,6 +591,21 @@ const FiltersConfigForm = (
     }
     setActiveFilterPanelKey(activeFilterPanelKey);
   }, [hasCheckedAdvancedControl]);
+
+  const initiallyExcluded = useMemo(() => {
+    const excluded: number[] = [];
+    if (formFilter?.dataset?.value === undefined) {
+      return [];
+    }
+
+    Object.values(charts).forEach((chart: Chart) => {
+      const chartDatasetUid = chart.formData.datasource;
+      if (loadedDatasets[chartDatasetUid]?.id !== formFilter?.dataset?.value) {
+        excluded.push(chart.id);
+      }
+    });
+    return excluded;
+  }, [charts, formFilter?.dataset?.value, loadedDatasets]);
 
   if (removed) {
     return <RemovedFilter onClick={() => restoreFilter(filterId)} />;
@@ -1035,14 +1062,13 @@ const FiltersConfigForm = (
         forceRender
       >
         <FilterScope
-          updateFormValues={(values: any) =>
-            setNativeFilterFieldValues(form, filterId, values)
-          }
+          updateFormValues={updateFormValues}
           pathToFormValue={['filters', filterId]}
           forceUpdate={forceUpdate}
           scope={filterToEdit?.scope}
           formScope={formFilter?.scope}
           formScoping={formFilter?.scoping}
+          initiallyExcludedCharts={initiallyExcluded}
         />
       </TabPane>
     </StyledTabs>
