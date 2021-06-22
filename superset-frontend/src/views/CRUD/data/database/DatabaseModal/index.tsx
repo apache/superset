@@ -357,48 +357,50 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...update } = db || {};
 
-    if (update.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
-      if (update?.parameters?.query) {
+    // Clone DB object
+    const dbToUpdate = JSON.parse(JSON.stringify(update));
+    if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
+      if (dbToUpdate?.parameters?.query) {
         // convert query params into dictionary
-        update.parameters.query = JSON.parse(
-          `{"${decodeURI((update?.parameters?.query as string) || '')
+        dbToUpdate.parameters.query = JSON.parse(
+          `{"${decodeURI((dbToUpdate?.parameters?.query as string) || '')
             .replace(/"/g, '\\"')
             .replace(/&/g, '","')
             .replace(/=/g, '":"')}"}`,
         );
-      } else if (update?.parameters?.query === '') {
-        update.parameters.query = {};
+      } else if (dbToUpdate?.parameters?.query === '') {
+        dbToUpdate.parameters.query = {};
       }
 
-      const engine = update.backend || update.engine;
-      if (engine === 'bigquery' && update.parameters?.credentials_info) {
+      const engine = dbToUpdate.backend || dbToUpdate.engine;
+      if (engine === 'bigquery' && dbToUpdate.parameters?.credentials_info) {
         // wrap encrypted_extra in credentials_info only for BigQuery
-        update.encrypted_extra = JSON.stringify({
-          credentials_info: JSON.parse(update.parameters?.credentials_info),
+        dbToUpdate.encrypted_extra = JSON.stringify({
+          credentials_info: JSON.parse(dbToUpdate.parameters?.credentials_info),
         });
       }
     }
 
     if (db?.id) {
-      if (update?.extra_json) {
+      if (dbToUpdate?.extra_json) {
         // convert extra_json to back to string
-        update.extra = JSON.stringify({
-          ...update.extra_json,
+        dbToUpdate.extra = JSON.stringify({
+          ...dbToUpdate.extra_json,
           metadata_params: JSON.parse(
-            update?.extra_json?.metadata_params as string,
+            dbToUpdate?.extra_json?.metadata_params as string,
           ),
           engine_params: JSON.parse(
-            update?.extra_json?.engine_params as string,
+            dbToUpdate?.extra_json?.engine_params as string,
           ),
           schemas_allowed_for_csv_upload: JSON.parse(
-            update?.extra_json?.schemas_allowed_for_csv_upload as string,
+            dbToUpdate?.extra_json?.schemas_allowed_for_csv_upload as string,
           ),
         });
       }
       setLoading(true);
       const result = await updateResource(
         db.id as number,
-        update as DatabaseObject,
+        dbToUpdate as DatabaseObject,
       );
       if (result) {
         if (onDatabaseAdd) {
@@ -408,23 +410,23 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     } else if (db) {
       // Create
-      if (update?.extra_json) {
+      if (dbToUpdate?.extra_json) {
         // convert extra_json to back to string
-        update.extra = JSON.stringify({
-          ...update.extra_json,
+        dbToUpdate.extra = JSON.stringify({
+          ...dbToUpdate.extra_json,
           metadata_params: JSON.parse(
-            update?.extra_json?.metadata_params as string,
+            dbToUpdate?.extra_json?.metadata_params as string,
           ),
           engine_params: JSON.parse(
-            update?.extra_json?.engine_params as string,
+            dbToUpdate?.extra_json?.engine_params as string,
           ),
           schemas_allowed_for_csv_upload: JSON.parse(
-            update?.extra_json?.schemas_allowed_for_csv_upload as string,
+            dbToUpdate?.extra_json?.schemas_allowed_for_csv_upload as string,
           ),
         });
       }
       setLoading(true);
-      const dbId = await createResource(update as DatabaseObject);
+      const dbId = await createResource(dbToUpdate as DatabaseObject);
       if (dbId) {
         setHasConnectedDb(true);
         if (onDatabaseAdd) {
