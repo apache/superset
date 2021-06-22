@@ -682,7 +682,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         isEditMode
         sslForced={sslForced}
         dbModel={dbModel}
-        db={dbFetched as DatabaseObject}
+        db={db as DatabaseObject}
         onParametersChange={({ target }: { target: HTMLInputElement }) =>
           onChange(ActionType.parametersChange, {
             type: target.type,
