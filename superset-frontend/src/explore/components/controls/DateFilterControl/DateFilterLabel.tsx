@@ -231,15 +231,17 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   useDebouncedEffect(
     () => {
       if (lastFetchedTimeRange !== timeRangeValue) {
-        fetchTimeRange(timeRangeValue, endpoints).then(({ value: actualRange, error }) => {
-          if (error) {
-            setEvalResponse(error || '');
-            setValidTimeRange(false);
-          } else {
-            setEvalResponse(actualRange || '');
-            setValidTimeRange(true);
-          }
-        });
+        fetchTimeRange(timeRangeValue, endpoints).then(
+          ({ value: actualRange, error }) => {
+            if (error) {
+              setEvalResponse(error || '');
+              setValidTimeRange(false);
+            } else {
+              setEvalResponse(actualRange || '');
+              setValidTimeRange(true);
+            }
+          },
+        );
         setLastFetchedTimeRange(timeRangeValue);
       }
     },
