@@ -39,6 +39,7 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { hasOption } from './utils';
 
 type AntdSelectAllProps = AntdSelectProps<AntdSelectValue>;
+
 type PickedSelectProps = Pick<
   AntdSelectAllProps,
   | 'allowClear'
@@ -55,16 +56,25 @@ type PickedSelectProps = Pick<
   | 'showSearch'
   | 'value'
 >;
+
 export type OptionsType = Exclude<AntdSelectAllProps['options'], undefined>;
+
+export type OptionsPromiseResult = {
+  data: OptionsType;
+  hasMoreData: boolean;
+};
+
 export type OptionsPromise = (
   search: string,
   page?: number,
-) => Promise<OptionsType>;
+) => Promise<OptionsPromiseResult>;
+
 export enum ESelectTypes {
   MULTIPLE = 'multiple',
   TAGS = 'tags',
   SINGLE = '',
 }
+
 export interface SelectProps extends PickedSelectProps {
   allowNewOptions?: boolean;
   ariaLabel: string;
@@ -75,10 +85,15 @@ export interface SelectProps extends PickedSelectProps {
   paginatedFetch?: boolean;
 }
 
+const StyledContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
 // unexposed default behaviors
 const MAX_TAG_COUNT = 4;
 const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
-const DEBOUNCE_TIMEOUT = 800;
+const DEBOUNCE_TIMEOUT = 500;
 
 const Error = ({ error }: { error: string }) => {
   const StyledError = styled.div`
@@ -108,7 +123,7 @@ const DropdownContent = ({
   return content;
 };
 
-const SelectComponent = ({
+const Select = ({
   allowNewOptions = false,
   ariaLabel,
   filterOption,
@@ -135,6 +150,7 @@ const SelectComponent = ({
   const [isLoading, setLoading] = useState(loading);
   const [error, setError] = useState('');
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const [hasMoreData, setHasMoreData] = useState(false);
   const fetchRef = useRef(0);
 
   const handleSelectMode = () => {
@@ -191,9 +207,8 @@ const SelectComponent = ({
     }
   };
 
-  const handleFetch = useMemo(() => {
-    const fetchOptions = options as OptionsPromise;
-    const loadOptions = (value: string, paginate?: 'paginate') => {
+  const handleFetch = useMemo(
+    () => (value: string, paginate?: 'paginate') => {
       if (paginate) {
         fetchRef.current += 1;
       } else {
@@ -201,15 +216,17 @@ const SelectComponent = ({
       }
       const fetchId = fetchRef.current;
       const page = paginatedFetch ? fetchId : undefined;
-
+      const fetchOptions = options as OptionsPromise;
       fetchOptions(value, page)
-        .then((newOptions: OptionsType) => {
+        .then((result: OptionsPromiseResult) => {
+          const { data, hasMoreData } = result;
+          setHasMoreData(hasMoreData);
           if (fetchId !== fetchRef.current) return;
-          if (newOptions && Array.isArray(newOptions) && newOptions.length) {
+          if (data && Array.isArray(data) && data.length) {
             // merges with existing and creates unique options
             setOptions(prevOptions => [
               ...prevOptions,
-              ...newOptions.filter(
+              ...data.filter(
                 newOpt =>
                   !prevOptions.find(prevOpt => prevOpt.value === newOpt.value),
               ),
@@ -223,11 +240,11 @@ const SelectComponent = ({
           }),
         )
         .finally(() => setLoading(false));
-    };
-    return debounce(loadOptions, DEBOUNCE_TIMEOUT);
-  }, [options, paginatedFetch]);
+    },
+    [options, paginatedFetch],
+  );
 
-  const handleOnSearch = (search: string) => {
+  const handleOnSearch = debounce((search: string) => {
     const searchValue = search.trim();
     // enables option creation
     if (allowNewOptions && isSingleMode) {
@@ -252,11 +269,12 @@ const SelectComponent = ({
       }
     }
     setSearchedValue(searchValue);
-  };
+  }, DEBOUNCE_TIMEOUT);
 
   const handlePagination = (e: UIEvent<HTMLElement>) => {
     const vScroll = e.currentTarget;
     if (
+      hasMoreData &&
       isAsync &&
       paginatedFetch &&
       vScroll.scrollTop === vScroll.scrollHeight - vScroll.offsetHeight
@@ -310,19 +328,21 @@ const SelectComponent = ({
     }
   }, [allowNewOptions, isAsync, handleFetch, searchedValue]);
 
+  const dropdownRender = (
+    originNode: ReactElement & { ref?: RefObject<HTMLElement> },
+  ) => {
+    if (!isDropdownVisible) {
+      originNode.ref?.current?.scrollTo({ top: 0 });
+    }
+    return <DropdownContent content={originNode} error={error} />;
+  };
+
   return (
-    <>
+    <StyledContainer>
       {header}
       <AntdSelect
         aria-label={ariaLabel || name}
-        dropdownRender={(
-          originNode: ReactElement & { ref?: RefObject<HTMLElement> },
-        ) => {
-          if (!isDropdownVisible) {
-            originNode.ref?.current?.scrollTo({ top: 0 });
-          }
-          return <DropdownContent content={originNode} error={error} />;
-        }}
+        dropdownRender={dropdownRender}
         filterOption={handleFilterOption as any}
         getPopupContainer={triggerNode => triggerNode.parentNode}
         loading={isLoading}
@@ -339,17 +359,11 @@ const SelectComponent = ({
         showSearch={shouldShowSearch}
         tokenSeparators={TOKEN_SEPARATORS}
         value={selectValue}
+        style={{ width: '100%' }}
         {...props}
       />
-    </>
+    </StyledContainer>
   );
 };
-
-const Select = styled((
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  { ...props }: SelectProps,
-) => <SelectComponent {...props} />)`
-  width: 100%;
-`;
 
 export default Select;
