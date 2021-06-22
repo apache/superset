@@ -18,13 +18,22 @@
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from '../transformProps';
+import grouped from './images/grouped.jpg';
+import percentage from './images/percentage.jpg';
+import stacked from './images/stacked.jpg';
 import thumbnail from './images/thumbnail.png';
 import { ANNOTATION_TYPES } from '../vendor/superset/AnnotationTypes';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  category: t('Composition'),
   credits: ['http://nvd3.org'],
   description: 'A bar chart where the x axis is time',
+  exampleGallery: [
+    { url: grouped, caption: t('Grouped style') },
+    { url: stacked, caption: t('Stacked style') },
+    { url: percentage, caption: t('Contribution mode') },
+  ],
   name: t('Time-series Bar Chart'),
   supportedAnnotationTypes: [ANNOTATION_TYPES.INTERVAL, ANNOTATION_TYPES.EVENT],
   thumbnail,

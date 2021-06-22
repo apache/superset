@@ -18,12 +18,14 @@
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from './transformProps';
+import example from './images/chord.jpg';
 import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   credits: ['https://github.com/d3/d3-chord'],
   description: '',
+  exampleGallery: [{ url: example, caption: t('Relationships between community channels') }],
   name: t('Chord Diagram'),
   thumbnail,
   useLegacyApi: true,

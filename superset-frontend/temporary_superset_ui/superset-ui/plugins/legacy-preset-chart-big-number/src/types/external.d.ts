@@ -18,3 +18,4 @@
  */
 declare module '@data-ui/xy-chart';
 declare module '*.png';
+declare module '*.jpg';

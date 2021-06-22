@@ -18,12 +18,14 @@
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from './transformProps';
+import example from './images/Horizon_Chart.jpg';
 import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   credits: ['http://kmandov.github.io/d3-horizon-chart/'],
   description: '',
+  exampleGallery: [{ url: example }],
   name: t('Horizon Chart'),
   thumbnail,
   useLegacyApi: true,

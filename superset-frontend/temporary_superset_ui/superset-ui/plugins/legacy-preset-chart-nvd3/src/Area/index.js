@@ -18,15 +18,29 @@
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from '../transformProps';
+import example1 from './images/example1.jpg';
+import example2 from './images/example2.jpg';
+import example3 from './images/example3.jpg';
+import example4 from './images/example4.jpg';
 import thumbnail from './images/thumbnail.png';
 import { ANNOTATION_TYPES } from '../vendor/superset/AnnotationTypes';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  category: t('Distribution'),
   credits: ['http://nvd3.org'],
-  description: '',
+  description: t(
+    'A time series chart that visualizes how the proportions of related metrics vary over time.',
+  ),
+  exampleGallery: [
+    { url: example1, caption: t('Stretched style') },
+    { url: example2, caption: t('Stacked style') },
+    { url: example3, caption: t('Video game consoles') },
+    { url: example4, caption: t('Cars') },
+  ],
   name: t('Area Chart'),
   supportedAnnotationTypes: [ANNOTATION_TYPES.INTERVAL, ANNOTATION_TYPES.EVENT],
+  tags: [t('Time Series'), t('Proportions')],
   thumbnail,
   useLegacyApi: true,
 });

@@ -22,9 +22,13 @@ import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  category: t('Relationship'),
   credits: ['http://nvd3.org'],
-  description: '',
+  description: t(
+    'Visualize three dimensions of data in a single chart: x-axis, y-axis, and bubble size.',
+  ),
   name: t('Bullet Chart'),
+  tags: [t('Business')],
   thumbnail,
   useLegacyApi: true,
 });

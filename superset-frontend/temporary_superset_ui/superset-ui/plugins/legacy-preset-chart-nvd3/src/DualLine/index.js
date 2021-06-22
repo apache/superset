@@ -22,6 +22,7 @@ import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  category: t('Time Series'),
   credits: ['http://nvd3.org'],
   description: '',
   name: t('Dual Line Chart'),
