@@ -684,7 +684,6 @@ export function useDatabaseValidation() {
                   },
                   {},
                 );
-              console.log(parsedErrors);
               setValidationErrors(parsedErrors);
             });
           } else {

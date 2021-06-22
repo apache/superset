@@ -368,7 +368,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     // Validtion DB
     await getValidation(dbToUpdate, true);
     if (validationErrors) {
-      console.log('got validation errors');
       return;
     }
 
