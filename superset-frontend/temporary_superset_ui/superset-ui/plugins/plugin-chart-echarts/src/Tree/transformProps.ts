@@ -18,7 +18,10 @@
  */
 import { ChartProps, getMetricLabel, DataRecordValue } from '@superset-ui/core';
 import { EChartsOption, TreeSeriesOption } from 'echarts';
-import { TreeSeriesNodeItemOption } from 'echarts/types/src/chart/tree/TreeSeries';
+import {
+  TreeSeriesCallbackDataParams,
+  TreeSeriesNodeItemOption,
+} from 'echarts/types/src/chart/tree/TreeSeries';
 import { OptionName } from 'echarts/types/src/util/types';
 import {
   EchartsTreeFormData,
@@ -27,6 +30,21 @@ import {
 } from './types';
 import { DEFAULT_TREE_SERIES_OPTION } from './constants';
 import { EchartsProps } from '../types';
+
+export function formatTooltip({
+  params,
+  metricLabel,
+}: {
+  params: TreeSeriesCallbackDataParams;
+  metricLabel: string;
+}): string {
+  const { value, treeAncestors } = params;
+  const treePath = (treeAncestors ?? [])
+    .map(pathInfo => pathInfo?.name || '')
+    .filter(path => path !== '');
+
+  return [`<div>${treePath.join(' ▸ ')}</div>`, value ? `${metricLabel}: ${value}` : ''].join('');
+}
 
 export default function transformProps(chartProps: ChartProps): EchartsProps {
   const { width, height, formData, queriesData } = chartProps;
@@ -96,7 +114,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     // generate tree
     for (let i = 0; i < data.length; i += 1) {
       const node = data[i];
-      if (node[parent] === rootNodeId) {
+      if (node[parent]?.toString() === rootNodeId) {
         tree.children?.push({
           name: node[nameColumn],
           children: children[i],
@@ -179,6 +197,11 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     tooltip: {
       trigger: 'item',
       triggerOn: 'mousemove',
+      formatter: (params: any) =>
+        formatTooltip({
+          params,
+          metricLabel,
+        }),
     },
   };
 
