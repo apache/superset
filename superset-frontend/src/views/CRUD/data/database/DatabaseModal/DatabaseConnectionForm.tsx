@@ -44,9 +44,9 @@ export const FormFieldOrder = [
   'username',
   'password',
   'database_name',
-  'encryption',
   'credentials_info',
   'query',
+  'encryption',
 ];
 
 interface FieldPropTypes {

@@ -77,7 +77,6 @@ const ExtraOptions = ({
             />
             <InfoTooltip
               tooltip={t('Allow this database to be queried in SQL Lab')}
-              viewBox="0 -2 24 24"
             />
           </div>
           <StyledExpandableForm
@@ -97,7 +96,6 @@ const ExtraOptions = ({
                 />
                 <InfoTooltip
                   tooltip={t('Allow creation of new tables based on queries')}
-                  viewBox="0 -2 24 24"
                 />
               </div>
             </StyledInputContainer>
@@ -112,7 +110,6 @@ const ExtraOptions = ({
                 />
                 <InfoTooltip
                   tooltip={t('Allow creation of new views based on queries')}
-                  viewBox="0 -2 24 24"
                 />
               </div>
               <StyledInputContainer
@@ -148,7 +145,6 @@ const ExtraOptions = ({
                   tooltip={t(
                     'Allow manipulation of the database using non-SELECT statements such as UPDATE, DELETE, CREATE, etc.',
                   )}
-                  viewBox="0 -2 24 24"
                 />
               </div>
             </StyledInputContainer>
@@ -167,7 +163,6 @@ const ExtraOptions = ({
                       'schemas. For large data warehouse with thousands of tables, this can be ' +
                       'expensive and put strain on the system.',
                   )}
-                  viewBox="0 -2 24 24"
                 />
               </div>
             </StyledInputContainer>
@@ -184,7 +179,6 @@ const ExtraOptions = ({
                   tooltip={t(
                     'For Presto and Postgres, shows a button to compute cost before running a query.',
                   )}
-                  viewBox="0 -2 24 24"
                 />
               </div>
             </StyledInputContainer>
@@ -201,7 +195,6 @@ const ExtraOptions = ({
                   tooltip={t(
                     'When enabled, users are able to visualize SQL Lab results in Explore.',
                   )}
-                  viewBox="0 -2 24 24"
                 />
               </div>
             </StyledInputContainer>
@@ -298,7 +291,6 @@ const ExtraOptions = ({
                   'This assumes that you have a Celery worker setup as well as a results ' +
                   'backend. Refer to the installation docs for more information.',
               )}
-              viewBox="0 -2 24 24"
             />
           </div>
         </StyledInputContainer>
@@ -388,7 +380,6 @@ const ExtraOptions = ({
                   'service account, but impersonate the currently logged on user via ' +
                   'hive.server2.proxy.user property.',
               )}
-              viewBox="0 -2 24 24"
             />
           </div>
         </StyledInputContainer>
@@ -405,7 +396,6 @@ const ExtraOptions = ({
               tooltip={t(
                 'If selected, please set the schemas allowed for data upload in Extra.',
               )}
-              viewBox="0 -2 24 24"
             />
           </div>
         </StyledInputContainer>
