@@ -65,7 +65,9 @@ const FilterValue: React.FC<FilterProps> = ({
   const cascadingFilters = useCascadingFilters(id, dataMaskSelected);
   const [state, setState] = useState<ChartDataResponseResult[]>([]);
   const [error, setError] = useState<string>('');
-  const [formData, setFormData] = useState<Partial<QueryFormData>>({});
+  const [formData, setFormData] = useState<Partial<QueryFormData>>({
+    inView: false,
+  });
   const [ownState, setOwnState] = useState<JsonObject>({});
   const [inViewFirstTime, setInViewFirstTime] = useState(inView);
   const inputRef = useRef<HTMLInputElement>(null);
