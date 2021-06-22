@@ -118,25 +118,36 @@ const FilterValue: React.FC<FilterProps> = ({
         requestParams: { dashboardId: 0 },
         ownState: filterOwnState,
       })
-        .then(response => {
+        .then(({ response, json }) => {
           if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
             // deal with getChartDataRequest transforming the response data
-            const result = 'result' in response ? response.result[0] : response;
-            waitForAsyncData(result)
-              .then((asyncResult: ChartDataResponseResult[]) => {
-                setIsRefreshing(false);
-                setIsLoading(false);
-                setState(asyncResult);
-              })
-              .catch((error: ClientErrorObject) => {
-                setError(
-                  error.message || error.error || t('Check configuration'),
-                );
-                setIsRefreshing(false);
-                setIsLoading(false);
-              });
+            const result = 'result' in json ? json.result[0] : json;
+
+            if (response.status === 200) {
+              setIsRefreshing(false);
+              setIsLoading(false);
+              setState([result]);
+            } else if (response.status === 202) {
+              waitForAsyncData(result)
+                .then((asyncResult: ChartDataResponseResult[]) => {
+                  setIsRefreshing(false);
+                  setIsLoading(false);
+                  setState(asyncResult);
+                })
+                .catch((error: ClientErrorObject) => {
+                  setError(
+                    error.message || error.error || t('Check configuration'),
+                  );
+                  setIsRefreshing(false);
+                  setIsLoading(false);
+                });
+            } else {
+              throw new Error(
+                `Received unexpected response status (${response.status}) while fetching chart data`,
+              );
+            }
           } else {
-            setState(response.result);
+            setState(json.result);
             setError('');
             setIsRefreshing(false);
             setIsLoading(false);
