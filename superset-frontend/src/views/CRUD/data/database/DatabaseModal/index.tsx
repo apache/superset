@@ -365,7 +365,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     // Clone DB object
     const dbToUpdate = JSON.parse(JSON.stringify(update));
 
-    // Validtion DB
+    // Validate DB before saving
     await getValidation(dbToUpdate, true);
     if (validationErrors) {
       return;
