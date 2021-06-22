@@ -674,11 +674,15 @@ export function useDatabaseValidation() {
                       return { ...obj, [extra.invalid[0]]: message };
                     }
                     if (extra.missing) {
-                      const missingFields = {};
-                      extra.missing.map(d => {
-                        missingFields[d] = 'This is a required field';
-                      });
-                      return { ...obj, ...missingFields };
+                      return {
+                        ...obj,
+                        ...Object.assign(
+                          {},
+                          ...extra.missing.map(field => ({
+                            [field]: 'This is a required field',
+                          })),
+                        ),
+                      };
                     }
                     return obj;
                   },
