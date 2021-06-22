@@ -22,6 +22,7 @@ import {
   SetDataMaskHook,
   SuperChart,
   AppSection,
+  t,
 } from '@superset-ui/core';
 import { FormInstance } from 'antd/lib/form';
 import Loading from 'src/components/Loading';
@@ -56,7 +57,10 @@ const DefaultValue: FC<DefaultValueProps> = ({
       setLoading(true);
     }
   }, [hasDataset, queriesData]);
-
+  const value = formFilter.defaultDataMask?.filterState.value;
+  const isMissingRequiredValue =
+    (value === null || value === undefined) &&
+    formFilter?.controlValues?.enableEmptyFilter;
   return loading ? (
     <Loading position="inline-centered" />
   ) : (
@@ -73,7 +77,10 @@ const DefaultValue: FC<DefaultValueProps> = ({
       chartType={formFilter?.filterType}
       hooks={{ setDataMask }}
       enableNoResults={enableNoResults}
-      filterState={formFilter.defaultDataMask?.filterState}
+      filterState={{
+        ...formFilter.defaultDataMask?.filterState,
+        validateMessage: isMissingRequiredValue && t('Value is required'),
+      }}
     />
   );
 };
