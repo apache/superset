@@ -1158,7 +1158,7 @@ def start_date_filter(default: Optional[str] = None) -> Optional[Any]:
 def uri_filter(cond="none", default="") -> Optional[Any]:
 
     if MOBI_SECRET_KEY is None and  MOBI_SECRET_KEY_OLD is None:
-        raise Exception("MOBI_SECRET_KEY is not defined")
+        raise Exception("MOBI_SECRET_KEY or MOBI_SECRET_KEY_OLD is not defined")
 
     logger.info(cond)
 
