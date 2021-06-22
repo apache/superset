@@ -34,6 +34,7 @@ import { Alert, Select } from 'src/common/components';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import IconButton from 'src/components/IconButton';
+import InfoTooltip from 'src/components/InfoTooltip';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import {
   testDatabaseConnection,
@@ -65,6 +66,7 @@ import {
   formStyles,
   StyledBasicTab,
   SelectDatabaseStyles,
+  infoTooltip,
   StyledFooterButton,
   StyledStickyHeader,
 } from './styles';
@@ -763,22 +765,31 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 isEditMode={isEditMode}
               />
               {isDynamic(db?.backend || db?.engine) && (
-                <Button
-                  buttonStyle="link"
-                  onClick={() =>
-                    setDB({
-                      type: ActionType.configMethodChange,
-                      payload: {
-                        database_name: db?.database_name,
-                        configuration_method: CONFIGURATION_METHOD.DYNAMIC_FORM,
-                        engine: db?.engine,
-                      },
-                    })
-                  }
-                  css={theme => alchemyButtonLinkStyles(theme)}
-                >
-                  Connect this database using the dynamic form instead
-                </Button>
+                <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
+                  <Button
+                    buttonStyle="link"
+                    onClick={() =>
+                      setDB({
+                        type: ActionType.configMethodChange,
+                        payload: {
+                          database_name: db?.database_name,
+                          configuration_method:
+                            CONFIGURATION_METHOD.DYNAMIC_FORM,
+                          engine: db?.engine,
+                        },
+                      })
+                    }
+                    css={theme => alchemyButtonLinkStyles(theme)}
+                  >
+                    Connect this database using the dynamic form instead
+                  </Button>
+                  <InfoTooltip
+                    tooltip={t(
+                      'Click this link to switch to an alternate form that exposes only the required fields needed to connect this database.',
+                    )}
+                    viewBox="0 -3 24 24"
+                  />
+                </div>
               )}
             </>
           ) : (
@@ -959,24 +970,31 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   getValidation={() => getValidation(db)}
                   validationErrors={validationErrors}
                 />
-
-                <Button
-                  buttonStyle="link"
-                  onClick={() =>
-                    setDB({
-                      type: ActionType.configMethodChange,
-                      payload: {
-                        engine: db.engine,
-                        configuration_method:
-                          CONFIGURATION_METHOD.SQLALCHEMY_URI,
-                        database_name: db.database_name,
-                      },
-                    })
-                  }
-                  css={buttonLinkStyles}
-                >
-                  Connect this database with a SQLAlchemy URI string instead
-                </Button>
+                <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
+                  <Button
+                    buttonStyle="link"
+                    onClick={() =>
+                      setDB({
+                        type: ActionType.configMethodChange,
+                        payload: {
+                          engine: db.engine,
+                          configuration_method:
+                            CONFIGURATION_METHOD.SQLALCHEMY_URI,
+                          database_name: db.database_name,
+                        },
+                      })
+                    }
+                    css={buttonLinkStyles}
+                  >
+                    Connect this database with a SQLAlchemy URI string instead
+                  </Button>
+                  <InfoTooltip
+                    tooltip={t(
+                      'Click this link to switch to an alternate form that allows you to input the SQLAlchemy URL for this database manually.',
+                    )}
+                    viewBox="6 3 24 24"
+                  />
+                </div>
                 {/* Step 2 */}
               </>
             ))}
