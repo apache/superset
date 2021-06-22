@@ -23,7 +23,7 @@ import {
   GroupedOptionsType,
 } from 'react-select';
 
-import { OptionsType as AntdOptionsType } from './AntdSelect';
+import { OptionsType as AntdOptionsType } from './Select';
 
 /**
  * Find Option value that matches a possibly string value.
