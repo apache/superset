@@ -476,3 +476,38 @@ class TestQueryContext(SupersetTestCase):
         responses = query_context.get_payload()
         new_cache_key = responses["queries"][0]["cache_key"]
         self.assertEqual(orig_cache_key, new_cache_key)
+
+    def test_time_offset_in_query_object(self):
+        """
+        Ensure that time_offset can generate the correct query
+        """
+        self.login(username="admin")
+        payload = get_query_context("birth_names")
+        payload["queries"][0]["timeseries_limit"] = 5
+        payload["queries"][0]["is_timeseries"] = True
+        payload["queries"][0]["time_offset"] = ["1 year ago", "1 year later"]
+        payload["queries"][0]["time_range"] = "1990 : 1991"
+        query_context = ChartDataQueryContextSchema().load(payload)
+        responses = query_context.get_payload()
+        self.assertEqual(
+            responses["queries"][0]["colnames"],
+            [
+                "__timestamp",
+                "name",
+                "sum__num",
+                "sum__num__1 year ago",
+                "sum__num__1 year later",
+            ],
+        )
+
+        sqls = [
+            sql for sql in responses["queries"][0]["query"].split(";") if sql.strip()
+        ]
+        self.assertEqual(len(sqls), 3)
+        # 1 year ago
+        assert re.search(r"1989-01-01.+1990-01-01", sqls[1], re.S)
+        assert re.search(r"1990-01-01.+1991-01-01", sqls[1], re.S)
+
+        # # 1 year later
+        assert re.search(r"1991-01-01.+1992-01-01", sqls[2], re.S)
+        assert re.search(r"1990-01-01.+1991-01-01", sqls[2], re.S)

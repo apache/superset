@@ -107,9 +107,10 @@ class QueryContext:
 
     def processing_time_offset(
         self, df: pd.DataFrame, query_object: QueryObject,
-    ) -> pd.DataFrame:
+    ) -> Tuple[pd.DataFrame, List[str]]:
         # make sure query_object is immutable
         query_object_clone = copy.copy(query_object)
+        rv_sql = []
 
         time_offset = query_object.time_offset
         outer_from_dttm = query_object.from_dttm
@@ -136,6 +137,7 @@ class QueryContext:
                 )
             query_object_clone_dct = query_object_clone.to_dict()
             result = self.datasource.query(query_object_clone_dct)
+            rv_sql.append(result.query)
 
             # extract `metrics` columns from extra query
             offset_metrics_df = result.df
@@ -154,7 +156,7 @@ class QueryContext:
 
             # combine `offset_metrics_df` with main query df
             df = pd.concat([df, offset_metrics_df], axis=1)
-        return df
+        return df, rv_sql
 
     def get_query_result(self, query_object: QueryObject) -> Dict[str, Any]:
         """Returns a pandas dataframe based on the query object"""
@@ -171,6 +173,7 @@ class QueryContext:
 
         # The datasource here can be different backend but the interface is common
         result = self.datasource.query(query_object.to_dict())
+        query = result.query + ";\n\n"
 
         df = result.df
         # Transform the timestamp we received from database to pandas supported
@@ -190,13 +193,15 @@ class QueryContext:
                 self.df_metrics_to_num(df, query_object)
 
             if query_object.time_offset:
-                df = self.processing_time_offset(df, query_object)
+                df, offset_sql = self.processing_time_offset(df, query_object)
+                query += ";\n\n".join(offset_sql)
+                query += ";\n\n"
 
             df.replace([np.inf, -np.inf], np.nan, inplace=True)
             df = query_object.exec_post_processing(df)
 
         return {
-            "query": result.query,
+            "query": query,
             "status": result.status,
             "error_message": result.error_message,
             "df": df,

@@ -484,7 +484,7 @@ def compare(
     if len(source_columns) == 0:
         return df
 
-    for s_col, c_col in list(zip(source_columns, compare_columns)):
+    for s_col, c_col in zip(source_columns, compare_columns):
         if compare_type == "absolute":
             diff_series = df[s_col] - df[c_col]
         elif compare_type == "percentage":
