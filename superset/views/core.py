@@ -434,6 +434,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def get_samples(self, viz_obj: BaseViz) -> FlaskResponse:
         return self.json_response({"data": viz_obj.get_samples()})
 
+    @staticmethod
+    def send_data_payload_response(viz_obj: BaseViz, payload: Any) -> FlaskResponse:
+        return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
+
     def generate_json(
         self, viz_obj: BaseViz, response_type: Optional[str] = None
     ) -> FlaskResponse:
@@ -452,7 +456,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return self.get_samples(viz_obj)
 
         payload = viz_obj.get_payload()
-        return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
+        return self.send_data_payload_response(viz_obj, payload)
 
     @event_logger.log_this
     @api
@@ -609,6 +613,29 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 is_feature_enabled("GLOBAL_ASYNC_QUERIES")
                 and response_type == utils.ChartDataResultFormat.JSON
             ):
+                # First, look for the chart query results in the cache.
+                try:
+                    viz_obj = get_viz(
+                        datasource_type=cast(str, datasource_type),
+                        datasource_id=datasource_id,
+                        form_data=form_data,
+                        force_cached=True,
+                        force=force,
+                    )
+                    payload = viz_obj.get_payload()
+                except CacheLoadError:
+                    payload = None  # type: ignore
+
+                already_cached_result = payload is not None
+
+                # If the chart query has already been cached, return it immediately.
+                if already_cached_result:
+                    return self.send_data_payload_response(viz_obj, payload)
+
+                # Otherwise, kick off a background job to run the chart query.
+                # Clients will either poll or be notified of query completion,
+                # at which point they will call the /explore_json/data/<cache_key>
+                # endpoint to retrieve the results.
                 try:
                     async_channel_id = async_query_manager.parse_jwt_from_request(
                         request
