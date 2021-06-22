@@ -44,6 +44,8 @@ configFromSecret: '{{ template "superset.fullname" . }}-config'
 ## This can be useful for secret keys, etc.
 ##
 envFromSecret: '{{ template "superset.fullname" . }}-env'
+## This can be a list of template strings
+envFromSecrets: []
 
 ## Extra environment variables that will be passed into pods
 ##
@@ -78,9 +80,7 @@ extraConfigs: {}
   #       sqlalchemy_uri: example://example-db.local
   #       tables: []
 
-
 extraSecrets: {}
-
 
 # A dictionary of overrides to append at the end of superset_config.py - the name does not matter
 # WARNING: the order is not guaranteed
@@ -187,8 +187,8 @@ supersetNode:
       image: busybox:latest
       imagePullPolicy: IfNotPresent
       envFrom:
-        - secretRef:
-            name: '{{ tpl .Values.envFromSecret . }}'
+      - secretRef:
+          name: '{{ tpl .Values.envFromSecret . }}'
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
   ## Annotations to be added to supersetNode deployment
   deploymentAnnotations: {}
@@ -208,8 +208,8 @@ supersetWorker:
       image: busybox:latest
       imagePullPolicy: IfNotPresent
       envFrom:
-        - secretRef:
-            name: '{{ tpl .Values.envFromSecret . }}'
+      - secretRef:
+          name: '{{ tpl .Values.envFromSecret . }}'
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
   ## Annotations to be added to supersetWorker deployment
   deploymentAnnotations: {}
@@ -231,8 +231,8 @@ supersetCeleryBeat:
       image: busybox:latest
       imagePullPolicy: IfNotPresent
       envFrom:
-        - secretRef:
-            name: '{{ tpl .Values.envFromSecret . }}'
+      - secretRef:
+          name: '{{ tpl .Values.envFromSecret . }}'
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
   ## Annotations to be added to supersetCeleryBeat deployment
   deploymentAnnotations: {}
@@ -270,8 +270,8 @@ init:
       image: busybox:latest
       imagePullPolicy: IfNotPresent
       envFrom:
-        - secretRef:
-            name: '{{ tpl .Values.envFromSecret . }}'
+      - secretRef:
+          name: '{{ tpl .Values.envFromSecret . }}'
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
   initscript: |-
     #!/bin/sh
@@ -394,3 +394,5 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+serviceAccountName: ""
