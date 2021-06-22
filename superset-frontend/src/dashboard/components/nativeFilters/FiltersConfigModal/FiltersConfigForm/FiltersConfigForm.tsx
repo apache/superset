@@ -349,9 +349,9 @@ const FiltersConfigForm = (
     ?.datasourceCount;
   const hasColumn =
     hasDataset && !FILTERS_WITHOUT_COLUMN.includes(formFilter?.filterType);
+  const nativeFilterItem = nativeFilterItems[formFilter?.filterType] ?? {};
   // @ts-ignore
-  const enableNoResults = !!nativeFilterItems[formFilter?.filterType]?.value
-    ?.enableNoResults;
+  const enableNoResults = !!nativeFilterItem.value?.enableNoResults;
   const datasetId = formFilter?.dataset?.value;
 
   useEffect(() => {
