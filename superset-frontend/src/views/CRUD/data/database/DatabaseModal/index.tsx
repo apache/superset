@@ -418,9 +418,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         });
       }
       setLoading(true);
-      await getValidation(db);
-      await validationErrors;
-      console.log(validationErrors);
+      await getValidation(db, true);
       const dbId = await createResource(update as DatabaseObject);
       if (dbId) {
         setHasConnectedDb(true);
@@ -609,18 +607,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setTabKey(key);
   };
 
-  const errorAlert = () => {
-    const errors = dbError;
-    return (
-      <Alert
-        type="error"
-        css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
-        message="Missing Required Fields"
-        description=""
-        showIcon
-      />
-    );
-  };
+  const errorAlert = () => (
+    <Alert
+      type="error"
+      css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
+      message="Missing Required Fields"
+      description="Please complete all required fields."
+      showIcon
+    />
+  );
 
   const isDynamic = (engine: string | undefined) =>
     availableDbs?.databases.filter(
@@ -785,7 +780,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               onChange(ActionType.extraEditorChange, payload);
             }}
           />
-          {dbError && errorAlert}
+          {dbError && errorAlert()}
         </Tabs.TabPane>
       </Tabs>
     </Modal>
