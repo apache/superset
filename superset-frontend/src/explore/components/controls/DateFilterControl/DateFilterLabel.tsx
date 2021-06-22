@@ -224,8 +224,8 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         }
         setValidTimeRange(true);
       }
+      setLastFetchedTimeRange(value);
     });
-    setLastFetchedTimeRange(value);
   }, [value]);
 
   useDebouncedEffect(
@@ -240,9 +240,9 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
               setEvalResponse(actualRange || '');
               setValidTimeRange(true);
             }
+            setLastFetchedTimeRange(timeRangeValue);
           },
         );
-        setLastFetchedTimeRange(timeRangeValue);
       }
     },
     SLOW_DEBOUNCE,
