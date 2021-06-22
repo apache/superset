@@ -19,6 +19,7 @@
 import {
   ensureIsArray,
   ExtraFormData,
+  styled,
   t,
   TimeGranularity,
   tn,
@@ -27,8 +28,13 @@ import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
 import { Styles, StyledSelect } from '../common';
 import { PluginFilterTimeGrainProps } from './types';
+import FormItem from '../../../components/Form/FormItem';
 
 const { Option } = Select;
+
+const Error = styled.div`
+  color: ${({ theme }) => theme.colors.error.base};
+`;
 
 export default function PluginFilterTimegrain(
   props: PluginFilterTimeGrainProps,
@@ -80,25 +86,30 @@ export default function PluginFilterTimegrain(
       : tn('%s option', '%s options', data.length, data.length);
   return (
     <Styles height={height} width={width}>
-      <StyledSelect
-        allowClear
-        value={value}
-        placeholder={placeholderText}
-        // @ts-ignore
-        onChange={handleChange}
-        onBlur={unsetFocusedFilter}
-        onFocus={setFocusedFilter}
-        ref={inputRef}
+      <FormItem
+        validateStatus={filterState.validateMessage && 'error'}
+        extra={<Error>{filterState.validateMessage}</Error>}
       >
-        {(data || []).map((row: { name: string; duration: string }) => {
-          const { name, duration } = row;
-          return (
-            <Option key={duration} value={duration}>
-              {name}
-            </Option>
-          );
-        })}
-      </StyledSelect>
+        <StyledSelect
+          allowClear
+          value={value}
+          placeholder={placeholderText}
+          // @ts-ignore
+          onChange={handleChange}
+          onBlur={unsetFocusedFilter}
+          onFocus={setFocusedFilter}
+          ref={inputRef}
+        >
+          {(data || []).map((row: { name: string; duration: string }) => {
+            const { name, duration } = row;
+            return (
+              <Option key={duration} value={duration}>
+                {name}
+              </Option>
+            );
+          })}
+        </StyledSelect>
+      </FormItem>
     </Styles>
   );
 }
