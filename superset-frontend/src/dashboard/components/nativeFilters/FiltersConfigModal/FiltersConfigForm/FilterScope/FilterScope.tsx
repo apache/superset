@@ -107,6 +107,7 @@ const FilterScope: FC<FilterScopeProps> = ({
                 scope,
               });
             }
+            setHasScopeBeenModified(true);
             forceUpdate();
           }}
         >
