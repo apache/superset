@@ -76,7 +76,9 @@ const config: ControlPanelConfig = {
               label: t('Required'),
               default: enableEmptyFilter,
               renderTrigger: true,
-              description: t('User must select a value for this filter.'),
+              description: t(
+                'User must select a value before applying the filter',
+              ),
             },
           },
         ],

@@ -56,6 +56,9 @@ need to be done at every release.
 
     # Commit the changes
     svn commit -m "Add PGP keys of new Superset committer"
+
+    # push the changes
+    svn update
 ```
 
 ## Setting up the release environment (do every time)

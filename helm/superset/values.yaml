@@ -299,6 +299,10 @@ init:
     echo "Loading examples..."
     superset load_examples
     {{- end }}
+    if [ -f "{{ .Values.extraConfigMountPath }}/import_datasources.yaml" ]; then
+      echo "Importing database connections.... "
+      superset import_datasources -p {{ .Values.extraConfigMountPath }}/import_datasources.yaml
+    fi
 ##
 ## Configuration values for the postgresql dependency.
 ## ref: https://github.com/kubernetes/charts/blob/master/stable/postgresql/README.md
