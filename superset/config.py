@@ -1086,10 +1086,10 @@ SQL_VALIDATORS_BY_ENGINE = {
 # use the "engine_name" attribute of the corresponding DB engine spec
 # in `superset/db_engine_specs/`.
 PREFERRED_DATABASES: List[str] = [
-    "PostgreSQL",
-    "Presto",
-    "MySQL",
-    "SQLite",
+    # "PostgreSQL",
+    # "Presto",
+    # "MySQL",
+    # "SQLite",
     # etc.
 ]
 
@@ -1227,6 +1227,7 @@ SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 # "single"
 SECRET_KEYS_MANAGEMENT = {
     "ENVIRONMENT_TYPE": os.environ.get("ENVIRONMENT_TYPE", "multithreaded"),
+    "COOKIE_SIGNING_KEY": os.environ.get("COOKIE_SIGNING_KEY", SECRET_KEY),
 }
 
 

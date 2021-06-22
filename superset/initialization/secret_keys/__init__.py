@@ -22,6 +22,8 @@ from keys_management import EnvironemtType, KeysManagementImpl
 
 from superset.exceptions import SupersetException
 
+from .cookie_signing_key import define_cookie_signing_key
+
 if TYPE_CHECKING:
     from superset.app import SupersetApp
 
@@ -32,6 +34,7 @@ def configure(app: SupersetApp) -> None:
         environemt_type=determine_environment_type(keys_management_configurations)
     )
     app.keys_management = keys_management
+    define_cookie_signing_key(app)
 
 
 def determine_environment_type(
