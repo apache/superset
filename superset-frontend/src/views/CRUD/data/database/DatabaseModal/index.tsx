@@ -542,7 +542,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     </div>
   );
 
-  const handleBackButton = () => {
+  const handleBackButtonOnFinish = () => {
     if (dbFetched) {
       fetchResource(dbFetched.id as number);
     }
@@ -576,7 +576,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
       return (
         <>
-          <StyledFooterButton key="back" onClick={handleBackButton}>
+          <StyledFooterButton key="back" onClick={handleBackButtonOnFinish}>
             Back
           </StyledFooterButton>
           <StyledFooterButton
@@ -635,7 +635,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setTabKey(key);
   };
 
-  const renderExtraOptions = () => {
+  const renderFinishState = () => {
     if (!editNewDb) {
       return (
         <ExtraOptions
@@ -893,7 +893,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             dbModel={dbModel}
             editNewDb={editNewDb}
           />
-          {renderExtraOptions()}
+          {renderFinishState()}
         </>
       ) : (
         <>
