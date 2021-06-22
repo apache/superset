@@ -403,7 +403,8 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
                 message=__(
                     "CTAS (create table as select) can only be run with a query where "
                     "the last statement is a SELECT. Please make sure your query has "
-                    "a SELECT as its last statement. Then, try running your query again."
+                    "a SELECT as its last statement. Then, try running your query "
+                    "again."
                 ),
                 error_type=SupersetErrorType.INVALID_CTAS_QUERY_ERROR,
                 level=ErrorLevel.ERROR,

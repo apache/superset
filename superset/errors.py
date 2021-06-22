@@ -283,13 +283,15 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
         {
             "code": 1024,
             "message": _(
-                "Issue 1024 - CVAS (create view as select) query has more than one statement."
+                "Issue 1024 - CVAS (create view as select) query has more than "
+                "one statement."
             ),
         },
         {
             "code": 1025,
             "message": _(
-                "Issue 1025 - CVAS (create view as select) query is not a SELECT statement."
+                "Issue 1025 - CVAS (create view as select) query is not a "
+                "SELECT statement."
             ),
         },
     ],
