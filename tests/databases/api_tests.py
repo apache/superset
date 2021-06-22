@@ -1807,7 +1807,9 @@ class TestDatabaseApi(SupersetTestCase):
         assert response == {
             "errors": [
                 {
+                    "message": "Port must be a valid integer.",
                     "error_type": "CONNECTION_INVALID_PORT_ERROR",
+                    "level": "error",
                     "extra": {
                         "invalid": ["port"],
                         "issue_codes": [
@@ -1817,9 +1819,21 @@ class TestDatabaseApi(SupersetTestCase):
                             }
                         ],
                     },
-                    "level": "error",
+                },
+                {
+                    "error_type": "CONNECTION_INVALID_PORT_ERROR",
                     "message": "The port must be an integer between 0 and 65535 (inclusive).",
-                }
+                    "level": "error",
+                    "extra": {
+                        "invalid": ["port"],
+                        "issue_codes": [
+                            {
+                                "code": 1021,
+                                "message": "Issue 1021 - Port number is invalid.",
+                            }
+                        ],
+                    },
+                },
             ]
         }
 
