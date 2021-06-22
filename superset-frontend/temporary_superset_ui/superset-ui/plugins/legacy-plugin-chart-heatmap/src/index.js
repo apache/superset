@@ -18,12 +18,20 @@
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from './transformProps';
+import transportation from './images/transportation.jpg';
+import channels from './images/channels.jpg';
+import employment from './images/employment.jpg';
 import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   credits: ['http://bl.ocks.org/mbostock/3074470'],
   description: '',
+  exampleGallery: [
+    { url: transportation, caption: t('Sizes of vehicles') },
+    { url: channels, caption: t('Relationships between community channels') },
+    { url: employment, caption: t('Employment and education') },
+  ],
   name: t('Heatmap'),
   thumbnail,
   useLegacyApi: true,
