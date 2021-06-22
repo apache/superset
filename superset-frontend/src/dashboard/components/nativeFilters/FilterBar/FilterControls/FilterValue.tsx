@@ -193,7 +193,7 @@ const FilterValue: React.FC<FilterProps> = ({
         <Loading position="inline-centered" />
       ) : (
         <SuperChart
-          height={20}
+          height={50}
           width="100%"
           formData={formData}
           // For charts that don't have datasource we need workaround for empty placeholder
@@ -203,7 +203,6 @@ const FilterValue: React.FC<FilterProps> = ({
           filterState={{
             ...filter.dataMask?.filterState,
             validateMessage: isMissingRequiredValue && t('Value is required'),
-            validateStatus: isMissingRequiredValue && 'error',
           }}
           ownState={filter.dataMask?.ownState}
           enableNoResults={metadata?.enableNoResults}
