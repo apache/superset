@@ -599,7 +599,10 @@ const FiltersConfigForm = (
     }
 
     Object.values(charts).forEach((chart: Chart) => {
-      const chartDatasetUid = chart.formData.datasource;
+      const chartDatasetUid = chart.formData?.datasource;
+      if (chartDatasetUid === undefined) {
+        return;
+      }
       if (loadedDatasets[chartDatasetUid]?.id !== formFilter?.dataset?.value) {
         excluded.push(chart.id);
       }

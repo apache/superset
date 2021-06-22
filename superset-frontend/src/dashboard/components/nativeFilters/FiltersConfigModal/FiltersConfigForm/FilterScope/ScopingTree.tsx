@@ -60,7 +60,7 @@ const ScopingTree: FC<ScopingTreeProps> = ({
   forceUpdate,
   updateFormValues,
   chartId,
-  initiallyExcludedCharts,
+  initiallyExcludedCharts = [],
 }) => {
   const [expandedKeys, setExpandedKeys] = useState<string[]>([
     DASHBOARD_ROOT_ID,
