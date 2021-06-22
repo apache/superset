@@ -489,6 +489,7 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["time_range"] = "1990 : 1991"
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
+        print(responses)
         self.assertEqual(
             responses["queries"][0]["colnames"],
             [
