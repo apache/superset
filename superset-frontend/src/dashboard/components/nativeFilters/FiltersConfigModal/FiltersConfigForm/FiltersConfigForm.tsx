@@ -735,9 +735,7 @@ const FiltersConfigForm = (
                       ) {
                         return Promise.resolve();
                       }
-                      return Promise.reject(
-                        new Error(t('Default value is required')),
-                      );
+                      return Promise.reject();
                     },
                   },
                 ]}

@@ -24,6 +24,7 @@ import {
 } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Slider } from 'src/common/components';
+import { rgba } from 'emotion-rgba';
 import { PluginFilterRangeProps } from './types';
 import { Styles } from '../common';
 import { getRangeExtraFormData } from '../../utils';
@@ -38,11 +39,11 @@ const Wrapper = styled.div<{ validateStatus?: string }>`
   &:focus {
     border: 1px solid
       ${({ theme, validateStatus }) =>
-        validateStatus ? theme.colors.error.base : theme.colors.primary.base};
+        theme.colors[validateStatus ? 'error' : 'primary'].base};
     outline: 0;
-    box-shadow: 0 0 0 5px
-      ${({ validateStatus }) =>
-        validateStatus ? 'rgba(224, 67, 85, 12%)' : 'rgba(224, 67, 85, 12%)'};
+    box-shadow: 0 0 0 3px
+      ${({ theme, validateStatus }) =>
+        rgba(theme.colors[validateStatus ? 'error' : 'primary'].base, 0.2)};
   }
   & .ant-slider {
     & .ant-slider-track {
@@ -53,11 +54,9 @@ const Wrapper = styled.div<{ validateStatus?: string }>`
       border: ${({ theme, validateStatus }) =>
         validateStatus && `2px solid ${theme.colors.error.light1}`};
       &:focus {
-        box-shadow: 0 0 0 5px
-          ${({ validateStatus }) =>
-            validateStatus
-              ? 'rgba(224, 67, 85, 12%)'
-              : 'rgba(32, 167, 201, 0.2)'};
+        box-shadow: 0 0 0 3px
+          ${({ theme, validateStatus }) =>
+            rgba(theme.colors[validateStatus ? 'error' : 'primary'].base, 0.2)};
       }
     }
     &:hover {
