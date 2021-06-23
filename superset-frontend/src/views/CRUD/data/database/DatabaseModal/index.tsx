@@ -242,7 +242,8 @@ function dbReducer(
       if (action.payload.backend === 'bigquery') {
         return {
           ...action.payload,
-          engine: trimmedState.engine,
+          encrypted_extra: '',
+          engine: action.payload.backend,
           configuration_method: action.payload.configuration_method,
           extra_json: deserializeExtraJSON,
           parameters: {
