@@ -56,6 +56,7 @@ import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
 import {
+  antDErrorAlertStyles,
   antDAlertStyles,
   antDModalNoPaddingStyles,
   antDModalStyles,
@@ -255,7 +256,7 @@ function dbReducer(
 
       return {
         ...action.payload,
-        engine: trimmedState.engine,
+        engine: action.payload.backend,
         configuration_method: action.payload.configuration_method,
         extra_json: deserializeExtraJSON,
         parameters: {
@@ -314,7 +315,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   // Database fetch logic
   const {
-    state: { loading: dbLoading, resource: dbFetched },
+    state: { loading: dbLoading, resource: dbFetched, error: dbError },
     fetchResource,
     createResource,
     updateResource,
@@ -364,6 +365,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
     // Clone DB object
     const dbToUpdate = JSON.parse(JSON.stringify(update));
+
+    // Validate DB before saving
+    await getValidation(dbToUpdate, true);
+    if (validationErrors) {
+      return;
+    }
+
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
       if (dbToUpdate?.parameters?.query) {
         // convert query params into dictionary
@@ -641,6 +649,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setTabKey(key);
   };
 
+  const errorAlert = () => (
+    <Alert
+      type="error"
+      css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
+      message="Missing Required Fields"
+      description="Please complete all required fields."
+      showIcon
+    />
+  );
+
   const renderFinishState = () => {
     if (!editNewDb) {
       return (
@@ -682,7 +700,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         isEditMode
         sslForced={sslForced}
         dbModel={dbModel}
-        db={dbFetched as DatabaseObject}
+        db={db as DatabaseObject}
         onParametersChange={({ target }: { target: HTMLInputElement }) =>
           onChange(ActionType.parametersChange, {
             type: target.type,
@@ -876,6 +894,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               onChange(ActionType.extraEditorChange, payload);
             }}
           />
+          {dbError && errorAlert()}
         </Tabs.TabPane>
       </Tabs>
     </Modal>
@@ -1001,6 +1020,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   />
                 </div>
                 {/* Step 2 */}
+                {dbError && errorAlert()}
               </>
             ))}
         </>
