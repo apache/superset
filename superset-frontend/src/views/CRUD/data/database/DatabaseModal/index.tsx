@@ -650,15 +650,49 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setTabKey(key);
   };
 
-  const errorAlert = () => (
-    <Alert
-      type="error"
-      css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
-      message="Missing Required Fields"
-      description="Please complete all required fields."
-      showIcon
-    />
-  );
+  const errorAlert = () => {
+    const errorAlertMapping = {
+      CONNECTION_MISSING_PARAMETERS_ERROR: {
+        message: 'Missing Required Fields',
+        description: 'Please complete all required fields.',
+      },
+      CONNECTION_INVALID_HOSTNAME_ERROR: {
+        message: 'Could not verify the host',
+        description:
+          'The host is invalid. Please verify that this field is entered correctly.',
+      },
+      CONNECTION_PORT_CLOSED_ERROR: {
+        message: 'Port is closed',
+        description: 'Please verify that port is open to connect.',
+      },
+    };
+
+    if (
+      validationErrors &&
+      Object.keys(validationErrors).length === 0 &&
+      validationErrors.constructor === Object &&
+      !(validationErrors.error_type in errorAlertMapping)
+    ) {
+      return <></>;
+    }
+
+    return (
+      <Alert
+        type="error"
+        css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
+        message={
+          errorAlertMapping[validationErrors?.error_type]?.message ||
+          validationErrors?.error_type
+        }
+        description={
+          errorAlertMapping[validationErrors?.error_type]?.description ||
+          JSON.stringify(validationErrors)
+        }
+        showIcon
+        closable={false}
+      />
+    );
+  };
 
   const renderFinishState = () => {
     if (!editNewDb) {
@@ -895,7 +929,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               onChange(ActionType.extraEditorChange, payload);
             }}
           />
-          {dbError && errorAlert()}
+          {validationErrors && errorAlert()}
         </Tabs.TabPane>
       </Tabs>
     </Modal>
@@ -1021,7 +1055,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   />
                 </div>
                 {/* Step 2 */}
-                {dbError && errorAlert()}
+                {validationErrors && errorAlert()}
               </>
             ))}
         </>

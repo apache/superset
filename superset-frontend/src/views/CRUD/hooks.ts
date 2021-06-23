@@ -660,9 +660,11 @@ export function useDatabaseValidation() {
                   (
                     obj: {},
                     {
+                      error_type,
                       extra,
                       message,
                     }: {
+                      error_type: string;
                       extra: { invalid?: string[]; missing?: string[] };
                       message: string;
                     },
@@ -671,11 +673,16 @@ export function useDatabaseValidation() {
                     // error can't be mapped to a parameter
                     // so leave it alone
                     if (extra.invalid) {
-                      return { ...obj, [extra.invalid[0]]: message };
+                      return {
+                        ...obj,
+                        [extra.invalid[0]]: message,
+                        error_type,
+                      };
                     }
                     if (extra.missing) {
                       return {
                         ...obj,
+                        error_type,
                         ...Object.assign(
                           {},
                           ...extra.missing.map(field => ({
