@@ -275,9 +275,10 @@ const FILTER_TYPE_NAME_MAPPING = {
 };
 
 // TODO: add column_types field to DatasourceMeta
+// We return true if column_types is undefined as a precaution against backend failing to return column_types
 const hasTemporalColumns = (
   dataset: DatasourceMeta & { column_types: GenericDataType[] },
-) => dataset?.column_types?.includes(GenericDataType.TEMPORAL);
+) => dataset?.column_types?.includes(GenericDataType.TEMPORAL) ?? true;
 
 /**
  * The configuration form for a specific filter.
