@@ -245,7 +245,7 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
 const VizTypeControl = (props: VizTypeControlProps) => {
   const { value: initialValue, onChange, isModalOpenInit } = props;
   const theme = useTheme();
-  const [showModal, setShowModal] = useState(isModalOpenInit);
+  const [showModal, setShowModal] = useState(!!isModalOpenInit);
   const [filter, setFilter] = useState('');
   const searchRef = useRef<any>(null);
   const [selectedViz, setSelectedViz] = useState(initialValue);
