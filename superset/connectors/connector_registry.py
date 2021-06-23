@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from collections import defaultdict
 from typing import Dict, List, Optional, Set, Type, TYPE_CHECKING
 
 from flask_babel import _
@@ -98,6 +99,41 @@ class ConnectorRegistry:
                 # proceed to next datasource type
                 pass
         raise NoResultFound(_("Datasource id not found: %(id)s", id=datasource_id))
+
+    @classmethod
+    def get_user_datasources(cls, session: Session) -> List["BaseDatasource"]:
+        from superset import security_manager
+
+        # collect datasources which the user has explicit permissions to
+        user_perms = security_manager.user_view_menu_names("datasource_access")
+        schema_perms = security_manager.user_view_menu_names("schema_access")
+        user_datasources = set()
+        for datasource_class in ConnectorRegistry.sources.values():
+            user_datasources.update(
+                session.query(datasource_class)
+                .filter(
+                    or_(
+                        datasource_class.perm.in_(user_perms),
+                        datasource_class.schema_perm.in_(schema_perms),
+                    )
+                )
+                .all()
+            )
+
+        # group all datasources by database
+        all_datasources = cls.get_all_datasources(session)
+        datasources_by_database: Dict["Database", Set["BaseDatasource"]] = defaultdict(
+            set
+        )
+        for datasource in all_datasources:
+            datasources_by_database[datasource.database].add(datasource)
+
+        # add datasources with implicit permission (eg, database access)
+        for database, datasources in datasources_by_database.items():
+            if security_manager.can_access_database(database):
+                user_datasources.update(datasources)
+
+        return list(user_datasources)
 
     @classmethod
     def get_datasource_by_name(  # pylint: disable=too-many-arguments
