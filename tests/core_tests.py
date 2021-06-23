@@ -976,6 +976,7 @@ class TestCore(SupersetTestCase):
                     "optionName": "metric_80g1qb9b6o7_ci5vquydcbe",
                 },
             ],
+            "order_desc": True,
             "adhoc_filters": [],
             "groupby": ["name"],
             "columns": [],
@@ -999,7 +1000,8 @@ class TestCore(SupersetTestCase):
             SELECT count(name) AS count_name, count(ds) AS count_ds
             FROM birth_names
             WHERE ds >= '1921-01-22 00:00:00.000000' AND ds < '2021-01-22 00:00:00.000000'
-            GROUP BY name ORDER BY count_name DESC, count_ds DESC
+            GROUP BY name
+            ORDER BY count_name DESC
             LIMIT 10;
             """,
             client_id="client_id_1",
