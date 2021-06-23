@@ -29,7 +29,10 @@ import {
   t,
   getChartMetadataRegistry,
   styled,
+  css,
   ChartMetadata,
+  SupersetTheme,
+  useTheme,
 } from '@superset-ui/core';
 import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
 import Modal from 'src/components/Modal';
@@ -56,6 +59,7 @@ interface VizTypeControlProps {
   onChange: (vizType: string) => void;
   value: string;
   labelType?: Type;
+  isModalOpenInit?: boolean;
 }
 
 type VizEntry = {
@@ -220,27 +224,28 @@ const SearchPane = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
-const VizThumbnailContainer = styled.div`
+const thumbnailContainerCss = (theme: SupersetTheme) => css`
   cursor: pointer;
 
   img {
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    border-radius: ${({ theme }) => theme.gridUnit}px;
-    transition: border-color ${({ theme }) => theme.transitionTiming};
+    border: 1px solid ${theme.colors.grayscale.light2};
+    border-radius: ${theme.gridUnit}px;
+    transition: border-color ${theme.transitionTiming};
   }
 
   &.selected img {
-    border: 2px solid ${({ theme }) => theme.colors.primary.light2};
+    border: 2px solid ${theme.colors.primary.light2};
   }
 
   &:hover:not(.selected) img {
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light1};
+    border: 1px solid ${theme.colors.grayscale.light1};
   }
 `;
 
 const VizTypeControl = (props: VizTypeControlProps) => {
-  const { value: initialValue, onChange } = props;
-  const [showModal, setShowModal] = useState(false);
+  const { value: initialValue, onChange, isModalOpenInit } = props;
+  const theme = useTheme();
+  const [showModal, setShowModal] = useState(isModalOpenInit);
   const [filter, setFilter] = useState('');
   const searchRef = useRef<any>(null);
   const [selectedViz, setSelectedViz] = useState(initialValue);
@@ -269,8 +274,11 @@ const VizTypeControl = (props: VizTypeControlProps) => {
     const isSelected = key === selectedViz;
 
     return (
-      <VizThumbnailContainer
+      <div
         role="button"
+        // using css instead of a styled component to preserve
+        // the data-test attribute
+        css={thumbnailContainerCss(theme)}
         tabIndex={0}
         className={isSelected ? 'selected' : ''}
         onClick={() => setSelectedViz(key)}
@@ -288,7 +296,7 @@ const VizTypeControl = (props: VizTypeControlProps) => {
         >
           {type.name}
         </div>
-      </VizThumbnailContainer>
+      </div>
     );
   };
 

@@ -28,6 +28,7 @@ const defaultProps = {
   label: 'Visualization Type',
   value: 'vis1',
   onChange: sinon.spy(),
+  isModalOpenInit: true,
 };
 
 describe('VizTypeControl', () => {
