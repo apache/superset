@@ -85,9 +85,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             )
 
         # perform initial validation
-        errors = engine_spec.validate_parameters(
-            self._properties.get("parameters", None)
-        )
+        errors = engine_spec.validate_parameters(self._properties.get("parameters", {}))
         if errors:
             raise InvalidParametersError(errors)
 
