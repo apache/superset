@@ -27,6 +27,7 @@ import {
   SupersetApiError,
   t,
   GenericDataType,
+  ensureIsArray,
 } from '@superset-ui/core';
 import {
   ColumnMeta,
@@ -275,9 +276,15 @@ const FILTER_TYPE_NAME_MAPPING = {
 };
 
 // TODO: add column_types field to DatasourceMeta
+// We return true if column_types is undefined or empty as a precaution against backend failing to return column_types
 const hasTemporalColumns = (
   dataset: DatasourceMeta & { column_types: GenericDataType[] },
-) => dataset?.column_types?.includes(GenericDataType.TEMPORAL);
+) => {
+  const columnTypes = ensureIsArray(dataset?.column_types);
+  return (
+    columnTypes.length === 0 || columnTypes.includes(GenericDataType.TEMPORAL)
+  );
+};
 
 /**
  * The configuration form for a specific filter.
