@@ -181,15 +181,15 @@ export const antDAlertStyles = (theme: SupersetTheme) => css`
 `;
 
 export const antDErrorAlertStyles = (theme: SupersetTheme) => css`
+  border: ${theme.colors.error.base} 2px solid;
   padding: ${theme.gridUnit * 4}px;
   margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 4}px;
+  color: ${theme.colors.error.dark2};
   .ant-alert-message {
-    color: ${theme.colors.info.dark2};
     font-size: ${theme.typography.sizes.s + 1}px;
     font-weight: bold;
   }
   .ant-alert-description {
-    color: ${theme.colors.info.dark2};
     font-size: ${theme.typography.sizes.s + 1}px;
     line-height: ${theme.gridUnit * 4}px;
     .ant-alert-icon {
