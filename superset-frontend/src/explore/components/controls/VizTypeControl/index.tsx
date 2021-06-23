@@ -324,7 +324,7 @@ const VizTypeControl = (props: VizTypeControlProps) => {
         ),
     )
     .reduce((acc, entry) => {
-      const category = entry.value?.categories?.[0] || 'Other';
+      const category = entry.value?.category || 'Other';
       if (!acc[category]) {
         acc[category] = [];
       }
