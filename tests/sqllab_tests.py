@@ -39,7 +39,6 @@ from superset.sql_lab import (
     execute_sql_statement,
     get_sql_results,
     SqlLabException,
-    SqlLabTimeoutException,
 )
 from superset.sql_parse import CtasMethod
 from superset.utils.core import (
@@ -959,11 +958,24 @@ class TestSqlLab(SupersetTestCase):
             -- comment
         """
         mock_get_query.side_effect = SoftTimeLimitExceeded()
-        with pytest.raises(SqlLabTimeoutException) as excinfo:
+        with pytest.raises(SupersetErrorException) as excinfo:
             get_sql_results(
                 1, sql, return_results=True, store_results=False,
             )
-        assert (
-            str(excinfo.value)
-            == "SQL Lab timeout. This environment's policy is to kill queries after 21600 seconds."
+        assert excinfo.value.error == SupersetError(
+            message="The query was killed after 21600 seconds. It might be too complex, or the database might be under heavy load.",
+            error_type=SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={
+                "issue_codes": [
+                    {
+                        "code": 1026,
+                        "message": "Issue 1026 - Query is too complex and takes too long to run.",
+                    },
+                    {
+                        "code": 1027,
+                        "message": "Issue 1027 - The database is currently running too many queries.",
+                    },
+                ]
+            },
         )

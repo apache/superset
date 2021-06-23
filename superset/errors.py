@@ -70,6 +70,7 @@ class SupersetErrorType(str, Enum):
     DML_NOT_ALLOWED_ERROR = "DML_NOT_ALLOWED_ERROR"
     INVALID_CTAS_QUERY_ERROR = "INVALID_CTAS_QUERY_ERROR"
     INVALID_CVAS_QUERY_ERROR = "INVALID_CVAS_QUERY_ERROR"
+    SQLLAB_TIMEOUT_ERROR = "SQLLAB_TIMEOUT_ERROR"
 
     # Generic errors
     GENERIC_COMMAND_ERROR = "GENERIC_COMMAND_ERROR"
@@ -292,6 +293,20 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
             "message": _(
                 "Issue 1025 - CVAS (create view as select) query is not a "
                 "SELECT statement."
+            ),
+        },
+    ],
+    SupersetErrorType.SQLLAB_TIMEOUT_ERROR: [
+        {
+            "code": 1026,
+            "message": _(
+                "Issue 1026 - Query is too complex and takes too long to run."
+            ),
+        },
+        {
+            "code": 1027,
+            "message": _(
+                "Issue 1027 - The database is currently running too many queries."
             ),
         },
     ],
