@@ -102,6 +102,7 @@ describe('VizType control', () => {
     cy.get('[data-test="visualization-type"]').contains('Table').click();
 
     cy.get('[role="button"]').contains('Line Chart').click();
+    cy.get('button').contains('Select').click();
 
     // should load mathjs for line chart
     cy.get('script[src*="mathjs"]').should('have.length', 1);

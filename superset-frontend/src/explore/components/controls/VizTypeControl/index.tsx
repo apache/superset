@@ -369,7 +369,7 @@ const VizTypeControl = (props: VizTypeControlProps) => {
         show={showModal}
         onHide={toggleModal}
         title={t('Select a visualization type')}
-        primaryButtonName={t('Create')}
+        primaryButtonName={t('Select')}
         onHandledPrimaryAction={onSubmit}
         responsive
       >
