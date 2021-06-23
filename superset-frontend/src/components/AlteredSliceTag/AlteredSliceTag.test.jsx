@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
+import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { getChartControlPanelRegistry } from '@superset-ui/core';
 
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
@@ -128,8 +129,8 @@ describe('AlteredSliceTag', () => {
       );
       const th = getTableWrapperFromModalBody(modalBody).find('th');
       expect(th).toHaveLength(3);
-      ['Control', 'Before', 'After'].forEach((v, i) => {
-        expect(th.find('span').get(i).props.children[0]).toBe(v);
+      ['Control', 'Before', 'After'].forEach(async (v, i) => {
+        await expect(th.find('span').get(i).props.children[0]).toBe(v);
       });
     });
 
