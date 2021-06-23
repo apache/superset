@@ -19,9 +19,7 @@
 
 import { EffectCallback, useEffect, useRef } from 'react';
 
-export const useComponentDidUpdate = (
-  effect: EffectCallback,
-) => {
+export const useComponentDidUpdate = (effect: EffectCallback) => {
   const isMountedRef = useRef(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
