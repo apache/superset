@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { getChartControlPanelRegistry } from '@superset-ui/core';
 
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
