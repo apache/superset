@@ -330,7 +330,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     availableDbs?.databases?.find(
       (available: { engine: string | undefined }) =>
         // TODO: we need a centralized engine in one place
-        available.engine === (isEditMode ? db?.backend : db?.engine),
+        available.engine ===
+        (isEditMode || editNewDb ? db?.backend || db?.engine : db?.engine),
     ) || {};
 
   // Test Connection logic
@@ -718,6 +719,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         }
         getValidation={() => getValidation(db)}
         validationErrors={validationErrors}
+        editNewDb={editNewDb}
       />
     );
   };
