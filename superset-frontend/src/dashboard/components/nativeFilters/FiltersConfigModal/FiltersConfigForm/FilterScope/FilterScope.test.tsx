@@ -115,6 +115,7 @@ describe('FilterScope', () => {
     fireEvent.click(screen.getByText('Scoping'));
     fireEvent.click(screen.getByLabelText('Apply to specific panels'));
 
+    screen.debug(undefined, 30000);
     await waitFor(() => {
       expect(screen.getByRole('tree')).toBeInTheDocument();
       expect(

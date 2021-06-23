@@ -19,7 +19,7 @@
 
 import { ReactNode } from 'react';
 
-export enum Scoping {
+export enum ScopingType {
   all,
   specific,
 }

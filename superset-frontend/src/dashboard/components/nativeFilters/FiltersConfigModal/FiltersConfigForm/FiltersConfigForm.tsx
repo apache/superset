@@ -592,7 +592,7 @@ const FiltersConfigForm = (
     setActiveFilterPanelKey(activeFilterPanelKey);
   }, [hasCheckedAdvancedControl]);
 
-  const initiallyExcluded = useMemo(() => {
+  const initiallyExcludedCharts = useMemo(() => {
     const excluded: number[] = [];
     if (formFilter?.dataset?.value === undefined) {
       return [];
@@ -1072,10 +1072,10 @@ const FiltersConfigForm = (
           updateFormValues={updateFormValues}
           pathToFormValue={['filters', filterId]}
           forceUpdate={forceUpdate}
-          scope={filterToEdit?.scope}
-          formScope={formFilter?.scope}
-          formScoping={formFilter?.scoping}
-          initiallyExcludedCharts={initiallyExcluded}
+          filterScope={filterToEdit?.scope}
+          formFilterScope={formFilter?.scope}
+          formScopingType={formFilter?.scoping}
+          initiallyExcludedCharts={initiallyExcludedCharts}
         />
       </TabPane>
     </StyledTabs>
