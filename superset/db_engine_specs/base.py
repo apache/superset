@@ -96,10 +96,10 @@ builtin_time_grains: Dict[Optional[str], str] = {
     "P1M": __("Month"),
     "P0.25Y": __("Quarter"),
     "P1Y": __("Year"),
-    "1969-12-28T00:00:00Z/P1W": __("Week starting sunday"),
-    "1969-12-29T00:00:00Z/P1W": __("Week starting monday"),
-    "P1W/1970-01-03T00:00:00Z": __("Week ending saturday"),
-    "P1W/1970-01-04T00:00:00Z": __("Week_ending sunday"),
+    "1969-12-28T00:00:00Z/P1W": __("Week starting Sunday"),
+    "1969-12-29T00:00:00Z/P1W": __("Week starting Monday"),
+    "P1W/1970-01-03T00:00:00Z": __("Week ending Saturday"),
+    "P1W/1970-01-04T00:00:00Z": __("Week_ending Sunday"),
 }
 
 
