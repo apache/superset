@@ -366,12 +366,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     // Clone DB object
     const dbToUpdate = JSON.parse(JSON.stringify(update));
 
-    // Validate DB before saving
-    await getValidation(dbToUpdate, true);
-    if (validationErrors) {
-      return;
-    }
-
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
       if (dbToUpdate?.parameters?.query) {
         // convert query params into dictionary
