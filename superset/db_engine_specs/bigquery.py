@@ -24,14 +24,20 @@ from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
+from marshmallow.exceptions import ValidationError
 from sqlalchemy import literal_column
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql.expression import ColumnClause
 from typing_extensions import TypedDict
 
+from superset.databases.commands.exceptions import (
+    DatabaseInvalidError,
+    DatabaseUpdateFailedError,
+    InvalidParametersError,
+)
 from superset.databases.schemas import encrypted_field_properties, EncryptedField
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.errors import SupersetError, SupersetErrorType
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.sql_parse import Table
 from superset.utils import core as utils
@@ -317,15 +323,16 @@ class BigQueryEngineSpec(BaseEngineSpec):
     ) -> str:
         query = parameters.get("query", {})
         query_params = urllib.parse.urlencode(query)
-        if encrypted_extra:
-            project_id = encrypted_extra.get("credentials_info", {}).get("project_id")
+
+        if not encrypted_extra:
+            raise ValidationError("Missing service credentials")
+
+        project_id = encrypted_extra.get("credentials_info", {}).get("project_id")
 
         if project_id:
             return f"{cls.default_driver}://{project_id}/?{query_params}"
 
-        raise SupersetGenericDBErrorException(
-            message="Big Query encrypted_extra is not available.",
-        )
+        raise ValidationError("Invalid service credentials")
 
     @classmethod
     def get_parameters_from_uri(
@@ -337,9 +344,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
         if encrypted_extra:
             return {**encrypted_extra, "query": value.query}
 
-        raise SupersetGenericDBErrorException(
-            message="Big Query encrypted_extra is not available.",
-        )
+        raise ValidationError("Invalid service credentials")
 
     @classmethod
     def validate_parameters(
