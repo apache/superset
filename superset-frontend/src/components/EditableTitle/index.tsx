@@ -70,6 +70,13 @@ export default function EditableTitle({
   useEffect(() => {
     if (isEditing) {
       contentRef.current.focus();
+      // move cursor and scroll to the end
+      if (contentRef.current.setSelectionRange) {
+        const { length } = contentRef.current.value;
+        contentRef.current.setSelectionRange(length, length);
+        contentRef.current.scrollLeft = contentRef.current.scrollWidth;
+        contentRef.current.scrollTop = contentRef.current.scrollHeight;
+      }
     }
   }, [isEditing]);
 

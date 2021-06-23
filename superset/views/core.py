@@ -73,12 +73,13 @@ from superset.dashboards.dao import DashboardDAO
 from superset.databases.dao import DatabaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.commands.exceptions import DatasetNotFoundError
-from superset.errors import SupersetError
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
     CertificateException,
     DatabaseNotFound,
     SerializationError,
+    SupersetErrorException,
     SupersetErrorsException,
     SupersetException,
     SupersetGenericDBErrorException,
@@ -184,7 +185,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             sorted(
                 [
                     datasource.short_data
-                    for datasource in ConnectorRegistry.get_all_datasources(db.session)
+                    for datasource in ConnectorRegistry.get_user_datasources(db.session)
                     if datasource.short_data.get("name")
                 ],
                 key=lambda datasource: datasource["name"],
@@ -2179,7 +2180,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         of rows returned.
         """
         if not results_backend:
-            return json_error_response("Results backend isn't configured")
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__("Results backend is not configured."),
+                    error_type=SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
 
         read_from_results_backend_start = now_as_float()
         blob = results_backend.get(key)
@@ -2460,7 +2467,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 raise SupersetErrorsException(
                     [SupersetError(**params) for params in data["errors"]]
                 )
-
             # old string-only error message
             raise SupersetGenericDBErrorException(data["error"])
 
@@ -2504,14 +2510,34 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             CtasMethod, query_params.get("ctas_method", CtasMethod.TABLE)
         )
         tmp_table_name: str = cast(str, query_params.get("tmp_table_name"))
-        client_id: str = cast(
-            str, query_params.get("client_id") or utils.shortid()[:10]
-        )
+        client_id: str = cast(str, query_params.get("client_id"))
+        client_id_or_short_id: str = cast(str, client_id or utils.shortid()[:10])
         sql_editor_id: str = cast(str, query_params.get("sql_editor_id"))
         tab_name: str = cast(str, query_params.get("tab"))
         status: str = QueryStatus.PENDING if async_flag else QueryStatus.RUNNING
+        user_id: int = g.user.get_id() if g.user else None
 
         session = db.session()
+
+        # check to see if this query is already running
+        query = (
+            session.query(Query)
+            .filter_by(
+                client_id=client_id, user_id=user_id, sql_editor_id=sql_editor_id
+            )
+            .one_or_none()
+        )
+        if query is not None and query.status in [
+            QueryStatus.RUNNING,
+            QueryStatus.PENDING,
+            QueryStatus.TIMED_OUT,
+        ]:
+            # return the existing query
+            payload = json.dumps(
+                {"query": query.to_dict()}, default=utils.json_int_dttm_ser
+            )
+            return json_success(payload)
+
         mydb = session.query(Database).get(database_id)
         if not mydb:
             return json_error_response("Database with id %i is missing.", database_id)
@@ -2539,8 +2565,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             sql_editor_id=sql_editor_id,
             tmp_table_name=tmp_table_name,
             tmp_schema_name=tmp_schema_name,
-            user_id=g.user.get_id() if g.user else None,
-            client_id=client_id,
+            user_id=user_id,
+            client_id=client_id_or_short_id,
         )
         try:
             session.add(query)

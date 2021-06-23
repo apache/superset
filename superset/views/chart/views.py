@@ -65,7 +65,7 @@ class SliceModelView(
     def add(self) -> FlaskResponse:
         datasources = [
             {"value": str(d.id) + "__" + d.type, "label": repr(d)}
-            for d in ConnectorRegistry.get_all_datasources(db.session)
+            for d in ConnectorRegistry.get_user_datasources(db.session)
         ]
         payload = {
             "datasources": sorted(
