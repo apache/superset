@@ -35,6 +35,8 @@ from superset.db_engine_specs.base import BasicParametersMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.core import Database
 
+BYPASS_VALIDATION_ENGINES = ["bigquery"]
+
 
 class ValidateDatabaseParametersCommand(BaseCommand):
     def __init__(self, user: User, parameters: Dict[str, Any]):
@@ -46,8 +48,8 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         engine = self._properties["engine"]
         engine_specs = get_engine_specs()
 
-        if engine == "bigquery":
-            # Big query validates only onCreate
+        if engine in BYPASS_VALIDATION_ENGINES:
+            # Skip engines that are only validated onCreate
             return
 
         if engine not in engine_specs:
