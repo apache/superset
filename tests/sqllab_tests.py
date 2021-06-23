@@ -122,6 +122,29 @@ class TestSqlLab(SupersetTestCase):
             }
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_sql_json_dml_disallowed(self):
+        self.login("admin")
+
+        data = self.run_sql("DELETE FROM birth_names", "1")
+        assert data == {
+            "errors": [
+                {
+                    "message": "Only SELECT statements are allowed against this database.",
+                    "error_type": SupersetErrorType.DML_NOT_ALLOWED_ERROR,
+                    "level": ErrorLevel.ERROR,
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1022,
+                                "message": "Issue 1022 - Database does not allow data manipulation.",
+                            }
+                        ]
+                    },
+                }
+            ]
+        }
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_json_to_saved_query_info(self):
         """
         SQLLab: Test SQLLab query execution info propagation to saved queries
@@ -743,6 +766,58 @@ class TestSqlLab(SupersetTestCase):
                     False,
                 ),
             ]
+        )
+
+    @mock.patch("superset.sql_lab.results_backend", None)
+    @mock.patch("superset.sql_lab.get_query")
+    @mock.patch("superset.sql_lab.execute_sql_statement")
+    def test_execute_sql_statements_no_results_backend(
+        self, mock_execute_sql_statement, mock_get_query
+    ):
+        sql = """
+            -- comment
+            SET @value = 42;
+            SELECT @value AS foo;
+            -- comment
+        """
+        mock_session = mock.MagicMock()
+        mock_query = mock.MagicMock()
+        mock_query.database.allow_run_async = True
+        mock_cursor = mock.MagicMock()
+        mock_query.database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value = (
+            mock_cursor
+        )
+        mock_query.database.db_engine_spec.run_multiple_statements_as_one = False
+        mock_get_query.return_value = mock_query
+
+        with pytest.raises(SupersetErrorException) as excinfo:
+            execute_sql_statements(
+                query_id=1,
+                rendered_query=sql,
+                return_results=True,
+                store_results=False,
+                user_name="admin",
+                session=mock_session,
+                start_time=None,
+                expand_data=False,
+                log_params=None,
+            )
+
+        assert excinfo.value.error == SupersetError(
+            message="Results backend is not configured.",
+            error_type=SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={
+                "issue_codes": [
+                    {
+                        "code": 1021,
+                        "message": (
+                            "Issue 1021 - Results backend needed for asynchronous "
+                            "queries is not configured."
+                        ),
+                    }
+                ]
+            },
         )
 
     @mock.patch("superset.sql_lab.get_query")
