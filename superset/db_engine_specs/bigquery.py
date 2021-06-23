@@ -30,15 +30,9 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql.expression import ColumnClause
 from typing_extensions import TypedDict
 
-from superset.databases.commands.exceptions import (
-    DatabaseInvalidError,
-    DatabaseUpdateFailedError,
-    InvalidParametersError,
-)
 from superset.databases.schemas import encrypted_field_properties, EncryptedField
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetGenericDBErrorException
+from superset.errors import SupersetError, SupersetErrorType
 from superset.sql_parse import Table
 from superset.utils import core as utils
 from superset.utils.hashing import md5_sha_from_str
