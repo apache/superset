@@ -60,11 +60,11 @@ if (isDevMode) {
   output.filename = '[name].[hash:8].entry.js';
   output.chunkFilename = '[name].[hash:8].chunk.js';
 } else if (nameChunks) {
-  output.filename = '[name].[contenthash].entry.js';
-  output.chunkFilename = '[name].[contenthash].chunk.js';
+  output.filename = '[name].[chunkhash].entry.js';
+  output.chunkFilename = '[name].[chunkhash].chunk.js';
 } else {
-  output.filename = '[name].[contenthash].entry.js';
-  output.chunkFilename = '[contenthash].chunk.js';
+  output.filename = '[name].[chunkhash].entry.js';
+  output.chunkFilename = '[chunkhash].chunk.js';
 }
 
 const plugins = [
@@ -157,8 +157,8 @@ if (!isDevMode) {
   // text loading (webpack 4+)
   plugins.push(
     new MiniCssExtractPlugin({
-      filename: '[name].[contenthash].entry.css',
-      chunkFilename: '[name].[contenthash].chunk.css',
+      filename: '[name].[chunkhash].entry.css',
+      chunkFilename: '[name].[chunkhash].chunk.css',
     }),
   );
   plugins.push(new OptimizeCSSAssetsPlugin());
