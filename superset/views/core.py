@@ -73,12 +73,13 @@ from superset.dashboards.dao import DashboardDAO
 from superset.databases.dao import DatabaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.commands.exceptions import DatasetNotFoundError
-from superset.errors import SupersetError
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
     CertificateException,
     DatabaseNotFound,
     SerializationError,
+    SupersetErrorException,
     SupersetErrorsException,
     SupersetException,
     SupersetGenericDBErrorException,
@@ -2179,7 +2180,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         of rows returned.
         """
         if not results_backend:
-            return json_error_response("Results backend isn't configured")
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__("Results backend is not configured."),
+                    error_type=SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
 
         read_from_results_backend_start = now_as_float()
         blob = results_backend.get(key)
@@ -2460,7 +2467,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 raise SupersetErrorsException(
                     [SupersetError(**params) for params in data["errors"]]
                 )
-
             # old string-only error message
             raise SupersetGenericDBErrorException(data["error"])
 

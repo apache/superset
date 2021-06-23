@@ -52,6 +52,22 @@ export default function setupErrorMessages() {
     ParameterErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.RESULTS_BACKEND_NOT_CONFIGURED_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.DML_NOT_ALLOWED_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.INVALID_CTAS_QUERY_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.INVALID_CVAS_QUERY_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.CONNECTION_INVALID_HOSTNAME_ERROR,
     DatabaseErrorMessage,
   );
