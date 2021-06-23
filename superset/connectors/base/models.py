@@ -310,7 +310,7 @@ class BaseDatasource(
         filtered_columns: List[Column] = []
         column_types: Set[GenericDataType] = set()
         for column in data["columns"]:
-            generic_type = column["type_generic"]
+            generic_type = column.get("type_generic")
             if generic_type is not None:
                 column_types.add(generic_type)
             if column["column_name"] in column_names:
