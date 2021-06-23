@@ -72,8 +72,8 @@ const TableLabel = styled.span`
   display: flex;
   white-space: nowrap;
 
-  > svg,
-  > small {
+  svg,
+  small {
     margin-right: ${({ theme }) => theme.gridUnit}px;
   }
 `;
