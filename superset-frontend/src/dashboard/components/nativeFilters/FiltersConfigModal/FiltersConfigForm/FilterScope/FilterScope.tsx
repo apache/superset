@@ -17,10 +17,11 @@
  * under the License.
  */
 
-import React, { FC, useCallback, useEffect, useState } from 'react';
+import React, { FC, useCallback, useState } from 'react';
 import { t, styled } from '@superset-ui/core';
 import { Radio } from 'src/components/Radio';
 import { Form, Typography } from 'src/common/components';
+import { useComponentDidUpdate } from 'src/common/hooks/useComponentDidUpdate/useComponentDidUpdate';
 import { Scope } from '../../../types';
 import { ScopingType } from './types';
 import ScopingTree from './ScopingTree';
@@ -79,7 +80,7 @@ const FilterScope: FC<FilterScopeProps> = ({
     [updateFormValues],
   );
 
-  useEffect(() => {
+  const updateScopes = useCallback(() => {
     if (filterScope || hasScopeBeenModified) {
       return;
     }
@@ -93,11 +94,12 @@ const FilterScope: FC<FilterScopeProps> = ({
     });
   }, [
     chartId,
+    filterScope,
     hasScopeBeenModified,
     initiallyExcludedCharts,
-    filterScope,
     updateFormValues,
   ]);
+  useComponentDidUpdate(updateScopes);
 
   return (
     <Wrapper>
