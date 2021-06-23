@@ -45,6 +45,11 @@ class ValidateDatabaseParametersCommand(BaseCommand):
     def run(self) -> None:
         engine = self._properties["engine"]
         engine_specs = get_engine_specs()
+
+        if engine == "bigquery":
+            # Big query validates only onCreate
+            return
+
         if engine not in engine_specs:
             raise InvalidEngineError(
                 SupersetError(
