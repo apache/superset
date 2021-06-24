@@ -19,13 +19,15 @@
 import { SupersetClient } from '@superset-ui/core';
 import { getClientErrorObject } from './getClientErrorObject';
 import { URL_PARAMS } from '../constants';
+import rison from 'rison';
 
-export type UrlParamType = 'string' | 'number' | 'boolean' | 'object';
+export type UrlParamType = 'string' | 'number' | 'boolean' | 'object' | 'rison';
 export type UrlParam = typeof URL_PARAMS[keyof typeof URL_PARAMS];
 export function getUrlParam(param: UrlParam & { type: 'string' }): string;
 export function getUrlParam(param: UrlParam & { type: 'number' }): number;
 export function getUrlParam(param: UrlParam & { type: 'boolean' }): boolean;
 export function getUrlParam(param: UrlParam & { type: 'object' }): object;
+export function getUrlParam(param: UrlParam & { type: 'rison' }): object;
 export function getUrlParam({ name, type }: UrlParam): unknown {
   const urlParam = new URLSearchParams(window.location.search).get(name);
   switch (type) {
@@ -53,6 +55,15 @@ export function getUrlParam({ name, type }: UrlParam): unknown {
         return null;
       }
       return urlParam !== 'false' && urlParam !== '0';
+    case 'rison':
+      if (!urlParam) {
+        return null;
+      }
+      try {
+        return rison.decode(urlParam)
+      } catch {
+        return null;
+      }
     default:
       return urlParam;
   }

@@ -278,7 +278,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
     directPathToChild.push(directLinkComponentId);
   }
 
-  const nativeFilters = getInitialNativeFilterState({
+  let nativeFilters = getInitialNativeFilterState({
     filterConfig: metadata?.native_filter_configuration || [],
     filterSetsConfig: metadata?.filter_sets_configuration || [],
   });
@@ -360,6 +360,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
       dashboardFilters,
       nativeFilters,
       dashboardState: {
+        preselectNativeFilters: getUrlParam(URL_PARAMS.nativeFilters),
         sliceIds: Array.from(sliceIds),
         directPathToChild,
         directPathLastUpdated: Date.now(),
