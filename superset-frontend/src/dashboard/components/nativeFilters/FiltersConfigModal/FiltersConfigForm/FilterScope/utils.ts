@@ -49,6 +49,7 @@ export const buildTree = (
         node.meta.sliceNameOverride ||
         node.meta.sliceName ||
         node.meta.text ||
+        node.meta.defaultText ||
         node.id.toString(),
       children: [],
     };
