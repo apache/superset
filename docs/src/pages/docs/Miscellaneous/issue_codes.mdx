@@ -247,3 +247,19 @@ CVAS (create view as select) query is not a SELECT statement.
 ```
 
 When running a CVAS (create view as select) the query should be a SELECT statement. Please make sure the query has a single statement and it's a SELECT statement.
+
+## Issue 1026
+
+```
+Query is too complex and takes too long to run.
+```
+
+The submitted query might be too complex to run under the time limit defined by your Superset administrator. Please double check your query and verify if it can be optimized. Alternatively, contact your administrator to increase the timeout period.
+
+## Issue 1027
+
+```
+The database is currently running too many queries.
+```
+
+The database might be under heavy load, running too many queries. Please try again later, or contact an administrator for further assistance.
