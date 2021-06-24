@@ -51,7 +51,6 @@ const formMock: FormInstance = {
 const filterMock: Filter = {
   cascadeParentIds: [],
   defaultDataMask: {},
-  isInstant: false,
   id: 'mock',
   name: 'mock',
   scope: {

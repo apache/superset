@@ -157,7 +157,6 @@ describe('FilterBar', () => {
               "controlValues":{},
               "cascadeParentIds":[],
               "scope":{"rootPath":["ROOT_ID"],"excluded":[]},
-              "isInstant":false
             }],
             "filter_sets_configuration":[{
               "name":"${FILTER_SET_NAME}",
@@ -172,7 +171,6 @@ describe('FilterBar', () => {
                   "controlValues":{},
                   "cascadeParentIds":[],
                   "scope":{"rootPath":["ROOT_ID"],"excluded":[]},
-                  "isInstant":false
                 }
               },
               "dataMask":{

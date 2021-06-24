@@ -112,7 +112,6 @@ const ADVANCED_REGEX = /^advanced$/i;
 const DEFAULT_VALUE_REGEX = /^filter has default value$/i;
 const MULTIPLE_REGEX = /^multiple select$/i;
 const REQUIRED_REGEX = /^required$/i;
-const APPLY_INSTANTLY_REGEX = /^apply changes instantly$/i;
 const HIERARCHICAL_REGEX = /^filter is hierarchical$/i;
 const FIRST_ITEM_REGEX = /^default to first item$/i;
 const INVERSE_SELECTION_REGEX = /^inverse selection$/i;
@@ -169,7 +168,6 @@ test('renders a value filter type', () => {
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
   expect(getCheckbox(REQUIRED_REGEX)).not.toBeChecked();
-  expect(getCheckbox(APPLY_INSTANTLY_REGEX)).not.toBeChecked();
   expect(getCheckbox(HIERARCHICAL_REGEX)).not.toBeChecked();
   expect(getCheckbox(FIRST_ITEM_REGEX)).not.toBeChecked();
   expect(getCheckbox(INVERSE_SELECTION_REGEX)).not.toBeChecked();
@@ -194,7 +192,6 @@ test('renders a numerical range filter type', () => {
   expect(screen.getByText(REQUIRED_REGEX)).toBeInTheDocument();
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
-  expect(getCheckbox(APPLY_INSTANTLY_REGEX)).not.toBeChecked();
   expect(getCheckbox(PRE_FILTER_REGEX)).not.toBeChecked();
 
   expect(queryCheckbox(MULTIPLE_REGEX)).not.toBeInTheDocument();
@@ -217,7 +214,6 @@ test('renders a time range filter type', () => {
   expect(screen.queryByText(COLUMN_REGEX)).not.toBeInTheDocument();
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
-  expect(getCheckbox(APPLY_INSTANTLY_REGEX)).not.toBeChecked();
 
   expect(screen.queryByText(ADVANCED_REGEX)).not.toBeInTheDocument();
 });
@@ -234,7 +230,6 @@ test('renders a time column filter type', () => {
   expect(screen.queryByText(COLUMN_REGEX)).not.toBeInTheDocument();
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
-  expect(getCheckbox(APPLY_INSTANTLY_REGEX)).not.toBeChecked();
 
   expect(screen.queryByText(ADVANCED_REGEX)).not.toBeInTheDocument();
 });
@@ -251,7 +246,6 @@ test('renders a time grain filter type', () => {
   expect(screen.queryByText(COLUMN_REGEX)).not.toBeInTheDocument();
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
-  expect(getCheckbox(APPLY_INSTANTLY_REGEX)).not.toBeChecked();
 
   expect(screen.queryByText(ADVANCED_REGEX)).not.toBeInTheDocument();
 });
