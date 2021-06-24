@@ -64,9 +64,15 @@ interface FieldPropTypes {
   isEditMode?: boolean;
   sslForced?: boolean;
   defaultDBName?: string;
+  editNewDb?: boolean;
 }
 
-const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
+const CredentialsInfo = ({
+  changeMethods,
+  isEditMode,
+  db,
+  editNewDb,
+}: FieldPropTypes) => {
   const [uploadOption, setUploadOption] = useState<number>(
     CredentialInfoOptions.jsonUpload.valueOf(),
   );
@@ -95,7 +101,9 @@ const CredentialsInfo = ({ changeMethods, isEditMode, db }: FieldPropTypes) => {
           </Select>
         </>
       )}
-      {uploadOption === CredentialInfoOptions.copyPaste || isEditMode ? (
+      {uploadOption === CredentialInfoOptions.copyPaste ||
+      isEditMode ||
+      editNewDb ? (
         <div className="input-container">
           <span className="label-select">Service Account</span>
           <textarea
@@ -378,9 +386,11 @@ const DatabaseConnectionForm = ({
   db,
   isEditMode = false,
   sslForced,
+  editNewDb,
 }: {
   isEditMode?: boolean;
   sslForced: boolean;
+  editNewDb?: boolean;
   dbModel: DatabaseForm;
   db: Partial<DatabaseObject> | null;
   onParametersChange: (
@@ -422,6 +432,7 @@ const DatabaseConnectionForm = ({
             key: field,
             isEditMode,
             sslForced,
+            editNewDb,
           }),
         )}
     </div>
