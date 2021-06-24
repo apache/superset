@@ -71,6 +71,13 @@ describe('Add database', () => {
   xit('show error alerts on sqlalchemy form', () => {});
   xit('should succesfully connect to db w/ dynamic form', () => {});
   xit('should succesfully connect to db w/ sqlalchemy form', () => {});
+  xit('should show preferred dbs', () => {});
+  xit('should show available dbs in dropdown', () => {});
+
+  // big query
+  xit('should be able to show custom big query', () => {});
+  xit('should be able to show big query file upload', () => {});
+  xit('should be able to show big query service account copy/paste', () => {});
 
   xit('should keep create modal open when error', () => {
     // open modal
