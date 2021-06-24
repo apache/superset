@@ -54,8 +54,7 @@ export const useDefaultValue = (
   filterToEdit?: Filter,
 ) => {
   const [hasDefaultValue, setHasPartialDefaultValue] = useState(
-    !!filterToEdit?.defaultDataMask?.filterState?.value ||
-      formFilter?.controlValues?.enableEmptyFilter,
+    !!filterToEdit?.defaultDataMask?.filterState?.value,
   );
   const [isRequired, setisRequired] = useState(
     formFilter?.controlValues?.enableEmptyFilter,
