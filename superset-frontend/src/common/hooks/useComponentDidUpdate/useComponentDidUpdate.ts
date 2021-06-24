@@ -17,22 +17,15 @@
  * under the License.
  */
 
-import { ReactNode } from 'react';
+import { EffectCallback, useEffect, useRef } from 'react';
 
-export enum ScopingType {
-  all,
-  specific,
-}
-
-/** UI Ant tree type */
-export type TreeItem = {
-  children: TreeItem[];
-  key: string;
-  title: ReactNode;
+export const useComponentDidUpdate = (effect: EffectCallback) => {
+  const isMountedRef = useRef(false);
+  useEffect(() => {
+    if (isMountedRef.current) {
+      effect();
+    } else {
+      isMountedRef.current = true;
+    }
+  }, [effect]);
 };
-
-export type BuildTreeLeafTitle = (
-  label: string,
-  hasTooltip: boolean,
-  tooltipTitle?: string,
-) => ReactNode;
