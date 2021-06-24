@@ -654,7 +654,7 @@ export function useDatabaseValidation() {
                 .filter(
                   (error: { error_type: string }) =>
                     error.error_type !==
-                      'CONNECTION_MISSING_PARAMETERS_ERROR' || onCreate,
+                      'CONNECTION_MISSING_PARAMETERS_ERROR' || 'CONNECTION_ACCESS_DENIED_ERROR' || onCreate,
                 )
                 .reduce(
                   (
