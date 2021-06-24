@@ -107,7 +107,6 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
       opacity,
       seriesType,
       stack,
-      richTooltip,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
