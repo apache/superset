@@ -45,6 +45,7 @@ const store = mockStore({});
 
 const mockedProps = {
   addDangerToast: () => {},
+  addSuccessToast: () => {},
   annotation: mockData,
   onAnnotationAdd: jest.fn(() => []),
   onHide: () => {},

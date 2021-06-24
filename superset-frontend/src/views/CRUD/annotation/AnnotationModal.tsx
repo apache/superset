@@ -30,6 +30,7 @@ import { AnnotationObject } from './types';
 
 interface AnnotationModalProps {
   addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
   annnotationLayerId: number;
   annotation?: AnnotationObject | null;
   onAnnotationAdd?: (annotation?: AnnotationObject) => void;
@@ -85,6 +86,7 @@ const AnnotationContainer = styled.div`
 
 const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   addDangerToast,
+  addSuccessToast,
   annnotationLayerId,
   annotation = null,
   onAnnotationAdd,
@@ -96,7 +98,6 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
     currentAnnotation,
     setCurrentAnnotation,
   ] = useState<AnnotationObject | null>(null);
-  const [isHidden, setIsHidden] = useState<boolean>(true);
   const isEditMode = annotation !== null;
 
   // annotation fetch logic
@@ -122,13 +123,12 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
     });
   };
 
-  // Functions
   const hide = () => {
-    setIsHidden(true);
-
-    // Reset annotation
-    resetAnnotation();
-
+    if (isEditMode) {
+      setCurrentAnnotation(resource);
+    } else {
+      resetAnnotation();
+    }
     onHide();
   };
 
@@ -153,6 +153,8 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
           }
 
           hide();
+
+          addSuccessToast(t('The annotation has been updated'));
         });
       }
     } else if (currentAnnotation) {
@@ -167,6 +169,8 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
         }
 
         hide();
+
+        addSuccessToast(t('The annotation has been saved'));
       });
     }
   };
@@ -236,7 +240,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       (!currentAnnotation ||
         !currentAnnotation.id ||
         (annotation && annotation.id !== currentAnnotation.id) ||
-        (isHidden && show))
+        show)
     ) {
       if (annotation && annotation.id !== null && !loading) {
         const id = annotation.id || 0;
@@ -245,7 +249,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       }
     } else if (
       !isEditMode &&
-      (!currentAnnotation || currentAnnotation.id || (isHidden && show))
+      (!currentAnnotation || currentAnnotation.id || show)
     ) {
       resetAnnotation();
     }
@@ -265,11 +269,6 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
     currentAnnotation ? currentAnnotation.start_dttm : '',
     currentAnnotation ? currentAnnotation.end_dttm : '',
   ]);
-
-  // Show/hide
-  if (isHidden && show) {
-    setIsHidden(false);
-  }
 
   return (
     <Modal
