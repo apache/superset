@@ -69,7 +69,10 @@ module.exports = {
     },
     // build instrumented code for testing code coverage with Cypress
     instrumented: {
-      plugins: ['istanbul'],
+      plugins: [
+        'istanbul',
+        '@babel/plugin-proposal-nullish-coalescing-operator',
+      ],
     },
     production: {
       plugins: [
