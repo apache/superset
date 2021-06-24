@@ -651,11 +651,13 @@ export function useDatabaseValidation() {
           if (typeof e.json === 'function') {
             e.json().then(({ errors = [] }: JsonObject) => {
               const parsedErrors = errors
-                .filter(
-                  (error: { error_type: string }) =>
-                    error.error_type !==
-                      'CONNECTION_MISSING_PARAMETERS_ERROR' || 'CONNECTION_ACCESS_DENIED_ERROR' || onCreate,
-                )
+                .filter((error: { error_type: string }) => {
+                  const skipValidationError = ![
+                    'CONNECTION_MISSING_PARAMETERS_ERROR',
+                    'CONNECTION_ACCESS_DENIED_ERROR',
+                  ].includes(error.error_type);
+                  return skipValidationError || onCreate;
+                })
                 .reduce(
                   (
                     obj: {},
