@@ -35,7 +35,7 @@ Cypress.Commands.add('login', () => {
   cy.request({
     method: 'POST',
     url: '/login/',
-    body: { username: 'h', password: 'h' },
+    body: { username: 'admin', password: 'general' },
   }).then(response => {
     expect(response.status).to.eq(200);
   });
