@@ -29,10 +29,14 @@ import {
   t,
   getChartMetadataRegistry,
   styled,
+  css,
   ChartMetadata,
+  SupersetTheme,
+  useTheme,
 } from '@superset-ui/core';
 import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
 import Modal from 'src/components/Modal';
+import Tabs from 'src/components/Tabs';
 import { Tooltip } from 'src/components/Tooltip';
 import Label, { Type } from 'src/components/Label';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -55,6 +59,7 @@ interface VizTypeControlProps {
   onChange: (vizType: string) => void;
   value: string;
   labelType?: Type;
+  isModalOpenInit?: boolean;
 }
 
 type VizEntry = {
@@ -141,7 +146,7 @@ const UnpaddedModal = styled(Modal)`
 
 const VizPickerLayout = styled.div`
   display: grid;
-  grid-template-rows: auto auto 30%;
+  grid-template-rows: auto 1fr 30%;
   height: 70vh;
 `;
 
@@ -157,9 +162,61 @@ const IconPane = styled(Row)`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
+const CategoriesTabs = styled(Tabs)`
+  overflow: auto;
+
+  .ant-tabs-nav {
+    width: 20%;
+  }
+
+  .ant-tabs-content-holder {
+    overflow: auto;
+  }
+
+  & > .ant-tabs-nav .ant-tabs-ink-bar {
+    visibility: hidden;
+  }
+
+  .ant-tabs-tab-btn {
+    text-transform: capitalize;
+  }
+
+  ${({ theme }) => `
+   &.ant-tabs-left > .ant-tabs-nav .ant-tabs-tab {
+      margin: ${theme.gridUnit * 2}px;
+      margin-bottom: 0;
+      padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
+
+      .ant-tabs-tab-btn {
+        display: block;
+        text-align: left;
+      }
+
+      &:hover,
+      &-active {
+        color: ${theme.colors.grayscale.dark1};
+        border-radius: ${theme.borderRadius}px;
+        background-color: ${theme.colors.secondary.light4};
+
+        .ant-tabs-tab-remove > svg {
+          color: ${theme.colors.grayscale.base};
+          transition: all 0.3s;
+        }
+      }
+    }
+  `}
+`;
+
 const DetailsPane = styled.div`
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   padding: ${({ theme }) => theme.gridUnit * 4}px;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+`;
+
+const Description = styled.p`
+  overflow: auto;
 `;
 
 const SearchPane = styled.div`
@@ -167,27 +224,28 @@ const SearchPane = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
-const VizThumbnailContainer = styled.div`
+const thumbnailContainerCss = (theme: SupersetTheme) => css`
   cursor: pointer;
 
   img {
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    border-radius: ${({ theme }) => theme.gridUnit}px;
-    transition: border-color ${({ theme }) => theme.transitionTiming};
+    border: 1px solid ${theme.colors.grayscale.light2};
+    border-radius: ${theme.gridUnit}px;
+    transition: border-color ${theme.transitionTiming};
   }
 
   &.selected img {
-    border: 2px solid ${({ theme }) => theme.colors.primary.light2};
+    border: 2px solid ${theme.colors.primary.light2};
   }
 
   &:hover:not(.selected) img {
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light1};
+    border: 1px solid ${theme.colors.grayscale.light1};
   }
 `;
 
 const VizTypeControl = (props: VizTypeControlProps) => {
-  const { value: initialValue, onChange } = props;
-  const [showModal, setShowModal] = useState(false);
+  const { value: initialValue, onChange, isModalOpenInit } = props;
+  const theme = useTheme();
+  const [showModal, setShowModal] = useState(!!isModalOpenInit);
   const [filter, setFilter] = useState('');
   const searchRef = useRef<any>(null);
   const [selectedViz, setSelectedViz] = useState(initialValue);
@@ -216,8 +274,11 @@ const VizTypeControl = (props: VizTypeControlProps) => {
     const isSelected = key === selectedViz;
 
     return (
-      <VizThumbnailContainer
+      <div
         role="button"
+        // using css instead of a styled component to preserve
+        // the data-test attribute
+        css={thumbnailContainerCss(theme)}
         tabIndex={0}
         className={isSelected ? 'selected' : ''}
         onClick={() => setSelectedViz(key)}
@@ -235,7 +296,7 @@ const VizTypeControl = (props: VizTypeControlProps) => {
         >
           {type.name}
         </div>
-      </VizThumbnailContainer>
+      </div>
     );
   };
 
@@ -243,7 +304,7 @@ const VizTypeControl = (props: VizTypeControlProps) => {
   const filterString = filter.toLowerCase();
   const filterStringParts = filterString.split(' ');
 
-  const filteredTypes = DEFAULT_ORDER.filter(
+  const categories = DEFAULT_ORDER.filter(
     type =>
       metadataRegistry.has(type) &&
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -263,11 +324,22 @@ const VizTypeControl = (props: VizTypeControlProps) => {
         })
         .filter(({ key }) => !typesWithDefaultOrder.has(key)),
     )
-    .filter(entry =>
-      filterStringParts.every(
-        part => entry.value?.name.toLowerCase().indexOf(part) !== -1,
-      ),
-    );
+    .filter(
+      entry =>
+        !!entry.value &&
+        filterStringParts.every(
+          part => entry.value?.name.toLowerCase().indexOf(part) !== -1,
+        ),
+    )
+    .reduce((acc, entry) => {
+      const category = entry.value?.category || 'Other';
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      // typecast is safe because we filtered out falsy value already
+      acc[category].push(entry as VizEntry);
+      return acc;
+    }, {} as Record<string, VizEntry[]>);
 
   const labelContent =
     metadataRegistry.get(initialValue)?.name || `${initialValue}`;
@@ -297,7 +369,7 @@ const VizTypeControl = (props: VizTypeControlProps) => {
         show={showModal}
         onHide={toggleModal}
         title={t('Select a visualization type')}
-        primaryButtonName={t('Create')}
+        primaryButtonName={t('Select')}
         onHandledPrimaryAction={onSubmit}
         responsive
       >
@@ -312,22 +384,28 @@ const VizTypeControl = (props: VizTypeControlProps) => {
               data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__search-input`}
             />
           </SearchPane>
-          <IconPane
-            data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__viz-row`}
-            gutter={16}
-          >
-            {filteredTypes.map((entry: VizEntry) => (
-              <Col xs={10} sm={6} md={4} lg={3} key={entry.key}>
-                {renderItem(entry)}
-              </Col>
+          <CategoriesTabs tabPosition="left">
+            {Object.entries(categories).map(([category, vizTypes]) => (
+              <Tabs.TabPane tab={category} key={category}>
+                <IconPane
+                  data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__viz-row`}
+                  gutter={16}
+                >
+                  {vizTypes.map(entry => (
+                    <Col xs={12} sm={8} md={6} lg={4} key={entry.key}>
+                      {renderItem(entry)}
+                    </Col>
+                  ))}
+                </IconPane>
+              </Tabs.TabPane>
             ))}
-          </IconPane>
+          </CategoriesTabs>
           <DetailsPane>
             <SectionTitle>{selectedVizMetadata?.name}</SectionTitle>
-            <p>
+            <Description>
               {selectedVizMetadata?.description ||
                 t('No description available.')}
-            </p>
+            </Description>
           </DetailsPane>
         </VizPickerLayout>
       </UnpaddedModal>

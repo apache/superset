@@ -28,6 +28,7 @@ const defaultProps = {
   label: 'Visualization Type',
   value: 'vis1',
   onChange: sinon.spy(),
+  isModalOpenInit: true,
 };
 
 describe('VizTypeControl', () => {
@@ -54,7 +55,7 @@ describe('VizTypeControl', () => {
 
   it('calls onChange when submitted', () => {
     const thumbnail = screen.getAllByTestId('viztype-selector-container')[0];
-    const submit = screen.getByText('Create');
+    const submit = screen.getByText('Select');
     userEvent.click(thumbnail);
     expect(defaultProps.onChange.called).toBe(false);
     userEvent.click(submit);

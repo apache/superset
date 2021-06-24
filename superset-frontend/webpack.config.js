@@ -277,7 +277,7 @@ const config = {
         // viz thumbnails are used in `addSlice` and `explore` page
         thumbnail: {
           name: 'thumbnail',
-          test: /thumbnail(Large)?\.png/i,
+          test: /thumbnail(Large)?\.(png|jpg)/i,
           priority: 20,
           enforce: true,
         },
@@ -384,7 +384,7 @@ const config = {
       },
       /* for css linking images (and viz plugin thumbnails) */
       {
-        test: /\.png$/,
+        test: /\.(png|jpg)$/,
         issuer: {
           exclude: /\/src\/assets\/staticPages\//,
         },
@@ -395,7 +395,7 @@ const config = {
         },
       },
       {
-        test: /\.png$/,
+        test: /\.(png|jpg)$/,
         issuer: {
           test: /\/src\/assets\/staticPages\//,
         },

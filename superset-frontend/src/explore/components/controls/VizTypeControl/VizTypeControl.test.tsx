@@ -64,9 +64,10 @@ describe('VizTypeControl', () => {
     label: '',
     name: '',
     value: '',
-    labelType: '',
+    labelType: 'primary',
     onChange: jest.fn(),
-  };
+    isModalOpenInit: true,
+  } as const;
 
   const renderWrapper = (
     props = newVizTypeControlProps,
