@@ -1236,7 +1236,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             sort_by_label = utils.get_metric_name(sort_by)
             if sort_by_label not in utils.get_metric_names(d["metrics"]):
                 d["metrics"].append(sort_by)
-            d["orderby"] = [(sort_by, not self.form_data.get("order_desc", is_asc))]
+            d["orderby"] = [(sort_by, is_asc)]
         return d
 
     def to_series(
