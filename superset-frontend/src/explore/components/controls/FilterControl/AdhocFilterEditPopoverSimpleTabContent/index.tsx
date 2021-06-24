@@ -447,7 +447,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           name="filter-value"
           ref={ref => {
             if (ref && shouldFocusComparator) {
-              ref.blur();
+              ref.focus();
             }
           }}
           onChange={onInputComparatorChange}
