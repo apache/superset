@@ -38,21 +38,21 @@ describe('Dashboard add to favorite', () => {
   it('should allow favor/unfavor', () => {
     if (!isFavoriteDashboard) {
       cy.get('[data-test="fave-unfave-icon"]')
-        .find('svg')
+        .find('img')
         .should('have.attr', 'data-test', 'favorite-unselected');
       cy.get('[data-test="fave-unfave-icon"]').trigger('click');
       cy.get('[data-test="fave-unfave-icon"]')
-        .find('svg')
+        .find('img')
         .should('have.attr', 'data-test', 'favorite-selected')
         .and('not.have.attr', 'data-test', 'favorite-unselected');
     } else {
       cy.get('[data-test="fave-unfave-icon"]')
-        .find('svg')
+        .find('img')
         .should('have.attr', 'data-test', 'favorite-unselected')
         .and('not.have.attr', 'data-test', 'favorite-selected');
       cy.get('[data-test="fave-unfave-icon"]').trigger('click');
       cy.get('[data-test="fave-unfave-icon"]')
-        .find('svg')
+        .find('img')
         .should('have.attr', 'data-test', 'favorite-unselected')
         .and('not.have.attr', 'data-test', 'favorite-selected');
     }
