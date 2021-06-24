@@ -280,11 +280,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   return (
     <Styles height={height} width={width}>
       <FormItem
-        validateStatus={filterState.validateStatus}
+        validateStatus={filterState.validateMessage && 'error'}
         extra={<Error>{filterState.validateMessage}</Error>}
       >
         <StyledSelect
-          allowClear={!enableEmptyFilter}
+          allowClear
           // @ts-ignore
           value={filterState.value || []}
           disabled={isDisabled}

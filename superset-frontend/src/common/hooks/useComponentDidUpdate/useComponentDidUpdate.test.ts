@@ -16,30 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
+import { renderHook } from '@testing-library/react-hooks';
+import { useComponentDidUpdate } from './useComponentDidUpdate';
 
-const config: ControlPanelConfig = {
-  controlPanelSections: [
-    {
-      label: t('UI Configuration'),
-      expanded: true,
-      controlSetRows: [
-        [
-          {
-            name: 'enableEmptyFilter',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Required'),
-              default: false,
-              renderTrigger: true,
-              description: t('User must select a value for this filter.'),
-            },
-          },
-        ],
-      ],
-    },
-  ],
-};
-
-export default config;
+test('the effect should not be executed on the first render', () => {
+  const effect = jest.fn();
+  const hook = renderHook(props => useComponentDidUpdate(props.effect), {
+    initialProps: { effect },
+  });
+  expect(effect).toBeCalledTimes(0);
+  const changedEffect = jest.fn();
+  hook.rerender({ effect: changedEffect });
+  expect(changedEffect).toBeCalledTimes(1);
+});

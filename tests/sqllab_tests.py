@@ -20,6 +20,7 @@ import json
 from datetime import datetime, timedelta
 
 import pytest
+from celery.exceptions import SoftTimeLimitExceeded
 from parameterized import parameterized
 from random import random
 from unittest import mock
@@ -29,7 +30,8 @@ import prison
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs import BaseEngineSpec
-from superset.errors import ErrorLevel, SupersetErrorType
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetErrorException
 from superset.models.core import Database
 from superset.models.sql_lab import LimitingFactor, Query, SavedQuery
 from superset.result_set import SupersetResultSet
@@ -38,7 +40,6 @@ from superset.sql_lab import (
     execute_sql_statement,
     get_sql_results,
     SqlLabException,
-    SqlLabTimeoutException,
 )
 from superset.sql_parse import CtasMethod
 from superset.utils.core import (
@@ -119,6 +120,29 @@ class TestSqlLab(SupersetTestCase):
                 ],
                 "engine_name": engine_name,
             }
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_sql_json_dml_disallowed(self):
+        self.login("admin")
+
+        data = self.run_sql("DELETE FROM birth_names", "1")
+        assert data == {
+            "errors": [
+                {
+                    "message": "Only SELECT statements are allowed against this database.",
+                    "error_type": SupersetErrorType.DML_NOT_ALLOWED_ERROR,
+                    "level": ErrorLevel.ERROR,
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1022,
+                                "message": "Issue 1022 - Database does not allow data manipulation.",
+                            }
+                        ]
+                    },
+                }
+            ]
+        }
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_json_to_saved_query_info(self):
@@ -744,6 +768,58 @@ class TestSqlLab(SupersetTestCase):
             ]
         )
 
+    @mock.patch("superset.sql_lab.results_backend", None)
+    @mock.patch("superset.sql_lab.get_query")
+    @mock.patch("superset.sql_lab.execute_sql_statement")
+    def test_execute_sql_statements_no_results_backend(
+        self, mock_execute_sql_statement, mock_get_query
+    ):
+        sql = """
+            -- comment
+            SET @value = 42;
+            SELECT @value AS foo;
+            -- comment
+        """
+        mock_session = mock.MagicMock()
+        mock_query = mock.MagicMock()
+        mock_query.database.allow_run_async = True
+        mock_cursor = mock.MagicMock()
+        mock_query.database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value = (
+            mock_cursor
+        )
+        mock_query.database.db_engine_spec.run_multiple_statements_as_one = False
+        mock_get_query.return_value = mock_query
+
+        with pytest.raises(SupersetErrorException) as excinfo:
+            execute_sql_statements(
+                query_id=1,
+                rendered_query=sql,
+                return_results=True,
+                store_results=False,
+                user_name="admin",
+                session=mock_session,
+                start_time=None,
+                expand_data=False,
+                log_params=None,
+            )
+
+        assert excinfo.value.error == SupersetError(
+            message="Results backend is not configured.",
+            error_type=SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={
+                "issue_codes": [
+                    {
+                        "code": 1021,
+                        "message": (
+                            "Issue 1021 - Results backend needed for asynchronous "
+                            "queries is not configured."
+                        ),
+                    }
+                ]
+            },
+        )
+
     @mock.patch("superset.sql_lab.get_query")
     @mock.patch("superset.sql_lab.execute_sql_statement")
     def test_execute_sql_statements_ctas(
@@ -805,7 +881,7 @@ class TestSqlLab(SupersetTestCase):
 
         # try invalid CTAS
         sql = "DROP TABLE my_table"
-        with pytest.raises(SqlLabException) as excinfo:
+        with pytest.raises(SupersetErrorException) as excinfo:
             execute_sql_statements(
                 query_id=1,
                 rendered_query=sql,
@@ -817,11 +893,18 @@ class TestSqlLab(SupersetTestCase):
                 expand_data=False,
                 log_params=None,
             )
-        assert str(excinfo.value) == (
-            "CTAS (create table as select) can only be run with "
-            "a query where the last statement is a SELECT. Please "
-            "make sure your query has a SELECT as its last "
-            "statement. Then, try running your query again."
+        assert excinfo.value.error == SupersetError(
+            message="CTAS (create table as select) can only be run with a query where the last statement is a SELECT. Please make sure your query has a SELECT as its last statement. Then, try running your query again.",
+            error_type=SupersetErrorType.INVALID_CTAS_QUERY_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={
+                "issue_codes": [
+                    {
+                        "code": 1023,
+                        "message": "Issue 1023 - The CTAS (create table as select) doesn't have a SELECT statement at the end. Please make sure your query has a SELECT as its last statement. Then, try running your query again.",
+                    }
+                ]
+            },
         )
 
         # try invalid CVAS
@@ -832,7 +915,7 @@ class TestSqlLab(SupersetTestCase):
             SELECT @value AS foo;
             -- comment
         """
-        with pytest.raises(SqlLabException) as excinfo:
+        with pytest.raises(SupersetErrorException) as excinfo:
             execute_sql_statements(
                 query_id=1,
                 rendered_query=sql,
@@ -844,32 +927,59 @@ class TestSqlLab(SupersetTestCase):
                 expand_data=False,
                 log_params=None,
             )
-        assert str(excinfo.value) == (
-            "CVAS (create view as select) can only be run with a "
-            "query with a single SELECT statement. Please make "
-            "sure your query has only a SELECT statement. Then, "
-            "try running your query again."
+        assert excinfo.value.error == SupersetError(
+            message="CVAS (create view as select) can only be run with a query with a single SELECT statement. Please make sure your query has only a SELECT statement. Then, try running your query again.",
+            error_type=SupersetErrorType.INVALID_CVAS_QUERY_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={
+                "issue_codes": [
+                    {
+                        "code": 1024,
+                        "message": "Issue 1024 - CVAS (create view as select) query has more than one statement.",
+                    },
+                    {
+                        "code": 1025,
+                        "message": "Issue 1025 - CVAS (create view as select) query is not a SELECT statement.",
+                    },
+                ]
+            },
         )
 
-    @mock.patch("superset.sql_lab.get_query")
-    @mock.patch("superset.sql_lab.execute_sql_statement")
-    def test_get_sql_results_soft_time_limit(
-        self, mock_execute_sql_statement, mock_get_query
-    ):
-        from celery.exceptions import SoftTimeLimitExceeded
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_sql_json_soft_timeout(self):
+        examples_db = get_example_database()
+        if examples_db.backend == "sqlite":
+            return
 
-        sql = """
-            -- comment
-            SET @value = 42;
-            SELECT @value AS foo;
-            -- comment
-        """
-        mock_get_query.side_effect = SoftTimeLimitExceeded()
-        with pytest.raises(SqlLabTimeoutException) as excinfo:
-            get_sql_results(
-                1, sql, return_results=True, store_results=False,
-            )
-        assert (
-            str(excinfo.value)
-            == "SQL Lab timeout. This environment's policy is to kill queries after 21600 seconds."
-        )
+        self.login("admin")
+
+        with mock.patch.object(
+            examples_db.db_engine_spec, "handle_cursor"
+        ) as handle_cursor:
+            handle_cursor.side_effect = SoftTimeLimitExceeded()
+            data = self.run_sql("SELECT * FROM birth_names LIMIT 1", "1")
+
+        assert data == {
+            "errors": [
+                {
+                    "message": (
+                        "The query was killed after 21600 seconds. It might be too complex, "
+                        "or the database might be under heavy load."
+                    ),
+                    "error_type": SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
+                    "level": ErrorLevel.ERROR,
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1026,
+                                "message": "Issue 1026 - Query is too complex and takes too long to run.",
+                            },
+                            {
+                                "code": 1027,
+                                "message": "Issue 1027 - The database is currently running too many queries.",
+                            },
+                        ]
+                    },
+                }
+            ]
+        }

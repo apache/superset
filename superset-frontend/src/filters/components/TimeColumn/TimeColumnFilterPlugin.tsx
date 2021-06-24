@@ -20,6 +20,7 @@ import {
   ensureIsArray,
   ExtraFormData,
   GenericDataType,
+  styled,
   t,
   tn,
 } from '@superset-ui/core';
@@ -27,8 +28,13 @@ import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
 import { Styles, StyledSelect } from '../common';
 import { PluginFilterTimeColumnProps } from './types';
+import FormItem from '../../../components/Form/FormItem';
 
 const { Option } = Select;
+
+const Error = styled.div`
+  color: ${({ theme }) => theme.colors.error.base};
+`;
 
 export default function PluginFilterTimeColumn(
   props: PluginFilterTimeColumnProps,
@@ -83,27 +89,35 @@ export default function PluginFilterTimeColumn(
       : tn('%s option', '%s options', timeColumns.length, timeColumns.length);
   return (
     <Styles height={height} width={width}>
-      <StyledSelect
-        allowClear
-        value={value}
-        placeholder={placeholderText}
-        // @ts-ignore
-        onChange={handleChange}
-        onBlur={unsetFocusedFilter}
-        onFocus={setFocusedFilter}
-        ref={inputRef}
+      <FormItem
+        validateStatus={filterState.validateMessage && 'error'}
+        extra={<Error>{filterState.validateMessage}</Error>}
       >
-        {timeColumns.map(
-          (row: { column_name: string; verbose_name: string | null }) => {
-            const { column_name: columnName, verbose_name: verboseName } = row;
-            return (
-              <Option key={columnName} value={columnName}>
-                {verboseName ?? columnName}
-              </Option>
-            );
-          },
-        )}
-      </StyledSelect>
+        <StyledSelect
+          allowClear
+          value={value}
+          placeholder={placeholderText}
+          // @ts-ignore
+          onChange={handleChange}
+          onBlur={unsetFocusedFilter}
+          onFocus={setFocusedFilter}
+          ref={inputRef}
+        >
+          {timeColumns.map(
+            (row: { column_name: string; verbose_name: string | null }) => {
+              const {
+                column_name: columnName,
+                verbose_name: verboseName,
+              } = row;
+              return (
+                <Option key={columnName} value={columnName}>
+                  {verboseName ?? columnName}
+                </Option>
+              );
+            },
+          )}
+        </StyledSelect>
+      </FormItem>
     </Styles>
   );
 }

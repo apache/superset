@@ -65,7 +65,9 @@ const FilterValue: React.FC<FilterProps> = ({
   const cascadingFilters = useCascadingFilters(id, dataMaskSelected);
   const [state, setState] = useState<ChartDataResponseResult[]>([]);
   const [error, setError] = useState<string>('');
-  const [formData, setFormData] = useState<Partial<QueryFormData>>({});
+  const [formData, setFormData] = useState<Partial<QueryFormData>>({
+    inView: false,
+  });
   const [ownState, setOwnState] = useState<JsonObject>({});
   const [inViewFirstTime, setInViewFirstTime] = useState(inView);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -116,25 +118,36 @@ const FilterValue: React.FC<FilterProps> = ({
         requestParams: { dashboardId: 0 },
         ownState: filterOwnState,
       })
-        .then(response => {
+        .then(({ response, json }) => {
           if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
             // deal with getChartDataRequest transforming the response data
-            const result = 'result' in response ? response.result[0] : response;
-            waitForAsyncData(result)
-              .then((asyncResult: ChartDataResponseResult[]) => {
-                setIsRefreshing(false);
-                setIsLoading(false);
-                setState(asyncResult);
-              })
-              .catch((error: ClientErrorObject) => {
-                setError(
-                  error.message || error.error || t('Check configuration'),
-                );
-                setIsRefreshing(false);
-                setIsLoading(false);
-              });
+            const result = 'result' in json ? json.result[0] : json;
+
+            if (response.status === 200) {
+              setIsRefreshing(false);
+              setIsLoading(false);
+              setState([result]);
+            } else if (response.status === 202) {
+              waitForAsyncData(result)
+                .then((asyncResult: ChartDataResponseResult[]) => {
+                  setIsRefreshing(false);
+                  setIsLoading(false);
+                  setState(asyncResult);
+                })
+                .catch((error: ClientErrorObject) => {
+                  setError(
+                    error.message || error.error || t('Check configuration'),
+                  );
+                  setIsRefreshing(false);
+                  setIsLoading(false);
+                });
+            } else {
+              throw new Error(
+                `Received unexpected response status (${response.status}) while fetching chart data`,
+              );
+            }
           } else {
-            setState(response.result);
+            setState(json.result);
             setError('');
             setIsRefreshing(false);
             setIsLoading(false);
@@ -193,7 +206,7 @@ const FilterValue: React.FC<FilterProps> = ({
         <Loading position="inline-centered" />
       ) : (
         <SuperChart
-          height={20}
+          height={50}
           width="100%"
           formData={formData}
           // For charts that don't have datasource we need workaround for empty placeholder
@@ -203,7 +216,6 @@ const FilterValue: React.FC<FilterProps> = ({
           filterState={{
             ...filter.dataMask?.filterState,
             validateMessage: isMissingRequiredValue && t('Value is required'),
-            validateStatus: isMissingRequiredValue && 'error',
           }}
           ownState={filter.dataMask?.ownState}
           enableNoResults={metadata?.enableNoResults}
