@@ -23,6 +23,31 @@ describe('Add database', () => {
     cy.login();
   });
 
+  it('should open dynamic form', () => {
+    cy.visit(DATABASE_LIST);
+
+    // open modal
+    cy.get('[data-test="btn-create-database"]').click();
+
+    // click postgres dynamic form
+    cy.get('.preferred > :nth-child(1)').click();
+
+    // make sure all the fields are rendering
+    cy.get('input[name="host"]').should('have.value', '');
+    cy.get('input[name="port"]').should('have.value', '');
+    cy.get('input[name="database"]').should('have.value', '');
+    cy.get('input[name="password"]').should('have.value', '');
+    cy.get('input[name="database_name"]').should('have.value', '');
+    cy.get('.ant-switch').should('be.visible');
+
+  });
+
+  xit('should open sqlalchemy form', () => {});
+  xit('show error alerts on dynamic form', () => {});
+  xit('show error alerts on sqlalchemy form', () => {});
+  xit('should succesfully connect to db w/ dynamic form', () => {});
+  xit('should succesfully connect to db w/ sqlalchemy form', () => {});
+
   xit('should keep create modal open when error', () => {
     cy.visit(DATABASE_LIST);
 
