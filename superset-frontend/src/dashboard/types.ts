@@ -105,7 +105,9 @@ export type LayoutItem = {
   id: string;
   meta: {
     chartId: number;
+    defaultText?: string;
     height: number;
+    placeholder?: string;
     sliceName?: string;
     sliceNameOverride?: string;
     text?: string;
