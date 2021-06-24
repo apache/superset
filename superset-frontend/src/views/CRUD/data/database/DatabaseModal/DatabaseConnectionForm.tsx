@@ -335,6 +335,7 @@ const forceSSLField = ({
 }: FieldPropTypes) => (
   <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
     <Switch
+      name="encryption"
       disabled={sslForced && !isEditMode}
       checked={db?.parameters?.encryption || sslForced}
       onChange={changed => {

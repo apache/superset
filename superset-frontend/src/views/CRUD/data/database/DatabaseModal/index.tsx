@@ -598,6 +598,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             key="submit"
             buttonStyle="primary"
             onClick={onClose}
+            data-test="modal-confirm-button"
           >
             Finish
           </StyledFooterButton>
@@ -997,6 +998,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 />
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
                   <Button
+                    data-test="sqla-connect-btn"
                     buttonStyle="link"
                     onClick={() =>
                       setDB({
