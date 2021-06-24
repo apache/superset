@@ -20,6 +20,7 @@ import json
 from datetime import datetime, timedelta
 
 import pytest
+from celery.exceptions import SoftTimeLimitExceeded
 from parameterized import parameterized
 from random import random
 from unittest import mock
@@ -39,7 +40,6 @@ from superset.sql_lab import (
     execute_sql_statement,
     get_sql_results,
     SqlLabException,
-    SqlLabTimeoutException,
 )
 from superset.sql_parse import CtasMethod
 from superset.utils.core import (
@@ -945,25 +945,41 @@ class TestSqlLab(SupersetTestCase):
             },
         )
 
-    @mock.patch("superset.sql_lab.get_query")
-    @mock.patch("superset.sql_lab.execute_sql_statement")
-    def test_get_sql_results_soft_time_limit(
-        self, mock_execute_sql_statement, mock_get_query
-    ):
-        from celery.exceptions import SoftTimeLimitExceeded
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_sql_json_soft_timeout(self):
+        examples_db = get_example_database()
+        if examples_db.backend == "sqlite":
+            return
 
-        sql = """
-            -- comment
-            SET @value = 42;
-            SELECT @value AS foo;
-            -- comment
-        """
-        mock_get_query.side_effect = SoftTimeLimitExceeded()
-        with pytest.raises(SqlLabTimeoutException) as excinfo:
-            get_sql_results(
-                1, sql, return_results=True, store_results=False,
-            )
-        assert (
-            str(excinfo.value)
-            == "SQL Lab timeout. This environment's policy is to kill queries after 21600 seconds."
-        )
+        self.login("admin")
+
+        with mock.patch.object(
+            examples_db.db_engine_spec, "handle_cursor"
+        ) as handle_cursor:
+            handle_cursor.side_effect = SoftTimeLimitExceeded()
+            data = self.run_sql("SELECT * FROM birth_names LIMIT 1", "1")
+
+        assert data == {
+            "errors": [
+                {
+                    "message": (
+                        "The query was killed after 21600 seconds. It might be too complex, "
+                        "or the database might be under heavy load."
+                    ),
+                    "error_type": SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
+                    "level": ErrorLevel.ERROR,
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1026,
+                                "message": "Issue 1026 - Query is too complex and takes too long to run.",
+                            },
+                            {
+                                "code": 1027,
+                                "message": "Issue 1027 - The database is currently running too many queries.",
+                            },
+                        ]
+                    },
+                }
+            ]
+        }
