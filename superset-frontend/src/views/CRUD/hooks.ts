@@ -211,7 +211,7 @@ export function useListViewResource<D extends object = any>(
 interface SingleViewResourceState<D extends object = any> {
   loading: boolean;
   resource: D | null;
-  error: string | Record<string, string[] | string> | null;
+  error: any | null;
 }
 
 export function useSingleViewResource<D extends object = any>(
@@ -269,7 +269,7 @@ export function useSingleViewResource<D extends object = any>(
   );
 
   const createResource = useCallback(
-    (resource: D) => {
+    (resource: D, hideToast = false) => {
       // Set loading state
       updateState({
         loading: true,
@@ -289,13 +289,16 @@ export function useSingleViewResource<D extends object = any>(
             return json.id;
           },
           createErrorHandler((errMsg: Record<string, string[] | string>) => {
-            handleErrorMsg(
-              t(
-                'An error occurred while creating %ss: %s',
-                resourceLabel,
-                parsedErrorMessage(errMsg),
-              ),
-            );
+            // we did not want toasts for db-connection-ui but did not want to disable it everywhere
+            if (!hideToast) {
+              handleErrorMsg(
+                t(
+                  'An error occurred while creating %ss: %s',
+                  resourceLabel,
+                  parsedErrorMessage(errMsg),
+                ),
+              );
+            }
 
             updateState({
               error: errMsg,

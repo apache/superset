@@ -74,6 +74,29 @@ import {
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 
+const errorAlertMapping = {
+  CONNECTION_MISSING_PARAMETERS_ERROR: {
+    message: 'Missing Required Fields',
+    description: 'Please complete all required fields.',
+  },
+  CONNECTION_INVALID_HOSTNAME_ERROR: {
+    message: 'Could not verify the host',
+    description:
+      'The host is invalid. Please verify that this field is entered correctly.',
+  },
+  CONNECTION_PORT_CLOSED_ERROR: {
+    message: 'Port is closed',
+    description: 'Please verify that port is open to connect.',
+  },
+  CONNECTION_INVALID_PORT_ERROR: {
+    message: 'The port must be a whole number less than or equal to 65535.',
+  },
+  database_name: {
+    title: 'Invalid Database Name',
+    message: 'The display name is already taken. Please create a unique name.',
+  },
+};
+
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -316,7 +339,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   // Database fetch logic
   const {
-    state: { loading: dbLoading, resource: dbFetched, error: dbError },
+    state: { loading: dbLoading, resource: dbFetched, error: dbErrors },
     fetchResource,
     createResource,
     updateResource,
@@ -325,6 +348,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     t('database'),
     addDangerToast,
   );
+
+  const showDBError = validationErrors || dbErrors;
+  const isEmpty = (data: Object) => Object.keys(data).length === 0;
 
   const dbModel: DatabaseForm =
     availableDbs?.databases?.find(
@@ -369,7 +395,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
     // Validate DB before saving
     await getValidation(dbToUpdate, true);
-    if (validationErrors) {
+    if (validationErrors && !isEmpty(validationErrors)) {
       return;
     }
 
@@ -442,7 +468,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         });
       }
       setLoading(true);
-      const dbId = await createResource(dbToUpdate as DatabaseObject);
+      const dbId = await createResource(dbToUpdate as DatabaseObject, true);
       if (dbId) {
         setHasConnectedDb(true);
         if (onDatabaseAdd) {
@@ -651,21 +677,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const errorAlert = () => {
-    const errorAlertMapping = {
-      CONNECTION_MISSING_PARAMETERS_ERROR: {
-        message: 'Missing Required Fields',
-        description: 'Please complete all required fields.',
-      },
-      CONNECTION_INVALID_HOSTNAME_ERROR: {
-        message: 'Could not verify the host',
-        description:
-          'The host is invalid. Please verify that this field is entered correctly.',
-      },
-      CONNECTION_PORT_CLOSED_ERROR: {
-        message: 'Port is closed',
-        description: 'Please verify that port is open to connect.',
-      },
-    };
+    if (dbErrors?.database_name) {
+      return (
+        <Alert
+          type="error"
+          css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
+          message={errorAlertMapping.database_name.title}
+          description={errorAlertMapping.database_name.message}
+        />
+      );
+    }
 
     if (
       validationErrors &&
@@ -929,7 +950,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               onChange(ActionType.extraEditorChange, payload);
             }}
           />
-          {validationErrors && errorAlert()}
+          {showDBError && errorAlert()}
         </Tabs.TabPane>
       </Tabs>
     </Modal>
@@ -1055,7 +1076,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   />
                 </div>
                 {/* Step 2 */}
-                {validationErrors && errorAlert()}
+                {showDBError && errorAlert()}
               </>
             ))}
         </>
