@@ -129,7 +129,6 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
       opacity,
       seriesType,
       stack,
-      richTooltip,
       yAxisIndex,
     });
     if (transformedSeries) series.push(transformedSeries);
@@ -142,7 +141,6 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
       opacity: opacityB,
       seriesType: seriesTypeB,
       stack: stackB,
-      richTooltip,
       yAxisIndex: yAxisIndexB,
     });
     if (transformedSeries) series.push(transformedSeries);
