@@ -47,6 +47,15 @@ export const useNativeFilters = () => {
 
   const filters = useFilters();
   const filterValues = Object.values<Filter>(filters);
+  console.log('!', preselectNativeFilters, filterValues);
+  Object.entries(preselectNativeFilters).forEach(([filterId, filterValue]) => {
+    const filter: Filter = filterValues[filterId];
+    if (filter) {
+      filter.requiredFirst = true;
+      filter.controlValues.defaultToFirstItem = true;
+      console.log(filterId, filterValue, filter);
+    }
+  });
 
   const nativeFiltersEnabled =
     showNativeFilters &&
@@ -60,8 +69,6 @@ export const useNativeFilters = () => {
   const showDashboard =
     isInitialized ||
     !nativeFiltersEnabled ||
-    // preselected native filters require loading filters before dashboard
-    !(nativeFiltersEnabled && Object.values(preselectNativeFilters).length) ||
     !(
       nativeFiltersEnabled &&
       requiredFirstFilter.length &&

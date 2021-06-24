@@ -188,7 +188,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     nativeFiltersEnabled,
     preselectNativeFilters,
   } = useNativeFilters();
-  console.log(preselectNativeFilters);
+  // console.log(showDashboard, preselectNativeFilters);
   const filterBarWidth = dashboardFiltersOpen
     ? OPEN_FILTER_BAR_WIDTH
     : CLOSED_FILTER_BAR_WIDTH;
