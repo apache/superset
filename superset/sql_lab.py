@@ -28,7 +28,7 @@ import pyarrow as pa
 import simplejson as json
 from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import gettext as __
 from sqlalchemy.orm import Session
 from werkzeug.local import LocalProxy
 
@@ -80,10 +80,6 @@ class SqlLabException(Exception):
 
 
 class SqlLabSecurityException(SqlLabException):
-    pass
-
-
-class SqlLabTimeoutException(SqlLabException):
     pass
 
 
@@ -184,15 +180,6 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 expand_data=expand_data,
                 log_params=log_params,
             )
-        except SoftTimeLimitExceeded as ex:
-            logger.warning("Query %d: Time limit exceeded", query_id)
-            logger.debug("Query %d: %s", query_id, ex)
-            raise SqlLabTimeoutException(
-                _(
-                    "SQL Lab timeout. This environment's policy is to kill queries "
-                    "after {} seconds.".format(SQLLAB_TIMEOUT)
-                )
-            )
         except Exception as ex:  # pylint: disable=broad-except
             logger.debug("Query %d: %s", query_id, ex)
             stats_logger.incr("error_sqllab_unhandled")
@@ -287,6 +274,19 @@ def execute_sql_statement(
             else:
                 # return 1 row less than increased_query
                 data = data[:-1]
+    except SoftTimeLimitExceeded as ex:
+        logger.warning("Query %d: Time limit exceeded", query.id)
+        logger.debug("Query %d: %s", query.id, ex)
+        raise SupersetErrorException(
+            SupersetError(
+                message=__(
+                    f"The query was killed after {SQLLAB_TIMEOUT} seconds. It might "
+                    "be too complex, or the database might be under heavy load."
+                ),
+                error_type=SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
     except Exception as ex:
         logger.error("Query %d: %s", query.id, type(ex), exc_info=True)
         logger.debug("Query %d: %s", query.id, ex)
