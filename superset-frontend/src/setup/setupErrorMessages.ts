@@ -72,6 +72,10 @@ export default function setupErrorMessages() {
     DatabaseErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.SQLLAB_TIMEOUT_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.CONNECTION_PORT_CLOSED_ERROR,
     DatabaseErrorMessage,
   );

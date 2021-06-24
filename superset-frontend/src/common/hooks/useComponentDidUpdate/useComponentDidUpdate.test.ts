@@ -16,23 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { renderHook } from '@testing-library/react-hooks';
+import { useComponentDidUpdate } from './useComponentDidUpdate';
 
-import { ReactNode } from 'react';
-
-export enum ScopingType {
-  all,
-  specific,
-}
-
-/** UI Ant tree type */
-export type TreeItem = {
-  children: TreeItem[];
-  key: string;
-  title: ReactNode;
-};
-
-export type BuildTreeLeafTitle = (
-  label: string,
-  hasTooltip: boolean,
-  tooltipTitle?: string,
-) => ReactNode;
+test('the effect should not be executed on the first render', () => {
+  const effect = jest.fn();
+  const hook = renderHook(props => useComponentDidUpdate(props.effect), {
+    initialProps: { effect },
+  });
+  expect(effect).toBeCalledTimes(0);
+  const changedEffect = jest.fn();
+  hook.rerender({ effect: changedEffect });
+  expect(changedEffect).toBeCalledTimes(1);
+});
