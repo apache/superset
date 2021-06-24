@@ -1228,13 +1228,15 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
     def query_obj(self) -> QueryObjectDict:
         d = super().query_obj()
-        sort_by = self.form_data.get("timeseries_limit_metric")
+        sort_by = self.form_data.get(
+            "timeseries_limit_metric"
+        ) or utils.get_main_metric_name(d.get("metrics") or [])
+        is_asc = not self.form_data.get("order_desc")
         if sort_by:
             sort_by_label = utils.get_metric_name(sort_by)
             if sort_by_label not in utils.get_metric_names(d["metrics"]):
                 d["metrics"].append(sort_by)
-            if self.form_data.get("order_desc"):
-                d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
+            d["orderby"] = [(sort_by, not self.form_data.get("order_desc", is_asc))]
         return d
 
     def to_series(
