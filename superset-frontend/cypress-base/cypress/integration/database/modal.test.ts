@@ -22,12 +22,11 @@ describe('Add database', () => {
   beforeEach(() => {
     cy.login();
     cy.visit(DATABASE_LIST);
+    cy.wait(3000);
+    cy.get('[data-test="btn-create-database"]').click();
   });
 
   it('should open dynamic form', () => {
-    // open modal
-    cy.get('[data-test="btn-create-database"]').click();
-
     // click postgres dynamic form
     cy.get('.preferred > :nth-child(1)').click();
 
@@ -40,9 +39,6 @@ describe('Add database', () => {
   });
 
   it('should open sqlalchemy form', () => {
-    // open modal
-    cy.get('[data-test="btn-create-database"]').click();
-
     // click postgres dynamic form
     cy.get('.preferred > :nth-child(1)').click();
 
@@ -53,7 +49,25 @@ describe('Add database', () => {
     cy.get('[data-test="sqlalchemy-uri-input"]').should('be.visible');
   });
 
-  xit('show error alerts on dynamic form', () => {});
+  it('show error alerts on dynamic form for bad host', () => {
+    // click postgres dynamic form
+    cy.get('.preferred > :nth-child(1)').click();
+    cy.get('input[name="host"]').focus().type('badhost');
+    cy.get('input[name="port"]').focus().type('5432');
+    cy.get('.ant-form-item-explain-error').contains(
+      "The hostname provided can't be resolved",
+    );
+  });
+
+  it('show error alerts on dynamic form for bad port', () => {
+    // click postgres dynamic form
+    cy.get('.preferred > :nth-child(1)').click();
+    cy.get('input[name="host"]').focus().type('localhost');
+    cy.get('input[name="port"]').focus().type('123');
+    cy.get('input[name="database"]').focus();
+    cy.get('.ant-form-item-explain-error').contains('The port is closed');
+  });
+
   xit('show error alerts on sqlalchemy form', () => {});
   xit('should succesfully connect to db w/ dynamic form', () => {});
   xit('should succesfully connect to db w/ sqlalchemy form', () => {});
