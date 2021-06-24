@@ -285,7 +285,7 @@
     "mini-css-extract-plugin": "^0.4.0",
     "mock-socket": "^9.0.3",
     "node-fetch": "^2.6.1",
-    "optimize-css-assets-webpack-plugin": "^5.0.1",
+    "optimize-css-assets-webpack-plugin": "^6.0.1",
     "po2json": "^0.4.5",
     "prettier": "^2.2.1",
     "react-test-renderer": "^16.9.0",
