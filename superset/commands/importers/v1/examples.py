@@ -76,7 +76,6 @@ class ImportExamplesCommand(ImportModelsCommand):
         session: Session,
         configs: Dict[str, Any],
         overwrite: bool = False,
-        requester_as_owner: bool = False,
         force_data: bool = False,
     ) -> None:
         # import databases
@@ -128,8 +127,7 @@ class ImportExamplesCommand(ImportModelsCommand):
                 dashboard = import_dashboard(
                     session,
                     config,
-                    overwrite=overwrite,
-                    requester_as_owner=requester_as_owner,
+                    overwrite=overwrite
                 )
                 for uuid in find_chart_uuids(config["position"]):
                     chart_id = chart_ids[uuid]
