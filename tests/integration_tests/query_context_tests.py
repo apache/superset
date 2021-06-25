@@ -478,9 +478,9 @@ class TestQueryContext(SupersetTestCase):
         self.assertEqual(orig_cache_key, new_cache_key)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_time_offset_in_query_object(self):
+    def test_time_offsets_in_query_object(self):
         """
-        Ensure that time_offset can generate the correct query
+        Ensure that time_offsets can generate the correct query
         """
         self.login(username="admin")
         payload = get_query_context("birth_names")
@@ -488,7 +488,7 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["groupby"] = ["name"]
         payload["queries"][0]["is_timeseries"] = True
         payload["queries"][0]["timeseries_limit"] = 5
-        payload["queries"][0]["time_offset"] = ["1 year ago", "1 year later"]
+        payload["queries"][0]["time_offsets"] = ["1 year ago", "1 year later"]
         payload["queries"][0]["time_range"] = "1990 : 1991"
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()

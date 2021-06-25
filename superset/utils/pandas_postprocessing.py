@@ -26,7 +26,7 @@ from flask_babel import gettext as _
 from geopy.point import Point
 from pandas import DataFrame, NamedAgg, Series, Timestamp
 
-from superset.constants import NULL_STRING
+from superset.constants import NULL_STRING, PandasAxis, PandasPostprocessingCompare
 from superset.exceptions import QueryObjectValidationError
 from superset.utils.core import (
     DTTM_ALIAS,
@@ -430,7 +430,10 @@ def select(
 
 @validate_column_args("columns")
 def diff(
-    df: DataFrame, columns: Dict[str, str], periods: int = 1, axis: int = 0,
+    df: DataFrame,
+    columns: Dict[str, str],
+    periods: int = 1,
+    axis: PandasAxis = PandasAxis.ROW,
 ) -> DataFrame:
     """
     Calculate row-by-row or column-by-column difference for select columns.
@@ -456,7 +459,7 @@ def compare(
     df: DataFrame,
     source_columns: List[str],
     compare_columns: List[str],
-    compare_type: Optional[str],
+    compare_type: Optional[PandasPostprocessingCompare],
     drop_original_columns: Optional[bool] = False,
     precision: Optional[int] = 4,
 ) -> DataFrame:
@@ -477,7 +480,7 @@ def compare(
         raise QueryObjectValidationError(
             _("`compare_columns` must have the same length as `source_columns`.")
         )
-    if compare_type not in ["absolute", "percentage", "ratio"]:
+    if compare_type not in tuple(PandasPostprocessingCompare):
         raise QueryObjectValidationError(
             _("`compare_type` must be `absolute`, `percentage` or `ratio`")
         )
@@ -485,9 +488,9 @@ def compare(
         return df
 
     for s_col, c_col in zip(source_columns, compare_columns):
-        if compare_type == "absolute":
+        if compare_type == PandasPostprocessingCompare.ABS:
             diff_series = df[s_col] - df[c_col]
-        elif compare_type == "percentage":
+        elif compare_type == PandasPostprocessingCompare.PCT:
             diff_series = (
                 ((df[s_col] - df[c_col]) / df[s_col]).astype(float).round(precision)
             )

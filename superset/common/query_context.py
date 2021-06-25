@@ -105,17 +105,17 @@ class QueryContext:
             "result_format": self.result_format,
         }
 
-    def processing_time_offset(
+    def processing_time_offsets(
         self, df: pd.DataFrame, query_object: QueryObject,
     ) -> Tuple[pd.DataFrame, List[str]]:
         # ensure query_object is immutable
         query_object_clone = copy.copy(query_object)
         rv_sql = []
 
-        time_offset = query_object.time_offset
+        time_offsets = query_object.time_offsets
         outer_from_dttm = query_object.from_dttm
         outer_to_dttm = query_object.to_dttm
-        for offset in time_offset:
+        for offset in time_offsets:
             try:
                 query_object_clone.from_dttm = get_past_or_future(
                     offset, outer_from_dttm,
@@ -126,7 +126,7 @@ class QueryContext:
             # make sure subquery use main query where clause
             query_object_clone.inner_from_dttm = outer_from_dttm
             query_object_clone.inner_to_dttm = outer_to_dttm
-            query_object_clone.time_offset = []
+            query_object_clone.time_offsets = []
 
             if not query_object.from_dttm or not query_object.to_dttm:
                 raise QueryObjectValidationError(
@@ -195,8 +195,8 @@ class QueryContext:
             if self.enforce_numerical_metrics:
                 self.df_metrics_to_num(df, query_object)
 
-            if query_object.time_offset:
-                df, offset_sql = self.processing_time_offset(df, query_object)
+            if query_object.time_offsets:
+                df, offset_sql = self.processing_time_offsets(df, query_object)
                 query += ";\n\n".join(offset_sql)
                 query += ";\n\n"
 

@@ -96,7 +96,7 @@ class QueryObject:
     datasource: Optional[BaseDatasource]
     result_type: Optional[ChartDataResultType]
     is_rowcount: bool
-    time_offset: List[str]
+    time_offsets: List[str]
 
     def __init__(
         self,
@@ -128,7 +128,7 @@ class QueryObject:
         groupby = groupby or []
         extras = extras or {}
         annotation_layers = annotation_layers or []
-        self.time_offset = kwargs.get("time_offset", [])
+        self.time_offsets = kwargs.get("time_offsets", [])
         self.inner_from_dttm = kwargs.get("inner_from_dttm")
         self.inner_to_dttm = kwargs.get("inner_to_dttm")
 
