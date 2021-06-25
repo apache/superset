@@ -596,18 +596,20 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setEditNewDb(true);
   };
 
+  const handleBackButtonOnConnect = () => {
+    if (editNewDb) {
+      setHasConnectedDb(false);
+    }
+    setDB({ type: ActionType.reset });
+  };
+
   const renderModalFooter = () => {
     if (db) {
       // if db show back + connenct
       if (!hasConnectedDb || editNewDb) {
         return (
           <>
-            <StyledFooterButton
-              key="back"
-              onClick={() => {
-                setDB({ type: ActionType.reset });
-              }}
-            >
+            <StyledFooterButton key="back" onClick={handleBackButtonOnConnect}>
               Back
             </StyledFooterButton>
             <StyledFooterButton
