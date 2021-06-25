@@ -66,7 +66,7 @@ export default function CccsGrid({
   filters: initialFilters = {},
 }: CccsGridProps) {
 
-  const [filters, setFilters] = useState(initialFilters);
+  const [, setFilters] = useState(initialFilters);
 
   const [prevRow, setPrevRow] = useState(-1);
   const [prevColumn, setPrevColmun] = useState('');
