@@ -119,7 +119,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "changed_on_delta_humanized",
         "database.database_name",
     ]
-    show_columns = [
+    show_select_columns = [
         "id",
         "database.database_name",
         "database.id",
@@ -139,12 +139,23 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "owners.username",
         "owners.first_name",
         "owners.last_name",
-        "columns",
+        "columns.table_id",
+        "columns.column_name",
+        "columns.verbose_name",
+        "columns.is_dttm",
+        "columns.is_active",
+        "columns.type",
+        "columns.groupby",
+        "columns.filterable",
+        "columns.expression",
+        "columns.description",
+        "columns.python_date_format",
         "metrics",
         "datasource_type",
         "url",
         "extra",
     ]
+    show_columns = show_select_columns + ["columns.type_generic"]
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
     add_columns = ["database", "schema", "table_name", "owners"]

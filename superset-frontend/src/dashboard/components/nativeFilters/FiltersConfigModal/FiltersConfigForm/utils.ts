@@ -20,8 +20,14 @@ import { flatMapDeep } from 'lodash';
 import { FormInstance } from 'antd/lib/form';
 import React from 'react';
 import { CustomControlItem, DatasourceMeta } from '@superset-ui/chart-controls';
+import { Column, ensureIsArray, GenericDataType } from '@superset-ui/core';
 
 const FILTERS_FIELD_NAME = 'filters';
+
+export const FILTER_GROUPS = {
+  TIME: ['filter_time', 'filter_timegrain', 'filter_timecolumn'],
+  NUMERIC: ['filter_range'],
+};
 
 export const useForceUpdate = () => {
   const [, updateState] = React.useState({});
@@ -70,3 +76,27 @@ export const datasetToSelectOption = (
   value: item.id,
   label: item.table_name,
 });
+
+// TODO: add column_types field to DatasourceMeta
+// We return true if column_types is undefined or empty as a precaution against backend failing to return column_types
+export const hasTemporalColumns = (
+  dataset: DatasourceMeta & { column_types: GenericDataType[] },
+) => {
+  const columnTypes = ensureIsArray(dataset?.column_types);
+  return (
+    columnTypes.length === 0 || columnTypes.includes(GenericDataType.TEMPORAL)
+  );
+};
+
+export const isColumnOfType = (column: Column, type: GenericDataType) =>
+  column.type_generic === type;
+
+export const doesColumnMatchFilterType = (
+  filterType: string,
+  column: Column,
+) => {
+  if (FILTER_GROUPS.NUMERIC.includes(filterType)) {
+    return isColumnOfType(column, GenericDataType.NUMERIC);
+  }
+  return true;
+};
