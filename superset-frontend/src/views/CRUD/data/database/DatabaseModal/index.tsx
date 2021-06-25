@@ -682,32 +682,32 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       return <></>;
     }
 
-    if (dbErrors && !isEmpty(validationErrors)) {
-      const message: Array<string> = Object.values(dbErrors);
+    if (validationErrors) {
       return (
         <Alert
           type="error"
           css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
-          message="Database Creation Error"
-          description={message[0]}
+          message={
+            errorAlertMapping[validationErrors?.error_type]?.message ||
+            validationErrors?.error_type
+          }
+          description={
+            errorAlertMapping[validationErrors?.error_type]?.description ||
+            JSON.stringify(validationErrors)
+          }
+          showIcon
+          closable={false}
         />
       );
     }
 
+    const message: Array<string> = Object.values(dbErrors);
     return (
       <Alert
         type="error"
         css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
-        message={
-          errorAlertMapping[validationErrors?.error_type]?.message ||
-          validationErrors?.error_type
-        }
-        description={
-          errorAlertMapping[validationErrors?.error_type]?.description ||
-          JSON.stringify(validationErrors)
-        }
-        showIcon
-        closable={false}
+        message="Database Creation Error"
+        description={message[0]}
       />
     );
   };

@@ -420,7 +420,9 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "message": {"database_name": "A database with the same name already exists"}
+            "message": {
+                "database_name": "A database with the same name already exists."
+            }
         }
         self.assertEqual(rv.status_code, 422)
         self.assertEqual(response, expected_response)
