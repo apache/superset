@@ -40,8 +40,6 @@ export const StyledFormHeader = styled.header`
   border-bottom: ${({ theme }) => `${theme.gridUnit * 0.25}px solid
     ${theme.colors.grayscale.light2};`}
   padding: ${({ theme }) => theme.gridUnit * 2}px
-    ${({ theme }) => theme.gridUnit * 4}px
-    ${({ theme }) => theme.gridUnit * 4}px
     ${({ theme }) => theme.gridUnit * 4}px;
   line-height: ${({ theme }) => theme.gridUnit * 6}px;
   .helper {
@@ -180,8 +178,12 @@ export const antDAlertStyles = (theme: SupersetTheme) => css`
   }
 `;
 
+export const StyledAlertMargin = styled.div`
+  margin: 0 ${({ theme }) => theme.gridUnit * 4}px -${({ theme }) => theme.gridUnit * 4}px;
+`;
+
 export const antDErrorAlertStyles = (theme: SupersetTheme) => css`
-  border: ${theme.colors.error.base} 2px solid;
+  border: ${theme.colors.error.base} 1px solid;
   padding: ${theme.gridUnit * 4}px;
   margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 4}px;
   color: ${theme.colors.error.dark2};
