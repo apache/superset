@@ -34,36 +34,36 @@ describe('Dashboard card view', () => {
   it('should allow to favorite/unfavorite dashboard card', () => {
     cy.get("[data-test='card-actions']")
       .first()
-      .find("[data-test='favorite-selected']")
+      .find("[aria-label='favorite-selected']")
       .should('not.exist');
     cy.get("[data-test='card-actions']")
-      .find("[data-test='favorite-unselected']")
+      .find("[aria-label='favorite-unselected']")
       .first()
       .click();
     cy.get("[data-test='card-actions']")
       .first()
-      .find("[data-test='favorite-selected']")
+      .find("[aria-label='favorite-selected']")
       .should('be.visible');
     cy.get("[data-test='card-actions']")
       .first()
-      .find("[data-test='favorite-unselected']")
+      .find("[aria-label='favorite-unselected']")
       .should('not.exist');
 
     cy.get("[data-test='card-actions']")
       .first()
-      .find("[data-test='favorite-unselected']")
+      .find("[aria-label='favorite-unselected']")
       .should('not.exist');
     cy.get("[data-test='card-actions']")
       .first()
-      .find("[data-test='favorite-selected']")
+      .find("[aria-label='favorite-selected']")
       .click();
     cy.get("[data-test='card-actions']")
       .first()
-      .find("[data-test='favorite-unselected']")
+      .find("[aria-label='favorite-unselected']")
       .should('be.visible');
     cy.get("[data-test='card-actions']")
       .first()
-      .find("[data-test='favorite-selected']")
+      .find("[aria-label='favorite-selected']")
       .should('not.exist');
   });
 
