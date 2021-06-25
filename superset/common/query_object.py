@@ -315,6 +315,8 @@ class QueryObject:
             cache_dict["time_range"] = self.time_range
         if self.post_processing:
             cache_dict["post_processing"] = self.post_processing
+        if self.time_offsets:
+            cache_dict["time_offsets"] = self.time_offsets
 
         for k in ["from_dttm", "to_dttm"]:
             del cache_dict[k]

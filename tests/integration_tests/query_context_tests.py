@@ -222,6 +222,20 @@ class TestQueryContext(SupersetTestCase):
         cache_key = query_context.query_cache_key(query_object)
         self.assertNotEqual(cache_key_original, cache_key)
 
+    def test_query_cache_key_changes_when_time_offsets_is_updated(self):
+        self.login(username="admin")
+        payload = get_query_context("birth_names", add_time_offsets=True)
+
+        query_context = ChartDataQueryContextSchema().load(payload)
+        query_object = query_context.queries[0]
+        cache_key_original = query_context.query_cache_key(query_object)
+
+        payload["queries"][0]["time_offsets"].pop()
+        query_context = ChartDataQueryContextSchema().load(payload)
+        query_object = query_context.queries[0]
+        cache_key = query_context.query_cache_key(query_object)
+        self.assertNotEqual(cache_key_original, cache_key)
+
     def test_query_context_time_range_endpoints(self):
         """
         Ensure that time_range_endpoints are populated automatically when missing

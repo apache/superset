@@ -31,6 +31,7 @@ from superset.common.query_actions import get_query_results
 from superset.common.query_object import QueryObject
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.constants import PandasAxis
 from superset.exceptions import (
     CacheLoadError,
     QueryObjectValidationError,
@@ -81,7 +82,7 @@ class QueryContext:
 
     # TODO: Type datasource and query_object dictionary with TypedDict when it becomes
     #  a vanilla python type https://github.com/python/mypy/issues/5288
-    def __init__(  # pylint: disable=too-many-arguments
+    def __init__(
         self,
         datasource: DatasourceDict,
         queries: List[Dict[str, Any]],
@@ -158,7 +159,7 @@ class QueryContext:
                 )
 
                 # combine `offset_metrics_df` with main query df
-                df = pd.concat([df, offset_metrics_df], axis=1)
+                df = pd.concat([df, offset_metrics_df], axis=PandasAxis.COLUMN)
         return df, rv_sql
 
     def get_query_result(self, query_object: QueryObject) -> Dict[str, Any]:
@@ -374,7 +375,7 @@ class QueryContext:
             )
         return annotation_data
 
-    def get_df_payload(  # pylint: disable=too-many-statements,too-many-locals
+    def get_df_payload(
         self, query_obj: QueryObject, force_cached: Optional[bool] = False,
     ) -> Dict[str, Any]:
         """Handles caching around the df payload retrieval"""
