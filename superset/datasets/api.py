@@ -139,7 +139,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "owners.username",
         "owners.first_name",
         "owners.last_name",
-        "columns.table_id",
         "columns.column_name",
         "columns.verbose_name",
         "columns.is_dttm",
