@@ -18,13 +18,14 @@
  */
 import React from 'react';
 import fetchMock from 'fetch-mock';
-// import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+import { render, screen, within, cleanup } from 'spec/helpers/testing-library';
+import { act } from 'react-dom/test-utils';
 import DatabaseModal from './index';
 
 const dbProps = {
   show: true,
-  databaseId: 10,
+  // databaseId: 10,
   database_name: 'my database',
   sqlalchemy_uri: 'postgres://superset:superset@something:1234/superset',
 };
@@ -48,162 +49,600 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
     {
       engine: 'mysql',
       name: 'MySQL',
+      preferred: true,
+    },
+    {
+      engine: 'postgresql',
+      name: 'PostgreSQL',
       preferred: false,
     },
   ],
 });
 
 describe('DatabaseModal', () => {
-  afterEach(fetchMock.restore);
-  // describe('initial load', () => {
-  //   it('hides the forms from the db when not selected', () => {
-  //     render(<DatabaseModal show databaseId={1} />, { useRedux: true });
-  //     // Select Advanced tab
-  //     const advancedTab = screen.getByRole('tab', {
-  //       name: /advanced/i,
-  //     });
-  //     userEvent.click(advancedTab);
-  //     // Select SQL Lab tab
-  //     const sqlLabSettingsTab = screen.getByRole('tab', {
-  //       name: /sql lab/i,
-  //     });
-  //     userEvent.click(sqlLabSettingsTab);
+  async function renderAndWait() {
+    const mounted = act(async () => {
+      render(<DatabaseModal {...dbProps} />, {
+        useRedux: true,
+      });
+    });
 
-  //     const exposeInSqlLab = screen.getByText('Expose in SQL Lab');
-  //     const exposeChoicesForm = exposeInSqlLab.parentElement.nextSibling;
-  //     const schemaField = screen.getByText('CTAS & CVAS SCHEMA').parentElement;
-  //     expect(exposeChoicesForm).not.toHaveClass('open');
-  //     expect(schemaField).not.toHaveClass('open');
-  //   });
-  // });
-  // it('renders all settings when "Expose in SQL Lab" is checked', () => {
-  //   render(<DatabaseModal {...dbProps} />, { useRedux: true });
+    return mounted;
+  }
 
-  //   // Select Advanced tab
-  //   const advancedTab = screen.getByRole('tab', {
-  //     name: /advanced/i,
-  //   });
-  //   userEvent.click(advancedTab);
+  async function renderAndWaitStep3() {
+    const newProps = {
+      ...dbProps,
+      configuration_method: 'SQLALCHEMY_URI',
+    };
+    const mounted = act(async () => {
+      render(<DatabaseModal {...newProps} hasDbConnected />, {
+        useRedux: true,
+      });
+    });
 
-  //   // Select SQL Lab tab
-  //   const sqlLabSettingsTab = screen.getByRole('tab', {
-  //     name: /sql lab/i,
-  //   });
+    return mounted;
+  }
 
-  //   userEvent.click(sqlLabSettingsTab);
-
-  //   // Grab all SQL Lab settings by their labels
-  //   // const exposeInSqlLab = screen.getByText('Expose in SQL Lab');
-  //   const exposeInSqlLab = screen.getByRole('checkbox', {
-  //     name: /expose in sql lab/i,
-  //   });
-
-  //   expect(exposeInSqlLab).not.toBeChecked();
-  //   userEvent.click(exposeInSqlLab);
-
-  //   // While checked make sure all checkboxes are showing
-  //   expect(exposeInSqlLab).toBeChecked();
-  //   const checkboxes = screen
-  //     .getAllByRole('checkbox')
-  //     .filter(checkbox => !checkbox.checked);
-
-  //   expect(checkboxes.length).toEqual(4);
+  // beforeEach(async () => {
+  //   await renderAndWait();
   // });
 
-  // it('renders the schema field when allowCTAS is checked', () => {
-  //   render(<DatabaseModal {...dbProps} />, { useRedux: true });
+  afterEach(() => {
+    cleanup();
+  });
 
-  //   // Select Advanced tab
-  //   const advancedTab = screen.getByRole('tab', {
-  //     name: /advanced/i,
-  //   });
-  //   userEvent.click(advancedTab);
+  describe('New database connection', () => {
+    it('visually renders the initial load of Step 1 correctly', async () => {
+      await renderAndWait();
+      // ---------- Components ----------
+      // <TabHeader> - AntD header
+      const closeButton = screen.getByRole('button', { name: /close/i });
+      const step1Header = screen.getByRole('heading', {
+        name: /connect a database/i,
+      });
+      // <ModalHeader> - Connection header
+      const step1Helper = screen.getByText(/step 1 of 3/i);
+      const selectDbHeader = screen.getByRole('heading', {
+        name: /select a database to connect/i,
+      });
+      // <IconButton> - Preferred database buttons
+      const preferredDbButton = screen.getByRole('button', {
+        name: /default-database mysql/i,
+      });
+      const preferredDbIcon = screen.getByRole('img', {
+        name: /default-database/i,
+      });
+      const preferredDbText = within(preferredDbButton).getByText(/mysql/i);
+      // renderAvailableSelector() => <Select> - Supported databases selector
+      const supportedDbsHeader = screen.getByRole('heading', {
+        name: /or choose from a list of other databases we support:/i,
+      });
+      const selectorLabel = screen.getByText(/supported databases/i);
+      const selectorPlaceholder = screen.getByText(/choose a database\.\.\./i);
+      const selectorArrow = screen.getByRole('img', {
+        name: /down/i,
+        hidden: true,
+      });
 
-  //   // Select SQL Lab tab
-  //   const sqlLabSettingsTab = screen.getByRole('tab', {
-  //     name: /sql lab/i,
-  //   });
-  //   userEvent.click(sqlLabSettingsTab);
-  //   // Grab CTAS & schema field by their labels
-  //   const allowCTAS = screen.getByLabelText('Allow CREATE TABLE AS');
-  //   const schemaField = screen.getByText('CTAS & CVAS SCHEMA').parentElement;
+      // ---------- TODO: Selector options, can't seem to get these to render properly.
 
-  //   // While CTAS & CVAS are unchecked, schema field is not visible
-  //   expect(schemaField).not.toHaveClass('open');
+      // renderAvailableSelector() => <Alert> - Supported databases alert
+      const alertIcon = screen.getByRole('img', { name: /info icon/i });
+      const alertMessage = screen.getByText(/want to add a new database\?/i);
+      const alertDescription = screen.getByText(
+        /any databases that allow connetions via sql alchemy uris can be added\. learn about how to connect a database driver \./i,
+      );
+      const alertLink = screen.getByRole('link', { name: /here/i });
 
-  //   // Check "Allow CTAS" to reveal schema field
-  //   userEvent.click(allowCTAS);
-  //   expect(schemaField).toHaveClass('open');
+      // ---------- Assertions ----------
+      const visibleComponents = [
+        closeButton,
+        step1Header,
+        step1Helper,
+        selectDbHeader,
+        supportedDbsHeader,
+        selectorLabel,
+        selectorPlaceholder,
+        selectorArrow,
+        alertIcon,
+        alertMessage,
+        alertDescription,
+        alertLink,
+        preferredDbButton,
+        preferredDbIcon,
+        preferredDbText,
+      ];
 
-  //   // Uncheck "Allow CTAS" to hide schema field again
-  //   userEvent.click(allowCTAS);
-  //   expect(schemaField).not.toHaveClass('open');
-  // });
+      visibleComponents.forEach(component => {
+        expect(component).toBeVisible();
+      });
+    });
 
-  // it('renders the schema field when allowCVAS is checked', () => {
-  //   render(<DatabaseModal {...dbProps} />, { useRedux: true });
+    it('visually renders the "Basic" tab of Step 2 correctly', async () => {
+      await renderAndWait();
+      // ---------- Components ----------
+      // On step 1, click dbButton to access step 2
+      userEvent.click(
+        screen.getByRole('button', {
+          name: /default-database mysql/i,
+        }),
+      );
 
-  //   // Select Advanced tab
-  //   const advancedTab = screen.getByRole('tab', {
-  //     name: /advanced/i,
-  //   });
-  //   userEvent.click(advancedTab);
+      // ----- BEGIN STEP 2 (BASIC)
+      // <TabHeader> - AntD header
+      const closeButton = screen.getByRole('button', { name: /close/i });
+      const basicHeader = screen.getByRole('heading', {
+        name: /connect a database/i,
+      });
+      // <ModalHeader> - Connection header
+      const basicHelper = screen.getByText(/step 2 of 2/i);
+      const basicHeaderTitle = screen.getByText(/enter primary credentials/i);
+      const basicHeaderSubtitle = screen.getByText(
+        /need help\? learn how to connect your database \./i,
+      );
+      const basicHeaderLink = within(basicHeaderSubtitle).getByRole('link', {
+        name: /here/i,
+      });
+      // <Tabs> - Basic/Advanced tabs
+      const basicTab = screen.getByRole('tab', { name: /basic/i });
+      const advancedTab = screen.getByRole('tab', { name: /advanced/i });
+      // <StyledBasicTab> - Basic tab's content
+      const displayNameLabel = screen.getByText(/display name*/i);
+      const displayNameInput = screen.getByTestId('database-name-input');
+      const displayNameHelper = screen.getByText(
+        /pick a name to help you identify this database\./i,
+      );
+      const SQLURILabel = screen.getByText(/sqlalchemy uri*/i);
+      const SQLURIInput = screen.getByTestId('sqlalchemy-uri-input');
+      const SQLURIHelper = screen.getByText(
+        /refer to the for more information on how to structure your uri\./i,
+      );
+      const testConnectionButton = screen.getByRole('button', {
+        name: /test connection/i,
+      });
+      // <Alert> - Basic tab's alert
+      const alertIcon = screen.getByRole('img', { name: /info icon/i });
+      const alertMessage = screen.getByText(
+        /additional fields may be required/i,
+      );
+      const alertDescription = screen.getByText(
+        /select databases require additional fields to be completed in the advanced tab to successfully connect the database\. learn what requirements your databases has \./i,
+      );
+      const alertLink = within(alertDescription).getByRole('link', {
+        name: /here/i,
+      });
+      // renderModalFooter() - Basic tab's footer
+      const backButton = screen.getByRole('button', { name: /back/i });
+      const connectButton = screen.getByRole('button', { name: 'Connect' });
 
-  //   // Select SQL Lab tab
-  //   const sqlLabSettingsTab = screen.getByRole('tab', {
-  //     name: /sql lab/i,
-  //   });
-  //   userEvent.click(sqlLabSettingsTab);
-  //   // Grab CVAS by it's label & schema field
-  //   const allowCVAS = screen.getByText('Allow CREATE VIEW AS');
-  //   const schemaField = screen.getByText('CTAS & CVAS SCHEMA').parentElement;
+      // ---------- Assertions ----------
+      const visibleComponents = [
+        closeButton,
+        basicHeader,
+        basicHelper,
+        basicHeaderTitle,
+        basicHeaderSubtitle,
+        basicHeaderLink,
+        basicTab,
+        advancedTab,
+        displayNameLabel,
+        displayNameInput,
+        displayNameHelper,
+        SQLURILabel,
+        SQLURIInput,
+        SQLURIHelper,
+        testConnectionButton,
+        alertIcon,
+        alertMessage,
+        alertDescription,
+        alertLink,
+        backButton,
+        connectButton,
+      ];
 
-  //   // While CTAS & CVAS are unchecked, schema field is not visible
-  //   expect(schemaField).not.toHaveClass('open');
+      visibleComponents.forEach(component => {
+        expect(component).toBeVisible();
+      });
+    });
 
-  //   // Check "Allow CVAS" to reveal schema field
-  //   userEvent.click(allowCVAS);
-  //   expect(schemaField).toHaveClass('open');
+    it('visually renders the unexpanded "Advanced" tab of Step 2 correctly', async () => {
+      await renderAndWait();
+      // ---------- Components ----------
+      // On step 1, click dbButton to access step 2
+      userEvent.click(
+        screen.getByRole('button', {
+          name: /default-database mysql/i,
+        }),
+      );
+      // Click the "Advanced" tab
+      userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
 
-  //   // Uncheck "Allow CVAS" to hide schema field again
-  //   userEvent.click(allowCVAS);
-  //   expect(schemaField).not.toHaveClass('open');
-  // });
+      // ----- BEGIN STEP 2 (ADVANCED)
+      // <TabHeader> - AntD header
+      const closeButton = screen.getByRole('button', { name: /close/i });
+      const advancedHeader = screen.getByRole('heading', {
+        name: /connect a database/i,
+      });
+      // <ModalHeader> - Connection header
+      const basicHelper = screen.getByText(/step 2 of 2/i);
+      const basicHeaderTitle = screen.getByText(/enter primary credentials/i);
+      const basicHeaderSubtitle = screen.getByText(
+        /need help\? learn how to connect your database \./i,
+      );
+      const basicHeaderLink = within(basicHeaderSubtitle).getByRole('link', {
+        name: /here/i,
+      });
+      // <Tabs> - Basic/Advanced tabs
+      const basicTab = screen.getByRole('tab', { name: /basic/i });
+      const advancedTab = screen.getByRole('tab', { name: /advanced/i });
+      // <ExtraOptions> - Advanced tabs
+      const sqlLabTab = screen.getByRole('tab', {
+        name: /right sql lab adjust how this database will interact with sql lab\./i,
+      });
+      const sqlLabTabArrow = within(sqlLabTab).getByRole('img', {
+        name: /right/i,
+      });
+      const sqlLabTabHeading = screen.getByRole('heading', {
+        name: /sql lab/i,
+      });
+      const performanceTab = screen.getByRole('tab', {
+        name: /right performance adjust performance settings of this database\./i,
+      });
+      const performanceTabArrow = within(performanceTab).getByRole('img', {
+        name: /right/i,
+      });
+      const performanceTabHeading = screen.getByRole('heading', {
+        name: /performance/i,
+      });
+      const securityTab = screen.getByRole('tab', {
+        name: /right security add extra connection information\./i,
+      });
+      const securityTabArrow = within(securityTab).getByRole('img', {
+        name: /right/i,
+      });
+      const securityTabHeading = screen.getByRole('heading', {
+        name: /security/i,
+      });
+      const otherTab = screen.getByRole('tab', {
+        name: /right other additional settings\./i,
+      });
+      const otherTabArrow = within(otherTab).getByRole('img', {
+        name: /right/i,
+      });
+      const otherTabHeading = screen.getByRole('heading', { name: /other/i });
+      // renderModalFooter() - Advanced tab's footer
+      const backButton = screen.getByRole('button', { name: /back/i });
+      const connectButton = screen.getByRole('button', { name: 'Connect' });
 
-  // it('renders the schema field when both allowCTAS and allowCVAS are checked', () => {
-  //   render(<DatabaseModal {...dbProps} />, { useRedux: true });
+      // ---------- Assertions ----------
+      const visibleComponents = [
+        closeButton,
+        advancedHeader,
+        basicHelper,
+        basicHeaderTitle,
+        basicHeaderSubtitle,
+        basicHeaderLink,
+        basicTab,
+        advancedTab,
+        sqlLabTab,
+        sqlLabTabArrow,
+        sqlLabTabHeading,
+        performanceTab,
+        performanceTabArrow,
+        performanceTabHeading,
+        securityTab,
+        securityTabArrow,
+        securityTabHeading,
+        otherTab,
+        otherTabArrow,
+        otherTabHeading,
+        backButton,
+        connectButton,
+      ];
 
-  //   // Select Advanced tab
-  //   const advancedTab = screen.getByRole('tab', {
-  //     name: /advanced/i,
-  //   });
-  //   userEvent.click(advancedTab);
+      visibleComponents.forEach(component => {
+        expect(component).toBeVisible();
+      });
+    });
 
-  //   // Select SQL Lab tab
-  //   const sqlLabSettingsTab = screen.getByRole('tab', {
-  //     name: /sql lab/i,
-  //   });
-  //   userEvent.click(sqlLabSettingsTab);
-  //   // Grab CTAS and CVAS by their labels, & schema field
-  //   const allowCTAS = screen.getByText('Allow CREATE TABLE AS');
-  //   const allowCVAS = screen.getByText('Allow CREATE VIEW AS');
-  //   const schemaField = screen.getByText('CTAS & CVAS SCHEMA').parentElement;
+    it('visually renders the "Advanced" - SQL LAB tab correctly', async () => {
+      await renderAndWait();
+      // ---------- Components ----------
+      // On step 1, click dbButton to access step 2
+      userEvent.click(
+        screen.getByRole('button', {
+          name: /default-database mysql/i,
+        }),
+      );
+      // Click the "Advanced" tab
+      userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+      // Click the "SQL Lab" tab
+      userEvent.click(
+        screen.getByRole('tab', {
+          name: /right sql lab adjust how this database will interact with sql lab\./i,
+        }),
+      );
 
-  //   // While CTAS & CVAS are unchecked, schema field is not visible
-  //   expect(schemaField).not.toHaveClass('open');
+      // screen.logTestingPlaygroundURL();
 
-  //   // Check both "Allow CTAS" and "Allow CVAS" to reveal schema field
-  //   userEvent.click(allowCTAS);
-  //   userEvent.click(allowCVAS);
-  //   expect(schemaField).toHaveClass('open');
-  //   // Uncheck both "Allow CTAS" and "Allow CVAS" to hide schema field again
-  //   userEvent.click(allowCTAS);
-  //   userEvent.click(allowCVAS);
+      // ----- BEGIN STEP 2 (ADVANCED - SQL LAB)
+      // <TabHeader> - AntD header
+      const closeButton = screen.getByRole('button', { name: /close/i });
+      const advancedHeader = screen.getByRole('heading', {
+        name: /connect a database/i,
+      });
+      // <ModalHeader> - Connection header
+      const basicHelper = screen.getByText(/step 2 of 2/i);
+      const basicHeaderTitle = screen.getByText(/enter primary credentials/i);
+      const basicHeaderSubtitle = screen.getByText(
+        /need help\? learn how to connect your database \./i,
+      );
+      const basicHeaderLink = within(basicHeaderSubtitle).getByRole('link', {
+        name: /here/i,
+      });
+      // <Tabs> - Basic/Advanced tabs
+      const basicTab = screen.getByRole('tab', { name: /basic/i });
+      const advancedTab = screen.getByRole('tab', { name: /advanced/i });
+      // <ExtraOptions> - Advanced tabs
+      const sqlLabTab = screen.getByRole('tab', {
+        name: /right sql lab adjust how this database will interact with sql lab\./i,
+      });
 
-  //   // Both checkboxes go unchecked, so the field should no longer render
-  //   expect(schemaField).not.toHaveClass('open');
-  // });
-  // TODO: rewrite when Modal is complete
+      // ---------- Assertions ----------
+      const visibleComponents = [
+        closeButton,
+        advancedHeader,
+        basicHelper,
+        basicHeaderTitle,
+        basicHeaderSubtitle,
+        basicHeaderLink,
+        basicTab,
+        advancedTab,
+        sqlLabTab,
+      ];
+
+      visibleComponents.forEach(component => {
+        expect(component).toBeVisible();
+      });
+    });
+
+    it('visually renders the "Advanced" - PERFORMANCE tab correctly', async () => {
+      await renderAndWait();
+      // ---------- Components ----------
+      // On step 1, click dbButton to access step 2
+      userEvent.click(
+        screen.getByRole('button', {
+          name: /default-database mysql/i,
+        }),
+      );
+      // Click the "Advanced" tab
+      userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+      // Click the "Performance" tab
+      userEvent.click(
+        screen.getByRole('tab', {
+          name: /right performance adjust performance settings of this database\./i,
+        }),
+      );
+
+      // screen.logTestingPlaygroundURL();
+
+      // ----- BEGIN STEP 2 (ADVANCED - PERFORMANCE)
+      // <TabHeader> - AntD header
+      const closeButton = screen.getByRole('button', { name: /close/i });
+      const advancedHeader = screen.getByRole('heading', {
+        name: /connect a database/i,
+      });
+      // <ModalHeader> - Connection header
+      const basicHelper = screen.getByText(/step 2 of 2/i);
+      const basicHeaderTitle = screen.getByText(/enter primary credentials/i);
+      const basicHeaderSubtitle = screen.getByText(
+        /need help\? learn how to connect your database \./i,
+      );
+      const basicHeaderLink = within(basicHeaderSubtitle).getByRole('link', {
+        name: /here/i,
+      });
+      // <Tabs> - Basic/Advanced tabs
+      const basicTab = screen.getByRole('tab', { name: /basic/i });
+      const advancedTab = screen.getByRole('tab', { name: /advanced/i });
+      // <ExtraOptions> - Advanced tabs
+      const sqlLabTab = screen.getByRole('tab', {
+        name: /right sql lab adjust how this database will interact with sql lab\./i,
+      });
+      const performanceTab = screen.getByRole('tab', {
+        name: /right performance adjust performance settings of this database\./i,
+      });
+
+      // ---------- Assertions ----------
+      const visibleComponents = [
+        closeButton,
+        advancedHeader,
+        basicHelper,
+        basicHeaderTitle,
+        basicHeaderSubtitle,
+        basicHeaderLink,
+        basicTab,
+        advancedTab,
+        sqlLabTab,
+        performanceTab,
+      ];
+
+      visibleComponents.forEach(component => {
+        expect(component).toBeVisible();
+      });
+    });
+
+    it('visually renders the "Advanced" - SECURITY tab correctly', async () => {
+      await renderAndWait();
+      // ---------- Components ----------
+      // On step 1, click dbButton to access step 2
+      userEvent.click(
+        screen.getByRole('button', {
+          name: /default-database mysql/i,
+        }),
+      );
+      // Click the "Advanced" tab
+      userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+      // Click the "Security" tab
+      userEvent.click(
+        screen.getByRole('tab', {
+          name: /right security add extra connection information\./i,
+        }),
+      );
+
+      // screen.logTestingPlaygroundURL();
+
+      // ----- BEGIN STEP 2 (ADVANCED - SECURITY)
+      // <TabHeader> - AntD header
+      const closeButton = screen.getByRole('button', { name: /close/i });
+      const advancedHeader = screen.getByRole('heading', {
+        name: /connect a database/i,
+      });
+      // <ModalHeader> - Connection header
+      const basicHelper = screen.getByText(/step 2 of 2/i);
+      const basicHeaderTitle = screen.getByText(/enter primary credentials/i);
+      const basicHeaderSubtitle = screen.getByText(
+        /need help\? learn how to connect your database \./i,
+      );
+      const basicHeaderLink = within(basicHeaderSubtitle).getByRole('link', {
+        name: /here/i,
+      });
+      // <Tabs> - Basic/Advanced tabs
+      const basicTab = screen.getByRole('tab', { name: /basic/i });
+      const advancedTab = screen.getByRole('tab', { name: /advanced/i });
+      // <ExtraOptions> - Advanced tabs
+      const sqlLabTab = screen.getByRole('tab', {
+        name: /right sql lab adjust how this database will interact with sql lab\./i,
+      });
+      const performanceTab = screen.getByRole('tab', {
+        name: /right performance adjust performance settings of this database\./i,
+      });
+      const securityTab = screen.getByRole('tab', {
+        name: /right security add extra connection information\./i,
+      });
+
+      // ---------- Assertions ----------
+      const visibleComponents = [
+        closeButton,
+        advancedHeader,
+        basicHelper,
+        basicHeaderTitle,
+        basicHeaderSubtitle,
+        basicHeaderLink,
+        basicTab,
+        advancedTab,
+        sqlLabTab,
+        performanceTab,
+        securityTab,
+      ];
+
+      visibleComponents.forEach(component => {
+        expect(component).toBeVisible();
+      });
+    });
+
+    it('visually renders the "Advanced" - OTHER tab correctly', async () => {
+      await renderAndWait();
+      // ---------- Components ----------
+      // On step 1, click dbButton to access step 2
+      userEvent.click(
+        screen.getByRole('button', {
+          name: /default-database mysql/i,
+        }),
+      );
+      // Click the "Advanced" tab
+      userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+      // Click the "Other" tab
+      userEvent.click(
+        screen.getByRole('tab', {
+          name: /right other additional settings\./i,
+        }),
+      );
+
+      // screen.logTestingPlaygroundURL();
+
+      // ----- BEGIN STEP 2 (ADVANCED - OTHER)
+      // <TabHeader> - AntD header
+      const closeButton = screen.getByRole('button', { name: /close/i });
+      const advancedHeader = screen.getByRole('heading', {
+        name: /connect a database/i,
+      });
+      // <ModalHeader> - Connection header
+      const basicHelper = screen.getByText(/step 2 of 2/i);
+      const basicHeaderTitle = screen.getByText(/enter primary credentials/i);
+      const basicHeaderSubtitle = screen.getByText(
+        /need help\? learn how to connect your database \./i,
+      );
+      const basicHeaderLink = within(basicHeaderSubtitle).getByRole('link', {
+        name: /here/i,
+      });
+      // <Tabs> - Basic/Advanced tabs
+      const basicTab = screen.getByRole('tab', { name: /basic/i });
+      const advancedTab = screen.getByRole('tab', { name: /advanced/i });
+      // <ExtraOptions> - Advanced tabs
+      const sqlLabTab = screen.getByRole('tab', {
+        name: /right sql lab adjust how this database will interact with sql lab\./i,
+      });
+      const performanceTab = screen.getByRole('tab', {
+        name: /right performance adjust performance settings of this database\./i,
+      });
+      const securityTab = screen.getByRole('tab', {
+        name: /right security add extra connection information\./i,
+      });
+      const otherTab = screen.getByRole('tab', {
+        name: /right other additional settings\./i,
+      });
+
+      // ---------- Assertions ----------
+      const visibleComponents = [
+        closeButton,
+        advancedHeader,
+        basicHelper,
+        basicHeaderTitle,
+        basicHeaderSubtitle,
+        basicHeaderLink,
+        basicTab,
+        advancedTab,
+        sqlLabTab,
+        performanceTab,
+        securityTab,
+        otherTab,
+      ];
+
+      visibleComponents.forEach(component => {
+        expect(component).toBeVisible();
+      });
+    });
+
+    it('Postgres form', async () => {
+      fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
+        databases: [
+          {
+            engine: 'mysql',
+            name: 'MySQL',
+            preferred: true,
+          },
+          {
+            engine: 'postgresql',
+            name: 'PostgreSQL',
+            preferred: true,
+          },
+        ],
+      });
+      await renderAndWaitStep3();
+      // ---------- Components ----------
+      // On step 1, click dbButton to access step 2
+      userEvent.click(
+        screen.getByRole('button', {
+          name: /default-database postgresql/i,
+        }),
+      );
+
+      screen.logTestingPlaygroundURL();
+      expect.anything();
+    });
+  });
+
   // describe('create database', () => {
   //   beforeEach(() => {
   //     fetchMock.post(DATABASE_POST_ENDPOINT, {
@@ -266,56 +705,56 @@ describe('DatabaseModal', () => {
   //   });
   // });
 
-  describe('edit database', () => {
-    beforeEach(() => {
-      fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
-        databases: [
-          {
-            engine: 'mysql',
-            name: 'MySQL',
-            preferred: false,
-          },
-        ],
-      });
-    });
-    it('renders the sqlalchemy form when the sqlalchemy_form configuration method is set', async () => {
-      render(<DatabaseModal {...dbProps} />, { useRedux: true });
+  // describe('edit database', () => {
+  //   beforeEach(() => {
+  //     fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
+  //       databases: [
+  //         {
+  //           engine: 'mysql',
+  //           name: 'MySQL',
+  //           preferred: false,
+  //         },
+  //       ],
+  //     });
+  //   });
+  //   it('renders the sqlalchemy form when the sqlalchemy_form configuration method is set', async () => {
+  //     render(<DatabaseModal {...dbProps} />, { useRedux: true });
 
-      // it should have tabs
-      const tabs = screen.getAllByRole('tab');
-      expect(tabs.length).toEqual(2);
-      expect(tabs[0]).toHaveTextContent('Basic');
-      expect(tabs[1]).toHaveTextContent('Advanced');
+  //     // it should have tabs
+  //     const tabs = screen.getAllByRole('tab');
+  //     expect(tabs.length).toEqual(2);
+  //     expect(tabs[0]).toHaveTextContent('Basic');
+  //     expect(tabs[1]).toHaveTextContent('Advanced');
 
-      // it should have the correct header text
-      const headerText = screen.getByText(/edit database/i);
-      expect(headerText).toBeVisible();
-    });
-    // it('renders the dynamic form when the dynamic_form configuration method is set', async () => {
-    //   fetchMock.get(DATABASE_FETCH_ENDPOINT, {
-    //     result: {
-    //       id: 10,
-    //       database_name: 'my database',
-    //       expose_in_sqllab: false,
-    //       allow_ctas: false,
-    //       allow_cvas: false,
-    //       configuration_method: 'dynamic_form',
-    //       parameters: {
-    //         database: 'mydatabase',
-    //       },
-    //     },
-    //   });
-    //   render(<DatabaseModal {...dbProps} />, { useRedux: true });
+  //     // it should have the correct header text
+  //     const headerText = screen.getByText(/edit database/i);
+  //     expect(headerText).toBeVisible();
+  //   });
+  // it('renders the dynamic form when the dynamic_form configuration method is set', async () => {
+  //   fetchMock.get(DATABASE_FETCH_ENDPOINT, {
+  //     result: {
+  //       id: 10,
+  //       database_name: 'my database',
+  //       expose_in_sqllab: false,
+  //       allow_ctas: false,
+  //       allow_cvas: false,
+  //       configuration_method: 'dynamic_form',
+  //       parameters: {
+  //         database: 'mydatabase',
+  //       },
+  //     },
+  //   });
+  //   render(<DatabaseModal {...dbProps} />, { useRedux: true });
 
-    //   await screen.findByText(/edit database/i);
+  //   await screen.findByText(/edit database/i);
 
-    //   // // it should have tabs
-    //   const tabs = screen.getAllByRole('tab');
-    //   expect(tabs.length).toEqual(2);
+  //   // // it should have tabs
+  //   const tabs = screen.getAllByRole('tab');
+  //   expect(tabs.length).toEqual(2);
 
-    //   // it should show a TODO for now
-    //   const headerText = screen.getByText(/edit database/i);
-    //   expect(headerText).toBeVisible();
-    // });
-  });
+  //   // it should show a TODO for now
+  //   const headerText = screen.getByText(/edit database/i);
+  //   expect(headerText).toBeVisible();
+  // });
+  // });
 });
