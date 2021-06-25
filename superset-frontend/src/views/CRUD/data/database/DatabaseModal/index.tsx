@@ -74,6 +74,24 @@ import {
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 
+const errorAlertMapping = {
+  CONNECTION_MISSING_PARAMETERS_ERROR: {
+    message: 'Missing Required Fields',
+    description: 'Please complete all required fields.',
+  },
+  CONNECTION_INVALID_HOSTNAME_ERROR: {
+    message: 'Could not verify the host',
+    description:
+      'The host is invalid. Please verify that this field is entered correctly.',
+  },
+  CONNECTION_PORT_CLOSED_ERROR: {
+    message: 'Port is closed',
+    description: 'Please verify that port is open to connect.',
+  },
+  CONNECTION_INVALID_PORT_ERROR: {
+    message: 'The port must be a whole number less than or equal to 65535.',
+  },
+};
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -316,7 +334,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   // Database fetch logic
   const {
-    state: { loading: dbLoading, resource: dbFetched, error: dbError },
+    state: { loading: dbLoading, resource: dbFetched, error: dbErrors },
     fetchResource,
     createResource,
     updateResource,
@@ -326,12 +344,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     addDangerToast,
   );
 
+  const showDBError = validationErrors || dbErrors;
+  const isEmpty = (data?: Object | null) =>
+    data && Object.keys(data).length === 0;
+
   const dbModel: DatabaseForm =
     availableDbs?.databases?.find(
       (available: { engine: string | undefined }) =>
         // TODO: we need a centralized engine in one place
-        available.engine ===
-        (isEditMode || editNewDb ? db?.backend || db?.engine : db?.engine),
+        available.engine === (isEditMode ? db?.backend : db?.engine),
     ) || {};
 
   // Test Connection logic
@@ -370,7 +391,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
     // Validate DB before saving
     await getValidation(dbToUpdate, true);
-    if (validationErrors) {
+    if (validationErrors && !isEmpty(validationErrors)) {
       return;
     }
 
@@ -416,6 +437,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const result = await updateResource(
         db.id as number,
         dbToUpdate as DatabaseObject,
+        true,
       );
       if (result) {
         if (onDatabaseAdd) {
@@ -443,7 +465,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         });
       }
       setLoading(true);
-      const dbId = await createResource(dbToUpdate as DatabaseObject);
+      const dbId = await createResource(dbToUpdate as DatabaseObject, true);
       if (dbId) {
         setHasConnectedDb(true);
         if (onDatabaseAdd) {
@@ -651,15 +673,44 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setTabKey(key);
   };
 
-  const errorAlert = () => (
-    <Alert
-      type="error"
-      css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
-      message="Missing Required Fields"
-      description="Please complete all required fields."
-      showIcon
-    />
-  );
+  const errorAlert = () => {
+    if (
+      isEmpty(dbErrors) ||
+      (isEmpty(validationErrors) &&
+        !(validationErrors?.error_type in errorAlertMapping))
+    ) {
+      return <></>;
+    }
+
+    if (validationErrors) {
+      return (
+        <Alert
+          type="error"
+          css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
+          message={
+            errorAlertMapping[validationErrors?.error_type]?.message ||
+            validationErrors?.error_type
+          }
+          description={
+            errorAlertMapping[validationErrors?.error_type]?.description ||
+            JSON.stringify(validationErrors)
+          }
+          showIcon
+          closable={false}
+        />
+      );
+    }
+
+    const message: Array<string> = Object.values(dbErrors);
+    return (
+      <Alert
+        type="error"
+        css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
+        message="Database Creation Error"
+        description={message[0]}
+      />
+    );
+  };
 
   const renderFinishState = () => {
     if (!editNewDb) {
@@ -719,7 +770,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         }
         getValidation={() => getValidation(db)}
         validationErrors={validationErrors}
-        editNewDb={editNewDb}
       />
     );
   };
@@ -897,7 +947,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               onChange(ActionType.extraEditorChange, payload);
             }}
           />
-          {dbError && errorAlert()}
+          {showDBError && errorAlert()}
         </Tabs.TabPane>
       </Tabs>
     </Modal>
@@ -1023,7 +1073,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   />
                 </div>
                 {/* Step 2 */}
-                {dbError && errorAlert()}
+                {showDBError && errorAlert()}
               </>
             ))}
         </>

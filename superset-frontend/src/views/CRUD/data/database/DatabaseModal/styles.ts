@@ -181,7 +181,7 @@ export const antDAlertStyles = (theme: SupersetTheme) => css`
 `;
 
 export const antDErrorAlertStyles = (theme: SupersetTheme) => css`
-  border: ${theme.colors.error.base} 2px solid;
+  border: ${theme.colors.error.base} 1px solid;
   padding: ${theme.gridUnit * 4}px;
   margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 4}px;
   color: ${theme.colors.error.dark2};

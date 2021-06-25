@@ -211,7 +211,7 @@ export function useListViewResource<D extends object = any>(
 interface SingleViewResourceState<D extends object = any> {
   loading: boolean;
   resource: D | null;
-  error: string | Record<string, string[] | string> | null;
+  error: any | null;
 }
 
 export function useSingleViewResource<D extends object = any>(
@@ -269,7 +269,7 @@ export function useSingleViewResource<D extends object = any>(
   );
 
   const createResource = useCallback(
-    (resource: D) => {
+    (resource: D, hideToast = false) => {
       // Set loading state
       updateState({
         loading: true,
@@ -289,13 +289,16 @@ export function useSingleViewResource<D extends object = any>(
             return json.id;
           },
           createErrorHandler((errMsg: Record<string, string[] | string>) => {
-            handleErrorMsg(
-              t(
-                'An error occurred while creating %ss: %s',
-                resourceLabel,
-                parsedErrorMessage(errMsg),
-              ),
-            );
+            // we did not want toasts for db-connection-ui but did not want to disable it everywhere
+            if (!hideToast) {
+              handleErrorMsg(
+                t(
+                  'An error occurred while creating %ss: %s',
+                  resourceLabel,
+                  parsedErrorMessage(errMsg),
+                ),
+              );
+            }
 
             updateState({
               error: errMsg,
@@ -310,7 +313,7 @@ export function useSingleViewResource<D extends object = any>(
   );
 
   const updateResource = useCallback(
-    (resourceID: number, resource: D) => {
+    (resourceID: number, resource: D, hideToast = false) => {
       // Set loading state
       updateState({
         loading: true,
@@ -330,13 +333,15 @@ export function useSingleViewResource<D extends object = any>(
             return json.result;
           },
           createErrorHandler(errMsg => {
-            handleErrorMsg(
-              t(
-                'An error occurred while fetching %ss: %s',
-                resourceLabel,
-                JSON.stringify(errMsg),
-              ),
-            );
+            if (!hideToast) {
+              handleErrorMsg(
+                t(
+                  'An error occurred while fetching %ss: %s',
+                  resourceLabel,
+                  JSON.stringify(errMsg),
+                ),
+              );
+            }
 
             updateState({
               error: errMsg,
@@ -651,20 +656,20 @@ export function useDatabaseValidation() {
           if (typeof e.json === 'function') {
             e.json().then(({ errors = [] }: JsonObject) => {
               const parsedErrors = errors
-                .filter((error: { error_type: string }) => {
-                  const skipValidationError = ![
-                    'CONNECTION_MISSING_PARAMETERS_ERROR',
-                    'CONNECTION_ACCESS_DENIED_ERROR',
-                  ].includes(error.error_type);
-                  return skipValidationError || onCreate;
-                })
+                .filter(
+                  (error: { error_type: string }) =>
+                    error.error_type !==
+                      'CONNECTION_MISSING_PARAMETERS_ERROR' || onCreate,
+                )
                 .reduce(
                   (
                     obj: {},
                     {
+                      error_type,
                       extra,
                       message,
                     }: {
+                      error_type: string;
                       extra: { invalid?: string[]; missing?: string[] };
                       message: string;
                     },
@@ -673,11 +678,16 @@ export function useDatabaseValidation() {
                     // error can't be mapped to a parameter
                     // so leave it alone
                     if (extra.invalid) {
-                      return { ...obj, [extra.invalid[0]]: message };
+                      return {
+                        ...obj,
+                        [extra.invalid[0]]: message,
+                        error_type,
+                      };
                     }
                     if (extra.missing) {
                       return {
                         ...obj,
+                        error_type,
                         ...Object.assign(
                           {},
                           ...extra.missing.map(field => ({
