@@ -353,4 +353,83 @@ describe('Registry', () => {
       });
     });
   });
+
+  describe('listeners', () => {
+    let registry = new Registry();
+    let listener = jest.fn();
+    beforeEach(() => {
+      registry = new Registry();
+      listener = jest.fn();
+      registry.addListener(listener);
+    });
+
+    it('calls the listener when a value is registered', () => {
+      registry.registerValue('foo', 'bar');
+      expect(listener).toBeCalledWith(['foo']);
+    });
+
+    it('calls the listener when a loader is registered', () => {
+      registry.registerLoader('foo', () => 'bar');
+      expect(listener).toBeCalledWith(['foo']);
+    });
+
+    it('calls the listener when a value is overriden', () => {
+      registry.registerValue('foo', 'bar');
+      listener.mockClear();
+      registry.registerValue('foo', 'baz');
+      expect(listener).toBeCalledWith(['foo']);
+    });
+
+    it('calls the listener when a value is removed', () => {
+      registry.registerValue('foo', 'bar');
+      listener.mockClear();
+      registry.remove('foo');
+      expect(listener).toBeCalledWith(['foo']);
+    });
+
+    it('does not call the listener when a value is not actually removed', () => {
+      registry.remove('foo');
+      expect(listener).not.toBeCalled();
+    });
+
+    it('calls the listener when registry is cleared', () => {
+      registry.registerValue('foo', 'bar');
+      registry.registerLoader('fluz', () => 'baz');
+      listener.mockClear();
+      registry.clear();
+      expect(listener).toBeCalledWith(['foo', 'fluz']);
+    });
+
+    it('removes listeners correctly', () => {
+      registry.removeListener(listener);
+      registry.registerValue('foo', 'bar');
+      expect(listener).not.toBeCalled();
+    });
+
+    describe('with a broken listener', () => {
+      let restoreConsole: any;
+      beforeEach(() => {
+        restoreConsole = mockConsole();
+      });
+      afterEach(() => {
+        restoreConsole();
+      });
+
+      it('keeps working', () => {
+        const errorListener = jest.fn().mockImplementation(() => {
+          throw new Error('test error');
+        });
+        const lastListener = jest.fn();
+
+        registry.addListener(errorListener);
+        registry.addListener(lastListener);
+        registry.registerValue('foo', 'bar');
+
+        expect(listener).toBeCalledWith(['foo']);
+        expect(errorListener).toBeCalledWith(['foo']);
+        expect(lastListener).toBeCalledWith(['foo']);
+        expect(console.error).toBeCalled();
+      });
+    });
+  });
 });
