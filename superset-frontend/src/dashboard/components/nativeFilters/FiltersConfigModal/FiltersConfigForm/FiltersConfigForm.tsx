@@ -21,6 +21,7 @@ import {
   Behavior,
   ChartDataResponseResult,
   Column,
+  GenericDataType,
   getChartMetadataRegistry,
   JsonResponse,
   styled,
@@ -72,7 +73,7 @@ import { NativeFiltersForm } from '../types';
 import {
   datasetToSelectOption,
   doesColumnMatchFilterType,
-  FILTER_GROUPS,
+  FILTER_SUPPORTED_TYPES,
   hasTemporalColumns,
   setNativeFilterFieldValues,
   useForceUpdate,
@@ -658,7 +659,10 @@ const FiltersConfigForm = (
                   ? FILTER_TYPE_NAME_MAPPING[name]
                   : undefined;
                 const isDisabled =
-                  FILTER_GROUPS.TIME.includes(filterType) &&
+                  FILTER_SUPPORTED_TYPES[filterType].length === 1 &&
+                  FILTER_SUPPORTED_TYPES[filterType].includes(
+                    GenericDataType.TEMPORAL,
+                  ) &&
                   !doLoadedDatasetsHaveTemporalColumns;
                 return {
                   value: filterType,

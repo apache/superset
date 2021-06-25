@@ -128,7 +128,7 @@ export function ColumnSelect({
       onChange={onChange}
       options={options}
       placeholder={t('Select a column')}
-      notFoundContent={t('No columns found')}
+      notFoundContent={t('No compatible columns found')}
       showSearch
       allowClear={allowClear}
     />
