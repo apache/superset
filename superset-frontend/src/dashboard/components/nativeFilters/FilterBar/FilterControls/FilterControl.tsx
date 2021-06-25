@@ -29,8 +29,12 @@ const StyledFormItem = styled(FormItem)`
   }
 `;
 
+const StyledIcon = styled.div`
+  position: absolute;
+  right: 0;
+`;
+
 const StyledFilterControlTitle = styled.h4`
-  flex: 1;
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   margin: 0;
@@ -40,7 +44,6 @@ const StyledFilterControlTitle = styled.h4`
 
 const StyledFilterControlTitleBox = styled.div`
   display: flex;
-  flex: 1;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
@@ -74,7 +77,7 @@ const FilterControl: React.FC<FilterProps> = ({
             <StyledFilterControlTitle data-test="filter-control-name">
               {name}
             </StyledFilterControlTitle>
-            <div data-test="filter-icon">{icon}</div>
+            <StyledIcon data-test="filter-icon">{icon}</StyledIcon>
           </StyledFilterControlTitleBox>
         }
         required={filter?.controlValues?.enableEmptyFilter}
