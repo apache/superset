@@ -92,6 +92,14 @@ const errorAlertMapping = {
   CONNECTION_INVALID_PORT_ERROR: {
     message: 'The port must be a whole number less than or equal to 65535.',
   },
+  CONNECTION_ACCESS_DENIED_ERROR: {
+    message: 'Invalid account information',
+    description: 'Either the username or password is incorrect.',
+  },
+  CONNECTION_INVALID_PASSWORD_ERROR: {
+    message: 'Invalid account information',
+    description: 'Either the username or password is incorrect.',
+  },
 };
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
