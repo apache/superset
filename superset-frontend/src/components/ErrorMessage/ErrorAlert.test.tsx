@@ -47,11 +47,9 @@ test('should render', () => {
 
 test('should render warning icon', () => {
   render(<ErrorAlert {...mockedProps} />);
-  expect(screen.getByTestId('icon')).toBeInTheDocument();
-  expect(screen.getByTestId('icon')).toHaveAttribute(
-    'data-name',
-    'warning-solid',
-  );
+  expect(
+    screen.getByRole('img', { name: 'warning-solid' }),
+  ).toBeInTheDocument();
 });
 
 test('should render error icon', () => {
@@ -60,11 +58,7 @@ test('should render error icon', () => {
     level: 'error' as ErrorLevel,
   };
   render(<ErrorAlert {...errorProps} />);
-  expect(screen.getByTestId('icon')).toBeInTheDocument();
-  expect(screen.getByTestId('icon')).toHaveAttribute(
-    'data-name',
-    'error-solid',
-  );
+  expect(screen.getByRole('img', { name: 'error-solid' })).toBeInTheDocument();
 });
 
 test('should render the error title', () => {
