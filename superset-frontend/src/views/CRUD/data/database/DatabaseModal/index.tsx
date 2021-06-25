@@ -284,7 +284,7 @@ function dbReducer(
 
       return {
         ...action.payload,
-        engine: action.payload.backend,
+        engine: action.payload.backend || trimmedState.engine,
         configuration_method: action.payload.configuration_method,
         extra_json: deserializeExtraJSON,
         parameters: {

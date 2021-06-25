@@ -96,7 +96,7 @@ const ModalHeader = ({
             target="_blank"
             rel="noopener noreferrer"
           >
-            connecting to {dbName}.
+            connecting to {dbModel.name}.
           </a>
         </p>
       </StyledFormHeader>
