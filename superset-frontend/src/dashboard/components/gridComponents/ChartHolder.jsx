@@ -54,6 +54,7 @@ const propTypes = {
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
   directPathLastUpdated: PropTypes.number,
   focusedFilterScope: PropTypes.object,
+  fullSizeChartId: PropTypes.oneOf([PropTypes.number, null]),
 
   // grid related
   availableColumnCount: PropTypes.number.isRequired,
@@ -66,6 +67,7 @@ const propTypes = {
   deleteComponent: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
+  setFullSizeChartId: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -189,7 +191,6 @@ class ChartHolder extends React.Component {
       outlinedComponentId: null,
       outlinedColumnName: null,
       directPathLastUpdated: 0,
-      isFullSize: false,
     };
 
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
@@ -244,7 +245,10 @@ class ChartHolder extends React.Component {
   }
 
   handleToggleFullSize() {
-    this.setState(prevState => ({ isFullSize: !prevState.isFullSize }));
+    const { component, fullSizeChartId, setFullSizeChartId } = this.props;
+    const { chartId } = component.meta;
+    const isFullSize = fullSizeChartId === chartId;
+    setFullSizeChartId(isFullSize ? null : chartId);
   }
 
   render() {
@@ -263,7 +267,11 @@ class ChartHolder extends React.Component {
       editMode,
       isComponentVisible,
       dashboardId,
+      fullSizeChartId,
     } = this.props;
+
+    const { chartId } = component.meta;
+    const isFullSize = fullSizeChartId === chartId;
 
     // inherit the size of parent columns
     const widthMultiple =
@@ -274,7 +282,7 @@ class ChartHolder extends React.Component {
     let chartWidth = 0;
     let chartHeight = 0;
 
-    if (this.state.isFullSize) {
+    if (isFullSize) {
       chartWidth = window.innerWidth - CHART_MARGIN;
       chartHeight = window.innerHeight - CHART_MARGIN;
     } else {
@@ -287,8 +295,6 @@ class ChartHolder extends React.Component {
         component.meta.height * GRID_BASE_UNIT - CHART_MARGIN,
       );
     }
-
-    const { chartId } = component.meta;
 
     return (
       <DragDroppable
@@ -326,7 +332,7 @@ class ChartHolder extends React.Component {
                 'dashboard-component',
                 'dashboard-component-chart-holder',
                 this.state.outlinedComponentId ? 'fade-in' : 'fade-out',
-                this.state.isFullSize && 'full-size',
+                isFullSize && 'full-size',
               )}
             >
               {!editMode && (
@@ -351,7 +357,7 @@ class ChartHolder extends React.Component {
                 updateSliceName={this.handleUpdateSliceName}
                 isComponentVisible={isComponentVisible}
                 handleToggleFullSize={this.handleToggleFullSize}
-                isFullSize={this.state.isFullSize}
+                isFullSize={isFullSize}
               />
               {editMode && (
                 <HoverMenu position="top">

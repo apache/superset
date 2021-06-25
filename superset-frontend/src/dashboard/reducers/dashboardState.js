@@ -36,6 +36,7 @@ import {
   SET_FOCUSED_FILTER_FIELD,
   UNSET_FOCUSED_FILTER_FIELD,
   SET_ACTIVE_TABS,
+  SET_FULL_SIZE_CHART_ID,
 } from '../actions/dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -163,6 +164,12 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         focusedFilterField: null,
+      };
+    },
+    [SET_FULL_SIZE_CHART_ID]() {
+      return {
+        ...state,
+        fullSizeChartId: action.chartId,
       };
     },
   };

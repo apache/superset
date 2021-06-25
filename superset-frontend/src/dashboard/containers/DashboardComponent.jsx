@@ -35,7 +35,11 @@ import {
   updateComponents,
   handleComponentDrop,
 } from '../actions/dashboardLayout';
-import { setDirectPathToChild, setActiveTabs } from '../actions/dashboardState';
+import {
+  setDirectPathToChild,
+  setActiveTabs,
+  setFullSizeChartId,
+} from '../actions/dashboardState';
 
 const propTypes = {
   id: PropTypes.string,
@@ -83,6 +87,7 @@ function mapStateToProps(
     activeTabs: dashboardState.activeTabs,
     directPathLastUpdated: dashboardState.directPathLastUpdated,
     dashboardId: dashboardInfo.id,
+    fullSizeChartId: dashboardState.fullSizeChartId,
   };
 
   // rows and columns need more data about their child dimensions
@@ -112,6 +117,7 @@ function mapDispatchToProps(dispatch) {
       updateComponents,
       handleComponentDrop,
       setDirectPathToChild,
+      setFullSizeChartId,
       setActiveTabs,
       logEvent,
     },
