@@ -137,12 +137,22 @@ export const StyledRowFormItem = styled(FormItem)`
 `;
 
 export const StyledRowSubFormItem = styled(FormItem)`
+  min-width: 50%;
+
   & .ant-form-item-label {
     padding-bottom: 0;
   }
 
+  .ant-form-item {
+    margin-bottom: 0;
+  }
+
   .ant-form-item-control-input-content > div > div {
     height: auto;
+  }
+
+  .ant-form-item-extra {
+    display: none;
   }
 
   & .ant-form-item-control-input {
@@ -801,7 +811,9 @@ const FiltersConfigForm = (
                       if (hasValue) {
                         return Promise.resolve();
                       }
-                      return Promise.reject();
+                      return Promise.reject(
+                        new Error(t('Default value is required')),
+                      );
                     },
                   },
                 ]}
@@ -1010,7 +1022,7 @@ const FiltersConfigForm = (
                   onChange={checked => onSortChanged(checked || undefined)}
                   initialValue={hasSorting}
                 >
-                  <StyledFormItem
+                  <StyledRowFormItem
                     name={[
                       'filters',
                       filterId,
@@ -1038,7 +1050,7 @@ const FiltersConfigForm = (
                         onSortChanged(value)
                       }
                     />
-                  </StyledFormItem>
+                  </StyledRowFormItem>
                   {hasMetrics && (
                     <StyledRowSubFormItem
                       name={['filters', filterId, 'sortMetric']}

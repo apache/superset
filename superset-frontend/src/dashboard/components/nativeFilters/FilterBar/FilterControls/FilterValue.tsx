@@ -19,10 +19,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   QueryFormData,
-  styled,
   SuperChart,
   DataMask,
   t,
+  styled,
   Behavior,
   ChartDataResponseResult,
   JsonObject,
@@ -43,13 +43,14 @@ import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FilterProps } from './types';
 import { getFormData } from '../../utils';
 import { useCascadingFilters } from './state';
-import { checkIsMissingRequiredValue } from '../utils';
 
-const FilterItem = styled.div`
-  min-height: ${({ theme }) => theme.gridUnit * 11}px;
-  padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;
-  & > div > div {
-    height: auto;
+const HEIGHT = 32;
+
+// Overrides superset-ui height with min-height
+const StyledDiv = styled.div`
+  & > div {
+    height: auto !important;
+    min-height: ${HEIGHT}px;
   }
 `;
 
@@ -195,35 +196,27 @@ const FilterValue: React.FC<FilterProps> = ({
     );
   }
 
-  const isMissingRequiredValue = checkIsMissingRequiredValue(
-    filter,
-    filter.dataMask?.filterState,
-  );
-
   return (
-    <FilterItem data-test="form-item-value">
+    <StyledDiv data-test="form-item-value">
       {isLoading ? (
         <Loading position="inline-centered" />
       ) : (
         <SuperChart
-          height={50}
+          height={HEIGHT}
           width="100%"
           formData={formData}
           // For charts that don't have datasource we need workaround for empty placeholder
           queriesData={hasDataSource ? state : [{ data: [{}] }]}
           chartType={filterType}
           behaviors={[Behavior.NATIVE_FILTER]}
-          filterState={{
-            ...filter.dataMask?.filterState,
-            validateMessage: isMissingRequiredValue && t('Value is required'),
-          }}
+          filterState={{ ...filter.dataMask?.filterState }}
           ownState={filter.dataMask?.ownState}
           enableNoResults={metadata?.enableNoResults}
           isRefreshing={isRefreshing}
           hooks={{ setDataMask, setFocusedFilter, unsetFocusedFilter }}
         />
       )}
-    </FilterItem>
+    </StyledDiv>
   );
 };
 
