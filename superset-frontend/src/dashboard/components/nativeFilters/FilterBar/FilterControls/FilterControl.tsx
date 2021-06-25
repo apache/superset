@@ -26,6 +26,7 @@ import { checkIsMissingRequiredValue } from '../utils';
 const StyledFormItem = styled(FormItem)`
   & label {
     width: 100%;
+    padding-right: ${({ theme }) => theme.gridUnit * 11}px;
   }
 `;
 
@@ -38,7 +39,6 @@ const StyledFilterControlTitle = styled.h4`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   margin: 0;
-  margin-right: ${({ theme }) => theme.gridUnit}px;
   overflow-wrap: break-word;
 `;
 
