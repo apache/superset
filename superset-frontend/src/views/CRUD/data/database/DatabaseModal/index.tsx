@@ -675,9 +675,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const errorAlert = () => {
     if (
-      validationErrors &&
-      isEmpty(validationErrors) &&
-      !(validationErrors.error_type in errorAlertMapping)
+      isEmpty(dbErrors) ||
+      (isEmpty(validationErrors) &&
+        !(validationErrors?.error_type in errorAlertMapping))
     ) {
       return <></>;
     }
