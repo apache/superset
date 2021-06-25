@@ -33,28 +33,27 @@ const buildQuery: BuildQuery<PluginFilterSelectQueryFormData> = (
   const { sortAscending, sortMetric } = { ...DEFAULT_FORM_DATA, ...formData };
   return buildQueryContext(formData, baseQueryObject => {
     const { columns = [], filters = [] } = baseQueryObject;
-    const extra_filters: QueryObjectFilterClause[] = columns.map(column => {
+    var extra_filters: QueryObjectFilterClause[] = [];;
+    columns.map(column => {
       if (search && coltypeMap[column] === GenericDataType.STRING) {
-        return {
+        extra_filters = [{
           col: column,
           op: 'ILIKE',
           val: `%${search}%`,
-        };
+        }];
       }
-      if (
+      else if (
         search &&
         coltypeMap[column] === GenericDataType.NUMERIC &&
         !Number.isNaN(Number(search))
       ) {
         // for numeric columns we apply a >= where clause
-        return {
+        extra_filters = [{
           col: column,
           op: '>=',
           val: Number(search),
-        };
+        }];
       }
-      // if no search is defined, make sure the col value is not null
-      return { col: column, op: 'IS NOT NULL' };
     });
 
     const sortColumns = sortMetric ? [sortMetric] : columns;
