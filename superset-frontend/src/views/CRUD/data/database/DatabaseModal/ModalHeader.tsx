@@ -82,28 +82,30 @@ const ModalHeader = ({
     </StyledFormHeader>
   );
   const hasConnectedDbHeader = (
-    <StyledFormHeader>
-      <p className="helper"> STEP 3 OF 3 </p>
-      <h4>
-        Your database was successfully connected! Here are some optional
-        settings for your database
-      </h4>
-      <p className="helper">
-        Need help? Learn more about{' '}
-        <a
-          href={documentationLink(db?.engine)}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          connecting to {dbModel.name}
-        </a>
-      </p>
-    </StyledFormHeader>
+    <StyledStickyHeader>
+      <StyledFormHeader>
+        <p className="helper"> STEP 3 OF 3 </p>
+        <h4>
+          Your database was successfully connected! Here are some optional
+          settings for your database
+        </h4>
+        <p className="helper">
+          Need help? Learn more about{' '}
+          <a
+            href={documentationLink(db?.engine)}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            connecting to {dbName}.
+          </a>
+        </p>
+      </StyledFormHeader>
+    </StyledStickyHeader>
   );
   const hasDbHeader = (
     <StyledStickyHeader>
       <StyledFormHeader>
-        <p className="helper"> Step 2 of 3 </p>
+        <p className="helper"> STEP 2 OF 3 </p>
         <h4>Enter the required {dbModel.name} credentials</h4>
         <p className="helper">
           Need help? Learn more about{' '}

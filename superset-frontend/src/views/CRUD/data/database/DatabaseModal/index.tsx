@@ -58,6 +58,7 @@ import DatabaseConnectionForm from './DatabaseConnectionForm';
 import {
   antDErrorAlertStyles,
   antDAlertStyles,
+  StyledAlertMargin,
   antDModalNoPaddingStyles,
   antDModalStyles,
   antDTabsStyles,
@@ -963,14 +964,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   dbModel={dbModel}
                 />
                 {connectionAlert && (
-                  <Alert
-                    closable={false}
-                    css={(theme: SupersetTheme) => antDAlertStyles(theme)}
-                    type="info"
-                    showIcon
-                    message={t('IP Allowlist')}
-                    description={connectionAlert.ALLOWED_IPS}
-                  />
+                  <StyledAlertMargin>
+                    <Alert
+                      closable={false}
+                      css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+                      type="info"
+                      showIcon
+                      message={t('IP Allowlist')}
+                      description={connectionAlert.ALLOWED_IPS}
+                    />
+                  </StyledAlertMargin>
                 )}
                 <DatabaseConnectionForm
                   db={db}
