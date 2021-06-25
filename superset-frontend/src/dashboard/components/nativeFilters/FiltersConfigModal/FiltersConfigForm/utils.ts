@@ -89,7 +89,7 @@ export const hasTemporalColumns = (
 };
 
 export const isColumnOfType = (column: Column, type: GenericDataType) =>
-  column.type_generic === type;
+  !column.type_generic || column.type_generic === type;
 
 export const doesColumnMatchFilterType = (
   filterType: string,
