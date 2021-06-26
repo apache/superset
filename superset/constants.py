@@ -167,3 +167,9 @@ class PandasPostprocessingCompare(str, Enum):
     ABS = "absolute"
     PCT = "percentage"
     RAT = "ratio"
+
+
+class CacheRegion(str, Enum):
+    DEFAULT = "default"
+    DATA = "data"
+    THUMBNAIL = "thumbnail"

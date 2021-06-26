@@ -29,14 +29,11 @@ from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.charts.dao import ChartDAO
 from superset.common.query_actions import get_query_results
 from superset.common.query_object import QueryObject
+from superset.common.utils import QueryCacheManager
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.constants import PandasAxis
-from superset.exceptions import (
-    CacheLoadError,
-    QueryObjectValidationError,
-    SupersetException,
-)
+from superset.constants import CacheRegion, PandasAxis
+from superset.exceptions import QueryObjectValidationError, SupersetException
 from superset.extensions import cache_manager, security_manager
 from superset.utils import csv
 from superset.utils.cache import generate_cache_key, set_and_log_cache
@@ -48,7 +45,6 @@ from superset.utils.core import (
     error_msg_from_exception,
     get_column_names_from_metrics,
     get_metric_names,
-    get_stacktrace,
     normalize_dttm_col,
     QueryStatus,
     TIME_COMPARISION,
@@ -381,41 +377,11 @@ class QueryContext:
         """Handles caching around the df payload retrieval"""
         cache_key = self.query_cache_key(query_obj)
         logger.info("Cache key: %s", cache_key)
-        is_loaded = False
-        stacktrace = None
-        df = pd.DataFrame()
-        cache_value = None
-        status = None
-        query = ""
-        annotation_data = {}
-        error_message = None
-        if cache_key and cache_manager.data_cache and not self.force:
-            cache_value = cache_manager.data_cache.get(cache_key)
-            if cache_value:
-                stats_logger.incr("loading_from_cache")
-                try:
-                    df = cache_value["df"]
-                    query = cache_value["query"]
-                    annotation_data = cache_value.get("annotation_data", {})
-                    status = QueryStatus.SUCCESS
-                    is_loaded = True
-                    stats_logger.incr("loaded_from_cache")
-                except KeyError as ex:
-                    logger.exception(ex)
-                    logger.error(
-                        "Error reading cache: %s",
-                        error_msg_from_exception(ex),
-                        exc_info=True,
-                    )
-                logger.info("Serving from cache")
+        _cache = QueryCacheManager.get(
+            cache_key, CacheRegion.DATA, self.force, force_cached,
+        )
 
-        if force_cached and not is_loaded:
-            logger.warning(
-                "force_cached (QueryContext): value not found for key %s", cache_key
-            )
-            raise CacheLoadError("Error loading data from cache")
-
-        if query_obj and not is_loaded:
+        if query_obj and not _cache.is_loaded:
             try:
                 invalid_columns = [
                     col
@@ -432,47 +398,37 @@ class QueryContext:
                         )
                     )
                 query_result = self.get_query_result(query_obj)
-                status = query_result["status"]
-                query = query_result["query"]
-                error_message = query_result["error_message"]
-                df = query_result["df"]
                 annotation_data = self.get_annotation_data(query_obj)
-
-                if status != QueryStatus.FAILED:
-                    stats_logger.incr("loaded_from_source")
-                    if not self.force:
-                        stats_logger.incr("loaded_from_source_without_force")
-                    is_loaded = True
+                _cache.load_query(query_result, annotation_data, self.force)
             except QueryObjectValidationError as ex:
-                error_message = str(ex)
-                status = QueryStatus.FAILED
-            except Exception as ex:  # pylint: disable=broad-except
-                logger.exception(ex)
-                if not error_message:
-                    error_message = str(ex)
-                status = QueryStatus.FAILED
-                stacktrace = get_stacktrace()
+                _cache.error_message = str(ex)
+                _cache.status = QueryStatus.FAILED
 
-            if is_loaded and cache_key and status != QueryStatus.FAILED:
-                set_and_log_cache(
-                    cache_manager.data_cache,
-                    cache_key,
-                    {"df": df, "query": query, "annotation_data": annotation_data},
-                    self.cache_timeout,
-                    self.datasource.uid,
-                )
+            value = {
+                "df": _cache.df,
+                "query": _cache.query,
+                "annotation_data": _cache.annotation_data,
+            }
+            _cache.set(
+                cache_key,
+                value,
+                self.cache_timeout,
+                self.datasource.uid,
+                CacheRegion.DATA,
+            )
+
         return {
             "cache_key": cache_key,
-            "cached_dttm": cache_value["dttm"] if cache_value is not None else None,
+            "cached_dttm": _cache.cache_dttm,
             "cache_timeout": self.cache_timeout,
-            "df": df,
-            "annotation_data": annotation_data,
-            "error": error_message,
-            "is_cached": cache_value is not None,
-            "query": query,
-            "status": status,
-            "stacktrace": stacktrace,
-            "rowcount": len(df.index),
+            "df": _cache.df,
+            "annotation_data": _cache.annotation_data,
+            "error": _cache.error_message,
+            "is_cached": _cache.is_cached,
+            "query": _cache.query,
+            "status": _cache.status,
+            "stacktrace": _cache.stacktrace,
+            "rowcount": len(_cache.df.index),
         }
 
     def raise_for_access(self) -> None:
