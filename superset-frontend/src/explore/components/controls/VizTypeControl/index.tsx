@@ -36,7 +36,6 @@ import {
 import { Input } from 'src/common/components';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import Modal from 'src/components/Modal';
-import Tabs from 'src/components/Tabs';
 import { Tooltip } from 'src/components/Tooltip';
 import Label, { Type } from 'src/components/Label';
 import Icons from 'src/components/Icons';
@@ -147,74 +146,80 @@ const UnpaddedModal = styled(Modal)`
 
 const VizPickerLayout = styled.div`
   display: grid;
-  grid-template-rows: auto 1fr 30%;
+  grid-template-rows: 1fr 35%;
+  grid-template-columns: 1fr 5fr;
+  grid-template-areas:
+    'sidebar main'
+    'details details';
   height: 70vh;
 `;
 
 const SectionTitle = styled.h3`
   margin-top: 0;
+  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
   font-size: ${({ theme }) => theme.gridUnit * 4}px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: ${({ theme }) => theme.gridUnit * 6}px;
 `;
 
-const IconPane = styled.div`
-  overflow: auto;
+const LeftPane = styled.div`
+  grid-area: sidebar;
   display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
+  flex-direction: column;
+  border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  padding: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
-const CategoriesTabs = styled(Tabs)`
-  overflow: auto;
-
-  .ant-tabs-nav {
-    width: 20%;
-  }
-
-  .ant-tabs-content-holder {
-    overflow: auto;
-  }
-
-  & > .ant-tabs-nav .ant-tabs-ink-bar {
-    visibility: hidden;
-  }
-
-  .ant-tabs-tab-btn {
-    text-transform: capitalize;
-  }
-
+const SearchWrapper = styled.div`
   ${({ theme }) => `
-   &.ant-tabs-left > .ant-tabs-nav .ant-tabs-tab {
-      margin: ${theme.gridUnit * 2}px;
-      margin-bottom: 0;
-      padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
-
-      .ant-tabs-tab-btn {
-        display: block;
-        text-align: left;
-      }
-
-      &:hover,
-      &-active {
-        color: ${theme.colors.grayscale.dark1};
-        border-radius: ${theme.borderRadius}px;
-        background-color: ${theme.colors.secondary.light4};
-
-        .ant-tabs-tab-remove > svg {
-          color: ${theme.colors.grayscale.base};
-          transition: all 0.3s;
-        }
-      }
+    margin-bottom: ${theme.gridUnit * 2}px;
+    input {
+      font-size: ${theme.typography.sizes.s};
     }
-
-    &.ant-tabs-left > .ant-tabs-content-holder > .ant-tabs-content > .ant-tabs-tabpane {
-      padding: ${theme.gridUnit * 2}px;
+    .ant-input-affix-wrapper {
+      padding-left: ${theme.gridUnit * 2}px;
     }
   `}
 `;
 
+/** Styles to line up prefix/suffix icons in the search input */
+const InputIconAlignment = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: ${({ theme }) => theme.colors.grayscale.base};
+`;
+
+const CategoryLabel = styled.button`
+  ${({ theme }) => `
+    all: unset; // remove default button styles
+    cursor: pointer;
+    padding: ${theme.gridUnit}px;
+    border-radius: ${theme.borderRadius}px;
+    line-height: 2em;
+    font-size: ${theme.typography.sizes.s};
+
+    &:focus {
+      outline: initial;
+    }
+
+    &.selected {
+      background-color: ${theme.colors.secondary.light4};
+    }
+  `}
+`;
+
+const IconsPane = styled.div`
+  grid-area: main;
+  overflow: auto;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  padding: ${({ theme }) => theme.gridUnit * 2}px;
+`;
+
 const DetailsPane = styled.div`
+  grid-area: details;
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   padding: ${({ theme }) => theme.gridUnit * 4}px;
   display: grid;
@@ -222,17 +227,11 @@ const DetailsPane = styled.div`
   overflow: hidden;
 `;
 
+// overflow hidden on the details pane and overflow auto on the description
+// (plus grid layout) enables the description to scroll while the header stays in place.
+
 const Description = styled.p`
   overflow: auto;
-`;
-
-const SearchPane = styled.div`
-  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
-`;
-
-const SearchResultsPane = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
 const thumbnailContainerCss = (theme: SupersetTheme) => css`
@@ -252,6 +251,10 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
 
   &:hover:not(.selected) img {
     border: 1px solid ${theme.colors.grayscale.light1};
+  }
+
+  .viztype-label {
+    text-align: center;
   }
 `;
 
@@ -313,27 +316,34 @@ interface ThumbnailGalleryProps {
 /** A list of viz thumbnails, used within the viz picker modal */
 const ThumbnailGallery: React.FC<ThumbnailGalleryProps> = ({
   vizEntries,
-  ...others
+  ...props
 }) => (
-  <IconPane data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__viz-row`}>
+  <IconsPane data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__viz-row`}>
     {vizEntries.map(entry => (
-      <Thumbnail {...others} entry={entry} />
+      <Thumbnail key={entry.key} {...props} entry={entry} />
     ))}
-  </IconPane>
+  </IconsPane>
+);
+
+const CategorySelector: React.FC<{
+  category: string;
+  isSelected: boolean;
+  onClick: (category: string) => void;
+}> = ({ category, isSelected, onClick }) => (
+  <CategoryLabel
+    key={category}
+    className={isSelected ? 'selected' : ''}
+    onClick={() => onClick(category)}
+  >
+    {category}
+  </CategoryLabel>
 );
 
 /** Manages the viz type and the viz picker modal */
 const VizTypeControl = (props: VizTypeControlProps) => {
   const { value: initialValue, onChange, isModalOpenInit, labelType } = props;
-  const theme = useTheme();
   const { mountedPluginMetadata } = usePluginContext();
   const [showModal, setShowModal] = useState(!!isModalOpenInit);
-  const [activeCategory, setActiveCategory] = useState<string | undefined>(
-    undefined,
-  );
-  const [categoryRecall, setCategoryRecall] = useState<string | undefined>(
-    undefined,
-  );
   const [searchInputValue, setSearchInputValue] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [selectedViz, setSelectedViz] = useState(initialValue);
@@ -342,16 +352,6 @@ const VizTypeControl = (props: VizTypeControlProps) => {
     onChange(selectedViz);
     setShowModal(false);
   }, [selectedViz, onChange]);
-
-  const toggleModal = useCallback(() => {
-    setShowModal(prevState => !prevState);
-
-    // make sure the modal opens up to the last submitted viz
-    setSelectedViz(initialValue);
-    setActiveCategory(
-      mountedPluginMetadata[initialValue]?.category || undefined,
-    );
-  }, [initialValue, mountedPluginMetadata]);
 
   const changeSearch: ChangeEventHandler<HTMLInputElement> = useCallback(
     event => {
@@ -380,6 +380,15 @@ const VizTypeControl = (props: VizTypeControlProps) => {
     return result;
   }, [chartMetadata]);
 
+  // todo sort the categories
+  const categories = useMemo(() => Object.keys(chartsByCategory), [
+    chartsByCategory,
+  ]);
+
+  const [activeCategory, setActiveCategory] = useState<string>(
+    () => categories[0],
+  );
+
   const fuse = useMemo(
     () =>
       new Fuse(chartMetadata, {
@@ -398,31 +407,40 @@ const VizTypeControl = (props: VizTypeControlProps) => {
   }, [searchInputValue, fuse]);
 
   const startSearching = useCallback(() => {
-    if (activeCategory !== undefined) {
-      // this will allow us to go back to the tab the user
-      // was looking at when they exit their search.
-      // "undefined" check is needed because undefined is used when searching,
-      // and we don't want to go back to that when we stop searching.
-      setCategoryRecall(activeCategory);
-    }
-    setActiveCategory(undefined);
     setIsSearching(true);
-  }, [activeCategory]);
+  }, []);
 
   const stopSearching = useCallback(() => {
-    setActiveCategory(categoryRecall);
     setIsSearching(false);
-  }, [categoryRecall]);
-
-  const onTabClick = useCallback((key: string) => {
-    setActiveCategory(key);
-    setIsSearching(false);
+    setSearchInputValue('');
   }, []);
+
+  const onTabClick = useCallback(
+    (key: string) => {
+      setActiveCategory(key);
+      stopSearching();
+    },
+    [stopSearching],
+  );
+
+  const toggleModal = useCallback(() => {
+    setShowModal(prevState => !prevState);
+
+    // make sure the modal opens up to the last submitted viz
+    setSelectedViz(initialValue);
+    setActiveCategory(
+      mountedPluginMetadata[initialValue]?.category || categories[0],
+    );
+  }, [initialValue, mountedPluginMetadata, categories]);
 
   const labelContent =
     mountedPluginMetadata[initialValue]?.name || `${initialValue}`;
 
   const selectedVizMetadata = mountedPluginMetadata[selectedViz];
+
+  const vizEntriesToDisplay = isSearching
+    ? searchResults
+    : chartsByCategory[activeCategory];
 
   return (
     <div>
@@ -450,58 +468,48 @@ const VizTypeControl = (props: VizTypeControlProps) => {
         title={t('Select a visualization type')}
         primaryButtonName={t('Select')}
         onHandledPrimaryAction={onSubmit}
+        maxWidth="1090px"
         responsive
       >
         <VizPickerLayout>
-          <SearchPane>
-            <Input
-              type="text"
-              value={searchInputValue}
-              placeholder={t('Search')}
-              onChange={changeSearch}
-              onFocus={startSearching}
-              data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__search-input`}
-              suffix={
-                <div
-                  css={css`
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    color: ${theme.colors.grayscale.base};
-                  `}
-                >
-                  <Icons.XLarge iconSize="m" onClick={stopSearching} />
-                </div>
-              }
-            />
-          </SearchPane>
-
-          {isSearching ? (
-            <SearchResultsPane>
-              {/* <h3 css={searchResultsHeaderCss}>Search Results</h3> */}
-              <ThumbnailGallery
-                vizEntries={searchResults}
-                selectedViz={selectedViz}
-                setSelectedViz={setSelectedViz}
+          <LeftPane>
+            <SearchWrapper>
+              <Input
+                type="text"
+                value={searchInputValue}
+                placeholder={t('Search')}
+                onChange={changeSearch}
+                onFocus={startSearching}
+                data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__search-input`}
+                prefix={
+                  <InputIconAlignment>
+                    <Icons.Search iconSize="m" />
+                  </InputIconAlignment>
+                }
+                suffix={
+                  <InputIconAlignment>
+                    {searchInputValue && (
+                      <Icons.XLarge iconSize="m" onClick={stopSearching} />
+                    )}
+                  </InputIconAlignment>
+                }
               />
-            </SearchResultsPane>
-          ) : (
-            <CategoriesTabs
-              tabPosition="left"
-              activeKey={activeCategory}
-              onTabClick={onTabClick}
-            >
-              {Object.entries(chartsByCategory).map(([category, vizTypes]) => (
-                <Tabs.TabPane tab={category} key={category}>
-                  <ThumbnailGallery
-                    vizEntries={vizTypes}
-                    selectedViz={selectedViz}
-                    setSelectedViz={setSelectedViz}
-                  />
-                </Tabs.TabPane>
-              ))}
-            </CategoriesTabs>
-          )}
+            </SearchWrapper>
+            {categories.map(category => (
+              <CategorySelector
+                key={category}
+                category={category}
+                isSelected={!isSearching && category === activeCategory}
+                onClick={onTabClick}
+              />
+            ))}
+          </LeftPane>
+
+          <ThumbnailGallery
+            vizEntries={vizEntriesToDisplay}
+            selectedViz={selectedViz}
+            setSelectedViz={setSelectedViz}
+          />
 
           <DetailsPane>
             <SectionTitle>{selectedVizMetadata?.name}</SectionTitle>
