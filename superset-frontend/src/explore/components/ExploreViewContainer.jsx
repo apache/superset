@@ -25,7 +25,7 @@ import { styled, t, css, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { Resizable } from 're-resizable';
 
-import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
+import { usePluginContext } from 'src/components/DynamicPlugins';
 import { Global } from '@emotion/react';
 import { Tooltip } from 'src/components/Tooltip';
 import { usePrevious } from 'src/common/hooks/usePrevious';
@@ -159,9 +159,9 @@ function useWindowSize({ delayMs = 250 } = {}) {
 }
 
 function ExploreViewContainer(props) {
-  const dynamicPluginContext = useDynamicPluginContext();
-  const dynamicPlugin = dynamicPluginContext.plugins[props.vizType];
-  const isDynamicPluginLoading = dynamicPlugin && dynamicPlugin.loading;
+  const dynamicPluginContext = usePluginContext();
+  const dynamicPlugin = dynamicPluginContext.dynamicPlugins[props.vizType];
+  const isDynamicPluginLoading = dynamicPlugin && dynamicPlugin.mounting;
   const wasDynamicPluginLoading = usePrevious(isDynamicPluginLoading);
 
   const previousControls = usePrevious(props.controls);
