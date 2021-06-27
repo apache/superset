@@ -21,28 +21,26 @@ import {
   Behavior,
   ChartDataResponseResult,
   Column,
+  GenericDataType,
   getChartMetadataRegistry,
   JsonResponse,
   styled,
   SupersetApiError,
   t,
-  GenericDataType,
-  ensureIsArray,
 } from '@superset-ui/core';
 import {
   ColumnMeta,
-  DatasourceMeta,
   InfoTooltipWithTrigger,
   Metric,
 } from '@superset-ui/chart-controls';
 import { FormInstance } from 'antd/lib/form';
 import React, {
+  forwardRef,
   useCallback,
   useEffect,
-  useState,
-  useMemo,
-  forwardRef,
   useImperativeHandle,
+  useMemo,
+  useState,
 } from 'react';
 import { useSelector } from 'react-redux';
 import { FormItem } from 'src/components/Form';
@@ -74,6 +72,9 @@ import { ColumnSelect } from './ColumnSelect';
 import { NativeFiltersForm } from '../types';
 import {
   datasetToSelectOption,
+  doesColumnMatchFilterType,
+  FILTER_SUPPORTED_TYPES,
+  hasTemporalColumns,
   setNativeFilterFieldValues,
   useForceUpdate,
 } from './utils';
@@ -277,8 +278,6 @@ const FILTERS_WITHOUT_COLUMN = [
 
 const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
 
-const TIME_FILTERS = ['filter_time', 'filter_timegrain', 'filter_timecolumn'];
-
 const BASIC_CONTROL_ITEMS = ['enableEmptyFilter', 'multiSelect'];
 
 // TODO: Rename the filter plugins and remove this mapping
@@ -289,17 +288,6 @@ const FILTER_TYPE_NAME_MAPPING = {
   [t('Time column')]: t('Time column'),
   [t('Time grain')]: t('Time grain'),
   [t('Group By')]: t('Group by'),
-};
-
-// TODO: add column_types field to DatasourceMeta
-// We return true if column_types is undefined or empty as a precaution against backend failing to return column_types
-const hasTemporalColumns = (
-  dataset: DatasourceMeta & { column_types: GenericDataType[] },
-) => {
-  const columnTypes = ensureIsArray(dataset?.column_types);
-  return (
-    columnTypes.length === 0 || columnTypes.includes(GenericDataType.TEMPORAL)
-  );
 };
 
 /**
@@ -681,7 +669,10 @@ const FiltersConfigForm = (
                   ? FILTER_TYPE_NAME_MAPPING[name]
                   : undefined;
                 const isDisabled =
-                  TIME_FILTERS.includes(filterType) &&
+                  FILTER_SUPPORTED_TYPES[filterType].length === 1 &&
+                  FILTER_SUPPORTED_TYPES[filterType].includes(
+                    GenericDataType.TEMPORAL,
+                  ) &&
                   !doLoadedDatasetsHaveTemporalColumns;
                 return {
                   value: filterType,
@@ -756,6 +747,9 @@ const FiltersConfigForm = (
                   form={form}
                   filterId={filterId}
                   datasetId={datasetId}
+                  filterValues={column =>
+                    doesColumnMatchFilterType(formFilter?.filterType, column)
+                  }
                   onChange={() => {
                     // We need reset default value when when column changed
                     setNativeFilterFieldValues(form, filterId, {
