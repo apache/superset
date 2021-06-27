@@ -29,7 +29,9 @@ on the Superset Slack. People crafting releases and those interested in
 partaking in the process should join the channel.
 
 ## Release notes for recent releases
-- [1.0.0](release-notes-1-0/README.md)
+- [1.2](release-notes-1-2/README.md)
+- [1.1](release-notes-1-1/README.md)
+- [1.0](release-notes-1-0/README.md)
 - [0.38](release-notes-0-38/README.md)
 
 ## Release setup (First Time Only)
