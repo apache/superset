@@ -555,20 +555,38 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         closable={false}
         css={(theme: SupersetTheme) => antDAlertStyles(theme)}
         type="info"
-        message={t('Want to add a new database?')}
+        message={
+          connectionAlert?.ADD_DATABASE?.message ||
+          t('Want to add a new database?')
+        }
         description={
-          <>
-            Any databases that allow connetions via SQL Alchemy URIs can be
-            added. Learn about how to connect a database driver{' '}
-            <a
-              href={DOCUMENTATION_LINK}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              here
-            </a>
-            .
-          </>
+          connectionAlert?.ADD_DATABASE ? (
+            <>
+              Any databases that allow connetions via SQL Alchemy URIs can be
+              added.{' '}
+              <a
+                href={connectionAlert?.ADD_DATABASE.contact_link}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {connectionAlert?.ADD_DATABASE.contact_description_link}
+              </a>{' '}
+              {connectionAlert?.ADD_DATABASE.description}
+            </>
+          ) : (
+            <>
+              Any databases that allow connetions via SQL Alchemy URIs can be
+              added. Learn about how to connect a database driver{' '}
+              <a
+                href={DOCUMENTATION_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                here
+              </a>
+              .
+            </>
+          )
         }
       />
     </div>
