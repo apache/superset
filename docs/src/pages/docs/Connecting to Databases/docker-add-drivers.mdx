@@ -58,6 +58,11 @@ After the rebuild is complete, which make take a few minutes, relaunch:
 ```
 docker-compose up
 ```
+If with the previous command, your docker gets up but Superset gets stuck loading the welcome screen, you can try with
+the following command instead:
+```
+docker-compose -f docker-compose-non-dev.yml up
+```
 
 ### 3. Connect to MySQL
 
