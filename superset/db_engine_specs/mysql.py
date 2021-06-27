@@ -37,6 +37,7 @@ from sqlalchemy.types import TypeEngine
 
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import SupersetErrorType
+from superset.models.sql_lab import Query
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
 
@@ -207,3 +208,13 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         return super().get_column_spec(
             native_type, column_type_mappings=column_type_mappings
         )
+
+    @classmethod
+    def get_cancel_query_payload(cls, cursor: Any, query: Query) -> Any:
+        cursor.execute("SELECT CONNECTION_ID()")
+        row = cursor.fetchone()
+        return row[0]
+
+    @classmethod
+    def cancel_query(cls, cursor: Any, query: Query, payload: Any) -> None:
+        cursor.execute("KILL CONNECTION %d" % payload)

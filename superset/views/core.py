@@ -2264,6 +2264,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return self.json_response("OK")
         query.status = QueryStatus.STOPPED
         db.session.commit()
+        sql_lab.cancel_query(query, g.user.username if g.user else None)
 
         return self.json_response("OK")
 

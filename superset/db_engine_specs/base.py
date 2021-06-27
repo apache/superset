@@ -1303,6 +1303,29 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             )
         return None
 
+    @classmethod
+    def get_cancel_query_payload(cls, cursor: Any, query: Query) -> Any:
+        """
+        Returns None if query can not be cancelled.
+        :param cursor: Cursor instance in which the query will be executed
+        :param query: Query instance
+        :return: Type of the payload can vary depends on databases
+        but must be jsonable. None if query can't be cancelled.
+        """
+        return None
+
+    @classmethod
+    def cancel_query(cls, cursor: Any, query: Query, payload: Any) -> None:
+        """
+        Cancels query in the underlying database.
+        The method is called only when payload is not None.
+        :param cursor: New cursor instance to the db of the query
+        :param query: Query instance
+        :param payload: Value returned by get_cancel_query_payload or set in
+        other life-cycle methods of the query
+        """
+        pass
+
 
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI

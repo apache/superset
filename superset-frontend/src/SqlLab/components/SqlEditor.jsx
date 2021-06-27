@@ -194,6 +194,7 @@ class SqlEditor extends React.PureComponent {
       WINDOW_RESIZE_THROTTLE_MS,
     );
 
+    this.onBeforeUnload = this.onBeforeUnload.bind(this);
     this.renderDropdown = this.renderDropdown.bind(this);
   }
 
@@ -212,6 +213,7 @@ class SqlEditor extends React.PureComponent {
     this.setState({ height: this.getSqlEditorHeight() });
 
     window.addEventListener('resize', this.handleWindowResize);
+    window.addEventListener('beforeunload', this.onBeforeUnload.bind(this));
 
     // setup hotkeys
     const hotkeys = this.getHotkeyConfig();
@@ -222,6 +224,7 @@ class SqlEditor extends React.PureComponent {
 
   componentWillUnmount() {
     window.removeEventListener('resize', this.handleWindowResize);
+    window.removeEventListener('beforeunload', this.onBeforeUnload.bind(this));
   }
 
   onResizeStart() {
@@ -240,6 +243,11 @@ class SqlEditor extends React.PureComponent {
         southPercent,
       );
     }
+  }
+
+  onBeforeUnload(event) {
+    event.preventDefault();
+    this.stopQuery();
   }
 
   onSqlChanged(sql) {

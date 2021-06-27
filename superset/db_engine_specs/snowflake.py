@@ -16,12 +16,13 @@
 # under the License.
 import json
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 from urllib import parse
 
 from sqlalchemy.engine.url import URL
 
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
+from superset.models.sql_lab import Query
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -99,3 +100,13 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         engine_params["connect_args"] = connect_args
         extra["engine_params"] = engine_params
         database.extra = json.dumps(extra)
+
+    @classmethod
+    def get_cancel_query_payload(cls, cursor: Any, query: Query) -> Any:
+        cursor.execute("SELECT CURRENT_SESSION()")
+        row = cursor.fetchone()
+        return row[0]
+
+    @classmethod
+    def cancel_query(cls, cursor: Any, query: Query, payload: Any) -> None:
+        cursor.execute("SELECT SYSTEM$CANCEL_ALL_QUERIES(%s)" % payload)
