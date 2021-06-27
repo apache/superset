@@ -112,6 +112,7 @@ setup(
         "wtforms-json",
         "pyparsing>=2.4.7, <3.0.0",
         "holidays==0.10.3",  # PINNED! https://github.com/dr-prodigy/python-holidays/issues/406
+        "deprecation>=2.1.0, <2.2.0",
     ],
     extras_require={
         "athena": ["pyathena>=1.10.8,<1.11"],
