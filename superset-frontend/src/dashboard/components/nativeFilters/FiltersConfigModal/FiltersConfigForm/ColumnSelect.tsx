@@ -16,15 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useMemo, useEffect } from 'react';
 import { FormInstance } from 'antd/lib/form';
-import { Column, SupersetClient, t } from '@superset-ui/core';
+import { Column, ensureIsArray, SupersetClient, t } from '@superset-ui/core';
 import { useChangeEffect } from 'src/common/hooks/useChangeEffect';
 import { Select } from 'src/common/components';
 import { useToasts } from 'src/messageToasts/enhancers/withToasts';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
 import { NativeFiltersForm } from '../types';
+import { doesColumnMatchFilterType } from './utils';
 
 interface ColumnSelectProps {
   allowClear?: boolean;
@@ -57,13 +58,39 @@ export function ColumnSelect({
   value,
   onChange,
 }: ColumnSelectProps) {
-  const [options, setOptions] = useState();
+  const [columns, setColumns] = useState<Column[]>();
   const { addDangerToast } = useToasts();
   const resetColumnField = useCallback(() => {
     form.setFields([
       { name: ['filters', filterId, formField], touched: false, value: null },
     ]);
-  }, [form, filterId]);
+  }, [form, filterId, formField]);
+
+  const options = useMemo(
+    () =>
+      ensureIsArray(columns)
+        .filter(filterValues)
+        .map((col: Column) => col.column_name)
+        .sort((a: string, b: string) => a.localeCompare(b))
+        .map((column: string) => ({ label: column, value: column })),
+    [columns, filterValues],
+  );
+
+  const currentFilterType = form.getFieldValue('filters')?.[filterId]
+    .filterType;
+  const currentColumn = useMemo(
+    () => columns?.find(column => column.column_name === value),
+    [columns, value],
+  );
+
+  useEffect(() => {
+    if (
+      currentColumn &&
+      !doesColumnMatchFilterType(currentFilterType, currentColumn)
+    ) {
+      resetColumnField();
+    }
+  }, [currentColumn, currentFilterType, resetColumnField]);
 
   useChangeEffect(datasetId, previous => {
     if (previous != null) {
@@ -74,16 +101,14 @@ export function ColumnSelect({
         endpoint: `/api/v1/dataset/${datasetId}`,
       }).then(
         ({ json: { result } }) => {
-          const columns = result.columns
-            .filter(filterValues)
-            .map((col: any) => col.column_name)
-            .sort((a: string, b: string) => a.localeCompare(b));
-          if (!columns.includes(value)) {
+          if (
+            !result.columns.some(
+              (column: Column) => column.column_name === value,
+            )
+          ) {
             resetColumnField();
           }
-          setOptions(
-            columns.map((column: any) => ({ label: column, value: column })),
-          );
+          setColumns(result.columns);
         },
         async badResponse => {
           const { error, message } = await getClientErrorObject(badResponse);
@@ -103,6 +128,7 @@ export function ColumnSelect({
       onChange={onChange}
       options={options}
       placeholder={t('Select a column')}
+      notFoundContent={t('No compatible columns found')}
       showSearch
       allowClear={allowClear}
     />
