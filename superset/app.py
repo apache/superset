@@ -14,13 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
 
+import importlib
 import logging
 import os
+from typing import Any, Dict
 
 from flask import Flask
+from pydash.objects import merge
+from werkzeug.utils import import_string
 
 from superset.initialization import SupersetAppInitializer
+from superset.utils.core import is_test
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +36,8 @@ def create_app() -> Flask:
 
     try:
         # Allow user to override our config completely
-        config_module = os.environ.get("SUPERSET_CONFIG", "superset.config")
-        app.config.from_object(config_module)
+        config = init_config()
+        app.config.from_object(config)
 
         app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
         app_initializer.init_app()
@@ -42,6 +48,50 @@ def create_app() -> Flask:
     except Exception as ex:
         logger.exception("Failed to create app")
         raise ex
+
+
+def init_config() -> Dict[Any, Any]:
+    config = load_default_config()
+    override_conf = load_override_config()
+    return merge(config, override_conf)
+
+
+def load_default_config() -> Dict[Any, Any]:
+    config_module = os.environ.get("SUPERSET_CONFIG", "superset.config")
+    config = import_string(config_module)
+    return config
+
+
+def load_override_config() -> Dict[Any, Any]:
+    CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
+    if CONFIG_PATH_ENV_VAR in os.environ:
+        # Explicitly import config module that is not necessarily in pythonpath; useful
+        # for case where app is being executed via pex.
+        try:
+            cfg_path = os.environ[CONFIG_PATH_ENV_VAR]
+
+            override_conf = importlib.import_module(
+                "superset_config", cfg_path
+            ).__dict__
+
+            print(f"Loaded your LOCAL configuration at [{cfg_path}]")
+            return override_conf
+        except Exception:
+            logger.exception(
+                "Failed to import config for %s=%s", CONFIG_PATH_ENV_VAR, cfg_path
+            )
+            raise
+    elif importlib.util.find_spec("superset_config") and not is_test():
+        try:
+            import superset_config  # pylint: disable=import-error
+
+            print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
+            return superset_config.__dict__
+        except Exception:
+            logger.exception("Found but failed to import local superset_config")
+            raise
+    else:
+        return {}
 
 
 class SupersetApp(Flask):
