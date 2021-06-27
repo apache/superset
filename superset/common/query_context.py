@@ -35,6 +35,8 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import CacheRegion, PandasAxis
 from superset.exceptions import QueryObjectValidationError, SupersetException
 from superset.extensions import cache_manager, security_manager
+from superset.models.helpers import QueryResult
+from superset.stats_logger import BaseStatsLogger
 from superset.utils import csv
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
@@ -117,13 +119,14 @@ class QueryContext:
                 query_object_clone.from_dttm = get_past_or_future(
                     offset, outer_from_dttm,
                 )
-                query_object_clone.to_dttm = get_past_or_future(offset, outer_to_dttm,)
+                query_object_clone.to_dttm = get_past_or_future(offset, outer_to_dttm)
             except ValueError as ex:
                 raise QueryObjectValidationError(str(ex))
             # make sure subquery use main query where clause
             query_object_clone.inner_from_dttm = outer_from_dttm
             query_object_clone.inner_to_dttm = outer_to_dttm
             query_object_clone.time_offsets = []
+            query_object_clone.post_processing = []
 
             if not query_object.from_dttm or not query_object.to_dttm:
                 raise QueryObjectValidationError(
@@ -132,6 +135,16 @@ class QueryContext:
                         "when using a Time Comparison."
                     )
                 )
+            # `offset` is added to the hash function
+            cache_key = self.query_cache_key(query_object_clone, time_offset=offset)
+            logger.info("Cache key: %s", cache_key)
+            _cache = QueryCacheManager.get(cache_key, CacheRegion.DATA, self.force)
+            # whether to hit the cache
+            if _cache.is_loaded:
+                df = pd.concat([df, _cache.df], axis=PandasAxis.COLUMN)
+                rv_sql.append(_cache.query)
+                continue
+
             query_object_clone_dct = query_object_clone.to_dict()
             result = self.datasource.query(query_object_clone_dct)
             rv_sql.append(result.query)
@@ -146,7 +159,9 @@ class QueryContext:
 
             offset_metrics_df = result.df
             if offset_metrics_df.empty:
-                df[[*columns_name_mapping.values()]] = np.NaN
+                offset_metrics_df = pd.DataFrame(
+                    {col: [np.NaN] for col in columns_name_mapping.values()}
+                )
             else:
                 # extract `metrics` columns from extra query
                 offset_metrics_df = offset_metrics_df[columns_name_mapping.keys()]
@@ -155,10 +170,24 @@ class QueryContext:
                 )
 
                 # combine `offset_metrics_df` with main query df
-                df = pd.concat([df, offset_metrics_df], axis=PandasAxis.COLUMN)
+            df = pd.concat([df, offset_metrics_df], axis=PandasAxis.COLUMN)
+
+            # save to cache.
+            value = {
+                "df": offset_metrics_df,
+                "query": result.query,
+            }
+            _cache.set(
+                cache_key,
+                value,
+                self.cache_timeout,
+                self.datasource.uid,
+                CacheRegion.DATA,
+            )
+
         return df, rv_sql
 
-    def get_query_result(self, query_object: QueryObject) -> Dict[str, Any]:
+    def get_query_result(self, query_object: QueryObject) -> QueryResult:
         """Returns a pandas dataframe based on the query object"""
 
         # Here, we assume that all the queries will use the same datasource, which is
@@ -200,12 +229,9 @@ class QueryContext:
             df.replace([np.inf, -np.inf], np.nan, inplace=True)
             df = query_object.exec_post_processing(df)
 
-        return {
-            "query": query,
-            "status": result.status,
-            "error_message": result.error_message,
-            "df": df,
-        }
+        result.df = df
+        result.query = query
+        return result
 
     @staticmethod
     def df_metrics_to_num(df: pd.DataFrame, query_object: QueryObject) -> None:
@@ -400,22 +426,15 @@ class QueryContext:
                 query_result = self.get_query_result(query_obj)
                 annotation_data = self.get_annotation_data(query_obj)
                 _cache.load_query(query_result, annotation_data, self.force)
+                _cache.set_query(
+                    cache_key,
+                    self.cache_timeout,
+                    self.datasource.uid,
+                    CacheRegion.DATA,
+                )
             except QueryObjectValidationError as ex:
                 _cache.error_message = str(ex)
                 _cache.status = QueryStatus.FAILED
-
-            value = {
-                "df": _cache.df,
-                "query": _cache.query,
-                "annotation_data": _cache.annotation_data,
-            }
-            _cache.set(
-                cache_key,
-                value,
-                self.cache_timeout,
-                self.datasource.uid,
-                CacheRegion.DATA,
-            )
 
         return {
             "cache_key": cache_key,
