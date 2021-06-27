@@ -22,7 +22,7 @@ describe('dashboard list view', () => {
   beforeEach(() => {
     cy.login();
     cy.visit(DASHBOARD_LIST);
-    cy.get('[data-test="list-view"]').click();
+    cy.get('[aria-label="list-view"]').click();
   });
 
   xit('should load rows', () => {
