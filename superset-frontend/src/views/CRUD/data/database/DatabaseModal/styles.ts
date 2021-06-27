@@ -378,9 +378,10 @@ export const StyledBasicTab = styled(Tabs.TabPane)`
   margin-top: ${({ theme }) => theme.gridUnit * 6}px;
 `;
 
-export const buttonLinkStyles = css`
+export const buttonLinkStyles = (theme: SupersetTheme) => css`
   font-weight: 400;
   text-transform: initial;
+  padding-right: ${theme.gridUnit * 2}px;
 `;
 
 export const alchemyButtonLinkStyles = (theme: SupersetTheme) => css`

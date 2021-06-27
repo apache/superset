@@ -130,6 +130,7 @@ const CredentialsInfo = ({
               tooltip={t(
                 'Use the JSON file you automatically downloaded when creating your service account in Google BigQuery.',
               )}
+              viewBox="0 0 24 24"
             />
           </span>
 
