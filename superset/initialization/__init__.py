@@ -21,6 +21,7 @@ import os
 from typing import Any, Callable, Dict, TYPE_CHECKING
 
 import wtforms_json
+from deprecation import deprecated
 from flask import Flask, redirect
 from flask_appbuilder import expose, IndexView
 from flask_babel import gettext as __, lazy_gettext as _
@@ -63,6 +64,11 @@ class SupersetAppInitializer:
         self.superset_app = app
         self.config = app.config
         self.manifest: Dict[Any, Any] = {}
+
+    @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore   # pylint: disable=line-too-long
+    @property  # type: ignore
+    def flask_app(self) -> SupersetApp:
+        return self.superset_app
 
     def pre_init(self) -> None:
         """
