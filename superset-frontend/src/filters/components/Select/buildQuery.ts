@@ -33,14 +33,14 @@ const buildQuery: BuildQuery<PluginFilterSelectQueryFormData> = (
   const { sortAscending, sortMetric } = { ...DEFAULT_FORM_DATA, ...formData };
   return buildQueryContext(formData, baseQueryObject => {
     const { columns = [], filters = [] } = baseQueryObject;
-    var extra_filters: QueryObjectFilterClause[] = [];;
+    var extra_filters: QueryObjectFilterClause[] = [];
     columns.map(column => {
       if (search && coltypeMap[column] === GenericDataType.STRING) {
-        extra_filters = [{
+        extra_filters.push({
           col: column,
           op: 'ILIKE',
           val: `%${search}%`,
-        }];
+        });
       }
       else if (
         search &&
@@ -48,11 +48,11 @@ const buildQuery: BuildQuery<PluginFilterSelectQueryFormData> = (
         !Number.isNaN(Number(search))
       ) {
         // for numeric columns we apply a >= where clause
-        extra_filters = [{
+        extra_filters.push({
           col: column,
           op: '>=',
           val: Number(search),
-        }];
+        });
       }
     });
 
