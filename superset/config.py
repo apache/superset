@@ -20,13 +20,11 @@ All configuration in this file can be overridden by providing a superset_config
 in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
-import imp
-import importlib.util
+
 import json
 import logging
 import os
 import re
-import sys
 from collections import OrderedDict
 from datetime import date
 from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
@@ -43,13 +41,13 @@ from superset.jinja_context import (  # pylint: disable=unused-import
 )
 from superset.stats_logger import DummyStatsLogger
 from superset.typing import CacheConfig
-from superset.utils.core import is_test, parse_boolean_string
+from superset.utils.core import parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
 
 logger = logging.getLogger(__name__)
-
+__all__ = ["STATS_LOGGER"]
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla import models  # pylint: disable=unused-import
 

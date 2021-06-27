@@ -17,9 +17,11 @@
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import logging
 import os
-from typing import Any, Dict
+from types import ModuleType
+from typing import Any, Dict, Union
 
 from flask import Flask
 from pydash.objects import merge
@@ -51,28 +53,31 @@ def create_app() -> Flask:
 
 
 def init_config() -> Dict[Any, Any]:
-    config = load_default_config()
-    override_conf = load_override_config()
+    config = convert_to_dict(load_default_config())
+    override_conf = convert_to_dict(load_override_config())
     return merge(config, override_conf)
 
 
-def load_default_config() -> Dict[Any, Any]:
+def convert_to_dict(module: Union[ModuleType, Dict[Any, Any]]) -> Dict[Any, Any]:
+    raw_dict = module if isinstance(module, dict) else module.__dict__
+    return {k: v for k, v in raw_dict.items() if k.isupper() and k.isalpha()}
+
+
+def load_default_config() -> ModuleType:
     config_module = os.environ.get("SUPERSET_CONFIG", "superset.config")
-    config = import_string(config_module)
+    config: ModuleType = import_string(config_module)
     return config
 
 
-def load_override_config() -> Dict[Any, Any]:
+def load_override_config() -> Union[Dict[Any, Any], ModuleType]:
     CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
     if CONFIG_PATH_ENV_VAR in os.environ:
         # Explicitly import config module that is not necessarily in pythonpath; useful
         # for case where app is being executed via pex.
+        cfg_path = os.environ[CONFIG_PATH_ENV_VAR]
         try:
-            cfg_path = os.environ[CONFIG_PATH_ENV_VAR]
 
-            override_conf = importlib.import_module(
-                "superset_config", cfg_path
-            ).__dict__
+            override_conf = importlib.import_module("superset_config", cfg_path)
 
             print(f"Loaded your LOCAL configuration at [{cfg_path}]")
             return override_conf
@@ -86,12 +91,11 @@ def load_override_config() -> Dict[Any, Any]:
             import superset_config  # pylint: disable=import-error
 
             print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
-            return superset_config.__dict__
+            return superset_config
         except Exception:
             logger.exception("Found but failed to import local superset_config")
             raise
-    else:
-        return {}
+    return {}
 
 
 class SupersetApp(Flask):
