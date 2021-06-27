@@ -143,7 +143,7 @@ describe('DashboardList', () => {
   });
 
   it('renders a table view', async () => {
-    wrapper.find('[data-test="list-view"]').first().simulate('click');
+    wrapper.find('[aria-label="list-view"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find('table')).toExist();
   });
