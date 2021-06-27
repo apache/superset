@@ -65,7 +65,7 @@ class SupersetAppInitializer:
         self.config = app.config
         self.manifest: Dict[Any, Any] = {}
 
-    @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore
+    @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore   # pylint: disable=line-too-long
     @property  # type: ignore
     def flask_app(self) -> SupersetApp:
         return self.superset_app
