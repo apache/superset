@@ -82,7 +82,7 @@ def test_export_datasources_original(app_context, fs):
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @mock.patch.dict(
-    "superset.config.DEFAULT_FEATURE_FLAGS", {"VERSIONED_EXPORT": True}, clear=True
+    "superset.config.FEATURE_FLAGS", {"VERSIONED_EXPORT": True}, clear=True
 )
 def test_export_dashboards_versioned_export(app_context, fs):
     """
@@ -107,7 +107,7 @@ def test_export_dashboards_versioned_export(app_context, fs):
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @mock.patch.dict(
-    "superset.config.DEFAULT_FEATURE_FLAGS", {"VERSIONED_EXPORT": True}, clear=True
+    "superset.config.FEATURE_FLAGS", {"VERSIONED_EXPORT": True}, clear=True
 )
 def test_export_datasources_versioned_export(app_context, fs):
     """
@@ -131,7 +131,7 @@ def test_export_datasources_versioned_export(app_context, fs):
 
 
 @mock.patch.dict(
-    "superset.config.DEFAULT_FEATURE_FLAGS", {"VERSIONED_EXPORT": True}, clear=True
+    "superset.config.FEATURE_FLAGS", {"VERSIONED_EXPORT": True}, clear=True
 )
 @mock.patch("superset.dashboards.commands.importers.dispatcher.ImportDashboardsCommand")
 def test_import_dashboards_versioned_export(import_dashboards_command, app_context, fs):
@@ -170,7 +170,7 @@ def test_import_dashboards_versioned_export(import_dashboards_command, app_conte
 
 
 @mock.patch.dict(
-    "superset.config.DEFAULT_FEATURE_FLAGS", {"VERSIONED_EXPORT": True}, clear=True
+    "superset.config.FEATURE_FLAGS", {"VERSIONED_EXPORT": True}, clear=True
 )
 @mock.patch("superset.datasets.commands.importers.dispatcher.ImportDatasetsCommand")
 def test_import_datasets_versioned_export(import_datasets_command, app_context, fs):

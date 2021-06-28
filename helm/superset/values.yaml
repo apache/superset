@@ -29,10 +29,10 @@ runAsUser: 0
 # For production clusters it's recommended to build own image with this step done in CI
 bootstrapScript: |
   #!/bin/bash
-  apt-get update -y &&\
-   apt-get install -y --no-install-recommends nano &&\
-   rm -rf /var/lib/apt/lists/*
-  pip install psycopg2==2.8.5 redis==3.2.1
+  rm -rf /var/lib/apt/lists/* && \
+  pip install \
+    psycopg2==2.8.5 \
+    redis==3.2.1 && \
   if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
 
 ## The name of the secret which we will use to generate a superset_config.py file
@@ -78,9 +78,7 @@ extraConfigs: {}
   #       sqlalchemy_uri: example://example-db.local
   #       tables: []
 
-
 extraSecrets: {}
-
 
 # A dictionary of overrides to append at the end of superset_config.py - the name does not matter
 # WARNING: the order is not guaranteed
@@ -190,10 +188,8 @@ supersetNode:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
-
   ## Annotations to be added to supersetNode deployment
   deploymentAnnotations: {}
-
   ## Annotations to be added to supersetNode pods
   podAnnotations: {}
 
@@ -213,10 +209,8 @@ supersetWorker:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
-
   ## Annotations to be added to supersetWorker deployment
   deploymentAnnotations: {}
-
   ## Annotations to be added to supersetWorker pods
   podAnnotations: {}
 
@@ -238,10 +232,8 @@ supersetCeleryBeat:
         - secretRef:
             name: '{{ tpl .Values.envFromSecret . }}'
       command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
-
   ## Annotations to be added to supersetCeleryBeat deployment
   deploymentAnnotations: {}
-
   ## Annotations to be added to supersetCeleryBeat pods
   podAnnotations: {}
 
@@ -311,14 +303,11 @@ postgresql:
   ## Use the PostgreSQL chart dependency.
   ## Set to false if bringing your own PostgreSQL.
   enabled: true
-
   ##
   ## The name of an existing secret that contains the postgres password.
   existingSecret:
-
   ## Name of the key containing the secret.
   existingSecretKey: postgresql-password
-
   ##
   ## If you are bringing your own PostgreSQL, you should set postgresHost and
   ## also probably service.port, postgresqlUsername, postgresqlPassword, and postgresqlDatabase
@@ -358,16 +347,12 @@ redis:
   ## Use the redis chart dependency.
   ## Set to false if bringing your own redis.
   enabled: true
-
   usePassword: false
-
   ##
   ## The name of an existing secret that contains the redis password.
   existingSecret:
-
   ## Name of the key containing the secret.
   existingSecretKey: redis-password
-
   ##
   ## If you are bringing your own redis, you can set the host in redisHost.
   ## redisHost:

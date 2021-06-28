@@ -52,6 +52,10 @@ export default function setupErrorMessages() {
     ParameterErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.INVALID_TEMPLATE_PARAMS_ERROR,
+    ParameterErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.RESULTS_BACKEND_NOT_CONFIGURED_ERROR,
     DatabaseErrorMessage,
   );
