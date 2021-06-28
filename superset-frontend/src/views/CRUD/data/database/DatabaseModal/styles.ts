@@ -148,6 +148,10 @@ export const antDModalStyles = (theme: SupersetTheme) => css`
   .ant-modal-body {
     height: ${theme.gridUnit * 180.5}px;
   }
+
+  .ant-modal-footer {
+    height: ${theme.gridUnit * 16.25}px;
+  }
 `;
 
 export const antDAlertStyles = (theme: SupersetTheme) => css`
