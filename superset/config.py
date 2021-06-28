@@ -310,12 +310,8 @@ LANGUAGES = {}
 # ---------------------------------------------------
 # Feature flags
 # ---------------------------------------------------
-# Feature flags that are set by default go here. Their values can be
-# overwritten by those specified under FEATURE_FLAGS in superset_config.py
-# For example, DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False } here
-# and FEATURE_FLAGS = { 'BAR': True, 'BAZ': True } in superset_config.py
-# will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
-DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
+# Feature flags that are set by default go here.
+FEATURE_FLAGS: Dict[str, bool] = {
     # allow dashboard to use sub-domains to send chart request
     # you also need ENABLE_CORS and
     # SUPERSET_WEBSERVER_DOMAINS for list of domains
@@ -394,7 +390,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
 }
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
-DEFAULT_FEATURE_FLAGS.update(
+FEATURE_FLAGS.update(
     {
         k[len("SUPERSET_FEATURE_") :]: parse_boolean_string(v)
         for k, v in os.environ.items()
@@ -402,11 +398,7 @@ DEFAULT_FEATURE_FLAGS.update(
     }
 )
 
-# This is merely a default.
-FEATURE_FLAGS: Dict[str, bool] = {}
-
 # A function that receives a dict of all feature flags
-# (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)
 # can alter it, and returns a similar dict. Note the dict of feature
 # flags passed to the function is a deepcopy of the dict in the config,
 # and can therefore be mutated without side-effect

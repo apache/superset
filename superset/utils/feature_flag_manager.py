@@ -28,8 +28,7 @@ class FeatureFlagManager:
 
     def init_app(self, app: Flask) -> None:
         self._get_feature_flags_func = app.config["GET_FEATURE_FLAGS_FUNC"]
-        self._feature_flags = app.config["DEFAULT_FEATURE_FLAGS"]
-        self._feature_flags.update(app.config["FEATURE_FLAGS"])
+        self._feature_flags = app.config["FEATURE_FLAGS"].copy()
 
     def get_feature_flags(self) -> Dict[str, Any]:
         if self._get_feature_flags_func:
