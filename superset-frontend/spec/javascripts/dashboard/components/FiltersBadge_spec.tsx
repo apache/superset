@@ -23,7 +23,7 @@ import { Provider } from 'react-redux';
 import * as SupersetUI from '@superset-ui/core';
 import { CHART_UPDATE_SUCCEEDED } from 'src/chart/chartAction';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
-import FiltersBadge from 'src/dashboard/containers/FiltersBadge';
+import FiltersBadge from 'src/dashboard/components/FiltersBadge';
 import {
   getMockStoreWithFilters,
   getMockStoreWithNativeFilters,
