@@ -56,6 +56,7 @@ export const StyledFormHeader = styled.header`
   }
 
   .select-db {
+    padding: ${({ theme }) => theme.gridUnit}px;
     .helper {
       margin: 0;
     }
@@ -146,6 +147,10 @@ export const antDModalStyles = (theme: SupersetTheme) => css`
 
   .ant-modal-body {
     height: ${theme.gridUnit * 180.5}px;
+  }
+
+  .ant-modal-footer {
+    height: ${theme.gridUnit * 16.25}px;
   }
 `;
 
@@ -377,9 +382,10 @@ export const StyledBasicTab = styled(Tabs.TabPane)`
   margin-top: ${({ theme }) => theme.gridUnit * 6}px;
 `;
 
-export const buttonLinkStyles = css`
+export const buttonLinkStyles = (theme: SupersetTheme) => css`
   font-weight: 400;
   text-transform: initial;
+  padding-right: ${theme.gridUnit * 2}px;
 `;
 
 export const alchemyButtonLinkStyles = (theme: SupersetTheme) => css`
@@ -449,7 +455,13 @@ export const CredentialInfoForm = styled.div`
     height: 100px;
     width: 100%;
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border-radius: ${({ theme }) => theme.gridUnit}px;
     resize: vertical;
+    padding: ${({ theme }) => theme.gridUnit * 1.5}px
+      ${({ theme }) => theme.gridUnit * 2}px;
+    &::placeholder {
+      color: ${({ theme }) => theme.colors.grayscale.light1};
+    }
   }
 
   .input-container {
