@@ -52,15 +52,17 @@ export default function PluginFilterTimegrain(
   const { defaultValue, inputRef } = formData;
 
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
-  const durationMap = useMemo(() => {
-    return data.reduce((agg, row) => {
-      const { duration, name } = row as { duration: string, name: string};
-      return {
-        ...agg,
-        [duration]: name,
-      }
-    }, {} as {[key in string]: string});
-  }, [JSON.stringify(data)]);
+  const durationMap = useMemo(
+    () =>
+      data.reduce((agg, row) => {
+        const { duration, name } = row as { duration: string; name: string };
+        return {
+          ...agg,
+          [duration]: name,
+        };
+      }, {} as { [key in string]: string }),
+    [JSON.stringify(data)],
+  );
 
   const handleChange = (values: string[] | string | undefined | null) => {
     const resultValue: string[] = ensureIsArray<string>(values);
