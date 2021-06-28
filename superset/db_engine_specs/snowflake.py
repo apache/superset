@@ -30,7 +30,7 @@ from superset.utils import core as utils
 if TYPE_CHECKING:
     from superset.models.core import Database
 
-
+# Regular expressions to catch custom errors
 OBJECT_DOES_NOT_EXIST_REGEX = re.compile(
     r"Object (?P<object>.*?) does not exist or not authorized."
 )
