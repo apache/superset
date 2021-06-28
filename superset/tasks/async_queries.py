@@ -74,8 +74,6 @@ def load_chart_data_into_cache(
         )
         raise exc
 
-    return None
-
 
 @celery_app.task(name="load_explore_json_into_cache", soft_time_limit=query_timeout)
 def load_explore_json_into_cache(  # pylint: disable=too-many-locals
@@ -134,5 +132,3 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
             job_metadata, async_query_manager.STATUS_ERROR, errors=errors
         )
         raise exc
-
-    return None
