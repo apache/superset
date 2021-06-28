@@ -72,6 +72,7 @@ class SupersetErrorType(str, Enum):
     INVALID_CTAS_QUERY_ERROR = "INVALID_CTAS_QUERY_ERROR"
     INVALID_CVAS_QUERY_ERROR = "INVALID_CVAS_QUERY_ERROR"
     SQLLAB_TIMEOUT_ERROR = "SQLLAB_TIMEOUT_ERROR"
+    OBJECT_DOES_NOT_EXIST_ERROR = "OBJECT_DOES_NOT_EXIST_ERROR"
 
     # Generic errors
     GENERIC_COMMAND_ERROR = "GENERIC_COMMAND_ERROR"
@@ -317,6 +318,14 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
             "code": 1027,
             "message": _(
                 "Issue 1027 - The database is currently running too many queries."
+            ),
+        },
+    ],
+    SupersetErrorType.OBJECT_DOES_NOT_EXIST_ERROR: [
+        {
+            "code": 1028,
+            "message": _(
+                "Issue 1028 - The object does not exist in the given database."
             ),
         },
     ],
