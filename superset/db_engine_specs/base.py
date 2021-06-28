@@ -1324,7 +1324,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param payload: Value returned by get_cancel_query_payload or set in
         other life-cycle methods of the query
         """
-        pass
 
 
 # schema for adding a database by providing parameters instead of the
