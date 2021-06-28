@@ -451,7 +451,13 @@ export const CredentialInfoForm = styled.div`
     height: 100px;
     width: 100%;
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border-radius: ${({ theme }) => theme.gridUnit}px;
     resize: vertical;
+    padding: ${({ theme }) => theme.gridUnit * 1.5}px
+      ${({ theme }) => theme.gridUnit * 2}px;
+    &::placeholder {
+      color: ${({ theme }) => theme.colors.grayscale.light1};
+    }
   }
 
   .input-container {
