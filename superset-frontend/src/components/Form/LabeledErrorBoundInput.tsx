@@ -22,7 +22,7 @@ import { styled, css, SupersetTheme } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
 import FormItem from './FormItem';
 import FormLabel from './FormLabel';
-import errorIcon from 'images/icons/error.svg'
+import errorIcon from 'images/icons/error.svg';
 export interface LabeledErrorBoundInputProps {
   label?: string;
   validationMethods:
@@ -58,8 +58,8 @@ const alertIconStyles = (theme: SupersetTheme, hasError: boolean) => css`
         width: ${theme.gridUnit * 4}px;
         height: ${theme.gridUnit * 4}px;
         position: absolute;
-        right: 2%;
-        top: 26%;
+        right: 5px;
+        top: 11px;
       }
     }`}
 `;
