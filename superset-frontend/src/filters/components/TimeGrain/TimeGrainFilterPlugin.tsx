@@ -24,7 +24,7 @@ import {
   TimeGranularity,
   tn,
 } from '@superset-ui/core';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Select } from 'src/common/components';
 import { Styles, StyledSelect } from '../common';
 import { PluginFilterTimeGrainProps } from './types';
@@ -52,10 +52,20 @@ export default function PluginFilterTimegrain(
   const { defaultValue, inputRef } = formData;
 
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
+  const durationMap = useMemo(() => {
+    return data.reduce((agg, row) => {
+      const { duration, name } = row as { duration: string, name: string};
+      return {
+        ...agg,
+        [duration]: name,
+      }
+    }, {} as {[key in string]: string});
+  }, [JSON.stringify(data)]);
 
   const handleChange = (values: string[] | string | undefined | null) => {
     const resultValue: string[] = ensureIsArray<string>(values);
     const [timeGrain] = resultValue;
+    const label = timeGrain ? durationMap[timeGrain] : undefined;
 
     const extraFormData: ExtraFormData = {};
     if (timeGrain) {
@@ -65,6 +75,7 @@ export default function PluginFilterTimegrain(
     setDataMask({
       extraFormData,
       filterState: {
+        label,
         value: resultValue.length ? resultValue : null,
       },
     });
