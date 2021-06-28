@@ -149,9 +149,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
             {},
         ),
         COLUMN_DOES_NOT_EXIST_REGEX: (
-            __(
-                'We can\'t seem to resolve column "%(column)s" at ' "line %(location)s."
-            ),
+            __('We can\'t seem to resolve column "%(column)s" at line %(location)s.'),
             SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
             {},
         ),

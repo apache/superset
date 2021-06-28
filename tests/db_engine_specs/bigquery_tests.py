@@ -271,7 +271,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             )
         ]
 
-        msg = "Table name badtable missing dataset while no default dataset is set in the request"
+        msg = 'Table name "badtable" missing dataset while no default dataset is set in the request'
         result = BigQueryEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
@@ -288,6 +288,29 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
                         {
                             "code": 1005,
                             "message": "Issue 1005 - The table was deleted or renamed in the database.",
+                        },
+                    ],
+                },
+            )
+        ]
+
+        msg = "Unrecognized name: badColumn at [1:8]"
+        result = BigQueryEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                message='We can\'t seem to resolve column "badColumn" at line 1:8.',
+                error_type=SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Google BigQuery",
+                    "issue_codes": [
+                        {
+                            "code": 1003,
+                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                        },
+                        {
+                            "code": 1004,
+                            "message": "Issue 1004 - The column was deleted or renamed in the database.",
                         },
                     ],
                 },
