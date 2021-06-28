@@ -22,7 +22,7 @@ describe('chart list view', () => {
   beforeEach(() => {
     cy.login();
     cy.visit(CHART_LIST);
-    cy.get('[data-test="list-view"]').click();
+    cy.get('[aria-label="list-view"]').click();
   });
 
   it('should load rows', () => {
