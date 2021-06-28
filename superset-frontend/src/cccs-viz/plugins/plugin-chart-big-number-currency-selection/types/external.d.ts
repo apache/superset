@@ -16,12 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-export { default as BigNumberCurrencySelectionChartPlugin } from './plugin-chart-big-number-currency-selection/BigNumberTotal';
-export { default as BigNumberChartPlugin } from './plugin-chart-big-number-currency-selection/BigNumber';
-export { default as GwwkChartsChartPlugin } from './plugin-chart-gwwk-charts/src/Charts';
-export { default as GwwkDatasetsChartPlugin } from './plugin-chart-gwwk-charts/src/Datasets';
-export { default as GwwkDashboardsChartPlugin } from './plugin-chart-gwwk-charts/src/Dashboards';
-export { default as IframeDemoChartPlugin } from './plugin-chart-iframe-demo/src/plugin';
-export { default as CccsGridChartPlugin } from './plugin-chart-cccs-grid/src/plugin';
-export { default as StatusIndicatorChartPlugin } from './plugin-chart-status-indicator/src/chart';
+declare module '@data-ui/xy-chart';
+declare module '*.png';

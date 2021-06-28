@@ -16,12 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Preset } from '@superset-ui/core';
+import BigNumberChartPlugin from './BigNumber';
+import BigNumberTotalChartPlugin from './BigNumberTotal';
 
-export { default as BigNumberCurrencySelectionChartPlugin } from './plugin-chart-big-number-currency-selection/BigNumberTotal';
-export { default as BigNumberChartPlugin } from './plugin-chart-big-number-currency-selection/BigNumber';
-export { default as GwwkChartsChartPlugin } from './plugin-chart-gwwk-charts/src/Charts';
-export { default as GwwkDatasetsChartPlugin } from './plugin-chart-gwwk-charts/src/Datasets';
-export { default as GwwkDashboardsChartPlugin } from './plugin-chart-gwwk-charts/src/Dashboards';
-export { default as IframeDemoChartPlugin } from './plugin-chart-iframe-demo/src/plugin';
-export { default as CccsGridChartPlugin } from './plugin-chart-cccs-grid/src/plugin';
-export { default as StatusIndicatorChartPlugin } from './plugin-chart-status-indicator/src/chart';
+export default class BigNumberChartPreset extends Preset {
+  constructor() {
+    super({
+      name: 'BigNumber charts',
+      plugins: [
+        new BigNumberChartPlugin().configure({ key: 'big_number' }),
+        new BigNumberTotalChartPlugin().configure({ key: 'big_number_total' }),
+      ],
+    });
+  }
+}

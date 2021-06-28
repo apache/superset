@@ -16,12 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import controlPanel from './controlPanel';
+import transformProps, {
+  BigNumberChartProps,
+  BigNumberFormData,
+} from '../BigNumber/transformProps';
+import thumbnail from './images/thumbnail.png';
 
-export { default as BigNumberCurrencySelectionChartPlugin } from './plugin-chart-big-number-currency-selection/BigNumberTotal';
-export { default as BigNumberChartPlugin } from './plugin-chart-big-number-currency-selection/BigNumber';
-export { default as GwwkChartsChartPlugin } from './plugin-chart-gwwk-charts/src/Charts';
-export { default as GwwkDatasetsChartPlugin } from './plugin-chart-gwwk-charts/src/Datasets';
-export { default as GwwkDashboardsChartPlugin } from './plugin-chart-gwwk-charts/src/Dashboards';
-export { default as IframeDemoChartPlugin } from './plugin-chart-iframe-demo/src/plugin';
-export { default as CccsGridChartPlugin } from './plugin-chart-cccs-grid/src/plugin';
-export { default as StatusIndicatorChartPlugin } from './plugin-chart-status-indicator/src/chart';
+const metadata = new ChartMetadata({
+  description: '',
+  name: t('Big Number'),
+  thumbnail,
+  useLegacyApi: true,
+});
+
+export default class BigNumberTotalChartPlugin extends ChartPlugin<
+  BigNumberFormData,
+  BigNumberChartProps
+> {
+  constructor() {
+    super({
+      loadChart: () => import('../BigNumber/BigNumber'),
+      metadata,
+      transformProps,
+      controlPanel,
+    });
+  }
+}

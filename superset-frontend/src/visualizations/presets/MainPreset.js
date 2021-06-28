@@ -17,10 +17,7 @@
  * under the License.
  */
 import { Preset } from '@superset-ui/core';
-import {
-  BigNumberChartPlugin,
-  BigNumberTotalChartPlugin,
-} from '@superset-ui/legacy-preset-chart-big-number';
+import { BigNumberTotalChartPlugin } from '@superset-ui/legacy-preset-chart-big-number';
 import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
 import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map';
@@ -80,6 +77,8 @@ import {
   IframeDemoChartPlugin,
   CccsGridChartPlugin,
   StatusIndicatorChartPlugin,
+  BigNumberCurrencySelectionChartPlugin,
+  BigNumberChartPlugin,
 } from 'src/cccs-viz/plugins/';
 
 export default class MainPreset extends Preset {
@@ -96,9 +95,9 @@ export default class MainPreset extends Preset {
         new CccsGridChartPlugin().configure({key: 'cccs_grid'}),
         new AreaChartPlugin().configure({ key: 'area' }),
         new BarChartPlugin().configure({ key: 'bar' }),
-        new BigNumberChartPlugin().configure({ key: 'big_number' }),
-        new BigNumberTotalChartPlugin().configure({ key: 'big_number_total' }),
         new EchartsBoxPlotChartPlugin().configure({ key: 'box_plot' }),
+        new BigNumberChartPlugin().configure({ key: 'big_number' }),
+        new BigNumberCurrencySelectionChartPlugin().configure({ key: 'big_number_total' }),
         new BubbleChartPlugin().configure({ key: 'bubble' }),
         new BulletChartPlugin().configure({ key: 'bullet' }),
         new CalendarChartPlugin().configure({ key: 'cal_heatmap' }),
