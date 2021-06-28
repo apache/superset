@@ -23,13 +23,6 @@ import FilterValue from './FilterValue';
 import { FilterProps } from './types';
 import { checkIsMissingRequiredValue } from '../utils';
 
-const StyledFormItem = styled(FormItem)`
-  & label {
-    width: 100%;
-    padding-right: ${({ theme }) => theme.gridUnit * 11}px;
-  }
-`;
-
 const StyledIcon = styled.div`
   position: absolute;
   right: 0;
@@ -52,6 +45,11 @@ const StyledFilterControlTitleBox = styled.div`
 
 const StyledFilterControlContainer = styled(Form)`
   width: 100%;
+  & .ant-form-item-label > label {
+    text-transform: none;
+    width: 100%;
+    padding-right: ${({ theme }) => theme.gridUnit * 11}px;
+  }
 `;
 
 const FilterControl: React.FC<FilterProps> = ({
@@ -71,7 +69,7 @@ const FilterControl: React.FC<FilterProps> = ({
 
   return (
     <StyledFilterControlContainer layout="vertical">
-      <StyledFormItem
+      <FormItem
         label={
           <StyledFilterControlTitleBox>
             <StyledFilterControlTitle data-test="filter-control-name">
@@ -90,7 +88,7 @@ const FilterControl: React.FC<FilterProps> = ({
           onFilterSelectionChange={onFilterSelectionChange}
           inView={inView}
         />
-      </StyledFormItem>
+      </FormItem>
     </StyledFilterControlContainer>
   );
 };
