@@ -60,7 +60,7 @@ def init_config() -> Dict[Any, Any]:
 
 def convert_to_dict(module: Union[ModuleType, Dict[Any, Any]]) -> Dict[Any, Any]:
     raw_dict = module if isinstance(module, dict) else module.__dict__
-    return {k: v for k, v in raw_dict.items() if k.isupper() and not k.startswith('_')}
+    return {k: v for k, v in raw_dict.items() if k.isupper() and not k.startswith("_")}
 
 
 def load_default_config() -> ModuleType:
@@ -70,7 +70,7 @@ def load_default_config() -> ModuleType:
 
 
 def load_override_config() -> Union[Dict[Any, Any], ModuleType]:
-    CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
+    CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"  # pylint: disable=C0103
     if CONFIG_PATH_ENV_VAR in os.environ:
         # Explicitly import config module that is not necessarily in pythonpath; useful
         # for case where app is being executed via pex.
