@@ -18,6 +18,7 @@
  */
 
 import React from 'react';
+import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
 import {
   EditHeaderTitle,
   EditHeaderSubtitle,
@@ -31,6 +32,8 @@ import { DatabaseForm, DatabaseObject } from '../types';
 export const DOCUMENTATION_LINK =
   'https://superset.apache.org/docs/databases/installing-database-drivers';
 
+const supersetTextDocs = getDatabaseDocumentationLinks();
+
 const irregularDocumentationLinks = {
   postgresql: 'https://superset.apache.org/docs/databases/postgres',
   mssql: 'https://superset.apache.org/docs/databases/sql-server',
@@ -38,6 +41,12 @@ const irregularDocumentationLinks = {
 
 const documentationLink = (engine: string | undefined) => {
   if (!engine) return null;
+
+  if (supersetTextDocs) {
+    // override doc link for superset_txt yml
+    return supersetTextDocs[engine] || supersetTextDocs.default;
+  }
+
   if (!irregularDocumentationLinks[engine]) {
     return `https://superset.apache.org/docs/databases/${engine}`;
   }
