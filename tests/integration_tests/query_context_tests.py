@@ -528,3 +528,45 @@ class TestQueryContext(SupersetTestCase):
         # # 1 year later
         assert re.search(r"1991-01-01.+1992-01-01", sqls[2], re.S)
         assert re.search(r"1990-01-01.+1991-01-01", sqls[2], re.S)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_processing_time_offsets_cache(self):
+        """
+        Ensure that time_offsets can generate the correct query
+        """
+        self.login(username="admin")
+        payload = get_query_context("birth_names")
+        payload["queries"][0]["metrics"] = ["sum__num"]
+        payload["queries"][0]["groupby"] = ["name"]
+        payload["queries"][0]["is_timeseries"] = True
+        payload["queries"][0]["timeseries_limit"] = 5
+        payload["queries"][0]["time_offsets"] = ["1 year ago", "1 year later"]
+        payload["queries"][0]["time_range"] = "1990 : 1991"
+        query_context = ChartDataQueryContextSchema().load(payload)
+        query_object = query_context.queries[0]
+        query_result = query_context.get_query_result(query_object)
+        df = query_result.df
+
+        _, _, cache_keys = query_context.processing_time_offsets(df, query_object)
+        cache_keys__1_year_ago = cache_keys[0]
+        cache_keys__1_year_later = cache_keys[1]
+        self.assertIsNotNone(cache_keys__1_year_ago)
+        self.assertIsNotNone(cache_keys__1_year_later)
+        self.assertNotEqual(cache_keys__1_year_ago, cache_keys__1_year_later)
+
+        payload["queries"][0]["time_offsets"] = ["1 year later", "1 year ago"]
+        query_context = ChartDataQueryContextSchema().load(payload)
+        query_object = query_context.queries[0]
+        _, _, cache_keys = query_context.processing_time_offsets(df, query_object)
+        self.assertEqual(cache_keys__1_year_ago, cache_keys[1])
+        self.assertEqual(cache_keys__1_year_later, cache_keys[0])
+
+        payload["queries"][0]["time_offsets"] = []
+        query_context = ChartDataQueryContextSchema().load(payload)
+        query_object = query_context.queries[0]
+        processed_df, sql, cache_keys = query_context.processing_time_offsets(
+            df, query_object,
+        )
+        self.assertIs(processed_df, df)
+        self.assertEqual(sql, [])
+        self.assertEqual(cache_keys, [])

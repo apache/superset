@@ -106,10 +106,11 @@ class QueryContext:
 
     def processing_time_offsets(
         self, df: pd.DataFrame, query_object: QueryObject,
-    ) -> Tuple[pd.DataFrame, List[str]]:
+    ) -> Tuple[pd.DataFrame, List[str], List[Optional[str]]]:
         # ensure query_object is immutable
         query_object_clone = copy.copy(query_object)
         rv_sql = []
+        cache_keys = []
 
         time_offsets = query_object.time_offsets
         outer_from_dttm = query_object.from_dttm
@@ -143,11 +144,13 @@ class QueryContext:
             if _cache.is_loaded:
                 df = pd.concat([df, _cache.df], axis=PandasAxis.COLUMN)
                 rv_sql.append(_cache.query)
+                cache_keys.append(cache_key)
                 continue
 
             query_object_clone_dct = query_object_clone.to_dict()
             result = self.datasource.query(query_object_clone_dct)
             rv_sql.append(result.query)
+            cache_keys.append(None)
 
             # rename metrics: SUM(value) => SUM(value) 1 year ago
             columns_name_mapping = {
@@ -185,7 +188,7 @@ class QueryContext:
                 CacheRegion.DATA,
             )
 
-        return df, rv_sql
+        return df, rv_sql, cache_keys
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
         """Returns a pandas dataframe based on the query object"""
@@ -222,7 +225,7 @@ class QueryContext:
                 self.df_metrics_to_num(df, query_object)
 
             if query_object.time_offsets:
-                df, offset_sql = self.processing_time_offsets(df, query_object)
+                df, offset_sql, _ = self.processing_time_offsets(df, query_object)
                 query += ";\n\n".join(offset_sql)
                 query += ";\n\n"
 
