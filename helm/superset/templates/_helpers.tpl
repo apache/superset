@@ -134,4 +134,5 @@ WEBDRIVER_BASEURL = "http://{{ template "superset.fullname" . }}:{{ .Values.serv
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = "None"
 MOBI_SECRET_KEY=testkey
+MOBI_SECRET_KEY_OLD=testkey256length
 {{- end }}
