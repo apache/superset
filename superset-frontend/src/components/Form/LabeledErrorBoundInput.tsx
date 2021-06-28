@@ -22,7 +22,7 @@ import { styled, css, SupersetTheme } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
 import FormItem from './FormItem';
 import FormLabel from './FormLabel';
-
+import errorIcon from 'images/icons/error.svg'
 export interface LabeledErrorBoundInputProps {
   label?: string;
   validationMethods:
@@ -49,18 +49,17 @@ const alertIconStyles = (theme: SupersetTheme, hasError: boolean) => css`
   ${hasError &&
   `.ant-form-item-control-input-content {
       position: relative;
-
       &:after {
         content: ' ';
         display: inline-block;
         background: ${theme.colors.error.base};
-        mask: url('/images/icons/error.svg');
+        mask: url(${errorIcon});
         mask-size: cover;
         width: ${theme.gridUnit * 4}px;
         height: ${theme.gridUnit * 4}px;
         position: absolute;
-        right: 7px;
-        top: 15px;
+        right: 2%;
+        top: 26%;
       }
     }`}
 `;
