@@ -22,7 +22,7 @@ from typing import Optional
 
 from flask import current_app
 
-from superset import app, security_manager, thumbnail_cache
+from superset import security_manager, thumbnail_cache
 from superset.extensions import celery_app
 from superset.utils.celery import session_scope
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
