@@ -24,7 +24,6 @@ from types import ModuleType
 from typing import Any, Dict, Union
 
 from flask import Flask
-from pydash.objects import merge
 from werkzeug.utils import import_string
 
 from superset.initialization import SupersetAppInitializer
@@ -55,7 +54,8 @@ def create_app() -> Flask:
 def init_config() -> Dict[Any, Any]:
     config = convert_to_dict(load_default_config())
     override_conf = convert_to_dict(load_override_config())
-    return merge(config, override_conf)
+    config.update(override_conf)
+    return config
 
 
 def convert_to_dict(module: Union[ModuleType, Dict[Any, Any]]) -> Dict[Any, Any]:
