@@ -36,7 +36,7 @@ const CheckboxLabel = styled.label`
 `;
 
 const CheckboxHalf = styled(Icons.CheckboxHalf)`
-  color: ${({ theme }) => theme.colors.primary.dark1};
+  color: ${({ theme }) => theme.colors.primary.base};
   cursor: pointer;
 `;
 
