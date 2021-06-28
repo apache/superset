@@ -391,6 +391,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Allow users to export full CSV of table viz type.
     # This could cause the server to run out of memory or compute.
     "ALLOW_FULL_CSV_EXPORT": False,
+    "SECRET_KEYS_ROTATIONS": False,
 }
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
@@ -1221,6 +1222,13 @@ DATASET_HEALTH_CHECK: Optional[Callable[["SqlaTable"], str]] = None
 # SQLalchemy link doc reference
 SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
 SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
+
+# The environment type the application run on: "multithreaded", "multiprocess" and
+# "single"
+SECRET_KEYS_MANAGEMENT = {
+    "ENVIRONMENT_TYPE": os.environ.get("ENVIRONMENT_TYPE", "multithreaded"),
+}
+
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
