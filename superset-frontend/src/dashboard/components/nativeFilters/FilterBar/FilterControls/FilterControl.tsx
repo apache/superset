@@ -45,7 +45,7 @@ const StyledFilterControlTitleBox = styled.div`
 
 const StyledFilterControlContainer = styled(Form)`
   width: 100%;
-  & .ant-form-item-label > label {
+  && .ant-form-item-label > label {
     text-transform: none;
     width: 100%;
     padding-right: ${({ theme }) => theme.gridUnit * 11}px;
