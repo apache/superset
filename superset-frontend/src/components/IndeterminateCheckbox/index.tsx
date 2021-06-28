@@ -46,7 +46,7 @@ const CheckboxOff = styled(Icons.CheckboxOff)`
 `;
 
 const CheckboxOn = styled(Icons.CheckboxOn)`
-  color: ${({ theme }) => theme.colors.primary.dark1};
+  color: ${({ theme }) => theme.colors.primary.base};
   cursor: pointer;
 `;
 
