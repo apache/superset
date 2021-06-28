@@ -326,7 +326,7 @@ class Header extends React.PureComponent {
     if (positionJSONLength >= limit) {
       this.props.addDangerToast(
         t(
-          'Your dashboard is too large. Please reduce the size before save it.',
+          'Your dashboard is too large. Please reduce its size before saving it.',
         ),
       );
     } else {
