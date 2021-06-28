@@ -584,6 +584,7 @@ SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 
 #key to decrypt jwt token
 MOBI_SECRET_KEY=None
+MOBI_SECRET_KEY_OLD=None
 
 
 # Default celery config is to use SQLA as a broker, in a production setting
@@ -1156,8 +1157,8 @@ def start_date_filter(default: Optional[str] = None) -> Optional[Any]:
 
 def uri_filter(cond="none", default="") -> Optional[Any]:
 
-    if MOBI_SECRET_KEY is None:
-        raise Exception("MOBI_SECRET_KEY is not defined")
+    if MOBI_SECRET_KEY is None and  MOBI_SECRET_KEY_OLD is None:
+        raise Exception("MOBI_SECRET_KEY or MOBI_SECRET_KEY_OLD is not defined")
 
     logger.info(cond)
 
@@ -1192,7 +1193,14 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
         return default
 
     #fetching payload from jwt_token
-    jwt_payload = jwt.decode(token,MOBI_SECRET_KEY,algorithms=['HS256'])
+    try:
+        jwt_payload = jwt.decode(token,MOBI_SECRET_KEY_OLD,algorithms=['HS256'])
+    except:
+        try:
+            jwt_payload = jwt.decode(token,MOBI_SECRET_KEY,algorithms=['HS256'],options={"verify_signature": False})
+        except Exception:
+            logger.exception("Token expired!")
+            raise Exception("Url expired, Please reload!")
     logger.info("jwt_payload is :", jwt_payload)
 
     #fetchning mobi filter from payload

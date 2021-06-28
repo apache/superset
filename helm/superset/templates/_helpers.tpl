@@ -117,21 +117,5 @@ RESULTS_BACKEND = RedisCache(
       port=env('REDIS_PORT'),
       key_prefix='superset_results'
 )
-FEATURE_FLAGS = { 'ENABLE_TEMPLATE_PROCESSING': True }
-ENABLE_SCHEDULED_EMAIL_REPORTS = True
-ENABLE_ALERTS = True
-EMAIL_NOTIFICATIONS = True
-
-SMTP_HOST = "smtp-pulse.com"
-SMTP_STARTTLS = True
-SMTP_SSL = False
-SMTP_USER = "saurabhnigam@roboticwares.com"
-SMTP_PORT = 587
-SMTP_PASSWORD = "1"
-SMTP_MAIL_FROM = "saurabhnigam@roboticwares.com"
-EMAIL_REPORTS_USER = 'admin'
-WEBDRIVER_BASEURL = "http://{{ template "superset.fullname" . }}:{{ .Values.service.port }}/"
-SESSION_COOKIE_SECURE = True
-SESSION_COOKIE_SAMESITE = "None"
-MOBI_SECRET_KEY=testkey
+{{ .Values.superset-config }}
 {{- end }}
