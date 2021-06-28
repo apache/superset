@@ -158,7 +158,7 @@ const SectionTitle = styled.h3`
   margin-top: 0;
   margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
   font-size: ${({ theme }) => theme.gridUnit * 4}px;
-  font-weight: 600;
+  font-weight: ${({ theme }) => theme.typography.weights.bold};
   line-height: ${({ theme }) => theme.gridUnit * 6}px;
 `;
 
