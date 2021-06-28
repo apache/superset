@@ -39,7 +39,7 @@ def create_app() -> Flask:
     try:
         # Allow user to override our config completely
         config = init_config()
-        app.config.from_object(config)
+        app.config.from_mapping(config)
 
         app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
         app_initializer.init_app()
@@ -60,7 +60,7 @@ def init_config() -> Dict[Any, Any]:
 
 def convert_to_dict(module: Union[ModuleType, Dict[Any, Any]]) -> Dict[Any, Any]:
     raw_dict = module if isinstance(module, dict) else module.__dict__
-    return {k: v for k, v in raw_dict.items() if k.isupper() and k.isalpha()}
+    return {k: v for k, v in raw_dict.items() if k.isupper() and not k.startswith('_')}
 
 
 def load_default_config() -> ModuleType:
