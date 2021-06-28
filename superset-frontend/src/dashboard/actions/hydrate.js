@@ -278,7 +278,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
     directPathToChild.push(directLinkComponentId);
   }
 
-  let nativeFilters = getInitialNativeFilterState({
+  const nativeFilters = getInitialNativeFilterState({
     filterConfig: metadata?.native_filter_configuration || [],
     filterSetsConfig: metadata?.filter_sets_configuration || [],
   });

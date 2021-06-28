@@ -17,9 +17,9 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
+import rison from 'rison';
 import { getClientErrorObject } from './getClientErrorObject';
 import { URL_PARAMS } from '../constants';
-import rison from 'rison';
 
 export type UrlParamType = 'string' | 'number' | 'boolean' | 'object' | 'rison';
 export type UrlParam = typeof URL_PARAMS[keyof typeof URL_PARAMS];
@@ -60,7 +60,7 @@ export function getUrlParam({ name, type }: UrlParam): unknown {
         return null;
       }
       try {
-        return rison.decode(urlParam)
+        return rison.decode(urlParam);
       } catch {
         return null;
       }

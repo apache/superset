@@ -47,15 +47,6 @@ export const useNativeFilters = () => {
 
   const filters = useFilters();
   const filterValues = Object.values<Filter>(filters);
-  console.log('!', preselectNativeFilters, filterValues);
-  Object.entries(preselectNativeFilters).forEach(([filterId, filterValue]) => {
-    const filter: Filter = filterValues[filterId];
-    if (filter) {
-      filter.requiredFirst = true;
-      filter.controlValues.defaultToFirstItem = true;
-      console.log(filterId, filterValue, filter);
-    }
-  });
 
   const nativeFiltersEnabled =
     showNativeFilters &&
@@ -63,7 +54,7 @@ export const useNativeFilters = () => {
     (canEdit || (!canEdit && filterValues.length !== 0));
 
   const requiredFirstFilter = filterValues.filter(
-    ({ requiredFirst }) => requiredFirst,
+    filter => filter.requiredFirst || preselectNativeFilters[filter.id],
   );
   const dataMask = useNativeFiltersDataMask();
   const showDashboard =
