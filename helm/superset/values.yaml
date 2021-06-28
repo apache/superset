@@ -18,7 +18,24 @@
 # Default values for superset.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
-
+superset-config:
+  FEATURE_FLAGS = { 'ENABLE_TEMPLATE_PROCESSING': True }
+  ENABLE_SCHEDULED_EMAIL_REPORTS = True
+  ENABLE_ALERTS = True
+  EMAIL_NOTIFICATIONS = True
+  SMTP_HOST = "smtp-pulse.com"
+  SMTP_STARTTLS = True
+  SMTP_SSL = False
+  SMTP_USER = "saurabhnigam@roboticwares.com"
+  SMTP_PORT = 587
+  SMTP_PASSWORD = "1"
+  SMTP_MAIL_FROM = "saurabhnigam@roboticwares.com"
+  EMAIL_REPORTS_USER = 'admin'
+  WEBDRIVER_BASEURL = "http://{{ template "superset.fullname" . }}:{{ .Values.service.port }}/"
+  SESSION_COOKIE_SECURE = True
+  SESSION_COOKIE_SAMESITE = "None"
+  MOBI_SECRET_KEY=testkey
+  MOBI_SECRET_KEY_OLD=testkey256length
 replicaCount: 1
 
 ## These requirements are used to build a requirements file which is then applied on init
