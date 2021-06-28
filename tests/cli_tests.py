@@ -29,6 +29,8 @@ import superset.cli
 from superset import app
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
+logger = logging.getLogger("cli_tests")
+
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 def test_export_dashboards_original(app_context, fs):
