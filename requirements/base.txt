@@ -70,7 +70,7 @@ flask-appbuilder==3.3.0
     # via apache-superset
 flask-babel==1.0.0
     # via flask-appbuilder
-flask-caching==1.9.0
+flask-caching==1.10.1
     # via apache-superset
 flask-compress==1.8.0
     # via apache-superset
