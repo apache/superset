@@ -20,9 +20,10 @@ import React from 'react';
 import { Input } from 'antd';
 import { styled, css, SupersetTheme } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
+import errorIcon from 'images/icons/error.svg';
 import FormItem from './FormItem';
 import FormLabel from './FormLabel';
-import errorIcon from 'images/icons/error.svg';
+
 export interface LabeledErrorBoundInputProps {
   label?: string;
   validationMethods:
