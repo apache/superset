@@ -57,7 +57,7 @@ const sortByStatus = (indicators: Indicator[]): Indicator[] => {
   );
 };
 
-const FiltersBadge = React.memo(({ chartId }: FiltersBadgeProps) => {
+export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const dispatch = useDispatch();
   const datasources = useSelector<RootState, any>(state => state.datasources);
   const dashboardFilters = useSelector<RootState, any>(
@@ -190,6 +190,6 @@ const FiltersBadge = React.memo(({ chartId }: FiltersBadgeProps) => {
       </Pill>
     </DetailsPanelPopover>
   );
-});
+};
 
-export default FiltersBadge;
+export default React.memo(FiltersBadge);

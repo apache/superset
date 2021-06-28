@@ -108,7 +108,7 @@ const StyledTabsContainer = styled.div`
   }
 `;
 
-class Tabs extends React.PureComponent {
+export class Tabs extends React.PureComponent {
   constructor(props) {
     super(props);
     const tabIndex = Math.max(
