@@ -440,7 +440,7 @@ const VizTypeControl = (props: VizTypeControlProps) => {
 
   const vizEntriesToDisplay = isSearching
     ? searchResults
-    : chartsByCategory[activeCategory];
+    : chartsByCategory[activeCategory] || [];
 
   return (
     <div>
