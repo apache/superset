@@ -801,11 +801,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       ]}
       name="database"
       data-test="database-modal"
-      height="600px"
       onHandledPrimaryAction={onSave}
       onHide={onClose}
       primaryButtonName={isEditMode ? t('Save') : t('Connect')}
       width="500px"
+      centered
       show={show}
       title={
         <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
@@ -971,11 +971,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         formStyles(theme),
       ]}
       name="database"
-      height="600px"
       onHandledPrimaryAction={onSave}
       onHide={onClose}
       primaryButtonName={hasConnectedDb ? t('Finish') : t('Connect')}
       width="500px"
+      centered
       show={show}
       title={<h4>{t('Connect a database')}</h4>}
       footer={renderModalFooter()}
