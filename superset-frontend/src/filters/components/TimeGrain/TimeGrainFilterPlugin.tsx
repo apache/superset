@@ -54,13 +54,13 @@ export default function PluginFilterTimegrain(
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
   const durationMap = useMemo(
     () =>
-      data.reduce((agg, row) => {
-        const { duration, name } = row as { duration: string; name: string };
-        return {
+      data.reduce(
+        (agg, { duration, name }: { duration: string; name: string }) => ({
           ...agg,
           [duration]: name,
-        };
-      }, {} as { [key in string]: string }),
+        }),
+        {} as { [key in string]: string },
+      ),
     [JSON.stringify(data)],
   );
 
