@@ -247,3 +247,49 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
                 },
             )
         ]
+
+        msg = "bigquery error: 404 Not found: Dataset fakeDataset:bogusSchema was not found in location"
+        result = BigQueryEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                message='The schema "bogusSchema" does not exist. A valid schema must be used to run this query.',
+                error_type=SupersetErrorType.SCHEMA_DOES_NOT_EXIST_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Google BigQuery",
+                    "issue_codes": [
+                        {
+                            "code": 1003,
+                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                        },
+                        {
+                            "code": 1004,
+                            "message": "Issue 1004 - The column was deleted or renamed in the database.",
+                        },
+                    ],
+                },
+            )
+        ]
+
+        msg = "Table name badtable missing dataset while no default dataset is set in the request"
+        result = BigQueryEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                message='The table "badtable" does not exist. A valid table must be used to run this query.',
+                error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Google BigQuery",
+                    "issue_codes": [
+                        {
+                            "code": 1003,
+                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                        },
+                        {
+                            "code": 1005,
+                            "message": "Issue 1005 - The table was deleted or renamed in the database.",
+                        },
+                    ],
+                },
+            )
+        ]
