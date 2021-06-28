@@ -25,7 +25,7 @@ const REFRESH_INTERVAL = 60000; // every minute
 
 interface LastUpdatedProps {
   updatedAt: MomentInput;
-  update?: React.MouseEventHandler;
+  update?: React.MouseEventHandler<HTMLSpanElement>;
 }
 moment.updateLocale('en', {
   calendar: {
