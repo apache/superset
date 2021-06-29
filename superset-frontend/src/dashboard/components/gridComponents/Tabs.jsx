@@ -185,7 +185,10 @@ export class Tabs extends React.PureComponent {
 
         // make sure nextFocusComponent is under this tabs component
         if (nextTabIndex > -1 && nextTabIndex !== this.state.tabIndex) {
-          this.setState(() => ({ tabIndex: nextTabIndex }));
+          this.setState(() => ({
+            tabIndex: nextTabIndex,
+            activeKey: nextTabsIds[nextTabIndex],
+          }));
         }
       }
     }
