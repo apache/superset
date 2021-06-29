@@ -183,8 +183,8 @@ Non-owner users access can be managed two different ways:
 
 1. Dataset permissions - if you add to the relevant role permissions to datasets it automatically grants implict access to all dashboards that uses those permitted datasets
 2. Dashboard roles - if you enable **DASHBOARD_RBAC** feature flag  then you be able to manage which roles can access the dashboard
-- Having dashboard access implicitly grants read access to the associated datasets, therefore 
-all charts will load their data even if feature flag is turned on and no roles assigned 
+- Having dashboard access implicitly grants read access to the associated datasets, therefore
+all charts will load their data even if feature flag is turned on and no roles assigned
 to roles the access will fallback to **Dataset permissions**
 
 <img src="/images/tutorial_dashboard_access.png" />
