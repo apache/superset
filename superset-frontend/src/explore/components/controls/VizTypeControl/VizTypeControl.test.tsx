@@ -58,6 +58,12 @@ class MainPreset extends Preset {
 
 const getTestId = testWithId<string>(VIZ_TYPE_CONTROL_TEST_ID, true);
 
+/**
+ * AntD and/or the Icon component seems to be doing some kind of async changes,
+ * so even though the test passes, there is a warning an update to Icon was not
+ * wrapped in act(). This sufficiently act-ifies whatever side effects are going
+ * on and prevents those warnings.
+ */
 const waitForEffects = () =>
   act(() => new Promise(resolve => setTimeout(resolve, 0)));
 
