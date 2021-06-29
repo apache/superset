@@ -17,11 +17,11 @@
 from __future__ import annotations
 
 import logging
-from types import ModuleType
-from typing import Any, Dict, Type, Union
+from typing import Any, Dict
 
 from .loader import load_default_config_module, load_override_config_module
 from .meta_configurations import union_values
+from .utils import take_conf_keys_and_convert_to_dict
 
 logger = logging.getLogger(__name__)
 
@@ -47,10 +47,3 @@ def create_one_configuration_object(
             right_value = right_config[key]
             result_dict[key] = union_values(left_value, right_value, key)
     return result_dict
-
-
-def take_conf_keys_and_convert_to_dict(
-    module: Union[ModuleType, Type[Any], Dict[Any, Any]]
-) -> Dict[Any, Any]:
-    raw_dict = module if isinstance(module, dict) else module.__dict__
-    return {k: v for k, v in raw_dict.items() if k.isupper() and not k.startswith("_")}

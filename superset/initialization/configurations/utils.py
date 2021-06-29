@@ -19,10 +19,10 @@ from __future__ import annotations
 from types import ModuleType
 from typing import Any, Dict, Type, Union
 
-from pydash.objects import merge as merge_dicts_recursive
+from pydash.objects import merge as merge_dicts_recursive  # pylint: disable=W0611
 
 
-def take_conf_keys_and_convert_to_dict(
+def take_conf_keys_and_convert_to_dict(  # pylint: disable=C0103
     module: Union[ModuleType, Type[Any], Dict[Any, Any]]
 ) -> Dict[Any, Any]:
     raw_dict = module if isinstance(module, dict) else module.__dict__

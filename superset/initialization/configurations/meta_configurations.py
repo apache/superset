@@ -22,6 +22,8 @@ from .utils import merge_dicts_recursive, take_conf_keys_and_convert_to_dict
 
 ConfigurationValue = Union[Type[Any], Dict[Any, Any]]
 
+# pylint: disable=C0103, W0613
+
 
 def union_values(left_value: Any, right_value: Any, conf_name: str) -> Any:
     strategy = meta_union_strategy.get(
@@ -52,20 +54,20 @@ def merge_as_class_strategy(
     return type(conf_name, (base,), merged)
 
 
-def override_right_as_dict_strategy(
+def override_right_as_dict_strategy(  # pylint: disable=C0103, W0613
     left_value: ConfigurationValue, right_value: ConfigurationValue, conf_name: str
 ) -> Dict[Any, Any]:
     return take_conf_keys_and_convert_to_dict(right_value)
 
 
-def merge_as_dict_strategy(
+def merge_as_dict_strategy(  # pylint: disable=W0613
     left_value: ConfigurationValue, right_value: ConfigurationValue, conf_name: str
 ) -> Dict[Any, Any]:
     left_dict = take_conf_keys_and_convert_to_dict(left_value)
     right_dict = take_conf_keys_and_convert_to_dict(right_value)
     try:
         return merge_dicts_recursive(left_dict, right_dict)
-    except:
+    except Exception:  # pylint: disable=W0703
         merged = {}
         merged.update(left_dict)
         merged.update(right_dict)
