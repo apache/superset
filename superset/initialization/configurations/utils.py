@@ -16,34 +16,14 @@
 # under the License.
 from __future__ import annotations
 
-import logging
+from types import ModuleType
+from typing import Any, Dict, Type, Union
 
-from flask import Flask
-
-from superset.initialization import SupersetAppInitializer
-from superset.initialization.configurations import init_config
-
-logger = logging.getLogger(__name__)
+from pydash.objects import merge as merge_dicts_recursive
 
 
-def create_app() -> Flask:
-    app = SupersetApp(__name__)
-
-    try:
-        # Allow user to override our config completely
-        config = init_config()
-        app.config.from_mapping(config)
-
-        app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
-        app_initializer.init_app()
-
-        return app
-
-    # Make sure that bootstrap errors ALWAYS get logged
-    except Exception as ex:
-        logger.exception("Failed to create app")
-        raise ex
-
-
-class SupersetApp(Flask):
-    pass
+def take_conf_keys_and_convert_to_dict(
+    module: Union[ModuleType, Type[Any], Dict[Any, Any]]
+) -> Dict[Any, Any]:
+    raw_dict = module if isinstance(module, dict) else module.__dict__
+    return {k: v for k, v in raw_dict.items() if k.isupper() and not k.startswith("_")}
