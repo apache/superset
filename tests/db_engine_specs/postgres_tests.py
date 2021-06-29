@@ -421,6 +421,25 @@ psql: error: could not connect to server: Operation timed out
             )
         ]
 
+        msg = 'syntax error at or near "fromm"'
+        result = PostgresEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                message='Please check your query for syntax errors at or near "fromm". Then, try running your query again.',
+                error_type=SupersetErrorType.SYNTAX_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "PostgreSQL",
+                    "issue_codes": [
+                        {
+                            "code": 1030,
+                            "message": "Issue 1030 - The query has a syntax error.",
+                        }
+                    ],
+                },
+            )
+        ]
+
 
 def test_base_parameters_mixin():
     parameters = {

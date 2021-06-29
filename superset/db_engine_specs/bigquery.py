@@ -44,6 +44,24 @@ CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
     + "permission in project (?P<project>.+?)"
 )
 
+TABLE_DOES_NOT_EXIST_REGEX = re.compile(
+    'Table name "(?P<table>.*?)" missing dataset while no default '
+    "dataset is set in the request"
+)
+
+COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
+    r"Unrecognized name: (?P<column>.*?) at \[(?P<location>.+?)\]"
+)
+
+SCHEMA_DOES_NOT_EXIST_REGEX = re.compile(
+    r"bigquery error: 404 Not found: Dataset (?P<dataset>.*?):"
+    r"(?P<schema>.*?) was not found in location"
+)
+
+SYNTAX_ERROR_REGEX = re.compile(
+    'Syntax error: Expected end of input but got identifier "(?P<syntax_error>.+?)"'
+)
+
 ma_plugin = MarshmallowPlugin()
 
 
@@ -125,6 +143,35 @@ class BigQueryEngineSpec(BaseEngineSpec):
                 "and Job User roles on the project."
             ),
             SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
+            {},
+        ),
+        TABLE_DOES_NOT_EXIST_REGEX: (
+            __(
+                'The table "%(table)s" does not exist. '
+                "A valid table must be used to run this query.",
+            ),
+            SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+            {},
+        ),
+        COLUMN_DOES_NOT_EXIST_REGEX: (
+            __('We can\'t seem to resolve column "%(column)s" at line %(location)s.'),
+            SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+            {},
+        ),
+        SCHEMA_DOES_NOT_EXIST_REGEX: (
+            __(
+                'The schema "%(schema)s" does not exist. '
+                "A valid schema must be used to run this query."
+            ),
+            SupersetErrorType.SCHEMA_DOES_NOT_EXIST_ERROR,
+            {},
+        ),
+        SYNTAX_ERROR_REGEX: (
+            __(
+                "Please check your query for syntax errors at or near "
+                '"%(syntax_error)s". Then, try running your query again.'
+            ),
+            SupersetErrorType.SYNTAX_ERROR,
             {},
         ),
     }
