@@ -93,7 +93,7 @@ jest.mock('src/dashboard/components/SliceHeaderControls', () => ({
   ),
 }));
 
-jest.mock('src/dashboard/containers/FiltersBadge', () => ({
+jest.mock('src/dashboard/components/FiltersBadge', () => ({
   __esModule: true,
   default: (props: any) => (
     <div data-test="FiltersBadge" data-chart-id={props.chartId} />

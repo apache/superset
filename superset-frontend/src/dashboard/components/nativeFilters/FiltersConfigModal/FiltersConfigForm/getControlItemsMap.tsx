@@ -116,7 +116,7 @@ export default function getControlItemsMap({
                   forceUpdate();
                 }}
               >
-                {controlItem.config.label}{' '}
+                {controlItem.config.label}&nbsp;
                 {controlItem.config.description && (
                   <InfoTooltipWithTrigger
                     placement="top"

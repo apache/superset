@@ -293,11 +293,11 @@ class SliceHeaderControls extends React.PureComponent<Props, State> {
 
         {supersetCanShare && (
           <ShareMenuItems
-            url={getDashboardUrl(
-              window.location.pathname,
-              getActiveFilters(),
-              componentId,
-            )}
+            url={getDashboardUrl({
+              pathname: window.location.pathname,
+              filters: getActiveFilters(),
+              hash: componentId,
+            })}
             copyMenuItemTitle={t('Copy chart URL')}
             emailMenuItemTitle={t('Share chart by email')}
             emailSubject={t('Superset chart')}

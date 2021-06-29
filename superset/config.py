@@ -20,13 +20,11 @@ All configuration in this file can be overridden by providing a superset_config
 in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
-import imp
-import importlib.util
+
 import json
 import logging
 import os
 import re
-import sys
 from collections import OrderedDict
 from datetime import date
 from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
@@ -43,7 +41,7 @@ from superset.jinja_context import (  # pylint: disable=unused-import
 )
 from superset.stats_logger import DummyStatsLogger
 from superset.typing import CacheConfig
-from superset.utils.core import is_test, parse_boolean_string
+from superset.utils.core import parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
@@ -303,6 +301,7 @@ LANGUAGES = {
     "pt_BR": {"flag": "br", "name": "Brazilian Portuguese"},
     "ru": {"flag": "ru", "name": "Russian"},
     "ko": {"flag": "kr", "name": "Korean"},
+    "sl": {"flag": "si", "name": "Slovenian"},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
@@ -360,6 +359,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DASHBOARD_NATIVE_FILTERS": False,
     "DASHBOARD_CROSS_FILTERS": False,
     "DASHBOARD_NATIVE_FILTERS_SET": False,
+    "DASHBOARD_FILTERS_EXPERIMENTAL": False,
     "GLOBAL_ASYNC_QUERIES": False,
     "VERSIONED_EXPORT": False,
     # Note that: RowLevelSecurityFilter is only given by default to the Admin role
@@ -383,9 +383,11 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # for report with type 'report' still send with email and slack message with
     # screenshot and link
     "ALERTS_ATTACH_REPORTS": True,
-    # Enabling FORCE_DATABASE_CONNECTIONS_SSL forces all database connections to be
-    # encrypted before being saved into superset metastore.
+    # FORCE_DATABASE_CONNECTIONS_SSL is depreciated.
     "FORCE_DATABASE_CONNECTIONS_SSL": False,
+    # Enabling ENFORCE_DB_ENCRYPTION_UI forces all database connections to be
+    # encrypted before being saved into superset metastore.
+    "ENFORCE_DB_ENCRYPTION_UI": False,
     # Allow users to export full CSV of table viz type.
     # This could cause the server to run out of memory or compute.
     "ALLOW_FULL_CSV_EXPORT": False,
@@ -854,7 +856,6 @@ CUSTOM_TEMPLATE_PROCESSORS: Dict[str, Type[BaseTemplateProcessor]] = {}
 # by humans.
 ROBOT_PERMISSION_ROLES = ["Public", "Gamma", "Alpha", "Admin", "sql_lab"]
 
-CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
 
 # If a callable is specified, it will be called at app startup while passing
 # a reference to the Flask app. This can be used to alter the Flask app
@@ -1226,29 +1227,3 @@ SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 # -------------------------------------------------------------------
 # Don't add config values below this line since local configs won't be
 # able to override them.
-if CONFIG_PATH_ENV_VAR in os.environ:
-    # Explicitly import config module that is not necessarily in pythonpath; useful
-    # for case where app is being executed via pex.
-    try:
-        cfg_path = os.environ[CONFIG_PATH_ENV_VAR]
-        module = sys.modules[__name__]
-        override_conf = imp.load_source("superset_config", cfg_path)
-        for key in dir(override_conf):
-            if key.isupper():
-                setattr(module, key, getattr(override_conf, key))
-
-        print(f"Loaded your LOCAL configuration at [{cfg_path}]")
-    except Exception:
-        logger.exception(
-            "Failed to import config for %s=%s", CONFIG_PATH_ENV_VAR, cfg_path
-        )
-        raise
-elif importlib.util.find_spec("superset_config") and not is_test():
-    try:
-        import superset_config  # pylint: disable=import-error
-        from superset_config import *  # type: ignore # pylint: disable=import-error,wildcard-import,unused-wildcard-import
-
-        print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
-    except Exception:
-        logger.exception("Found but failed to import local superset_config")
-        raise

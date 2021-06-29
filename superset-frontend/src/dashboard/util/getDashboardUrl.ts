@@ -16,15 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import rison from 'rison';
+import { JsonObject } from '@superset-ui/core';
 import { URL_PARAMS } from 'src/constants';
 import serializeActiveFilterValues from './serializeActiveFilterValues';
+import { DataMaskState } from '../../dataMask/types';
 
-export default function getDashboardUrl(
-  pathname: string,
+export default function getDashboardUrl({
+  pathname,
   filters = {},
   hash = '',
-  standalone?: number | null,
-) {
+  standalone,
+  dataMask,
+}: {
+  pathname: string;
+  filters: JsonObject;
+  hash: string;
+  standalone?: number | null;
+  dataMask?: DataMaskState;
+}) {
   const newSearchParams = new URLSearchParams();
 
   // convert flattened { [id_column]: values } object
@@ -38,7 +48,23 @@ export default function getDashboardUrl(
     newSearchParams.set(URL_PARAMS.standalone.name, standalone.toString());
   }
 
-  const hashSection = hash ? `#${hash}` : '';
+  if (dataMask) {
+    const filterStates = Object.entries(dataMask).reduce(
+      (agg, [key, value]) => {
+        const filterState = value?.filterState?.value;
+        return {
+          ...agg,
+          [key]: filterState || null,
+        };
+      },
+      {},
+    );
+    newSearchParams.set(
+      URL_PARAMS.nativeFilters.name,
+      rison.encode(filterStates),
+    );
+  }
 
+  const hashSection = hash ? `#${hash}` : '';
   return `${pathname}?${newSearchParams.toString()}${hashSection}`;
 }

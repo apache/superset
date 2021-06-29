@@ -18,6 +18,7 @@
 """Unit tests for Superset"""
 import json
 import unittest
+from collections import namedtuple
 from unittest import mock
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
@@ -624,6 +625,84 @@ class TestRequestAccess(SupersetTestCase):
             gamma_user = security_manager.find_user(username="gamma")
             gamma_user.roles.remove(security_manager.find_role("dummy_role"))
             session.commit()
+
+
+class TestDatasources(SupersetTestCase):
+    def test_get_user_datasources_admin(self):
+        Datasource = namedtuple("Datasource", ["database", "schema", "name"])
+
+        mock_session = mock.MagicMock()
+        mock_session.query.return_value.filter.return_value.all.return_value = []
+
+        with mock.patch("superset.security_manager") as mock_security_manager:
+            mock_security_manager.can_access_database.return_value = True
+
+            with mock.patch.object(
+                ConnectorRegistry, "get_all_datasources"
+            ) as mock_get_all_datasources:
+                mock_get_all_datasources.return_value = [
+                    Datasource("database1", "schema1", "table1"),
+                    Datasource("database1", "schema1", "table2"),
+                    Datasource("database2", None, "table1"),
+                ]
+
+                datasources = ConnectorRegistry.get_user_datasources(mock_session)
+
+        assert sorted(datasources) == [
+            Datasource("database1", "schema1", "table1"),
+            Datasource("database1", "schema1", "table2"),
+            Datasource("database2", None, "table1"),
+        ]
+
+    def test_get_user_datasources_gamma(self):
+        Datasource = namedtuple("Datasource", ["database", "schema", "name"])
+
+        mock_session = mock.MagicMock()
+        mock_session.query.return_value.filter.return_value.all.return_value = []
+
+        with mock.patch("superset.security_manager") as mock_security_manager:
+            mock_security_manager.can_access_database.return_value = False
+
+            with mock.patch.object(
+                ConnectorRegistry, "get_all_datasources"
+            ) as mock_get_all_datasources:
+                mock_get_all_datasources.return_value = [
+                    Datasource("database1", "schema1", "table1"),
+                    Datasource("database1", "schema1", "table2"),
+                    Datasource("database2", None, "table1"),
+                ]
+
+                datasources = ConnectorRegistry.get_user_datasources(mock_session)
+
+        assert datasources == []
+
+    def test_get_user_datasources_gamma_with_schema(self):
+        Datasource = namedtuple("Datasource", ["database", "schema", "name"])
+
+        mock_session = mock.MagicMock()
+        mock_session.query.return_value.filter.return_value.all.return_value = [
+            Datasource("database1", "schema1", "table1"),
+            Datasource("database1", "schema1", "table2"),
+        ]
+
+        with mock.patch("superset.security_manager") as mock_security_manager:
+            mock_security_manager.can_access_database.return_value = False
+
+            with mock.patch.object(
+                ConnectorRegistry, "get_all_datasources"
+            ) as mock_get_all_datasources:
+                mock_get_all_datasources.return_value = [
+                    Datasource("database1", "schema1", "table1"),
+                    Datasource("database1", "schema1", "table2"),
+                    Datasource("database2", None, "table1"),
+                ]
+
+                datasources = ConnectorRegistry.get_user_datasources(mock_session)
+
+        assert sorted(datasources) == [
+            Datasource("database1", "schema1", "table1"),
+            Datasource("database1", "schema1", "table2"),
+        ]
 
 
 if __name__ == "__main__":

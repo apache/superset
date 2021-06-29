@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, ExtraFormData, JsonObject } from '@superset-ui/core';
+import {
+  ChartProps,
+  ExtraFormData,
+  GenericDataType,
+  JsonObject,
+} from '@superset-ui/core';
+import { DatasourceMeta } from '@superset-ui/chart-controls';
 import { chart } from 'src/chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
 import { DataMaskStateWithId } from '../dataMask/types';
@@ -38,6 +44,7 @@ export interface ChartQueryPayload extends Partial<ChartReducerInitialState> {
 export type Chart = ChartState & {
   formData: {
     viz_type: string;
+    datasource: string;
   };
 };
 
@@ -45,6 +52,7 @@ export type ActiveTabs = string[];
 export type DashboardLayout = { [key: string]: LayoutItem };
 export type DashboardLayoutState = { present: DashboardLayout };
 export type DashboardState = {
+  preselectNativeFilters?: JsonObject;
   editMode: boolean;
   directPathToChild: string[];
   activeTabs: ActiveTabs;
@@ -56,14 +64,23 @@ export type DashboardInfo = {
   };
   userId: string;
   dash_edit_perm: boolean;
-  metadata: { show_native_filters: boolean; chart_configuration: JsonObject };
+  metadata: {
+    show_native_filters: boolean;
+    chart_configuration: JsonObject;
+  };
 };
 
 export type ChartsState = { [key: string]: Chart };
+export type DatasourcesState = {
+  [key: string]: DatasourceMeta & {
+    column_types: GenericDataType[];
+    table_name: string;
+  };
+};
 
 /** Root state of redux */
 export type RootState = {
-  datasources: JsonObject;
+  datasources: DatasourcesState;
   sliceEntities: JsonObject;
   charts: ChartsState;
   dashboardLayout: DashboardLayoutState;
@@ -92,7 +109,9 @@ export type LayoutItem = {
   id: string;
   meta: {
     chartId: number;
+    defaultText?: string;
     height: number;
+    placeholder?: string;
     sliceName?: string;
     sliceNameOverride?: string;
     text?: string;

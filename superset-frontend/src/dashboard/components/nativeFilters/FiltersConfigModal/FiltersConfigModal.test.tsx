@@ -191,13 +191,13 @@ test('renders a numerical range filter type', () => {
   expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();
   expect(screen.getByText(DATASET_REGEX)).toBeInTheDocument();
   expect(screen.getByText(COLUMN_REGEX)).toBeInTheDocument();
+  expect(screen.getByText(REQUIRED_REGEX)).toBeInTheDocument();
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
   expect(getCheckbox(APPLY_INSTANTLY_REGEX)).not.toBeChecked();
   expect(getCheckbox(PRE_FILTER_REGEX)).not.toBeChecked();
 
   expect(queryCheckbox(MULTIPLE_REGEX)).not.toBeInTheDocument();
-  expect(queryCheckbox(REQUIRED_REGEX)).not.toBeInTheDocument();
   expect(queryCheckbox(HIERARCHICAL_REGEX)).not.toBeInTheDocument();
   expect(queryCheckbox(FIRST_ITEM_REGEX)).not.toBeInTheDocument();
   expect(queryCheckbox(INVERSE_SELECTION_REGEX)).not.toBeInTheDocument();

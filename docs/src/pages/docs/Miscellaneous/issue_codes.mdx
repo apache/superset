@@ -207,3 +207,67 @@ The submitted payload has the incorrect schema.
 ```
 
 Please check that the request payload has the expected schema.
+
+## Issue 1021
+
+```
+Results backend needed for asynchronous queries is not configured.
+```
+
+Your instance of Superset doesn't have a results backend configured, which is needed for asynchronous queries. Please contact an administrator for further assistance.
+
+## Issue 1022
+
+```
+Database does not allow data manipulation.
+```
+
+Only `SELECT` statements are allowed against this database. Please contact an administrator if you need to run DML (data manipulation language) on this database.
+
+## Issue 1023
+
+```
+CTAS (create table as select) doesn't have a SELECT statement at the end.
+```
+
+The last statement in a query run as CTAS (create table as select) MUST be a SELECT statement. Please make sure the last statement in the query is a SELECT.
+
+## Issue 1024
+
+```
+CVAS (create view as select) query has more than one statement.
+```
+
+When running a CVAS (create view as select) the query should have a single statement. Please make sure the query has a single statement, and no extra semi-colons other than the last one.
+
+## Issue 1025
+
+```
+CVAS (create view as select) query is not a SELECT statement.
+```
+
+When running a CVAS (create view as select) the query should be a SELECT statement. Please make sure the query has a single statement and it's a SELECT statement.
+
+## Issue 1026
+
+```
+Query is too complex and takes too long to run.
+```
+
+The submitted query might be too complex to run under the time limit defined by your Superset administrator. Please double check your query and verify if it can be optimized. Alternatively, contact your administrator to increase the timeout period.
+
+## Issue 1027
+
+```
+The database is currently running too many queries.
+```
+
+The database might be under heavy load, running too many queries. Please try again later, or contact an administrator for further assistance.
+
+## Issue 1028
+
+```
+One or more parameters specified in the query are malformatted.
+```
+
+The query contains one or more malformed template parameters. Please check your query and confirm that all template parameters are surround by double braces, for example, "{{ ds }}". Then, try running your query again.

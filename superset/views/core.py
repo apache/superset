@@ -73,15 +73,17 @@ from superset.dashboards.dao import DashboardDAO
 from superset.databases.dao import DatabaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.commands.exceptions import DatasetNotFoundError
-from superset.errors import SupersetError
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
     CertificateException,
     DatabaseNotFound,
     SerializationError,
+    SupersetErrorException,
     SupersetErrorsException,
     SupersetException,
     SupersetGenericDBErrorException,
+    SupersetGenericErrorException,
     SupersetSecurityException,
     SupersetTemplateParamsErrorException,
     SupersetTimeoutException,
@@ -184,7 +186,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             sorted(
                 [
                     datasource.short_data
-                    for datasource in ConnectorRegistry.get_all_datasources(db.session)
+                    for datasource in ConnectorRegistry.get_user_datasources(db.session)
                     if datasource.short_data.get("name")
                 ],
                 key=lambda datasource: datasource["name"],
@@ -434,6 +436,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def get_samples(self, viz_obj: BaseViz) -> FlaskResponse:
         return self.json_response({"data": viz_obj.get_samples()})
 
+    @staticmethod
+    def send_data_payload_response(viz_obj: BaseViz, payload: Any) -> FlaskResponse:
+        return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
+
     def generate_json(
         self, viz_obj: BaseViz, response_type: Optional[str] = None
     ) -> FlaskResponse:
@@ -452,7 +458,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return self.get_samples(viz_obj)
 
         payload = viz_obj.get_payload()
-        return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
+        return self.send_data_payload_response(viz_obj, payload)
 
     @event_logger.log_this
     @api
@@ -609,6 +615,29 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 is_feature_enabled("GLOBAL_ASYNC_QUERIES")
                 and response_type == utils.ChartDataResultFormat.JSON
             ):
+                # First, look for the chart query results in the cache.
+                try:
+                    viz_obj = get_viz(
+                        datasource_type=cast(str, datasource_type),
+                        datasource_id=datasource_id,
+                        form_data=form_data,
+                        force_cached=True,
+                        force=force,
+                    )
+                    payload = viz_obj.get_payload()
+                except CacheLoadError:
+                    payload = None  # type: ignore
+
+                already_cached_result = payload is not None
+
+                # If the chart query has already been cached, return it immediately.
+                if already_cached_result:
+                    return self.send_data_payload_response(viz_obj, payload)
+
+                # Otherwise, kick off a background job to run the chart query.
+                # Clients will either poll or be notified of query completion,
+                # at which point they will call the /explore_json/data/<cache_key>
+                # endpoint to retrieve the results.
                 try:
                     async_channel_id = async_query_manager.parse_jwt_from_request(
                         request
@@ -2152,7 +2181,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         of rows returned.
         """
         if not results_backend:
-            return json_error_response("Results backend isn't configured")
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__("Results backend is not configured."),
+                    error_type=SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
 
         read_from_results_backend_start = now_as_float()
         blob = results_backend.get(key)
@@ -2433,7 +2468,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 raise SupersetErrorsException(
                     [SupersetError(**params) for params in data["errors"]]
                 )
-
             # old string-only error message
             raise SupersetGenericDBErrorException(data["error"])
 
@@ -2477,17 +2511,42 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             CtasMethod, query_params.get("ctas_method", CtasMethod.TABLE)
         )
         tmp_table_name: str = cast(str, query_params.get("tmp_table_name"))
-        client_id: str = cast(
-            str, query_params.get("client_id") or utils.shortid()[:10]
-        )
+        client_id: str = cast(str, query_params.get("client_id"))
+        client_id_or_short_id: str = cast(str, client_id or utils.shortid()[:10])
         sql_editor_id: str = cast(str, query_params.get("sql_editor_id"))
         tab_name: str = cast(str, query_params.get("tab"))
         status: str = QueryStatus.PENDING if async_flag else QueryStatus.RUNNING
+        user_id: int = g.user.get_id() if g.user else None
 
         session = db.session()
+
+        # check to see if this query is already running
+        query = (
+            session.query(Query)
+            .filter_by(
+                client_id=client_id, user_id=user_id, sql_editor_id=sql_editor_id
+            )
+            .one_or_none()
+        )
+        if query is not None and query.status in [
+            QueryStatus.RUNNING,
+            QueryStatus.PENDING,
+            QueryStatus.TIMED_OUT,
+        ]:
+            # return the existing query
+            payload = json.dumps(
+                {"query": query.to_dict()}, default=utils.json_int_dttm_ser
+            )
+            return json_success(payload)
+
         mydb = session.query(Database).get(database_id)
         if not mydb:
-            return json_error_response("Database with id %i is missing.", database_id)
+            raise SupersetGenericErrorException(
+                _(
+                    "The database referenced in this query was not found. Please "
+                    "contact an administrator for further assistance or try again."
+                )
+            )
 
         # Set tmp_schema_name for CTA
         # TODO(bkyryliuk): consider parsing, splitting tmp_schema_name from
@@ -2512,8 +2571,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             sql_editor_id=sql_editor_id,
             tmp_table_name=tmp_table_name,
             tmp_schema_name=tmp_schema_name,
-            user_id=g.user.get_id() if g.user else None,
-            client_id=client_id,
+            user_id=user_id,
+            client_id=client_id_or_short_id,
         )
         try:
             session.add(query)
@@ -2523,9 +2582,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         except SQLAlchemyError as ex:
             logger.error("Errors saving query details %s", str(ex), exc_info=True)
             session.rollback()
-            raise Exception(_("Query record was not created as expected."))
+            query_id = None
         if not query_id:
-            raise Exception(_("Query record was not created as expected."))
+            raise SupersetGenericErrorException(
+                _(
+                    "The query record was not created as expected. Please "
+                    "contact an administrator for further assistance or try again."
+                )
+            )
 
         logger.info("Triggering query_id: %i", query_id)
 
@@ -2547,7 +2611,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             query.status = QueryStatus.FAILED
             session.commit()
             raise SupersetTemplateParamsErrorException(
-                utils.error_msg_from_exception(ex)
+                message=_(
+                    'The query contains one or more malformed template parameters. Please check your query and confirm that all template parameters are surround by double braces, for example, "{{ ds }}". Then, try running your query again.'
+                ),
+                error=SupersetErrorType.INVALID_TEMPLATE_PARAMS_ERROR,
             )
 
         if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
@@ -2566,6 +2633,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     )
                     + " "
                     + PARAMETER_MISSING_ERR,
+                    error=SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
                     extra={
                         "undefined_parameters": list(undefined_parameters),
                         "template_parameters": template_params,

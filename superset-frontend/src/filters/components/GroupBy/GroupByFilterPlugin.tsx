@@ -16,13 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, ExtraFormData, t, tn } from '@superset-ui/core';
+import { ensureIsArray, ExtraFormData, styled, t, tn } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
 import { Styles, StyledSelect } from '../common';
 import { PluginFilterGroupByProps } from './types';
+import FormItem from '../../../components/Form/FormItem';
 
 const { Option } = Select;
+
+const Error = styled.div`
+  color: ${({ theme }) => theme.colors.error.base};
+`;
 
 export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
   const {
@@ -70,28 +75,36 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
       : tn('%s option', '%s options', columns.length, columns.length);
   return (
     <Styles height={height} width={width}>
-      <StyledSelect
-        allowClear
-        value={value}
-        placeholder={placeholderText}
-        mode={multiSelect ? 'multiple' : undefined}
-        // @ts-ignore
-        onChange={handleChange}
-        onBlur={unsetFocusedFilter}
-        onFocus={setFocusedFilter}
-        ref={inputRef}
+      <FormItem
+        validateStatus={filterState.validateMessage && 'error'}
+        extra={<Error>{filterState.validateMessage}</Error>}
       >
-        {columns.map(
-          (row: { column_name: string; verbose_name: string | null }) => {
-            const { column_name: columnName, verbose_name: verboseName } = row;
-            return (
-              <Option key={columnName} value={columnName}>
-                {verboseName ?? columnName}
-              </Option>
-            );
-          },
-        )}
-      </StyledSelect>
+        <StyledSelect
+          allowClear
+          value={value}
+          placeholder={placeholderText}
+          mode={multiSelect ? 'multiple' : undefined}
+          // @ts-ignore
+          onChange={handleChange}
+          onBlur={unsetFocusedFilter}
+          onFocus={setFocusedFilter}
+          ref={inputRef}
+        >
+          {columns.map(
+            (row: { column_name: string; verbose_name: string | null }) => {
+              const {
+                column_name: columnName,
+                verbose_name: verboseName,
+              } = row;
+              return (
+                <Option key={columnName} value={columnName}>
+                  {verboseName ?? columnName}
+                </Option>
+              );
+            },
+          )}
+        </StyledSelect>
+      </FormItem>
     </Styles>
   );
 }

@@ -77,8 +77,7 @@ const config: ControlPanelConfig = {
               default: enableEmptyFilter,
               renderTrigger: true,
               description: t(
-                'User must select a value for this filter when filter is in single select mode. ' +
-                  'If selection is empty, an always false filter is emitted.',
+                'User must select a value before applying the filter',
               ),
             },
           },
