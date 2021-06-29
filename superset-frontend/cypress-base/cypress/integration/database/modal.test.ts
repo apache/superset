@@ -17,6 +17,7 @@
  * under the License.
  */
 import { DATABASE_LIST } from './helper';
+
 describe('Add database', () => {
   beforeEach(() => {
     cy.login();
