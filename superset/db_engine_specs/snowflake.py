@@ -64,7 +64,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
     custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
         OBJECT_DOES_NOT_EXIST_REGEX: (
-            __("%(object)s does not exist in this database"),
+            __("%(object)s does not exist in this database."),
             SupersetErrorType.OBJECT_DOES_NOT_EXIST_ERROR,
             {},
         )
