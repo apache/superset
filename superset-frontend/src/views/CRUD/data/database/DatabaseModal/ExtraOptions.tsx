@@ -39,7 +39,7 @@ const StyledOptionContainer = styled.div`
     margin-top: ${({ theme }) => theme.gridUnit * 0.25}px;
   }
   span[role='img'] {
-    margin-top: ${({ theme }) => theme.gridUnit * 0.25}px;
+    margin-top: ${({ theme }) => theme.gridUnit * 0.5}px;
   }
 `;
 
