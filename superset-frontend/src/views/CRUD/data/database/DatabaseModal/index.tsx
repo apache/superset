@@ -450,7 +450,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const result = await updateResource(
         db.id as number,
         dbToUpdate as DatabaseObject,
-        true,
+        dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM, // onShow toast on SQLA Forms
       );
       if (result) {
         if (onDatabaseAdd) {
@@ -473,7 +473,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         });
       }
       setLoading(true);
-      const dbId = await createResource(dbToUpdate as DatabaseObject, true);
+      const dbId = await createResource(
+        dbToUpdate as DatabaseObject,
+        dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM, // onShow toast on SQLA Forms
+      );
       if (dbId) {
         setHasConnectedDb(true);
         if (onDatabaseAdd) {
