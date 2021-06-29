@@ -266,7 +266,7 @@ describe('DatabaseModal', () => {
         hidden: true,
       });
 
-      // ---------- TODO: Selector options, can't seem to get these to render properly.
+      // ---------- TODO (lyndsiWilliams): Selector options, can't seem to get these to render properly.
 
       // renderAvailableSelector() => <Alert> - Supported databases alert
       const alertIcon = screen.getByRole('img', { name: /info icon/i });
@@ -901,7 +901,7 @@ describe('DatabaseModal', () => {
       });
 
       it('runs fetchResource when "Connect" is clicked', () => {
-        /* ---------- 🐞 TODO: function mock is not currently working 🐞 ----------
+        /* ---------- 🐞 TODO (lyndsiWilliams): function mock is not currently working 🐞 ----------
 
         // Mock useSingleViewResource
         const mockUseSingleViewResource = jest.fn();
@@ -935,7 +935,7 @@ describe('DatabaseModal', () => {
         });
 
         it('runs testDatabaseConnection when "TEST CONNECTION" is clicked', () => {
-          /* ---------- 🐞 TODO: function mock is not currently working 🐞 ----------
+          /* ---------- 🐞 TODO (lyndsiWilliams): function mock is not currently working 🐞 ----------
 
           // Mock testDatabaseConnection
           const mockTestDatabaseConnection = jest.fn();
@@ -995,7 +995,7 @@ describe('DatabaseModal', () => {
         expect(usernameField).toHaveValue('testdb');
         expect(passwordField).toHaveValue('demoPassword');
 
-        /* ---------- 🐞 TODO: function mock is not currently working 🐞 ----------
+        /* ---------- 🐞 TODO (lyndsiWilliams): function mock is not currently working 🐞 ----------
 
         // Mock useSingleViewResource
         const mockUseSingleViewResource = jest.fn();
