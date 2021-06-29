@@ -17,7 +17,8 @@
  * under the License.
  */
 import React, { ReactNode, useState, useCallback } from 'react';
-import Select, { SelectProps, OptionsPromiseResult } from './Select';
+import ControlHeader from 'src/explore/components/ControlHeader';
+import Select, { SelectProps, OptionsType, OptionsTypePage } from './Select';
 
 export default {
   title: 'Select',
@@ -66,6 +67,98 @@ const selectPositions = [
   },
 ];
 
+const ARG_TYPES = {
+  options: {
+    defaultValue: options,
+    table: {
+      disable: true,
+    },
+  },
+  ariaLabel: {
+    table: {
+      disable: true,
+    },
+  },
+  name: {
+    table: {
+      disable: true,
+    },
+  },
+  notFoundContent: {
+    table: {
+      disable: true,
+    },
+  },
+  mode: {
+    defaultValue: 'single',
+    control: {
+      type: 'inline-radio',
+      options: ['single', 'multiple'],
+    },
+  },
+};
+
+const mountHeader = (type: String) => {
+  let header;
+  if (type === 'text') {
+    header = 'Text header';
+  } else if (type === 'control') {
+    header = (
+      <ControlHeader
+        label="Control header"
+        warning="Example of warning messsage"
+      />
+    );
+  }
+  return header;
+};
+
+export const InteractiveSelect = (args: SelectProps & { header: string }) => (
+  <div
+    style={{
+      width: DEFAULT_WIDTH,
+    }}
+  >
+    <Select {...args} header={mountHeader(args.header)} />
+  </div>
+);
+
+InteractiveSelect.args = {
+  autoFocus: false,
+  allowNewOptions: false,
+  allowClear: false,
+  showSearch: false,
+  disabled: false,
+  invertSelection: false,
+  placeholder: 'Select ...',
+};
+
+InteractiveSelect.argTypes = {
+  ...ARG_TYPES,
+  header: {
+    defaultValue: 'none',
+    control: { type: 'inline-radio', options: ['none', 'text', 'control'] },
+  },
+  pageSize: {
+    table: {
+      disable: true,
+    },
+  },
+  paginatedFetch: {
+    table: {
+      disable: true,
+    },
+  },
+};
+
+InteractiveSelect.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};
+
 export const AtEveryCorner = () => (
   <>
     {selectPositions.map(position => (
@@ -73,6 +166,7 @@ export const AtEveryCorner = () => (
         key={position.id}
         style={{
           ...position.style,
+          margin: 30,
           width: DEFAULT_WIDTH,
           position: 'absolute',
         }}
@@ -89,6 +183,56 @@ export const AtEveryCorner = () => (
 );
 
 AtEveryCorner.story = {
+  parameters: {
+    actions: {
+      disable: true,
+    },
+    controls: {
+      disable: true,
+    },
+    knobs: {
+      disable: true,
+    },
+  },
+};
+
+export const PageScroll = () => (
+  <div style={{ height: 2000, overflowY: 'auto' }}>
+    <div
+      style={{
+        width: DEFAULT_WIDTH,
+        position: 'absolute',
+        top: 30,
+        right: 30,
+      }}
+    >
+      <Select ariaLabel="page-scroll-select-1" options={options} />
+    </div>
+    <div
+      style={{
+        width: DEFAULT_WIDTH,
+        position: 'absolute',
+        bottom: 30,
+        right: 30,
+      }}
+    >
+      <Select ariaLabel="page-scroll-select-2" options={options} />
+    </div>
+    <p
+      style={{
+        position: 'absolute',
+        top: '40%',
+        left: 30,
+        width: 500,
+      }}
+    >
+      The objective of this panel is to show how the Select behaves when there's
+      a scroll on the page. In particular, how the drop-down is displayed.
+    </p>
+  </div>
+);
+
+PageScroll.story = {
   parameters: {
     actions: {
       disable: true,
@@ -155,71 +299,90 @@ const USERS = [
   'Ilenia',
 ];
 
-export const AsyncSelect = (
-  args: SelectProps & { withError: boolean; responseTime: number },
-) => {
+export const AsyncSelect = ({
+  withError,
+  responseTime,
+  paginatedFetch,
+  ...rest
+}: SelectProps & {
+  withError: boolean;
+  responseTime: number;
+}) => {
   const [requests, setRequests] = useState<ReactNode[]>([]);
 
+  const getResults = (username: string) => {
+    let results: { label: string; value: string }[] = [];
+
+    if (!username) {
+      results = USERS.map(u => ({
+        label: u,
+        value: u,
+      }));
+    } else {
+      const foundUsers = USERS.filter(u => u.toLowerCase().includes(username));
+      if (foundUsers) {
+        results = foundUsers.map(u => ({ label: u, value: u }));
+      } else {
+        results = [];
+      }
+    }
+    return results;
+  };
+
+  const setRequestLog = (username: string, results: number, total: number) => {
+    const request = (
+      <>
+        Emulating network request with search <b>{username || 'empty'}</b> ...{' '}
+        <b>
+          {results}/{total}
+        </b>{' '}
+        results
+      </>
+    );
+
+    setRequests(requests => [request, ...requests]);
+  };
+
   const fetchUserList = useCallback(
-    (search: string, page = 0): Promise<OptionsPromiseResult> => {
+    (search: string): Promise<OptionsType> => {
       const username = search.trim().toLowerCase();
       return new Promise(resolve => {
-        let results: { label: string; value: string }[] = [];
-
-        if (!username) {
-          results = USERS.map(u => ({
-            label: u,
-            value: u,
-          }));
-        } else {
-          const foundUsers = USERS.find(u =>
-            u.toLowerCase().includes(username),
-          );
-          if (foundUsers && Array.isArray(foundUsers)) {
-            results = foundUsers.map(u => ({ label: u, value: u }));
-          }
-          if (foundUsers && typeof foundUsers === 'string') {
-            const u = foundUsers;
-            results = [{ label: u, value: u }];
-          }
-        }
-
-        const pageSize = 10;
-        const offset = !page ? 0 : page * pageSize;
-        const resultsNum = !page ? pageSize : (page + 1) * pageSize;
-        results = results.length ? results.splice(offset, resultsNum) : [];
-
-        const request = (
-          <>
-            Emulating network request for page <b>{page}</b> and search{' '}
-            <b>{username || 'empty'}</b> ... <b>{resultsNum}</b> results
-          </>
-        );
-
-        setRequests(requests => [request, ...requests]);
-
-        const totalPages =
-          USERS.length / pageSize + (USERS.length % pageSize > 0 ? 1 : 0);
-
-        const result: OptionsPromiseResult = {
-          data: results,
-          hasMoreData: page + 1 < totalPages,
-        };
-
+        const results = getResults(username);
+        setRequestLog(username, results.length, results.length);
         setTimeout(() => {
-          resolve(result);
-        }, args.responseTime * 1000);
+          resolve(results);
+        }, responseTime * 1000);
       });
     },
-    [args.responseTime],
+    [responseTime],
   );
 
-  async function fetchUserListError(): Promise<OptionsPromiseResult> {
-    return new Promise((_, reject) => {
-      // eslint-disable-next-line prefer-promise-reject-errors
-      reject('This is an error');
+  const fetchUserListPage = useCallback(
+    (
+      search: string,
+      offset: number,
+      limit: number,
+    ): Promise<OptionsTypePage> => {
+      const username = search.trim().toLowerCase();
+      return new Promise(resolve => {
+        let results = getResults(username);
+        const totalCount = results.length;
+        if (paginatedFetch) {
+          results = results.splice(offset, limit);
+        }
+        setRequestLog(username, offset + results.length, totalCount);
+        setTimeout(() => {
+          resolve({ data: results, totalCount });
+        }, responseTime * 1000);
+      });
+    },
+    [paginatedFetch, responseTime],
+  );
+
+  const fetchUserListError = async (): Promise<OptionsTypePage> =>
+    new Promise((_, reject) => {
+      reject(new Error('Error while fetching the names from the server'));
     });
-  }
 
   return (
     <>
@@ -229,8 +392,15 @@ export const AsyncSelect = (
         }}
       >
         <Select
-          {...args}
-          options={args.withError ? fetchUserListError : fetchUserList}
+          {...rest}
+          paginatedFetch={paginatedFetch}
+          options={
+            withError
+              ? fetchUserListError
+              : paginatedFetch
+              ? fetchUserListPage
+              : fetchUserList
+          }
         />
       </div>
       <div
@@ -245,8 +415,8 @@ export const AsyncSelect = (
           padding: 20,
         }}
       >
-        {requests.map(request => (
-          <p>{request}</p>
+        {requests.map((request, index) => (
+          <p key={`request-${index}`}>{request}</p>
         ))}
       </div>
     </>
@@ -255,56 +425,44 @@ export const AsyncSelect = (
 
 AsyncSelect.args = {
   withError: false,
-  allowNewOptions: false,
   paginatedFetch: false,
+  pageSize: 10,
+  allowNewOptions: false,
 };
 
 AsyncSelect.argTypes = {
-  mode: {
-    control: { type: 'select', options: ['single', 'multiple', 'tags'] },
+  ...ARG_TYPES,
+  header: {
+    table: {
+      disable: true,
+    },
+  },
+  invertSelection: {
+    table: {
+      disable: true,
+    },
+  },
+  pageSize: {
+    defaultValue: 10,
+    control: {
+      type: 'range',
+      min: 10,
+      max: 50,
+      step: 10,
+    },
   },
   responseTime: {
-    defaultValue: 1,
+    defaultValue: 0.5,
     name: 'responseTime (seconds)',
     control: {
       type: 'range',
-      min: 1,
+      min: 0.5,
       max: 5,
     },
   },
 };
 
 AsyncSelect.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};
-
-export const InteractiveSelect = (args: SelectProps) => (
-  <div
-    style={{
-      width: DEFAULT_WIDTH,
-    }}
-  >
-    <Select {...args} />
-  </div>
-);
-
-InteractiveSelect.args = {
-  allowNewOptions: false,
-  options,
-  showSearch: false,
-};
-
-InteractiveSelect.argTypes = {
-  mode: {
-    control: { type: 'select', options: ['single', 'multiple', 'tags'] },
-  },
-};
-
-InteractiveSelect.story = {
   parameters: {
     knobs: {
       disable: true,
