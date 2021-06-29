@@ -238,6 +238,6 @@ export const Databases = [
   {
     title: 'IBM Netezza Performance Server',
     href: 'https://www.ibm.com/products/netezza',
-    imgName: 'netezza.jpg',
+    imgName: 'netezza.png',
   },
 ];
