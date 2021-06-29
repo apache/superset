@@ -562,7 +562,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         description={
           connectionAlert?.ADD_DATABASE ? (
             <>
-              Any databases that allow connetions via SQL Alchemy URIs can be
+              Any databases that allow connections via SQL Alchemy URIs can be
               added.{' '}
               <a
                 href={connectionAlert?.ADD_DATABASE.contact_link}
@@ -575,7 +575,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             </>
           ) : (
             <>
-              Any databases that allow connetions via SQL Alchemy URIs can be
+              Any databases that allow connections via SQL Alchemy URIs can be
               added. Learn about how to connect a database driver{' '}
               <a
                 href={DOCUMENTATION_LINK}
