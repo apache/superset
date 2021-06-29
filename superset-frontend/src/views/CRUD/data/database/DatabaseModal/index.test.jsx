@@ -35,7 +35,6 @@ import DatabaseModal from './index';
 
 const dbProps = {
   show: true,
-  // databaseId: 10,
   database_name: 'my database',
   sqlalchemy_uri: 'postgres://superset:superset@something:1234/superset',
 };
