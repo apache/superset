@@ -69,7 +69,6 @@ const Wrapper = styled.div`
 type HeaderProps = {
   toggleFiltersBar: (arg0: boolean) => void;
   onApply: () => void;
-  setDataMaskSelected: (arg0: (draft: DataMaskState) => void) => void;
   dataMaskSelected: DataMaskState;
   dataMaskApplied: DataMaskStateWithId;
   isApplyDisabled: boolean;
@@ -80,7 +79,6 @@ const Header: FC<HeaderProps> = ({
   isApplyDisabled,
   dataMaskSelected,
   dataMaskApplied,
-  setDataMaskSelected,
   toggleFiltersBar,
 }) => {
   const theme = useTheme();

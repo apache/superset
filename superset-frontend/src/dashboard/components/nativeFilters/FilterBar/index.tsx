@@ -242,7 +242,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         <Header
           toggleFiltersBar={toggleFiltersBar}
           onApply={handleApply}
-          setDataMaskSelected={setDataMaskSelected}
           isApplyDisabled={isApplyDisabled}
           dataMaskSelected={dataMaskSelected}
           dataMaskApplied={dataMaskApplied}
