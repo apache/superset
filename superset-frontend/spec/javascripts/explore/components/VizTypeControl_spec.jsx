@@ -22,6 +22,8 @@ import userEvent from '@testing-library/user-event';
 import { getChartMetadataRegistry, ChartMetadata } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
 import VizTypeControl from 'src/explore/components/controls/VizTypeControl';
+import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
+import { act } from 'react-dom/test-utils';
 
 const defaultProps = {
   name: 'viz_type',
@@ -30,6 +32,15 @@ const defaultProps = {
   onChange: sinon.spy(),
   isModalOpenInit: true,
 };
+
+/**
+ * AntD and/or the Icon component seems to be doing some kind of async changes,
+ * so even though the test passes, there is a warning an update to Icon was not
+ * wrapped in act(). This sufficiently act-ifies whatever side effects are going
+ * on and prevents those warnings.
+ */
+const waitForEffects = () =>
+  act(() => new Promise(resolve => setTimeout(resolve, 0)));
 
 describe('VizTypeControl', () => {
   const registry = getChartMetadataRegistry();
@@ -49,8 +60,13 @@ describe('VizTypeControl', () => {
       }),
     );
 
-  beforeEach(() => {
-    render(<VizTypeControl {...defaultProps} />);
+  beforeEach(async () => {
+    render(
+      <DynamicPluginProvider>
+        <VizTypeControl {...defaultProps} />
+      </DynamicPluginProvider>,
+    );
+    await waitForEffects();
   });
 
   it('calls onChange when submitted', () => {
@@ -62,12 +78,13 @@ describe('VizTypeControl', () => {
     expect(defaultProps.onChange.called).toBe(true);
   });
 
-  it('filters images based on text input', () => {
+  it('filters images based on text input', async () => {
     const thumbnails = screen.getAllByTestId('viztype-selector-container');
     expect(thumbnails).toHaveLength(2);
 
     const searchInput = screen.getByPlaceholderText('Search');
-    userEvent.type(searchInput, 'vis2');
+    userEvent.type(searchInput, '2');
+    await waitForEffects();
 
     const thumbnail = screen.getByTestId('viztype-selector-container');
     expect(thumbnail).toBeInTheDocument();
