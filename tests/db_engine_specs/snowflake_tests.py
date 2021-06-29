@@ -17,6 +17,7 @@
 import json
 
 from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.core import Database
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
@@ -43,3 +44,42 @@ class TestSnowflakeDbEngineSpec(TestDbEngineSpec):
             {"engine_params": {"connect_args": {"validate_default_parameters": True}}},
             engine_params,
         )
+
+    def test_extract_errors(self):
+        msg = "Object dumbBrick does not exist or not authorized."
+        result = SnowflakeEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                message="dumbBrick does not exist in this database.",
+                error_type=SupersetErrorType.OBJECT_DOES_NOT_EXIST_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Snowflake",
+                    "issue_codes": [
+                        {
+                            "code": 1029,
+                            "message": "Issue 1029 - The object does not exist in the given database.",
+                        }
+                    ],
+                },
+            )
+        ]
+
+        msg = "syntax error line 1 at position 10 unexpected 'limmmited'."
+        result = SnowflakeEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                message='Please check your query for syntax errors at or near "limmmited". Then, try running your query again.',
+                error_type=SupersetErrorType.SYNTAX_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Snowflake",
+                    "issue_codes": [
+                        {
+                            "code": 1030,
+                            "message": "Issue 1030 - The query has a syntax error.",
+                        }
+                    ],
+                },
+            )
+        ]
