@@ -272,7 +272,7 @@ describe('DatabaseModal', () => {
       const alertIcon = screen.getByRole('img', { name: /info icon/i });
       const alertMessage = screen.getByText(/want to add a new database\?/i);
       const alertDescription = screen.getByText(
-        /any databases that allow connetions via sql alchemy uris can be added\. learn about how to connect a database driver \./i,
+        /any databases that allow connections via sql alchemy uris can be added\. learn about how to connect a database driver \./i,
       );
       const alertLink = screen.getByRole('link', { name: /here/i });
 
