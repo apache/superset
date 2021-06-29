@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { useTheme } from '@superset-ui/core';
+import { useSelector } from 'react-redux';
 
 import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
 import Chart from '../../containers/Chart';
@@ -30,13 +31,13 @@ import HoverMenu from '../menu/HoverMenu';
 import ResizableContainer from '../resizable/ResizableContainer';
 import getChartAndLabelComponentIdFromPath from '../../util/getChartAndLabelComponentIdFromPath';
 import { componentShape } from '../../util/propShapes';
-import { ROW_TYPE, COLUMN_TYPE } from '../../util/componentTypes';
+import { COLUMN_TYPE, ROW_TYPE } from '../../util/componentTypes';
 
 import {
-  GRID_MIN_COLUMN_COUNT,
-  GRID_MIN_ROW_UNITS,
   GRID_BASE_UNIT,
   GRID_GUTTER_SIZE,
+  GRID_MIN_COLUMN_COUNT,
+  GRID_MIN_ROW_UNITS,
 } from '../../util/constants';
 
 const CHART_MARGIN = 32;
@@ -73,6 +74,21 @@ const defaultProps = {
 };
 
 /**
+ * Selects the chart scope of the filter input that has focus.
+ *
+ * @returns {{chartId: number, scope: { scope: string[], immune: string[] }} | null }
+ * the scope of the currently focused filter, if any
+ */
+function selectFocusedFilterScope(dashboardState, dashboardFilters) {
+  if (!dashboardState.focusedFilterField) return null;
+  const { chartId, column } = dashboardState.focusedFilterField;
+  return {
+    chartId,
+    scope: dashboardFilters[chartId].scopes[column],
+  };
+}
+
+/**
  * Renders any styles necessary to highlight the chart's relationship to the focused filter.
  *
  * If there is no focused filter scope (i.e. most of the time), this will be just a pass-through.
@@ -85,8 +101,16 @@ const defaultProps = {
  * If ChartHolder were a function component, this could be implemented as a hook instead.
  */
 const FilterFocusHighlight = React.forwardRef(
-  ({ chartId, focusedFilterScope, nativeFilters, ...otherProps }, ref) => {
+  ({ chartId, ...otherProps }, ref) => {
     const theme = useTheme();
+
+    const nativeFilters = useSelector(state => state.nativeFilters);
+    const dashboardState = useSelector(state => state.dashboardState);
+    const dashboardFilters = useSelector(state => state.dashboardFilters);
+    const focusedFilterScope = selectFocusedFilterScope(
+      dashboardState,
+      dashboardFilters,
+    );
     const focusedNativeFilterId = nativeFilters.focusedFilterId;
     if (!(focusedFilterScope || focusedNativeFilterId))
       return <div ref={ref} {...otherProps} />;
@@ -239,8 +263,6 @@ class ChartHolder extends React.Component {
       editMode,
       isComponentVisible,
       dashboardId,
-      focusedFilterScope,
-      nativeFilters,
     } = this.props;
 
     // inherit the size of parent columns
@@ -298,8 +320,6 @@ class ChartHolder extends React.Component {
           >
             <FilterFocusHighlight
               chartId={chartId}
-              focusedFilterScope={focusedFilterScope}
-              nativeFilters={nativeFilters}
               ref={dragSourceRef}
               data-test="dashboard-component-chart-holder"
               className={cx(
