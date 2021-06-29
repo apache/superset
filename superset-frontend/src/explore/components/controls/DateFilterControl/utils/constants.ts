@@ -29,6 +29,8 @@ import {
 
 export const FRAME_OPTIONS: SelectOptionType[] = [
   { value: 'Common', label: t('Last') },
+  { value: 'Today', label: t('Today') },
+  { value: 'Yesterday', label: t('Yesterday') },
   { value: 'Calendar', label: t('Previous') },
   { value: 'Custom', label: t('Custom') },
   { value: 'Advanced', label: t('Advanced') },
