@@ -85,7 +85,7 @@ const CredentialsInfo = ({
       {!isEditMode && (
         <>
           <FormLabel required>
-            How do you want to enter service account credentials?
+            `${t('How do you want to enter service account credentials?')}`
           </FormLabel>
           <Select
             defaultValue={uploadOption}
@@ -93,11 +93,11 @@ const CredentialsInfo = ({
             onChange={option => setUploadOption(option)}
           >
             <Select.Option value={CredentialInfoOptions.jsonUpload}>
-              Upload JSON file
+              `${t('Upload JSON file')}`
             </Select.Option>
 
             <Select.Option value={CredentialInfoOptions.copyPaste}>
-              Copy and Paste JSON credentials
+              `${t('Copy and Paste JSON credentials')}`
             </Select.Option>
           </Select>
         </>
@@ -106,7 +106,7 @@ const CredentialsInfo = ({
       isEditMode ||
       editNewDb ? (
         <div className="input-container">
-          <FormLabel required>Service Account</FormLabel>
+          <FormLabel required>`${t('Service Account')}`</FormLabel>
           <textarea
             className="input-form"
             name="credentials_info"
@@ -121,7 +121,7 @@ const CredentialsInfo = ({
             )}
           />
           <span className="label-paste">
-            Copy and paste the entire service account .json file here
+            `${t('Copy and paste the entire service account .json file here')}`
           </span>
         </div>
       ) : (
@@ -130,7 +130,7 @@ const CredentialsInfo = ({
           css={(theme: SupersetTheme) => infoTooltip(theme)}
         >
           <div css={{ display: 'flex', alignItems: 'center' }}>
-            <FormLabel required>Upload Credentials</FormLabel>
+            <FormLabel required>`${t('Upload Credentials')}`</FormLabel>
             <InfoTooltip
               tooltip={t(
                 'Use the JSON file you automatically downloaded when creating your service account in Google BigQuery.',
@@ -144,7 +144,7 @@ const CredentialsInfo = ({
               className="input-upload-btn"
               onClick={() => document?.getElementById('selectedFile')?.click()}
             >
-              Choose File
+              `${t('Choose File')}`
             </Button>
           )}
           {fileToUpload && (
@@ -257,7 +257,7 @@ const databaseField = ({
     placeholder="e.g. world_population"
     label="Database name"
     onChange={changeMethods.onParametersChange}
-    helpText="Copy the name of the  database you are trying to connect to."
+    helpText={t('Copy the name of the  database you are trying to connect to.')}
   />
 );
 const usernameField = ({
@@ -316,7 +316,7 @@ const displayField = ({
     placeholder=""
     label="Display Name"
     onChange={changeMethods.onChange}
-    helpText="Pick a nickname for this database to display as in Superset."
+    helpText={t('Pick a nickname for this database to display as in Superset.')}
   />
 );
 
@@ -337,7 +337,7 @@ const queryField = ({
     placeholder="e.g. additional parameters"
     label="Additional Parameters"
     onChange={changeMethods.onParametersChange}
-    helpText="Add additional custom parameters"
+    helpText={t('Add additional custom parameters')}
   />
 );
 

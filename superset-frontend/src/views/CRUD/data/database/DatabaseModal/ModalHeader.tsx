@@ -83,7 +83,11 @@ const ModalHeader = ({
       <CreateHeaderTitle>Enter Primary Credentials</CreateHeaderTitle>
       <CreateHeaderSubtitle>
         Need help? Learn how to connect your database{' '}
-        <a href={DOCUMENTATION_LINK} target="_blank" rel="noopener noreferrer">
+        <a
+          href={supersetTextDocs?.default || DOCUMENTATION_LINK}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           here
         </a>
         .
