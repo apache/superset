@@ -53,6 +53,7 @@ const propTypes = {
   addWarningToast: PropTypes.func.isRequired,
   dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
+  dataMask: PropTypes.object.isRequired,
   charts: PropTypes.objectOf(chartPropShape).isRequired,
   layout: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
@@ -353,6 +354,7 @@ class Header extends React.PureComponent {
       expandedSlices,
       customCss,
       colorNamespace,
+      dataMask,
       setColorSchemeAndUnsavedChanges,
       colorScheme,
       onUndo,
@@ -526,6 +528,7 @@ class Header extends React.PureComponent {
             dashboardId={dashboardInfo.id}
             dashboardTitle={dashboardTitle}
             dashboardInfo={dashboardInfo}
+            dataMask={dataMask}
             layout={layout}
             expandedSlices={expandedSlices}
             customCss={customCss}

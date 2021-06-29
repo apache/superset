@@ -52,6 +52,7 @@ export type ActiveTabs = string[];
 export type DashboardLayout = { [key: string]: LayoutItem };
 export type DashboardLayoutState = { present: DashboardLayout };
 export type DashboardState = {
+  preselectNativeFilters?: JsonObject;
   editMode: boolean;
   directPathToChild: string[];
   activeTabs: ActiveTabs;
@@ -63,7 +64,10 @@ export type DashboardInfo = {
   };
   userId: string;
   dash_edit_perm: boolean;
-  metadata: { show_native_filters: boolean; chart_configuration: JsonObject };
+  metadata: {
+    show_native_filters: boolean;
+    chart_configuration: JsonObject;
+  };
 };
 
 export type ChartsState = { [key: string]: Chart };
