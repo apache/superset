@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { uniqWith } from 'lodash';
 import cx from 'classnames';
 import Icon from 'src/components/Icon';
 import Icons from 'src/components/Icons';
-import { uniqWith } from 'lodash';
-import { useDispatch, useSelector } from 'react-redux';
+import { usePrevious } from 'src/common/hooks/usePrevious';
+import { DataMaskStateWithId } from 'src/dataMask/types';
 import DetailsPanelPopover from './DetailsPanel';
 import { Pill } from './Styles';
 import {
@@ -38,7 +40,6 @@ import {
   RootState,
 } from '../../types';
 import { Filters } from '../../reducers/types';
-import { DataMaskStateWithId } from '../../../dataMask/types';
 
 export interface FiltersBadgeProps {
   chartId: number;
@@ -77,6 +78,11 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     state => state.dataMask,
   );
 
+  const [nativeIndicators, setNativeIndicators] = useState<Indicator[]>([]);
+  const [dashboardIndicators, setDashboardIndicators] = useState<Indicator[]>(
+    [],
+  );
+
   const onHighlightFilterSource = useCallback(
     (path: string[]) => {
       dispatch(setDirectPathToChild(path));
@@ -85,36 +91,57 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   );
 
   const chart = charts[chartId];
-  const dashboardIndicators = useMemo(
-    () =>
-      selectIndicatorsForChart(chartId, dashboardFilters, datasources, chart),
-    [
-      chartId,
-      JSON.stringify(chart),
-      JSON.stringify(dashboardFilters),
-      JSON.stringify(datasources),
-    ],
-  );
+  const prevChartStatus = usePrevious(chart?.chartStatus);
 
-  const nativeIndicators = useMemo(
+  const showIndicators = useCallback(
     () =>
-      selectNativeIndicatorsForChart(
-        nativeFilters,
-        dataMask,
-        chartId,
-        chart,
-        present,
-        dashboardInfo.metadata?.chart_configuration,
-      ),
-    [
-      chartId,
-      JSON.stringify(chart),
-      JSON.stringify(dashboardInfo.metadata?.chart_configuration),
-      JSON.stringify(dataMask),
-      JSON.stringify(nativeFilters),
-      JSON.stringify(present),
-    ],
+      chart?.chartStatus && ['rendered', 'success'].includes(chart.chartStatus),
+    [chart.chartStatus],
   );
+  useEffect(() => {
+    if (!showIndicators) {
+      setDashboardIndicators([]);
+    }
+    if (prevChartStatus !== 'success') {
+      setDashboardIndicators(
+        selectIndicatorsForChart(chartId, dashboardFilters, datasources, chart),
+      );
+    }
+  }, [
+    chart,
+    chartId,
+    dashboardFilters,
+    datasources,
+    prevChartStatus,
+    showIndicators,
+  ]);
+
+  useEffect(() => {
+    if (!showIndicators) {
+      setNativeIndicators([]);
+    }
+    if (prevChartStatus !== 'success') {
+      setNativeIndicators(
+        selectNativeIndicatorsForChart(
+          nativeFilters,
+          dataMask,
+          chartId,
+          chart,
+          present,
+          dashboardInfo.metadata?.chart_configuration,
+        ),
+      );
+    }
+  }, [
+    chart,
+    chartId,
+    dashboardInfo.metadata?.chart_configuration,
+    dataMask,
+    nativeFilters,
+    present,
+    prevChartStatus,
+    showIndicators,
+  ]);
 
   const indicators = useMemo(
     () =>

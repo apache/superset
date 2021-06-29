@@ -146,9 +146,6 @@ export const selectIndicatorsForChart = (
   datasources: { [key: string]: Datasource },
   chart: any,
 ): Indicator[] => {
-  // no indicators before chart is rendered
-  if (chart.chartStatus !== 'rendered') return [];
-
   // for now we only need to know which columns are compatible/incompatible,
   // so grab the columns from the applied/rejected filters
   const appliedColumns = getAppliedColumns(chart);
@@ -181,9 +178,6 @@ export const selectNativeIndicatorsForChart = (
   dashboardLayout: Layout,
   chartConfiguration: ChartConfiguration = {},
 ): Indicator[] => {
-  // no indicators before chart is rendered
-  if (chart.chartStatus !== 'rendered') return [];
-
   const appliedColumns = getAppliedColumns(chart);
   const rejectedColumns = getRejectedColumns(chart);
 
