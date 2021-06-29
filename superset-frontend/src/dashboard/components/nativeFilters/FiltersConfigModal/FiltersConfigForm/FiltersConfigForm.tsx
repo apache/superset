@@ -669,8 +669,8 @@ const FiltersConfigForm = (
                   ? FILTER_TYPE_NAME_MAPPING[name]
                   : undefined;
                 const isDisabled =
-                  FILTER_SUPPORTED_TYPES[filterType].length === 1 &&
-                  FILTER_SUPPORTED_TYPES[filterType].includes(
+                  FILTER_SUPPORTED_TYPES[filterType]?.length === 1 &&
+                  FILTER_SUPPORTED_TYPES[filterType]?.includes(
                     GenericDataType.TEMPORAL,
                   ) &&
                   !doLoadedDatasetsHaveTemporalColumns;
