@@ -59,8 +59,8 @@ const alertIconStyles = (theme: SupersetTheme, hasError: boolean) => css`
         width: ${theme.gridUnit * 4}px;
         height: ${theme.gridUnit * 4}px;
         position: absolute;
-        right: 5px;
-        top: 11px;
+        right: ${theme.gridUnit * 1.25}px;
+        top: ${theme.gridUnit * 2.75}px;
       }
     }`}
 `;
