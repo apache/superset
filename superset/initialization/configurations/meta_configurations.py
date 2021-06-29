@@ -82,25 +82,3 @@ meta_union_strategy = {
     (dict, type): override_right_as_class_strategy,
     (dict, dict): merge_as_dict_strategy,
 }
-
-if __name__ == "__main__":
-
-    class A:
-        NAME = "ofek"
-        LAST = "israel"
-
-    class B:
-        NAME = "amit"
-        ADDRESS = "aaa"
-
-    rv = override_right_as_class_strategy(A, B, "A")  # type: ignore
-    print(rv)
-    rv = merge_as_class_strategy(A, B, "A")  # type: ignore
-    print(rv)
-    rv = override_right_as_dict_strategy(A, B, "A")  # type: ignore
-    print(rv)
-    rv = merge_as_dict_strategy(A, B, "A")  # type: ignore
-    print(rv)
-    rv = take_right_strategy(A, B, "A")  # type: ignore
-    print(rv)
-    print("done")
