@@ -31,6 +31,14 @@ export const URL_PARAMS = {
     name: 'preselect_filters',
     type: 'object',
   },
+  nativeFilters: {
+    name: 'native_filters',
+    type: 'rison',
+  },
+  filterSet: {
+    name: 'filter_set',
+    type: 'string',
+  },
   showFilters: {
     name: 'show_filters',
     type: 'boolean',

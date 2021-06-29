@@ -360,6 +360,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
       dashboardFilters,
       nativeFilters,
       dashboardState: {
+        preselectNativeFilters: getUrlParam(URL_PARAMS.nativeFilters),
         sliceIds: Array.from(sliceIds),
         directPathToChild,
         directPathLastUpdated: Date.now(),
