@@ -430,22 +430,24 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     }
 
+    if (dbToUpdate?.extra_json) {
+      // convert extra_json to back to string
+      dbToUpdate.extra = JSON.stringify({
+        ...dbToUpdate.extra_json,
+        metadata_params: JSON.parse(
+          (dbToUpdate?.extra_json?.metadata_params as string) || '{}',
+        ),
+        engine_params: JSON.parse(
+          (dbToUpdate?.extra_json?.engine_params as string) || '{}',
+        ),
+        schemas_allowed_for_csv_upload:
+          (dbToUpdate?.extra_json?.schemas_allowed_for_csv_upload as string) ||
+          '[]',
+      });
+    }
+    console.log(dbToUpdate.extra);
+
     if (db?.id) {
-      if (dbToUpdate?.extra_json) {
-        // convert extra_json to back to string
-        dbToUpdate.extra = JSON.stringify({
-          ...dbToUpdate.extra_json,
-          metadata_params: JSON.parse(
-            dbToUpdate?.extra_json?.metadata_params as string,
-          ),
-          engine_params: JSON.parse(
-            dbToUpdate?.extra_json?.engine_params as string,
-          ),
-          schemas_allowed_for_csv_upload: JSON.parse(
-            dbToUpdate?.extra_json?.schemas_allowed_for_csv_upload as string,
-          ),
-        });
-      }
       setLoading(true);
       const result = await updateResource(
         db.id as number,
@@ -462,16 +464,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     } else if (db) {
       // Create
-      if (dbToUpdate?.extra_json) {
-        // convert extra_json to back to string
-        dbToUpdate.extra = JSON.stringify({
-          ...dbToUpdate.extra_json,
-          metadata_params: dbToUpdate?.extra_json?.metadata_params as string,
-          engine_params: dbToUpdate?.extra_json?.engine_params as string,
-          schemas_allowed_for_csv_upload: dbToUpdate?.extra_json
-            ?.schemas_allowed_for_csv_upload as string,
-        });
-      }
       setLoading(true);
       const dbId = await createResource(
         dbToUpdate as DatabaseObject,
