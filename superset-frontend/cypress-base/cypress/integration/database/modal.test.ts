@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DATABASE_LIST } from './helper';
-// TODO: Add new tests with the modal
+
 describe('Add database', () => {
   beforeEach(() => {
     cy.login();
