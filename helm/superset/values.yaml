@@ -18,7 +18,7 @@
 # Default values for superset.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
-superset-config: |-
+supersetconfiguration: |-
   FEATURE_FLAGS = { 'ENABLE_TEMPLATE_PROCESSING': True }
   ENABLE_SCHEDULED_EMAIL_REPORTS = True
   ENABLE_ALERTS = True
