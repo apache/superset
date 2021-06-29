@@ -77,11 +77,11 @@ def load_override_config() -> Union[Dict[Any, Any], ModuleType]:
         # for case where app is being executed via pex.
         cfg_path = os.environ[CONFIG_PATH_ENV_VAR]
         try:
-            mod_name = "superset_config"
-            loader = importlib.machinery.SourceFileLoader(mod_name, cfg_path)
-            spec = importlib.util.spec_from_loader(mod_name, loader)
+            CONFIG_MODULE_NAME = "superset_config"  # pylint: disable=C0103
+            loader = importlib.machinery.SourceFileLoader(CONFIG_MODULE_NAME, cfg_path)
+            spec = importlib.util.spec_from_loader(CONFIG_MODULE_NAME, loader)
             override_conf = importlib.util.module_from_spec(spec)
-            sys.modules[mod_name] = override_conf
+            sys.modules[CONFIG_MODULE_NAME] = override_conf
             loader.exec_module(override_conf)
 
             print(f"Loaded your LOCAL configuration at [{cfg_path}]")
