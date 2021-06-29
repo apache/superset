@@ -117,5 +117,5 @@ RESULTS_BACKEND = RedisCache(
       port=env('REDIS_PORT'),
       key_prefix='superset_results'
 )
-{{ .Values.superset-config }}
+{{ .Values.supersetconfiguration }}
 {{- end }}
