@@ -117,5 +117,6 @@ RESULTS_BACKEND = RedisCache(
       port=env('REDIS_PORT'),
       key_prefix='superset_results'
 )
+WEBDRIVER_BASEURL = "http://{{ template "superset.fullname" . }}:{{ .Values.service.port }}/"
 {{ .Values.supersetconfiguration }}
 {{- end }}
