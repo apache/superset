@@ -87,6 +87,7 @@ function renderControlItems(
   controlItemsMap: ReturnType<typeof getControlItemsMap>,
 ) {
   return render(
+    // @ts-ignore
     <>{Object.values(controlItemsMap).map(value => value.element)}</>,
   );
 }

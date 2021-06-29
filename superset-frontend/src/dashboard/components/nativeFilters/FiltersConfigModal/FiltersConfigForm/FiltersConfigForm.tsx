@@ -270,11 +270,7 @@ export interface FiltersConfigFormProps {
 }
 
 // TODO: Need to do with it something
-const FILTERS_WITHOUT_COLUMN = [
-  'filter_timegrain',
-  'filter_timecolumn',
-  'filter_groupby',
-];
+const FILTERS_WITHOUT_COLUMN = ['filter_timegrain', 'filter_timecolumn'];
 
 const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
 
@@ -354,6 +350,7 @@ const FiltersConfigForm = (
     ?.datasourceCount;
   const hasColumn =
     hasDataset && !FILTERS_WITHOUT_COLUMN.includes(formFilter?.filterType);
+
   const nativeFilterItem = nativeFilterItems[formFilter?.filterType] ?? {};
   // @ts-ignore
   const enableNoResults = !!nativeFilterItem.value?.enableNoResults;
@@ -546,7 +543,7 @@ const FiltersConfigForm = (
 
   const showDefaultValue = !hasDataset || (!isDataDirty && hasFilledDataset);
 
-  const controlItems = formFilter
+  const { controlItems = {}, mainControlItems = {} } = formFilter
     ? getControlItemsMap({
         disabled: false,
         forceUpdate,
@@ -669,8 +666,8 @@ const FiltersConfigForm = (
                   ? FILTER_TYPE_NAME_MAPPING[name]
                   : undefined;
                 const isDisabled =
-                  FILTER_SUPPORTED_TYPES[filterType].length === 1 &&
-                  FILTER_SUPPORTED_TYPES[filterType].includes(
+                  FILTER_SUPPORTED_TYPES[filterType]?.length === 1 &&
+                  FILTER_SUPPORTED_TYPES[filterType]?.includes(
                     GenericDataType.TEMPORAL,
                   ) &&
                   !doLoadedDatasetsHaveTemporalColumns;
@@ -744,6 +741,8 @@ const FiltersConfigForm = (
                 data-test="field-input"
               >
                 <ColumnSelect
+                  // @ts-ignore
+                  mode={mainControlItems.column && 'multiple'}
                   form={form}
                   filterId={filterId}
                   datasetId={datasetId}

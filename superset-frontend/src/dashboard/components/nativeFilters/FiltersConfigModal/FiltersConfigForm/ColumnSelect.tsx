@@ -36,6 +36,7 @@ interface ColumnSelectProps {
   datasetId?: number;
   value?: string;
   onChange?: (value: string) => void;
+  mode?: 'multiple' | 'tags';
 }
 
 const localCache = new Map<string, any>();
@@ -57,6 +58,7 @@ export function ColumnSelect({
   datasetId,
   value,
   onChange,
+  mode,
 }: ColumnSelectProps) {
   const [columns, setColumns] = useState<Column[]>();
   const { addDangerToast } = useToasts();
@@ -124,6 +126,7 @@ export function ColumnSelect({
 
   return (
     <Select
+      mode={mode}
       value={value}
       onChange={onChange}
       options={options}

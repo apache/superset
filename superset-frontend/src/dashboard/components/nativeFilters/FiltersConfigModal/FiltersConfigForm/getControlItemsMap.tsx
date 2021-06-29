@@ -61,7 +61,13 @@ export default function getControlItemsMap({
     string,
     { element: React.ReactNode; checked: boolean }
   > = {};
-
+  const mainControlItems = {};
+  controlItems.forEach(item => {
+    if (item?.name === 'groupby') {
+      // @ts-ignore
+      mainControlItems.column = item.config.multiple;
+    }
+  });
   controlItems
     .filter(
       (controlItem: CustomControlItem) =>
@@ -131,5 +137,8 @@ export default function getControlItemsMap({
       );
       map[controlItem.name] = { element, checked: initialValue };
     });
-  return map;
+  return {
+    controlItems: map,
+    mainControlItems,
+  };
 }

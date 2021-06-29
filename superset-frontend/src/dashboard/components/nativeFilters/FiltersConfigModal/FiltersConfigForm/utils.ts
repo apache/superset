@@ -97,4 +97,4 @@ export const hasTemporalColumns = (
 
 export const doesColumnMatchFilterType = (filterType: string, column: Column) =>
   !column.type_generic ||
-  FILTER_SUPPORTED_TYPES[filterType].includes(column.type_generic);
+  FILTER_SUPPORTED_TYPES[filterType]?.includes(column.type_generic);
