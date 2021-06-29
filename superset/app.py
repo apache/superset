@@ -16,10 +16,11 @@
 # under the License.
 from __future__ import annotations
 
-import importlib
+import importlib.machinery
 import importlib.util
 import logging
 import os
+import sys
 from types import ModuleType
 from typing import Any, Dict, Union
 
@@ -76,8 +77,12 @@ def load_override_config() -> Union[Dict[Any, Any], ModuleType]:
         # for case where app is being executed via pex.
         cfg_path = os.environ[CONFIG_PATH_ENV_VAR]
         try:
-
-            override_conf = importlib.import_module("superset_config", cfg_path)
+            CONFIG_MODULE_NAME = "superset_config"  # pylint: disable=C0103
+            loader = importlib.machinery.SourceFileLoader(CONFIG_MODULE_NAME, cfg_path)
+            spec = importlib.util.spec_from_loader(CONFIG_MODULE_NAME, loader)
+            override_conf = importlib.util.module_from_spec(spec)
+            sys.modules[CONFIG_MODULE_NAME] = override_conf
+            loader.exec_module(override_conf)
 
             print(f"Loaded your LOCAL configuration at [{cfg_path}]")
             return override_conf
