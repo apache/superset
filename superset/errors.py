@@ -86,277 +86,83 @@ class SupersetErrorType(str, Enum):
     INVALID_PAYLOAD_SCHEMA_ERROR = "INVALID_PAYLOAD_SCHEMA_ERROR"
 
 
+ISSUE_CODES = {
+    1000: _("The datasource is too large to query."),
+    1001: _("The database is under an unusual load."),
+    1002: _("The database returned an unexpected error."),
+    1003: _(
+        "There is a syntax error in the SQL query. "
+        "Perhaps there was a misspelling or a typo."
+    ),
+    1004: _("The column was deleted or renamed in the database."),
+    1005: _("The table was deleted or renamed in the database."),
+    1006: _("One or more parameters specified in the query are missing."),
+    1007: _("The hostname provided can't be resolved."),
+    1008: _("The port is closed."),
+    1009: _("The host might be down, and can't be reached on the provided port."),
+    1010: _("Superset encountered an error while running a command."),
+    1011: _("Superset encountered an unexpected error."),
+    1012: _("The username provided when connecting to a database is not valid."),
+    1013: _("The password provided when connecting to a database is not valid."),
+    1014: _("Either the username or the password is wrong."),
+    1015: _("Either the database is spelled incorrectly or does not exist."),
+    1016: _("The schema was deleted or renamed in the database."),
+    1017: _("User doesn't have the proper permissions."),
+    1018: _("One or more parameters needed to configure a database are missing."),
+    1019: _("The submitted payload has the incorrect format."),
+    1020: _("The submitted payload has the incorrect schema."),
+    1021: _("Results backend needed for asynchronous queries is not configured."),
+    1022: _("Database does not allow data manipulation."),
+    1023: _(
+        "The CTAS (create table as select) doesn't have a "
+        "SELECT statement at the end. Please make sure your query has a "
+        "SELECT as its last statement. Then, try running your query again."
+    ),
+    1024: _("CVAS (create view as select) query has more than one statement."),
+    1025: _("CVAS (create view as select) query is not a SELECT statement."),
+    1026: _("Query is too complex and takes too long to run."),
+    1027: _("The database is currently running too many queries."),
+    1028: _("One or more parameters specified in the query are malformatted."),
+    1029: _("The object does not exist in the given database."),
+    1030: _("The query has a syntax error."),
+    1031: _("The results backend no longer has the data from the query."),
+    1032: _("The query associated with the results was deleted."),
+    1033: _(
+        "The results stored in the backend were stored in a "
+        "different format, and no longer can be deserialized."
+    ),
+}
+
+
 ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
-    SupersetErrorType.BACKEND_TIMEOUT_ERROR: [
-        {
-            "code": 1000,
-            "message": _("Issue 1000 - The datasource is too large to query."),
-        },
-        {
-            "code": 1001,
-            "message": _("Issue 1001 - The database is under an unusual load."),
-        },
-    ],
-    SupersetErrorType.GENERIC_DB_ENGINE_ERROR: [
-        {
-            "code": 1002,
-            "message": _("Issue 1002 - The database returned an unexpected error."),
-        }
-    ],
-    SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR: [
-        {
-            "code": 1003,
-            "message": _(
-                "Issue 1003 - There is a syntax error in the SQL query. "
-                "Perhaps there was a misspelling or a typo."
-            ),
-        },
-        {
-            "code": 1004,
-            "message": _(
-                "Issue 1004 - The column was deleted or renamed in the database."
-            ),
-        },
-    ],
-    SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR: [
-        {
-            "code": 1003,
-            "message": _(
-                "Issue 1003 - There is a syntax error in the SQL query. "
-                "Perhaps there was a misspelling or a typo."
-            ),
-        },
-        {
-            "code": 1005,
-            "message": _(
-                "Issue 1005 - The table was deleted or renamed in the database."
-            ),
-        },
-    ],
-    SupersetErrorType.SCHEMA_DOES_NOT_EXIST_ERROR: [
-        {
-            "code": 1003,
-            "message": _(
-                "Issue 1003 - There is a syntax error in the SQL query. "
-                "Perhaps there was a misspelling or a typo."
-            ),
-        },
-        {
-            "code": 1016,
-            "message": _(
-                "Issue 1005 - The schema was deleted or renamed in the database."
-            ),
-        },
-    ],
-    SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR: [
-        {
-            "code": 1006,
-            "message": _(
-                "Issue 1006 - One or more parameters specified in the query are "
-                "missing."
-            ),
-        },
-    ],
-    SupersetErrorType.INVALID_TEMPLATE_PARAMS_ERROR: [
-        {
-            "code": 1028,
-            "message": _(
-                "Issue 1028 - One or more parameters specified in the query are "
-                "malformatted."
-            ),
-        },
-    ],
-    SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR: [
-        {
-            "code": 1021,
-            "message": _(
-                "Issue 1021 - Results backend needed for asynchronous queries "
-                "is not configured."
-            ),
-        },
-    ],
-    SupersetErrorType.DML_NOT_ALLOWED_ERROR: [
-        {
-            "code": 1022,
-            "message": _("Issue 1022 - Database does not allow data manipulation."),
-        },
-    ],
-    SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR: [
-        {
-            "code": 1007,
-            "message": _("Issue 1007 - The hostname provided can't be resolved."),
-        },
-    ],
-    SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR: [
-        {"code": 1008, "message": _("Issue 1008 - The port is closed.")},
-    ],
-    SupersetErrorType.CONNECTION_HOST_DOWN_ERROR: [
-        {
-            "code": 1009,
-            "message": _(
-                "Issue 1009 - The host might be down, and can't be reached on the "
-                "provided port."
-            ),
-        },
-    ],
-    SupersetErrorType.GENERIC_COMMAND_ERROR: [
-        {
-            "code": 1010,
-            "message": _(
-                "Issue 1010 - Superset encountered an error while running a command."
-            ),
-        },
-    ],
-    SupersetErrorType.GENERIC_BACKEND_ERROR: [
-        {
-            "code": 1011,
-            "message": _("Issue 1011 - Superset encountered an unexpected error."),
-        },
-    ],
-    SupersetErrorType.CONNECTION_INVALID_USERNAME_ERROR: [
-        {
-            "code": 1012,
-            "message": _(
-                "Issue 1012 - The username provided when "
-                "connecting to a database is not valid."
-            ),
-        },
-    ],
-    SupersetErrorType.CONNECTION_INVALID_PASSWORD_ERROR: [
-        {
-            "code": 1013,
-            "message": _(
-                "Issue 1013 - The password provided when "
-                "connecting to a database is not valid."
-            ),
-        },
-    ],
-    SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR: [
-        {
-            "code": 1014,
-            "message": _("Issue 1014 - Either the username or the password is wrong."),
-        },
-        {
-            "code": 1015,
-            "message": _(
-                "Issue 1015 - Either the database is "
-                "spelled incorrectly or does not exist."
-            ),
-        },
-    ],
-    SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR: [
-        {
-            "code": 1015,
-            "message": _(
-                "Issue 1015 - Either the database is "
-                "spelled incorrectly or does not exist."
-            ),
-        }
-    ],
-    SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR: [
-        {
-            "code": 1017,
-            "message": _("Issue 1017 - User doesn't have the proper permissions."),
-        },
-    ],
-    SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR: [
-        {
-            "code": 1018,
-            "message": _(
-                "Issue 1018 - One or more parameters needed to configure a "
-                "database are missing."
-            ),
-        },
-    ],
-    SupersetErrorType.INVALID_PAYLOAD_FORMAT_ERROR: [
-        {
-            "code": 1019,
-            "message": _(
-                "Issue 1019 - The submitted payload has the incorrect format."
-            ),
-        }
-    ],
-    SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR: [
-        {
-            "code": 1020,
-            "message": _(
-                "Issue 1020 - The submitted payload has the incorrect schema."
-            ),
-        }
-    ],
-    SupersetErrorType.INVALID_CTAS_QUERY_ERROR: [
-        {
-            "code": 1023,
-            "message": _(
-                "Issue 1023 - The CTAS (create table as select) doesn't have a "
-                "SELECT statement at the end. Please make sure your query has a "
-                "SELECT as its last statement. Then, try running your query again."
-            ),
-        },
-    ],
-    SupersetErrorType.INVALID_CVAS_QUERY_ERROR: [
-        {
-            "code": 1024,
-            "message": _(
-                "Issue 1024 - CVAS (create view as select) query has more than "
-                "one statement."
-            ),
-        },
-        {
-            "code": 1025,
-            "message": _(
-                "Issue 1025 - CVAS (create view as select) query is not a "
-                "SELECT statement."
-            ),
-        },
-    ],
-    SupersetErrorType.SQLLAB_TIMEOUT_ERROR: [
-        {
-            "code": 1026,
-            "message": _(
-                "Issue 1026 - Query is too complex and takes too long to run."
-            ),
-        },
-        {
-            "code": 1027,
-            "message": _(
-                "Issue 1027 - The database is currently running too many queries."
-            ),
-        },
-    ],
-    SupersetErrorType.OBJECT_DOES_NOT_EXIST_ERROR: [
-        {
-            "code": 1029,
-            "message": _(
-                "Issue 1029 - The object does not exist in the given database."
-            ),
-        },
-    ],
-    SupersetErrorType.SYNTAX_ERROR: [
-        {"code": 1030, "message": _("Issue 1030 - The query has a syntax error.")},
-    ],
-    SupersetErrorType.RESULTS_BACKEND_ERROR: [
-        {
-            "code": 1031,
-            "message": _(
-                "Issue 1031 - The results backend no longer has the data from the "
-                "query."
-            ),
-        },
-        {
-            "code": 1032,
-            "message": _(
-                "Issue 1032 - The query associated with the results was deleted."
-            ),
-        },
-        {
-            "code": 1033,
-            "message": _(
-                "Issue 1033 - The results stored in the backend were stored in a "
-                "different format, and no longer can be deserialized."
-            ),
-        },
-    ],
+    SupersetErrorType.BACKEND_TIMEOUT_ERROR: [1000, 1001],
+    SupersetErrorType.GENERIC_DB_ENGINE_ERROR: [1002],
+    SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR: [1003, 1004],
+    SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR: [1003, 1005],
+    SupersetErrorType.SCHEMA_DOES_NOT_EXIST_ERROR: [1003, 1016],
+    SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR: [1006],
+    SupersetErrorType.INVALID_TEMPLATE_PARAMS_ERROR: [1028],
+    SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR: [1021],
+    SupersetErrorType.DML_NOT_ALLOWED_ERROR: [1022],
+    SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR: [1007],
+    SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR: [1008],
+    SupersetErrorType.CONNECTION_HOST_DOWN_ERROR: [1009],
+    SupersetErrorType.GENERIC_COMMAND_ERROR: [1010],
+    SupersetErrorType.GENERIC_BACKEND_ERROR: [1011],
+    SupersetErrorType.CONNECTION_INVALID_USERNAME_ERROR: [1012],
+    SupersetErrorType.CONNECTION_INVALID_PASSWORD_ERROR: [1013],
+    SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR: [1014, 1015],
+    SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR: [1015],
+    SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR: [1017],
+    SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR: [1018],
+    SupersetErrorType.INVALID_PAYLOAD_FORMAT_ERROR: [1019],
+    SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR: [1020],
+    SupersetErrorType.INVALID_CTAS_QUERY_ERROR: [1023],
+    SupersetErrorType.INVALID_CVAS_QUERY_ERROR: [1024, 1025],
+    SupersetErrorType.SQLLAB_TIMEOUT_ERROR: [1026, 1027],
+    SupersetErrorType.OBJECT_DOES_NOT_EXIST_ERROR: [1029],
+    SupersetErrorType.SYNTAX_ERROR: [1030],
+    SupersetErrorType.RESULTS_BACKEND_ERROR: [1031, 1032, 1033],
 }
 
 
@@ -391,4 +197,16 @@ class SupersetError:
         issue_codes = ERROR_TYPES_TO_ISSUE_CODES_MAPPING.get(self.error_type)
         if issue_codes:
             self.extra = self.extra or {}
-            self.extra.update({"issue_codes": issue_codes})
+            self.extra.update(
+                {
+                    "issue_codes": [
+                        {
+                            "code": issue_code,
+                            "message": (
+                                f"Issue {issue_code} - {ISSUE_CODES[issue_code]}"
+                            ),
+                        }
+                        for issue_code in issue_codes
+                    ]
+                }
+            )
