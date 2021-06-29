@@ -353,6 +353,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     addDangerToast,
   );
 
+  const isDynamic = (engine: string | undefined) =>
+    availableDbs?.databases.filter(
+      (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
+    )[0].parameters !== undefined;
   const showDBError = validationErrors || dbErrors;
   const isEmpty = (data?: Object | null) =>
     data && Object.keys(data).length === 0;
@@ -398,13 +402,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     // Clone DB object
     const dbToUpdate = JSON.parse(JSON.stringify(update));
 
-    // Validate DB before saving
-    await getValidation(dbToUpdate, true);
-    if (validationErrors && !isEmpty(validationErrors)) {
-      return;
-    }
-
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
+      // Validate DB before saving
+      await getValidation(dbToUpdate, true);
+      if (validationErrors && !isEmpty(validationErrors)) {
+        return;
+      }
+
       if (dbToUpdate?.parameters?.query) {
         // convert query params into dictionary
         dbToUpdate.parameters.query = JSON.parse(
@@ -462,15 +466,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         // convert extra_json to back to string
         dbToUpdate.extra = JSON.stringify({
           ...dbToUpdate.extra_json,
-          metadata_params: JSON.parse(
-            dbToUpdate?.extra_json?.metadata_params as string,
-          ),
-          engine_params: JSON.parse(
-            dbToUpdate?.extra_json?.engine_params as string,
-          ),
-          schemas_allowed_for_csv_upload: JSON.parse(
-            dbToUpdate?.extra_json?.schemas_allowed_for_csv_upload as string,
-          ),
+          metadata_params: dbToUpdate?.extra_json?.metadata_params as string,
+          engine_params: dbToUpdate?.extra_json?.engine_params as string,
+          schemas_allowed_for_csv_upload: dbToUpdate?.extra_json
+            ?.schemas_allowed_for_csv_upload as string,
         });
       }
       setLoading(true);
@@ -803,11 +802,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       />
     );
   };
-
-  const isDynamic = (engine: string | undefined) =>
-    availableDbs?.databases.filter(
-      (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
-    )[0].parameters !== undefined;
 
   return useTabLayout ? (
     <Modal
