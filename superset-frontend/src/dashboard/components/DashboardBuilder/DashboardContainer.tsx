@@ -30,9 +30,10 @@ import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_DEPTH,
 } from 'src/dashboard/util/constants';
-import { getRootLevelTabIndex } from './utils';
+import { getRootLevelTabIndex, getRootLevelTabsComponent } from './utils';
 import { Filters } from '../../reducers/types';
 import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
+import findTabIndexByComponentId from '../../util/findTabIndexByComponentId';
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';
 import { setInScopeStatusOfFilters } from '../../actions/nativeFilters';
 
@@ -57,7 +58,13 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    setTabIndex(getRootLevelTabIndex(dashboardLayout, directPathToChild));
+    const nextTabIndex = findTabIndexByComponentId({
+      currentComponent: getRootLevelTabsComponent(dashboardLayout),
+      directPathToChild,
+    });
+    if (nextTabIndex > -1) {
+      setTabIndex(nextTabIndex);
+    }
   }, [getLeafComponentIdFromPath(directPathToChild)]);
 
   // recalculate charts and tabs in scopes of native filters only when a scope or dashboard layout changes
