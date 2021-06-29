@@ -35,6 +35,11 @@ OBJECT_DOES_NOT_EXIST_REGEX = re.compile(
     r"Object (?P<object>.*?) does not exist or not authorized."
 )
 
+SYNTAX_ERROR_REGEX = re.compile(
+    "syntax error line (?P<line>.+?) at position (?P<position>.+?) "
+    "unexpected '(?P<syntax_error>.+?)'."
+)
+
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     engine = "snowflake"
@@ -67,7 +72,15 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             __("%(object)s does not exist in this database."),
             SupersetErrorType.OBJECT_DOES_NOT_EXIST_ERROR,
             {},
-        )
+        ),
+        SYNTAX_ERROR_REGEX: (
+            __(
+                "Please check your query for syntax errors at or "
+                'near "%(syntax_error)s". Then, try running your query again.'
+            ),
+            SupersetErrorType.SYNTAX_ERROR,
+            {},
+        ),
     }
 
     @classmethod

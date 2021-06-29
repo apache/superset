@@ -50,6 +50,7 @@ class SupersetErrorType(str, Enum):
     CONNECTION_DATABASE_PERMISSIONS_ERROR = "CONNECTION_DATABASE_PERMISSIONS_ERROR"
     CONNECTION_MISSING_PARAMETERS_ERROR = "CONNECTION_MISSING_PARAMETERS_ERROR"
     OBJECT_DOES_NOT_EXIST_ERROR = "OBJECT_DOES_NOT_EXIST_ERROR"
+    SYNTAX_ERROR = "SYNTAX_ERROR"
 
     # Viz errors
     VIZ_GET_DF_ERROR = "VIZ_GET_DF_ERROR"
@@ -323,11 +324,14 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
     ],
     SupersetErrorType.OBJECT_DOES_NOT_EXIST_ERROR: [
         {
-            "code": 1028,
+            "code": 1029,
             "message": _(
-                "Issue 1028 - The object does not exist in the given database."
+                "Issue 1029 - The object does not exist in the given database."
             ),
         },
+    ],
+    SupersetErrorType.SYNTAX_ERROR: [
+        {"code": 1030, "message": _("Issue 1029 - The query has a syntax error."),},
     ],
 }
 

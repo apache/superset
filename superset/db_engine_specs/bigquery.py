@@ -54,7 +54,12 @@ COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
 )
 
 SCHEMA_DOES_NOT_EXIST_REGEX = re.compile(
-    r"bigquery error: 404 Not found: Dataset (?P<dataset>.*?):(?P<schema>.*?) was not found in location"
+    r"bigquery error: 404 Not found: Dataset (?P<dataset>.*?):"
+    r"(?P<schema>.*?) was not found in location"
+)
+
+SYNTAX_ERROR_REGEX = re.compile(
+    'Syntax error: Expected end of input but got identifier "(?P<syntax_error>.+?)"'
 )
 
 ma_plugin = MarshmallowPlugin()
@@ -159,6 +164,14 @@ class BigQueryEngineSpec(BaseEngineSpec):
                 "A valid schema must be used to run this query."
             ),
             SupersetErrorType.SCHEMA_DOES_NOT_EXIST_ERROR,
+            {},
+        ),
+        SYNTAX_ERROR_REGEX: (
+            __(
+                "Please check your query for syntax errors at or near "
+                '"%(syntax_error)s". Then, try running your query again.'
+            ),
+            SupersetErrorType.SYNTAX_ERROR,
             {},
         ),
     }

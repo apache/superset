@@ -57,8 +57,27 @@ class TestSnowflakeDbEngineSpec(TestDbEngineSpec):
                     "engine_name": "Snowflake",
                     "issue_codes": [
                         {
-                            "code": 1028,
-                            "message": "Issue 1028 - The object does not exist in the given database.",
+                            "code": 1029,
+                            "message": "Issue 1029 - The object does not exist in the given database.",
+                        }
+                    ],
+                },
+            )
+        ]
+
+        msg = "syntax error line 1 at position 10 unexpected 'limmmited'."
+        result = SnowflakeEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                message='Please check your query for syntax errors at or near "limmmited". Then, try running your query again.',
+                error_type=SupersetErrorType.SYNTAX_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Snowflake",
+                    "issue_codes": [
+                        {
+                            "code": 1030,
+                            "message": "Issue 1030 - The query has a syntax error.",
                         }
                     ],
                 },

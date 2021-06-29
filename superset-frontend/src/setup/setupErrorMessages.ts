@@ -112,6 +112,10 @@ export default function setupErrorMessages() {
     DatabaseErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.SYNTAX_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.CONNECTION_DATABASE_PERMISSIONS_ERROR,
     DatabaseErrorMessage,
   );

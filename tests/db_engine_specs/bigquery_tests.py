@@ -316,3 +316,22 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
                 },
             )
         ]
+
+        msg = 'Syntax error: Expected end of input but got identifier "fromm"'
+        result = BigQueryEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                message='Please check your query for syntax errors at or near "fromm". Then, try running your query again.',
+                error_type=SupersetErrorType.SYNTAX_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Google BigQuery",
+                    "issue_codes": [
+                        {
+                            "code": 1030,
+                            "message": "Issue 1030 - The query has a syntax error.",
+                        }
+                    ],
+                },
+            )
+        ]
