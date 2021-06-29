@@ -1371,6 +1371,7 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 | Field                                                                                                  | Type                                              | Notes                                             |
 | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------- |
 | `adhoc_filters`                                                                                        | _array(object)_                                   | The **Filters** widget                            |
+| `extra_filters`                                                                                        | _array(object)_                                   | Another pathway to the **Filters** widget.<br/>It is generally used to pass dashboard filter parameters to a chart.<br/>It can be used for appending additional filters to a chart that has been saved with its own filters on an ad-hoc basis if the chart is being used as a standalone widget.<br/><br/>For implementation examples see : [utils test.py](https://github.com/apache/superset/blob/66a4c94a1ed542e69fe6399bab4c01d4540486cf/tests/utils_tests.py#L181)<br/>For insight into how superset processes the contents of this parameter see: [exploreUtils/index.js](https://github.com/apache/superset/blob/93c7f5bb446ec6895d7702835f3157426955d5a9/superset-frontend/src/explore/exploreUtils/index.js#L159)                         |
 | `columns`                                                                                              | _array(string)_                                   | The **Breakdowns** widget                         |
 | `groupby`                                                                                              | _array(string)_                                   | The **Group by** or **Series** widget             |
 | `limit`                                                                                                | _number_                                          | The **Series Limit** widget                       |
@@ -1417,7 +1418,6 @@ Note the `y_axis_format` is defined under various section for some charts.
 | `default_filters`             | _N/A_ |       |
 | `entity`                      | _N/A_ |       |
 | `expanded_slices`             | _N/A_ |       |
-| `extra_filters`               | _N/A_ |       |
 | `filter_immune_slice_fields`  | _N/A_ |       |
 | `filter_immune_slices`        | _N/A_ |       |
 | `flt_col_0`                   | _N/A_ |       |

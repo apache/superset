@@ -123,10 +123,10 @@ class WebDriverProxy:
             logger.info("Taking a PNG screenshot or url %s", url)
             img = element.screenshot_as_png
         except TimeoutException:
-            logger.error("Selenium timed out requesting url %s", url, exc_info=True)
+            logger.warning("Selenium timed out requesting url %s", url, exc_info=True)
         except StaleElementReferenceException:
             logger.error(
-                "Selenium timed out while waiting for chart(s) to load %s",
+                "Selenium got a stale element while requesting url %s",
                 url,
                 exc_info=True,
             )

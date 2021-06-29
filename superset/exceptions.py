@@ -48,6 +48,19 @@ class SupersetErrorException(SupersetException):
         self.error = error
 
 
+class SupersetGenericErrorException(SupersetErrorException):
+    """Exceptions that are too generic to have their own type"""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(
+            SupersetError(
+                message=message,
+                error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+
+
 class SupersetErrorFromParamsException(SupersetErrorException):
     """Exceptions that pass in parameters to construct a SupersetError"""
 
@@ -97,11 +110,12 @@ class SupersetTemplateParamsErrorException(SupersetErrorFromParamsException):
     def __init__(
         self,
         message: str,
+        error: SupersetErrorType,
         level: ErrorLevel = ErrorLevel.ERROR,
         extra: Optional[Dict[str, Any]] = None,
     ) -> None:
         super().__init__(
-            SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR, message, level, extra,
+            error, message, level, extra,
         )
 
 
