@@ -188,7 +188,7 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
         {"code": 1008, "message": _("Issue 1008 - The port is closed.")},
     ],
     SupersetErrorType.CONNECTION_INVALID_PORT_ERROR: [
-        {"code": 1021, "message": _("Issue 1021 - Port number is invalid.")},
+        {"code": 1031, "message": _("Issue 1031 - Port number is invalid.")},
     ],
     SupersetErrorType.CONNECTION_HOST_DOWN_ERROR: [
         {
