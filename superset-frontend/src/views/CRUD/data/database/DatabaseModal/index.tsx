@@ -174,6 +174,9 @@ function dbReducer(
   const trimmedState = {
     ...(state || {}),
   };
+  if (!trimmedState.encrypted_extra) {
+    trimmedState.encrypted_extra = '';
+  }
   let query = '';
 
   switch (action.type) {
@@ -380,7 +383,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       database_name: db?.database_name?.trim() || undefined,
       impersonate_user: db?.impersonate_user || undefined,
       extra: db?.extra || undefined,
-      encrypted_extra: db?.encrypted_extra || undefined,
+      encrypted_extra: db?.encrypted_extra || '',
       server_cert: db?.server_cert || undefined,
     };
 
@@ -445,7 +448,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           '[]',
       });
     }
-    console.log(dbToUpdate.extra);
 
     if (db?.id) {
       setLoading(true);
