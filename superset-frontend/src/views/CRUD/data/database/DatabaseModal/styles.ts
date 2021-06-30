@@ -56,7 +56,7 @@ export const StyledFormHeader = styled.header`
   }
 
   .select-db {
-    padding: ${({ theme }) => theme.gridUnit}px;
+    padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
     .helper {
       margin: 0;
     }

@@ -80,8 +80,8 @@ const ModalHeader = ({
   const useSqlAlchemyFormHeader = (
     <StyledFormHeader>
       <p className="helper"> STEP 2 OF 2 </p>
-      <CreateHeaderTitle>Enter Primary Credentials</CreateHeaderTitle>
-      <CreateHeaderSubtitle>
+      <h4>Enter Primary Credentials</h4>
+      <p className="helper">
         Need help? Learn how to connect your database{' '}
         <a
           href={supersetTextDocs?.default || DOCUMENTATION_LINK}
@@ -91,7 +91,7 @@ const ModalHeader = ({
           here
         </a>
         .
-      </CreateHeaderSubtitle>
+      </p>
     </StyledFormHeader>
   );
   const hasConnectedDbHeader = (
