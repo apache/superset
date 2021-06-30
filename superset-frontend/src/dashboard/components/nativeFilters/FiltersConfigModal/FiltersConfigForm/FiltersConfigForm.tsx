@@ -72,7 +72,6 @@ import { ColumnSelect } from './ColumnSelect';
 import { NativeFiltersForm } from '../types';
 import {
   datasetToSelectOption,
-  doesColumnMatchFilterType,
   FILTER_SUPPORTED_TYPES,
   hasTemporalColumns,
   setNativeFilterFieldValues,
@@ -481,7 +480,6 @@ const FiltersConfigForm = (
     (defaultDatasetSelectOptions.length === 1
       ? defaultDatasetSelectOptions[0].value
       : undefined);
-  const initColumn = filterToEdit?.targets[0]?.column?.name;
   const newFormData = getFormData({
     datasetId,
     groupby: hasColumn ? formFilter?.column : undefined,
@@ -552,6 +550,7 @@ const FiltersConfigForm = (
         filterType: formFilter.filterType,
         filterToEdit,
         formFilter,
+        removed,
       })
     : {};
 
@@ -728,37 +727,10 @@ const FiltersConfigForm = (
                 }}
               />
             </StyledFormItem>
-            {hasColumn && (
-              <StyledFormItem
-                // don't show the column select unless we have a dataset
-                // style={{ display: datasetId == null ? undefined : 'none' }}
-                name={['filters', filterId, 'column']}
-                initialValue={initColumn}
-                label={<StyledLabel>{t('Column')}</StyledLabel>}
-                rules={[
-                  { required: !removed, message: t('Column is required') },
-                ]}
-                data-test="field-input"
-              >
-                <ColumnSelect
-                  // @ts-ignore
-                  mode={mainControlItems.column && 'multiple'}
-                  form={form}
-                  filterId={filterId}
-                  datasetId={datasetId}
-                  filterValues={column =>
-                    doesColumnMatchFilterType(formFilter?.filterType, column)
-                  }
-                  onChange={() => {
-                    // We need reset default value when when column changed
-                    setNativeFilterFieldValues(form, filterId, {
-                      defaultDataMask: null,
-                    });
-                    forceUpdate();
-                  }}
-                />
-              </StyledFormItem>
-            )}
+            {hasColumn &&
+              Object.keys(mainControlItems).map(
+                key => mainControlItems[key].element,
+              )}
           </StyledRowContainer>
         )}
         <StyledCollapse
