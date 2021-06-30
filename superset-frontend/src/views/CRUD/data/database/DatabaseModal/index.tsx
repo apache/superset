@@ -174,9 +174,6 @@ function dbReducer(
   const trimmedState = {
     ...(state || {}),
   };
-  if (!trimmedState.encrypted_extra) {
-    trimmedState.encrypted_extra = '';
-  }
   let query = '';
 
   switch (action.type) {
@@ -287,6 +284,7 @@ function dbReducer(
 
       return {
         ...action.payload,
+        encrypted_extra: action.payload.encrypted_extra || '',
         engine: action.payload.backend || trimmedState.engine,
         configuration_method: action.payload.configuration_method,
         extra_json: deserializeExtraJSON,
