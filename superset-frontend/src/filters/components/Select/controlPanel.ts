@@ -18,8 +18,8 @@
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
 import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import { sharedControls } from '@superset-ui/chart-controls/lib';
 import { DEFAULT_FORM_DATA } from './types';
-import {sharedControls} from '@superset-ui/chart-controls/lib'
 
 const {
   enableEmptyFilter,
