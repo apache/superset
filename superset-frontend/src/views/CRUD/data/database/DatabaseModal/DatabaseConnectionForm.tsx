@@ -334,7 +334,7 @@ const queryField = ({
     value={db?.parameters?.query}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.query}
-    placeholder="e.g. additional parameters"
+    placeholder="e.g. param1=value1&param2=value2"
     label="Additional Parameters"
     onChange={changeMethods.onParametersChange}
     helpText={t('Add additional custom parameters')}
