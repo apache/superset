@@ -284,6 +284,7 @@ function dbReducer(
 
       return {
         ...action.payload,
+        encrypted_extra: action.payload.encrypted_extra || '',
         engine: action.payload.backend || trimmedState.engine,
         configuration_method: action.payload.configuration_method,
         extra_json: deserializeExtraJSON,
@@ -380,7 +381,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       database_name: db?.database_name?.trim() || undefined,
       impersonate_user: db?.impersonate_user || undefined,
       extra: db?.extra || undefined,
-      encrypted_extra: db?.encrypted_extra || undefined,
+      encrypted_extra: db?.encrypted_extra || '',
       server_cert: db?.server_cert || undefined,
     };
 
@@ -445,7 +446,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           '[]',
       });
     }
-    console.log(dbToUpdate.extra);
 
     if (db?.id) {
       setLoading(true);
