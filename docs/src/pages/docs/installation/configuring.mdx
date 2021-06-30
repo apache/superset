@@ -154,6 +154,7 @@ Then, create a `CustomSsoSecurityManager` that extends `SupersetSecurityManager`
 `oauth_user_info`:
 
 ```python
+import logging
 from superset.security import SupersetSecurityManager
 
 class CustomSsoSecurityManager(SupersetSecurityManager):
