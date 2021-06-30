@@ -36,8 +36,6 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.groupby,
               label: 'Column',
-              description:
-                'The numeric column based on which to calculate the range',
               required: true,
             },
           },
