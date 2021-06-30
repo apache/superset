@@ -36,6 +36,10 @@ export default function setupErrorMessages() {
     TimeoutErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.DATABASE_NOT_FOUND_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.GENERIC_DB_ENGINE_ERROR,
     DatabaseErrorMessage,
   );
@@ -81,6 +85,10 @@ export default function setupErrorMessages() {
   );
   errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.RESULTS_BACKEND_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.ASYNC_WORKERS_ERROR,
     DatabaseErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(

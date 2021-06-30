@@ -67,6 +67,7 @@ class SupersetErrorType(str, Enum):
 
     # Other errors
     BACKEND_TIMEOUT_ERROR = "BACKEND_TIMEOUT_ERROR"
+    DATABASE_NOT_FOUND_ERROR = "DATABASE_NOT_FOUND_ERROR"
 
     # Sql Lab errors
     MISSING_TEMPLATE_PARAMS_ERROR = "MISSING_TEMPLATE_PARAMS_ERROR"
@@ -77,6 +78,7 @@ class SupersetErrorType(str, Enum):
     INVALID_CVAS_QUERY_ERROR = "INVALID_CVAS_QUERY_ERROR"
     SQLLAB_TIMEOUT_ERROR = "SQLLAB_TIMEOUT_ERROR"
     RESULTS_BACKEND_ERROR = "RESULTS_BACKEND_ERROR"
+    ASYNC_WORKERS_ERROR = "ASYNC_WORKERS_ERROR"
 
     # Generic errors
     GENERIC_COMMAND_ERROR = "GENERIC_COMMAND_ERROR"
@@ -133,6 +135,8 @@ ISSUE_CODES = {
         "different format, and no longer can be deserialized."
     ),
     1034: _("The port number is invalid."),
+    1035: _("Failed to start remote query on a worker."),
+    1036: _("The database was deleted."),
 }
 
 
@@ -166,6 +170,8 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
     SupersetErrorType.SYNTAX_ERROR: [1030],
     SupersetErrorType.RESULTS_BACKEND_ERROR: [1031, 1032, 1033],
     SupersetErrorType.CONNECTION_INVALID_PORT_ERROR: [1034],
+    SupersetErrorType.ASYNC_WORKERS_ERROR: [1035],
+    SupersetErrorType.DATABASE_NOT_FOUND_ERROR: [1011, 1036],
 }
 
 
