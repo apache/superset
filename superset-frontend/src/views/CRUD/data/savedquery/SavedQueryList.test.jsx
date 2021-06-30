@@ -26,7 +26,6 @@ import { render, screen, cleanup, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import { act } from 'react-dom/test-utils';
-import { handleBulkSavedQueryExport } from 'src/views/CRUD/utils';
 import * as featureFlags from 'src/featureFlags';
 import SavedQueryList from 'src/views/CRUD/data/savedquery/SavedQueryList';
 import SubMenu from 'src/components/Menu/SubMenu';
@@ -283,14 +282,6 @@ describe('RTL', () => {
       name: /export query/i,
     });
     expect(exportTooltip).toBeInTheDocument();
-  });
-
-  it('runs handleBulkSavedQueryExport when export is clicked', () => {
-    // Grab Export action button and mock mouse clicking it
-    const exportActionButton = screen.getAllByRole('button')[18];
-    userEvent.click(exportActionButton);
-
-    expect(handleBulkSavedQueryExport).toHaveBeenCalled();
   });
 
   it('renders an import button in the submenu', () => {

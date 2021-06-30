@@ -35,10 +35,7 @@ import {
   updateComponents,
   handleComponentDrop,
 } from '../actions/dashboardLayout';
-import {
-  setDirectPathToChild,
-  setLastFocusedTab,
-} from '../actions/dashboardState';
+import { setDirectPathToChild, setActiveTabs } from '../actions/dashboardState';
 
 const propTypes = {
   id: PropTypes.string,
@@ -67,29 +64,8 @@ const defaultProps = {
   isComponentVisible: true,
 };
 
-/**
- * Selects the chart scope of the filter input that has focus.
- *
- * @returns {{chartId: number, scope: { scope: string[], immune: string[] }} | null }
- * the scope of the currently focused filter, if any
- */
-function selectFocusedFilterScope(dashboardState, dashboardFilters) {
-  if (!dashboardState.focusedFilterField) return null;
-  const { chartId, column } = dashboardState.focusedFilterField;
-  return {
-    chartId,
-    scope: dashboardFilters[chartId].scopes[column],
-  };
-}
-
 function mapStateToProps(
-  {
-    dashboardLayout: undoableLayout,
-    dashboardState,
-    dashboardInfo,
-    dashboardFilters,
-    nativeFilters,
-  },
+  { dashboardLayout: undoableLayout, dashboardState, dashboardInfo },
   ownProps,
 ) {
   const dashboardLayout = undoableLayout.present;
@@ -104,14 +80,9 @@ function mapStateToProps(
     redoLength: undoableLayout.future.length,
     filters: getActiveFilters(),
     directPathToChild: dashboardState.directPathToChild,
-    lastFocusedTabId: dashboardState.lastFocusedTabId,
+    activeTabs: dashboardState.activeTabs,
     directPathLastUpdated: dashboardState.directPathLastUpdated,
     dashboardId: dashboardInfo.id,
-    nativeFilters,
-    focusedFilterScope: selectFocusedFilterScope(
-      dashboardState,
-      dashboardFilters,
-    ),
   };
 
   // rows and columns need more data about their child dimensions
@@ -141,7 +112,7 @@ function mapDispatchToProps(dispatch) {
       updateComponents,
       handleComponentDrop,
       setDirectPathToChild,
-      setLastFocusedTab,
+      setActiveTabs,
       logEvent,
     },
     dispatch,

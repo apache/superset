@@ -56,12 +56,11 @@ const DefaultValue: FC<DefaultValueProps> = ({
       setLoading(true);
     }
   }, [hasDataset, queriesData]);
-
   return loading ? (
     <Loading position="inline-centered" />
   ) : (
     <SuperChart
-      height={25}
+      height={32}
       width={formFilter?.filterType === 'filter_time' ? 350 : 250}
       appSection={AppSection.FILTER_CONFIG_MODAL}
       behaviors={[Behavior.NATIVE_FILTER]}
@@ -73,7 +72,9 @@ const DefaultValue: FC<DefaultValueProps> = ({
       chartType={formFilter?.filterType}
       hooks={{ setDataMask }}
       enableNoResults={enableNoResults}
-      filterState={formFilter.defaultDataMask?.filterState}
+      filterState={{
+        ...formFilter.defaultDataMask?.filterState,
+      }}
     />
   );
 };

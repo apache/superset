@@ -80,6 +80,12 @@ CONNECTION_HOST_DOWN_REGEX = re.compile(
 CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile(
     'database "(?P<database>.*?)" does not exist'
 )
+COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
+    r'postgresql error: column "(?P<column_name>.+?)" '
+    r"does not exist\s+LINE (?P<location>\d+?)"
+)
+
+SYNTAX_ERROR_REGEX = re.compile('syntax error at or near "(?P<syntax_error>.*?)"')
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
@@ -100,7 +106,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         "P1Y": "DATE_TRUNC('year', {col})",
     }
 
-    custom_errors = {
+    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
         CONNECTION_INVALID_USERNAME_REGEX: (
             __('The username "%(username)s" does not exist.'),
             SupersetErrorType.CONNECTION_INVALID_USERNAME_ERROR,
@@ -138,6 +144,22 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
             __('Unable to connect to database "%(database)s".'),
             SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
             {"invalid": ["database"]},
+        ),
+        COLUMN_DOES_NOT_EXIST_REGEX: (
+            __(
+                'We can\'t seem to resolve the column "%(column_name)s" at '
+                "line %(location)s.",
+            ),
+            SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+            {},
+        ),
+        SYNTAX_ERROR_REGEX: (
+            __(
+                "Please check your query for syntax errors at or "
+                'near "%(syntax_error)s". Then, try running your query again.'
+            ),
+            SupersetErrorType.SYNTAX_ERROR,
+            {},
         ),
     }
 

@@ -360,6 +360,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
       dashboardFilters,
       nativeFilters,
       dashboardState: {
+        preselectNativeFilters: getUrlParam(URL_PARAMS.nativeFilters),
         sliceIds: Array.from(sliceIds),
         directPathToChild,
         directPathLastUpdated: Date.now(),
@@ -377,7 +378,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
         hasUnsavedChanges: false,
         maxUndoHistoryExceeded: false,
         lastModifiedTime: dashboardData.changed_on,
-        lastFocusedTabId: null,
+        activeTabs: [],
       },
       dashboardLayout,
     },

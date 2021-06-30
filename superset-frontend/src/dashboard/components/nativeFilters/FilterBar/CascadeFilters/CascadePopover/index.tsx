@@ -32,6 +32,7 @@ interface CascadePopoverProps {
   filter: CascadeFilter;
   visible: boolean;
   directPathToChild?: string[];
+  inView?: boolean;
   onVisibleChange: (visible: boolean) => void;
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
 }
@@ -73,6 +74,11 @@ const StyledPill = styled(Pill)`
   background: ${({ theme }) => theme.colors.grayscale.light1};
 `;
 
+const ContentWrapper = styled.div`
+  max-height: 700px;
+  overflow-y: auto;
+`;
+
 const CascadePopover: React.FC<CascadePopoverProps> = ({
   dataMaskSelected,
   filter,
@@ -80,6 +86,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   onVisibleChange,
   onFilterSelectionChange,
   directPathToChild,
+  inView,
 }) => {
   const [currentPathToChild, setCurrentPathToChild] = useState<string[]>();
   const dataMask = dataMaskSelected[filter.id];
@@ -148,6 +155,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
         filter={filter}
         directPathToChild={directPathToChild}
         onFilterSelectionChange={onFilterSelectionChange}
+        inView={inView}
       />
     );
   }
@@ -163,14 +171,16 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   );
 
   const content = (
-    <CascadeFilterControl
-      dataMaskSelected={dataMaskSelected}
-      data-test="cascade-filters-control"
-      key={filter.id}
-      filter={filter}
-      directPathToChild={visible ? currentPathToChild : undefined}
-      onFilterSelectionChange={onFilterSelectionChange}
-    />
+    <ContentWrapper>
+      <CascadeFilterControl
+        dataMaskSelected={dataMaskSelected}
+        data-test="cascade-filters-control"
+        key={filter.id}
+        filter={filter}
+        directPathToChild={visible ? currentPathToChild : undefined}
+        onFilterSelectionChange={onFilterSelectionChange}
+      />
+    </ContentWrapper>
   );
 
   return (
@@ -182,7 +192,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
       onVisibleChange={onVisibleChange}
       placement="rightTop"
       id={filter.id}
-      overlayStyle={{ minWidth: '400px', maxWidth: '600px' }}
+      overlayStyle={{ width: '400px' }}
     >
       <div>
         {activeFilters.map(activeFilter => (
@@ -192,6 +202,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
             filter={activeFilter}
             onFilterSelectionChange={onFilterSelectionChange}
             directPathToChild={currentPathToChild}
+            inView={inView}
             icon={
               <>
                 {filter.cascadeChildren.length !== 0 && (

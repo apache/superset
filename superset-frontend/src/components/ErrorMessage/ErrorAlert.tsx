@@ -22,7 +22,7 @@ import { noOp } from 'src/utils/common';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 
-import Icon from '../Icon';
+import Icons from 'src/components/Icons';
 import { ErrorLevel, ErrorSource } from './types';
 import CopyToClipboard from '../CopyToClipboard';
 
@@ -106,11 +106,17 @@ export default function ErrorAlert({
     <ErrorAlertDiv level={level} role="alert">
       <div className="top-row">
         <LeftSideContent>
-          <Icon
-            className="icon"
-            name={level === 'error' ? 'error-solid' : 'warning-solid'}
-            color={supersetTheme.colors[level].base}
-          />
+          {level === 'error' ? (
+            <Icons.ErrorSolid
+              className="icon"
+              iconColor={supersetTheme.colors[level].base}
+            />
+          ) : (
+            <Icons.WarningSolid
+              className="icon"
+              iconColor={supersetTheme.colors[level].base}
+            />
+          )}
           <strong>{title}</strong>
         </LeftSideContent>
         {!isExpandable && (
@@ -163,11 +169,17 @@ export default function ErrorAlert({
           onHide={() => setIsModalOpen(false)}
           title={
             <div className="header">
-              <Icon
-                className="icon"
-                name={level === 'error' ? 'error-solid' : 'warning-solid'}
-                color={supersetTheme.colors[level].base}
-              />
+              {level === 'error' ? (
+                <Icons.ErrorSolid
+                  className="icon"
+                  iconColor={supersetTheme.colors[level].base}
+                />
+              ) : (
+                <Icons.WarningSolid
+                  className="icon"
+                  iconColor={supersetTheme.colors[level].base}
+                />
+              )}
               <div className="title">{title}</div>
             </div>
           }

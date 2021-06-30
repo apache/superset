@@ -66,7 +66,7 @@ from superset.exceptions import (
 from superset.extensions import cache_manager, security_manager
 from superset.models.cache import CacheKey
 from superset.models.helpers import QueryResult
-from superset.typing import QueryObjectDict, VizData, VizPayload
+from superset.typing import Metric, QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
@@ -526,10 +526,7 @@ class BaseViz:
                     for col in (query_obj.get("columns") or [])
                     + (query_obj.get("groupby") or [])
                     + utils.get_column_names_from_metrics(
-                        cast(
-                            List[Union[str, Dict[str, Any]]],
-                            query_obj.get("metrics") or [],
-                        )
+                        cast(List[Metric], query_obj.get("metrics") or [],)
                     )
                     if col not in self.datasource.column_names
                 ]
@@ -1231,13 +1228,15 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
     def query_obj(self) -> QueryObjectDict:
         d = super().query_obj()
-        sort_by = self.form_data.get("timeseries_limit_metric")
+        sort_by = self.form_data.get(
+            "timeseries_limit_metric"
+        ) or utils.get_main_metric_name(d.get("metrics") or [])
+        is_asc = not self.form_data.get("order_desc")
         if sort_by:
             sort_by_label = utils.get_metric_name(sort_by)
             if sort_by_label not in utils.get_metric_names(d["metrics"]):
                 d["metrics"].append(sort_by)
-            if self.form_data.get("order_desc"):
-                d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
+            d["orderby"] = [(sort_by, is_asc)]
         return d
 
     def to_series(

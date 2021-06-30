@@ -96,7 +96,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.typing import FlaskResponse, FormData, Metric
+from superset.typing import AdhocMetric, FlaskResponse, FormData, Metric
 from superset.utils.dates import datetime_to_epoch, EPOCH
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
 
@@ -218,7 +218,7 @@ class FilterOperator(str, Enum):
 
 class PostProcessingBoxplotWhiskerType(str, Enum):
     """
-    Calculate cell contibution to row/column total
+    Calculate cell contribution to row/column total
     """
 
     TUKEY = "tukey"
@@ -228,7 +228,7 @@ class PostProcessingBoxplotWhiskerType(str, Enum):
 
 class PostProcessingContributionOrientation(str, Enum):
     """
-    Calculate cell contibution to row/column total
+    Calculate cell contribution to row/column total
     """
 
     ROW = "row"
@@ -1269,6 +1269,11 @@ def get_metric_names(metrics: Sequence[Metric]) -> List[str]:
     return [get_metric_name(metric) for metric in metrics]
 
 
+def get_main_metric_name(metrics: Sequence[Metric]) -> Optional[str]:
+    metric_labels = get_metric_names(metrics)
+    return metric_labels[0] if metric_labels else None
+
+
 def ensure_path_exists(path: str) -> None:
     try:
         os.makedirs(path)
@@ -1494,7 +1499,7 @@ def get_column_name_from_metric(metric: Metric) -> Optional[str]:
     :return: column name if simple metric, otherwise None
     """
     if is_adhoc_metric(metric):
-        metric = cast(Dict[str, Any], metric)
+        metric = cast(AdhocMetric, metric)
         if metric["expressionType"] == AdhocMetricExpressionType.SIMPLE:
             return cast(Dict[str, Any], metric["column"])["column_name"]
     return None

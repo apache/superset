@@ -58,9 +58,9 @@ const ViewQueryModal: React.FC<Props> = props => {
       resultFormat: 'json',
       resultType,
     })
-      .then(response => {
+      .then(({ json }) => {
         // Only displaying the first query is currently supported
-        const result = response.result[0];
+        const result = json.result[0];
         setLanguage(result.language);
         setQuery(result.query);
         setIsLoading(false);
@@ -80,7 +80,7 @@ const ViewQueryModal: React.FC<Props> = props => {
   };
   useEffect(() => {
     loadChartData('query');
-  }, [props.latestQueryFormData]);
+  }, [JSON.stringify(props.latestQueryFormData)]);
 
   if (isLoading) {
     return <Loading />;

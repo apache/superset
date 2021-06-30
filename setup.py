@@ -76,7 +76,7 @@ setup(
         "cryptography>=3.3.2",
         "flask>=1.1.0, <2.0.0",
         "flask-appbuilder>=3.3.0, <4.0.0",
-        "flask-caching",
+        "flask-caching>=1.10.0",
         "flask-compress",
         "flask-talisman",
         "flask-migrate",
@@ -97,7 +97,7 @@ setup(
         "python-dateutil",
         "python-dotenv",
         "python-geohash",
-        "pyarrow>=3.0.0, <3.1",
+        "pyarrow>=4.0.1, <4.1",
         "pyyaml>=5.4",
         "PyJWT>=1.7.1, <2",
         "redis",
@@ -112,6 +112,7 @@ setup(
         "wtforms-json",
         "pyparsing>=2.4.7, <3.0.0",
         "holidays==0.10.3",  # PINNED! https://github.com/dr-prodigy/python-holidays/issues/406
+        "deprecation>=2.1.0, <2.2.0",
     ],
     extras_require={
         "athena": ["pyathena>=1.10.8,<1.11"],

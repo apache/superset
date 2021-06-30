@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { FormInstance } from 'antd/lib/form';
-import { NativeFiltersForm } from '../types';
+import { t } from '@superset-ui/core';
+import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
 import { setNativeFilterFieldValues, useForceUpdate } from './utils';
+import { Filter } from '../../types';
 
 // When some fields in form changed we need re-fetch data for Filter defaultValue
 // eslint-disable-next-line import/prefer-default-export
@@ -45,4 +47,56 @@ export const useBackendFormUpdate = (
     forceUpdate,
     filterId,
   ]);
+};
+
+export const useDefaultValue = (
+  formFilter?: NativeFiltersFormItem,
+  filterToEdit?: Filter,
+) => {
+  const [hasDefaultValue, setHasPartialDefaultValue] = useState(
+    !!filterToEdit?.defaultDataMask?.filterState?.value,
+  );
+  const [isRequired, setisRequired] = useState(
+    formFilter?.controlValues?.enableEmptyFilter,
+  );
+
+  const [defaultValueTooltip, setDefaultValueTooltip] = useState('');
+
+  const defaultToFirstItem = formFilter?.controlValues?.defaultToFirstItem;
+
+  const setHasDefaultValue = useCallback(
+    (value?) => {
+      const required =
+        !!formFilter?.controlValues?.enableEmptyFilter && !defaultToFirstItem;
+      setisRequired(required);
+      setHasPartialDefaultValue(required ? true : value);
+    },
+    [formFilter?.controlValues?.enableEmptyFilter, defaultToFirstItem],
+  );
+
+  useEffect(() => {
+    setHasDefaultValue(
+      defaultToFirstItem
+        ? false
+        : !!formFilter?.defaultDataMask?.filterState?.value,
+    );
+  }, [setHasDefaultValue, defaultToFirstItem]);
+
+  useEffect(() => {
+    let tooltip = '';
+    if (defaultToFirstItem) {
+      tooltip = t(
+        'Default value set automatically when "Default to first item" is checked',
+      );
+    } else if (isRequired) {
+      tooltip = t('Default value must be set when "Required" is checked');
+    } else if (hasDefaultValue) {
+      tooltip = t(
+        'Default value must be set when "Filter has default value" is checked',
+      );
+    }
+    setDefaultValueTooltip(tooltip);
+  }, [hasDefaultValue, isRequired, defaultToFirstItem]);
+
+  return [hasDefaultValue, isRequired, defaultValueTooltip, setHasDefaultValue];
 };

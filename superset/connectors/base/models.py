@@ -17,12 +17,12 @@
 import json
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Hashable, List, Optional, Type, Union
+from typing import Any, Dict, Hashable, List, Optional, Set, Type, Union
 
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import and_, Boolean, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import foreign, Query, relationship, RelationshipProperty
+from sqlalchemy.orm import foreign, Query, relationship, RelationshipProperty, Session
 
 from superset import security_manager
 from superset.constants import NULL_STRING
@@ -30,6 +30,7 @@ from superset.models.helpers import AuditMixinNullable, ImportExportMixin, Query
 from superset.models.slice import Slice
 from superset.typing import FilterValue, FilterValues, QueryObjectDict
 from superset.utils import core as utils
+from superset.utils.core import GenericDataType
 
 METRIC_FORM_DATA_PARAMS = [
     "metric",
@@ -306,12 +307,16 @@ class BaseDatasource(
             if metric["metric_name"] in metric_names
         ]
 
-        filtered_columns = [
-            column
-            for column in data["columns"]
-            if column["column_name"] in column_names
-        ]
+        filtered_columns: List[Column] = []
+        column_types: Set[GenericDataType] = set()
+        for column in data["columns"]:
+            generic_type = column.get("type_generic")
+            if generic_type is not None:
+                column_types.add(generic_type)
+            if column["column_name"] in column_names:
+                filtered_columns.append(column)
 
+        data["column_types"] = list(column_types)
         del data["description"]
         data.update({"metrics": filtered_metrics})
         data.update({"columns": filtered_columns})
@@ -510,6 +515,12 @@ class BaseDatasource(
         """
 
         security_manager.raise_for_access(datasource=self)
+
+    @classmethod
+    def get_datasource_by_name(
+        cls, session: Session, datasource_name: str, schema: str, database_name: str
+    ) -> Optional["BaseDatasource"]:
+        raise NotImplementedError()
 
 
 class BaseColumn(AuditMixinNullable, ImportExportMixin):
