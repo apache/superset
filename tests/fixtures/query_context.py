@@ -31,7 +31,7 @@ query_birth_names = {
     },
     "groupby": ["name"],
     "metrics": [{"label": "sum__num"}],
-    "orderby": [["sum__num", False]],
+    "orderby": [("sum__num", False)],
     "row_limit": 100,
     "granularity": "ds",
     "time_range": "100 years ago : now",
