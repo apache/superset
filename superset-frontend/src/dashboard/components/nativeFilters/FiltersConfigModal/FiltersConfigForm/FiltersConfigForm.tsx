@@ -268,9 +268,6 @@ export interface FiltersConfigFormProps {
   parentFilters: { id: string; title: string }[];
 }
 
-// TODO: Need to do with it something
-const FILTERS_WITHOUT_COLUMN = ['filter_timegrain', 'filter_timecolumn'];
-
 const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
 
 const BASIC_CONTROL_ITEMS = ['enableEmptyFilter', 'multiSelect'];
@@ -347,8 +344,7 @@ const FiltersConfigForm = (
   // @ts-ignore
   const hasDataset = !!nativeFilterItems[formFilter?.filterType]?.value
     ?.datasourceCount;
-  const hasColumn =
-    hasDataset && !FILTERS_WITHOUT_COLUMN.includes(formFilter?.filterType);
+  const hasColumn = hasDataset;
 
   const nativeFilterItem = nativeFilterItems[formFilter?.filterType] ?? {};
   // @ts-ignore

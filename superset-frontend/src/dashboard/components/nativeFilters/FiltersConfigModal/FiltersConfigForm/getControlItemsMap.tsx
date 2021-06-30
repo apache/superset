@@ -88,6 +88,7 @@ export default function getControlItemsMap({
         mainControlItem?.config?.default;
       const initColumn = filterToEdit?.targets[0]?.column?.name;
       const datasetId = formFilter?.dataset?.value;
+
       const element = (
         <>
           <CleanFormItem
@@ -103,17 +104,21 @@ export default function getControlItemsMap({
             // style={{ display: datasetId == null ? undefined : 'none' }}
             name={['filters', filterId, 'column']}
             initialValue={initColumn}
-            label={<StyledLabel>{t('Column')}</StyledLabel>}
+            label={
+              <StyledLabel>
+                {t(`${mainControlItem.config?.label}`) || t('Column')}
+              </StyledLabel>
+            }
             rules={[
               {
-                required: !removed,
+                required: mainControlItem.config?.required && !removed, // TODO: need to move ColumnSelect settings to controlPanel for all filters
                 message: t('Column is required'),
               },
             ]}
             data-test="field-input"
           >
             <ColumnSelect
-              mode={mainControlItem.config.multiple && 'multiple'}
+              mode={mainControlItem.config?.multiple && 'multiple'}
               form={form}
               filterId={filterId}
               datasetId={datasetId}
