@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from superset.db_engine_specs.athena import AthenaEngineSpec
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
@@ -31,3 +32,26 @@ class TestAthenaDbEngineSpec(TestDbEngineSpec):
             AthenaEngineSpec.convert_dttm("TIMESTAMP", dttm),
             "from_iso8601_timestamp('2019-01-02T03:04:05.678900')",
         )
+
+    def test_extract_errors(self):
+        """
+        Test that custom error messages are extracted correctly.
+        """
+        msg = ": mismatched input 'fromm'. Expecting: "
+        result = AthenaEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                message='Please check your query for syntax errors at or near "fromm". Then, try running your query again.',
+                error_type=SupersetErrorType.SYNTAX_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Amazon Athena",
+                    "issue_codes": [
+                        {
+                            "code": 1030,
+                            "message": "Issue 1030 - The query has a syntax error.",
+                        }
+                    ],
+                },
+            )
+        ]

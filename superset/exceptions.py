@@ -43,9 +43,24 @@ class SupersetException(Exception):
 class SupersetErrorException(SupersetException):
     """Exceptions with a single SupersetErrorType associated with them"""
 
-    def __init__(self, error: SupersetError) -> None:
+    def __init__(self, error: SupersetError, status: Optional[int] = None) -> None:
         super().__init__(error.message)
         self.error = error
+        if status is not None:
+            self.status = status
+
+
+class SupersetGenericErrorException(SupersetErrorException):
+    """Exceptions that are too generic to have their own type"""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(
+            SupersetError(
+                message=message,
+                error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
 
 
 class SupersetErrorFromParamsException(SupersetErrorException):
@@ -68,9 +83,13 @@ class SupersetErrorFromParamsException(SupersetErrorException):
 class SupersetErrorsException(SupersetException):
     """Exceptions with multiple SupersetErrorType associated with them"""
 
-    def __init__(self, errors: List[SupersetError]) -> None:
+    def __init__(
+        self, errors: List[SupersetError], status: Optional[int] = None
+    ) -> None:
         super().__init__(str(errors))
         self.errors = errors
+        if status is not None:
+            self.status = status
 
 
 class SupersetTimeoutException(SupersetErrorFromParamsException):
@@ -97,11 +116,12 @@ class SupersetTemplateParamsErrorException(SupersetErrorFromParamsException):
     def __init__(
         self,
         message: str,
+        error: SupersetErrorType,
         level: ErrorLevel = ErrorLevel.ERROR,
         extra: Optional[Dict[str, Any]] = None,
     ) -> None:
         super().__init__(
-            SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR, message, level, extra,
+            error, message, level, extra,
         )
 
 

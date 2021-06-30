@@ -83,6 +83,7 @@ from superset.exceptions import (
     SupersetErrorsException,
     SupersetException,
     SupersetGenericDBErrorException,
+    SupersetGenericErrorException,
     SupersetSecurityException,
     SupersetTemplateParamsErrorException,
     SupersetTimeoutException,
@@ -2195,39 +2196,81 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             now_as_float() - read_from_results_backend_start,
         )
         if not blob:
-            return json_error_response(
-                "Data could not be retrieved. " "You may want to re-run the query.",
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "Data could not be retrieved from the results backend. You "
+                        "need to re-run the original query."
+                    ),
+                    error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
                 status=410,
             )
 
         query = db.session.query(Query).filter_by(results_key=key).one_or_none()
         if query is None:
-            return json_error_response(
-                "Data could not be retrieved. You may want to re-run the query.",
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "The query associated with these results could not be find. "
+                        "You need to re-run the original query."
+                    ),
+                    error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
                 status=404,
             )
 
         try:
             query.raise_for_access()
         except SupersetSecurityException as ex:
-            return json_errors_response([ex.error], status=403)
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "You are not authorized to see this query. If you think this "
+                        "is an error, please reach out to your administrator."
+                    ),
+                    error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                status=403,
+            ) from ex
 
         payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
         try:
             obj = _deserialize_results_payload(
                 payload, query, cast(bool, results_backend_use_msgpack)
             )
-        except SerializationError:
-            return json_error_response(
-                __("Data could not be deserialized. You may want to re-run the query."),
+        except SerializationError as ex:
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "Data could not be deserialized from the results backend. The "
+                        "storage format might have changed, rendering the old data "
+                        "stake. You need to re-run the original query."
+                    ),
+                    error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
                 status=404,
-            )
+            ) from ex
 
         if "rows" in request.args:
             try:
                 rows = int(request.args["rows"])
-            except ValueError:
-                return json_error_response("Invalid `rows` argument", status=400)
+            except ValueError as ex:
+                raise SupersetErrorException(
+                    SupersetError(
+                        message=__(
+                            "The provided `rows` argument is not a valid integer."
+                        ),
+                        error_type=SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR,
+                        level=ErrorLevel.ERROR,
+                    ),
+                    status=400,
+                ) from ex
+
             obj = apply_display_max_row_limit(obj, rows)
 
         return json_success(
@@ -2541,7 +2584,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         mydb = session.query(Database).get(database_id)
         if not mydb:
-            return json_error_response("Database with id %i is missing.", database_id)
+            raise SupersetGenericErrorException(
+                _(
+                    "The database referenced in this query was not found. Please "
+                    "contact an administrator for further assistance or try again."
+                )
+            )
 
         # Set tmp_schema_name for CTA
         # TODO(bkyryliuk): consider parsing, splitting tmp_schema_name from
@@ -2577,9 +2625,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         except SQLAlchemyError as ex:
             logger.error("Errors saving query details %s", str(ex), exc_info=True)
             session.rollback()
-            raise Exception(_("Query record was not created as expected."))
+            query_id = None
         if not query_id:
-            raise Exception(_("Query record was not created as expected."))
+            raise SupersetGenericErrorException(
+                _(
+                    "The query record was not created as expected. Please "
+                    "contact an administrator for further assistance or try again."
+                )
+            )
 
         logger.info("Triggering query_id: %i", query_id)
 
@@ -2601,7 +2654,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             query.status = QueryStatus.FAILED
             session.commit()
             raise SupersetTemplateParamsErrorException(
-                utils.error_msg_from_exception(ex)
+                message=_(
+                    'The query contains one or more malformed template parameters. Please check your query and confirm that all template parameters are surround by double braces, for example, "{{ ds }}". Then, try running your query again.'
+                ),
+                error=SupersetErrorType.INVALID_TEMPLATE_PARAMS_ERROR,
             )
 
         if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
@@ -2620,6 +2676,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     )
                     + " "
                     + PARAMETER_MISSING_ERR,
+                    error=SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
                     extra={
                         "undefined_parameters": list(undefined_parameters),
                         "template_parameters": template_params,

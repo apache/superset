@@ -52,6 +52,10 @@ export default function setupErrorMessages() {
     ParameterErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.INVALID_TEMPLATE_PARAMS_ERROR,
+    ParameterErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.RESULTS_BACKEND_NOT_CONFIGURED_ERROR,
     DatabaseErrorMessage,
   );
@@ -68,7 +72,15 @@ export default function setupErrorMessages() {
     DatabaseErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.QUERY_SECURITY_ACCESS_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.CONNECTION_INVALID_HOSTNAME_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.RESULTS_BACKEND_ERROR,
     DatabaseErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(
@@ -101,6 +113,14 @@ export default function setupErrorMessages() {
   );
   errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.SCHEMA_DOES_NOT_EXIST_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.OBJECT_DOES_NOT_EXIST_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.SYNTAX_ERROR,
     DatabaseErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(
