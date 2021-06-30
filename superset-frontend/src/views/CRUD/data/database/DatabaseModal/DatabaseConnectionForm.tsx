@@ -85,7 +85,7 @@ const CredentialsInfo = ({
       {!isEditMode && (
         <>
           <FormLabel required>
-            `${t('How do you want to enter service account credentials?')}`
+            {`${t('How do you want to enter service account credentials?')}`}
           </FormLabel>
           <Select
             defaultValue={uploadOption}
@@ -93,11 +93,11 @@ const CredentialsInfo = ({
             onChange={option => setUploadOption(option)}
           >
             <Select.Option value={CredentialInfoOptions.jsonUpload}>
-              `${t('Upload JSON file')}`
+              {`${t('Upload JSON file')}`}
             </Select.Option>
 
             <Select.Option value={CredentialInfoOptions.copyPaste}>
-              `${t('Copy and Paste JSON credentials')}`
+              {`${t('Copy and Paste JSON credentials')}`}
             </Select.Option>
           </Select>
         </>
@@ -106,7 +106,7 @@ const CredentialsInfo = ({
       isEditMode ||
       editNewDb ? (
         <div className="input-container">
-          <FormLabel required>`${t('Service Account')}`</FormLabel>
+          <FormLabel required>{`${t('Service Account')}`}</FormLabel>
           <textarea
             className="input-form"
             name="credentials_info"
@@ -130,7 +130,7 @@ const CredentialsInfo = ({
           css={(theme: SupersetTheme) => infoTooltip(theme)}
         >
           <div css={{ display: 'flex', alignItems: 'center' }}>
-            <FormLabel required>`${t('Upload Credentials')}`</FormLabel>
+            <FormLabel required>{`${t('Upload Credentials')}`}</FormLabel>
             <InfoTooltip
               tooltip={t(
                 'Use the JSON file you automatically downloaded when creating your service account in Google BigQuery.',
@@ -144,7 +144,7 @@ const CredentialsInfo = ({
               className="input-upload-btn"
               onClick={() => document?.getElementById('selectedFile')?.click()}
             >
-              `${t('Choose File')}`
+              {`${t('Choose File')}`}
             </Button>
           )}
           {fileToUpload && (
@@ -334,7 +334,7 @@ const queryField = ({
     value={db?.parameters?.query}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.query}
-    placeholder="e.g. additional parameters"
+    placeholder="e.g. param1=value&param2=value2"
     label="Additional Parameters"
     onChange={changeMethods.onParametersChange}
     helpText={t('Add additional custom parameters')}
