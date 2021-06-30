@@ -18,7 +18,8 @@
 import inspect
 import re
 import unittest
-
+from collections import namedtuple
+from unittest import mock
 from unittest.mock import Mock, patch
 from typing import Any, Dict
 
@@ -1220,3 +1221,88 @@ class TestAccessRequestEndpoints(SupersetTestCase):
             uri = "/accessrequestsmodelview/list/"
             rv = self.client.get(uri)
             self.assertLess(rv.status_code, 400)
+
+
+class TestDatasources(SupersetTestCase):
+    @patch("superset.security.manager.g")
+    @patch("superset.security.SupersetSecurityManager.can_access_database")
+    @patch("superset.security.SupersetSecurityManager.get_session")
+    def test_get_user_datasources_admin(
+        self, mock_get_session, mock_can_access_database, mock_g
+    ):
+        Datasource = namedtuple("Datasource", ["database", "schema", "name"])
+        mock_g.user = security_manager.find_user("admin")
+        mock_can_access_database.return_value = True
+        mock_get_session.query.return_value.filter.return_value.all.return_value = []
+
+        with mock.patch.object(
+            ConnectorRegistry, "get_all_datasources"
+        ) as mock_get_all_datasources:
+            mock_get_all_datasources.return_value = [
+                Datasource("database1", "schema1", "table1"),
+                Datasource("database1", "schema1", "table2"),
+                Datasource("database2", None, "table1"),
+            ]
+
+            datasources = security_manager.get_user_datasources()
+
+        assert sorted(datasources) == [
+            Datasource("database1", "schema1", "table1"),
+            Datasource("database1", "schema1", "table2"),
+            Datasource("database2", None, "table1"),
+        ]
+
+    @patch("superset.security.manager.g")
+    @patch("superset.security.SupersetSecurityManager.can_access_database")
+    @patch("superset.security.SupersetSecurityManager.get_session")
+    def test_get_user_datasources_gamma(
+        self, mock_get_session, mock_can_access_database, mock_g
+    ):
+        Datasource = namedtuple("Datasource", ["database", "schema", "name"])
+        mock_g.user = security_manager.find_user("gamma")
+        mock_can_access_database.return_value = False
+        mock_get_session.query.return_value.filter.return_value.all.return_value = []
+
+        with mock.patch.object(
+            ConnectorRegistry, "get_all_datasources"
+        ) as mock_get_all_datasources:
+            mock_get_all_datasources.return_value = [
+                Datasource("database1", "schema1", "table1"),
+                Datasource("database1", "schema1", "table2"),
+                Datasource("database2", None, "table1"),
+            ]
+
+            datasources = security_manager.get_user_datasources()
+
+        assert datasources == []
+
+    @patch("superset.security.manager.g")
+    @patch("superset.security.SupersetSecurityManager.can_access_database")
+    @patch("superset.security.SupersetSecurityManager.get_session")
+    def test_get_user_datasources_gamma_with_schema(
+        self, mock_get_session, mock_can_access_database, mock_g
+    ):
+        Datasource = namedtuple("Datasource", ["database", "schema", "name"])
+        mock_g.user = security_manager.find_user("gamma")
+        mock_can_access_database.return_value = False
+
+        mock_get_session.query.return_value.filter.return_value.all.return_value = [
+            Datasource("database1", "schema1", "table1"),
+            Datasource("database1", "schema1", "table2"),
+        ]
+
+        with mock.patch.object(
+            ConnectorRegistry, "get_all_datasources"
+        ) as mock_get_all_datasources:
+            mock_get_all_datasources.return_value = [
+                Datasource("database1", "schema1", "table1"),
+                Datasource("database1", "schema1", "table2"),
+                Datasource("database2", None, "table1"),
+            ]
+
+            datasources = security_manager.get_user_datasources()
+
+        assert sorted(datasources) == [
+            Datasource("database1", "schema1", "table1"),
+            Datasource("database1", "schema1", "table2"),
+        ]
