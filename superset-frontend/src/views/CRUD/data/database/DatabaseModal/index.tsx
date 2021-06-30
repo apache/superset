@@ -1091,7 +1091,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     tooltip={t(
                       'Click this link to switch to an alternate form that allows you to input the SQLAlchemy URL for this database manually.',
                     )}
-                    viewBox="6 3 24 24"
+                    viewBox="6 4 24 24"
                   />
                 </div>
                 {/* Step 2 */}

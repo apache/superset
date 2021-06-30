@@ -77,11 +77,13 @@ const StyledFormGroup = styled('div')`
   }
 `;
 
-const infoTooltip = (theme: SupersetTheme) => css`
-  svg {
-    vertical-align: bottom;
-    margin-bottom: ${theme.gridUnit * 0.25}px;
-  }
+const StyledAlignment = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
+const StyledFormLabel = styled(FormLabel)`
+  margin-bottom: 0;
 `;
 
 const LabeledErrorBoundInput = ({
@@ -97,16 +99,14 @@ const LabeledErrorBoundInput = ({
   ...props
 }: LabeledErrorBoundInputProps) => (
   <StyledFormGroup className={className}>
-    <FormLabel
-      htmlFor={id}
-      required={required}
-      css={(theme: SupersetTheme) => infoTooltip(theme)}
-    >
-      {label}
-    </FormLabel>
-    {hasTooltip && (
-      <InfoTooltip tooltip={`${tooltipText}`} viewBox="0 -6 24 24" />
-    )}
+    <StyledAlignment>
+      <StyledFormLabel htmlFor={id} required={required}>
+        {label}
+      </StyledFormLabel>
+      {hasTooltip && (
+        <InfoTooltip tooltip={`${tooltipText}`} viewBox="0 -1 24 24" />
+      )}
+    </StyledAlignment>
     <FormItem
       css={(theme: SupersetTheme) => alertIconStyles(theme, !!errorMessage)}
       validateTrigger={Object.keys(validationMethods)}
