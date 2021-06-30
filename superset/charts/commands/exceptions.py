@@ -56,6 +56,23 @@ class TimeRangeParseFailError(ValidationError):
         )
 
 
+class TimeDeltaUnclearError(ValidationError):
+    """
+    Time delta is in valid error.
+    """
+
+    def __init__(self, human_readable: str) -> None:
+        super().__init__(
+            _(
+                "Time delta is unclear."
+                " Please specify [%(human_readable)s ago]"
+                " or [%(human_readable)s later].",
+                human_readable=human_readable,
+            ),
+            field_name="time_range",
+        )
+
+
 class DatabaseNotFoundValidationError(ValidationError):
     """
     Marshmallow validation error for database does not exist

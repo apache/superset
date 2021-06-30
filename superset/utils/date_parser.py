@@ -19,7 +19,7 @@ import logging
 import re
 from datetime import datetime, timedelta
 from time import struct_time
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import parsedatetime
 from dateutil.parser import parse
@@ -40,6 +40,7 @@ from pyparsing import (
 )
 
 from superset.charts.commands.exceptions import (
+    TimeDeltaUnclearError,
     TimeRangeParseFailError,
     TimeRangeUnclearError,
 )
@@ -93,6 +94,18 @@ def parse_human_datetime(human_readable: str) -> datetime:
             parsed_dttm = parsed_dttm.replace(hour=0, minute=0, second=0)
         dttm = dttm_from_timetuple(parsed_dttm.utctimetuple())
     return dttm
+
+
+def normalize_time_delta(human_readable: str) -> Dict[str, int]:
+    x_unit = r"^\s*([0-9]+)\s+(second|minute|hour|day|week|month|quarter|year)s?\s+(ago|later)*$"  # pylint: disable=line-too-long
+    matched = re.match(x_unit, human_readable, re.IGNORECASE)
+    if not matched:
+        raise TimeDeltaUnclearError(human_readable)
+
+    key = matched[2] + "s"
+    value = int(matched[1])
+    value = -value if matched[3] == "ago" else value
+    return {key: value}
 
 
 def dttm_from_timetuple(date_: struct_time) -> datetime:

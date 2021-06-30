@@ -23,6 +23,7 @@ from typing import Any, ClassVar, Dict, List, Optional, TYPE_CHECKING, Union
 import numpy as np
 import pandas as pd
 from flask_babel import _
+from pandas import DateOffset
 
 from superset import app, db, is_feature_enabled
 from superset.annotation_layers.dao import AnnotationLayerDAO
@@ -32,7 +33,7 @@ from superset.common.query_object import QueryObject
 from superset.common.utils import QueryCacheManager
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.constants import CacheRegion, PandasAxis
+from superset.constants import CacheRegion
 from superset.exceptions import QueryObjectValidationError, SupersetException
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
@@ -51,7 +52,7 @@ from superset.utils.core import (
     QueryStatus,
     TIME_COMPARISION,
 )
-from superset.utils.date_parser import get_past_or_future
+from superset.utils.date_parser import get_past_or_future, normalize_time_delta
 from superset.views.utils import get_viz
 
 if TYPE_CHECKING:
@@ -104,6 +105,14 @@ class QueryContext:
             "result_format": self.result_format,
         }
 
+    @staticmethod
+    def left_join_on_dttm(
+        left_df: pd.DataFrame, right_df: pd.DataFrame
+    ) -> pd.DataFrame:
+        df = left_df.set_index(DTTM_ALIAS).join(right_df.set_index(DTTM_ALIAS))
+        df.reset_index(level=0, inplace=True)
+        return df
+
     def processing_time_offsets(
         self, df: pd.DataFrame, query_object: QueryObject,
     ) -> Tuple[pd.DataFrame, List[str], List[Optional[str]]]:
@@ -142,7 +151,7 @@ class QueryContext:
             _cache = QueryCacheManager.get(cache_key, CacheRegion.DATA, self.force)
             # whether to hit the cache
             if _cache.is_loaded:
-                df = pd.concat([df, _cache.df], axis=PandasAxis.COLUMN)
+                df = self.left_join_on_dttm(df, _cache.df)
                 rv_sql.append(_cache.query)
                 cache_keys.append(cache_key)
                 continue
@@ -159,6 +168,7 @@ class QueryContext:
                     query_object_clone_dct.get("metrics", [])
                 )
             }
+            columns_name_mapping[DTTM_ALIAS] = DTTM_ALIAS
 
             offset_metrics_df = result.df
             if offset_metrics_df.empty:
@@ -166,18 +176,26 @@ class QueryContext:
                     {col: [np.NaN] for col in columns_name_mapping.values()}
                 )
             else:
+                # 1. normalize df, set dttm column
                 offset_metrics_df = self.normalize_df(
                     offset_metrics_df, query_object_clone
                 )
 
-                # extract `metrics` columns from extra query
+                # 2. extract `metrics` columns and `dttm` column from extra query
                 offset_metrics_df = offset_metrics_df[columns_name_mapping.keys()]
+
+                # 3. rename extra query columns
                 offset_metrics_df = offset_metrics_df.rename(
                     columns=columns_name_mapping
                 )
 
-            # combine `offset_metrics_df` with main query df
-            df = pd.concat([df, offset_metrics_df], axis=PandasAxis.COLUMN)
+                # 4. set offset for dttm column
+                offset_metrics_df[DTTM_ALIAS] = offset_metrics_df[
+                    DTTM_ALIAS
+                ] - DateOffset(**normalize_time_delta(offset))
+
+            # df left join `offset_metrics_df` on `DTTM`
+            df = self.left_join_on_dttm(df, offset_metrics_df)
 
             # save to cache.
             value = {
