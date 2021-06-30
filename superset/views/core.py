@@ -2196,39 +2196,81 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             now_as_float() - read_from_results_backend_start,
         )
         if not blob:
-            return json_error_response(
-                "Data could not be retrieved. " "You may want to re-run the query.",
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "Data could not be retrieved from the results backend. You "
+                        "need to re-run the original query."
+                    ),
+                    error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
                 status=410,
             )
 
         query = db.session.query(Query).filter_by(results_key=key).one_or_none()
         if query is None:
-            return json_error_response(
-                "Data could not be retrieved. You may want to re-run the query.",
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "The query associated with these results could not be find. "
+                        "You need to re-run the original query."
+                    ),
+                    error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
                 status=404,
             )
 
         try:
             query.raise_for_access()
         except SupersetSecurityException as ex:
-            return json_errors_response([ex.error], status=403)
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "You are not authorized to see this query. If you think this "
+                        "is an error, please reach out to your administrator."
+                    ),
+                    error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                status=403,
+            ) from ex
 
         payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
         try:
             obj = _deserialize_results_payload(
                 payload, query, cast(bool, results_backend_use_msgpack)
             )
-        except SerializationError:
-            return json_error_response(
-                __("Data could not be deserialized. You may want to re-run the query."),
+        except SerializationError as ex:
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "Data could not be deserialized from the results backend. The "
+                        "storage format might have changed, rendering the old data "
+                        "stake. You need to re-run the original query."
+                    ),
+                    error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
                 status=404,
-            )
+            ) from ex
 
         if "rows" in request.args:
             try:
                 rows = int(request.args["rows"])
-            except ValueError:
-                return json_error_response("Invalid `rows` argument", status=400)
+            except ValueError as ex:
+                raise SupersetErrorException(
+                    SupersetError(
+                        message=__(
+                            "The provided `rows` argument is not a valid integer."
+                        ),
+                        error_type=SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR,
+                        level=ErrorLevel.ERROR,
+                    ),
+                    status=400,
+                ) from ex
+
             obj = apply_display_max_row_limit(obj, rows)
 
         return json_success(

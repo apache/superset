@@ -271,8 +271,6 @@ One or more parameters specified in the query are malformatted.
 ```
 
 The query contains one or more malformed template parameters. Please check your query and confirm that all template parameters are surround by double braces, for example, "{{ ds }}". Then, try running your query again.
-The object does not exist in this database.
-```
 
 ## Issue 1029
 
@@ -289,3 +287,27 @@ The query potentially has a syntax error.
 ```
 
 The query might have a syntax error. Please check and run again.
+
+## Issue 1031
+
+```
+The results backend no longer has the data from the query.
+```
+
+The results from the query might have been deleted from the results backend after some period. Please re-run your query.
+
+## Issue 1032
+
+```
+The query associated with the results was deleted.
+```
+
+The query associated with the stored results no longer exists. Please re-run your query.
+
+## Issue 1033
+
+```
+The results stored in the backend were stored in a different format, and no longer can be deserialized.
+```
+
+The query results were stored in a format that is no longer supported. Please re-run your query.

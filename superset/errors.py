@@ -61,6 +61,7 @@ class SupersetErrorType(str, Enum):
     TABLE_SECURITY_ACCESS_ERROR = "TABLE_SECURITY_ACCESS_ERROR"
     DATASOURCE_SECURITY_ACCESS_ERROR = "DATASOURCE_SECURITY_ACCESS_ERROR"
     DATABASE_SECURITY_ACCESS_ERROR = "DATABASE_SECURITY_ACCESS_ERROR"
+    QUERY_SECURITY_ACCESS_ERROR = "QUERY_SECURITY_ACCESS_ERROR"
     MISSING_OWNERSHIP_ERROR = "MISSING_OWNERSHIP_ERROR"
 
     # Other errors
@@ -74,6 +75,7 @@ class SupersetErrorType(str, Enum):
     INVALID_CTAS_QUERY_ERROR = "INVALID_CTAS_QUERY_ERROR"
     INVALID_CVAS_QUERY_ERROR = "INVALID_CVAS_QUERY_ERROR"
     SQLLAB_TIMEOUT_ERROR = "SQLLAB_TIMEOUT_ERROR"
+    RESULTS_BACKEND_ERROR = "RESULTS_BACKEND_ERROR"
 
     # Generic errors
     GENERIC_COMMAND_ERROR = "GENERIC_COMMAND_ERROR"
@@ -331,7 +333,29 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
         },
     ],
     SupersetErrorType.SYNTAX_ERROR: [
-        {"code": 1030, "message": _("Issue 1029 - The query has a syntax error."),},
+        {"code": 1030, "message": _("Issue 1030 - The query has a syntax error.")},
+    ],
+    SupersetErrorType.RESULTS_BACKEND_ERROR: [
+        {
+            "code": 1031,
+            "message": _(
+                "Issue 1031 - The results backend no longer has the data from the "
+                "query."
+            ),
+        },
+        {
+            "code": 1032,
+            "message": _(
+                "Issue 1032 - The query associated with the results was deleted."
+            ),
+        },
+        {
+            "code": 1033,
+            "message": _(
+                "Issue 1033 - The results stored in the backend were stored in a "
+                "different format, and no longer can be deserialized."
+            ),
+        },
     ],
 }
 

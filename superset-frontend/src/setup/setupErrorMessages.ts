@@ -72,7 +72,15 @@ export default function setupErrorMessages() {
     DatabaseErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.QUERY_SECURITY_ACCESS_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.CONNECTION_INVALID_HOSTNAME_ERROR,
+    DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.RESULTS_BACKEND_ERROR,
     DatabaseErrorMessage,
   );
   errorMessageComponentRegistry.registerValue(
