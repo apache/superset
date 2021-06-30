@@ -112,13 +112,7 @@ const CredentialsInfo = ({
             name="credentials_info"
             value={db?.parameters?.credentials_info}
             onChange={changeMethods.onParametersChange}
-            placeholder={JSON.stringify(
-              {
-                credentials_info: '<contents of credentials JSON file>',
-              },
-              null,
-              '  ',
-            )}
+            placeholder="Paste content of service credentials JSON file here"
           />
           <span className="label-paste">
             {t('Copy and paste the entire service account .json file here')}
