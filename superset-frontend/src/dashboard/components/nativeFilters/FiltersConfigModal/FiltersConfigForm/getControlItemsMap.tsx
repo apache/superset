@@ -80,7 +80,7 @@ export default function getControlItemsMap({
   controlItems
     .filter(
       (mainControlItem: CustomControlItem) =>
-        mainControlItem.name === 'groupby',
+        mainControlItem?.name === 'groupby',
     )
     .forEach(mainControlItem => {
       const initialValue =
