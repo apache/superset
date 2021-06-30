@@ -389,7 +389,7 @@ export const StyledExpandableForm = styled.div`
   }
 `;
 
-export const StyledBasicTab = styled(Tabs.TabPane)`
+export const StyledAlignment = styled.div`
   padding: 0 ${({ theme }) => theme.gridUnit * 4}px;
   margin-top: ${({ theme }) => theme.gridUnit * 6}px;
 `;
