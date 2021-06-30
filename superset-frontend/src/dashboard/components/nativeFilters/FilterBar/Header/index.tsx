@@ -29,7 +29,7 @@ import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/sta
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
 import { getFilterBarTestId } from '..';
 import { RootState } from '../../../../types';
-import { updateDataMask } from '../../../../../dataMask/actions';
+import { updateDataMask } from 'src/dataMask/actions';
 
 const TitleArea = styled.h4`
   display: flex;
