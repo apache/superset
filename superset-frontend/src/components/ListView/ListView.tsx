@@ -142,7 +142,7 @@ const ViewModeContainer = styled.div`
     display: inline-block;
     border-radius: ${({ theme }) => theme.gridUnit / 2}px;
     padding: ${({ theme }) => theme.gridUnit}px;
-    padding-bottom: 0;
+    padding-bottom: ${({ theme }) => theme.gridUnit * 0.5}px;
 
     &:first-of-type {
       margin-right: ${({ theme }) => theme.gridUnit * 2}px;
