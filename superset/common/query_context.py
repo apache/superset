@@ -166,13 +166,17 @@ class QueryContext:
                     {col: [np.NaN] for col in columns_name_mapping.values()}
                 )
             else:
+                offset_metrics_df = self.normalize_df(
+                    offset_metrics_df, query_object_clone
+                )
+
                 # extract `metrics` columns from extra query
                 offset_metrics_df = offset_metrics_df[columns_name_mapping.keys()]
                 offset_metrics_df = offset_metrics_df.rename(
                     columns=columns_name_mapping
                 )
 
-                # combine `offset_metrics_df` with main query df
+            # combine `offset_metrics_df` with main query df
             df = pd.concat([df, offset_metrics_df], axis=PandasAxis.COLUMN)
 
             # save to cache.
@@ -190,18 +194,33 @@ class QueryContext:
 
         return df, rv_sql, cache_keys
 
+    def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
+        timestamp_format = None
+        if self.datasource.type == "table":
+            dttm_col = self.datasource.get_column(query_object.granularity)
+            if dttm_col:
+                timestamp_format = dttm_col.python_date_format
+
+        normalize_dttm_col(
+            df=df,
+            timestamp_format=timestamp_format,
+            offset=self.datasource.offset,
+            time_shift=query_object.time_shift,
+        )
+
+        if self.enforce_numerical_metrics:
+            self.df_metrics_to_num(df, query_object)
+
+        df.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+        return df
+
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
         """Returns a pandas dataframe based on the query object"""
 
         # Here, we assume that all the queries will use the same datasource, which is
         # a valid assumption for current setting. In the long term, we may
         # support multiple queries from different data sources.
-
-        timestamp_format = None
-        if self.datasource.type == "table":
-            dttm_col = self.datasource.get_column(query_object.granularity)
-            if dttm_col:
-                timestamp_format = dttm_col.python_date_format
 
         # The datasource here can be different backend but the interface is common
         result = self.datasource.query(query_object.to_dict())
@@ -214,22 +233,13 @@ class QueryContext:
         # If the datetime format is unix, the parse will use the corresponding
         # parsing logic
         if not df.empty:
-            normalize_dttm_col(
-                df=df,
-                timestamp_format=timestamp_format,
-                offset=self.datasource.offset,
-                time_shift=query_object.time_shift,
-            )
-
-            if self.enforce_numerical_metrics:
-                self.df_metrics_to_num(df, query_object)
+            df = self.normalize_df(df, query_object)
 
             if query_object.time_offsets:
                 df, offset_sql, _ = self.processing_time_offsets(df, query_object)
                 query += ";\n\n".join(offset_sql)
                 query += ";\n\n"
 
-            df.replace([np.inf, -np.inf], np.nan, inplace=True)
             df = query_object.exec_post_processing(df)
 
         result.df = df
