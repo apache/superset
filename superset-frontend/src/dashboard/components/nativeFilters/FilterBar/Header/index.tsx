@@ -21,6 +21,7 @@ import { styled, t, useTheme } from '@superset-ui/core';
 import React, { FC } from 'react';
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
+import { updateDataMask } from 'src/dataMask/actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { DataMaskState, DataMaskStateWithId } from 'src/dataMask/types';
@@ -29,7 +30,6 @@ import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/sta
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
 import { getFilterBarTestId } from '..';
 import { RootState } from '../../../../types';
-import { updateDataMask } from 'src/dataMask/actions';
 
 const TitleArea = styled.h4`
   display: flex;
