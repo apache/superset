@@ -22,7 +22,18 @@ from collections import defaultdict, OrderedDict
 from contextlib import closing
 from dataclasses import dataclass, field  # pylint: disable=wrong-import-order
 from datetime import datetime, timedelta
-from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Type, Union
+from typing import (
+    Any,
+    cast,
+    Dict,
+    Hashable,
+    List,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 import pandas as pd
 import sqlalchemy as sa
@@ -241,7 +252,9 @@ class TableColumn(Model, BaseColumn):
         column_spec = db_engine_spec.get_column_spec(self.type)
         type_ = column_spec.sqla_type if column_spec else None
         if self.expression:
-            col = literal_column(self.expression, type_=type_)
+            tp = self.table.get_template_processor()
+            expression = tp.process_template(self.expression)
+            col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
         col = self.table.make_sqla_column_compatible(col, label)
@@ -879,7 +892,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         label = utils.get_metric_name(metric)
 
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
-            column_name = metric["column"].get("column_name")
+            column_name = cast(str, metric["column"].get("column_name"))
             table_column: Optional[TableColumn] = columns_by_name.get(column_name)
             if table_column:
                 sqla_column = table_column.get_sqla_col()
@@ -887,7 +900,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 sqla_column = column(column_name)
             sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
-            sqla_metric = literal_column(metric.get("sqlExpression"))
+            tp = self.get_template_processor()
+            expression = tp.process_template(cast(str, metric["sqlExpression"]))
+            sqla_metric = literal_column(expression)
         else:
             raise QueryObjectValidationError("Adhoc metric expressionType is invalid")
 
@@ -1060,8 +1075,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         # Since orderby may use adhoc metrics, too; we need to process them first
         orderby_exprs: List[ColumnElement] = []
         for orig_col, ascending in orderby:
-            col: Union[Metric, ColumnElement] = orig_col
+            col: Union[AdhocMetric, ColumnElement] = orig_col
             if isinstance(col, dict):
+                col = cast(AdhocMetric, col)
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists
                     col = self.adhoc_metric_to_sqla(col, columns_by_name)

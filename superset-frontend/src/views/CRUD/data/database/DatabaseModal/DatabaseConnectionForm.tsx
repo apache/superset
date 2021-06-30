@@ -22,6 +22,7 @@ import { InputProps } from 'antd/lib/input';
 import { Switch, Select, Button } from 'src/common/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
+import FormLabel from 'src/components/Form/FormLabel';
 import { DeleteFilled } from '@ant-design/icons';
 import {
   formScrollableStyles,
@@ -83,20 +84,20 @@ const CredentialsInfo = ({
     <CredentialInfoForm>
       {!isEditMode && (
         <>
-          <span className="label-select">
-            How do you want to enter service account credentials?
-          </span>
+          <FormLabel required>
+            `${t('How do you want to enter service account credentials?')}`
+          </FormLabel>
           <Select
             defaultValue={uploadOption}
             style={{ width: '100%' }}
             onChange={option => setUploadOption(option)}
           >
             <Select.Option value={CredentialInfoOptions.jsonUpload}>
-              Upload JSON file
+              `${t('Upload JSON file')}`
             </Select.Option>
 
             <Select.Option value={CredentialInfoOptions.copyPaste}>
-              Copy and Paste JSON credentials
+              `${t('Copy and Paste JSON credentials')}`
             </Select.Option>
           </Select>
         </>
@@ -105,15 +106,22 @@ const CredentialsInfo = ({
       isEditMode ||
       editNewDb ? (
         <div className="input-container">
-          <span className="label-select">Service Account</span>
+          <FormLabel required>`${t('Service Account')}`</FormLabel>
           <textarea
             className="input-form"
             name="credentials_info"
             value={db?.parameters?.credentials_info}
             onChange={changeMethods.onParametersChange}
+            placeholder={JSON.stringify(
+              {
+                credentials_info: '<contents of credentials JSON file>',
+              },
+              null,
+              '  ',
+            )}
           />
           <span className="label-paste">
-            Copy and paste the entire service account .json file here
+            `${t('Copy and paste the entire service account .json file here')}`
           </span>
         </div>
       ) : (
@@ -121,24 +129,22 @@ const CredentialsInfo = ({
           className="input-container"
           css={(theme: SupersetTheme) => infoTooltip(theme)}
         >
-          <span
-            css={{ display: 'flex', alignItems: 'center' }}
-            className="label-select"
-          >
-            Upload Credentials{' '}
+          <div css={{ display: 'flex', alignItems: 'center' }}>
+            <FormLabel required>`${t('Upload Credentials')}`</FormLabel>
             <InfoTooltip
               tooltip={t(
                 'Use the JSON file you automatically downloaded when creating your service account in Google BigQuery.',
               )}
+              viewBox="0 0 24 24"
             />
-          </span>
+          </div>
 
           {!fileToUpload && (
             <Button
               className="input-upload-btn"
               onClick={() => document?.getElementById('selectedFile')?.click()}
             >
-              Choose File
+              `${t('Choose File')}`
             </Button>
           )}
           {fileToUpload && (
@@ -251,7 +257,7 @@ const databaseField = ({
     placeholder="e.g. world_population"
     label="Database name"
     onChange={changeMethods.onParametersChange}
-    helpText="Copy the name of the  database you are trying to connect to."
+    helpText={t('Copy the name of the  database you are trying to connect to.')}
   />
 );
 const usernameField = ({
@@ -310,7 +316,7 @@ const displayField = ({
     placeholder=""
     label="Display Name"
     onChange={changeMethods.onChange}
-    helpText="Pick a nickname for this database to display as in Superset."
+    helpText={t('Pick a nickname for this database to display as in Superset.')}
   />
 );
 
@@ -331,7 +337,7 @@ const queryField = ({
     placeholder="e.g. additional parameters"
     label="Additional Parameters"
     onChange={changeMethods.onParametersChange}
-    helpText="Add additional custom parameters"
+    helpText={t('Add additional custom parameters')}
   />
 );
 

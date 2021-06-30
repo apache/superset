@@ -50,6 +50,8 @@ class SupersetErrorType(str, Enum):
     CONNECTION_UNKNOWN_DATABASE_ERROR = "CONNECTION_UNKNOWN_DATABASE_ERROR"
     CONNECTION_DATABASE_PERMISSIONS_ERROR = "CONNECTION_DATABASE_PERMISSIONS_ERROR"
     CONNECTION_MISSING_PARAMETERS_ERROR = "CONNECTION_MISSING_PARAMETERS_ERROR"
+    OBJECT_DOES_NOT_EXIST_ERROR = "OBJECT_DOES_NOT_EXIST_ERROR"
+    SYNTAX_ERROR = "SYNTAX_ERROR"
 
     # Viz errors
     VIZ_GET_DF_ERROR = "VIZ_GET_DF_ERROR"
@@ -67,6 +69,12 @@ class SupersetErrorType(str, Enum):
 
     # Sql Lab errors
     MISSING_TEMPLATE_PARAMS_ERROR = "MISSING_TEMPLATE_PARAMS_ERROR"
+    INVALID_TEMPLATE_PARAMS_ERROR = "INVALID_TEMPLATE_PARAMS_ERROR"
+    RESULTS_BACKEND_NOT_CONFIGURED_ERROR = "RESULTS_BACKEND_NOT_CONFIGURED_ERROR"
+    DML_NOT_ALLOWED_ERROR = "DML_NOT_ALLOWED_ERROR"
+    INVALID_CTAS_QUERY_ERROR = "INVALID_CTAS_QUERY_ERROR"
+    INVALID_CVAS_QUERY_ERROR = "INVALID_CVAS_QUERY_ERROR"
+    SQLLAB_TIMEOUT_ERROR = "SQLLAB_TIMEOUT_ERROR"
 
     # Generic errors
     GENERIC_COMMAND_ERROR = "GENERIC_COMMAND_ERROR"
@@ -148,6 +156,30 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
             ),
         },
     ],
+    SupersetErrorType.INVALID_TEMPLATE_PARAMS_ERROR: [
+        {
+            "code": 1028,
+            "message": _(
+                "Issue 1028 - One or more parameters specified in the query are "
+                "malformatted."
+            ),
+        },
+    ],
+    SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR: [
+        {
+            "code": 1021,
+            "message": _(
+                "Issue 1021 - Results backend needed for asynchronous queries "
+                "is not configured."
+            ),
+        },
+    ],
+    SupersetErrorType.DML_NOT_ALLOWED_ERROR: [
+        {
+            "code": 1022,
+            "message": _("Issue 1022 - Database does not allow data manipulation."),
+        },
+    ],
     SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR: [
         {
             "code": 1007,
@@ -158,7 +190,7 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
         {"code": 1008, "message": _("Issue 1008 - The port is closed.")},
     ],
     SupersetErrorType.CONNECTION_INVALID_PORT_ERROR: [
-        {"code": 1021, "message": _("Issue 1021 - Port number is invalid.")},
+        {"code": 1031, "message": _("Issue 1031 - Port number is invalid.")},
     ],
     SupersetErrorType.CONNECTION_HOST_DOWN_ERROR: [
         {
@@ -253,6 +285,57 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
                 "Issue 1020 - The submitted payload has the incorrect schema."
             ),
         }
+    ],
+    SupersetErrorType.INVALID_CTAS_QUERY_ERROR: [
+        {
+            "code": 1023,
+            "message": _(
+                "Issue 1023 - The CTAS (create table as select) doesn't have a "
+                "SELECT statement at the end. Please make sure your query has a "
+                "SELECT as its last statement. Then, try running your query again."
+            ),
+        },
+    ],
+    SupersetErrorType.INVALID_CVAS_QUERY_ERROR: [
+        {
+            "code": 1024,
+            "message": _(
+                "Issue 1024 - CVAS (create view as select) query has more than "
+                "one statement."
+            ),
+        },
+        {
+            "code": 1025,
+            "message": _(
+                "Issue 1025 - CVAS (create view as select) query is not a "
+                "SELECT statement."
+            ),
+        },
+    ],
+    SupersetErrorType.SQLLAB_TIMEOUT_ERROR: [
+        {
+            "code": 1026,
+            "message": _(
+                "Issue 1026 - Query is too complex and takes too long to run."
+            ),
+        },
+        {
+            "code": 1027,
+            "message": _(
+                "Issue 1027 - The database is currently running too many queries."
+            ),
+        },
+    ],
+    SupersetErrorType.OBJECT_DOES_NOT_EXIST_ERROR: [
+        {
+            "code": 1029,
+            "message": _(
+                "Issue 1029 - The object does not exist in the given database."
+            ),
+        },
+    ],
+    SupersetErrorType.SYNTAX_ERROR: [
+        {"code": 1030, "message": _("Issue 1029 - The query has a syntax error."),},
     ],
 }
 

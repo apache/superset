@@ -22,7 +22,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { useSelector } from 'react-redux';
 import EditableTitle from 'src/components/EditableTitle';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
-import FiltersBadge from 'src/dashboard/containers/FiltersBadge';
+import FiltersBadge from 'src/dashboard/components/FiltersBadge';
 import Icon from 'src/components/Icon';
 import { RootState } from 'src/dashboard/types';
 import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';

@@ -16,28 +16,40 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../../stylesheets/less/variables.less';
+import React, { MouseEventHandler } from 'react';
+import { styled } from '@superset-ui/core';
 
-.icon-button {
-  color: @gray;
-  font-size: @font-size-l;
+interface IconButtonProps {
+  icon: JSX.Element;
+  label?: string;
+  onClick: MouseEventHandler<HTMLDivElement>;
+}
+
+const StyledDiv = styled.div`
   display: flex;
-  flex-direction: row;
   align-items: center;
-  justify-content: center;
-  outline: none;
-
-  &:hover,
-  &:active,
-  &:focus {
-    color: @almost-black;
-    outline: none;
-    text-decoration: none;
+  color: ${({ theme }) => theme.colors.grayscale.base};
+  &:hover {
+    color: ${({ theme }) => theme.colors.primary.base};
   }
-}
+`;
 
-.icon-button-label {
-  color: @gray-dark;
-  padding-left: 8px;
-  font-size: @font-size-m;
-}
+const StyledSpan = styled.span`
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+`;
+
+const IconButton = ({ icon, label, onClick }: IconButtonProps) => (
+  <StyledDiv
+    tabIndex={0}
+    role="button"
+    onClick={e => {
+      e.preventDefault();
+      onClick(e);
+    }}
+  >
+    {icon}
+    {label && <StyledSpan>{label}</StyledSpan>}
+  </StyledDiv>
+);
+
+export default IconButton;

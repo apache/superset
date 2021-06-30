@@ -199,7 +199,6 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
 
         msg = "mysql: Unknown database 'badDB'"
         result = MySQLEngineSpec.extract_errors(Exception(msg))
-        print(result)
         assert result == [
             SupersetError(
                 message='Unable to connect to database "badDB".',
@@ -212,6 +211,25 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
                         {
                             "code": 1015,
                             "message": "Issue 1015 - Either the database is spelled incorrectly or does not exist.",
+                        }
+                    ],
+                },
+            )
+        ]
+
+        msg = "check the manual that corresponds to your MySQL server version for the right syntax to use near 'fromm"
+        result = MySQLEngineSpec.extract_errors(Exception(msg))
+        assert result == [
+            SupersetError(
+                message='Please check your query for syntax errors near "fromm". Then, try running your query again.',
+                error_type=SupersetErrorType.SYNTAX_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "MySQL",
+                    "issue_codes": [
+                        {
+                            "code": 1030,
+                            "message": "Issue 1030 - The query has a syntax error.",
                         }
                     ],
                 },

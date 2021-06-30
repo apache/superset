@@ -92,6 +92,14 @@ const errorAlertMapping = {
   CONNECTION_INVALID_PORT_ERROR: {
     message: 'The port must be a whole number less than or equal to 65535.',
   },
+  CONNECTION_ACCESS_DENIED_ERROR: {
+    message: 'Invalid account information',
+    description: 'Either the username or password is incorrect.',
+  },
+  CONNECTION_INVALID_PASSWORD_ERROR: {
+    message: 'Invalid account information',
+    description: 'Either the username or password is incorrect.',
+  },
 };
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
@@ -276,7 +284,7 @@ function dbReducer(
 
       return {
         ...action.payload,
-        engine: action.payload.backend,
+        engine: action.payload.backend || trimmedState.engine,
         configuration_method: action.payload.configuration_method,
         extra_json: deserializeExtraJSON,
         parameters: {
@@ -345,6 +353,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     addDangerToast,
   );
 
+  const isDynamic = (engine: string | undefined) =>
+    availableDbs?.databases.filter(
+      (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
+    )[0].parameters !== undefined;
   const showDBError = validationErrors || dbErrors;
   const isEmpty = (data?: Object | null) =>
     data && Object.keys(data).length === 0;
@@ -390,13 +402,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     // Clone DB object
     const dbToUpdate = JSON.parse(JSON.stringify(update));
 
-    // Validate DB before saving
-    await getValidation(dbToUpdate, true);
-    if (validationErrors && !isEmpty(validationErrors)) {
-      return;
-    }
-
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
+      // Validate DB before saving
+      await getValidation(dbToUpdate, true);
+      if (validationErrors && !isEmpty(validationErrors)) {
+        return;
+      }
+
       if (dbToUpdate?.parameters?.query) {
         // convert query params into dictionary
         dbToUpdate.parameters.query = JSON.parse(
@@ -418,27 +430,29 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     }
 
+    if (dbToUpdate?.extra_json) {
+      // convert extra_json to back to string
+      dbToUpdate.extra = JSON.stringify({
+        ...dbToUpdate.extra_json,
+        metadata_params: JSON.parse(
+          (dbToUpdate?.extra_json?.metadata_params as string) || '{}',
+        ),
+        engine_params: JSON.parse(
+          (dbToUpdate?.extra_json?.engine_params as string) || '{}',
+        ),
+        schemas_allowed_for_csv_upload:
+          (dbToUpdate?.extra_json?.schemas_allowed_for_csv_upload as string) ||
+          '[]',
+      });
+    }
+    console.log(dbToUpdate.extra);
+
     if (db?.id) {
-      if (dbToUpdate?.extra_json) {
-        // convert extra_json to back to string
-        dbToUpdate.extra = JSON.stringify({
-          ...dbToUpdate.extra_json,
-          metadata_params: JSON.parse(
-            dbToUpdate?.extra_json?.metadata_params as string,
-          ),
-          engine_params: JSON.parse(
-            dbToUpdate?.extra_json?.engine_params as string,
-          ),
-          schemas_allowed_for_csv_upload: JSON.parse(
-            dbToUpdate?.extra_json?.schemas_allowed_for_csv_upload as string,
-          ),
-        });
-      }
       setLoading(true);
       const result = await updateResource(
         db.id as number,
         dbToUpdate as DatabaseObject,
-        true,
+        dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM, // onShow toast on SQLA Forms
       );
       if (result) {
         if (onDatabaseAdd) {
@@ -450,23 +464,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     } else if (db) {
       // Create
-      if (dbToUpdate?.extra_json) {
-        // convert extra_json to back to string
-        dbToUpdate.extra = JSON.stringify({
-          ...dbToUpdate.extra_json,
-          metadata_params: JSON.parse(
-            dbToUpdate?.extra_json?.metadata_params as string,
-          ),
-          engine_params: JSON.parse(
-            dbToUpdate?.extra_json?.engine_params as string,
-          ),
-          schemas_allowed_for_csv_upload: JSON.parse(
-            dbToUpdate?.extra_json?.schemas_allowed_for_csv_upload as string,
-          ),
-        });
-      }
       setLoading(true);
-      const dbId = await createResource(dbToUpdate as DatabaseObject, true);
+      const dbId = await createResource(
+        dbToUpdate as DatabaseObject,
+        dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM, // onShow toast on SQLA Forms
+      );
       if (dbId) {
         setHasConnectedDb(true);
         if (onDatabaseAdd) {
@@ -547,20 +549,38 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         closable={false}
         css={(theme: SupersetTheme) => antDAlertStyles(theme)}
         type="info"
-        message={t('Want to add a new database?')}
+        message={
+          connectionAlert?.ADD_DATABASE?.message ||
+          t('Want to add a new database?')
+        }
         description={
-          <>
-            Any databases that allow connetions via SQL Alchemy URIs can be
-            added. Learn about how to connect a database driver{' '}
-            <a
-              href={DOCUMENTATION_LINK}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              here
-            </a>
-            .
-          </>
+          connectionAlert?.ADD_DATABASE ? (
+            <>
+              Any databases that allow connections via SQL Alchemy URIs can be
+              added.{' '}
+              <a
+                href={connectionAlert?.ADD_DATABASE.contact_link}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {connectionAlert?.ADD_DATABASE.contact_description_link}
+              </a>{' '}
+              {connectionAlert?.ADD_DATABASE.description}
+            </>
+          ) : (
+            <>
+              Any databases that allow connections via SQL Alchemy URIs can be
+              added. Learn about how to connect a database driver{' '}
+              <a
+                href={DOCUMENTATION_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                here
+              </a>
+              .
+            </>
+          )
         }
       />
     </div>
@@ -588,18 +608,20 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setEditNewDb(true);
   };
 
+  const handleBackButtonOnConnect = () => {
+    if (editNewDb) {
+      setHasConnectedDb(false);
+    }
+    setDB({ type: ActionType.reset });
+  };
+
   const renderModalFooter = () => {
     if (db) {
       // if db show back + connenct
       if (!hasConnectedDb || editNewDb) {
         return (
           <>
-            <StyledFooterButton
-              key="back"
-              onClick={() => {
-                setDB({ type: ActionType.reset });
-              }}
-            >
+            <StyledFooterButton key="back" onClick={handleBackButtonOnConnect}>
               Back
             </StyledFooterButton>
             <StyledFooterButton
@@ -622,6 +644,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             key="submit"
             buttonStyle="primary"
             onClick={onClose}
+            data-test="modal-confirm-button"
           >
             Finish
           </StyledFooterButton>
@@ -775,11 +798,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     );
   };
 
-  const isDynamic = (engine: string | undefined) =>
-    availableDbs?.databases.filter(
-      (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
-    )[0].parameters !== undefined;
-
   return useTabLayout ? (
     <Modal
       css={(theme: SupersetTheme) => [
@@ -791,11 +809,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       ]}
       name="database"
       data-test="database-modal"
-      height="600px"
       onHandledPrimaryAction={onSave}
       onHide={onClose}
       primaryButtonName={isEditMode ? t('Save') : t('Connect')}
       width="500px"
+      centered
       show={show}
       title={
         <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
@@ -961,11 +979,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         formStyles(theme),
       ]}
       name="database"
-      height="600px"
       onHandledPrimaryAction={onSave}
       onHide={onClose}
       primaryButtonName={hasConnectedDb ? t('Finish') : t('Connect')}
       width="500px"
+      centered
       show={show}
       title={<h4>{t('Connect a database')}</h4>}
       footer={renderModalFooter()}
@@ -1052,6 +1070,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 />
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
                   <Button
+                    data-test="sqla-connect-btn"
                     buttonStyle="link"
                     onClick={() =>
                       setDB({

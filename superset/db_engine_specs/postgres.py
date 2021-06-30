@@ -85,6 +85,8 @@ COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
     r"does not exist\s+LINE (?P<location>\d+?)"
 )
 
+SYNTAX_ERROR_REGEX = re.compile('syntax error at or near "(?P<syntax_error>.*?)"')
+
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
     """ Abstract class for Postgres 'like' databases """
@@ -149,6 +151,14 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
                 "line %(location)s.",
             ),
             SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+            {},
+        ),
+        SYNTAX_ERROR_REGEX: (
+            __(
+                "Please check your query for syntax errors at or "
+                'near "%(syntax_error)s". Then, try running your query again.'
+            ),
+            SupersetErrorType.SYNTAX_ERROR,
             {},
         ),
     }
