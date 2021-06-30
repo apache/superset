@@ -14,12 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional
+import re
+from typing import Any, Dict, Optional, Pattern, Tuple
 
+from flask_babel import gettext as __
 from sqlalchemy.engine.url import URL
 
 from superset import security_manager
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
+from superset.errors import SupersetErrorType
+
+SYNTAX_ERROR_REGEX = re.compile('SQLError: near "(?P<server_error>.*?)": syntax error')
 
 
 class GSheetsEngineSpec(SqliteEngineSpec):
@@ -29,6 +34,17 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     engine_name = "Google Sheets"
     allows_joins = False
     allows_subqueries = True
+
+    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
+        SYNTAX_ERROR_REGEX: (
+            __(
+                'Please check your query for syntax errors near "%(server_error)s". '
+                "Then, try running your query again."
+            ),
+            SupersetErrorType.SYNTAX_ERROR,
+            {},
+        ),
+    }
 
     @classmethod
     def modify_url_for_impersonation(
