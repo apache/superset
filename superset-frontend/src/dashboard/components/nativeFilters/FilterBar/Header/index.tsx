@@ -21,7 +21,8 @@ import { styled, t, useTheme } from '@superset-ui/core';
 import React, { FC } from 'react';
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
-import { useSelector } from 'react-redux';
+import { updateDataMask } from 'src/dataMask/actions';
+import { useDispatch, useSelector } from 'react-redux';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { DataMaskState, DataMaskStateWithId } from 'src/dataMask/types';
 import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink';
@@ -68,7 +69,6 @@ const Wrapper = styled.div`
 type HeaderProps = {
   toggleFiltersBar: (arg0: boolean) => void;
   onApply: () => void;
-  setDataMaskSelected: (arg0: (draft: DataMaskState) => void) => void;
   dataMaskSelected: DataMaskState;
   dataMaskApplied: DataMaskStateWithId;
   isApplyDisabled: boolean;
@@ -79,25 +79,31 @@ const Header: FC<HeaderProps> = ({
   isApplyDisabled,
   dataMaskSelected,
   dataMaskApplied,
-  setDataMaskSelected,
   toggleFiltersBar,
 }) => {
   const theme = useTheme();
   const filters = useFilters();
+  const dispatch = useDispatch();
   const filterValues = Object.values<Filter>(filters);
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
 
   const handleClearAll = () => {
-    filterValues.forEach(filter => {
-      setDataMaskSelected(draft => {
-        draft[filter.id] = getInitialDataMask(filter.id, {
-          filterState: {
-            value: null,
-          },
-        });
-      });
+    const filterIds = Object.keys(dataMaskSelected);
+    filterIds.forEach(filterId => {
+      if (dataMaskSelected[filterId]) {
+        dispatch(
+          updateDataMask(
+            filterId,
+            getInitialDataMask(filterId, {
+              filterState: {
+                value: null,
+              },
+            }),
+          ),
+        );
+      }
     });
   };
 
