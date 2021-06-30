@@ -66,6 +66,7 @@ class SupersetErrorType(str, Enum):
 
     # Other errors
     BACKEND_TIMEOUT_ERROR = "BACKEND_TIMEOUT_ERROR"
+    DATABASE_NOT_FOUND_ERROR = "DATABASE_NOT_FOUND_ERROR"
 
     # Sql Lab errors
     MISSING_TEMPLATE_PARAMS_ERROR = "MISSING_TEMPLATE_PARAMS_ERROR"
@@ -76,6 +77,7 @@ class SupersetErrorType(str, Enum):
     INVALID_CVAS_QUERY_ERROR = "INVALID_CVAS_QUERY_ERROR"
     SQLLAB_TIMEOUT_ERROR = "SQLLAB_TIMEOUT_ERROR"
     RESULTS_BACKEND_ERROR = "RESULTS_BACKEND_ERROR"
+    ASYNC_WORKERS_ERROR = "ASYNC_WORKERS_ERROR"
 
     # Generic errors
     GENERIC_COMMAND_ERROR = "GENERIC_COMMAND_ERROR"
@@ -131,6 +133,8 @@ ISSUE_CODES = {
         "The results stored in the backend were stored in a "
         "different format, and no longer can be deserialized."
     ),
+    1035: _("Failed to start remote query on a worker."),
+    1036: _("The database was deleted."),
 }
 
 
@@ -163,6 +167,8 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
     SupersetErrorType.OBJECT_DOES_NOT_EXIST_ERROR: [1029],
     SupersetErrorType.SYNTAX_ERROR: [1030],
     SupersetErrorType.RESULTS_BACKEND_ERROR: [1031, 1032, 1033],
+    SupersetErrorType.ASYNC_WORKERS_ERROR: [1035],
+    SupersetErrorType.DATABASE_NOT_FOUND_ERROR: [1011, 1036],
 }
 
 

@@ -1197,7 +1197,7 @@ class TestCore(SupersetTestCase):
         self.login(username="gamma")
         example_db = utils.get_example_database()
         resp = self.client.get(f"/superset/select_star/{example_db.id}/birth_names")
-        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(resp.status_code, 403)
 
     @mock.patch("superset.views.core.results_backend_use_msgpack", False)
     @mock.patch("superset.views.core.results_backend")
