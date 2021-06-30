@@ -69,7 +69,7 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
   }, [JSON.stringify(defaultValue), multiSelect]);
 
   const columns = data
-    ? formData.groupby
+    ? formData.groupby && formData.groupby[0] && formData.groupby[0].length
       ? data.filter(dataItem =>
           // @ts-ignore
           formData.groupby[0]?.includes(dataItem.column_name),

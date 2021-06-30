@@ -132,7 +132,7 @@ export function ColumnSelect({
   return (
     <Select
       mode={mode}
-      value={value}
+      value={mode === 'multiple' ? value || [] : value}
       onChange={onChange}
       options={options}
       placeholder={t('Select a column')}
