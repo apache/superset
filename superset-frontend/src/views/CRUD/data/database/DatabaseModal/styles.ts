@@ -42,17 +42,28 @@ export const StyledFormHeader = styled.header`
   padding: ${({ theme }) => theme.gridUnit * 2}px
     ${({ theme }) => theme.gridUnit * 4}px;
   line-height: ${({ theme }) => theme.gridUnit * 6}px;
-  .helper {
+
+  .helper-top {
+    padding-bottom: 0;
     color: ${({ theme }) => theme.colors.grayscale.base};
     font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
     margin: 0;
   }
+
+  .helper-bottom {
+    padding-top: 0;
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    margin: 0;
+  }
+
   h4 {
     color: ${({ theme }) => theme.colors.grayscale.dark2};
     font-weight: bold;
     font-size: ${({ theme }) => theme.typography.sizes.l}px;
     margin: 0;
     padding: 0;
+    line-height: ${({ theme }) => theme.gridUnit * 8}px;
   }
 
   .select-db {
@@ -60,8 +71,9 @@ export const StyledFormHeader = styled.header`
     .helper {
       margin: 0;
     }
+
     h4 {
-      margin: 0 0 ${({ theme }) => theme.gridUnit * 6}px;
+      margin: 0 0 ${({ theme }) => theme.gridUnit * 4}px;
     }
   }
 `;
