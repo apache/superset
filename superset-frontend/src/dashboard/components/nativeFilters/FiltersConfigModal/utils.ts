@@ -56,18 +56,6 @@ export const validateForm = async (
         throw error;
       }
     }
-    const validateInstant = (filterId: string) => {
-      const isInstant = formValues.filters[filterId]
-        ? formValues.filters[filterId].isInstant
-        : filterConfigMap[filterId]?.isInstant;
-      if (!isInstant) {
-        addValidationError(
-          filterId,
-          'isInstant',
-          'For hierarchical filters changes must be applied instantly',
-        );
-      }
-    };
 
     const validateCycles = (filterId: string, trace: string[] = []) => {
       if (trace.includes(filterId)) {
@@ -81,7 +69,6 @@ export const validateForm = async (
         ? formValues.filters[filterId].parentFilter?.value
         : filterConfigMap[filterId]?.cascadeParentIds?.[0];
       if (parentId) {
-        validateInstant(parentId);
         validateCycles(parentId, [...trace, filterId]);
       }
     };
@@ -153,7 +140,6 @@ export const createHandleSave = (
           ? [formInputs.parentFilter.value]
           : [],
         scope: formInputs.scope,
-        isInstant: formInputs.isInstant,
         sortMetric: formInputs.sortMetric,
       };
     });
