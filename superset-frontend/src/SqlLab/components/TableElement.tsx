@@ -192,23 +192,34 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
     );
   };
 
-  const renderHeader = () => (
+  // Rationale for 30 characters
+  // Avg number of characters (since width dependent) triggering truncation
+  const renderTableName = () => {
+    if (table.name.length > 30) {
+      return (
+        <Tooltip
+          id="copy-to-clipboard-tooltip"
+          placement="topLeft"
+          style={{ cursor: 'pointer' }}
+          title={table.name}
+          trigger={['hover']}
+        >
+          <strong>{table.name}</strong>
+        </Tooltip>
+      );
+    }
+    return <strong>{table.name}</strong>;
+  };
+
+  const renderHeader = () => {
     <div
       className="clearfix header-container"
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
-      <Tooltip
-        id="copy-to-clipboard-tooltip"
-        placement="topLeft"
-        style={{ cursor: 'pointer' }}
-        title={table.name}
-        trigger={['hover']}
-      >
-        <StyledSpan data-test="collapse" className="table-name">
-          <strong>{table.name}</strong>
-        </StyledSpan>
-      </Tooltip>
+      <StyledSpan data-test="collapse" className="table-name">
+        {renderTableName()}
+      </StyledSpan>
 
       <div className="pull-right header-right-side">
         {table.isMetadataLoading || table.isExtraMetadataLoading ? (
@@ -223,8 +234,8 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
           </Fade>
         )}
       </div>
-    </div>
-  );
+    </div>;
+  };
 
   const renderBody = () => {
     let cols;
