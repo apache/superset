@@ -345,13 +345,27 @@ const FiltersConfigForm = (
   const hasDataset = !!nativeFilterItems[formFilter?.filterType]?.value
     ?.datasourceCount;
 
+  const { controlItems = {}, mainControlItems = {} } = formFilter
+    ? getControlItemsMap({
+        disabled: false,
+        forceUpdate,
+        form,
+        filterId,
+        filterType: formFilter.filterType,
+        filterToEdit,
+        formFilter,
+        removed,
+      })
+    : {};
+  const hasColumn = !!mainControlItems.groupby;
+
   const nativeFilterItem = nativeFilterItems[formFilter?.filterType] ?? {};
   // @ts-ignore
   const enableNoResults = !!nativeFilterItem.value?.enableNoResults;
   const datasetId = formFilter?.dataset?.value;
 
   useEffect(() => {
-    if (datasetId && hasDataset) {
+    if (datasetId && hasColumn) {
       cachedSupersetGet({
         endpoint: `/api/v1/dataset/${datasetId}`,
       })
@@ -367,7 +381,7 @@ const FiltersConfigForm = (
           addDangerToast(response.message);
         });
     }
-  }, [datasetId, hasDataset]);
+  }, [datasetId, hasColumn]);
 
   useImperativeHandle(ref, () => ({
     changeTab(tab: 'configuration' | 'scoping') {
@@ -375,10 +389,10 @@ const FiltersConfigForm = (
     },
   }));
 
-  const hasMetrics = hasDataset && !!metrics.length;
+  const hasMetrics = hasColumn && !!metrics.length;
 
   const hasFilledDataset =
-    !hasDataset || (datasetId && (formFilter?.column || !hasDataset));
+    !hasDataset || (datasetId && (formFilter?.column || !hasColumn));
 
   const hasAdditionalFilters = FILTERS_WITH_ADHOC_FILTERS.includes(
     formFilter?.filterType,
@@ -477,7 +491,7 @@ const FiltersConfigForm = (
       : undefined);
   const newFormData = getFormData({
     datasetId,
-    groupby: hasDataset ? formFilter?.column : undefined,
+    groupby: hasColumn ? formFilter?.column : undefined,
     ...formFilter,
   });
 
@@ -534,20 +548,10 @@ const FiltersConfigForm = (
   const hasSorting =
     typeof filterToEdit?.controlValues?.sortAscending === 'boolean';
 
-  const showDefaultValue = !hasDataset || (!isDataDirty && hasFilledDataset);
-
-  const { controlItems = {}, mainControlItems = {} } = formFilter
-    ? getControlItemsMap({
-        disabled: false,
-        forceUpdate,
-        form,
-        filterId,
-        filterType: formFilter.filterType,
-        filterToEdit,
-        formFilter,
-        removed,
-      })
-    : {};
+  const showDefaultValue =
+    !hasDataset ||
+    (!isDataDirty && hasFilledDataset) ||
+    !mainControlItems.groupby;
 
   const onSortChanged = (value: boolean | undefined) => {
     const previous = form.getFieldValue('filters')?.[filterId].controlValues;
@@ -683,6 +687,7 @@ const FiltersConfigForm = (
                 setNativeFilterFieldValues(form, filterId, {
                   filterType: value,
                   defaultDataMask: null,
+                  column: null,
                 });
                 forceUpdate();
               }}
@@ -738,13 +743,6 @@ const FiltersConfigForm = (
             header={FilterPanels.basic.name}
             key={FilterPanels.basic.key}
           >
-            {hasFilledDataset && (
-              <CleanFormItem
-                name={['filters', filterId, 'defaultValueFormData']}
-                hidden
-                initialValue={newFormData}
-              />
-            )}
             <CleanFormItem
               name={['filters', filterId, 'defaultValueQueriesData']}
               hidden
@@ -760,7 +758,11 @@ const FiltersConfigForm = (
             >
               <StyledRowSubFormItem
                 name={['filters', filterId, 'defaultDataMask']}
-                initialValue={filterToEdit?.defaultDataMask}
+                initialValue={
+                  formFilter.filterType === filterToEdit?.filterType
+                    ? filterToEdit?.defaultDataMask
+                    : null
+                }
                 data-test="default-input"
                 label={<StyledLabel>{t('Default Value')}</StyledLabel>}
                 required={hasDefaultValue}

@@ -44,6 +44,7 @@ import { FilterProps } from './types';
 import { getFormData } from '../../utils';
 import { useCascadingFilters } from './state';
 import { usePreselectNativeFilter } from '../../state';
+import { checkIsMissingRequiredValue } from '../utils';
 
 const HEIGHT = 32;
 
@@ -197,7 +198,14 @@ const FilterValue: React.FC<FilterProps> = ({
       />
     );
   }
-  const filterState = { ...filter.dataMask?.filterState };
+  const isMissingRequiredValue = checkIsMissingRequiredValue(
+    filter,
+    filter.dataMask?.filterState,
+  );
+  const filterState = {
+    ...filter.dataMask?.filterState,
+    validateMessage: isMissingRequiredValue && t('Value is required'),
+  };
   if (filterState.value === undefined && preselection) {
     filterState.value = preselection;
   }
