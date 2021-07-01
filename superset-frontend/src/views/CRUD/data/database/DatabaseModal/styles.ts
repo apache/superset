@@ -19,7 +19,6 @@
 
 import { styled, css, SupersetTheme } from '@superset-ui/core';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
-import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
 
 const CTAS_CVAS_SCHEMA_FORM_HEIGHT = 102;
