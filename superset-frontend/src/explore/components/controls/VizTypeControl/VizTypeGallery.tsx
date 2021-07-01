@@ -1,14 +1,30 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React, {
   ChangeEventHandler,
   useCallback,
   useMemo,
   useState,
 } from 'react';
-import PropTypes from 'prop-types';
 import Fuse from 'fuse.js';
 import {
   t,
-  getChartMetadataRegistry,
   styled,
   css,
   ChartMetadata,
@@ -17,17 +33,14 @@ import {
 } from '@superset-ui/core';
 import { Input } from 'src/common/components';
 import { usePluginContext } from 'src/components/DynamicPlugins';
-import Modal from 'src/components/Modal';
-import { Tooltip } from 'src/components/Tooltip';
-import Label, { Type } from 'src/components/Label';
 import Icons from 'src/components/Icons';
-import ControlHeader from 'src/explore/components/ControlHeader';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import './VizTypeControl.less';
 
 interface VizTypeGalleryProps {
   onChange: (vizType: string) => void;
   value: string;
+  className?: string;
 }
 
 type VizEntry = {
@@ -304,7 +317,7 @@ const CategorySelector: React.FC<{
 );
 
 export default function VizTypeGallery(props: VizTypeGalleryProps) {
-  const { value: selectedViz, onChange } = props;
+  const { value: selectedViz, onChange, className } = props;
   const { mountedPluginMetadata } = usePluginContext();
   const [searchInputValue, setSearchInputValue] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -387,7 +400,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     : chartsByCategory[activeCategory] || [];
 
   return (
-    <VizPickerLayout>
+    <VizPickerLayout className={className}>
       <LeftPane>
         <SearchWrapper>
           <Input

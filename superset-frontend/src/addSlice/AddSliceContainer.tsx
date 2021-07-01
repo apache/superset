@@ -19,7 +19,7 @@
 import React from 'react';
 import Button from 'src/components/Button';
 import Select from 'src/components/Select';
-import { styled, t } from '@superset-ui/core';
+import { css, styled, t } from '@superset-ui/core';
 
 import VizTypeGallery from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
 
@@ -41,12 +41,24 @@ export type AddSliceContainerState = {
 
 const styleSelectContainer = { width: 600, marginBottom: '10px' };
 const StyledContainer = styled.div`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  grid-template-rows: auto 1fr auto;
+  width: 100%;
   border-radius: ${({ theme }) => theme.gridUnit}px;
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
-  padding: ${({ theme }) => theme.gridUnit * 6}px;
+  padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;
   h3 {
     padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;
   }
+`;
+
+const StyledVizTypeGallery = styled(VizTypeGallery)`
+  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  margin: ${({ theme }) => theme.gridUnit * 3}px 0px;
+  flex-grow: 1;
 `;
 
 export default class AddSliceContainer extends React.PureComponent<
@@ -130,25 +142,20 @@ export default class AddSliceContainer extends React.PureComponent<
             </a>
           </span>
         </div>
-        <br />
-        <div>
-          <p>{t('Choose a visualization type')}</p>
-          <VizTypeGallery
-            onChange={this.changeVisType}
-            value={this.state.visType}
-          />
-        </div>
-        <br />
-        <hr />
+        <StyledVizTypeGallery
+          onChange={this.changeVisType}
+          value={this.state.visType}
+        />
         <Button
+          css={css`
+            align-self: flex-end;
+          `}
           buttonStyle="primary"
           disabled={this.isBtnDisabled()}
           onClick={this.gotoSlice}
         >
           {t('Create new chart')}
         </Button>
-        <br />
-        <br />
       </StyledContainer>
     );
   }
