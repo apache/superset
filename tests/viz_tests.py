@@ -462,6 +462,7 @@ class TestDistBarViz(SupersetTestCase):
             "adhoc_filters": [],
             "groupby": ["toppings"],
             "columns": [],
+            "order_desc": True,
         }
         datasource = self.get_datasource_mock()
         df = pd.DataFrame(
@@ -487,6 +488,7 @@ class TestDistBarViz(SupersetTestCase):
             "adhoc_filters": [],
             "groupby": ["beds"],
             "columns": [],
+            "order_desc": True,
         }
         datasource = self.get_datasource_mock()
         df = pd.DataFrame({"beds": [0, 1, nan, 2], "count": [30, 42, 3, 29]})
@@ -508,6 +510,7 @@ class TestDistBarViz(SupersetTestCase):
             "adhoc_filters": [],
             "groupby": ["toppings"],
             "columns": ["role"],
+            "order_desc": True,
         }
         datasource = self.get_datasource_mock()
         df = pd.DataFrame(
@@ -537,6 +540,7 @@ class TestDistBarViz(SupersetTestCase):
             "adhoc_filters": [],
             "groupby": ["toppings"],
             "columns": [],
+            "order_desc": True,
         }
         datasource = self.get_datasource_mock()
         df = pd.DataFrame(
@@ -574,6 +578,7 @@ class TestDistBarViz(SupersetTestCase):
             "adhoc_filters": [],
             "groupby": ["toppings"],
             "columns": ["role"],
+            "order_desc": True,
         }
         datasource = self.get_datasource_mock()
         df = pd.DataFrame(

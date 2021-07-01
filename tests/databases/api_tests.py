@@ -1818,22 +1818,22 @@ class TestDatabaseApi(SupersetTestCase):
                         "invalid": ["port"],
                         "issue_codes": [
                             {
-                                "code": 1031,
-                                "message": "Issue 1031 - Port number is invalid.",
+                                "code": 1034,
+                                "message": "Issue 1034 - The port number is invalid.",
                             }
                         ],
                     },
                 },
                 {
-                    "error_type": "CONNECTION_INVALID_PORT_ERROR",
                     "message": "The port must be an integer between 0 and 65535 (inclusive).",
+                    "error_type": "CONNECTION_INVALID_PORT_ERROR",
                     "level": "error",
                     "extra": {
                         "invalid": ["port"],
                         "issue_codes": [
                             {
-                                "code": 1031,
-                                "message": "Issue 1031 - Port number is invalid.",
+                                "code": 1034,
+                                "message": "Issue 1034 - The port number is invalid.",
                             }
                         ],
                     },
@@ -1948,8 +1948,8 @@ class TestDatabaseApi(SupersetTestCase):
                         "invalid": ["port"],
                         "issue_codes": [
                             {
-                                "code": 1031,
-                                "message": "Issue 1031 - Port number is invalid.",
+                                "code": 1034,
+                                "message": "Issue 1034 - The port number is invalid.",
                             }
                         ],
                     },
