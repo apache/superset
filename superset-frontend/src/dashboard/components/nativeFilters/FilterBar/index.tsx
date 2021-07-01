@@ -145,9 +145,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   height,
   offset,
 }) => {
+  const dataMaskApplied: DataMaskStateWithId = useNativeFiltersDataMask();
   const [editFilterSetId, setEditFilterSetId] = useState<string | null>(null);
   const [dataMaskSelected, setDataMaskSelected] = useImmer<DataMaskStateWithId>(
-    {},
+    dataMaskApplied,
   );
   const dispatch = useDispatch();
   const filterSets = useFilterSets();
@@ -156,7 +157,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const filters = useFilters();
   const previousFilters = usePrevious(filters);
   const filterValues = Object.values<Filter>(filters);
-  const dataMaskApplied: DataMaskStateWithId = useNativeFiltersDataMask();
   const [isFilterSetChanged, setIsFilterSetChanged] = useState(false);
   const preselectNativeFilters = usePreselectNativeFilters();
   const [initializedFilters, setInitializedFilters] = useState<any[]>([]);
@@ -271,7 +271,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         <Header
           toggleFiltersBar={toggleFiltersBar}
           onApply={handleApply}
-          setDataMaskSelected={setDataMaskSelected}
           isApplyDisabled={isApplyDisabled}
           dataMaskSelected={dataMaskSelected}
           dataMaskApplied={dataMaskApplied}
