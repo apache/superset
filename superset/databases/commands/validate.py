@@ -35,7 +35,7 @@ from superset.db_engine_specs.base import BasicParametersMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.core import Database
 
-BYPASS_VALIDATION_ENGINES = ["bigquery"]
+BYPASS_VALIDATION_ENGINES = {"bigquery"}
 
 
 class ValidateDatabaseParametersCommand(BaseCommand):
