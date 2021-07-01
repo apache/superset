@@ -77,6 +77,7 @@ const createControlItems = () => [
   false,
   {},
   { name: 'name_1', config: { renderTrigger: true, resetConfig: true } },
+  { name: 'groupby', config: { multiple: true, required: false } },
 ];
 
 beforeEach(() => {
@@ -87,7 +88,10 @@ function renderControlItems(
   controlItemsMap: ReturnType<typeof getControlItemsMap>,
 ) {
   return render(
-    <>{Object.values(controlItemsMap).map(value => value.element)}</>,
+    // @ts-ignore
+    <>
+      {Object.values(controlItemsMap.controlItems).map(value => value.element)}
+    </>,
   );
 }
 

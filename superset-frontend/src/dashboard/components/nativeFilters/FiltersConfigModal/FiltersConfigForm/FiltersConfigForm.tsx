@@ -72,7 +72,6 @@ import { ColumnSelect } from './ColumnSelect';
 import { NativeFiltersForm } from '../types';
 import {
   datasetToSelectOption,
-  doesColumnMatchFilterType,
   FILTER_SUPPORTED_TYPES,
   hasTemporalColumns,
   setNativeFilterFieldValues,
@@ -269,13 +268,6 @@ export interface FiltersConfigFormProps {
   parentFilters: { id: string; title: string }[];
 }
 
-// TODO: Need to do with it something
-const FILTERS_WITHOUT_COLUMN = [
-  'filter_timegrain',
-  'filter_timecolumn',
-  'filter_groupby',
-];
-
 const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
 
 const BASIC_CONTROL_ITEMS = ['enableEmptyFilter', 'multiSelect'];
@@ -352,15 +344,14 @@ const FiltersConfigForm = (
   // @ts-ignore
   const hasDataset = !!nativeFilterItems[formFilter?.filterType]?.value
     ?.datasourceCount;
-  const hasColumn =
-    hasDataset && !FILTERS_WITHOUT_COLUMN.includes(formFilter?.filterType);
+
   const nativeFilterItem = nativeFilterItems[formFilter?.filterType] ?? {};
   // @ts-ignore
   const enableNoResults = !!nativeFilterItem.value?.enableNoResults;
   const datasetId = formFilter?.dataset?.value;
 
   useEffect(() => {
-    if (datasetId && hasColumn) {
+    if (datasetId && hasDataset) {
       cachedSupersetGet({
         endpoint: `/api/v1/dataset/${datasetId}`,
       })
@@ -376,7 +367,7 @@ const FiltersConfigForm = (
           addDangerToast(response.message);
         });
     }
-  }, [datasetId, hasColumn]);
+  }, [datasetId, hasDataset]);
 
   useImperativeHandle(ref, () => ({
     changeTab(tab: 'configuration' | 'scoping') {
@@ -384,10 +375,10 @@ const FiltersConfigForm = (
     },
   }));
 
-  const hasMetrics = hasColumn && !!metrics.length;
+  const hasMetrics = hasDataset && !!metrics.length;
 
   const hasFilledDataset =
-    !hasDataset || (datasetId && (formFilter?.column || !hasColumn));
+    !hasDataset || (datasetId && (formFilter?.column || !hasDataset));
 
   const hasAdditionalFilters = FILTERS_WITH_ADHOC_FILTERS.includes(
     formFilter?.filterType,
@@ -484,10 +475,9 @@ const FiltersConfigForm = (
     (defaultDatasetSelectOptions.length === 1
       ? defaultDatasetSelectOptions[0].value
       : undefined);
-  const initColumn = filterToEdit?.targets[0]?.column?.name;
   const newFormData = getFormData({
     datasetId,
-    groupby: hasColumn ? formFilter?.column : undefined,
+    groupby: hasDataset ? formFilter?.column : undefined,
     ...formFilter,
   });
 
@@ -546,7 +536,7 @@ const FiltersConfigForm = (
 
   const showDefaultValue = !hasDataset || (!isDataDirty && hasFilledDataset);
 
-  const controlItems = formFilter
+  const { controlItems = {}, mainControlItems = {} } = formFilter
     ? getControlItemsMap({
         disabled: false,
         forceUpdate,
@@ -555,6 +545,7 @@ const FiltersConfigForm = (
         filterType: formFilter.filterType,
         filterToEdit,
         formFilter,
+        removed,
       })
     : {};
 
@@ -731,35 +722,10 @@ const FiltersConfigForm = (
                 }}
               />
             </StyledFormItem>
-            {hasColumn && (
-              <StyledFormItem
-                // don't show the column select unless we have a dataset
-                // style={{ display: datasetId == null ? undefined : 'none' }}
-                name={['filters', filterId, 'column']}
-                initialValue={initColumn}
-                label={<StyledLabel>{t('Column')}</StyledLabel>}
-                rules={[
-                  { required: !removed, message: t('Column is required') },
-                ]}
-                data-test="field-input"
-              >
-                <ColumnSelect
-                  form={form}
-                  filterId={filterId}
-                  datasetId={datasetId}
-                  filterValues={column =>
-                    doesColumnMatchFilterType(formFilter?.filterType, column)
-                  }
-                  onChange={() => {
-                    // We need reset default value when when column changed
-                    setNativeFilterFieldValues(form, filterId, {
-                      defaultDataMask: null,
-                    });
-                    forceUpdate();
-                  }}
-                />
-              </StyledFormItem>
-            )}
+            {hasDataset &&
+              Object.keys(mainControlItems).map(
+                key => mainControlItems[key].element,
+              )}
           </StyledRowContainer>
         )}
         <StyledCollapse
