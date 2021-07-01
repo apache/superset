@@ -99,6 +99,8 @@ const typesWithDefaultOrder = new Set(DEFAULT_ORDER);
 
 const THUMBNAIL_GRID_UNITS = 24;
 
+const OTHER_CATEGORY = t('Other');
+
 export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
 
 const VizPickerLayout = styled.div`
@@ -348,7 +350,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   const chartsByCategory = useMemo(() => {
     const result: Record<string, VizEntry[]> = {};
     chartMetadata.forEach(entry => {
-      const category = entry.value.category || 'Other';
+      const category = entry.value.category || OTHER_CATEGORY;
       if (!result[category]) {
         result[category] = [];
       }
@@ -358,9 +360,15 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   }, [chartMetadata]);
 
   // todo sort the categories
-  const categories = useMemo(() => Object.keys(chartsByCategory), [
-    chartsByCategory,
-  ]);
+  const categories = useMemo(
+    () =>
+      Object.keys(chartsByCategory).sort((a, b) => {
+        if (a === OTHER_CATEGORY) return 1;
+        if (b === OTHER_CATEGORY) return -1;
+        return a.localeCompare(b);
+      }),
+    [chartsByCategory],
+  );
 
   const [activeCategory, setActiveCategory] = useState<string>(
     () => categories[0],
