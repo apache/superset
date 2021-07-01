@@ -169,10 +169,22 @@ const CategoryLabel = styled.button`
 const IconsPane = styled.div`
   grid-area: main;
   overflow: auto;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    ${({ theme }) => theme.gridUnit * THUMBNAIL_GRID_UNITS}px
+  );
+  grid-template-rows: repeat(auto-fill, max-content);
+  grid-auto-rows: max-content;
+  justify-content: space-evenly;
+  grid-gap: ${({ theme }) => theme.gridUnit * 2}px;
+  justify-items: center;
   padding: ${({ theme }) => theme.gridUnit * 2}px;
+  & > div:last-child .viztype-label {
+    // The IconsPane bottom padding doesn't work,
+    // hence this hacky workaround
+    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  }
 `;
 
 const DetailsPane = styled.div`
@@ -214,7 +226,6 @@ const Examples = styled.div`
 const thumbnailContainerCss = (theme: SupersetTheme) => css`
   cursor: pointer;
   width: ${theme.gridUnit * THUMBNAIL_GRID_UNITS}px;
-  margin: ${theme.gridUnit * 2}px;
 
   img {
     border: 1px solid ${theme.colors.grayscale.light2};
