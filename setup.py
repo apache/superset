@@ -76,7 +76,7 @@ setup(
         "cryptography>=3.3.2",
         "flask>=1.1.0, <2.0.0",
         "flask-appbuilder>=3.3.0, <4.0.0",
-        "flask-caching",
+        "flask-caching>=1.10.0",
         "flask-compress",
         "flask-talisman",
         "flask-migrate",
@@ -112,6 +112,7 @@ setup(
         "wtforms-json",
         "pyparsing>=2.4.7, <3.0.0",
         "holidays==0.10.3",  # PINNED! https://github.com/dr-prodigy/python-holidays/issues/406
+        "deprecation>=2.1.0, <2.2.0",
     ],
     extras_require={
         "athena": ["pyathena>=1.10.8,<1.11"],
@@ -152,6 +153,7 @@ setup(
         "teradata": ["sqlalchemy-teradata==0.9.0.dev0"],
         "thumbnails": ["Pillow>=7.0.0, <8.0.0"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
+        "netezza": ["nzalchemy>=11.0.2"],
     },
     python_requires="~=3.7",
     author="Apache Software Foundation",

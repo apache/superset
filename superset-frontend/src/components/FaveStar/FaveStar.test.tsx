@@ -41,11 +41,9 @@ test('render right content', () => {
 
   const { rerender } = render(<FaveStar {...props} isStarred />);
   expect(screen.getByRole('button')).toBeInTheDocument();
-  expect(screen.getByTestId('icon')).toBeInTheDocument();
-  expect(screen.getByTestId('icon')).toHaveAttribute(
-    'data-name',
-    'favorite-selected',
-  );
+  expect(
+    screen.getByRole('img', { name: 'favorite-selected' }),
+  ).toBeInTheDocument();
 
   expect(props.saveFaveStar).toBeCalledTimes(0);
   userEvent.click(screen.getByRole('button'));
@@ -53,11 +51,9 @@ test('render right content', () => {
   expect(props.saveFaveStar).toBeCalledWith(props.itemId, true);
 
   rerender(<FaveStar {...props} />);
-  expect(screen.getByTestId('icon')).toBeInTheDocument();
-  expect(screen.getByTestId('icon')).toHaveAttribute(
-    'data-name',
-    'favorite-unselected',
-  );
+  expect(
+    screen.getByRole('img', { name: 'favorite-unselected' }),
+  ).toBeInTheDocument();
 
   expect(props.saveFaveStar).toBeCalledTimes(1);
   userEvent.click(screen.getByRole('button'));

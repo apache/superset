@@ -21,32 +21,30 @@ import {
   Behavior,
   ChartDataResponseResult,
   Column,
+  GenericDataType,
   getChartMetadataRegistry,
   JsonResponse,
   styled,
   SupersetApiError,
   t,
-  GenericDataType,
-  ensureIsArray,
 } from '@superset-ui/core';
 import {
   ColumnMeta,
-  DatasourceMeta,
   InfoTooltipWithTrigger,
   Metric,
 } from '@superset-ui/chart-controls';
 import { FormInstance } from 'antd/lib/form';
 import React, {
+  forwardRef,
   useCallback,
   useEffect,
-  useState,
-  useMemo,
-  forwardRef,
   useImperativeHandle,
+  useMemo,
+  useState,
 } from 'react';
 import { useSelector } from 'react-redux';
 import { FormItem } from 'src/components/Form';
-import { Checkbox, Input } from 'src/common/components';
+import { Input } from 'src/common/components';
 import { Select } from 'src/components/Select';
 import SupersetResourceSelect, {
   cachedSupersetGet,
@@ -74,6 +72,8 @@ import { ColumnSelect } from './ColumnSelect';
 import { NativeFiltersForm } from '../types';
 import {
   datasetToSelectOption,
+  FILTER_SUPPORTED_TYPES,
+  hasTemporalColumns,
   setNativeFilterFieldValues,
   useForceUpdate,
 } from './utils';
@@ -137,12 +137,22 @@ export const StyledRowFormItem = styled(FormItem)`
 `;
 
 export const StyledRowSubFormItem = styled(FormItem)`
+  min-width: 50%;
+
   & .ant-form-item-label {
     padding-bottom: 0;
   }
 
+  .ant-form-item {
+    margin-bottom: 0;
+  }
+
   .ant-form-item-control-input-content > div > div {
     height: auto;
+  }
+
+  .ant-form-item-extra {
+    display: none;
   }
 
   & .ant-form-item-control-input {
@@ -258,16 +268,7 @@ export interface FiltersConfigFormProps {
   parentFilters: { id: string; title: string }[];
 }
 
-// TODO: Need to do with it something
-const FILTERS_WITHOUT_COLUMN = [
-  'filter_timegrain',
-  'filter_timecolumn',
-  'filter_groupby',
-];
-
 const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
-
-const TIME_FILTERS = ['filter_time', 'filter_timegrain', 'filter_timecolumn'];
 
 const BASIC_CONTROL_ITEMS = ['enableEmptyFilter', 'multiSelect'];
 
@@ -279,17 +280,6 @@ const FILTER_TYPE_NAME_MAPPING = {
   [t('Time column')]: t('Time column'),
   [t('Time grain')]: t('Time grain'),
   [t('Group By')]: t('Group by'),
-};
-
-// TODO: add column_types field to DatasourceMeta
-// We return true if column_types is undefined or empty as a precaution against backend failing to return column_types
-const hasTemporalColumns = (
-  dataset: DatasourceMeta & { column_types: GenericDataType[] },
-) => {
-  const columnTypes = ensureIsArray(dataset?.column_types);
-  return (
-    columnTypes.length === 0 || columnTypes.includes(GenericDataType.TEMPORAL)
-  );
 };
 
 /**
@@ -354,15 +344,14 @@ const FiltersConfigForm = (
   // @ts-ignore
   const hasDataset = !!nativeFilterItems[formFilter?.filterType]?.value
     ?.datasourceCount;
-  const hasColumn =
-    hasDataset && !FILTERS_WITHOUT_COLUMN.includes(formFilter?.filterType);
+
   const nativeFilterItem = nativeFilterItems[formFilter?.filterType] ?? {};
   // @ts-ignore
   const enableNoResults = !!nativeFilterItem.value?.enableNoResults;
   const datasetId = formFilter?.dataset?.value;
 
   useEffect(() => {
-    if (datasetId && hasColumn) {
+    if (datasetId && hasDataset) {
       cachedSupersetGet({
         endpoint: `/api/v1/dataset/${datasetId}`,
       })
@@ -378,7 +367,7 @@ const FiltersConfigForm = (
           addDangerToast(response.message);
         });
     }
-  }, [datasetId, hasColumn]);
+  }, [datasetId, hasDataset]);
 
   useImperativeHandle(ref, () => ({
     changeTab(tab: 'configuration' | 'scoping') {
@@ -386,10 +375,10 @@ const FiltersConfigForm = (
     },
   }));
 
-  const hasMetrics = hasColumn && !!metrics.length;
+  const hasMetrics = hasDataset && !!metrics.length;
 
   const hasFilledDataset =
-    !hasDataset || (datasetId && (formFilter?.column || !hasColumn));
+    !hasDataset || (datasetId && (formFilter?.column || !hasDataset));
 
   const hasAdditionalFilters = FILTERS_WITH_ADHOC_FILTERS.includes(
     formFilter?.filterType,
@@ -486,10 +475,9 @@ const FiltersConfigForm = (
     (defaultDatasetSelectOptions.length === 1
       ? defaultDatasetSelectOptions[0].value
       : undefined);
-  const initColumn = filterToEdit?.targets[0]?.column?.name;
   const newFormData = getFormData({
     datasetId,
-    groupby: hasColumn ? formFilter?.column : undefined,
+    groupby: hasDataset ? formFilter?.column : undefined,
     ...formFilter,
   });
 
@@ -548,7 +536,7 @@ const FiltersConfigForm = (
 
   const showDefaultValue = !hasDataset || (!isDataDirty && hasFilledDataset);
 
-  const controlItems = formFilter
+  const { controlItems = {}, mainControlItems = {} } = formFilter
     ? getControlItemsMap({
         disabled: false,
         forceUpdate,
@@ -557,6 +545,7 @@ const FiltersConfigForm = (
         filterType: formFilter.filterType,
         filterToEdit,
         formFilter,
+        removed,
       })
     : {};
 
@@ -671,7 +660,10 @@ const FiltersConfigForm = (
                   ? FILTER_TYPE_NAME_MAPPING[name]
                   : undefined;
                 const isDisabled =
-                  TIME_FILTERS.includes(filterType) &&
+                  FILTER_SUPPORTED_TYPES[filterType]?.length === 1 &&
+                  FILTER_SUPPORTED_TYPES[filterType]?.includes(
+                    GenericDataType.TEMPORAL,
+                  ) &&
                   !doLoadedDatasetsHaveTemporalColumns;
                 return {
                   value: filterType,
@@ -730,32 +722,10 @@ const FiltersConfigForm = (
                 }}
               />
             </StyledFormItem>
-            {hasColumn && (
-              <StyledFormItem
-                // don't show the column select unless we have a dataset
-                // style={{ display: datasetId == null ? undefined : 'none' }}
-                name={['filters', filterId, 'column']}
-                initialValue={initColumn}
-                label={<StyledLabel>{t('Column')}</StyledLabel>}
-                rules={[
-                  { required: !removed, message: t('Column is required') },
-                ]}
-                data-test="field-input"
-              >
-                <ColumnSelect
-                  form={form}
-                  filterId={filterId}
-                  datasetId={datasetId}
-                  onChange={() => {
-                    // We need reset default value when when column changed
-                    setNativeFilterFieldValues(form, filterId, {
-                      defaultDataMask: null,
-                    });
-                    forceUpdate();
-                  }}
-                />
-              </StyledFormItem>
-            )}
+            {hasDataset &&
+              Object.keys(mainControlItems).map(
+                key => mainControlItems[key].element,
+              )}
           </StyledRowContainer>
         )}
         <StyledCollapse
@@ -801,7 +771,9 @@ const FiltersConfigForm = (
                       if (hasValue) {
                         return Promise.resolve();
                       }
-                      return Promise.reject();
+                      return Promise.reject(
+                        new Error(t('Default value is required')),
+                      );
                     },
                   },
                 ]}
@@ -844,16 +816,6 @@ const FiltersConfigForm = (
             {Object.keys(controlItems)
               .filter(key => BASIC_CONTROL_ITEMS.includes(key))
               .map(key => controlItems[key].element)}
-            <StyledRowFormItem
-              name={['filters', filterId, 'isInstant']}
-              initialValue={filterToEdit?.isInstant || false}
-              valuePropName="checked"
-              colon={false}
-            >
-              <Checkbox data-test="apply-changes-instantly-checkbox">
-                {t('Apply changes instantly')}
-              </Checkbox>
-            </StyledRowFormItem>
           </Collapse.Panel>
           {((hasDataset && hasAdditionalFilters) || hasMetrics) && (
             <Collapse.Panel
@@ -1010,7 +972,7 @@ const FiltersConfigForm = (
                   onChange={checked => onSortChanged(checked || undefined)}
                   initialValue={hasSorting}
                 >
-                  <StyledFormItem
+                  <StyledRowFormItem
                     name={[
                       'filters',
                       filterId,
@@ -1038,7 +1000,7 @@ const FiltersConfigForm = (
                         onSortChanged(value)
                       }
                     />
-                  </StyledFormItem>
+                  </StyledRowFormItem>
                   {hasMetrics && (
                     <StyledRowSubFormItem
                       name={['filters', filterId, 'sortMetric']}

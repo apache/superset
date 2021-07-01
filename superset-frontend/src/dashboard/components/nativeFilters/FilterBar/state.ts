@@ -30,6 +30,7 @@ import {
 import { useEffect, useState } from 'react';
 import { ChartsState, RootState } from 'src/dashboard/types';
 import { NATIVE_FILTER_PREFIX } from '../FiltersConfigModal/utils';
+import { Filter } from '../types';
 
 export const useFilterSets = () =>
   useSelector<any, FilterSetsType>(
@@ -37,7 +38,20 @@ export const useFilterSets = () =>
   );
 
 export const useFilters = () =>
-  useSelector<any, Filters>(state => state.nativeFilters.filters);
+  useSelector<any, Filters>(state => {
+    const preselectNativeFilters =
+      state.dashboardState?.preselectNativeFilters || {};
+    return Object.entries(state.nativeFilters.filters).reduce(
+      (acc, [filterId, filter]: [string, Filter]) => ({
+        ...acc,
+        [filterId]: {
+          ...filter,
+          preselect: preselectNativeFilters[filterId],
+        },
+      }),
+      {} as Filters,
+    );
+  });
 
 export const useNativeFiltersDataMask = () => {
   const dataMask = useSelector<RootState, DataMaskStateWithId>(

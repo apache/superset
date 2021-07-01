@@ -23,6 +23,7 @@ import { JsonObject, styled } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
+import Icons from 'src/components/Icons';
 import IconButton from 'src/dashboard/components/IconButton';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
@@ -251,7 +252,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
                   shouldFocus={shouldFocusTabs}
                   menuItems={[
                     <IconButton
-                      className="fa fa-level-down"
+                      icon={<Icons.FallOutlined iconSize="xl" />}
                       label="Collapse tab content"
                       onClick={handleDeleteTopLevelTabs}
                     />,
