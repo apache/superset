@@ -173,6 +173,7 @@ const CredentialsInfo = ({
               if (event.target.files) {
                 file = event.target.files[0];
               }
+
               setFileToUpload(file?.name);
               changeMethods.onParametersChange({
                 target: {
