@@ -18,6 +18,7 @@
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
 import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import { sharedControls } from '@superset-ui/chart-controls/lib';
 import { DEFAULT_FORM_DATA } from './types';
 
 const {
@@ -36,7 +37,18 @@ const config: ControlPanelConfig = {
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [['groupby']],
+      controlSetRows: [
+        [
+          {
+            name: 'groupby',
+            config: {
+              ...sharedControls.groupby,
+              label: 'Column',
+              required: true,
+            },
+          },
+        ],
+      ],
     },
     {
       label: t('UI Configuration'),

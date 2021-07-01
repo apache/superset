@@ -21,6 +21,7 @@ from typing import Any, Callable, Dict, Optional, Union
 
 from flask import current_app as app, request
 from flask_caching import Cache
+from flask_caching.backends import NullCache
 from werkzeug.wrappers.etag import ETagResponseMixin
 
 from superset import db
@@ -47,6 +48,9 @@ def set_and_log_cache(
     cache_timeout: Optional[int] = None,
     datasource_uid: Optional[str] = None,
 ) -> None:
+    if isinstance(cache_instance.cache, NullCache):
+        return
+
     timeout = cache_timeout if cache_timeout else config["CACHE_DEFAULT_TIMEOUT"]
     try:
         dttm = datetime.utcnow().isoformat().split(".")[0]

@@ -18,7 +18,7 @@
  */
 import React, { ChangeEvent, EventHandler } from 'react';
 import cx from 'classnames';
-import { t, SupersetTheme } from '@superset-ui/core';
+import { t, SupersetTheme, styled } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import Collapse from 'src/components/Collapse';
@@ -123,6 +123,10 @@ const ExtraOptions = ({
                     value={db?.force_ctas_schema || ''}
                     placeholder={t('Create or select schema...')}
                     onChange={onInputChange}
+                    labelText={t('Allow CREATE TABLE AS')}
+                  />
+                  <InfoTooltip
+                    tooltip={t('Allow creation of new tables based on queries')}
                   />
                 </div>
                 <div className="helper">
@@ -130,6 +134,26 @@ const ExtraOptions = ({
                     'Force all tables and views to be created in this schema when clicking CTAS or CVAS in SQL Lab.',
                   )}
                 </div>
+                <StyledInputContainer
+                  className={cx('expandable', { open: createAsOpen })}
+                >
+                  <div className="control-label">{t('CTAS & CVAS SCHEMA')}</div>
+                  <div className="input-container">
+                    <input
+                      type="text"
+                      name="force_ctas_schema"
+                      value={db?.force_ctas_schema || ''}
+                      placeholder={t('Search or select schema')}
+                      onChange={onInputChange}
+                    />
+                  </div>
+                  <div className="helper">
+                    {t(
+                      'When allowing CREATE TABLE AS option in SQL Lab, this option ' +
+                        'forces the table to be created in this schema.',
+                    )}
+                  </div>
+                </StyledInputContainer>
               </StyledInputContainer>
             </StyledInputContainer>
             <StyledInputContainer css={no_margin_bottom}>

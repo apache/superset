@@ -42,7 +42,6 @@ export interface Target {
 export interface Filter {
   cascadeParentIds: string[];
   defaultDataMask: DataMask;
-  isInstant: boolean;
   id: string; // randomly generated at filter creation
   name: string;
   scope: Scope;
