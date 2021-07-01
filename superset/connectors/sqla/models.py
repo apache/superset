@@ -405,11 +405,13 @@ class SqlMetric(Model, BaseMetric):
     export_parent = "table"
 
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
-        return get_template_processor(table=self.table, database=self.table.database, **kwargs)
+        return self.table.get_template_processor()
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.metric_name
-        sqla_col: ColumnClause = literal_column(self.get_template_processor().process_template(self.expression))
+        sqla_col: ColumnClause = literal_column(
+            self.get_template_processor().process_template(self.expression)
+        )
         return self.table.make_sqla_column_compatible(sqla_col, label)
 
     @property
