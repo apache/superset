@@ -225,7 +225,7 @@ const DetailsPane = styled.div`
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   padding: ${({ theme }) => theme.gridUnit * 4}px;
   display: grid;
-  grid-template-columns: 50% 50%;
+  grid-template-columns: 1fr 1fr;
   grid-template-rows: auto 1fr;
   grid-template-areas:
     'viz-name examples-header'
@@ -238,6 +238,7 @@ const DetailsPane = styled.div`
 const Description = styled.p`
   grid-area: description;
   overflow: auto;
+  padding-right: ${({ theme }) => theme.gridUnit * 14}px;
 `;
 
 const Examples = styled.div`
