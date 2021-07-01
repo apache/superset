@@ -23,6 +23,7 @@ from collections import defaultdict
 from io import BytesIO
 from unittest import mock
 from zipfile import is_zipfile, ZipFile
+from operator import itemgetter
 
 import prison
 import pytest
@@ -286,36 +287,33 @@ class TestDatabaseApi(SupersetTestCase):
         }
         assert rv.status_code == 400
 
-    # add this test back in when config method becomes required for creation.
-    # def test_create_database_no_configuration_method(self):
-    #     """
-    #     Database API: Test create with no config method.
-    #     """
-    #     extra = {
-    #         "metadata_params": {},
-    #         "engine_params": {},
-    #         "metadata_cache_timeout": {},
-    #         "schemas_allowed_for_csv_upload": [],
-    #     }
+    def test_create_database_no_configuration_method(self):
+        """
+        Database API: Test create with no config method.
+        """
+        extra = {
+            "metadata_params": {},
+            "engine_params": {},
+            "metadata_cache_timeout": {},
+            "schemas_allowed_for_csv_upload": [],
+        }
 
-    #     self.login(username="admin")
-    #     example_db = get_example_database()
-    #     if example_db.backend == "sqlite":
-    #         return
-    #     database_data = {
-    #         "database_name": "test-create-database",
-    #         "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
-    #         "server_cert": None,
-    #         "extra": json.dumps(extra),
-    #     }
+        self.login(username="admin")
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+        database_data = {
+            "database_name": "test-create-database",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "server_cert": None,
+            "extra": json.dumps(extra),
+        }
 
-    #     uri = "api/v1/database/"
-    #     rv = self.client.post(uri, json=database_data)
-    #     response = json.loads(rv.data.decode("utf-8"))
-    #     assert response == {
-    #         "message": {"configuration_method": ["Missing data for required field."]}
-    #     }
-    #     assert rv.status_code == 400
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 201
+        self.assertIn("sqlalchemy_form", response["result"]["configuration_method"])
 
     def test_create_database_server_cert_validate(self):
         """
@@ -430,7 +428,9 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "message": {"database_name": "A database with the same name already exists"}
+            "message": {
+                "database_name": "A database with the same name already exists."
+            }
         }
         self.assertEqual(rv.status_code, 422)
         self.assertEqual(response, expected_response)
@@ -576,7 +576,9 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.put(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "message": {"database_name": "A database with the same name already exists"}
+            "message": {
+                "database_name": "A database with the same name already exists."
+            }
         }
         self.assertEqual(rv.status_code, 422)
         self.assertEqual(response, expected_response)
@@ -1474,6 +1476,8 @@ class TestDatabaseApi(SupersetTestCase):
                             "port": {
                                 "description": "Database port",
                                 "format": "int32",
+                                "maximum": 65536,
+                                "minimum": 0,
                                 "type": "integer",
                             },
                             "query": {
@@ -1504,9 +1508,9 @@ class TestDatabaseApi(SupersetTestCase):
                                 "description": "Contents of BigQuery JSON credentials.",
                                 "type": "string",
                                 "x-encrypted-extra": True,
-                            }
+                            },
+                            "query": {"type": "object"},
                         },
-                        "required": ["credentials_info"],
                         "type": "object",
                     },
                     "preferred": True,
@@ -1539,6 +1543,8 @@ class TestDatabaseApi(SupersetTestCase):
                             "port": {
                                 "description": "Database port",
                                 "format": "int32",
+                                "maximum": 65536,
+                                "minimum": 0,
                                 "type": "integer",
                             },
                             "query": {
@@ -1585,6 +1591,8 @@ class TestDatabaseApi(SupersetTestCase):
                             "port": {
                                 "description": "Database port",
                                 "format": "int32",
+                                "maximum": 65536,
+                                "minimum": 0,
                                 "type": "integer",
                             },
                             "query": {
@@ -1679,6 +1687,7 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
+        response["errors"].sort(key=lambda error: error["extra"]["invalid"][0])
         assert response == {
             "errors": [
                 {
@@ -1686,7 +1695,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
                     "level": "error",
                     "extra": {
-                        "invalid": ["engine"],
+                        "invalid": ["configuration_method"],
                         "issue_codes": [
                             {
                                 "code": 1020,
@@ -1696,11 +1705,11 @@ class TestDatabaseApi(SupersetTestCase):
                     },
                 },
                 {
-                    "message": "Unknown field.",
+                    "message": "Missing data for required field.",
                     "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
                     "level": "error",
                     "extra": {
-                        "invalid": ["foo"],
+                        "invalid": ["engine"],
                         "issue_codes": [
                             {
                                 "code": 1020,
@@ -1716,6 +1725,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(username="admin")
         url = "api/v1/database/validate_parameters"
         payload = {
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
             "engine": "postgresql",
             "parameters": defaultdict(dict),
         }
@@ -1766,6 +1776,7 @@ class TestDatabaseApi(SupersetTestCase):
         payload = {
             "engine": "postgresql",
             "parameters": defaultdict(dict),
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
         }
         payload["parameters"].update(
             {
@@ -1789,6 +1800,7 @@ class TestDatabaseApi(SupersetTestCase):
         payload = {
             "engine": "postgresql",
             "parameters": defaultdict(dict),
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
         }
         payload["parameters"].update(
             {
@@ -1807,19 +1819,33 @@ class TestDatabaseApi(SupersetTestCase):
         assert response == {
             "errors": [
                 {
-                    "message": "Not a valid integer.",
-                    "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
+                    "message": "Port must be a valid integer.",
+                    "error_type": "CONNECTION_INVALID_PORT_ERROR",
                     "level": "error",
                     "extra": {
                         "invalid": ["port"],
                         "issue_codes": [
                             {
-                                "code": 1020,
-                                "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                                "code": 1034,
+                                "message": "Issue 1034 - The port number is invalid.",
                             }
                         ],
                     },
-                }
+                },
+                {
+                    "message": "The port must be an integer between 0 and 65535 (inclusive).",
+                    "error_type": "CONNECTION_INVALID_PORT_ERROR",
+                    "level": "error",
+                    "extra": {
+                        "invalid": ["port"],
+                        "issue_codes": [
+                            {
+                                "code": 1034,
+                                "message": "Issue 1034 - The port number is invalid.",
+                            }
+                        ],
+                    },
+                },
             ]
         }
 
@@ -1832,6 +1858,7 @@ class TestDatabaseApi(SupersetTestCase):
         payload = {
             "engine": "postgresql",
             "parameters": defaultdict(dict),
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
         }
         payload["parameters"].update(
             {
@@ -1873,6 +1900,64 @@ class TestDatabaseApi(SupersetTestCase):
                             {
                                 "code": 1007,
                                 "message": "Issue 1007 - The hostname provided can't be resolved.",
+                            }
+                        ],
+                    },
+                },
+            ]
+        }
+
+    @mock.patch("superset.db_engine_specs.base.is_hostname_valid")
+    def test_validate_parameters_invalid_port_range(self, is_hostname_valid):
+        is_hostname_valid.return_value = True
+
+        self.login(username="admin")
+        url = "api/v1/database/validate_parameters"
+        payload = {
+            "engine": "postgresql",
+            "parameters": defaultdict(dict),
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
+        }
+        payload["parameters"].update(
+            {
+                "host": "localhost",
+                "port": 65536,
+                "username": "",
+                "password": "",
+                "database": "",
+                "query": {},
+            }
+        )
+        rv = self.client.post(url, json=payload)
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "One or more parameters are missing: database, username",
+                    "error_type": "CONNECTION_MISSING_PARAMETERS_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "missing": ["database", "username"],
+                        "issue_codes": [
+                            {
+                                "code": 1018,
+                                "message": "Issue 1018 - One or more parameters needed to configure a database are missing.",
+                            }
+                        ],
+                    },
+                },
+                {
+                    "message": "The port must be an integer between 0 and 65535 (inclusive).",
+                    "error_type": "CONNECTION_INVALID_PORT_ERROR",
+                    "level": "error",
+                    "extra": {
+                        "invalid": ["port"],
+                        "issue_codes": [
+                            {
+                                "code": 1034,
+                                "message": "Issue 1034 - The port number is invalid.",
                             }
                         ],
                     },

@@ -44,6 +44,7 @@ class SupersetErrorType(str, Enum):
     CONNECTION_INVALID_PASSWORD_ERROR = "CONNECTION_INVALID_PASSWORD_ERROR"
     CONNECTION_INVALID_HOSTNAME_ERROR = "CONNECTION_INVALID_HOSTNAME_ERROR"
     CONNECTION_PORT_CLOSED_ERROR = "CONNECTION_PORT_CLOSED_ERROR"
+    CONNECTION_INVALID_PORT_ERROR = "CONNECTION_INVALID_PORT_ERROR"
     CONNECTION_HOST_DOWN_ERROR = "CONNECTION_HOST_DOWN_ERROR"
     CONNECTION_ACCESS_DENIED_ERROR = "CONNECTION_ACCESS_DENIED_ERROR"
     CONNECTION_UNKNOWN_DATABASE_ERROR = "CONNECTION_UNKNOWN_DATABASE_ERROR"
@@ -133,6 +134,7 @@ ISSUE_CODES = {
         "The results stored in the backend were stored in a "
         "different format, and no longer can be deserialized."
     ),
+    1034: _("The port number is invalid."),
     1035: _("Failed to start remote query on a worker."),
     1036: _("The database was deleted."),
 }
@@ -167,6 +169,7 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
     SupersetErrorType.OBJECT_DOES_NOT_EXIST_ERROR: [1029],
     SupersetErrorType.SYNTAX_ERROR: [1030],
     SupersetErrorType.RESULTS_BACKEND_ERROR: [1031, 1032, 1033],
+    SupersetErrorType.CONNECTION_INVALID_PORT_ERROR: [1034],
     SupersetErrorType.ASYNC_WORKERS_ERROR: [1035],
     SupersetErrorType.DATABASE_NOT_FOUND_ERROR: [1011, 1036],
 }

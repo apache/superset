@@ -42,11 +42,11 @@ export interface InfoTooltipProps {
   trigger?: string | Array<string>;
   overlayStyle?: any;
   bgColor?: string;
+  viewBox?: string;
 }
 
 const StyledTooltip = styled(Tooltip)`
   cursor: pointer;
-
   path:first-of-type {
     fill: #999999;
   }
@@ -74,7 +74,7 @@ export default function InfoTooltip({
       overlayStyle={overlayStyle}
       color={bgColor}
     >
-      <Icons.InfoSolidSmall />
+      <Icons.InfoSolidSmall className="info-solid-small" />
     </StyledTooltip>
   );
 }
