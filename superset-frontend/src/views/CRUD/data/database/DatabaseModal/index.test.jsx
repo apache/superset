@@ -556,7 +556,7 @@ describe('DatabaseModal', () => {
         name: /allow create table as/i,
       });
       const allowCVASText = screen.getByText(/allow create table as/i);
-      const CTASCVASLabelText = screen.getAllByText(/ctas & cvas schema/i);
+      const CTASCVASLabelText = screen.getByText(/ctas & cvas schema/i);
       // This grabs the whole input by placeholder text
       const CTASCVASInput = screen.getByPlaceholderText(
         /create or select schema\.\.\./i,
@@ -615,8 +615,7 @@ describe('DatabaseModal', () => {
         exposeInSQLLabText,
         allowCTASText,
         allowCVASText,
-        CTASCVASLabelText[0],
-        CTASCVASLabelText[1],
+        CTASCVASLabelText,
         CTASCVASInput,
         CTASCVASHelperText,
         allowDMLText,
@@ -642,7 +641,7 @@ describe('DatabaseModal', () => {
         expect(component).not.toBeVisible();
       });
       expect(checkboxOffSVGs).toHaveLength(7);
-      expect(tooltipIcons).toHaveLength(8);
+      expect(tooltipIcons).toHaveLength(7);
     });
 
     it('renders the "Advanced" - PERFORMANCE tab correctly', async () => {
