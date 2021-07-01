@@ -216,11 +216,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       }
       // force instant updating on initialization for filters with `requiredFirst` is true or instant filters
       else if (
-        (dataMaskSelected[filter.id] && filter.isInstant) ||
         // filterState.value === undefined - means that value not initialized
-        (dataMask.filterState?.value !== undefined &&
-          dataMaskSelected[filter.id]?.filterState?.value === undefined &&
-          filter.requiredFirst)
+        dataMask.filterState?.value !== undefined &&
+        dataMaskSelected[filter.id]?.filterState?.value === undefined &&
+        filter.requiredFirst
       ) {
         dispatch(updateDataMask(filter.id, dataMask));
       }
