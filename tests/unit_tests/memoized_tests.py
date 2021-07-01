@@ -20,7 +20,7 @@ from _pytest import mark
 from superset.utils.core import memoized
 
 
-# @mark.unittest
+@mark.unittest
 class TestMemoized:
     def test_memoized_on_functions(self):
         watcher = {"val": 0}

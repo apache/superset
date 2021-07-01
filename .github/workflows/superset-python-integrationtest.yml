@@ -1,5 +1,5 @@
-# Python unit tests
-name: Python
+# Python integration tests
+name: Python-Integration
 
 on:
   push:
@@ -63,7 +63,7 @@ jobs:
       - name: Run celery
         if: steps.check.outcome == 'failure'
         run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
-      - name: Python unit tests (MySQL)
+      - name: Python integration tests (MySQL)
         if: steps.check.outcome == 'failure'
         run: |
           ./scripts/python_tests.sh
@@ -127,7 +127,7 @@ jobs:
       - name: Run celery
         if: steps.check.outcome == 'failure'
         run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
-      - name: Python unit tests (PostgreSQL)
+      - name: Python integration tests (PostgreSQL)
         if: steps.check.outcome == 'failure'
         run: |
           ./scripts/python_tests.sh
@@ -183,7 +183,7 @@ jobs:
       - name: Run celery
         if: steps.check.outcome == 'failure'
         run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
-      - name: Python unit tests (SQLite)
+      - name: Python integration tests (SQLite)
         if: steps.check.outcome == 'failure'
         run: |
           ./scripts/python_tests.sh
