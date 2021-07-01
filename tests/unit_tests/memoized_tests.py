@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from _pytest import mark
+from pytest import mark
 
 from superset.utils.core import memoized
 
