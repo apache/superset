@@ -17,7 +17,7 @@
 import json
 from os import path
 
-FIXTURES_DIR = "tests/fixtures"
+FIXTURES_DIR = "tests/integration_tests/fixtures"
 
 
 def read_fixture(fixture_file_name):
