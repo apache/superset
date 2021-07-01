@@ -18,7 +18,7 @@
  */
 import React, { ChangeEvent, EventHandler } from 'react';
 import cx from 'classnames';
-import { t, SupersetTheme, styled } from '@superset-ui/core';
+import { t, SupersetTheme } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import Collapse from 'src/components/Collapse';
@@ -123,7 +123,6 @@ const ExtraOptions = ({
                     value={db?.force_ctas_schema || ''}
                     placeholder={t('Create or select schema...')}
                     onChange={onInputChange}
-                    labelText={t('Allow CREATE TABLE AS')}
                   />
                   <InfoTooltip
                     tooltip={t('Allow creation of new tables based on queries')}
