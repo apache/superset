@@ -19,6 +19,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { styled, t, DataMask } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
+import Icons from 'src/components/Icons';
 import Icon from 'src/components/Icon';
 import { Pill } from 'src/dashboard/components/FiltersBadge/Styles';
 import { DataMaskStateWithId } from 'src/dataMask/types';
@@ -61,7 +62,13 @@ const StyledTitle = styled.h4`
   padding: 0;
 `;
 
-const StyledIcon = styled(Icon)`
+const StyledEditIcon = styled(Icons.Edit)`
+  margin-right: ${({ theme }) => theme.gridUnit}px;
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  width: ${({ theme }) => theme.gridUnit * 4}px;
+`;
+
+const StyledCloseIcon = styled(Icons.Close)`
   margin-right: ${({ theme }) => theme.gridUnit}px;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   width: ${({ theme }) => theme.gridUnit * 4}px;
@@ -163,10 +170,10 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   const title = (
     <StyledTitleBox>
       <StyledTitle>
-        <StyledIcon name="edit" />
+        <StyledEditIcon iconSize="m" />
         {t('Select parent filters')} ({allFilters.length})
       </StyledTitle>
-      <StyledIcon name="close" onClick={() => onVisibleChange(false)} />
+      <StyledCloseIcon iconSize="l" onClick={() => onVisibleChange(false)} />
     </StyledTitleBox>
   );
 
@@ -207,7 +214,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
               <>
                 {filter.cascadeChildren.length !== 0 && (
                   <StyledPill onClick={() => onVisibleChange(true)}>
-                    <Icon name="filter" /> {allFilters.length}
+                    <Icons.Filter iconSize="m" /> {allFilters.length}
                   </StyledPill>
                 )}
               </>
