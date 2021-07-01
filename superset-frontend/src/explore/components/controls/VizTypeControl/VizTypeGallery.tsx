@@ -178,6 +178,7 @@ const IconsPane = styled.div`
   justify-content: space-evenly;
   grid-gap: ${({ theme }) => theme.gridUnit * 2}px;
   justify-items: center;
+  // for some reason this padding doesn't seem to apply at the bottom of the container. Why is a mystery.
   padding: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
