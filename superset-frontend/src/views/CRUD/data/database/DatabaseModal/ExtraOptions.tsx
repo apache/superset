@@ -124,35 +124,12 @@ const ExtraOptions = ({
                     placeholder={t('Create or select schema...')}
                     onChange={onInputChange}
                   />
-                  <InfoTooltip
-                    tooltip={t('Allow creation of new tables based on queries')}
-                  />
                 </div>
                 <div className="helper">
                   {t(
                     'Force all tables and views to be created in this schema when clicking CTAS or CVAS in SQL Lab.',
                   )}
                 </div>
-                <StyledInputContainer
-                  className={cx('expandable', { open: createAsOpen })}
-                >
-                  <div className="control-label">{t('CTAS & CVAS SCHEMA')}</div>
-                  <div className="input-container">
-                    <input
-                      type="text"
-                      name="force_ctas_schema"
-                      value={db?.force_ctas_schema || ''}
-                      placeholder={t('Search or select schema')}
-                      onChange={onInputChange}
-                    />
-                  </div>
-                  <div className="helper">
-                    {t(
-                      'When allowing CREATE TABLE AS option in SQL Lab, this option ' +
-                        'forces the table to be created in this schema.',
-                    )}
-                  </div>
-                </StyledInputContainer>
               </StyledInputContainer>
             </StyledInputContainer>
             <StyledInputContainer css={no_margin_bottom}>

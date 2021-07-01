@@ -20,7 +20,7 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import { Icon } from 'src/common/components';
+import Icons from 'src/components/Icons';
 
 export interface InfoTooltipProps {
   className?: string;
@@ -65,7 +65,6 @@ export default function InfoTooltip({
   trigger = 'hover',
   overlayStyle = defaultOverlayStyle,
   bgColor = defaultColor,
-  viewBox = '0 -2 24 24',
 }: InfoTooltipProps) {
   return (
     <StyledTooltip
@@ -75,7 +74,7 @@ export default function InfoTooltip({
       overlayStyle={overlayStyle}
       color={bgColor}
     >
-      <Icon name="info-solid-small" viewBox={viewBox} />
+      <Icons.InfoSolidSmall className="info-solid-small" />
     </StyledTooltip>
   );
 }
