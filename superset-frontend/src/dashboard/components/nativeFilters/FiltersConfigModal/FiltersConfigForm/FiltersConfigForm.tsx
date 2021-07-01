@@ -44,7 +44,7 @@ import React, {
 } from 'react';
 import { useSelector } from 'react-redux';
 import { FormItem } from 'src/components/Form';
-import { Checkbox, Input } from 'src/common/components';
+import { Input } from 'src/common/components';
 import { Select } from 'src/components/Select';
 import SupersetResourceSelect, {
   cachedSupersetGet,
@@ -816,16 +816,6 @@ const FiltersConfigForm = (
             {Object.keys(controlItems)
               .filter(key => BASIC_CONTROL_ITEMS.includes(key))
               .map(key => controlItems[key].element)}
-            <StyledRowFormItem
-              name={['filters', filterId, 'isInstant']}
-              initialValue={filterToEdit?.isInstant || false}
-              valuePropName="checked"
-              colon={false}
-            >
-              <Checkbox data-test="apply-changes-instantly-checkbox">
-                {t('Apply changes instantly')}
-              </Checkbox>
-            </StyledRowFormItem>
           </Collapse.Panel>
           {((hasDataset && hasAdditionalFilters) || hasMetrics) && (
             <Collapse.Panel
