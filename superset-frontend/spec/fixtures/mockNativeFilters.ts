@@ -45,7 +45,6 @@ export const nativeFilters: NativeFiltersState = {
         rootPath: ['ROOT_ID'],
         excluded: [],
       },
-      isInstant: true,
       controlValues: {
         multiSelect: false,
         enableEmptyFilter: false,
@@ -79,7 +78,6 @@ export const nativeFilters: NativeFiltersState = {
         enableEmptyFilter: false,
         inverseSelection: false,
       },
-      isInstant: true,
     },
   },
 };
@@ -136,7 +134,6 @@ export const singleNativeFiltersState = {
       cascadeParentIds: [],
       scope: { rootPath: ['ROOT_ID'], excluded: [227, 229] },
       inverseSelection: false,
-      isInstant: true,
       allowsMultipleValues: false,
       isRequired: false,
     },
