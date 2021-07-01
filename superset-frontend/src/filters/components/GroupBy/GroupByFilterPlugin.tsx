@@ -71,14 +71,15 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
   const groupby = formData?.groupby?.[0]?.length
     ? formData?.groupby?.[0]
     : null;
-  const columns = data
-    ? groupby
-      ? data.filter(dataItem =>
-          // @ts-ignore
-          groupby.includes(dataItem.column_name),
-        )
-      : data
-    : [];
+
+  const withData = groupby
+    ? data.filter(dataItem =>
+        // @ts-ignore
+        groupby.includes(dataItem.column_name),
+      )
+    : data;
+
+  const columns = data ? withData : [];
 
   const placeholderText =
     columns.length === 0
