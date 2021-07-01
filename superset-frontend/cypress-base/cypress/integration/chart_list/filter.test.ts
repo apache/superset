@@ -22,7 +22,7 @@ describe('chart card view filters', () => {
   beforeEach(() => {
     cy.login();
     cy.visit(CHART_LIST);
-    cy.get('[data-test="card-view"]').click();
+    cy.get('[aria-label="card-view"]').click();
   });
 
   it('should filter by owners correctly', () => {
@@ -89,7 +89,7 @@ describe('chart list view filters', () => {
   beforeEach(() => {
     cy.login();
     cy.visit(CHART_LIST);
-    cy.get('[data-test="list-view"]').click();
+    cy.get('[aria-label="list-view"]').click();
   });
 
   it('should filter by owners correctly', () => {
