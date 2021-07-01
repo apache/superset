@@ -32,7 +32,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
 
     engine = "gsheets"
     engine_name = "Google Sheets"
-    allows_joins = False
+    allows_joins = True
     allows_subqueries = True
 
     custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
