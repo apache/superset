@@ -128,8 +128,8 @@ describe('AlteredSliceTag', () => {
       );
       const th = getTableWrapperFromModalBody(modalBody).find('th');
       expect(th).toHaveLength(3);
-      ['Control', 'Before', 'After'].forEach((v, i) => {
-        expect(th.find('span').get(i).props.children[0]).toBe(v);
+      ['Control', 'Before', 'After'].forEach(async (v, i) => {
+        await expect(th.find('span').get(i).props.children[0]).toBe(v);
       });
     });
 

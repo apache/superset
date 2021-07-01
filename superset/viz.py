@@ -1228,13 +1228,15 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
     def query_obj(self) -> QueryObjectDict:
         d = super().query_obj()
-        sort_by = self.form_data.get("timeseries_limit_metric")
+        sort_by = self.form_data.get(
+            "timeseries_limit_metric"
+        ) or utils.get_main_metric_name(d.get("metrics") or [])
+        is_asc = not self.form_data.get("order_desc")
         if sort_by:
             sort_by_label = utils.get_metric_name(sort_by)
             if sort_by_label not in utils.get_metric_names(d["metrics"]):
                 d["metrics"].append(sort_by)
-            if self.form_data.get("order_desc"):
-                d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
+            d["orderby"] = [(sort_by, is_asc)]
         return d
 
     def to_series(
@@ -1760,8 +1762,12 @@ class DistributionBarViz(BaseViz):
         df = df.copy()
         df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
 
-        row = df.groupby(self.groupby).sum()[metrics[0]].copy()
-        row.sort_values(ascending=False, inplace=True)
+        sortby = utils.get_metric_name(
+            self.form_data.get("timeseries_limit_metric") or metrics[0]
+        )
+        row = df.groupby(self.groupby).sum()[sortby].copy()
+        is_asc = not self.form_data.get("order_desc")
+        row.sort_values(ascending=is_asc, inplace=True)
         pt = df.pivot_table(index=self.groupby, columns=columns, values=metrics)
         if fd.get("contribution"):
             pt = pt.T

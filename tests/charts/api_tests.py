@@ -23,6 +23,7 @@ from typing import Optional
 from unittest import mock
 from zipfile import is_zipfile, ZipFile
 
+from tests.conftest import with_feature_flags
 from superset.models.sql_lab import Query
 from tests.insert_chart_mixin import InsertChartMixin
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
@@ -46,7 +47,12 @@ from superset.models.dashboard import Dashboard
 from superset.models.reports import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.utils import core as utils
-from superset.utils.core import AnnotationType, get_example_database, get_main_database
+from superset.utils.core import (
+    AnnotationType,
+    ChartDataResultFormat,
+    get_example_database,
+    get_main_database,
+)
 
 
 from tests.base_api_tests import ApiOwnersTestCaseMixin
@@ -1386,10 +1392,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         if get_example_database().backend != "presto":
             assert "('boy' = 'boy')" in result
 
-    @mock.patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        GLOBAL_ASYNC_QUERIES=True,
-    )
+    @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_async(self):
         """
         Chart data API: Test chart data query (async)
@@ -1405,10 +1409,35 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             keys, ["channel_id", "job_id", "user_id", "status", "errors", "result_url"]
         )
 
-    @mock.patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        GLOBAL_ASYNC_QUERIES=True,
-    )
+    @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_async_cached_sync_response(self):
+        """
+        Chart data API: Test chart data query returns results synchronously
+        when results are already cached.
+        """
+        async_query_manager.init_app(app)
+        self.login(username="admin")
+
+        class QueryContext:
+            result_format = ChartDataResultFormat.JSON
+
+        cmd_run_val = {
+            "query_context": QueryContext(),
+            "queries": [{"query": "select * from foo"}],
+        }
+
+        with mock.patch.object(
+            ChartDataCommand, "run", return_value=cmd_run_val
+        ) as patched_run:
+            request_payload = get_query_context("birth_names")
+            rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+            self.assertEqual(rv.status_code, 200)
+            data = json.loads(rv.data.decode("utf-8"))
+            patched_run.assert_called_once_with(force_cached=True)
+            self.assertEqual(data, {"result": [{"query": "select * from foo"}]})
+
+    @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_async_results_type(self):
         """
@@ -1421,10 +1450,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 200)
 
-    @mock.patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        GLOBAL_ASYNC_QUERIES=True,
-    )
+    @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_async_invalid_token(self):
         """
         Chart data API: Test chart data query (async)
@@ -1439,10 +1466,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 401)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @mock.patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        GLOBAL_ASYNC_QUERIES=True,
-    )
+    @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @mock.patch.object(ChartDataCommand, "load_query_context_from_cache")
     def test_chart_data_cache(self, load_qc_mock):
         """
@@ -1469,11 +1493,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(data["result"][0]["rowcount"], expected_row_count)
 
-    @mock.patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        GLOBAL_ASYNC_QUERIES=True,
-    )
+    @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @mock.patch.object(ChartDataCommand, "load_query_context_from_cache")
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_cache_run_failed(self, load_qc_mock):
         """
         Chart data cache API: Test chart data async cache request with run failure
@@ -1490,11 +1512,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 422)
         self.assertEqual(data["message"], "Error loading data from cache")
 
-    @mock.patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        GLOBAL_ASYNC_QUERIES=True,
-    )
+    @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @mock.patch.object(ChartDataCommand, "load_query_context_from_cache")
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_cache_no_login(self, load_qc_mock):
         """
         Chart data cache API: Test chart data async cache request (no login)
@@ -1514,10 +1534,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
         self.assertEqual(rv.status_code, 401)
 
-    @mock.patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        GLOBAL_ASYNC_QUERIES=True,
-    )
+    @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     def test_chart_data_cache_key_error(self):
         """
         Chart data cache API: Test chart data async cache request with invalid cache key

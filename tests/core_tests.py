@@ -976,6 +976,7 @@ class TestCore(SupersetTestCase):
                     "optionName": "metric_80g1qb9b6o7_ci5vquydcbe",
                 },
             ],
+            "order_desc": True,
             "adhoc_filters": [],
             "groupby": ["name"],
             "columns": [],
@@ -999,7 +1000,8 @@ class TestCore(SupersetTestCase):
             SELECT count(name) AS count_name, count(ds) AS count_ds
             FROM birth_names
             WHERE ds >= '1921-01-22 00:00:00.000000' AND ds < '2021-01-22 00:00:00.000000'
-            GROUP BY name ORDER BY count_name DESC, count_ds DESC
+            GROUP BY name
+            ORDER BY count_name DESC
             LIMIT 10;
             """,
             client_id="client_id_1",
@@ -1195,7 +1197,7 @@ class TestCore(SupersetTestCase):
         self.login(username="gamma")
         example_db = utils.get_example_database()
         resp = self.client.get(f"/superset/select_star/{example_db.id}/birth_names")
-        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(resp.status_code, 403)
 
     @mock.patch("superset.views.core.results_backend_use_msgpack", False)
     @mock.patch("superset.views.core.results_backend")
@@ -1412,7 +1414,7 @@ class TestCore(SupersetTestCase):
             "client_id_1",
             user_name=username,
             raise_on_error=True,
-            sql_editor_id=tab_state_id,
+            sql_editor_id=str(tab_state_id),
         )
         # run an orphan query (no tab)
         self.run_sql(

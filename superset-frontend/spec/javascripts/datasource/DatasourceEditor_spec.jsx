@@ -27,6 +27,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import { Radio } from 'src/components/Radio';
 
 import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import Tabs from 'src/components/Tabs';
 import DatasourceEditor from 'src/datasource/DatasourceEditor';
 import Field from 'src/CRUD/Field';
@@ -174,8 +175,8 @@ describe('DatasourceEditor', () => {
       const sourceTab = wrapper.find(Tabs.TabPane).first();
       expect(sourceTab.find(Radio).first().prop('disabled')).toBe(false);
 
-      const icon = sourceTab.find(Icon);
-      expect(icon.prop('name')).toBe('lock-unlocked');
+      const icon = wrapper.find(Icons.LockUnlocked);
+      expect(icon).toExist();
 
       const tableSelector = sourceTab.find(Field).shallow().find(TableSelector);
       expect(tableSelector.length).toBe(1);
@@ -187,8 +188,8 @@ describe('DatasourceEditor', () => {
       expect(sourceTab.find(Radio).length).toBe(2);
       expect(sourceTab.find(Radio).first().prop('disabled')).toBe(true);
 
-      const icon = sourceTab.find(Icon);
-      expect(icon.prop('name')).toBe('lock-locked');
+      const icon = wrapper.find(Icons.LockLocked);
+      expect(icon).toExist();
       icon.parent().simulate('click');
       expect(wrapper.state('isEditMode')).toBe(true);
 
