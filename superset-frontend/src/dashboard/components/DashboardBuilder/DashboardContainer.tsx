@@ -69,7 +69,10 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 
   // recalculate charts and tabs in scopes of native filters only when a scope or dashboard layout changes
   const nativeFiltersValues = Object.values(nativeFilters);
-  const scopes = nativeFiltersValues.map(filter => filter.scope);
+  const scopes = nativeFiltersValues.map(filter => ({
+    id: filter.id,
+    scope: filter.scope,
+  }));
   useEffect(() => {
     if (
       !isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) ||
@@ -97,7 +100,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       };
     });
     dispatch(setInScopeStatusOfFilters(filterScopes));
-  }, [JSON.stringify(scopes), JSON.stringify(dashboardLayout)]);
+  }, [JSON.stringify(scopes), dashboardLayout, dispatch]);
 
   const childIds: string[] = topLevelTabs
     ? topLevelTabs.children
