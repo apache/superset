@@ -123,6 +123,8 @@ const DEFAULT_ORDER = [
 
 const typesWithDefaultOrder = new Set(DEFAULT_ORDER);
 
+const THUMBNAIL_GRID_UNITS = 24;
+
 export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
 
 function VizSupportValidation({ vizType }: { vizType: string }) {
@@ -223,20 +225,40 @@ const DetailsPane = styled.div`
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   padding: ${({ theme }) => theme.gridUnit * 4}px;
   display: grid;
+  grid-template-columns: 1fr 1fr;
   grid-template-rows: auto 1fr;
-  overflow: hidden;
+  grid-template-areas:
+    'viz-name examples-header'
+    'description examples';
 `;
 
 // overflow hidden on the details pane and overflow auto on the description
 // (plus grid layout) enables the description to scroll while the header stays in place.
 
 const Description = styled.p`
+  grid-area: description;
   overflow: auto;
+  padding-right: ${({ theme }) => theme.gridUnit * 14}px;
+`;
+
+const Examples = styled.div`
+  grid-area: examples;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  overflow: auto;
+  gap: ${({ theme }) => theme.gridUnit * 4}px;
+
+  img {
+    height: 100%;
+    border-radius: ${({ theme }) => theme.gridUnit}px;
+    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  }
 `;
 
 const thumbnailContainerCss = (theme: SupersetTheme) => css`
   cursor: pointer;
-  width: ${theme.gridUnit * 24}px;
+  width: ${theme.gridUnit * THUMBNAIL_GRID_UNITS}px;
   margin: ${theme.gridUnit * 2}px;
 
   img {
@@ -436,7 +458,8 @@ const VizTypeControl = (props: VizTypeControlProps) => {
   const labelContent =
     mountedPluginMetadata[initialValue]?.name || `${initialValue}`;
 
-  const selectedVizMetadata = mountedPluginMetadata[selectedViz];
+  const selectedVizMetadata: ChartMetadata | undefined =
+    mountedPluginMetadata[selectedViz];
 
   const vizEntriesToDisplay = isSearching
     ? searchResults
@@ -512,11 +535,33 @@ const VizTypeControl = (props: VizTypeControlProps) => {
           />
 
           <DetailsPane>
-            <SectionTitle>{selectedVizMetadata?.name}</SectionTitle>
+            <SectionTitle
+              css={css`
+                grid-area: viz-name;
+              `}
+            >
+              {selectedVizMetadata?.name}
+            </SectionTitle>
             <Description>
               {selectedVizMetadata?.description ||
                 t('No description available.')}
             </Description>
+            <SectionTitle
+              css={css`
+                grid-area: examples-header;
+              `}
+            >
+              {!!selectedVizMetadata?.exampleGallery?.length && t('Examples')}
+            </SectionTitle>
+            <Examples>
+              {(selectedVizMetadata?.exampleGallery || []).map(example => (
+                <img
+                  src={example.url}
+                  alt={example.caption}
+                  title={example.caption}
+                />
+              ))}
+            </Examples>
           </DetailsPane>
         </VizPickerLayout>
       </UnpaddedModal>

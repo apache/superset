@@ -384,7 +384,7 @@ const config = {
       },
       /* for css linking images (and viz plugin thumbnails) */
       {
-        test: /\.(png|jpg)$/,
+        test: /\.(png)$/,
         issuer: {
           exclude: /\/src\/assets\/staticPages\//,
         },
@@ -395,7 +395,7 @@ const config = {
         },
       },
       {
-        test: /\.(png|jpg)$/,
+        test: /\.(png)$/,
         issuer: {
           test: /\/src\/assets\/staticPages\//,
         },
