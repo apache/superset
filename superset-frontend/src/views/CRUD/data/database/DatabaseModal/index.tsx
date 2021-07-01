@@ -90,7 +90,8 @@ const errorAlertMapping = {
     description: 'Please verify that port is open to connect.',
   },
   CONNECTION_INVALID_PORT_ERROR: {
-    message: 'The port must be a whole number less than or equal to 65535.',
+    message: 'Invalid Port Number',
+    description: 'The port must be a whole number less than or equal to 65535.',
   },
   CONNECTION_ACCESS_DENIED_ERROR: {
     message: 'Invalid account information',
@@ -99,6 +100,10 @@ const errorAlertMapping = {
   CONNECTION_INVALID_PASSWORD_ERROR: {
     message: 'Invalid account information',
     description: 'Either the username or password is incorrect.',
+  },
+  INVALID_PAYLOAD_SCHEMA: {
+    message: 'Incorrect Fields',
+    description: 'Please make sure all fields are filled out correctly',
   },
 };
 interface DatabaseModalProps {
