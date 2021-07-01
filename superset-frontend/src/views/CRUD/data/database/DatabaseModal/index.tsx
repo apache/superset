@@ -273,7 +273,7 @@ function dbReducer(
       if (
         action.payload.backend === 'bigquery' &&
         action.payload.configuration_method ===
-          CONFIGURATION_METHOD.SQLALCHEMY_URI
+          CONFIGURATION_METHOD.DYNAMIC_FORM
       ) {
         return {
           ...action.payload,
@@ -432,9 +432,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const engine = dbToUpdate.backend || dbToUpdate.engine;
       if (engine === 'bigquery' && dbToUpdate.parameters?.credentials_info) {
         // wrap encrypted_extra in credentials_info only for BigQuery
-        dbToUpdate.encrypted_extra = JSON.stringify({
-          credentials_info: JSON.parse(dbToUpdate.parameters?.credentials_info),
-        });
+        if (
+          dbToUpdate.parameters?.credentials_info &&
+          typeof dbToUpdate.parameters?.credentials_info === 'object' &&
+          dbToUpdate.parameters?.credentials_info.constructor === Object
+        ) {
+          // Don't cast if object
+          dbToUpdate.encrypted_extra = JSON.stringify({
+            credentials_info: dbToUpdate.parameters?.credentials_info,
+          });
+
+          // Convert credentials info string before updating
+          dbToUpdate.parameters.credentials_info = JSON.stringify(
+            dbToUpdate.parameters.credentials_info,
+          );
+        } else {
+          dbToUpdate.encrypted_extra = JSON.stringify({
+            credentials_info: JSON.parse(
+              dbToUpdate.parameters?.credentials_info,
+            ),
+          });
+        }
       }
     }
 
