@@ -538,7 +538,7 @@ describe('DatabaseModal', () => {
         name: /checkbox-off/i,
       });
       const tooltipIcons = screen.getAllByRole('img', {
-        name: /info-solid-small/i,
+        name: /info-solid_small/i,
       });
       const exposeInSQLLabCheckbox = screen.getByRole('checkbox', {
         name: /expose database in sql lab/i,
@@ -556,7 +556,7 @@ describe('DatabaseModal', () => {
         name: /allow create table as/i,
       });
       const allowCVASText = screen.getByText(/allow create table as/i);
-      const CTASCVASLabelText = screen.getByText(/ctas & cvas schema/i);
+      const CTASCVASLabelText = screen.getAllByText(/ctas & cvas schema/i);
       // This grabs the whole input by placeholder text
       const CTASCVASInput = screen.getByPlaceholderText(
         /create or select schema\.\.\./i,
@@ -615,7 +615,8 @@ describe('DatabaseModal', () => {
         exposeInSQLLabText,
         allowCTASText,
         allowCVASText,
-        CTASCVASLabelText,
+        CTASCVASLabelText[0],
+        CTASCVASLabelText[1],
         CTASCVASInput,
         CTASCVASHelperText,
         allowDMLText,
@@ -641,7 +642,7 @@ describe('DatabaseModal', () => {
         expect(component).not.toBeVisible();
       });
       expect(checkboxOffSVGs).toHaveLength(7);
-      expect(tooltipIcons).toHaveLength(7);
+      expect(tooltipIcons).toHaveLength(8);
     });
 
     it('renders the "Advanced" - PERFORMANCE tab correctly', async () => {
