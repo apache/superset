@@ -34,8 +34,9 @@ interface ColumnSelectProps {
   formField?: string;
   filterId: string;
   datasetId?: number;
-  value?: string;
+  value?: string | string[];
   onChange?: (value: string) => void;
+  mode?: 'multiple' | 'tags';
 }
 
 const localCache = new Map<string, any>();
@@ -57,6 +58,7 @@ export function ColumnSelect({
   datasetId,
   value,
   onChange,
+  mode,
 }: ColumnSelectProps) {
   const [columns, setColumns] = useState<Column[]>();
   const { addDangerToast } = useToasts();
@@ -101,11 +103,11 @@ export function ColumnSelect({
         endpoint: `/api/v1/dataset/${datasetId}`,
       }).then(
         ({ json: { result } }) => {
-          if (
-            !result.columns.some(
-              (column: Column) => column.column_name === value,
-            )
-          ) {
+          const lookupValue = Array.isArray(value) ? value : [value];
+          const valueExists = result.columns.some((column: Column) =>
+            lookupValue?.includes(column.column_name),
+          );
+          if (!valueExists) {
             resetColumnField();
           }
           setColumns(result.columns);
@@ -124,7 +126,8 @@ export function ColumnSelect({
 
   return (
     <Select
-      value={value}
+      mode={mode}
+      value={mode === 'multiple' ? value || [] : value}
       onChange={onChange}
       options={options}
       placeholder={t('Select a column')}
