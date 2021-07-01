@@ -180,7 +180,6 @@ function dbReducer(
     ...(state || {}),
   };
   let query = '';
-
   switch (action.type) {
     case ActionType.extraEditorChange:
       return {
@@ -648,7 +647,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           <StyledFooterButton
             key="submit"
             buttonStyle="primary"
-            onClick={onClose}
+            onClick={onSave}
             data-test="modal-confirm-button"
           >
             Finish
