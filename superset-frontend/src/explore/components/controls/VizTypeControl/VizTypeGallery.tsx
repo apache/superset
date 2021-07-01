@@ -359,12 +359,13 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     return result;
   }, [chartMetadata]);
 
-  // todo sort the categories
   const categories = useMemo(
     () =>
       Object.keys(chartsByCategory).sort((a, b) => {
+        // make sure Other goes at the end
         if (a === OTHER_CATEGORY) return 1;
         if (b === OTHER_CATEGORY) return -1;
+        // sort alphabetically
         return a.localeCompare(b);
       }),
     [chartsByCategory],
