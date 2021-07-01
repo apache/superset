@@ -21,7 +21,7 @@ import Button from 'src/components/Button';
 import Select from 'src/components/Select';
 import { styled, t } from '@superset-ui/core';
 
-import VizTypeControl from '../explore/components/controls/VizTypeControl';
+import VizTypeGallery from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
 
 interface Datasource {
   label: string;
@@ -133,11 +133,9 @@ export default class AddSliceContainer extends React.PureComponent<
         <br />
         <div>
           <p>{t('Choose a visualization type')}</p>
-          <VizTypeControl
-            name="select-vis-type"
+          <VizTypeGallery
             onChange={this.changeVisType}
             value={this.state.visType}
-            labelType="primary"
           />
         </div>
         <br />
