@@ -42,7 +42,7 @@ describe('Select buildQuery', () => {
     expect(queryContext.queries.length).toEqual(1);
     const [query] = queryContext.queries;
     expect(query.groupby).toEqual(['my_col']);
-    expect(query.filters).toEqual([{ col: 'my_col', op: 'IS NOT NULL' }]);
+    expect(query.filters).toEqual([]);
     expect(query.metrics).toEqual([]);
     expect(query.orderby).toEqual([]);
   });
