@@ -77,6 +77,8 @@ little bit helps, and credit will always be given.
     - [Python Testing](#python-testing)
     - [Frontend Testing](#frontend-testing)
     - [Integration Testing](#integration-testing)
+    - [Debugging Server App](#debugging-server-app)
+    - [Debugging Server App in Kubernetes Environment](#debugging-server-app-in-kubernetes-environment)
     - [Storybook](#storybook)
   - [Translating](#translating)
     - [Enabling language selection](#enabling-language-selection)
@@ -418,9 +420,10 @@ For example, the image referenced above actually lives in `superset-frontend/ima
 
 #### OS Dependencies
 
-Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.
+Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.  
+You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
 
-Ensure Python versions >3.7, Then proceed with:
+Ensure that you are using Python version 3.7 or 3.8, then proceed with:
 
 ````bash
 # Create a virtual environment and activate it (recommended)
@@ -428,12 +431,12 @@ python3 -m venv venv # setup a python3 virtualenv
 source venv/bin/activate
 
 # Install external dependencies
-pip install -r requirements/local.txt
+pip install -r requirements/testing.txt
 
 # Install Superset in editable (development) mode
 pip install -e .
 
-# Create an admin user in your metadata database
+# Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
 superset fab create-admin
 
 # Initialize the database
@@ -442,11 +445,12 @@ superset db upgrade
 # Create default roles and permissions
 superset init
 
-# Load some data to play with (you must create an Admin user with the username `admin` for this command to work)
+# Load some data to play with.
+# Note: you MUST have previously created an admin user with the username `admin` for this command to work.
 superset load-examples
 
 # Start the Flask dev web server from inside your virtualenv.
-# Note that your page may not have css at this point.
+# Note that your page may not have CSS at this point.
 # See instructions below how to build the front-end assets.
 FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
 
