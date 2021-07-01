@@ -68,11 +68,14 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
     // so we can process it like this `JSON.stringify` or start to use `Immer`
   }, [JSON.stringify(defaultValue), multiSelect]);
 
+  const groupby = formData?.groupby?.[0]?.length
+    ? formData?.groupby?.[0]
+    : null;
   const columns = data
-    ? formData.groupby && formData.groupby[0] && formData.groupby[0].length
+    ? groupby
       ? data.filter(dataItem =>
           // @ts-ignore
-          formData.groupby[0]?.includes(dataItem.column_name),
+          groupby.includes(dataItem.column_name),
         )
       : data
     : [];

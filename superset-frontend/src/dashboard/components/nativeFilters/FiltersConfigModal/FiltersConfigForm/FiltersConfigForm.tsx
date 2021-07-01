@@ -344,7 +344,6 @@ const FiltersConfigForm = (
   // @ts-ignore
   const hasDataset = !!nativeFilterItems[formFilter?.filterType]?.value
     ?.datasourceCount;
-  const hasColumn = hasDataset;
 
   const nativeFilterItem = nativeFilterItems[formFilter?.filterType] ?? {};
   // @ts-ignore
@@ -352,7 +351,7 @@ const FiltersConfigForm = (
   const datasetId = formFilter?.dataset?.value;
 
   useEffect(() => {
-    if (datasetId && hasColumn) {
+    if (datasetId && hasDataset) {
       cachedSupersetGet({
         endpoint: `/api/v1/dataset/${datasetId}`,
       })
@@ -368,7 +367,7 @@ const FiltersConfigForm = (
           addDangerToast(response.message);
         });
     }
-  }, [datasetId, hasColumn]);
+  }, [datasetId, hasDataset]);
 
   useImperativeHandle(ref, () => ({
     changeTab(tab: 'configuration' | 'scoping') {
@@ -376,10 +375,10 @@ const FiltersConfigForm = (
     },
   }));
 
-  const hasMetrics = hasColumn && !!metrics.length;
+  const hasMetrics = hasDataset && !!metrics.length;
 
   const hasFilledDataset =
-    !hasDataset || (datasetId && (formFilter?.column || !hasColumn));
+    !hasDataset || (datasetId && (formFilter?.column || !hasDataset));
 
   const hasAdditionalFilters = FILTERS_WITH_ADHOC_FILTERS.includes(
     formFilter?.filterType,
@@ -478,7 +477,7 @@ const FiltersConfigForm = (
       : undefined);
   const newFormData = getFormData({
     datasetId,
-    groupby: hasColumn ? formFilter?.column : undefined,
+    groupby: hasDataset ? formFilter?.column : undefined,
     ...formFilter,
   });
 
@@ -723,7 +722,7 @@ const FiltersConfigForm = (
                 }}
               />
             </StyledFormItem>
-            {hasColumn &&
+            {hasDataset &&
               Object.keys(mainControlItems).map(
                 key => mainControlItems[key].element,
               )}

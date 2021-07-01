@@ -103,16 +103,11 @@ export function ColumnSelect({
         endpoint: `/api/v1/dataset/${datasetId}`,
       }).then(
         ({ json: { result } }) => {
-          const valueExist =
-            mode === 'multiple'
-              ? result.columns.some((column: Column) =>
-                  value?.includes(column.column_name),
-                )
-              : result.columns.some(
-                  (column: Column) => column.column_name === value,
-                );
-
-          if (!valueExist) {
+          const lookupValue = Array.isArray(value) ? value : [value];
+          const valueExists = result.columns.some((column: Column) =>
+            lookupValue?.includes(column.column_name),
+          );
+          if (!valueExists) {
             resetColumnField();
           }
           setColumns(result.columns);
