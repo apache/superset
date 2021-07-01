@@ -28,7 +28,7 @@ describe('Dashboard edit markdown', () => {
     let numScripts = 0;
     console.log('script tag', cy.get('script'));
     cy.get('script').then(nodes => {
-      console.log('scripts', nodes)
+      console.log('scripts', nodes);
       numScripts = nodes.length;
     });
     cy.get('[data-test="dashboard-header"]')
