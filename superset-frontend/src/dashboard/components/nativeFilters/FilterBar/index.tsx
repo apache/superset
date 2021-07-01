@@ -33,6 +33,7 @@ import { testWithId } from 'src/utils/testUtils';
 import { Filter } from 'src/dashboard/components/nativeFilters/types';
 import Loading from 'src/components/Loading';
 import { getInitialDataMask } from 'src/dataMask/reducer';
+import { areObjectsEqual } from 'src/reduxUtils';
 import { checkIsApplyDisabled, TabIds } from './utils';
 import FilterSets from './FilterSets';
 import {
@@ -45,6 +46,7 @@ import {
 import EditSection from './FilterSets/EditSection';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
+import { usePreselectNativeFilters } from '../state';
 
 export const FILTER_BAR_TEST_ID = 'filter-bar';
 export const getFilterBarTestId = testWithId(FILTER_BAR_TEST_ID);
@@ -143,9 +145,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   height,
   offset,
 }) => {
+  const dataMaskApplied: DataMaskStateWithId = useNativeFiltersDataMask();
   const [editFilterSetId, setEditFilterSetId] = useState<string | null>(null);
   const [dataMaskSelected, setDataMaskSelected] = useImmer<DataMaskStateWithId>(
-    {},
+    dataMaskApplied,
   );
   const dispatch = useDispatch();
   const filterSets = useFilterSets();
@@ -154,8 +157,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const filters = useFilters();
   const previousFilters = usePrevious(filters);
   const filterValues = Object.values<Filter>(filters);
-  const dataMaskApplied: DataMaskStateWithId = useNativeFiltersDataMask();
   const [isFilterSetChanged, setIsFilterSetChanged] = useState(false);
+  const preselectNativeFilters = usePreselectNativeFilters();
+  const [initializedFilters, setInitializedFilters] = useState<any[]>([]);
 
   useEffect(() => {
     setDataMaskSelected(() => dataMaskApplied);
@@ -185,13 +189,37 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   ) => {
     setIsFilterSetChanged(tab !== TabIds.AllFilters);
     setDataMaskSelected(draft => {
-      // force instant updating on initialization for filters with `requiredFirst` is true or instant filters
+      // check if a filter has preselect filters
       if (
-        (dataMaskSelected[filter.id] && filter.isInstant) ||
+        preselectNativeFilters?.[filter.id] !== undefined &&
+        !initializedFilters.includes(filter.id)
+      ) {
+        /**
+         * since preselect filters don't have extraFormData, they need to iterate
+         * a few times to populate the full state necessary for proper filtering.
+         * Once both filterState and extraFormData are identical, we can coclude
+         * that the filter has been fully initialized.
+         */
+        if (
+          areObjectsEqual(
+            dataMask.filterState,
+            dataMaskSelected[filter.id]?.filterState,
+          ) &&
+          areObjectsEqual(
+            dataMask.extraFormData,
+            dataMaskSelected[filter.id]?.extraFormData,
+          )
+        ) {
+          setInitializedFilters(prevState => [...prevState, filter.id]);
+        }
+        dispatch(updateDataMask(filter.id, dataMask));
+      }
+      // force instant updating on initialization for filters with `requiredFirst` is true or instant filters
+      else if (
         // filterState.value === undefined - means that value not initialized
-        (dataMask.filterState?.value !== undefined &&
-          dataMaskSelected[filter.id]?.filterState?.value === undefined &&
-          filter.requiredFirst)
+        dataMask.filterState?.value !== undefined &&
+        dataMaskSelected[filter.id]?.filterState?.value === undefined &&
+        filter.requiredFirst
       ) {
         dispatch(updateDataMask(filter.id, dataMask));
       }
@@ -242,7 +270,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         <Header
           toggleFiltersBar={toggleFiltersBar}
           onApply={handleApply}
-          setDataMaskSelected={setDataMaskSelected}
           isApplyDisabled={isApplyDisabled}
           dataMaskSelected={dataMaskSelected}
           dataMaskApplied={dataMaskApplied}

@@ -39,7 +39,7 @@ class DatabaseExistsValidationError(ValidationError):
 
     def __init__(self) -> None:
         super().__init__(
-            _("A database with the same name already exists"),
+            _("A database with the same name already exists."),
             field_name="database_name",
         )
 

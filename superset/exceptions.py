@@ -43,15 +43,17 @@ class SupersetException(Exception):
 class SupersetErrorException(SupersetException):
     """Exceptions with a single SupersetErrorType associated with them"""
 
-    def __init__(self, error: SupersetError) -> None:
+    def __init__(self, error: SupersetError, status: Optional[int] = None) -> None:
         super().__init__(error.message)
         self.error = error
+        if status is not None:
+            self.status = status
 
 
 class SupersetGenericErrorException(SupersetErrorException):
     """Exceptions that are too generic to have their own type"""
 
-    def __init__(self, message: str) -> None:
+    def __init__(self, message: str, status: Optional[int] = None) -> None:
         super().__init__(
             SupersetError(
                 message=message,
@@ -59,6 +61,8 @@ class SupersetGenericErrorException(SupersetErrorException):
                 level=ErrorLevel.ERROR,
             )
         )
+        if status is not None:
+            self.status = status
 
 
 class SupersetErrorFromParamsException(SupersetErrorException):
@@ -81,9 +85,13 @@ class SupersetErrorFromParamsException(SupersetErrorException):
 class SupersetErrorsException(SupersetException):
     """Exceptions with multiple SupersetErrorType associated with them"""
 
-    def __init__(self, errors: List[SupersetError]) -> None:
+    def __init__(
+        self, errors: List[SupersetError], status: Optional[int] = None
+    ) -> None:
         super().__init__(str(errors))
         self.errors = errors
+        if status is not None:
+            self.status = status
 
 
 class SupersetTimeoutException(SupersetErrorFromParamsException):

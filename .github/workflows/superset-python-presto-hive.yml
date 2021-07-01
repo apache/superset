@@ -17,7 +17,7 @@ jobs:
         python-version: [3.8]
     env:
       PYTHONPATH: ${{ github.workspace }}
-      SUPERSET_CONFIG: tests.superset_test_config
+      SUPERSET_CONFIG: tests.integration_tests.superset_test_config
       REDIS_PORT: 16379
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
       SUPERSET__SQLALCHEMY_EXAMPLES_URI: presto://localhost:15433/memory/default
@@ -91,7 +91,7 @@ jobs:
         python-version: [3.8]
     env:
       PYTHONPATH: ${{ github.workspace }}
-      SUPERSET_CONFIG: tests.superset_test_config
+      SUPERSET_CONFIG: tests.integration_tests.superset_test_config
       REDIS_PORT: 16379
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
       SUPERSET__SQLALCHEMY_EXAMPLES_URI: hive://localhost:10000/default
