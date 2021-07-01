@@ -120,6 +120,7 @@ class QueryCacheManager:
 
         cache_value = _cache[region].get(key)
         if cache_value:
+            logger.info("Cache key: %s", key)
             stats_logger.incr("loading_from_cache")
             try:
                 query_cache.df = cache_value["df"]

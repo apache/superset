@@ -147,7 +147,6 @@ class QueryContext:
                 )
             # `offset` is added to the hash function
             cache_key = self.query_cache_key(query_object_clone, time_offset=offset)
-            logger.info("Cache key: %s", cache_key)
             _cache = QueryCacheManager.get(cache_key, CacheRegion.DATA, self.force)
             # whether to hit the cache
             if _cache.is_loaded:
@@ -433,7 +432,6 @@ class QueryContext:
     ) -> Dict[str, Any]:
         """Handles caching around the df payload retrieval"""
         cache_key = self.query_cache_key(query_obj)
-        logger.info("Cache key: %s", cache_key)
         _cache = QueryCacheManager.get(
             cache_key, CacheRegion.DATA, self.force, force_cached,
         )
