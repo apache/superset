@@ -17,7 +17,7 @@
 
 from pytest import mark
 
-from superset.utils.core import memoized
+from superset.utils.memoized import memoized
 
 
 @mark.unittest
