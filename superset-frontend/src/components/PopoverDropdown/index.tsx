@@ -111,7 +111,7 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
         {selected && renderButton(selected)}
         <Icons.CaretDown
           iconColor={theme.colors.grayscale.base}
-          css={{ marginTop: theme.gridUnit }}
+          css={{ marginTop: theme.gridUnit * 0.5 }}
         />
       </div>
     </Dropdown>
