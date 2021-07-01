@@ -14,6 +14,7 @@ import italy from 'file-loader!./countries/italy.geojson';
 import japan from 'file-loader!./countries/japan.geojson';
 import korea from 'file-loader!./countries/korea.geojson';
 import liechtenstein from 'file-loader!./countries/liechtenstein.geojson';
+import malaysia from 'file-loader!./countries/malaysia.geojson';
 import morocco from 'file-loader!./countries/morocco.geojson';
 import myanmar from 'file-loader!./countries/myanmar.geojson';
 import netherlands from 'file-loader!./countries/netherlands.geojson';
@@ -48,6 +49,7 @@ export const countries = {
   japan,
   korea,
   liechtenstein,
+  malaysia,
   morocco,
   myanmar,
   netherlands,
