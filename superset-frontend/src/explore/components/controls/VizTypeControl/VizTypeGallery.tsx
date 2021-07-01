@@ -180,11 +180,6 @@ const IconsPane = styled.div`
   grid-gap: ${({ theme }) => theme.gridUnit * 2}px;
   justify-items: center;
   padding: ${({ theme }) => theme.gridUnit * 2}px;
-  & > div:last-child .viztype-label {
-    // The IconsPane bottom padding doesn't work,
-    // hence this hacky workaround
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-  }
 `;
 
 const DetailsPane = styled.div`
