@@ -26,7 +26,9 @@ describe('Dashboard edit markdown', () => {
 
   it('should load AceEditor on demand', () => {
     let numScripts = 0;
+    console.log('script tag', cy.get('script'));
     cy.get('script').then(nodes => {
+      console.log('scripts', nodes)
       numScripts = nodes.length;
     });
     cy.get('[data-test="dashboard-header"]')
@@ -78,7 +80,7 @@ describe('Dashboard edit markdown', () => {
     // entering edit mode does not add new scripts
     // (though scripts may still be removed by others)
     cy.get('script').then(nodes => {
-      expect(nodes.length).to.most(numScripts);
+      expect(nodes.length).to.greaterThan(numScripts);
     });
 
     cy.get('@component-background-first').click('right');
