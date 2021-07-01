@@ -270,10 +270,13 @@ function dbReducer(
         ).toString();
       }
 
-      if (action.payload.backend === 'bigquery') {
+      if (
+        action.payload.backend === 'bigquery' &&
+        action.payload.configuration_method ===
+          CONFIGURATION_METHOD.SQLALCHEMY_URI
+      ) {
         return {
           ...action.payload,
-          encrypted_extra: '',
           engine: action.payload.backend,
           configuration_method: action.payload.configuration_method,
           extra_json: deserializeExtraJSON,
