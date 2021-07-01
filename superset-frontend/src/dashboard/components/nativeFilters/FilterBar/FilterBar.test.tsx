@@ -53,7 +53,7 @@ class MainPreset extends Preset {
   }
 }
 
-fetchMock.get(`glob:*/api/v1/dataset/1`, {
+fetchMock.get('glob:*/api/v1/dataset/7', {
   description_columns: {},
   id: 1,
   label_columns: {
@@ -156,7 +156,7 @@ describe('FilterBar', () => {
               "defaultDataMask":{"filterState":{"value":null}},
               "controlValues":{},
               "cascadeParentIds":[],
-              "scope":{"rootPath":["ROOT_ID"],"excluded":[]},
+              "scope":{"rootPath":["ROOT_ID"],"excluded":[]}
             }],
             "filter_sets_configuration":[{
               "name":"${FILTER_SET_NAME}",
@@ -167,16 +167,16 @@ describe('FilterBar', () => {
                   "name":"${FILTER_NAME}",
                   "filterType":"filter_time",
                   "targets":[{}],
-                  "defaultDataMask":{"filterState":{"value":"Last week"},"extraFormData":{"time_range":"Last week"}},
+                  "defaultDataMask":{"filterState":{},"extraFormData":{}},
                   "controlValues":{},
                   "cascadeParentIds":[],
-                  "scope":{"rootPath":["ROOT_ID"],"excluded":[]},
+                  "scope":{"rootPath":["ROOT_ID"],"excluded":[]}
                 }
               },
               "dataMask":{
                 "${filterId}":{
-                  "extraFormData":{"time_range":"Last week"},
-                  "filterState":{"value":"Last week"},
+                  "extraFormData":{},
+                  "filterState":{},
                   "ownState":{},
                   "id":"${filterId}"
                 }
@@ -190,7 +190,14 @@ describe('FilterBar', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     fetchMock.get(
-      'http://localhost/api/v1/time_range/?q=%27Last%20day%27',
+      'glob:*/api/v1/time_range/?q=%27No%20filter%27',
+      {
+        result: { since: '', until: '', timeRange: 'No filter' },
+      },
+      { overwriteRoutes: true },
+    );
+    fetchMock.get(
+      'glob:*/api/v1/time_range/?q=%27Last%20day%27',
       {
         result: {
           since: '2021-04-13T00:00:00',
@@ -201,7 +208,7 @@ describe('FilterBar', () => {
       { overwriteRoutes: true },
     );
     fetchMock.get(
-      'http://localhost/api/v1/time_range/?q=%27Last%20week%27',
+      'glob:*/api/v1/time_range/?q=%27Last%20week%27',
       {
         result: {
           since: '2021-04-07T00:00:00',
