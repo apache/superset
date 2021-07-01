@@ -20,7 +20,7 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import Icon from 'src/components/Icon';
+import { Icon } from 'src/common/components';
 
 export interface InfoTooltipProps {
   className?: string;
