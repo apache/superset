@@ -283,7 +283,7 @@ const SavedQueries = ({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.href = '/superset/sqllab';
+              window.location.href = '/superset/sqllab?new=true';
             },
           },
           {

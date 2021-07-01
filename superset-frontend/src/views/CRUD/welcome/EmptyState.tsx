@@ -43,7 +43,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
   const mineRedirects = {
     DASHBOARDS: '/dashboard/new',
     CHARTS: '/chart/add',
-    SAVED_QUERIES: '/superset/sqllab',
+    SAVED_QUERIES: '/superset/sqllab?new=true',
   };
   const favRedirects = {
     DASHBOARDS: '/dashboard/list/',
