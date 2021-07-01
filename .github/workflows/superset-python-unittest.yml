@@ -43,7 +43,7 @@ jobs:
           run: |
             apt-get-install
             pip-upgrade
-            pip install pytest pytest-cov
+            pip install -r requirements/testing.txt
             mkdir ${{ github.workspace }}/.temp
       - name: Python unit tests
         if: steps.check.outcome == 'failure'
