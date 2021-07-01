@@ -174,7 +174,6 @@ const IconsPane = styled.div`
     auto-fill,
     ${({ theme }) => theme.gridUnit * THUMBNAIL_GRID_UNITS}px
   );
-  grid-template-rows: repeat(auto-fill, max-content);
   grid-auto-rows: max-content;
   justify-content: space-evenly;
   grid-gap: ${({ theme }) => theme.gridUnit * 2}px;
