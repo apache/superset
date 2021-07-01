@@ -25,7 +25,7 @@ import { getInitialDataMask } from './reducer';
 export const UPDATE_DATA_MASK = 'UPDATE_DATA_MASK';
 export interface UpdateDataMask {
   type: typeof UPDATE_DATA_MASK;
-  filterId: string;
+  filterId: string | number;
   dataMask: DataMask;
 }
 
