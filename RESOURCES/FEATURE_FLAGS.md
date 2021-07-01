@@ -25,7 +25,6 @@ These features are considered **unfinished** and should only be used on developm
 - CLIENT_CACHE
 - DASHBOARD_CACHE
 - DASHBOARD_NATIVE_FILTERS_SET
-- DASHBOARD_RBAC
 - DISABLE_DATASET_SOURCE_EDIT
 - ENABLE_EXPLORE_JSON_CSRF_PROTECTION
 - KV_STORE
@@ -49,6 +48,7 @@ These features are **finished** but currently being tested. They are usable, but
 These features flags are **safe for production** and have been tested.
 
 - DASHBOARD_CROSS_FILTERS
+- DASHBOARD_RBAC [(docs)](https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#manage-access-to-dashboards)
 - ESCAPE_MARKDOWN_HTML
 - ENABLE_TEMPLATE_PROCESSING
 - LISTVIEWS_DEFAULT_CARD_VIEW
