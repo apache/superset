@@ -153,3 +153,12 @@ export const FilterValue = styled.div`
   overflow: auto;
   color: ${({ theme }) => theme.colors.grayscale.light5};
 `;
+
+export const FilterIndicatorText = styled.div`
+  padding-top: ${({ theme }) => theme.gridUnit * 3}px;
+  font-weight: ${({ theme }) => theme.typography.weights.bold};
+  max-width: 100%;
+  flex-grow: 1;
+  overflow: auto;
+  color: ${({ theme }) => theme.colors.grayscale.light5};
+`;
