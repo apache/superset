@@ -48,7 +48,7 @@ jobs:
       - name: Python unit tests
         if: steps.check.outcome == 'failure'
         run: |
-          pytest -m unittest --cache-clear
+          pytest -m unittest --cache-clear --rootdir=./tests/unit_tests
       - name: Upload code coverage
         if: steps.check.outcome == 'failure'
         run: |
