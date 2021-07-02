@@ -21,7 +21,9 @@ import Button from 'src/components/Button';
 import Select from 'src/components/Select';
 import { css, styled, t } from '@superset-ui/core';
 
-import VizTypeGallery from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
+import VizTypeGallery, {
+  MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
+} from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
 
 interface Datasource {
   label: string;
@@ -47,6 +49,7 @@ const StyledContainer = styled.div`
   justify-content: space-between;
   grid-template-rows: auto 1fr auto;
   width: 100%;
+  max-width: ${MAX_ADVISABLE_VIZ_GALLERY_WIDTH}px;
   border-radius: ${({ theme }) => theme.gridUnit}px;
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
   padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;

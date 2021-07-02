@@ -99,6 +99,8 @@ const typesWithDefaultOrder = new Set(DEFAULT_ORDER);
 
 const THUMBNAIL_GRID_UNITS = 24;
 
+export const MAX_ADVISABLE_VIZ_GALLERY_WIDTH = 1090;
+
 const OTHER_CATEGORY = t('Other');
 
 export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';

@@ -25,7 +25,9 @@ import { Tooltip } from 'src/components/Tooltip';
 import Label, { Type } from 'src/components/Label';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import './VizTypeControl.less';
-import VizTypeGallery from './VizTypeGallery';
+import VizTypeGallery, {
+  MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
+} from './VizTypeGallery';
 
 const propTypes = {
   description: PropTypes.string,
@@ -122,7 +124,7 @@ const VizTypeControl = (props: VizTypeControlProps) => {
         title={t('Select a visualization type')}
         primaryButtonName={t('Select')}
         onHandledPrimaryAction={onSubmit}
-        maxWidth="1090px"
+        maxWidth={`${MAX_ADVISABLE_VIZ_GALLERY_WIDTH}px`}
         responsive
       >
         <VizTypeGallery value={selectedViz} onChange={setSelectedViz} />
