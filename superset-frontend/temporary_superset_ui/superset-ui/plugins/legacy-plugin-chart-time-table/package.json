@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-time-table",
-  "version": "0.17.61",
+  "version": "0.17.63",
   "description": "Superset Chart Plugin - Time Table",
   "sideEffects": [
     "*.css"
