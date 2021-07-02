@@ -279,11 +279,7 @@ class DatabaseParametersSchemaMixin:
             # validate parameters
             parameters = engine_spec.parameters_schema.load(parameters)  # type: ignore
 
-            serialized_encrypted_extra = (
-                data.get("encrypted_extra", "{}")
-                if data.get("encrypted_extra")
-                else "{}"
-            )
+            serialized_encrypted_extra = data.get("encrypted_extra") or "{}"
             try:
                 encrypted_extra = json.loads(serialized_encrypted_extra)
             except json.decoder.JSONDecodeError:

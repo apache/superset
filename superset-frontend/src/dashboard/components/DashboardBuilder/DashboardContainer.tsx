@@ -68,22 +68,24 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, [getLeafComponentIdFromPath(directPathToChild)]);
 
   // recalculate charts and tabs in scopes of native filters only when a scope or dashboard layout changes
-  const nativeFiltersValues = Object.values(nativeFilters);
-  const scopes = nativeFiltersValues.map(filter => filter.scope);
+  const filterScopes = Object.values(nativeFilters).map(filter => ({
+    id: filter.id,
+    scope: filter.scope,
+  }));
   useEffect(() => {
     if (
       !isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) ||
-      nativeFiltersValues.length === 0
+      filterScopes.length === 0
     ) {
       return;
     }
-    const filterScopes = nativeFiltersValues.map(filter => {
-      const filterScope = filter.scope;
+    const scopes = filterScopes.map(filterScope => {
+      const { scope } = filterScope;
       const chartsInScope: number[] = getChartIdsInFilterScope({
         filterScope: {
-          scope: filterScope.rootPath,
+          scope: scope.rootPath,
           // @ts-ignore
-          immune: filterScope.excluded,
+          immune: scope.excluded,
         },
       });
       const tabsInScope = findTabsWithChartsInScope(
@@ -91,13 +93,13 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
         chartsInScope,
       );
       return {
-        filterId: filter.id,
+        filterId: filterScope.id,
         tabsInScope: Array.from(tabsInScope),
         chartsInScope,
       };
     });
-    dispatch(setInScopeStatusOfFilters(filterScopes));
-  }, [JSON.stringify(scopes), JSON.stringify(dashboardLayout)]);
+    dispatch(setInScopeStatusOfFilters(scopes));
+  }, [JSON.stringify(filterScopes), dashboardLayout, dispatch]);
 
   const childIds: string[] = topLevelTabs
     ? topLevelTabs.children

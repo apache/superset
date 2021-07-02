@@ -90,7 +90,8 @@ const errorAlertMapping = {
     description: 'Please verify that port is open to connect.',
   },
   CONNECTION_INVALID_PORT_ERROR: {
-    message: 'The port must be a whole number less than or equal to 65535.',
+    message: 'Invalid Port Number',
+    description: 'The port must be a whole number less than or equal to 65535.',
   },
   CONNECTION_ACCESS_DENIED_ERROR: {
     message: 'Invalid account information',
@@ -99,6 +100,10 @@ const errorAlertMapping = {
   CONNECTION_INVALID_PASSWORD_ERROR: {
     message: 'Invalid account information',
     description: 'Either the username or password is incorrect.',
+  },
+  INVALID_PAYLOAD_SCHEMA: {
+    message: 'Incorrect Fields',
+    description: 'Please make sure all fields are filled out correctly',
   },
 };
 interface DatabaseModalProps {
@@ -175,7 +180,6 @@ function dbReducer(
     ...(state || {}),
   };
   let query = '';
-
   switch (action.type) {
     case ActionType.extraEditorChange:
       return {
@@ -266,10 +270,13 @@ function dbReducer(
         ).toString();
       }
 
-      if (action.payload.backend === 'bigquery') {
+      if (
+        action.payload.backend === 'bigquery' &&
+        action.payload.configuration_method ===
+          CONFIGURATION_METHOD.DYNAMIC_FORM
+      ) {
         return {
           ...action.payload,
-          encrypted_extra: '',
           engine: action.payload.backend,
           configuration_method: action.payload.configuration_method,
           extra_json: deserializeExtraJSON,
@@ -425,9 +432,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const engine = dbToUpdate.backend || dbToUpdate.engine;
       if (engine === 'bigquery' && dbToUpdate.parameters?.credentials_info) {
         // wrap encrypted_extra in credentials_info only for BigQuery
-        dbToUpdate.encrypted_extra = JSON.stringify({
-          credentials_info: JSON.parse(dbToUpdate.parameters?.credentials_info),
-        });
+        if (
+          dbToUpdate.parameters?.credentials_info &&
+          typeof dbToUpdate.parameters?.credentials_info === 'object' &&
+          dbToUpdate.parameters?.credentials_info.constructor === Object
+        ) {
+          // Don't cast if object
+          dbToUpdate.encrypted_extra = JSON.stringify({
+            credentials_info: dbToUpdate.parameters?.credentials_info,
+          });
+
+          // Convert credentials info string before updating
+          dbToUpdate.parameters.credentials_info = JSON.stringify(
+            dbToUpdate.parameters.credentials_info,
+          );
+        } else {
+          dbToUpdate.encrypted_extra = JSON.stringify({
+            credentials_info: JSON.parse(
+              dbToUpdate.parameters?.credentials_info,
+            ),
+          });
+        }
       }
     }
 
@@ -643,7 +668,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           <StyledFooterButton
             key="submit"
             buttonStyle="primary"
-            onClick={onClose}
+            onClick={onSave}
             data-test="modal-confirm-button"
           >
             Finish
