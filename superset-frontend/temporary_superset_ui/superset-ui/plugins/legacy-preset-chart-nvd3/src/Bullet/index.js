@@ -22,13 +22,13 @@ import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
-  category: t('Relationship'),
+  category: t('KPI'),
   credits: ['http://nvd3.org'],
   description: t(
-    'Visualize three dimensions of data in a single chart: x-axis, y-axis, and bubble size.',
+    'Showcases the progress of a single metric against a given target. The higher the fill, the closer the metric is to the target.',
   ),
   name: t('Bullet Chart'),
-  tags: [t('Business')],
+  tags: [t('Business'), t('Legacy'), t('Report'), t('nvd3')],
   thumbnail,
   useLegacyApi: true,
 });

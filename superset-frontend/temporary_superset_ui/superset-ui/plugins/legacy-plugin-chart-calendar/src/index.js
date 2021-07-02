@@ -22,12 +22,13 @@ import controlPanel from './controlPanel';
 import thumbnail from './images/thumbnail.png';
 
 const metadata = new ChartMetadata({
-  category: t('Time Series'),
+  category: t('Correlation'),
   credits: ['https://github.com/wa0x6e/cal-heatmap'],
   description: t(
-    'Displays periods of activity by using a color scale (shading) to highlight the most and least dates on a calendar.',
+    "Visualizes how a metric has changed over a time using a color scale and a calendar view. Gray values are used to indicate missing values and the linear color scheme is used to encode the magnitude of each day's value.",
   ),
   name: t('Calendar Heatmap'),
+  tags: [t('Business'), t('Comparison'), t('Intensity'), t('Pattern'), t('Report'), t('Trend')],
   thumbnail,
   useLegacyApi: true,
 });
