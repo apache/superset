@@ -22,8 +22,6 @@ import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
 import {
   EditHeaderTitle,
   EditHeaderSubtitle,
-  CreateHeaderTitle,
-  CreateHeaderSubtitle,
   StyledFormHeader,
   StyledStickyHeader,
 } from './styles';
@@ -79,9 +77,9 @@ const ModalHeader = ({
   );
   const useSqlAlchemyFormHeader = (
     <StyledFormHeader>
-      <p className="helper"> STEP 2 OF 2 </p>
-      <CreateHeaderTitle>Enter Primary Credentials</CreateHeaderTitle>
-      <CreateHeaderSubtitle>
+      <p className="helper-top"> STEP 2 OF 2 </p>
+      <h4>Enter Primary Credentials</h4>
+      <p className="helper-bottom">
         Need help? Learn how to connect your database{' '}
         <a
           href={supersetTextDocs?.default || DOCUMENTATION_LINK}
@@ -91,18 +89,18 @@ const ModalHeader = ({
           here
         </a>
         .
-      </CreateHeaderSubtitle>
+      </p>
     </StyledFormHeader>
   );
   const hasConnectedDbHeader = (
     <StyledStickyHeader>
       <StyledFormHeader>
-        <p className="helper"> STEP 3 OF 3 </p>
-        <h4>
+        <p className="helper-top"> STEP 3 OF 3 </p>
+        <h4 className="step-3-text">
           Your database was successfully connected! Here are some optional
           settings for your database
         </h4>
-        <p className="helper">
+        <p className="helper-bottom">
           Need help? Learn more about{' '}
           <a
             href={documentationLink(db?.engine)}
@@ -118,9 +116,9 @@ const ModalHeader = ({
   const hasDbHeader = (
     <StyledStickyHeader>
       <StyledFormHeader>
-        <p className="helper"> STEP 2 OF 3 </p>
+        <p className="helper-top"> STEP 2 OF 3 </p>
         <h4>Enter the required {dbModel.name} credentials</h4>
-        <p className="helper">
+        <p className="helper-bottom">
           Need help? Learn more about{' '}
           <a
             href={documentationLink(db?.engine)}
@@ -136,7 +134,7 @@ const ModalHeader = ({
   const noDbHeader = (
     <StyledFormHeader>
       <div className="select-db">
-        <p className="helper"> STEP 1 OF 3 </p>
+        <p className="helper-top"> STEP 1 OF 3 </p>
         <h4>Select a database to connect</h4>
       </div>
     </StyledFormHeader>

@@ -67,7 +67,7 @@ import {
   TabHeader,
   formHelperStyles,
   formStyles,
-  StyledBasicTab,
+  StyledAlignment,
   SelectDatabaseStyles,
   infoTooltip,
   StyledFooterButton,
@@ -864,9 +864,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onTabClick={tabChange}
         animated={{ inkBar: true, tabPane: true }}
       >
-        <StyledBasicTab tab={<span>{t('Basic')}</span>} key="1">
+        <Tabs.TabPane tab={<span>{t('Basic')}</span>} key="1">
           {useSqlAlchemyForm ? (
-            <>
+            <StyledAlignment>
               <SqlAlchemyForm
                 db={db as DatabaseObject}
                 onInputChange={({ target }: { target: HTMLInputElement }) =>
@@ -908,7 +908,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   />
                 </div>
               )}
-            </>
+            </StyledAlignment>
           ) : (
             <DatabaseConnectionForm
               isEditMode
@@ -958,7 +958,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               type="info"
             />
           )}
-        </StyledBasicTab>
+        </Tabs.TabPane>
         <Tabs.TabPane tab={<span>{t('Advanced')}</span>} key="2">
           <ExtraOptions
             db={db as DatabaseObject}
@@ -1116,7 +1116,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     tooltip={t(
                       'Click this link to switch to an alternate form that allows you to input the SQLAlchemy URL for this database manually.',
                     )}
-                    viewBox="6 3 24 24"
+                    viewBox="6 4 24 24"
                   />
                 </div>
                 {/* Step 2 */}
