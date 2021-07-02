@@ -24,7 +24,7 @@ const metadata = new ChartMetadata({
   category: t('Table'),
   name: t('Time-series Table'),
   description: t(
-    'Compare multiple time series charts and related metrics quickly.',
+    'Compare multiple time series charts (as sparklines) and related metrics quickly.',
   ),
   tags: [
     t('Advanced-Analytics'),
