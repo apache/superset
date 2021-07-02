@@ -23,7 +23,7 @@ import example from './images/Big_Number_Trendline.jpg';
 import thumbnail from './images/thumbnail.png';
 
 const metadata = new ChartMetadata({
-  category: t('Time Series'),
+  category: t('KPI'),
   description: t(
     'Showcases a single number accompanied by a simple line chart, to call attention to an important metric along with its change over time or other dimension.',
   ),
