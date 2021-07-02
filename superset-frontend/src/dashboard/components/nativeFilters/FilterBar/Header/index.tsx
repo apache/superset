@@ -21,9 +21,8 @@ import { styled, t, useTheme } from '@superset-ui/core';
 import React, { FC } from 'react';
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
-import { updateDataMask } from 'src/dataMask/actions';
+import { clearDataMask } from 'src/dataMask/actions';
 import { useDispatch, useSelector } from 'react-redux';
-import { getInitialDataMask } from 'src/dataMask/reducer';
 import { DataMaskState, DataMaskStateWithId } from 'src/dataMask/types';
 import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
@@ -93,16 +92,7 @@ const Header: FC<HeaderProps> = ({
     const filterIds = Object.keys(dataMaskSelected);
     filterIds.forEach(filterId => {
       if (dataMaskSelected[filterId]) {
-        dispatch(
-          updateDataMask(
-            filterId,
-            getInitialDataMask(filterId, {
-              filterState: {
-                value: null,
-              },
-            }),
-          ),
-        );
+        dispatch(clearDataMask(filterId));
       }
     });
   };
