@@ -40,6 +40,7 @@ import {
   getChartPadding,
   getColtypesMapping,
   getLegendProps,
+  sanitizeHtml,
 } from '../utils/series';
 import { defaultGrid, defaultTooltip } from '../defaults';
 
@@ -54,7 +55,8 @@ export function formatPieLabel({
   labelType: EchartsPieLabelType;
   numberFormatter: NumberFormatter;
 }): string {
-  const { name = '', value, percent } = params;
+  const { name: rawName = '', value, percent } = params;
+  const name = sanitizeHtml(rawName);
   const formattedValue = numberFormatter(value as number);
   const formattedPercent = percentFormatter((percent as number) / 100);
 

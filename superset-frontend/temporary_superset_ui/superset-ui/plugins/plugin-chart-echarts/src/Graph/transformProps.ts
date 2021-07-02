@@ -34,7 +34,7 @@ import {
 } from './types';
 import { DEFAULT_GRAPH_SERIES_OPTION } from './constants';
 import { EchartsProps } from '../types';
-import { getChartPadding, getLegendProps } from '../utils/series';
+import { getChartPadding, getLegendProps, sanitizeHtml } from '../utils/series';
 
 type EdgeWithStyles = GraphEdgeItemOption & {
   lineStyle: Exclude<GraphEdgeItemOption['lineStyle'], undefined>;
@@ -127,7 +127,9 @@ function edgeFormatter(
 ): string {
   const source = Number(sourceIndex);
   const target = Number(targetIndex);
-  return `${getKeyByValue(nodes, source)} > ${getKeyByValue(nodes, target)} : ${value}`;
+  return `${sanitizeHtml(getKeyByValue(nodes, source))} > ${sanitizeHtml(
+    getKeyByValue(nodes, target),
+  )} : ${value}`;
 }
 
 function getCategoryName(columnName: string, name?: DataRecordValue) {
