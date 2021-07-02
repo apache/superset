@@ -127,6 +127,13 @@ const LeftPane = styled.div`
   flex-direction: column;
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   padding: ${({ theme }) => theme.gridUnit * 2}px;
+  overflow: hidden;
+`;
+
+const CategoriesWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
 `;
 
 const SearchWrapper = styled.div`
@@ -444,14 +451,16 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
             }
           />
         </SearchWrapper>
-        {categories.map(category => (
-          <CategorySelector
-            key={category}
-            category={category}
-            isSelected={!isSearching && category === activeCategory}
-            onClick={selectCategory}
-          />
-        ))}
+        <CategoriesWrapper>
+          {categories.map(category => (
+            <CategorySelector
+              key={category}
+              category={category}
+              isSelected={!isSearching && category === activeCategory}
+              onClick={selectCategory}
+            />
+          ))}
+        </CategoriesWrapper>
       </LeftPane>
 
       <ThumbnailGallery
