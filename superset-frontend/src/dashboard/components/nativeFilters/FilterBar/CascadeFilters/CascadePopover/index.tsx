@@ -20,7 +20,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { styled, t, DataMask } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
 import Icons from 'src/components/Icons';
-import Icon from 'src/components/Icon';
 import { Pill } from 'src/dashboard/components/FiltersBadge/Styles';
 import { DataMaskStateWithId } from 'src/dataMask/types';
 import FilterControl from 'src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControl';
@@ -170,7 +169,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   const title = (
     <StyledTitleBox>
       <StyledTitle>
-        <StyledEditIcon iconSize="m" />
+        <StyledEditIcon iconSize="l" />
         {t('Select parent filters')} ({allFilters.length})
       </StyledTitle>
       <StyledCloseIcon iconSize="l" onClick={() => onVisibleChange(false)} />
