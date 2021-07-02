@@ -24,8 +24,9 @@ import AddSliceContainer, {
   AddSliceContainerProps,
   AddSliceContainerState,
 } from 'src/addSlice/AddSliceContainer';
-import VizTypeControl from 'src/explore/components/controls/VizTypeControl';
+import VizTypeGallery from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
 import { styledMount as mount } from 'spec/helpers/theming';
+import { act } from 'spec/helpers/testing-library';
 
 const defaultProps = {
   datasources: [
@@ -41,12 +42,14 @@ describe('AddSliceContainer', () => {
     AddSliceContainer
   >;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     wrapper = mount(<AddSliceContainer {...defaultProps} />) as ReactWrapper<
       AddSliceContainerProps,
       AddSliceContainerState,
       AddSliceContainer
     >;
+    // suppress a warning caused by some unusual async behavior in Icon
+    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
   });
 
   it('uses table as default visType', () => {
@@ -55,7 +58,7 @@ describe('AddSliceContainer', () => {
 
   it('renders a select and a VizTypeControl', () => {
     expect(wrapper.find(Select)).toExist();
-    expect(wrapper.find(VizTypeControl)).toExist();
+    expect(wrapper.find(VizTypeGallery)).toExist();
   });
 
   it('renders a button', () => {
