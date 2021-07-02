@@ -19,7 +19,6 @@
 
 import { styled, css, SupersetTheme } from '@superset-ui/core';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
-import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
 
 const CTAS_CVAS_SCHEMA_FORM_HEIGHT = 102;
@@ -42,26 +41,38 @@ export const StyledFormHeader = styled.header`
   padding: ${({ theme }) => theme.gridUnit * 2}px
     ${({ theme }) => theme.gridUnit * 4}px;
   line-height: ${({ theme }) => theme.gridUnit * 6}px;
-  .helper {
+
+  .helper-top {
+    padding-bottom: 0;
     color: ${({ theme }) => theme.colors.grayscale.base};
     font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
     margin: 0;
   }
+
+  .helper-bottom {
+    padding-top: 0;
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    margin: 0;
+  }
+
   h4 {
     color: ${({ theme }) => theme.colors.grayscale.dark2};
     font-weight: bold;
     font-size: ${({ theme }) => theme.typography.sizes.l}px;
     margin: 0;
     padding: 0;
+    line-height: ${({ theme }) => theme.gridUnit * 8}px;
   }
 
   .select-db {
-    padding: ${({ theme }) => theme.gridUnit}px;
+    padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
     .helper {
       margin: 0;
     }
+
     h4 {
-      margin: 0 0 ${({ theme }) => theme.gridUnit * 6}px;
+      margin: 0 0 ${({ theme }) => theme.gridUnit * 4}px;
     }
   }
 `;
@@ -377,7 +388,7 @@ export const StyledExpandableForm = styled.div`
   }
 `;
 
-export const StyledBasicTab = styled(Tabs.TabPane)`
+export const StyledAlignment = styled.div`
   padding: 0 ${({ theme }) => theme.gridUnit * 4}px;
   margin-top: ${({ theme }) => theme.gridUnit * 6}px;
 `;
