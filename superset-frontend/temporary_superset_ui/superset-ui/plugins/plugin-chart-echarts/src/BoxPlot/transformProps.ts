@@ -30,7 +30,7 @@ import {
   BoxPlotQueryFormData,
   EchartsBoxPlotChartProps,
 } from './types';
-import { extractGroupbyLabel, getColtypesMapping } from '../utils/series';
+import { extractGroupbyLabel, getColtypesMapping, sanitizeHtml } from '../utils/series';
 import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
 
 export default function transformProps(
@@ -103,7 +103,9 @@ export default function transformProps(
           tooltip: {
             formatter: (param: { data: [string, number] }) => {
               const [outlierName, stats] = param.data;
-              const headline = groupby ? `<p><strong>${outlierName}</strong></p>` : '';
+              const headline = groupby
+                ? `<p><strong>${sanitizeHtml(outlierName)}</strong></p>`
+                : '';
               return `${headline}${numberFormatter(stats)}`;
             },
           },
@@ -161,7 +163,7 @@ export default function transformProps(
             value: [number, number, number, number, number, number, number, number, number[]];
             name: string;
           } = param;
-          const headline = name ? `<p><strong>${name}</strong></p>` : '';
+          const headline = name ? `<p><strong>${sanitizeHtml(name)}</strong></p>` : '';
           const stats = [
             `Max: ${numberFormatter(value[5])}`,
             `3rd Quartile: ${numberFormatter(value[4])}`,
