@@ -105,10 +105,9 @@ describe('VizTypeControl', () => {
 
     const visualizations = screen.getByTestId(getTestId('viz-row'));
 
+    userEvent.click(screen.getByRole('button', { name: 'Table' }));
+
     expect(visualizations).toHaveTextContent(/Time-series Table/);
-    expect(visualizations).toHaveTextContent(/Time-series Chart/);
-    expect(visualizations).toHaveTextContent(/Mixed timeseries chart/);
-    expect(visualizations).toHaveTextContent(/Line Chart/);
 
     const searchInputText = 'time series';
 

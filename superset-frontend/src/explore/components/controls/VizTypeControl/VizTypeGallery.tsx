@@ -326,6 +326,7 @@ const CategorySelector: React.FC<{
 }> = ({ category, isSelected, onClick }) => (
   <CategoryLabel
     key={category}
+    name={category}
     className={isSelected ? 'selected' : ''}
     onClick={() => onClick(category)}
   >
@@ -385,7 +386,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   );
 
   const [activeCategory, setActiveCategory] = useState<string>(
-    () => selectedVizMetadata?.category || OTHER_CATEGORY,
+    () => selectedVizMetadata?.category || categories[0],
   );
 
   const fuse = useMemo(
@@ -403,7 +404,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
       return chartMetadata;
     }
     return fuse.search(searchInputValue).map(result => result.item);
-  }, [searchInputValue, fuse]);
+  }, [searchInputValue, fuse, chartMetadata]);
 
   const startSearching = useCallback(() => {
     setIsSearching(true);
