@@ -75,6 +75,8 @@ const CrossFilterIcon = styled(Icon)`
   & circle {
     fill: ${({ theme }) => theme.colors.primary.base};
   }
+  height: 22px;
+  width: 22px;
 `;
 
 const SliceHeader: FC<SliceHeaderProps> = ({
@@ -167,7 +169,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                       value: crossFilterValue,
                       name: t('Emitted values'),
                     }}
-                    text={t('Click to clear emitted filter')}
+                    text={t('Click to clear emitted filters')}
                   />
                 }
               >
