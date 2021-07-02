@@ -6,7 +6,7 @@
     "plugins/*"
   ],
   "useWorkspaces": true,
-  "version": "0.17.60",
+  "version": "0.17.61",
   "ignoreChanges": [
     "**/*.md",
     "**/*.spec.tsx?",
