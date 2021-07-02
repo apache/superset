@@ -60,7 +60,14 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
 from sqlalchemy.schema import UniqueConstraint
-from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
+from sqlalchemy.sql import (
+    column,
+    ColumnElement,
+    literal_column,
+    quoted_name,
+    table,
+    text,
+)
 from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom, TextClause
 from sqlalchemy.sql.selectable import Alias, TableClause
@@ -912,16 +919,25 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         self, sqla_col: Column, label: Optional[str] = None
     ) -> Column:
         """Takes a sqlalchemy column object and adds label info if supported by engine.
+        also adds quotes to the column if engine is configured for quotes.
         :param sqla_col: sqlalchemy column instance
         :param label: alias/label that column is expected to have
         :return: either a sql alchemy column or label instance if supported by engine
         """
         label_expected = label or sqla_col.name
         db_engine_spec = self.db_engine_spec
+
+        # add quotes to column
+        if db_engine_spec.force_column_alias_quotes:
+            sqla_col = column(
+                quoted_name(sqla_col.name, True), sqla_col.type, sqla_col.is_literal
+            )
+
         # add quotes to tables
         if db_engine_spec.allows_alias_in_select:
             label = db_engine_spec.make_label_compatible(label_expected)
             sqla_col = sqla_col.label(label)
+
         sqla_col.key = label_expected
         return sqla_col
 
