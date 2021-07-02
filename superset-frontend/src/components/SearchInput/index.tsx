@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { styled, useTheme } from '@superset-ui/core';
 import React from 'react';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 
 export interface SearchInputProps {
   onSubmit: () => void;
@@ -53,17 +53,18 @@ const commonStyles = `
   display: block;
   cursor: pointer;
 `;
-const SearchIcon = styled(Icon)`
+const SearchIcon = styled(Icons.Search)`
   ${commonStyles};
   top: 4px;
   left: 2px;
 `;
 
-const ClearIcon = styled(Icon)`
+const ClearIcon = styled(Icons.CancelX)`
   ${commonStyles};
   right: 0px;
   top: 4px;
 `;
+
 
 export default function SearchInput({
   onChange,
@@ -73,12 +74,13 @@ export default function SearchInput({
   name,
   value,
 }: SearchInputProps) {
+  const theme = useTheme();
   return (
     <SearchInputWrapper>
       <SearchIcon
+        iconColor={theme.colors.grayscale.base}
         data-test="search-submit"
         role="button"
-        name="search"
         onClick={() => onSubmit()}
       />
       <StyledInput
@@ -98,7 +100,7 @@ export default function SearchInput({
         <ClearIcon
           data-test="search-clear"
           role="button"
-          name="cancel-x"
+          iconColor={theme.colors.grayscale.base}
           onClick={() => onClear()}
         />
       )}
