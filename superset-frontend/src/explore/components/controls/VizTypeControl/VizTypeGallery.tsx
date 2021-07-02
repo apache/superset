@@ -378,7 +378,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   );
 
   const [activeCategory, setActiveCategory] = useState<string>(
-    () => selectedVizMetadata.category || OTHER_CATEGORY,
+    () => selectedVizMetadata?.category || OTHER_CATEGORY,
   );
 
   const fuse = useMemo(
