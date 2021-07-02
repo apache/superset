@@ -25,10 +25,20 @@ import thumbnail from './images/thumbnail.png';
 const metadata = new ChartMetadata({
   category: t('Time Series'),
   description: t(
-    'A single number accompanied by a simple line chart, to call attention to an important metric along with its change over time or another dimension. If you find yourself using a lot of big numbers on a dashboard, a more visual chart may help you make your dashboard more informative.',
+    'Showcases a single number accompanied by a simple line chart, to call attention to an important metric along with its change over time or other dimension.',
   ),
   exampleGallery: [{ url: example }],
   name: t('Big Number with Trendline'),
+  tags: [
+    t('Advanced-Analytics'),
+    t('Formattable'),
+    t('Line'),
+    t('Percentages'),
+    t('Popular'),
+    t('Report'),
+    t('Text'),
+    t('Trend'),
+  ],
   thumbnail,
   useLegacyApi: true,
 });

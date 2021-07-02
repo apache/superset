@@ -19,6 +19,9 @@
 import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import example1 from './images/Table.jpg';
+import example2 from './images/Table2.jpg';
+import example3 from './images/Table3.jpg';
 import controlPanel from './controlPanel';
 import buildQuery from './buildQuery';
 import { TableChartFormData, TableChartProps } from './types';
@@ -29,9 +32,24 @@ export * from './types';
 
 const metadata = new ChartMetadata({
   behaviors: [Behavior.INTERACTIVE_CHART],
+  category: t('Table'),
   canBeAnnotationTypes: ['EVENT', 'INTERVAL'],
-  description: '',
+  description: t(
+    'Classic row-by-column spreadsheet like view of a dataset. Use tables to showcase a view into the underlying data or to show aggregated metrics.',
+  ),
+  exampleGallery: [{ url: example1 }, { url: example2 }, { url: example3 }],
   name: t('Table'),
+  tags: [
+    t('Additive'),
+    t('Business'),
+    t('Formattable'),
+    t('Pattern'),
+    t('Popular'),
+    t('Report'),
+    t('Sequential'),
+    t('Tabular'),
+    t('Text'),
+  ],
   thumbnail,
 });
 

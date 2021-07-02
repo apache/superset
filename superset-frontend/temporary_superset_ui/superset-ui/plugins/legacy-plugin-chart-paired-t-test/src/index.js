@@ -22,8 +22,10 @@ import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  category: t('Correlation'),
   description: '',
   name: t('Paired t-test Table'),
+  tags: [t('Legacy'), t('Statistical'), t('Tabular')],
   thumbnail,
   useLegacyApi: true,
 });
