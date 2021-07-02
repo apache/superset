@@ -332,6 +332,9 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   const [searchInputValue, setSearchInputValue] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
+  const selectedVizMetadata: ChartMetadata | undefined =
+    mountedPluginMetadata[selectedViz];
+
   const changeSearch: ChangeEventHandler<HTMLInputElement> = useCallback(
     event => {
       setSearchInputValue(event.target.value);
@@ -375,7 +378,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   );
 
   const [activeCategory, setActiveCategory] = useState<string>(
-    () => categories[0],
+    () => selectedVizMetadata.category || OTHER_CATEGORY,
   );
 
   const fuse = useMemo(
@@ -411,9 +414,6 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     },
     [stopSearching],
   );
-
-  const selectedVizMetadata: ChartMetadata | undefined =
-    mountedPluginMetadata[selectedViz];
 
   const vizEntriesToDisplay = isSearching
     ? searchResults
