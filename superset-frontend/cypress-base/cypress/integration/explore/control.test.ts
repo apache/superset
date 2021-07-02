@@ -101,6 +101,7 @@ describe('VizType control', () => {
 
     cy.get('[data-test="visualization-type"]').contains('Table').click();
 
+    cy.get('[role="button"]').contains('Evolution').click(); // change categories
     cy.get('[role="button"]').contains('Line Chart').click();
     cy.get('button').contains('Select').click();
 
