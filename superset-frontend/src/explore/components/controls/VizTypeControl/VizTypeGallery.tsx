@@ -393,7 +393,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
 
   const searchResults = useMemo(() => {
     if (searchInputValue.trim() === '') {
-      return [];
+      return chartMetadata;
     }
     return fuse.search(searchInputValue).map(result => result.item);
   }, [searchInputValue, fuse]);
