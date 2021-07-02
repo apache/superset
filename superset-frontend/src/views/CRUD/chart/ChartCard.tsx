@@ -134,7 +134,7 @@ export default function ChartCard({
   return (
     <CardStyles
       onClick={() => {
-        if (!bulkSelectEnabled) {
+        if (!bulkSelectEnabled && chart.url) {
           window.location.href = chart.url;
         }
       }}
