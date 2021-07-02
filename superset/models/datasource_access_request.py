@@ -23,7 +23,6 @@ from sqlalchemy import Column, Integer, String
 from superset import app, db, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models.helpers import AuditMixinNullable
-from superset.utils import core as utils
 from superset.utils.memoized import memoized
 
 if TYPE_CHECKING:

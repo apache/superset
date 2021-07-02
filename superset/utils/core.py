@@ -18,7 +18,6 @@
 import collections
 import decimal
 import errno
-import functools
 import json
 import logging
 import os
