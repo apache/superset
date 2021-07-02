@@ -169,7 +169,7 @@ Unable to connect: Adaptive Server is unavailable or does not exist (locahost)
                 message='The hostname "locahost" cannot be resolved.',
                 level=ErrorLevel.ERROR,
                 extra={
-                    "engine_name": "Microsoft SQL",
+                    "engine_name": "Microsoft SQL Server",
                     "issue_codes": [
                         {
                             "code": 1007,
@@ -199,7 +199,7 @@ Net-Lib error during Connection refused (61)
                 message='Port 12345 on hostname "localhost" refused the connection.',
                 level=ErrorLevel.ERROR,
                 extra={
-                    "engine_name": "Microsoft SQL",
+                    "engine_name": "Microsoft SQL Server",
                     "issue_codes": [
                         {"code": 1008, "message": "Issue 1008 - The port is closed."}
                     ],
@@ -229,7 +229,7 @@ Net-Lib error during Operation timed out (60)
                 ),
                 level=ErrorLevel.ERROR,
                 extra={
-                    "engine_name": "Microsoft SQL",
+                    "engine_name": "Microsoft SQL Server",
                     "issue_codes": [
                         {
                             "code": 1009,
@@ -262,7 +262,7 @@ Net-Lib error during Operation timed out (60)
                 ),
                 level=ErrorLevel.ERROR,
                 extra={
-                    "engine_name": "Microsoft SQL",
+                    "engine_name": "Microsoft SQL Server",
                     "issue_codes": [
                         {
                             "code": 1009,
@@ -292,7 +292,7 @@ Adaptive Server connection failed (mssqldb.cxiotftzsypc.us-west-2.rds.amazonaws.
                 error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={
-                    "engine_name": "Microsoft SQL",
+                    "engine_name": "Microsoft SQL Server",
                     "issue_codes": [
                         {
                             "code": 1014,

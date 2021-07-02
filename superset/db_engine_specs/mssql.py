@@ -44,7 +44,7 @@ CONNECTION_HOST_DOWN_REGEX = re.compile(
 
 class MssqlEngineSpec(BaseEngineSpec):
     engine = "mssql"
-    engine_name = "Microsoft SQL"
+    engine_name = "Microsoft SQL Server"
     limit_method = LimitMethod.WRAP_SQL
     max_column_name_length = 128
 
@@ -126,3 +126,9 @@ class MssqlEngineSpec(BaseEngineSpec):
                 "have an alias on MSSQL. For example: SELECT COUNT(*) AS C1 FROM TABLE1"
             )
         return f"{cls.engine} error: {cls._extract_error_message(ex)}"
+
+
+class AzureSynapseSpec(MssqlEngineSpec):
+    engine = "mssql"
+    engine_name = "Azure Synapse"
+    default_driver = "pyodbc"

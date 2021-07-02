@@ -986,7 +986,7 @@ class TestDatabaseApi(SupersetTestCase):
         expected_response = {
             "errors": [
                 {
-                    "message": "Could not load database driver: MssqlEngineSpec",
+                    "message": "Could not load database driver: AzureSynapseSpec",
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
