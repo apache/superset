@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import re
-from typing import Any, Dict, Optional, Pattern, Tuple
+from contextlib import closing
+from typing import Any, Dict, Optional, Pattern, Tuple, TYPE_CHECKING
 
 from flask_babel import gettext as __
 from sqlalchemy.engine.url import URL
@@ -23,6 +25,10 @@ from sqlalchemy.engine.url import URL
 from superset import security_manager
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import SupersetErrorType
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
+
 
 SYNTAX_ERROR_REGEX = re.compile('SQLError: near "(?P<server_error>.*?)": syntax error')
 
@@ -54,3 +60,20 @@ class GSheetsEngineSpec(SqliteEngineSpec):
             user = security_manager.find_user(username=username)
             if user and user.email:
                 url.query["subject"] = user.email
+
+    @classmethod
+    def extra_table_metadata(
+        cls, database: "Database", table_name: str, schema_name: str,
+    ) -> Dict[str, Any]:
+        engine = cls.get_engine(database, schema=schema_name)
+        with closing(engine.raw_connection()) as conn:
+            cursor = conn.cursor()
+            cursor.execute(f'SELECT GET_METADATA("{table_name}")')
+            results = cursor.fetchone()[0]
+
+        try:
+            metadata = json.loads(results)
+        except Exception:  # pylint: disable=broad-except
+            metadata = {}
+
+        return {"metadata": metadata["extra"]}
