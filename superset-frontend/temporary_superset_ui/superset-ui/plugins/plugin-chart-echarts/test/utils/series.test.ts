@@ -24,9 +24,11 @@ import {
   formatSeriesName,
   getChartPadding,
   getLegendProps,
+  sanitizeHtml,
 } from '../../src/utils/series';
 import { LegendOrientation, LegendType } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
+import { NULL_STRING } from '../../lib/constants';
 
 describe('extractTimeseriesSeries', () => {
   it('should generate a valid ECharts timeseries series object', () => {
@@ -348,6 +350,12 @@ describe('formatSeriesName', () => {
           },
         ]),
       ).toEqual([{ id: 'foo' }, { id: 'bar' }, { id: 'foo (1)' }, { id: 'foo (2)' }]);
+    });
+  });
+
+  describe('sanitizeHtml', () => {
+    it('should remove html tags from series name', () => {
+      expect(sanitizeHtml(NULL_STRING)).toEqual('&lt;NULL&gt;');
     });
   });
 });
