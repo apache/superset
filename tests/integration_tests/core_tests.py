@@ -25,6 +25,9 @@ import json
 import logging
 from typing import Dict, List
 from urllib.parse import quote
+
+from sqlalchemy.sql import column, quoted_name, literal_column
+from sqlalchemy import select
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
 )
@@ -40,7 +43,7 @@ import pandas as pd
 import sqlalchemy as sqla
 from sqlalchemy.exc import SQLAlchemyError
 from superset.models.cache import CacheKey
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_database, get_or_create_db
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_with_slice,
@@ -897,6 +900,58 @@ class TestCore(SupersetTestCase):
         )
         rendered_query = str(table.get_from_clause())
         self.assertEqual(clean_query, rendered_query)
+
+    def test_make_column_compatible(self):
+        """
+        DB Eng Specs: Make column compatible
+        """
+
+        # with force_column_alias_quotes enabled
+        snowflake_database = get_or_create_db("snowflake", "snowflake://")
+
+        table = SqlaTable(
+            table_name="test_columns_with_alias_quotes", database=snowflake_database,
+        )
+
+        col = table.make_sqla_column_compatible(column("foo"))
+        s = select([col])
+        self.assertEqual(str(s), 'SELECT "foo" AS "foo"')
+
+        # with literal_column
+        table = SqlaTable(
+            table_name="test_columns_with_alias_quotes_on_literal_column",
+            database=snowflake_database,
+        )
+
+        col = table.make_sqla_column_compatible(literal_column("foo"))
+        s = select([col])
+        self.assertEqual(str(s), 'SELECT foo AS "foo"')
+
+        # with force_column_alias_quotes NOT enabled
+        postgres_database = get_or_create_db("postgresql", "postgresql://")
+
+        table = SqlaTable(
+            table_name="test_columns_with_no_quotes", database=postgres_database,
+        )
+
+        col = table.make_sqla_column_compatible(column("foo"))
+        s = select([col])
+        self.assertEqual(str(s), "SELECT foo AS foo")
+
+        # with literal_column
+        table = SqlaTable(
+            table_name="test_columns_with_no_quotes_on_literal_column",
+            database=postgres_database,
+        )
+
+        col = table.make_sqla_column_compatible(literal_column("foo"))
+        s = select([col])
+        self.assertEqual(str(s), "SELECT foo AS foo")
+
+        # cleanup
+        db.session.delete(snowflake_database)
+        db.session.delete(postgres_database)
+        db.session.commit()
 
     def test_slice_payload_no_datasource(self):
         self.login(username="admin")
