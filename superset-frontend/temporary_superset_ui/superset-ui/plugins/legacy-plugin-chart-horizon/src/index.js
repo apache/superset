@@ -23,10 +23,14 @@ import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  category: t('Distribution'),
   credits: ['http://kmandov.github.io/d3-horizon-chart/'],
-  description: '',
+  description: t(
+    'Compares how a metric changes over time between different groups. Each group is mapped to a row and change over time is visualized bar lengths and color.',
+  ),
   exampleGallery: [{ url: example }],
   name: t('Horizon Chart'),
+  tags: [t('Legacy')],
   thumbnail,
   useLegacyApi: true,
 });

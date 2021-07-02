@@ -19,12 +19,18 @@
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import example from './images/example.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  category: t('Part of a Whole'),
   credits: ['https://bl.ocks.org/kerryrodden/7090426'],
-  description: '',
+  description: t(
+    'Uses circles to visualize the flow of data through different stages of a system. Hover over individual paths in the visualization to understand the stages a value took. Useful for multi-stage, multi-group visualizing funnels and pipelines.',
+  ),
+  exampleGallery: [{ url: example }],
   name: t('Sunburst Chart'),
+  tags: [t('Aesthetic'), t('Legacy'), t('Multi-Levels'), t('Proportional')],
   thumbnail,
   useLegacyApi: true,
 });

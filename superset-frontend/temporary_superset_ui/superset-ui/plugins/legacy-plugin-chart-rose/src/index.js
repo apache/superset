@@ -22,8 +22,12 @@ import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
-  description: '',
+  category: t('Ranking'),
+  description: t(
+    'A polar coordinate chart where the circle is broken into wedges of equal angle, and the value represented by any wedge is illustrated by its area, rather than its radius or sweep angle.',
+  ),
   name: t('Nightingale Rose Chart'),
+  tags: [t('Legacy')],
   thumbnail,
   useLegacyApi: true,
 });

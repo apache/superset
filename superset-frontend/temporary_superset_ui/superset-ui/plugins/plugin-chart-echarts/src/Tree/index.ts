@@ -20,6 +20,7 @@ import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import example from './images/tree.png';
 import buildQuery from './buildQuery';
 
 export default class EchartsTreeChartPlugin extends ChartPlugin {
@@ -29,8 +30,14 @@ export default class EchartsTreeChartPlugin extends ChartPlugin {
       controlPanel,
       loadChart: () => import('./EchartsTree'),
       metadata: new ChartMetadata({
+        category: t('Part of a Whole'),
         credits: ['https://echarts.apache.org'],
+        description: t(
+          'Visualize multiple levels of hierarchy using a familiar tree-like structure.',
+        ),
+        exampleGallery: [{ url: example }],
         name: t('Tree Chart'),
+        tags: [t('Categorical'), t('ECharts'), t('Multi-Levels'), t('Relational'), t('Structural')],
         thumbnail,
       }),
       transformProps,

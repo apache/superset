@@ -23,10 +23,14 @@ import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  category: t('Flow'),
   credits: ['https://github.com/d3/d3-chord'],
-  description: '',
+  description: t(
+    'Showcases the flow or link between categories using thickness of chords. The value and corresponding thickness can be different for each side.',
+  ),
   exampleGallery: [{ url: example, caption: t('Relationships between community channels') }],
   name: t('Chord Diagram'),
+  tags: [t('Aesthetic'), t('Circular'), t('Legacy'), t('Proportional'), t('Relational')],
   thumbnail,
   useLegacyApi: true,
 });

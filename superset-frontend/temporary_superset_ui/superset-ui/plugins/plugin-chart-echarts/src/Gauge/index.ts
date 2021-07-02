@@ -29,8 +29,13 @@ export default class EchartsGaugeChartPlugin extends ChartPlugin {
       controlPanel,
       loadChart: () => import('./EchartsGauge'),
       metadata: new ChartMetadata({
+        category: t('KPI'),
         credits: ['https://echarts.apache.org'],
+        description: t(
+          'Uses a gauge to showcase progress of a metric towards a target. The position of the dial represents the progress and the terminal value in the gauge represents the target value.',
+        ),
         name: t('Gauge Chart'),
+        tags: [t('Multi-Variables'), t('Business'), t('Comparison'), t('ECharts'), t('Report')],
         thumbnail,
       }),
       transformProps,

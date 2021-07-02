@@ -22,9 +22,11 @@ import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  category: t('Ranking'),
   credits: ['https://syntagmatic.github.io/parallel-coordinates'],
   description: '',
   name: t('Parallel Coordinates'),
+  tags: [t('Coordinates'), t('Directional'), t('Legacy'), t('Relational')],
   thumbnail,
   useLegacyApi: true,
 });

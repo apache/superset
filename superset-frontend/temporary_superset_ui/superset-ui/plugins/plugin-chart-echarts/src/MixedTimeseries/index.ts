@@ -39,8 +39,11 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin {
       controlPanel,
       loadChart: () => import('./EchartsMixedTimeseries'),
       metadata: new ChartMetadata({
+        category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: 'Mixed timeseries (Apache ECharts)',
+        description: t(
+          'Visualize two different time series using the same x-axis time range. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).',
+        ),
         supportedAnnotationTypes: [
           AnnotationType.Event,
           AnnotationType.Formula,

@@ -44,9 +44,20 @@ export default class EchartsFunnelChartPlugin extends ChartPlugin<
       loadChart: () => import('./EchartsFunnel'),
       metadata: new ChartMetadata({
         behaviors: [Behavior.INTERACTIVE_CHART],
+        category: t('KPI'),
         credits: ['https://echarts.apache.org'],
-        description: 'Funnel Chart (Apache ECharts)',
+        description: t(
+          'Showcases how a metric changes as the funnel progresses. This classic chart is useful for visualizing drop-off between stages in a pipeline or lifecycle.',
+        ),
         name: t('Funnel Chart'),
+        tags: [
+          t('Business'),
+          t('ECharts'),
+          t('Progressive'),
+          t('Report'),
+          t('Sequential'),
+          t('Trend'),
+        ],
         thumbnail,
       }),
       transformProps,

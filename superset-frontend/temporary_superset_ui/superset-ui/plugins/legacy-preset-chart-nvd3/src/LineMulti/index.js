@@ -22,9 +22,11 @@ import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  category: t('Evolution'),
   credits: ['http://nvd3.org'],
   description: '',
   name: t('Multiple Line Charts'),
+  tags: [t('Multi-Variables'), t('Legacy'), t('nvd3')],
   thumbnail,
   useLegacyApi: true,
 });

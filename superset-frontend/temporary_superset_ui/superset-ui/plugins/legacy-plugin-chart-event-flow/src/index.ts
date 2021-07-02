@@ -21,10 +21,13 @@ import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
-  category: t('Distribution'),
+  category: t('Flow'),
   credits: ['https://github.com/williaster/data-ui'],
-  description: '',
+  description: t(
+    'Compares the lengths of time different activities take in a shared timeline view.',
+  ),
   name: t('Event Flow'),
+  tags: [t('Legacy'), t('Progressive')],
   thumbnail,
   useLegacyApi: true,
 });

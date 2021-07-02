@@ -25,14 +25,18 @@ import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  category: t('Correlation'),
   credits: ['http://bl.ocks.org/mbostock/3074470'],
-  description: '',
+  description: t(
+    'Visualize a related metric across pairs of groups. Heatmaps excel at showcasing the correlation or strength between two groups. Color is used to emphasize the strength of the link between each pair of groups.',
+  ),
   exampleGallery: [
     { url: transportation, caption: t('Sizes of vehicles') },
     { url: channels, caption: t('Relationships between community channels') },
     { url: employment, caption: t('Employment and education') },
   ],
   name: t('Heatmap'),
+  tags: [t('Business'), t('Intensity'), t('Legacy'), t('Popularity'), t('Predictive')],
   thumbnail,
   useLegacyApi: true,
 });

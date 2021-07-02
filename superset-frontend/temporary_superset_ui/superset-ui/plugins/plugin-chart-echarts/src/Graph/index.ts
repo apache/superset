@@ -29,8 +29,22 @@ export default class EchartsGraphChartPlugin extends ChartPlugin {
       controlPanel,
       loadChart: () => import('./EchartsGraph'),
       metadata: new ChartMetadata({
+        category: t('Flow'),
         credits: ['https://echarts.apache.org'],
+        description: t(
+          'Displays connections between entities in a graph structure. Useful for mapping relationships and showing which nodes are important in a network. Graph charts can be configured to be force-directed or circulate. If your data has a geospatial component, try the deck.gl Arc chart.',
+        ),
         name: t('Graph Chart'),
+        tags: [
+          t('Aesthetic'),
+          t('Circular'),
+          t('Comparison'),
+          t('Directional'),
+          t('ECharts'),
+          t('Relational'),
+          t('Structural'),
+          t('Transformable'),
+        ],
         thumbnail,
       }),
       transformProps,

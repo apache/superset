@@ -19,12 +19,28 @@
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import example1 from './images/WorldMap1.jpg';
+import example2 from './images/WorldMap2.jpg';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  category: t('Map'),
   credits: ['http://datamaps.github.io/'],
-  description: '',
+  description: t('A map of the world, that can indicate values in different countries.'),
+  exampleGallery: [{ url: example1 }, { url: example2 }],
   name: t('World Map'),
+  tags: [
+    t('2D'),
+    t('Aesthetic'),
+    t('Comparison'),
+    t('Intensity'),
+    t('Legacy'),
+    t('Multi-Dimensions'),
+    t('Multi-Layers'),
+    t('Multi-Variables'),
+    t('Popular'),
+    t('Scatter'),
+  ],
   thumbnail,
   useLegacyApi: true,
 });
