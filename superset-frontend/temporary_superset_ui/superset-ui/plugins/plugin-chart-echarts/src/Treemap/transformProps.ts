@@ -205,7 +205,7 @@ export default function transformProps(
       colorSaturation: COLOR_SATURATION,
       itemStyle: {
         borderColor: BORDER_COLOR,
-        color: colorFn(`${child.name}_${depth}`),
+        color: colorFn(`${child.name}`),
         borderWidth: BORDER_WIDTH,
         gapWidth: GAP_WIDTH,
       },
@@ -248,7 +248,6 @@ export default function transformProps(
   const series: TreemapSeriesOption[] = [
     {
       type: 'treemap',
-      animation: false,
       width: '100%',
       height: '100%',
       nodeClick: undefined,
