@@ -335,6 +335,9 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   const changeSearch: ChangeEventHandler<HTMLInputElement> = useCallback(
     event => {
       setSearchInputValue(event.target.value);
+      if (event.target.value) {
+        setIsSearching(true);
+      }
     },
     [],
   );
@@ -401,7 +404,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     setSearchInputValue('');
   }, []);
 
-  const onTabClick = useCallback(
+  const selectCategory = useCallback(
     (key: string) => {
       setActiveCategory(key);
       stopSearching();
@@ -446,7 +449,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
             key={category}
             category={category}
             isSelected={!isSearching && category === activeCategory}
-            onClick={onTabClick}
+            onClick={selectCategory}
           />
         ))}
       </LeftPane>
