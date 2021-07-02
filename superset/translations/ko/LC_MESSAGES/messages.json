@@ -526,10 +526,10 @@
       "Month": ["달"],
       "Quarter": ["분기"],
       "Year": ["년"],
-      "Week starting sunday": [""],
-      "Week starting monday": [""],
-      "Week ending saturday": [""],
-      "Week_ending sunday": [""],
+      "Week starting Sunday": [""],
+      "Week starting Monday": [""],
+      "Week ending Saturday": [""],
+      "Week_ending Sunday": [""],
       "Unknown Presto Error": [""],
       "We can't seem to resolve the column \"%(column_name)s\" at line %(location)s.": [
         ""

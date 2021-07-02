@@ -274,7 +274,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   return (
     <Styles height={height} width={width}>
       <StyledSelect
-        allowClear={!enableEmptyFilter}
+        allowClear
         // @ts-ignore
         value={filterState.value || []}
         disabled={isDisabled}

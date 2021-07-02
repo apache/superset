@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import { Preset } from '@superset-ui/core';
+import fetchMock from 'fetch-mock';
+import userEvent, { specialChars } from '@testing-library/user-event';
 import {
   SelectFilterPlugin,
   RangeFilterPlugin,
@@ -25,9 +28,7 @@ import {
   TimeGrainFilterPlugin,
 } from 'src/filters/components';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import fetchMock from 'fetch-mock';
-import React from 'react';
-import userEvent, { specialChars } from '@testing-library/user-event';
+import mockDatasource, { datasourceId } from 'spec/fixtures/mockDatasource';
 import {
   FiltersConfigModal,
   FiltersConfigModalProps,
@@ -49,7 +50,18 @@ class MainPreset extends Preset {
 }
 
 const initialStoreState = {
-  datasources: [{ id: 1, table_name: 'Datasource 1' }],
+  datasources: mockDatasource,
+};
+
+const storeWithDatasourceWithoutTemporalColumns = {
+  ...initialStoreState,
+  datasources: {
+    ...initialStoreState.datasources,
+    [datasourceId]: {
+      ...initialStoreState.datasources[datasourceId],
+      column_types: [0, 1],
+    },
+  },
 };
 
 fetchMock.get('glob:*/api/v1/dataset/1', {
@@ -100,7 +112,6 @@ const ADVANCED_REGEX = /^advanced$/i;
 const DEFAULT_VALUE_REGEX = /^filter has default value$/i;
 const MULTIPLE_REGEX = /^multiple select$/i;
 const REQUIRED_REGEX = /^required$/i;
-const APPLY_INSTANTLY_REGEX = /^apply changes instantly$/i;
 const HIERARCHICAL_REGEX = /^filter is hierarchical$/i;
 const FIRST_ITEM_REGEX = /^default to first item$/i;
 const INVERSE_SELECTION_REGEX = /^inverse selection$/i;
@@ -114,6 +125,7 @@ const DEFAULT_VALUE_REQUIRED_REGEX = /^default value is required$/i;
 const PARENT_REQUIRED_REGEX = /^parent filter is required$/i;
 const PRE_FILTER_REQUIRED_REGEX = /^pre-filter is required$/i;
 const FILL_REQUIRED_FIELDS_REGEX = /fill all required fields to enable/;
+const TIME_RANGE_PREFILTER_REGEX = /^time range$/i;
 
 const props: FiltersConfigModalProps = {
   isOpen: true,
@@ -128,7 +140,7 @@ beforeAll(() => {
 
 function defaultRender(
   overrides?: Partial<FiltersConfigModalProps>,
-  initialState?: {},
+  initialState = initialStoreState,
 ) {
   return render(<FiltersConfigModal {...props} {...overrides} />, {
     useRedux: true,
@@ -156,7 +168,6 @@ test('renders a value filter type', () => {
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
   expect(getCheckbox(REQUIRED_REGEX)).not.toBeChecked();
-  expect(getCheckbox(APPLY_INSTANTLY_REGEX)).not.toBeChecked();
   expect(getCheckbox(HIERARCHICAL_REGEX)).not.toBeChecked();
   expect(getCheckbox(FIRST_ITEM_REGEX)).not.toBeChecked();
   expect(getCheckbox(INVERSE_SELECTION_REGEX)).not.toBeChecked();
@@ -178,13 +189,12 @@ test('renders a numerical range filter type', () => {
   expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();
   expect(screen.getByText(DATASET_REGEX)).toBeInTheDocument();
   expect(screen.getByText(COLUMN_REGEX)).toBeInTheDocument();
+  expect(screen.getByText(REQUIRED_REGEX)).toBeInTheDocument();
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
-  expect(getCheckbox(APPLY_INSTANTLY_REGEX)).not.toBeChecked();
   expect(getCheckbox(PRE_FILTER_REGEX)).not.toBeChecked();
 
   expect(queryCheckbox(MULTIPLE_REGEX)).not.toBeInTheDocument();
-  expect(queryCheckbox(REQUIRED_REGEX)).not.toBeInTheDocument();
   expect(queryCheckbox(HIERARCHICAL_REGEX)).not.toBeInTheDocument();
   expect(queryCheckbox(FIRST_ITEM_REGEX)).not.toBeInTheDocument();
   expect(queryCheckbox(INVERSE_SELECTION_REGEX)).not.toBeInTheDocument();
@@ -204,7 +214,6 @@ test('renders a time range filter type', () => {
   expect(screen.queryByText(COLUMN_REGEX)).not.toBeInTheDocument();
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
-  expect(getCheckbox(APPLY_INSTANTLY_REGEX)).not.toBeChecked();
 
   expect(screen.queryByText(ADVANCED_REGEX)).not.toBeInTheDocument();
 });
@@ -221,7 +230,6 @@ test('renders a time column filter type', () => {
   expect(screen.queryByText(COLUMN_REGEX)).not.toBeInTheDocument();
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
-  expect(getCheckbox(APPLY_INSTANTLY_REGEX)).not.toBeChecked();
 
   expect(screen.queryByText(ADVANCED_REGEX)).not.toBeInTheDocument();
 });
@@ -238,9 +246,22 @@ test('renders a time grain filter type', () => {
   expect(screen.queryByText(COLUMN_REGEX)).not.toBeInTheDocument();
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
-  expect(getCheckbox(APPLY_INSTANTLY_REGEX)).not.toBeChecked();
 
   expect(screen.queryByText(ADVANCED_REGEX)).not.toBeInTheDocument();
+});
+
+test('render time filter types as disabled if there are no temporal columns in the dataset', () => {
+  defaultRender(undefined, storeWithDatasourceWithoutTemporalColumns);
+  userEvent.click(screen.getByText(VALUE_REGEX));
+  expect(screen.getByText(TIME_RANGE_REGEX).closest('div')).toHaveClass(
+    'Select__option--is-disabled',
+  );
+  expect(screen.getByText(TIME_GRAIN_REGEX).closest('div')).toHaveClass(
+    'Select__option--is-disabled',
+  );
+  expect(screen.getByText(TIME_COLUMN_REGEX).closest('div')).toHaveClass(
+    'Select__option--is-disabled',
+  );
 });
 
 test('validates the name', async () => {
@@ -287,6 +308,14 @@ test('validates the pre-filter value', async () => {
   ).toBeInTheDocument();
 });
 
+test("doesn't render time range pre-filter if there are no temporal columns in datasource", async () => {
+  defaultRender(undefined, storeWithDatasourceWithoutTemporalColumns);
+  userEvent.click(screen.getByText(ADVANCED_REGEX));
+  userEvent.click(getCheckbox(PRE_FILTER_REGEX));
+  expect(
+    screen.queryByText(TIME_RANGE_PREFILTER_REGEX),
+  ).not.toBeInTheDocument();
+});
 /*
   TODO
     adds a new value filter type with all fields filled

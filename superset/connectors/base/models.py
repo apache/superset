@@ -22,7 +22,7 @@ from typing import Any, Dict, Hashable, List, Optional, Set, Type, Union
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import and_, Boolean, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import foreign, Query, relationship, RelationshipProperty
+from sqlalchemy.orm import foreign, Query, relationship, RelationshipProperty, Session
 
 from superset import security_manager
 from superset.constants import NULL_STRING
@@ -310,7 +310,7 @@ class BaseDatasource(
         filtered_columns: List[Column] = []
         column_types: Set[GenericDataType] = set()
         for column in data["columns"]:
-            generic_type = column["type_generic"]
+            generic_type = column.get("type_generic")
             if generic_type is not None:
                 column_types.add(generic_type)
             if column["column_name"] in column_names:
@@ -515,6 +515,12 @@ class BaseDatasource(
         """
 
         security_manager.raise_for_access(datasource=self)
+
+    @classmethod
+    def get_datasource_by_name(
+        cls, session: Session, datasource_name: str, schema: str, database_name: str
+    ) -> Optional["BaseDatasource"]:
+        raise NotImplementedError()
 
 
 class BaseColumn(AuditMixinNullable, ImportExportMixin):

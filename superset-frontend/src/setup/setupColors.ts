@@ -58,7 +58,10 @@ export default function setupColors(
 
   if (extraSequentialColorSchemes?.length > 0) {
     extraSequentialColorSchemes.forEach(scheme => {
-      categoricalSchemeRegistry.registerValue(scheme.id, scheme);
+      sequentialSchemeRegistry.registerValue(
+        scheme.id,
+        new SequentialScheme(scheme),
+      );
     });
   }
 

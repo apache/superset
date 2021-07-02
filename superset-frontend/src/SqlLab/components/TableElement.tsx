@@ -44,6 +44,7 @@ interface Table {
     partitionQuery: string;
     latest: object[];
   };
+  metadata?: Record<string, string>;
   indexes?: object[];
   selectStar?: string;
   view?: string;
@@ -91,7 +92,8 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
   };
 
   const renderWell = () => {
-    let header;
+    let partitions;
+    let metadata;
     if (table.partitions) {
       let partitionQuery;
       let partitionClipBoard;
@@ -111,18 +113,36 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
         .map(([key, value]) => `${key}=${value}`)
         .join('/');
 
-      header = (
-        <Card size="small">
-          <div>
-            <small>
-              {t('latest partition:')} {latest}
-            </small>{' '}
-            {partitionClipBoard}
-          </div>
-        </Card>
+      partitions = (
+        <div>
+          <small>
+            {t('latest partition:')} {latest}
+          </small>{' '}
+          {partitionClipBoard}
+        </div>
       );
     }
-    return header;
+
+    if (table.metadata) {
+      metadata = Object.entries(table.metadata).map(([key, value]) => (
+        <div>
+          <small>
+            <strong>{key}:</strong> {value}
+          </small>
+        </div>
+      ));
+    }
+
+    if (!partitions && !metadata) {
+      return null;
+    }
+
+    return (
+      <Card size="small">
+        {partitions}
+        {metadata}
+      </Card>
+    );
   };
 
   const renderControls = () => {

@@ -352,7 +352,7 @@ export default class CRUDCollection extends React.PureComponent<
             aria-label="Delete item"
             className="pointer"
             data-test="crud-delete-icon"
-            iconSize="m"
+            css={{ fontSize: '18px' }}
             role="button"
             tabIndex={0}
             onClick={this.deleteItem.bind(this, record.id)}

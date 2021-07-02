@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Global, css } from '@emotion/react';
 import { t, useTheme } from '@superset-ui/core';
 import {
@@ -53,7 +53,17 @@ const DetailsPanelPopover = ({
   onHighlightFilterSource,
   children,
 }: DetailsPanelProps) => {
+  const [visible, setVisible] = useState(false);
   const theme = useTheme();
+
+  // we don't need to clean up useEffect, setting { once: true } removes the event listener after handle function is called
+  useEffect(() => {
+    if (visible) {
+      window.addEventListener('resize', () => setVisible(false), {
+        once: true,
+      });
+    }
+  }, [visible]);
 
   const getDefaultActivePanel = () => {
     const result = [];
@@ -77,6 +87,7 @@ const DetailsPanelPopover = ({
   ]);
 
   function handlePopoverStatus(isOpen: boolean) {
+    setVisible(isOpen);
     // every time the popover opens, make sure the most relevant panel is active
     if (isOpen) {
       setActivePanels(getDefaultActivePanel());
@@ -256,6 +267,7 @@ const DetailsPanelPopover = ({
     <Popover
       overlayClassName="filterStatusPopover"
       content={content}
+      visible={visible}
       onVisibleChange={handlePopoverStatus}
       placement="bottom"
       trigger="click"

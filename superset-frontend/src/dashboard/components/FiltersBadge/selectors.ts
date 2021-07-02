@@ -18,10 +18,7 @@
  */
 import { NO_TIME_RANGE, TIME_FILTER_MAP } from 'src/explore/constants';
 import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
-import {
-  ChartConfiguration,
-  NativeFiltersState,
-} from 'src/dashboard/reducers/types';
+import { ChartConfiguration, Filters } from 'src/dashboard/reducers/types';
 import { DataMaskStateWithId, DataMaskType } from 'src/dataMask/types';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { Layout } from '../../types';
@@ -147,12 +144,8 @@ export const selectIndicatorsForChart = (
   chartId: number,
   filters: { [key: number]: Filter },
   datasources: { [key: string]: Datasource },
-  charts: any,
+  chart: any,
 ): Indicator[] => {
-  const chart = charts[chartId];
-  // no indicators if chart is loading
-  if (chart.chartStatus === 'loading') return [];
-
   // for now we only need to know which columns are compatible/incompatible,
   // so grab the columns from the applied/rejected filters
   const appliedColumns = getAppliedColumns(chart);
@@ -178,15 +171,13 @@ export const selectIndicatorsForChart = (
 };
 
 export const selectNativeIndicatorsForChart = (
-  nativeFilters: NativeFiltersState,
+  nativeFilters: Filters,
   dataMask: DataMaskStateWithId,
   chartId: number,
-  charts: any,
+  chart: any,
   dashboardLayout: Layout,
   chartConfiguration: ChartConfiguration = {},
 ): Indicator[] => {
-  const chart = charts[chartId];
-
   const appliedColumns = getAppliedColumns(chart);
   const rejectedColumns = getRejectedColumns(chart);
 
@@ -218,29 +209,32 @@ export const selectNativeIndicatorsForChart = (
 
   let nativeFilterIndicators: any = [];
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)) {
-    nativeFilterIndicators = Object.values(nativeFilters.filters)
-      .filter(nativeFilter =>
-        getTreeCheckedItems(nativeFilter.scope, dashboardLayout).some(
-          layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
-        ),
-      )
-      .map(nativeFilter => {
-        const column = nativeFilter.targets[0]?.column?.name;
-        let value =
-          dataMask[nativeFilter.id]?.filterState?.label ??
-          dataMask[nativeFilter.id]?.filterState?.value ??
-          null;
-        if (!Array.isArray(value) && value !== null) {
-          value = [value];
-        }
-        return {
-          column,
-          name: nativeFilter.name,
-          path: [nativeFilter.id],
-          status: getStatus({ value, column }),
-          value,
-        };
-      });
+    nativeFilterIndicators =
+      nativeFilters &&
+      Object.values(nativeFilters)
+        .filter(nativeFilter =>
+          getTreeCheckedItems(nativeFilter.scope, dashboardLayout).some(
+            layoutItem =>
+              dashboardLayout[layoutItem]?.meta?.chartId === chartId,
+          ),
+        )
+        .map(nativeFilter => {
+          const column = nativeFilter.targets[0]?.column?.name;
+          let value =
+            dataMask[nativeFilter.id]?.filterState?.label ??
+            dataMask[nativeFilter.id]?.filterState?.value ??
+            null;
+          if (!Array.isArray(value) && value !== null) {
+            value = [value];
+          }
+          return {
+            column,
+            name: nativeFilter.name,
+            path: [nativeFilter.id],
+            status: getStatus({ value, column }),
+            value,
+          };
+        });
   }
 
   let crossFilterIndicators: any = [];

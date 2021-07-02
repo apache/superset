@@ -56,7 +56,6 @@ const DefaultValue: FC<DefaultValueProps> = ({
       setLoading(true);
     }
   }, [hasDataset, queriesData]);
-
   return loading ? (
     <Loading position="inline-centered" />
   ) : (
@@ -73,7 +72,9 @@ const DefaultValue: FC<DefaultValueProps> = ({
       chartType={formFilter?.filterType}
       hooks={{ setDataMask }}
       enableNoResults={enableNoResults}
-      filterState={formFilter.defaultDataMask?.filterState}
+      filterState={{
+        ...formFilter.defaultDataMask?.filterState,
+      }}
     />
   );
 };

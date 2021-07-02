@@ -55,7 +55,13 @@ from superset.exceptions import SupersetException
 from superset.extensions import encrypted_field_factory
 from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, QueryResult
-from superset.typing import FilterValues, Granularity, Metric, QueryObjectDict
+from superset.typing import (
+    AdhocMetric,
+    FilterValues,
+    Granularity,
+    Metric,
+    QueryObjectDict,
+)
 from superset.utils import core as utils
 from superset.utils.date_parser import parse_human_datetime, parse_human_timedelta
 
@@ -1010,7 +1016,7 @@ class DruidDatasource(Model, BaseDatasource):
         return ret
 
     @staticmethod
-    def druid_type_from_adhoc_metric(adhoc_metric: Dict[str, Any]) -> str:
+    def druid_type_from_adhoc_metric(adhoc_metric: AdhocMetric) -> str:
         column_type = adhoc_metric["column"]["type"].lower()
         aggregate = adhoc_metric["aggregate"].lower()
 
@@ -1025,7 +1031,7 @@ class DruidDatasource(Model, BaseDatasource):
     def get_aggregations(
         metrics_dict: Dict[str, Any],
         saved_metrics: Set[str],
-        adhoc_metrics: Optional[List[Dict[str, Any]]] = None,
+        adhoc_metrics: Optional[List[AdhocMetric]] = None,
     ) -> "OrderedDict[str, Any]":
         """
         Returns a dictionary of aggregation metric names to aggregation json objects

@@ -46,12 +46,16 @@ spec:
         envFrom:
           - secretRef:
               name: {{ tpl .Values.envFromSecret . }}
+          {{- range .Values.envFromSecrets }}
+          - secretRef:
+              name: {{ tpl . $ }}
+          {{- end }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         volumeMounts:
           - name: superset-config
             mountPath: {{ .Values.configMountPath | quote }}
             readOnly: true
-        {{ if .Values.extraConfigs }}
+        {{- if .Values.extraConfigs }}
           - name: superset-extra-config
             mountPath: {{ .Values.extraConfigMountPath | quote }}
             readOnly: true

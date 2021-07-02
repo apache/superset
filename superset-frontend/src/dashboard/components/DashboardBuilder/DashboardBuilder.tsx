@@ -23,6 +23,7 @@ import { JsonObject, styled } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
+import Icons from 'src/components/Icons';
 import IconButton from 'src/dashboard/components/IconButton';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
@@ -34,6 +35,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import { useElementOnScreen } from 'src/common/hooks/useElementOnScreen';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   deleteTopLevelTabs,
   handleComponentDrop,
@@ -55,7 +57,8 @@ const TABS_HEIGHT = 50;
 const HEADER_HEIGHT = 72;
 const CLOSED_FILTER_BAR_WIDTH = 32;
 const OPEN_FILTER_BAR_WIDTH = 260;
-const FILTER_BAR_HEADER_HEIGHT = 128;
+const FILTER_BAR_HEADER_HEIGHT = 80;
+const FILTER_BAR_TABS_HEIGHT = 46;
 
 type DashboardBuilderProps = {};
 
@@ -87,10 +90,12 @@ const StyledHeader = styled.div`
   z-index: 2;
 `;
 
-const StyledContent = styled.div`
+const StyledContent = styled.div<{
+  fullSizeChartId: number | null;
+}>`
   grid-column: 2;
   grid-row: 2;
-  z-index: 1;
+  z-index: ${({ fullSizeChartId }) => (fullSizeChartId ? 1000 : 1)};
 `;
 
 const StyledDashboardContent = styled.div<{
@@ -144,6 +149,9 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
+  const fullSizeChartId = useSelector<RootState, number | null>(
+    state => state.dashboardState.fullSizeChartId,
+  );
 
   const handleChangeTab = ({
     pathToTabIndex,
@@ -192,7 +200,16 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const [containerRef, isSticky] = useElementOnScreen<HTMLDivElement>({
     threshold: [1],
   });
-  const offset = FILTER_BAR_HEADER_HEIGHT + (isSticky ? 0 : MAIN_HEADER_HEIGHT);
+
+  const filterSetEnabled = isFeatureEnabled(
+    FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET,
+  );
+
+  const offset =
+    FILTER_BAR_HEADER_HEIGHT +
+    (isSticky ? 0 : MAIN_HEADER_HEIGHT) +
+    (filterSetEnabled ? FILTER_BAR_TABS_HEIGHT : 0);
+
   const filterBarHeight = `calc(100vh - ${offset}px)`;
   const filterBarOffset = dashboardFiltersOpen ? 0 : barTopOffset + 20;
 
@@ -240,7 +257,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
                   shouldFocus={shouldFocusTabs}
                   menuItems={[
                     <IconButton
-                      className="fa fa-level-down"
+                      icon={<Icons.FallOutlined iconSize="xl" />}
                       label="Collapse tab content"
                       onClick={handleDeleteTopLevelTabs}
                     />,
@@ -264,7 +281,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
           )}
         </DragDroppable>
       </StyledHeader>
-      <StyledContent>
+      <StyledContent fullSizeChartId={fullSizeChartId}>
         <div
           data-test="dashboard-content"
           className={cx('dashboard', editMode && 'dashboard--editing')}
