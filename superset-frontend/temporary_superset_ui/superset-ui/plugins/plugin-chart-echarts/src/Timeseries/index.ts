@@ -43,7 +43,7 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin {
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
         description: t(
-          'Swiss army knife of visualizing time series data. Choose between  step, line, scatter, and bar charts. This viz type has many customization options as well.',
+          'Swiss army knife for visualizing time series data. Choose between  step, line, scatter, and bar charts. This viz type has many customization options as well.',
         ),
         exampleGallery: [{ url: example }],
         supportedAnnotationTypes: [

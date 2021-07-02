@@ -48,7 +48,7 @@ export default class EchartsRadarChartPlugin extends ChartPlugin<
         category: t('Ranking'),
         credits: ['https://echarts.apache.org'],
         description: t(
-          'Visualize a parallel set of metrics across multiple groups. Each group is visualized as a new line and each new metric is represented as a new edge in the chart.',
+          'Visualize a parallel set of metrics across multiple groups. Each group is visualized using its own line of points and each metric is represented as an edge in the chart.',
         ),
         name: t('Radar Chart'),
         tags: [
