@@ -45,9 +45,20 @@ export default class EchartsRadarChartPlugin extends ChartPlugin<
       loadChart: () => import('./EchartsRadar'),
       metadata: new ChartMetadata({
         behaviors: [Behavior.INTERACTIVE_CHART],
+        category: t('Ranking'),
         credits: ['https://echarts.apache.org'],
-        description: 'Radar Chart (Apache ECharts)',
+        description: t(
+          'Visualize a parallel set of metrics across multiple groups. Each group is visualized as a new line and each new metric is represented as a new edge in the chart.',
+        ),
         name: t('Radar Chart'),
+        tags: [
+          t('Business'),
+          t('Comparison'),
+          t('Coordinates'),
+          t('Multi-Variables'),
+          t('Report'),
+          t('Web'),
+        ],
         thumbnail,
       }),
       transformProps,

@@ -27,8 +27,9 @@ import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   canBeAnnotationTypes: [ANNOTATION_TYPES.TIME_SERIES],
+  category: t('Evolution'),
   credits: ['http://nvd3.org'],
-  description: '',
+  description: t('Classic chart that visualizes how metrics change over time.'),
   exampleGallery: [
     { url: example1 },
     { url: example2 },
@@ -41,6 +42,7 @@ const metadata = new ChartMetadata({
     ANNOTATION_TYPES.EVENT,
     ANNOTATION_TYPES.FORMULA,
   ],
+  tags: [t('Aesthetic'), t('Legacy'), t('nvd3')],
   thumbnail,
   useLegacyApi: true,
 });

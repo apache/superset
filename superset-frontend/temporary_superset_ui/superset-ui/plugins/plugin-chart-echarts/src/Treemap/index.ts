@@ -22,6 +22,8 @@ import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import example1 from './images/treemap_v2_1.png';
+import example2 from './images/treemap_v2_2.jpg';
 import { EchartsTreemapChartProps, EchartsTreemapFormData } from './types';
 
 export default class EchartsTreemapChartPlugin extends ChartPlugin<
@@ -45,9 +47,22 @@ export default class EchartsTreemapChartPlugin extends ChartPlugin<
       loadChart: () => import('./EchartsTreemap'),
       metadata: new ChartMetadata({
         behaviors: [Behavior.INTERACTIVE_CHART],
+        category: t('Part of a Whole'),
         credits: ['https://echarts.apache.org'],
-        description: 'Treemap (Apache ECharts)',
+        description: t(
+          'Show hierarchical relationships of data, with with the value represented by area, showing proportion and contribution to the whole.',
+        ),
+        exampleGallery: [{ url: example1 }, { url: example2 }],
         name: t('Treemap v2'),
+        tags: [
+          t('Aesthetic'),
+          t('Categorical'),
+          t('Comparison'),
+          t('ECharts'),
+          t('Multi-Levels'),
+          t('Percentages'),
+          t('Proportional'),
+        ],
         thumbnail,
       }),
       transformProps,

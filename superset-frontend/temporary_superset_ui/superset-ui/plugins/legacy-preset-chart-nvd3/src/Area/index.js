@@ -27,20 +27,33 @@ import { ANNOTATION_TYPES } from '../vendor/superset/AnnotationTypes';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
-  category: t('Distribution'),
+  category: t('Evolution'),
   credits: ['http://nvd3.org'],
   description: t(
-    'A time series chart that visualizes how the proportions of related metrics vary over time.',
+    'A time series chart that visualizes how a related metric from multiple groups vary over time. Each group is visualized using a different color.',
   ),
   exampleGallery: [
     { url: example1, caption: t('Stretched style') },
     { url: example2, caption: t('Stacked style') },
     { url: example3, caption: t('Video game consoles') },
-    { url: example4, caption: t('Cars') },
+    { url: example4, caption: t('Vehicle Types') },
   ],
   name: t('Area Chart'),
   supportedAnnotationTypes: [ANNOTATION_TYPES.INTERVAL, ANNOTATION_TYPES.EVENT],
-  tags: [t('Time Series'), t('Proportions')],
+  tags: [
+    t('Aesthetic'),
+    t('Comparison'),
+    t('Continuous'),
+    t('Legacy'),
+    t('Line'),
+    t('Percentages'),
+    t('Popular'),
+    t('Proportional'),
+    t('Stacked'),
+    t('Time'),
+    t('Trend'),
+    t('nvd3'),
+  ],
   thumbnail,
   useLegacyApi: true,
 });
