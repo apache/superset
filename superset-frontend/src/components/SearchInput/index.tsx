@@ -65,7 +65,6 @@ const ClearIcon = styled(Icons.CancelX)`
   top: 4px;
 `;
 
-
 export default function SearchInput({
   onChange,
   onClear,
