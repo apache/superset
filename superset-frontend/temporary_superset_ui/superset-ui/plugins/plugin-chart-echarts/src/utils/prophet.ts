@@ -20,6 +20,7 @@ import { TimeseriesDataRecord, NumberFormatter } from '@superset-ui/core';
 import { CallbackDataParams, OptionName } from 'echarts/types/src/util/types';
 import { TooltipMarker } from 'echarts/types/src/util/format';
 import { ForecastSeriesContext, ForecastSeriesEnum, ProphetValue } from '../types';
+import { sanitizeHtml } from './series';
 
 const seriesTypeRegex = new RegExp(
   `(.+)(${ForecastSeriesEnum.ForecastLower}|${ForecastSeriesEnum.ForecastTrend}|${ForecastSeriesEnum.ForecastUpper})$`,
@@ -73,7 +74,7 @@ export const formatProphetTooltipSeries = ({
   marker: TooltipMarker;
   formatter: NumberFormatter;
 }): string => {
-  let row = `${marker}${seriesName}: `;
+  let row = `${marker}${sanitizeHtml(seriesName)}: `;
   let isObservation = false;
   if (observation) {
     isObservation = true;

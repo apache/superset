@@ -35,7 +35,12 @@ import {
   FunnelChartTransformedProps,
 } from './types';
 import { DEFAULT_LEGEND_FORM_DATA } from '../types';
-import { extractGroupbyLabel, getChartPadding, getLegendProps } from '../utils/series';
+import {
+  extractGroupbyLabel,
+  getChartPadding,
+  getLegendProps,
+  sanitizeHtml,
+} from '../utils/series';
 import { defaultGrid, defaultTooltip } from '../defaults';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
@@ -49,7 +54,8 @@ export function formatFunnelLabel({
   labelType: EchartsFunnelLabelTypeType;
   numberFormatter: NumberFormatter;
 }): string {
-  const { name = '', value, percent } = params;
+  const { name: rawName = '', value, percent } = params;
+  const name = sanitizeHtml(rawName);
   const formattedValue = numberFormatter(value as number);
   const formattedPercent = percentFormatter((percent as number) / 100);
   switch (labelType) {
