@@ -306,8 +306,10 @@ def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) ->
 def event_after_chart_changed(
     _mapper: Mapper, _connection: Connection, target: Slice
 ) -> None:
-    url = get_url_path("Superset.slice", slice_id=target.id, standalone="true")
-    cache_chart_thumbnail.delay(url, target.digest, force=True)
+    # Evaluates feature at request time
+    if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
+        url = get_url_path("Superset.slice", slice_id=target.id, standalone="true")
+        cache_chart_thumbnail.delay(url, target.digest, force=True)
 
 
 sqla.event.listen(Slice, "before_insert", set_related_perm)
@@ -319,7 +321,7 @@ if is_feature_enabled("TAGGING_SYSTEM"):
     sqla.event.listen(Slice, "after_update", ChartUpdater.after_update)
     sqla.event.listen(Slice, "after_delete", ChartUpdater.after_delete)
 
-# events for updating tags
+# events for updating thumbnails on update/insert
 if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
     sqla.event.listen(Slice, "after_insert", event_after_chart_changed)
     sqla.event.listen(Slice, "after_update", event_after_chart_changed)

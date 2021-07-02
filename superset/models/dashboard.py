@@ -269,8 +269,10 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         return {}
 
     def update_thumbnail(self) -> None:
-        url = get_url_path("Superset.dashboard", dashboard_id_or_slug=self.id)
-        cache_dashboard_thumbnail.delay(url, self.digest, force=True)
+        # Feature is evaluated an request time
+        if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
+            url = get_url_path("Superset.dashboard", dashboard_id_or_slug=self.id)
+            cache_dashboard_thumbnail.delay(url, self.digest, force=True)
 
     @debounce(0.1)
     def clear_cache(self) -> None:
