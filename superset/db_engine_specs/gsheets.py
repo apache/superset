@@ -63,10 +63,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
 
     @classmethod
     def extra_table_metadata(
-        cls,
-        database: "Database",
-        table_name: str,
-        schema_name: str,
+        cls, database: "Database", table_name: str, schema_name: str,
     ) -> Dict[str, Any]:
         engine = cls.get_engine(database, schema=schema_name)
         with closing(engine.raw_connection()) as conn:
@@ -76,7 +73,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
 
         try:
             metadata = json.loads(results)
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             metadata = {}
 
         return {"metadata": metadata["extra"]}
