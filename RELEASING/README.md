@@ -199,6 +199,7 @@ Now let's ship this RC into svn's dev folder
 cd ~/svn/superset_dev/
 svn add ${SUPERSET_VERSION_RC}
 svn commit -m "Release ${SUPERSET_VERSION_RC}"
+svn update
 ```
 
 ### Build and test from SVN source tarball
@@ -272,6 +273,7 @@ cd ~/svn/superset/
 for f in ${SUPERSET_VERSION}/*; do mv "$f" "${f/${SUPERSET_VERSION_RC}/${SUPERSET_VERSION}}"; done
 svn add ${SUPERSET_VERSION}
 svn commit -m "Release ${SUPERSET_VERSION}"
+svn update
 ```
 
 Then tag the final release:
