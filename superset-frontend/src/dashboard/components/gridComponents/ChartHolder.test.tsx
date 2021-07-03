@@ -18,15 +18,18 @@
  */
 
 import React from 'react';
-import userEvent from '@testing-library/user-event';
 import { waitFor } from '@testing-library/react';
-import { render, screen } from 'spec/helpers/testing-library';
-import mockState from 'spec/fixtures/mockState';
 import { sliceId as chartId } from 'spec/fixtures/mockChartQueries';
 import { nativeFiltersInfo } from 'spec/javascripts/dashboard/fixtures/mockNativeFilters';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
-import { ChartHolder } from './index';
+import { getMockStore } from 'spec/fixtures/mockStore';
+import { initialState } from 'spec/javascripts/sqllab/fixtures';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { Provider } from 'react-redux';
+import { screen, render } from 'spec/helpers/testing-library';
 import { CHART_TYPE, ROW_TYPE } from '../../util/componentTypes';
+import { ChartHolder } from './index';
 
 describe('ChartHolder', () => {
   const defaultProps = {
@@ -62,28 +65,27 @@ describe('ChartHolder', () => {
     isComponentVisible: true,
     dashboardId: 123,
     nativeFilters: nativeFiltersInfo.filters,
+    fullSizeChartId: chartId,
+    setFullSizeChartId: () => {},
   };
+  const mockStore = getMockStore({
+    ...initialState,
+  });
+  const renderWrapper = () =>
+    render(
+      <Provider store={mockStore}>
+        <DndProvider backend={HTML5Backend}>
+          <ChartHolder {...defaultProps} />{' '}
+        </DndProvider>
+      </Provider>,
+    );
 
-  const renderWrapper = (props = defaultProps, state = mockState) =>
-    render(<ChartHolder {...props} />, {
-      useRedux: true,
-      initialState: state,
-      useDnd: true,
-    });
-
-  it('toggle full size', async () => {
+  it('should render full size', async () => {
     renderWrapper();
 
-    let chart = (screen.getByTestId('slice-container')
+    const chart = (screen.getByTestId('slice-container')
       .firstChild as HTMLElement).style;
-    expect(chart?.width).toBe('900px');
-    expect(chart?.height).toBe('26px');
 
-    userEvent.click(screen.getByRole('button'));
-    userEvent.click(screen.getByText('Maximize chart'));
-
-    chart = (screen.getByTestId('slice-container').firstChild as HTMLElement)
-      .style;
     await waitFor(() => expect(chart?.width).toBe('992px'));
     expect(chart?.height).toBe('714px');
   });

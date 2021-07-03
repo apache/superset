@@ -27,6 +27,7 @@ export interface OptionProps {
   index: number;
   clickClose: (index: number) => void;
   withCaret?: boolean;
+  isExtra?: boolean;
 }
 
 export interface OptionItemInterface {

@@ -41,9 +41,9 @@ export interface NativeFiltersFormItem {
     label: string;
   };
   sortMetric: string | null;
-  isInstant: boolean;
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
+  granularity_sqla?: string;
 }
 
 export interface NativeFiltersForm {

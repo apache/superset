@@ -36,6 +36,7 @@ import { sliceId } from 'spec/fixtures/mockChartQueries';
 import dashboardInfo from 'spec/fixtures/mockDashboardInfo';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import { sliceEntitiesForChart } from 'spec/fixtures/mockSliceEntities';
+import { initialState } from 'spec/javascripts/sqllab/fixtures';
 import { nativeFiltersInfo } from '../../fixtures/mockNativeFilters';
 
 describe('ChartHolder', () => {
@@ -61,6 +62,7 @@ describe('ChartHolder', () => {
 
   function setup(overrideProps) {
     const mockStore = getMockStore({
+      ...initialState,
       sliceEntities: sliceEntitiesForChart,
     });
 

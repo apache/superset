@@ -39,7 +39,7 @@ interface PluginFilterSelectCustomizeProps {
   defaultToFirstItem: boolean;
   inputRef?: RefObject<HTMLInputElement>;
   searchAllOptions: boolean;
-  sortAscending: boolean;
+  sortAscending?: boolean;
   sortMetric?: string;
 }
 

@@ -199,6 +199,7 @@ class DashboardDatasetSchema(Schema):
     template_params = fields.Str()
     owners = fields.List(fields.Int())
     columns = fields.List(fields.Dict())
+    column_types = fields.List(fields.Int())
     metrics = fields.List(fields.Dict())
     order_by_choices = fields.List(fields.List(fields.Str()))
     verbose_map = fields.Dict(fields.Str(), fields.Str())

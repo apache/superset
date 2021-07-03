@@ -19,27 +19,34 @@
 import React, { FC } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import EditableTitle from 'src/components/EditableTitle';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
-import FiltersBadge from 'src/dashboard/containers/FiltersBadge';
+import FiltersBadge from 'src/dashboard/components/FiltersBadge';
 import Icon from 'src/components/Icon';
 import { RootState } from 'src/dashboard/types';
-import { Slice } from 'src/types/Chart';
 import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
+import { clearDataMask } from 'src/dataMask/actions';
 
 type SliceHeaderProps = {
   innerRef?: string;
-  slice: Slice;
+  slice: {
+    description: string;
+    viz_type: string;
+    slice_name: string;
+    slice_id: number;
+    slice_description: string;
+  };
   isExpanded?: boolean;
   isCached?: boolean[];
   cachedDttm?: string[];
   updatedDttm?: number;
   updateSliceName?: (arg0: string) => void;
-  toggleExpandSlice?: Function;
-  forceRefresh?: Function;
-  exploreChart?: Function;
-  exportCSV?: Function;
+  toggleExpandSlice?: () => void;
+  forceRefresh?: () => void;
+  exploreChart?: () => void;
+  exportCSV?: () => void;
+  exportFullCSV?: () => void;
   editMode?: boolean;
   isFullSize?: boolean;
   annotationQuery?: object;
@@ -52,9 +59,9 @@ type SliceHeaderProps = {
   componentId: string;
   dashboardId: number;
   filters: object;
-  addSuccessToast: Function;
-  addDangerToast: Function;
-  handleToggleFullSize: Function;
+  addSuccessToast: () => void;
+  addDangerToast: () => void;
+  handleToggleFullSize: () => void;
   chartStatus: string;
   formData: object;
 };
@@ -64,9 +71,12 @@ const annotationsError = t('One ore more annotation layers failed loading.');
 
 const CrossFilterIcon = styled(Icon)`
   fill: ${({ theme }) => theme.colors.grayscale.light5};
+  cursor: pointer;
   & circle {
     fill: ${({ theme }) => theme.colors.primary.base};
   }
+  height: 22px;
+  width: 22px;
 `;
 
 const SliceHeader: FC<SliceHeaderProps> = ({
@@ -82,12 +92,13 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   cachedDttm = null,
   updatedDttm = null,
   isCached = [],
-  isExpanded = [],
+  isExpanded = false,
   sliceName = '',
   supersetCanExplore = false,
   supersetCanShare = false,
   supersetCanCSV = false,
   sliceCanEdit = false,
+  exportFullCSV,
   slice,
   componentId,
   dashboardId,
@@ -98,6 +109,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   chartStatus,
   formData,
 }) => {
+  const dispatch = useDispatch();
   // TODO: change to indicator field after it will be implemented
   const crossFilterValue = useSelector<RootState, any>(
     state => state.dataMask[slice?.slice_id]?.filterState?.value,
@@ -157,10 +169,14 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                       value: crossFilterValue,
                       name: t('Emitted values'),
                     }}
+                    text={t('Click to clear emitted filters')}
                   />
                 }
               >
-                <CrossFilterIcon name="cross-filter-badge" />
+                <CrossFilterIcon
+                  name="cross-filter-badge"
+                  onClick={() => dispatch(clearDataMask(slice?.slice_id))}
+                />
               </Tooltip>
             )}
             <FiltersBadge chartId={slice.slice_id} />
@@ -174,6 +190,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
               forceRefresh={forceRefresh}
               exploreChart={exploreChart}
               exportCSV={exportCSV}
+              exportFullCSV={exportFullCSV}
               supersetCanExplore={supersetCanExplore}
               supersetCanShare={supersetCanShare}
               supersetCanCSV={supersetCanCSV}

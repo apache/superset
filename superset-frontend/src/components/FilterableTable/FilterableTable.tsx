@@ -396,7 +396,7 @@ export default class FilterableTable extends PureComponent<
           }}
           className={`${className} grid-cell grid-header-cell`}
         >
-          {label}
+          <div>{label}</div>
         </div>
       </Tooltip>
     );
@@ -428,7 +428,7 @@ export default class FilterableTable extends PureComponent<
         }}
         className={`grid-cell ${this.rowClassName({ index: rowIndex })}`}
       >
-        {content}
+        <div>{content}</div>
       </div>
     );
 

@@ -52,6 +52,11 @@ CONNECTION_HOST_DOWN_REGEX = re.compile(
 )
 CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile("Unknown database '(?P<database>.*?)'")
 
+SYNTAX_ERROR_REGEX = re.compile(
+    "check the manual that corresponds to your MySQL server "
+    "version for the right syntax to use near '(?P<server_error>.*)"
+)
+
 
 class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     engine = "mysql"
@@ -133,6 +138,14 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
             __('Unable to connect to database "%(database)s".'),
             SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
             {"invalid": ["database"]},
+        ),
+        SYNTAX_ERROR_REGEX: (
+            __(
+                'Please check your query for syntax errors near "%(server_error)s". '
+                "Then, try running your query again."
+            ),
+            SupersetErrorType.SYNTAX_ERROR,
+            {},
         ),
     }
 

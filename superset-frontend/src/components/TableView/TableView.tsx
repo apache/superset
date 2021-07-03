@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
+import isEqual from 'lodash/isEqual';
 import { styled, t } from '@superset-ui/core';
 import { useFilters, usePagination, useSortBy, useTable } from 'react-table';
 import { Empty } from 'src/common/components';
 import { TableCollection, Pagination } from 'src/components/dataViewCommon';
-import { SortColumns } from './types';
+import { SortByType, ServerPagination } from './types';
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -34,8 +35,11 @@ export interface TableViewProps {
   columns: any[];
   data: any[];
   pageSize?: number;
+  totalCount?: number;
+  serverPagination?: boolean;
+  onServerPagination?: (args: ServerPagination) => void;
   initialPageIndex?: number;
-  initialSortBy?: SortColumns;
+  initialSortBy?: SortByType;
   loading?: boolean;
   withPagination?: boolean;
   emptyWrapperType?: EmptyWrapperType;
@@ -57,13 +61,17 @@ const TableViewStyles = styled.div<{
   ${({ scrollTable, theme }) =>
     scrollTable &&
     `
-    height: 300px;
+    height: 380px;
     margin-bottom: ${theme.gridUnit * 4}px;
     overflow: auto;
   `}
 
-  .table-cell.table-cell {
-    vertical-align: top;
+  .table-row {
+    height: 43px;
+  }
+
+  th[role='columnheader'] {
+    z-index: 1;
   }
 
   .pagination-container {
@@ -92,6 +100,7 @@ const TableView = ({
   columns,
   data,
   pageSize: initialPageSize,
+  totalCount = data.length,
   initialPageIndex,
   initialSortBy = [],
   loading = false,
@@ -99,6 +108,8 @@ const TableView = ({
   emptyWrapperType = EmptyWrapperType.Default,
   noDataText,
   showRowCount = true,
+  serverPagination = false,
+  onServerPagination = () => {},
   ...props
 }: TableViewProps) => {
   const initialState = {
@@ -116,17 +127,37 @@ const TableView = ({
     prepareRow,
     pageCount,
     gotoPage,
-    state: { pageIndex, pageSize },
+    state: { pageIndex, pageSize, sortBy },
   } = useTable(
     {
       columns,
       data,
       initialState,
+      manualPagination: serverPagination,
+      manualSortBy: serverPagination,
+      pageCount: Math.ceil(totalCount / initialState.pageSize),
     },
     useFilters,
     useSortBy,
     usePagination,
   );
+
+  useEffect(() => {
+    if (serverPagination && pageIndex !== initialState.pageIndex) {
+      onServerPagination({
+        pageIndex,
+      });
+    }
+  }, [pageIndex]);
+
+  useEffect(() => {
+    if (serverPagination && !isEqual(sortBy, initialState.sortBy)) {
+      onServerPagination({
+        pageIndex: 0,
+        sortBy,
+      });
+    }
+  }, [sortBy]);
 
   const content = withPagination ? page : rows;
 
@@ -182,7 +213,7 @@ const TableView = ({
                   '%s-%s of %s',
                   pageSize * pageIndex + (page.length && 1),
                   pageSize * pageIndex + page.length,
-                  data.length,
+                  totalCount,
                 )}
             </div>
           )}

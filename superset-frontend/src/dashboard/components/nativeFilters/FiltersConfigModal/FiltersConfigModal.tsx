@@ -235,7 +235,7 @@ export function FiltersConfigModal({
     <StyledModalWrapper
       visible={isOpen}
       maskClosable={false}
-      title={t('Filters configuration')}
+      title={t('Filters configuration and scoping')}
       width="50%"
       destroyOnClose
       onCancel={handleCancel}

@@ -51,5 +51,6 @@ export default function FilterDefinitionOption({ option }) {
       />
     );
   }
+  return null;
 }
 FilterDefinitionOption.propTypes = propTypes;
