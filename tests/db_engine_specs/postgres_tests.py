@@ -23,6 +23,7 @@ from sqlalchemy.dialects import postgresql
 from superset.db_engine_specs import get_engine_specs
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.models.sql_lab import Query
 from superset.utils.core import GenericDataType
 from tests.db_engine_specs.base_tests import assert_generic_types, TestDbEngineSpec
 from tests.fixtures.certificates import ssl_certificate
@@ -439,6 +440,22 @@ psql: error: could not connect to server: Operation timed out
                 },
             )
         ]
+
+    @mock.patch("sqlalchemy.engine.Engine.connect")
+    def test_get_cancel_query_payload(self, engine_mock):
+        query = Query()
+        cursor_mock = engine_mock.return_value.__enter__.return_value
+        cursor_mock.fetchone.return_value = ["testuser"]
+        assert (
+            PostgresEngineSpec.get_cancel_query_payload(cursor_mock, query)
+            == "testuser"
+        )
+
+    @mock.patch("sqlalchemy.engine.Engine.connect")
+    def test_cancel_query(self, engine_mock):
+        query = Query()
+        cursor_mock = engine_mock.return_value.__enter__.return_value
+        assert PostgresEngineSpec.cancel_query(cursor_mock, query, "testuser") is None
 
 
 def test_base_parameters_mixin():
