@@ -37,9 +37,12 @@ import {
 import { areObjectsEqual } from '../reduxUtils';
 import { Filters } from '../dashboard/reducers/types';
 
-export function getInitialDataMask(id?: string, moreProps?: DataMask): DataMask;
 export function getInitialDataMask(
-  id: string,
+  id?: string | number,
+  moreProps?: DataMask,
+): DataMask;
+export function getInitialDataMask(
+  id: string | number,
   moreProps: DataMask = {},
 ): DataMaskWithId {
   let otherProps = {};

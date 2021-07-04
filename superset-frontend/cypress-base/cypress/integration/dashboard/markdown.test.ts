@@ -78,7 +78,7 @@ describe('Dashboard edit markdown', () => {
     // entering edit mode does not add new scripts
     // (though scripts may still be removed by others)
     cy.get('script').then(nodes => {
-      expect(nodes.length).to.most(numScripts);
+      expect(nodes.length).to.greaterThan(numScripts);
     });
 
     cy.get('@component-background-first').click('right');
