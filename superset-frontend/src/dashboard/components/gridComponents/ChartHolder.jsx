@@ -132,7 +132,7 @@ const FilterFocusHighlight = React.forwardRef(
 
     if (focusedNativeFilterId) {
       if (
-        nativeFilters.filters[focusedNativeFilterId].chartsInScope?.includes(
+        nativeFilters.filters[focusedNativeFilterId]?.chartsInScope?.includes(
           chartId,
         )
       ) {
