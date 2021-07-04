@@ -19,6 +19,7 @@
 import { styled } from '@superset-ui/core';
 import { Select } from 'src/common/components';
 import { PluginFilterStylesProps } from './types';
+import FormItem from '../../components/Form/FormItem';
 
 export const Styles = styled.div<PluginFilterStylesProps>`
   min-height: ${({ height }) => height}px;
@@ -27,4 +28,10 @@ export const Styles = styled.div<PluginFilterStylesProps>`
 
 export const StyledSelect = styled(Select)`
   width: 100%;
+`;
+
+export const StyledFormItem = styled(FormItem)`
+  &.ant-row.ant-form-item {
+    margin: 0;
+  }
 `;
