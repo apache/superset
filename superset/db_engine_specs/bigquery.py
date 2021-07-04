@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import re
+import urllib
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 
@@ -22,15 +23,16 @@ import pandas as pd
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
-from marshmallow import Schema
+from marshmallow import fields, Schema
+from marshmallow.exceptions import ValidationError
 from sqlalchemy import literal_column
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql.expression import ColumnClause
 from typing_extensions import TypedDict
 
 from superset.databases.schemas import encrypted_field_properties, EncryptedField
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetError, SupersetErrorType
-from superset.exceptions import SupersetGenericDBErrorException
 from superset.sql_parse import Table
 from superset.utils import core as utils
 from superset.utils.hashing import md5_sha_from_str
@@ -67,12 +69,14 @@ ma_plugin = MarshmallowPlugin()
 
 class BigQueryParametersSchema(Schema):
     credentials_info = EncryptedField(
-        required=True, description="Contents of BigQuery JSON credentials.",
+        required=False, description="Contents of BigQuery JSON credentials.",
     )
+    query = fields.Dict(required=False)
 
 
 class BigQueryParametersType(TypedDict):
     credentials_info: Dict[str, Any]
+    query: Dict[str, Any]
 
 
 class BigQueryEngineSpec(BaseEngineSpec):
@@ -354,29 +358,34 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     @classmethod
     def build_sqlalchemy_uri(
-        cls, _: BigQueryParametersType, encrypted_extra: Optional[Dict[str, Any]] = None
+        cls,
+        parameters: BigQueryParametersType,
+        encrypted_extra: Optional[Dict[str, Any]] = None,
     ) -> str:
-        if encrypted_extra:
-            project_id = encrypted_extra.get("credentials_info", {}).get("project_id")
+        query = parameters.get("query", {})
+        query_params = urllib.parse.urlencode(query)
+
+        if not encrypted_extra:
+            raise ValidationError("Missing service credentials")
+
+        project_id = encrypted_extra.get("credentials_info", {}).get("project_id")
 
         if project_id:
-            return f"{cls.engine}+{cls.default_driver}://{project_id}"
+            return f"{cls.default_driver}://{project_id}/?{query_params}"
 
-        raise SupersetGenericDBErrorException(
-            message="Big Query encrypted_extra is not available.",
-        )
+        raise ValidationError("Invalid service credentials")
 
     @classmethod
     def get_parameters_from_uri(
-        cls, _: str, encrypted_extra: Optional[Dict[str, str]] = None
+        cls, uri: str, encrypted_extra: Optional[Dict[str, str]] = None
     ) -> Any:
-        # BigQuery doesn't have parameters
-        if encrypted_extra:
-            return encrypted_extra
+        value = make_url(uri)
 
-        raise SupersetGenericDBErrorException(
-            message="Big Query encrypted_extra is not available.",
-        )
+        # Building parameters from encrypted_extra and uri
+        if encrypted_extra:
+            return {**encrypted_extra, "query": value.query}
+
+        raise ValidationError("Invalid service credentials")
 
     @classmethod
     def validate_parameters(
