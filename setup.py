@@ -74,6 +74,7 @@ setup(
         "croniter>=0.3.28",
         "cron-descriptor",
         "cryptography>=3.3.2",
+        "deprecation>=2.1.0, <2.2.0",
         "flask>=1.1.0, <2.0.0",
         "flask-appbuilder>=3.3.0, <4.0.0",
         "flask-caching>=1.10.0",
@@ -84,6 +85,7 @@ setup(
         "geopy",
         "graphlib-backport",
         "gunicorn>=20.0.2, <20.1",
+        "holidays==0.10.3",  # PINNED! https://github.com/dr-prodigy/python-holidays/issues/406
         "humanize",
         "itsdangerous>=1.0.0, <2.0.0",
         "isodate",
@@ -94,6 +96,7 @@ setup(
         "pathlib2",
         "pgsanity",
         "polyline",
+        "pyparsing>=2.4.7, <3.0.0",
         "python-dateutil",
         "python-dotenv",
         "python-geohash",
@@ -110,9 +113,6 @@ setup(
         "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
         "typing-extensions>=3.7.4.3,<4",  # needed to support typing.Literal on py37
         "wtforms-json",
-        "pyparsing>=2.4.7, <3.0.0",
-        "holidays==0.10.3",  # PINNED! https://github.com/dr-prodigy/python-holidays/issues/406
-        "deprecation>=2.1.0, <2.2.0",
     ],
     extras_require={
         "athena": ["pyathena>=1.10.8,<1.11"],
