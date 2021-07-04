@@ -30,7 +30,6 @@ import {
   t,
   tn,
 } from '@superset-ui/core';
-import { FormItem } from 'src/components/Form';
 import React, {
   RefObject,
   ReactElement,
@@ -46,7 +45,7 @@ import { useImmerReducer } from 'use-immer';
 import Icons from 'src/components/Icons';
 import { usePrevious } from 'src/common/hooks/usePrevious';
 import { PluginFilterSelectProps, SelectValue } from './types';
-import { StyledSelect, Styles } from '../common';
+import { StyledFormItem, StyledSelect, Styles } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
 
 const { Option } = Select;
@@ -279,7 +278,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   return (
     <Styles height={height} width={width}>
-      <FormItem
+      <StyledFormItem
         validateStatus={filterState.validateMessage && 'error'}
         extra={<Error>{filterState.validateMessage}</Error>}
       >
@@ -329,7 +328,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               </Option>
             )}
         </StyledSelect>
-      </FormItem>
+      </StyledFormItem>
     </Styles>
   );
 }
