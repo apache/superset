@@ -16,29 +16,159 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { uniqWith } from 'lodash';
 import cx from 'classnames';
 import Icon from 'src/components/Icon';
 import Icons from 'src/components/Icons';
+import { usePrevious } from 'src/common/hooks/usePrevious';
+import { DataMaskStateWithId } from 'src/dataMask/types';
 import DetailsPanelPopover from './DetailsPanel';
 import { Pill } from './Styles';
-import { Indicator } from './selectors';
+import {
+  Indicator,
+  IndicatorStatus,
+  selectIndicatorsForChart,
+  selectNativeIndicatorsForChart,
+} from './selectors';
+import { setDirectPathToChild } from '../../actions/dashboardState';
+import {
+  ChartsState,
+  DashboardInfo,
+  DashboardLayout,
+  RootState,
+} from '../../types';
+import { Filters } from '../../reducers/types';
 
 export interface FiltersBadgeProps {
-  appliedCrossFilterIndicators: Indicator[];
-  appliedIndicators: Indicator[];
-  unsetIndicators: Indicator[];
-  incompatibleIndicators: Indicator[];
-  onHighlightFilterSource: (path: string[]) => void;
+  chartId: number;
 }
 
-const FiltersBadge = ({
-  appliedCrossFilterIndicators,
-  appliedIndicators,
-  unsetIndicators,
-  incompatibleIndicators,
-  onHighlightFilterSource,
-}: FiltersBadgeProps) => {
+const sortByStatus = (indicators: Indicator[]): Indicator[] => {
+  const statuses = [
+    IndicatorStatus.Applied,
+    IndicatorStatus.Unset,
+    IndicatorStatus.Incompatible,
+  ];
+  return indicators.sort(
+    (a, b) =>
+      statuses.indexOf(a.status as IndicatorStatus) -
+      statuses.indexOf(b.status as IndicatorStatus),
+  );
+};
+
+export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
+  const dispatch = useDispatch();
+  const datasources = useSelector<RootState, any>(state => state.datasources);
+  const dashboardFilters = useSelector<RootState, any>(
+    state => state.dashboardFilters,
+  );
+  const nativeFilters = useSelector<RootState, Filters>(
+    state => state.nativeFilters?.filters,
+  );
+  const dashboardInfo = useSelector<RootState, DashboardInfo>(
+    state => state.dashboardInfo,
+  );
+  const charts = useSelector<RootState, ChartsState>(state => state.charts);
+  const present = useSelector<RootState, DashboardLayout>(
+    state => state.dashboardLayout.present,
+  );
+  const dataMask = useSelector<RootState, DataMaskStateWithId>(
+    state => state.dataMask,
+  );
+
+  const [nativeIndicators, setNativeIndicators] = useState<Indicator[]>([]);
+  const [dashboardIndicators, setDashboardIndicators] = useState<Indicator[]>(
+    [],
+  );
+
+  const onHighlightFilterSource = useCallback(
+    (path: string[]) => {
+      dispatch(setDirectPathToChild(path));
+    },
+    [dispatch],
+  );
+
+  const chart = charts[chartId];
+  const prevChartStatus = usePrevious(chart?.chartStatus);
+
+  const showIndicators = useCallback(
+    () =>
+      chart?.chartStatus && ['rendered', 'success'].includes(chart.chartStatus),
+    [chart.chartStatus],
+  );
+  useEffect(() => {
+    if (!showIndicators) {
+      setDashboardIndicators([]);
+    }
+    if (prevChartStatus !== 'success') {
+      setDashboardIndicators(
+        selectIndicatorsForChart(chartId, dashboardFilters, datasources, chart),
+      );
+    }
+  }, [
+    chart,
+    chartId,
+    dashboardFilters,
+    datasources,
+    prevChartStatus,
+    showIndicators,
+  ]);
+
+  useEffect(() => {
+    if (!showIndicators) {
+      setNativeIndicators([]);
+    }
+    if (prevChartStatus !== 'success') {
+      setNativeIndicators(
+        selectNativeIndicatorsForChart(
+          nativeFilters,
+          dataMask,
+          chartId,
+          chart,
+          present,
+          dashboardInfo.metadata?.chart_configuration,
+        ),
+      );
+    }
+  }, [
+    chart,
+    chartId,
+    dashboardInfo.metadata?.chart_configuration,
+    dataMask,
+    nativeFilters,
+    present,
+    prevChartStatus,
+    showIndicators,
+  ]);
+
+  const indicators = useMemo(
+    () =>
+      uniqWith(
+        sortByStatus([...dashboardIndicators, ...nativeIndicators]),
+        (ind1, ind2) =>
+          ind1.column === ind2.column &&
+          ind1.name === ind2.name &&
+          (ind1.status !== IndicatorStatus.Applied ||
+            ind2.status !== IndicatorStatus.Applied),
+      ),
+    [dashboardIndicators, nativeIndicators],
+  );
+
+  const appliedCrossFilterIndicators = indicators.filter(
+    indicator => indicator.status === IndicatorStatus.CrossFilterApplied,
+  );
+  const appliedIndicators = indicators.filter(
+    indicator => indicator.status === IndicatorStatus.Applied,
+  );
+  const unsetIndicators = indicators.filter(
+    indicator => indicator.status === IndicatorStatus.Unset,
+  );
+  const incompatibleIndicators = indicators.filter(
+    indicator => indicator.status === IndicatorStatus.Incompatible,
+  );
+
   if (
     !appliedCrossFilterIndicators.length &&
     !appliedIndicators.length &&
@@ -89,4 +219,4 @@ const FiltersBadge = ({
   );
 };
 
-export default FiltersBadge;
+export default React.memo(FiltersBadge);

@@ -288,7 +288,8 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
   }
 
   metadata.show_native_filters =
-    dashboardData?.metadata?.show_native_filters ?? true;
+    dashboardData?.metadata?.show_native_filters ??
+    isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS);
 
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
     // If user just added cross filter to dashboard it's not saving it scope on server,
@@ -360,6 +361,7 @@ export const hydrateDashboard = (dashboardData, chartData, datasourcesData) => (
       dashboardFilters,
       nativeFilters,
       dashboardState: {
+        preselectNativeFilters: getUrlParam(URL_PARAMS.nativeFilters),
         sliceIds: Array.from(sliceIds),
         directPathToChild,
         directPathLastUpdated: Date.now(),

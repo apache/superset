@@ -25,6 +25,7 @@ import React, {
   useMemo,
   useState,
   useRef,
+  useCallback,
 } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Select as AntdSelect } from 'antd';
@@ -36,6 +37,7 @@ import {
 } from 'antd/lib/select';
 import debounce from 'lodash/debounce';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { isEqual } from 'lodash';
 import { hasOption } from './utils';
 
 type AntdSelectAllProps = AntdSelectProps<AntdSelectValue>;
@@ -165,37 +167,44 @@ const Select = ({
     ? 'tags'
     : 'multiple';
 
-  const handleTopOptions = (selectedValue: AntdSelectValue | undefined) => {
-    // bringing selected options to the top of the list
-    if (selectedValue) {
-      const currentValue = selectedValue as string[] | string;
-      const topOptions = selectOptions.filter(opt =>
-        currentValue?.includes(opt.value),
-      );
-      const otherOptions = selectOptions.filter(
-        opt => !topOptions.find(tOpt => tOpt.value === opt.value),
-      );
-      // fallback for custom options in tags mode as they
-      // do not appear in the selectOptions state
-      if (!isSingleMode && Array.isArray(currentValue)) {
-        // eslint-disable-next-line no-restricted-syntax
-        for (const val of currentValue) {
-          if (!topOptions.find(tOpt => tOpt.value === val)) {
-            topOptions.push({ label: val, value: val });
+  const handleTopOptions = useCallback(
+    (selectedValue: AntdSelectValue | undefined) => {
+      // bringing selected options to the top of the list
+      if (selectedValue) {
+        const currentValue = selectedValue as string[] | string;
+        const topOptions = selectOptions.filter(opt =>
+          Array.isArray(currentValue)
+            ? currentValue.includes(opt.value)
+            : currentValue === opt.value,
+        );
+        const otherOptions = selectOptions.filter(
+          opt => !topOptions.find(tOpt => tOpt.value === opt.value),
+        );
+        // fallback for custom options in tags mode as they
+        // do not appear in the selectOptions state
+        if (!isSingleMode && Array.isArray(currentValue)) {
+          // eslint-disable-next-line no-restricted-syntax
+          for (const val of currentValue) {
+            if (!topOptions.find(tOpt => tOpt.value === val)) {
+              topOptions.push({ label: val, value: val });
+            }
           }
         }
+
+        const sortedOptions = [...topOptions, ...otherOptions];
+        if (!isEqual(sortedOptions, selectOptions)) {
+          setOptions(sortedOptions);
+        }
       }
-      setOptions([...topOptions, ...otherOptions]);
-    }
-  };
+    },
+    [isSingleMode, selectOptions],
+  );
 
   const handleOnSelect = (
     selectedValue: string | number | AntdLabeledValue,
   ) => {
     if (isSingleMode) {
       setSelectValue(selectedValue);
-      // in single mode the sorting must happen on selection
-      handleTopOptions(selectedValue);
     } else {
       const currentSelected = Array.isArray(selectValue) ? selectValue : [];
       if (
@@ -287,14 +296,15 @@ const Select = ({
     const searchValue = search.trim();
     // enables option creation
     if (allowNewOptions && isSingleMode) {
-      const lastOption = selectOptions[selectOptions.length - 1].value;
+      const firstOption = selectOptions.length > 0 && selectOptions[0].value;
       // replaces the last search value entered with the new one
       // only when the value wasn't part of the original options
       if (
-        lastOption === searchedValue &&
+        searchValue &&
+        firstOption === searchedValue &&
         !initialOptions.find(o => o.value === searchedValue)
       ) {
-        selectOptions.pop();
+        selectOptions.shift();
         setOptions(selectOptions);
       }
       if (searchValue && !hasOption(searchValue, selectOptions)) {
@@ -305,6 +315,7 @@ const Select = ({
         // adds a custom option
         const newOptions = [...selectOptions, newOption];
         setOptions(newOptions);
+        setSelectValue(searchValue);
       }
     }
     setSearchedValue(searchValue);
@@ -375,6 +386,12 @@ const Select = ({
     paginatedFetch,
     handlePaginatedFetch,
   ]);
+
+  useEffect(() => {
+    if (isSingleMode) {
+      handleTopOptions(selectValue);
+    }
+  }, [handleTopOptions, isSingleMode, selectValue]);
 
   const dropdownRender = (
     originNode: ReactElement & { ref?: RefObject<HTMLElement> },

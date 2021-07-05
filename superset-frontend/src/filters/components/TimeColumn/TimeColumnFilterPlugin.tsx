@@ -26,9 +26,8 @@ import {
 } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
-import { Styles, StyledSelect } from '../common';
+import { Styles, StyledSelect, StyledFormItem } from '../common';
 import { PluginFilterTimeColumnProps } from './types';
-import FormItem from '../../../components/Form/FormItem';
 
 const { Option } = Select;
 
@@ -89,7 +88,7 @@ export default function PluginFilterTimeColumn(
       : tn('%s option', '%s options', timeColumns.length, timeColumns.length);
   return (
     <Styles height={height} width={width}>
-      <FormItem
+      <StyledFormItem
         validateStatus={filterState.validateMessage && 'error'}
         extra={<Error>{filterState.validateMessage}</Error>}
       >
@@ -117,7 +116,7 @@ export default function PluginFilterTimeColumn(
             },
           )}
         </StyledSelect>
-      </FormItem>
+      </StyledFormItem>
     </Styles>
   );
 }

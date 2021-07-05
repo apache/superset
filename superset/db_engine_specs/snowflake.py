@@ -15,17 +15,30 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+import re
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING
+from typing import Any, Dict, Optional, Pattern, Tuple, TYPE_CHECKING
 from urllib import parse
 
+from flask_babel import gettext as __
 from sqlalchemy.engine.url import URL
 
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
+from superset.errors import SupersetErrorType
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+
+# Regular expressions to catch custom errors
+OBJECT_DOES_NOT_EXIST_REGEX = re.compile(
+    r"Object (?P<object>.*?) does not exist or not authorized."
+)
+
+SYNTAX_ERROR_REGEX = re.compile(
+    "syntax error line (?P<line>.+?) at position (?P<position>.+?) "
+    "unexpected '(?P<syntax_error>.+?)'."
+)
 
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
@@ -52,6 +65,22 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         "P1M": "DATE_TRUNC('MONTH', {col})",
         "P0.25Y": "DATE_TRUNC('QUARTER', {col})",
         "P1Y": "DATE_TRUNC('YEAR', {col})",
+    }
+
+    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
+        OBJECT_DOES_NOT_EXIST_REGEX: (
+            __("%(object)s does not exist in this database."),
+            SupersetErrorType.OBJECT_DOES_NOT_EXIST_ERROR,
+            {},
+        ),
+        SYNTAX_ERROR_REGEX: (
+            __(
+                "Please check your query for syntax errors at or "
+                'near "%(syntax_error)s". Then, try running your query again.'
+            ),
+            SupersetErrorType.SYNTAX_ERROR,
+            {},
+        ),
     }
 
     @classmethod

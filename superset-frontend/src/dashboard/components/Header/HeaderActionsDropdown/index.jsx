@@ -42,6 +42,7 @@ const propTypes = {
   dashboardInfo: PropTypes.object.isRequired,
   dashboardId: PropTypes.number.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
+  dataMask: PropTypes.object.isRequired,
   customCss: PropTypes.string.isRequired,
   colorNamespace: PropTypes.string,
   colorScheme: PropTypes.string,
@@ -164,12 +165,13 @@ class HeaderActionsDropdown extends React.PureComponent {
         break;
       }
       case MENU_KEYS.TOGGLE_FULLSCREEN: {
-        const url = getDashboardUrl(
-          window.location.pathname,
-          getActiveFilters(),
-          window.location.hash,
-          !getUrlParam(URL_PARAMS.standalone),
-        );
+        const url = getDashboardUrl({
+          dataMask: this.props.dataMask,
+          pathname: window.location.pathname,
+          filters: getActiveFilters(),
+          hash: window.location.hash,
+          standalone: !getUrlParam(URL_PARAMS.standalone),
+        });
         window.location.replace(url);
         break;
       }
@@ -183,6 +185,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       dashboardTitle,
       dashboardId,
       dashboardInfo,
+      dataMask,
       refreshFrequency,
       shouldPersistRefreshFrequency,
       editMode,
@@ -206,11 +209,13 @@ class HeaderActionsDropdown extends React.PureComponent {
     const emailTitle = t('Superset dashboard');
     const emailSubject = `${emailTitle} ${dashboardTitle}`;
     const emailBody = t('Check out this dashboard: ');
-    const url = getDashboardUrl(
-      window.location.pathname,
-      getActiveFilters(),
-      window.location.hash,
-    );
+
+    const url = getDashboardUrl({
+      dataMask,
+      pathname: window.location.pathname,
+      filters: getActiveFilters(),
+      hash: window.location.hash,
+    });
 
     const menu = (
       <Menu

@@ -9,8 +9,6 @@
 -r integration.txt
 -e file:.
     # via -r requirements/base.in
-appnope==0.1.0
-    # via ipython
 astroid==2.4.2
     # via pylint
 backcall==0.2.0

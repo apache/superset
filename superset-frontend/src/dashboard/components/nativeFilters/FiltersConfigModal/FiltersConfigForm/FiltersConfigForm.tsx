@@ -44,7 +44,7 @@ import React, {
 } from 'react';
 import { useSelector } from 'react-redux';
 import { FormItem } from 'src/components/Form';
-import { Checkbox, Input } from 'src/common/components';
+import { Input } from 'src/common/components';
 import { Select } from 'src/components/Select';
 import SupersetResourceSelect, {
   cachedSupersetGet,
@@ -72,7 +72,6 @@ import { ColumnSelect } from './ColumnSelect';
 import { NativeFiltersForm } from '../types';
 import {
   datasetToSelectOption,
-  doesColumnMatchFilterType,
   FILTER_SUPPORTED_TYPES,
   hasTemporalColumns,
   setNativeFilterFieldValues,
@@ -269,13 +268,6 @@ export interface FiltersConfigFormProps {
   parentFilters: { id: string; title: string }[];
 }
 
-// TODO: Need to do with it something
-const FILTERS_WITHOUT_COLUMN = [
-  'filter_timegrain',
-  'filter_timecolumn',
-  'filter_groupby',
-];
-
 const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
 
 const BASIC_CONTROL_ITEMS = ['enableEmptyFilter', 'multiSelect'];
@@ -352,8 +344,21 @@ const FiltersConfigForm = (
   // @ts-ignore
   const hasDataset = !!nativeFilterItems[formFilter?.filterType]?.value
     ?.datasourceCount;
-  const hasColumn =
-    hasDataset && !FILTERS_WITHOUT_COLUMN.includes(formFilter?.filterType);
+
+  const { controlItems = {}, mainControlItems = {} } = formFilter
+    ? getControlItemsMap({
+        disabled: false,
+        forceUpdate,
+        form,
+        filterId,
+        filterType: formFilter.filterType,
+        filterToEdit,
+        formFilter,
+        removed,
+      })
+    : {};
+  const hasColumn = !!mainControlItems.groupby;
+
   const nativeFilterItem = nativeFilterItems[formFilter?.filterType] ?? {};
   // @ts-ignore
   const enableNoResults = !!nativeFilterItem.value?.enableNoResults;
@@ -484,7 +489,6 @@ const FiltersConfigForm = (
     (defaultDatasetSelectOptions.length === 1
       ? defaultDatasetSelectOptions[0].value
       : undefined);
-  const initColumn = filterToEdit?.targets[0]?.column?.name;
   const newFormData = getFormData({
     datasetId,
     groupby: hasColumn ? formFilter?.column : undefined,
@@ -544,19 +548,10 @@ const FiltersConfigForm = (
   const hasSorting =
     typeof filterToEdit?.controlValues?.sortAscending === 'boolean';
 
-  const showDefaultValue = !hasDataset || (!isDataDirty && hasFilledDataset);
-
-  const controlItems = formFilter
-    ? getControlItemsMap({
-        disabled: false,
-        forceUpdate,
-        form,
-        filterId,
-        filterType: formFilter.filterType,
-        filterToEdit,
-        formFilter,
-      })
-    : {};
+  const showDefaultValue =
+    !hasDataset ||
+    (!isDataDirty && hasFilledDataset) ||
+    !mainControlItems.groupby;
 
   const onSortChanged = (value: boolean | undefined) => {
     const previous = form.getFieldValue('filters')?.[filterId].controlValues;
@@ -669,8 +664,8 @@ const FiltersConfigForm = (
                   ? FILTER_TYPE_NAME_MAPPING[name]
                   : undefined;
                 const isDisabled =
-                  FILTER_SUPPORTED_TYPES[filterType].length === 1 &&
-                  FILTER_SUPPORTED_TYPES[filterType].includes(
+                  FILTER_SUPPORTED_TYPES[filterType]?.length === 1 &&
+                  FILTER_SUPPORTED_TYPES[filterType]?.includes(
                     GenericDataType.TEMPORAL,
                   ) &&
                   !doLoadedDatasetsHaveTemporalColumns;
@@ -692,6 +687,7 @@ const FiltersConfigForm = (
                 setNativeFilterFieldValues(form, filterId, {
                   filterType: value,
                   defaultDataMask: null,
+                  column: null,
                 });
                 forceUpdate();
               }}
@@ -731,35 +727,10 @@ const FiltersConfigForm = (
                 }}
               />
             </StyledFormItem>
-            {hasColumn && (
-              <StyledFormItem
-                // don't show the column select unless we have a dataset
-                // style={{ display: datasetId == null ? undefined : 'none' }}
-                name={['filters', filterId, 'column']}
-                initialValue={initColumn}
-                label={<StyledLabel>{t('Column')}</StyledLabel>}
-                rules={[
-                  { required: !removed, message: t('Column is required') },
-                ]}
-                data-test="field-input"
-              >
-                <ColumnSelect
-                  form={form}
-                  filterId={filterId}
-                  datasetId={datasetId}
-                  filterValues={column =>
-                    doesColumnMatchFilterType(formFilter?.filterType, column)
-                  }
-                  onChange={() => {
-                    // We need reset default value when when column changed
-                    setNativeFilterFieldValues(form, filterId, {
-                      defaultDataMask: null,
-                    });
-                    forceUpdate();
-                  }}
-                />
-              </StyledFormItem>
-            )}
+            {hasDataset &&
+              Object.keys(mainControlItems).map(
+                key => mainControlItems[key].element,
+              )}
           </StyledRowContainer>
         )}
         <StyledCollapse
@@ -772,13 +743,6 @@ const FiltersConfigForm = (
             header={FilterPanels.basic.name}
             key={FilterPanels.basic.key}
           >
-            {hasFilledDataset && (
-              <CleanFormItem
-                name={['filters', filterId, 'defaultValueFormData']}
-                hidden
-                initialValue={newFormData}
-              />
-            )}
             <CleanFormItem
               name={['filters', filterId, 'defaultValueQueriesData']}
               hidden
@@ -794,7 +758,11 @@ const FiltersConfigForm = (
             >
               <StyledRowSubFormItem
                 name={['filters', filterId, 'defaultDataMask']}
-                initialValue={filterToEdit?.defaultDataMask}
+                initialValue={
+                  formFilter.filterType === filterToEdit?.filterType
+                    ? filterToEdit?.defaultDataMask
+                    : null
+                }
                 data-test="default-input"
                 label={<StyledLabel>{t('Default Value')}</StyledLabel>}
                 required={hasDefaultValue}
@@ -850,16 +818,6 @@ const FiltersConfigForm = (
             {Object.keys(controlItems)
               .filter(key => BASIC_CONTROL_ITEMS.includes(key))
               .map(key => controlItems[key].element)}
-            <StyledRowFormItem
-              name={['filters', filterId, 'isInstant']}
-              initialValue={filterToEdit?.isInstant || false}
-              valuePropName="checked"
-              colon={false}
-            >
-              <Checkbox data-test="apply-changes-instantly-checkbox">
-                {t('Apply changes instantly')}
-              </Checkbox>
-            </StyledRowFormItem>
           </Collapse.Panel>
           {((hasDataset && hasAdditionalFilters) || hasMetrics) && (
             <Collapse.Panel

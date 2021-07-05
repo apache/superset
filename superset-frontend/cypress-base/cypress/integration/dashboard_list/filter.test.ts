@@ -22,7 +22,7 @@ describe('dashboard filters card view', () => {
   beforeEach(() => {
     cy.login();
     cy.visit(DASHBOARD_LIST);
-    cy.get('[data-test="card-view"]').click();
+    cy.get('[aria-label="card-view"]').click();
   });
 
   it('should filter by owners correctly', () => {
@@ -73,7 +73,7 @@ describe('dashboard filters list view', () => {
   beforeEach(() => {
     cy.login();
     cy.visit(DASHBOARD_LIST);
-    cy.get('[data-test="list-view"]').click();
+    cy.get('[aria-label="list-view"]').click();
   });
 
   it('should filter by owners correctly', () => {

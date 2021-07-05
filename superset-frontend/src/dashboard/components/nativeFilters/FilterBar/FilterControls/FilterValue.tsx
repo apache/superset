@@ -43,6 +43,8 @@ import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FilterProps } from './types';
 import { getFormData } from '../../utils';
 import { useCascadingFilters } from './state';
+import { usePreselectNativeFilter } from '../../state';
+import { checkIsMissingRequiredValue } from '../utils';
 
 const HEIGHT = 32;
 
@@ -80,7 +82,8 @@ const FilterValue: React.FC<FilterProps> = ({
   const { name: groupby } = column;
   const hasDataSource = !!datasetId;
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
-  const [isRefreshing, setIsRefreshing] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState(true);
+  const preselection = usePreselectNativeFilter(filter.id);
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -195,6 +198,17 @@ const FilterValue: React.FC<FilterProps> = ({
       />
     );
   }
+  const isMissingRequiredValue = checkIsMissingRequiredValue(
+    filter,
+    filter.dataMask?.filterState,
+  );
+  const filterState = {
+    ...filter.dataMask?.filterState,
+    validateMessage: isMissingRequiredValue && t('Value is required'),
+  };
+  if (filterState.value === undefined && preselection) {
+    filterState.value = preselection;
+  }
 
   return (
     <StyledDiv data-test="form-item-value">
@@ -209,7 +223,7 @@ const FilterValue: React.FC<FilterProps> = ({
           queriesData={hasDataSource ? state : [{ data: [{}] }]}
           chartType={filterType}
           behaviors={[Behavior.NATIVE_FILTER]}
-          filterState={{ ...filter.dataMask?.filterState }}
+          filterState={filterState}
           ownState={filter.dataMask?.ownState}
           enableNoResults={metadata?.enableNoResults}
           isRefreshing={isRefreshing}
