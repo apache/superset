@@ -137,7 +137,7 @@ interface LinkProps {
 }
 
 const AnchorLink: React.FC<LinkProps> = ({ to, children }) => (
-  <a href={to}>{children}</a>
+  <a {...(to ? { href: to } : {})}>{children}</a>
 );
 
 interface CardProps {
