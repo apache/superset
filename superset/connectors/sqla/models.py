@@ -413,7 +413,8 @@ class SqlMetric(Model, BaseMetric):
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.metric_name
-        sqla_col: ColumnClause = literal_column(self.expression)
+        tp = self.table.get_template_processor()
+        sqla_col: ColumnClause = literal_column(tp.process_template(self.expression))
         return self.table.make_sqla_column_compatible(sqla_col, label)
 
     @property
