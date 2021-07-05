@@ -79,8 +79,6 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     stack,
     truncateYAxis,
     yAxisFormat,
-    xAxisShowMinLabel,
-    xAxisShowMaxLabel,
     xAxisTimeFormat,
     yAxisBounds,
     yAxisTitle,
@@ -148,8 +146,6 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     xAxis: {
       type: 'time',
       axisLabel: {
-        showMinLabel: xAxisShowMinLabel,
-        showMaxLabel: xAxisShowMaxLabel,
         formatter: xAxisFormatter,
         rotate: xAxisLabelRotation,
       },
