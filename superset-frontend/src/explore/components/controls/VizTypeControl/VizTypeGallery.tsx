@@ -403,10 +403,10 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
 
   const searchResults = useMemo(() => {
     if (searchInputValue.trim() === '') {
-      return chartMetadata;
+      return [];
     }
     return fuse.search(searchInputValue).map(result => result.item);
-  }, [searchInputValue, fuse, chartMetadata]);
+  }, [searchInputValue, fuse]);
 
   const startSearching = useCallback(() => {
     setIsSearching(true);
