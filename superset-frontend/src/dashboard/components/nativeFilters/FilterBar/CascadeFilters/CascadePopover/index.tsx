@@ -62,7 +62,7 @@ const StyledTitle = styled.h4`
 `;
 
 const IconStyles = (theme: SupersetTheme) => css`
-  margin-right: ${theme.gridUnit}px; 
+  margin-right: ${theme.gridUnit}px;
   color: ${theme.colors.grayscale.dark1};
   width: ${theme.gridUnit * 4}px;
 `;
