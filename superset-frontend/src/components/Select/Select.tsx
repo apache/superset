@@ -50,6 +50,7 @@ type PickedSelectProps = Pick<
   | 'defaultValue'
   | 'disabled'
   | 'filterOption'
+  | 'notFoundContent'
   | 'onChange'
   | 'placeholder'
   | 'showSearch'
@@ -63,8 +64,6 @@ export type OptionsTypePage = {
   totalCount: number;
 };
 
-export type OptionsPromise = (search: string) => Promise<OptionsType>;
-
 export type OptionsPagePromise = (
   search: string,
   offset: number,
@@ -77,8 +76,7 @@ export interface SelectProps extends PickedSelectProps {
   header?: ReactNode;
   mode?: 'single' | 'multiple';
   name?: string; // discourage usage
-  options: OptionsType | OptionsPromise | OptionsPagePromise;
-  paginatedFetch?: boolean;
+  options: OptionsType | OptionsPagePromise;
   pageSize?: number;
   invertSelection?: boolean;
 }
@@ -94,6 +92,10 @@ const StyledSelect = styled(AntdSelect, {
   ${({ theme, hasHeader }) => `
     width: 100%;
     margin-top: ${hasHeader ? theme.gridUnit : 0}px;
+
+    && .ant-select-selector {
+      border-radius: ${theme.gridUnit}px;
+    }
   `}
 `;
 
@@ -120,11 +122,11 @@ const StyledError = styled.div`
   `}
 `;
 
-// default behaviors
 const MAX_TAG_COUNT = 4;
 const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
 const DEBOUNCE_TIMEOUT = 500;
 const DEFAULT_PAGE_SIZE = 50;
+const EMPTY_OPTIONS: OptionsType = [];
 
 const Error = ({ error }: { error: string }) => (
   <StyledError>
@@ -135,11 +137,10 @@ const Error = ({ error }: { error: string }) => (
 const Select = ({
   allowNewOptions = false,
   ariaLabel,
-  filterOption,
+  filterOption = true,
   header = null,
   mode = 'single',
   name,
-  paginatedFetch,
   pageSize = DEFAULT_PAGE_SIZE,
   placeholder = t('Select ...'),
   options,
@@ -151,8 +152,11 @@ const Select = ({
   const isAsync = typeof options === 'function';
   const isSingleMode = mode === 'single';
   const shouldShowSearch = isAsync || allowNewOptions ? true : showSearch;
-  const initialOptions = options && Array.isArray(options) ? options : [];
-  const [selectOptions, setOptions] = useState<OptionsType>(initialOptions);
+  const initialOptions =
+    options && Array.isArray(options) ? options : EMPTY_OPTIONS;
+  const [selectOptions, setSelectOptions] = useState<OptionsType>(
+    initialOptions,
+  );
   const [selectValue, setSelectValue] = useState(value);
   const [searchedValue, setSearchedValue] = useState('');
   const [isLoading, setLoading] = useState(false);
@@ -166,6 +170,16 @@ const Select = ({
     : allowNewOptions
     ? 'tags'
     : 'multiple';
+
+  useEffect(() => {
+    setSelectOptions(
+      options && Array.isArray(options) ? options : EMPTY_OPTIONS,
+    );
+  }, [options]);
+
+  useEffect(() => {
+    setSelectValue(value);
+  }, [value]);
 
   const handleTopOptions = useCallback(
     (selectedValue: AntdSelectValue | undefined) => {
@@ -193,7 +207,7 @@ const Select = ({
 
         const sortedOptions = [...topOptions, ...otherOptions];
         if (!isEqual(sortedOptions, selectOptions)) {
-          setOptions(sortedOptions);
+          setSelectOptions(sortedOptions);
         }
       }
     },
@@ -244,7 +258,7 @@ const Select = ({
   const handleData = (data: OptionsType) => {
     if (data && Array.isArray(data) && data.length) {
       // merges with existing and creates unique options
-      setOptions(prevOptions => [
+      setSelectOptions(prevOptions => [
         ...prevOptions,
         ...data.filter(
           newOpt =>
@@ -253,24 +267,6 @@ const Select = ({
       ]);
     }
   };
-
-  const handleFetch = useMemo(
-    () => (value: string) => {
-      if (fetchedQueries.current.has(value)) {
-        return;
-      }
-      setLoading(true);
-      const fetchOptions = options as OptionsPromise;
-      fetchOptions(value)
-        .then((data: OptionsType) => {
-          handleData(data);
-          fetchedQueries.current.add(value);
-        })
-        .catch(onError)
-        .finally(() => setLoading(false));
-    },
-    [options],
-  );
 
   const handlePaginatedFetch = useMemo(
     () => (value: string, offset: number, limit: number) => {
@@ -305,7 +301,7 @@ const Select = ({
         !initialOptions.find(o => o.value === searchedValue)
       ) {
         selectOptions.shift();
-        setOptions(selectOptions);
+        setSelectOptions(selectOptions);
       }
       if (searchValue && !hasOption(searchValue, selectOptions)) {
         const newOption = {
@@ -314,7 +310,7 @@ const Select = ({
         };
         // adds a custom option
         const newOptions = [...selectOptions, newOption];
-        setOptions(newOptions);
+        setSelectOptions(newOptions);
         setSelectValue(searchValue);
       }
     }
@@ -337,24 +333,22 @@ const Select = ({
   };
 
   const handleFilterOption = (search: string, option: AntdLabeledValue) => {
-    const searchValue = search.trim().toLowerCase();
-    if (filterOption && typeof filterOption === 'boolean') return filterOption;
-    if (filterOption && typeof filterOption === 'function') {
+    if (typeof filterOption === 'function') {
       return filterOption(search, option);
     }
-    const { value, label } = option;
-    if (
-      value &&
-      label &&
-      typeof value === 'string' &&
-      typeof label === 'string'
-    ) {
+
+    if (filterOption) {
+      const searchValue = search.trim().toLowerCase();
+      const { value, label } = option;
+      const valueText = String(value);
+      const labelText = String(label);
       return (
-        value.toLowerCase().includes(searchValue) ||
-        label.toLowerCase().includes(searchValue)
+        valueText.toLowerCase().includes(searchValue) ||
+        labelText.toLowerCase().includes(searchValue)
       );
     }
-    return true;
+
+    return false;
   };
 
   const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
@@ -369,23 +363,11 @@ const Select = ({
   useEffect(() => {
     const foundOption = hasOption(searchedValue, selectOptions);
     if (isAsync && !foundOption) {
-      if (paginatedFetch) {
-        const offset = 0;
-        handlePaginatedFetch(searchedValue, offset, pageSize);
-        setOffset(offset);
-      } else {
-        handleFetch(searchedValue);
-      }
+      const offset = 0;
+      handlePaginatedFetch(searchedValue, offset, pageSize);
+      setOffset(offset);
     }
-  }, [
-    isAsync,
-    handleFetch,
-    searchedValue,
-    selectOptions,
-    pageSize,
-    paginatedFetch,
-    handlePaginatedFetch,
-  ]);
+  }, [isAsync, searchedValue, selectOptions, pageSize, handlePaginatedFetch]);
 
   useEffect(() => {
     if (isSingleMode) {
@@ -416,7 +398,7 @@ const Select = ({
         mode={mappedMode}
         onDeselect={handleOnDeselect}
         onDropdownVisibleChange={handleOnDropdownVisibleChange}
-        onPopupScroll={paginatedFetch ? handlePagination : undefined}
+        onPopupScroll={isAsync ? handlePagination : undefined}
         onSearch={handleOnSearch}
         onSelect={handleOnSelect}
         onClear={() => setSelectValue(undefined)}
