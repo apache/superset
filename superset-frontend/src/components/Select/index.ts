@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './Select';
+export * from './DeprecatedSelect';
 export * from './styles';
-export { default } from './Select';
+export { default } from './DeprecatedSelect';
 export { default as OnPasteSelect } from './OnPasteSelect';
 export { NativeSelect, NativeGraySelect } from './NativeSelect';

@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
-from typing import Any, ClassVar, Dict, List, Optional, Union
+from typing import Any, ClassVar, Dict, List, Optional, TYPE_CHECKING, Union
 
 import numpy as np
 import pandas as pd
@@ -34,7 +36,6 @@ from superset.exceptions import (
     SupersetException,
 )
 from superset.extensions import cache_manager, security_manager
-from superset.stats_logger import BaseStatsLogger
 from superset.utils import csv
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
@@ -49,6 +50,9 @@ from superset.utils.core import (
     QueryStatus,
 )
 from superset.views.utils import get_viz
+
+if TYPE_CHECKING:
+    from superset.stats_logger import BaseStatsLogger
 
 config = app.config
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]

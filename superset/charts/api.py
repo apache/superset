@@ -480,17 +480,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
-    def get_data_response(
-        self, command: ChartDataCommand, force_cached: bool = False
-    ) -> Response:
-        try:
-            result = command.run(force_cached=force_cached)
-        except ChartDataCacheLoadError as exc:
-            return self.response_422(message=exc.message)
-        except ChartDataQueryFailedError as exc:
-            return self.response_400(message=exc.message)
-
+    def send_chart_response(self, result: Dict[Any, Any]) -> Response:
         result_format = result["query_context"].result_format
+
         if result_format == ChartDataResultFormat.CSV:
             # Verify user has permission to export CSV file
             if not security_manager.can_access("can_csv", "Superset"):
@@ -511,6 +503,18 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return resp
 
         return self.response_400(message=f"Unsupported result_format: {result_format}")
+
+    def get_data_response(
+        self, command: ChartDataCommand, force_cached: bool = False
+    ) -> Response:
+        try:
+            result = command.run(force_cached=force_cached)
+        except ChartDataCacheLoadError as exc:
+            return self.response_422(message=exc.message)
+        except ChartDataQueryFailedError as exc:
+            return self.response_400(message=exc.message)
+
+        return self.send_chart_response(result)
 
     @expose("/data", methods=["POST"])
     @protect()
@@ -589,7 +593,22 @@ class ChartRestApi(BaseSupersetModelRestApi):
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
         ):
+            # First, look for the chart query results in the cache.
+            try:
+                result = command.run(force_cached=True)
+            except ChartDataCacheLoadError:
+                result = None  # type: ignore
 
+            already_cached_result = result is not None
+
+            # If the chart query has already been cached, return it immediately.
+            if already_cached_result:
+                return self.send_chart_response(result)
+
+            # Otherwise, kick off a background job to run the chart query.
+            # Clients will either poll or be notified of query completion,
+            # at which point they will call the /data/<cache_key> endpoint
+            # to retrieve the results.
             try:
                 command.validate_async_request(request)
             except AsyncQueryTokenException:

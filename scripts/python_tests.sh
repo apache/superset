@@ -18,7 +18,7 @@
 #
 set -e
 
-export SUPERSET_CONFIG=${SUPERSET_CONFIG:-tests.superset_test_config}
+export SUPERSET_CONFIG=${SUPERSET_CONFIG:-tests.integration_tests.superset_test_config}
 export SUPERSET_TESTENV=true
 echo "Superset config module: $SUPERSET_CONFIG"
 

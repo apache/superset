@@ -18,7 +18,19 @@
 """A set of constants and methods to manage permissions and security"""
 import logging
 import re
-from typing import Any, Callable, cast, List, Optional, Set, Tuple, TYPE_CHECKING, Union
+from collections import defaultdict
+from typing import (
+    Any,
+    Callable,
+    cast,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+)
 
 from flask import current_app, g
 from flask_appbuilder import Model
@@ -418,6 +430,43 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset import conf
 
         return conf.get("PERMISSION_INSTRUCTIONS_LINK")
+
+    def get_user_datasources(self) -> List["BaseDatasource"]:
+        """
+        Collect datasources which the user has explicit permissions to.
+
+        :returns: The list of datasources
+        """
+
+        user_perms = self.user_view_menu_names("datasource_access")
+        schema_perms = self.user_view_menu_names("schema_access")
+        user_datasources = set()
+        for datasource_class in ConnectorRegistry.sources.values():
+            user_datasources.update(
+                self.get_session.query(datasource_class)
+                .filter(
+                    or_(
+                        datasource_class.perm.in_(user_perms),
+                        datasource_class.schema_perm.in_(schema_perms),
+                    )
+                )
+                .all()
+            )
+
+        # group all datasources by database
+        all_datasources = ConnectorRegistry.get_all_datasources(self.get_session)
+        datasources_by_database: Dict["Database", Set["BaseDatasource"]] = defaultdict(
+            set
+        )
+        for datasource in all_datasources:
+            datasources_by_database[datasource.database].add(datasource)
+
+        # add datasources with implicit permission (eg, database access)
+        for database, datasources in datasources_by_database.items():
+            if self.can_access_database(database):
+                user_datasources.update(datasources)
+
+        return list(user_datasources)
 
     def can_access_table(self, database: "Database", table: "Table") -> bool:
         """

@@ -24,7 +24,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import { t, styled, supersetTheme } from '@superset-ui/core';
+import { t, styled, supersetTheme, withTheme } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 import StyledModal from 'src/components/Modal';
@@ -38,7 +38,7 @@ import {
   Switch,
   Input,
 } from 'src/common/components';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { detectOS } from 'src/utils/common';
 import {
   addQueryEditor,
@@ -564,7 +564,7 @@ class SqlEditor extends React.PureComponent {
       this.props.database || {};
 
     const showMenu = allowCTAS || allowCVAS;
-
+    const { theme } = this.props;
     const runMenuBtn = (
       <Menu>
         {allowCTAS && (
@@ -639,7 +639,7 @@ class SqlEditor extends React.PureComponent {
                         this.props.defaultQueryLimit,
                     )}
                   </span>
-                  <Icon name="triangle-down" />
+                  <Icons.TriangleDown iconColor={theme.colors.grayscale.base} />
                 </a>
               </Dropdown>
             </LimitSelectStyled>
@@ -667,7 +667,7 @@ class SqlEditor extends React.PureComponent {
             <ShareSqlLabQuery queryEditor={qe} />
           </span>
           <Dropdown overlay={this.renderDropdown()} trigger="click">
-            <Icon name="more-horiz" />
+            <Icons.MoreHoriz iconColor={theme.colors.grayscale.base} />
           </Dropdown>
         </div>
       </StyledToolbar>
@@ -783,4 +783,5 @@ function mapDispatchToProps(dispatch) {
   );
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(SqlEditor);
+const themedSqlEditor = withTheme(SqlEditor);
+export default connect(mapStateToProps, mapDispatchToProps)(themedSqlEditor);

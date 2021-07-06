@@ -18,10 +18,11 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { styled, t } from '@superset-ui/core';
+import { connect } from 'react-redux';
 import { LineEditableTabs } from 'src/components/Tabs';
 import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from 'src/logger/LogUtils';
 import { Modal } from 'src/common/components';
-import { styled, t } from '@superset-ui/core';
 import DragDroppable from '../dnd/DragDroppable';
 import DragHandle from '../dnd/DragHandle';
 import DashboardComponent from '../../containers/DashboardComponent';
@@ -107,7 +108,7 @@ const StyledTabsContainer = styled.div`
   }
 `;
 
-class Tabs extends React.PureComponent {
+export class Tabs extends React.PureComponent {
   constructor(props) {
     super(props);
     const tabIndex = Math.max(
@@ -156,7 +157,11 @@ class Tabs extends React.PureComponent {
       const lastTabId = nextTabsIds[nextTabsIds.length - 1];
       // if a new tab is added focus on it immediately
       if (nextTabsIds.length > currTabsIds.length) {
-        this.setState(() => ({ activeKey: lastTabId }));
+        // a new tab's path may be empty, here also need to set tabIndex
+        this.setState(() => ({
+          activeKey: lastTabId,
+          tabIndex: maxIndex,
+        }));
       }
       // if a tab is removed focus on the first
       if (nextTabsIds.length < currTabsIds.length) {
@@ -180,7 +185,10 @@ class Tabs extends React.PureComponent {
 
         // make sure nextFocusComponent is under this tabs component
         if (nextTabIndex > -1 && nextTabIndex !== this.state.tabIndex) {
-          this.setState(() => ({ tabIndex: nextTabIndex }));
+          this.setState(() => ({
+            tabIndex: nextTabIndex,
+            activeKey: nextTabsIds[nextTabIndex],
+          }));
         }
       }
     }
@@ -200,7 +208,7 @@ class Tabs extends React.PureComponent {
       onOk: () => {
         deleteComponent(key, component.id);
         const tabIndex = component.children.indexOf(key);
-        this.handleClickTab(Math.max(0, tabIndex - 1));
+        this.handleDeleteTab(tabIndex);
       },
       okType: 'danger',
       okText: 'DELETE',
@@ -296,7 +304,7 @@ class Tabs extends React.PureComponent {
     const { tabIndex: selectedTabIndex, activeKey } = this.state;
 
     let tabsToHighlight;
-    if (nativeFilters.focusedFilterId) {
+    if (nativeFilters?.focusedFilterId) {
       tabsToHighlight =
         nativeFilters.filters[nativeFilters.focusedFilterId].tabsInScope;
     }
@@ -392,4 +400,7 @@ class Tabs extends React.PureComponent {
 Tabs.propTypes = propTypes;
 Tabs.defaultProps = defaultProps;
 
-export default Tabs;
+function mapStateToProps(state) {
+  return { nativeFilters: state.nativeFilters };
+}
+export default connect(mapStateToProps)(Tabs);

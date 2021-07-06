@@ -160,6 +160,8 @@ IconFileNames.forEach(fileName => {
   );
 });
 
+export { IconType };
+
 export default {
   ...AntdEnhancedIcons,
   ...iconOverrides,

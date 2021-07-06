@@ -41,17 +41,26 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     _time_grain_expressions = {
         None: "{col}",
         "PT1S": "FLOOR({col} TO SECOND)",
+        "PT5S": "TIME_FLOOR({col}, 'PT5S')",
+        "PT30S": "TIME_FLOOR({col}, 'PT30S')",
         "PT1M": "FLOOR({col} TO MINUTE)",
         "PT5M": "TIME_FLOOR({col}, 'PT5M')",
         "PT10M": "TIME_FLOOR({col}, 'PT10M')",
         "PT15M": "TIME_FLOOR({col}, 'PT15M')",
         "PT0.5H": "TIME_FLOOR({col}, 'PT30M')",
         "PT1H": "FLOOR({col} TO HOUR)",
+        "PT6H": "TIME_FLOOR({col}, 'PT6H')",
         "P1D": "FLOOR({col} TO DAY)",
         "P1W": "FLOOR({col} TO WEEK)",
         "P1M": "FLOOR({col} TO MONTH)",
         "P0.25Y": "FLOOR({col} TO QUARTER)",
         "P1Y": "FLOOR({col} TO YEAR)",
+        "P1W/1970-01-03T00:00:00Z": (
+            "TIMESTAMPADD(DAY, 5, FLOOR(TIMESTAMPADD(DAY, 1, {col}) TO WEEK))"
+        ),
+        "1969-12-28T00:00:00Z/P1W": (
+            "TIMESTAMPADD(DAY, -1, FLOOR(TIMESTAMPADD(DAY, 1, {col}) TO WEEK))"
+        ),
     }
 
     @classmethod
