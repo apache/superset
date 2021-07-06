@@ -20,6 +20,7 @@ import React, {
   ChangeEventHandler,
   useCallback,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import Fuse from 'fuse.js';
@@ -339,8 +340,10 @@ const CategorySelector: React.FC<{
 export default function VizTypeGallery(props: VizTypeGalleryProps) {
   const { value: selectedViz, onChange, className } = props;
   const { mountedPluginMetadata } = usePluginContext();
+  const searchInputRef = useRef<HTMLInputElement>();
   const [searchInputValue, setSearchInputValue] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
+  const [isSearchSelected, setIsSearching] = useState(false);
+  const isActivelySearching = isSearchSelected && !!searchInputValue;
 
   const selectedVizMetadata: ChartMetadata | undefined =
     mountedPluginMetadata[selectedViz];
@@ -415,6 +418,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   const stopSearching = useCallback(() => {
     setIsSearching(false);
     setSearchInputValue('');
+    searchInputRef.current!.blur();
   }, []);
 
   const selectCategory = useCallback(
@@ -425,7 +429,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     [stopSearching],
   );
 
-  const vizEntriesToDisplay = isSearching
+  const vizEntriesToDisplay = isActivelySearching
     ? searchResults
     : chartsByCategory[activeCategory] || [];
 
@@ -435,6 +439,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
         <SearchWrapper>
           <Input
             type="text"
+            ref={searchInputRef as any /* cast required because emotion */}
             value={searchInputValue}
             placeholder={t('Search')}
             onChange={changeSearch}
@@ -459,7 +464,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
             <CategorySelector
               key={category}
               category={category}
-              isSelected={!isSearching && category === activeCategory}
+              isSelected={!isActivelySearching && category === activeCategory}
               onClick={selectCategory}
             />
           ))}
