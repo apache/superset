@@ -81,17 +81,24 @@ const VizTypeControl = (props: VizTypeControlProps) => {
   const { value: initialValue, onChange, isModalOpenInit, labelType } = props;
   const { mountedPluginMetadata } = usePluginContext();
   const [showModal, setShowModal] = useState(!!isModalOpenInit);
+  // a trick to force re-initialization of the gallery each time the modal opens,
+  // ensuring that the modal always opens to the correct category.
+  const [modalKey, setModalKey] = useState(0);
   const [selectedViz, setSelectedViz] = useState(initialValue);
+
+  const openModal = useCallback(() => {
+    setShowModal(true);
+  }, []);
 
   const onSubmit = useCallback(() => {
     onChange(selectedViz);
     setShowModal(false);
   }, [selectedViz, onChange]);
 
-  const toggleModal = useCallback(() => {
-    setShowModal(prevState => !prevState);
-
-    // make sure the modal opens up to the last submitted viz
+  const onCancel = useCallback(() => {
+    setShowModal(false);
+    setModalKey(key => key + 1);
+    // make sure the modal re-opens to the last submitted viz
     setSelectedViz(initialValue);
   }, [initialValue]);
 
@@ -108,7 +115,7 @@ const VizTypeControl = (props: VizTypeControlProps) => {
       >
         <>
           <Label
-            onClick={toggleModal}
+            onClick={openModal}
             type={labelType}
             data-test="visualization-type"
           >
@@ -120,14 +127,19 @@ const VizTypeControl = (props: VizTypeControlProps) => {
 
       <UnpaddedModal
         show={showModal}
-        onHide={toggleModal}
+        onHide={onCancel}
         title={t('Select a visualization type')}
         primaryButtonName={t('Select')}
         onHandledPrimaryAction={onSubmit}
         maxWidth={`${MAX_ADVISABLE_VIZ_GALLERY_WIDTH}px`}
         responsive
       >
-        <VizTypeGallery value={selectedViz} onChange={setSelectedViz} />
+        {/* When the key increments, it forces react to re-init the gallery component */}
+        <VizTypeGallery
+          key={modalKey}
+          value={selectedViz}
+          onChange={setSelectedViz}
+        />
       </UnpaddedModal>
     </div>
   );
