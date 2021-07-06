@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import copy
 import logging
-from typing import Any, ClassVar, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, ClassVar, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 
 import numpy as np
 import pandas as pd
@@ -37,7 +37,6 @@ from superset.constants import CacheRegion
 from superset.exceptions import QueryObjectValidationError, SupersetException
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
-from superset.stats_logger import BaseStatsLogger
 from superset.utils import csv
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
