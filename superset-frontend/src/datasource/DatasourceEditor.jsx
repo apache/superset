@@ -140,22 +140,30 @@ function ColumnCollectionTable({
   return (
     <CollectionTable
       collection={columns}
-      tableColumns={[
-        'column_name',
-        'business_type',
-        'type',
-        'is_dttm',
-        'filterable',
-        'groupby',
-      ]}
-      sortColumns={[
-        'column_name',
-        'business_type',
-        'type',
-        'is_dttm',
-        'filterable',
-        'groupby',
-      ]}
+      tableColumns={
+        isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)
+          ? [
+              'column_name',
+              'business_type',
+              'type',
+              'is_dttm',
+              'filterable',
+              'groupby',
+            ]
+          : ['column_name', 'type', 'is_dttm', 'filterable', 'groupby']
+      }
+      sortColumns={
+        isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)
+          ? [
+              'column_name',
+              'business_type',
+              'type',
+              'is_dttm',
+              'filterable',
+              'groupby',
+            ]
+          : ['column_name', 'type', 'is_dttm', 'filterable', 'groupby']
+      }
       allowDeletes
       allowAddItem={allowAddItem}
       itemGenerator={itemGenerator}
@@ -204,16 +212,20 @@ function ColumnCollectionTable({
                 }
               />
             )}
-            <Field
-              fieldKey="business_type"
-              label={t('Business type')}
-              control={
-                <TextControl
-                  controlId="business_type"
-                  placeholder={t('Business type')}
-                />
-              }
-            />
+            {isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC) ? (
+              <Field
+                fieldKey="business_type"
+                label={t('Business type')}
+                control={
+                  <TextControl
+                    controlId="business_type"
+                    placeholder={t('Business type')}
+                  />
+                }
+              />
+            ) : (
+              <></>
+            )}
             <Field
               fieldKey="python_date_format"
               label={t('Datetime format')}
@@ -249,14 +261,24 @@ function ColumnCollectionTable({
           </Fieldset>
         </FormContainer>
       }
-      columnLabels={{
-        column_name: t('Column'),
-        business_type: t('Business type'),
-        type: t('Data type'),
-        groupby: t('Is dimension'),
-        is_dttm: t('Is temporal'),
-        filterable: t('Is filterable'),
-      }}
+      columnLabels={
+        isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)
+          ? {
+              column_name: t('Column'),
+              business_type: t('Business type'),
+              type: t('Data type'),
+              groupby: t('Is dimension'),
+              is_dttm: t('Is temporal'),
+              filterable: t('Is filterable'),
+            }
+          : {
+              column_name: t('Column'),
+              type: t('Data type'),
+              groupby: t('Is dimension'),
+              is_dttm: t('Is temporal'),
+              filterable: t('Is filterable'),
+            }
+      }
       onChange={onChange}
       itemRenderers={{
         column_name: (v, onItemChange) =>
@@ -271,6 +293,34 @@ function ColumnCollectionTable({
         filterable: checkboxGenerator,
         groupby: checkboxGenerator,
       }}
+      bitemRenders={
+        isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)
+          ? {
+              column_name: (v, onItemChange) =>
+                editableColumnName ? (
+                  <EditableTitle canEdit title={v} onSaveTitle={onItemChange} />
+                ) : (
+                  v
+                ),
+              type: d => (d ? <Label>{d}</Label> : null),
+              business_type: d => <Label onChange={onChange}>{d}</Label>,
+              is_dttm: checkboxGenerator,
+              filterable: checkboxGenerator,
+              groupby: checkboxGenerator,
+            }
+          : {
+              column_name: (v, onItemChange) =>
+                editableColumnName ? (
+                  <EditableTitle canEdit title={v} onSaveTitle={onItemChange} />
+                ) : (
+                  v
+                ),
+              type: d => (d ? <Label>{d}</Label> : null),
+              is_dttm: checkboxGenerator,
+              filterable: checkboxGenerator,
+              groupby: checkboxGenerator,
+            }
+      }
     />
   );
 }
