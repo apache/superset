@@ -40,7 +40,7 @@ import Label from 'src/components/Label';
 import Popover from 'src/components/Popover';
 import { Divider } from 'src/common/components';
 import Icon from 'src/components/Icon';
-import { Select } from 'src/components/Select';
+import { Select } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
 import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
@@ -105,7 +105,7 @@ const ContentStyleWrapper = styled.div`
     width: 100%;
   }
 
-  .frame-dropdown {
+  .ant-select {
     width: 272px;
   }
 
@@ -274,21 +274,21 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     }
   };
 
-  function onChangeFrame(option: SelectOptionType) {
-    if (option.value === 'No filter') {
+  function onChangeFrame(value: string) {
+    if (value === 'No filter') {
       setTimeRangeValue('No filter');
     }
-    setFrame(option.value as FrameType);
+    setFrame(value as FrameType);
   }
 
-  const overlayConetent = (
+  const overlayContent = (
     <ContentStyleWrapper>
       <div className="control-label">{t('RANGE TYPE')}</div>
       <Select
+        ariaLabel={t('RANGE TYPE')}
         options={FRAME_OPTIONS}
-        value={FRAME_OPTIONS.filter(({ value }) => value === frame)}
+        value={frame}
         onChange={onChangeFrame}
-        className="frame-dropdown"
       />
       {frame !== 'No filter' && <Divider />}
       {frame === 'Common' && (
@@ -360,7 +360,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       <StyledPopover
         placement="right"
         trigger="click"
-        content={overlayConetent}
+        content={overlayContent}
         title={title}
         defaultVisible={show}
         visible={show}
