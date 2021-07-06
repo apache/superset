@@ -16,7 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AnnotationLayer, TimeGranularity } from '@superset-ui/core';
+import {
+  AnnotationLayer,
+  ChartDataResponseResult,
+  ChartProps,
+  DataRecordValue,
+  QueryFormData,
+  SetDataMaskHook,
+  TimeGranularity,
+} from '@superset-ui/core';
+import { EChartsOption } from 'echarts';
 import { DEFAULT_LEGEND_FORM_DATA, EchartsLegendFormData } from '../types';
 
 export enum EchartsTimeseriesContributionType {
@@ -34,7 +43,7 @@ export enum EchartsTimeseriesSeriesType {
   End = 'end',
 }
 
-export type EchartsTimeseriesFormData = {
+export type EchartsTimeseriesFormData = QueryFormData & {
   annotationLayers: AnnotationLayer[];
   area: boolean;
   colorScheme?: string;
@@ -66,8 +75,11 @@ export type EchartsTimeseriesFormData = {
   zoomable: boolean;
   richTooltip: boolean;
   xAxisLabelRotation: number;
+  emitFilter: boolean;
+  groupby: string[];
 } & EchartsLegendFormData;
 
+// @ts-ignore
 export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   ...DEFAULT_LEGEND_FORM_DATA,
   annotationLayers: [],
@@ -93,5 +105,23 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   zoomable: false,
   richTooltip: true,
   xAxisLabelRotation: 0,
+  emitFilter: false,
+  groupby: [],
   yAxisTitle: '',
 };
+
+export interface EchartsTimeseriesChartProps extends ChartProps {
+  formData: EchartsTimeseriesFormData;
+  queriesData: ChartDataResponseResult[];
+}
+
+export interface TimeseriesChartTransformedProps {
+  formData: EchartsTimeseriesFormData;
+  height: number;
+  width: number;
+  echartOptions: EChartsOption;
+  emitFilter: boolean;
+  setDataMask: SetDataMaskHook;
+  labelMap: Record<string, DataRecordValue[]>;
+  groupby: string[];
+}
