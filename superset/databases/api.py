@@ -192,7 +192,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/", methods=["POST"])
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
@@ -253,7 +252,24 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
             return self.response(201, id=new_model.id, result=item)
         except DatabaseInvalidError as ex:
-            return self.response_422(message=ex.normalized_messages())
+            return self.response_422(
+                errors=[
+                    {
+                        "message": "Database parameters are invalid.",
+                        "error_type": "INVALID_TEMPLATE_PARAMS_ERROR",
+                        "level": "error",
+                        "extra": [
+                            {
+                                "code": 1028,
+                                "message": (
+                                    "Issue 1028 - One or more parameters specified "
+                                    "in the query are malformatted."
+                                ),
+                            }
+                        ],
+                    }
+                ]
+            )
         except DatabaseConnectionFailedError as ex:
             return self.response_422(message=str(ex))
         except DatabaseCreateFailedError as ex:
