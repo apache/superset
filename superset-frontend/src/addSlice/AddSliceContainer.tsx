@@ -41,15 +41,16 @@ export type AddSliceContainerState = {
   visType: string;
 };
 
+const ESTIMATED_NAV_HEIGHT = '56px';
 const styleSelectContainer = { width: 600, marginBottom: '10px' };
 const StyledContainer = styled.div`
-  flex-grow: 1;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  grid-template-rows: auto 1fr auto;
   width: 100%;
   max-width: ${MAX_ADVISABLE_VIZ_GALLERY_WIDTH}px;
+  max-height: calc(100vh - ${ESTIMATED_NAV_HEIGHT});
   border-radius: ${({ theme }) => theme.gridUnit}px;
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
   padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;
@@ -58,10 +59,14 @@ const StyledContainer = styled.div`
   }
 `;
 
+const cssStatic = css`
+  flex: 0 0 auto;
+`;
+
 const StyledVizTypeGallery = styled(VizTypeGallery)`
   border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   margin: ${({ theme }) => theme.gridUnit * 3}px 0px;
-  flex-grow: 1;
+  flex: 1 1 auto;
 `;
 
 export default class AddSliceContainer extends React.PureComponent<
@@ -111,8 +116,8 @@ export default class AddSliceContainer extends React.PureComponent<
   render() {
     return (
       <StyledContainer className="container">
-        <h3>{t('Create a new chart')}</h3>
-        <div>
+        <h3 css={cssStatic}>{t('Create a new chart')}</h3>
+        <div css={cssStatic}>
           <p>{t('Choose a dataset')}</p>
           <div style={styleSelectContainer}>
             <Select
@@ -150,9 +155,12 @@ export default class AddSliceContainer extends React.PureComponent<
           value={this.state.visType}
         />
         <Button
-          css={css`
-            align-self: flex-end;
-          `}
+          css={[
+            cssStatic,
+            css`
+              align-self: flex-end;
+            `,
+          ]}
           buttonStyle="primary"
           disabled={this.isBtnDisabled()}
           onClick={this.gotoSlice}

@@ -36,7 +36,6 @@ import { Input } from 'src/common/components';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import Icons from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
-import './VizTypeControl.less';
 
 interface VizTypeGalleryProps {
   onChange: (vizType: string) => void;
@@ -108,12 +107,13 @@ export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
 
 const VizPickerLayout = styled.div`
   display: grid;
-  grid-template-rows: 1fr 35%;
+  grid-template-rows: minmax(100px, 1fr) minmax(200px, 35%);
   grid-template-columns: 1fr 5fr;
   grid-template-areas:
     'sidebar main'
     'details details';
   height: 70vh;
+  overflow: auto;
 `;
 
 const SectionTitle = styled.h3`
@@ -251,6 +251,7 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
   }
 
   .viztype-label {
+    margin-top: ${theme.gridUnit * 2}px;
     text-align: center;
   }
 `;

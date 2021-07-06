@@ -24,7 +24,6 @@ import Modal from 'src/components/Modal';
 import { Tooltip } from 'src/components/Tooltip';
 import Label, { Type } from 'src/components/Label';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import './VizTypeControl.less';
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from './VizTypeGallery';
