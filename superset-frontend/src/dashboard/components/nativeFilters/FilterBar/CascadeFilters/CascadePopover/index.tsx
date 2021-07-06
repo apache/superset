@@ -62,10 +62,12 @@ const StyledTitle = styled.h4`
 `;
 
 const StyledEditIcon = styled(Icons.Edit)`
-  margin-right: ${({ theme }) => theme.gridUnit}px;
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-  width: ${({ theme }) => theme.gridUnit * 4}px;
-`;
+  ${({ theme }) => `
+  margin-right: ${theme.gridUnit}px; 
+  color: ${theme.colors.grayscale.dark1};
+  width: ${theme.gridUnit * 4}px;
+  `}
+  `;
 
 const StyledCloseIcon = styled(Icons.Close)`
   margin-right: ${({ theme }) => theme.gridUnit}px;
