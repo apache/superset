@@ -46,7 +46,7 @@ import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { testWithId } from 'src/utils/testUtils';
-import { SelectOptionType, FrameType } from './types';
+import { FrameType } from './types';
 
 import {
   CommonFrame,
@@ -95,6 +95,9 @@ const fetchTimeRange = async (
 };
 
 const StyledPopover = styled(Popover)``;
+const StyledRangeType = styled(Select)`
+  width: 272px;
+`;
 
 const ContentStyleWrapper = styled.div`
   .ant-row {
@@ -103,10 +106,6 @@ const ContentStyleWrapper = styled.div`
 
   .ant-input-number {
     width: 100%;
-  }
-
-  .ant-select {
-    width: 272px;
   }
 
   .ant-picker {
@@ -284,7 +283,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const overlayContent = (
     <ContentStyleWrapper>
       <div className="control-label">{t('RANGE TYPE')}</div>
-      <Select
+      <StyledRangeType
         ariaLabel={t('RANGE TYPE')}
         options={FRAME_OPTIONS}
         value={frame}
