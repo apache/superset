@@ -35,7 +35,7 @@ export const Pill = styled.div`
 
   svg {
     position: relative;
-    top: -1px;
+    top: -2px;
     color: ${({ theme }) => theme.colors.grayscale.light5};
     width: 1em;
     height: 1em;
