@@ -59,7 +59,7 @@ const DEFAULT_ORDER = [
   'deck_polygon',
   'pie',
   'time_table',
-  'pivot_table',
+  'pivot_table_v2',
   'histogram',
   'big_number_total',
   'deck_scatter',
