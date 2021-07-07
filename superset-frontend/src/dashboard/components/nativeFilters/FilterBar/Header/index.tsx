@@ -21,8 +21,7 @@ import { styled, t, useTheme } from '@superset-ui/core';
 import React, { FC } from 'react';
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
-import { clearDataMask } from 'src/dataMask/actions';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { DataMaskState, DataMaskStateWithId } from 'src/dataMask/types';
 import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
@@ -68,6 +67,7 @@ const Wrapper = styled.div`
 type HeaderProps = {
   toggleFiltersBar: (arg0: boolean) => void;
   onApply: () => void;
+  onClearAll: () => void;
   dataMaskSelected: DataMaskState;
   dataMaskApplied: DataMaskStateWithId;
   isApplyDisabled: boolean;
@@ -75,6 +75,7 @@ type HeaderProps = {
 
 const Header: FC<HeaderProps> = ({
   onApply,
+  onClearAll,
   isApplyDisabled,
   dataMaskSelected,
   dataMaskApplied,
@@ -82,20 +83,10 @@ const Header: FC<HeaderProps> = ({
 }) => {
   const theme = useTheme();
   const filters = useFilters();
-  const dispatch = useDispatch();
   const filterValues = Object.values<Filter>(filters);
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
-
-  const handleClearAll = () => {
-    const filterIds = Object.keys(dataMaskSelected);
-    filterIds.forEach(filterId => {
-      if (dataMaskSelected[filterId]) {
-        dispatch(clearDataMask(filterId));
-      }
-    });
-  };
 
   const isClearAllDisabled = Object.values(dataMaskApplied).every(
     filter =>
@@ -129,7 +120,7 @@ const Header: FC<HeaderProps> = ({
           disabled={isClearAllDisabled}
           buttonStyle="tertiary"
           buttonSize="small"
-          onClick={handleClearAll}
+          onClick={onClearAll}
           {...getFilterBarTestId('clear-button')}
         >
           {t('Clear all')}
