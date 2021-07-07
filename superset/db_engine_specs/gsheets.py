@@ -16,7 +16,7 @@
 # under the License.
 import json
 import re
-import urllib
+import urllib  # pylint: disable=unused-import
 from contextlib import closing
 from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 
@@ -46,7 +46,7 @@ class GSheetsParametersSchema(Schema):
     credentials_info = EncryptedField(
         required=False, description="Contents of Google Sheets JSON credentials.",
     )
-    query = fields.Dict(required=False)
+    table_catalog = fields.Dict(required=False)
 
 
 class GSheetsParametersType(TypedDict):
@@ -63,7 +63,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     allows_subqueries = True
 
     parameters_schema = GSheetsParametersSchema()
-    default_driver = "gsheets"
+    default_driver = "apsw"
     sqlalchemy_uri_placeholder = "gsheets://"
 
     custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
@@ -107,18 +107,26 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     def build_sqlalchemy_uri(
         cls,
         parameters: GSheetsParametersType,
-        encrypted_extra: Optional[Dict[str, Any]] = None,
+        encrypted_extra: Optional[
+            Dict[str, Any]
+        ] = None,  # pylint: disable=unused-argument
     ) -> str:
-        query = parameters.get("query", {})
-        query_params = urllib.parse.urlencode(query)
+        # All gsheets return just the engine in the format of the uri, the above are temporary for csi
+        return "gsheets://"
 
-        if not encrypted_extra:
-            return ""
+    @classmethod
+    def get_parameters_from_uri(
+        cls,
+        uri: str,
+        encrypted_extra: Optional[
+            Dict[str, str]
+        ] = None,  # pylint: disable=unused-argument
+    ) -> Any:
+        # value = make_url(uri)
 
-        project_id = encrypted_extra.get("credentials_info", {})
-
-        if project_id:
-            return f"{cls.default_driver}://{project_id}/?{query_params}"
+        # Building parameters from encrypted_extra and uri
+        if encrypted_extra:
+            return {**encrypted_extra}
 
         raise ValidationError("Invalid service credentials")
 
