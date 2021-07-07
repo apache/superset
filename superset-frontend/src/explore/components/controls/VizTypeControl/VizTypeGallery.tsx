@@ -38,8 +38,8 @@ import Icons from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 
 interface VizTypeGalleryProps {
-  onChange: (vizType: string) => void;
-  value: string;
+  onChange: (vizType: string | null) => void;
+  selectedViz: string | null;
   className?: string;
 }
 
@@ -265,7 +265,7 @@ function vizSortFactor(entry: VizEntry) {
 
 interface ThumbnailProps {
   entry: VizEntry;
-  selectedViz: string;
+  selectedViz: string | null;
   setSelectedViz: (viz: string) => void;
 }
 
@@ -307,7 +307,7 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
 
 interface ThumbnailGalleryProps {
   vizEntries: VizEntry[];
-  selectedViz: string;
+  selectedViz: string | null;
   setSelectedViz: (viz: string) => void;
 }
 
@@ -338,16 +338,21 @@ const CategorySelector: React.FC<{
   </CategoryLabel>
 );
 
+const doesVizMatchCategory = (viz: ChartMetadata, category: string) =>
+  category === viz.category ||
+  (category === OTHER_CATEGORY && viz.category == null);
+
 export default function VizTypeGallery(props: VizTypeGalleryProps) {
-  const { value: selectedViz, onChange, className } = props;
+  const { selectedViz, onChange, className } = props;
   const { mountedPluginMetadata } = usePluginContext();
   const searchInputRef = useRef<HTMLInputElement>();
   const [searchInputValue, setSearchInputValue] = useState('');
   const [isSearchSelected, setIsSearching] = useState(false);
   const isActivelySearching = isSearchSelected && !!searchInputValue;
 
-  const selectedVizMetadata: ChartMetadata | undefined =
-    mountedPluginMetadata[selectedViz];
+  const selectedVizMetadata: ChartMetadata | null = selectedViz
+    ? mountedPluginMetadata[selectedViz]
+    : null;
 
   const changeSearch: ChangeEventHandler<HTMLInputElement> = useCallback(
     event => {
@@ -424,10 +429,24 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
 
   const selectCategory = useCallback(
     (key: string) => {
+      if (isSearchSelected) {
+        stopSearching();
+      }
       setActiveCategory(key);
-      stopSearching();
+      // clear the selected viz if it is not present in the new category
+      const isSelectedVizCompatible =
+        selectedVizMetadata && doesVizMatchCategory(selectedVizMetadata, key);
+      if (key !== activeCategory && !isSelectedVizCompatible) {
+        onChange(null);
+      }
     },
-    [stopSearching],
+    [
+      stopSearching,
+      isSearchSelected,
+      activeCategory,
+      selectedVizMetadata,
+      onChange,
+    ],
   );
 
   const vizEntriesToDisplay = isActivelySearching
@@ -479,32 +498,37 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
       />
 
       <DetailsPane>
-        <SectionTitle
-          css={css`
-            grid-area: viz-name;
-          `}
-        >
-          {selectedVizMetadata?.name}
-        </SectionTitle>
-        <Description>
-          {selectedVizMetadata?.description || t('No description available.')}
-        </Description>
-        <SectionTitle
-          css={css`
-            grid-area: examples-header;
-          `}
-        >
-          {!!selectedVizMetadata?.exampleGallery?.length && t('Examples')}
-        </SectionTitle>
-        <Examples>
-          {(selectedVizMetadata?.exampleGallery || []).map(example => (
-            <img
-              src={example.url}
-              alt={example.caption}
-              title={example.caption}
-            />
-          ))}
-        </Examples>
+        {selectedVizMetadata && (
+          <>
+            <SectionTitle
+              css={css`
+                grid-area: viz-name;
+              `}
+            >
+              {selectedVizMetadata?.name}
+            </SectionTitle>
+            <Description>
+              {selectedVizMetadata?.description ||
+                t('No description available.')}
+            </Description>
+            <SectionTitle
+              css={css`
+                grid-area: examples-header;
+              `}
+            >
+              {!!selectedVizMetadata?.exampleGallery?.length && t('Examples')}
+            </SectionTitle>
+            <Examples>
+              {(selectedVizMetadata?.exampleGallery || []).map(example => (
+                <img
+                  src={example.url}
+                  alt={example.caption}
+                  title={example.caption}
+                />
+              ))}
+            </Examples>
+          </>
+        )}
       </DetailsPane>
     </VizPickerLayout>
   );
