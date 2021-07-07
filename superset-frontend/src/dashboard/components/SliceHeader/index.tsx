@@ -157,7 +157,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
       <div className="header-controls">
         {!editMode && (
           <>
-            {true && (
+            {crossFilterValue && (
               <Tooltip
                 placement="top"
                 title={
