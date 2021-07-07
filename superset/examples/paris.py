@@ -22,7 +22,7 @@ from sqlalchemy import String, Text
 from superset import db
 from superset.utils import core as utils
 
-from .helpers import get_example_data, TBL
+from .helpers import get_example_data, get_table_connector_registry
 
 
 def load_paris_iris_geojson(only_metadata: bool = False, force: bool = False) -> None:
@@ -50,9 +50,10 @@ def load_paris_iris_geojson(only_metadata: bool = False, force: bool = False) ->
         )
 
     print("Creating table {} reference".format(tbl_name))
-    tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    table = get_table_connector_registry()
+    tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:
-        tbl = TBL(table_name=tbl_name)
+        tbl = table(table_name=tbl_name)
     tbl.description = "Map of Paris"
     tbl.database = database
     db.session.merge(tbl)

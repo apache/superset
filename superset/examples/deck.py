@@ -21,7 +21,12 @@ from superset import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 
-from .helpers import get_slice_json, merge_slice, TBL, update_slice_ids
+from .helpers import (
+    get_slice_json,
+    get_table_connector_registry,
+    merge_slice,
+    update_slice_ids,
+)
 
 COLOR_RED = {"r": 205, "g": 0, "b": 3, "a": 0.82}
 POSITION_JSON = """\
@@ -170,7 +175,8 @@ POSITION_JSON = """\
 def load_deck_dash() -> None:
     print("Loading deck.gl dashboard")
     slices = []
-    tbl = db.session.query(TBL).filter_by(table_name="long_lat").first()
+    table = get_table_connector_registry()
+    tbl = db.session.query(table).filter_by(table_name="long_lat").first()
     slice_data = {
         "spatial": {"type": "latlong", "lonCol": "LON", "latCol": "LAT"},
         "color_picker": COLOR_RED,
@@ -317,7 +323,7 @@ def load_deck_dash() -> None:
     slices.append(slc)
 
     polygon_tbl = (
-        db.session.query(TBL).filter_by(table_name="sf_population_polygons").first()
+        db.session.query(table).filter_by(table_name="sf_population_polygons").first()
     )
     slice_data = {
         "datasource": "11__table",
@@ -449,7 +455,10 @@ def load_deck_dash() -> None:
         slice_name="Arcs",
         viz_type="deck_arc",
         datasource_type="table",
-        datasource_id=db.session.query(TBL).filter_by(table_name="flights").first().id,
+        datasource_id=db.session.query(table)
+        .filter_by(table_name="flights")
+        .first()
+        .id,
         params=get_slice_json(slice_data),
     )
     merge_slice(slc)
@@ -498,7 +507,7 @@ def load_deck_dash() -> None:
         slice_name="Path",
         viz_type="deck_path",
         datasource_type="table",
-        datasource_id=db.session.query(TBL)
+        datasource_id=db.session.query(table)
         .filter_by(table_name="bart_lines")
         .first()
         .id,
@@ -524,7 +533,3 @@ def load_deck_dash() -> None:
     dash.slices = slices
     db.session.merge(dash)
     db.session.commit()
-
-
-if __name__ == "__main__":
-    load_deck_dash()
