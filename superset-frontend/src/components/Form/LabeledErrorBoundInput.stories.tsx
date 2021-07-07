@@ -32,6 +32,7 @@ export const InteractiveLabeledErrorBoundInput = ({
   placeholder,
   type,
   id,
+  tooltipText,
 }: LabeledErrorBoundInputProps) => {
   const [currentValue, setCurrentValue] = useState(value);
 
@@ -58,6 +59,8 @@ export const InteractiveLabeledErrorBoundInput = ({
       placeholder={placeholder}
       type={type}
       required
+      hasTooltip
+      tooltipText={tooltipText}
     />
   );
 };
@@ -66,6 +69,7 @@ InteractiveLabeledErrorBoundInput.args = {
   name: 'Username',
   placeholder: 'Example placeholder text...',
   id: 1,
+  tooltipText: 'This is a tooltip',
 };
 
 InteractiveLabeledErrorBoundInput.argTypes = {

@@ -545,3 +545,8 @@ class HiveEngineSpec(PrestoEngineSpec):
             or parsed_query.is_set()
             or parsed_query.is_show()
         )
+
+
+class SparkEngineSpec(HiveEngineSpec):
+
+    engine_name = "Apache Spark SQL"

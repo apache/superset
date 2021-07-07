@@ -19,9 +19,8 @@
 import { ensureIsArray, ExtraFormData, styled, t, tn } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
-import { Styles, StyledSelect } from '../common';
+import { Styles, StyledSelect, StyledFormItem } from '../common';
 import { PluginFilterGroupByProps } from './types';
-import FormItem from '../../../components/Form/FormItem';
 
 const { Option } = Select;
 
@@ -68,14 +67,26 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
     // so we can process it like this `JSON.stringify` or start to use `Immer`
   }, [JSON.stringify(defaultValue), multiSelect]);
 
-  const columns = data || [];
+  const groupby = formData?.groupby?.[0]?.length
+    ? formData?.groupby?.[0]
+    : null;
+
+  const withData = groupby
+    ? data.filter(dataItem =>
+        // @ts-ignore
+        groupby.includes(dataItem.column_name),
+      )
+    : data;
+
+  const columns = data ? withData : [];
+
   const placeholderText =
     columns.length === 0
       ? t('No columns')
       : tn('%s option', '%s options', columns.length, columns.length);
   return (
     <Styles height={height} width={width}>
-      <FormItem
+      <StyledFormItem
         validateStatus={filterState.validateMessage && 'error'}
         extra={<Error>{filterState.validateMessage}</Error>}
       >
@@ -104,7 +115,7 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
             },
           )}
         </StyledSelect>
-      </FormItem>
+      </StyledFormItem>
     </Styles>
   );
 }

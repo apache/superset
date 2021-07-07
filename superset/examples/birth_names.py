@@ -19,10 +19,11 @@ import textwrap
 from typing import Dict, List, Tuple, Union
 
 import pandas as pd
+from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import DateTime, String
 from sqlalchemy.sql import column
 
-from superset import db, security_manager
+from superset import app, db, security_manager
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlMetric, TableColumn
 from superset.exceptions import NoDataException
@@ -32,22 +33,24 @@ from superset.models.slice import Slice
 from superset.utils.core import get_example_database
 
 from .helpers import (
-    config,
     get_example_data,
     get_slice_json,
+    get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
-    TBL,
     update_slice_ids,
 )
 
-admin = security_manager.find_user("admin")
-if admin is None:
-    raise NoDataException(
-        "Admin user does not exist. "
-        "Please, check if test users are properly loaded "
-        "(`superset load_test_users`)."
-    )
+
+def get_admin_user() -> User:
+    admin = security_manager.find_user("admin")
+    if admin is None:
+        raise NoDataException(
+            "Admin user does not exist. "
+            "Please, check if test users are properly loaded "
+            "(`superset load_test_users`)."
+        )
+    return admin
 
 
 def gen_filter(
@@ -103,10 +106,11 @@ def load_birth_names(
     if not only_metadata and (not table_exists or force):
         load_data(tbl_name, database, sample=sample)
 
-    obj = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    table = get_table_connector_registry()
+    obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
         print(f"Creating table [{tbl_name}] reference")
-        obj = TBL(table_name=tbl_name)
+        obj = table(table_name=tbl_name)
         db.session.add(obj)
 
     _set_table_metadata(obj, database)
@@ -170,13 +174,14 @@ def create_slices(
         "time_range_endpoints": ["inclusive", "exclusive"],
         "granularity_sqla": "ds",
         "groupby": [],
-        "row_limit": config["ROW_LIMIT"],
+        "row_limit": app.config["ROW_LIMIT"],
         "since": "100 years ago",
         "until": "now",
         "viz_type": "table",
         "markup_type": "markdown",
     }
 
+    admin = get_admin_user()
     if admin_owner:
         slice_props = dict(
             datasource_id=tbl.id,
@@ -503,7 +508,7 @@ def create_slices(
 
 def create_dashboard(slices: List[Slice]) -> Dashboard:
     print("Creating a dashboard")
-
+    admin = get_admin_user()
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
     if not dash:
         dash = Dashboard()

@@ -56,6 +56,7 @@ export type DashboardState = {
   editMode: boolean;
   directPathToChild: string[];
   activeTabs: ActiveTabs;
+  fullSizeChartId: number | null;
 };
 export type DashboardInfo = {
   common: {
