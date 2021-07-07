@@ -204,7 +204,7 @@ const FilterValue: React.FC<FilterProps> = ({
   );
   const filterState = {
     ...filter.dataMask?.filterState,
-    validateStatus: isMissingRequiredValue,
+    validateStatus: isMissingRequiredValue && 'error',
   };
   if (filterState.value === undefined && preselection) {
     filterState.value = preselection;

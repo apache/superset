@@ -78,6 +78,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
       filterState={{
         ...formFilter.defaultDataMask?.filterState,
         validateMessage: isMissingRequiredValue && t('Value is required'),
+        validateStatus: isMissingRequiredValue && 'error',
       }}
     />
   );

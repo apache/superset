@@ -43,6 +43,7 @@ import { SLOW_DEBOUNCE } from 'src/constants';
 import { useImmerReducer } from 'use-immer';
 import Icons from 'src/components/Icons';
 import { usePrevious } from 'src/common/hooks/usePrevious';
+import { FormItemProps } from 'antd/lib/form';
 import { PluginFilterSelectProps, SelectValue } from './types';
 import { StyledFormItem, StyledSelect, Styles, StatusMessage } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -271,17 +272,20 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       : tn('%s option', '%s options', data.length, data.length);
   const Icon = inverseSelection ? Icons.StopOutlined : Icons.CheckOutlined;
 
+  const formItemData: FormItemProps = {};
+  if (filterState.validateMessage) {
+    formItemData.extra = (
+      <StatusMessage status={filterState.validateStatus}>
+        {filterState.validateMessage}
+      </StatusMessage>
+    );
+  }
+
   return (
     <Styles height={height} width={width}>
       <StyledFormItem
         validateStatus={filterState.validateStatus}
-        extra={
-          filterState.validateMessage && (
-            <StatusMessage status={filterState.validateStatus}>
-              {filterState.validateMessage}
-            </StatusMessage>
-          )
-        }
+        {...formItemData}
       >
         <StyledSelect
           allowClear

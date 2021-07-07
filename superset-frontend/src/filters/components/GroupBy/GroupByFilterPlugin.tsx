@@ -19,6 +19,7 @@
 import { ensureIsArray, ExtraFormData, t, tn } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
+import { FormItemProps } from 'antd/lib/form';
 import { Styles, StyledSelect, StyledFormItem, StatusMessage } from '../common';
 import { PluginFilterGroupByProps } from './types';
 
@@ -80,17 +81,20 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
     columns.length === 0
       ? t('No columns')
       : tn('%s option', '%s options', columns.length, columns.length);
+
+  const formItemData: FormItemProps = {};
+  if (filterState.validateMessage) {
+    formItemData.extra = (
+      <StatusMessage status={filterState.validateStatus}>
+        {filterState.validateMessage}
+      </StatusMessage>
+    );
+  }
   return (
     <Styles height={height} width={width}>
       <StyledFormItem
         validateStatus={filterState.validateStatus}
-        extra={
-          filterState.validateMessage && (
-            <StatusMessage status={filterState.validateStatus}>
-              {filterState.validateMessage}
-            </StatusMessage>
-          )
-        }
+        {...formItemData}
       >
         <StyledSelect
           allowClear

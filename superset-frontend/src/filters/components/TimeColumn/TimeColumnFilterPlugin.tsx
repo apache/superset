@@ -25,6 +25,7 @@ import {
 } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
+import { FormItemProps } from 'antd/lib/form';
 import { Styles, StyledSelect, StyledFormItem, StatusMessage } from '../common';
 import { PluginFilterTimeColumnProps } from './types';
 
@@ -81,17 +82,20 @@ export default function PluginFilterTimeColumn(
     timeColumns.length === 0
       ? t('No time columns')
       : tn('%s option', '%s options', timeColumns.length, timeColumns.length);
+
+  const formItemData: FormItemProps = {};
+  if (filterState.validateMessage) {
+    formItemData.extra = (
+      <StatusMessage status={filterState.validateStatus}>
+        {filterState.validateMessage}
+      </StatusMessage>
+    );
+  }
   return (
     <Styles height={height} width={width}>
       <StyledFormItem
         validateStatus={filterState.validateStatus}
-        extra={
-          filterState.validateMessage && (
-            <StatusMessage status={filterState.validateStatus}>
-              {filterState.validateMessage}
-            </StatusMessage>
-          )
-        }
+        {...formItemData}
       >
         <StyledSelect
           allowClear
