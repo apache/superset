@@ -72,6 +72,7 @@ from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
+from superset.views.base import json_error_response
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -252,24 +253,16 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
             return self.response(201, id=new_model.id, result=item)
         except DatabaseInvalidError as ex:
-            return self.response_422(
-                errors=[
-                    {
-                        "message": "Database parameters are invalid.",
-                        "error_type": "INVALID_TEMPLATE_PARAMS_ERROR",
-                        "level": "error",
-                        "extra": [
-                            {
-                                "code": 1028,
-                                "message": (
-                                    "Issue 1028 - One or more parameters specified "
-                                    "in the query are malformatted."
-                                ),
-                            }
-                        ],
-                    }
-                ]
-            )
+            errors = [
+                SupersetError(
+                    message="place holder",
+                    error_type=SupersetErrorType.INVALID_TEMPLATE_PARAMS_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            ]
+            raise InvalidParametersError(errors)
+            return self.response_422(message=ex.normalized_messages())
+
         except DatabaseConnectionFailedError as ex:
             return self.response_422(message=str(ex))
         except DatabaseCreateFailedError as ex:

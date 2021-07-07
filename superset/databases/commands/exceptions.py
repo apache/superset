@@ -29,7 +29,6 @@ from superset.exceptions import SupersetErrorException, SupersetErrorsException
 
 
 class DatabaseInvalidError(CommandInvalidError):
-    status = 422
     message = _("Database parameters are invalid.")
 
 
