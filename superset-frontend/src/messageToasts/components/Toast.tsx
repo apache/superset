@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css, useTheme, SupersetTheme } from '@superset-ui/core';
+import { styled, css, SupersetTheme } from '@superset-ui/core';
 import cx from 'classnames';
 import Interweave from 'interweave';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -77,9 +77,6 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
     };
   }, [handleClosePress, toast.duration]);
 
-  console.log('toast', toast)
-
-  // const theme = useTheme();
   let className = 'toast--success';
   let icon = <Icons.CircleCheckSolid css={theme => StyledIcon(theme)} />;
 
