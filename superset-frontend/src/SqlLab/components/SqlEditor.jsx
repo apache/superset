@@ -213,7 +213,7 @@ class SqlEditor extends React.PureComponent {
     this.setState({ height: this.getSqlEditorHeight() });
 
     window.addEventListener('resize', this.handleWindowResize);
-    window.addEventListener('beforeunload', this.onBeforeUnload.bind(this));
+    window.addEventListener('beforeunload', this.onBeforeUnload);
 
     // setup hotkeys
     const hotkeys = this.getHotkeyConfig();
@@ -224,7 +224,7 @@ class SqlEditor extends React.PureComponent {
 
   componentWillUnmount() {
     window.removeEventListener('resize', this.handleWindowResize);
-    window.removeEventListener('beforeunload', this.onBeforeUnload.bind(this));
+    window.removeEventListener('beforeunload', this.onBeforeUnload);
   }
 
   onResizeStart() {
