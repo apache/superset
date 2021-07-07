@@ -26,12 +26,8 @@ import React, { useEffect, useState } from 'react';
 import { Slider } from 'src/common/components';
 import { rgba } from 'emotion-rgba';
 import { PluginFilterRangeProps } from './types';
-import { StyledFormItem, Styles } from '../common';
+import { StatusMessage, StyledFormItem, Styles } from '../common';
 import { getRangeExtraFormData } from '../../utils';
-
-const Error = styled.div`
-  color: ${({ theme }) => theme.colors.error.base};
-`;
 
 const Wrapper = styled.div<{ validateStatus?: string }>`
   border: 1px solid transparent;
@@ -159,8 +155,14 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         <h4>{t('Chosen non-numeric column')}</h4>
       ) : (
         <StyledFormItem
-          validateStatus={filterState.validateMessage && 'error'}
-          extra={<Error>{filterState.validateMessage}</Error>}
+          validateStatus={filterState.validateStatus}
+          extra={
+            filterState.validateMessage && (
+              <StatusMessage status={filterState.validateStatus}>
+                {filterState.validateMessage}
+              </StatusMessage>
+            )
+          }
         >
           <Wrapper
             tabIndex={-1}

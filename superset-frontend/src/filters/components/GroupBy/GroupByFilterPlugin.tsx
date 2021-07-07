@@ -16,17 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, ExtraFormData, styled, t, tn } from '@superset-ui/core';
+import { ensureIsArray, ExtraFormData, t, tn } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
-import { Styles, StyledSelect, StyledFormItem } from '../common';
+import { Styles, StyledSelect, StyledFormItem, StatusMessage } from '../common';
 import { PluginFilterGroupByProps } from './types';
 
 const { Option } = Select;
-
-const Error = styled.div`
-  color: ${({ theme }) => theme.colors.error.base};
-`;
 
 export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
   const {
@@ -87,8 +83,14 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
   return (
     <Styles height={height} width={width}>
       <StyledFormItem
-        validateStatus={filterState.validateMessage && 'error'}
-        extra={<Error>{filterState.validateMessage}</Error>}
+        validateStatus={filterState.validateStatus}
+        extra={
+          filterState.validateMessage && (
+            <StatusMessage status={filterState.validateStatus}>
+              {filterState.validateMessage}
+            </StatusMessage>
+          )
+        }
       >
         <StyledSelect
           allowClear

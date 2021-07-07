@@ -58,9 +58,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
     }
   }, [hasDataset, queriesData]);
   const value = formFilter.defaultDataMask?.filterState.value;
-  const isMissingRequiredValue =
-    (value === null || value === undefined) &&
-    formFilter?.controlValues?.enableEmptyFilter;
+  const isMissingRequiredValue = value === null || value === undefined;
   return loading ? (
     <Loading position="inline-centered" />
   ) : (

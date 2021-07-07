@@ -26,7 +26,6 @@ import {
   GenericDataType,
   JsonObject,
   smartDateDetailedFormatter,
-  styled,
   t,
   tn,
 } from '@superset-ui/core';
@@ -45,14 +44,10 @@ import { useImmerReducer } from 'use-immer';
 import Icons from 'src/components/Icons';
 import { usePrevious } from 'src/common/hooks/usePrevious';
 import { PluginFilterSelectProps, SelectValue } from './types';
-import { StyledFormItem, StyledSelect, Styles } from '../common';
+import { StyledFormItem, StyledSelect, Styles, StatusMessage } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
 
 const { Option } = Select;
-
-const Error = styled.div`
-  color: ${({ theme }) => theme.colors.error.base};
-`;
 
 type DataMaskAction =
   | { type: 'ownState'; ownState: JsonObject }
@@ -279,8 +274,14 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   return (
     <Styles height={height} width={width}>
       <StyledFormItem
-        validateStatus={filterState.validateMessage && 'error'}
-        extra={<Error>{filterState.validateMessage}</Error>}
+        validateStatus={filterState.validateStatus}
+        extra={
+          filterState.validateMessage && (
+            <StatusMessage status={filterState.validateStatus}>
+              {filterState.validateMessage}
+            </StatusMessage>
+          )
+        }
       >
         <StyledSelect
           allowClear

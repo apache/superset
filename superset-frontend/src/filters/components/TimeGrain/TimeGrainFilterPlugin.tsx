@@ -19,21 +19,16 @@
 import {
   ensureIsArray,
   ExtraFormData,
-  styled,
   t,
   TimeGranularity,
   tn,
 } from '@superset-ui/core';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Select } from 'src/common/components';
-import { Styles, StyledSelect, StyledFormItem } from '../common';
+import { Styles, StyledSelect, StyledFormItem, StatusMessage } from '../common';
 import { PluginFilterTimeGrainProps } from './types';
 
 const { Option } = Select;
-
-const Error = styled.div`
-  color: ${({ theme }) => theme.colors.error.base};
-`;
 
 export default function PluginFilterTimegrain(
   props: PluginFilterTimeGrainProps,
@@ -99,8 +94,14 @@ export default function PluginFilterTimegrain(
   return (
     <Styles height={height} width={width}>
       <StyledFormItem
-        validateStatus={filterState.validateMessage && 'error'}
-        extra={<Error>{filterState.validateMessage}</Error>}
+        validateStatus={filterState.validateStatus}
+        extra={
+          filterState.validateMessage && (
+            <StatusMessage status={filterState.validateStatus}>
+              {filterState.validateMessage}
+            </StatusMessage>
+          )
+        }
       >
         <StyledSelect
           allowClear

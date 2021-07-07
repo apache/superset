@@ -20,20 +20,15 @@ import {
   ensureIsArray,
   ExtraFormData,
   GenericDataType,
-  styled,
   t,
   tn,
 } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
-import { Styles, StyledSelect, StyledFormItem } from '../common';
+import { Styles, StyledSelect, StyledFormItem, StatusMessage } from '../common';
 import { PluginFilterTimeColumnProps } from './types';
 
 const { Option } = Select;
-
-const Error = styled.div`
-  color: ${({ theme }) => theme.colors.error.base};
-`;
 
 export default function PluginFilterTimeColumn(
   props: PluginFilterTimeColumnProps,
@@ -89,8 +84,14 @@ export default function PluginFilterTimeColumn(
   return (
     <Styles height={height} width={width}>
       <StyledFormItem
-        validateStatus={filterState.validateMessage && 'error'}
-        extra={<Error>{filterState.validateMessage}</Error>}
+        validateStatus={filterState.validateStatus}
+        extra={
+          filterState.validateMessage && (
+            <StatusMessage status={filterState.validateStatus}>
+              {filterState.validateMessage}
+            </StatusMessage>
+          )
+        }
       >
         <StyledSelect
           allowClear
