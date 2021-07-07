@@ -21,7 +21,6 @@ import rison from 'rison';
 import {
   SupersetClient,
   styled,
-  supersetTheme,
   t,
   TimeRangeEndpoints,
   useTheme,
