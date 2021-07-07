@@ -42,7 +42,7 @@ describe('Dashboard save action', () => {
           'copyRequest',
         );
 
-        cy.get('[data-test="more-horiz"]').trigger('click', { force: true });
+        cy.get('[aria-label="more-horiz"]').trigger('click', { force: true });
         cy.get('[data-test="save-as-menu-item"]').trigger('click', {
           force: true,
         });
