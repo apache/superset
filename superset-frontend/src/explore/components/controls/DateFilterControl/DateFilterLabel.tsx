@@ -24,6 +24,7 @@ import {
   supersetTheme,
   t,
   TimeRangeEndpoints,
+  useTheme,
 } from '@superset-ui/core';
 import {
   buildTimeRangeString,
@@ -39,7 +40,7 @@ import ControlHeader from 'src/explore/components/ControlHeader';
 import Label from 'src/components/Label';
 import Popover from 'src/components/Popover';
 import { Divider } from 'src/common/components';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { Select } from 'src/components/Select';
 import { Tooltip } from 'src/components/Tooltip';
 import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
@@ -156,7 +157,7 @@ const ContentStyleWrapper = styled.div`
 `;
 
 const IconWrapper = styled.span`
-  svg {
+  span {
     margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
     vertical-align: middle;
   }
@@ -281,6 +282,8 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     setFrame(option.value as FrameType);
   }
 
+  const theme = useTheme();
+
   const overlayConetent = (
     <ContentStyleWrapper>
       <div className="control-label">{t('RANGE TYPE')}</div>
@@ -310,10 +313,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         {validTimeRange && <div>{evalResponse}</div>}
         {!validTimeRange && (
           <IconWrapper className="warning">
-            <Icon
-              name="error-solid-small"
-              color={supersetTheme.colors.error.base}
-            />
+            <Icons.ErrorSolidSmall iconColor={theme.colors.error.base} />
             <span className="text error">{evalResponse}</span>
           </IconWrapper>
         )}
@@ -345,7 +345,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
 
   const title = (
     <IconWrapper>
-      <Icon name="edit-alt" />
+      <Icons.EditAlt iconColor={theme.colors.grayscale.base} />
       <span className="text">{t('Edit time range')}</span>
     </IconWrapper>
   );
