@@ -73,9 +73,9 @@ describe('Visualization > Line', () => {
   it('should allow type to search color schemes', () => {
     cy.get('#controlSections-tab-display').click();
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
-    cy.get('.Control[data-test="color_scheme"] input[type="text"]')
+    cy.get('.Control[data-test="color_scheme"] input[type="search"]')
       .focus()
-      .type('air{enter}');
+      .type('bnb{enter}');
     cy.get('input[name="select-color_scheme"]').should(
       'have.value',
       'bnbColors',

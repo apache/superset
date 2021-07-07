@@ -122,6 +122,7 @@ export default class ColorSchemeControl extends React.PureComponent {
       onChange: this.onChange,
       options,
       placeholder: `Select (${options.length})`,
+      showSearch: true,
       value: this.props.value,
     };
     return (
