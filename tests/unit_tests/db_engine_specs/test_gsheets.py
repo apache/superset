@@ -48,7 +48,7 @@ def test_validate_parameters_catalog(mocker, app_context):
     ]
 
     parameters = {
-        "catalog": {
+        "table_catalog": {
             "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
             "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",
             "not_a_sheet": "https://www.google.com/",
@@ -134,7 +134,7 @@ def test_validate_parameters_catalog_and_credentials(mocker, app_context):
     ]
 
     parameters = {
-        "catalog": {
+        "table_catalog": {
             "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
             "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",
             "not_a_sheet": "https://www.google.com/",

@@ -39,7 +39,7 @@ SYNTAX_ERROR_REGEX = re.compile('SQLError: near "(?P<server_error>.*?)": syntax 
 class GSheetsParametersType(TypedDict):
     credentials_info: Dict[str, Any]
     query: Dict[str, Any]
-    catalog: Dict[str, str]
+    table_catalog: Dict[str, str]
 
 
 class GSheetsEngineSpec(SqliteEngineSpec):
@@ -94,9 +94,9 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         errors: List[SupersetError] = []
 
         credentials_info = parameters.get("credentials_info")
-        catalog = parameters.get("catalog", {})
+        table_catalog = parameters.get("table_catalog", {})
 
-        if not catalog:
+        if not table_catalog:
             return errors
 
         # We need a subject in case domain wide delegation is set, otherwise the
@@ -109,7 +109,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
             "gsheets://", service_account_info=credentials_info, subject=subject,
         )
         conn = engine.connect()
-        for name, url in catalog.items():
+        for name, url in table_catalog.items():
             try:
                 results = conn.execute(f'SELECT * FROM "{url}" LIMIT 1')
                 results.fetchall()
