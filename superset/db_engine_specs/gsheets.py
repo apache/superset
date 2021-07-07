@@ -16,21 +16,42 @@
 # under the License.
 import json
 import re
+import urllib
 from contextlib import closing
-from typing import Any, Dict, Optional, Pattern, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 
+from apispec import APISpec
+from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
-from sqlalchemy.engine.url import URL
+from marshmallow import fields, Schema
+from marshmallow.exceptions import ValidationError
+from sqlalchemy.engine.url import make_url, URL
+from typing_extensions import TypedDict
 
 from superset import security_manager
+from superset.databases.schemas import encrypted_field_properties, EncryptedField
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
-from superset.errors import SupersetErrorType
+from superset.errors import SupersetError, SupersetErrorType
 
 if TYPE_CHECKING:
     from superset.models.core import Database
 
 
 SYNTAX_ERROR_REGEX = re.compile('SQLError: near "(?P<server_error>.*?)": syntax error')
+
+ma_plugin = MarshmallowPlugin()
+
+
+class GSheetsParametersSchema(Schema):
+    credentials_info = EncryptedField(
+        required=False, description="Contents of Google Sheets JSON credentials.",
+    )
+    query = fields.Dict(required=False)
+
+
+class GSheetsParametersType(TypedDict):
+    credentials_info: Dict[str, Any]
+    query: Dict[str, Any]
 
 
 class GSheetsEngineSpec(SqliteEngineSpec):
@@ -40,6 +61,10 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     engine_name = "Google Sheets"
     allows_joins = True
     allows_subqueries = True
+
+    parameters_schema = GSheetsParametersSchema()
+    default_driver = "gsheets"
+    sqlalchemy_uri_placeholder = "gsheets://"
 
     custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
         SYNTAX_ERROR_REGEX: (
@@ -77,3 +102,48 @@ class GSheetsEngineSpec(SqliteEngineSpec):
             metadata = {}
 
         return {"metadata": metadata["extra"]}
+
+    @classmethod
+    def build_sqlalchemy_uri(
+        cls,
+        parameters: GSheetsParametersType,
+        encrypted_extra: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        query = parameters.get("query", {})
+        query_params = urllib.parse.urlencode(query)
+
+        if not encrypted_extra:
+            return ""
+
+        project_id = encrypted_extra.get("credentials_info", {})
+
+        if project_id:
+            return f"{cls.default_driver}://{project_id}/?{query_params}"
+
+        raise ValidationError("Invalid service credentials")
+
+    @classmethod
+    def validate_parameters(
+        cls, parameters: GSheetsParametersType  # pylint: disable=unused-argument
+    ) -> List[SupersetError]:
+        return []
+
+    @classmethod
+    def parameters_json_schema(cls) -> Any:
+        """
+        Return configuration parameters as OpenAPI.
+        """
+        if not cls.parameters_schema:
+            return None
+
+        spec = APISpec(
+            title="Database Parameters",
+            version="1.0.0",
+            openapi_version="3.0.0",
+            plugins=[ma_plugin],
+        )
+
+        ma_plugin.init_spec(spec)
+        ma_plugin.converter.add_attribute_function(encrypted_field_properties)
+        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
+        return spec.to_dict()["components"]["schemas"][cls.__name__]
