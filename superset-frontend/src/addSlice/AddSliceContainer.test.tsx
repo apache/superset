@@ -52,10 +52,6 @@ describe('AddSliceContainer', () => {
     await act(() => new Promise(resolve => setTimeout(resolve, 0)));
   });
 
-  it('uses table as default visType', () => {
-    expect(wrapper.state().visType).toBe('table');
-  });
-
   it('renders a select and a VizTypeControl', () => {
     expect(wrapper.find(Select)).toExist();
     expect(wrapper.find(VizTypeGallery)).toExist();
@@ -71,12 +67,13 @@ describe('AddSliceContainer', () => {
     ).toHaveLength(1);
   });
 
-  it('renders an enabled button if datasource is selected', () => {
+  it('renders an enabled button if datasource and viz type is selected', () => {
     const datasourceValue = defaultProps.datasources[0].value;
     wrapper.setState({
       datasourceValue,
       datasourceId: datasourceValue.split('__')[0],
       datasourceType: datasourceValue.split('__')[1],
+      visType: 'table',
     });
     expect(
       wrapper.find(Button).find({ disabled: true }).hostNodes(),
@@ -89,6 +86,7 @@ describe('AddSliceContainer', () => {
       datasourceValue,
       datasourceId: datasourceValue.split('__')[0],
       datasourceType: datasourceValue.split('__')[1],
+      visType: 'table',
     });
     const formattedUrl =
       '/superset/explore/?form_data=%7B%22viz_type%22%3A%22table%22%2C%22datasource%22%3A%221__table%22%7D';
