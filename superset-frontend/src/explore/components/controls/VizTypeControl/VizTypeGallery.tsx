@@ -194,13 +194,13 @@ const IconsPane = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
-const DetailsPaneBase = styled.div`
+const DetailsPane = (theme: SupersetTheme) => css`
   grid-area: details;
-  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border-top: 1px solid ${theme.colors.grayscale.light2};
 `;
 
-const DetailsPanePopulated = styled(DetailsPaneBase)`
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
+const DetailsPopulated = (theme: SupersetTheme) => css`
+  padding: ${theme.gridUnit * 4}px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: auto 1fr;
@@ -209,13 +209,13 @@ const DetailsPanePopulated = styled(DetailsPaneBase)`
     'description examples';
 `;
 
-const DetailsPaneEmpty = styled(DetailsPaneBase)`
+const DetailsEmpty = (theme: SupersetTheme) => css`
   display: flex;
   justify-content: center;
   align-items: center;
   text-align: center;
   font-style: italic;
-  color: ${({ theme }) => theme.colors.grayscale.light1};
+  color: ${theme.colors.grayscale.light1};
 `;
 
 // overflow hidden on the details pane and overflow auto on the description
@@ -510,7 +510,12 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
       />
 
       {selectedVizMetadata ? (
-        <DetailsPanePopulated>
+        <div
+          css={(theme: SupersetTheme) => [
+            DetailsPane(theme),
+            DetailsPopulated(theme),
+          ]}
+        >
           <>
             <SectionTitle
               css={css`
@@ -540,9 +545,16 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
               ))}
             </Examples>
           </>
-        </DetailsPanePopulated>
+        </div>
       ) : (
-        <DetailsPaneEmpty>{t('Select a visualization type')}</DetailsPaneEmpty>
+        <div
+          css={(theme: SupersetTheme) => [
+            DetailsPane(theme),
+            DetailsEmpty(theme),
+          ]}
+        >
+          {t('Select a visualization type')}
+        </div>
       )}
     </VizPickerLayout>
   );
