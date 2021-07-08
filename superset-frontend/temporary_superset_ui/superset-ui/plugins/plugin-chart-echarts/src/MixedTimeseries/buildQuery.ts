@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, getMetricLabel, QueryFormData } from '@superset-ui/core';
+import {
+  buildQueryContext,
+  getMetricLabel,
+  QueryFormData,
+  QueryObject,
+  normalizeOrderBy,
+} from '@superset-ui/core';
 
 export default function buildQuery(formData: QueryFormData) {
   const {
@@ -56,49 +62,46 @@ export default function buildQuery(formData: QueryFormData) {
 
   const queryContextA = buildQueryContext(formData1, baseQueryObject => {
     const metricLabels = (baseQueryObject.metrics || []).map(getMetricLabel);
-    return [
-      {
-        ...baseQueryObject,
-        is_timeseries: true,
-        orderby: timeseries_limit_metric ? [[timeseries_limit_metric, !order_desc]] : [],
-        post_processing: [
-          {
-            operation: 'pivot',
-            options: {
-              index: ['__timestamp'],
-              columns: formData1.columns || [],
-              // Create 'dummy' sum aggregates to assign cell values in pivot table
-              aggregates: Object.fromEntries(
-                metricLabels.map(metric => [metric, { operator: 'sum' }]),
-              ),
-            },
+    const queryObjectA = {
+      ...baseQueryObject,
+      is_timeseries: true,
+      post_processing: [
+        {
+          operation: 'pivot',
+          options: {
+            index: ['__timestamp'],
+            columns: formData1.columns || [],
+            // Create 'dummy' sum aggregates to assign cell values in pivot table
+            aggregates: Object.fromEntries(
+              metricLabels.map(metric => [metric, { operator: 'sum' }]),
+            ),
           },
-        ],
-      },
-    ];
+        },
+      ],
+    } as QueryObject;
+    return [normalizeOrderBy(queryObjectA)];
   });
+
   const queryContextB = buildQueryContext(formData2, baseQueryObject => {
     const metricLabels = (baseQueryObject.metrics || []).map(getMetricLabel);
-    return [
-      {
-        ...baseQueryObject,
-        is_timeseries: true,
-        orderby: timeseries_limit_metric_b ? [[timeseries_limit_metric_b, !order_desc_b]] : [],
-        post_processing: [
-          {
-            operation: 'pivot',
-            options: {
-              index: ['__timestamp'],
-              columns: formData2.columns || [],
-              // Create 'dummy' sum aggregates to assign cell values in pivot table
-              aggregates: Object.fromEntries(
-                metricLabels.map(metric => [metric, { operator: 'sum' }]),
-              ),
-            },
+    const queryObjectB = {
+      ...baseQueryObject,
+      is_timeseries: true,
+      post_processing: [
+        {
+          operation: 'pivot',
+          options: {
+            index: ['__timestamp'],
+            columns: formData2.columns || [],
+            // Create 'dummy' sum aggregates to assign cell values in pivot table
+            aggregates: Object.fromEntries(
+              metricLabels.map(metric => [metric, { operator: 'sum' }]),
+            ),
           },
-        ],
-      },
-    ];
+        },
+      ],
+    } as QueryObject;
+    return [normalizeOrderBy(queryObjectB)];
   });
 
   return {
