@@ -162,6 +162,8 @@ class HeaderActionsDropdown extends React.PureComponent {
         downloadAsImage(
           SCREENSHOT_NODE_SELECTOR,
           this.props.dashboardTitle,
+          {},
+          true,
         )(domEvent).then(() => {
           menu.style.visibility = 'visible';
         });
