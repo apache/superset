@@ -87,6 +87,12 @@ const StyledTableTabs = styled(Tabs)`
   }
 `;
 
+const StyledBadge = styled(Badge)`
+  .ant-badge-count {
+    height: ${({ theme }) => theme.gridUnit * 4}px;
+  }
+`;
+
 const EditLockContainer = styled.div`
   font-size: ${supersetTheme.typography.sizes.s}px;
   display: flex;
@@ -118,7 +124,8 @@ DATASOURCE_TYPES_ARR.forEach(o => {
 function CollectionTabTitle({ title, collection }) {
   return (
     <div data-test={`collection-tab-${title}`}>
-      {title} <Badge count={collection ? collection.length : 0} showZero />
+      {title}{' '}
+      <StyledBadge count={collection ? collection.length : 0} showZero />
     </div>
   );
 }
