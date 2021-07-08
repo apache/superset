@@ -70,6 +70,7 @@ jobs:
             apt-get-install
             pip-upgrade
             pip install -r requirements/testing.txt
+            pip install --no-deps .
             setup-postgres
       - name: Run celery
         if: steps.check.outcome == 'failure'
@@ -145,6 +146,7 @@ jobs:
             apt-get-install
             pip-upgrade
             pip install -r requirements/testing.txt
+            pip install --no-deps .
             setup-postgres
       - name: Run celery
         if: steps.check.outcome == 'failure'

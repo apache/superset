@@ -7,8 +7,8 @@
 #
 -r development.txt
 -r integration.txt
--e file:.
-    # via -r requirements/base.in
+appnope==0.1.2
+    # via ipython
 astroid==2.4.2
     # via pylint
 backcall==0.2.0
@@ -73,8 +73,6 @@ statsd==3.3.0
     # via -r requirements/testing.in
 traitlets==5.0.5
     # via ipython
-typed-ast==1.4.3
-    # via astroid
 wcwidth==0.2.5
     # via prompt-toolkit
 websocket-client==0.57.0

@@ -21,19 +21,15 @@ filelock==3.0.12
     #   virtualenv
 identify==1.5.9
     # via pre-commit
-importlib-metadata==2.1.1
-    # via
-    #   pluggy
-    #   pre-commit
-    #   tox
-    #   virtualenv
 nodeenv==1.5.0
     # via pre-commit
 packaging==20.4
     # via tox
+pep517==0.10.0
+    # via pip-tools
 pip-compile-multi==2.4.1
     # via -r requirements/integration.in
-pip-tools==5.3.1
+pip-tools==6.2.0
     # via pip-compile-multi
 pluggy==0.13.1
     # via tox
@@ -48,7 +44,6 @@ pyyaml==5.4.1
 six==1.15.0
     # via
     #   packaging
-    #   pip-tools
     #   tox
     #   virtualenv
 toml==0.10.2
@@ -63,8 +58,9 @@ virtualenv==20.1.0
     # via
     #   pre-commit
     #   tox
-zipp==3.4.1
-    # via importlib-metadata
+wheel==0.36.2
+    # via pip-tools
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip
+# setuptools

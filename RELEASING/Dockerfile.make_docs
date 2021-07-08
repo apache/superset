@@ -21,6 +21,7 @@ RUN git clone --depth 1 --branch ${VERSION} https://github.com/apache/superset.g
 WORKDIR /superset
 # install doc dependencies
 RUN pip install -r requirements/base.txt
+RUN pip install --no-deps .
 # build the docs
 RUN python setup.py build_sphinx
 

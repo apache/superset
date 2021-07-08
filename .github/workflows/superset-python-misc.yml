@@ -40,6 +40,7 @@ jobs:
             apt-get-install
             pip-upgrade
             pip install -r requirements/testing.txt
+            pip install --no-deps .
       - name: pylint
         if: steps.check.outcome == 'failure'
         # `-j 0` run Pylint in parallel
@@ -68,6 +69,7 @@ jobs:
             apt-get-install
             pip-upgrade
             pip install -r requirements/integration.txt
+            pip install --no-deps .
       - name: pre-commit
         run: pre-commit run --all-files
 
@@ -94,5 +96,6 @@ jobs:
             apt-get-install
             pip-upgrade
             pip install -r requirements/base.txt
+            pip install --no-deps .
       - name: Test babel extraction
         run: flask fab babel-extract --target superset/translations --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _,__,t,tn,tct

@@ -52,6 +52,8 @@ VERSION_INFO_FILE = os.path.join(BASE_DIR, "superset", "static", "version_info.j
 with open(VERSION_INFO_FILE, "w") as version_file:
     json.dump(version_info, version_file)
 
+with open(os.path.join("requirements", "base.txt")) as fp:
+    REQUIREMENTS = list(fp)
 
 setup(
     name="apache-superset",
@@ -63,60 +65,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     entry_points={"console_scripts": ["superset=superset.cli:superset"]},
-    install_requires=[
-        "backoff>=1.8.0",
-        "bleach>=3.0.2, <4.0.0",
-        "cachelib>=0.1.1,<0.2",
-        "celery>=4.3.0, <5.0.0, !=4.4.1",
-        "click<8",
-        "colorama",
-        "contextlib2",
-        "croniter>=0.3.28",
-        "cron-descriptor",
-        "cryptography>=3.3.2",
-        "deprecation>=2.1.0, <2.2.0",
-        "flask>=1.1.0, <2.0.0",
-        "flask-appbuilder>=3.3.0, <4.0.0",
-        "flask-caching>=1.10.0",
-        "flask-compress",
-        "flask-talisman",
-        "flask-migrate",
-        "flask-wtf",
-        "geopy",
-        "graphlib-backport",
-        "gunicorn>=20.0.2, <20.1",
-        "holidays==0.10.3",  # PINNED! https://github.com/dr-prodigy/python-holidays/issues/406
-        "humanize",
-        "itsdangerous>=1.0.0, <2.0.0",
-        "isodate",
-        "markdown>=3.0",
-        "msgpack>=1.0.0, <1.1",
-        "pandas>=1.2.2, <1.3",
-        "parsedatetime",
-        "pathlib2",
-        "pgsanity",
-        "polyline",
-        "pyparsing>=2.4.7, <3.0.0",
-        "python-dateutil",
-        "python-dotenv",
-        "python-geohash",
-        "pyarrow>=4.0.1, <4.1",
-        "pyyaml>=5.4",
-        "PyJWT>=1.7.1, <2",
-        "redis",
-        "retry>=0.9.2",
-        "selenium>=3.141.0",
-        "simplejson>=3.15.0",
-        "slackclient==2.5.0",  # PINNED! slack changes file upload api in the future versions
-        "sqlalchemy>=1.3.16, <1.4, !=1.3.21",
-        "sqlalchemy-utils>=0.36.6,<0.37",
-        "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
-        "typing-extensions>=3.7.4.3,<4",  # needed to support typing.Literal on py37
-        "wtforms-json",
-        "pyparsing>=2.4.7, <3.0.0",
-        "holidays==0.10.3",  # PINNED! https://github.com/dr-prodigy/python-holidays/issues/406
-        "deprecation>=2.1.0, <2.2.0",
-    ],
+    install_requires=REQUIREMENTS,
     extras_require={
         "athena": ["pyathena>=1.10.8,<1.11"],
         "bigquery": [

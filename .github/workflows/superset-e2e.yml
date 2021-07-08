@@ -81,6 +81,7 @@ jobs:
           run: |
             pip-upgrade
             pip install -r requirements/testing.txt
+            pip install --no-deps .
       - name: Setup postgres
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
