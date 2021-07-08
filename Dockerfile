@@ -105,6 +105,7 @@ COPY superset /app/superset
 COPY setup.py MANIFEST.in README.md /app/
 
 RUN cd /app \
+        && mkdir requirements \
         && touch requirements/base.txt \
         && chown -R superset:superset * \
         && pip install -e --no-deps .
