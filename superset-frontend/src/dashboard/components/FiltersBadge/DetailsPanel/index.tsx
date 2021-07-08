@@ -26,7 +26,7 @@ import {
 } from '@ant-design/icons';
 import Popover from 'src/components/Popover';
 import Collapse from 'src/components/Collapse';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import {
   Indent,
   Panel,
@@ -169,9 +169,9 @@ const DetailsPanelPopover = ({
               key="appliedCrossFilters"
               header={
                 <Title bold color={theme.colors.primary.light1}>
-                  <Icon
-                    name="cross-filter-badge"
+                  <Icons.CursorTarget
                     css={{ fill: theme.colors.primary.light1 }}
+                    iconSize="xl"
                   />
                   {t(
                     'Applied Cross Filters (%d)',
