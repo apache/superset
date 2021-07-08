@@ -272,7 +272,13 @@ class SliceHeaderControls extends React.PureComponent<Props, State> {
 
         {this.props.supersetCanExplore && (
           <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
-            {t('View chart in Explore')}
+            <a
+              href="https://ant.design"
+              rel="noopener noreferrer"
+              onClick={event => event.stopPropagation()}
+            >
+              {t('View chart in Explore')}
+            </a>
           </Menu.Item>
         )}
 
