@@ -50,8 +50,6 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-      - id: findPr
-        uses: jwalton/gh-find-current-pr@v1
       - name: Check if python changes are present
         id: check
         env:
