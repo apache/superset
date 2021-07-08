@@ -38,8 +38,8 @@ import Icons from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 
 interface VizTypeGalleryProps {
-  onChange: (vizType: string) => void;
-  value: string;
+  onChange: (vizType: string | null) => void;
+  selectedViz: string | null;
   className?: string;
 }
 
@@ -194,16 +194,28 @@ const IconsPane = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
-const DetailsPane = styled.div`
+const DetailsPane = (theme: SupersetTheme) => css`
   grid-area: details;
-  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
+  border-top: 1px solid ${theme.colors.grayscale.light2};
+`;
+
+const DetailsPopulated = (theme: SupersetTheme) => css`
+  padding: ${theme.gridUnit * 4}px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: auto 1fr;
   grid-template-areas:
     'viz-name examples-header'
     'description examples';
+`;
+
+const DetailsEmpty = (theme: SupersetTheme) => css`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-style: italic;
+  color: ${theme.colors.grayscale.light1};
 `;
 
 // overflow hidden on the details pane and overflow auto on the description
@@ -265,7 +277,7 @@ function vizSortFactor(entry: VizEntry) {
 
 interface ThumbnailProps {
   entry: VizEntry;
-  selectedViz: string;
+  selectedViz: string | null;
   setSelectedViz: (viz: string) => void;
 }
 
@@ -307,7 +319,7 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
 
 interface ThumbnailGalleryProps {
   vizEntries: VizEntry[];
-  selectedViz: string;
+  selectedViz: string | null;
   setSelectedViz: (viz: string) => void;
 }
 
@@ -338,26 +350,21 @@ const CategorySelector: React.FC<{
   </CategoryLabel>
 );
 
+const doesVizMatchCategory = (viz: ChartMetadata, category: string) =>
+  category === viz.category ||
+  (category === OTHER_CATEGORY && viz.category == null);
+
 export default function VizTypeGallery(props: VizTypeGalleryProps) {
-  const { value: selectedViz, onChange, className } = props;
+  const { selectedViz, onChange, className } = props;
   const { mountedPluginMetadata } = usePluginContext();
   const searchInputRef = useRef<HTMLInputElement>();
   const [searchInputValue, setSearchInputValue] = useState('');
-  const [isSearchSelected, setIsSearching] = useState(false);
-  const isActivelySearching = isSearchSelected && !!searchInputValue;
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const isActivelySearching = isSearchFocused && !!searchInputValue;
 
-  const selectedVizMetadata: ChartMetadata | undefined =
-    mountedPluginMetadata[selectedViz];
-
-  const changeSearch: ChangeEventHandler<HTMLInputElement> = useCallback(
-    event => {
-      setSearchInputValue(event.target.value);
-      if (event.target.value) {
-        setIsSearching(true);
-      }
-    },
-    [],
-  );
+  const selectedVizMetadata: ChartMetadata | null = selectedViz
+    ? mountedPluginMetadata[selectedViz]
+    : null;
 
   const chartMetadata: VizEntry[] = useMemo(() => {
     const result = Object.entries(mountedPluginMetadata)
@@ -412,22 +419,46 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     return fuse.search(searchInputValue).map(result => result.item);
   }, [searchInputValue, fuse]);
 
-  const startSearching = useCallback(() => {
-    setIsSearching(true);
+  const focusSearch = useCallback(() => {
+    // "start searching" is actually a two-stage process.
+    // When you first click on the search bar, the input is focused and nothing else happens.
+    // Once you begin typing, the selected category is cleared and the displayed viz entries change.
+    setIsSearchFocused(true);
   }, []);
 
+  const changeSearch: ChangeEventHandler<HTMLInputElement> = useCallback(
+    event => setSearchInputValue(event.target.value),
+    [],
+  );
+
   const stopSearching = useCallback(() => {
-    setIsSearching(false);
+    // stopping a search takes you back to the category you were looking at before.
+    // Unlike focusSearch, this is a simple one-step process.
+    setIsSearchFocused(false);
     setSearchInputValue('');
     searchInputRef.current!.blur();
   }, []);
 
   const selectCategory = useCallback(
     (key: string) => {
+      if (isSearchFocused) {
+        stopSearching();
+      }
       setActiveCategory(key);
-      stopSearching();
+      // clear the selected viz if it is not present in the new category
+      const isSelectedVizCompatible =
+        selectedVizMetadata && doesVizMatchCategory(selectedVizMetadata, key);
+      if (key !== activeCategory && !isSelectedVizCompatible) {
+        onChange(null);
+      }
     },
-    [stopSearching],
+    [
+      stopSearching,
+      isSearchFocused,
+      activeCategory,
+      selectedVizMetadata,
+      onChange,
+    ],
   );
 
   const vizEntriesToDisplay = isActivelySearching
@@ -444,7 +475,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
             value={searchInputValue}
             placeholder={t('Search')}
             onChange={changeSearch}
-            onFocus={startSearching}
+            onFocus={focusSearch}
             data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__search-input`}
             prefix={
               <InputIconAlignment>
@@ -478,34 +509,53 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
         setSelectedViz={onChange}
       />
 
-      <DetailsPane>
-        <SectionTitle
-          css={css`
-            grid-area: viz-name;
-          `}
+      {selectedVizMetadata ? (
+        <div
+          css={(theme: SupersetTheme) => [
+            DetailsPane(theme),
+            DetailsPopulated(theme),
+          ]}
         >
-          {selectedVizMetadata?.name}
-        </SectionTitle>
-        <Description>
-          {selectedVizMetadata?.description || t('No description available.')}
-        </Description>
-        <SectionTitle
-          css={css`
-            grid-area: examples-header;
-          `}
+          <>
+            <SectionTitle
+              css={css`
+                grid-area: viz-name;
+              `}
+            >
+              {selectedVizMetadata?.name}
+            </SectionTitle>
+            <Description>
+              {selectedVizMetadata?.description ||
+                t('No description available.')}
+            </Description>
+            <SectionTitle
+              css={css`
+                grid-area: examples-header;
+              `}
+            >
+              {!!selectedVizMetadata?.exampleGallery?.length && t('Examples')}
+            </SectionTitle>
+            <Examples>
+              {(selectedVizMetadata?.exampleGallery || []).map(example => (
+                <img
+                  src={example.url}
+                  alt={example.caption}
+                  title={example.caption}
+                />
+              ))}
+            </Examples>
+          </>
+        </div>
+      ) : (
+        <div
+          css={(theme: SupersetTheme) => [
+            DetailsPane(theme),
+            DetailsEmpty(theme),
+          ]}
         >
-          {!!selectedVizMetadata?.exampleGallery?.length && t('Examples')}
-        </SectionTitle>
-        <Examples>
-          {(selectedVizMetadata?.exampleGallery || []).map(example => (
-            <img
-              src={example.url}
-              alt={example.caption}
-              title={example.caption}
-            />
-          ))}
-        </Examples>
-      </DetailsPane>
+          {t('Select a visualization type')}
+        </div>
+      )}
     </VizPickerLayout>
   );
 }

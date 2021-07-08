@@ -38,7 +38,7 @@ export type AddSliceContainerState = {
   datasourceId?: string;
   datasourceType?: string;
   datasourceValue?: string;
-  visType: string;
+  visType: string | null;
 };
 
 const ESTIMATED_NAV_HEIGHT = '56px';
@@ -76,7 +76,7 @@ export default class AddSliceContainer extends React.PureComponent<
   constructor(props: AddSliceContainerProps) {
     super(props);
     this.state = {
-      visType: 'table',
+      visType: null,
     };
 
     this.changeDatasource = this.changeDatasource.bind(this);
@@ -105,7 +105,7 @@ export default class AddSliceContainer extends React.PureComponent<
     });
   }
 
-  changeVisType(visType: string) {
+  changeVisType(visType: string | null) {
     this.setState({ visType });
   }
 
@@ -152,7 +152,7 @@ export default class AddSliceContainer extends React.PureComponent<
         </div>
         <StyledVizTypeGallery
           onChange={this.changeVisType}
-          value={this.state.visType}
+          selectedViz={this.state.visType}
         />
         <Button
           css={[

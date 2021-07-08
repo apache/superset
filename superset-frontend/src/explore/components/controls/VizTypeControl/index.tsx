@@ -41,8 +41,8 @@ interface VizTypeControlProps {
   description?: string;
   label?: string;
   name: string;
-  onChange: (vizType: string) => void;
-  value: string;
+  onChange: (vizType: string | null) => void;
+  value: string | null;
   labelType?: Type;
   isModalOpenInit?: boolean;
 }
@@ -83,7 +83,7 @@ const VizTypeControl = (props: VizTypeControlProps) => {
   // a trick to force re-initialization of the gallery each time the modal opens,
   // ensuring that the modal always opens to the correct category.
   const [modalKey, setModalKey] = useState(0);
-  const [selectedViz, setSelectedViz] = useState(initialValue);
+  const [selectedViz, setSelectedViz] = useState<string | null>(initialValue);
 
   const openModal = useCallback(() => {
     setShowModal(true);
@@ -101,8 +101,9 @@ const VizTypeControl = (props: VizTypeControlProps) => {
     setSelectedViz(initialValue);
   }, [initialValue]);
 
-  const labelContent =
-    mountedPluginMetadata[initialValue]?.name || `${initialValue}`;
+  const labelContent = initialValue
+    ? mountedPluginMetadata[initialValue]?.name || `${initialValue}`
+    : t('Select Viz Type');
 
   return (
     <div>
@@ -120,7 +121,7 @@ const VizTypeControl = (props: VizTypeControlProps) => {
           >
             {labelContent}
           </Label>
-          <VizSupportValidation vizType={initialValue} />
+          {initialValue && <VizSupportValidation vizType={initialValue} />}
         </>
       </Tooltip>
 
@@ -129,6 +130,7 @@ const VizTypeControl = (props: VizTypeControlProps) => {
         onHide={onCancel}
         title={t('Select a visualization type')}
         primaryButtonName={t('Select')}
+        disablePrimaryButton={!selectedViz}
         onHandledPrimaryAction={onSubmit}
         maxWidth={`${MAX_ADVISABLE_VIZ_GALLERY_WIDTH}px`}
         responsive
@@ -136,7 +138,7 @@ const VizTypeControl = (props: VizTypeControlProps) => {
         {/* When the key increments, it forces react to re-init the gallery component */}
         <VizTypeGallery
           key={modalKey}
-          value={selectedViz}
+          selectedViz={selectedViz}
           onChange={setSelectedViz}
         />
       </UnpaddedModal>
