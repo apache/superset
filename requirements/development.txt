@@ -70,13 +70,13 @@ tableschema==1.20.0
     # via -r requirements/development.in
 tabulator==1.52.5
     # via tableschema
-thrift-sasl==0.4.2
-    # via pyhive
 thrift==0.13.0
     # via
     #   -r requirements/development.in
     #   pyhive
     #   thrift-sasl
+thrift-sasl==0.4.2
+    # via pyhive
 unicodecsv==0.14.1
     # via
     #   tableschema
