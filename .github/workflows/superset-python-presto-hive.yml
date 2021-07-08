@@ -56,7 +56,7 @@ jobs:
         id: check
         env:
           GITHUB_REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ steps.findPr.outputs.pr }}
+          PR_NUMBER: ${{ github.event.issue.number }}
         continue-on-error: true
         run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
@@ -118,13 +118,11 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-      - id: findPr
-        uses: jwalton/gh-find-current-pr@v1
       - name: Check if python changes are present
         id: check
         env:
           GITHUB_REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ steps.findPr.outputs.pr }}
+          PR_NUMBER: ${{ github.event.issue.number }}
         continue-on-error: true
         run: ./scripts/ci_check_no_file_changes.sh python
       - name: Create csv upload directory
