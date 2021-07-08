@@ -194,9 +194,12 @@ const IconsPane = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
-const DetailsPane = styled.div`
+const DetailsPaneBase = styled.div`
   grid-area: details;
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+`;
+
+const DetailsPanePopulated = styled(DetailsPaneBase)`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -204,6 +207,15 @@ const DetailsPane = styled.div`
   grid-template-areas:
     'viz-name examples-header'
     'description examples';
+`;
+
+const DetailsPaneEmpty = styled(DetailsPaneBase)`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-style: italic;
+  color: ${({ theme }) => theme.colors.grayscale.light1};
 `;
 
 // overflow hidden on the details pane and overflow auto on the description
@@ -497,8 +509,8 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
         setSelectedViz={onChange}
       />
 
-      <DetailsPane>
-        {selectedVizMetadata && (
+      {selectedVizMetadata ? (
+        <DetailsPanePopulated>
           <>
             <SectionTitle
               css={css`
@@ -528,8 +540,10 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
               ))}
             </Examples>
           </>
-        )}
-      </DetailsPane>
+        </DetailsPanePopulated>
+      ) : (
+        <DetailsPaneEmpty>{t('Select a visualization type')}</DetailsPaneEmpty>
+      )}
     </VizPickerLayout>
   );
 }
