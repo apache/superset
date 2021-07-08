@@ -165,6 +165,7 @@ function DashboardList(props: DashboardListProps) {
                 dashboard_title = '',
                 slug = '',
                 json_metadata = '',
+                changed_on_delta_humanized,
               } = json.result;
               return {
                 ...dashboard,
@@ -174,6 +175,7 @@ function DashboardList(props: DashboardListProps) {
                 dashboard_title,
                 slug,
                 json_metadata,
+                changed_on_delta_humanized,
               };
             }
             return dashboard;
