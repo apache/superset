@@ -359,22 +359,12 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   const { mountedPluginMetadata } = usePluginContext();
   const searchInputRef = useRef<HTMLInputElement>();
   const [searchInputValue, setSearchInputValue] = useState('');
-  const [isSearchSelected, setIsSearching] = useState(false);
-  const isActivelySearching = isSearchSelected && !!searchInputValue;
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const isActivelySearching = isSearchFocused && !!searchInputValue;
 
   const selectedVizMetadata: ChartMetadata | null = selectedViz
     ? mountedPluginMetadata[selectedViz]
     : null;
-
-  const changeSearch: ChangeEventHandler<HTMLInputElement> = useCallback(
-    event => {
-      setSearchInputValue(event.target.value);
-      if (event.target.value) {
-        setIsSearching(true);
-      }
-    },
-    [],
-  );
 
   const chartMetadata: VizEntry[] = useMemo(() => {
     const result = Object.entries(mountedPluginMetadata)
@@ -429,19 +419,29 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     return fuse.search(searchInputValue).map(result => result.item);
   }, [searchInputValue, fuse]);
 
-  const startSearching = useCallback(() => {
-    setIsSearching(true);
+  const focusSearch = useCallback(() => {
+    // "start searching" is actually a two-stage process.
+    // When you first click on the search bar, the input is focused and nothing else happens.
+    // Once you begin typing, the selected category is cleared and the displayed viz entries change.
+    setIsSearchFocused(true);
   }, []);
 
+  const changeSearch: ChangeEventHandler<HTMLInputElement> = useCallback(
+    event => setSearchInputValue(event.target.value),
+    [],
+  );
+
   const stopSearching = useCallback(() => {
-    setIsSearching(false);
+    // stopping a search takes you back to the category you were looking at before.
+    // Unlike focusSearch, this is a simple one-step process.
+    setIsSearchFocused(false);
     setSearchInputValue('');
     searchInputRef.current!.blur();
   }, []);
 
   const selectCategory = useCallback(
     (key: string) => {
-      if (isSearchSelected) {
+      if (isSearchFocused) {
         stopSearching();
       }
       setActiveCategory(key);
@@ -454,7 +454,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     },
     [
       stopSearching,
-      isSearchSelected,
+      isSearchFocused,
       activeCategory,
       selectedVizMetadata,
       onChange,
@@ -475,7 +475,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
             value={searchInputValue}
             placeholder={t('Search')}
             onChange={changeSearch}
-            onFocus={startSearching}
+            onFocus={focusSearch}
             data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__search-input`}
             prefix={
               <InputIconAlignment>
