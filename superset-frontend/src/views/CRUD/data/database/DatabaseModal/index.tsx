@@ -881,7 +881,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 testConnection={testConnection}
                 isEditMode={isEditMode}
               />
-              {isDynamic(db?.backend || db?.engine) && (
+              {isDynamic(db?.backend || db?.engine) && !isEditMode && (
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
                   <Button
                     buttonStyle="link"
