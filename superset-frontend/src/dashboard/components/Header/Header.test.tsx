@@ -32,7 +32,7 @@ const createProps = () => ({
     dash_edit_perm: false,
     dash_save_perm: false,
     dash_share_perm: false,
-    userId: "1",
+    userId: '1',
     metadata: {},
     common: {
       conf: {},
@@ -257,12 +257,12 @@ test('should NOT render the fave icon on anonymous user', () => {
   };
   render(setup(anonymousUserProps));
   expect(mockedProps.fetchFaveStar).not.toHaveBeenCalled();
-  expect(
-    () => screen.getByRole('img', { name: 'favorite-unselected' }),
-  ).toThrowError("Unable to find");
-  expect(
-    () => screen.getByRole('img', { name: 'favorite-selected' }),
-  ).toThrowError("Unable to find");
+  expect(() =>
+    screen.getByRole('img', { name: 'favorite-unselected' }),
+  ).toThrowError('Unable to find');
+  expect(() =>
+    screen.getByRole('img', { name: 'favorite-selected' }),
+  ).toThrowError('Unable to find');
 });
 
 test('should fave', async () => {
