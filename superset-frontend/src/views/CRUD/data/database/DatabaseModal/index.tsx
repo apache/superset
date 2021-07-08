@@ -904,7 +904,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     tooltip={t(
                       'Click this link to switch to an alternate form that exposes only the required fields needed to connect this database.',
                     )}
-                    viewBox="0 -3 24 24"
+                    viewBox="0 0 24 24"
                   />
                 </div>
               )}
