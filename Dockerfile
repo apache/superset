@@ -103,12 +103,11 @@ COPY --from=superset-node /app/superset-frontend /app/superset-frontend
 ## Lastly, let's install superset itself
 COPY superset /app/superset
 COPY setup.py MANIFEST.in README.md /app/
+COPY ./requirements/base.txt  /app/requirements/
 
 RUN cd /app \
-        && mkdir requirements \
-        && touch requirements/base.txt \
         && chown -R superset:superset * \
-        && pip install -e --no-deps .
+        && pip install -e .
 
 COPY ./docker/docker-entrypoint.sh /usr/bin/
 
