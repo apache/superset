@@ -66,6 +66,7 @@ interface FieldPropTypes {
   sslForced?: boolean;
   defaultDBName?: string;
   editNewDb?: boolean;
+  setPublicSheets: (value: string) => void;
 }
 
 const CredentialsInfo = ({
@@ -299,19 +300,42 @@ const displayField = ({
   getValidation,
   validationErrors,
   db,
+  setPublicSheets,
 }: FieldPropTypes) => (
-  <ValidatedInput
-    id="database_name"
-    name="database_name"
-    required
-    value={db?.database_name}
-    validationMethods={{ onBlur: getValidation }}
-    errorMessage={validationErrors?.database_name}
-    placeholder=""
-    label="Display Name"
-    onChange={changeMethods.onChange}
-    helpText={t('Pick a nickname for this database to display as in Superset.')}
-  />
+  <>
+    <ValidatedInput
+      id="database_name"
+      name="database_name"
+      required
+      value={db?.database_name}
+      validationMethods={{ onBlur: getValidation }}
+      errorMessage={validationErrors?.database_name}
+      placeholder=""
+      label="Display Name"
+      onChange={changeMethods.onChange}
+      helpText={t(
+        'Pick a nickname for this database to display as in Superset.',
+      )}
+    />
+
+    {db?.engine === 'gsheets' && (
+      <>
+        <FormLabel required>{t('Type of Google Sheets Allowed')}</FormLabel>
+        <Select
+          style={{ width: '100%' }}
+          onChange={(value: string) => setPublicSheets(value)}
+          defaultValue="true"
+        >
+          <Select.Option value="true" key={1}>
+            Publicly shared sheets only
+          </Select.Option>
+          <Select.Option value="false" key={2}>
+            Public and privately shared sheets
+          </Select.Option>
+        </Select>
+      </>
+    )}
+  </>
 );
 
 const queryField = ({
@@ -388,10 +412,13 @@ const DatabaseConnectionForm = ({
   isEditMode = false,
   sslForced,
   editNewDb,
+  setPublicSheets,
 }: {
   isEditMode?: boolean;
   sslForced: boolean;
   editNewDb?: boolean;
+  isPublic?: boolean;
+  setPublicSheets: (value: string) => void;
   dbModel: DatabaseForm;
   db: Partial<DatabaseObject> | null;
   onParametersChange: (
@@ -434,6 +461,7 @@ const DatabaseConnectionForm = ({
             isEditMode,
             sslForced,
             editNewDb,
+            setPublicSheets,
           }),
         )}
     </div>
