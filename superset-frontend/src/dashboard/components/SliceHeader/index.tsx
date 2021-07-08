@@ -23,7 +23,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import EditableTitle from 'src/components/EditableTitle';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
 import FiltersBadge from 'src/dashboard/components/FiltersBadge';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
 import { clearDataMask } from 'src/dataMask/actions';
@@ -69,12 +69,9 @@ type SliceHeaderProps = {
 const annotationsLoading = t('Annotation layers are still loading.');
 const annotationsError = t('One ore more annotation layers failed loading.');
 
-const CrossFilterIcon = styled(Icon)`
-  fill: ${({ theme }) => theme.colors.grayscale.light5};
+const CrossFilterIcon = styled(Icons.CursorTarget)`
   cursor: pointer;
-  & circle {
-    fill: ${({ theme }) => theme.colors.primary.base};
-  }
+  color: ${({ theme }) => theme.colors.primary.base};
   height: 22px;
   width: 22px;
 `;
@@ -174,7 +171,6 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 }
               >
                 <CrossFilterIcon
-                  name="cross-filter-badge"
                   onClick={() => dispatch(clearDataMask(slice?.slice_id))}
                 />
               </Tooltip>
