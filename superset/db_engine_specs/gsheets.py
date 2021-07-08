@@ -16,7 +16,6 @@
 # under the License.
 import json
 import re
-import urllib  # pylint: disable=unused-import
 from contextlib import closing
 from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 
@@ -25,7 +24,7 @@ from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
-from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.engine.url import URL
 from typing_extensions import TypedDict
 
 from superset import security_manager
@@ -104,20 +103,17 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         return {"metadata": metadata["extra"]}
 
     @classmethod
-    def build_sqlalchemy_uri(
-        cls,
-        parameters: GSheetsParametersType,
-        encrypted_extra: Optional[
-            Dict[str, Any]
-        ] = None,  # pylint: disable=unused-argument
-    ) -> str:
-        # All gsheets return just the engine in the format of the uri, the above are temporary for csi
+    def build_sqlalchemy_uri(cls) -> str:
+        # All gsheets return just the engine in the format of the uri,
+        # the above are temporary for csi
+        if not cls:
+            raise ValidationError("Invalid Engine")
+
         return "gsheets://"
 
     @classmethod
     def get_parameters_from_uri(
         cls,
-        uri: str,
         encrypted_extra: Optional[
             Dict[str, str]
         ] = None,  # pylint: disable=unused-argument
