@@ -18,15 +18,20 @@
  */
 import React, { useState } from 'react';
 import { Row, Col, Input, TextArea } from 'src/common/components';
-import { t, supersetTheme, styled } from '@superset-ui/core';
+import { t, styled, useTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import { Form, FormItem } from 'src/components/Form';
 import Modal from 'src/components/Modal';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 
 const Styles = styled.span`
-  svg {
-    vertical-align: -${supersetTheme.gridUnit * 1.25}px;
+  span[role='img'] {
+    display: flex;
+    margin: 0;
+    svg {
+      vertical-align: -${({ theme }) => theme.gridUnit * 1.25}px;
+      margin: 0;
+    }
   }
 `;
 
@@ -147,15 +152,11 @@ export default function SaveQuery({
     </Form>
   );
 
+  const theme = useTheme();
   return (
     <Styles className="SaveQuery">
       <Button buttonSize="small" onClick={toggleSave}>
-        <Icon
-          name="save"
-          color={supersetTheme.colors.primary.base}
-          width={20}
-          height={20}
-        />{' '}
+        <Icons.Save iconColor={theme.colors.primary.base} iconSize="xl" />
         {isSaved ? t('Save') : t('Save as')}
       </Button>
       <Modal
