@@ -50,8 +50,7 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-      - name: "Find PR"
-        id: findPr
+      - id: findPr
         uses: jwalton/gh-find-current-pr@v1
       - name: Check if python changes are present
         id: check
@@ -119,8 +118,7 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-      - name: "Find PR"
-        id: findPr
+      - id: findPr
         uses: jwalton/gh-find-current-pr@v1
       - name: Check if python changes are present
         id: check
