@@ -303,7 +303,7 @@ export const exploreChart = formData => {
     endpointType: 'base',
     allowDomainSharding: false,
   });
-  postForm(url, formData, '_self');
+  postForm(url, formData);
 };
 
 export const useDebouncedEffect = (effect, delay, deps) => {
