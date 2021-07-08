@@ -16,7 +16,7 @@ Step 1: First the admin must inform us what engine they want to connect to. This
 
 Step 2: Next, the admin is prompted to enter database specific parameters. Depending on whether there is a dynamic form available for that specific engine, the admin will either see the new custom form or the legacy SQLAlchemy form. We currently have built dynamic forms for (Redshift, MySQL, Postgres, and BigQuery). The new form prompts the user for the parameters needed to connect (for example, username, password, host, port, etc.) and provides immediate feedback on errors.
 
-Step 3: Finally, once the admin has connected to their DB using the dynamic form they have the opportunity to update any optional advanced settings. 
+Step 3: Finally, once the admin has connected to their DB using the dynamic form they have the opportunity to update any optional advanced settings.
 
 We hope this feature will help eliminate a huge bottleneck for users to get into the application and start crafting datasets.
 
@@ -37,11 +37,11 @@ PREFERRED_DATABASES: List[str] = [
 ]
 ```
 
-For copyright reasons the logos for each database are not distributed with Superset (does anyone know if we can hotlink to them?).
+For copyright reasons the logos for each database are not distributed with Superset.
 
 ### Setting images
 
-- To set the images of you preferred database admins must create a mapping in the `superset_text.yml` file with engine and location of the image. The image can be host locally in inside your static/file directory or online (e.g. S3)
+- To set the images of your preferred database, admins must create a mapping in the `superset_text.yml` file with engine and location of the image. The image can be host locally inside your static/file directory or online (e.g. S3)
 
 ```python
 DB_IMAGES:
