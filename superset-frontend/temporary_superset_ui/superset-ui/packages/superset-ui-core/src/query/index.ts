@@ -26,6 +26,7 @@ export { default as convertFilter } from './convertFilter';
 export { default as extractTimegrain } from './extractTimegrain';
 export { default as getMetricLabel } from './getMetricLabel';
 export { default as DatasourceKey } from './DatasourceKey';
+export { default as normalizeOrderBy } from './normalizeOrderBy';
 
 export * from './types/AnnotationLayer';
 export * from './types/QueryFormData';
