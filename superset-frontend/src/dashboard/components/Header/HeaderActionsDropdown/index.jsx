@@ -22,7 +22,7 @@ import PropTypes from 'prop-types';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 
 import { Menu, NoAnimationDropdown } from 'src/common/components';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { URL_PARAMS } from 'src/constants';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import CssEditor from 'src/dashboard/components/CssEditor';
@@ -88,6 +88,9 @@ const MENU_KEYS = {
 
 const DropdownButton = styled.div`
   margin-left: ${({ theme }) => theme.gridUnit * 2.5}px;
+  span {
+    color: ${({ theme }) => theme.colors.grayscale.base};
+  }
 `;
 
 const SCREENSHOT_NODE_SELECTOR = '.dashboard';
@@ -159,6 +162,8 @@ class HeaderActionsDropdown extends React.PureComponent {
         downloadAsImage(
           SCREENSHOT_NODE_SELECTOR,
           this.props.dashboardTitle,
+          {},
+          true,
         )(domEvent).then(() => {
           menu.style.visibility = 'visible';
         });
@@ -328,7 +333,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         }
       >
         <DropdownButton id="save-dash-split-button" role="button">
-          <Icon name="more-horiz" />
+          <Icons.MoreHoriz />
         </DropdownButton>
       </NoAnimationDropdown>
     );

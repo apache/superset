@@ -20,7 +20,7 @@ import { PlusOutlined } from '@ant-design/icons';
 import { styled, t } from '@superset-ui/core';
 import React, { FC } from 'react';
 import { LineEditableTabs } from 'src/components/Tabs';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { FilterRemoval } from './types';
 import { REMOVAL_DELAY_SECS } from './utils';
 
@@ -51,7 +51,7 @@ export const StyledAddFilterBox = styled.div`
   }
 `;
 
-export const StyledTrashIcon = styled(Icon)`
+export const StyledTrashIcon = styled(Icons.Trash)`
   color: ${({ theme }) => theme.colors.grayscale.light3};
 `;
 
@@ -124,14 +124,13 @@ const FilterTabsContainer = styled(LineEditableTabs)`
       margin: 0 ${theme.gridUnit * 2}px 0 0;
       padding: ${theme.gridUnit}px
         ${theme.gridUnit * 2}px;
-
       &:hover,
       &-active {
         color: ${theme.colors.grayscale.dark1};
         border-radius: ${theme.borderRadius}px;
         background-color: ${theme.colors.secondary.light4};
 
-        .ant-tabs-tab-remove > svg {
+        .ant-tabs-tab-remove > span {
           color: ${theme.colors.grayscale.base};
           transition: all 0.3s;
         }
@@ -238,9 +237,7 @@ const FilterTabs: FC<FilterTabsProps> = ({
           </FilterTabTitle>
         }
         key={id}
-        closeIcon={
-          removedFilters[id] ? <></> : <StyledTrashIcon name="trash" />
-        }
+        closeIcon={removedFilters[id] ? <></> : <StyledTrashIcon />}
       >
         {
           // @ts-ignore

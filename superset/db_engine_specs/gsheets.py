@@ -21,16 +21,18 @@ from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from flask import g
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
+from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import URL
 from typing_extensions import TypedDict
 
 from superset import security_manager
 from superset.databases.schemas import encrypted_field_properties, EncryptedField
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
-from superset.errors import SupersetError, SupersetErrorType
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -51,6 +53,7 @@ class GSheetsParametersSchema(Schema):
 class GSheetsParametersType(TypedDict):
     credentials_info: Dict[str, Any]
     query: Dict[str, Any]
+    table_catalog: Dict[str, str]
 
 
 class GSheetsEngineSpec(SqliteEngineSpec):
@@ -69,7 +72,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         SYNTAX_ERROR_REGEX: (
             __(
                 'Please check your query for syntax errors near "%(server_error)s". '
-                "Then, try running your query again."
+                "Then, try running your query again.",
             ),
             SupersetErrorType.SYNTAX_ERROR,
             {},
@@ -78,7 +81,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
 
     @classmethod
     def modify_url_for_impersonation(
-        cls, url: URL, impersonate_user: bool, username: Optional[str]
+        cls, url: URL, impersonate_user: bool, username: Optional[str],
     ) -> None:
         if impersonate_user and username is not None:
             user = security_manager.find_user(username=username)
@@ -103,34 +106,19 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         return {"metadata": metadata["extra"]}
 
     @classmethod
-    def build_sqlalchemy_uri(cls) -> str:
-        # All gsheets return just the engine in the format of the uri,
-        # the above are temporary for csi
-        if not cls:
-            raise ValidationError("Invalid Engine")
+    def build_sqlalchemy_uri(cls) -> str:  # pylint: disable=unused-variable
 
         return "gsheets://"
 
     @classmethod
     def get_parameters_from_uri(
-        cls,
-        encrypted_extra: Optional[
-            Dict[str, str]
-        ] = None,  # pylint: disable=unused-argument
+        cls, encrypted_extra: Optional[Dict[str, str]] = None,
     ) -> Any:
-        # value = make_url(uri)
-
         # Building parameters from encrypted_extra and uri
         if encrypted_extra:
             return {**encrypted_extra}
 
         raise ValidationError("Invalid service credentials")
-
-    @classmethod
-    def validate_parameters(
-        cls, parameters: GSheetsParametersType  # pylint: disable=unused-argument
-    ) -> List[SupersetError]:
-        return []
 
     @classmethod
     def parameters_json_schema(cls) -> Any:
@@ -151,3 +139,41 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         ma_plugin.converter.add_attribute_function(encrypted_field_properties)
         spec.components.schema(cls.__name__, schema=cls.parameters_schema)
         return spec.to_dict()["components"]["schemas"][cls.__name__]
+
+    @classmethod
+    def validate_parameters(
+        cls, parameters: GSheetsParametersType,
+    ) -> List[SupersetError]:
+        errors: List[SupersetError] = []
+
+        credentials_info = parameters.get("credentials_info")
+        table_catalog = parameters.get("table_catalog", {})
+
+        if not table_catalog:
+            return errors
+
+        # We need a subject in case domain wide delegation is set, otherwise the
+        # check will fail. This means that the admin will be able to add sheets
+        # that only they have access, even if later users are not able to access
+        # them.
+        subject = g.user.email if g.user else None
+
+        engine = create_engine(
+            "gsheets://", service_account_info=credentials_info, subject=subject,
+        )
+        conn = engine.connect()
+        for name, url in table_catalog.items():
+            try:
+                results = conn.execute(f'SELECT * FROM "{url}" LIMIT 1')
+                results.fetchall()
+            except Exception:  # pylint: disable=broad-except
+                errors.append(
+                    SupersetError(
+                        message=f"Unable to connect to spreadsheet {name} at {url}",
+                        error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+                        level=ErrorLevel.WARNING,
+                        extra={"name": name, "url": url},
+                    ),
+                )
+
+        return errors
