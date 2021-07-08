@@ -19,3 +19,6 @@
 pyrsistent>=0.16.1,<0.17
 zipp==3.4.1
 click
+py>=1.10.0
+urllib3>=1.26.5
+aiohttp>=3.7.4
