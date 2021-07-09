@@ -584,7 +584,13 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
 
 
 def cancel_query(query: Query, user_name: Optional[str] = None) -> None:
-    """Cancal a running query."""
+    """
+    Cancel a running query.
+
+    :param query: Query to cancel
+    :param user_name: Default username
+    :return: None
+    """
     cancel_payload = query.extra.get(cancel_payload_key, None)
     if cancel_payload is None:
         return
