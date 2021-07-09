@@ -559,7 +559,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onChange={setDatabaseModel}
         placeholder="Choose a database..."
       >
-        {availableDbs?.databases
+        {[...(availableDbs?.databases || [])]
           ?.sort((a: DatabaseForm, b: DatabaseForm) =>
             a.name.localeCompare(b.name),
           )
