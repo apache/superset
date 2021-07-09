@@ -342,6 +342,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const dbImages = getDatabaseImages();
   const connectionAlert = getConnectionAlert();
   const isEditMode = !!databaseId;
+  const sortedAvailableDBs = availableDbs?.databases.sort();
   const sslForced = isFeatureEnabled(
     FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
   );
@@ -559,11 +560,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onChange={setDatabaseModel}
         placeholder="Choose a database..."
       >
-        {availableDbs?.databases
-          ?.sort((a: DatabaseForm, b: DatabaseForm) =>
-            a.name.localeCompare(b.name),
-          )
-          .map((database: DatabaseForm) => (
+        {sortedAvailableDBs &&
+          sortedAvailableDBs.map((database: DatabaseForm) => (
             <Select.Option value={database.engine} key={database.engine}>
               {database.name}
             </Select.Option>
@@ -613,7 +611,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const renderPreferredSelector = () => (
     <div className="preferred">
-      {availableDbs?.databases
+      {sortedAvailableDBs
         ?.filter((db: DatabaseForm) => db.preferred)
         .map((database: DatabaseForm) => (
           <IconButton
