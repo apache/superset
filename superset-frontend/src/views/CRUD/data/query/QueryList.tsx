@@ -16,8 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState, useCallback } from 'react';
-import { SupersetClient, t, styled } from '@superset-ui/core';
+import React, { useMemo, useState, useCallback, ReactElement } from 'react';
+import {
+  SupersetClient,
+  t,
+  styled,
+  css,
+  SupersetTheme,
+} from '@superset-ui/core';
 import moment from 'moment';
 import {
   createFetchRelated,
@@ -35,7 +41,6 @@ import ListView, {
   FilterOperator,
   ListViewProps,
 } from 'src/components/ListView';
-import Icon, { IconName } from 'src/components/Icon';
 import { Tooltip } from 'src/components/Tooltip';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
@@ -43,6 +48,7 @@ import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { DATETIME_WITH_TIME_ZONE, TIME_WITH_MS } from 'src/constants';
 import { QueryObject, QueryObjectColumns } from 'src/views/CRUD/types';
 
+import Icons from 'src/components/Icons';
 import QueryPreviewModal from './QueryPreviewModal';
 
 const PAGE_SIZE = 25;
@@ -80,17 +86,16 @@ const StyledPopoverItem = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
 `;
 
-const StatusIcon = styled(Icon, {
-  shouldForwardProp: prop => prop !== 'status',
-})<{ status: string }>`
-  color: ${({ status, theme }) => {
-    if (status === 'success') return theme.colors.success.base;
-    if (status === 'failed') return theme.colors.error.base;
-    if (status === 'running') return theme.colors.primary.base;
-    if (status === 'offline') return theme.colors.grayscale.light1;
+const getColor = (theme: SupersetTheme, status: string) => {
+  if (status === 'success') return theme.colors.success.base;
+  if (status === 'failed') return theme.colors.error.base;
+  if (status === 'running') return theme.colors.primary.base;
+  if (status === 'offline') return theme.colors.grayscale.light1;
+  return theme.colors.grayscale.base;
+};
 
-    return theme.colors.grayscale.base;
-  }};
+const StatusIcon = (theme: SupersetTheme, status: string) => css`
+  color: ${getColor(theme, status)};
 `;
 
 function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
@@ -141,44 +146,46 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
             original: { status },
           },
         }: any) => {
-          const statusConfig = {
-            name: '',
+          const statusConfig: {
+            name: ReactElement | null;
+            label: string;
+          } = {
+            name: null,
             label: '',
-            status: '',
           };
           if (status === 'success') {
-            statusConfig.name = 'check';
+            statusConfig.name = (
+              <Icons.Check css={theme => StatusIcon(theme, 'running')} />
+            );
             statusConfig.label = t('Success');
-            statusConfig.status = 'success';
           }
           if (status === 'failed' || status === 'stopped') {
-            statusConfig.name = 'x-small';
+            statusConfig.name = (
+              <Icons.XSmall css={theme => StatusIcon(theme, 'failed')} />
+            );
             statusConfig.label = t('Failed');
-            statusConfig.status = 'failed';
           }
           if (status === 'running') {
-            statusConfig.name = 'running';
+            statusConfig.name = (
+              <Icons.Running css={theme => StatusIcon(theme, 'running')} />
+            );
             statusConfig.label = t('Running');
-            statusConfig.status = 'running';
           }
           if (status === 'timed_out') {
-            statusConfig.name = 'offline';
+            statusConfig.name = (
+              <Icons.Offline css={theme => StatusIcon(theme, 'offline')} />
+            );
             statusConfig.label = t('Offline');
-            statusConfig.status = 'offline';
           }
           if (status === 'scheduled' || status === 'pending') {
-            statusConfig.name = 'queued';
+            statusConfig.name = (
+              <Icons.Queued css={theme => StatusIcon(theme, 'queued')} />
+            );
             statusConfig.label = t('Scheduled');
-            statusConfig.status = 'queued';
           }
           return (
             <Tooltip title={statusConfig.label} placement="bottom">
-              <span>
-                <StatusIcon
-                  name={statusConfig.name as IconName}
-                  status={statusConfig.status}
-                />
-              </span>
+              <span>{statusConfig.name}</span>
             </Tooltip>
           );
         },
@@ -325,7 +332,13 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         }: any) => (
           <Tooltip title={t('Open query in SQL Lab')} placement="bottom">
             <a href={`/superset/sqllab?queryId=${id}`}>
-              <Icon name="full" />
+              <Icons.Full
+                css={theme =>
+                  css`
+                    color: ${theme.colors.grayscale.base};
+                  `
+                }
+              />
             </a>
           </Tooltip>
         ),
