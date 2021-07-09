@@ -84,7 +84,7 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
     icon = <Icons.WarningSolid css={StyledIcon} />;
     className = 'toast--warning';
   } else if (toast.toastType === ToastType.DANGER) {
-    icon = <Icons.ErrorSolid css={theme => StyledIcon(theme)} />;
+    icon = <Icons.ErrorSolid css={StyledIcon} />;
     className = 'toast--danger';
   } else if (toast.toastType === ToastType.INFO) {
     icon = <Icons.InfoSolid css={theme => StyledIcon(theme)} />;
