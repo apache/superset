@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { useArgs } from '@storybook/client-api';
+import { useArgs } from '@storybook/api';
 import { OptionTypeBase } from 'react-select';
 import Select from '.';
 

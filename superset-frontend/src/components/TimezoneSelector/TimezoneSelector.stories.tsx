@@ -17,42 +17,25 @@
  * under the License.
  */
 import React from 'react';
-import { useArgs } from '@storybook/api';
-import { Switch, SwitchProps } from '.';
+import { useArgs } from '@storybook/client-api';
+import TimezoneSelector, { TimezoneProps } from './index';
 
 export default {
-  title: 'Switch',
+  title: 'TimezoneSelector',
+  component: TimezoneSelector,
 };
 
-export const InteractiveSwitch = ({ checked, ...rest }: SwitchProps) => {
-  const [, updateArgs] = useArgs();
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const InteractiveTimezoneSelector = (args: TimezoneProps) => {
+  const [{ timezone }, updateArgs] = useArgs();
+  const onTimezoneChange = (value: string) => {
+    updateArgs({ timezone: value });
+  };
   return (
-    <Switch
-      {...rest}
-      checked={checked}
-      onChange={value => updateArgs({ checked: value })}
-    />
+    <TimezoneSelector timezone={timezone} onTimezoneChange={onTimezoneChange} />
   );
 };
 
-InteractiveSwitch.args = {
-  checked: false,
-  disabled: false,
-  loading: false,
-  title: 'Switch',
-};
-
-InteractiveSwitch.argTypes = {
-  size: {
-    defaultValue: 'default',
-    control: { type: 'radio', options: ['small', 'default'] },
-  },
-};
-
-InteractiveSwitch.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
+InteractiveTimezoneSelector.args = {
+  timezone: 'America/Los_Angeles',
 };

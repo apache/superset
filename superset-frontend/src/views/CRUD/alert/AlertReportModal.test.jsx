@@ -226,12 +226,12 @@ describe('AlertReportModal', () => {
     expect(input.props().value).toEqual('SELECT NaN');
   });
 
-  it('renders one select element when in report mode', () => {
+  it('renders two select element when in report mode', () => {
     expect(wrapper.find(Select)).toExist();
-    expect(wrapper.find(Select)).toHaveLength(1);
+    expect(wrapper.find(Select)).toHaveLength(2);
   });
 
-  it('renders two select elements when in alert mode', async () => {
+  it('renders three select elements when in alert mode', async () => {
     const props = {
       ...mockedProps,
       isReport: false,
@@ -240,7 +240,7 @@ describe('AlertReportModal', () => {
     const addWrapper = await mountAndWait(props);
 
     expect(addWrapper.find(Select)).toExist();
-    expect(addWrapper.find(Select)).toHaveLength(2);
+    expect(addWrapper.find(Select)).toHaveLength(3);
   });
 
   it('renders value input element when in alert mode', async () => {

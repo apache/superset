@@ -19,7 +19,6 @@
 import React from 'react';
 import { addDecorator } from '@storybook/react';
 import { jsxDecorator } from 'storybook-addon-jsx';
-import { addParameters } from '@storybook/react';
 import { withPaddings } from 'storybook-addon-paddings';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
@@ -51,7 +50,7 @@ addDecorator(themeDecorator);
 addDecorator(providerDecorator);
 addDecorator(withPaddings);
 
-addParameters({
+export const parameters = {
   paddings: [
     { name: 'None', value: '0px' },
     { name: 'Small', value: '16px' },
@@ -63,4 +62,4 @@ addParameters({
       method: 'alphabetical',
     },
   },
-});
+};
