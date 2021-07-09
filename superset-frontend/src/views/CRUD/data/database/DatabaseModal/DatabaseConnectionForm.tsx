@@ -46,6 +46,7 @@ export const FormFieldOrder = [
   'password',
   'database_name',
   'credentials_info',
+  'table_catalog',
   'query',
   'encryption',
 ];
@@ -67,6 +68,7 @@ interface FieldPropTypes {
   defaultDBName?: string;
   editNewDb?: boolean;
   setPublicSheets: (value: string) => void;
+  isPublic?: boolean;
 }
 
 const CredentialsInfo = ({
@@ -74,6 +76,7 @@ const CredentialsInfo = ({
   isEditMode,
   db,
   editNewDb,
+  isPublic,
 }: FieldPropTypes) => {
   const [uploadOption, setUploadOption] = useState<number>(
     CredentialInfoOptions.jsonUpload.valueOf(),
@@ -81,9 +84,10 @@ const CredentialsInfo = ({
   const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
     null,
   );
+  console.log('in credentials', isPublic);
   return (
     <CredentialInfoForm>
-      {!isEditMode && (
+      {!isEditMode && db?.engine === 'bigquery' && (
         <>
           <FormLabel required>
             {t('How do you want to enter service account credentials?')}
@@ -105,9 +109,10 @@ const CredentialsInfo = ({
       )}
       {uploadOption === CredentialInfoOptions.copyPaste ||
       isEditMode ||
-      editNewDb ? (
+      editNewDb ||
+      (db?.engine === 'gsheets' && !isPublic) ? (
         <div className="input-container">
-          <FormLabel required>{t('Service Account')}</FormLabel>
+          <FormLabel required>{t('Service Account Information')}</FormLabel>
           <textarea
             className="input-form"
             name="credentials_info"
@@ -116,77 +121,89 @@ const CredentialsInfo = ({
             placeholder="Paste content of service credentials JSON file here"
           />
           <span className="label-paste">
-            {t('Copy and paste the entire service account .json file here')}
+            {t(
+              'Copy and paste the entire service account .json file here to enable connection',
+            )}
           </span>
         </div>
       ) : (
-        <div
-          className="input-container"
-          css={(theme: SupersetTheme) => infoTooltip(theme)}
-        >
-          <div css={{ display: 'flex', alignItems: 'center' }}>
-            <FormLabel required>{t('Upload Credentials')}</FormLabel>
-            <InfoTooltip
-              tooltip={t(
-                'Use the JSON file you automatically downloaded when creating your service account in Google BigQuery.',
-              )}
-              viewBox="0 0 24 24"
-            />
-          </div>
-
-          {!fileToUpload && (
-            <Button
-              className="input-upload-btn"
-              onClick={() => document?.getElementById('selectedFile')?.click()}
-            >
-              {t('Choose File')}
-            </Button>
-          )}
-          {fileToUpload && (
-            <div className="input-upload-current">
-              {fileToUpload}
-              <DeleteFilled
-                onClick={() => {
-                  setFileToUpload(null);
-                  changeMethods.onParametersChange({
-                    target: {
-                      name: 'credentials_info',
-                      value: '',
-                    },
-                  });
-                }}
+        db?.engine !== 'gsheets' && (
+          <div
+            className="input-container"
+            css={(theme: SupersetTheme) => infoTooltip(theme)}
+          >
+            <div css={{ display: 'flex', alignItems: 'center' }}>
+              <FormLabel required>{t('Upload Credentials')}</FormLabel>
+              <InfoTooltip
+                tooltip={t(
+                  'Use the JSON file you automatically downloaded when creating your service account in Google BigQuery.',
+                )}
+                viewBox="0 0 24 24"
               />
             </div>
-          )}
-
-          <input
-            id="selectedFile"
-            className="input-upload"
-            type="file"
-            onChange={async event => {
-              let file;
-              if (event.target.files) {
-                file = event.target.files[0];
-              }
-              setFileToUpload(file?.name);
-              changeMethods.onParametersChange({
-                target: {
-                  type: null,
-                  name: 'credentials_info',
-                  value: await file?.text(),
-                  checked: false,
-                },
-              });
-              (document.getElementById(
-                'selectedFile',
-              ) as HTMLInputElement).value = null as any;
-            }}
-          />
-        </div>
+            )
+            {!fileToUpload && (
+              <Button
+                className="input-upload-btn"
+                onClick={() =>
+                  document?.getElementById('selectedFile')?.click()
+                }
+              >
+                {t('Choose File')}
+              </Button>
+            )}
+            {fileToUpload && (
+              <div className="input-upload-current">
+                {fileToUpload}
+                <DeleteFilled
+                  onClick={() => {
+                    setFileToUpload(null);
+                    changeMethods.onParametersChange({
+                      target: {
+                        name: 'credentials_info',
+                        value: '',
+                      },
+                    });
+                  }}
+                />
+              </div>
+            )}
+            <input
+              id="selectedFile"
+              className="input-upload"
+              type="file"
+              onChange={async event => {
+                let file;
+                if (event.target.files) {
+                  file = event.target.files[0];
+                }
+                setFileToUpload(file?.name);
+                changeMethods.onParametersChange({
+                  target: {
+                    type: null,
+                    name: 'credentials_info',
+                    value: await file?.text(),
+                    checked: false,
+                  },
+                });
+                (document.getElementById(
+                  'selectedFile',
+                ) as HTMLInputElement).value = null as any;
+              }}
+            />
+          </div>
+        )
       )}
     </CredentialInfoForm>
   );
 };
+
+const TableCatalog = ({
+  changeMethods,
+  isEditMode,
+  db,
+  editNewDb,
+}: FieldPropTypes) => <>hello! {db?.engine}</>;
 
 const hostField = ({
   required,
@@ -399,6 +416,7 @@ const FORM_FIELD_MAP = {
   query: queryField,
   encryption: forceSSLField,
   credentials_info: CredentialsInfo,
+  table_catalog: TableCatalog,
 };
 
 const DatabaseConnectionForm = ({
@@ -413,6 +431,7 @@ const DatabaseConnectionForm = ({
   sslForced,
   editNewDb,
   setPublicSheets,
+  isPublic,
 }: {
   isEditMode?: boolean;
   sslForced: boolean;
@@ -462,6 +481,7 @@ const DatabaseConnectionForm = ({
             sslForced,
             editNewDb,
             setPublicSheets,
+            isPublic,
           }),
         )}
     </div>
