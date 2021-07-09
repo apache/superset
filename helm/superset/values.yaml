@@ -178,10 +178,10 @@ supersetNode:
     redis_host: '{{ template "superset.fullname" . }}-redis-headless'
     redis_port: "6379"
     db_host: '{{ template "superset.fullname" . }}-postgresql'
-    db_port: "5432"
-    db_user: superset
-    db_pass: superset
-    db_name: superset
+    db_port: {{ .Values.postgresql.service.port }}
+    db_user: {{ .Values.postgresql.postgresqlUsername }}
+    db_pass: {{ .Values.postgresql.postgresqlPassword }}
+    db_name: {{ .Values.postgresql.postgresqlDatabase }}
   forceReload: false # If true, forces deployment to reload on each upgrade
   initContainers:
     - name: wait-for-postgres
