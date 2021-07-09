@@ -21,8 +21,12 @@ import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import buildQuery from './buildQuery';
+import { EchartsGaugeChartProps, EchartsGaugeFormData } from './types';
 
-export default class EchartsGaugeChartPlugin extends ChartPlugin {
+export default class EchartsGaugeChartPlugin extends ChartPlugin<
+  EchartsGaugeFormData,
+  EchartsGaugeChartProps
+> {
   constructor() {
     super({
       buildQuery,
