@@ -21,9 +21,10 @@ import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { RangePicker } from 'src/components/DatePicker';
 import moment from 'moment';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import Modal from 'src/components/Modal';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import { StyledIcon } from 'src/views/CRUD/utils';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 
 import { AnnotationObject } from './types';
@@ -46,10 +47,6 @@ const StyledAnnotationTitle = styled.div`
 const StyledJsonEditor = styled(JsonEditor)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
   border: 1px solid ${({ theme }) => theme.colors.secondary.light2};
-`;
-
-const StyledIcon = styled(Icon)`
-  margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
 `;
 
 const AnnotationContainer = styled.div`
@@ -281,9 +278,9 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       title={
         <h4 data-test="annotaion-modal-title">
           {isEditMode ? (
-            <StyledIcon name="edit-alt" />
+            <Icons.EditAlt css={StyledIcon} />
           ) : (
-            <StyledIcon name="plus-large" />
+            <Icons.PlusLarge css={StyledIcon} />
           )}
           {isEditMode ? t('Edit annotation') : t('Add annotation')}
         </h4>
