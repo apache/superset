@@ -35,7 +35,7 @@ describe('Dashboard edit markdown', () => {
 
     // lazy load - need to open dropdown for the scripts to load
     cy.get('[data-test="dashboard-header"]')
-      .find('[data-test="more-horiz"]')
+      .find('[aria-label="more-horiz"]')
       .click();
     cy.get('script').then(nodes => {
       // load 5 new script chunks for css editor
