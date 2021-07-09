@@ -34,6 +34,7 @@ interface BrandProps {
   icon: string;
   alt: string;
   width: string | number;
+  text: string;
 }
 
 export interface NavBarProps {
@@ -78,7 +79,6 @@ export interface MenuObjectProps extends MenuObjectChildProps {
 const StyledHeader = styled.header`
   background-color: white;
   margin-bottom: 2px;
-  border-bottom: 2px solid ${({ theme }) => theme.colors.grayscale.light4}px;
   &:nth-last-of-type(2) nav {
     margin-bottom: 2px;
   }
@@ -90,6 +90,32 @@ const StyledHeader = styled.header`
     display: flex;
     flex-direction: column;
     justify-content: center;
+  }
+  .navbar-brand-text {
+    border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    height: 100%;
+    color: ${({ theme }) => theme.colors.grayscale.dark1};
+    padding-left: ${({ theme }) => theme.gridUnit * 4}px;
+    padding-right:${({ theme }) => theme.gridUnit * 4}px;
+    margin-right: ${({ theme }) => theme.gridUnit * 6}px;
+    font-size: ${({ theme }) => theme.gridUnit * 4}px;
+    float: left;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    
+    span {
+      max-width: ${({ theme }) => theme.gridUnit * 58}px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+  @media (max-width: 1010px) {
+    .navbar-brand-text {
+      display: none;
+    }
   }
   .main-nav .ant-menu-submenu-title > svg {
     top: ${({ theme }) => theme.gridUnit * 5.25}px;
@@ -231,6 +257,13 @@ export function Menu({
           <a className="navbar-brand" href={brand.path}>
             <img width={brand.width} src={brand.icon} alt={brand.alt} />
           </a>
+          {brand.text && (
+            <div className="navbar-brand-text">
+              <span>
+                {brand.text}
+              </span>
+            </div>
+          )}
           <DropdownMenu
             mode={showMenu}
             data-test="navbar-top"
@@ -270,7 +303,7 @@ export function Menu({
 }
 
 // transform the menu data to reorganize components
-export default function MenuWrapper({ data, ...rest }: MenuProps) {
+export default function MenuWrapper({ data, isFrontendRoute }: MenuProps) {
   const newMenuData = {
     ...data,
   };
@@ -316,5 +349,5 @@ export default function MenuWrapper({ data, ...rest }: MenuProps) {
   newMenuData.menu = cleanedMenu;
   newMenuData.settings = settings;
 
-  return <Menu data={newMenuData} {...rest} />;
+  return <Menu data={newMenuData} isFrontendRoute={isFrontendRoute}/>;
 }
