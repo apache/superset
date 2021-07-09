@@ -342,7 +342,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const dbImages = getDatabaseImages();
   const connectionAlert = getConnectionAlert();
   const isEditMode = !!databaseId;
-  const sortedAvailableDBs = availableDbs?.databases.sort();
+  const sortedAvailableDBs = availableDbs?.databases?.sort(
+    (a: DatabaseForm, b: DatabaseForm) => a.name.localeCompare(b.name),
+  );
   const sslForced = isFeatureEnabled(
     FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
   );
