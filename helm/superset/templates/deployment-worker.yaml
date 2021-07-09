@@ -80,9 +80,9 @@ spec:
             - secretRef:
                 name: {{ tpl .Values.envFromSecret . | quote }}
             {{- range .Values.envFromSecrets }}
-          - secretRef:
-              name: {{ tpl . $ | quote }}
-          {{- end }}
+            - secretRef:
+                name: {{ tpl . $ | quote }}
+            {{- end }}
           volumeMounts:
             - name: superset-config
               mountPath: {{ .Values.configMountPath | quote }}

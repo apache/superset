@@ -23,6 +23,8 @@ import {
   SupersetClientResponse,
   logging,
   styled,
+  SupersetTheme,
+  css,
 } from '@superset-ui/core';
 import Chart from 'src/types/Chart';
 import rison from 'rison';
@@ -295,6 +297,11 @@ export const CardStyles = styled.div`
   a {
     text-decoration: none;
   }
+`;
+
+export const StyledIcon = (theme: SupersetTheme) => css`
+  margin: auto ${theme.gridUnit * 2}px auto 0;
+  color: ${theme.colors.grayscale.base};
 `;
 
 export /* eslint-disable no-underscore-dangle */

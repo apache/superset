@@ -26,9 +26,8 @@ import React, { useEffect, useState } from 'react';
 import { Slider } from 'src/common/components';
 import { rgba } from 'emotion-rgba';
 import { PluginFilterRangeProps } from './types';
-import { Styles } from '../common';
+import { StyledFormItem, Styles } from '../common';
 import { getRangeExtraFormData } from '../../utils';
-import FormItem from '../../../components/Form/FormItem';
 
 const Error = styled.div`
   color: ${({ theme }) => theme.colors.error.base};
@@ -159,7 +158,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       {Number.isNaN(Number(min)) || Number.isNaN(Number(max)) ? (
         <h4>{t('Chosen non-numeric column')}</h4>
       ) : (
-        <FormItem
+        <StyledFormItem
           validateStatus={filterState.validateMessage && 'error'}
           extra={<Error>{filterState.validateMessage}</Error>}
         >
@@ -183,7 +182,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
               marks={marks}
             />
           </Wrapper>
-        </FormItem>
+        </StyledFormItem>
       )}
     </Styles>
   );

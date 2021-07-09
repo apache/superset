@@ -18,11 +18,16 @@
 import pandas as pd
 from sqlalchemy import DateTime, String
 
-from superset import db
+from superset import app, db
 from superset.models.slice import Slice
 from superset.utils import core as utils
 
-from .helpers import config, get_example_data, get_slice_json, merge_slice, TBL
+from .helpers import (
+    get_example_data,
+    get_slice_json,
+    get_table_connector_registry,
+    merge_slice,
+)
 
 
 def load_random_time_series_data(
@@ -54,9 +59,10 @@ def load_random_time_series_data(
         print("-" * 80)
 
     print(f"Creating table [{tbl_name}] reference")
-    obj = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    table = get_table_connector_registry()
+    obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
-        obj = TBL(table_name=tbl_name)
+        obj = table(table_name=tbl_name)
     obj.main_dttm_col = "ds"
     obj.database = database
     db.session.merge(obj)
@@ -66,7 +72,7 @@ def load_random_time_series_data(
 
     slice_data = {
         "granularity_sqla": "day",
-        "row_limit": config["ROW_LIMIT"],
+        "row_limit": app.config["ROW_LIMIT"],
         "since": "2019-01-01",
         "until": "2019-02-01",
         "metrics": ["count"],

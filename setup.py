@@ -74,6 +74,7 @@ setup(
         "croniter>=0.3.28",
         "cron-descriptor",
         "cryptography>=3.3.2",
+        "deprecation>=2.1.0, <2.2.0",
         "flask>=1.1.0, <2.0.0",
         "flask-appbuilder>=3.3.0, <4.0.0",
         "flask-caching>=1.10.0",
@@ -84,6 +85,7 @@ setup(
         "geopy",
         "graphlib-backport",
         "gunicorn>=20.0.2, <20.1",
+        "holidays==0.10.3",  # PINNED! https://github.com/dr-prodigy/python-holidays/issues/406
         "humanize",
         "itsdangerous>=1.0.0, <2.0.0",
         "isodate",
@@ -94,6 +96,7 @@ setup(
         "pathlib2",
         "pgsanity",
         "polyline",
+        "pyparsing>=2.4.7, <3.0.0",
         "python-dateutil",
         "python-dotenv",
         "python-geohash",

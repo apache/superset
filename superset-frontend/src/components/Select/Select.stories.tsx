@@ -18,7 +18,7 @@
  */
 import React, { ReactNode, useState, useCallback } from 'react';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import Select, { SelectProps, OptionsType, OptionsTypePage } from './Select';
+import Select, { SelectProps, OptionsTypePage } from './Select';
 
 export default {
   title: 'Select',
@@ -140,11 +140,6 @@ InteractiveSelect.argTypes = {
     control: { type: 'inline-radio', options: ['none', 'text', 'control'] },
   },
   pageSize: {
-    table: {
-      disable: true,
-    },
-  },
-  paginatedFetch: {
     table: {
       disable: true,
     },
@@ -302,7 +297,6 @@ const USERS = [
 export const AsyncSelect = ({
   withError,
   responseTime,
-  paginatedFetch,
   ...rest
 }: SelectProps & {
   withError: boolean;
@@ -310,7 +304,7 @@ export const AsyncSelect = ({
 }) => {
   const [requests, setRequests] = useState<ReactNode[]>([]);
 
-  const getResults = (username: string) => {
+  const getResults = (username?: string) => {
     let results: { label: string; value: string }[] = [];
 
     if (!username) {
@@ -329,7 +323,7 @@ export const AsyncSelect = ({
     return results;
   };
 
-  const setRequestLog = (username: string, results: number, total: number) => {
+  const setRequestLog = (results: number, total: number, username?: string) => {
     const request = (
       <>
         Emulating network request with search <b>{username || 'empty'}</b> ...{' '}
@@ -343,20 +337,6 @@ export const AsyncSelect = ({
     setRequests(requests => [request, ...requests]);
   };
 
-  const fetchUserList = useCallback(
-    (search: string): Promise<OptionsType> => {
-      const username = search.trim().toLowerCase();
-      return new Promise(resolve => {
-        const results = getResults(username);
-        setRequestLog(username, results.length, results.length);
-        setTimeout(() => {
-          resolve(results);
-        }, responseTime * 1000);
-      });
-    },
-    [responseTime],
-  );
-
   const fetchUserListPage = useCallback(
     (
       search: string,
@@ -367,16 +347,14 @@ export const AsyncSelect = ({
       return new Promise(resolve => {
         let results = getResults(username);
         const totalCount = results.length;
-        if (paginatedFetch) {
-          results = results.splice(offset, limit);
-        }
-        setRequestLog(username, offset + results.length, totalCount);
+        results = results.splice(offset, limit);
+        setRequestLog(offset + results.length, totalCount, username);
         setTimeout(() => {
           resolve({ data: results, totalCount });
         }, responseTime * 1000);
       });
     },
-    [paginatedFetch, responseTime],
+    [responseTime],
   );
 
   const fetchUserListError = async (): Promise<OptionsTypePage> =>
@@ -393,14 +371,7 @@ export const AsyncSelect = ({
       >
         <Select
           {...rest}
-          paginatedFetch={paginatedFetch}
-          options={
-            withError
-              ? fetchUserListError
-              : paginatedFetch
-              ? fetchUserListPage
-              : fetchUserList
-          }
+          options={withError ? fetchUserListError : fetchUserListPage}
         />
       </div>
       <div
@@ -425,7 +396,6 @@ export const AsyncSelect = ({
 
 AsyncSelect.args = {
   withError: false,
-  paginatedFetch: false,
   pageSize: 10,
   allowNewOptions: false,
 };

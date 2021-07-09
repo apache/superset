@@ -15,34 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import logging
-import os
-
-from flask import Flask
-
-from superset.initialization import SupersetAppInitializer
-
-logger = logging.getLogger(__name__)
+import pytest
 
 
-def create_app() -> Flask:
-    app = SupersetApp(__name__)
+@pytest.fixture
+def app_context():
+    """
+    A fixture for running the test inside an app context.
+    """
+    from superset.app import create_app
 
-    try:
-        # Allow user to override our config completely
-        config_module = os.environ.get("SUPERSET_CONFIG", "superset.config")
-        app.config.from_object(config_module)
-
-        app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
-        app_initializer.init_app()
-
-        return app
-
-    # Make sure that bootstrap errors ALWAYS get logged
-    except Exception as ex:
-        logger.exception("Failed to create app")
-        raise ex
-
-
-class SupersetApp(Flask):
-    pass
+    app = create_app()
+    with app.app_context():
+        yield
