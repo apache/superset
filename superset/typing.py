@@ -57,5 +57,9 @@ Base = Union[bytes, str]
 Status = Union[int, str]
 Headers = Dict[str, Any]
 FlaskResponse = Union[
-    Response, Base, Tuple[Base, Status], Tuple[Base, Status, Headers],
+    Response,
+    Base,
+    Tuple[Base, Status],
+    Tuple[Base, Status, Headers],
+    Tuple[Response, Status],
 ]
