@@ -50,11 +50,13 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+      - id: find-pr
+        uses: ./.github/actions/gh-find-current-pr
       - name: Check if python changes are present
         id: check
         env:
           GITHUB_REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.issue.number }}
+          PR_NUMBER: ${{ steps.find-pr.outputs.pr }}
         continue-on-error: true
         run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
@@ -116,11 +118,13 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+      - id: find-pr
+        uses: ./.github/actions/gh-find-current-pr
       - name: Check if python changes are present
         id: check
         env:
           GITHUB_REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.issue.number }}
+          PR_NUMBER: ${{ steps.find-pr.outputs.pr }}
         continue-on-error: true
         run: ./scripts/ci_check_no_file_changes.sh python
       - name: Create csv upload directory
