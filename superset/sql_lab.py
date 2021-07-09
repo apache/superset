@@ -294,7 +294,7 @@ def execute_sql_statement(
         )
     except Exception as ex:
         # query is stopped in another thread/worker
-        # stopping rases expected exceptions which we should skip
+        # stopping raises expected exceptions which we should skip
         session.refresh(query)
         if query.status == QueryStatus.STOPPED:
             raise SqlLabQueryStoppedException()
