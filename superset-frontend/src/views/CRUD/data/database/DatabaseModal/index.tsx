@@ -904,7 +904,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     tooltip={t(
                       'Click this link to switch to an alternate form that exposes only the required fields needed to connect this database.',
                     )}
-                    viewBox="0 0 24 24"
+                    viewBox="0 -6 24 24"
                   />
                 </div>
               )}
@@ -934,29 +934,31 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             />
           )}
           {!isEditMode && (
-            <Alert
-              closable={false}
-              css={(theme: SupersetTheme) => antDAlertStyles(theme)}
-              message="Additional fields may be required"
-              showIcon
-              description={
-                <>
-                  Select databases require additional fields to be completed in
-                  the Advanced tab to successfully connect the database. Learn
-                  what requirements your databases has{' '}
-                  <a
-                    href={DOCUMENTATION_LINK}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="additional-fields-alert-description"
-                  >
-                    here
-                  </a>
-                  .
-                </>
-              }
-              type="info"
-            />
+            <StyledAlertMargin>
+              <Alert
+                closable={false}
+                css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+                message="Additional fields may be required"
+                showIcon
+                description={
+                  <>
+                    Select databases require additional fields to be completed
+                    in the Advanced tab to successfully connect the database.
+                    Learn what requirements your databases has{' '}
+                    <a
+                      href={DOCUMENTATION_LINK}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="additional-fields-alert-description"
+                    >
+                      here
+                    </a>
+                    .
+                  </>
+                }
+                type="info"
+              />
+            </StyledAlertMargin>
           )}
         </Tabs.TabPane>
         <Tabs.TabPane tab={<span>{t('Advanced')}</span>} key="2">
@@ -1116,7 +1118,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     tooltip={t(
                       'Click this link to switch to an alternate form that allows you to input the SQLAlchemy URL for this database manually.',
                     )}
-                    viewBox="6 4 24 24"
+                    viewBox="0 -6 24 24"
                   />
                 </div>
                 {/* Step 2 */}
