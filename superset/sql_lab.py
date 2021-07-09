@@ -450,7 +450,6 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
         # closing the connection closes the cursor as well
         cursor = conn.cursor()
         cancel_query_payload = db_engine_spec.get_cancel_query_payload(cursor, query)
-        logger.info(cancel_query_payload)
         if cancel_query_payload is not None:
             query.set_extra_json_key(cancel_payload_key, cancel_query_payload)
             session.commit()
