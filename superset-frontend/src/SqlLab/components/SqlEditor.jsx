@@ -246,8 +246,10 @@ class SqlEditor extends React.PureComponent {
   }
 
   onBeforeUnload(event) {
-    event.preventDefault();
-    this.stopQuery();
+    if (this.props.latestQuery?.state === 'running') {
+      event.preventDefault();
+      this.stopQuery();
+    }
   }
 
   onSqlChanged(sql) {
