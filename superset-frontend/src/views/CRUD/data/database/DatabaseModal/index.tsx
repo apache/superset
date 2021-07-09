@@ -355,6 +355,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     fetchResource,
     createResource,
     updateResource,
+    clearError,
   } = useSingleViewResource<DatabaseObject>(
     'database',
     t('database'),
@@ -399,6 +400,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setDB({ type: ActionType.reset });
     setHasConnectedDb(false);
     setValidationErrors(null); // reset validation errors on close
+    clearError();
     setEditNewDb(false);
     onHide();
   };
