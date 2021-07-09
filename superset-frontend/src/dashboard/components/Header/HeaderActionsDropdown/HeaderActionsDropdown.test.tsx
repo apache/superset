@@ -32,7 +32,7 @@ const createProps = () => ({
     id: 1,
     dash_edit_perm: true,
     dash_save_perm: true,
-    userId: 1,
+    userId: '1',
     metadata: {},
     common: {
       conf: {},
