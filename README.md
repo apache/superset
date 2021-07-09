@@ -19,6 +19,8 @@ under the License.
 
 this is a test edit of a file that shouldn't trigger ci at all.
 
+And a second edit, that will be a push event.
+
 # Superset
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
