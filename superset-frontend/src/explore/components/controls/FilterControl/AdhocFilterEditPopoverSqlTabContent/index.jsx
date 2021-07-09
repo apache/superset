@@ -44,13 +44,6 @@ const propTypes = {
   activeKey: PropTypes.string.isRequired,
 };
 
-const SelectClause = styled(Select)`
-  ${({ theme }) => `
-    width: ${theme.gridUnit * 30}px;
-    margin-right: ${theme.gridUnit}px;
-  `}
-`;
-
 export default class AdhocFilterEditPopoverSqlTabContent extends React.Component {
   constructor(props) {
     super(props);
@@ -61,7 +54,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
     this.handleAceEditorRef = this.handleAceEditorRef.bind(this);
 
     this.selectProps = {
-      name: 'select-column',
+      ariaLabel: 'select-column',
     };
   }
 
@@ -126,10 +119,14 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
     return (
       <span>
         <div className="filter-edit-clause-section">
-          <SelectClause
+          <Select
+            css={theme => ({
+              width: theme.gridUnit * 30,
+              marginRight: theme.gridUnit,
+            })}
+            options={selectOptions}
             {...this.selectProps}
             {...clauseSelectProps}
-            options={selectOptions}
           />
           <span className="filter-edit-clause-info">
             <strong>WHERE</strong> {t('Filters by columns')}
