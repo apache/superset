@@ -221,7 +221,7 @@ APP_ICON_WIDTH = 126
 LOGO_TARGET_PATH = None
 
 # Specify any text that should appear to the right of the logo
-LOGO_RIGHT_TEXT = ""
+LOGO_RIGHT_TEXT: Union[Callable[[], str], str] = ""
 
 # Enables SWAGGER UI for superset openapi spec
 # ex: http://localhost:8080/swagger/v1

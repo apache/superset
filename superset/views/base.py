@@ -309,7 +309,9 @@ def menu_data() -> Dict[str, Any]:
             **appbuilder.languages[lang],
             "url": appbuilder.get_url_for_locale(lang),
         }
-
+    brand_text = appbuilder.app.config["LOGO_RIGHT_TEXT"]
+    if callable(brand_text):
+        brand_text = brand_text()
     return {
         "menu": menu,
         "brand": {
@@ -317,7 +319,7 @@ def menu_data() -> Dict[str, Any]:
             "icon": appbuilder.app_icon,
             "alt": appbuilder.app_name,
             "width": appbuilder.app.config["APP_ICON_WIDTH"],
-            "text": appbuilder.app.config["LOGO_RIGHT_TEXT"],
+            "text": brand_text,
         },
         "navbar_right": {
             "bug_report_url": appbuilder.app.config["BUG_REPORT_URL"],
