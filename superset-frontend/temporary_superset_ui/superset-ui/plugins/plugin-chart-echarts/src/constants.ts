@@ -53,3 +53,9 @@ export const LABEL_POSITION: [LabelPositionEnum, string][] = [
   [LabelPositionEnum.InsideTopRight, 'Inside top right'],
   [LabelPositionEnum.InsideBottomRight, 'Inside bottom right'],
 ];
+
+export enum OpacityEnum {
+  Transparent = 0,
+  SemiTransparent = 0.3,
+  NonTransparent = 1,
+}

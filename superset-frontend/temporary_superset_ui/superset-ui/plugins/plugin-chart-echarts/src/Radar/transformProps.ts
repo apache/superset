@@ -37,6 +37,7 @@ import {
 import { DEFAULT_LEGEND_FORM_DATA } from '../types';
 import { extractGroupbyLabel, getColtypesMapping, getLegendProps } from '../utils/series';
 import { defaultGrid, defaultTooltip } from '../defaults';
+import { OpacityEnum } from '../constants';
 
 export function formatLabel({
   params,
@@ -114,12 +115,19 @@ export default function transformProps(
       groupby.map(col => datum[col]),
     );
 
+    const isFiltered =
+      filterState.selectedValues && !filterState.selectedValues.includes(joinedName);
+
     // generate transformedData
     transformedData.push({
       value: metricsLabel.map(metricLabel => datum[metricLabel]),
       name: joinedName,
       itemStyle: {
         color: colorFn(joinedName),
+        opacity: isFiltered ? OpacityEnum.Transparent : OpacityEnum.NonTransparent,
+      },
+      lineStyle: {
+        opacity: isFiltered ? OpacityEnum.SemiTransparent : OpacityEnum.NonTransparent,
       },
       label: {
         show: showLabels,

@@ -40,7 +40,6 @@ import {
 import { formatSeriesName, getColtypesMapping } from '../utils/series';
 import { defaultTooltip } from '../defaults';
 import {
-  COLOR_ALPHA,
   COLOR_SATURATION,
   BORDER_WIDTH,
   GAP_WIDTH,
@@ -48,6 +47,7 @@ import {
   extractTreePathInfo,
   BORDER_COLOR,
 } from './constants';
+import { OpacityEnum } from '../constants';
 
 export function formatLabel({
   params,
@@ -169,10 +169,10 @@ export default function transformProps(
             columnsLabelMap.set(joinedName, path.concat(name));
             if (filterState.selectedValues && !filterState.selectedValues.includes(joinedName)) {
               item.itemStyle = {
-                colorAlpha: COLOR_ALPHA,
+                colorAlpha: OpacityEnum.SemiTransparent,
               };
               item.label = {
-                color: `rgba(0, 0, 0, ${COLOR_ALPHA})`,
+                color: `rgba(0, 0, 0, ${OpacityEnum.SemiTransparent})`,
               };
             }
             result.push(item);
