@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { NativeSelect as Select } from 'src/components/Select';
-import { t } from '@superset-ui/core';
+import { Select } from 'src/components';
+import { styled, t } from '@superset-ui/core';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 
@@ -43,6 +43,13 @@ const propTypes = {
   height: PropTypes.number.isRequired,
   activeKey: PropTypes.string.isRequired,
 };
+
+const SelectClause = styled(Select)`
+  ${({ theme }) => `
+    width: ${theme.gridUnit * 30}px;
+    margin-right: ${theme.gridUnit}px;
+  `}
+`;
 
 export default class AdhocFilterEditPopoverSqlTabContent extends React.Component {
   constructor(props) {
@@ -111,22 +118,19 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
         })
         .filter(Boolean),
     );
+    const selectOptions = Object.keys(CLAUSES).map(clause => ({
+      label: clause,
+      value: clause,
+    }));
 
     return (
       <span>
         <div className="filter-edit-clause-section">
-          <Select
+          <SelectClause
             {...this.selectProps}
             {...clauseSelectProps}
-            className="filter-edit-clause-dropdown"
-            getPopupContainer={triggerNode => triggerNode.parentNode}
-          >
-            {Object.keys(CLAUSES).map(clause => (
-              <Select.Option value={clause} key={clause}>
-                {clause}
-              </Select.Option>
-            ))}
-          </Select>
+            options={selectOptions}
+          />
           <span className="filter-edit-clause-info">
             <strong>WHERE</strong> {t('Filters by columns')}
             <br />
