@@ -32,7 +32,6 @@ export default function EchartsTimeseries({
   setDataMask,
 }: TimeseriesChartTransformedProps) {
   const { filterState } = formData;
-  console.log(formData);
   const handleChange = useCallback(
     (values: string[]) => {
       if (!formData.emitFilter) {
