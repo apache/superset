@@ -324,5 +324,5 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         cursor.execute(
             "SELECT pg_terminate_backend(pid) "
             "FROM pg_stat_activity "
-            "WHERE pid='%s'" % cancel_query_id
+            f"WHERE pid='{cancel_query_id}'"
         )

@@ -245,4 +245,4 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         :param query: Query instance
         :param cancel_query_id: MySQL Connection ID
         """
-        cursor.execute("KILL CONNECTION %s" % cancel_query_id)
+        cursor.execute(f"KILL CONNECTION {cancel_query_id}")

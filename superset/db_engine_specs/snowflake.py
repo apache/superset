@@ -153,4 +153,4 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         :param query: Query instance
         :param cancel_query_id: Snowflake Session ID
         """
-        cursor.execute("SELECT SYSTEM$CANCEL_ALL_QUERIES(%s)" % cancel_query_id)
+        cursor.execute(f"SELECT SYSTEM$CANCEL_ALL_QUERIES({cancel_query_id})")
