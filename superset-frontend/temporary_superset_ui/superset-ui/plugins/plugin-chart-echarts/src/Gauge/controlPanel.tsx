@@ -17,7 +17,13 @@
  * under the License.
  */
 import React from 'react';
-import { t, validateNonEmpty, validateInteger } from '@superset-ui/core';
+import {
+  t,
+  validateNonEmpty,
+  validateInteger,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
 import {
   sharedControls,
   ControlPanelConfig,
@@ -121,6 +127,20 @@ const config: ControlPanelConfig = {
           },
         ],
         ['color_scheme'],
+        isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)
+          ? [
+              {
+                name: 'emit_filter',
+                config: {
+                  type: 'CheckboxControl',
+                  label: t('Enable emitting filters'),
+                  default: DEFAULT_FORM_DATA.emitFilter,
+                  renderTrigger: true,
+                  description: t('Enable emmiting filters.'),
+                },
+              },
+            ]
+          : [],
         [
           {
             name: 'font_size',

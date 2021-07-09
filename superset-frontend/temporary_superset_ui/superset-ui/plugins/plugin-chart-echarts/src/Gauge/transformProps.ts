@@ -18,12 +18,12 @@
  */
 import {
   QueryFormMetric,
-  ChartProps,
   CategoricalColorNamespace,
   CategoricalColorScale,
   DataRecord,
   getNumberFormatter,
   getMetricLabel,
+  DataRecordValue,
 } from '@superset-ui/core';
 import { EChartsOption, GaugeSeriesOption } from 'echarts';
 import { GaugeDataItemOption } from 'echarts/types/src/chart/gauge/GaugeSeries';
@@ -33,6 +33,8 @@ import {
   DEFAULT_FORM_DATA as DEFAULT_GAUGE_FORM_DATA,
   EchartsGaugeFormData,
   AxisTickLineStyle,
+  GaugeChartTransformedProps,
+  EchartsGaugeChartProps,
 } from './types';
 import {
   DEFAULT_GAUGE_SERIES_OPTION,
@@ -40,6 +42,7 @@ import {
   OFFSETS,
   FONT_SIZE_MULTIPLIERS,
 } from './constants';
+import { OpacityEnum } from '../constants';
 
 const setIntervalBoundsAndColors = (
   intervals: string,
@@ -71,8 +74,10 @@ const setIntervalBoundsAndColors = (
 const calculateAxisLineWidth = (data: DataRecord[], fontSize: number, overlap: boolean): number =>
   overlap ? fontSize : data.length * fontSize;
 
-export default function transformProps(chartProps: ChartProps) {
-  const { width, height, formData, queriesData } = chartProps;
+export default function transformProps(
+  chartProps: EchartsGaugeChartProps,
+): GaugeChartTransformedProps {
+  const { width, height, formData, queriesData, hooks, filterState } = chartProps;
   const {
     groupby,
     metric,
@@ -94,6 +99,7 @@ export default function transformProps(chartProps: ChartProps) {
     intervals,
     intervalColorIndices,
     valueFormatter,
+    emitFilter,
   }: EchartsGaugeFormData = { ...DEFAULT_GAUGE_FORM_DATA, ...formData };
   const data = (queriesData[0]?.data || []) as DataRecord[];
   const numberFormatter = getNumberFormatter(numberFormat);
@@ -115,24 +121,51 @@ export default function transformProps(chartProps: ChartProps) {
     colorFn,
     normalizer,
   );
-  const transformedData: GaugeDataItemOption[] = data.map((data_point, index) => ({
-    value: data_point[getMetricLabel(metric as QueryFormMetric)] as number,
-    name: groupby.map(column => `${column}: ${data_point[column]}`).join(', '),
-    itemStyle: {
-      color: colorFn(index),
-    },
-    title: {
-      offsetCenter: ['0%', `${index * titleOffsetFromTitle + OFFSETS.titleFromCenter}%`],
-      fontSize,
-    },
-    detail: {
-      offsetCenter: [
-        '0%',
-        `${index * titleOffsetFromTitle + OFFSETS.titleFromCenter + detailOffsetFromTitle}%`,
-      ],
-      fontSize: FONT_SIZE_MULTIPLIERS.detailFontSize * fontSize,
-    },
-  }));
+  const columnsLabelMap = new Map<string, DataRecordValue[]>();
+
+  const transformedData: GaugeDataItemOption[] = data.map((data_point, index) => {
+    const name = groupby.map(column => `${column}: ${data_point[column]}`).join(', ');
+    columnsLabelMap.set(
+      name,
+      groupby.map(col => data_point[col]),
+    );
+    let item: GaugeDataItemOption = {
+      value: data_point[getMetricLabel(metric as QueryFormMetric)] as number,
+      name,
+      itemStyle: {
+        color: colorFn(index),
+      },
+      title: {
+        offsetCenter: ['0%', `${index * titleOffsetFromTitle + OFFSETS.titleFromCenter}%`],
+        fontSize,
+      },
+      detail: {
+        offsetCenter: [
+          '0%',
+          `${index * titleOffsetFromTitle + OFFSETS.titleFromCenter + detailOffsetFromTitle}%`,
+        ],
+        fontSize: FONT_SIZE_MULTIPLIERS.detailFontSize * fontSize,
+      },
+    };
+    if (filterState.selectedValues && !filterState.selectedValues.includes(name)) {
+      item = {
+        ...item,
+        itemStyle: {
+          color: colorFn(index),
+          opacity: OpacityEnum.SemiTransparent,
+        },
+        detail: {
+          show: false,
+        },
+        title: {
+          show: false,
+        },
+      };
+    }
+    return item;
+  });
+
+  const { setDataMask = () => {} } = hooks;
 
   const progress = {
     show: showProgress,
@@ -223,8 +256,14 @@ export default function transformProps(chartProps: ChartProps) {
   };
 
   return {
+    formData,
     width,
     height,
     echartOptions,
+    setDataMask,
+    emitFilter,
+    labelMap: Object.fromEntries(columnsLabelMap),
+    groupby,
+    selectedValues: filterState.selectedValues || [],
   };
 }
