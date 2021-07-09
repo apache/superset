@@ -75,8 +75,8 @@ describe('Visualization > Line', () => {
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]')
       .focus()
-      .type('bnb{enter}');
-    cy.get('input[aria-label="select-color_scheme"]').should(
+      .type('bnbColors{enter}');
+    cy.get('.Control[data-test="color_scheme"] input[type="search"]').should(
       'have.value',
       'bnbColors',
     );
