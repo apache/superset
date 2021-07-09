@@ -24,6 +24,7 @@ import InfoTooltip from 'src/components/InfoTooltip';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import FormLabel from 'src/components/Form/FormLabel';
 import { DeleteFilled } from '@ant-design/icons';
+import { getConnectionAlert } from 'src/views/CRUD/hooks';
 import {
   formScrollableStyles,
   validatedFormStyles,
@@ -32,6 +33,12 @@ import {
   infoTooltip,
 } from './styles';
 import { DatabaseForm, DatabaseObject } from '../types';
+
+const supersetTextDocs = getConnectionAlert();
+
+const userPreference = supersetTextDocs
+  ? supersetTextDocs.ADD_DATABASE.display_name
+  : 'Superset';
 
 enum CredentialInfoOptions {
   jsonUpload,
@@ -310,7 +317,10 @@ const displayField = ({
     placeholder=""
     label="Display Name"
     onChange={changeMethods.onChange}
-    helpText={t('Pick a nickname for this database to display as in Superset.')}
+    helpText={t(
+      'Pick a nickname for this database to display as in %s.',
+      userPreference,
+    )}
   />
 );
 
