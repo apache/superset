@@ -342,9 +342,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const dbImages = getDatabaseImages();
   const connectionAlert = getConnectionAlert();
   const isEditMode = !!databaseId;
-  const sortedAvailableDBs = availableDbs?.databases?.sort(
-    (a: DatabaseForm, b: DatabaseForm) => a.name.localeCompare(b.name),
-  );
   const sslForced = isFeatureEnabled(
     FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
   );
@@ -551,69 +548,79 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     });
   };
 
-  const renderAvailableSelector = () => (
-    <div className="available">
-      <h4 className="available-label">
-        Or choose from a list of other databases we support:
-      </h4>
-      <div className="control-label">Supported databases</div>
-      <Select
-        className="available-select"
-        onChange={setDatabaseModel}
-        placeholder="Choose a database..."
-      >
-        {sortedAvailableDBs &&
-          sortedAvailableDBs.map((database: DatabaseForm) => (
-            <Select.Option value={database.engine} key={database.engine}>
-              {database.name}
-            </Select.Option>
-          ))}
-      </Select>
-      <Alert
-        showIcon
-        closable={false}
-        css={(theme: SupersetTheme) => antDAlertStyles(theme)}
-        type="info"
-        message={
-          connectionAlert?.ADD_DATABASE?.message ||
-          t('Want to add a new database?')
-        }
-        description={
-          connectionAlert?.ADD_DATABASE ? (
-            <>
-              Any databases that allow connections via SQL Alchemy URIs can be
-              added.{' '}
-              <a
-                href={connectionAlert?.ADD_DATABASE.contact_link}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {connectionAlert?.ADD_DATABASE.contact_description_link}
-              </a>{' '}
-              {connectionAlert?.ADD_DATABASE.description}
-            </>
-          ) : (
-            <>
-              Any databases that allow connections via SQL Alchemy URIs can be
-              added. Learn about how to connect a database driver{' '}
-              <a
-                href={DOCUMENTATION_LINK}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                here
-              </a>
-              .
-            </>
-          )
-        }
-      />
-    </div>
-  );
+  const renderAvailableSelector = () => {
+    let sortedAvailableDBs;
+    if (availableDbs) {
+      sortedAvailableDBs = [...(availableDbs?.databases || [])];
+    }
+    return (
+      <div className="available">
+        <h4 className="available-label">
+          Or choose from a list of other databases we support:
+        </h4>
+        <div className="control-label">Supported databases</div>
+        <Select
+          className="available-select"
+          onChange={setDatabaseModel}
+          placeholder="Choose a database..."
+        >
+          {availableDbs &&
+            sortedAvailableDBs
+              ?.sort((a: DatabaseForm, b: DatabaseForm) =>
+                a.name.localeCompare(b.name),
+              )
+              .map((database: DatabaseForm) => (
+                <Select.Option value={database.engine} key={database.engine}>
+                  {database.name}
+                </Select.Option>
+              ))}
+        </Select>
+        <Alert
+          showIcon
+          closable={false}
+          css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+          type="info"
+          message={
+            connectionAlert?.ADD_DATABASE?.message ||
+            t('Want to add a new database?')
+          }
+          description={
+            connectionAlert?.ADD_DATABASE ? (
+              <>
+                Any databases that allow connections via SQL Alchemy URIs can be
+                added.{' '}
+                <a
+                  href={connectionAlert?.ADD_DATABASE.contact_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {connectionAlert?.ADD_DATABASE.contact_description_link}
+                </a>{' '}
+                {connectionAlert?.ADD_DATABASE.description}
+              </>
+            ) : (
+              <>
+                Any databases that allow connections via SQL Alchemy URIs can be
+                added. Learn about how to connect a database driver{' '}
+                <a
+                  href={DOCUMENTATION_LINK}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  here
+                </a>
+                .
+              </>
+            )
+          }
+        />
+      </div>
+    );
+  };
 
   const renderPreferredSelector = () => (
     <div className="preferred">
-      {sortedAvailableDBs
+      {availableDbs?.databases
         ?.filter((db: DatabaseForm) => db.preferred)
         .map((database: DatabaseForm) => (
           <IconButton
