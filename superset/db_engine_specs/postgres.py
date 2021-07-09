@@ -300,7 +300,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
 
     @classmethod
     def get_cancel_query_payload(cls, cursor: Any, query: Query) -> Any:
-        cursor.execute("SELECT current_user")
+        cursor.execute("SELECT pg_backend_pid()")
         row = cursor.fetchone()
         return row[0]
 
@@ -309,5 +309,5 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         cursor.execute(
             "SELECT pg_terminate_backend(pid) "
             "FROM pg_stat_activity "
-            "WHERE pid <> pg_backend_pid() and usename='%s'" % payload
+            "WHERE pid='%s'" % payload
         )
