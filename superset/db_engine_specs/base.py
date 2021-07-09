@@ -1305,24 +1305,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
-    def get_cancel_query_payload(cls, cursor: Any, query: Query) -> Any:
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
         """
-        Returns None if query can not be cancelled.
+        Select identifiers from the database engine that uniquely identifies the
+        queries to cancel. The identifier is typically a session id, process id
+        or similar.
+
         :param cursor: Cursor instance in which the query will be executed
         :param query: Query instance
-        :return: Type of the payload can vary depends on databases
-        but must be jsonable. None if query can't be cancelled.
+        :return: Query identifier
         """
         return None
 
     @classmethod
-    def cancel_query(cls, cursor: Any, query: Query, payload: Any) -> None:
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> None:
         """
-        Cancels query in the underlying database.
-        The method is called only when payload is not None.
+        Cancel query in the underlying database.
+
         :param cursor: New cursor instance to the db of the query
         :param query: Query instance
-        :param payload: Value returned by get_cancel_query_payload or set in
+        :param cancel_query_id: Value returned by get_cancel_query_payload or set in
         other life-cycle methods of the query
         """
 

@@ -445,20 +445,17 @@ psql: error: could not connect to server: Operation timed out
         ]
 
     @mock.patch("sqlalchemy.engine.Engine.connect")
-    def test_get_cancel_query_payload(self, engine_mock):
+    def test_get_cancel_query_id(self, engine_mock):
         query = Query()
         cursor_mock = engine_mock.return_value.__enter__.return_value
-        cursor_mock.fetchone.return_value = ["testuser"]
-        assert (
-            PostgresEngineSpec.get_cancel_query_payload(cursor_mock, query)
-            == "testuser"
-        )
+        cursor_mock.fetchone.return_value = [123]
+        assert PostgresEngineSpec.get_cancel_query_id(cursor_mock, query) == 123
 
     @mock.patch("sqlalchemy.engine.Engine.connect")
     def test_cancel_query(self, engine_mock):
         query = Query()
         cursor_mock = engine_mock.return_value.__enter__.return_value
-        assert PostgresEngineSpec.cancel_query(cursor_mock, query, "testuser") is None
+        assert PostgresEngineSpec.cancel_query(cursor_mock, query, 123) is None
 
 
 def test_base_parameters_mixin():

@@ -103,14 +103,14 @@ class TestSnowflakeDbEngineSpec(TestDbEngineSpec):
         ]
 
     @mock.patch("sqlalchemy.engine.Engine.connect")
-    def test_get_cancel_query_payload(self, engine_mock):
+    def test_get_cancel_query_id(self, engine_mock):
         query = Query()
         cursor_mock = engine_mock.return_value.__enter__.return_value
         cursor_mock.fetchone.return_value = [123]
-        assert SnowflakeEngineSpec.get_cancel_query_payload(cursor_mock, query) == 123
+        assert SnowflakeEngineSpec.get_cancel_query_id(cursor_mock, query) == 123
 
     @mock.patch("sqlalchemy.engine.Engine.connect")
     def test_cancel_query(self, engine_mock):
         query = Query()
         cursor_mock = engine_mock.return_value.__enter__.return_value
-        assert SnowflakeEngineSpec.cancel_query(cursor_mock, query, None) is None
+        assert SnowflakeEngineSpec.cancel_query(cursor_mock, query, 123) is None

@@ -131,11 +131,26 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         database.extra = json.dumps(extra)
 
     @classmethod
-    def get_cancel_query_payload(cls, cursor: Any, query: Query) -> Any:
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
+        """
+        Get Snowflake session ID that will be used to cancel all other running
+        queries in the same session.
+
+        :param cursor: Cursor instance in which the query will be executed
+        :param query: Query instance
+        :return: Snowflake Session ID
+        """
         cursor.execute("SELECT CURRENT_SESSION()")
         row = cursor.fetchone()
         return row[0]
 
     @classmethod
-    def cancel_query(cls, cursor: Any, query: Query, payload: Any) -> None:
-        cursor.execute("SELECT SYSTEM$CANCEL_ALL_QUERIES(%s)" % payload)
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> None:
+        """
+        Cancel query in the underlying database.
+
+        :param cursor: New cursor instance to the db of the query
+        :param query: Query instance
+        :param cancel_query_id: Snowflake Session ID
+        """
+        cursor.execute("SELECT SYSTEM$CANCEL_ALL_QUERIES(%s)" % cancel_query_id)

@@ -73,7 +73,7 @@ SQLLAB_CTAS_NO_LIMIT = config["SQLLAB_CTAS_NO_LIMIT"]
 SQL_QUERY_MUTATOR = config.get("SQL_QUERY_MUTATOR") or dummy_sql_query_mutator
 log_query = config["QUERY_LOGGER"]
 logger = logging.getLogger(__name__)
-cancel_payload_key = "cancel_payload"
+cancel_query_key = "cancel_query"
 
 
 class SqlLabException(Exception):
@@ -449,9 +449,9 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
     with closing(engine.raw_connection()) as conn:
         # closing the connection closes the cursor as well
         cursor = conn.cursor()
-        cancel_query_payload = db_engine_spec.get_cancel_query_payload(cursor, query)
-        if cancel_query_payload is not None:
-            query.set_extra_json_key(cancel_payload_key, cancel_query_payload)
+        cancel_query_id = db_engine_spec.get_cancel_query_id(cursor, query)
+        if cancel_query_id is not None:
+            query.set_extra_json_key(cancel_query_key, cancel_query_id)
             session.commit()
         statement_count = len(statements)
         for i, statement in enumerate(statements):
@@ -591,8 +591,8 @@ def cancel_query(query: Query, user_name: Optional[str] = None) -> None:
     :param user_name: Default username
     :return: None
     """
-    cancel_payload = query.extra.get(cancel_payload_key, None)
-    if cancel_payload is None:
+    cancel_query_id = query.extra.get(cancel_query_key, None)
+    if cancel_query_id is None:
         return
 
     database = query.database
@@ -606,4 +606,4 @@ def cancel_query(query: Query, user_name: Optional[str] = None) -> None:
 
     with closing(engine.raw_connection()) as conn:
         with closing(conn.cursor()) as cursor:
-            db_engine_spec.cancel_query(cursor, query, cancel_payload)
+            db_engine_spec.cancel_query(cursor, query, cancel_query_id)
