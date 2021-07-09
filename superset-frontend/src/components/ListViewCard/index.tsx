@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import { styled, useTheme } from '@superset-ui/core';
-import Icon, { IconName } from 'src/components/Icon';
 import { AntdCard, Skeleton, ThinSkeleton } from 'src/common/components';
 import { Tooltip } from 'src/components/Tooltip';
 import ImageLoader, { BackgroundPosition } from './ImageLoader';
@@ -137,7 +136,7 @@ interface LinkProps {
 }
 
 const AnchorLink: React.FC<LinkProps> = ({ to, children }) => (
-  <a {...(to ? { href: to } : {})}>{children}</a>
+  <a href={to}>{children}</a>
 );
 
 interface CardProps {
@@ -154,7 +153,7 @@ interface CardProps {
   coverRight?: React.ReactNode;
   actions?: React.ReactNode | null;
   rows?: number | string;
-  avatar?: string;
+  avatar?: React.ReactElement | null;
   cover?: React.ReactNode | null;
 }
 
@@ -254,7 +253,7 @@ function ListViewCard({
             </TitleContainer>
           }
           description={description}
-          avatar={avatar ? <Icon name={avatar as IconName} /> : null}
+          avatar={avatar || null}
         />
       )}
     </StyledCard>
