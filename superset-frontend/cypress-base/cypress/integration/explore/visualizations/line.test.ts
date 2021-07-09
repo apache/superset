@@ -76,10 +76,9 @@ describe('Visualization > Line', () => {
     cy.get('.Control[data-test="color_scheme"] input[type="search"]')
       .focus()
       .type('bnbColors{enter}');
-    cy.get('.Control[data-test="color_scheme"] input[type="search"]').should(
-      'have.value',
-      'bnbColors',
-    );
+    cy.get(
+      '.Control[data-test="color_scheme"] .ant-select-selection-item > ul[data-test="bnbColors"]',
+    ).should('exist');
   });
 
   it('should work with adhoc metric', () => {
