@@ -84,7 +84,6 @@ const CredentialsInfo = ({
   const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
     null,
   );
-  console.log('in credentials', isPublic);
   return (
     <CredentialInfoForm>
       {!isEditMode && db?.engine === 'bigquery' && (

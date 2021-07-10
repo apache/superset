@@ -35,6 +35,7 @@ const supersetTextDocs = getDatabaseDocumentationLinks();
 const irregularDocumentationLinks = {
   postgresql: 'https://superset.apache.org/docs/databases/postgres',
   mssql: 'https://superset.apache.org/docs/databases/sql-server',
+  gsheets: 'https://superset.apache.org/docs/databases/google-sheets',
 };
 
 const documentationLink = (engine: string | undefined) => {
@@ -50,6 +51,7 @@ const documentationLink = (engine: string | undefined) => {
   }
   return irregularDocumentationLinks[engine];
 };
+
 const ModalHeader = ({
   isLoading,
   isEditMode,
