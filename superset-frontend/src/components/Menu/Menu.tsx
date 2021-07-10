@@ -22,22 +22,25 @@ import { debounce } from 'lodash';
 import { Global } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MainNav as DropdownMenu, MenuMode } from 'src/common/components';
+import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
 import { Row, Col, Grid } from 'antd';
 import Icons from 'src/components/Icons';
+import { URL_PARAMS } from 'src/constants';
 import RightMenu from './MenuRight';
 import { Languages } from './LanguagePicker';
-import { URL_PARAMS } from '../../constants';
 
 interface BrandProps {
   path: string;
   icon: string;
   alt: string;
   width: string | number;
+  tooltip: string;
   text: string;
 }
 
 export interface NavBarProps {
+  show_watermark: boolean;
   bug_report_url?: string;
   version_string?: string;
   version_sha?: string;
@@ -97,14 +100,14 @@ const StyledHeader = styled.header`
     height: 100%;
     color: ${({ theme }) => theme.colors.grayscale.dark1};
     padding-left: ${({ theme }) => theme.gridUnit * 4}px;
-    padding-right:${({ theme }) => theme.gridUnit * 4}px;
+    padding-right: ${({ theme }) => theme.gridUnit * 4}px;
     margin-right: ${({ theme }) => theme.gridUnit * 6}px;
     font-size: ${({ theme }) => theme.gridUnit * 4}px;
     float: left;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    
+
     span {
       max-width: ${({ theme }) => theme.gridUnit * 58}px;
       white-space: nowrap;
@@ -254,14 +257,19 @@ export function Menu({
       />
       <Row>
         <Col md={16} xs={24}>
-          <a className="navbar-brand" href={brand.path}>
-            <img width={brand.width} src={brand.icon} alt={brand.alt} />
-          </a>
+          <Tooltip
+            id="brand-tooltip"
+            placement="bottomLeft"
+            title={brand.tooltip}
+            arrowPointAtCenter
+          >
+            <a className="navbar-brand" href={brand.path}>
+              <img width={brand.width} src={brand.icon} alt={brand.alt} />
+            </a>
+          </Tooltip>
           {brand.text && (
             <div className="navbar-brand-text">
-              <span>
-                {brand.text}
-              </span>
+              <span>{brand.text}</span>
             </div>
           )}
           <DropdownMenu
@@ -303,7 +311,7 @@ export function Menu({
 }
 
 // transform the menu data to reorganize components
-export default function MenuWrapper({ data, isFrontendRoute }: MenuProps) {
+export default function MenuWrapper({ data, ...rest }: MenuProps) {
   const newMenuData = {
     ...data,
   };
@@ -349,5 +357,5 @@ export default function MenuWrapper({ data, isFrontendRoute }: MenuProps) {
   newMenuData.menu = cleanedMenu;
   newMenuData.settings = settings;
 
-  return <Menu data={newMenuData} isFrontendRoute={isFrontendRoute}/>;
+  return <Menu data={newMenuData} {...rest} />;
 }
