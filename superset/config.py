@@ -36,7 +36,8 @@ from dateutil import tz
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas.io.parsers import STR_NA_VALUES
-
+from flask_login import current_user, logout_user
+from flask import g
 from superset.jinja_context import (  # pylint: disable=unused-import
     BaseTemplateProcessor,
 )
@@ -45,7 +46,7 @@ from superset.typing import CacheConfig
 from superset.utils.core import is_test
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
-
+from flask import request
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
@@ -777,7 +778,29 @@ CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
 # a reference to the Flask app. This can be used to alter the Flask app
 # in whatever way.
 # example: FLASK_APP_MUTATOR = lambda x: x.before_request = f
-FLASK_APP_MUTATOR = None
+
+def attach_handler(app):
+
+    @app.before_request
+    def beforerequest():
+        print("before_request!")
+        print(request.endpoint)
+        print(request.headers)
+        print(request.data)
+        g.user = current_user
+        print(g.user)
+        print(current_user)
+        if g.user.is_authenticated:
+            print("Yes Authenticated")
+            g.search_form = None
+
+    @app.after_request
+    def afterrequest(response):
+        print("after_request is running!")
+        logging.info("after_request is running!")
+        return response
+
+FLASK_APP_MUTATOR = lambda app: attach_handler(app)
 
 # Set this to false if you don't want users to be able to request/grant
 # datasource access requests from/to other users.
