@@ -114,9 +114,7 @@ const StyledHeader = styled.header`
       overflow: hidden;
       text-overflow: ellipsis;
     }
-  }
-  @media (max-width: 1010px) {
-    .navbar-brand-text {
+    @media (max-width: 1070px) {
       display: none;
     }
   }
