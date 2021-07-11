@@ -21,8 +21,9 @@ import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilt
 import { ChartConfiguration, Filters } from 'src/dashboard/reducers/types';
 import { DataMaskStateWithId, DataMaskType } from 'src/dataMask/types';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import { Layout } from '../../types';
+import { Charts, Layout } from '../../types';
 import { getTreeCheckedItems } from '../nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/utils';
+import { isChartAffectedByDataset } from '../../util/activeAllDashboardFilters';
 
 export enum IndicatorStatus {
   Unset = 'UNSET',
@@ -177,6 +178,7 @@ export const selectNativeIndicatorsForChart = (
   chart: any,
   dashboardLayout: Layout,
   chartConfiguration: ChartConfiguration = {},
+  charts: Charts,
 ): Indicator[] => {
   const appliedColumns = getAppliedColumns(chart);
   const rejectedColumns = getRejectedColumns(chart);
@@ -212,12 +214,22 @@ export const selectNativeIndicatorsForChart = (
     nativeFilterIndicators =
       nativeFilters &&
       Object.values(nativeFilters)
-        .filter(nativeFilter =>
-          getTreeCheckedItems(nativeFilter.scope, dashboardLayout).some(
+        .filter(nativeFilter => {
+          const byScope = getTreeCheckedItems(
+            nativeFilter.scope,
+            dashboardLayout,
+          ).some(
             layoutItem =>
               dashboardLayout[layoutItem]?.meta?.chartId === chartId,
-          ),
-        )
+          );
+          const byDataset = isChartAffectedByDataset(
+            charts,
+            chartId,
+            nativeFilters,
+            nativeFilter.id,
+          );
+          return byScope && byDataset;
+        })
         .map(nativeFilter => {
           const column = nativeFilter.targets[0]?.column?.name;
           let value =
@@ -240,14 +252,21 @@ export const selectNativeIndicatorsForChart = (
   let crossFilterIndicators: any = [];
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
     crossFilterIndicators = Object.values(chartConfiguration)
-      .filter(chartConfig =>
-        getTreeCheckedItems(
+      .filter(chartConfig => {
+        const byScope = getTreeCheckedItems(
           chartConfig?.crossFilters?.scope,
           dashboardLayout,
         ).some(
           layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
-        ),
-      )
+        );
+        const byDataset = isChartAffectedByDataset(
+          charts,
+          chartId,
+          nativeFilters,
+          chartConfig.id,
+        );
+        return byScope && byDataset;
+      })
       .map(chartConfig => {
         let value =
           dataMask[chartConfig.id]?.filterState?.label ??

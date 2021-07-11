@@ -84,6 +84,7 @@ export default function getFormDataWithExtraFilters({
     chartConfiguration,
     dataMask,
     layout,
+    charts,
     nativeFilters: nativeFilters.filters,
   });
   const filterIdsAppliedOnChart = Object.entries(activeFilters)

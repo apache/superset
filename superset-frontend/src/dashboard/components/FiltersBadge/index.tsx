@@ -129,6 +129,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
           chart,
           present,
           dashboardInfo.metadata?.chart_configuration,
+          charts,
         ),
       );
     }
