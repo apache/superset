@@ -43,6 +43,7 @@ import {
   sanitizeHtml,
 } from '../utils/series';
 import { defaultGrid, defaultTooltip } from '../defaults';
+import { OpacityEnum } from '../constants';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
 
@@ -140,11 +141,14 @@ export default function transformProps(chartProps: EchartsPieChartProps): PieCha
       timeFormatter: getTimeFormatter(dateFormat),
     });
 
+    const isFiltered = filterState.selectedValues && !filterState.selectedValues.includes(name);
+
     return {
       value: datum[metricLabel],
       name,
       itemStyle: {
         color: colorFn(name),
+        opacity: isFiltered ? OpacityEnum.Transparent : OpacityEnum.NonTransparent,
       },
     };
   });
