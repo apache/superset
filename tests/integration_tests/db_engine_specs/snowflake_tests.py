@@ -113,4 +113,10 @@ class TestSnowflakeDbEngineSpec(TestDbEngineSpec):
     def test_cancel_query(self, engine_mock):
         query = Query()
         cursor_mock = engine_mock.return_value.__enter__.return_value
-        assert SnowflakeEngineSpec.cancel_query(cursor_mock, query, 123) is None
+        assert SnowflakeEngineSpec.cancel_query(cursor_mock, query, 123) is True
+
+    @mock.patch("sqlalchemy.engine.Engine.connect")
+    def test_cancel_query_failed(self, engine_mock):
+        query = Query()
+        cursor_mock = engine_mock.raiseError.side_effect = Exception()
+        assert SnowflakeEngineSpec.cancel_query(cursor_mock, query, 123) is False

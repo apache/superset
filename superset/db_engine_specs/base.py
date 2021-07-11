@@ -1318,7 +1318,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
-    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> None:
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
         """
         Cancel query in the underlying database.
 
@@ -1326,6 +1326,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param query: Query instance
         :param cancel_query_id: Value returned by get_cancel_query_payload or set in
         other life-cycle methods of the query
+        :return: True if query cancelled successfully, False otherwise
         """
 
 

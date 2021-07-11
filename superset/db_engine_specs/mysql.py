@@ -237,12 +237,18 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         return row[0]
 
     @classmethod
-    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> None:
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
         """
         Cancel query in the underlying database.
 
         :param cursor: New cursor instance to the db of the query
         :param query: Query instance
         :param cancel_query_id: MySQL Connection ID
+        :return: True if query cancelled successfully, False otherwise
         """
-        cursor.execute(f"KILL CONNECTION {cancel_query_id}")
+        try:
+            cursor.execute(f"KILL CONNECTION {cancel_query_id}")
+        except Exception:  # pylint: disable=broad-except
+            return False
+
+        return True

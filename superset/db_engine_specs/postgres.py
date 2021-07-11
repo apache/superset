@@ -313,16 +313,22 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         return row[0]
 
     @classmethod
-    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> None:
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
         """
         Cancel query in the underlying database.
 
         :param cursor: New cursor instance to the db of the query
         :param query: Query instance
         :param cancel_query_id: Postgres PID
+        :return: True if query cancelled successfully, False otherwise
         """
-        cursor.execute(
-            "SELECT pg_terminate_backend(pid) "
-            "FROM pg_stat_activity "
-            f"WHERE pid='{cancel_query_id}'"
-        )
+        try:
+            cursor.execute(
+                "SELECT pg_terminate_backend(pid) "
+                "FROM pg_stat_activity "
+                f"WHERE pid='{cancel_query_id}'"
+            )
+        except Exception:  # pylint: disable=broad-except
+            return False
+
+        return True

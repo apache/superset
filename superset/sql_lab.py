@@ -583,17 +583,17 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
     return None
 
 
-def cancel_query(query: Query, user_name: Optional[str] = None) -> None:
+def cancel_query(query: Query, user_name: Optional[str] = None) -> bool:
     """
     Cancel a running query.
 
     :param query: Query to cancel
     :param user_name: Default username
-    :return: None
+    :return: True if query cancelled successfully, False otherwise
     """
     cancel_query_id = query.extra.get(cancel_query_key, None)
     if cancel_query_id is None:
-        return
+        return False
 
     database = query.database
     engine = database.get_sqla_engine(
@@ -606,4 +606,4 @@ def cancel_query(query: Query, user_name: Optional[str] = None) -> None:
 
     with closing(engine.raw_connection()) as conn:
         with closing(conn.cursor()) as cursor:
-            db_engine_spec.cancel_query(cursor, query, cancel_query_id)
+            return db_engine_spec.cancel_query(cursor, query, cancel_query_id)

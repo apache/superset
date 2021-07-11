@@ -251,4 +251,10 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
     def test_cancel_query(self, engine_mock):
         query = Query()
         cursor_mock = engine_mock.return_value.__enter__.return_value
-        assert MySQLEngineSpec.cancel_query(cursor_mock, query, 123) is None
+        assert MySQLEngineSpec.cancel_query(cursor_mock, query, 123) is True
+
+    @unittest.mock.patch("sqlalchemy.engine.Engine.connect")
+    def test_cancel_query_failed(self, engine_mock):
+        query = Query()
+        cursor_mock = engine_mock.raiseError.side_effect = Exception()
+        assert MySQLEngineSpec.cancel_query(cursor_mock, query, 123) is False

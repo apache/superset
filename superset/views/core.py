@@ -80,6 +80,7 @@ from superset.exceptions import (
     CertificateException,
     DatabaseNotFound,
     SerializationError,
+    SupersetCancelQueryException,
     SupersetErrorException,
     SupersetErrorsException,
     SupersetException,
@@ -2335,9 +2336,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 str(client_id),
             )
             return self.json_response("OK")
+
+        if not sql_lab.cancel_query(query, g.user.username if g.user else None):
+            raise SupersetCancelQueryException("Could not cancel query")
+
         query.status = QueryStatus.STOPPED
         db.session.commit()
-        sql_lab.cancel_query(query, g.user.username if g.user else None)
 
         return self.json_response("OK")
 
