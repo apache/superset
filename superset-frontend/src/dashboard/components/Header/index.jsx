@@ -51,6 +51,7 @@ const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
   addWarningToast: PropTypes.func.isRequired,
+  userId: PropTypes.number,
   dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
   dataMask: PropTypes.object.isRequired,
@@ -366,6 +367,7 @@ class Header extends React.PureComponent {
       updateCss,
       editMode,
       isPublished,
+      userId,
       dashboardInfo,
       hasUnsavedChanges,
       isLoading,
@@ -404,7 +406,7 @@ class Header extends React.PureComponent {
             canEdit={userCanEdit}
             canSave={userCanSaveAs}
           />
-          {dashboardInfo.userId && (
+          {userId && (
             <FaveStar
               itemId={dashboardInfo.id}
               fetchFaveStar={this.props.fetchFaveStar}
