@@ -148,6 +148,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           inverseSelection,
         ),
         filterState: {
+          ...filterState,
           label: values?.length
             ? `${(values || []).join(', ')}${suffix}`
             : undefined,

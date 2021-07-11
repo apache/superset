@@ -770,7 +770,9 @@ const FiltersConfigForm = (
                   rules={[
                     {
                       validator: (rule, value) => {
-                        const hasValue = !!value?.filterState?.value;
+                        const hasValue =
+                          value?.filterState?.value !== null &&
+                          value?.filterState?.value !== undefined;
                         if (hasValue) {
                           return Promise.resolve();
                         }
@@ -799,6 +801,7 @@ const FiltersConfigForm = (
                           ]);
                           forceUpdate();
                         }}
+                        hasDefaultValue={hasDefaultValue}
                         filterId={filterId}
                         hasDataset={hasDataset}
                         form={form}

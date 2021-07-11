@@ -147,8 +147,12 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   };
 
   useEffect(() => {
+    // when switch filter type and queriesData still not updated we need ignore this case (in FilterBar)
+    if (row?.min === undefined && row?.max === undefined) {
+      return;
+    }
     handleAfterChange(filterState.value ?? [min, max]);
-  }, [JSON.stringify(filterState.value)]);
+  }, [JSON.stringify(filterState.value), JSON.stringify(data)]);
 
   const formItemData: FormItemProps = {};
   if (filterState.validateMessage) {

@@ -30,6 +30,7 @@ import { NativeFiltersForm } from '../types';
 import { getFormData } from '../../utils';
 
 type DefaultValueProps = {
+  hasDefaultValue: boolean;
   filterId: string;
   setDataMask: SetDataMaskHook;
   hasDataset: boolean;
@@ -39,6 +40,7 @@ type DefaultValueProps = {
 };
 
 const DefaultValue: FC<DefaultValueProps> = ({
+  hasDefaultValue,
   filterId,
   hasDataset,
   form,
@@ -59,8 +61,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
   }, [hasDataset, queriesData]);
   const value = formFilter.defaultDataMask?.filterState.value;
   const isMissingRequiredValue =
-    formFilter?.controlValues?.enableEmptyFilter &&
-    (value === null || value === undefined);
+    hasDefaultValue && (value === null || value === undefined);
   return loading ? (
     <Loading position="inline-centered" />
   ) : (
