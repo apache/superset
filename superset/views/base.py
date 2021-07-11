@@ -397,7 +397,7 @@ def show_http_exception(ex: HTTPException) -> FlaskResponse:
         and ex.code in {404, 500}
     ):
         path = resource_filename("superset", f"static/assets/{ex.code}.html")
-        return send_file(path)
+        return send_file(path), ex.code
 
     return json_errors_response(
         errors=[

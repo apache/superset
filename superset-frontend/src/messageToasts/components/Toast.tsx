@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { styled, css, SupersetTheme } from '@superset-ui/core';
 import cx from 'classnames';
 import Interweave from 'interweave';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import Icon, { IconName } from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { ToastType } from 'src/messageToasts/constants';
 import { ToastMeta } from '../types';
 
@@ -34,8 +34,9 @@ const ToastContainer = styled.div`
   }
 `;
 
-const StyledIcon = styled(Icon)`
-  min-width: ${({ theme }) => theme.gridUnit * 5}px;
+const StyledIcon = (theme: SupersetTheme) => css`
+  min-width: ${theme.gridUnit * 5}px;
+  color: ${theme.colors.grayscale.base};
 `;
 
 interface ToastPresenterProps {
@@ -76,16 +77,17 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
     };
   }, [handleClosePress, toast.duration]);
 
-  let iconName: IconName = 'circle-check-solid';
   let className = 'toast--success';
+  let icon = <Icons.CircleCheckSolid css={theme => StyledIcon(theme)} />;
+
   if (toast.toastType === ToastType.WARNING) {
-    iconName = 'warning-solid';
+    icon = <Icons.WarningSolid css={StyledIcon} />;
     className = 'toast--warning';
   } else if (toast.toastType === ToastType.DANGER) {
-    iconName = 'error-solid';
+    icon = <Icons.ErrorSolid css={StyledIcon} />;
     className = 'toast--danger';
   } else if (toast.toastType === ToastType.INFO) {
-    iconName = 'info-solid';
+    icon = <Icons.InfoSolid css={StyledIcon} />;
     className = 'toast--info';
   }
 
@@ -95,7 +97,7 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
       data-test="toast-container"
       role="alert"
     >
-      <StyledIcon name={iconName} />
+      {icon}
       <Interweave content={toast.text} />
       <i
         className="fa fa-close pull-right pointer"
