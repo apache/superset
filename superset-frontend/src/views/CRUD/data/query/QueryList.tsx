@@ -318,13 +318,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         }: any) => (
           <Tooltip title={t('Open query in SQL Lab')} placement="bottom">
             <a href={`/superset/sqllab?queryId=${id}`}>
-              <Icons.Full
-                css={theme =>
-                  css`
-                    color: ${theme.colors.grayscale.base};
-                  `
-                }
-              />
+              <Icons.Full iconColor={theme.colors.grayscale.base} />
             </a>
           </Tooltip>
         ),
