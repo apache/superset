@@ -29,6 +29,7 @@ import { HOMEPAGE_ACTIVITY_FILTER } from 'src/views/CRUD/storageKeys';
 import { Chart } from 'src/types/Chart';
 import { Dashboard, SavedQueryObject } from 'src/views/CRUD/types';
 
+import Icons from 'src/components/Icons';
 import { ActivityData } from './Welcome';
 import EmptyState from './EmptyState';
 
@@ -91,6 +92,7 @@ const ActivityContainer = styled.div`
   .ant-card-meta-avatar {
     margin-top: ${({ theme }) => theme.gridUnit * 3}px;
     margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+    color: ${({ theme }) => theme.colors.grayscale.base};
   }
   .ant-card-meta-title {
     font-weight: ${({ theme }) => theme.typography.weights.bold};
@@ -116,16 +118,16 @@ const getEntityTitle = (entity: ActivityObject) => {
   return entity.item_title || UNTITLED;
 };
 
-const getEntityIconName = (entity: ActivityObject) => {
-  if ('sql' in entity) return 'sql';
+const getEntityIcon = (entity: ActivityObject) => {
+  if ('sql' in entity) return <Icons.Sql />;
   const url = 'item_url' in entity ? entity.item_url : entity.url;
   if (url?.includes('dashboard')) {
-    return 'nav-dashboard';
+    return <Icons.NavDashboard />;
   }
   if (url?.includes('explore')) {
-    return 'nav-charts';
+    return <Icons.NavCharts />;
   }
-  return '';
+  return null;
 };
 
 const getEntityUrl = (entity: ActivityObject) => {
@@ -245,7 +247,7 @@ export default function ActivityTable({
               url={url}
               title={getEntityTitle(entity)}
               description={lastActionOn}
-              avatar={getEntityIconName(entity)}
+              avatar={getEntityIcon(entity)}
               actions={null}
             />
           </CardStyles>
