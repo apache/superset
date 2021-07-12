@@ -97,7 +97,7 @@ function ShareSqlLabQuery({
     return (
       <Button buttonSize="small" tooltip={tooltip} disabled={!canShare}>
         <SytledIcon
-          color={
+          iconColor={
             canShare ? theme.colors.primary.base : theme.colors.grayscale.base
           }
           iconSize="xl"
