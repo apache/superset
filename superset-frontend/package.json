@@ -113,6 +113,7 @@
     "emotion-rgba": "0.0.9",
     "fontsource-fira-code": "^3.0.5",
     "fontsource-inter": "^3.0.5",
+    "fuse.js": "^6.4.6",
     "geolib": "^2.0.24",
     "global-box": "^1.2.0",
     "html-webpack-plugin": "^4.5.1",
