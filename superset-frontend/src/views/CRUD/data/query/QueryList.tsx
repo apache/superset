@@ -149,26 +149,28 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
               <Icons.Check iconColor={theme.colors.success.base} />
             );
             statusConfig.label = t('Success');
-          }
-          if (status === 'failed' || status === 'stopped') {
+          } else if (status === 'failed' || status === 'stopped') {
             statusConfig.name = (
-              <Icons.XSmall iconColor={theme.colors.error.base} />
+              <Icons.XSmall
+                iconColor={
+                  status === 'failed'
+                    ? theme.colors.error.base
+                    : theme.colors.grayscale.base
+                }
+              />
             );
             statusConfig.label = t('Failed');
-          }
-          if (status === 'running') {
+          } else if (status === 'running') {
             statusConfig.name = (
               <Icons.Running iconColor={theme.colors.primary.base} />
             );
             statusConfig.label = t('Running');
-          }
-          if (status === 'timed_out') {
+          } else if (status === 'timed_out') {
             statusConfig.name = (
               <Icons.Offline iconColor={theme.colors.grayscale.light1} />
             );
             statusConfig.label = t('Offline');
-          }
-          if (status === 'scheduled' || status === 'pending') {
+          } else if (status === 'scheduled' || status === 'pending') {
             statusConfig.name = (
               <Icons.Queued iconColor={theme.colors.grayscale.base} />
             );
