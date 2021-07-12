@@ -118,7 +118,7 @@ const getEntityTitle = (entity: ActivityObject) => {
   return entity.item_title || UNTITLED;
 };
 
-const getEntityIcons = (entity: ActivityObject) => {
+const getEntityIcon = (entity: ActivityObject) => {
   if ('sql' in entity) return <Icons.Sql />;
   const url = 'item_url' in entity ? entity.item_url : entity.url;
   if (url?.includes('dashboard')) {
@@ -247,7 +247,7 @@ export default function ActivityTable({
               url={url}
               title={getEntityTitle(entity)}
               description={lastActionOn}
-              avatar={getEntityIcons(entity)}
+              avatar={getEntityIcon(entity)}
               actions={null}
             />
           </CardStyles>
