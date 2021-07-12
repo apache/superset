@@ -96,7 +96,7 @@ export const isChartAffectedByDataset = (
   nativeFilters: Filters,
   filterId: string | number,
 ) => {
-  const chartDatasetId = charts[chartId]?.formData?.datasource?.split(
+  const chartDatasetId = charts?.[chartId]?.formData?.datasource?.split(
     '__',
   )?.[0];
   const foundDatasetInNativeFilters =
@@ -104,9 +104,8 @@ export const isChartAffectedByDataset = (
     (`${nativeFilters[filterId]?.targets?.[0]?.datasetId}` === chartDatasetId ||
       !nativeFilters[filterId]?.targets?.[0]?.datasetId);
   const foundDatasetInCrossFilters =
-    charts[filterId] &&
-    (charts[filterId]?.formData?.datasource === chartDatasetId ||
-      !charts[filterId]?.formData?.datasource);
+    charts?.[filterId]?.formData?.datasource === chartDatasetId ||
+    !charts?.[filterId]?.formData?.datasource;
 
   return foundDatasetInNativeFilters || foundDatasetInCrossFilters;
 };
