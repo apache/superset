@@ -22,7 +22,7 @@ describe('chart card view', () => {
   beforeEach(() => {
     cy.login();
     cy.visit(CHART_LIST);
-    cy.get('[data-test="card-view"]').click();
+    cy.get('[aria-label="card-view"]').click();
   });
 
   it('should load cards', () => {

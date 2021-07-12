@@ -20,7 +20,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { uniqWith } from 'lodash';
 import cx from 'classnames';
-import Icon from 'src/components/Icon';
 import Icons from 'src/components/Icons';
 import { usePrevious } from 'src/common/hooks/usePrevious';
 import { DataMaskStateWithId } from 'src/dataMask/types';
@@ -199,7 +198,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
           isInactive && 'filters-inactive',
         )}
       >
-        <Icon name="filter" />
+        <Icons.Filter iconSize="m" />
         {!isInactive && (
           <span data-test="applied-filter-count">
             {appliedIndicators.length + appliedCrossFilterIndicators.length}

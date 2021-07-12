@@ -470,23 +470,25 @@ def test_base_parameters_mixin():
     assert json_schema == {
         "type": "object",
         "properties": {
+            "encryption": {
+                "type": "boolean",
+                "description": "Use an encrypted connection to the database",
+            },
+            "host": {"type": "string", "description": "Hostname or IP address"},
+            "database": {"type": "string", "description": "Database name"},
             "port": {
                 "type": "integer",
                 "format": "int32",
+                "minimum": 0,
+                "maximum": 65536,
                 "description": "Database port",
             },
             "password": {"type": "string", "nullable": True, "description": "Password"},
-            "host": {"type": "string", "description": "Hostname or IP address"},
             "username": {"type": "string", "nullable": True, "description": "Username"},
             "query": {
                 "type": "object",
                 "description": "Additional parameters",
                 "additionalProperties": {},
-            },
-            "database": {"type": "string", "description": "Database name"},
-            "encryption": {
-                "type": "boolean",
-                "description": "Use an encrypted connection to the database",
             },
         },
         "required": ["database", "host", "port", "username"],

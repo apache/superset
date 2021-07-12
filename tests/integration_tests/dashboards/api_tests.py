@@ -344,9 +344,10 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         }
         data = json.loads(rv.data.decode("utf-8"))
         self.assertIn("changed_on", data["result"])
+        self.assertIn("changed_on_delta_humanized", data["result"])
         for key, value in data["result"].items():
             # We can't assert timestamp values
-            if key != "changed_on":
+            if key not in ("changed_on", "changed_on_delta_humanized",):
                 self.assertEqual(value, expected_result[key])
         # rollback changes
         db.session.delete(dashboard)

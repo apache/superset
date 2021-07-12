@@ -14,3 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+import pytest
+
+
+@pytest.fixture
+def app_context():
+    """
+    A fixture for running the test inside an app context.
+    """
+    from superset.app import create_app
+
+    app = create_app()
+    with app.app_context():
+        yield

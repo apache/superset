@@ -145,6 +145,7 @@ import { ReactComponent as WarningIcon } from 'images/icons/warning.svg';
 import { ReactComponent as WarningSolidIcon } from 'images/icons/warning_solid.svg';
 import { ReactComponent as XLargeIcon } from 'images/icons/x-large.svg';
 import { ReactComponent as XSmallIcon } from 'images/icons/x-small.svg';
+import { ReactComponent as DefaultDatabaseIcon } from 'images/icons/default_db_image.svg';
 
 export type IconName =
   | 'alert'
@@ -184,6 +185,7 @@ export type IconName =
   | 'copy'
   | 'cursor-target'
   | 'database'
+  | 'default-database'
   | 'dataset-physical'
   | 'dataset-virtual'
   | 'dataset-virtual-greyscale'
@@ -299,6 +301,7 @@ export const iconsRegistry: Record<
   'circle-check-solid': CircleCheckSolidIcon,
   'color-palette': ColorPaletteIcon,
   'cursor-target': CursorTargeIcon,
+  'default-database': DefaultDatabaseIcon,
   'dataset-physical': DatasetPhysicalIcon,
   'dataset-virtual': DatasetVirtualIcon,
   'dataset-virtual-greyscale': DatasetVirtualGreyscaleIcon,

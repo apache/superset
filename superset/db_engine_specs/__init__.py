@@ -53,7 +53,7 @@ def is_engine_spec(attr: Any) -> bool:
     )
 
 
-def get_engine_specs() -> Dict[str, Type[BaseEngineSpec]]:
+def load_engine_specs() -> List[Type[BaseEngineSpec]]:
     engine_specs: List[Type[BaseEngineSpec]] = []
 
     # load standard engines
@@ -74,6 +74,12 @@ def get_engine_specs() -> Dict[str, Type[BaseEngineSpec]]:
             logger.warning("Unable to load Superset DB engine spec: %s", engine_spec)
             continue
         engine_specs.append(engine_spec)
+
+    return engine_specs
+
+
+def get_engine_specs() -> Dict[str, Type[BaseEngineSpec]]:
+    engine_specs = load_engine_specs()
 
     # build map from name/alias -> spec
     engine_specs_map: Dict[str, Type[BaseEngineSpec]] = {}
@@ -121,11 +127,16 @@ def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
         except Exception:  # pylint: disable=broad-except
             logger.warning("Unable to load SQLAlchemy dialect: %s", dialect)
         else:
-            drivers[dialect.name].add(getattr(dialect, "driver", dialect.name))
+            backend = dialect.name
+            if isinstance(backend, bytes):
+                backend = backend.decode()
+            driver = getattr(dialect, "driver", dialect.name)
+            if isinstance(driver, bytes):
+                driver = driver.decode()
+            drivers[backend].add(driver)
 
-    engine_specs = get_engine_specs()
-    return {
-        engine_specs[backend]: drivers
-        for backend, drivers in drivers.items()
-        if backend in engine_specs
-    }
+    available_engines = {}
+    for engine_spec in load_engine_specs():
+        available_engines[engine_spec] = drivers[engine_spec.engine]
+
+    return available_engines

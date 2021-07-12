@@ -16,6 +16,8 @@
 # under the License.
 import json
 
+from sqlalchemy import column
+
 from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.core import Database
@@ -23,6 +25,20 @@ from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
 class TestSnowflakeDbEngineSpec(TestDbEngineSpec):
+    def test_snowflake_sqla_column_label(self):
+        """
+        DB Eng Specs (snowflake): Test column label
+        """
+        test_cases = {
+            "Col": "Col",
+            "SUM(x)": "SUM(x)",
+            "SUM[x]": "SUM[x]",
+            "12345_col": "12345_col",
+        }
+        for original, expected in test_cases.items():
+            actual = SnowflakeEngineSpec.make_label_compatible(column(original).name)
+            self.assertEqual(actual, expected)
+
     def test_convert_dttm(self):
         dttm = self.get_dttm()
 
