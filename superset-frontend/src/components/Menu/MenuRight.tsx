@@ -92,7 +92,7 @@ const RightMenu = ({
           title={
             <StyledI data-test="new-dropdown-icon" className="fa fa-plus" />
           }
-          icon={<Icons.TriangleDown  iconSize="xl" />}
+          icon={<Icons.TriangleDown />}
         >
           {dropdownItems.map(menu => (
             <Menu.Item key={menu.label}>

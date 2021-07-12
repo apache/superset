@@ -192,9 +192,7 @@ export function Menu({
       <SubMenu
         key={index}
         title={label}
-        icon={
-          showMenu === 'inline' ? <></> : <Icons.TriangleDown iconSize="xl" />
-        }
+        icon={showMenu === 'inline' ? <></> : <Icons.TriangleDown />}
       >
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
           if (typeof child === 'string' && child === '-') {
