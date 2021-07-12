@@ -39,7 +39,7 @@ interface ShareSqlLabQueryPropTypes {
   addDangerToast: (msg: string) => void;
 }
 
-const SytledIcon = styled(Icons.Link)`
+const StyledIcon = styled(Icons.Link)`
   &:first-of-type {
     margin: 0;
     display: flex;
