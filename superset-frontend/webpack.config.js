@@ -279,7 +279,7 @@ const config = {
         // viz thumbnails are used in `addSlice` and `explore` page
         thumbnail: {
           name: 'thumbnail',
-          test: /thumbnail(Large)?\.png/i,
+          test: /thumbnail(Large)?\.(png|jpg)/i,
           priority: 20,
           enforce: true,
         },
