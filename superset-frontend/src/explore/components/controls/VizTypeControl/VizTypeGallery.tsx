@@ -402,6 +402,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     () => selectedVizMetadata?.category || categories[0],
   );
 
+  // get a fuse instance for fuzzy search
   const fuse = useMemo(
     () =>
       new Fuse(chartMetadata, {
