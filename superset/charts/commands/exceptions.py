@@ -30,7 +30,7 @@ from superset.commands.exceptions import (
 
 class TimeRangeUnclearError(ValidationError):
     """
-    Time range is in valid error.
+    Time range is unclear error.
     """
 
     def __init__(self, human_readable: str) -> None:
@@ -58,7 +58,7 @@ class TimeRangeParseFailError(ValidationError):
 
 class TimeDeltaUnclearError(ValidationError):
     """
-    Time delta is in valid error.
+    Time delta is unclear error.
     """
 
     def __init__(self, human_readable: str) -> None:

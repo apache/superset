@@ -18,12 +18,13 @@ from __future__ import annotations
 
 import copy
 import logging
-from typing import Any, ClassVar, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Any, ClassVar, Dict, List, Optional, TYPE_CHECKING, Union
 
 import numpy as np
 import pandas as pd
 from flask_babel import _
 from pandas import DateOffset
+from typing_extensions import TypedDict
 
 from superset import app, db, is_feature_enabled
 from superset.annotation_layers.dao import AnnotationLayerDAO
@@ -60,6 +61,12 @@ if TYPE_CHECKING:
 config = app.config
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
+
+
+class CachedTimeOffset(TypedDict):
+    df: pd.DataFrame
+    queries: List[str]
+    cache_keys: List[Optional[str]]
 
 
 class QueryContext:
@@ -114,10 +121,10 @@ class QueryContext:
 
     def processing_time_offsets(
         self, df: pd.DataFrame, query_object: QueryObject,
-    ) -> Tuple[pd.DataFrame, List[str], List[Optional[str]]]:
+    ) -> CachedTimeOffset:
         # ensure query_object is immutable
         query_object_clone = copy.copy(query_object)
-        rv_sql = []
+        queries = []
         cache_keys = []
 
         time_offsets = query_object.time_offsets
@@ -147,16 +154,16 @@ class QueryContext:
             # `offset` is added to the hash function
             cache_key = self.query_cache_key(query_object_clone, time_offset=offset)
             _cache = QueryCacheManager.get(cache_key, CacheRegion.DATA, self.force)
-            # whether to hit the cache
+            # whether hit in the cache
             if _cache.is_loaded:
                 df = self.left_join_on_dttm(df, _cache.df)
-                rv_sql.append(_cache.query)
+                queries.append(_cache.query)
                 cache_keys.append(cache_key)
                 continue
 
             query_object_clone_dct = query_object_clone.to_dict()
             result = self.datasource.query(query_object_clone_dct)
-            rv_sql.append(result.query)
+            queries.append(result.query)
             cache_keys.append(None)
 
             # rename metrics: SUM(value) => SUM(value) 1 year ago
@@ -195,20 +202,20 @@ class QueryContext:
             # df left join `offset_metrics_df` on `DTTM`
             df = self.left_join_on_dttm(df, offset_metrics_df)
 
-            # save to cache.
+            # set offset df to cache.
             value = {
                 "df": offset_metrics_df,
                 "query": result.query,
             }
             _cache.set(
-                cache_key,
-                value,
-                self.cache_timeout,
-                self.datasource.uid,
-                CacheRegion.DATA,
+                key=cache_key,
+                value=value,
+                timeout=self.cache_timeout,
+                datasource_uid=self.datasource.uid,
+                region=CacheRegion.DATA,
             )
 
-        return df, rv_sql, cache_keys
+        return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
 
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
         timestamp_format = None
@@ -252,8 +259,11 @@ class QueryContext:
             df = self.normalize_df(df, query_object)
 
             if query_object.time_offsets:
-                df, offset_sql, _ = self.processing_time_offsets(df, query_object)
-                query += ";\n\n".join(offset_sql)
+                time_offsets = self.processing_time_offsets(df, query_object)
+                df = time_offsets["df"]
+                queries = time_offsets["queries"]
+
+                query += ";\n\n".join(queries)
                 query += ";\n\n"
 
             df = query_object.exec_post_processing(df)
@@ -435,7 +445,7 @@ class QueryContext:
             cache_key, CacheRegion.DATA, self.force, force_cached,
         )
 
-        if query_obj and not _cache.is_loaded:
+        if query_obj and cache_key and not _cache.is_loaded:
             try:
                 invalid_columns = [
                     col
@@ -453,12 +463,14 @@ class QueryContext:
                     )
                 query_result = self.get_query_result(query_obj)
                 annotation_data = self.get_annotation_data(query_obj)
-                _cache.load_query(query_result, annotation_data, self.force)
-                _cache.set_query(
-                    cache_key,
-                    self.cache_timeout,
-                    self.datasource.uid,
-                    CacheRegion.DATA,
+                _cache.set_query_result(
+                    key=cache_key,
+                    query_result=query_result,
+                    annotation_data=annotation_data,
+                    force_query=self.force,
+                    timeout=self.cache_timeout,
+                    datasource_uid=self.datasource.uid,
+                    region=CacheRegion.DATA,
                 )
             except QueryObjectValidationError as ex:
                 _cache.error_message = str(ex)

@@ -40,6 +40,10 @@ _cache: Dict[CacheRegion, Cache] = {
 
 
 class QueryCacheManager:
+    """
+    Class for manage query-cache getting and setting
+    """
+
     # pylint: disable=too-many-instance-attributes
     def __init__(
         self,
@@ -66,12 +70,19 @@ class QueryCacheManager:
         self.cache_dttm = cache_dttm
         self.cache_value = cache_value
 
-    def load_query(
+    def set_query_result(
         self,
+        key: str,
         query_result: QueryResult,
         annotation_data: Optional[Dict[str, Any]] = None,
         force_query: Optional[bool] = False,
+        timeout: Optional[int] = None,
+        datasource_uid: Optional[str] = None,
+        region: CacheRegion = CacheRegion.DEFAULT,
     ) -> None:
+        """
+        Set dataframe of query-result to specific cache region
+        """
         try:
             self.status = query_result.status
             self.query = query_result.query
@@ -84,27 +95,26 @@ class QueryCacheManager:
                 if not force_query:
                     stats_logger.incr("loaded_from_source_without_force")
                 self.is_loaded = True
+
+            value = {
+                "df": self.df,
+                "query": self.query,
+                "annotation_data": self.annotation_data,
+            }
+            if self.is_loaded and key and self.status != QueryStatus.FAILED:
+                self.set(
+                    key=key,
+                    value=value,
+                    timeout=timeout,
+                    datasource_uid=datasource_uid,
+                    region=region,
+                )
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
             if not self.error_message:
                 self.error_message = str(ex)
             self.status = QueryStatus.FAILED
             self.stacktrace = get_stacktrace()
-
-    def set_query(
-        self,
-        key: Optional[str],
-        timeout: Optional[int] = None,
-        datasource_uid: Optional[str] = None,
-        region: CacheRegion = CacheRegion.DEFAULT,
-    ) -> None:
-        value = {
-            "df": self.df,
-            "query": self.query,
-            "annotation_data": self.annotation_data,
-        }
-        if self.is_loaded and key and self.status != QueryStatus.FAILED:
-            self.set(key, value, timeout, datasource_uid, region)
 
     @classmethod
     def get(
@@ -114,6 +124,9 @@ class QueryCacheManager:
         force_query: Optional[bool] = False,
         force_cached: Optional[bool] = False,
     ) -> "QueryCacheManager":
+        """
+        Initialize QueryCacheManager by query-cache key
+        """
         query_cache = cls()
         if not key or not _cache[region] or force_query:
             return query_cache
@@ -158,5 +171,8 @@ class QueryCacheManager:
         datasource_uid: Optional[str] = None,
         region: CacheRegion = CacheRegion.DEFAULT,
     ) -> None:
+        """
+        set value to specify cache region, proxy for `set_and_log_cache`
+        """
         if key:
             set_and_log_cache(_cache[region], key, value, timeout, datasource_uid)
