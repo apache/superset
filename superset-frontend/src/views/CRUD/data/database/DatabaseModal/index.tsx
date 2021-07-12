@@ -361,7 +361,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     t('database'),
     addDangerToast,
   );
-  console.log(isPublic);
+
   const isDynamic = (engine: string | undefined) =>
     availableDbs?.databases.filter(
       (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
