@@ -1159,8 +1159,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ids.sort()  # Combinations rather than permutations
         return ids
 
-    @staticmethod
-    def raise_for_dashboard_access(dashboard: "Dashboard") -> None:
+    def raise_for_dashboard_access(self, dashboard: "Dashboard") -> None:
         """
         Raise an exception if the user cannot access the dashboard.
 
@@ -1168,7 +1167,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :raises DashboardAccessDeniedError: If the user cannot access the resource
         """
         from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
-        from superset.views.base import get_user_roles, is_user_admin
+        from superset.views.base import get_user_roles
         from superset.views.utils import is_owner
         from superset import is_feature_enabled
 
@@ -1178,7 +1177,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 for dashboard_role in dashboard.roles
             )
             can_access = (
-                is_user_admin()
+                self.is_user_admin()
                 or is_owner(dashboard, g.user)
                 or (dashboard.published and has_rbac_access)
             )
@@ -1206,3 +1205,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         exists = db.session.query(query.exists()).scalar()
         return exists
+
+    def is_user_admin(self) -> bool:
+        if g.user.is_anonymous:
+            from superset import conf
+
+            public_role = conf.get("AUTH_ROLE_PUBLIC")
+            user_roles = [self.find_role(public_role)] if public_role else []
+        else:
+            user_roles = g.user.roles
+
+        user_roles = [role.name.lower() for role in user_roles]
+
+        return "admin" in user_roles
