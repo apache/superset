@@ -64,6 +64,7 @@ from superset.typing import (
 )
 from superset.utils import core as utils
 from superset.utils.date_parser import parse_human_datetime, parse_human_timedelta
+from superset.utils.memoized import memoized
 
 try:
     import requests
@@ -198,7 +199,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportExportMixin):
         return json.loads(requests.get(endpoint, auth=auth).text)["version"]
 
     @property  # type: ignore
-    @utils.memoized
+    @memoized
     def druid_version(self) -> str:
         return self.get_druid_version()
 
