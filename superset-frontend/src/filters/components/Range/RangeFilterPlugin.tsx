@@ -25,47 +25,44 @@ import {
 import React, { useEffect, useState } from 'react';
 import { Slider } from 'src/common/components';
 import { rgba } from 'emotion-rgba';
+import { FormItemProps } from 'antd/lib/form';
 import { PluginFilterRangeProps } from './types';
-import { StyledFormItem, Styles } from '../common';
+import { StatusMessage, StyledFormItem, Styles } from '../common';
 import { getRangeExtraFormData } from '../../utils';
 
-const Error = styled.div`
-  color: ${({ theme }) => theme.colors.error.base};
-`;
-
-const Wrapper = styled.div<{ validateStatus?: string }>`
+const Wrapper = styled.div<{ validateStatus?: 'error' | 'warning' | 'info' }>`
   border: 1px solid transparent;
   &:focus {
     border: 1px solid
       ${({ theme, validateStatus }) =>
-        theme.colors[validateStatus ? 'error' : 'primary'].base};
+        theme.colors[validateStatus || 'primary']?.base};
     outline: 0;
     box-shadow: 0 0 0 3px
       ${({ theme, validateStatus }) =>
-        rgba(theme.colors[validateStatus ? 'error' : 'primary'].base, 0.2)};
+        rgba(theme.colors[validateStatus || 'primary']?.base, 0.2)};
   }
   & .ant-slider {
     & .ant-slider-track {
       background-color: ${({ theme, validateStatus }) =>
-        validateStatus && theme.colors.error.light1};
+        validateStatus && theme.colors[validateStatus]?.light1};
     }
     & .ant-slider-handle {
       border: ${({ theme, validateStatus }) =>
-        validateStatus && `2px solid ${theme.colors.error.light1}`};
+        validateStatus && `2px solid ${theme.colors[validateStatus]?.light1}`};
       &:focus {
         box-shadow: 0 0 0 3px
           ${({ theme, validateStatus }) =>
-            rgba(theme.colors[validateStatus ? 'error' : 'primary'].base, 0.2)};
+            rgba(theme.colors[validateStatus || 'primary']?.base, 0.2)};
       }
     }
     &:hover {
       & .ant-slider-track {
         background-color: ${({ theme, validateStatus }) =>
-          validateStatus && theme.colors.error.base};
+          validateStatus && theme.colors[validateStatus]?.base};
       }
       & .ant-slider-handle {
         border: ${({ theme, validateStatus }) =>
-          validateStatus && `2px solid ${theme.colors.error.base}`};
+          validateStatus && `2px solid ${theme.colors[validateStatus]?.base}`};
       }
     }
   }
@@ -150,22 +147,31 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   };
 
   useEffect(() => {
+    // when switch filter type and queriesData still not updated we need ignore this case (in FilterBar)
+    if (row?.min === undefined && row?.max === undefined) {
+      return;
+    }
     handleAfterChange(filterState.value ?? [min, max]);
-  }, [JSON.stringify(filterState.value)]);
+  }, [JSON.stringify(filterState.value), JSON.stringify(data)]);
 
+  const formItemData: FormItemProps = {};
+  if (filterState.validateMessage) {
+    formItemData.extra = (
+      <StatusMessage status={filterState.validateStatus}>
+        {filterState.validateMessage}
+      </StatusMessage>
+    );
+  }
   return (
     <Styles height={height} width={width}>
       {Number.isNaN(Number(min)) || Number.isNaN(Number(max)) ? (
         <h4>{t('Chosen non-numeric column')}</h4>
       ) : (
-        <StyledFormItem
-          validateStatus={filterState.validateMessage && 'error'}
-          extra={<Error>{filterState.validateMessage}</Error>}
-        >
+        <StyledFormItem {...formItemData}>
           <Wrapper
             tabIndex={-1}
             ref={inputRef}
-            validateStatus={filterState.validateMessage}
+            validateStatus={filterState.validateStatus}
             onFocus={setFocusedFilter}
             onBlur={unsetFocusedFilter}
             onMouseEnter={setFocusedFilter}
