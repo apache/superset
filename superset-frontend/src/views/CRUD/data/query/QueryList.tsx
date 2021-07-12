@@ -23,6 +23,7 @@ import {
   styled,
   css,
   SupersetTheme,
+  useTheme,
 } from '@superset-ui/core';
 import moment from 'moment';
 import {
@@ -86,18 +87,6 @@ const StyledPopoverItem = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
 `;
 
-const getColor = (theme: SupersetTheme, status: string) => {
-  if (status === 'success') return theme.colors.success.base;
-  if (status === 'failed') return theme.colors.error.base;
-  if (status === 'running') return theme.colors.primary.base;
-  if (status === 'offline') return theme.colors.grayscale.light1;
-  return theme.colors.grayscale.base;
-};
-
-const StatusIcon = (theme: SupersetTheme, status: string) => css`
-  color: ${getColor(theme, status)};
-`;
-
 function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
   const {
     state: { loading, resourceCount: queryCount, resourceCollection: queries },
@@ -113,6 +102,8 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
     queryCurrentlyPreviewing,
     setQueryCurrentlyPreviewing,
   ] = useState<QueryObject>();
+
+  const theme = useTheme();
 
   const handleQueryPreview = useCallback(
     (id: number) => {
@@ -155,31 +146,31 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
           };
           if (status === 'success') {
             statusConfig.name = (
-              <Icons.Check css={theme => StatusIcon(theme, 'running')} />
+              <Icons.Check iconColor={theme.colors.success.base} />
             );
             statusConfig.label = t('Success');
           }
           if (status === 'failed' || status === 'stopped') {
             statusConfig.name = (
-              <Icons.XSmall css={theme => StatusIcon(theme, 'failed')} />
+              <Icons.XSmall iconColor={theme.colors.error.base} />
             );
             statusConfig.label = t('Failed');
           }
           if (status === 'running') {
             statusConfig.name = (
-              <Icons.Running css={theme => StatusIcon(theme, 'running')} />
+              <Icons.Running iconColor={theme.colors.primary.base} />
             );
             statusConfig.label = t('Running');
           }
           if (status === 'timed_out') {
             statusConfig.name = (
-              <Icons.Offline css={theme => StatusIcon(theme, 'offline')} />
+              <Icons.Offline iconColor={theme.colors.grayscale.light1} />
             );
             statusConfig.label = t('Offline');
           }
           if (status === 'scheduled' || status === 'pending') {
             statusConfig.name = (
-              <Icons.Queued css={theme => StatusIcon(theme, 'queued')} />
+              <Icons.Queued iconColor={theme.colors.grayscale.base} />
             );
             statusConfig.label = t('Scheduled');
           }
