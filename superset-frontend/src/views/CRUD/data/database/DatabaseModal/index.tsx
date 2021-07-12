@@ -468,9 +468,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         engine_params: JSON.parse(
           (dbToUpdate?.extra_json?.engine_params as string) || '{}',
         ),
-        schemas_allowed_for_csv_upload:
+        schemas_allowed_for_csv_upload: JSON.parse(
           (dbToUpdate?.extra_json?.schemas_allowed_for_csv_upload as string) ||
-          '[]',
+            '[]',
+        ),
       });
     }
 
