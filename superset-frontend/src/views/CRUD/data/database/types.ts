@@ -25,6 +25,7 @@ export type DatabaseObject = {
   // Connection + general
   id?: number;
   database_name: string;
+  name: string; // synonym to database_name
   sqlalchemy_uri?: string;
   backend?: string;
   created_by?: null | DatabaseUser;
