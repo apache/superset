@@ -414,7 +414,7 @@ const ExtraOptions = ({
           <div className="input-container">
             <StyledJsonEditor
               name="metadata_params"
-              value={db?.extra_json?.metadata_params || '{}'}
+              value={db?.extra_json?.metadata_params || ''}
               placeholder={t('Metadata Parameters')}
               onChange={(json: string) =>
                 onExtraEditorChange({ json, name: 'metadata_params' })
@@ -436,7 +436,7 @@ const ExtraOptions = ({
           <div className="input-container">
             <StyledJsonEditor
               name="engine_params"
-              value={db?.extra_json?.engine_params || '{}'}
+              value={db?.extra_json?.engine_params || ''}
               placeholder={t('Engine Parameters')}
               onChange={(json: string) =>
                 onExtraEditorChange({ json, name: 'engine_params' })
