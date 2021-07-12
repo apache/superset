@@ -463,14 +463,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       dbToUpdate.extra = JSON.stringify({
         ...dbToUpdate.extra_json,
         metadata_params: JSON.parse(
-          (dbToUpdate?.extra_json?.metadata_params as string) || '{}',
+          (dbToUpdate?.extra_json?.metadata_params as string) || '',
         ),
         engine_params: JSON.parse(
-          (dbToUpdate?.extra_json?.engine_params as string) || '{}',
+          (dbToUpdate?.extra_json?.engine_params as string) || '',
         ),
         schemas_allowed_for_csv_upload:
           (dbToUpdate?.extra_json?.schemas_allowed_for_csv_upload as string) ||
-          '[]',
+          '',
       });
     }
 
