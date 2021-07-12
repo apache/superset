@@ -460,7 +460,7 @@ def test_base_parameters_mixin():
     )
     assert sqlalchemy_uri == (
         "postgresql+psycopg2://username:password@localhost:5432/dbname?"
-        "foo=bar&sslmode=verify-ca"
+        "foo=bar&sslmode=require"
     )
 
     parameters_from_uri = PostgresEngineSpec.get_parameters_from_uri(sqlalchemy_uri)
