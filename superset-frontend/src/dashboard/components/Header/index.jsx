@@ -38,6 +38,7 @@ import HeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActions
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
+import ReportModal from 'src/components/ReportModal';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import {
   UNDO_LIMIT,
@@ -135,6 +136,8 @@ class Header extends React.PureComponent {
       didNotifyMaxUndoHistoryToast: false,
       emphasizeUndo: false,
       showingPropertiesModal: false,
+      /* ---------- 🚧 UNDER CONSTRUCTION 🚧 ---------- */
+      showingReportModal: false,
     };
 
     this.handleChangeText = this.handleChangeText.bind(this);
@@ -146,6 +149,9 @@ class Header extends React.PureComponent {
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
     this.showPropertiesModal = this.showPropertiesModal.bind(this);
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
+    /* ---------- 🚧 UNDER CONSTRUCTION 🚧 ---------- */
+    this.showReportModal = this.showReportModal.bind(this);
+    this.hideReportModal = this.hideReportModal.bind(this);
   }
 
   componentDidMount() {
@@ -348,6 +354,15 @@ class Header extends React.PureComponent {
     this.setState({ showingPropertiesModal: false });
   }
 
+  /* ---------- 🚧 UNDER CONSTRUCTION 🚧 ---------- */
+  showReportModal() {
+    this.setState({ showingReportModal: true });
+  }
+
+  hideReportModal() {
+    this.setState({ showingReportModal: false });
+  }
+
   render() {
     const {
       dashboardTitle,
@@ -496,6 +511,21 @@ class Header extends React.PureComponent {
             </>
           )}
 
+          {/* ---------- 🚧 UNDER CONSTRUCTION 🚧 ---------- */}
+          {!editMode && (
+            <>
+              <span
+                role="button"
+                title={t('Schedule email report')}
+                tabIndex={0}
+                className="action-button"
+                onClick={this.showReportModal}
+              >
+                <Icon name="copy" />
+              </span>
+            </>
+          )}
+
           {this.state.showingPropertiesModal && (
             <PropertiesModal
               dashboardId={dashboardInfo.id}
@@ -521,6 +551,14 @@ class Header extends React.PureComponent {
                   );
                 }
               }}
+            />
+          )}
+
+          {/* ---------- 🚧 UNDER CONSTRUCTION 🚧 ---------- */}
+          {this.state.showingReportModal && (
+            <ReportModal
+              show={this.state.showingReportModal}
+              onHide={this.hideReportModal}
             />
           )}
 
