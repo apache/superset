@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useMemo, useState, useCallback, ReactElement } from 'react';
-import { SupersetClient, t, styled, css, useTheme } from '@superset-ui/core';
+import { SupersetClient, t, styled, useTheme } from '@superset-ui/core';
 import moment from 'moment';
 import {
   createFetchRelated,
