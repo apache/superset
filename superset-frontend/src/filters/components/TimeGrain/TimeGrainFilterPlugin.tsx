@@ -19,21 +19,17 @@
 import {
   ensureIsArray,
   ExtraFormData,
-  styled,
   t,
   TimeGranularity,
   tn,
 } from '@superset-ui/core';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Select } from 'src/common/components';
-import { Styles, StyledSelect, StyledFormItem } from '../common';
+import { FormItemProps } from 'antd/lib/form';
+import { Styles, StyledSelect, StyledFormItem, StatusMessage } from '../common';
 import { PluginFilterTimeGrainProps } from './types';
 
 const { Option } = Select;
-
-const Error = styled.div`
-  color: ${({ theme }) => theme.colors.error.base};
-`;
 
 export default function PluginFilterTimegrain(
   props: PluginFilterTimeGrainProps,
@@ -96,11 +92,20 @@ export default function PluginFilterTimegrain(
     (data || []).length === 0
       ? t('No data')
       : tn('%s option', '%s options', data.length, data.length);
+
+  const formItemData: FormItemProps = {};
+  if (filterState.validateMessage) {
+    formItemData.extra = (
+      <StatusMessage status={filterState.validateStatus}>
+        {filterState.validateMessage}
+      </StatusMessage>
+    );
+  }
   return (
     <Styles height={height} width={width}>
       <StyledFormItem
-        validateStatus={filterState.validateMessage && 'error'}
-        extra={<Error>{filterState.validateMessage}</Error>}
+        validateStatus={filterState.validateStatus}
+        {...formItemData}
       >
         <StyledSelect
           allowClear
