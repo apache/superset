@@ -10,9 +10,9 @@ Here is the documentation on how to leverage the new DB Connection UI. This will
 
 **Add Giph for before and after**
 
-There are now 3 steps when creating a new dynamic form:
+There are now 3 steps when connecting to a database in the new UI:
 
-Step 1: First the admin must inform us what engine they want to connect to. This page is powered by the `/available` endpoint which pulls on the engines currently installed in your environment, so that only supported databases are shown.
+Step 1: First the admin must inform superset what engine they want to connect to. This page is powered by the `/available` endpoint which pulls on the engines currently installed in your environment, so that only supported databases are shown.
 
 Step 2: Next, the admin is prompted to enter database specific parameters. Depending on whether there is a dynamic form available for that specific engine, the admin will either see the new custom form or the legacy SQLAlchemy form. We currently have built dynamic forms for (Redshift, MySQL, Postgres, and BigQuery). The new form prompts the user for the parameters needed to connect (for example, username, password, host, port, etc.) and provides immediate feedback on errors.
 
