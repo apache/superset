@@ -96,7 +96,7 @@ function ShareSqlLabQuery({
       : t('Save the query to enable this feature');
     return (
       <Button buttonSize="small" tooltip={tooltip} disabled={!canShare}>
-        <SytledIcon
+        <StyledIcon
           iconColor={
             canShare ? theme.colors.primary.base : theme.colors.grayscale.base
           }
