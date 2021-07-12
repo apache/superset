@@ -64,6 +64,7 @@ from superset.sql_parse import ParsedQuery, Table
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
 from superset.utils.hashing import md5_sha_from_str
+from superset.utils.memoized import memoized
 from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
@@ -1267,7 +1268,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return parsed_query.is_select()
 
     @classmethod
-    @utils.memoized
+    @memoized
     def get_column_spec(
         cls,
         native_type: Optional[str],
