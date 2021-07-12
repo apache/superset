@@ -181,11 +181,14 @@ export const StyledSubMenu = styled(AntdMenu.SubMenu)`
   & > .ant-menu-submenu-title {
     padding: 0 ${({ theme }) => theme.gridUnit * 6}px 0
       ${({ theme }) => theme.gridUnit * 3}px !important;
-    svg {
+    span[role='img'] {
       position: absolute;
-      top: ${({ theme }) => theme.gridUnit * 4 + 7}px;
-      right: ${({ theme }) => theme.gridUnit}px;
-      width: ${({ theme }) => theme.gridUnit * 6}px;
+      right: ${({ theme }) => -theme.gridUnit + -2}px;
+      top: ${({ theme }) => theme.gridUnit * 5.25}px;
+      svg {
+        font-size: ${({ theme }) => theme.gridUnit * 6}px;
+        color: ${({ theme }) => theme.colors.grayscale.base};
+      }
     }
     & > span {
       position: relative;
