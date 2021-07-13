@@ -25,8 +25,8 @@ maintainers:
 version: 0.3.5
 dependencies:
 - name: postgresql
-  version: 8.1.4
-  repository: https://charts.helm.sh/stable/
+  version: 10.2.0
+  repository: https://charts.bitnami.com/bitnami
   condition: postgresql.enabled
 - name: redis
   version: 12.3.3
