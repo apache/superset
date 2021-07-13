@@ -40,6 +40,7 @@ from sqlalchemy.types import String, TypeEngine
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetException
+from superset.models.sql_lab import Query
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
 
@@ -296,3 +297,38 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         return super().get_column_spec(
             native_type, column_type_mappings=column_type_mappings
         )
+
+    @classmethod
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
+        """
+        Get Postgres PID that will be used to cancel all other running
+        queries in the same session.
+
+        :param cursor: Cursor instance in which the query will be executed
+        :param query: Query instance
+        :return: Postgres PID
+        """
+        cursor.execute("SELECT pg_backend_pid()")
+        row = cursor.fetchone()
+        return row[0]
+
+    @classmethod
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
+        """
+        Cancel query in the underlying database.
+
+        :param cursor: New cursor instance to the db of the query
+        :param query: Query instance
+        :param cancel_query_id: Postgres PID
+        :return: True if query cancelled successfully, False otherwise
+        """
+        try:
+            cursor.execute(
+                "SELECT pg_terminate_backend(pid) "
+                "FROM pg_stat_activity "
+                f"WHERE pid='{cancel_query_id}'"
+            )
+        except Exception:  # pylint: disable=broad-except
+            return False
+
+        return True

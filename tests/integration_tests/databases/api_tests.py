@@ -177,6 +177,7 @@ class TestDatabaseApi(SupersetTestCase):
             "database_name",
             "explore_database_id",
             "expose_in_sqllab",
+            "extra",
             "force_ctas_schema",
             "id",
         ]
