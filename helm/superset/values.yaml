@@ -88,7 +88,7 @@ extraSecrets: {}
 # A dictionary of overrides to append at the end of superset_config.py - the name does not matter
 # WARNING: the order is not guaranteed
 configOverrides:
-     fareye_config: |
+     fareye_config: |-
          FEATURE_FLAGS = { 'ENABLE_TEMPLATE_PROCESSING': True }
          ENABLE_SCHEDULED_EMAIL_REPORTS = True
          ENABLE_ALERTS = True
@@ -103,8 +103,8 @@ configOverrides:
          EMAIL_REPORTS_USER = 'admin'
          SESSION_COOKIE_SECURE = True
          SESSION_COOKIE_SAMESITE = "None"
-         MOBI_SECRET_KEY=testkey
-         MOBI_SECRET_KEY_OLD=testkey256length
+         MOBI_SECRET_KEY= "testkey"
+         MOBI_SECRET_KEY_OLD= "testkey256length"
   #  extend_timeout: |
   #    # Extend timeout to allow long running queries.
   #    SUPERSET_WEBSERVER_TIMEOUT = ...

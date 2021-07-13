@@ -31,7 +31,7 @@ jobs:
           ECR_REPOSITORY: superset
           IMAGE_TAG: ${{ env.RELEASE_VERSION }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker build --target dev  -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
       - name: Logout of Amazon ECR
         if: always()
