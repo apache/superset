@@ -453,6 +453,7 @@ superset load-examples
 # Note that your page may not have CSS at this point.
 # See instructions below how to build the front-end assets.
 FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
+```
 
 Or you can install via our Makefile
 
@@ -476,6 +477,17 @@ via `.flaskenv`, however if needed, it should be set to `superset.app:create_app
 
 If you have made changes to the FAB-managed templates, which are not built the same way as the newer, React-powered front-end assets, you need to start the app without the `--with-threads` argument like so:
 `FLASK_ENV=development superset run -p 8088 --reload --debugger`
+
+#### Dependencies
+
+If you add a new requirement or update an existing requirement (per the `install_requires` section in `setup.py`) you must recompile (freeze) the Python dependencies to ensure that for CI, testing, etc. the build is deterministic. This can be achieved via,
+
+```bash
+$ python3 -m venv venv
+$ source venv/bin/activate
+$ python3 -m pip install -r requirements/integration.txt
+$ pip-compile-multi --no-upgrade
+```
 
 #### Logging to the browser console
 
