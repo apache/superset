@@ -23,7 +23,7 @@ describe('Dashboard edit mode', () => {
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
     cy.get('[data-test="dashboard-header"]')
-      .find('[data-test=edit-alt]')
+      .find('[aria-label=edit-alt]')
       .click();
   });
 
