@@ -19,13 +19,8 @@
 
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import { Provider } from 'react-redux';
 import userEvent from '@testing-library/user-event';
-import {
-  getMockStore,
-  mockStore,
-  stateWithoutNativeFilters,
-} from 'spec/fixtures/mockStore';
+import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import * as mockCore from '@superset-ui/core';
 import { testWithId } from 'src/utils/testUtils';
 import { FeatureFlag } from 'src/featureFlags';
@@ -224,11 +219,11 @@ describe('FilterBar', () => {
   });
 
   const renderWrapper = (props = closedBarProps, state?: object) =>
-    render(
-      <Provider store={state ? getMockStore(state) : mockStore}>
-        <FilterBar {...props} width={280} height={400} offset={0} />
-      </Provider>,
-    );
+    render(<FilterBar {...props} width={280} height={400} offset={0} />, {
+      useRedux: true,
+      initialState: state,
+      useRouter: true,
+    });
 
   it('should render', () => {
     const { container } = renderWrapper();
@@ -258,13 +253,6 @@ describe('FilterBar', () => {
   it('should render the filter icon', () => {
     renderWrapper();
     expect(screen.getByRole('img', { name: 'filter' })).toBeInTheDocument();
-  });
-
-  it('should render the filter control name', async () => {
-    renderWrapper();
-    expect(
-      await screen.findByText('test', {}, { timeout: 2000 }),
-    ).toBeInTheDocument();
   });
 
   it('should toggle', () => {
