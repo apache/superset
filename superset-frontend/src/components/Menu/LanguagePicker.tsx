@@ -19,7 +19,7 @@
 import React from 'react';
 import { MainNav as Menu } from 'src/common/components';
 import { styled } from '@superset-ui/core';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 
 const { SubMenu } = Menu;
 
@@ -66,7 +66,7 @@ export default function LanguagePicker(props: LanguagePickerProps) {
           <StyledFlag className={`flag ${languages[locale].flag}`} />
         </div>
       }
-      icon={<Icon name="triangle-down" />}
+      icon={<Icons.TriangleDown />}
       {...rest}
     >
       {Object.keys(languages).map(langKey => (

@@ -24,7 +24,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { MainNav as DropdownMenu, MenuMode } from 'src/common/components';
 import { Link } from 'react-router-dom';
 import { Row, Col, Grid } from 'antd';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import RightMenu from './MenuRight';
 import { Languages } from './LanguagePicker';
 import { URL_PARAMS } from '../../constants';
@@ -189,7 +189,11 @@ export function Menu({
       );
     }
     return (
-      <SubMenu key={index} title={label} icon={<Icon name="triangle-down" />}>
+      <SubMenu
+        key={index}
+        title={label}
+        icon={showMenu === 'inline' ? <></> : <Icons.TriangleDown />}
+      >
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
           if (typeof child === 'string' && child === '-') {
             return <DropdownMenu.Divider key={`$${index1}`} />;
