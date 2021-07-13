@@ -143,7 +143,8 @@ RUN wget https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_
 RUN wget https://download-installer.cdn.mozilla.net/pub/firefox/releases/${FIREFOX_VERSION}/linux-x86_64/en-US/firefox-${FIREFOX_VERSION}.tar.bz2 -O /opt/firefox.tar.bz2 && \
     tar xvf /opt/firefox.tar.bz2 -C /opt && \
     ln -s /opt/firefox/firefox /usr/local/bin/firefox
-
+RUN wget https://databricks.com/wp-content/uploads/drivers-2020/SimbaSparkODBC-2.6.16.1019-Debian-64bit.zip && unzip SimbaSparkODBC-2.6.16.1019-Debian-64bit.zip &&  apt install -y -f ./SimbaSparkODBC-2.6.16.1019-Debian-64bit/simbaspark_2.6.16.1019-2_amd64.deb
+RUN apt-get install -y unixodbc-dev
 # Cache everything for dev purposes...
 RUN cd /app \
     && pip install --no-cache -r requirements/docker.txt \
