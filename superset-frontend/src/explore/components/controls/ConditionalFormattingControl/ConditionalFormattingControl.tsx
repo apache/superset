@@ -135,7 +135,7 @@ const FormattingPopoverContent = ({
               name="column"
               label={t('Column')}
               rules={[{ required: true, message: t('Required') }]}
-              initialValue={columns[0].value}
+              initialValue={columns[0]?.value}
             >
               <Select ariaLabel={t('Select column')} options={columns} />
             </FormItem>
