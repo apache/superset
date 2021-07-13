@@ -128,7 +128,6 @@ const FormattingPopoverContent = ({
         initialValues={config}
         requiredMark="optional"
         layout="vertical"
-        validateTrigger="onBlur"
       >
         <Row gutter={12}>
           <Col span={12}>
@@ -157,7 +156,10 @@ const FormattingPopoverContent = ({
         </Row>
         <FormItem
           noStyle
-          shouldUpdate={(prevValues, currentValues) =>
+          shouldUpdate={(
+            prevValues: ConditionalFormattingConfig,
+            currentValues: ConditionalFormattingConfig,
+          ) =>
             isOperatorMultiValue(prevValues.operator) !==
             isOperatorMultiValue(currentValues.operator)
           }
@@ -171,27 +173,28 @@ const FormattingPopoverContent = ({
                     label={t('Left value')}
                     rules={[
                       { required: true, message: t('Required') },
-                      // ({ getFieldValue }) => ({
-                      //   validator(_, value) {
-                      //     if (
-                      //       !value ||
-                      //       !getFieldValue('targetValueRight') ||
-                      //       getFieldValue('targetValueRight') > value
-                      //     ) {
-                      //       return Promise.resolve();
-                      //     }
-                      //     return Promise.reject(
-                      //       new Error(
-                      //         t(
-                      //           'This value should be smaller than the right target value',
-                      //         ),
-                      //       ),
-                      //     );
-                      //   },
-                      // }),
+                      ({ getFieldValue }) => ({
+                        validator(_, value) {
+                          if (
+                            !value ||
+                            !getFieldValue('targetValueRight') ||
+                            getFieldValue('targetValueRight') > value
+                          ) {
+                            return Promise.resolve();
+                          }
+                          return Promise.reject(
+                            new Error(
+                              t(
+                                'This value should be smaller than the right target value',
+                              ),
+                            ),
+                          );
+                        },
+                      }),
                     ]}
                     dependencies={['targetValueRight']}
                     validateTrigger="onBlur"
+                    trigger="onBlur"
                   >
                     <FullWidthInputNumber />
                   </FormItem>
@@ -203,27 +206,28 @@ const FormattingPopoverContent = ({
                     label={t('Right value')}
                     rules={[
                       { required: true, message: t('Required') },
-                      // ({ getFieldValue }) => ({
-                      //   validator(_, value) {
-                      //     if (
-                      //       !value ||
-                      //       !getFieldValue('targetValueLeft') ||
-                      //       getFieldValue('targetValueLeft') < value
-                      //     ) {
-                      //       return Promise.resolve();
-                      //     }
-                      //     return Promise.reject(
-                      //       new Error(
-                      //         t(
-                      //           'This value should be greater than the left target value',
-                      //         ),
-                      //       ),
-                      //     );
-                      //   },
-                      // }),
+                      ({ getFieldValue }) => ({
+                        validator(_, value) {
+                          if (
+                            !value ||
+                            !getFieldValue('targetValueLeft') ||
+                            getFieldValue('targetValueLeft') < value
+                          ) {
+                            return Promise.resolve();
+                          }
+                          return Promise.reject(
+                            new Error(
+                              t(
+                                'This value should be greater than the left target value',
+                              ),
+                            ),
+                          );
+                        },
+                      }),
                     ]}
                     dependencies={['targetValueLeft']}
                     validateTrigger="onBlur"
+                    trigger="onBlur"
                   >
                     <FullWidthInputNumber />
                   </FormItem>
