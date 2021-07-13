@@ -94,7 +94,6 @@ const QueryTable = props => {
       },
     },
     scheduled: {
-      color: ({ theme }) => theme.colors.greyscale.base,
       config: {
         icon: <Icons.Queued iconColor={theme.colors.grayscale.base} />,
         label: t('Scheduled'),
