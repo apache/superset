@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FormEvent, useState } from 'react';
+import React, { FormEvent, useState, Dispatch, SetStateAction } from 'react';
 import { SupersetTheme, JsonObject, t } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
 import { Switch, Select, Button } from 'src/common/components';
@@ -67,7 +67,7 @@ interface FieldPropTypes {
   sslForced?: boolean;
   defaultDBName?: string;
   editNewDb?: boolean;
-  setPublicSheets: (value: string) => void;
+  setPublic: Dispatch<SetStateAction<boolean>>;
   isPublic?: boolean;
 }
 
@@ -84,7 +84,6 @@ const CredentialsInfo = ({
   const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
     null,
   );
-  console.log('in credentials', isPublic);
   return (
     <CredentialInfoForm>
       {!isEditMode && db?.engine === 'bigquery' && (
@@ -199,11 +198,47 @@ const CredentialsInfo = ({
 };
 
 const TableCatalog = ({
+  required,
   changeMethods,
   isEditMode,
+  getValidation,
   db,
   editNewDb,
-}: FieldPropTypes) => <>hello! {db?.engine}</>;
+  validationErrors,
+}: FieldPropTypes) => {
+  const [tableCatalog, setTableCatalog] = useState<Record<string, string>>(
+    db?.parameters?.table_catalog || {},
+  );
+  return (
+    <div>
+      {Object.keys(tableCatalog).map(field => (
+        <>
+          <ValidatedInput
+            id="table_catalog_name"
+            name="table_catalog_name"
+            required={required}
+            value={field}
+            validationMethods={{ onBlur: getValidation }}
+            errorMessage={validationErrors?.table_catalog}
+            placeholder="Create a name for this sheet"
+            label="Google Sheet name and url"
+            onChange={changeMethods.onParametersChange}
+          />
+          <ValidatedInput
+            id="table_catalog_value"
+            name="table_catalog_value"
+            required={required}
+            value={tableCatalog[field]}
+            validationMethods={{ onBlur: getValidation }}
+            errorMessage={validationErrors?.table_catalog}
+            placeholder="Paste the shareable Google Sheet URL here"
+            onChange={changeMethods.onParametersChange}
+          />
+        </>
+      ))}
+    </div>
+  );
+};
 
 const hostField = ({
   required,
@@ -312,48 +347,56 @@ const passwordField = ({
     onChange={changeMethods.onParametersChange}
   />
 );
-const displayField = ({
+const DisplayField = ({
   changeMethods,
   getValidation,
   validationErrors,
   db,
-  setPublicSheets,
-}: FieldPropTypes) => (
-  <>
-    <ValidatedInput
-      id="database_name"
-      name="database_name"
-      required
-      value={db?.database_name}
-      validationMethods={{ onBlur: getValidation }}
-      errorMessage={validationErrors?.database_name}
-      placeholder=""
-      label="Display Name"
-      onChange={changeMethods.onChange}
-      helpText={t(
-        'Pick a nickname for this database to display as in Superset.',
-      )}
-    />
+  setPublic,
+}: FieldPropTypes) => {
+  const setBooleanToString = (value: string): boolean => {
+    if (value === 'true') {
+      return true;
+    }
+    return false;
+  };
+  return (
+    <>
+      <ValidatedInput
+        id="database_name"
+        name="database_name"
+        required
+        value={db?.database_name}
+        validationMethods={{ onBlur: getValidation }}
+        errorMessage={validationErrors?.database_name}
+        placeholder=""
+        label="Display Name"
+        onChange={changeMethods.onChange}
+        helpText={t(
+          'Pick a nickname for this database to display as in Superset.',
+        )}
+      />
 
-    {db?.engine === 'gsheets' && (
-      <>
-        <FormLabel required>{t('Type of Google Sheets Allowed')}</FormLabel>
-        <Select
-          style={{ width: '100%' }}
-          onChange={(value: string) => setPublicSheets(value)}
-          defaultValue="true"
-        >
-          <Select.Option value="true" key={1}>
-            Publicly shared sheets only
-          </Select.Option>
-          <Select.Option value="false" key={2}>
-            Public and privately shared sheets
-          </Select.Option>
-        </Select>
-      </>
-    )}
-  </>
-);
+      {db?.engine === 'gsheets' && (
+        <>
+          <FormLabel required>{t('Type of Google Sheets Allowed')}</FormLabel>
+          <Select
+            style={{ width: '100%' }}
+            onChange={(value: string) => setPublic(setBooleanToString(value))}
+            defaultValue="true"
+          >
+            <Select.Option value="true" key={1}>
+              Publicly shared sheets only
+            </Select.Option>
+            <Select.Option value="false" key={2}>
+              Public and privately shared sheets
+            </Select.Option>
+          </Select>
+        </>
+      )}
+    </>
+  );
+};
 
 const queryField = ({
   required,
@@ -412,7 +455,7 @@ const FORM_FIELD_MAP = {
   database: databaseField,
   username: usernameField,
   password: passwordField,
-  database_name: displayField,
+  database_name: DisplayField,
   query: queryField,
   encryption: forceSSLField,
   credentials_info: CredentialsInfo,
@@ -430,14 +473,14 @@ const DatabaseConnectionForm = ({
   isEditMode = false,
   sslForced,
   editNewDb,
-  setPublicSheets,
+  setPublic,
   isPublic,
 }: {
   isEditMode?: boolean;
   sslForced: boolean;
   editNewDb?: boolean;
   isPublic?: boolean;
-  setPublicSheets: (value: string) => void;
+  setPublic: Dispatch<SetStateAction<boolean>>;
   dbModel: DatabaseForm;
   db: Partial<DatabaseObject> | null;
   onParametersChange: (
@@ -480,7 +523,7 @@ const DatabaseConnectionForm = ({
             isEditMode,
             sslForced,
             editNewDb,
-            setPublicSheets,
+            setPublic,
             isPublic,
           }),
         )}

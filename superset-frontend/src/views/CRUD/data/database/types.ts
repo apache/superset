@@ -40,6 +40,7 @@ export type DatabaseObject = {
     encryption?: boolean;
     credentials_info?: string;
     query?: string | object;
+    table_catalog?: Record<string, string>;
   };
   configuration_method: CONFIGURATION_METHOD;
   engine?: string;

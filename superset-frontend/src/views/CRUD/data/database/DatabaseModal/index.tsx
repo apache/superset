@@ -361,7 +361,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     t('database'),
     addDangerToast,
   );
-  console.log(isPublic);
   const isDynamic = (engine: string | undefined) =>
     availableDbs?.databases.filter(
       (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
@@ -528,14 +527,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           ),
         );
       }
-    }
-  };
-
-  const setPublicSheets = (value: string) => {
-    if (value === 'true') {
-      setPublic(true);
-    } else {
-      setPublic(false);
     }
   };
 
@@ -809,10 +800,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     return (
       <DatabaseConnectionForm
         isPublic={isPublic}
+        setPublic={setPublic}
         isEditMode
         sslForced={sslForced}
         dbModel={dbModel}
-        setPublicSheets={setPublicSheets}
         db={db as DatabaseObject}
         onParametersChange={({ target }: { target: HTMLInputElement }) =>
           onChange(ActionType.parametersChange, {
@@ -924,7 +915,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <DatabaseConnectionForm
               isEditMode
               isPublic={isPublic}
-              setPublicSheets={setPublicSheets}
+              setPublic={setPublic}
               sslForced={sslForced}
               dbModel={dbModel}
               db={db as DatabaseObject}
@@ -1084,7 +1075,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 <DatabaseConnectionForm
                   isPublic={isPublic}
                   db={db}
-                  setPublicSheets={setPublicSheets}
+                  setPublic={setPublic}
                   sslForced={sslForced}
                   dbModel={dbModel}
                   onParametersChange={({
