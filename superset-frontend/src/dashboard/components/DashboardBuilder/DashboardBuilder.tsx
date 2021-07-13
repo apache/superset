@@ -76,6 +76,7 @@ const FiltersPanel = styled.div`
 `;
 
 const StickyPanel = styled.div<{ width: number }>`
+  height: 100%;
   position: sticky;
   top: -1px;
   width: ${({ width }) => width}px;
