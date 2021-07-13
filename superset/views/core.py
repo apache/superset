@@ -44,6 +44,7 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError, DBAPIError, NoSuchModuleError, SQLAlchemyError
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import functions as func
+from superset.views import base
 from werkzeug.urls import Href
 
 from superset import (
@@ -838,7 +839,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         except (SupersetException, SQLAlchemyError):
             datasource_data = dummy_datasource_data
 
-        bootstrap_data = {
+        bootstrap_data = base.getUserInfo()
+        bootstrap_data = json.dumps(bootstrap_data, {
             "can_add": slice_add_perm,
             "can_download": slice_download_perm,
             "can_overwrite": slice_overwrite_perm,
@@ -849,10 +851,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "slice": slc.data if slc else None,
             "standalone": standalone_mode,
             "user_id": user_id,
-            "user": bootstrap_user_data(g.user, include_perms=True),
-            "forced_height": request.args.get("height"),
-            "common": common_bootstrap_payload(),
-        }
+            "forced_height": request.args.get("height")
+        })
         if slc:
             title = slc.slice_name
         elif datasource:
@@ -1905,10 +1905,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             edit_mode=edit_mode,
         )
 
-        bootstrap_data = {
-            "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(),
-        }
+        bootstrap_data = base.getUserInfo()
 
         return self.render_template(
             "superset/spa.html",

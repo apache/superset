@@ -287,10 +287,7 @@ class BaseSupersetView(BaseView):
         )
 
     def render_app_template(self) -> FlaskResponse:
-        payload = {
-            "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(),
-        }
+        payload = getUserInfo()
         return self.render_template(
             "superset/spa.html",
             entry="spa",
@@ -681,3 +678,9 @@ def apply_http_headers(response: Response) -> Response:
         if k not in response.headers:
             response.headers[k] = v
     return response
+
+def getUserInfo(include_perms=True):
+    return {
+            "user": bootstrap_user_data(g.user, include_perms),
+            "common": common_bootstrap_payload(),
+        }
