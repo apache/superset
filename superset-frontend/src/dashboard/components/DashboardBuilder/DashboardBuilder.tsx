@@ -72,6 +72,7 @@ const StyledDiv = styled.div`
 const FiltersPanel = styled.div`
   grid-column: 1;
   grid-row: 1 / span 2;
+  min-height: 100vh;
   z-index: 2;
 `;
 
