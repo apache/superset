@@ -475,6 +475,7 @@ EXTRA_SEQUENTIAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
 # Also used by Alerts & Reports
+# THUMBNAIL_SELENIUM_USER is also used by cache warm-up
 # ---------------------------------------------------
 THUMBNAIL_SELENIUM_USER = "admin"
 THUMBNAIL_CACHE_CONFIG: CacheConfig = {
