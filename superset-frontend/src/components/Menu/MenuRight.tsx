@@ -71,7 +71,7 @@ const StyledAnchor = styled.a`
 
 const WaterMark = styled.span`
   font-size: 13px;
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: #B0B4C3;
   margin: 0 ${({ theme }) => theme.gridUnit * 4}px;
   @media (max-width: 1070px) {
     display: none;

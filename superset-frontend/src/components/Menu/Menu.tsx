@@ -114,7 +114,7 @@ const StyledHeader = styled.header`
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    @media (max-width: 1070px) {
+    @media (max-width: 1127px) {
       display: none;
     }
   }
