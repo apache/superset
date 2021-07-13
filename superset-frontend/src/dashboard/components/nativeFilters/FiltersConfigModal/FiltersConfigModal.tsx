@@ -164,6 +164,15 @@ export function FiltersConfigModal({
     addFilter,
   );
 
+  // After this, it should be as if the modal was just opened fresh.
+  // Called when the modal is closed.
+  const resetForm = () => {
+    setNewFilterIds([]);
+    setCurrentFilterId(initialCurrentFilterId);
+    setRemovedFilters({});
+    setSaveAlertVisible(false);
+  };
+
   const getFilterTitle = (id: string) =>
     formValues.filters[id]?.name ??
     filterConfigMap[id]?.name ??
@@ -208,6 +217,7 @@ export function FiltersConfigModal({
   };
 
   const handleConfirmCancel = () => {
+    resetForm();
     onCancel();
   };
 
