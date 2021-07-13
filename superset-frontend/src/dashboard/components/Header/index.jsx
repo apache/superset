@@ -53,6 +53,7 @@ const propTypes = {
   addDangerToast: PropTypes.func.isRequired,
   addWarningToast: PropTypes.func.isRequired,
   userId: PropTypes.number,
+  userEmail: PropTypes.string,
   dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
   dataMask: PropTypes.object.isRequired,
@@ -136,7 +137,6 @@ class Header extends React.PureComponent {
       didNotifyMaxUndoHistoryToast: false,
       emphasizeUndo: false,
       showingPropertiesModal: false,
-      /* ---------- 🚧 UNDER CONSTRUCTION 🚧 ---------- */
       showingReportModal: false,
     };
 
@@ -149,7 +149,6 @@ class Header extends React.PureComponent {
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
     this.showPropertiesModal = this.showPropertiesModal.bind(this);
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
-    /* ---------- 🚧 UNDER CONSTRUCTION 🚧 ---------- */
     this.showReportModal = this.showReportModal.bind(this);
     this.hideReportModal = this.hideReportModal.bind(this);
   }
@@ -354,7 +353,6 @@ class Header extends React.PureComponent {
     this.setState({ showingPropertiesModal: false });
   }
 
-  /* ---------- 🚧 UNDER CONSTRUCTION 🚧 ---------- */
   showReportModal() {
     this.setState({ showingReportModal: true });
   }
@@ -383,6 +381,7 @@ class Header extends React.PureComponent {
       editMode,
       isPublished,
       userId,
+      userEmail,
       dashboardInfo,
       hasUnsavedChanges,
       isLoading,
@@ -511,7 +510,6 @@ class Header extends React.PureComponent {
             </>
           )}
 
-          {/* ---------- 🚧 UNDER CONSTRUCTION 🚧 ---------- */}
           {!editMode && (
             <>
               <span
@@ -521,7 +519,7 @@ class Header extends React.PureComponent {
                 className="action-button"
                 onClick={this.showReportModal}
               >
-                <Icon name="copy" />
+                <Icon name="calendar" />
               </span>
             </>
           )}
@@ -554,11 +552,15 @@ class Header extends React.PureComponent {
             />
           )}
 
-          {/* ---------- 🚧 UNDER CONSTRUCTION 🚧 ---------- */}
           {this.state.showingReportModal && (
             <ReportModal
               show={this.state.showingReportModal}
               onHide={this.hideReportModal}
+              props={{
+                userId,
+                userEmail,
+                dashboardId: dashboardInfo.id,
+              }}
             />
           )}
 

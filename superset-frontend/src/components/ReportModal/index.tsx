@@ -16,56 +16,83 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent } from 'react';
+import React, {
+  useState,
+  useCallback,
+  useReducer,
+  Reducer,
+  FunctionComponent,
+} from 'react';
 import { styled, t } from '@superset-ui/core';
 
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import Icons from 'src/components/Icons';
-import Button from 'src/components/Button';
 import Modal from 'src/components/Modal';
+import { CronPicker, CronError } from 'src/components/CronPicker';
 
-export interface ReportModalProps {
+interface ReportProps {
+  onHide: () => {};
+  show: boolean;
+  props: any;
+}
+
+interface ReportObject {
   active: boolean;
   crontab: string;
   dashboard: number;
   description?: string;
   log_retention: number;
   name: string;
-  owners: string;
+  owners: number[];
   recipients: [{ recipient_config_json: { target: string }; type: string }];
   report_format: string;
   type: string;
   validator_config_json: {} | null;
   validator_type: string;
   working_timeout: number;
-  onHide: () => {};
-  show: boolean;
 }
 
-/*
-Using this on both Charts and Dashboard
-dashboard will pass in all the information
-OnEdit - fetch on dashboard page
-OnSave will be passed in as well
-Reducer will live on the dashboard
-Go ahead and put in the dashboard, hide button except locally
-
-{
-  active: true (always true)
-  crontab: "0 * * * *” (set by UI)
-  dashboard: 1 (id of dashboard)
-  description: "Here's a description” (optional and set by user)
-  log_retention: 90 (always 90)
-  name: "test api” (required and set by user. Ask Sophie about a default value)
-  owners: [1] (array containing the id of the user from redux)
-  recipients: [{recipient_config_json: {target: "elizabeth@preset.io"}, type: "Email”}] (take email address from redux and keep this json structure)
-  report_format: “PNG” (always send this value)
-  type: “Report" (always send this value)
-  validator_config_json: {} (we can try deleting or sending null, but this will always be blank or {}
-  validator_type: “operator"  (always send this value)
-  working_timeout: 3600
+enum ActionType {
+  textChange,
+  inputChange,
+  fetched,
 }
-*/
+
+interface ReportPayloadType {
+  name: string;
+  description: string;
+  crontab: string;
+  value: string;
+}
+
+type ReportActionType =
+  | {
+      type: ActionType.textChange | ActionType.inputChange;
+      payload: ReportPayloadType;
+    }
+  | {
+      type: ActionType.fetched;
+      payload: Partial<ReportObject>;
+    };
+
+const reportReducer = (
+  state: Partial<ReportObject> | null,
+  action: ReportActionType,
+): Partial<ReportObject> | null => {
+  const trimmedState = {
+    ...(state || {}),
+  };
+
+  switch (action.type) {
+    case ActionType.textChange:
+      return {
+        ...trimmedState,
+        [action.payload.name]: action.payload.value,
+      };
+    default:
+      return state;
+  }
+};
 
 const StyledIconWrapper = styled.span`
   span {
@@ -77,56 +104,79 @@ const StyledIconWrapper = styled.span`
   }
 `;
 
-const ReportModal: FunctionComponent<ReportModalProps> = ({
-  active,
-  crontab,
-  dashboard,
-  description,
-  log_retention,
-  name,
-  owners,
-  recipients,
-  report_format,
-  type,
-  validator_config_json,
-  validator_type,
-  working_timeout,
+const ReportModal: FunctionComponent<ReportProps> = ({
   show = false,
   onHide,
+  props,
 }) => {
+  const [currentReport, setCurrentReport] = useReducer<
+    Reducer<Partial<ReportObject> | null, ReportActionType>
+  >(reportReducer, null);
+  const onChange = useCallback((type: any, payload: any) => {
+    setCurrentReport({ type, payload } as ReportActionType);
+  }, []);
+  const [error, setError] = useState<CronError>();
+
   const wrappedTitle = (
     <StyledIconWrapper>
-      <Icons.EditAlt />
-      <span className="text">{t('Edit Email Report')}</span>
+      <Icons.Calendar />
+      <span className="text">{t('New Email Report')}</span>
     </StyledIconWrapper>
   );
 
   return (
     <Modal show={show} onHide={onHide} title={wrappedTitle}>
-      {/* 🚧 - Unsure of:
-        validationMethods,
-        errorMessage
-       */}
       <LabeledErrorBoundInput
         id="name"
         name="name"
-        value={name}
+        value={currentReport?.name || 'Weekly Report'}
         required
-        validationMethods={{ onChange: () => {} }}
-        errorMessage={name === 'error' ? t('REPORT NAME ERROR') : ''}
+        validationMethods={{
+          onChange: ({ target }: { target: HTMLInputElement }) =>
+            onChange(ActionType.textChange, {
+              name: target.name,
+              value: target.value,
+            }),
+        }}
+        errorMessage={
+          currentReport?.name === 'error' ? t('REPORT NAME ERROR') : ''
+        }
         label="Report Name"
       />
+
       <LabeledErrorBoundInput
         id="description"
         name="description"
-        value={description}
-        validationMethods={{ onChange: () => {} }}
-        errorMessage={name === 'error' ? t('DESCRIPTION ERROR') : ''}
+        value={currentReport?.description || ''}
+        validationMethods={{
+          onChange: ({ target }: { target: HTMLInputElement }) =>
+            onChange(ActionType.textChange, {
+              name: target.name,
+              value: target.value,
+            }),
+        }}
+        errorMessage={
+          currentReport?.description === 'error' ? t('DESCRIPTION ERROR') : ''
+        }
         label="Description"
         placeholder="Include a description that will be sent with your report"
       />
+
       <h1>Schedule</h1>
       <p>Scheduled reports will be sent to your email as a PNG</p>
+
+      <CronPicker
+        clearButton={false}
+        value={currentReport?.crontab || ''}
+        setValue={(newValue: string) => {
+          onChange(ActionType.textChange, {
+            name: 'crontab',
+            value: newValue,
+          });
+        }}
+        onError={setError}
+      />
+      <p>{error}</p>
     </Modal>
   );
 };
