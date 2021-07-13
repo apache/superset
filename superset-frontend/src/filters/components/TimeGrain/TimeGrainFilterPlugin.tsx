@@ -79,14 +79,14 @@ export default function PluginFilterTimegrain(
   };
 
   useEffect(() => {
-    handleChange(filterState.value ?? []);
-  }, [JSON.stringify(filterState.value)]);
-
-  useEffect(() => {
     handleChange(defaultValue ?? []);
     // I think after Config Modal update some filter it re-creates default value for all other filters
     // so we can process it like this `JSON.stringify` or start to use `Immer`
   }, [JSON.stringify(defaultValue)]);
+
+  useEffect(() => {
+    handleChange(filterState.value ?? []);
+  }, [JSON.stringify(filterState.value)]);
 
   const placeholderText =
     (data || []).length === 0

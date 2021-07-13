@@ -91,7 +91,7 @@ describe('getChartIdsFromLayout', () => {
       },
     });
     expect(urlWithNativeFilters).toBe(
-      'path?preselect_filters=%7B%7D&native_filters=%28NATIVE_FILTER-bar456%3A%21n%2CNATIVE_FILTER-foo123%3A%21%28a%2Cb%29%29',
+      'path?preselect_filters=%7B%7D&native_filters=%28NATIVE_FILTER-bar456%3A%28filterState%3A%28value%3A%21n%29%29%2CNATIVE_FILTER-foo123%3A%28filterState%3A%28label%3A%27custom+label%27%2Cvalue%3A%21%28a%2Cb%29%29%29%29',
     );
   });
 });
