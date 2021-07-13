@@ -111,115 +111,113 @@ export const FormattingPopoverContent = ({
   );
 
   return (
-    <div>
-      <Form
-        onFinish={onChange}
-        initialValues={config}
-        requiredMark="optional"
-        layout="vertical"
+    <Form
+      onFinish={onChange}
+      initialValues={config}
+      requiredMark="optional"
+      layout="vertical"
+    >
+      <Row gutter={12}>
+        <Col span={12}>
+          <FormItem
+            name="column"
+            label={t('Column')}
+            rules={[{ required: true, message: t('Required') }]}
+            initialValue={columns[0]?.value}
+          >
+            <Select ariaLabel={t('Select column')} options={columns} />
+          </FormItem>
+        </Col>
+        <Col span={12}>
+          <FormItem
+            name="colorScheme"
+            label={t('Color scheme')}
+            rules={[{ required: true, message: t('Required') }]}
+            initialValue={colorSchemeOptions[0].value}
+          >
+            <Select
+              ariaLabel={t('Color scheme')}
+              options={colorSchemeOptions}
+            />
+          </FormItem>
+        </Col>
+      </Row>
+      <FormItem
+        noStyle
+        shouldUpdate={(
+          prevValues: ConditionalFormattingConfig,
+          currentValues: ConditionalFormattingConfig,
+        ) =>
+          isOperatorMultiValue(prevValues.operator) !==
+          isOperatorMultiValue(currentValues.operator)
+        }
       >
-        <Row gutter={12}>
-          <Col span={12}>
-            <FormItem
-              name="column"
-              label={t('Column')}
-              rules={[{ required: true, message: t('Required') }]}
-              initialValue={columns[0]?.value}
-            >
-              <Select ariaLabel={t('Select column')} options={columns} />
-            </FormItem>
-          </Col>
-          <Col span={12}>
-            <FormItem
-              name="colorScheme"
-              label={t('Color scheme')}
-              rules={[{ required: true, message: t('Required') }]}
-              initialValue={colorSchemeOptions[0].value}
-            >
-              <Select
-                ariaLabel={t('Color scheme')}
-                options={colorSchemeOptions}
-              />
-            </FormItem>
-          </Col>
-        </Row>
-        <FormItem
-          noStyle
-          shouldUpdate={(
-            prevValues: ConditionalFormattingConfig,
-            currentValues: ConditionalFormattingConfig,
-          ) =>
-            isOperatorMultiValue(prevValues.operator) !==
-            isOperatorMultiValue(currentValues.operator)
-          }
-        >
-          {({ getFieldValue }) =>
-            isOperatorMultiValue(getFieldValue('operator')) ? (
-              <Row gutter={12}>
-                <Col span={9}>
-                  <FormItem
-                    name="targetValueLeft"
-                    label={t('Left value')}
-                    rules={[
-                      { required: true, message: t('Required') },
-                      ({ getFieldValue }) => ({
-                        validator: targetValueLeftValidator(
-                          getFieldValue('targetValueRight'),
-                        ),
-                      }),
-                    ]}
-                    dependencies={['targetValueRight']}
-                    validateTrigger="onBlur"
-                    trigger="onBlur"
-                  >
-                    <FullWidthInputNumber />
-                  </FormItem>
-                </Col>
-                <Col span={6}>{operatorField}</Col>
-                <Col span={9}>
-                  <FormItem
-                    name="targetValueRight"
-                    label={t('Right value')}
-                    rules={[
-                      { required: true, message: t('Required') },
-                      ({ getFieldValue }) => ({
-                        validator: targetValueRightValidator(
-                          getFieldValue('targetValueLeft'),
-                        ),
-                      }),
-                    ]}
-                    dependencies={['targetValueLeft']}
-                    validateTrigger="onBlur"
-                    trigger="onBlur"
-                  >
-                    <FullWidthInputNumber />
-                  </FormItem>
-                </Col>
-              </Row>
-            ) : (
-              <Row gutter={12}>
-                <Col span={6}>{operatorField}</Col>
-                <Col span={18}>
-                  <FormItem
-                    name="targetValue"
-                    label={t('Target value')}
-                    rules={[{ required: true, message: t('Required') }]}
-                  >
-                    <FullWidthInputNumber />
-                  </FormItem>
-                </Col>
-              </Row>
-            )
-          }
-        </FormItem>
-        <FormItem>
-          <JustifyEnd>
-            <Button htmlType="submit" buttonStyle="primary">
-              {t('Apply')}
-            </Button>
-          </JustifyEnd>
-        </FormItem>
-      </Form>
-    </div>
+        {({ getFieldValue }) =>
+          isOperatorMultiValue(getFieldValue('operator')) ? (
+            <Row gutter={12}>
+              <Col span={9}>
+                <FormItem
+                  name="targetValueLeft"
+                  label={t('Left value')}
+                  rules={[
+                    { required: true, message: t('Required') },
+                    ({ getFieldValue }) => ({
+                      validator: targetValueLeftValidator(
+                        getFieldValue('targetValueRight'),
+                      ),
+                    }),
+                  ]}
+                  dependencies={['targetValueRight']}
+                  validateTrigger="onBlur"
+                  trigger="onBlur"
+                >
+                  <FullWidthInputNumber />
+                </FormItem>
+              </Col>
+              <Col span={6}>{operatorField}</Col>
+              <Col span={9}>
+                <FormItem
+                  name="targetValueRight"
+                  label={t('Right value')}
+                  rules={[
+                    { required: true, message: t('Required') },
+                    ({ getFieldValue }) => ({
+                      validator: targetValueRightValidator(
+                        getFieldValue('targetValueLeft'),
+                      ),
+                    }),
+                  ]}
+                  dependencies={['targetValueLeft']}
+                  validateTrigger="onBlur"
+                  trigger="onBlur"
+                >
+                  <FullWidthInputNumber />
+                </FormItem>
+              </Col>
+            </Row>
+          ) : (
+            <Row gutter={12}>
+              <Col span={6}>{operatorField}</Col>
+              <Col span={18}>
+                <FormItem
+                  name="targetValue"
+                  label={t('Target value')}
+                  rules={[{ required: true, message: t('Required') }]}
+                >
+                  <FullWidthInputNumber />
+                </FormItem>
+              </Col>
+            </Row>
+          )
+        }
+      </FormItem>
+      <FormItem>
+        <JustifyEnd>
+          <Button htmlType="submit" buttonStyle="primary">
+            {t('Apply')}
+          </Button>
+        </JustifyEnd>
+      </FormItem>
+    </Form>
   );
 };
