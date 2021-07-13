@@ -23,6 +23,7 @@ from sqlalchemy.dialects import postgresql
 from superset.db_engine_specs import get_engine_specs
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.models.sql_lab import Query
 from superset.utils.core import GenericDataType
 from tests.integration_tests.db_engine_specs.base_tests import (
     assert_generic_types,
@@ -442,6 +443,25 @@ psql: error: could not connect to server: Operation timed out
                 },
             )
         ]
+
+    @mock.patch("sqlalchemy.engine.Engine.connect")
+    def test_get_cancel_query_id(self, engine_mock):
+        query = Query()
+        cursor_mock = engine_mock.return_value.__enter__.return_value
+        cursor_mock.fetchone.return_value = [123]
+        assert PostgresEngineSpec.get_cancel_query_id(cursor_mock, query) == 123
+
+    @mock.patch("sqlalchemy.engine.Engine.connect")
+    def test_cancel_query(self, engine_mock):
+        query = Query()
+        cursor_mock = engine_mock.return_value.__enter__.return_value
+        assert PostgresEngineSpec.cancel_query(cursor_mock, query, 123) is True
+
+    @mock.patch("sqlalchemy.engine.Engine.connect")
+    def test_cancel_query_failed(self, engine_mock):
+        query = Query()
+        cursor_mock = engine_mock.raiseError.side_effect = Exception()
+        assert PostgresEngineSpec.cancel_query(cursor_mock, query, 123) is False
 
 
 def test_base_parameters_mixin():
