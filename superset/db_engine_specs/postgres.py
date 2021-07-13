@@ -186,7 +186,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         "postgresql://user:password@host:port/dbname[?key=value&key=value...]"
     )
     # https://www.postgresql.org/docs/9.1/libpq-ssl.html#LIBQ-SSL-CERTIFICATES
-    encryption_parameters = {"sslmode": "verify-ca"}
+    encryption_parameters = {"sslmode": "require"}
 
     max_column_name_length = 63
     try_remove_schema_from_table_name = False
