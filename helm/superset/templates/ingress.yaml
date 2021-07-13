@@ -16,7 +16,8 @@
 #
 {{ if .Values.ingress.enabled -}}
 {{- $fullName := include "superset.fullname" . -}}
-apiVersion: networking.k8s.io/v1
+{{- $ingressPath := .Values.ingress.path -}}
+apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: {{ $fullName }}
@@ -45,12 +46,9 @@ spec:
     - host: {{ . }}
       http:
         paths:
-          - path: {{ $.Values.ingress.path }}
-            pathType: {{ $.Values.ingress.pathType }}
+          - path: {{ $ingressPath }}
             backend:
-              service:
-                name: {{ $fullName }}
-                port:
-                  name: http
+              serviceName: {{ $fullName }}
+              servicePort: http
   {{- end }}
 {{- end }}

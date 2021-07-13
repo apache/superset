@@ -1256,3 +1256,154 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     except Exception:
         logger.exception("Found but failed to import local superset_config")
         raise
+
+
+
+from flask import  request
+import jwt
+from superset.utils import core as utils
+from superset.utils.date_parser import get_since_until
+#key to decrypt jwt token
+MOBI_SECRET_KEY=None
+MOBI_SECRET_KEY_OLD=None
+
+
+def time_filter(default: Optional[str] = None) -> Optional[Any]:
+    form_data = request.form.get("form_data")
+
+    if isinstance(form_data, str):
+        form_data = json.loads(form_data)
+        extra_filters = form_data.get("extra_filters") or {}
+        time_range = [f["val"] for f in extra_filters if f["col"] == "__time_range"]
+        time_range = time_range[0] if time_range else None
+        if time_range is None:
+            time_range = form_data.get("time_range") or None
+        since, until = get_since_until(time_range)
+        time_format = '%Y-%m-%d %H:%M:%S'
+
+        until = until.strftime(time_format)
+        if not since:
+            return '<= \'{}\''.format(until)
+        since = since.strftime(time_format)
+        return 'BETWEEN \'{}\' AND \'{}\''.format(since, until)
+    return default
+
+
+def end_date_filter(default: Optional[str] = None) -> Optional[Any]:
+    form_data = request.form.get("form_data")
+
+    if isinstance(form_data, str):
+        form_data = json.loads(form_data)
+        extra_filters = form_data.get("extra_filters") or {}
+        time_range = [f["val"] for f in extra_filters if f["col"] == "__time_range"]
+        time_range = time_range[0] if time_range else None
+        if time_range is None:
+            time_range = form_data.get("time_range") or None
+        since, until = get_since_until(time_range)
+        time_format = '%Y-%m-%d %H:%M:%S'
+
+        until = until.strftime(time_format)
+        return '\'{}\''.format(until)
+    return default
+
+
+def start_date_filter(default: Optional[str] = None) -> Optional[Any]:
+    form_data = request.form.get("form_data")
+
+    if isinstance(form_data, str):
+        form_data = json.loads(form_data)
+        extra_filters = form_data.get("extra_filters") or {}
+        time_range = [f["val"] for f in extra_filters if f["col"] == "__time_range"]
+        time_range = time_range[0] if time_range else None
+        if time_range is None:
+            time_range = form_data.get("time_range") or None
+        since, until = get_since_until(time_range)
+        time_format = '%Y-%m-%d %H:%M:%S'
+
+        until = until.strftime(time_format)
+        if not since:
+            return '\'{}\''.format(until)
+        since = since.strftime(time_format)
+        return '\'{}\''.format(since)
+    return default
+
+
+def uri_filter(cond="none", default="") -> Optional[Any]:
+
+    if MOBI_SECRET_KEY is None and  MOBI_SECRET_KEY_OLD is None:
+        raise Exception("MOBI_SECRET_KEY or MOBI_SECRET_KEY_OLD is not defined")
+
+    logger.info(cond)
+
+    # fetching form data
+    form_data = request.form.get("form_data")
+
+    #fetching dashboard_id
+    dashboard_id = request.args.get("dashboard_id")
+
+    # returning default value if form is null
+    if form_data is None:
+        return default
+
+    # convrting form_data into json node
+    form_dict = json.loads(form_data)
+    logger.info("form data is:" + form_data)
+
+    # fetching url_params
+    url_params_dict = form_dict.get("url_params")
+    # logger.info(filter_dict)
+
+    # returning default value if url_params is null
+    if url_params_dict is None:
+        return default
+
+
+    #fetching mobi_filter from url_params
+    token=url_params_dict.get("mobi_filter")
+
+    #returning default value if mobi_filter is null
+    if token is None:
+        return default
+
+    #fetching payload from jwt_token
+    try:
+        jwt_payload = jwt.decode(token,MOBI_SECRET_KEY_OLD,algorithms=['HS256'])
+    except:
+        try:
+            jwt_payload = jwt.decode(token,MOBI_SECRET_KEY,algorithms=['HS256'],options={"verify_signature": False})
+        except Exception:
+            logger.exception("Token expired!")
+            raise Exception("Url expired, Please reload!")
+    logger.info("jwt_payload is :", jwt_payload)
+
+    #fetchning mobi filter from payload
+    mobi_filter_dict=jwt_payload.get("params")
+
+    mobi_resource_dict = jwt_payload.get("resource")
+
+    jwt_dashboard_id=str(mobi_resource_dict.get("dashboard"))
+
+    logger.info("url dashboard id:"+dashboard_id)
+    logger.info("jwt dashboard id:"+jwt_dashboard_id)
+
+    if jwt_dashboard_id != dashboard_id:
+        raise Exception("dashboard_id has manipulated")
+
+    if cond not in mobi_filter_dict and cond == 'merchants':
+        default="select merchant_code from process"
+
+    param=mobi_filter_dict.get(cond)
+
+    if param is None or len(param) == 0:
+        return default
+    else:
+        return param
+
+
+JINJA_CONTEXT_ADDONS = {
+    'time_filter': time_filter,
+    'end_date_filter': end_date_filter,
+    'start_date_filter': start_date_filter,
+    'uri_filter': uri_filter
+
+}
