@@ -126,7 +126,7 @@ const CredentialsInfo = ({
           </span>
         </div>
       ) : (
-        db?.engine !== 'gsheets' && (
+        db?.engine === 'bigquery' && (
           <div
             className="input-container"
             css={(theme: SupersetTheme) => infoTooltip(theme)}

@@ -1073,9 +1073,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   </StyledAlertMargin>
                 )}
                 <DatabaseConnectionForm
-                  isPublic={isPublic}
                   db={db}
                   setPublic={setPublic}
+                  isPublic={isPublic}
                   sslForced={sslForced}
                   dbModel={dbModel}
                   onParametersChange={({
