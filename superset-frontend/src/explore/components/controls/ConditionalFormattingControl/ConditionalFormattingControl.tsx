@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { styled, css, t, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -85,7 +85,8 @@ const ConditionalFormattingControl = ({
     }
   }, [conditionalFormattingConfigs, onChange]);
 
-  useComponentDidUpdate(() => {
+  // remove formatter when corresponding column is removed from controls
+  const removeFormattersWhenColumnsChange = useCallback(() => {
     const newFormattingConfigs = conditionalFormattingConfigs.filter(config =>
       columnOptions.some(option => option?.value === config?.column),
     );
@@ -96,7 +97,8 @@ const ConditionalFormattingControl = ({
       setConditionalFormattingConfigs(newFormattingConfigs);
       onChange(newFormattingConfigs);
     }
-  }, [columnOptions]);
+  }, [JSON.stringify(columnOptions)]);
+  useComponentDidUpdate(removeFormattersWhenColumnsChange);
 
   const onDelete = (index: number) => {
     setConditionalFormattingConfigs(prevConfigs =>
