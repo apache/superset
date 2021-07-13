@@ -42,7 +42,7 @@ const StyledImage = styled.div`
   margin: ${({ theme }) => theme.gridUnit * 3}px 0;
 
   .default-db-icon {
-    font-size: ${({ theme }) => theme.gridUnit * 9}px;
+    font-size: 36px;
     color: ${({ theme }) => theme.colors.grayscale.base};
     margin-right: 0;
     span:first-of-type {
