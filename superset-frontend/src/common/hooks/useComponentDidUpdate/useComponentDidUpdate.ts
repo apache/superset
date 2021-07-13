@@ -19,7 +19,10 @@
 
 import { EffectCallback, useEffect, useRef } from 'react';
 
-export const useComponentDidUpdate = (effect: EffectCallback) => {
+export const useComponentDidUpdate = (
+  effect: EffectCallback,
+  dependencies: any[] = [],
+) => {
   const isMountedRef = useRef(false);
   useEffect(() => {
     if (isMountedRef.current) {
@@ -27,5 +30,5 @@ export const useComponentDidUpdate = (effect: EffectCallback) => {
     } else {
       isMountedRef.current = true;
     }
-  }, [effect]);
+  }, dependencies);
 };
