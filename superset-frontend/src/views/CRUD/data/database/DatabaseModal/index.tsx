@@ -316,6 +316,15 @@ function dbReducer(
 
 const DEFAULT_TAB_KEY = '1';
 
+const serializeExtra = (extraJson: DatabaseObject['extra_json']) =>
+  JSON.stringify({
+    ...extraJson,
+    metadata_params: JSON.parse((extraJson?.metadata_params as string) || '{}'),
+    engine_params: JSON.parse((extraJson?.engine_params as string) || '{}'),
+    schemas_allowed_for_csv_upload:
+      (extraJson?.schemas_allowed_for_csv_upload as string) || '[]',
+  });
+
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   addDangerToast,
   addSuccessToast,
@@ -388,7 +397,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       sqlalchemy_uri: db?.sqlalchemy_uri || '',
       database_name: db?.database_name?.trim() || undefined,
       impersonate_user: db?.impersonate_user || undefined,
-      extra: db?.extra || undefined,
+      extra: serializeExtra(db?.extra_json) || undefined,
       encrypted_extra: db?.encrypted_extra || '',
       server_cert: db?.server_cert || undefined,
     };
@@ -460,19 +469,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
     if (dbToUpdate?.extra_json) {
       // convert extra_json to back to string
-      dbToUpdate.extra = JSON.stringify({
-        ...dbToUpdate.extra_json,
-        metadata_params: JSON.parse(
-          (dbToUpdate?.extra_json?.metadata_params as string) || '{}',
-        ),
-        engine_params: JSON.parse(
-          (dbToUpdate?.extra_json?.engine_params as string) || '{}',
-        ),
-        schemas_allowed_for_csv_upload: JSON.parse(
-          (dbToUpdate?.extra_json?.schemas_allowed_for_csv_upload as string) ||
-            '[]',
-        ),
-      });
+      dbToUpdate.extra = serializeExtra(dbToUpdate?.extra_json);
     }
 
     if (db?.id) {
