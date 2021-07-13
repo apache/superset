@@ -33,6 +33,9 @@ bootstrapScript: |
   pip install \
     psycopg2==2.8.5 \
     redis==3.2.1 && \
+    sqlalchemy-redshift==0.7.9" && \
+    databricks-dbapi && \
+    databricks-dbapi[sqlalchemy] && \
   if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
 
 ## The name of the secret which we will use to generate a superset_config.py file
@@ -84,7 +87,24 @@ extraSecrets: {}
 
 # A dictionary of overrides to append at the end of superset_config.py - the name does not matter
 # WARNING: the order is not guaranteed
-configOverrides: {}
+configOverrides:
+     fareye_config: |
+         FEATURE_FLAGS = { 'ENABLE_TEMPLATE_PROCESSING': True }
+         ENABLE_SCHEDULED_EMAIL_REPORTS = True
+         ENABLE_ALERTS = True
+         EMAIL_NOTIFICATIONS = True
+         SMTP_HOST = "smtp-pulse.com"
+         SMTP_STARTTLS = True
+         SMTP_SSL = False
+         SMTP_USER = "saurabhnigam@roboticwares.com"
+         SMTP_PORT = 587
+         SMTP_PASSWORD = "1"
+         SMTP_MAIL_FROM = "saurabhnigam@roboticwares.com"
+         EMAIL_REPORTS_USER = 'admin'
+         SESSION_COOKIE_SECURE = True
+         SESSION_COOKIE_SAMESITE = "None"
+         MOBI_SECRET_KEY=testkey
+         MOBI_SECRET_KEY_OLD=testkey256length
   #  extend_timeout: |
   #    # Extend timeout to allow long running queries.
   #    SUPERSET_WEBSERVER_TIMEOUT = ...
@@ -138,22 +158,18 @@ service:
   loadBalancerIP: null
 
 ingress:
-  enabled: false
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
-    ## Extend timeout to allow long running queries.
-    # nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
-    # nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
-    # nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+  enabled: true
+  annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+        kubernetes.io/ingress.class: "nginx-public"
+        kubernetes.io/tls-acme: "true"
   path: /
-  pathType: ImplementationSpecific
   hosts:
-    - chart-example.local
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+    - superset2.fareye.io
+  tls:
+   - secretName: superset-server-tls
+     hosts:
+       - superset2.fareye.io
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
