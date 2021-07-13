@@ -105,7 +105,12 @@ const IconButton = styled(
     <StyledButton {...props}>
       <StyledImage>
         {icon && <img src={icon} alt={altText} />}
-        {!icon && <Icons.DatabaseOutlined className="default-db-icon" />}
+        {!icon && (
+          <Icons.DatabaseOutlined
+            className="default-db-icon"
+            aria-label="default-icon"
+          />
+        )}
       </StyledImage>
 
       <StyledBottom>
