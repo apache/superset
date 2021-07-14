@@ -57,7 +57,7 @@ jest.mock('src/dashboard/components/SliceHeaderControls', () => ({
       <button
         type="button"
         data-test="exploreChart"
-        onClick={props.exploreChart}
+        onClick={props.logExploreChart}
       >
         exploreChart
       </button>
@@ -155,7 +155,7 @@ const createProps = () => ({
   updateSliceName: jest.fn(),
   toggleExpandSlice: jest.fn(),
   forceRefresh: jest.fn(),
-  exploreChart: jest.fn(),
+  logExploreChart: jest.fn(),
   exportCSV: jest.fn(),
   formData: {},
 });
@@ -176,7 +176,7 @@ test('Should render - default props', () => {
   // @ts-ignore
   delete props.toggleExpandSlice;
   // @ts-ignore
-  delete props.exploreChart;
+  delete props.logExploreChart;
   // @ts-ignore
   delete props.exportCSV;
   // @ts-ignore
@@ -218,7 +218,7 @@ test('Should render default props and "call" actions', () => {
   // @ts-ignore
   delete props.toggleExpandSlice;
   // @ts-ignore
-  delete props.exploreChart;
+  delete props.logExploreChart;
   // @ts-ignore
   delete props.exportCSV;
   // @ts-ignore
@@ -378,9 +378,9 @@ test('Correct actions to "SliceHeaderControls"', () => {
   userEvent.click(screen.getByTestId('forceRefresh'));
   expect(props.forceRefresh).toBeCalledTimes(1);
 
-  expect(props.exploreChart).toBeCalledTimes(0);
+  expect(props.logExploreChart).toBeCalledTimes(0);
   userEvent.click(screen.getByTestId('exploreChart'));
-  expect(props.exploreChart).toBeCalledTimes(1);
+  expect(props.logExploreChart).toBeCalledTimes(1);
 
   expect(props.exportCSV).toBeCalledTimes(0);
   userEvent.click(screen.getByTestId('exportCSV'));
