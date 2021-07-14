@@ -29,7 +29,7 @@ import {
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
 } from 'src/logger/LogUtils';
 
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
 import EditableTitle from 'src/components/EditableTitle';
 import FaveStar from 'src/components/FaveStar';
@@ -110,6 +110,9 @@ const StyledDashboardHeader = styled.div`
   padding: 0 ${({ theme }) => theme.gridUnit * 6}px;
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
 
+  .action-button > span {
+    color: ${({ theme }) => theme.colors.grayscale.base};
+  }
   button,
   .fave-unfave-icon {
     margin-left: ${({ theme }) => theme.gridUnit * 2}px;
@@ -491,7 +494,7 @@ class Header extends React.PureComponent {
                 className="action-button"
                 onClick={this.toggleEditMode}
               >
-                <Icon name="edit-alt" />
+                <Icons.EditAlt />
               </span>
             </>
           )}

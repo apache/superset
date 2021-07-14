@@ -216,7 +216,7 @@ describe('DatabaseModal', () => {
     it('renders the initial load of Step 1 correctly', async () => {
       // ---------- Components ----------
       // <TabHeader> - AntD header
-      const closeButton = screen.getByRole('button', { name: /close/i });
+      const closeButton = screen.getByLabelText('Close');
       const step1Header = screen.getByRole('heading', {
         name: /connect a database/i,
       });
@@ -227,25 +227,25 @@ describe('DatabaseModal', () => {
       });
       // <IconButton> - Preferred database buttons
       const preferredDbButtonPostgreSQL = screen.getByRole('button', {
-        name: /default-database postgresql/i,
+        name: /postgresql/i,
       });
       const preferredDbTextPostgreSQL = within(
         preferredDbButtonPostgreSQL,
       ).getByText(/postgresql/i);
       const preferredDbButtonPresto = screen.getByRole('button', {
-        name: /default-database presto/i,
+        name: /presto/i,
       });
       const preferredDbTextPresto = within(preferredDbButtonPresto).getByText(
         /presto/i,
       );
       const preferredDbButtonMySQL = screen.getByRole('button', {
-        name: /default-database mysql/i,
+        name: /mysql/i,
       });
       const preferredDbTextMySQL = within(preferredDbButtonMySQL).getByText(
         /mysql/i,
       );
       const preferredDbButtonSQLite = screen.getByRole('button', {
-        name: /default-database sqlite/i,
+        name: /sqlite/i,
       });
       const preferredDbTextSQLite = within(preferredDbButtonSQLite).getByText(
         /sqlite/i,
@@ -253,7 +253,7 @@ describe('DatabaseModal', () => {
       // All dbs render with this icon in this testing environment,
       // The Icon count should equal the count of databases rendered
       const preferredDbIcon = screen.getAllByRole('img', {
-        name: /default-database/i,
+        name: /default-icon/i,
       });
       // renderAvailableSelector() => <Select> - Supported databases selector
       const supportedDbsHeader = screen.getByRole('heading', {
@@ -315,7 +315,7 @@ describe('DatabaseModal', () => {
       // On step 1, click dbButton to access SQL Alchemy form
       userEvent.click(
         screen.getByRole('button', {
-          name: /default-database sqlite/i,
+          name: /sqlite/i,
         }),
       );
 
@@ -400,7 +400,7 @@ describe('DatabaseModal', () => {
       // On step 1, click dbButton to access step 2
       userEvent.click(
         screen.getByRole('button', {
-          name: /default-database sqlite/i,
+          name: /sqlite/i,
         }),
       );
       // Click the "Advanced" tab
@@ -499,7 +499,7 @@ describe('DatabaseModal', () => {
       // On step 1, click dbButton to access step 2
       userEvent.click(
         screen.getByRole('button', {
-          name: /default-database sqlite/i,
+          name: /sqlite/i,
         }),
       );
       // Click the "Advanced" tab
@@ -649,7 +649,7 @@ describe('DatabaseModal', () => {
       // On step 1, click dbButton to access step 2
       userEvent.click(
         screen.getByRole('button', {
-          name: /default-database sqlite/i,
+          name: /sqlite/i,
         }),
       );
       // Click the "Advanced" tab
@@ -711,7 +711,7 @@ describe('DatabaseModal', () => {
       // On step 1, click dbButton to access step 2
       userEvent.click(
         screen.getByRole('button', {
-          name: /default-database sqlite/i,
+          name: /sqlite/i,
         }),
       );
       // Click the "Advanced" tab
@@ -777,7 +777,7 @@ describe('DatabaseModal', () => {
       // On step 1, click dbButton to access step 2
       userEvent.click(
         screen.getByRole('button', {
-          name: /default-database sqlite/i,
+          name: /sqlite/i,
         }),
       );
       // Click the "Advanced" tab
@@ -847,7 +847,7 @@ describe('DatabaseModal', () => {
       // On step 1, click dbButton to access step 2
       userEvent.click(
         screen.getByRole('button', {
-          name: /default-database postgresql/i,
+          name: /postgresql/i,
         }),
       );
 
@@ -860,7 +860,7 @@ describe('DatabaseModal', () => {
       // ---------- Dynamic example (3-step form)
       // Click the PostgreSQL button to enter the dynamic form
       const postgreSQLButton = screen.getByRole('button', {
-        name: /default-database postgresql/i,
+        name: /postgresql/i,
       });
       userEvent.click(postgreSQLButton);
 
@@ -876,7 +876,7 @@ describe('DatabaseModal', () => {
       userEvent.click(backButton);
 
       const sqliteButton = screen.getByRole('button', {
-        name: /default-database sqlite/i,
+        name: /sqlite/i,
       });
       userEvent.click(sqliteButton);
 
@@ -890,7 +890,7 @@ describe('DatabaseModal', () => {
       beforeEach(() => {
         userEvent.click(
           screen.getByRole('button', {
-            name: /default-database sqlite/i,
+            name: /sqlite/i,
           }),
         );
       });
@@ -959,7 +959,7 @@ describe('DatabaseModal', () => {
       beforeEach(() => {
         userEvent.click(
           screen.getByRole('button', {
-            name: /default-database postgresql/i,
+            name: /postgresql/i,
           }),
         );
       });
