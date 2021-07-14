@@ -176,7 +176,14 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "type",
         "crontab_humanized",
     ]
-    search_columns = ["name", "active", "created_by", "type", "last_state"]
+    search_columns = [
+        "name",
+        "active",
+        "created_by",
+        "type",
+        "last_state",
+        "creation_method",
+    ]
     search_filters = {"name": [ReportScheduleAllTextFilter]}
     allowed_rel_fields = {"owners", "chart", "dashboard", "database", "created_by"}
     filter_rel_fields = {
