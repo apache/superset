@@ -77,7 +77,7 @@ describe('Dashboard edit action', () => {
     cy.get('.dashboard-grid', { timeout: 50000 })
       .should('be.visible') // wait for 50 secs to load dashboard
       .then(() => {
-        cy.get('.dashboard-header [data-test=edit-alt]')
+        cy.get('.dashboard-header [aria-label=edit-alt]')
           .should('be.visible')
           .click();
         openDashboardEditProperties();
