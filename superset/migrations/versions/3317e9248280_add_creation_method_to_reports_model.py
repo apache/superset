@@ -34,15 +34,25 @@ def upgrade():
     with op.batch_alter_table("report_schedule") as batch_op:
         batch_op.add_column(
             sa.Column(
+<<<<<<< HEAD
                 "creation_method", sa.VARCHAR(255), server_default="alert_reports",
             )
         )
         batch_op.create_index(
             op.f("ix_creation_method"), ["creation_method"], unique=False
         )
+=======
+                "creation_method", sa.VARCHAR(255), server_default="alert_report",
+            )
+        )
+>>>>>>> migration
 
 
 def downgrade():
     with op.batch_alter_table("report_schedule") as batch_op:
+<<<<<<< HEAD
         batch_op.drop_index("ix_creation_method")
         batch_op.drop_column("creation_method")
+=======
+        batch_op.drop_column("configuration_method")
+>>>>>>> migration
