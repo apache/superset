@@ -198,7 +198,12 @@ class TestCacheWarmUp(SupersetTestCase):
 
         strategy = TopNDashboardsStrategy(1)
         result = sorted(strategy.get_urls())
-        expected = sorted([f"{URL_PREFIX}{slc.url}" for slc in dash.slices])
+        expected = sorted(
+            [
+                f"{URL_PREFIX}/superset/warm_up_cache/?slice_id={slc.id}"
+                for slc in dash.slices
+            ]
+        )
         self.assertEqual(result, expected)
 
     def reset_tag(self, tag):
@@ -224,7 +229,12 @@ class TestCacheWarmUp(SupersetTestCase):
         # tag dashboard 'births' with `tag1`
         tag1 = get_tag("tag1", db.session, TagTypes.custom)
         dash = self.get_dash_by_slug("births")
-        tag1_urls = sorted([f"{URL_PREFIX}{slc.url}" for slc in dash.slices])
+        tag1_urls = sorted(
+            [
+                f"{URL_PREFIX}/superset/warm_up_cache/?slice_id={slc.id}"
+                for slc in dash.slices
+            ]
+        )
         tagged_object = TaggedObject(
             tag_id=tag1.id, object_id=dash.id, object_type=ObjectTypes.dashboard
         )
@@ -244,7 +254,7 @@ class TestCacheWarmUp(SupersetTestCase):
         # tag first slice
         dash = self.get_dash_by_slug("unicode-test")
         slc = dash.slices[0]
-        tag2_urls = [f"{URL_PREFIX}{slc.url}"]
+        tag2_urls = [f"{URL_PREFIX}/superset/warm_up_cache/?slice_id={slc.id}"]
         object_id = slc.id
         tagged_object = TaggedObject(
             tag_id=tag2.id, object_id=object_id, object_type=ObjectTypes.chart
