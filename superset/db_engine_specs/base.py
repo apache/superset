@@ -1305,6 +1305,31 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             )
         return None
 
+    @classmethod
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
+        """
+        Select identifiers from the database engine that uniquely identifies the
+        queries to cancel. The identifier is typically a session id, process id
+        or similar.
+
+        :param cursor: Cursor instance in which the query will be executed
+        :param query: Query instance
+        :return: Query identifier
+        """
+        return None
+
+    @classmethod
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
+        """
+        Cancel query in the underlying database.
+
+        :param cursor: New cursor instance to the db of the query
+        :param query: Query instance
+        :param cancel_query_id: Value returned by get_cancel_query_payload or set in
+        other life-cycle methods of the query
+        :return: True if query cancelled successfully, False otherwise
+        """
+
 
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI
