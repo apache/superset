@@ -72,12 +72,10 @@ const StyledDiv = styled.div`
 const FiltersPanel = styled.div`
   grid-column: 1;
   grid-row: 1 / span 2;
-  min-height: 100vh;
   z-index: 2;
 `;
 
 const StickyPanel = styled.div<{ width: number }>`
-  height: 100%;
   position: sticky;
   top: -1px;
   width: ${({ width }) => width}px;
@@ -179,10 +177,9 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     rootChildId !== DASHBOARD_GRID_ID
       ? dashboardLayout[rootChildId]
       : undefined;
-
+  const isStandalone = getUrlParam(URL_PARAMS.standalone);
   const hideDashboardHeader =
-    getUrlParam(URL_PARAMS.standalone) ===
-    DashboardStandaloneMode.HIDE_NAV_AND_TITLE;
+    isStandalone === DashboardStandaloneMode.HIDE_NAV_AND_TITLE;
 
   const barTopOffset =
     (hideDashboardHeader ? 0 : HEADER_HEIGHT) +
@@ -207,10 +204,11 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET,
   );
 
-  const offset =
-    FILTER_BAR_HEADER_HEIGHT +
-    (isSticky ? 0 : MAIN_HEADER_HEIGHT) +
-    (filterSetEnabled ? FILTER_BAR_TABS_HEIGHT : 0);
+  const offset = isStandalone
+    ? 0
+    : FILTER_BAR_HEADER_HEIGHT +
+      (isSticky ? 0 : MAIN_HEADER_HEIGHT) +
+      (filterSetEnabled ? FILTER_BAR_TABS_HEIGHT : 0);
 
   const filterBarHeight = `calc(100vh - ${offset}px)`;
   const filterBarOffset = dashboardFiltersOpen ? 0 : barTopOffset + 20;
