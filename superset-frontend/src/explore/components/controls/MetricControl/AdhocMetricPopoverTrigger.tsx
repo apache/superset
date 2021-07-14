@@ -180,7 +180,6 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
       <ExplorePopoverContent>
         <AdhocMetricEditPopover
           adhocMetric={adhocMetric}
-          title={title}
           columns={columns}
           savedMetricsOptions={savedMetricsOptions}
           savedMetric={savedMetric}
