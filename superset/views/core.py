@@ -2038,15 +2038,17 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             database_id = data["dbId"]
         except KeyError:
             raise SupersetGenericErrorException(
-                "One or more required fields are missing in the request. Please try "
-                "again, and if the problem persists conctact your administrator.",
+                __(
+                    "One or more required fields are missing in the request. Please try "
+                    "again, and if the problem persists conctact your administrator."
+                ),
                 status=400,
             )
         database = db.session.query(Database).get(database_id)
         if not database:
             raise SupersetErrorException(
                 SupersetError(
-                    message="The database was not found.",
+                    message=__("The database was not found."),
                     error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR,
                     level=ErrorLevel.ERROR,
                 ),
@@ -2116,7 +2118,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
             raise SupersetErrorException(
                 SupersetError(
-                    message="The database was not found.",
+                    message=__("The database was not found."),
                     error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR,
                     level=ErrorLevel.ERROR,
                 ),
@@ -2461,7 +2463,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception("Query %i: %s", query.id, str(ex))
 
-            message = _("Failed to start remote query on a worker.")
+            message = __("Failed to start remote query on a worker.")
             error = SupersetError(
                 message=message,
                 error_type=SupersetErrorType.ASYNC_WORKERS_ERROR,
@@ -2625,7 +2627,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         mydb = session.query(Database).get(database_id)
         if not mydb:
             raise SupersetGenericErrorException(
-                _(
+                __(
                     "The database referenced in this query was not found. Please "
                     "contact an administrator for further assistance or try again."
                 )
@@ -2668,7 +2670,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             query_id = None
         if not query_id:
             raise SupersetGenericErrorException(
-                _(
+                __(
                     "The query record was not created as expected. Please "
                     "contact an administrator for further assistance or try again."
                 )
@@ -2679,7 +2681,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         try:
             query.raise_for_access()
         except SupersetSecurityException as ex:
-            message = _(
+            message = __(
                 "You are not authorized to see this query. If you think this "
                 "is an error, please reach out to your administrator."
             )
@@ -2708,7 +2710,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             query.status = QueryStatus.FAILED
             session.commit()
             raise SupersetTemplateParamsErrorException(
-                message=_(
+                message=__(
                     'The query contains one or more malformed template parameters. Please check your query and confirm that all template parameters are surround by double braces, for example, "{{ ds }}". Then, try running your query again.'
                 ),
                 error=SupersetErrorType.INVALID_TEMPLATE_PARAMS_ERROR,
