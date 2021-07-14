@@ -308,7 +308,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             }
             return originNode;
           }}
-          onFocus={setFocusedFilter}
+          onMouseEnter={setFocusedFilter}
+          onMouseLeave={unsetFocusedFilter}
           // @ts-ignore
           onChange={handleChange}
           ref={inputRef}

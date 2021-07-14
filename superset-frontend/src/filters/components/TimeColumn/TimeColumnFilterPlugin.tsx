@@ -103,8 +103,8 @@ export default function PluginFilterTimeColumn(
           placeholder={placeholderText}
           // @ts-ignore
           onChange={handleChange}
-          onBlur={unsetFocusedFilter}
-          onFocus={setFocusedFilter}
+          onMouseEnter={setFocusedFilter}
+          onMouseLeave={unsetFocusedFilter}
           ref={inputRef}
         >
           {timeColumns.map(
