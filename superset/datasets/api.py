@@ -159,6 +159,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "extra",
     ]
     show_columns = show_select_columns + ["columns.type_generic"]
+    show_columns = show_select_columns + ["columns.business_type"]
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
     add_columns = ["database", "schema", "table_name", "owners"]
@@ -180,6 +181,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "metrics",
         "extra",
     ]
+    edit_columns = edit_columns + ["columns.business_type"]
     openapi_spec_tag = "Datasets"
     related_field_filters = {
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),

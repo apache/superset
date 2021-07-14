@@ -206,13 +206,13 @@ function ColumnCollectionTable({
             {allowEditDataType && (
               <Field
                 fieldKey="type"
-                label={t('Data type')}
+                label={t('Data type :)')}
                 control={
                   <SelectControl choices={DATA_TYPES} name="type" freeForm />
                 }
               />
             )}
-            {isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC) ? (
+            {isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES) ? (
               <Field
                 fieldKey="business_type"
                 label={t('Business type')}
@@ -280,19 +280,34 @@ function ColumnCollectionTable({
             }
       }
       onChange={onChange}
-      itemRenderers={{
-        column_name: (v, onItemChange) =>
-          editableColumnName ? (
-            <EditableTitle canEdit title={v} onSaveTitle={onItemChange} />
-          ) : (
-            v
-          ),
-        type: d => (d ? <Label>{d}</Label> : null),
-        business_type: d => <Label onChange={onChange}>{d}</Label>,
-        is_dttm: checkboxGenerator,
-        filterable: checkboxGenerator,
-        groupby: checkboxGenerator,
-      }}
+      itemRenderers={
+        isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)
+          ? {
+              column_name: (v, onItemChange) =>
+                editableColumnName ? (
+                  <EditableTitle canEdit title={v} onSaveTitle={onItemChange} />
+                ) : (
+                  v
+                ),
+              type: d => (d ? <Label>{d}</Label> : null),
+              business_type: d => <Label onChange={onChange}>{d}</Label>,
+              is_dttm: checkboxGenerator,
+              filterable: checkboxGenerator,
+              groupby: checkboxGenerator,
+            }
+          : {
+              column_name: (v, onItemChange) =>
+                editableColumnName ? (
+                  <EditableTitle canEdit title={v} onSaveTitle={onItemChange} />
+                ) : (
+                  v
+                ),
+              type: d => (d ? <Label>{d}</Label> : null),
+              is_dttm: checkboxGenerator,
+              filterable: checkboxGenerator,
+              groupby: checkboxGenerator,
+            }
+      }
       bitemRenders={
         isFeatureEnabled(FeatureFlag.ENABLE_BUSINESS_TYPES)
           ? {
