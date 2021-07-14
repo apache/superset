@@ -87,7 +87,11 @@ working_timeout_description = (
 )
 creation_method_description = (
     "Creation method is used to inform the frontend whether the report/alert was "
+<<<<<<< HEAD
     "created in the dashboard, chart, or alerts and reports UI."
+=======
+    "created in the dashboard, charts, or alerts and reports UI."
+>>>>>>> added logic for creation_method
 )
 
 

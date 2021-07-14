@@ -774,6 +774,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert data == {"message": {"dashboard": "Dashboard does not exist"}}
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+<<<<<<< HEAD
     # TODO (AAfghahi): I am going to enable this when the report schedule feature is fully finished
     # def test_create_report_schedule_no_creation_method(self):
     #     """
@@ -810,11 +811,52 @@ class TestReportSchedulesApi(SupersetTestCase):
     #         "message": {"creation_method": ["Missing data for required field."]}
     #     }
     #     assert rv.status_code == 400
+=======
+    def test_create_report_schedule_no_creation_method(self):
+        """
+        ReportSchedule Api: Test create report schedule
+        """
+        self.login(username="admin")
+
+        chart = db.session.query(Slice).first()
+        example_db = get_example_database()
+        report_schedule_data = {
+            "type": ReportScheduleType.ALERT,
+            "name": "new3",
+            "description": "description",
+            "crontab": "0 9 * * *",
+            "recipients": [
+                {
+                    "type": ReportRecipientType.EMAIL,
+                    "recipient_config_json": {"target": "target@superset.org"},
+                },
+                {
+                    "type": ReportRecipientType.SLACK,
+                    "recipient_config_json": {"target": "channel"},
+                },
+            ],
+            "grace_period": 14400,
+            "working_timeout": 3600,
+            "chart": chart.id,
+            "database": example_db.id,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response == {
+            "message": {"creation_method": ["Missing data for required field."]}
+        }
+        assert rv.status_code == 400
+>>>>>>> added logic for creation_method
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_create_report_schedule_invalid_creation_method(self):
         """
+<<<<<<< HEAD
         ReportSchedule API: Test create report schedule
+=======
+        ReportSchedule Api: Test create report schedule
+>>>>>>> added logic for creation_method
         """
         self.login(username="admin")
 
