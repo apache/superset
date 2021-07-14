@@ -69,6 +69,15 @@ const StyledAnchor = styled.a`
   padding-left: ${({ theme }) => theme.gridUnit}px;
 `;
 
+const WaterMark = styled.span`
+  font-size: 13px;
+  color: #b0b4c3;
+  margin: 0 ${({ theme }) => theme.gridUnit * 4}px;
+  @media (max-width: 1070px) {
+    display: none;
+  }
+`;
+
 const { SubMenu } = Menu;
 
 interface RightMenuProps {
@@ -86,6 +95,9 @@ const RightMenu = ({
 }: RightMenuProps) => (
   <StyledDiv align={align}>
     <Menu mode="horizontal">
+      {navbarRight.show_watermark && (
+        <WaterMark>{t('Powered by Apache Superset')}</WaterMark>
+      )}
       {!navbarRight.user_is_anonymous && (
         <SubMenu
           data-test="new-dropdown"
