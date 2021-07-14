@@ -76,13 +76,8 @@ class ReportDataFormat(str, enum.Enum):
 
 class ReportCreationMethodType(str, enum.Enum):
     CHARTS = "charts"
-<<<<<<< HEAD
     DASHBOARDS = "dashboards"
     ALERTS_REPORTS = "alerts_reports"
-=======
-    DASHBOARD = "dashboard"
-    ALERTS_REPORTS = "alert_report"
->>>>>>> added logic for creation_method
 
 
 report_schedule_user = Table(
