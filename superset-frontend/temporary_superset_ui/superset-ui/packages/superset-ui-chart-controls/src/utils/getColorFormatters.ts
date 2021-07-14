@@ -150,7 +150,7 @@ export const getColorFunction = (
 };
 
 export const getColorFormatters = (
-  columnConfig: ConditionalFormattingConfig[],
+  columnConfig: ConditionalFormattingConfig[] | undefined,
   data: DataRecord[],
 ) =>
   columnConfig?.reduce((acc: ColorFormatters, config: ConditionalFormattingConfig) => {
@@ -170,4 +170,4 @@ export const getColorFormatters = (
       });
     }
     return acc;
-  }, []);
+  }, []) ?? [];
