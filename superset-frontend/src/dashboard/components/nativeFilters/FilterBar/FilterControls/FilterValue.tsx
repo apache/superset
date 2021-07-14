@@ -43,7 +43,6 @@ import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FilterProps } from './types';
 import { getFormData } from '../../utils';
 import { useCascadingFilters } from './state';
-import { usePreselectNativeFilter } from '../../state';
 import { checkIsMissingRequiredValue } from '../utils';
 
 const HEIGHT = 32;
@@ -83,7 +82,6 @@ const FilterValue: React.FC<FilterProps> = ({
   const hasDataSource = !!datasetId;
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
   const [isRefreshing, setIsRefreshing] = useState(true);
-  const preselection = usePreselectNativeFilter(filter.id);
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -206,9 +204,6 @@ const FilterValue: React.FC<FilterProps> = ({
     ...filter.dataMask?.filterState,
     validateStatus: isMissingRequiredValue && 'error',
   };
-  if (filterState.value === undefined && preselection) {
-    filterState.value = preselection;
-  }
 
   return (
     <StyledDiv data-test="form-item-value">
