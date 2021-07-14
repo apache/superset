@@ -16,9 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { COMPARATOR, getOpacity, rgbToRgba, round } from '../../src';
-import { getColorFormatters, getColorFunction } from '../../lib';
+import { configure } from '@superset-ui/core';
+import {
+  COMPARATOR,
+  getOpacity,
+  rgbToRgba,
+  round,
+  getColorFormatters,
+  getColorFunction,
+} from '../../src';
 
+configure();
 const mockData = [
   { count: 50, sum: 200 },
   { count: 100, sum: 400 },
@@ -91,6 +99,7 @@ describe('getColorFunction()', () => {
     );
     expect(colorFunction(50)).toEqual('rgba(255,0,0,0.3)');
     expect(colorFunction(100)).toEqual('rgba(255,0,0,1)');
+    expect(colorFunction(0)).toBeUndefined();
   });
 
   it('getColorFunction LESS_OR_EQUAL', () => {
@@ -105,6 +114,7 @@ describe('getColorFunction()', () => {
     );
     expect(colorFunction(50)).toEqual('rgba(255,0,0,1)');
     expect(colorFunction(100)).toEqual('rgba(255,0,0,0.3)');
+    expect(colorFunction(150)).toBeUndefined();
   });
 
   it('getColorFunction EQUAL', () => {
@@ -122,16 +132,30 @@ describe('getColorFunction()', () => {
   });
 
   it('getColorFunction NOT_EQUAL', () => {
-    const colorFunction = getColorFunction(
+    let colorFunction = getColorFunction(
       {
         operator: COMPARATOR.NOT_EQUAL,
-        targetValue: 100,
+        targetValue: 60,
         colorScheme: 'rgb(255,0,0)',
         column: 'count',
       },
       countValues,
     );
-    expect(colorFunction(100)).toBeUndefined();
+    expect(colorFunction(60)).toBeUndefined();
+    expect(colorFunction(100)).toEqual('rgba(255,0,0,1)');
+    expect(colorFunction(50)).toEqual('rgba(255,0,0,0.48)');
+
+    colorFunction = getColorFunction(
+      {
+        operator: COMPARATOR.NOT_EQUAL,
+        targetValue: 90,
+        colorScheme: 'rgb(255,0,0)',
+        column: 'count',
+      },
+      countValues,
+    );
+    expect(colorFunction(90)).toBeUndefined();
+    expect(colorFunction(100)).toEqual('rgba(255,0,0,0.48)');
     expect(colorFunction(50)).toEqual('rgba(255,0,0,1)');
   });
 
@@ -163,6 +187,7 @@ describe('getColorFunction()', () => {
     );
     expect(colorFunction(50)).toEqual('rgba(255,0,0,0.3)');
     expect(colorFunction(100)).toEqual('rgba(255,0,0,1)');
+    expect(colorFunction(150)).toBeUndefined();
   });
 
   it('getColorFunction BETWEEN_OR_LEFT_EQUAL', () => {
@@ -239,6 +264,21 @@ describe('getColorFunction()', () => {
     expect(colorFunction(100)).toBeUndefined();
   });
 
+  it('getColorFunction unsupported operator', () => {
+    const colorFunction = getColorFunction(
+      {
+        // @ts-ignore
+        operator: 'unsupported operator',
+        targetValue: 50,
+        colorScheme: 'rgb(255,0,0)',
+        column: 'count',
+      },
+      countValues,
+    );
+    expect(colorFunction(50)).toBeUndefined();
+    expect(colorFunction(100)).toBeUndefined();
+  });
+
   it('getColorFunction with operator undefined', () => {
     const colorFunction = getColorFunction(
       {
@@ -269,7 +309,7 @@ describe('getColorFunction()', () => {
 });
 
 describe('getColorFormatters()', () => {
-  it('xx', () => {
+  it('correct column config', () => {
     const columnConfig = [
       {
         operator: COMPARATOR.GREATER_THAN,
@@ -284,6 +324,13 @@ describe('getColorFormatters()', () => {
         column: 'sum',
       },
       {
+        operator: COMPARATOR.BETWEEN,
+        targetValueLeft: 75,
+        targetValueRight: 125,
+        colorScheme: 'rgb(255,0,0)',
+        column: 'count',
+      },
+      {
         operator: COMPARATOR.GREATER_THAN,
         targetValue: 150,
         colorScheme: 'rgb(255,0,0)',
@@ -291,8 +338,7 @@ describe('getColorFormatters()', () => {
       },
     ];
     const colorFormatters = getColorFormatters(columnConfig, mockData);
-
-    expect(colorFormatters.length).toEqual(2);
+    expect(colorFormatters.length).toEqual(3);
 
     expect(colorFormatters[0].column).toEqual('count');
     expect(colorFormatters[0].getColorFromValue(100)).toEqual('rgba(255,0,0,1)');
@@ -300,5 +346,13 @@ describe('getColorFormatters()', () => {
     expect(colorFormatters[1].column).toEqual('sum');
     expect(colorFormatters[1].getColorFromValue(200)).toEqual('rgba(255,0,0,1)');
     expect(colorFormatters[1].getColorFromValue(400)).toBeUndefined();
+
+    expect(colorFormatters[2].column).toEqual('count');
+    expect(colorFormatters[2].getColorFromValue(100)).toEqual('rgba(255,0,0,0.65)');
+  });
+
+  it('undefined column config', () => {
+    const colorFormatters = getColorFormatters(undefined, mockData);
+    expect(colorFormatters.length).toEqual(0);
   });
 });
