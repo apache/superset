@@ -204,11 +204,10 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET,
   );
 
-  const offset = isStandalone
-    ? 0
-    : FILTER_BAR_HEADER_HEIGHT +
-      (isSticky ? 0 : MAIN_HEADER_HEIGHT) +
-      (filterSetEnabled ? FILTER_BAR_TABS_HEIGHT : 0);
+  const offset =
+    FILTER_BAR_HEADER_HEIGHT +
+    (isSticky || isStandalone ? 0 : MAIN_HEADER_HEIGHT) +
+    (filterSetEnabled ? FILTER_BAR_TABS_HEIGHT : 0);
 
   const filterBarHeight = `calc(100vh - ${offset}px)`;
   const filterBarOffset = dashboardFiltersOpen ? 0 : barTopOffset + 20;
