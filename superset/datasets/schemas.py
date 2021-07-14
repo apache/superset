@@ -167,5 +167,6 @@ class ImportV1DatasetSchema(Schema):
     columns = fields.List(fields.Nested(ImportV1ColumnSchema))
     metrics = fields.List(fields.Nested(ImportV1MetricSchema))
     version = fields.String(required=True)
-    database_uuid = fields.UUID(required=True)
+    # TODO (betodealmeida): disallow None when we have all imports being done by configs
+    database_uuid = fields.UUID(required=True, allow_none=True)
     data = fields.URL()
