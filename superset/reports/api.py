@@ -124,6 +124,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "created_by.first_name",
         "created_by.last_name",
         "created_on",
+        "creation_method",
         "crontab",
         "crontab_humanized",
         "id",

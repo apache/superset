@@ -270,6 +270,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "changed_on_delta_humanized",
             "created_by",
             "created_on",
+            "creation_method",
             "crontab",
             "crontab_humanized",
             "id",
