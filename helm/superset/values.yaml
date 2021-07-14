@@ -395,3 +395,38 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+###################################
+# Kubernetes - Extra Manifests
+###################################
+## extra Kubernetes manifests to include alongside this chart
+##
+## NOTE:
+## - this can be used to include ANY Kubernetes YAML resource
+##
+## EXAMPLE:
+##   extraManifests:
+##    - apiVersion: cloud.google.com/v1beta1
+##      kind: BackendConfig
+##      metadata:
+##        name: "{{ .Release.Name }}-test"
+##      spec:
+##        securityPolicy:
+##          name: "gcp-cloud-armor-policy-test"
+##
+## EXAMPLE2:
+##   extraManifests:
+##    - apiVersion: elbv2.k8s.aws/v1beta1
+##        kind: TargetGroupBinding
+##        metadata:
+##          name: "{{ .Release.Name }}-test"
+##          labels:
+##            release: "{{ .Release.Name }}"
+##        spec:
+##          serviceRef:
+##            name: "{{ .Release.Name }}-test"
+##            port: 80
+##          targetGroupARN: "arn:aws:elasticloadbalancing:eu-west-1:AWS-ACCOUNT-ID:targetgroup/..."
+##          targetType: ip
+
+extraManifests: []
