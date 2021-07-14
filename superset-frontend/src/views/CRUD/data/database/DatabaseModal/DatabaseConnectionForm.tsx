@@ -19,17 +19,18 @@
 import React, { FormEvent, useState, Dispatch, SetStateAction } from 'react';
 import { SupersetTheme, JsonObject, t } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
-import { Switch, Select, Button } from 'src/common/components';
+import { Input, Switch, Select, Button } from 'src/common/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import FormLabel from 'src/components/Form/FormLabel';
-import { DeleteFilled } from '@ant-design/icons';
+import { DeleteFilled, CloseOutlined } from '@ant-design/icons';
 import {
   formScrollableStyles,
   validatedFormStyles,
   CredentialInfoForm,
   toggleStyle,
   infoTooltip,
+  StyledFooterButton,
 } from './styles';
 import { DatabaseForm, DatabaseObject } from '../types';
 
@@ -206,36 +207,59 @@ const TableCatalog = ({
   editNewDb,
   validationErrors,
 }: FieldPropTypes) => {
-  const [tableCatalog, setTableCatalog] = useState<Record<string, string>>(
-    db?.parameters?.table_catalog || {},
-  );
+  const [tableCatalog, setTableCatalog] = useState<Record<string, string>>([
+    {},
+  ]);
   return (
     <div>
-      {Object.keys(tableCatalog).map(field => (
-        <>
-          <ValidatedInput
-            id="table_catalog_name"
-            name="table_catalog_name"
-            required={required}
-            value={field}
-            validationMethods={{ onBlur: getValidation }}
-            errorMessage={validationErrors?.table_catalog}
-            placeholder="Create a name for this sheet"
-            label="Google Sheet name and url"
-            onChange={changeMethods.onParametersChange}
-          />
-          <ValidatedInput
-            id="table_catalog_value"
-            name="table_catalog_value"
-            required={required}
-            value={tableCatalog[field]}
-            validationMethods={{ onBlur: getValidation }}
-            errorMessage={validationErrors?.table_catalog}
-            placeholder="Paste the shareable Google Sheet URL here"
-            onChange={changeMethods.onParametersChange}
-          />
-        </>
-      ))}
+      {console.log(tableCatalog)}
+      <>
+        {tableCatalog.map(sheet => (
+          <>
+            <Input
+              name="table-catalog-name-1"
+              placeholder="Enter create a name for this sheet"
+              onChange={changeMethods.onParametersChange}
+            />
+            {/* <CloseOutlined
+              onClick={() => {
+                const index = tableCatalog.indexOf(sheet);
+                console.log(index)
+                if (index > -1) {
+                  tableCatalog.splice(index, 1);
+                  console.log(tableCatalog);
+                  setTableCatalog(tableCatalog);
+                }
+              }}
+            /> */}
+            <ValidatedInput
+              name="table-catalog-value-1"
+              type="gsheet"
+              required={required}
+              validationMethods={{ onBlur: getValidation }}
+              errorMessage={validationErrors?.table_catalog}
+              placeholder="Paste the shareable Google Sheet URL here"
+              onChange={changeMethods.onParametersChange}
+              onPaste={(e) => {
+                changeMethods.onParametersChange({
+                  target: {
+                    name: 'table-catalog-value-1',
+                    value: e.clipboardData.getData('Text'),
+                  },
+                });
+              }}
+            />
+          </>
+        ))}
+        <StyledFooterButton
+          onClick={() => {
+            console.log('add button');
+            setTableCatalog([...tableCatalog, {}]);
+          }}
+        >
+          Add sheet
+        </StyledFooterButton>
+      </>
     </div>
   );
 };
