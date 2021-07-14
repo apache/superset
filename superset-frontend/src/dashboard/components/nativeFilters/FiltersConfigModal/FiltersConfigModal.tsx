@@ -167,7 +167,6 @@ export function FiltersConfigModal({
   // After this, it should be as if the modal was just opened fresh.
   // Called when the modal is closed.
   const resetForm = () => {
-    form.resetFields();
     setNewFilterIds([]);
     setCurrentFilterId(initialCurrentFilterId);
     setRemovedFilters({});
@@ -209,7 +208,6 @@ export function FiltersConfigModal({
         filterConfigMap,
         filterIds,
         removedFilters,
-        resetForm,
         onSave,
         values,
       )();

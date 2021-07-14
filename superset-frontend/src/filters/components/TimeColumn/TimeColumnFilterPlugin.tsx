@@ -20,20 +20,16 @@ import {
   ensureIsArray,
   ExtraFormData,
   GenericDataType,
-  styled,
   t,
   tn,
 } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
-import { Styles, StyledSelect, StyledFormItem } from '../common';
+import { FormItemProps } from 'antd/lib/form';
+import { Styles, StyledSelect, StyledFormItem, StatusMessage } from '../common';
 import { PluginFilterTimeColumnProps } from './types';
 
 const { Option } = Select;
-
-const Error = styled.div`
-  color: ${({ theme }) => theme.colors.error.base};
-`;
 
 export default function PluginFilterTimeColumn(
   props: PluginFilterTimeColumnProps,
@@ -69,14 +65,14 @@ export default function PluginFilterTimeColumn(
   };
 
   useEffect(() => {
-    handleChange(filterState.value ?? null);
-  }, [JSON.stringify(filterState.value)]);
-
-  useEffect(() => {
     handleChange(defaultValue ?? null);
     // I think after Config Modal update some filter it re-creates default value for all other filters
     // so we can process it like this `JSON.stringify` or start to use `Immer`
   }, [JSON.stringify(defaultValue)]);
+
+  useEffect(() => {
+    handleChange(filterState.value ?? null);
+  }, [JSON.stringify(filterState.value)]);
 
   const timeColumns = (data || []).filter(
     row => row.dtype === GenericDataType.TEMPORAL,
@@ -86,11 +82,20 @@ export default function PluginFilterTimeColumn(
     timeColumns.length === 0
       ? t('No time columns')
       : tn('%s option', '%s options', timeColumns.length, timeColumns.length);
+
+  const formItemData: FormItemProps = {};
+  if (filterState.validateMessage) {
+    formItemData.extra = (
+      <StatusMessage status={filterState.validateStatus}>
+        {filterState.validateMessage}
+      </StatusMessage>
+    );
+  }
   return (
     <Styles height={height} width={width}>
       <StyledFormItem
-        validateStatus={filterState.validateMessage && 'error'}
-        extra={<Error>{filterState.validateMessage}</Error>}
+        validateStatus={filterState.validateStatus}
+        {...formItemData}
       >
         <StyledSelect
           allowClear

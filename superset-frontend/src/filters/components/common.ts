@@ -35,3 +35,9 @@ export const StyledFormItem = styled(FormItem)`
     margin: 0;
   }
 `;
+
+export const StatusMessage = styled.div<{
+  status?: 'error' | 'warning' | 'info';
+}>`
+  color: ${({ theme, status = 'error' }) => theme.colors[status]?.base};
+`;

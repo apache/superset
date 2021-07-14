@@ -34,8 +34,9 @@ from superset.utils.core import GenericDataType
 
 METRIC_FORM_DATA_PARAMS = [
     "metric",
-    "metrics",
     "metric_2",
+    "metrics",
+    "metrics_b",
     "percent_metrics",
     "secondary_metric",
     "size",
