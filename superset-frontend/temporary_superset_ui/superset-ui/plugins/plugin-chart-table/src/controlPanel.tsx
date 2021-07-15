@@ -23,6 +23,7 @@ import {
   ChartDataResponseResult,
   ensureIsArray,
   FeatureFlag,
+  GenericDataType,
   isFeatureEnabled,
   QueryFormColumn,
   QueryMode,
@@ -445,6 +446,34 @@ const config: ControlPanelConfig = {
               mapStateToProps(explore, control, chart) {
                 return {
                   queryResponse: chart?.queriesResponse?.[0] as ChartDataResponseResult | undefined,
+                };
+              },
+            },
+          },
+        ],
+        [
+          {
+            name: 'conditional_formatting',
+            config: {
+              type: 'ConditionalFormattingControl',
+              renderTrigger: true,
+              label: t('Conditional formatting'),
+              description: t('Apply conditional color formatting to numeric columns'),
+              mapStateToProps(explore, control, chart) {
+                const verboseMap = explore?.datasource?.verbose_map ?? {};
+                const { colnames, coltypes } = chart?.queriesResponse?.[0] ?? {};
+                const numericColumns =
+                  Array.isArray(colnames) && Array.isArray(coltypes)
+                    ? colnames
+                        .filter(
+                          (colname: string, index: number) =>
+                            coltypes[index] === GenericDataType.NUMERIC,
+                        )
+                        .map(colname => ({ value: colname, label: verboseMap[colname] ?? colname }))
+                    : [];
+                return {
+                  columnOptions: numericColumns,
+                  verboseMap,
                 };
               },
             },
