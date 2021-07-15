@@ -46,4 +46,3 @@ def downgrade():
     with op.batch_alter_table("report_schedule") as batch_op:
         batch_op.drop_index("ix_creation_method")
         batch_op.drop_column("creation_method")
-
