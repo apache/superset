@@ -30,12 +30,12 @@ import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 
 export const DndColumnSelect = (props: LabelProps) => {
   const { value, options, multi = true } = props;
-  const optionSelector = new OptionSelector(options, value);
+  const optionSelector = new OptionSelector(options, multi, value);
   const [values, setValues] = useState<ColumnMeta[]>(optionSelector.values);
 
   const onDrop = (item: DatasourcePanelDndItem) => {
     const column = item.value as ColumnMeta;
-    if (!optionSelector.isArray && !isEmpty(optionSelector.values)) {
+    if (!optionSelector.multi && !isEmpty(optionSelector.values)) {
       optionSelector.replace(0, column.column_name);
     } else {
       optionSelector.add(column.column_name);
