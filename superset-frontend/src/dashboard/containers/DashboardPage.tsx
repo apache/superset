@@ -88,7 +88,6 @@ const DashboardPage: FC = () => {
     } else {
       dispatch(setDatasources(datasets));
     }
-    console.log(datasetsApiError, datasets);
   }, [addDangerToast, datasets, datasetsApiError, dispatch]);
 
   if (error) throw error; // caught in error boundary
