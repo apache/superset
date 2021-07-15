@@ -46,7 +46,7 @@ export function setDatasources(datasources: Datasource[] | null) {
 
 export function setDatasource(datasource: Datasource, key: string) {
   return {
-    type: DatasourcesAction.SET_DATASOURCES,
+    type: DatasourcesAction.SET_DATASOURCE,
     key,
     datasource,
   };
