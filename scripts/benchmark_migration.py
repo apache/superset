@@ -29,6 +29,7 @@ from flask import current_app
 from flask_appbuilder import Model
 from flask_migrate import downgrade, upgrade
 from graphlib import TopologicalSorter  # pylint: disable=wrong-import-order
+from progress.bar import ChargingBar
 from sqlalchemy import create_engine, inspect, Table
 from sqlalchemy.ext.automap import automap_base
 
@@ -171,25 +172,29 @@ def main(
 
     min_entities = 10
     new_models: Dict[Type[Model], List[Model]] = defaultdict(list)
+    bar = ChargingBar("Processing", max=min_entities)
     while min_entities <= limit:
         downgrade(revision=down_revision)
         print(f"Running with at least {min_entities} entities of each model")
-        for model in models:
-            missing = min_entities - model_rows[model]
-            if missing > 0:
-                print(f"- Adding {missing} entities to the {model.__name__} model")
-                try:
-                    added_models = add_sample_rows(session, model, missing)
-                except Exception:
-                    session.rollback()
-                    raise
-                model_rows[model] = min_entities
-                session.commit()
+        for i in range(min_entities):
+            for model in models:
+                missing = min_entities - model_rows[model]
+                if missing > 0:
+                    print(f"- Adding {missing} entities to the {model.__name__} model")
+                    try:
+                        added_models = add_sample_rows(session, model, missing)
+                    except Exception:
+                        session.rollback()
+                        raise
+                    model_rows[model] = min_entities
+                    session.commit()
 
-                if auto_cleanup:
-                    new_models[model].extend(added_models)
+                    if auto_cleanup:
+                        new_models[model].extend(added_models)
+            bar.next()
 
         start = time.time()
+        bar.finish()
         upgrade(revision=revision)
         duration = time.time() - start
         print(f"Migration for {min_entities}+ entities took: {duration:.2f} seconds")
