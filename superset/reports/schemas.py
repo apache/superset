@@ -159,7 +159,7 @@ class ReportSchedulePostSchema(Schema):
     creation_method = EnumField(
         ReportCreationMethodType,
         by_value=True,
-        required=False,
+        required=True,
         description=creation_method_description,
     )
     dashboard = fields.Integer(required=False, allow_none=True)
