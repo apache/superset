@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { CSSProperties, useCallback, useMemo, useState } from 'react';
+import React, { CSSProperties, useCallback, useMemo } from 'react';
 import { ColumnInstance, ColumnWithLooseAccessor, DefaultSortTypes } from 'react-table';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
 import { FaSort, FaSortDown as FaSortDesc, FaSortUp as FaSortAsc } from 'react-icons/fa';
@@ -161,11 +161,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     showCellBars = true,
     emitFilter = false,
     sortDesc = false,
-    filters: initialFilters = {},
+    filters,
     sticky = true, // whether to use sticky header
   } = props;
-
-  const [filters, setFilters] = useState(initialFilters);
 
   const handleChange = useCallback(
     (filters: { [x: string]: DataRecordValue[] }) => {
@@ -196,6 +194,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         },
         filterState: {
           value: groupByValues.length ? groupByValues : null,
+          filters: filters && Object.keys(filters).length ? filters : null,
         },
       });
     },
@@ -241,7 +240,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       if (Array.isArray(updatedFilters[key]) && updatedFilters[key].length === 0) {
         delete updatedFilters[key];
       }
-      setFilters(updatedFilters);
       handleChange(updatedFilters);
     },
     [filters, handleChange, isActiveFilterValue],
