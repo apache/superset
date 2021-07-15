@@ -34,7 +34,7 @@ def upgrade():
     with op.batch_alter_table("report_schedule") as batch_op:
         batch_op.add_column(
             sa.Column(
-                "creation_method", sa.VARCHAR(255), server_default="alert_reports",
+                "creation_method", sa.VARCHAR(255), server_default="alerts_reports",
             )
         )
         batch_op.create_index(
