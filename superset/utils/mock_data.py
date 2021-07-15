@@ -171,9 +171,7 @@ def add_data(
 ) -> None:
     """
     Generate synthetic data for testing migrations and features.
-
     If the table already exists `columns` can be `None`.
-
     :param Optional[List[ColumnInfo]] columns: list of column names and types to create
     :param int run_nows: how many rows to generate and insert
     :param str table_name: name of table, will be created if it doesn't exist
@@ -235,7 +233,6 @@ def generate_column_data(column: ColumnInfo, num_rows: int) -> List[Any]:
 def add_sample_rows(session: Session, model: Type[Model], count: int) -> Model:
     """
     Add entities of a given model.
-
     :param Model model: a Superset/FAB model
     :param int count: how many entities to generate and insert
     """
