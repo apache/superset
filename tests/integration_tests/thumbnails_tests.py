@@ -117,6 +117,7 @@ class TestWebDriverProxy(SupersetTestCase):
         webdriver.get_screenshot(url, "chart-container", user=user)
         assert mock_sleep.call_args_list[1] == call(4)
 
+
 class TestThumbnails(SupersetTestCase):
 
     mock_image = b"bytes mock image"
