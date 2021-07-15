@@ -814,7 +814,7 @@ class TestReportSchedulesApi(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_create_report_schedule_invalid_creation_method(self):
         """
-        ReportSchedule Api: Test create report schedule
+        ReportSchedule API: Test create report schedule
         """
         self.login(username="admin")
 
