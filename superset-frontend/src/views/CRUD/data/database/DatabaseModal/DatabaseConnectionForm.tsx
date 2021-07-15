@@ -219,7 +219,10 @@ const TableCatalog = ({
             <Input
               name="table-catalog-name-1"
               placeholder="Enter create a name for this sheet"
-              onChange={changeMethods.onParametersChange}
+              onChange={e => {
+                console.log(e.target.value);
+                setTableCatalog([{ name: `table-catalog-${e.target.value}` }]);
+              }}
             />
             {/* <CloseOutlined
               onClick={() => {
@@ -233,14 +236,14 @@ const TableCatalog = ({
               }}
             /> */}
             <ValidatedInput
-              name="table-catalog-value-1"
+              name={sheet.name}
               type="gsheet"
               required={required}
               validationMethods={{ onBlur: getValidation }}
               errorMessage={validationErrors?.table_catalog}
               placeholder="Paste the shareable Google Sheet URL here"
               onChange={changeMethods.onParametersChange}
-              onPaste={(e) => {
+              onPaste={e => {
                 changeMethods.onParametersChange({
                   target: {
                     name: 'table-catalog-value-1',

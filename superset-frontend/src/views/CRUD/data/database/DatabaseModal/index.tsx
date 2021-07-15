@@ -228,45 +228,15 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.parametersChange:
-      const data = {};
       if (action.payload.name.startsWith('table-catalog')) {
-        // Reformatting gsheets components for validation
-        console.log('state', state);
-        console.log('action', action);
-
-        // Go through key can pull out names
-        if (trimmedState.parameters?.table_catalog) {
-          console.log(
-            'table_catalog',
-            Object.keys(trimmedState.parameters?.table_catalog),
-          );
-          Object.keys(trimmedState.parameters?.table_catalog).map(k => {
-            if (k.startsWith('table-catalog-name')) {
-              console.log(k);
-              console.log(k.split('-').pop());
-              console.log(
-                trimmedState.parameters?.table_catalog[
-                  `table-catalog-value-${k.split('-').pop()}`
-                ],
-              );
-              data[trimmedState.parameters?.table_catalog[k]] =
-                trimmedState.parameters?.table_catalog[
-                  `table-catalog-value-${k.split('-').pop()}`
-                ];
-            }
-          });
-        }
-
-        console.log('data', data);
-
-        // match key with values
+        // formatting wrapping google sheets table catalog
         return {
           ...trimmedState,
           parameters: {
             ...trimmedState.parameters,
             table_catalog: {
               ...trimmedState.parameters?.table_catalog,
-              [action.payload.name]: action.payload.value,
+              [action.payload.name.substring(14)]: action.payload.value, // removing table-catalog from key
             },
           },
         };
