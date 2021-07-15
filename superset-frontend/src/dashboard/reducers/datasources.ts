@@ -16,25 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Owner from './Owner';
-import Role from './Role';
+import { keyBy } from 'lodash';
+import { DatasourcesState } from 'src/dashboard/types';
+import {
+  DatasourcesActionPayload,
+  DatasourcesAction,
+} from '../actions/datasources';
 
-export interface Dashboard {
-  id: number;
-  slug?: string | null;
-  url: string;
-  dashboard_title: string;
-  thumbnail_url: string;
-  published: boolean;
-  css?: string | null;
-  json_metadata?: string | null;
-  position_json?: string | null;
-  changed_by_name: string;
-  changed_by: Owner;
-  changed_on: string;
-  charts: string[]; // just chart names, unfortunately...
-  owners: Owner[];
-  roles: Role[];
+export default function datasourcesReducer(
+  state: DatasourcesState | undefined,
+  action: DatasourcesActionPayload,
+) {
+  if (action.type === DatasourcesAction.SET_DATASOURCES) {
+    return {
+      ...state,
+      ...keyBy(action.datasources, 'uid'),
+    };
+  }
+  return state || {};
 }
-
-export default Dashboard;
