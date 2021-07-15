@@ -19,13 +19,18 @@ import re
 from contextlib import closing
 from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 
+from apispec import APISpec
+from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import g
 from flask_babel import gettext as __
+from marshmallow import fields, Schema
+from marshmallow.exceptions import ValidationError
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import URL
 from typing_extensions import TypedDict
 
 from superset import security_manager
+from superset.databases.schemas import encrypted_field_properties, EncryptedField
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
@@ -34,6 +39,15 @@ if TYPE_CHECKING:
 
 
 SYNTAX_ERROR_REGEX = re.compile('SQLError: near "(?P<server_error>.*?)": syntax error')
+
+ma_plugin = MarshmallowPlugin()
+
+
+class GSheetsParametersSchema(Schema):
+    credentials_info = EncryptedField(
+        required=False, description="Contents of Google Sheets JSON credentials.",
+    )
+    table_catalog = fields.Dict(required=False)
 
 
 class GSheetsParametersType(TypedDict):
@@ -49,6 +63,10 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     engine_name = "Google Sheets"
     allows_joins = True
     allows_subqueries = True
+
+    parameters_schema = GSheetsParametersSchema()
+    default_driver = "apsw"
+    sqlalchemy_uri_placeholder = "gsheets://"
 
     custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
         SYNTAX_ERROR_REGEX: (
@@ -86,6 +104,41 @@ class GSheetsEngineSpec(SqliteEngineSpec):
             metadata = {}
 
         return {"metadata": metadata["extra"]}
+
+    @classmethod
+    def build_sqlalchemy_uri(cls) -> str:  # pylint: disable=unused-variable
+
+        return "gsheets://"
+
+    @classmethod
+    def get_parameters_from_uri(
+        cls, encrypted_extra: Optional[Dict[str, str]] = None,
+    ) -> Any:
+        # Building parameters from encrypted_extra and uri
+        if encrypted_extra:
+            return {**encrypted_extra}
+
+        raise ValidationError("Invalid service credentials")
+
+    @classmethod
+    def parameters_json_schema(cls) -> Any:
+        """
+        Return configuration parameters as OpenAPI.
+        """
+        if not cls.parameters_schema:
+            return None
+
+        spec = APISpec(
+            title="Database Parameters",
+            version="1.0.0",
+            openapi_version="3.0.0",
+            plugins=[ma_plugin],
+        )
+
+        ma_plugin.init_spec(spec)
+        ma_plugin.converter.add_attribute_function(encrypted_field_properties)
+        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
+        return spec.to_dict()["components"]["schemas"][cls.__name__]
 
     @classmethod
     def validate_parameters(
