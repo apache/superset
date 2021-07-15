@@ -17,9 +17,9 @@
  * under the License.
  */
 import React, { FunctionComponent, useState } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { styled, t, useTheme } from '@superset-ui/core';
 import { NativeGraySelect as Select } from 'src/components/Select';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { StyledInputContainer } from '../AlertReportModal';
 
 const StyledNotificationMethod = styled.div`
@@ -74,6 +74,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const [recipientValue, setRecipientValue] = useState<string>(
     recipients || '',
   );
+  const theme = useTheme();
 
   if (!setting) {
     return null;
@@ -144,7 +145,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
             className="delete-button"
             onClick={() => onRemove(index)}
           >
-            <Icon name="trash" />
+            <Icons.Trash iconColor={theme.colors.grayscale.base} />
           </span>
         ) : null}
       </div>

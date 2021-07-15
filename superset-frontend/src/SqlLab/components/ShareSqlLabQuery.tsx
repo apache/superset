@@ -17,11 +17,11 @@
  * under the License.
  */
 import React from 'react';
-import { t, useTheme } from '@superset-ui/core';
+import { t, useTheme, styled } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { storeQuery } from 'src/utils/common';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
@@ -38,6 +38,16 @@ interface ShareSqlLabQueryPropTypes {
   };
   addDangerToast: (msg: string) => void;
 }
+
+const StyledIcon = styled(Icons.Link)`
+  &:first-of-type {
+    margin: 0;
+    display: flex;
+    svg {
+      margin: 0;
+    }
+  }
+`;
 
 function ShareSqlLabQuery({
   queryEditor,
@@ -86,14 +96,12 @@ function ShareSqlLabQuery({
       : t('Save the query to enable this feature');
     return (
       <Button buttonSize="small" tooltip={tooltip} disabled={!canShare}>
-        <Icon
-          name="link"
-          color={
+        <StyledIcon
+          iconColor={
             canShare ? theme.colors.primary.base : theme.colors.grayscale.base
           }
-          width={20}
-          height={20}
-        />{' '}
+          iconSize="xl"
+        />
         {t('Copy link')}
       </Button>
     );

@@ -25,6 +25,7 @@ export type DatabaseObject = {
   // Connection + general
   id?: number;
   database_name: string;
+  name: string; // synonym to database_name
   sqlalchemy_uri?: string;
   backend?: string;
   created_by?: null | DatabaseUser;
@@ -73,6 +74,7 @@ export type DatabaseObject = {
     }; // No field, holds schema and table timeout
     allows_virtual_table_explore?: boolean; // in SQL Lab
     schemas_allowed_for_csv_upload?: [] | string; // in Security
+    cancel_query_on_windows_unload?: boolean; // in Performance
     version?: string;
 
     // todo: ask beto where this should live

@@ -15,12 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+from unittest import mock
 
 from sqlalchemy import column
 
 from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.core import Database
+from superset.models.sql_lab import Query
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
@@ -99,3 +101,22 @@ class TestSnowflakeDbEngineSpec(TestDbEngineSpec):
                 },
             )
         ]
+
+    @mock.patch("sqlalchemy.engine.Engine.connect")
+    def test_get_cancel_query_id(self, engine_mock):
+        query = Query()
+        cursor_mock = engine_mock.return_value.__enter__.return_value
+        cursor_mock.fetchone.return_value = [123]
+        assert SnowflakeEngineSpec.get_cancel_query_id(cursor_mock, query) == 123
+
+    @mock.patch("sqlalchemy.engine.Engine.connect")
+    def test_cancel_query(self, engine_mock):
+        query = Query()
+        cursor_mock = engine_mock.return_value.__enter__.return_value
+        assert SnowflakeEngineSpec.cancel_query(cursor_mock, query, 123) is True
+
+    @mock.patch("sqlalchemy.engine.Engine.connect")
+    def test_cancel_query_failed(self, engine_mock):
+        query = Query()
+        cursor_mock = engine_mock.raiseError.side_effect = Exception()
+        assert SnowflakeEngineSpec.cancel_query(cursor_mock, query, 123) is False

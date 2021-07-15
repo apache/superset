@@ -35,15 +35,11 @@ import Loading from 'src/components/Loading';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
-import {
-  setFocusedNativeFilter,
-  unsetFocusedNativeFilter,
-} from 'src/dashboard/actions/nativeFilters';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
+import { dispatchFocusAction } from './utils';
 import { FilterProps } from './types';
 import { getFormData } from '../../utils';
 import { useCascadingFilters } from './state';
-import { usePreselectNativeFilter } from '../../state';
 import { checkIsMissingRequiredValue } from '../utils';
 
 const HEIGHT = 32;
@@ -83,7 +79,6 @@ const FilterValue: React.FC<FilterProps> = ({
   const hasDataSource = !!datasetId;
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
   const [isRefreshing, setIsRefreshing] = useState(true);
-  const preselection = usePreselectNativeFilter(filter.id);
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -186,8 +181,8 @@ const FilterValue: React.FC<FilterProps> = ({
   const setDataMask = (dataMask: DataMask) =>
     onFilterSelectionChange(filter, dataMask);
 
-  const setFocusedFilter = () => dispatch(setFocusedNativeFilter(id));
-  const unsetFocusedFilter = () => dispatch(unsetFocusedNativeFilter());
+  const setFocusedFilter = () => dispatchFocusAction(dispatch, id);
+  const unsetFocusedFilter = () => dispatchFocusAction(dispatch);
 
   if (error) {
     return (
@@ -204,11 +199,8 @@ const FilterValue: React.FC<FilterProps> = ({
   );
   const filterState = {
     ...filter.dataMask?.filterState,
-    validateMessage: isMissingRequiredValue && t('Value is required'),
+    validateStatus: isMissingRequiredValue && 'error',
   };
-  if (filterState.value === undefined && preselection) {
-    filterState.value = preselection;
-  }
 
   return (
     <StyledDiv data-test="form-item-value">

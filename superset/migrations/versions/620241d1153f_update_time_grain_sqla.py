@@ -34,7 +34,7 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db, db_engine_specs
-from superset.utils import core as utils
+from superset.utils.memoized import memoized
 
 Base = declarative_base()
 
@@ -70,7 +70,7 @@ class Slice(Base):
     datasource_id = Column(Integer)
 
 
-@utils.memoized
+@memoized
 def duration_by_name(database: Database):
     return {grain.name: grain.duration for grain in database.grains()}
 

@@ -99,20 +99,14 @@ describe('VizType control', () => {
     cy.visitChartByName('Daily Totals');
     cy.verifySliceSuccess({ waitAlias: '@tableChartData' });
 
-    let numScripts = 0;
-    cy.get('script').then(nodes => {
-      numScripts = nodes.length;
-    });
-
     cy.get('[data-test="visualization-type"]').contains('Table').click();
 
+    cy.get('button').contains('Evolution').click(); // change categories
     cy.get('[role="button"]').contains('Line Chart').click();
+    cy.get('button').contains('Select').click();
 
     // should load mathjs for line chart
     cy.get('script[src*="mathjs"]').should('have.length', 1);
-    cy.get('script').then(nodes => {
-      expect(nodes.length).to.greaterThan(numScripts);
-    });
 
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({

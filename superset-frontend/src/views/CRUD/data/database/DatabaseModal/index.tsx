@@ -331,6 +331,15 @@ function dbReducer(
 
 const DEFAULT_TAB_KEY = '1';
 
+const serializeExtra = (extraJson: DatabaseObject['extra_json']) =>
+  JSON.stringify({
+    ...extraJson,
+    metadata_params: JSON.parse((extraJson?.metadata_params as string) || '{}'),
+    engine_params: JSON.parse((extraJson?.engine_params as string) || '{}'),
+    schemas_allowed_for_csv_upload:
+      (extraJson?.schemas_allowed_for_csv_upload as string) || '[]',
+  });
+
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   addDangerToast,
   addSuccessToast,
@@ -371,6 +380,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     fetchResource,
     createResource,
     updateResource,
+    clearError,
   } = useSingleViewResource<DatabaseObject>(
     'database',
     t('database'),
@@ -402,7 +412,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       sqlalchemy_uri: db?.sqlalchemy_uri || '',
       database_name: db?.database_name?.trim() || undefined,
       impersonate_user: db?.impersonate_user || undefined,
-      extra: db?.extra || undefined,
+      extra: serializeExtra(db?.extra_json) || undefined,
       encrypted_extra: db?.encrypted_extra || '',
       server_cert: db?.server_cert || undefined,
     };
@@ -416,6 +426,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setDB({ type: ActionType.reset });
     setHasConnectedDb(false);
     setValidationErrors(null); // reset validation errors on close
+    clearError();
     setEditNewDb(false);
     onHide();
   };
@@ -475,18 +486,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
     if (dbToUpdate?.extra_json) {
       // convert extra_json to back to string
-      dbToUpdate.extra = JSON.stringify({
-        ...dbToUpdate.extra_json,
-        metadata_params: JSON.parse(
-          (dbToUpdate?.extra_json?.metadata_params as string) || '{}',
-        ),
-        engine_params: JSON.parse(
-          (dbToUpdate?.extra_json?.engine_params as string) || '{}',
-        ),
-        schemas_allowed_for_csv_upload:
-          (dbToUpdate?.extra_json?.schemas_allowed_for_csv_upload as string) ||
-          '[]',
-      });
+      dbToUpdate.extra = serializeExtra(dbToUpdate?.extra_json);
     }
 
     if (db?.id) {
@@ -547,16 +547,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   };
 
-  const setDatabaseModel = (engine: string) => {
+  const setDatabaseModel = (database_name: string) => {
     const selectedDbModel = availableDbs?.databases.filter(
-      (db: DatabaseObject) => db.engine === engine,
+      (db: DatabaseObject) => db.name === database_name,
     )[0];
-    const { name, parameters } = selectedDbModel;
+    const { engine, parameters } = selectedDbModel;
     const isDynamic = parameters !== undefined;
     setDB({
       type: ActionType.dbSelected,
       payload: {
-        database_name: name,
+        database_name,
         configuration_method: isDynamic
           ? CONFIGURATION_METHOD.DYNAMIC_FORM
           : CONFIGURATION_METHOD.SQLALCHEMY_URI,
@@ -576,12 +576,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onChange={setDatabaseModel}
         placeholder="Choose a database..."
       >
-        {availableDbs?.databases
+        {[...(availableDbs?.databases || [])]
           ?.sort((a: DatabaseForm, b: DatabaseForm) =>
             a.name.localeCompare(b.name),
           )
           .map((database: DatabaseForm) => (
-            <Select.Option value={database.engine} key={database.engine}>
+            <Select.Option value={database.name} key={database.name}>
               {database.name}
             </Select.Option>
           ))}
@@ -635,7 +635,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         .map((database: DatabaseForm) => (
           <IconButton
             className="preferred-item"
-            onClick={() => setDatabaseModel(database.engine)}
+            onClick={() => setDatabaseModel(database.name)}
             buttonText={database.name}
             icon={dbImages?.[database.engine]}
           />
@@ -900,7 +900,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 testConnection={testConnection}
                 isEditMode={isEditMode}
               />
-              {isDynamic(db?.backend || db?.engine) && (
+              {isDynamic(db?.backend || db?.engine) && !isEditMode && (
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
                   <Button
                     buttonStyle="link"
@@ -923,7 +923,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     tooltip={t(
                       'Click this link to switch to an alternate form that exposes only the required fields needed to connect this database.',
                     )}
-                    viewBox="0 -3 24 24"
+                    viewBox="0 -6 24 24"
                   />
                 </div>
               )}
@@ -955,29 +955,31 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             />
           )}
           {!isEditMode && (
-            <Alert
-              closable={false}
-              css={(theme: SupersetTheme) => antDAlertStyles(theme)}
-              message="Additional fields may be required"
-              showIcon
-              description={
-                <>
-                  Select databases require additional fields to be completed in
-                  the Advanced tab to successfully connect the database. Learn
-                  what requirements your databases has{' '}
-                  <a
-                    href={DOCUMENTATION_LINK}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="additional-fields-alert-description"
-                  >
-                    here
-                  </a>
-                  .
-                </>
-              }
-              type="info"
-            />
+            <StyledAlertMargin>
+              <Alert
+                closable={false}
+                css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+                message="Additional fields may be required"
+                showIcon
+                description={
+                  <>
+                    Select databases require additional fields to be completed
+                    in the Advanced tab to successfully connect the database.
+                    Learn what requirements your databases has{' '}
+                    <a
+                      href={DOCUMENTATION_LINK}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="additional-fields-alert-description"
+                    >
+                      here
+                    </a>
+                    .
+                  </>
+                }
+                type="info"
+              />
+            </StyledAlertMargin>
           )}
         </Tabs.TabPane>
         <Tabs.TabPane tab={<span>{t('Advanced')}</span>} key="2">
@@ -1139,7 +1141,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     tooltip={t(
                       'Click this link to switch to an alternate form that allows you to input the SQLAlchemy URL for this database manually.',
                     )}
-                    viewBox="6 4 24 24"
+                    viewBox="0 -6 24 24"
                   />
                 </div>
                 {/* Step 2 */}

@@ -75,8 +75,11 @@ const mockedProps = {
       icon: '/static/assets/images/superset-logo-horiz.png',
       alt: 'Superset',
       width: '126',
+      tooltip: '',
+      text: '',
     },
     navbar_right: {
+      show_watermark: false,
       bug_report_url: '/report/',
       documentation_url: '/docs/',
       languages: {

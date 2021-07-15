@@ -279,6 +279,7 @@ function AnnotationList({
       />
       <AnnotationModal
         addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
         annotation={currentAnnotation}
         show={annotationModalOpen}
         onAnnotationAdd={() => refreshData()}

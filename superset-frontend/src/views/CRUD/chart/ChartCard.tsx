@@ -17,10 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import Icon from 'src/components/Icon';
 import Icons from 'src/components/Icons';
 import Chart from 'src/types/Chart';
 
@@ -68,6 +67,7 @@ export default function ChartCard({
   const canDelete = hasPerm('can_write');
   const canExport =
     hasPerm('can_read') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+  const theme = useTheme();
 
   const menu = (
     <Menu>
@@ -168,7 +168,7 @@ export default function ChartCard({
               isStarred={favoriteStatus}
             />
             <Dropdown overlay={menu}>
-              <Icon name="more-horiz" />
+              <Icons.MoreHoriz iconColor={theme.colors.grayscale.base} />
             </Dropdown>
           </ListViewCard.Actions>
         }

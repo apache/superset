@@ -25,6 +25,7 @@ from sqlalchemy.engine.url import URL
 
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import SupersetErrorType
+from superset.models.sql_lab import Query
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -128,3 +129,34 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         engine_params["connect_args"] = connect_args
         extra["engine_params"] = engine_params
         database.extra = json.dumps(extra)
+
+    @classmethod
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
+        """
+        Get Snowflake session ID that will be used to cancel all other running
+        queries in the same session.
+
+        :param cursor: Cursor instance in which the query will be executed
+        :param query: Query instance
+        :return: Snowflake Session ID
+        """
+        cursor.execute("SELECT CURRENT_SESSION()")
+        row = cursor.fetchone()
+        return row[0]
+
+    @classmethod
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
+        """
+        Cancel query in the underlying database.
+
+        :param cursor: New cursor instance to the db of the query
+        :param query: Query instance
+        :param cancel_query_id: Snowflake Session ID
+        :return: True if query cancelled successfully, False otherwise
+        """
+        try:
+            cursor.execute(f"SELECT SYSTEM$CANCEL_ALL_QUERIES({cancel_query_id})")
+        except Exception:  # pylint: disable=broad-except
+            return False
+
+        return True

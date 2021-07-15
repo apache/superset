@@ -22,13 +22,12 @@ import moment from 'moment';
 import Card from 'src/components/Card';
 import ProgressBar from 'src/components/ProgressBar';
 import Label from 'src/components/Label';
-import { t, styled } from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
 import { fDuration } from 'src/modules/dates';
 import Icons from 'src/components/Icons';
-import Icon from 'src/components/Icon';
 import { Tooltip } from 'src/components/Tooltip';
 import ResultSet from '../ResultSet';
 import ModalTrigger from '../../../components/ModalTrigger';
@@ -55,89 +54,65 @@ const openQuery = id => {
   window.open(url);
 };
 
-const statusAttributes = {
-  success: {
-    color: ({ theme }) => theme.colors.success.base,
-    config: {
-      name: 'check',
-      label: t('Success'),
-      status: 'success',
-    },
-  },
-  failed: {
-    color: ({ theme }) => theme.colors.error.base,
-    config: {
-      name: 'x-small',
-      label: t('Failed'),
-      status: 'failed',
-    },
-  },
-  stopped: {
-    color: ({ theme }) => theme.colors.error.base,
-    config: {
-      name: 'x-small',
-      label: t('Failed'),
-      status: 'failed',
-    },
-  },
-  running: {
-    color: ({ theme }) => theme.colors.primary.base,
-    config: {
-      name: 'running',
-      label: t('Running'),
-      status: 'running',
-    },
-  },
-  fetching: {
-    color: ({ theme }) => theme.colors.primary.base,
-    config: {
-      name: 'queued',
-      label: t('fetching'),
-      status: 'fetching',
-    },
-  },
-  timed_out: {
-    color: ({ theme }) => theme.colors.grayscale.light1,
-    config: {
-      name: 'offline',
-      label: t('Offline'),
-      status: 'offline',
-    },
-  },
-  scheduled: {
-    color: ({ theme }) => theme.colors.greyscale.base,
-    config: {
-      name: 'queued',
-      label: t('Scheduled'),
-      status: 'queued',
-    },
-  },
-  pending: {
-    color: ({ theme }) => theme.colors.greyscale.base,
-    config: {
-      name: 'queued',
-      label: t('Scheduled'),
-      status: 'queued',
-    },
-  },
-  error: {
-    color: ({ theme }) => theme.colors.error.base,
-    config: {
-      name: 'error',
-      label: t('Unknown Status'),
-      status: 'unknown status!',
-    },
-  },
-};
-
-const StatusIcon = styled(Icon, {
-  shouldForwardProp: prop => prop !== 'status',
-})`
-  color: ${({ status, theme }) =>
-    statusAttributes[status]?.color || theme.colors.grayscale.base};
-`;
-
 const QueryTable = props => {
+  const theme = useTheme();
+  const statusAttributes = {
+    success: {
+      config: {
+        icon: <Icons.Check iconColor={theme.colors.success.base} />,
+        label: t('Success'),
+      },
+    },
+    failed: {
+      config: {
+        icon: <Icons.XSmall iconColor={theme.colors.error.base} />,
+        label: t('Failed'),
+      },
+    },
+    stopped: {
+      config: {
+        icon: <Icons.XSmall iconColor={theme.colors.error.base} />,
+        label: t('Failed'),
+      },
+    },
+    running: {
+      config: {
+        icon: <Icons.Running iconColor={theme.colors.primary.base} />,
+        label: t('Running'),
+      },
+    },
+    fetching: {
+      config: {
+        icon: <Icons.Queued iconColor={theme.colors.primary.base} />,
+        label: t('fetching'),
+      },
+    },
+    timed_out: {
+      config: {
+        icon: <Icons.Offline iconColor={theme.colors.grayscale.light1} />,
+        label: t('Offline'),
+      },
+    },
+    scheduled: {
+      config: {
+        icon: <Icons.Queued iconColor={theme.colors.grayscale.base} />,
+        label: t('Scheduled'),
+      },
+    },
+    pending: {
+      config: {
+        icon: <Icons.Queued iconColor={theme.colors.grayscale.base} />,
+        label: t('Scheduled'),
+      },
+    },
+    error: {
+      config: {
+        icon: <Icons.Error iconColor={theme.colors.error.base} />,
+        label: t('Unknown Status'),
+      },
+    },
+  };
+
   const setHeaders = column => {
     if (column === 'sql') {
       return column.toUpperCase();
@@ -279,12 +254,7 @@ const QueryTable = props => {
           );
         q.state = (
           <Tooltip title={status.config.label} placement="bottom">
-            <span>
-              <StatusIcon
-                name={status.config.name}
-                status={status.config.status}
-              />
-            </span>
+            <span>{status.config.icon}</span>
           </Tooltip>
         );
         q.actions = (

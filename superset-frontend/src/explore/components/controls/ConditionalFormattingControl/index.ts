@@ -16,39 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../../../../stylesheets/less/variables.less';
+import ConditionalFormattingControl from './ConditionalFormattingControl';
 
-.viztype-label {
-  margin-top: 10px;
-  text-align: center;
-  font-size: @font-size-m;
-}
-
-.viztype-selector-container {
-  cursor: pointer;
-  margin-top: 10px;
-  margin-bottom: 10px;
-
-  &:hover img {
-    border: 1px solid @gray-heading;
-  }
-
-  &.selected {
-    cursor: not-allowed;
-    opacity: 1;
-
-    img {
-      border: 1px solid @almost-black;
-    }
-  }
-
-  img {
-    border: 1px solid @gray-light;
-    border-radius: @border-radius-large;
-    transition: border-color @timing-normal;
-  }
-}
-
-.viztype-control-search-box {
-  margin-bottom: 10px;
-}
+export * from './types';
+export default ConditionalFormattingControl;
