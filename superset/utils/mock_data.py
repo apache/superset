@@ -69,6 +69,9 @@ days_range = (MAXIMUM_DATE - MINIMUM_DATE).days
 
 # pylint: disable=too-many-return-statements, too-many-branches
 def get_type_generator(sqltype: sqlalchemy.sql.sqltypes) -> Callable[[], Any]:
+    if isinstance(sqltype, sqlalchemy.dialects.mysql.types.TINYINT):
+        return lambda: random.choice([0, 1])
+
     if isinstance(
         sqltype, (sqlalchemy.sql.sqltypes.INTEGER, sqlalchemy.sql.sqltypes.Integer)
     ):
@@ -83,7 +86,7 @@ def get_type_generator(sqltype: sqlalchemy.sql.sqltypes) -> Callable[[], Any]:
         length = random.randrange(sqltype.length or 255)
         length = max(8, length)  # for unique values
         length = min(100, length)  # for FAB perms
-        return lambda: "".join(random.choices(string.printable, k=length))
+        return lambda: "".join(random.choices(string.ascii_letters, k=length))
 
     if isinstance(
         sqltype, (sqlalchemy.sql.sqltypes.TEXT, sqlalchemy.sql.sqltypes.Text)
@@ -91,7 +94,7 @@ def get_type_generator(sqltype: sqlalchemy.sql.sqltypes) -> Callable[[], Any]:
         length = random.randrange(65535)
         # "practicality beats purity"
         length = max(length, 2048)
-        return lambda: "".join(random.choices(string.printable, k=length))
+        return lambda: "".join(random.choices(string.ascii_letters, k=length))
 
     if isinstance(
         sqltype, (sqlalchemy.sql.sqltypes.BOOLEAN, sqlalchemy.sql.sqltypes.Boolean)
@@ -130,7 +133,7 @@ def get_type_generator(sqltype: sqlalchemy.sql.sqltypes) -> Callable[[], Any]:
 
     if isinstance(sqltype, sqlalchemy.sql.sqltypes.JSON):
         return lambda: {
-            "".join(random.choices(string.printable, k=8)): random.randrange(65535)
+            "".join(random.choices(string.ascii_letters, k=8)): random.randrange(65535)
             for _ in range(10)
         }
 
