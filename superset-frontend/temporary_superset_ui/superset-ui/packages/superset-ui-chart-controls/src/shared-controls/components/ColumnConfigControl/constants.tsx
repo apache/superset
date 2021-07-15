@@ -18,7 +18,9 @@
  */
 import React from 'react';
 import { GenericDataType, t, validateNumber } from '@superset-ui/core';
-import { FaAlignLeft, FaAlignRight, FaAlignCenter } from 'react-icons/fa';
+import { FaAlignLeft } from '@react-icons/all-files/fa/FaAlignLeft';
+import { FaAlignRight } from '@react-icons/all-files/fa/FaAlignRight';
+import { FaAlignCenter } from '@react-icons/all-files/fa/FaAlignCenter';
 import {
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,

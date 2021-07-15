@@ -31,6 +31,7 @@
   "homepage": "https://github.com/apache-superset/superset-ui#readme",
   "dependencies": {
     "@data-ui/event-flow": "^0.0.84",
+    "@react-icons/all-files": "^4.1.0",
     "@storybook/addon-actions": "^5.3.18",
     "@storybook/addon-info": "^5.3.18",
     "@storybook/addon-knobs": "^6.1.15",
@@ -75,7 +76,6 @@
     "jquery": "^3.4.1",
     "memoize-one": "^5.1.1",
     "react": "^16.13.1",
-    "react-icons": "^4.2.0",
     "react-loadable": "^5.5.0",
     "react-resizable": "^1.10.1",
     "storybook-addon-jsx": "^7.2.3"
