@@ -63,8 +63,8 @@ export class OptionSelector {
     [this.values[a], this.values[b]] = [this.values[b], this.values[a]];
   }
 
-  has(groupBy: string): boolean {
-    return !!this.getValues()?.includes(groupBy);
+  has(value: string): boolean {
+    return !!this.getValues()?.includes(value);
   }
 
   getValues(): string[] | string | undefined {
