@@ -37,7 +37,7 @@ function WarningIconWithTooltip({
     >
       <Icons.AlertSolid
         iconColor={theme.colors.alert.base}
-        css={{ marginRight: `8px` }}
+        css={{ marginRight: theme.gridUnit * 2 }}
       />
     </Tooltip>
   );
