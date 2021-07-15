@@ -163,6 +163,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     sortDesc = false,
     filters,
     sticky = true, // whether to use sticky header
+    columnColorFormatters,
   } = props;
 
   const handleChange = useCallback(
@@ -273,7 +274,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const colorPositiveNegative =
         config.colorPositiveNegative === undefined ? defaultColorPN : config.colorPositiveNegative;
 
+      const hasColumnColorFormatters =
+        isNumeric && Array.isArray(columnColorFormatters) && columnColorFormatters.length > 0;
+
       const valueRange =
+        !hasColumnColorFormatters &&
         (config.showCellBars === undefined ? showCellBars : config.showCellBars) &&
         (isMetric || isRawRecords) &&
         getValueRange(key, alignPositiveNegative);
@@ -292,6 +297,19 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         Cell: ({ value }: { value: DataRecordValue }) => {
           const [isHtml, text] = formatColumnValue(column, value);
           const html = isHtml ? { __html: text } : undefined;
+
+          let backgroundColor;
+          if (hasColumnColorFormatters) {
+            columnColorFormatters!
+              .filter(formatter => formatter.column === column.key)
+              .forEach(formatter => {
+                const formatterResult = formatter.getColorFromValue(value as number);
+                if (formatterResult) {
+                  backgroundColor = formatterResult;
+                }
+              });
+          }
+
           const cellProps = {
             // show raw number in title in case of numeric values
             title: typeof value === 'number' ? String(value) : undefined,
@@ -303,14 +321,16 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             ].join(' '),
             style: {
               ...sharedStyle,
-              background: valueRange
-                ? cellBar({
-                    value: value as number,
-                    valueRange,
-                    alignPositiveNegative,
-                    colorPositiveNegative,
-                  })
-                : undefined,
+              background:
+                backgroundColor ||
+                (valueRange
+                  ? cellBar({
+                      value: value as number,
+                      valueRange,
+                      alignPositiveNegative,
+                      colorPositiveNegative,
+                    })
+                  : undefined),
             },
           };
           if (html) {
@@ -369,6 +389,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       sortDesc,
       toggleFilter,
       totals,
+      columnColorFormatters,
     ],
   );
 
