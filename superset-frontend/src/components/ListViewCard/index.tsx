@@ -97,15 +97,16 @@ const TitleContainer = styled.div`
 `;
 
 const TitleLink = styled.span`
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   & a {
     color: ${({ theme }) => theme.colors.grayscale.dark1} !important;
-    overflow: hidden;
-    text-overflow: ellipsis;
-
-    & + .title-right {
-      margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-    }
   }
+`;
+
+const TitleRight = styled.span`
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 const CoverFooter = styled.div`
@@ -246,7 +247,7 @@ function ListViewCard({
                   <Link to={url!}>{title}</Link>
                 </TitleLink>
               </Tooltip>
-              {titleRight && <div className="title-right"> {titleRight}</div>}
+              {titleRight && <TitleRight>{titleRight}</TitleRight>}
               <div className="card-actions" data-test="card-actions">
                 {actions}
               </div>
