@@ -1086,7 +1086,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
         # To ensure correct handling of the ORDER BY labeling we need to reference the
         # metric instance if defined in the SELECT clause.
-        metrics_exprs_by_label = {m.name: m for m in metrics_exprs}
+        metrics_exprs_by_label = {m.key: m for m in metrics_exprs}
         metrics_exprs_by_expr = {str(m): m for m in metrics_exprs}
 
         # Since orderby may use adhoc metrics, too; we need to process them first
