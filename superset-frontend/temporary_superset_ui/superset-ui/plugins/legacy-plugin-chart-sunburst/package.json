@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-sunburst",
-  "version": "0.17.66",
+  "version": "0.17.67",
   "description": "Superset Legacy Chart - Sunburst",
   "sideEffects": [
     "*.css"
@@ -28,7 +28,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/chart-controls": "0.17.66",
+    "@superset-ui/chart-controls": "0.17.67",
     "@superset-ui/core": "0.17.64",
     "d3": "^3.5.17",
     "prop-types": "^15.6.2"
