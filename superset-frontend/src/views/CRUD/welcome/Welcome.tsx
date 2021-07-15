@@ -114,9 +114,17 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     null,
   );
   const [loadedCount, setLoadedCount] = useState(0);
-  const [activeState, setActiveState] = useState(['1', '2', '3']);
+  const [activeState, setActiveState] = useState<Array<string>>([
+    '1',
+    '2',
+    '3',
+  ]);
   const userid = user.userId;
   const id = userid.toString();
+
+  const handleCollapse = (state: Array<string>) => {
+    setActiveState(state);
+  };
 
   useEffect(() => {
     const userKey = getFromLocalStorage(id, null);
@@ -216,7 +224,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           </div>
         ) : null}
       </WelcomeNav>
-      <Collapse activeKey={activeState} ghost bigger>
+      <Collapse activeKey={activeState} onChange={handleCollapse} ghost bigger>
         <Collapse.Panel header={t('Recents')} key="1">
           {activityData &&
           (activityData.Viewed ||
