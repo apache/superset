@@ -186,7 +186,7 @@ const transformProps = (chartProps: TableChartProps): TableChartTransformedProps
     width,
     rawFormData: formData,
     queriesData = [],
-    initialValues: filters = {},
+    filterState,
     ownState: serverPaginationData = {},
     hooks: { onAddFilter: onChangeFilter, setDataMask = () => {} },
   } = chartProps;
@@ -242,7 +242,7 @@ const transformProps = (chartProps: TableChartProps): TableChartTransformedProps
     pageSize: serverPagination
       ? serverPageLength
       : getPageSize(pageLength, data.length, columns.length),
-    filters,
+    filters: filterState.filters,
     emitFilter: tableFilter,
     onChangeFilter,
   };
