@@ -774,7 +774,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert data == {"message": {"dashboard": "Dashboard does not exist"}}
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-<<<<<<< HEAD
+
     # TODO (AAfghahi): I am going to enable this when the report schedule feature is fully finished
     # def test_create_report_schedule_no_creation_method(self):
     #     """
@@ -811,7 +811,7 @@ class TestReportSchedulesApi(SupersetTestCase):
     #         "message": {"creation_method": ["Missing data for required field."]}
     #     }
     #     assert rv.status_code == 400
-=======
+
     def test_create_report_schedule_no_creation_method(self):
         """
         ReportSchedule Api: Test create report schedule
@@ -847,16 +847,11 @@ class TestReportSchedulesApi(SupersetTestCase):
             "message": {"creation_method": ["Missing data for required field."]}
         }
         assert rv.status_code == 400
->>>>>>> added logic for creation_method
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_create_report_schedule_invalid_creation_method(self):
         """
-<<<<<<< HEAD
         ReportSchedule API: Test create report schedule
-=======
-        ReportSchedule Api: Test create report schedule
->>>>>>> added logic for creation_method
         """
         self.login(username="admin")
 
