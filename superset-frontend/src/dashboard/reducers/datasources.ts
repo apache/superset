@@ -24,14 +24,20 @@ import {
 } from '../actions/datasources';
 
 export default function datasourcesReducer(
-  state: DatasourcesState | undefined,
+  datasources: DatasourcesState | undefined,
   action: DatasourcesActionPayload,
 ) {
   if (action.type === DatasourcesAction.SET_DATASOURCES) {
     return {
-      ...state,
+      ...datasources,
       ...keyBy(action.datasources, 'uid'),
     };
   }
-  return state || {};
+  if (action.type === DatasourcesAction.SET_DATASOURCE) {
+    return {
+      ...datasources,
+      [action.key]: action.datasource,
+    };
+  }
+  return datasources || {};
 }
