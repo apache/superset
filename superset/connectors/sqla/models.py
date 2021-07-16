@@ -887,7 +887,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
     def adhoc_metric_to_sqla(
         self, metric: AdhocMetric, columns_by_name: Dict[str, TableColumn]
-    ) -> ColumnClause:
+    ) -> ColumnElement:
         """
         Turn an adhoc metric into a sqlalchemy column.
 
@@ -917,8 +917,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         return self.make_sqla_column_compatible(sqla_metric, label)
 
     def make_sqla_column_compatible(
-        self, sqla_col: ColumnClause, label: Optional[str] = None
-    ) -> ColumnClause:
+        self, sqla_col: ColumnElement, label: Optional[str] = None
+    ) -> ColumnElement:
         """Takes a sqlalchemy column object and adds label info if supported by engine.
         also adds quotes to the column if engine is configured for quotes.
         :param sqla_col: sqlalchemy column instance
