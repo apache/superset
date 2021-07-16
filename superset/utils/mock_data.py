@@ -171,7 +171,9 @@ def add_data(
 ) -> None:
     """
     Generate synthetic data for testing migrations and features.
+
     If the table already exists `columns` can be `None`.
+
     :param Optional[List[ColumnInfo]] columns: list of column names and types to create
     :param int run_nows: how many rows to generate and insert
     :param str table_name: name of table, will be created if it doesn't exist
@@ -230,7 +232,7 @@ def generate_column_data(column: ColumnInfo, num_rows: int) -> List[Any]:
     return [gen() for _ in range(num_rows)]
 
 
-def add_sample_rows(session: Session, model: Type[Model], count: int) -> List[Model]:
+def add_sample_rows(session: Session, model: Type[Model], count: int) -> Model:
     """
     Add entities of a given model.
     :param Model model: a Superset/FAB model
@@ -242,7 +244,6 @@ def add_sample_rows(session: Session, model: Type[Model], count: int) -> List[Mo
     relationships = inspector.relationships.items()
     samples = session.query(model).limit(count).all() if relationships else []
 
-    entities: List[Model] = []
     max_primary_key: Optional[int] = None
     for i in range(count):
         sample = samples[i % len(samples)] if samples else None
@@ -273,10 +274,8 @@ def add_sample_rows(session: Session, model: Type[Model], count: int) -> List[Mo
             else:
                 kwargs[column.name] = generate_value(column)
 
-        entities.append(model(**kwargs))
-
-    session.add_all(entities)
-    return entities
+        entity = model(**kwargs)
+        yield entity
 
 
 def get_valid_foreign_key(column: Column) -> Any:

@@ -172,27 +172,30 @@ def main(
 
     min_entities = 10
     new_models: Dict[Type[Model], List[Model]] = defaultdict(list)
-    bar = ChargingBar("Processing", max=min_entities)
+
     while min_entities <= limit:
         downgrade(revision=down_revision)
         print(f"Running with at least {min_entities} entities of each model")
-        for i in range(min_entities):
-            for model in models:
-                missing = min_entities - model_rows[model]
-                if missing > 0:
-                    print(f"- Adding {missing} entities to the {model.__name__} model")
-                    try:
-                        added_models = add_sample_rows(session, model, missing)
-                    except Exception:
-                        session.rollback()
-                        raise
-                    model_rows[model] = min_entities
-                    session.commit()
+        for model in models:
+            missing = min_entities - model_rows[model]
+            bar = ChargingBar("Processing", max=missing)
+            entities: List[Model] = []
+            if missing > 0:
+                print(f"- Adding {missing} entities to the {model.__name__} model")
+                try:
+                    for entity in add_sample_rows(session, model, missing):
+                        entities.append(entity)
+                        bar.next()
+                except Exception:
+                    session.rollback()
+                    raise
+                model_rows[model] = min_entities
+                session.commit()
 
-                    if auto_cleanup:
-                        new_models[model].extend(added_models)
-            bar.next()
+                if auto_cleanup:
+                    new_models[model].extend(entities)
 
+        session.add_all(entities)
         start = time.time()
         bar.finish()
         upgrade(revision=revision)
