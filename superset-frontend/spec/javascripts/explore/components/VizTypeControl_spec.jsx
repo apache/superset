@@ -50,7 +50,7 @@ describe('VizTypeControl', () => {
       new ChartMetadata({
         name: 'vis1',
         thumbnail: '',
-        tags: ['Popular']
+        tags: ['Popular'],
       }),
     )
     .registerValue(
@@ -58,7 +58,7 @@ describe('VizTypeControl', () => {
       new ChartMetadata({
         name: 'vis2',
         thumbnail: '',
-        tags: ['foobar']
+        tags: ['foobar'],
       }),
     );
 
@@ -81,8 +81,8 @@ describe('VizTypeControl', () => {
   });
 
   it('filters images based on text input', async () => {
-    const thumbnails = screen.getAllByTestId('viztype-selector-container');
-    expect(thumbnails).toHaveLength(1);
+    const thumbnails = screen.getByTestId('viztype-selector-container');
+    expect(thumbnails).toBeInTheDocument();
 
     const searchInput = screen.getByPlaceholderText('Search');
     userEvent.type(searchInput, 'foo');
