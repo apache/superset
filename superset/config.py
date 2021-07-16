@@ -499,6 +499,8 @@ SCREENSHOT_LOAD_WAIT = 60
 SCREENSHOT_SELENIUM_RETRIES = 5
 # Give selenium an headstart, in seconds
 SCREENSHOT_SELENIUM_HEADSTART = 3
+# Wait for the chart animation, in seconds
+SCREENSHOT_SELENIUM_ANIMATION_WAIT = 5
 
 # ---------------------------------------------------
 # Image and file configuration

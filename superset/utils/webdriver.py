@@ -120,6 +120,11 @@ class WebDriverProxy:
                     (By.CLASS_NAME, "slice_container")
                 )
             )
+            selenium_animation_wait = current_app.config[
+                "SCREENSHOT_SELENIUM_ANIMATION_WAIT"
+            ]
+            logger.debug("Wait %i seconds for chart animation", selenium_animation_wait)
+            sleep(selenium_animation_wait)
             logger.info("Taking a PNG screenshot or url %s", url)
             img = element.screenshot_as_png
         except TimeoutException:
