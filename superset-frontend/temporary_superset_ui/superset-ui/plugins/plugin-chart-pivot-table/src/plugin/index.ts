@@ -16,14 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
+import {
+  t,
+  ChartMetadata,
+  ChartPlugin,
+  Behavior,
+  ChartProps,
+  QueryFormData,
+} from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from '../images/thumbnail.png';
 import { PivotTableQueryFormData } from '../types';
 
-export default class PivotTableChartPlugin extends ChartPlugin<PivotTableQueryFormData> {
+export default class PivotTableChartPlugin extends ChartPlugin<
+  PivotTableQueryFormData,
+  ChartProps<QueryFormData>
+> {
   /**
    * The constructor is used to pass relevant metadata and callbacks that get
    * registered in respective registries that are used throughout the library
