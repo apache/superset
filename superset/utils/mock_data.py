@@ -232,7 +232,7 @@ def generate_column_data(column: ColumnInfo, num_rows: int) -> List[Any]:
     return [gen() for _ in range(num_rows)]
 
 
-def add_sample_rows(session: Session, model: Type[Model], count: int) -> Model:
+def add_sample_rows(session: Session, model: Type[Model], count: int) -> Iterator[Model]:
     """
     Add entities of a given model.
     :param Model model: a Superset/FAB model
