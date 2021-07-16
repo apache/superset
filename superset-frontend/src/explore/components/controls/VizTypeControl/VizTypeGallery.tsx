@@ -96,6 +96,8 @@ const DEFAULT_ORDER = [
   'country_map',
 ];
 
+const ALL_TAGS = [t('Popular'), t('Text'), t('Trend'), t('Formattable')];
+
 const typesWithDefaultOrder = new Set(DEFAULT_ORDER);
 
 const THUMBNAIL_GRID_UNITS = 24;
@@ -134,6 +136,19 @@ const LeftPane = styled.div`
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   padding: ${({ theme }) => theme.gridUnit * 2}px;
   overflow: hidden;
+`;
+
+const RightPane = styled.div`
+  grid-area: main;
+`;
+
+const AllTagsWrapper = styled.div`
+  ${({ theme }) => `
+    margin: ${theme.gridUnit * 4}px ${theme.gridUnit * 2}px 0;
+    input {
+      font-size: ${theme.typography.sizes.s};
+    }
+  `}
 `;
 
 const CategoriesWrapper = styled.div`
@@ -182,7 +197,6 @@ const CategoryLabel = styled.button`
 `;
 
 const IconsPane = styled.div`
-  grid-area: main;
   overflow: auto;
   display: grid;
   grid-template-columns: repeat(
@@ -515,11 +529,26 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
         </CategoriesWrapper>
       </LeftPane>
 
-      <ThumbnailGallery
-        vizEntries={vizEntriesToDisplay}
-        selectedViz={selectedViz}
-        setSelectedViz={onChange}
-      />
+      <RightPane>
+        <AllTagsWrapper>
+          {ALL_TAGS.map(tag => (
+            <Label
+              key={tag}
+              onClick={() => {
+                focusSearch();
+                setSearchInputValue(tag);
+              }}
+            >
+              {tag}
+            </Label>
+          ))}
+        </AllTagsWrapper>
+        <ThumbnailGallery
+          vizEntries={vizEntriesToDisplay}
+          selectedViz={selectedViz}
+          setSelectedViz={onChange}
+        />
+      </RightPane>
 
       {selectedVizMetadata ? (
         <div
@@ -538,15 +567,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
             </SectionTitle>
             <TagsWrapper>
               {selectedVizMetadata?.tags.map(tag => (
-                <Label
-                  key={tag}
-                  onClick={() => {
-                    focusSearch();
-                    setSearchInputValue(tag);
-                  }}
-                >
-                  {tag}
-                </Label>
+                <Label key={tag}>{tag}</Label>
               ))}
             </TagsWrapper>
             <Description>
