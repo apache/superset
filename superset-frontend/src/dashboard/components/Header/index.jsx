@@ -122,6 +122,7 @@ const StyledDashboardHeader = styled.div`
     flex-wrap: nowrap;
     .action-button {
       font-size: ${({ theme }) => theme.typography.sizes.xl}px;
+      margin-left: ${({ theme }) => theme.gridUnit * 2.5}px;
     }
   }
 `;

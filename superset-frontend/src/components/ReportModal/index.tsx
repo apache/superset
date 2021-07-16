@@ -23,7 +23,7 @@ import React, {
   Reducer,
   FunctionComponent,
 } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { styled, css, t } from '@superset-ui/core';
 
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import Icons from 'src/components/Icons';
@@ -94,14 +94,37 @@ const reportReducer = (
   }
 };
 
+const StyledModal = styled(Modal)`
+  .ant-modal-body {
+    padding: 0;
+  }
+`;
+
+const StyledTopSection = styled.div`
+  padding: ${({ theme }) => theme.gridUnit * 4}px;
+`;
+
+const StyledBottomSection = styled.div`
+  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  padding: ${({ theme }) => theme.gridUnit * 4}px;
+`;
+
 const StyledIconWrapper = styled.span`
   span {
-    margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
     vertical-align: middle;
   }
   .text {
     vertical-align: middle;
   }
+`;
+
+const StyledScheduleTitle = styled.div`
+  margin-bottom: ${({ theme }) => theme.gridUnit * 7}px;
+`;
+
+const noBottomMargin = css`
+  margin-bottom: 0;
 `;
 
 const ReportModal: FunctionComponent<ReportProps> = ({
@@ -125,59 +148,66 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   );
 
   return (
-    <Modal show={show} onHide={onHide} title={wrappedTitle}>
-      <LabeledErrorBoundInput
-        id="name"
-        name="name"
-        value={currentReport?.name || 'Weekly Report'}
-        required
-        validationMethods={{
-          onChange: ({ target }: { target: HTMLInputElement }) =>
+    <StyledModal show={show} onHide={onHide} title={wrappedTitle}>
+      <StyledTopSection>
+        <LabeledErrorBoundInput
+          id="name"
+          name="name"
+          value={currentReport?.name || 'Weekly Report'}
+          required
+          validationMethods={{
+            onChange: ({ target }: { target: HTMLInputElement }) =>
+              onChange(ActionType.textChange, {
+                name: target.name,
+                value: target.value,
+              }),
+          }}
+          errorMessage={
+            currentReport?.name === 'error' ? t('REPORT NAME ERROR') : ''
+          }
+          label="Report Name"
+        />
+
+        <LabeledErrorBoundInput
+          id="description"
+          name="description"
+          value={currentReport?.description || ''}
+          validationMethods={{
+            onChange: ({ target }: { target: HTMLInputElement }) =>
+              onChange(ActionType.textChange, {
+                name: target.name,
+                value: target.value,
+              }),
+          }}
+          errorMessage={
+            currentReport?.description === 'error' ? t('DESCRIPTION ERROR') : ''
+          }
+          label="Description"
+          placeholder="Include a description that will be sent with your report"
+          css={noBottomMargin}
+        />
+      </StyledTopSection>
+
+      <StyledBottomSection>
+        <StyledScheduleTitle>
+          <h1>Schedule</h1>
+          <p>Scheduled reports will be sent to your email as a PNG</p>
+        </StyledScheduleTitle>
+
+        <CronPicker
+          clearButton={false}
+          value={currentReport?.crontab || '0 12 * * 1'}
+          setValue={(newValue: string) => {
             onChange(ActionType.textChange, {
-              name: target.name,
-              value: target.value,
-            }),
-        }}
-        errorMessage={
-          currentReport?.name === 'error' ? t('REPORT NAME ERROR') : ''
-        }
-        label="Report Name"
-      />
-
-      <LabeledErrorBoundInput
-        id="description"
-        name="description"
-        value={currentReport?.description || ''}
-        validationMethods={{
-          onChange: ({ target }: { target: HTMLInputElement }) =>
-            onChange(ActionType.textChange, {
-              name: target.name,
-              value: target.value,
-            }),
-        }}
-        errorMessage={
-          currentReport?.description === 'error' ? t('DESCRIPTION ERROR') : ''
-        }
-        label="Description"
-        placeholder="Include a description that will be sent with your report"
-      />
-
-      <h1>Schedule</h1>
-      <p>Scheduled reports will be sent to your email as a PNG</p>
-
-      <CronPicker
-        clearButton={false}
-        value={currentReport?.crontab || ''}
-        setValue={(newValue: string) => {
-          onChange(ActionType.textChange, {
-            name: 'crontab',
-            value: newValue,
-          });
-        }}
-        onError={setError}
-      />
-      <p>{error}</p>
-    </Modal>
+              name: 'crontab',
+              value: newValue,
+            });
+          }}
+          onError={setError}
+        />
+        <p>{error}</p>
+      </StyledBottomSection>
+    </StyledModal>
   );
 };
 
