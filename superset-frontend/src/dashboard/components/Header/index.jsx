@@ -528,6 +528,20 @@ class Header extends React.PureComponent {
             </>
           )}
 
+          {!editMode && (
+            <>
+              <span
+                role="button"
+                title={t('Schedule email report')}
+                tabIndex={0}
+                className="action-button"
+                onClick={this.showReportModal}
+              >
+                <Icon name="calendar" />
+              </span>
+            </>
+          )}
+
           {this.state.showingPropertiesModal && (
             <PropertiesModal
               dashboardId={dashboardInfo.id}
