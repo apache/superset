@@ -38,6 +38,7 @@ import HeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActions
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
+import ReportModal from 'src/components/ReportModal';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import {
   UNDO_LIMIT,
@@ -52,6 +53,7 @@ const propTypes = {
   addDangerToast: PropTypes.func.isRequired,
   addWarningToast: PropTypes.func.isRequired,
   userId: PropTypes.number,
+  userEmail: PropTypes.string,
   dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
   dataMask: PropTypes.object.isRequired,
@@ -123,6 +125,7 @@ const StyledDashboardHeader = styled.div`
     flex-wrap: nowrap;
     .action-button {
       font-size: ${({ theme }) => theme.typography.sizes.xl}px;
+      margin-left: ${({ theme }) => theme.gridUnit * 2.5}px;
     }
   }
 `;
@@ -138,6 +141,7 @@ class Header extends React.PureComponent {
       didNotifyMaxUndoHistoryToast: false,
       emphasizeUndo: false,
       showingPropertiesModal: false,
+      showingReportModal: false,
     };
 
     this.handleChangeText = this.handleChangeText.bind(this);
@@ -149,6 +153,8 @@ class Header extends React.PureComponent {
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
     this.showPropertiesModal = this.showPropertiesModal.bind(this);
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
+    this.showReportModal = this.showReportModal.bind(this);
+    this.hideReportModal = this.hideReportModal.bind(this);
   }
 
   componentDidMount() {
@@ -351,6 +357,14 @@ class Header extends React.PureComponent {
     this.setState({ showingPropertiesModal: false });
   }
 
+  showReportModal() {
+    this.setState({ showingReportModal: true });
+  }
+
+  hideReportModal() {
+    this.setState({ showingReportModal: false });
+  }
+
   render() {
     const {
       dashboardTitle,
@@ -371,6 +385,7 @@ class Header extends React.PureComponent {
       editMode,
       isPublished,
       userId,
+      userEmail,
       dashboardInfo,
       hasUnsavedChanges,
       isLoading,
@@ -499,6 +514,20 @@ class Header extends React.PureComponent {
             </>
           )}
 
+          {!editMode && (
+            <>
+              <span
+                role="button"
+                title={t('Schedule email report')}
+                tabIndex={0}
+                className="action-button"
+                onClick={this.showReportModal}
+              >
+                <Icon name="calendar" />
+              </span>
+            </>
+          )}
+
           {this.state.showingPropertiesModal && (
             <PropertiesModal
               dashboardId={dashboardInfo.id}
@@ -523,6 +552,18 @@ class Header extends React.PureComponent {
                     `/superset/dashboard/${updates.slug}/`,
                   );
                 }
+              }}
+            />
+          )}
+
+          {this.state.showingReportModal && (
+            <ReportModal
+              show={this.state.showingReportModal}
+              onHide={this.hideReportModal}
+              props={{
+                userId,
+                userEmail,
+                dashboardId: dashboardInfo.id,
               }}
             />
           )}
