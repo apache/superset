@@ -102,6 +102,21 @@ class TestWebDriverProxy(SupersetTestCase):
         webdriver.get_screenshot(url, "chart-container", user=user)
         assert mock_webdriver_wait.call_args_list[1] == call(ANY, 15)
 
+    @patch("superset.utils.webdriver.WebDriverWait")
+    @patch("superset.utils.webdriver.firefox")
+    @patch("superset.utils.webdriver.sleep")
+    def test_screenshot_selenium_animation_wait(
+        self, mock_sleep, mock_webdriver, mock_webdriver_wait
+    ):
+        webdriver = WebDriverProxy("firefox")
+        user = security_manager.get_user_by_username(
+            app.config["THUMBNAIL_SELENIUM_USER"]
+        )
+        url = get_url_path("Superset.slice", slice_id=1, standalone="true")
+        app.config["SCREENSHOT_SELENIUM_ANIMATION_WAIT"] = 4
+        webdriver.get_screenshot(url, "chart-container", user=user)
+        assert mock_sleep.call_args_list[1] == call(4)
+
 
 class TestThumbnails(SupersetTestCase):
 

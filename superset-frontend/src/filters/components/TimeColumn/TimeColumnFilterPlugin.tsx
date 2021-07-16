@@ -65,14 +65,14 @@ export default function PluginFilterTimeColumn(
   };
 
   useEffect(() => {
-    handleChange(filterState.value ?? null);
-  }, [JSON.stringify(filterState.value)]);
-
-  useEffect(() => {
     handleChange(defaultValue ?? null);
     // I think after Config Modal update some filter it re-creates default value for all other filters
     // so we can process it like this `JSON.stringify` or start to use `Immer`
   }, [JSON.stringify(defaultValue)]);
+
+  useEffect(() => {
+    handleChange(filterState.value ?? null);
+  }, [JSON.stringify(filterState.value)]);
 
   const timeColumns = (data || []).filter(
     row => row.dtype === GenericDataType.TEMPORAL,
@@ -103,8 +103,8 @@ export default function PluginFilterTimeColumn(
           placeholder={placeholderText}
           // @ts-ignore
           onChange={handleChange}
-          onBlur={unsetFocusedFilter}
-          onFocus={setFocusedFilter}
+          onMouseEnter={setFocusedFilter}
+          onMouseLeave={unsetFocusedFilter}
           ref={inputRef}
         >
           {timeColumns.map(

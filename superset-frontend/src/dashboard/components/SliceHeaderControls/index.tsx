@@ -80,7 +80,8 @@ const VerticalDotsTrigger = () => (
     <span className="dot" />
   </VerticalDotsContainer>
 );
-interface Props {
+
+export interface SliceHeaderControlsProps {
   slice: {
     description: string;
     viz_type: string;
@@ -88,35 +89,43 @@ interface Props {
     slice_id: number;
     slice_description: string;
   };
+
   componentId: string;
-  chartStatus: string;
   dashboardId: number;
-  addDangerToast: () => void;
+  chartStatus: string;
   isCached: boolean[];
   cachedDttm: string[] | null;
   isExpanded?: boolean;
   updatedDttm: number | null;
-  supersetCanExplore: boolean;
-  supersetCanShare: boolean;
-  supersetCanCSV: boolean;
-  sliceCanEdit: boolean;
   isFullSize?: boolean;
   formData: object;
-  toggleExpandSlice?: (sliceId: number) => void;
+  exploreUrl?: string;
+
   forceRefresh: (sliceId: number, dashboardId: number) => void;
-  exploreChart?: (sliceId: number) => void;
+  logExploreChart?: (sliceId: number) => void;
+  toggleExpandSlice?: (sliceId: number) => void;
   exportCSV?: (sliceId: number) => void;
   exportFullCSV?: (sliceId: number) => void;
-  addSuccessToast: (message: string) => void;
   handleToggleFullSize: () => void;
+
+  addDangerToast: (message: string) => void;
+  addSuccessToast: (message: string) => void;
+
+  supersetCanExplore?: boolean;
+  supersetCanShare?: boolean;
+  supersetCanCSV?: boolean;
+  sliceCanEdit?: boolean;
 }
 interface State {
   showControls: boolean;
   showCrossFilterScopingModal: boolean;
 }
 
-class SliceHeaderControls extends React.PureComponent<Props, State> {
-  constructor(props: Props) {
+class SliceHeaderControls extends React.PureComponent<
+  SliceHeaderControlsProps,
+  State
+> {
+  constructor(props: SliceHeaderControlsProps) {
     super(props);
     this.toggleControls = this.toggleControls.bind(this);
     this.refreshChart = this.refreshChart.bind(this);
@@ -164,8 +173,8 @@ class SliceHeaderControls extends React.PureComponent<Props, State> {
         break;
       case MENU_KEYS.EXPLORE_CHART:
         // eslint-disable-next-line no-unused-expressions
-        this.props.exploreChart &&
-          this.props.exploreChart(this.props.slice.slice_id);
+        this.props.logExploreChart &&
+          this.props.logExploreChart(this.props.slice.slice_id);
         break;
       case MENU_KEYS.EXPORT_CSV:
         // eslint-disable-next-line no-unused-expressions
@@ -272,7 +281,9 @@ class SliceHeaderControls extends React.PureComponent<Props, State> {
 
         {this.props.supersetCanExplore && (
           <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
-            {t('View chart in Explore')}
+            <a href={this.props.exploreUrl} rel="noopener noreferrer">
+              {t('View chart in Explore')}
+            </a>
           </Menu.Item>
         )}
 

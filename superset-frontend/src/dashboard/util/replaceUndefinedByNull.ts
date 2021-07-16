@@ -16,25 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Owner from './Owner';
-import Role from './Role';
+import { cloneDeep } from 'lodash';
 
-export interface Dashboard {
-  id: number;
-  slug?: string | null;
-  url: string;
-  dashboard_title: string;
-  thumbnail_url: string;
-  published: boolean;
-  css?: string | null;
-  json_metadata?: string | null;
-  position_json?: string | null;
-  changed_by_name: string;
-  changed_by: Owner;
-  changed_on: string;
-  charts: string[]; // just chart names, unfortunately...
-  owners: Owner[];
-  roles: Role[];
+function processObject(object: Object) {
+  const result = object;
+  Object.keys(result).forEach(key => {
+    if (result[key] === undefined) {
+      result[key] = null;
+    } else if (result[key] !== null && typeof result[key] === 'object') {
+      result[key] = processObject(result[key]);
+    }
+  });
+  return result;
 }
 
-export default Dashboard;
+export default function replaceUndefinedByNull(object: Object) {
+  const copy = cloneDeep(object);
+  return processObject(copy);
+}

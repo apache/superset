@@ -26,7 +26,6 @@ import { render, screen } from 'spec/helpers/testing-library';
 
 import { Radio } from 'src/components/Radio';
 
-import Icon from 'src/components/Icon';
 import Icons from 'src/components/Icons';
 import Tabs from 'src/components/Tabs';
 import DatasourceEditor from 'src/datasource/DatasourceEditor';
@@ -211,7 +210,7 @@ describe('DatasourceEditor', () => {
     expect(sourceTab.find(Radio).length).toBe(2);
     expect(sourceTab.find(Radio).first().prop('disabled')).toBe(true);
 
-    const icon = sourceTab.find(Icon);
+    const icon = sourceTab.find(Icons.LockLocked);
     expect(icon).toHaveLength(0);
 
     isFeatureEnabledMock.mockRestore();
