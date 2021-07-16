@@ -235,6 +235,7 @@ def generate_column_data(column: ColumnInfo, num_rows: int) -> List[Any]:
 def add_sample_rows(session: Session, model: Type[Model], count: int) -> Model:
     """
     Add entities of a given model.
+
     :param Model model: a Superset/FAB model
     :param int count: how many entities to generate and insert
     """
