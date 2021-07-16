@@ -28,10 +28,11 @@
   "dependencies": {
     "@superset-ui/chart-controls": "0.17.67",
     "@superset-ui/core": "0.17.64",
-    "@superset-ui/react-pivottable": "^0.12.8"
+    "@superset-ui/react-pivottable": "^0.12.9"
   },
   "peerDependencies": {
-    "react": "^16.13.1"
+    "react": "^16.13.1",
+    "@ant-design/icons": "^4.2.2"
   },
   "devDependencies": {
     "@babel/types": "^7.13.12",
