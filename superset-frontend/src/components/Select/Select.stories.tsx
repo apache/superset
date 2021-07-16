@@ -340,15 +340,18 @@ export const AsyncSelect = ({
   const fetchUserListPage = useCallback(
     (
       search: string,
-      offset: number,
-      limit: number,
+      page: number,
+      pageSize: number,
     ): Promise<OptionsTypePage> => {
       const username = search.trim().toLowerCase();
       return new Promise(resolve => {
         let results = getResults(username);
         const totalCount = results.length;
-        results = results.splice(offset, limit);
-        setRequestLog(offset + results.length, totalCount, username);
+        const start = page * pageSize;
+        const deleteCount =
+          start + pageSize < totalCount ? pageSize : totalCount - start;
+        results = results.splice(start, deleteCount);
+        setRequestLog(start + results.length, totalCount, username);
         setTimeout(() => {
           resolve({ data: results, totalCount });
         }, responseTime * 1000);
