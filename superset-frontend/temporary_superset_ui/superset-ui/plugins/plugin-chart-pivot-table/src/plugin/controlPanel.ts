@@ -16,9 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag, isFeatureEnabled, t, validateNonEmpty } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  QueryFormMetric,
+  smartDateFormatter,
+  t,
+  validateNonEmpty,
+} from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  D3_TIME_FORMAT_OPTIONS,
   formatSelectOptions,
   sections,
   sharedControls,
@@ -140,6 +148,21 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'combineMetric',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Combine metrics'),
+              default: false,
+              description: t(
+                'Display metrics side by side within each column, as ' +
+                  'opposed to each column being displayed side by side for each metric.',
+              ),
+              renderTrigger: true,
+            },
+          },
+        ],
       ],
     },
     {
@@ -154,23 +177,16 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'tableRenderer',
+            name: 'date_format',
             config: {
               type: 'SelectControl',
-              label: t('Pivot table type'),
-              default: 'Table With Subtotal',
-              choices: [
-                // [value, label]
-                ['Table With Subtotal', t('Table')],
-                ['Table With Subtotal Heatmap', t('Table Heatmap')],
-                ['Table With Subtotal Col Heatmap', t('Table Col Heatmap')],
-                ['Table With Subtotal Row Heatmap', t('Table Row Heatmap')],
-                ['Table With Subtotal Barchart', t('Table Barchart')],
-                ['Table With Subtotal Col Barchart', t('Table Col Barchart')],
-                ['Table With Subtotal Row Barchart', t('Table Row Barchart')],
-              ],
+              freeForm: true,
+              label: t('Date format'),
+              default: smartDateFormatter.id,
               renderTrigger: true,
-              description: t('The type of pivot table visualization'),
+              clearable: false,
+              choices: D3_TIME_FORMAT_OPTIONS,
+              description: t('D3 time format for datetime columns'),
             },
           },
         ],
@@ -280,6 +296,31 @@ const config: ControlPanelConfig = {
               },
             ]
           : [],
+        [
+          {
+            name: 'conditional_formatting',
+            config: {
+              type: 'ConditionalFormattingControl',
+              renderTrigger: true,
+              label: t('Customize metrics'),
+              description: t('Apply conditional color formatting to metrics'),
+              mapStateToProps(explore) {
+                const values = (explore?.controls?.metrics?.value as QueryFormMetric[]) ?? [];
+                const verboseMap = explore?.datasource?.verbose_map ?? {};
+                const metricColumn = values.map(value => {
+                  if (typeof value === 'string') {
+                    return { value, label: verboseMap[value] ?? value };
+                  }
+                  return { value: value.label, label: value.label };
+                });
+                return {
+                  columnOptions: metricColumn,
+                  verboseMap,
+                };
+              },
+            },
+          },
+        ],
       ],
     },
   ],
