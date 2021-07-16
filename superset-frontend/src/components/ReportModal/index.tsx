@@ -123,6 +123,10 @@ const StyledScheduleTitle = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit * 7}px;
 `;
 
+const StyledCronError = styled.p`
+  color: ${({ theme }) => theme.colors.error.base};
+`;
+
 const noBottomMargin = css`
   margin-bottom: 0;
 `;
@@ -205,7 +209,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
           }}
           onError={setError}
         />
-        <p>{error}</p>
+        <StyledCronError>{error}</StyledCronError>
       </StyledBottomSection>
     </StyledModal>
   );
