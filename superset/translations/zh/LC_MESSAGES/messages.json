@@ -986,7 +986,7 @@
         "在 SQL 编辑器中允许 CREATE TABLE AS 选项"
       ],
       "Allow CREATE VIEW AS option in SQL Lab": [
-        "在 SQL 编辑器中允许 CREATE TABLE AS 选项"
+        "在 SQL 编辑器中允许 CREATE VIEW AS 选项"
       ],
       "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in SQL Lab": [
         "允许用户在 SQL 编辑器中运行非 SELECT 语句（UPDATE，DELETE，CREATE，...）"
@@ -1008,7 +1008,7 @@
       ],
       "Expose in SQL Lab": ["在 SQL 工具箱中公开"],
       "Allow CREATE TABLE AS": ["允许 CREATE TABLE AS"],
-      "Allow CREATE VIEW AS": ["允许 CREATE TABLE AS"],
+      "Allow CREATE VIEW AS": ["允许 CREATE VIEW AS"],
       "Allow DML": ["允许 DML"],
       "CTAS Schema": ["CTAS 模式"],
       "SQLAlchemy URI": ["SQLAlchemy URI"],
@@ -1248,7 +1248,7 @@
         "服务器端显示的查询结果中的行数似乎限制在 %s 以内。"
       ],
       "CREATE TABLE AS": ["允许 CREATE TABLE AS"],
-      "CREATE VIEW AS": ["允许 CREATE TABLE AS"],
+      "CREATE VIEW AS": ["允许 CREATE VIEW AS"],
       "Estimate the cost before running a query": [
         "在运行查询之前计算执行计划"
       ],
