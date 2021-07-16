@@ -19,7 +19,7 @@ under the License.
 ## Change Log
 
 ### 1.2 (Tue May 11 09:05:39 2021 -0700)
-**Database Migrations** 
+**Database Migrations**
 - [#14446](https://github.com/apache/superset/pull/14446) fix(native-filters): add migration to update metadata (@villebro)
 - [#14234](https://github.com/apache/superset/pull/14234) feat: Adding limiting_factor column to Query model (@AAfghahi)
 - [#14109](https://github.com/apache/superset/pull/14109) feat: Adding encrypted field factory (@craig-rueda)
@@ -33,7 +33,7 @@ under the License.
 - [#13493](https://github.com/apache/superset/pull/13493) fix: merge 67da9ef1ef9c and 1412ec1e5a7b migrations (@hughhhh)
 - [#13288](https://github.com/apache/superset/pull/13288) fix(sqllab): per-tab hide left bar (@betodealmeida)
 
-**Features** 
+**Features**
 - [#14590](https://github.com/apache/superset/pull/14590) feat(native-filters): add sort metric to select (@villebro)
 - [#14519](https://github.com/apache/superset/pull/14519) feat(dremio): implement convert_dttm method (@villebro)
 - [#14461](https://github.com/apache/superset/pull/14461) feat(native-filters): Auto apply changes in FiltersConfigModal (@simcha90)
@@ -136,7 +136,7 @@ under the License.
 - [#13210](https://github.com/apache/superset/pull/13210) feat(explore): ColumnSelectControl with drag-and-drop (@zhaoyongjie)
 - [#13135](https://github.com/apache/superset/pull/13135) feat(reports): send notification on error with grace (@dpgaspar)
 
-**Fixes** 
+**Fixes**
 - [#14561](https://github.com/apache/superset/pull/14561) fix: select country in examples chart (@betodealmeida)
 - [#14587](https://github.com/apache/superset/pull/14587) fix: dashboard side actions (@pkdotson)
 - [#14526](https://github.com/apache/superset/pull/14526) fix(chart-data): handle url_params in csv export and native filters (@villebro)
@@ -288,7 +288,7 @@ under the License.
 - [#13174](https://github.com/apache/superset/pull/13174) fix: update SQL Lab Buttons to better wording (@AAfghahi)
 - [#13330](https://github.com/apache/superset/pull/13330) fix: date picker support date unit with singular and plural (@zhaoyongjie)
 
-**Others** 
+**Others**
 - [#14460](https://github.com/apache/superset/pull/14460) chore: bump table plugin to 0.17.42 (@amitmiran137)
 - [#14443](https://github.com/apache/superset/pull/14443) perf(native-filters): Load native filters after charts (@simcha90)
 - [#14408](https://github.com/apache/superset/pull/14408) perf(native-filters): avoid unnecessary reloading of charts (@simcha90)
