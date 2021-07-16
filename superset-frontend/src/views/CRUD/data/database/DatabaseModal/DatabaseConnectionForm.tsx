@@ -47,7 +47,7 @@ export const FormFieldOrder = [
   'password',
   'database_name',
   'credentials_info',
-  'table_catalog',
+  'catalog',
   'query',
   'encryption',
 ];
@@ -411,6 +411,7 @@ const DisplayField = ({
             style={{ width: '100%' }}
             onChange={(value: string) => setPublic(setBooleanToString(value))}
             defaultValue="true"
+            disabled
           >
             <Select.Option value="true" key={1}>
               Publicly shared sheets only
@@ -486,7 +487,7 @@ const FORM_FIELD_MAP = {
   query: queryField,
   encryption: forceSSLField,
   credentials_info: CredentialsInfo,
-  table_catalog: TableCatalog,
+  catalog: TableCatalog,
 };
 
 const DatabaseConnectionForm = ({

@@ -234,7 +234,7 @@ function dbReducer(
           ...trimmedState,
           parameters: {
             ...trimmedState.parameters,
-            table_catalog: {
+            catalog: {
               ...trimmedState.parameters?.table_catalog,
               [action.payload.name.substring(14)]: action.payload.value, // removing table-catalog from key
             },
@@ -482,6 +482,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           });
         }
       }
+    }
+
+    if (dbToUpdate.parameters.catalog) {
+      // need to stringify gsheets catalog to allow it to be seralized
+      dbToUpdate.extra_json = {
+        engine_params: JSON.stringify({
+          catalog: dbToUpdate.parameters.catalog,
+        }),
+      };
     }
 
     if (dbToUpdate?.extra_json) {

@@ -64,7 +64,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                 ),
             )
         engine_spec = engine_specs[engine]
-        if not issubclass(engine_spec, BasicParametersMixin):
+        if not hasattr(engine_spec, "parameters_schema"):
             raise InvalidEngineError(
                 SupersetError(
                     message=__(

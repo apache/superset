@@ -47,7 +47,8 @@ class GSheetsParametersSchema(Schema):
     credentials_info = EncryptedField(
         required=False, description="Contents of Google Sheets JSON credentials.",
     )
-    table_catalog = fields.Dict(required=False)
+    catalog = fields.Dict(required=False)
+    query = fields.Dict(required=False)
 
 
 class GSheetsParametersType(TypedDict):
@@ -106,7 +107,9 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         return {"metadata": metadata["extra"]}
 
     @classmethod
-    def build_sqlalchemy_uri(cls) -> str:  # pylint: disable=unused-variable
+    def build_sqlalchemy_uri(
+        cls, _: GSheetsParametersType, encrypted_extra: Optional[Dict[str, Any]] = None,
+    ) -> str:  # pylint: disable=unused-variable
 
         return "gsheets://"
 
