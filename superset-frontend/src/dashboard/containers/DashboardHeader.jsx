@@ -83,6 +83,7 @@ function mapStateToProps({
     charts,
     dataMask,
     userId: user.userId,
+    userEmail: user.email,
     isStarred: !!dashboardState.isStarred,
     isPublished: !!dashboardState.isPublished,
     isLoading: isDashboardLoading(charts),
