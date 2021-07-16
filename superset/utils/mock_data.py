@@ -171,7 +171,9 @@ def add_data(
 ) -> None:
     """
     Generate synthetic data for testing migrations and features.
+
     If the table already exists `columns` can be `None`.
+
     :param Optional[List[ColumnInfo]] columns: list of column names and types to create
     :param int run_nows: how many rows to generate and insert
     :param str table_name: name of table, will be created if it doesn't exist

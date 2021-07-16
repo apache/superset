@@ -178,9 +178,15 @@ def main(
         print(f"Running with at least {min_entities} entities of each model")
         for model in models:
             missing = min_entities - model_rows[model]
+<<<<<<< HEAD
             if missing > 0:
                 entities: List[Model] = []
                 bar = ChargingBar("Processing", max=missing)
+=======
+            bar = ChargingBar("Processing", max=missing)
+            entities: List[Model] = []
+            if missing > 0:
+>>>>>>> revisions
                 print(f"- Adding {missing} entities to the {model.__name__} model")
                 try:
                     for entity in add_sample_rows(session, model, missing):
@@ -189,13 +195,22 @@ def main(
                 except Exception:
                     session.rollback()
                     raise
+<<<<<<< HEAD
                 bar.finish()
                 model_rows[model] = min_entities
                 session.add_all(entities)
+=======
+                model_rows[model] = min_entities
+>>>>>>> revisions
                 session.commit()
 
                 if auto_cleanup:
                     new_models[model].extend(entities)
+<<<<<<< HEAD
+=======
+
+        session.add_all(entities)
+>>>>>>> revisions
         start = time.time()
         upgrade(revision=revision)
         duration = time.time() - start
