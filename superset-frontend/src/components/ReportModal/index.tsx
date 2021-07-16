@@ -170,6 +170,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
             currentReport?.name === 'error' ? t('REPORT NAME ERROR') : ''
           }
           label="Report Name"
+          data-test="report-name-test"
         />
 
         <LabeledErrorBoundInput
@@ -189,6 +190,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
           label="Description"
           placeholder="Include a description that will be sent with your report"
           css={noBottomMargin}
+          data-test="report-description-test"
         />
       </StyledTopSection>
 
