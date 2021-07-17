@@ -257,7 +257,8 @@ function dbReducer(
           ...JSON.parse(action.payload.extra || ''),
           metadata_params: JSON.stringify(extra_json?.metadata_params),
           engine_params: JSON.stringify(extra_json?.engine_params),
-          schemas_allowed_for_csv_upload: extra_json?.schemas_allowed_for_csv_upload
+          schemas_allowed_for_csv_upload:
+            extra_json?.schemas_allowed_for_csv_upload,
         };
       }
 
@@ -390,8 +391,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       addDangerToast(t('Please enter a SQLAlchemy URI to test'));
       return;
     }
-
-    console.log(db);
 
     const connection = {
       sqlalchemy_uri: db?.sqlalchemy_uri || '',
