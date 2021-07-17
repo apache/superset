@@ -669,7 +669,10 @@ class Database(
         self,
     ) -> List[str]:
         allowed_databases = self.get_extra().get("schemas_allowed_for_csv_upload", [])
-        allowed_databases = literal_eval(allowed_databases)
+
+        if isinstance(allowed_databases, str):
+            allowed_databases = literal_eval(allowed_databases)
+
         if hasattr(g, "user"):
             extra_allowed_databases = config["ALLOWED_USER_CSV_SCHEMA_FUNC"](
                 self, g.user
