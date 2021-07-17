@@ -96,7 +96,7 @@ const DEFAULT_ORDER = [
   'country_map',
 ];
 
-const ALL_TAGS = [t('Popular'), t('Text'), t('Trend'), t('Formattable')];
+const ALL_TAGS = [t('Highly-used'), t('Text'), t('Trend'), t('Formattable')];
 
 const typesWithDefaultOrder = new Set(DEFAULT_ORDER);
 
@@ -106,15 +106,16 @@ export const MAX_ADVISABLE_VIZ_GALLERY_WIDTH = 1090;
 
 const OTHER_CATEGORY = t('Other');
 
-const DEFAULT_SEARCH_INPUT_VALUE = t('Popular');
+const DEFAULT_SEARCH_INPUT_VALUE = t('Highly-used');
 
 export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
 
 const VizPickerLayout = styled.div`
   display: grid;
-  grid-template-rows: minmax(100px, 1fr) minmax(200px, 35%);
+  grid-template-rows: auto minmax(100px, 1fr) minmax(200px, 35%);
   grid-template-columns: 1fr 5fr;
   grid-template-areas:
+    'sidebar tags'
     'sidebar main'
     'details details';
   height: 70vh;
@@ -140,10 +141,12 @@ const LeftPane = styled.div`
 
 const RightPane = styled.div`
   grid-area: main;
+  overflow-y: scroll;
 `;
 
 const AllTagsWrapper = styled.div`
   ${({ theme }) => `
+    grid-area: tags;
     margin: ${theme.gridUnit * 4}px ${theme.gridUnit * 2}px 0;
     input {
       font-size: ${theme.typography.sizes.s};
@@ -220,7 +223,7 @@ const DetailsPopulated = (theme: SupersetTheme) => css`
   padding: ${theme.gridUnit * 4}px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto auto 1fr;
   grid-template-areas:
     'viz-name examples-header'
     'viz-tags examples'
@@ -242,6 +245,7 @@ const TagsWrapper = styled.div`
   grid-area: viz-tags;
   width: ${({ theme }) => theme.gridUnit * 120}px;
   padding-right: ${({ theme }) => theme.gridUnit * 14}px;
+  padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 const Description = styled.p`
@@ -529,20 +533,21 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
         </CategoriesWrapper>
       </LeftPane>
 
+      <AllTagsWrapper>
+        {ALL_TAGS.map(tag => (
+          <Label
+            key={tag}
+            onClick={() => {
+              focusSearch();
+              setSearchInputValue(tag);
+            }}
+          >
+            {tag}
+          </Label>
+        ))}
+      </AllTagsWrapper>
+
       <RightPane>
-        <AllTagsWrapper>
-          {ALL_TAGS.map(tag => (
-            <Label
-              key={tag}
-              onClick={() => {
-                focusSearch();
-                setSearchInputValue(tag);
-              }}
-            >
-              {tag}
-            </Label>
-          ))}
-        </AllTagsWrapper>
         <ThumbnailGallery
           vizEntries={vizEntriesToDisplay}
           selectedViz={selectedViz}
