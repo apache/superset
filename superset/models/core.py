@@ -668,6 +668,13 @@ class Database(
         self,
     ) -> List[str]:
         allowed_databases = self.get_extra().get("schemas_allowed_for_csv_upload", [])
+
+        if isinstance(allowed_databases, str):
+            try:
+                allowed_databases = json.loads(allowed_databases)
+            except (TypeError, json.JSONDecodeError):
+                return []
+
         if hasattr(g, "user"):
             extra_allowed_databases = config["ALLOWED_USER_CSV_SCHEMA_FUNC"](
                 self, g.user
