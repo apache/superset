@@ -17,7 +17,9 @@
 #
 import smtplib
 import ssl
-from typing import List
+from typing import Any, Dict, List, Optional
+
+from click.core import Context
 
 try:
     import jinja2
@@ -50,7 +52,7 @@ def send_email(
     sender_email: str,
     receiver_email: str,
     message: str,
-):
+) -> None:
     """
     Send a simple text email (SMTP)
     """
@@ -61,7 +63,7 @@ def send_email(
         server.sendmail(sender_email, receiver_email, message)
 
 
-def render_template(template_file: str, **kwargs) -> str:
+def render_template(template_file: str, **kwargs: Any) -> str:
     """
     Simple render template based on named parameters
 
@@ -73,7 +75,9 @@ def render_template(template_file: str, **kwargs) -> str:
     return template.render(kwargs)
 
 
-def inter_send_email(username, password, sender_email, receiver_email, message):
+def inter_send_email(
+    username: str, password: str, sender_email: str, receiver_email: str, message: str
+) -> None:
     print("--------------------------")
     print("SMTP Message")
     print("--------------------------")
@@ -102,16 +106,16 @@ def inter_send_email(username, password, sender_email, receiver_email, message):
 
 class BaseParameters(object):
     def __init__(
-        self, email=None, username=None, password=None, version=None, version_rc=None
-    ):
+        self, email: str, username: str, password: str, version: str, version_rc: str,
+    ) -> None:
         self.email = email
         self.username = username
         self.password = password
         self.version = version
         self.version_rc = version_rc
-        self.template_arguments = dict()
+        self.template_arguments: Dict[str, Any] = {}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Apache Credentials: {self.email}/{self.username}/{self.version}/{self.version_rc}"
 
 
@@ -133,8 +137,15 @@ class BaseParameters(object):
 )
 @click.option("--version", envvar="SUPERSET_VERSION")
 @click.option("--version_rc", envvar="SUPERSET_VERSION_RC")
-def cli(ctx, apache_email, apache_username, apache_password, version, version_rc):
-    """ Welcome to releasing send email CLI interface!  """
+def cli(
+    ctx: Context,
+    apache_email: str,
+    apache_username: str,
+    apache_password: str,
+    version: str,
+    version_rc: str,
+) -> None:
+    """Welcome to releasing send email CLI interface!"""
     base_parameters = BaseParameters(
         apache_email, apache_username, apache_password, version, version_rc
     )
@@ -155,7 +166,7 @@ def cli(ctx, apache_email, apache_username, apache_password, version, version_rc
     prompt="The receiver email (To:)",
 )
 @click.pass_obj
-def vote_pmc(base_parameters, receiver_email):
+def vote_pmc(base_parameters: BaseParameters, receiver_email: str) -> None:
     template_file = "email_templates/vote_pmc.j2"
     base_parameters.template_arguments["receiver_email"] = receiver_email
     message = render_template(template_file, **base_parameters.template_arguments)
@@ -202,13 +213,13 @@ def vote_pmc(base_parameters, receiver_email):
 )
 @click.pass_obj
 def result_pmc(
-    base_parameters,
-    receiver_email,
-    vote_bindings,
-    vote_nonbindings,
-    vote_negatives,
-    vote_thread,
-):
+    base_parameters: BaseParameters,
+    receiver_email: str,
+    vote_bindings: str,
+    vote_nonbindings: str,
+    vote_negatives: str,
+    vote_thread: str,
+) -> None:
     template_file = "email_templates/result_pmc.j2"
     base_parameters.template_arguments["receiver_email"] = receiver_email
     base_parameters.template_arguments["vote_bindings"] = string_comma_to_list(
@@ -239,7 +250,7 @@ def result_pmc(
     prompt="The receiver email (To:)",
 )
 @click.pass_obj
-def announce(base_parameters, receiver_email):
+def announce(base_parameters: BaseParameters, receiver_email: str) -> None:
     template_file = "email_templates/announce.j2"
     base_parameters.template_arguments["receiver_email"] = receiver_email
     message = render_template(template_file, **base_parameters.template_arguments)
