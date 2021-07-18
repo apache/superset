@@ -66,7 +66,7 @@ export default class EchartsPieChartPlugin extends ChartPlugin<
           t('Circular'),
           t('Comparison'),
           t('Percentages'),
-          t('Popular'),
+          t('Highly-used'),
           t('Proportional'),
         ],
         thumbnail,

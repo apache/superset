@@ -38,7 +38,6 @@ const metadata = new ChartMetadata({
     t('Multi-Dimensions'),
     t('Multi-Layers'),
     t('Multi-Variables'),
-    t('Popular'),
     t('Scatter'),
   ],
   thumbnail,

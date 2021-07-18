@@ -47,7 +47,6 @@ const metadata = new ChartMetadata({
     t('Legacy'),
     t('Line'),
     t('Percentages'),
-    t('Popular'),
     t('Proportional'),
     t('Stacked'),
     t('Time'),
