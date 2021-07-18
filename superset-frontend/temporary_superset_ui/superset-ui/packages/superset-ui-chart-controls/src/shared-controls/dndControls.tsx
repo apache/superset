@@ -19,7 +19,7 @@
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
 import { ExtraControlProps, SharedControlConfig } from '../types';
-import { TIME_COLUMN_OPTION } from '../constants';
+import { TIME_COLUMN_OPTION, TIME_FILTER_LABELS } from '../constants';
 
 export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
   type: 'DndColumnSelect',
@@ -137,4 +137,26 @@ export const dnd_secondary_metric: SharedControlConfig<'DndMetricSelect'> = {
   label: t('Color Metric'),
   validators: [],
   description: t('A metric to use for color'),
+};
+
+export const dnd_granularity_sqla: typeof dndGroupByControl = {
+  ...dndSeries,
+  label: TIME_FILTER_LABELS.granularity_sqla,
+  description: t(
+    'The time column for the visualization. Note that you ' +
+      'can define arbitrary expression that return a DATETIME ' +
+      'column in the table. Also note that the ' +
+      'filter below is applied against this column or ' +
+      'expression',
+  ),
+  canDelete: false,
+  ghostButtonText: t('Drop temporal column'),
+  mapStateToProps: ({ datasource }) => {
+    const temporalColumns = datasource?.columns.filter(c => c.is_dttm) ?? [];
+    const options = Object.fromEntries(temporalColumns.map(option => [option.column_name, option]));
+    return {
+      options,
+      default: datasource?.main_dttm_col || temporalColumns[0]?.column_name || null,
+    };
+  },
 };
