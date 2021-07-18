@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
 import { ControlConfig, DatasourceMeta } from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';
 import { FAST_DEBOUNCE } from 'src/constants';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
 import DatasourcePanelDragWrapper from './DatasourcePanelDragWrapper';
@@ -119,7 +119,23 @@ export default function DataSourcePanel({
   controls: { datasource: datasourceControl },
   actions,
 }: Props) {
-  const { columns, metrics } = datasource;
+  const { columns: _columns, metrics } = datasource;
+
+  // display temporal column first
+  const columns = useMemo(
+    () =>
+      [..._columns].sort((col1, col2) => {
+        if (col1.is_dttm && !col2.is_dttm) {
+          return -1;
+        }
+        if (col2.is_dttm && !col1.is_dttm) {
+          return 1;
+        }
+        return 0;
+      }),
+    [_columns],
+  );
+
   const [inputValue, setInputValue] = useState('');
   const [lists, setList] = useState({
     columns,

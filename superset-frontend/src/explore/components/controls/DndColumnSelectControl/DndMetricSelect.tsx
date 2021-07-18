@@ -157,11 +157,11 @@ export const DndMetricSelect = (props: any) => {
   const canDrop = (item: DatasourcePanelDndItem) => {
     const isMetricAlreadyInValues =
       item.type === 'metric' ? value.includes(item.value.metric_name) : false;
-    return (props.multi || value.length === 0) && !isMetricAlreadyInValues;
+    return !isMetricAlreadyInValues;
   };
 
   const onNewMetric = (newMetric: Metric) => {
-    const newValue = [...value, newMetric];
+    const newValue = props.isMulti ? [...value, newMetric] : [newMetric];
     setValue(newValue);
     handleChange(newValue);
   };
