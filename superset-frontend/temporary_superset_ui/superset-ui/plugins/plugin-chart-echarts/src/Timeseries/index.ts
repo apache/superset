@@ -66,6 +66,7 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
           t('Predictive'),
           t('Time'),
           t('Transformable'),
+          t('Highly-used'),
         ],
         thumbnail,
       }),
