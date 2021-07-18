@@ -44,6 +44,7 @@ export default function OptionWrapper(
     clickClose,
     withCaret,
     isExtra,
+    canDelete = true,
     children,
     ...rest
   } = props;
@@ -113,6 +114,7 @@ export default function OptionWrapper(
         clickClose={clickClose}
         withCaret={withCaret}
         isExtra={isExtra}
+        canDelete={canDelete}
       >
         {children}
       </Option>

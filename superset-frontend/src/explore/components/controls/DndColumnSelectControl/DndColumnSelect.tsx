@@ -29,7 +29,14 @@ import { DndItemType } from 'src/explore/components/DndItemType';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 
 export const DndColumnSelect = (props: LabelProps) => {
-  const { value, options, multi = true, onChange } = props;
+  const {
+    value,
+    options,
+    multi = true,
+    onChange,
+    canDelete = true,
+    ghostButtonText,
+  } = props;
   const optionSelector = new OptionSelector(options, multi, value);
 
   // synchronize values in case of dataset changes
@@ -66,9 +73,12 @@ export const DndColumnSelect = (props: LabelProps) => {
     onChange(optionSelector.getValues());
   };
 
-  const canDrop = (item: DatasourcePanelDndItem) =>
-    (multi || optionSelector.values.length === 0) &&
-    !optionSelector.has((item.value as ColumnMeta).column_name);
+  const canDrop = (item: DatasourcePanelDndItem) => {
+    const columnName = (item.value as ColumnMeta).column_name;
+    return (
+      columnName in optionSelector.options && !optionSelector.has(columnName)
+    );
+  };
 
   const onClickClose = (index: number) => {
     optionSelector.del(index);
@@ -88,6 +98,7 @@ export const DndColumnSelect = (props: LabelProps) => {
         clickClose={onClickClose}
         onShiftOptions={onShiftOptions}
         type={DndItemType.ColumnOption}
+        canDelete={canDelete}
       >
         <StyledColumnOption column={column} showType />
       </OptionWrapper>
@@ -100,7 +111,9 @@ export const DndColumnSelect = (props: LabelProps) => {
       valuesRenderer={valuesRenderer}
       accept={DndItemType.Column}
       displayGhostButton={multi || optionSelector.values.length === 0}
-      ghostButtonText={tn('Drop column', 'Drop columns', multi ? 2 : 1)}
+      ghostButtonText={
+        ghostButtonText || tn('Drop column', 'Drop columns', multi ? 2 : 1)
+      }
       {...props}
     />
   );
