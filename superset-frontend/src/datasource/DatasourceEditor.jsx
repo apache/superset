@@ -730,7 +730,7 @@ class DatasourceEditor extends React.PureComponent {
           ))}
         </div>
         <hr />
-        <Fieldset item={datasource} onChange={this.onDatasourceChange} compact>
+        <Fieldset item={datasource} compact>
           {this.state.datasourceType === DATASOURCE_TYPES.virtual.key && (
             <div>
               {this.state.isSqla && (
