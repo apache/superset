@@ -96,10 +96,10 @@ test('triggers onChange when the value changes', () => {
 test('triggers onChange when the mode changes', () => {
   const onChange = jest.fn();
   render(<CustomFrame onChange={onChange} value={todayNowValue} />);
-  userEvent.click(screen.getByText('Midnight'));
-  userEvent.click(screen.getByText('Relative Date/Time'));
-  userEvent.click(screen.getByText('Now'));
-  userEvent.click(screen.getByText('Specific Date/Time'));
+  userEvent.click(screen.getByTitle('Midnight'));
+  userEvent.click(screen.getByTitle('Relative Date/Time'));
+  userEvent.click(screen.getAllByTitle('Now')[1]);
+  userEvent.click(screen.getAllByTitle('Specific Date/Time')[1]);
   expect(onChange).toHaveBeenCalledTimes(2);
 });
 
