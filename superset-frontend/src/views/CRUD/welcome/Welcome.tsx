@@ -137,7 +137,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           } else setActiveChild(activeTab);
         } else {
           data.Examples = res.examples;
-          console.log('data', data)
+          console.log('data', data);
           if (activeTab === 'Viewed' || !activeTab) {
             setActiveChild('Examples');
           } else setActiveChild(activeTab);
@@ -213,7 +213,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         ...(queryData || []),
       ],
     }));
-    console.log('chartData', chartData)
+    // console.log('chartData', chartData)
   }, [chartData, queryData, dashboardData]);
 
   return (
