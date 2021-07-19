@@ -126,6 +126,8 @@ enum ActionType {
   textChange,
   extraInputChange,
   extraEditorChange,
+  addTableCatalogSheet,
+  removeTableCatalogSheet,
 }
 
 interface DBReducerPayloadType {
@@ -161,7 +163,13 @@ type DBReducerActionType =
       };
     }
   | {
-      type: ActionType.reset;
+      type: ActionType.reset | ActionType.addTableCatalogSheet;
+    }
+  | {
+      type: ActionType.removeTableCatalogSheet;
+      payload: {
+        indexToDelete: number;
+      };
     }
   | {
       type: ActionType.configMethodChange;
@@ -181,6 +189,7 @@ function dbReducer(
   };
   let query = '';
 
+  console.log(action);
   switch (action.type) {
     case ActionType.extraEditorChange:
       return {
@@ -228,26 +237,41 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.parametersChange:
-      if (action.payload.name.startsWith('table-catalog')) {
+      if (true) { // todo: find condition to make the valide for googke sheets only
         // formatting wrapping google sheets table catalog
         return {
           ...trimmedState,
           parameters: {
             ...trimmedState.parameters,
             catalog: {
-              ...trimmedState.parameters?.table_catalog,
+              ...trimmedState.parameters?.catalog,
               [action.payload.name.substring(14)]: action.payload.value, // removing table-catalog from key
             },
           },
         };
       }
-
       return {
         ...trimmedState,
         parameters: {
           ...trimmedState.parameters,
           [action.payload.name]: action.payload.value,
         },
+      };
+    case ActionType.addTableCatalogSheet:
+      if (trimmedState.catalog !== undefined) {
+        return {
+          ...trimmedState,
+          catalog: [...trimmedState.catalog, {}],
+        };
+      }
+      return {
+        ...trimmedState,
+        catalog: [{}],
+      };
+    case ActionType.removeTableCatalogSheet:
+      trimmedState.catalog.splice(action.payload.indexToDelete, 1);
+      return {
+        ...trimmedState,
       };
     case ActionType.editorChange:
       return {
@@ -572,6 +596,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         engine,
       },
     });
+    setDB({ type: ActionType.addTableCatalogSheet });
   };
 
   const renderAvailableSelector = () => (
@@ -845,6 +870,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             value: target.value,
           })
         }
+        onAddTableCatalog={() => {
+          console.log('hello');
+        }}
         getValidation={() => getValidation(db)}
         validationErrors={validationErrors}
       />
@@ -1061,7 +1089,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         </>
       ) : (
         <>
-          {/* Step 1 */}
+          {/* Dyanmic Form Step 1 */}
           {!isLoading &&
             (!db ? (
               <SelectDatabaseStyles>
@@ -1106,6 +1134,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   isPublic={isPublic}
                   sslForced={sslForced}
                   dbModel={dbModel}
+                  onAddTableCatalog={() => {
+                    console.log('hey');
+                    setDB({ type: ActionType.addTableCatalogSheet });
+                  }}
+                  onRemoveTableCatalog={idx => {
+                    setDB({
+                      type: ActionType.removeTableCatalogSheet,
+                      payload: { indexToDelete: idx },
+                    });
+                  }}
                   onParametersChange={({
                     target,
                   }: {

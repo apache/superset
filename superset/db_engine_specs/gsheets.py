@@ -45,12 +45,10 @@ ma_plugin = MarshmallowPlugin()
 
 class GSheetsParametersSchema(Schema):
     catalog = fields.Dict(required=False)
-    query = fields.Dict(required=False)
 
 
 class GSheetsParametersType(TypedDict):
     credentials_info: Dict[str, Any]
-    query: Dict[str, Any]
     table_catalog: Dict[str, str]
 
 

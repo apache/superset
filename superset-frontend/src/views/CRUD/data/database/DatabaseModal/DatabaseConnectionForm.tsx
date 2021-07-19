@@ -60,7 +60,10 @@ interface FieldPropTypes {
   onParametersUploadFileChange: (value: any) => string;
   changeMethods: { onParametersChange: (value: any) => string } & {
     onChange: (value: any) => string;
-  } & { onParametersUploadFileChange: (value: any) => string };
+  } & { onParametersUploadFileChange: (value: any) => string } & {
+    onAddTableCatalog: () => void;
+    onRemoveTableCatalog: (value: number) => void;
+  };
   validationErrors: JsonObject | null;
   getValidation: () => void;
   db?: DatabaseObject;
@@ -197,10 +200,10 @@ const TableCatalog = ({
   isEditMode,
   getValidation,
   validationErrors,
+  db,
 }: FieldPropTypes) => {
-  const [tableCatalog, setTableCatalog] = useState<Record<string, string>>([
-    {},
-  ]);
+  const tableCatalog = db.catalog
+  console.log(tableCatalog);
   return (
     <div>
       <>
@@ -212,50 +215,43 @@ const TableCatalog = ({
         </Select>
       </>
       <>
-        {tableCatalog.map(sheet => (
+        {tableCatalog.map((sheet, idx) => (
           <>
             <Input
-              name="table-catalog-name-1"
+              name={`table-catalog-name-${idx}`}
               placeholder="Enter create a name for this sheet"
               onChange={e => {
-                console.log(e.target.value);
-                setTableCatalog([{ name: `table-catalog-${e.target.value}` }]);
+                tableCatalog[idx].name = e.target.value;
               }}
+              value={sheet.name}
             />
-            {/* <CloseOutlined
-              onClick={() => {
-                const index = tableCatalog.indexOf(sheet);
-                console.log(index)
-                if (index > -1) {
-                  tableCatalog.splice(index, 1);
-                  console.log(tableCatalog);
-                  setTableCatalog(tableCatalog);
-                }
-              }}
-            /> */}
+            <CloseOutlined
+              onClick={() => changeMethods.onRemoveTableCatalog(idx)}
+            />
             <ValidatedInput
               name={sheet.name}
-              type="gsheet"
               required={required}
               validationMethods={{ onBlur: getValidation }}
               errorMessage={validationErrors?.table_catalog}
               placeholder="Paste the shareable Google Sheet URL here"
               onChange={changeMethods.onParametersChange}
               onPaste={e => {
+                const sheetUrl = e.clipboardData.getData('Text');
+                tableCatalog[idx].value = sheetUrl;
                 changeMethods.onParametersChange({
                   target: {
-                    name: 'table-catalog-value-1',
-                    value: e.clipboardData.getData('Text'),
+                    name: sheet.name,
+                    value: sheetUrl,
                   },
                 });
               }}
+              value={sheet.value}
             />
           </>
         ))}
         <StyledFooterButton
           onClick={() => {
-            console.log('add button');
-            setTableCatalog([...tableCatalog, {}]);
+            changeMethods.onAddTableCatalog();
           }}
         >
           Add sheet
@@ -474,6 +470,8 @@ const DatabaseConnectionForm = ({
   onParametersChange,
   onChange,
   onParametersUploadFileChange,
+  onAddTableCatalog,
+  onRemoveTableCatalog,
   validationErrors,
   getValidation,
   db,
@@ -499,6 +497,8 @@ const DatabaseConnectionForm = ({
   onParametersUploadFileChange?: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
+  onAddTableCatalog: () => void;
+  onRemoveTableCatalog: () => void;
   validationErrors: JsonObject | null;
   getValidation: () => void;
 }) => (
@@ -522,6 +522,8 @@ const DatabaseConnectionForm = ({
               onParametersChange,
               onChange,
               onParametersUploadFileChange,
+              onAddTableCatalog,
+              onRemoveTableCatalog,
             },
             validationErrors,
             getValidation,
