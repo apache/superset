@@ -80,7 +80,7 @@ function HighlightSqlModal({ rawSql, sql }: HighlightedSqlModalTypes) {
       </SyntaxHighlighter>
       {rawSql && rawSql !== sql && (
         <div>
-          <h4>{t('Raw SQL')}</h4>
+          <h4>{t('Executed SQL')}</h4>
           <SyntaxHighlighter language="sql" style={github}>
             {rawSql}
           </SyntaxHighlighter>

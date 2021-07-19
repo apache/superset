@@ -114,9 +114,17 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     null,
   );
   const [loadedCount, setLoadedCount] = useState(0);
-
+  const [activeState, setActiveState] = useState<Array<string>>([
+    '1',
+    '2',
+    '3',
+  ]);
   const userid = user.userId;
   const id = userid.toString();
+
+  const handleCollapse = (state: Array<string>) => {
+    setActiveState(state);
+  };
 
   useEffect(() => {
     const userKey = getFromLocalStorage(id, null);
@@ -192,6 +200,9 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   };
 
   useEffect(() => {
+    if (queryData?.length) {
+      setActiveState(['1', '2', '3', '4']);
+    }
     setActivityData(activityData => ({
       ...activityData,
       Created: [
@@ -213,7 +224,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           </div>
         ) : null}
       </WelcomeNav>
-      <Collapse defaultActiveKey={['1', '2', '3', '4']} ghost bigger>
+      <Collapse activeKey={activeState} onChange={handleCollapse} ghost bigger>
         <Collapse.Panel header={t('Recents')} key="1">
           {activityData &&
           (activityData.Viewed ||
@@ -242,7 +253,14 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
             />
           )}
         </Collapse.Panel>
-        <Collapse.Panel header={t('Saved queries')} key="3">
+        <Collapse.Panel header={t('Charts')} key="3">
+          {!chartData ? (
+            <Loading position="inline" />
+          ) : (
+            <ChartTable showThumbnails={checked} user={user} mine={chartData} />
+          )}
+        </Collapse.Panel>
+        <Collapse.Panel header={t('Saved queries')} key="4">
           {!queryData ? (
             <Loading position="inline" />
           ) : (
@@ -252,13 +270,6 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
               mine={queryData}
               featureFlag={isFeatureEnabled(FeatureFlag.THUMBNAILS)}
             />
-          )}
-        </Collapse.Panel>
-        <Collapse.Panel header={t('Charts')} key="4">
-          {!chartData ? (
-            <Loading position="inline" />
-          ) : (
-            <ChartTable showThumbnails={checked} user={user} mine={chartData} />
           )}
         </Collapse.Panel>
       </Collapse>
