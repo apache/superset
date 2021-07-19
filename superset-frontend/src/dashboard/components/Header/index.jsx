@@ -40,6 +40,7 @@ import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners'
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import ReportModal from 'src/components/ReportModal';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
   UNDO_LIMIT,
   SAVE_TYPE_OVERWRITE,
@@ -52,7 +53,7 @@ const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
   addWarningToast: PropTypes.func.isRequired,
-  user: PropTypes.object,
+  user: UserWithPermissionsAndRoles,
   dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
   dataMask: PropTypes.object.isRequired,
@@ -409,7 +410,7 @@ class Header extends React.PureComponent {
     const userCanEdit = dashboardInfo.dash_edit_perm;
     const userCanShare = dashboardInfo.dash_share_perm;
     const userCanSaveAs = dashboardInfo.dash_save_perm;
-    const canAccesReportsModal = !editMode && this.canAddReportsModal();
+    const shouldShowReportsModal = !editMode && this.canAddReportsModal();
     const refreshLimit =
       dashboardInfo.common.conf.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
     const refreshWarning =
@@ -525,7 +526,7 @@ class Header extends React.PureComponent {
               </span>
             </>
           )}
-          {canAccesReportsModal && (
+          {shouldShowReportsModal && (
             <>
               <span
                 role="button"
