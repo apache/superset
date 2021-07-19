@@ -380,7 +380,11 @@ class Header extends React.PureComponent {
   }
 
   canAddReportsModal() {
-    const roles = Object.keys(this.props.user.roles);
+    if (!this.props.user) {
+      // this is in the case that there is an anonymous user.
+      return false;
+    }
+    const roles = Object.keys(this.props.user?.roles);
     const permissions = roles.map(key =>
       this.props.user.roles[key].filter(
         perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
