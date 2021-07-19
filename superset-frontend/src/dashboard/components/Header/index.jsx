@@ -534,21 +534,7 @@ class Header extends React.PureComponent {
                 className="action-button"
                 onClick={this.showReportModal}
               >
-                <Icon name="calendar" />
-              </span>
-            </>
-          )}
-
-          {!editMode && (
-            <>
-              <span
-                role="button"
-                title={t('Schedule email report')}
-                tabIndex={0}
-                className="action-button"
-                onClick={this.showReportModal}
-              >
-                <Icon name="calendar" />
+                <Icons.Calendar />
               </span>
             </>
           )}
