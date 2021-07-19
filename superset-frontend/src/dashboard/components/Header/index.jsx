@@ -379,22 +379,10 @@ class Header extends React.PureComponent {
     this.setState({ showingReportModal: false });
   }
 
-  handleReportClick() {
-    const attachedReportExists = this.props.report?.count > 0;
-    if (!attachedReportExists) {
-      this.showReportModal();
-    }
-  }
-
-  canAddReports() {
-    const { user } = this.props;
-    if (!user) {
-      // this is in the case that there is an anonymous user.
-      return false;
-    }
-    const roles = Object.keys(user.roles || []);
+  canAddReportsModal() {
+    const roles = Object.keys(this.props.user.roles);
     const permissions = roles.map(key =>
-      user.roles[key].filter(
+      this.props.user.roles[key].filter(
         perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
       ),
     );
