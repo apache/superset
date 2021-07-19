@@ -386,6 +386,13 @@ class Header extends React.PureComponent {
     this.setState({ showingReportModal: false });
   }
 
+  handleReportModalclick() {
+    const attachedReportExists = this.state.attachedReports.count > 0;
+    if (!attachedReportExists) {
+      this.showReportModal();
+    }
+  }
+
   canAddReportsModal() {
     if (!this.props.user) {
       // this is in the case that there is an anonymous user.
@@ -426,7 +433,6 @@ class Header extends React.PureComponent {
       endpoint: '/api/v1/report',
     })(`q=${queryParams}`);
     this.setState({ attachedReports: response });
-    console.log(this.state.attachedReports);
   };
 
   render() {
