@@ -36,7 +36,7 @@ import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import { Input, SelectProps } from 'src/common/components';
+import { Input } from 'src/common/components';
 
 export interface SimpleColumnType {
   id: number;
@@ -322,7 +322,9 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     allowClear: true,
     allowNewOptions: true,
     ariaLabel: 'adhoc-filter-simple-value',
-    mode: MULTI_OPERATORS.has(operatorId) ? 'multiple' : undefined,
+    mode: MULTI_OPERATORS.has(operatorId)
+      ? ('multiple' as const)
+      : ('single' as const),
     loading: loadingComparatorSuggestions,
     value: comparator,
     onChange: onComparatorChange,
@@ -336,10 +338,6 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     comparator && comparator.length > 0 && createSuggestionsPlaceholder();
 
   const SelectWithLabel = styled(Select)`
-    .ant-select-selector {
-      margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
-    }
-
     .ant-select-selector::after {
       content: ${() => labelText || '\\A0'};
       display: inline-block;

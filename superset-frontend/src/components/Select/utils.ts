@@ -62,9 +62,11 @@ export function findValue<OptionType extends OptionTypeBase>(
 
 export function hasOption(search: string, options: AntdOptionsType) {
   const searchOption = search.trim().toLowerCase();
+  console.log("SEARCH", search);
+  console.log("OPTIONS", options);
   return options.find(
     opt =>
-      opt.value.toLowerCase().includes(searchOption) ||
+      String(opt.value).toLowerCase().includes(searchOption) ||
       (typeof opt.label === 'string' &&
         opt.label.toLowerCase().includes(searchOption)),
   );
