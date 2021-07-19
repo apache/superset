@@ -27,19 +27,23 @@ const TimeFilterStyles = styled(Styles)`
   overflow-x: auto;
 `;
 
-const ControlContainer = styled.div<{ validateStatus?: string }>`
+const ControlContainer = styled.div<{
+  validateStatus?: 'error' | 'warning' | 'info';
+}>`
   padding: 2px;
   & > span {
     border: 2px solid transparent;
     display: inline-block;
     border: ${({ theme, validateStatus }) =>
-      validateStatus && `2px solid ${theme.colors.error.base}`};
+      validateStatus && `2px solid ${theme.colors[validateStatus]?.base}`};
   }
   &:focus {
     & > span {
       border: 2px solid
         ${({ theme, validateStatus }) =>
-          validateStatus ? theme.colors.error.base : theme.colors.primary.base};
+          validateStatus
+            ? theme.colors[validateStatus]?.base
+            : theme.colors.primary.base};
       outline: 0;
       box-shadow: 0 0 0 2px
         ${({ validateStatus }) =>
@@ -85,7 +89,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
       <ControlContainer
         tabIndex={-1}
         ref={inputRef}
-        validateStatus={filterState.validateMessage}
+        validateStatus={filterState.validateStatus}
         onFocus={setFocusedFilter}
         onBlur={unsetFocusedFilter}
         onMouseEnter={setFocusedFilter}

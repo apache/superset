@@ -210,3 +210,7 @@ class InvalidPayloadSchemaError(SupersetErrorException):
             extra={"messages": error.messages},
         )
         super().__init__(error)
+
+
+class SupersetCancelQueryException(SupersetException):
+    pass

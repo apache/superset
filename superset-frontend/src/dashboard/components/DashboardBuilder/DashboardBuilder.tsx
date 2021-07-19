@@ -177,10 +177,9 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     rootChildId !== DASHBOARD_GRID_ID
       ? dashboardLayout[rootChildId]
       : undefined;
-
+  const isStandalone = getUrlParam(URL_PARAMS.standalone);
   const hideDashboardHeader =
-    getUrlParam(URL_PARAMS.standalone) ===
-    DashboardStandaloneMode.HIDE_NAV_AND_TITLE;
+    isStandalone === DashboardStandaloneMode.HIDE_NAV_AND_TITLE;
 
   const barTopOffset =
     (hideDashboardHeader ? 0 : HEADER_HEIGHT) +
@@ -207,7 +206,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
 
   const offset =
     FILTER_BAR_HEADER_HEIGHT +
-    (isSticky ? 0 : MAIN_HEADER_HEIGHT) +
+    (isSticky || isStandalone ? 0 : MAIN_HEADER_HEIGHT) +
     (filterSetEnabled ? FILTER_BAR_TABS_HEIGHT : 0);
 
   const filterBarHeight = `calc(100vh - ${offset}px)`;

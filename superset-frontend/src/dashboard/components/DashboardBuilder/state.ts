@@ -17,7 +17,6 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
-import { JsonObject } from '@superset-ui/core';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { useEffect, useState } from 'react';
 import { URL_PARAMS } from 'src/constants';
@@ -38,9 +37,6 @@ export const useNativeFilters = () => {
   const showNativeFilters = useSelector<RootState, boolean>(
     state => state.dashboardInfo.metadata?.show_native_filters,
   );
-  const preselectNativeFilters = useSelector<RootState, JsonObject>(
-    state => state.dashboardState?.preselectNativeFilters || {},
-  );
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -54,7 +50,7 @@ export const useNativeFilters = () => {
     (canEdit || (!canEdit && filterValues.length !== 0));
 
   const requiredFirstFilter = filterValues.filter(
-    filter => filter.requiredFirst || preselectNativeFilters[filter.id],
+    filter => filter.requiredFirst,
   );
   const dataMask = useNativeFiltersDataMask();
   const showDashboard =
@@ -93,6 +89,5 @@ export const useNativeFilters = () => {
     dashboardFiltersOpen,
     toggleDashboardFiltersOpen,
     nativeFiltersEnabled,
-    preselectNativeFilters,
   };
 };

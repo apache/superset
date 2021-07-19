@@ -631,7 +631,7 @@ export function useAvailableDatabases() {
 
   const getAvailable = useCallback(() => {
     SupersetClient.get({
-      endpoint: `/api/v1/database/available`,
+      endpoint: `/api/v1/database/available/`,
     }).then(({ json }) => {
       setAvailableDbs(json);
     });

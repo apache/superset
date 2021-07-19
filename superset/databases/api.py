@@ -136,6 +136,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "database_name",
         "explore_database_id",
         "expose_in_sqllab",
+        "extra",
         "force_ctas_schema",
         "id",
     ]
@@ -246,6 +247,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             new_model = CreateDatabaseCommand(g.user, item).run()
             # Return censored version for sqlalchemy URI
             item["sqlalchemy_uri"] = new_model.sqlalchemy_uri
+            item["expose_in_sqllab"] = new_model.expose_in_sqllab
 
             # If parameters are available return them in the payload
             if new_model.parameters:

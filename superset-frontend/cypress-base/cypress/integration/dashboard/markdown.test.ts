@@ -30,7 +30,7 @@ describe('Dashboard edit markdown', () => {
       numScripts = nodes.length;
     });
     cy.get('[data-test="dashboard-header"]')
-      .find('[data-test="edit-alt"]')
+      .find('[aria-label="edit-alt"]')
       .click();
 
     // lazy load - need to open dropdown for the scripts to load

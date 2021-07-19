@@ -84,6 +84,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "chart.id",
         "chart.slice_name",
         "context_markdown",
+        "creation_method",
         "crontab",
         "dashboard.dashboard_title",
         "dashboard.id",
@@ -123,6 +124,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "created_by.first_name",
         "created_by.last_name",
         "created_on",
+        "creation_method",
         "crontab",
         "crontab_humanized",
         "id",
@@ -140,6 +142,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "active",
         "chart",
         "context_markdown",
+        "creation_method",
         "crontab",
         "dashboard",
         "database",
@@ -173,7 +176,13 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "type",
         "crontab_humanized",
     ]
-    search_columns = ["name", "active", "created_by", "type", "last_state"]
+    search_columns = [
+        "name",
+        "active",
+        "created_by",
+        "type",
+        "last_state",
+    ]
     search_filters = {"name": [ReportScheduleAllTextFilter]}
     allowed_rel_fields = {"owners", "chart", "dashboard", "database", "created_by"}
     filter_rel_fields = {

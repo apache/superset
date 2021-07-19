@@ -43,7 +43,7 @@ from superset.charts.commands.exceptions import (
     TimeRangeParseFailError,
     TimeRangeUnclearError,
 )
-from superset.utils.core import memoized
+from superset.utils.memoized import memoized
 
 ParserElement.enablePackrat()
 

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FormInstance } from 'antd/lib/form';
 import { t } from '@superset-ui/core';
 import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
@@ -52,27 +52,19 @@ export const useBackendFormUpdate = (
 export const useDefaultValue = (
   formFilter?: NativeFiltersFormItem,
   filterToEdit?: Filter,
-) => {
-  const [hasDefaultValue, setHasPartialDefaultValue] = useState(
-    !!filterToEdit?.defaultDataMask?.filterState?.value,
-  );
-  const [isRequired, setisRequired] = useState(
-    formFilter?.controlValues?.enableEmptyFilter,
-  );
+): [boolean, boolean, string, Function] => {
+  const enableEmptyFilter = !!formFilter?.controlValues?.enableEmptyFilter;
+  const defaultToFirstItem = !!formFilter?.controlValues?.defaultToFirstItem;
 
+  const [hasDefaultValue, setHasPartialDefaultValue] = useState(false);
+  const [isRequired, setIsRequired] = useState(enableEmptyFilter);
   const [defaultValueTooltip, setDefaultValueTooltip] = useState('');
 
-  const defaultToFirstItem = formFilter?.controlValues?.defaultToFirstItem;
-
-  const setHasDefaultValue = useCallback(
-    (value?) => {
-      const required =
-        !!formFilter?.controlValues?.enableEmptyFilter && !defaultToFirstItem;
-      setisRequired(required);
-      setHasPartialDefaultValue(required ? true : value);
-    },
-    [formFilter?.controlValues?.enableEmptyFilter, defaultToFirstItem],
-  );
+  const setHasDefaultValue = (value = false) => {
+    const required = enableEmptyFilter && !defaultToFirstItem;
+    setIsRequired(required);
+    setHasPartialDefaultValue(required ? true : value);
+  };
 
   useEffect(() => {
     setHasDefaultValue(
@@ -80,7 +72,16 @@ export const useDefaultValue = (
         ? false
         : !!formFilter?.defaultDataMask?.filterState?.value,
     );
-  }, [setHasDefaultValue, defaultToFirstItem]);
+    // TODO: this logic should be unhardcoded
+  }, [defaultToFirstItem, enableEmptyFilter]);
+
+  useEffect(() => {
+    setHasDefaultValue(
+      defaultToFirstItem
+        ? false
+        : !!filterToEdit?.defaultDataMask?.filterState?.value,
+    );
+  }, []);
 
   useEffect(() => {
     let tooltip = '';

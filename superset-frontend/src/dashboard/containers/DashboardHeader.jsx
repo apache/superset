@@ -63,6 +63,7 @@ function mapStateToProps({
   dashboardInfo,
   charts,
   dataMask,
+  user,
 }) {
   return {
     dashboardInfo,
@@ -80,7 +81,7 @@ function mapStateToProps({
     colorScheme: dashboardState.colorScheme,
     charts,
     dataMask,
-    userId: dashboardInfo.userId,
+    userId: user.userId,
     isStarred: !!dashboardState.isStarred,
     isPublished: !!dashboardState.isPublished,
     isLoading: isDashboardLoading(charts),

@@ -60,6 +60,7 @@ from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.tags import FavStarUpdater
 from superset.result_set import SupersetResultSet
 from superset.utils import cache as cache_util, core as utils
+from superset.utils.memoized import memoized
 
 config = app.config
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
@@ -320,7 +321,7 @@ class Database(
                 effective_username = g.user.username
         return effective_username
 
-    @utils.memoized(watch=("impersonate_user", "sqlalchemy_uri_decrypted", "extra"))
+    @memoized(watch=("impersonate_user", "sqlalchemy_uri_decrypted", "extra"))
     def get_sqla_engine(
         self,
         schema: Optional[str] = None,
@@ -592,7 +593,7 @@ class Database(
         return self.get_db_engine_spec_for_backend(self.backend)
 
     @classmethod
-    @utils.memoized
+    @memoized
     def get_db_engine_spec_for_backend(
         cls, backend: str
     ) -> Type[db_engine_specs.BaseEngineSpec]:
@@ -713,7 +714,7 @@ class Database(
         engine = self.get_sqla_engine()
         return engine.has_table(table_name, schema)
 
-    @utils.memoized
+    @memoized
     def get_dialect(self) -> Dialect:
         sqla_url = url.make_url(self.sqlalchemy_uri_decrypted)
         return sqla_url.get_dialect()()  # pylint: disable=no-member

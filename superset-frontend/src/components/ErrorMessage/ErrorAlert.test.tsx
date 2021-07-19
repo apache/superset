@@ -33,13 +33,6 @@ const mockedProps = {
   source: 'dashboard' as ErrorSource,
 };
 
-jest.mock('../Icon', () => ({
-  __esModule: true,
-  default: ({ name }: { name: string }) => (
-    <div data-test="icon" data-name={name} />
-  ),
-}));
-
 test('should render', () => {
   const { container } = render(<ErrorAlert {...mockedProps} />);
   expect(container).toBeInTheDocument();
