@@ -57,7 +57,7 @@ interface FieldPropTypes {
   onParametersChange: (value: any) => string;
   changeMethods: { onParametersChange: (value: any) => string } & {
     onChange: (value: any) => string;
-  } & { onParametersUploadFileChange: (value: any) => string };
+  };
   validationErrors: JsonObject | null;
   getValidation: () => void;
   db?: DatabaseObject;
