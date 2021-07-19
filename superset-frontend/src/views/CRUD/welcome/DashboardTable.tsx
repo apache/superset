@@ -18,6 +18,7 @@
  */
 import React, { useState, useMemo, useEffect } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
+import { reject } from 'lodash';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import {
   Dashboard,
@@ -54,11 +55,13 @@ function DashboardTable({
   addSuccessToast,
   mine,
   showThumbnails,
+  examples,
 }: DashboardTableProps) {
   const history = useHistory();
   const filterStore = getFromLocalStorage(HOMEPAGE_DASHBOARD_FILTER, null);
   const defaultFilter = filterStore || TableTabTypes.MINE;
 
+  console.log('examples top of', examples);
   const {
     state: { loading, resourceCollection: dashboards },
     setResourceCollection: setDashboards,
@@ -87,6 +90,9 @@ function DashboardTable({
 
   useEffect(() => {
     getData(dashboardFilter);
+    console.log('examples', examples);
+    const filtered = reject(examples, ['viz_type', undefined]).map(r => r);
+    console.log('filtered', filtered);
   }, [dashboardFilter]);
 
   const handleBulkDashboardExport = (dashboardsToExport: Dashboard[]) => {
@@ -136,6 +142,36 @@ function DashboardTable({
     return filters;
   };
 
+  const menuTabs = [
+    {
+      name: 'Favorite',
+      label: t('Favorite'),
+      onClick: () => {
+        setDashboardFilter(TableTabTypes.FAVORITE);
+        setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, TableTabTypes.FAVORITE);
+      },
+    },
+    {
+      name: 'Mine',
+      label: t('Mine'),
+      onClick: () => {
+        setDashboardFilter(TableTabTypes.MINE);
+        setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, TableTabTypes.MINE);
+      },
+    },
+  ];
+
+  if (examples) {
+    menuTabs.push({
+      name: 'Examples',
+      label: t('Examples'),
+      onClick: () => {
+        setDashboardFilter('Mine');
+        setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, TableTabTypes.EXAMPLES);
+      },
+    });
+  }
+
   const getData = (filter: string) =>
     fetchData({
       pageIndex: 0,
@@ -154,27 +190,7 @@ function DashboardTable({
     <>
       <SubMenu
         activeChild={dashboardFilter}
-        tabs={[
-          {
-            name: 'Favorite',
-            label: t('Favorite'),
-            onClick: () => {
-              setDashboardFilter(TableTabTypes.FAVORITE);
-              setInLocalStorage(
-                HOMEPAGE_DASHBOARD_FILTER,
-                TableTabTypes.FAVORITE,
-              );
-            },
-          },
-          {
-            name: 'Mine',
-            label: t('Mine'),
-            onClick: () => {
-              setDashboardFilter(TableTabTypes.MINE);
-              setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, TableTabTypes.MINE);
-            },
-          },
-        ]}
+        tabs={menuTabs}
         buttons={[
           {
             name: (

@@ -114,11 +114,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     null,
   );
   const [loadedCount, setLoadedCount] = useState(0);
-  const [activeState, setActiveState] = useState<Array<string>>([
-    '1',
-    '2',
-    '3',
-  ]);
+  const [activeState, setActiveState] = useState<Array<string>>(['2', '3']);
   const userid = user.userId;
   const id = userid.toString();
 
@@ -141,6 +137,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           } else setActiveChild(activeTab);
         } else {
           data.Examples = res.examples;
+          console.log('data', data)
           if (activeTab === 'Viewed' || !activeTab) {
             setActiveChild('Examples');
           } else setActiveChild(activeTab);
@@ -200,9 +197,14 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   };
 
   useEffect(() => {
-    if (queryData?.length) {
-      setActiveState(['1', '2', '3', '4']);
+    const defaultArr = ['2', '3'];
+    if (activityData?.Viewed || activityData?.Examples) {
+      defaultArr.push('1');
     }
+    if (queryData?.length) {
+      defaultArr.push('4');
+    }
+    setActiveState(defaultArr);
     setActivityData(activityData => ({
       ...activityData,
       Created: [
@@ -211,6 +213,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         ...(queryData || []),
       ],
     }));
+    console.log('chartData', chartData)
   }, [chartData, queryData, dashboardData]);
 
   return (
@@ -250,6 +253,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
               user={user}
               mine={dashboardData}
               showThumbnails={checked}
+              examples={activityData?.Examples}
             />
           )}
         </Collapse.Panel>
@@ -257,7 +261,12 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           {!chartData ? (
             <Loading position="inline" />
           ) : (
-            <ChartTable showThumbnails={checked} user={user} mine={chartData} />
+            <ChartTable
+              showThumbnails={checked}
+              user={user}
+              mine={chartData}
+              examples={activityData?.Examples}
+            />
           )}
         </Collapse.Panel>
         <Collapse.Panel header={t('Saved queries')} key="4">

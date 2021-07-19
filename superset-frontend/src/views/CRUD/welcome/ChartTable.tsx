@@ -52,6 +52,7 @@ interface ChartTableProps {
   user?: User;
   mine: Array<any>;
   showThumbnails: boolean;
+  examples?: Array<object>;
 }
 
 function ChartTable({
@@ -60,6 +61,7 @@ function ChartTable({
   addSuccessToast,
   mine,
   showThumbnails,
+  examples,
 }: ChartTableProps) {
   const history = useHistory();
   const filterStore = getFromLocalStorage(HOMEPAGE_CHART_FILTER, null);
@@ -128,6 +130,36 @@ function ChartTable({
     return filters;
   };
 
+  const menuTabs = [
+    {
+      name: 'Favorite',
+      label: t('Favorite'),
+      onClick: () => {
+        setChartFilter('Favorite');
+        setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.FAVORITE);
+      },
+    },
+    {
+      name: 'Mine',
+      label: t('Mine'),
+      onClick: () => {
+        setChartFilter('Mine');
+        setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.MINE);
+      },
+    },
+  ];
+
+  if (examples) {
+    menuTabs.push({
+      name: 'Examples',
+      label: t('Examples'),
+      onClick: () => {
+        setChartFilter('Mine');
+        setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.EXAMPLES);
+      },
+    });
+  }
+
   const getData = (filter: string) =>
     fetchData({
       pageIndex: 0,
@@ -156,24 +188,7 @@ function ChartTable({
       <SubMenu
         activeChild={chartFilter}
         // eslint-disable-next-line react/no-children-prop
-        tabs={[
-          {
-            name: 'Favorite',
-            label: t('Favorite'),
-            onClick: () => {
-              setChartFilter('Favorite');
-              setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.FAVORITE);
-            },
-          },
-          {
-            name: 'Mine',
-            label: t('Mine'),
-            onClick: () => {
-              setChartFilter('Mine');
-              setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.MINE);
-            },
-          },
-        ]}
+        tabs={menuTabs}
         buttons={[
           {
             name: (
