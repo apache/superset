@@ -90,7 +90,7 @@ interface TableSelectorProps {
   getDbList?: (arg0: any) => {};
   handleError: (msg: string) => void;
   isDatabaseSelectEnabled?: boolean;
-  onChange?: ({
+  onUpdate?: ({
     dbId,
     schema,
   }: {
@@ -117,7 +117,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   getDbList,
   handleError,
   isDatabaseSelectEnabled = true,
-  onChange,
+  onUpdate,
   onDbChange,
   onSchemaChange,
   onSchemasLoad,
@@ -198,6 +198,9 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   }) {
     setCurrentTableName(tableName);
     setCurrentSchema(schema);
+    if (onUpdate) {
+      onUpdate({ dbId, schema, tableName });
+    }
   }
 
   function getTableNamesBySubStr(substr = 'undefined') {
@@ -296,7 +299,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         getDbList={getDbList}
         getTableList={fetchTables}
         handleError={handleError}
-        onChange={onSelectionChange}
+        onUpdate={onSelectionChange}
         onDbChange={readOnly ? undefined : onDbChange}
         onSchemaChange={readOnly ? undefined : onSchemaChange}
         onSchemasLoad={onSchemasLoad}
