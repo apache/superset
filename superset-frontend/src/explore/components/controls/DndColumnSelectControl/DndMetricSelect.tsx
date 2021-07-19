@@ -161,7 +161,7 @@ export const DndMetricSelect = (props: any) => {
   };
 
   const onNewMetric = (newMetric: Metric) => {
-    const newValue = props.isMulti ? [...value, newMetric] : [newMetric];
+    const newValue = props.multi ? [...value, newMetric] : [newMetric];
     setValue(newValue);
     handleChange(newValue);
   };
