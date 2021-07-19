@@ -773,7 +773,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert data == {"message": {"dashboard": "Dashboard does not exist"}}
 
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    # @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     # TODO (AAfghahi): I am going to enable this when the report schedule feature is fully finished
     # def test_create_report_schedule_no_creation_method(self):
     #     """
