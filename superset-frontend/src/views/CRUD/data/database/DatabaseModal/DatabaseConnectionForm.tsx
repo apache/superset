@@ -77,7 +77,6 @@ const CredentialsInfo = ({
   isEditMode,
   db,
   editNewDb,
-  isPublic,
 }: FieldPropTypes) => {
   const [uploadOption, setUploadOption] = useState<number>(
     CredentialInfoOptions.jsonUpload.valueOf(),
@@ -87,7 +86,7 @@ const CredentialsInfo = ({
   );
   return (
     <CredentialInfoForm>
-      {!isEditMode && db?.engine === 'bigquery' && (
+      {!isEditMode && (
         <>
           <FormLabel required>
             {t('How do you want to enter service account credentials?')}
@@ -109,10 +108,9 @@ const CredentialsInfo = ({
       )}
       {uploadOption === CredentialInfoOptions.copyPaste ||
       isEditMode ||
-      editNewDb ||
-      (db?.engine === 'gsheets' && !isPublic) ? (
+      editNewDb ? (
         <div className="input-container">
-          <FormLabel required>{t('Service Account Information')}</FormLabel>
+          <FormLabel required>{t('Service Account')}</FormLabel>
           <textarea
             className="input-form"
             name="credentials_info"
@@ -121,78 +119,73 @@ const CredentialsInfo = ({
             placeholder="Paste content of service credentials JSON file here"
           />
           <span className="label-paste">
-            {t(
-              'Copy and paste the entire service account .json file here to enable connection',
-            )}
+            {t('Copy and paste the entire service account .json file here')}
           </span>
         </div>
       ) : (
-        db?.engine === 'bigquery' && (
-          <div
-            className="input-container"
-            css={(theme: SupersetTheme) => infoTooltip(theme)}
-          >
-            <div css={{ display: 'flex', alignItems: 'center' }}>
-              <FormLabel required>{t('Upload Credentials')}</FormLabel>
-              <InfoTooltip
-                tooltip={t(
-                  'Use the JSON file you automatically downloaded when creating your service account in Google BigQuery.',
-                )}
-                viewBox="0 0 24 24"
-              />
-            </div>
-            )
-            {!fileToUpload && (
-              <Button
-                className="input-upload-btn"
-                onClick={() =>
-                  document?.getElementById('selectedFile')?.click()
-                }
-              >
-                {t('Choose File')}
-              </Button>
-            )}
-            {fileToUpload && (
-              <div className="input-upload-current">
-                {fileToUpload}
-                <DeleteFilled
-                  onClick={() => {
-                    setFileToUpload(null);
-                    changeMethods.onParametersChange({
-                      target: {
-                        name: 'credentials_info',
-                        value: '',
-                      },
-                    });
-                  }}
-                />
-              </div>
-            )}
-            <input
-              id="selectedFile"
-              className="input-upload"
-              type="file"
-              onChange={async event => {
-                let file;
-                if (event.target.files) {
-                  file = event.target.files[0];
-                }
-                setFileToUpload(file?.name);
-                changeMethods.onParametersChange({
-                  target: {
-                    type: null,
-                    name: 'credentials_info',
-                    value: await file?.text(),
-                    checked: false,
-                  },
-                });
-                (document.getElementById(
-                  'selectedFile',
-                ) as HTMLInputElement).value = null as any;
-              }}
+        <div
+          className="input-container"
+          css={(theme: SupersetTheme) => infoTooltip(theme)}
+        >
+          <div css={{ display: 'flex', alignItems: 'center' }}>
+            <FormLabel required>{t('Upload Credentials')}</FormLabel>
+            <InfoTooltip
+              tooltip={t(
+                'Use the JSON file you automatically downloaded when creating your service account in Google BigQuery.',
+              )}
+              viewBox="0 0 24 24"
             />
           </div>
-        )
+
+          {!fileToUpload && (
+            <Button
+              className="input-upload-btn"
+              onClick={() => document?.getElementById('selectedFile')?.click()}
+            >
+              {t('Choose File')}
+            </Button>
+          )}
+          {fileToUpload && (
+            <div className="input-upload-current">
+              {fileToUpload}
+              <DeleteFilled
+                onClick={() => {
+                  setFileToUpload(null);
+                  changeMethods.onParametersChange({
+                    target: {
+                      name: 'credentials_info',
+                      value: '',
+                    },
+                  });
+                }}
+              />
+            </div>
+          )}
+
+          <input
+            id="selectedFile"
+            className="input-upload"
+            type="file"
+            onChange={async event => {
+              let file;
+              if (event.target.files) {
+                file = event.target.files[0];
+              }
+              setFileToUpload(file?.name);
+              changeMethods.onParametersChange({
+                target: {
+                  type: null,
+                  name: 'credentials_info',
+                  value: await file?.text(),
+                  checked: false,
+                },
+              });
+              (document.getElementById(
+                'selectedFile',
+              ) as HTMLInputElement).value = null as any;
+            }}
+          />
+        </div>
       )}
     </CredentialInfoForm>
   );
@@ -203,8 +196,6 @@ const TableCatalog = ({
   changeMethods,
   isEditMode,
   getValidation,
-  db,
-  editNewDb,
   validationErrors,
 }: FieldPropTypes) => {
   const [tableCatalog, setTableCatalog] = useState<Record<string, string>>([
@@ -212,7 +203,14 @@ const TableCatalog = ({
   ]);
   return (
     <div>
-      {console.log(tableCatalog)}
+      <>
+        <FormLabel required>{t('Type of Google Sheets Allowed')}</FormLabel>
+        <Select style={{ width: '100%' }} defaultValue="true" disabled>
+          <Select.Option value="true" key={1}>
+            Publicly shared sheets only
+          </Select.Option>
+        </Select>
+      </>
       <>
         {tableCatalog.map(sheet => (
           <>
@@ -403,25 +401,6 @@ const DisplayField = ({
           'Pick a nickname for this database to display as in Superset.',
         )}
       />
-
-      {db?.engine === 'gsheets' && (
-        <>
-          <FormLabel required>{t('Type of Google Sheets Allowed')}</FormLabel>
-          <Select
-            style={{ width: '100%' }}
-            onChange={(value: string) => setPublic(setBooleanToString(value))}
-            defaultValue="true"
-            disabled
-          >
-            <Select.Option value="true" key={1}>
-              Publicly shared sheets only
-            </Select.Option>
-            <Select.Option value="false" key={2}>
-              Public and privately shared sheets
-            </Select.Option>
-          </Select>
-        </>
-      )}
     </>
   );
 };

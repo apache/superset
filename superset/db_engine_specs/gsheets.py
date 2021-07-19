@@ -44,9 +44,6 @@ ma_plugin = MarshmallowPlugin()
 
 
 class GSheetsParametersSchema(Schema):
-    credentials_info = EncryptedField(
-        required=False, description="Contents of Google Sheets JSON credentials.",
-    )
     catalog = fields.Dict(required=False)
     query = fields.Dict(required=False)
 
