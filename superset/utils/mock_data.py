@@ -202,11 +202,11 @@ def add_data(
     metadata.create_all(engine)
 
     if not append:
-        # pylint: disable=no-value-for-parameter (sqlalchemy/issues/4656)
+        # pylint: disable=no-value-for-parameter # sqlalchemy/issues/4656
         engine.execute(table.delete())
 
     data = generate_data(columns, num_rows)
-    # pylint: disable=no-value-for-parameter (sqlalchemy/issues/4656)
+    # pylint: disable=no-value-for-parameter # sqlalchemy/issues/4656
     engine.execute(table.insert(), data)
 
 
