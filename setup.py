@@ -70,7 +70,6 @@ setup(
         "celery>=4.3.0, <5.0.0, !=4.4.1",
         "click<8",
         "colorama",
-        "contextlib2",
         "croniter>=0.3.28",
         "cron-descriptor",
         "cryptography>=3.3.2",
@@ -87,13 +86,12 @@ setup(
         "gunicorn>=20.0.2, <20.1",
         "holidays==0.10.3",  # PINNED! https://github.com/dr-prodigy/python-holidays/issues/406
         "humanize",
-        "itsdangerous>=1.0.0, <2.0.0",
+        "itsdangerous>=1.0.0, <2.0.0",  # https://github.com/apache/superset/pull/14627
         "isodate",
         "markdown>=3.0",
         "msgpack>=1.0.0, <1.1",
         "pandas>=1.2.2, <1.3",
         "parsedatetime",
-        "pathlib2",
         "pgsanity",
         "polyline",
         "pyparsing>=2.4.7, <3.0.0",
@@ -112,9 +110,6 @@ setup(
         "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
         "typing-extensions>=3.7.4.3,<4",  # needed to support typing.Literal on py37
         "wtforms-json",
-        "pyparsing>=2.4.7, <3.0.0",
-        "holidays==0.10.3",  # PINNED! https://github.com/dr-prodigy/python-holidays/issues/406
-        "deprecation>=2.1.0, <2.2.0",
     ],
     extras_require={
         "athena": ["pyathena>=1.10.8,<1.11"],
