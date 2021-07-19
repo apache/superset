@@ -52,8 +52,7 @@ const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
   addWarningToast: PropTypes.func.isRequired,
-  userId: PropTypes.number,
-  userEmail: PropTypes.string,
+  user: PropTypes.object.isRequired,
   dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
   dataMask: PropTypes.object.isRequired,
@@ -365,6 +364,16 @@ class Header extends React.PureComponent {
     this.setState({ showingReportModal: false });
   }
 
+  canAddReportsModal() {
+    const roles = Object.keys(this.props.user.roles);
+    const permissions = roles.map(key =>
+      this.props.user.roles[key].filter(
+        perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
+      ),
+    );
+    return permissions[0].length > 0;
+  }
+
   render() {
     const {
       dashboardTitle,
@@ -384,8 +393,7 @@ class Header extends React.PureComponent {
       updateCss,
       editMode,
       isPublished,
-      userId,
-      userEmail,
+      user,
       dashboardInfo,
       hasUnsavedChanges,
       isLoading,
@@ -394,10 +402,10 @@ class Header extends React.PureComponent {
       setRefreshFrequency,
       lastModifiedTime,
     } = this.props;
-
     const userCanEdit = dashboardInfo.dash_edit_perm;
     const userCanShare = dashboardInfo.dash_share_perm;
     const userCanSaveAs = dashboardInfo.dash_save_perm;
+    const canAccesReportsModal = !editMode && this.canAddReportsModal();
     const refreshLimit =
       dashboardInfo.common.conf.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
     const refreshWarning =
@@ -424,7 +432,7 @@ class Header extends React.PureComponent {
             canEdit={userCanEdit}
             canSave={userCanSaveAs}
           />
-          {userId && (
+          {user.userId && (
             <FaveStar
               itemId={dashboardInfo.id}
               fetchFaveStar={this.props.fetchFaveStar}
@@ -513,8 +521,7 @@ class Header extends React.PureComponent {
               </span>
             </>
           )}
-
-          {!editMode && (
+          {canAccesReportsModal && (
             <>
               <span
                 role="button"
@@ -575,8 +582,8 @@ class Header extends React.PureComponent {
               show={this.state.showingReportModal}
               onHide={this.hideReportModal}
               props={{
-                userId,
-                userEmail,
+                userId: user.userId,
+                userEmail: user.email,
                 dashboardId: dashboardInfo.id,
               }}
             />
