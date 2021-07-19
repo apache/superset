@@ -55,7 +55,6 @@ interface FieldPropTypes {
   hasTooltip?: boolean;
   tooltipText?: (valuse: any) => string;
   onParametersChange: (value: any) => string;
-  onParametersUploadFileChange: (value: any) => string;
   changeMethods: { onParametersChange: (value: any) => string } & {
     onChange: (value: any) => string;
   } & { onParametersUploadFileChange: (value: any) => string };
@@ -400,9 +399,6 @@ const DatabaseConnectionForm = ({
   onChange: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
-  onParametersUploadFileChange?: (
-    event: FormEvent<InputProps> | { target: HTMLInputElement },
-  ) => void;
   validationErrors: JsonObject | null;
   getValidation: () => void;
 }) => (
@@ -425,7 +421,6 @@ const DatabaseConnectionForm = ({
             changeMethods: {
               onParametersChange,
               onChange,
-              onParametersUploadFileChange,
             },
             validationErrors,
             getValidation,
