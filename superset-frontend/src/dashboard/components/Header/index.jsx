@@ -20,7 +20,13 @@
 import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled, CategoricalColorNamespace, t } from '@superset-ui/core';
+import rison from 'rison';
+import {
+  styled,
+  CategoricalColorNamespace,
+  t,
+  makeApi,
+} from '@superset-ui/core';
 import ButtonGroup from 'src/components/ButtonGroup';
 
 import {
@@ -146,6 +152,7 @@ class Header extends React.PureComponent {
       emphasizeUndo: false,
       showingPropertiesModal: false,
       showingReportModal: false,
+      attachedReports: {},
     };
 
     this.handleChangeText = this.handleChangeText.bind(this);
@@ -392,6 +399,35 @@ class Header extends React.PureComponent {
     );
     return permissions[0].length > 0;
   }
+
+  fetchDashboardReport = async () => {
+    const { user, dashboardInfo } = this.props;
+    const queryParams = rison.encode({
+      filters: [
+        {
+          col: 'dashboard_id',
+          opr: 'eq',
+          value: dashboardInfo.id,
+        },
+        {
+          col: 'creation_method',
+          opr: 'eq',
+          value: 'dashboards',
+        },
+        {
+          col: 'created_by',
+          opr: 'rel_o_m',
+          value: user.userId,
+        },
+      ],
+    });
+    const response = await makeApi({
+      method: 'GET',
+      endpoint: '/api/v1/report',
+    })(`q=${queryParams}`);
+    this.setState({ attachedReports: response });
+    console.log(this.state.attachedReports);
+  };
 
   render() {
     const {
