@@ -132,7 +132,7 @@ class Header extends React.PureComponent {
     const url = new URL(window.location.href);
 
     url.searchParams.delete('edit');
-    window.location.replace(url);
+    window.location.assign(url);
   }
 
   constructor(props) {
