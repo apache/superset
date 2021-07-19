@@ -176,7 +176,6 @@ export default function ActivityTable({
   const [editedObjs, setEditedObjs] = useState<Array<ActivityData>>();
   const [loadingState, setLoadingState] = useState(false);
 
-  console.log('activityData ActivtyTbl', activityData)
   const getEditedCards = () => {
     setLoadingState(true);
     getEditedObjects(user.userId).then(r => {
