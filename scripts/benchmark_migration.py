@@ -29,6 +29,7 @@ from flask import current_app
 from flask_appbuilder import Model
 from flask_migrate import downgrade, upgrade
 from graphlib import TopologicalSorter  # pylint: disable=wrong-import-order
+from progress.bar import ChargingBar
 from sqlalchemy import create_engine, inspect, Table
 from sqlalchemy.ext.automap import automap_base
 
@@ -177,18 +178,23 @@ def main(
         for model in models:
             missing = min_entities - model_rows[model]
             if missing > 0:
+                entities: List[Model] = []
                 print(f"- Adding {missing} entities to the {model.__name__} model")
+                bar = ChargingBar("Processing", max=missing)
                 try:
-                    added_models = add_sample_rows(session, model, missing)
+                    for entity in add_sample_rows(session, model, missing):
+                        entities.append(entity)
+                        bar.next()
                 except Exception:
                     session.rollback()
                     raise
+                bar.finish()
                 model_rows[model] = min_entities
+                session.add_all(entities)
                 session.commit()
 
                 if auto_cleanup:
-                    new_models[model].extend(added_models)
-
+                    new_models[model].extend(entities)
         start = time.time()
         upgrade(revision=revision)
         duration = time.time() - start

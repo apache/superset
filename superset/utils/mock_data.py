@@ -22,7 +22,7 @@ import random
 import string
 import sys
 from datetime import date, datetime, time, timedelta
-from typing import Any, Callable, cast, Dict, List, Optional, Type
+from typing import Any, Callable, cast, Dict, Iterator, List, Optional, Type
 from uuid import uuid4
 
 import sqlalchemy.sql.sqltypes
@@ -232,10 +232,11 @@ def generate_column_data(column: ColumnInfo, num_rows: int) -> List[Any]:
     return [gen() for _ in range(num_rows)]
 
 
-def add_sample_rows(session: Session, model: Type[Model], count: int) -> List[Model]:
+def add_sample_rows(
+    session: Session, model: Type[Model], count: int
+) -> Iterator[Model]:
     """
     Add entities of a given model.
-
     :param Model model: a Superset/FAB model
     :param int count: how many entities to generate and insert
     """
@@ -245,7 +246,6 @@ def add_sample_rows(session: Session, model: Type[Model], count: int) -> List[Mo
     relationships = inspector.relationships.items()
     samples = session.query(model).limit(count).all() if relationships else []
 
-    entities: List[Model] = []
     max_primary_key: Optional[int] = None
     for i in range(count):
         sample = samples[i % len(samples)] if samples else None
@@ -276,10 +276,8 @@ def add_sample_rows(session: Session, model: Type[Model], count: int) -> List[Mo
             else:
                 kwargs[column.name] = generate_value(column)
 
-        entities.append(model(**kwargs))
-
-    session.add_all(entities)
-    return entities
+        entity = model(**kwargs)
+        yield entity
 
 
 def get_valid_foreign_key(column: Column) -> Any:
