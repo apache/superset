@@ -42,12 +42,10 @@ export default class Fieldset extends React.PureComponent {
   }
 
   onChange(fieldKey, val) {
-    if (this.props.onChange) {
-      this.props.onChange({
-        ...this.props.item,
-        [fieldKey]: val,
-      });
-    }
+    return this.props.onChange({
+      ...this.props.item,
+      [fieldKey]: val,
+    });
   }
 
   render() {
