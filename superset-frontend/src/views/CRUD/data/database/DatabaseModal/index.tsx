@@ -257,9 +257,8 @@ function dbReducer(
           ...JSON.parse(action.payload.extra || ''),
           metadata_params: JSON.stringify(extra_json?.metadata_params),
           engine_params: JSON.stringify(extra_json?.engine_params),
-          schemas_allowed_for_csv_upload: JSON.stringify(
+          schemas_allowed_for_csv_upload:
             extra_json?.schemas_allowed_for_csv_upload,
-          ),
         };
       }
 
