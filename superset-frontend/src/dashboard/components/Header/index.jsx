@@ -163,6 +163,7 @@ class Header extends React.PureComponent {
     this.showReportModal = this.showReportModal.bind(this);
     this.hideReportModal = this.hideReportModal.bind(this);
     this.fetchDashboardReport = this.fetchDashboardReport.bind(this);
+    this.handleReportModalclick = this.handleReportModalclick.bind(this);
   }
 
   componentDidMount() {
@@ -374,6 +375,13 @@ class Header extends React.PureComponent {
     this.setState({ showingReportModal: false });
   }
 
+  handleReportModalclick() {
+    const attachedReportExists = this.state.attachedReports.count > 0;
+    if (!attachedReportExists) {
+      this.showReportModal();
+    }
+  }
+
   canAddReportsModal() {
     if (!this.props.user) {
       // this is in the case that there is an anonymous user.
@@ -414,7 +422,6 @@ class Header extends React.PureComponent {
       endpoint: '/api/v1/report',
     })(`q=${queryParams}`);
     this.setState({ attachedReports: response });
-    console.log(this.state.attachedReports);
   };
 
   render() {
@@ -571,7 +578,7 @@ class Header extends React.PureComponent {
                 title={t('Schedule email report')}
                 tabIndex={0}
                 className="action-button"
-                onClick={this.showReportModal}
+                onClick={this.handleReportModalclick}
               >
                 <Icons.Calendar />
               </span>

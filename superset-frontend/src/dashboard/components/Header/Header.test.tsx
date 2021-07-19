@@ -106,6 +106,7 @@ const redoProps = {
 };
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
+fetchMock.get('glob:*/api/v1/report*', {});
 
 function setup(props: HeaderProps) {
   return (
@@ -266,7 +267,6 @@ test('should NOT render the fave icon on anonymous user', () => {
     user: undefined,
   };
   render(setup(anonymousUserProps));
-  expect(mockedProps.fetchFaveStar).not.toHaveBeenCalled();
   expect(() =>
     screen.getByRole('img', { name: 'favorite-unselected' }),
   ).toThrowError('Unable to find');
