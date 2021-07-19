@@ -198,9 +198,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   }) {
     setCurrentTableName(tableName);
     setCurrentSchema(schema);
-    if (onChange) {
-      onChange({ dbId, schema, tableName });
-    }
   }
 
   function getTableNamesBySubStr(substr = 'undefined') {

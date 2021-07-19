@@ -89,7 +89,6 @@ export default function DatabaseSelector({
   getTableList,
   handleError,
   isDatabaseSelectEnabled = true,
-  onChange,
   onDbChange,
   onSchemaChange,
   onSchemasLoad,
@@ -143,9 +142,6 @@ export default function DatabaseSelector({
   function onSelectChange({ dbId, schema }: { dbId: number; schema?: string }) {
     setCurrentDbId(dbId);
     setCurrentSchema(schema);
-    if (onChange) {
-      onChange({ dbId, schema, tableName: undefined });
-    }
   }
 
   function dbMutator(data: any) {
