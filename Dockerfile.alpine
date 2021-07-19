@@ -206,7 +206,9 @@ USER root
 # Install GeckoDriver WebDriver
 RUN set -eux; \
     \
-    wget https://github./illa/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -O /tmp/geckodriver.tar.gz; \
+    URL="https://github.com/mozilla/geckodriver/releases/download" \
+    URL="$URL/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz"; \
+    wget $URL -O /tmp/geckodriver.tar.gz; \
     tar xvfz /tmp/geckodriver.tar.gz -C /tmp; \
     mv /tmp/geckodriver /usr/local/bin/geckodriver; \
     rm /tmp/geckodriver.tar.gz;
