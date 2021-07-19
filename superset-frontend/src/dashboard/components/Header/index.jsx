@@ -52,7 +52,7 @@ const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
   addWarningToast: PropTypes.func.isRequired,
-  user: PropTypes.object.isRequired,
+  user: PropTypes.object,
   dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
   dataMask: PropTypes.object.isRequired,
@@ -365,7 +365,11 @@ class Header extends React.PureComponent {
   }
 
   canAddReportsModal() {
-    const roles = Object.keys(this.props.user.roles);
+    if (!this.props.user) {
+      // this is in the case that there is an anonymous user.
+      return false;
+    }
+    const roles = Object.keys(this.props.user?.roles);
     const permissions = roles.map(key =>
       this.props.user.roles[key].filter(
         perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
@@ -432,7 +436,7 @@ class Header extends React.PureComponent {
             canEdit={userCanEdit}
             canSave={userCanSaveAs}
           />
-          {user.userId && (
+          {user?.userId && (
             <FaveStar
               itemId={dashboardInfo.id}
               fetchFaveStar={this.props.fetchFaveStar}
