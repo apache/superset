@@ -376,22 +376,14 @@ class Header extends React.PureComponent {
     this.setState({ showingReportModal: false });
   }
 
-  handleReportClick() {
-    const attachedReportExists = this.props.report?.count > 0;
-    if (!attachedReportExists) {
-      this.showReportModal();
-    }
-  }
-
-  canAddReports() {
-    const { user } = this.props;
-    if (!user) {
+  canAddReportsModal() {
+    if (!this.props.user) {
       // this is in the case that there is an anonymous user.
       return false;
     }
-    const roles = Object.keys(user.roles || []);
+    const roles = Object.keys(this.props.user?.roles);
     const permissions = roles.map(key =>
-      user.roles[key].filter(
+      this.props.user.roles[key].filter(
         perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
       ),
     );
@@ -429,7 +421,7 @@ class Header extends React.PureComponent {
     const userCanEdit = dashboardInfo.dash_edit_perm;
     const userCanShare = dashboardInfo.dash_share_perm;
     const userCanSaveAs = dashboardInfo.dash_save_perm;
-    const shouldShowReport = !editMode && this.canAddReports();
+    const shouldShowReportsModal = !editMode && this.canAddReportsModal();
     const refreshLimit =
       dashboardInfo.common.conf.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
     const refreshWarning =
@@ -545,21 +537,7 @@ class Header extends React.PureComponent {
               </span>
             </>
           )}
-          {shouldShowReport && (
-            <>
-              <span
-                role="button"
-                title={t('Schedule email report')}
-                tabIndex={0}
-                className="action-button"
-                onClick={this.handleReportClick}
-              >
-                <Icons.Calendar />
-              </span>
-            </>
-          )}
-
-          {!editMode && (
+          {shouldShowReportsModal && (
             <>
               <span
                 role="button"
