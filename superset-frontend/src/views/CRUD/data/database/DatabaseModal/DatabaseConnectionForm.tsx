@@ -202,7 +202,7 @@ const TableCatalog = ({
   validationErrors,
   db,
 }: FieldPropTypes) => {
-  const tableCatalog = db.catalog;
+  const tableCatalog = db?.catalog;
   return (
     <StyledCatalogTable>
       <div className="catalog-type-select">
@@ -217,7 +217,7 @@ const TableCatalog = ({
         Connect Google Sheets as tables to this database
       </h4>
       <div>
-        {tableCatalog.map((sheet, idx) => (
+        {db?.catalog?.map((sheet, idx) => (
           <>
             <FormLabel className="catalog-label" required>
               {t('Google Sheet Name and Url')}

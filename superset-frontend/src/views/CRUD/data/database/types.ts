@@ -41,7 +41,7 @@ export type DatabaseObject = {
     encryption?: boolean;
     credentials_info?: string;
     query?: string | object;
-    catalog?: [];
+    catalog?: {};
   };
   configuration_method: CONFIGURATION_METHOD;
   engine?: string;
@@ -69,7 +69,11 @@ export type DatabaseObject = {
 
   // Extra
   extra_json?: {
-    engine_params?: {} | string;
+    engine_params?:
+      | {
+          catalog: {};
+        }
+      | string;
     metadata_params?: {} | string;
     metadata_cache_timeout?: {
       schema_cache_timeout?: number; // in Performance
