@@ -70,7 +70,7 @@ describe('Dashboard edit markdown', () => {
       .type('Test resize');
 
     resize(
-      '[data-test="dashboard-markdown-editor"] .resizable-container span div',
+      '[data-test="dashboard-markdown-editor"] .resizable-container span div:last-child',
     ).to(500, 600);
 
     cy.get('[data-test="dashboard-markdown-editor"]').contains('Test resize');
