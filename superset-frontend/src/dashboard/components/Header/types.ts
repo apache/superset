@@ -65,7 +65,7 @@ export interface HeaderProps {
   charts: ChartState | {};
   colorScheme?: string;
   customCss: string;
-  userId: number | undefined;
+  user: Object | undefined;
   dashboardInfo: DashboardInfo;
   dashboardTitle: string;
   setColorSchemeAndUnsavedChanges: () => void;

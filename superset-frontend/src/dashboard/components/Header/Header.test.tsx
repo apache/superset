@@ -38,7 +38,17 @@ const createProps = () => ({
       conf: {},
     },
   },
-  userId: 1,
+  user: {
+    createdOn: '2021-04-27T18:12:38.952304',
+    email: 'admin',
+    firstName: 'admin',
+    isActive: true,
+    lastName: 'admin',
+    permissions: {},
+    roles: { Admin: Array(173) },
+    userId: 1,
+    username: 'admin',
+  },
   dashboardTitle: 'Dashboard Title',
   charts: {},
   layout: {},
@@ -253,7 +263,7 @@ test('should NOT render the fave icon on anonymous user', () => {
   const mockedProps = createProps();
   const anonymousUserProps = {
     ...mockedProps,
-    userId: undefined,
+    user: undefined,
   };
   render(setup(anonymousUserProps));
   expect(mockedProps.fetchFaveStar).not.toHaveBeenCalled();
