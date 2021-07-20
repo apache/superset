@@ -345,21 +345,18 @@ function dbReducer(
           CONFIGURATION_METHOD.DYNAMIC_FORM
       ) {
         // pull catalog from engine params
-        const result = Object.keys(extra_json?.engine_params?.catalog).map(
-          e => {
-            const ret: CatalogObject = { name: '', value: '' };
-            ret.name = e;
-            ret.value = extra_json?.engine_params?.catalog[e];
-            return ret;
-          },
-        );
+        const engineParamsCatalog = extra_json?.engine_params?.catalog;
+
         return {
           ...action.payload,
           engine: action.payload.backend,
           configuration_method: action.payload.configuration_method,
           extra_json: deserializeExtraJSON,
-          catalog: result,
-        };
+          catalog: Object.keys(engineParamsCatalog).map(e => ({
+            name: e,
+            value: engineParamsCatalog[e],
+          })),
+        } as DatabaseObject;
       }
 
       return {
