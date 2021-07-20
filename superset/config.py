@@ -1311,15 +1311,16 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
 
     logger.info("Condition: {}".format(cond))
     logger.info("Default: {}".format(default))
-    logger.info("Request: ",request)
+    logger.info("Request: {}".format(str(request)))
+    logger.info("Request form: {}".format(str(request.form)))
 
     # fetching form data
     form_data = request.form.get("form_data")
-    logger.info("form_data: ", form_data)
+    logger.info("form_data: {}".format(str(form_data)))
 
     #fetching dashboard_id
     dashboard_id = request.args.get("dashboard_id")
-    logger.info("dashboard_id: ", dashboard_id)
+    logger.info("dashboard_id: {}".format(str(dashboard_id)))
     # returning default value if form is null
     if form_data is None:
         return default
