@@ -59,7 +59,10 @@ function DashboardTable({
 }: DashboardTableProps) {
   const history = useHistory();
   const filterStore = getFromLocalStorage(HOMEPAGE_DASHBOARD_FILTER, null);
-  const defaultFilter = filterStore || TableTabTypes.EXAMPLES;
+  const defaultFilter =
+    !examples && filterStore === TableTabTypes.EXAMPLES
+      ? TableTabTypes.MINE
+      : filterStore || TableTabTypes.MINE;
 
   const filteredExamples: Array<Dashboard> = filter<any>(
     examples,

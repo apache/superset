@@ -66,7 +66,10 @@ function ChartTable({
 }: ChartTableProps) {
   const history = useHistory();
   const filterStore = getFromLocalStorage(HOMEPAGE_CHART_FILTER, null);
-  const initialFilter = filterStore || TableTabTypes.MINE;
+  const initialFilter =
+    !examples && filterStore === TableTabTypes.EXAMPLES
+      ? TableTabTypes.MINE
+      : filterStore || TableTabTypes.MINE;
 
   const filteredExamples = filter(examples, obj => 'viz_type' in obj);
 
