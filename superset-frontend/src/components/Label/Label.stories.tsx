@@ -18,59 +18,52 @@
  */
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import { withKnobs, select, boolean, text } from '@storybook/addon-knobs';
-import Label from './index';
+import Label, { Type } from './index';
 
 export default {
   title: 'Label',
   component: Label,
-  decorators: [withKnobs],
-  excludeStories: /.*Knob$/,
+  excludeStories: 'options',
 };
 
-export const bsStyleKnob = {
-  label: 'Types',
-  options: {
-    default: 'default',
-    info: 'info',
-    success: 'success',
-    warning: 'warning',
-    danger: 'danger',
-    secondary: 'secondary',
-    primary: 'primary',
-  },
-  defaultValue: 'default',
-};
+export const options = [
+  'default',
+  'info',
+  'success',
+  'warning',
+  'danger',
+  'primary',
+  'secondary',
+];
 
 export const LabelGallery = () => (
   <>
     <h4>Non-interactive</h4>
-    {Object.values(bsStyleKnob.options).map(opt => (
-      <Label key={opt} bsStyle={opt}>
+    {Object.values(options).map((opt: Type) => (
+      <Label key={opt} type={opt}>
         {`style: "${opt}"`}
       </Label>
     ))}
     <br />
     <h4>Interactive</h4>
-    {Object.values(bsStyleKnob.options).map(opt => (
-      <Label key={opt} bsStyle={opt} onClick={action('clicked')}>
+    {Object.values(options).map((opt: Type) => (
+      <Label key={opt} type={opt} onClick={action('clicked')}>
         {`style: "${opt}"`}
       </Label>
     ))}
   </>
 );
 
-export const InteractiveLabel = () => (
-  <Label
-    bsStyle={select(
-      bsStyleKnob.label,
-      bsStyleKnob.options,
-      bsStyleKnob.defaultValue,
-    )}
-    onClick={
-      boolean('Has onClick action', false) ? action('clicked') : undefined
-    }
-  >
-    {text('Label', 'Label!')}
-  </Label>
-);
+export const InteractiveLabel = (args: any) => {
+  const { hasOnClick, label, ...rest } = args;
+  return (
+    <Label onClick={hasOnClick ? action('clicked') : undefined} {...rest}>
+      {label}
+    </Label>
+  );
+};
+
+InteractiveLabel.args = {
+  hasOnClick: true,
+  label: 'Example',
+};

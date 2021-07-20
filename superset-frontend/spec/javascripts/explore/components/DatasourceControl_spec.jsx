@@ -24,6 +24,8 @@ import { Menu } from 'src/common/components';
 import DatasourceModal from 'src/datasource/DatasourceModal';
 import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
 import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
+import Icons from 'src/components/Icons';
+import { Tooltip } from 'src/components/Tooltip';
 
 const defaultProps = {
   name: 'datasource',
@@ -40,6 +42,7 @@ const defaultProps = {
       backend: 'mysql',
       name: 'main',
     },
+    health_check_message: 'Warning message!',
   },
   actions: {
     setDatasource: sinon.spy(),
@@ -90,5 +93,36 @@ describe('DatasourceControl', () => {
       </div>,
     );
     expect(menuWrapper.find(Menu.Item)).toHaveLength(2);
+
+    wrapper = setup({
+      datasource: {
+        name: 'birth_names',
+        type: 'druid',
+        uid: '1__druid',
+        id: 1,
+        columns: [],
+        metrics: [],
+        database: {
+          backend: 'druid',
+          name: 'main',
+        },
+      },
+    });
+    expect(wrapper.find('[data-test="datasource-menu"]')).toExist();
+    menuWrapper = shallow(
+      <div>
+        {wrapper.find('[data-test="datasource-menu"]').prop('overlay')}
+      </div>,
+    );
+    expect(menuWrapper.find(Menu.Item)).toHaveLength(2);
+  });
+
+  it('should render health check message', () => {
+    const wrapper = setup();
+    expect(wrapper.find(Icons.AlertSolid)).toExist();
+    const tooltip = wrapper.find(Tooltip).at(0);
+    expect(tooltip.prop('title')).toBe(
+      defaultProps.datasource.health_check_message,
+    );
   });
 });

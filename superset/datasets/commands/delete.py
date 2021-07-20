@@ -68,7 +68,8 @@ class DeleteDatasetCommand(BaseCommand):
             else:
                 if not view_menu:
                     logger.error(
-                        "Could not find the data access permission for the dataset"
+                        "Could not find the data access permission for the dataset",
+                        exc_info=True,
                     )
             db.session.commit()
         except (SQLAlchemyError, DAODeleteFailedError) as ex:

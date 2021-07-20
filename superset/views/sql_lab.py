@@ -141,6 +141,7 @@ class TabStateView(BaseSupersetView):
             schema=query_editor.get("schema"),
             sql=query_editor.get("sql", "SELECT ..."),
             query_limit=query_editor.get("queryLimit"),
+            hide_left_bar=query_editor.get("hideLeftBar"),
         )
         (
             db.session.query(TabState)
@@ -227,10 +228,12 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose("<int:tab_state_id>/query/<client_id>", methods=["DELETE"])
     def delete_query(  # pylint: disable=no-self-use
-        self, tab_state_id: str, client_id: str
+        self, tab_state_id: int, client_id: str
     ) -> FlaskResponse:
         db.session.query(Query).filter_by(
-            client_id=client_id, user_id=g.user.get_id(), sql_editor_id=tab_state_id
+            client_id=client_id,
+            user_id=g.user.get_id(),
+            sql_editor_id=str(tab_state_id),
         ).delete(synchronize_session=False)
         db.session.commit()
         return json_success(json.dumps("OK"))
@@ -296,4 +299,4 @@ class SqlLab(BaseSupersetView):
     @has_access
     def my_queries(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """Assigns a list of found users to the given role."""
-        return redirect("/savedqueryview/list/?_flt_0_user={}".format(g.user.id))
+        return redirect("/savedqueryview/list/?_flt_0_user={}".format(g.user.get_id()))

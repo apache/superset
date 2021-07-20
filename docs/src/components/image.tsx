@@ -48,14 +48,6 @@ const Image = ({
         }
       }
 
-      incubatorSm: file(relativePath: { eq: "src/images/incubator.png" }) {
-        childImageSharp {
-          fixed(width: 300) {
-            ...GatsbyImageSharpFixed
-          }
-        }
-      }
-
       stackoverflow: file(
         relativePath: { eq: "src/images/stack_overflow.png" }
       ) {

@@ -26,7 +26,12 @@ from superset.connectors.sqla.models import SqlMetric
 from superset.models.slice import Slice
 from superset.utils import core as utils
 
-from .helpers import get_example_data, merge_slice, misc_dash_slices, TBL
+from .helpers import (
+    get_example_data,
+    get_table_connector_registry,
+    merge_slice,
+    misc_dash_slices,
+)
 
 
 def load_energy(
@@ -52,9 +57,10 @@ def load_energy(
         )
 
     print("Creating table [wb_health_population] reference")
-    tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    table = get_table_connector_registry()
+    tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:
-        tbl = TBL(table_name=tbl_name)
+        tbl = table(table_name=tbl_name)
     tbl.description = "Energy consumption"
     tbl.database = database
 
@@ -94,23 +100,21 @@ def load_energy(
 
     slc = Slice(
         slice_name="Energy Force Layout",
-        viz_type="directed_force",
+        viz_type="graph_chart",
         datasource_type="table",
         datasource_id=tbl.id,
         params=textwrap.dedent(
             """\
         {
-            "charge": "-500",
-            "collapsed_fieldsets": "",
-            "groupby": [
-                "source",
-                "target"
-            ],
-            "link_length": "200",
+            "source": "source",
+            "target": "target",
+            "edgeLength": 400,
+            "repulsion": 1000,
+            "layout": "force",
             "metric": "sum__value",
             "row_limit": "5000",
             "slice_name": "Force",
-            "viz_type": "directed_force"
+            "viz_type": "graph_chart"
         }
         """
         ),

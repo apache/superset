@@ -19,7 +19,7 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
-import Popover from 'src/common/components/Popover';
+import Popover from 'src/components/Popover';
 
 import Label from 'src/components/Label';
 import ViewportControl from 'src/explore/components/controls/ViewportControl';

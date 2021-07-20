@@ -28,28 +28,115 @@ at all. The classes here will use a common interface to specify all this.
 The general idea is to use static classes and an inheritance scheme.
 """
 import inspect
+import logging
 import pkgutil
+from collections import defaultdict
 from importlib import import_module
 from pathlib import Path
-from typing import Dict, Type
+from typing import Any, Dict, List, Set, Type
+
+import sqlalchemy.databases
+import sqlalchemy.dialects
+from pkg_resources import iter_entry_points
+from sqlalchemy.engine.default import DefaultDialect
 
 from superset.db_engine_specs.base import BaseEngineSpec
 
-engines: Dict[str, Type[BaseEngineSpec]] = {}
+logger = logging.getLogger(__name__)
 
-for (_, name, _) in pkgutil.iter_modules([Path(__file__).parent]):  # type: ignore
-    imported_module = import_module("." + name, package=__name__)
 
-    for i in dir(imported_module):
-        attribute = getattr(imported_module, i)
+def is_engine_spec(attr: Any) -> bool:
+    return (
+        inspect.isclass(attr)
+        and issubclass(attr, BaseEngineSpec)
+        and attr != BaseEngineSpec
+    )
 
-        if (
-            inspect.isclass(attribute)
-            and issubclass(attribute, BaseEngineSpec)
-            and attribute.engine != ""
-        ):
-            engines[attribute.engine] = attribute
 
-            # populate engine alias name to engine dictionary
-            for engine_alias in attribute.engine_aliases or []:
-                engines[engine_alias] = attribute
+def load_engine_specs() -> List[Type[BaseEngineSpec]]:
+    engine_specs: List[Type[BaseEngineSpec]] = []
+
+    # load standard engines
+    db_engine_spec_dir = str(Path(__file__).parent)
+    for module_info in pkgutil.iter_modules([db_engine_spec_dir], prefix="."):
+        module = import_module(module_info.name, package=__name__)
+        engine_specs.extend(
+            getattr(module, attr)
+            for attr in module.__dict__
+            if is_engine_spec(getattr(module, attr))
+        )
+
+    # load additional engines from external modules
+    for ep in iter_entry_points("superset.db_engine_specs"):
+        try:
+            engine_spec = ep.load()
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Unable to load Superset DB engine spec: %s", engine_spec)
+            continue
+        engine_specs.append(engine_spec)
+
+    return engine_specs
+
+
+def get_engine_specs() -> Dict[str, Type[BaseEngineSpec]]:
+    engine_specs = load_engine_specs()
+
+    # build map from name/alias -> spec
+    engine_specs_map: Dict[str, Type[BaseEngineSpec]] = {}
+    for engine_spec in engine_specs:
+        names = [engine_spec.engine]
+        if engine_spec.engine_aliases:
+            names.extend(engine_spec.engine_aliases)
+
+        for name in names:
+            engine_specs_map[name] = engine_spec
+
+    return engine_specs_map
+
+
+def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
+    """
+    Return available engine specs and installed drivers for them.
+    """
+    drivers: Dict[str, Set[str]] = defaultdict(set)
+
+    # native SQLAlchemy dialects
+    for attr in sqlalchemy.databases.__all__:
+        dialect = getattr(sqlalchemy.dialects, attr)
+        for attribute in dialect.__dict__.values():
+            if (
+                hasattr(attribute, "dialect")
+                and inspect.isclass(attribute.dialect)
+                and issubclass(attribute.dialect, DefaultDialect)
+            ):
+                try:
+                    attribute.dialect.dbapi()
+                except ModuleNotFoundError:
+                    continue
+                except Exception as ex:  # pylint: disable=broad-except
+                    logger.warning(
+                        "Unable to load dialect %s: %s", attribute.dialect, ex
+                    )
+                    continue
+                drivers[attr].add(attribute.dialect.driver)
+
+    # installed 3rd-party dialects
+    for ep in iter_entry_points("sqlalchemy.dialects"):
+        try:
+            dialect = ep.load()
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Unable to load SQLAlchemy dialect: %s", dialect)
+        else:
+            backend = dialect.name
+            if isinstance(backend, bytes):
+                backend = backend.decode()
+            driver = getattr(dialect, "driver", dialect.name)
+            if isinstance(driver, bytes):
+                driver = driver.decode()
+            drivers[backend].add(driver)
+
+    available_engines = {}
+    for engine_spec in load_engine_specs():
+        available_engines[engine_spec] = drivers[engine_spec.engine]
+
+    return available_engines

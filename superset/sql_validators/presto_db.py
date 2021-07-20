@@ -151,7 +151,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         For example, "SELECT 1 FROM default.mytable" becomes "EXPLAIN (TYPE
         VALIDATE) SELECT 1 FROM default.mytable.
         """
-        user_name = g.user.username if g.user else None
+        user_name = g.user.username if g.user and hasattr(g.user, "username") else None
         parsed_query = ParsedQuery(sql)
         statements = parsed_query.get_statements()
 
@@ -166,13 +166,13 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         # execution of all statements (if many)
         annotations: List[SQLValidationAnnotation] = []
         with closing(engine.raw_connection()) as conn:
-            with closing(conn.cursor()) as cursor:
-                for statement in parsed_query.get_statements():
-                    annotation = cls.validate_statement(
-                        statement, database, cursor, user_name
-                    )
-                    if annotation:
-                        annotations.append(annotation)
+            cursor = conn.cursor()
+            for statement in parsed_query.get_statements():
+                annotation = cls.validate_statement(
+                    statement, database, cursor, user_name
+                )
+                if annotation:
+                    annotations.append(annotation)
         logger.debug("Validation found %i error(s)", len(annotations))
 
         return annotations

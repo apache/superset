@@ -29,7 +29,7 @@ import {
   updateDirectPathToFilter,
 } from './dashboardFilters';
 import { applyDefaultFormData } from '../../explore/store';
-import getClientErrorObject from '../../utils/getClientErrorObject';
+import { getClientErrorObject } from '../../utils/getClientErrorObject';
 import { SAVE_TYPE_OVERWRITE } from '../util/constants';
 import {
   addSuccessToast,
@@ -41,6 +41,8 @@ import serializeActiveFilterValues from '../util/serializeActiveFilterValues';
 import serializeFilterScopes from '../util/serializeFilterScopes';
 import { getActiveFilters } from '../util/activeDashboardFilters';
 import { safeStringify } from '../../utils/safeStringify';
+import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
+import { setChartConfiguration } from './dashboardInfo';
 
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {
@@ -180,7 +182,7 @@ export function saveDashboardRequest(data, id, saveType) {
     Object.values(dashboardFilters).forEach(filter => {
       const { chartId } = filter;
       const componentId = filter.directPathToFilter.slice().pop();
-      const directPathToFilter = (layout[componentId].parents || []).slice();
+      const directPathToFilter = (layout[componentId]?.parents || []).slice();
       directPathToFilter.push(componentId);
       dispatch(updateDirectPathToFilter(chartId, directPathToFilter));
     });
@@ -199,6 +201,28 @@ export function saveDashboardRequest(data, id, saveType) {
       },
     })
       .then(response => {
+        if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+          const {
+            dashboardInfo: {
+              metadata: { chart_configuration = {} },
+            },
+          } = getState();
+          const chartConfiguration = Object.values(chart_configuration).reduce(
+            (prev, next) => {
+              // If chart removed from dashboard - remove it from metadata
+              if (
+                Object.values(layout).find(
+                  layoutItem => layoutItem?.meta?.chartId === next.id,
+                )
+              ) {
+                return { ...prev, [next.id]: next };
+              }
+              return prev;
+            },
+            {},
+          );
+          dispatch(setChartConfiguration(chartConfiguration));
+        }
         dispatch(saveDashboardRequestSuccess(response.json.last_modified_time));
         dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
         return response;
@@ -320,6 +344,11 @@ export function setDirectPathToChild(path) {
   return { type: SET_DIRECT_PATH, path };
 }
 
+export const SET_ACTIVE_TABS = 'SET_ACTIVE_TABS';
+export function setActiveTabs(tabIds) {
+  return { type: SET_ACTIVE_TABS, tabIds };
+}
+
 export const SET_FOCUSED_FILTER_FIELD = 'SET_FOCUSED_FILTER_FIELD';
 export function setFocusedFilterField(chartId, column) {
   return { type: SET_FOCUSED_FILTER_FIELD, chartId, column };
@@ -328,6 +357,11 @@ export function setFocusedFilterField(chartId, column) {
 export const UNSET_FOCUSED_FILTER_FIELD = 'UNSET_FOCUSED_FILTER_FIELD';
 export function unsetFocusedFilterField(chartId, column) {
   return { type: UNSET_FOCUSED_FILTER_FIELD, chartId, column };
+}
+
+export const SET_FULL_SIZE_CHART_ID = 'SET_FULL_SIZE_CHART_ID';
+export function setFullSizeChartId(chartId) {
+  return { type: SET_FULL_SIZE_CHART_ID, chartId };
 }
 
 // Undo history ---------------------------------------------------------------

@@ -23,53 +23,62 @@ describe('Visualization > Line', () => {
 
   beforeEach(() => {
     cy.login();
-    cy.server();
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 
   it('should show validator error when no metric', () => {
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [] };
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.get('.alert-warning').contains(`"Metrics" cannot be empty`);
+    cy.get('.ant-alert-warning').contains(`Metrics: cannot be empty`);
   });
 
   it('should preload mathjs', () => {
     cy.get('script[src*="mathjs"]').should('have.length', 1);
-    cy.contains('Add Annotation Layer').scrollIntoView().click();
+    cy.contains('Add annotation layer').scrollIntoView().click();
     // should not load additional mathjs
     cy.get('script[src*="mathjs"]').should('have.length', 1);
-    cy.contains('Layer Configuration');
+    cy.contains('Layer configuration');
   });
 
   it('should not show validator error when metric added', () => {
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [] };
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.get('.alert-warning').contains(`"Metrics" cannot be empty`);
+    cy.get('.ant-alert-warning').contains(`Metrics: cannot be empty`);
     cy.get('.text-danger').contains('Metrics');
-    cy.get('.metrics-select .Select__input input:eq(0)')
-      .focus()
-      .type('SUM(num){enter}');
+
+    cy.get('[data-test=metrics]')
+      .find('[data-test="add-metric-button"]')
+      .click();
+
+    // Title edit for saved metrics is disabled - switch to Simple
+    cy.get('[id="adhoc-metric-edit-tabs-tab-SIMPLE"]').click();
+
+    cy.get('[name="select-column"]').click().type('num{enter}');
+    cy.get('[name="select-aggregate"]').click().type('sum{enter}');
+    cy.get('[data-test="AdhocMetricEdit#save"]').contains('Save').click();
+
     cy.get('.text-danger').should('not.exist');
-    cy.get('.alert-warning').should('not.exist');
+    cy.get('.ant-alert-warning').should('not.exist');
   });
 
   it('should allow negative values in Y bounds', () => {
+    const formData = { ...LINE_CHART_DEFAULTS, metrics: [NUM_METRIC] };
+    cy.visitChartByParams(JSON.stringify(formData));
     cy.get('#controlSections-tab-display').click();
     cy.get('span').contains('Y Axis Bounds').scrollIntoView();
     cy.get('input[placeholder="Min"]').type('-0.1', { delay: 100 });
-    cy.get('.alert-warning').should('not.exist');
+    cy.get('.ant-alert-warning').should('not.exist');
   });
 
   it('should allow type to search color schemes', () => {
     cy.get('#controlSections-tab-display').click();
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
-    cy.get('.Control[data-test="color_scheme"] input[type="text"]')
+    cy.get('.Control[data-test="color_scheme"] input[type="search"]')
       .focus()
-      .type('air{enter}');
-    cy.get('input[name="select-color_scheme"]').should(
-      'have.value',
-      'bnbColors',
-    );
+      .type('bnbColors{enter}');
+    cy.get(
+      '.Control[data-test="color_scheme"] .ant-select-selection-item > ul[data-test="bnbColors"]',
+    ).should('exist');
   });
 
   it('should work with adhoc metric', () => {

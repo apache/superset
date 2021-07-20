@@ -20,13 +20,14 @@ import React from 'react';
 import { act } from 'react-dom/test-utils';
 import configureStore from 'redux-mock-store';
 import { mount } from 'enzyme';
+import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
 import sinon from 'sinon';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import DatasourceModal from 'src/datasource/DatasourceModal';
 import DatasourceEditor from 'src/datasource/DatasourceEditor';
 import * as featureFlags from 'src/featureFlags';
@@ -38,6 +39,7 @@ const datasource = mockDatasource['7__table'];
 
 const SAVE_ENDPOINT = 'glob:*/api/v1/dataset/7';
 const SAVE_PAYLOAD = { new: 'data' };
+const SAVE_DATASOURCE_ENDPOINT = 'glob:*/datasource/save/';
 
 const mockedProps = {
   datasource,
@@ -50,11 +52,15 @@ const mockedProps = {
 };
 
 async function mountAndWait(props = mockedProps) {
-  const mounted = mount(<DatasourceModal {...props} />, {
-    context: { store },
-    wrappingComponent: ThemeProvider,
-    wrappingComponentProps: { theme: supersetTheme },
-  });
+  const mounted = mount(
+    <Provider store={store}>
+      <DatasourceModal {...props} />
+    </Provider>,
+    {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    },
+  );
   await waitForComponentToPaint(mounted);
 
   return mounted;
@@ -89,6 +95,7 @@ describe('DatasourceModal', () => {
 
   it('saves on confirm', async () => {
     const callsP = fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
+    fetchMock.post(SAVE_DATASOURCE_ENDPOINT, {});
     act(() => {
       wrapper
         .find('button[data-test="datasource-modal-save"]')

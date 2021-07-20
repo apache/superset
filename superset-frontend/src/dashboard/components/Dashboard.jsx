@@ -18,11 +18,13 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/core';
+import { isFeatureEnabled, t, FeatureFlag } from '@superset-ui/core';
 
+import { PluginContext } from 'src/components/DynamicPlugins';
+import Loading from 'src/components/Loading';
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
 import getLayoutComponentFromChartId from '../util/getLayoutComponentFromChartId';
-import DashboardBuilder from '../containers/DashboardBuilder';
+import DashboardBuilder from './DashboardBuilder/DashboardBuilder';
 import {
   chartPropShape,
   slicePropShape,
@@ -40,6 +42,7 @@ import { areObjectsEqual } from '../../reduxUtils';
 import '../stylesheets/index.less';
 import getLocationHash from '../util/getLocationHash';
 import isDashboardEmpty from '../util/isDashboardEmpty';
+import { getAffectedOwnDataCharts } from '../util/charts/getOwnDataCharts';
 
 const propTypes = {
   actions: PropTypes.shape({
@@ -53,7 +56,9 @@ const propTypes = {
   charts: PropTypes.objectOf(chartPropShape).isRequired,
   slices: PropTypes.objectOf(slicePropShape).isRequired,
   activeFilters: PropTypes.object.isRequired,
+  chartConfiguration: PropTypes.object.isRequired,
   datasources: PropTypes.object.isRequired,
+  ownDataCharts: PropTypes.object.isRequired,
   layout: PropTypes.object.isRequired,
   impressionId: PropTypes.string.isRequired,
   initMessages: PropTypes.array,
@@ -68,7 +73,8 @@ const defaultProps = {
 };
 
 class Dashboard extends React.PureComponent {
-  // eslint-disable-next-line react/sort-comp
+  static contextType = PluginContext;
+
   static onBeforeUnload(hasChanged) {
     if (hasChanged) {
       window.addEventListener('beforeunload', Dashboard.unload);
@@ -85,8 +91,8 @@ class Dashboard extends React.PureComponent {
 
   constructor(props) {
     super(props);
-    this.appliedFilters = props.activeFilters || {};
-
+    this.appliedFilters = props.activeFilters ?? {};
+    this.appliedOwnDataCharts = props.ownDataCharts ?? {};
     this.onVisibilityChange = this.onVisibilityChange.bind(this);
   }
 
@@ -115,6 +121,11 @@ class Dashboard extends React.PureComponent {
       };
     }
     window.addEventListener('visibilitychange', this.onVisibilityChange);
+    this.applyCharts();
+  }
+
+  componentDidUpdate() {
+    this.applyCharts();
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -142,13 +153,29 @@ class Dashboard extends React.PureComponent {
     }
   }
 
-  componentDidUpdate() {
+  applyCharts() {
     const { hasUnsavedChanges, editMode } = this.props.dashboardState;
 
-    const { appliedFilters } = this;
-    const { activeFilters } = this.props;
-    // do not apply filter when dashboard in edit mode
-    if (!editMode && !areObjectsEqual(appliedFilters, activeFilters)) {
+    const { appliedFilters, appliedOwnDataCharts } = this;
+    const { activeFilters, ownDataCharts, chartConfiguration } = this.props;
+    if (
+      isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+      !chartConfiguration
+    ) {
+      // For a first loading we need to wait for cross filters charts data loaded to get all active filters
+      // for correct comparing  of filters to avoid unnecessary requests
+      return;
+    }
+
+    if (
+      !editMode &&
+      (!areObjectsEqual(appliedOwnDataCharts, ownDataCharts, {
+        ignoreUndefined: true,
+      }) ||
+        !areObjectsEqual(appliedFilters, activeFilters, {
+          ignoreUndefined: true,
+        }))
+    ) {
       this.applyFilters();
     }
 
@@ -187,16 +214,22 @@ class Dashboard extends React.PureComponent {
 
   applyFilters() {
     const { appliedFilters } = this;
-    const { activeFilters } = this.props;
+    const { activeFilters, ownDataCharts } = this.props;
 
     // refresh charts if a filter was removed, added, or changed
     const currFilterKeys = Object.keys(activeFilters);
     const appliedFilterKeys = Object.keys(appliedFilters);
 
     const allKeys = new Set(currFilterKeys.concat(appliedFilterKeys));
-    const affectedChartIds = [];
+    const affectedChartIds = getAffectedOwnDataCharts(
+      ownDataCharts,
+      this.appliedOwnDataCharts,
+    );
     [...allKeys].forEach(filterKey => {
-      if (!currFilterKeys.includes(filterKey)) {
+      if (
+        !currFilterKeys.includes(filterKey) &&
+        appliedFilterKeys.includes(filterKey)
+      ) {
         // filterKey is removed?
         affectedChartIds.push(...appliedFilters[filterKey].scope);
       } else if (!appliedFilterKeys.includes(filterKey)) {
@@ -209,6 +242,9 @@ class Dashboard extends React.PureComponent {
           !areObjectsEqual(
             appliedFilters[filterKey].values,
             activeFilters[filterKey].values,
+            {
+              ignoreUndefined: true,
+            },
           )
         ) {
           affectedChartIds.push(...activeFilters[filterKey].scope);
@@ -233,6 +269,7 @@ class Dashboard extends React.PureComponent {
     // remove dup in affectedChartIds
     this.refreshCharts([...new Set(affectedChartIds)]);
     this.appliedFilters = activeFilters;
+    this.appliedOwnDataCharts = ownDataCharts;
   }
 
   refreshCharts(ids) {
@@ -242,6 +279,9 @@ class Dashboard extends React.PureComponent {
   }
 
   render() {
+    if (this.context.loading) {
+      return <Loading />;
+    }
     return (
       <>
         <OmniContainer logEvent={this.props.actions.logEvent} />

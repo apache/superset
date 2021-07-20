@@ -17,8 +17,9 @@
 import logging
 from typing import Iterator
 
-import sqlalchemy as sa
 from contextlib2 import contextmanager
+from sqlalchemy import create_engine
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool
 
@@ -27,7 +28,7 @@ from superset import app, db
 logger = logging.getLogger(__name__)
 
 # Null pool is used for the celery workers due process forking side effects.
-# For more info see: https://github.com/apache/incubator-superset/issues/10530
+# For more info see: https://github.com/apache/superset/issues/10530
 @contextmanager
 def session_scope(nullpool: bool) -> Iterator[Session]:
     """Provide a transactional scope around a series of operations."""
@@ -38,7 +39,7 @@ def session_scope(nullpool: bool) -> Iterator[Session]:
             in a future version of Superset."
         )
     if nullpool:
-        engine = sa.create_engine(database_uri, poolclass=NullPool)
+        engine = create_engine(database_uri, poolclass=NullPool)
         session_class = sessionmaker()
         session_class.configure(bind=engine)
         session = session_class()
@@ -49,7 +50,7 @@ def session_scope(nullpool: bool) -> Iterator[Session]:
     try:
         yield session
         session.commit()
-    except Exception as ex:
+    except SQLAlchemyError as ex:
         session.rollback()
         logger.exception(ex)
         raise

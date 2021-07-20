@@ -17,6 +17,7 @@
 import logging
 from collections import defaultdict
 from datetime import date
+from functools import wraps
 from typing import Any, Callable, DefaultDict, Dict, List, Optional, Set, Tuple, Union
 from urllib import parse
 
@@ -26,18 +27,20 @@ import simplejson as json
 from flask import g, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
-from flask_babel import gettext as __
+from flask_babel import _
 from sqlalchemy.orm.exc import NoResultFound
 
 import superset.models.core as models
-from superset import app, dataframe, db, is_feature_enabled, result_set
+from superset import app, dataframe, db, result_set, viz
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    CacheLoadError,
     SerializationError,
     SupersetException,
     SupersetSecurityException,
 )
+from superset.extensions import cache_manager, security_manager
 from superset.legacy import update_time_range
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -50,11 +53,6 @@ from superset.viz import BaseViz
 
 logger = logging.getLogger(__name__)
 stats_logger = app.config["STATS_LOGGER"]
-
-if is_feature_enabled("SIP_38_VIZ_REARCHITECTURE"):
-    from superset import viz_sip38 as viz
-else:
-    from superset import viz  # type: ignore
 
 
 REJECTED_FORM_DATA_KEYS: List[str] = []
@@ -89,54 +87,71 @@ def get_permissions(
     if not user.roles:
         raise AttributeError("User object does not have roles")
 
-    roles = {}
+    roles = defaultdict(list)
     permissions = defaultdict(set)
+
     for role in user.roles:
-        perms = set()
-        for perm in role.permissions:
-            if perm.permission and perm.view_menu:
-                perms.add((perm.permission.name, perm.view_menu.name))
-                if perm.permission.name in ("datasource_access", "database_access"):
-                    permissions[perm.permission.name].add(perm.view_menu.name)
-        roles[role.name] = [
-            [perm.permission.name, perm.view_menu.name]
-            for perm in role.permissions
-            if perm.permission and perm.view_menu
-        ]
+        permissions_ = security_manager.get_role_permissions(role)
+        for permission in permissions_:
+            if permission[0] in ("datasource_access", "database_access"):
+                permissions[permission[0]].add(permission[1])
+            roles[role.name].append([permission[0], permission[1]])
 
     return roles, permissions
 
 
 def get_viz(
-    form_data: FormData, datasource_type: str, datasource_id: int, force: bool = False
+    form_data: FormData,
+    datasource_type: str,
+    datasource_id: int,
+    force: bool = False,
+    force_cached: bool = False,
 ) -> BaseViz:
     viz_type = form_data.get("viz_type", "table")
     datasource = ConnectorRegistry.get_datasource(
         datasource_type, datasource_id, db.session
     )
-    viz_obj = viz.viz_types[viz_type](datasource, form_data=form_data, force=force)
+    viz_obj = viz.viz_types[viz_type](
+        datasource, form_data=form_data, force=force, force_cached=force_cached
+    )
     return viz_obj
 
 
-def get_form_data(
+def loads_request_json(request_json_data: str) -> Dict[Any, Any]:
+    try:
+        return json.loads(request_json_data)
+    except (TypeError, json.JSONDecodeError):
+        return {}
+
+
+def get_form_data(  # pylint: disable=too-many-locals
     slice_id: Optional[int] = None, use_slice_data: bool = False
 ) -> Tuple[Dict[str, Any], Optional[Slice]]:
-    form_data = {}
+    form_data: Dict[str, Any] = {}
     # chart data API requests are JSON
     request_json_data = (
         request.json["queries"][0]
         if request.is_json and "queries" in request.json
         else None
     )
+
+    add_sqllab_custom_filters(form_data)
+
     request_form_data = request.form.get("form_data")
     request_args_data = request.args.get("form_data")
     if request_json_data:
         form_data.update(request_json_data)
     if request_form_data:
-        form_data.update(json.loads(request_form_data))
+        parsed_form_data = loads_request_json(request_form_data)
+        # some chart data api requests are form_data
+        queries = parsed_form_data.get("queries")
+        if isinstance(queries, list):
+            form_data.update(queries[0])
+        else:
+            form_data.update(parsed_form_data)
     # request params can overwrite the body
     if request_args_data:
-        form_data.update(json.loads(request_args_data))
+        form_data.update(loads_request_json(request_args_data))
 
     # Fallback to using the Flask globals (used for cache warmup) if defined.
     if not form_data and hasattr(g, "form_data"):
@@ -149,7 +164,7 @@ def get_form_data(
             url_str = parse.unquote_plus(
                 saved_url.url.split("?")[1][10:], encoding="utf-8"
             )
-            url_form_data = json.loads(url_str)
+            url_form_data = loads_request_json(url_str)
             # allow form_date in request override saved url
             url_form_data.update(form_data)
             form_data = url_form_data
@@ -184,6 +199,26 @@ def get_form_data(
     return form_data, slc
 
 
+def add_sqllab_custom_filters(form_data: Dict[Any, Any]) -> Any:
+    """
+    SQLLab can include a "filters" attribute in the templateParams.
+    The filters attribute is a list of filters to include in the
+    request. Useful for testing templates in SQLLab.
+    """
+    try:
+        data = json.loads(request.data)
+        if isinstance(data, dict):
+            params_str = data.get("templateParams")
+            if isinstance(params_str, str):
+                params = json.loads(params_str)
+                if isinstance(params, dict):
+                    filters = params.get("_filters")
+                    if filters:
+                        form_data.update({"filters": filters})
+    except (TypeError, json.JSONDecodeError):
+        data = {}
+
+
 def get_datasource_info(
     datasource_id: Optional[int], datasource_type: Optional[str], form_data: FormData
 ) -> Tuple[int, Optional[str]]:
@@ -212,7 +247,7 @@ def get_datasource_info(
 
     if not datasource_id:
         raise SupersetException(
-            "The datasource associated with this chart no longer exists"
+            _("The dataset associated with this chart no longer exists")
         )
 
     datasource_id = int(datasource_id)
@@ -284,7 +319,7 @@ def get_time_range_endpoints(
             if not slc:
                 slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
 
-            if slc:
+            if slc and slc.datasource:
                 endpoints = slc.datasource.database.get_extra().get(
                     "time_range_endpoints"
                 )
@@ -422,10 +457,43 @@ def is_owner(obj: Union[Dashboard, Slice], user: User) -> bool:
     return obj and user in obj.owners
 
 
+def check_resource_permissions(check_perms: Callable[..., Any],) -> Callable[..., Any]:
+    """
+    A decorator for checking permissions on a request using the passed-in function.
+    """
+
+    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
+        @wraps(f)
+        def wrapper(*args: Any, **kwargs: Any) -> None:
+            # check if the user can access the resource
+            check_perms(*args, **kwargs)
+            return f(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def check_explore_cache_perms(_self: Any, cache_key: str) -> None:
+    """
+    Loads async explore_json request data from cache and performs access check
+
+    :param _self: the Superset view instance
+    :param cache_key: the cache key passed into /explore_json/data/
+    :raises SupersetSecurityException: If the user cannot access the resource
+    """
+    cached = cache_manager.cache.get(cache_key)
+    if not cached:
+        raise CacheLoadError("Cached data not found")
+
+    check_datasource_perms(_self, form_data=cached["form_data"])
+
+
 def check_datasource_perms(
     _self: Any,
     datasource_type: Optional[str] = None,
     datasource_id: Optional[int] = None,
+    **kwargs: Any
 ) -> None:
     """
     Check if user can access a cached response from explore_json.
@@ -438,7 +506,7 @@ def check_datasource_perms(
     :raises SupersetSecurityException: If the user cannot access the resource
     """
 
-    form_data = get_form_data()[0]
+    form_data = kwargs["form_data"] if "form_data" in kwargs else get_form_data()[0]
 
     try:
         datasource_id, datasource_type = get_datasource_info(
@@ -458,7 +526,7 @@ def check_datasource_perms(
             SupersetError(
                 error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
                 level=ErrorLevel.ERROR,
-                message=__("Could not determine datasource type"),
+                message=_("Could not determine datasource type"),
             )
         )
 
@@ -474,7 +542,7 @@ def check_datasource_perms(
             SupersetError(
                 error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
                 level=ErrorLevel.ERROR,
-                message=__("Could not find viz object"),
+                message=_("Could not find viz object"),
             )
         )
 
@@ -494,7 +562,7 @@ def check_slice_perms(_self: Any, slice_id: int) -> None:
 
     form_data, slc = get_form_data(slice_id, use_slice_data=True)
 
-    if slc:
+    if slc and slc.datasource:
         try:
             viz_obj = get_viz(
                 datasource_type=slc.datasource.type,

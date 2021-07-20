@@ -19,6 +19,7 @@
 import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
+import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import { act } from 'react-dom/test-utils';
 
@@ -87,9 +88,14 @@ fetchMock.get('glob:*/api/v1/query/disting/status*', {
 
 describe('QueryList', () => {
   const mockedProps = {};
-  const wrapper = mount(<QueryList {...mockedProps} />, {
-    context: { store },
-  });
+  const wrapper = mount(
+    <Provider store={store}>
+      <QueryList {...mockedProps} />
+    </Provider>,
+    {
+      context: { store },
+    },
+  );
 
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);

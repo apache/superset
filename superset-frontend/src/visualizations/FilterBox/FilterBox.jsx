@@ -22,10 +22,14 @@ import { debounce } from 'lodash';
 import { max as d3Max } from 'd3-array';
 import { AsyncCreatableSelect, CreatableSelect } from 'src/components/Select';
 import Button from 'src/components/Button';
-import { t, styled, SupersetClient } from '@superset-ui/core';
+import { t, SupersetClient, ensureIsArray } from '@superset-ui/core';
 
-import FormLabel from 'src/components/FormLabel';
-
+import {
+  BOOL_FALSE_DISPLAY,
+  BOOL_TRUE_DISPLAY,
+  SLOW_DEBOUNCE,
+} from 'src/constants';
+import { FormLabel } from 'src/components/Form';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import ControlRow from 'src/explore/components/ControlRow';
 import Control from 'src/explore/components/Control';
@@ -36,18 +40,10 @@ import {
   FILTER_CONFIG_ATTRIBUTES,
   FILTER_OPTIONS_LIMIT,
   TIME_FILTER_LABELS,
+  TIME_FILTER_MAP,
 } from 'src/explore/constants';
 
 import './FilterBox.less';
-
-// maps control names to their key in extra_filters
-export const TIME_FILTER_MAP = {
-  time_range: '__time_range',
-  granularity_sqla: '__time_col',
-  time_grain_sqla: '__time_grain',
-  druid_time_origin: '__time_origin',
-  granularity: '__granularity',
-};
 
 // a shortcut to a map key, used by many components
 export const TIME_RANGE = TIME_FILTER_MAP.time_range;
@@ -95,14 +91,7 @@ const defaultProps = {
   instantFiltering: false,
 };
 
-const Styles = styled.div`
-  height: 100%;
-  min-height: 100%;
-  max-height: 100%;
-  overflow: visible;
-`;
-
-class FilterBox extends React.Component {
+class FilterBox extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -130,9 +119,7 @@ class FilterBox extends React.Component {
     return this.onFilterMenuOpen(TIME_RANGE);
   }
 
-  onCloseDateFilterControl = () => {
-    return this.onFilterMenuClose(TIME_RANGE);
-  };
+  onCloseDateFilterControl = () => this.onFilterMenuClose(TIME_RANGE);
 
   getControlData(controlName) {
     const { selectedValues } = this.state;
@@ -171,10 +158,11 @@ class FilterBox extends React.Component {
     if (options !== null) {
       if (Array.isArray(options)) {
         vals = options.map(opt => (typeof opt === 'string' ? opt : opt.value));
-      } else if (options.value) {
-        vals = options.value;
+      } else if (Object.values(TIME_FILTER_MAP).includes(fltr)) {
+        vals = options.value ?? options;
       } else {
-        vals = options;
+        // must use array member for legacy extra_filters's value
+        vals = ensureIsArray(options.value ?? options);
       }
     }
 
@@ -201,7 +189,7 @@ class FilterBox extends React.Component {
     if (!(key in this.debouncerCache)) {
       this.debouncerCache[key] = debounce((input, callback) => {
         this.loadOptions(key, input).then(callback);
-      }, 500);
+      }, SLOW_DEBOUNCE);
     }
     return this.debouncerCache[key];
   }
@@ -216,7 +204,13 @@ class FilterBox extends React.Component {
       const color = 'lightgrey';
       const backgroundImage = `linear-gradient(to right, ${color}, ${color} ${perc}%, rgba(0,0,0,0) ${perc}%`;
       const style = { backgroundImage };
-      return { value: opt.id, label: opt.id, style };
+      let label = opt.id;
+      if (label === true) {
+        label = BOOL_TRUE_DISPLAY;
+      } else if (label === false) {
+        label = BOOL_FALSE_DISPLAY;
+      }
+      return { value: opt.id, label, style };
     });
   }
 
@@ -229,10 +223,10 @@ class FilterBox extends React.Component {
         ? [
             {
               clause: 'WHERE',
-              comparator: null,
-              expressionType: 'SQL',
-              // TODO: Evaluate SQL Injection risk
-              sqlExpression: `lower(${key}) like '%${input}%'`,
+              expressionType: 'SIMPLE',
+              subject: key,
+              operator: 'ILIKE',
+              comparator: `%${input}%`,
             },
           ]
         : null,
@@ -270,7 +264,7 @@ class FilterBox extends React.Component {
       return (
         <div className="row space-1">
           <div
-            className="col-lg-12 col-xs-12 filter-container"
+            className="col-lg-12 col-xs-12"
             data-test="date-filter-container"
           >
             <DateFilterControl
@@ -309,7 +303,6 @@ class FilterBox extends React.Component {
       datasourceFilters.push(
         <ControlRow
           key="sqla-filters"
-          className="control-row"
           controls={sqlaFilters.map(control => (
             <Control {...this.getControlData(control)} />
           ))}
@@ -320,7 +313,6 @@ class FilterBox extends React.Component {
       datasourceFilters.push(
         <ControlRow
           key="druid-filters"
-          className="control-row"
           controls={druidFilters.map(control => (
             <Control {...this.getControlData(control)} />
           ))}
@@ -339,10 +331,12 @@ class FilterBox extends React.Component {
     // Add created options to filtersChoices, even though it doesn't exist,
     // or these options will exist in query sql but invisible to end user.
     Object.keys(selectedValues)
-      .filter(
-        key => selectedValues.hasOwnProperty(key) && key in filtersChoices,
-      )
+      .filter(key => key in filtersChoices)
       .forEach(key => {
+        // empty values are ignored
+        if (!selectedValues[key]) {
+          return;
+        }
         const choices = filtersChoices[key] || (filtersChoices[key] = []);
         const choiceIds = new Set(choices.map(f => f.id));
         const selectedValuesForKey = Array.isArray(selectedValues[key])
@@ -359,21 +353,21 @@ class FilterBox extends React.Component {
             });
           });
       });
-    const { key, label } = filterConfig;
+    const {
+      key,
+      label,
+      [FILTER_CONFIG_ATTRIBUTES.MULTIPLE]: isMultiple,
+      [FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE]: defaultValue,
+      [FILTER_CONFIG_ATTRIBUTES.CLEARABLE]: isClearable,
+      [FILTER_CONFIG_ATTRIBUTES.SEARCH_ALL_OPTIONS]: searchAllOptions,
+    } = filterConfig;
     const data = filtersChoices[key] || [];
     let value = selectedValues[key] || null;
 
     // Assign default value if required
-    if (
-      value === undefined &&
-      filterConfig[FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE]
-    ) {
-      if (filterConfig[FILTER_CONFIG_ATTRIBUTES.MULTIPLE]) {
-        // Support for semicolon-delimited multiple values
-        value = filterConfig[FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE].split(';');
-      } else {
-        value = filterConfig[FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE];
-      }
+    if (value === undefined && defaultValue) {
+      // multiple values are separated by semicolons
+      value = isMultiple ? defaultValue.split(';') : defaultValue;
     }
 
     return (
@@ -383,8 +377,8 @@ class FilterBox extends React.Component {
         defaultOptions={this.transformOptions(data)}
         key={key}
         placeholder={t('Type or Select [%s]', label)}
-        isMulti={filterConfig[FILTER_CONFIG_ATTRIBUTES.MULTIPLE]}
-        isClearable={filterConfig[FILTER_CONFIG_ATTRIBUTES.CLEARABLE]}
+        isMulti={isMultiple}
+        isClearable={isClearable}
         value={value}
         options={this.transformOptions(data)}
         onChange={newValue => {
@@ -399,12 +393,12 @@ class FilterBox extends React.Component {
         onBlur={() => this.onFilterMenuClose(key)}
         onMenuClose={() => this.onFilterMenuClose(key)}
         selectWrap={
-          filterConfig[FILTER_CONFIG_ATTRIBUTES.SEARCH_ALL_OPTIONS] &&
-          data.length >= FILTER_OPTIONS_LIMIT
+          searchAllOptions && data.length >= FILTER_OPTIONS_LIMIT
             ? AsyncCreatableSelect
             : CreatableSelect
         }
         noResultsText={t('No results found')}
+        forceOverflow
       />
     );
   }
@@ -423,10 +417,9 @@ class FilterBox extends React.Component {
   }
 
   render() {
-    const { instantFiltering } = this.props;
-
+    const { instantFiltering, width, height } = this.props;
     return (
-      <Styles>
+      <div style={{ width, height, overflow: 'auto' }}>
         {this.renderDateFilter()}
         {this.renderDatasourceFilters()}
         {this.renderFilters()}
@@ -440,7 +433,7 @@ class FilterBox extends React.Component {
             {t('Apply')}
           </Button>
         )}
-      </Styles>
+      </div>
     );
   }
 }

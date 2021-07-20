@@ -334,6 +334,7 @@ export default function sqlLabReducer(state = {}, action) {
         results: action.results,
         rows: action?.results?.data?.length,
         state: 'success',
+        limitingFactor: action?.results?.query?.limitingFactor,
         tempSchema: action?.results?.query?.tempSchema,
         tempTable: action?.results?.query?.tempTable,
         errorMessage: null,
@@ -434,6 +435,11 @@ export default function sqlLabReducer(state = {}, action) {
         dbId: action.dbId,
       });
     },
+    [actions.QUERY_EDITOR_SET_FUNCTION_NAMES]() {
+      return alterInArr(state, 'queryEditors', action.queryEditor, {
+        functionNames: action.functionNames,
+      });
+    },
     [actions.QUERY_EDITOR_SET_SCHEMA]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, {
         schema: action.schema,
@@ -485,10 +491,18 @@ export default function sqlLabReducer(state = {}, action) {
         southPercent: action.southPercent,
       });
     },
+    [actions.QUERY_EDITOR_TOGGLE_LEFT_BAR]() {
+      return alterInArr(state, 'queryEditors', action.queryEditor, {
+        hideLeftBar: action.hideLeftBar,
+      });
+    },
     [actions.SET_DATABASES]() {
       const databases = {};
       action.databases.forEach(db => {
-        databases[db.id] = db;
+        databases[db.id] = {
+          ...db,
+          extra_json: JSON.parse(db.extra || ''),
+        };
       });
       return { ...state, databases };
     },

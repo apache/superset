@@ -18,10 +18,9 @@
  */
 /* eslint-disable no-unused-expressions */
 import React from 'react';
-import { mount } from 'enzyme';
-import { Select } from 'src/components/Select';
+import { Select } from 'src/components';
 import { getCategoricalSchemeRegistry } from '@superset-ui/core';
-
+import { styledMount as mount } from 'spec/helpers/theming';
 import ColorSchemeControl from 'src/explore/components/controls/ColorSchemeControl';
 
 const defaultProps = {
@@ -38,7 +37,7 @@ describe('ColorSchemeControl', () => {
     wrapper = mount(<ColorSchemeControl {...defaultProps} />);
   });
 
-  it('renders a Creatable', () => {
+  it('renders a Select', () => {
     expect(wrapper.find(Select)).toExist();
   });
 });

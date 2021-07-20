@@ -20,7 +20,6 @@ import { TABBED_DASHBOARD, drag, resize } from './dashboard.helper';
 
 describe('Dashboard edit markdown', () => {
   beforeEach(() => {
-    cy.server();
     cy.login();
     cy.visit(TABBED_DASHBOARD);
   });
@@ -31,12 +30,12 @@ describe('Dashboard edit markdown', () => {
       numScripts = nodes.length;
     });
     cy.get('[data-test="dashboard-header"]')
-      .find('[data-test="edit-alt"]')
+      .find('[aria-label="edit-alt"]')
       .click();
 
     // lazy load - need to open dropdown for the scripts to load
     cy.get('[data-test="dashboard-header"]')
-      .find('[data-test="more-horiz"]')
+      .find('[aria-label="more-horiz"]')
       .click();
     cy.get('script').then(nodes => {
       // load 5 new script chunks for css editor
@@ -71,7 +70,7 @@ describe('Dashboard edit markdown', () => {
       .type('Test resize');
 
     resize(
-      '[data-test="dashboard-markdown-editor"] .resizable-container span div',
+      '[data-test="dashboard-markdown-editor"] .resizable-container span div:last-child',
     ).to(500, 600);
 
     cy.get('[data-test="dashboard-markdown-editor"]').contains('Test resize');
@@ -79,12 +78,12 @@ describe('Dashboard edit markdown', () => {
     // entering edit mode does not add new scripts
     // (though scripts may still be removed by others)
     cy.get('script').then(nodes => {
-      expect(nodes.length).to.most(numScripts);
+      expect(nodes.length).to.greaterThan(numScripts);
     });
 
     cy.get('@component-background-first').click('right');
     cy.get('[data-test="dashboard-component-chart-holder"]')
       .find('.ace_content')
-      .should('not.be.visible');
+      .should('not.exist');
   });
 });

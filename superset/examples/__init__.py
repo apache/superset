@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from .bart_lines import load_bart_lines
+from .big_data import load_big_data
 from .birth_names import load_birth_names
 from .country_map import load_country_map_data
 from .css_templates import load_css_templates
@@ -29,5 +30,5 @@ from .paris import load_paris_iris_geojson
 from .random_time_series import load_random_time_series_data
 from .sf_population_polygons import load_sf_population_polygons
 from .tabbed_dashboard import load_tabbed_dashboard
-from .unicode_test_data import load_unicode_test_data
+from .utils import load_from_configs
 from .world_bank import load_world_bank_health_n_pop

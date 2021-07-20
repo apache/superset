@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import dataclasses
+import dataclasses  # pylint: disable=wrong-import-order
 import functools
 import logging
 import traceback
@@ -23,7 +23,17 @@ from typing import Any, Callable, cast, Dict, List, Optional, TYPE_CHECKING, Uni
 
 import simplejson as json
 import yaml
-from flask import abort, flash, g, get_flashed_messages, redirect, Response, session
+from flask import (
+    abort,
+    flash,
+    g,
+    get_flashed_messages,
+    redirect,
+    request,
+    Response,
+    send_file,
+    session,
+)
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.forms import DynamicForm
@@ -31,7 +41,10 @@ from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import Role, User
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
+from flask_jwt_extended.exceptions import NoAuthorizationError
+from flask_wtf.csrf import CSRFError
 from flask_wtf.form import FlaskForm
+from pkg_resources import resource_filename
 from sqlalchemy import or_
 from sqlalchemy.orm import Query
 from werkzeug.exceptions import HTTPException
@@ -46,12 +59,15 @@ from superset import (
     get_feature_flags,
     security_manager,
 )
+from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.connectors.sqla import models
+from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    SupersetErrorException,
+    SupersetErrorsException,
     SupersetException,
     SupersetSecurityException,
-    SupersetTimeoutException,
 )
 from superset.models.helpers import ImportExportMixin
 from superset.translations.utils import get_language_pack
@@ -71,12 +87,19 @@ FRONTEND_CONF_KEYS = (
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE",
     "DISABLE_DATASET_SOURCE_EDIT",
+    "DRUID_IS_ACTIVE",
     "ENABLE_JAVASCRIPT_CONTROLS",
     "DEFAULT_SQLLAB_LIMIT",
+    "DEFAULT_VIZ_TYPE",
     "SQL_MAX_ROW",
     "SUPERSET_WEBSERVER_DOMAINS",
     "SQLLAB_SAVE_WARNING_MESSAGE",
     "DISPLAY_MAX_ROW",
+    "GLOBAL_ASYNC_QUERIES_TRANSPORT",
+    "GLOBAL_ASYNC_QUERIES_POLLING_DELAY",
+    "SQLALCHEMY_DOCS_URL",
+    "SQLALCHEMY_DISPLAY_TEXT",
+    "GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL",
 )
 logger = logging.getLogger(__name__)
 
@@ -126,7 +149,7 @@ def json_errors_response(
     return Response(
         json.dumps(payload, default=utils.json_iso_dttm_ser, ignore_nan=True),
         status=status,
-        mimetype="application/json",
+        mimetype="application/json; charset=utf-8",
     )
 
 
@@ -157,6 +180,9 @@ def api(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
     def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
         try:
             return f(self, *args, **kwargs)
+        except NoAuthorizationError as ex:  # pylint: disable=broad-except
+            logger.warning(ex)
+            return json_error_response(get_error_msg(), status=401)
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
             return json_error_response(get_error_msg())
@@ -181,11 +207,15 @@ def handle_api_exception(
             return json_errors_response(
                 errors=[ex.error], status=ex.status, payload=ex.payload
             )
-        except SupersetTimeoutException as ex:
+        except SupersetErrorsException as ex:
+            logger.warning(ex, exc_info=True)
+            return json_errors_response(errors=ex.errors, status=ex.status)
+        except SupersetErrorException as ex:
             logger.warning(ex)
             return json_errors_response(errors=[ex.error], status=ex.status)
         except SupersetException as ex:
-            logger.exception(ex)
+            if ex.status >= 500:
+                logger.exception(ex)
             return json_error_response(
                 utils.error_msg_from_exception(ex), status=ex.status
             )
@@ -201,10 +231,6 @@ def handle_api_exception(
     return functools.update_wrapper(wraps, f)
 
 
-def get_datasource_exist_error_msg(full_name: str) -> str:
-    return __("Datasource %(name)s already exists", name=full_name)
-
-
 def validate_sqlatable(table: models.SqlaTable) -> None:
     """Checks the table existence in the database."""
     with db.session.no_autoflush:
@@ -214,7 +240,7 @@ def validate_sqlatable(table: models.SqlaTable) -> None:
             models.SqlaTable.database_id == table.database.id,
         )
         if db.session.query(table_query.exists()).scalar():
-            raise Exception(get_datasource_exist_error_msg(table.full_name))
+            raise Exception(get_dataset_exist_error_msg(table.full_name))
 
     # Fail before adding if the table can't be found
     try:
@@ -244,6 +270,11 @@ def get_user_roles() -> List[Role]:
     return g.user.roles
 
 
+def is_user_admin() -> bool:
+    user_roles = [role.name.lower() for role in list(get_user_roles())]
+    return "admin" in user_roles
+
+
 class BaseSupersetView(BaseView):
     @staticmethod
     def json_response(
@@ -257,12 +288,12 @@ class BaseSupersetView(BaseView):
 
     def render_app_template(self) -> FlaskResponse:
         payload = {
-            "user": bootstrap_user_data(g.user),
+            "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(),
         }
         return self.render_template(
-            "superset/crud_views.html",
-            entry="crudViews",
+            "superset/spa.html",
+            entry="spa",
             bootstrap_data=json.dumps(
                 payload, default=utils.pessimistic_json_iso_dttm_ser
             ),
@@ -278,6 +309,9 @@ def menu_data() -> Dict[str, Any]:
             **appbuilder.languages[lang],
             "url": appbuilder.get_url_for_locale(lang),
         }
+    brand_text = appbuilder.app.config["LOGO_RIGHT_TEXT"]
+    if callable(brand_text):
+        brand_text = brand_text()
     return {
         "menu": menu,
         "brand": {
@@ -285,8 +319,12 @@ def menu_data() -> Dict[str, Any]:
             "icon": appbuilder.app_icon,
             "alt": appbuilder.app_name,
             "width": appbuilder.app.config["APP_ICON_WIDTH"],
+            "tooltip": appbuilder.app.config["LOGO_TOOLTIP"],
+            "text": brand_text,
         },
         "navbar_right": {
+            # show the watermark if the default app icon has been overriden
+            "show_watermark": ("superset-logo-horiz" not in appbuilder.app_icon),
             "bug_report_url": appbuilder.app.config["BUG_REPORT_URL"],
             "documentation_url": appbuilder.app.config["DOCUMENTATION_URL"],
             "version_string": appbuilder.app.config["VERSION_STRING"],
@@ -316,8 +354,105 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         "locale": locale,
         "language_pack": get_language_pack(locale),
         "feature_flags": get_feature_flags(),
+        "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
+        "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
+        "theme_overrides": conf["THEME_OVERRIDES"],
         "menu_data": menu_data(),
     }
+
+
+# pylint: disable=invalid-name
+def get_error_level_from_status_code(status: int) -> ErrorLevel:
+    if status < 400:
+        return ErrorLevel.INFO
+    if status < 500:
+        return ErrorLevel.WARNING
+    return ErrorLevel.ERROR
+
+
+# SIP-40 compatible error responses; make sure APIs raise
+# SupersetErrorException or SupersetErrorsException
+@superset_app.errorhandler(SupersetErrorException)
+def show_superset_error(ex: SupersetErrorException) -> FlaskResponse:
+    logger.warning(ex)
+    return json_errors_response(errors=[ex.error], status=ex.status)
+
+
+@superset_app.errorhandler(SupersetErrorsException)
+def show_superset_errors(ex: SupersetErrorsException) -> FlaskResponse:
+    logger.warning(ex)
+    return json_errors_response(errors=ex.errors, status=ex.status)
+
+
+# Redirect to login if the CSRF token is expired
+@superset_app.errorhandler(CSRFError)
+def refresh_csrf_token(ex: CSRFError) -> FlaskResponse:
+    logger.warning(ex)
+
+    if request.is_json:
+        return show_http_exception(ex)
+
+    return redirect(appbuilder.get_url_for_login)
+
+
+@superset_app.errorhandler(HTTPException)
+def show_http_exception(ex: HTTPException) -> FlaskResponse:
+    logger.warning(ex)
+    if (
+        "text/html" in request.accept_mimetypes
+        and not config["DEBUG"]
+        and ex.code in {404, 500}
+    ):
+        path = resource_filename("superset", f"static/assets/{ex.code}.html")
+        return send_file(path), ex.code
+
+    return json_errors_response(
+        errors=[
+            SupersetError(
+                message=utils.error_msg_from_exception(ex),
+                error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={},
+            ),
+        ],
+        status=ex.code or 500,
+    )
+
+
+# Temporary handler for CommandException; if an API raises a
+# CommandException it should be fixed to map it to SupersetErrorException
+# or SupersetErrorsException, with a specific status code and error type
+@superset_app.errorhandler(CommandException)
+def show_command_errors(ex: CommandException) -> FlaskResponse:
+    logger.warning(ex)
+    extra = ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
+    return json_errors_response(
+        errors=[
+            SupersetError(
+                message=ex.message,
+                error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                level=get_error_level_from_status_code(ex.status),
+                extra=extra,
+            ),
+        ],
+        status=ex.status,
+    )
+
+
+# Catch-all, to ensure all errors from the backend conform to SIP-40
+@superset_app.errorhandler(Exception)
+def show_unexpected_exception(ex: Exception) -> FlaskResponse:
+    logger.exception(ex)
+    return json_errors_response(
+        errors=[
+            SupersetError(
+                message=utils.error_msg_from_exception(ex),
+                error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={},
+            ),
+        ],
+    )
 
 
 @superset_app.context_processor
@@ -341,12 +476,12 @@ class SupersetModelView(ModelView):
 
     def render_app_template(self) -> FlaskResponse:
         payload = {
-            "user": bootstrap_user_data(g.user),
+            "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(),
         }
         return self.render_template(
-            "superset/crud_views.html",
-            entry="crudViews",
+            "superset/spa.html",
+            entry="spa",
             bootstrap_data=json.dumps(
                 payload, default=utils.pessimistic_json_iso_dttm_ser
             ),
@@ -470,6 +605,7 @@ class CsvResponse(Response):  # pylint: disable=too-many-ancestors
     """
 
     charset = conf["CSV_EXPORT"].get("encoding", "utf-8")
+    default_mimetype = "text/csv"
 
 
 def check_ownership(obj: Any, raise_if_false: bool = True) -> bool:
@@ -496,8 +632,7 @@ def check_ownership(obj: Any, raise_if_false: bool = True) -> bool:
         if raise_if_false:
             raise security_exception
         return False
-    roles = [r.name for r in get_user_roles()]
-    if "Admin" in roles:
+    if is_user_admin():
         return True
     scoped_session = db.create_scoped_session()
     orig_obj = scoped_session.query(obj.__class__).filter_by(id=obj.id).first()

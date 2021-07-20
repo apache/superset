@@ -19,10 +19,9 @@
 describe('AdhocFilters', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
-    cy.route('GET', '/superset/explore_json/**').as('getJson');
-    cy.route('POST', '/superset/explore_json/**').as('postJson');
-    cy.route('GET', '/superset/filter/table/*/name').as('filterValues');
+    cy.intercept('GET', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/superset/explore_json/**').as('postJson');
+    cy.intercept('GET', '/superset/filter/table/*/name').as('filterValues');
     cy.visitChartByName('Boys'); // a table chart
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
   });
@@ -111,19 +110,5 @@ describe('AdhocFilters', () => {
       waitAlias: '@postJson',
       chartSelector: 'svg',
     });
-  });
-
-  it('Click save without making any changes', () => {
-    cy.get('[data-test=adhoc_filters]').within(() => {
-      cy.get('.Select__control').scrollIntoView().click();
-      cy.get('input[type=text]').focus().type('name{enter}');
-    });
-
-    cy.get('[data-test=filter-edit-popover]').should('be.visible');
-    cy.get('[data-test="adhoc-filter-edit-popover-save-button"]').click();
-
-    cy.wait(1000);
-
-    cy.get('[data-test=filter-edit-popover]').should('not.be.visible');
   });
 });

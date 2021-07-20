@@ -24,7 +24,7 @@ import {
   CheckboxChecked,
   CheckboxUnchecked,
   CheckboxHalfChecked,
-} from '../../../components/CheckboxIcons';
+} from 'src/components/Checkbox/CheckboxIcons';
 
 const treeIcons = {
   check: <CheckboxChecked />,

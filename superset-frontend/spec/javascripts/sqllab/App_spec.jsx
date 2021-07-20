@@ -33,7 +33,7 @@ describe('SqlLab App', () => {
   let wrapper;
 
   beforeEach(() => {
-    wrapper = shallow(<App />, { context: { store } });
+    wrapper = shallow(<App store={store} />).dive();
   });
 
   it('is valid', () => {

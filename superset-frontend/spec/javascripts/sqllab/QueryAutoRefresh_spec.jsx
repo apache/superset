@@ -39,12 +39,10 @@ describe('QueryAutoRefresh', () => {
     sqlLab,
   };
   const store = mockStore(state);
-
   const getWrapper = () =>
-    shallow(<QueryAutoRefresh />, {
-      context: { store },
-    }).dive();
-
+    shallow(<QueryAutoRefresh store={store} />)
+      .dive()
+      .dive();
   let wrapper;
 
   it('shouldCheckForQueries', () => {

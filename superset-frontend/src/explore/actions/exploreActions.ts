@@ -61,11 +61,6 @@ export function fetchDatasourcesSucceeded() {
   return { type: FETCH_DATASOURCES_SUCCEEDED };
 }
 
-export const RESET_FIELDS = 'RESET_FIELDS';
-export function resetControls() {
-  return { type: RESET_FIELDS };
-}
-
 export const TOGGLE_FAVE_STAR = 'TOGGLE_FAVE_STAR';
 export function toggleFaveStar(isStarred: boolean) {
   return { type: TOGGLE_FAVE_STAR, isStarred };
@@ -73,7 +68,7 @@ export function toggleFaveStar(isStarred: boolean) {
 
 export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
 export function fetchFaveStar(sliceId: string) {
-  return function (dispatch: Dispatch<ReturnType<typeof toggleFaveStar>>) {
+  return function (dispatch: Dispatch) {
     SupersetClient.get({
       endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/count`,
     }).then(({ json }) => {
@@ -86,7 +81,7 @@ export function fetchFaveStar(sliceId: string) {
 
 export const SAVE_FAVE_STAR = 'SAVE_FAVE_STAR';
 export function saveFaveStar(sliceId: string, isStarred: boolean) {
-  return function (dispatch: Dispatch<ReturnType<typeof addDangerToast>>) {
+  return function (dispatch: Dispatch) {
     const urlSuffix = isStarred ? 'unselect' : 'select';
     SupersetClient.get({
       endpoint: `${FAVESTAR_BASE_URL}/${sliceId}/${urlSuffix}/`,
@@ -104,7 +99,7 @@ export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
 export function setControlValue(
   controlName: string,
   value: any,
-  validationErrors: any[],
+  validationErrors?: any[],
 ) {
   return { type: SET_FIELD_VALUE, controlName, value, validationErrors };
 }
@@ -112,11 +107,6 @@ export function setControlValue(
 export const SET_EXPLORE_CONTROLS = 'UPDATE_EXPLORE_CONTROLS';
 export function setExploreControls(formData: QueryFormData) {
   return { type: SET_EXPLORE_CONTROLS, formData };
-}
-
-export const REMOVE_CONTROL_PANEL_ALERT = 'REMOVE_CONTROL_PANEL_ALERT';
-export function removeControlPanelAlert() {
-  return { type: REMOVE_CONTROL_PANEL_ALERT };
 }
 
 export const UPDATE_CHART_TITLE = 'UPDATE_CHART_TITLE';
@@ -154,13 +144,11 @@ export const exploreActions = {
   setDatasources,
   fetchDatasourcesStarted,
   fetchDatasourcesSucceeded,
-  resetControls,
   toggleFaveStar,
   fetchFaveStar,
   saveFaveStar,
   setControlValue,
   setExploreControls,
-  removeControlPanelAlert,
   updateChartTitle,
   createNewSlice,
   sliceUpdated,

@@ -17,7 +17,9 @@
 """A collection of ORM sqlalchemy models for Superset"""
 import enum
 
+from cron_descriptor import get_description
 from flask_appbuilder import Model
+from flask_appbuilder.models.decorators import renders
 from sqlalchemy import (
     Boolean,
     Column,
@@ -31,6 +33,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import UniqueConstraint
+from sqlalchemy_utils import UUIDType
 
 from superset.extensions import security_manager
 from superset.models.core import Database
@@ -58,16 +61,23 @@ class ReportRecipientType(str, enum.Enum):
     SLACK = "Slack"
 
 
-class ReportLogState(str, enum.Enum):
+class ReportState(str, enum.Enum):
     SUCCESS = "Success"
     WORKING = "Working"
     ERROR = "Error"
     NOOP = "Not triggered"
+    GRACE = "On Grace"
 
 
-class ReportEmailFormat(str, enum.Enum):
-    VISUALIZATION = "Visualization"
-    DATA = "Raw data"
+class ReportDataFormat(str, enum.Enum):
+    VISUALIZATION = "PNG"
+    DATA = "CSV"
+
+
+class ReportCreationMethodType(str, enum.Enum):
+    CHARTS = "charts"
+    DASHBOARDS = "dashboards"
+    ALERTS_REPORTS = "alerts_reports"
 
 
 report_schedule_user = Table(
@@ -89,13 +99,19 @@ class ReportSchedule(Model, AuditMixinNullable):
     """
 
     __tablename__ = "report_schedule"
+    __table_args__ = (UniqueConstraint("name", "type"),)
+
     id = Column(Integer, primary_key=True)
     type = Column(String(50), nullable=False)
-    name = Column(String(150), nullable=False, unique=True)
+    name = Column(String(150), nullable=False)
     description = Column(Text)
     context_markdown = Column(Text)
     active = Column(Boolean, default=True, index=True)
-    crontab = Column(String(50), nullable=False)
+    crontab = Column(String(1000), nullable=False)
+    creation_method = Column(
+        String(255), server_default=ReportCreationMethodType.ALERTS_REPORTS
+    )
+    report_format = Column(String(50), default=ReportDataFormat.VISUALIZATION)
     sql = Column(Text())
     # (Alerts/Reports) M-O to chart
     chart_id = Column(Integer, ForeignKey("slices.id"), nullable=True)
@@ -112,7 +128,7 @@ class ReportSchedule(Model, AuditMixinNullable):
 
     # (Alerts) Stamped last observations
     last_eval_dttm = Column(DateTime)
-    last_state = Column(String(50))
+    last_state = Column(String(50), default=ReportState.NOOP)
     last_value = Column(Float)
     last_value_row_json = Column(Text)
 
@@ -122,10 +138,17 @@ class ReportSchedule(Model, AuditMixinNullable):
 
     # Log retention
     log_retention = Column(Integer, default=90)
+    # (Alerts) After a success how long to wait for a new trigger (seconds)
     grace_period = Column(Integer, default=60 * 60 * 4)
+    # (Alerts/Reports) Unlock a possible stalled working state
+    working_timeout = Column(Integer, default=60 * 60 * 1)
 
     def __repr__(self) -> str:
         return str(self.name)
+
+    @renders("crontab")
+    def crontab_humanized(self) -> str:
+        return get_description(self.crontab)
 
 
 class ReportRecipients(
@@ -159,6 +182,7 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
 
     __tablename__ = "report_execution_log"
     id = Column(Integer, primary_key=True)
+    uuid = Column(UUIDType(binary=True))
 
     # Timestamps
     scheduled_dttm = Column(DateTime, nullable=False)

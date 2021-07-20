@@ -122,7 +122,7 @@ class CacheRestApi(BaseSupersetModelRestApi):
                     len(datasource_uids),
                 )
             except SQLAlchemyError as ex:  # pragma: no cover
-                logger.error(ex)
+                logger.error(ex, exc_info=True)
                 db.session.rollback()
                 return self.response_500(str(ex))
             db.session.commit()

@@ -14,18 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from flask import current_app as app
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 import superset.models.core as models
 from superset.views.base_api import BaseSupersetModelRestApi
 
+from ...constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from . import LogMixin
 
 
 class LogRestApi(LogMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(models.Log)
     include_route_methods = {"get_list", "get", "post"}
-    class_permission_name = "LogModelView"
+    class_permission_name = "Log"
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     resource_name = "log"
     allow_browser_login = True
     list_columns = [
@@ -40,3 +44,13 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
         "referrer",
     ]
     show_columns = list_columns
+
+    @staticmethod
+    def is_enabled() -> bool:
+        return app.config["FAB_ADD_SECURITY_VIEWS"] and app.config["SUPERSET_LOG_VIEW"]
+
+    @before_request
+    def ensure_enabled(self) -> None:
+        if not self.is_enabled():
+            return self.response_404()
+        return None

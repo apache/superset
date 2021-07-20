@@ -16,12 +16,15 @@
 # under the License.
 
 import logging
-import time
+from time import sleep
 from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
 
 from flask import current_app
-from retry.api import retry_call
-from selenium.common.exceptions import TimeoutException, WebDriverException
+from selenium.common.exceptions import (
+    StaleElementReferenceException,
+    TimeoutException,
+    WebDriverException,
+)
 from selenium.webdriver import chrome, firefox
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
@@ -29,14 +32,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from superset.extensions import machine_auth_provider_factory
+from superset.utils.retries import retry_call
 
 WindowSize = Tuple[int, int]
 logger = logging.getLogger(__name__)
-
-# Time in seconds, we will wait for the page to load and render
-SELENIUM_CHECK_INTERVAL = 2
-SELENIUM_RETRIES = 5
-SELENIUM_HEADSTART = 3
 
 
 if TYPE_CHECKING:
@@ -86,7 +85,7 @@ class WebDriverProxy:
         # This is some very flaky code in selenium. Hence the retries
         # and catch-all exceptions
         try:
-            retry_call(driver.close, tries=tries)
+            retry_call(driver.close, max_tries=tries)
         except Exception:  # pylint: disable=broad-except
             pass
         try:
@@ -95,18 +94,17 @@ class WebDriverProxy:
             pass
 
     def get_screenshot(
-        self,
-        url: str,
-        element_name: str,
-        user: "User",
-        retries: int = SELENIUM_RETRIES,
+        self, url: str, element_name: str, user: "User",
     ) -> Optional[bytes]:
+
         driver = self.auth(user)
         driver.set_window_size(*self._window)
         driver.get(url)
         img: Optional[bytes] = None
-        logger.debug("Sleeping for %i seconds", SELENIUM_HEADSTART)
-        time.sleep(SELENIUM_HEADSTART)
+        selenium_headstart = current_app.config["SCREENSHOT_SELENIUM_HEADSTART"]
+        logger.debug("Sleeping for %i seconds", selenium_headstart)
+        sleep(selenium_headstart)
+
         try:
             logger.debug("Wait for the presence of %s", element_name)
             element = WebDriverWait(driver, self._screenshot_locate_wait).until(
@@ -116,15 +114,29 @@ class WebDriverProxy:
             WebDriverWait(driver, self._screenshot_load_wait).until_not(
                 EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
             )
+            logger.debug("Wait for chart to have content")
+            WebDriverWait(driver, self._screenshot_locate_wait).until(
+                EC.visibility_of_all_elements_located(
+                    (By.CLASS_NAME, "slice_container")
+                )
+            )
+            selenium_animation_wait = current_app.config[
+                "SCREENSHOT_SELENIUM_ANIMATION_WAIT"
+            ]
+            logger.debug("Wait %i seconds for chart animation", selenium_animation_wait)
+            sleep(selenium_animation_wait)
             logger.info("Taking a PNG screenshot or url %s", url)
             img = element.screenshot_as_png
         except TimeoutException:
-            logger.error("Selenium timed out requesting url %s", url)
+            logger.warning("Selenium timed out requesting url %s", url, exc_info=True)
+        except StaleElementReferenceException:
+            logger.error(
+                "Selenium got a stale element while requesting url %s",
+                url,
+                exc_info=True,
+            )
         except WebDriverException as ex:
-            logger.error(ex)
-            # Some webdrivers do not support screenshots for elements.
-            # In such cases, take a screenshot of the entire page.
-            img = driver.screenshot()  # pylint: disable=no-member
+            logger.error(ex, exc_info=True)
         finally:
-            self.destroy(driver, retries)
+            self.destroy(driver, current_app.config["SCREENSHOT_SELENIUM_RETRIES"])
         return img

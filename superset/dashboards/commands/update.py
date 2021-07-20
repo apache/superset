@@ -22,7 +22,7 @@ from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
-from superset.commands.utils import populate_owners
+from superset.commands.utils import populate_owners, populate_roles
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.dashboards.commands.exceptions import (
     DashboardForbiddenError,
@@ -58,7 +58,8 @@ class UpdateDashboardCommand(BaseCommand):
 
     def validate(self) -> None:
         exceptions: List[ValidationError] = []
-        owner_ids: Optional[List[int]] = self._properties.get("owners")
+        owners_ids: Optional[List[int]] = self._properties.get("owners")
+        roles_ids: Optional[List[int]] = self._properties.get("roles")
         slug: Optional[str] = self._properties.get("slug")
 
         # Validate/populate model exists
@@ -76,11 +77,24 @@ class UpdateDashboardCommand(BaseCommand):
             exceptions.append(DashboardSlugExistsValidationError())
 
         # Validate/Populate owner
-        if owner_ids is None:
-            owner_ids = [owner.id for owner in self._model.owners]
+        if owners_ids is None:
+            owners_ids = [owner.id for owner in self._model.owners]
         try:
-            owners = populate_owners(self._actor, owner_ids)
+            owners = populate_owners(self._actor, owners_ids)
             self._properties["owners"] = owners
+        except ValidationError as ex:
+            exceptions.append(ex)
+        if exceptions:
+            exception = DashboardInvalidError()
+            exception.add_list(exceptions)
+            raise exception
+
+        # Validate/Populate role
+        if roles_ids is None:
+            roles_ids = [role.id for role in self._model.roles]
+        try:
+            roles = populate_roles(roles_ids)
+            self._properties["roles"] = roles
         except ValidationError as ex:
             exceptions.append(ex)
         if exceptions:

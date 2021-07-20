@@ -17,12 +17,13 @@
  * under the License.
  */
 import React from 'react';
-import { Panel } from 'react-bootstrap';
 import Button from 'src/components/Button';
 import Select from 'src/components/Select';
-import { t } from '@superset-ui/core';
+import { css, styled, t } from '@superset-ui/core';
 
-import VizTypeControl from '../explore/components/controls/VizTypeControl';
+import VizTypeGallery, {
+  MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
+} from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
 
 interface Datasource {
   label: string;
@@ -37,10 +38,36 @@ export type AddSliceContainerState = {
   datasourceId?: string;
   datasourceType?: string;
   datasourceValue?: string;
-  visType: string;
+  visType: string | null;
 };
 
+const ESTIMATED_NAV_HEIGHT = '56px';
 const styleSelectContainer = { width: 600, marginBottom: '10px' };
+const StyledContainer = styled.div`
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+  max-width: ${MAX_ADVISABLE_VIZ_GALLERY_WIDTH}px;
+  max-height: calc(100vh - ${ESTIMATED_NAV_HEIGHT});
+  border-radius: ${({ theme }) => theme.gridUnit}px;
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+  h3 {
+    padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+  }
+`;
+
+const cssStatic = css`
+  flex: 0 0 auto;
+`;
+
+const StyledVizTypeGallery = styled(VizTypeGallery)`
+  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  margin: ${({ theme }) => theme.gridUnit * 3}px 0px;
+  flex: 1 1 auto;
+`;
 
 export default class AddSliceContainer extends React.PureComponent<
   AddSliceContainerProps,
@@ -49,7 +76,7 @@ export default class AddSliceContainer extends React.PureComponent<
   constructor(props: AddSliceContainerProps) {
     super(props);
     this.state = {
-      visType: 'table',
+      visType: null,
     };
 
     this.changeDatasource = this.changeDatasource.bind(this);
@@ -78,7 +105,7 @@ export default class AddSliceContainer extends React.PureComponent<
     });
   }
 
-  changeVisType(visType: string) {
+  changeVisType(visType: string | null) {
     this.setState({ visType });
   }
 
@@ -88,69 +115,59 @@ export default class AddSliceContainer extends React.PureComponent<
 
   render() {
     return (
-      <div className="container">
-        <Panel>
-          <Panel.Heading>
-            <h3>{t('Create a new chart')}</h3>
-          </Panel.Heading>
-          <Panel.Body>
-            <div>
-              <p>{t('Choose a dataset')}</p>
-              <div style={styleSelectContainer}>
-                <Select
-                  clearable={false}
-                  ignoreAccents={false}
-                  name="select-datasource"
-                  onChange={this.changeDatasource}
-                  options={this.props.datasources}
-                  placeholder={t('Choose a dataset')}
-                  value={
-                    this.state.datasourceValue
-                      ? {
-                          value: this.state.datasourceValue,
-                        }
-                      : undefined
-                  }
-                  width={600}
-                />
-              </div>
-              <span className="text-muted">
-                {t(
-                  'If the dataset you are looking for is not available in the list, follow the instructions on how to add it in the Superset tutorial.',
-                )}{' '}
-                <a
-                  href="https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#adding-a-new-table"
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  <i className="fa fa-external-link" />
-                </a>
-              </span>
-            </div>
-            <br />
-            <div>
-              <p>{t('Choose a visualization type')}</p>
-              <VizTypeControl
-                name="select-vis-type"
-                onChange={this.changeVisType}
-                value={this.state.visType}
-                labelBsStyle="primary"
-              />
-            </div>
-            <br />
-            <hr />
-            <Button
-              buttonStyle="primary"
-              disabled={this.isBtnDisabled()}
-              onClick={this.gotoSlice}
+      <StyledContainer className="container">
+        <h3 css={cssStatic}>{t('Create a new chart')}</h3>
+        <div css={cssStatic}>
+          <p>{t('Choose a dataset')}</p>
+          <div style={styleSelectContainer}>
+            <Select
+              clearable={false}
+              ignoreAccents={false}
+              name="select-datasource"
+              onChange={this.changeDatasource}
+              options={this.props.datasources}
+              placeholder={t('Choose a dataset')}
+              value={
+                this.state.datasourceValue
+                  ? {
+                      value: this.state.datasourceValue,
+                    }
+                  : undefined
+              }
+              width={600}
+            />
+          </div>
+          <span className="text-muted">
+            {t(
+              'If the dataset you are looking for is not available in the list, follow the instructions on how to add it in the Superset tutorial.',
+            )}{' '}
+            <a
+              href="https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#adding-a-new-table"
+              rel="noopener noreferrer"
+              target="_blank"
             >
-              {t('Create new chart')}
-            </Button>
-            <br />
-            <br />
-          </Panel.Body>
-        </Panel>
-      </div>
+              <i className="fa fa-external-link" />
+            </a>
+          </span>
+        </div>
+        <StyledVizTypeGallery
+          onChange={this.changeVisType}
+          selectedViz={this.state.visType}
+        />
+        <Button
+          css={[
+            cssStatic,
+            css`
+              align-self: flex-end;
+            `,
+          ]}
+          buttonStyle="primary"
+          disabled={this.isBtnDisabled()}
+          onClick={this.gotoSlice}
+        >
+          {t('Create new chart')}
+        </Button>
+      </StyledContainer>
     );
   }
 }

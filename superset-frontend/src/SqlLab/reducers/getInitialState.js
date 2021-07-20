@@ -27,6 +27,7 @@ export default function getInitialState({
   databases,
   queries: queries_,
   requested_query: requestedQuery,
+  user,
 }) {
   /**
    * Before YYYY-MM-DD, the state for SQL Lab was stored exclusively in the
@@ -40,13 +41,14 @@ export default function getInitialState({
   const defaultQueryEditor = {
     id: null,
     loaded: true,
-    title: t('Untitled Query'),
+    title: t('Untitled query'),
     sql: 'SELECT *\nFROM\nWHERE',
     selectedText: null,
     latestQueryId: null,
     autorun: false,
     templateParams: null,
     dbId: defaultDbId,
+    functionNames: [],
     queryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
     validationResult: {
       id: null,
@@ -58,6 +60,7 @@ export default function getInitialState({
       completed: false,
       error: null,
     },
+    hideLeftBar: false,
   };
 
   /**
@@ -71,14 +74,15 @@ export default function getInitialState({
         id: id.toString(),
         loaded: true,
         title: activeTab.label,
-        sql: activeTab.sql,
-        selectedText: null,
+        sql: activeTab.sql || undefined,
+        selectedText: undefined,
         latestQueryId: activeTab.latest_query
           ? activeTab.latest_query.id
           : null,
         autorun: activeTab.autorun,
-        templateParams: activeTab.template_params,
+        templateParams: activeTab.template_params || undefined,
         dbId: activeTab.database_id,
+        functionNames: [],
         schema: activeTab.schema,
         queryLimit: activeTab.query_limit,
         validationResult: {
@@ -86,6 +90,7 @@ export default function getInitialState({
           errors: [],
           completed: false,
         },
+        hideLeftBar: activeTab.hide_left_bar,
       };
     } else {
       // dummy state, actual state will be loaded on tab switch
@@ -112,6 +117,8 @@ export default function getInitialState({
           foreignKeys,
           indexes,
           dataPreviewQueryId,
+          partitions,
+          metadata,
         } = tableSchema.description;
         const table = {
           dbId: tableSchema.database_id,
@@ -128,6 +135,8 @@ export default function getInitialState({
           primaryKey,
           foreignKeys,
           indexes,
+          partitions,
+          metadata,
         };
         tables.push(table);
       });
@@ -180,6 +189,7 @@ export default function getInitialState({
       tabHistory,
       tables,
       queriesLastUpdate: Date.now(),
+      user,
     },
     requestedQuery,
     messageToasts: getToastsFromPyFlashMessages(

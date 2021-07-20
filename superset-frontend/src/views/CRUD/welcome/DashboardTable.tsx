@@ -16,17 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
-import { Dashboard, DashboardTableProps } from 'src/views/CRUD/types';
+import {
+  Dashboard,
+  DashboardTableProps,
+  TableTabTypes,
+} from 'src/views/CRUD/types';
+import handleResourceExport from 'src/utils/export';
+import { useHistory } from 'react-router-dom';
+import {
+  setInLocalStorage,
+  getFromLocalStorage,
+} from 'src/utils/localStorageHelpers';
+import { createErrorHandler, CardContainer } from 'src/views/CRUD/utils';
+import { HOMEPAGE_DASHBOARD_FILTER } from 'src/views/CRUD/storageKeys';
+
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import Loading from 'src/components/Loading';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
 import SubMenu from 'src/components/Menu/SubMenu';
-import Icon from 'src/components/Icon';
 import EmptyState from './EmptyState';
-import { createErrorHandler, CardContainer, IconContainer } from '../utils';
 
 const PAGE_SIZE = 3;
 
@@ -41,7 +53,12 @@ function DashboardTable({
   addDangerToast,
   addSuccessToast,
   mine,
+  showThumbnails,
 }: DashboardTableProps) {
+  const history = useHistory();
+  const filterStore = getFromLocalStorage(HOMEPAGE_DASHBOARD_FILTER, null);
+  const defaultFilter = filterStore || TableTabTypes.MINE;
+
   const {
     state: { loading, resourceCollection: dashboards },
     setResourceCollection: setDashboards,
@@ -53,7 +70,9 @@ function DashboardTable({
     t('dashboard'),
     addDangerToast,
     true,
-    mine,
+    defaultFilter === 'Favorite' ? [] : mine,
+    [],
+    false,
   );
   const dashboardIds = useMemo(() => dashboards.map(c => c.id), [dashboards]);
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
@@ -61,11 +80,25 @@ function DashboardTable({
     dashboardIds,
     addDangerToast,
   );
-  const [editModal, setEditModal] = useState<Dashboard>();
-  const [dashboardFilter, setDashboardFilter] = useState('Mine');
 
-  const handleDashboardEdit = (edits: Dashboard) => {
-    return SupersetClient.get({
+  const [editModal, setEditModal] = useState<Dashboard>();
+  const [dashboardFilter, setDashboardFilter] = useState(defaultFilter);
+  const [preparingExport, setPreparingExport] = useState<boolean>(false);
+
+  useEffect(() => {
+    getData(dashboardFilter);
+  }, [dashboardFilter]);
+
+  const handleBulkDashboardExport = (dashboardsToExport: Dashboard[]) => {
+    const ids = dashboardsToExport.map(({ id }) => id);
+    handleResourceExport('dashboard', ids, () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
+  };
+
+  const handleDashboardEdit = (edits: Dashboard) =>
+    SupersetClient.get({
       endpoint: `/api/v1/dashboard/${edits.id}`,
     }).then(
       ({ json = {} }) => {
@@ -84,7 +117,6 @@ function DashboardTable({
         ),
       ),
     );
-  };
 
   const getFilters = (filterName: string) => {
     const filters = [];
@@ -97,23 +129,15 @@ function DashboardTable({
     } else {
       filters.push({
         id: 'id',
-        operator: 'dashboard_is_fav',
+        operator: 'dashboard_is_favorite',
         value: true,
       });
     }
     return filters;
   };
-  const subMenus = [];
-  if (dashboards.length > 0 && dashboardFilter === 'favorite') {
-    subMenus.push({
-      name: 'Favorite',
-      label: t('Favorite'),
-      onClick: () => setDashboardFilter('Favorite'),
-    });
-  }
 
-  const getData = (filter: string) => {
-    return fetchData({
+  const getData = (filter: string) =>
+    fetchData({
       pageIndex: 0,
       pageSize: PAGE_SIZE,
       sortBy: [
@@ -124,8 +148,8 @@ function DashboardTable({
       ],
       filters: getFilters(filter),
     });
-  };
 
+  if (loading) return <Loading position="inline" />;
   return (
     <>
       <SubMenu
@@ -135,34 +159,44 @@ function DashboardTable({
             name: 'Favorite',
             label: t('Favorite'),
             onClick: () => {
-              getData('Favorite').then(() => setDashboardFilter('Favorite'));
+              setDashboardFilter(TableTabTypes.FAVORITE);
+              setInLocalStorage(
+                HOMEPAGE_DASHBOARD_FILTER,
+                TableTabTypes.FAVORITE,
+              );
             },
           },
           {
             name: 'Mine',
             label: t('Mine'),
             onClick: () => {
-              getData('Mine').then(() => setDashboardFilter('Mine'));
+              setDashboardFilter(TableTabTypes.MINE);
+              setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, TableTabTypes.MINE);
             },
           },
         ]}
         buttons={[
           {
             name: (
-              <IconContainer>
-                <Icon name="plus-small" /> Dashboard{' '}
-              </IconContainer>
+              <>
+                <i className="fa fa-plus" />
+                Dashboard
+              </>
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.href = '/dashboard/new';
+              window.location.assign('/dashboard/new');
             },
           },
           {
             name: 'View All »',
             buttonStyle: 'link',
             onClick: () => {
-              window.location.href = '/dashboard/list/';
+              const target =
+                dashboardFilter === 'Favorite'
+                  ? '/dashboard/list/?filters=(favorite:!t)'
+                  : '/dashboard/list/';
+              history.push(target);
             },
           },
         ]}
@@ -183,6 +217,7 @@ function DashboardTable({
               dashboard={e}
               hasPerm={hasPerm}
               bulkSelectEnabled={false}
+              showThumbnails={showThumbnails}
               dashboardFilter={dashboardFilter}
               refreshData={refreshData}
               addDangerToast={addDangerToast}
@@ -194,6 +229,7 @@ function DashboardTable({
               }
               saveFavoriteStatus={saveFavoriteStatus}
               favoriteStatus={favoriteStatus[e.id]}
+              handleBulkDashboardExport={handleBulkDashboardExport}
             />
           ))}
         </CardContainer>
@@ -201,6 +237,7 @@ function DashboardTable({
       {dashboards.length === 0 && (
         <EmptyState tableName="DASHBOARDS" tab={dashboardFilter} />
       )}
+      {preparingExport && <Loading />}
     </>
   );
 }

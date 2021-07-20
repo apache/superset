@@ -24,9 +24,11 @@ export default function transformProps(chartProps) {
     formData,
     hooks,
     initialValues,
-    queryData,
+    queriesData,
     rawDatasource,
     rawFormData,
+    width,
+    height,
   } = chartProps;
   const {
     onAddFilter = NOOP,
@@ -53,8 +55,10 @@ export default function transformProps(chartProps) {
 
   return {
     chartId: sliceId,
+    width,
+    height,
     datasource: rawDatasource,
-    filtersChoices: queryData.data,
+    filtersChoices: queriesData[0].data,
     filtersFields,
     instantFiltering,
     onChange: onAddFilter,

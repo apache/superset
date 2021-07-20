@@ -86,15 +86,15 @@ supported.)
 
 **Step 1 - Clone Superset's Github repository**
 
-`Clone Superset's repo <https://github.com/apache/incubator-superset>`__
+`Clone Superset's repo <https://github.com/apache/superset>`__
 in your terminal with the following command:
 
 .. code:: bash
 
-    $ git clone https://github.com/apache/incubator-superset.git
+    $ git clone https://github.com/apache/superset.git
 
 Once that command completes successfully, you should see a new
-``incubator-superset`` folder in your current directory.
+``superset`` folder in your current directory.
 
 **Step 2 - Launch Superset via `docker-compose up`**
 
@@ -102,7 +102,7 @@ Next, `cd` into the folder you created in Step 1:
 
 .. code:: bash
 
-    $ cd incubator-superset
+    $ cd superset
 
 Once you're in the directory, run the following command:
 
@@ -135,7 +135,7 @@ Congrats! You have successfully installed Superset!
 .. note ::
     The Docker-related files and documentation are actively maintained and
     managed by the core committers working on the project. Help and contributions
-    around Docker are welcomed! See also `docker/README.md <https://github.com/apache/incubator-superset/blob/master/docker/README.md>`_ for additional information.
+    around Docker are welcomed! See also `docker/README.md <https://github.com/apache/superset/blob/master/docker/README.md>`_ for additional information.
 
 OS dependencies
 ---------------
@@ -334,7 +334,7 @@ of the parameters you can copy / paste in that configuration module: ::
     MAPBOX_API_KEY = ''
 
 All the parameters and default values defined in
-https://github.com/apache/incubator-superset/blob/master/superset/config.py
+https://github.com/apache/superset/blob/master/superset/config.py
 can be altered in your local ``superset_config.py`` .
 Administrators will want to
 read through the file to understand what can be configured locally
@@ -342,7 +342,7 @@ as well as the default values in place.
 
 Since ``superset_config.py`` acts as a Flask configuration module, it
 can be used to alter the settings Flask itself,
-as well as Flask extensions like ``flask-wtf``, ``flask-cache``,
+as well as Flask extensions like ``flask-wtf``, ``flask-caching``,
 ``flask-migrate``, and ``flask-appbuilder``. Flask App Builder, the web
 framework used by Superset offers many configuration settings. Please consult
 the `Flask App Builder Documentation
@@ -365,12 +365,12 @@ auth postback endpoint, you can add them to *WTF_CSRF_EXEMPT_LIST*
 Caching
 -------
 
-Superset uses `Flask-Cache <https://pythonhosted.org/Flask-Cache/>`_ for
+Superset uses `Flask-Caching <https://flask-caching.readthedocs.io/>`_ for
 caching purpose. Configuring your caching backend is as easy as providing
 ``CACHE_CONFIG`` and ``DATA_CACHE_CONFIG`, constants in ``superset_config.py``
-that complies with `the Flask-Cache specifications <https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching>`_.
+that complies with `the Flask-Caching specifications <https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching>`_.
 
-Flask-Cache supports multiple caching backends (Redis, Memcached,
+Flask-Caching supports multiple caching backends (Redis, Memcached,
 SimpleCache (in-memory), or the local filesystem). If you are going to use
 Memcached please use the `pylibmc` client library as `python-memcached` does
 not handle storing binary data correctly. If you use Redis, please install
@@ -393,7 +393,7 @@ defined in ``DATA_CACHE_CONFIG``.
 
 It is also possible to pass a custom cache initialization function in the
 config to handle additional caching use cases. The function must return an
-object that is compatible with the `Flask-Cache <https://pythonhosted.org/Flask-Cache/>`_ API.
+object that is compatible with the `Flask-Caching <https://flask-caching.readthedocs.io/>`_ API.
 
 .. code-block:: python
 
@@ -433,7 +433,7 @@ For other strategies, check the `superset/tasks/cache.py` file.
 Caching Thumbnails
 ------------------
 
-This is an optional feature that can be turned on by activating it's feature flag on config:
+This is an optional feature that can be turned on by activating its feature flag on config:
 
 .. code-block:: python
 
@@ -443,7 +443,7 @@ This is an optional feature that can be turned on by activating it's feature fla
     }
 
 
-For this feature you will need a cache system and celery workers. All thumbnails are store on cache and are processed
+For this feature you will need a cache system and celery workers. All thumbnails are stored on cache and are processed
 asynchronously by the workers.
 
 An example config where images are stored on S3 could be:
@@ -533,6 +533,8 @@ Here's a list of some of the recommended packages.
 | Apache Pinot     | ``"apache-superset[pinot]"``                                      | ``pinot+http://CONTROLLER:5436/``               |
 |                  |                                                                   | ``query?server=http://CONTROLLER:5983/``        |
 +------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| Apache Solr      | ``pip install sqlalchemy-solr``                                   | ``solr://``                                     |
++------------------+---------------------------------------+-----------------------------------------------------------------------------+
 | Apache Spark SQL | ``"apache-superset[hive]"``                                       | ``jdbc+hive://``                                |
 +------------------+-------------------------------------------------------------------+-------------------------------------------------+
 | BigQuery         | ``"apache-superset[bigquery]"``                                   | ``bigquery://``                                 |
@@ -684,6 +686,13 @@ You should then be able to connect to your BigQuery datasets.
 
 To be able to upload data, e.g. sample data, the python library `pandas_gbq` is required.
 
+
+Apache Solr
+------------
+
+The connection string for Apache Solr looks like this ::
+
+    solr://{username}:{password}@{host}:{port}/{server_path}/{collection}[/?use_ssl=true|false]
 
 Elasticsearch
 -------------
@@ -931,7 +940,7 @@ Domain Sharding
 
 Chrome allows up to 6 open connections per domain at a time. When there are more
 than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
-next available socket. `PR 5039 <https://github.com/apache/incubator-superset/pull/5039>`_ adds domain sharding to Superset,
+next available socket. `PR 5039 <https://github.com/apache/superset/pull/5039>`_ adds domain sharding to Superset,
 and this feature will be enabled by configuration only (by default Superset
 doesn't allow cross-domain request).
 
@@ -963,7 +972,7 @@ environment variable: ::
 Event Logging
 -------------
 
-Superset by default logs special action event on it's database. These log can be accessed on the UI navigating to
+Superset by default logs special action event on its database. These logs can be accessed on the UI navigating to
 "Security" -> "Action Log". You can freely customize these logs by implementing your own event log class.
 
 Example of a simple JSON to Stdout class::
@@ -1071,11 +1080,11 @@ have the same configuration.
 
 * To start a Celery worker to leverage the configuration run: ::
 
-    celery worker --app=superset.tasks.celery_app:app --pool=prefork -O fair -c 4
+    celery --app=superset.tasks.celery_app:app worker --pool=prefork -O fair -c 4
 
 * To start a job which schedules periodic background jobs, run ::
 
-    celery beat --app=superset.tasks.celery_app:app
+    celery --app=superset.tasks.celery_app:app beat
 
 To setup a result backend, you need to pass an instance of a derivative
 of ``from cachelib.base.BaseCache`` to the ``RESULTS_BACKEND``
@@ -1103,6 +1112,33 @@ and `PyArrow <https://arrow.apache.org/docs/python/>`_ are now used for results
 serialization. This can be disabled by setting ``RESULTS_BACKEND_USE_MSGPACK = False``
 in your configuration, should any issues arise. Please clear your existing results
 cache store when upgrading an existing environment.
+
+**Async queries for dashboards and Explore**
+
+It's also possible to configure database queries for charts to operate in `async` mode.
+This is especially useful for dashboards with many charts that may otherwise be affected
+by browser connection limits. To enable async queries for dashboards and Explore, the
+following dependencies are required:
+
+- Redis 5.0+ (the feature utilizes `Redis Streams <https://redis.io/topics/streams-intro>`_)
+- Cache backends enabled via the ``CACHE_CONFIG`` and ``DATA_CACHE_CONFIG`` config settings
+- Celery workers configured and running to process async tasks
+
+The following configuration settings are available for async queries (see config.py for default values)
+
+- ``GLOBAL_ASYNC_QUERIES`` (feature flag) - enable or disable async query operation
+- ``GLOBAL_ASYNC_QUERIES_REDIS_CONFIG`` - Redis connection info
+- ``GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX`` - the prefix used with Redis Streams
+- ``GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT`` - the maximum number of events for each user-specific event stream (FIFO eviction)
+- ``GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE`` - the maximum number of events for all users (FIFO eviction)
+- ``GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME`` - the async query feature uses a `JWT <https://tools.ietf.org/html/rfc7519>`_ cookie for authentication, this setting is the cookie's name
+- ``GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE`` - JWT cookie secure option
+- ``GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN`` - JWT cookie domain option (`see docs for set_cookie <https://tedboy.github.io/flask/interface_api.response_object.html#flask.Response.set_cookie>`
+- ``GLOBAL_ASYNC_QUERIES_JWT_SECRET`` - JWT's use a secret key to sign and validate the contents. This value should be at least 32 bytes and have sufficient randomness for proper security
+- ``GLOBAL_ASYNC_QUERIES_TRANSPORT`` - available options: "polling" (HTTP, default), "ws" (WebSocket, requires running superset-websocket server)
+- ``GLOBAL_ASYNC_QUERIES_POLLING_DELAY`` - the time (in ms) between polling requests
+
+More information on the async query feature can be found in `SIP-39 <https://github.com/apache/superset/issues/9190>`_.
 
 **Important notes**
 
@@ -1172,7 +1208,7 @@ To render dashboards you need to install a local browser on your superset instan
   * `geckodriver <https://github.com/mozilla/geckodriver>`_ and Firefox is preferred
   * `chromedriver <http://chromedriver.chromium.org/>`_ is a good option too
 
-You need to adjust the ``EMAIL_REPORTS_WEBDRIVER`` accordingly in your configuration.
+You need to adjust the ``WEBDRIVER_TYPE`` accordingly in your configuration.
 
 You also need to specify on behalf of which username to render the dashboards. In general
 dashboards and charts are not accessible to unauthorized requests, that is why the
@@ -1219,6 +1255,38 @@ in this dictionary are made available for users to use in their SQL.
     JINJA_CONTEXT_ADDONS = {
         'my_crazy_macro': lambda x: x*2,
     }
+
+Default values for jinja templates can be specified via ``Parameters`` menu in the SQL Lab user interface.
+In the UI you can assign a set of parameters as JSON
+
+.. code-block:: JSON
+    {
+        "my_table": "foo"
+    }
+
+The parameters become available in your SQL (example:SELECT * FROM {{ my_table }} ) by using Jinja templating syntax.
+SQL Lab template parameters are stored with the dataset as TEMPLATE PARAMETERS.
+
+There is a special ``_filters`` parameter which can be used to test filters used in the jinja template.
+
+.. code-block:: JSON
+    {
+        "_filters": [ {
+            "col": "action_type",
+            "op": "IN",
+            "val": ["sell", "buy"]
+            } ]
+    }
+
+.. code-block:: python
+    SELECT action, count(*) as times
+            FROM logs
+            WHERE
+                action in ({{ "'" + "','".join(filter_values('action_type')) + "'" }})
+            GROUP BY action
+
+Note ``_filters`` is not stored with the dataset. It's only used within the SQL Lab UI.
+
 
 Besides default Jinja templating, SQL lab also supports self-defined template
 processor by setting the ``CUSTOM_TEMPLATE_PROCESSORS`` in your superset configuration.
@@ -1290,7 +1358,7 @@ The available validators and names can be found in `sql_validators/`.
 **Scheduling queries**
 
 You can optionally allow your users to schedule queries directly in SQL Lab.
-This is done by addding extra metadata to saved queries, which are then picked
+This is done by adding extra metadata to saved queries, which are then picked
 up by an external scheduled (like [Apache Airflow](https://airflow.apache.org/)).
 
 To allow scheduled queries, add the following to your `config.py`:
@@ -1404,7 +1472,7 @@ Building from source
 
 More advanced users may want to build Superset from sources. That
 would be the case if you fork the project to add features specific to
-your environment. See `CONTRIBUTING.md#setup-local-environment-for-development <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#setup-local-environment-for-development>`_.
+your environment. See `CONTRIBUTING.md#setup-local-environment-for-development <https://github.com/apache/superset/blob/master/CONTRIBUTING.md#setup-local-environment-for-development>`_.
 
 Blueprints
 ----------
@@ -1452,13 +1520,14 @@ Install Superset with helm in Kubernetes
 ----------------------------------------
 
 You can install Superset into Kubernetes with Helm <https://helm.sh/>. The chart is
-located in ``install/helm``.
+located in the ``helm`` directory.
 
-To install Superset into your Kubernetes:
+To install Superset in your Kubernetes cluster with Helm 3, run:
 
 .. code-block:: bash
 
-    helm upgrade --install superset ./install/helm/superset
+    helm dep install ./helm/superset
+    helm upgrade --install superset ./helm/superset
 
 Note that the above command will install Superset into ``default`` namespace of your Kubernetes cluster.
 
@@ -1502,6 +1571,7 @@ Second step: Create a `CustomSsoSecurityManager` that extends `SupersetSecurityM
 
 .. code-block:: python
 
+    import logging
     from superset.security import SupersetSecurityManager
 
     class CustomSsoSecurityManager(SupersetSecurityManager):
@@ -1534,29 +1604,19 @@ You can enable or disable features with flag from ``superset_config.py``:
 
 .. code-block:: python
 
-     DEFAULT_FEATURE_FLAGS = {
+     FEATURE_FLAGS = {
          'CLIENT_CACHE': False,
          'ENABLE_EXPLORE_JSON_CSRF_PROTECTION': False,
          'PRESTO_EXPAND_DATA': False,
      }
 
-Here is a list of flags and descriptions:
-
-* ENABLE_EXPLORE_JSON_CSRF_PROTECTION
-
-  * For some security concerns, you may need to enforce CSRF protection on all query request to explore_json endpoint. In Superset, we use `flask-csrf <https://sjl.bitbucket.io/flask-csrf/>`_ add csrf protection for all POST requests, but this protection doesn't apply to GET method.
-
-  * When ENABLE_EXPLORE_JSON_CSRF_PROTECTION is set to true, your users cannot make GET request to explore_json. The default value for this feature False (current behavior), explore_json accepts both GET and POST request. See `PR 7935 <https://github.com/apache/incubator-superset/pull/7935>`_ for more details.
-
-* PRESTO_EXPAND_DATA
-
-  * When this feature is enabled, nested types in Presto will be expanded into extra columns and/or arrays. This is experimental, and doesn't work with all nested types.
+A current list of feature flags can be found in `RESOURCES/FEATURE_FLAGS.md`
 
 
 SIP-15
 ------
 
-`SIP-15 <https://github.com/apache/incubator-superset/issues/6360>`_ aims to ensure that time intervals are handled in a consistent and transparent manner for both the Druid and SQLAlchemy connectors.
+`SIP-15 <https://github.com/apache/superset/issues/6360>`_ aims to ensure that time intervals are handled in a consistent and transparent manner for both the Druid and SQLAlchemy connectors.
 
 Prior to SIP-15 SQLAlchemy used inclusive endpoints however these may behave like exclusive for string columns (due to lexicographical ordering) if no formatting was defined and the column formatting did not conform to an ISO 8601 date-time (refer to the SIP for details).
 

@@ -27,7 +27,9 @@ from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.local import LocalProxy
 
+from superset.utils.async_query_manager import AsyncQueryManager
 from superset.utils.cache_manager import CacheManager
+from superset.utils.encrypt import EncryptedFieldFactory
 from superset.utils.feature_flag_manager import FeatureFlagManager
 from superset.utils.machine_auth import MachineAuthProviderFactory
 
@@ -97,11 +99,13 @@ class UIManifestProcessor:
 
 APP_DIR = os.path.dirname(__file__)
 appbuilder = AppBuilder(update_perms=False)
+async_query_manager = AsyncQueryManager()
 cache_manager = CacheManager()
 celery_app = celery.Celery()
 csrf = CSRFProtect()
 db = SQLA()
 _event_logger: Dict[str, Any] = {}
+encrypted_field_factory = EncryptedFieldFactory()
 event_logger = LocalProxy(lambda: _event_logger.get("event_logger"))
 feature_flag_manager = FeatureFlagManager()
 machine_auth_provider_factory = MachineAuthProviderFactory()

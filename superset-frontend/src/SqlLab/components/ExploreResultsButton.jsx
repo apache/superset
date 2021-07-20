@@ -21,14 +21,12 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { Alert } from 'react-bootstrap';
+import Alert from 'src/components/Alert';
 import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import shortid from 'shortid';
 
-import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
-import { exploreChart } from '../../explore/exploreUtils';
 import * as actions from '../actions/sqlLab';
 
 const propTypes = {
@@ -37,6 +35,7 @@ const propTypes = {
   errorMessage: PropTypes.string,
   timeout: PropTypes.number,
   database: PropTypes.object.isRequired,
+  onClick: PropTypes.func.isRequired,
 };
 const defaultProps = {
   query: {},
@@ -45,32 +44,10 @@ const defaultProps = {
 class ExploreResultsButton extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.visualize = this.visualize.bind(this);
-    this.onClick = this.onClick.bind(this);
     this.getInvalidColumns = this.getInvalidColumns.bind(this);
     this.renderInvalidColumnMessage = this.renderInvalidColumnMessage.bind(
       this,
     );
-  }
-
-  onClick() {
-    const { timeout } = this.props;
-    const msg = this.renderInvalidColumnMessage();
-    if (Math.round(this.getQueryDuration()) > timeout) {
-      Modal.confirm({
-        title: t('Explore'),
-        content: this.renderTimeoutWarning(),
-        onOk: this.visualize,
-        icon: null,
-      });
-    } else if (msg) {
-      Modal.warning({
-        title: t('Explore'),
-        content: msg,
-      });
-    } else {
-      this.visualize();
-    }
   }
 
   getColumns() {
@@ -123,56 +100,34 @@ class ExploreResultsButton extends React.PureComponent {
     };
   }
 
-  visualize() {
-    this.props.actions
-      .createDatasource(this.buildVizOptions())
-      .then(data => {
-        const columns = this.getColumns();
-        const formData = {
-          datasource: `${data.table_id}__table`,
-          metrics: [],
-          groupby: [],
-          time_range: 'No filter',
-          viz_type: 'table',
-          all_columns: columns.map(c => c.name),
-          row_limit: 1000,
-        };
-
-        this.props.actions.addInfoToast(
-          t('Creating a data source and creating a new tab'),
-        );
-
-        // open new window for data visualization
-        exploreChart(formData);
-      })
-      .catch(() => {
-        this.props.actions.addDangerToast(
-          this.props.errorMessage || t('An error occurred'),
-        );
-      });
-  }
-
   renderTimeoutWarning() {
     return (
-      <Alert bsStyle="warning">
-        {t(
-          'This query took %s seconds to run, ',
-          Math.round(this.getQueryDuration()),
-        ) +
-          t(
-            'and the explore view times out at %s seconds ',
-            this.props.timeout,
-          ) +
-          t(
-            'following this flow will most likely lead to your query timing out. ',
-          ) +
-          t(
-            'We recommend your summarize your data further before following that flow. ',
-          ) +
-          t('If activated you can use the ')}
-        <strong>CREATE TABLE AS </strong>
-        {t('feature to store a summarized data set that you can then explore.')}
-      </Alert>
+      <Alert
+        type="warning"
+        message={
+          <>
+            {t(
+              'This query took %s seconds to run, ',
+              Math.round(this.getQueryDuration()),
+            ) +
+              t(
+                'and the explore view times out at %s seconds ',
+                this.props.timeout,
+              ) +
+              t(
+                'following this flow will most likely lead to your query timing out. ',
+              ) +
+              t(
+                'We recommend your summarize your data further before following that flow. ',
+              ) +
+              t('If activated you can use the ')}
+            <strong>CREATE TABLE AS </strong>
+            {t(
+              'feature to store a summarized data set that you can then explore.',
+            )}
+          </>
+        }
+      />
     );
   }
 
@@ -203,7 +158,7 @@ class ExploreResultsButton extends React.PureComponent {
       <>
         <Button
           buttonSize="small"
-          onClick={this.onClick}
+          onClick={this.props.onClick}
           disabled={!allowsSubquery}
           tooltip={t('Explore the result set in the data exploration view')}
         >

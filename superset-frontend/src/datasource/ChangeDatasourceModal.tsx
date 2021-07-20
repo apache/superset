@@ -20,169 +20,294 @@ import React, {
   FunctionComponent,
   useState,
   useRef,
-  useMemo,
   useEffect,
+  useCallback,
 } from 'react';
-import { Alert, FormControl, FormControlProps } from 'react-bootstrap';
-import { SupersetClient, t } from '@superset-ui/core';
-import TableView from 'src/components/TableView';
-import Modal from 'src/common/components/Modal';
-import getClientErrorObject from '../utils/getClientErrorObject';
-import Loading from '../components/Loading';
-import withToasts from '../messageToasts/enhancers/withToasts';
+import Alert from 'src/components/Alert';
+import { SupersetClient, t, styled } from '@superset-ui/core';
+import TableView, { EmptyWrapperType } from 'src/components/TableView';
+import { ServerPagination, SortByType } from 'src/components/TableView/types';
+import StyledModal from 'src/components/Modal';
+import Button from 'src/components/Button';
+import { useListViewResource } from 'src/views/CRUD/hooks';
+import Dataset from 'src/types/Dataset';
+import { useDebouncedEffect } from 'src/explore/exploreUtils';
+import { SLOW_DEBOUNCE } from 'src/constants';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import Loading from 'src/components/Loading';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
+import { Input, AntdInput } from 'src/common/components';
+import {
+  PAGE_SIZE as DATASET_PAGE_SIZE,
+  SORT_BY as DATASET_SORT_BY,
+} from 'src/views/CRUD/data/dataset/constants';
+import FacePile from '../components/FacePile';
 
-interface ChangeDatasourceModalProps {
-  addDangerToast: (msg: string) => void;
-  onChange: (id: number) => void;
-  onDatasourceSave: (datasource: object, errors?: Array<any>) => {};
-  onHide: () => void;
-  show: boolean;
-}
+const CONFIRM_WARNING_MESSAGE = t(
+  'Warning! Changing the dataset may break the chart if the metadata does not exist.',
+);
 
-const TABLE_COLUMNS = [
-  'name',
-  'type',
-  'schema',
-  'connection',
-  'creator',
-].map(col => ({ accessor: col, Header: col }));
-
-const TABLE_FILTERABLE = ['rawName', 'type', 'schema', 'connection', 'creator'];
 const CHANGE_WARNING_MSG = t(
   'Changing the dataset may break the chart if the chart relies ' +
     'on columns or metadata that does not exist in the target dataset',
 );
 
+interface Datasource {
+  type: string;
+  id: number;
+  uid: string;
+}
+
+interface ChangeDatasourceModalProps {
+  addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
+  onChange: (uid: string) => void;
+  onDatasourceSave: (datasource: object, errors?: Array<any>) => {};
+  onHide: () => void;
+  show: boolean;
+}
+
+const ConfirmModalStyled = styled.div`
+  .btn-container {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0px 15px;
+    margin: 10px 0 0 0;
+  }
+
+  .confirm-modal-container {
+    margin: 9px;
+  }
+`;
+
+const StyledSpan = styled.span`
+  cursor: pointer;
+  color: ${({ theme }) => theme.colors.primary.dark1};
+  &: hover {
+    color: ${({ theme }) => theme.colors.primary.dark2};
+  }
+`;
+
 const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   addDangerToast,
+  addSuccessToast,
   onChange,
   onDatasourceSave,
   onHide,
   show,
 }) => {
-  const [datasources, setDatasources] = useState<any>(null);
   const [filter, setFilter] = useState<any>(undefined);
-  const [loading, setLoading] = useState(true);
-  let searchRef = useRef<HTMLInputElement>(null);
+  const [pageIndex, setPageIndex] = useState<number>(0);
+  const [sortBy, setSortBy] = useState<SortByType>(DATASET_SORT_BY);
+  const [confirmChange, setConfirmChange] = useState(false);
+  const [confirmedDataset, setConfirmedDataset] = useState<Datasource>();
+  const searchRef = useRef<AntdInput>(null);
+
+  const {
+    state: { loading, resourceCollection, resourceCount },
+    fetchData,
+  } = useListViewResource<Dataset>('dataset', t('dataset'), addDangerToast);
+
+  const selectDatasource = useCallback((datasource: Datasource) => {
+    setConfirmChange(true);
+    setConfirmedDataset(datasource);
+  }, []);
+
+  const fetchDatasetPayload = {
+    pageIndex,
+    pageSize: DATASET_PAGE_SIZE,
+    filters: [],
+    sortBy,
+  };
+
+  useDebouncedEffect(
+    () => {
+      fetchData({
+        ...fetchDatasetPayload,
+        ...(filter && {
+          filters: [
+            {
+              id: 'table_name',
+              operator: 'ct',
+              value: filter,
+            },
+          ],
+        }),
+      });
+    },
+    SLOW_DEBOUNCE,
+    [filter, pageIndex, sortBy],
+  );
 
   useEffect(() => {
-    const selectDatasource = (datasource: any) => {
-      SupersetClient.get({
-        endpoint: `/datasource/get/${datasource.type}/${datasource.id}`,
-      })
-        .then(({ json }) => {
-          onDatasourceSave(json);
-          onChange(datasource.uid);
-        })
-        .catch(response => {
-          getClientErrorObject(response).then(
-            ({ error, message }: { error: any; message: string }) => {
-              const errorMessage = error
-                ? error.error || error.statusText || error
-                : message;
-              addDangerToast(errorMessage);
-            },
-          );
-        });
-      onHide();
-    };
-
-    const onEnterModal = () => {
-      if (searchRef && searchRef.current) {
-        searchRef.current.focus();
-      }
-      if (!datasources) {
-        SupersetClient.get({
-          endpoint: '/superset/datasources/',
-        })
-          .then(({ json }) => {
-            const data = json.map((ds: any) => ({
-              rawName: ds.name,
-              connection: ds.connection,
-              schema: ds.schema,
-              name: (
-                <a
-                  href="#"
-                  onClick={() => selectDatasource(ds)}
-                  className="datasource-link"
-                >
-                  {ds.name}
-                </a>
-              ),
-              type: ds.type,
-            }));
-            setLoading(false);
-            setDatasources(data);
-          })
-          .catch(response => {
-            setLoading(false);
-            getClientErrorObject(response).then(({ error }: any) => {
-              addDangerToast(error.error || error.statusText || error);
-            });
-          });
-      }
+    const onEnterModal = async () => {
+      setTimeout(() => searchRef?.current?.focus(), 200);
     };
 
     if (show) {
       onEnterModal();
     }
-  }, [addDangerToast, datasources, onChange, onDatasourceSave, onHide, show]);
+  }, [
+    addDangerToast,
+    fetchData,
+    onChange,
+    onDatasourceSave,
+    onHide,
+    selectDatasource,
+    show,
+  ]);
 
-  const setSearchRef = (ref: any) => {
-    searchRef = ref;
+  const changeSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const searchValue = event.target.value ?? '';
+    setFilter(searchValue);
+    setPageIndex(0);
   };
 
-  const changeSearch = (
-    event: React.FormEvent<FormControl & FormControlProps>,
-  ) => {
-    setFilter((event.currentTarget?.value as string) ?? '');
+  const handleChangeConfirm = () => {
+    SupersetClient.get({
+      endpoint: `/datasource/get/${confirmedDataset?.type}/${confirmedDataset?.id}/`,
+    })
+      .then(({ json }) => {
+        onDatasourceSave(json);
+        onChange(`${confirmedDataset?.id}__table`);
+      })
+      .catch(response => {
+        getClientErrorObject(response).then(
+          ({ error, message }: { error: any; message: string }) => {
+            const errorMessage = error
+              ? error.error || error.statusText || error
+              : message;
+            addDangerToast(errorMessage);
+          },
+        );
+      });
+    onHide();
+    addSuccessToast('Successfully changed dataset!');
   };
 
-  const data = useMemo(
-    () =>
-      filter && datasources
-        ? datasources.filter((datasource: any) =>
-            TABLE_FILTERABLE.some(field => datasource[field]?.includes(filter)),
-          )
-        : datasources,
-    [datasources, filter],
-  );
+  const handlerCancelConfirm = () => {
+    setConfirmChange(false);
+  };
+
+  const columns = [
+    {
+      Cell: ({ row: { original } }: any) => (
+        <StyledSpan
+          role="button"
+          tabIndex={0}
+          data-test="datasource-link"
+          onClick={() => selectDatasource({ type: 'table', ...original })}
+        >
+          {original?.table_name}
+        </StyledSpan>
+      ),
+      Header: t('Name'),
+      accessor: 'table_name',
+    },
+    {
+      Header: t('Type'),
+      accessor: 'kind',
+      disableSortBy: true,
+    },
+    {
+      Header: t('Schema'),
+      accessor: 'schema',
+    },
+    {
+      Header: t('Connection'),
+      accessor: 'database.database_name',
+      disableSortBy: true,
+    },
+    {
+      Cell: ({
+        row: {
+          original: { owners = [] },
+        },
+      }: any) => <FacePile users={owners} />,
+      Header: t('Owners'),
+      id: 'owners',
+      disableSortBy: true,
+    },
+  ];
+
+  const onServerPagination = (args: ServerPagination) => {
+    setPageIndex(args.pageIndex);
+    if (args.sortBy) {
+      // ensure default sort by
+      setSortBy(args.sortBy.length > 0 ? args.sortBy : DATASET_SORT_BY);
+    }
+  };
 
   return (
-    <Modal
+    <StyledModal
       show={show}
       onHide={onHide}
       responsive
-      title={t('Select a dataset')}
-      hideFooter
+      title={t('Change dataset')}
+      width={confirmChange ? '432px' : ''}
+      height={confirmChange ? 'auto' : '540px'}
+      hideFooter={!confirmChange}
+      footer={
+        <>
+          {confirmChange && (
+            <ConfirmModalStyled>
+              <div className="btn-container">
+                <Button onClick={handlerCancelConfirm}>Cancel</Button>
+                <Button
+                  className="proceed-btn"
+                  buttonStyle="primary"
+                  onClick={handleChangeConfirm}
+                >
+                  Proceed
+                </Button>
+              </div>
+            </ConfirmModalStyled>
+          )}
+        </>
+      }
     >
       <>
-        <Alert bsStyle="warning">
-          <strong>{t('Warning!')}</strong> {CHANGE_WARNING_MSG}
-        </Alert>
-        <div>
-          <FormControl
-            inputRef={ref => {
-              setSearchRef(ref);
-            }}
-            type="text"
-            bsSize="sm"
-            value={filter}
-            placeholder={t('Search / Filter')}
-            onChange={changeSearch}
-          />
-        </div>
-        {loading && <Loading />}
-        {datasources && (
-          <TableView
-            columns={TABLE_COLUMNS}
-            data={data}
-            pageSize={20}
-            className="table-condensed"
-          />
+        {!confirmChange && (
+          <>
+            <Alert
+              roomBelow
+              type="warning"
+              css={theme => ({ marginBottom: theme.gridUnit * 4 })}
+              message={
+                <>
+                  <strong>{t('Warning!')}</strong> {CHANGE_WARNING_MSG}
+                </>
+              }
+            />
+            <Input
+              ref={searchRef}
+              type="text"
+              value={filter}
+              placeholder={t('Search / Filter')}
+              onChange={changeSearch}
+            />
+            {loading && <Loading />}
+            {!loading && (
+              <TableView
+                columns={columns}
+                data={resourceCollection}
+                pageSize={DATASET_PAGE_SIZE}
+                initialPageIndex={pageIndex}
+                initialSortBy={sortBy}
+                totalCount={resourceCount}
+                onServerPagination={onServerPagination}
+                className="table-condensed"
+                emptyWrapperType={EmptyWrapperType.Small}
+                serverPagination
+                isPaginationSticky
+                scrollTable
+              />
+            )}
+          </>
         )}
+        {confirmChange && <>{CONFIRM_WARNING_MESSAGE}</>}
       </>
-    </Modal>
+    </StyledModal>
   );
 };
 

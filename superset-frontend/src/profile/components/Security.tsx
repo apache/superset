@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import Badge from 'src/common/components/Badge';
+import Badge from 'src/components/Badge';
 import { t } from '@superset-ui/core';
 
 import Label from 'src/components/Label';

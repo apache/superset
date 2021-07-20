@@ -24,11 +24,9 @@ import {
   getExploreUrl,
   getExploreLongUrl,
   shouldUseLegacyApi,
+  getSimpleSQLExpression,
 } from 'src/explore/exploreUtils';
-import {
-  buildTimeRangeString,
-  formatTimeRange,
-} from 'src/explore/dateFilterUtils';
+import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
 import { getChartMetadataRegistry } from '@superset-ui/core';
 
@@ -98,7 +96,9 @@ describe('exploreUtils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore/').search({ standalone: 'true' }),
+        URI('/superset/explore/').search({
+          standalone: DashboardStandaloneMode.HIDE_NAV,
+        }),
       );
     });
     it('preserves main URLs params', () => {
@@ -198,6 +198,16 @@ describe('exploreUtils', () => {
         URI('/superset/explore/').search({ form_data: sFormData }),
       );
     });
+
+    it('generates url with standalone', () => {
+      compareURI(
+        URI(getExploreLongUrl(formData, 'standalone')),
+        URI('/superset/explore/').search({
+          form_data: sFormData,
+          standalone: DashboardStandaloneMode.HIDE_NAV,
+        }),
+      );
+    });
   });
 
   describe('buildV1ChartDataPayload', () => {
@@ -250,36 +260,39 @@ describe('exploreUtils', () => {
     });
   });
 
-  describe('buildTimeRangeString', () => {
-    it('generates proper time range string', () => {
-      expect(
-        buildTimeRangeString('2010-07-30T00:00:00', '2020-07-30T00:00:00'),
-      ).toBe('2010-07-30T00:00:00 : 2020-07-30T00:00:00');
-      expect(buildTimeRangeString('', '2020-07-30T00:00:00')).toBe(
-        ' : 2020-07-30T00:00:00',
-      );
-      expect(buildTimeRangeString('', '')).toBe(' : ');
+  describe('getSimpleSQLExpression', () => {
+    it('returns empty string when subject is undefined', () => {
+      expect(getSimpleSQLExpression(undefined, '=', 10)).toBe('');
+      expect(getSimpleSQLExpression()).toBe('');
     });
-  });
-
-  describe('formatTimeRange', () => {
-    it('generates a readable time range', () => {
-      expect(formatTimeRange('Last 7 days')).toBe('Last 7 days');
-      expect(formatTimeRange('No filter')).toBe('No filter');
-      expect(formatTimeRange('Yesterday : Tomorrow')).toBe(
-        'Yesterday < col < Tomorrow',
+    it("returns subject when it's provided and operator is undefined", () => {
+      expect(getSimpleSQLExpression('col', undefined, 10)).toBe('col');
+      expect(getSimpleSQLExpression('col')).toBe('col');
+    });
+    it("returns subject and operator when they're provided and comparator is undefined", () => {
+      expect(getSimpleSQLExpression('col', '=')).toBe('col =');
+      expect(getSimpleSQLExpression('col', 'IN')).toBe('col IN');
+      expect(getSimpleSQLExpression('col', 'IN', [])).toBe('col IN');
+    });
+    it('returns full expression when subject, operator and comparator are provided', () => {
+      expect(getSimpleSQLExpression('col', '=', 'comp')).toBe("col = 'comp'");
+      expect(getSimpleSQLExpression('col', '=', "it's an apostrophe")).toBe(
+        "col = 'it''s an apostrophe'",
       );
-      expect(
-        formatTimeRange('2010-07-30T00:00:00 : 2020-07-30T00:00:00', [
-          'inclusive',
-          'exclusive',
-        ]),
-      ).toBe('2010-07-30 ≤ col < 2020-07-30');
-      expect(
-        formatTimeRange('2010-07-30T01:00:00 : ', ['exclusive', 'inclusive']),
-      ).toBe('2010-07-30T01:00:00 < col ≤ ∞');
-      expect(formatTimeRange(' : 2020-07-30T00:00:00')).toBe(
-        '-∞ < col < 2020-07-30',
+      expect(getSimpleSQLExpression('col', '=', 0)).toBe('col = 0');
+      expect(getSimpleSQLExpression('col', '=', '0')).toBe('col = 0');
+      expect(getSimpleSQLExpression('col', 'IN', 'foo')).toBe("col IN ('foo')");
+      expect(getSimpleSQLExpression('col', 'NOT IN', ['foo'])).toBe(
+        "col NOT IN ('foo')",
+      );
+      expect(getSimpleSQLExpression('col', 'IN', ['foo', 'bar'])).toBe(
+        "col IN ('foo', 'bar')",
+      );
+      expect(getSimpleSQLExpression('col', 'IN', ['0', '1', '2'])).toBe(
+        'col IN (0, 1, 2)',
+      );
+      expect(getSimpleSQLExpression('col', 'NOT IN', [0, 1, 2])).toBe(
+        'col NOT IN (0, 1, 2)',
       );
     });
   });

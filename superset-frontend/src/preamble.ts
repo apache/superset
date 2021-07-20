@@ -19,7 +19,8 @@
 import { setConfig as setHotLoaderConfig } from 'react-hot-loader';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import moment from 'moment';
-import { configure } from '@superset-ui/core';
+import { configure, supersetTheme } from '@superset-ui/core';
+import { merge } from 'lodash';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
@@ -28,10 +29,12 @@ if (process.env.WEBPACK_MODE === 'development') {
   setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
 }
 
+let bootstrapData: any;
 // Configure translation
 if (typeof window !== 'undefined') {
   const root = document.getElementById('app');
-  const bootstrapData = root
+
+  bootstrapData = root
     ? JSON.parse(root.getAttribute('data-bootstrap') || '{}')
     : {};
   if (bootstrapData.common && bootstrapData.common.language_pack) {
@@ -48,8 +51,15 @@ if (typeof window !== 'undefined') {
 // Setup SupersetClient
 setupClient();
 
-// Setup color palettes
-setupColors();
+setupColors(
+  bootstrapData?.common?.extra_categorical_color_schemes,
+  bootstrapData?.common?.extra_sequential_color_schemes,
+);
 
 // Setup number formatters
 setupFormatters();
+
+export const theme = merge(
+  supersetTheme,
+  bootstrapData?.common?.theme_overrides ?? {},
+);

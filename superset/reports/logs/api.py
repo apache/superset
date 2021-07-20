@@ -15,14 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from flask import Response
 from flask_appbuilder.api import expose, permission_name, protect, rison, safe
 from flask_appbuilder.api.schemas import get_item_schema, get_list_schema
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
-from superset.constants import RouteMethod
+from superset import is_feature_enabled
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.reports import ReportExecutionLog
 from superset.reports.logs.schemas import openapi_spec_methods_override
 from superset.views.base_api import BaseSupersetModelRestApi
@@ -33,7 +35,15 @@ logger = logging.getLogger(__name__)
 class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(ReportExecutionLog)
 
+    @before_request
+    def ensure_alert_reports_enabled(self) -> Optional[Response]:
+        if not is_feature_enabled("ALERT_REPORTS"):
+            return self.response_404()
+        return None
+
     include_route_methods = {RouteMethod.GET, RouteMethod.GET_LIST}
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+
     class_permission_name = "ReportSchedule"
     resource_name = "report"
     allow_browser_login = True
@@ -47,15 +57,18 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
         "value_row_json",
         "state",
         "error_message",
+        "uuid",
     ]
     list_columns = [
         "id",
+        "scheduled_dttm",
         "end_dttm",
         "start_dttm",
         "value",
         "value_row_json",
         "state",
         "error_message",
+        "uuid",
     ]
     order_columns = [
         "state",
@@ -63,6 +76,7 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
         "error_message",
         "end_dttm",
         "start_dttm",
+        "scheduled_dttm",
     ]
     openapi_spec_tag = "Report Schedules"
     openapi_spec_methods = openapi_spec_methods_override

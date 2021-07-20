@@ -20,21 +20,28 @@ import { Provider } from 'react-redux';
 import React from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
-import { LineEditableTabs } from 'src/common/components/Tabs';
-import { Modal } from 'src/common/components';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
+import { LineEditableTabs } from 'src/components/Tabs';
+import { Modal } from 'src/common/components';
+import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
-import Tabs from 'src/dashboard/components/gridComponents/Tabs';
+import { Tabs } from 'src/dashboard/components/gridComponents/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import WithDragDropContext from 'spec/helpers/WithDragDropContext';
+import emptyDashboardLayout from 'src/dashboard/fixtures/emptyDashboardLayout';
 import { dashboardLayoutWithTabs } from 'spec/fixtures/mockDashboardLayout';
-import { mockStoreWithTabs } from 'spec/fixtures/mockStore';
+import { getMockStore } from 'spec/fixtures/mockStore';
+import { nativeFilters } from 'spec/fixtures/mockNativeFilters';
+import { initialState } from 'spec/javascripts/sqllab/fixtures';
 
 describe('Tabs', () => {
+  fetchMock.post('glob:*/r/shortner/', {});
+
   const props = {
     id: 'TABS_ID',
     parentId: DASHBOARD_ROOT_ID,
@@ -55,16 +62,24 @@ describe('Tabs', () => {
     deleteComponent() {},
     updateComponents() {},
     logEvent() {},
+    dashboardLayout: emptyDashboardLayout,
+    nativeFilters: nativeFilters.filters,
   };
+
+  const mockStore = getMockStore({
+    ...initialState,
+    dashboardLayout: dashboardLayoutWithTabs,
+    dashboardFilters: {},
+  });
 
   function setup(overrideProps) {
     // We have to wrap provide DragDropContext for the underlying DragDroppable
     // otherwise we cannot assert on DragDroppable children
     const wrapper = mount(
-      <Provider store={mockStoreWithTabs}>
-        <WithDragDropContext>
+      <Provider store={mockStore}>
+        <DndProvider backend={HTML5Backend}>
           <Tabs {...props} {...overrideProps} />
-        </WithDragDropContext>
+        </DndProvider>
       </Provider>,
     );
     return wrapper;
@@ -130,7 +145,7 @@ describe('Tabs', () => {
     const wrapper = setup({ editMode: true, onChangeTab });
     wrapper
       .find(
-        '[data-test="dashboard-component-tabs"] .ant-tabs-tab [data-test="short-link-button"]',
+        '[data-test="dashboard-component-tabs"] .ant-tabs-tab [role="button"]',
       )
       .at(1) // will not call if it is already selected
       .simulate('click');

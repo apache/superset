@@ -15,8 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from decimal import Decimal
 from functools import partial
-from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import geohash as geohash_lib
 import numpy as np
@@ -24,6 +25,7 @@ from flask_babel import gettext as _
 from geopy.point import Point
 from pandas import DataFrame, NamedAgg, Series, Timestamp
 
+from superset.constants import NULL_STRING
 from superset.exceptions import QueryObjectValidationError
 from superset.utils.core import (
     DTTM_ALIAS,
@@ -213,7 +215,7 @@ def pivot(  # pylint: disable=too-many-arguments
     aggregates: Dict[str, Dict[str, Any]],
     columns: Optional[List[str]] = None,
     metric_fill_value: Optional[Any] = None,
-    column_fill_value: Optional[str] = None,
+    column_fill_value: Optional[str] = NULL_STRING,
     drop_missing_columns: Optional[bool] = True,
     combine_value_with_metric: bool = False,
     marginal_distributions: Optional[bool] = None,
@@ -227,7 +229,9 @@ def pivot(  # pylint: disable=too-many-arguments
     :param index: Columns to group by on the table index (=rows)
     :param columns: Columns to group by on the table columns
     :param metric_fill_value: Value to replace missing values with
-    :param column_fill_value: Value to replace missing pivot columns with
+    :param column_fill_value: Value to replace missing pivot columns with. By default
+           replaces missing values with "<NULL>". Set to `None` to remove columns
+           with missing values.
     :param drop_missing_columns: Do not include columns whose entries are all missing
     :param combine_value_with_metric: Display metrics side by side within each column,
            as opposed to each column being displayed side by side for each metric.
@@ -238,7 +242,7 @@ def pivot(  # pylint: disable=too-many-arguments
            Default to 'All'.
     :param flatten_columns: Convert column names to strings
     :return: A pivot table
-    :raises ChartDataValidationError: If the request in incorrect
+    :raises QueryObjectValidationError: If the request in incorrect
     """
     if not index:
         raise QueryObjectValidationError(
@@ -249,7 +253,7 @@ def pivot(  # pylint: disable=too-many-arguments
             _("Pivot operation must include at least one aggregate")
         )
 
-    if column_fill_value:
+    if columns and column_fill_value:
         df[columns] = df[columns].fillna(value=column_fill_value)
 
     aggregate_funcs = _get_aggregate_funcs(df, aggregates)
@@ -293,7 +297,7 @@ def aggregate(
     :param groupby: columns to aggregate
     :param aggregates: A mapping from metric column to the function used to
            aggregate values.
-    :raises ChartDataValidationError: If the request in incorrect
+    :raises QueryObjectValidationError: If the request in incorrect
     """
     aggregates = aggregates or {}
     aggregate_funcs = _get_aggregate_funcs(df, aggregates)
@@ -313,7 +317,7 @@ def sort(df: DataFrame, columns: Dict[str, bool]) -> DataFrame:
     :param columns: columns by by which to sort. The key specifies the column name,
            value specifies if sorting in ascending order.
     :return: Sorted DataFrame
-    :raises ChartDataValidationError: If the request in incorrect
+    :raises QueryObjectValidationError: If the request in incorrect
     """
     return df.sort_values(by=list(columns.keys()), ascending=list(columns.values()))
 
@@ -348,7 +352,7 @@ def rolling(  # pylint: disable=too-many-arguments
     :param min_periods: The minimum amount of periods required for a row to be included
                         in the result set.
     :return: DataFrame with the rolling columns
-    :raises ChartDataValidationError: If the request in incorrect
+    :raises QueryObjectValidationError: If the request in incorrect
     """
     rolling_type_options = rolling_type_options or {}
     df_rolling = df[columns.keys()]
@@ -408,7 +412,7 @@ def select(
                    For instance, `{'y': 'y2'}` will rename the column `y` to
                    `y2`.
     :return: Subset of columns in original DataFrame
-    :raises ChartDataValidationError: If the request in incorrect
+    :raises QueryObjectValidationError: If the request in incorrect
     """
     df_select = df.copy(deep=False)
     if columns:
@@ -433,7 +437,7 @@ def diff(df: DataFrame, columns: Dict[str, str], periods: int = 1,) -> DataFrame
            unchanged.
     :param periods: periods to shift for calculating difference.
     :return: DataFrame with diffed columns
-    :raises ChartDataValidationError: If the request in incorrect
+    :raises QueryObjectValidationError: If the request in incorrect
     """
     df_diff = df[columns.keys()]
     df_diff = df_diff.diff(periods=periods)
@@ -554,29 +558,53 @@ def geodetic_parse(
         raise QueryObjectValidationError(_("Invalid geodetic string"))
 
 
+@validate_column_args("columns")
 def contribution(
-    df: DataFrame, orientation: PostProcessingContributionOrientation
+    df: DataFrame,
+    orientation: Optional[
+        PostProcessingContributionOrientation
+    ] = PostProcessingContributionOrientation.COLUMN,
+    columns: Optional[List[str]] = None,
+    rename_columns: Optional[List[str]] = None,
 ) -> DataFrame:
     """
-    Calculate cell contibution to row/column total.
+    Calculate cell contibution to row/column total for numeric columns.
+    Non-numeric columns will be kept untouched.
+
+    If `columns` are specified, only calculate contributions on selected columns.
 
     :param df: DataFrame containing all-numeric data (temporal column ignored)
+    :param columns: Columns to calculate values from.
+    :param rename_columns: The new labels for the calculated contribution columns.
+                           The original columns will not be removed.
     :param orientation: calculate by dividing cell with row/column total
-    :return: DataFrame with contributions, with temporal column at beginning if present
+    :return: DataFrame with contributions.
     """
-    temporal_series: Optional[Series] = None
     contribution_df = df.copy()
-    if DTTM_ALIAS in df.columns:
-        temporal_series = cast(Series, contribution_df.pop(DTTM_ALIAS))
-
-    if orientation == PostProcessingContributionOrientation.ROW:
-        contribution_dft = contribution_df.T
-        contribution_df = (contribution_dft / contribution_dft.sum()).T
-    else:
-        contribution_df = contribution_df / contribution_df.sum()
-
-    if temporal_series is not None:
-        contribution_df.insert(0, DTTM_ALIAS, temporal_series)
+    numeric_df = contribution_df.select_dtypes(include=["number", Decimal])
+    # verify column selections
+    if columns:
+        numeric_columns = numeric_df.columns.tolist()
+        for col in columns:
+            if col not in numeric_columns:
+                raise QueryObjectValidationError(
+                    _(
+                        'Column "%(column)s" is not numeric or does not '
+                        "exists in the query results.",
+                        column=col,
+                    )
+                )
+    columns = columns or numeric_df.columns
+    rename_columns = rename_columns or columns
+    if len(rename_columns) != len(columns):
+        raise QueryObjectValidationError(
+            _("`rename_columns` must have the same length as `columns`.")
+        )
+    # limit to selected columns
+    numeric_df = numeric_df[columns]
+    axis = 0 if orientation == PostProcessingContributionOrientation.COLUMN else 1
+    numeric_df = numeric_df / numeric_df.values.sum(axis=axis, keepdims=True)
+    contribution_df[rename_columns] = numeric_df
     return contribution_df
 
 
@@ -606,14 +634,14 @@ def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
     Fit a prophet model and return a DataFrame with predicted results.
     """
     try:
-        prophet_logger = logging.getLogger("fbprophet.plot")
+        prophet_logger = logging.getLogger("prophet.plot")
 
         prophet_logger.setLevel(logging.CRITICAL)
-        from fbprophet import Prophet  # pylint: disable=import-error
+        from prophet import Prophet  # pylint: disable=import-error
 
         prophet_logger.setLevel(logging.NOTSET)
     except ModuleNotFoundError:
-        raise QueryObjectValidationError(_("`fbprophet` package not installed"))
+        raise QueryObjectValidationError(_("`prophet` package not installed"))
     model = Prophet(
         interval_width=confidence_interval,
         yearly_seasonality=yearly_seasonality,

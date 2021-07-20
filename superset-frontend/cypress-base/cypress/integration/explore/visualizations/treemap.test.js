@@ -20,7 +20,7 @@ describe('Visualization > Treemap', () => {
   const TREEMAP_FORM_DATA = {
     datasource: '2__table',
     viz_type: 'treemap',
-    slice_id: 50,
+    slice_id: 10,
     granularity_sqla: 'year',
     time_grain_sqla: 'P1D',
     time_range: 'No filter',
@@ -43,9 +43,8 @@ describe('Visualization > Treemap', () => {
   }
 
   beforeEach(() => {
-    cy.server();
     cy.login();
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 
   it('should work', () => {

@@ -19,10 +19,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import CheckboxTree from 'react-checkbox-tree';
-
+import { filterScopeSelectorTreeNodePropShape } from 'src/dashboard/util/propShapes';
 import treeIcons from './treeIcons';
 import renderFilterFieldTreeNodes from './renderFilterFieldTreeNodes';
-import { filterScopeSelectorTreeNodePropShape } from '../../util/propShapes';
 
 const propTypes = {
   activeKey: PropTypes.string,

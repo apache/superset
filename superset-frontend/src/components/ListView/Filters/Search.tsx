@@ -35,12 +35,18 @@ export default function SearchFilter({
   const [value, setValue] = useState(initialValue || '');
   const handleSubmit = () => {
     if (value) {
-      onSubmit(value);
+      onSubmit(value.trim());
     }
   };
   const onClear = () => {
     setValue('');
     onSubmit('');
+  };
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setValue(e.currentTarget.value);
+    if (e.currentTarget.value === '') {
+      onClear();
+    }
   };
 
   return (
@@ -50,9 +56,7 @@ export default function SearchFilter({
         placeholder={Header}
         name={name}
         value={value}
-        onChange={e => {
-          setValue(e.currentTarget.value);
-        }}
+        onChange={handleChange}
         onSubmit={handleSubmit}
         onClear={onClear}
       />

@@ -18,22 +18,22 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { Alert } from 'react-bootstrap';
-import { styled, logging } from '@superset-ui/core';
+import Alert from 'src/components/Alert';
+import { styled, logging, t } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
-import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
+import Button from 'src/components/Button';
 import Loading from '../components/Loading';
-import RefreshChartOverlay from '../components/RefreshChartOverlay';
-import ErrorMessageWithStackTrace from '../components/ErrorMessage/ErrorMessageWithStackTrace';
 import ErrorBoundary from '../components/ErrorBoundary';
 import ChartRenderer from './ChartRenderer';
+import { ChartErrorMessage } from './ChartErrorMessage';
+import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
 
 const propTypes = {
   annotationData: PropTypes.object,
   actions: PropTypes.object,
   chartId: PropTypes.number.isRequired,
-  datasource: PropTypes.object.isRequired,
+  datasource: PropTypes.object,
   // current chart is included by dashboard
   dashboardId: PropTypes.number,
   // original selected values for FilterBox viz
@@ -43,20 +43,18 @@ const propTypes = {
   // formData contains chart's own filter parameter
   // and merged with extra filter that current dashboard applying
   formData: PropTypes.object.isRequired,
-  height: PropTypes.number,
   width: PropTypes.number,
+  height: PropTypes.number,
   setControlValue: PropTypes.func,
   timeout: PropTypes.number,
   vizType: PropTypes.string.isRequired,
   triggerRender: PropTypes.bool,
-  owners: PropTypes.arrayOf(
-    PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  ),
+  isFiltersInitialized: PropTypes.bool,
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
   chartStackTrace: PropTypes.string,
-  queryResponse: PropTypes.object,
+  queriesResponse: PropTypes.arrayOf(PropTypes.object),
   triggerQuery: PropTypes.bool,
   refreshOverlayVisible: PropTypes.bool,
   errorMessage: PropTypes.node,
@@ -65,6 +63,7 @@ const propTypes = {
   onQuery: PropTypes.func,
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
+  ownState: PropTypes.object,
 };
 
 const BLANK = {};
@@ -81,12 +80,24 @@ const defaultProps = {
 };
 
 const Styles = styled.div`
+  min-height: ${p => p.height}px;
   position: relative;
-  height: 100%;
+
   .chart-tooltip {
     opacity: 0.75;
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
   }
+`;
+
+const RefreshOverlayWrapper = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 class Chart extends React.PureComponent {
@@ -118,6 +129,7 @@ class Chart extends React.PureComponent {
         this.props.timeout,
         this.props.chartId,
         this.props.dashboardId,
+        this.props.ownState,
       );
     } else {
       // Create chart with POST request
@@ -127,6 +139,7 @@ class Chart extends React.PureComponent {
         this.props.timeout,
         this.props.chartId,
         this.props.dashboardId,
+        this.props.ownState,
       );
     }
   }
@@ -150,24 +163,14 @@ class Chart extends React.PureComponent {
     });
   }
 
-  renderErrorMessage() {
-    const {
-      chartAlert,
-      chartStackTrace,
-      dashboardId,
-      owners,
-      queryResponse,
-    } = this.props;
+  renderErrorMessage(queryResponse) {
+    const { chartId, chartAlert, chartStackTrace, dashboardId } = this.props;
 
     const error = queryResponse?.errors?.[0];
-    if (error) {
-      const extra = error.extra || {};
-      extra.owners = owners;
-      error.extra = extra;
-    }
     const message = chartAlert || queryResponse?.message;
     return (
-      <ErrorMessageWithStackTrace
+      <ChartErrorMessage
+        chartId={chartId}
         error={error}
         subtitle={message}
         copyText={message}
@@ -180,35 +183,42 @@ class Chart extends React.PureComponent {
 
   render() {
     const {
-      width,
       height,
       chartAlert,
       chartStatus,
       errorMessage,
       onQuery,
       refreshOverlayVisible,
+      queriesResponse = [],
     } = this.props;
 
     const isLoading = chartStatus === 'loading';
-
     const isFaded = refreshOverlayVisible && !errorMessage;
     this.renderContainerStartTime = Logger.getTimestamp();
     if (chartStatus === 'failed') {
-      return this.renderErrorMessage();
+      return queriesResponse.map(item => this.renderErrorMessage(item));
     }
     if (errorMessage) {
       return (
-        <Alert data-test="alert-warning" bsStyle="warning">
-          {errorMessage}
-        </Alert>
+        <Alert
+          data-test="alert-warning"
+          message={errorMessage}
+          type="warning"
+        />
       );
     }
+
     return (
       <ErrorBoundary
         onError={this.handleRenderContainerFailure}
         showMessage={false}
       >
-        <Styles className="chart-container" data-test="chart-container">
+        <Styles
+          data-ui-anchor="chart"
+          className="chart-container"
+          data-test="chart-container"
+          height={height}
+        >
           <div
             className={`slice_container ${isFaded ? ' faded' : ''}`}
             data-test="slice-container"
@@ -217,11 +227,11 @@ class Chart extends React.PureComponent {
           </div>
 
           {!isLoading && !chartAlert && isFaded && (
-            <RefreshChartOverlay
-              width={width}
-              height={height}
-              onQuery={onQuery}
-            />
+            <RefreshOverlayWrapper>
+              <Button onClick={onQuery} buttonStyle="primary">
+                {t('Run query')}
+              </Button>
+            </RefreshOverlayWrapper>
           )}
 
           {isLoading && <Loading />}

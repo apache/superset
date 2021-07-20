@@ -1,0 +1,44 @@
+{
+  "name": "superset-websocket",
+  "version": "0.0.1",
+  "description": "Websocket sidecar application for Superset",
+  "main": "index.js",
+  "scripts": {
+    "start": "node dist/index.js start",
+    "test": "NODE_ENV=test jest -i spec",
+    "type": "tsc --noEmit",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx && npm run type",
+    "dev-server": "ts-node src/index.ts start",
+    "build": "tsc",
+    "prettier-check": "prettier --check .",
+    "format": "prettier --write ."
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "cookie": "^0.4.1",
+    "hot-shots": "^8.3.1",
+    "ioredis": "^4.16.1",
+    "jsonwebtoken": "^8.5.1",
+    "uuid": "^8.3.2",
+    "winston": "^3.3.3",
+    "ws": "^7.4.2"
+  },
+  "devDependencies": {
+    "@types/cookie": "^0.4.0",
+    "@types/ioredis": "^4.22.0",
+    "@types/jest": "^26.0.20",
+    "@types/jsonwebtoken": "^8.5.1",
+    "@types/node": "^14.14.22",
+    "@types/uuid": "^8.3.0",
+    "@types/ws": "^7.4.0",
+    "@typescript-eslint/eslint-plugin": "^4.19.0",
+    "@typescript-eslint/parser": "^4.19.0",
+    "eslint": "^7.22.0",
+    "eslint-config-prettier": "^8.1.0",
+    "jest": "^26.6.3",
+    "prettier": "2.2.1",
+    "ts-jest": "^26.5.3",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.2.3"
+  }
+}

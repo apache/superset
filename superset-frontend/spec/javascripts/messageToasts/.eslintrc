@@ -22,7 +22,6 @@
     "no-prototype-builtins": 2,
     "class-methods-use-this": 2,
     "import/no-named-as-default": 2,
-    "import/prefer-default-export": 2,
     "react/no-unescaped-entities": 2,
     "react/no-string-refs": 2,
     "react/jsx-indent": 0,

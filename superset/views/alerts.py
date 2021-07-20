@@ -14,30 +14,46 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""
+DEPRECATION NOTICE: this module is deprecated and will be removed on 2.0.
+"""
 from croniter import croniter
-from flask_appbuilder import CompactCRUDMixin
+from flask import abort, current_app as app, flash, Markup
+from flask_appbuilder import CompactCRUDMixin, permission_name
 from flask_appbuilder.api import expose
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
+from werkzeug.exceptions import NotFound
 
 from superset import is_feature_enabled
 from superset.constants import RouteMethod
 from superset.models.alerts import Alert, AlertLog, SQLObservation
-from superset.models.reports import ReportSchedule
 from superset.tasks.alerts.validator import check_validator
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
 from superset.utils.core import get_email_address_str, markdown
 
 from ..exceptions import SupersetException
-from .base import SupersetModelView
+from .base import BaseSupersetView, SupersetModelView
 
 # TODO: access control rules for this module
 
 
+class EnsureEnabledMixin:
+    @staticmethod
+    def is_enabled() -> bool:
+        return bool(app.config["ENABLE_ALERTS"])
+
+    @before_request
+    def ensure_enabled(self) -> None:
+        if not self.is_enabled():
+            raise NotFound()
+
+
 class AlertLogModelView(
-    CompactCRUDMixin, SupersetModelView
+    CompactCRUDMixin, EnsureEnabledMixin, SupersetModelView
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(AlertLog)
     include_route_methods = {RouteMethod.LIST} | {"show"}
@@ -51,7 +67,7 @@ class AlertLogModelView(
 
 
 class AlertObservationModelView(
-    CompactCRUDMixin, SupersetModelView
+    CompactCRUDMixin, EnsureEnabledMixin, SupersetModelView
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(SQLObservation)
     include_route_methods = {RouteMethod.LIST} | {"show"}
@@ -68,30 +84,54 @@ class AlertObservationModelView(
     }
 
 
-class AlertReportModelView(SupersetModelView):
-    datamodel = SQLAInterface(ReportSchedule)
+class BaseAlertReportView(BaseSupersetView):
     route_base = "/report"
-    include_route_methods = RouteMethod.CRUD_SET
+    class_permission_name = "ReportSchedule"
 
     @expose("/list/")
     @has_access
+    @permission_name("read")
     def list(self) -> FlaskResponse:
         if not (
             is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
-            and is_feature_enabled("SIP_34_ALERTS_UI")
+            and is_feature_enabled("ALERT_REPORTS")
         ):
-            return super().list()
+            return abort(404)
+        return super().render_app_template()
+
+    @expose("/<pk>/log/", methods=["GET"])
+    @has_access
+    @permission_name("read")
+    def log(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
+        if not (
+            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
+            and is_feature_enabled("ALERT_REPORTS")
+        ):
+            return abort(404)
 
         return super().render_app_template()
 
 
-class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
-    datamodel = SQLAInterface(Alert)
+class AlertView(BaseAlertReportView):
     route_base = "/alert"
-    include_route_methods = RouteMethod.CRUD_SET
+    class_permission_name = "ReportSchedule"
+
+
+class ReportView(BaseAlertReportView):
+    route_base = "/report"
+    class_permission_name = "ReportSchedule"
+
+
+class AlertModelView(
+    EnsureEnabledMixin, SupersetModelView
+):  # pylint: disable=too-many-ancestors
+    datamodel = SQLAInterface(Alert)
+    route_base = "/alerts"
+    include_route_methods = RouteMethod.CRUD_SET | {"log"}
 
     list_columns = (
         "label",
+        "owners",
         "database",
         "sql",
         "pretty_config",
@@ -189,13 +229,19 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
     @expose("/list/")
     @has_access
     def list(self) -> FlaskResponse:
-        if not (
-            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
-            and is_feature_enabled("SIP_34_ALERTS_UI")
-        ):
-            return super().list()
-
-        return super().render_app_template()
+        flash(
+            Markup(
+                _(
+                    "This feature is deprecated and will be removed on 2.0. "
+                    "Take a look at the replacement feature "
+                    "<a href="
+                    "'https://superset.apache.org/docs/installation/alerts-reports'>"
+                    "Alerts & Reports documentation</a>"
+                )
+            ),
+            "warning",
+        )
+        return super().list()
 
     def pre_add(self, item: "AlertModelView") -> None:
         item.recipients = get_email_address_str(item.recipients)

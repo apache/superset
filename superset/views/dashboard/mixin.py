@@ -16,8 +16,8 @@
 # under the License.
 from flask_babel import lazy_gettext as _
 
+from ...dashboards.filters import DashboardAccessFilter
 from ..base import check_ownership
-from .filters import DashboardFilter
 
 
 class DashboardMixin:  # pylint: disable=too-few-public-methods
@@ -33,6 +33,7 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
         "dashboard_title",
         "slug",
         "owners",
+        "roles",
         "position_json",
         "css",
         "json_metadata",
@@ -62,18 +63,24 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
             "want to alter specific parameters."
         ),
         "owners": _("Owners is a list of users who can alter the dashboard."),
+        "roles": _(
+            "Roles is a list which defines access to the dashboard. "
+            "Granting a role access to a dashboard will bypass dataset level checks."
+            "If no roles defined then the dashboard is available to all roles."
+        ),
         "published": _(
             "Determines whether or not this dashboard is "
             "visible in the list of all dashboards"
         ),
     }
-    base_filters = [["slice", DashboardFilter, lambda: []]]
+    base_filters = [["slice", DashboardAccessFilter, lambda: []]]
     label_columns = {
         "dashboard_link": _("Dashboard"),
         "dashboard_title": _("Title"),
         "slug": _("Slug"),
         "charts": _("Charts"),
         "owners": _("Owners"),
+        "roles": _("Roles"),
         "published": _("Published"),
         "creator": _("Creator"),
         "modified": _("Modified"),

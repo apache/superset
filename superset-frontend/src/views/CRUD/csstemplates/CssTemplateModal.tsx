@@ -20,8 +20,9 @@ import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
-import Icon from 'src/components/Icon';
-import Modal from 'src/common/components/Modal';
+import Icons from 'src/components/Icons';
+import { StyledIcon } from 'src/views/CRUD/utils';
+import Modal from 'src/components/Modal';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { CssEditor } from 'src/components/AsyncAceEditor';
 
@@ -43,10 +44,6 @@ const StyledCssTemplateTitle = styled.div`
 const StyledCssEditor = styled(CssEditor)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
   border: 1px solid ${({ theme }) => theme.colors.secondary.light2};
-`;
-
-const StyledIcon = styled(Icon)`
-  margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
 `;
 
 const TemplateContainer = styled.div`
@@ -110,7 +107,11 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
         const update_id = currentCssTemplate.id;
         delete currentCssTemplate.id;
         delete currentCssTemplate.created_by;
-        updateResource(update_id, currentCssTemplate).then(() => {
+        updateResource(update_id, currentCssTemplate).then(response => {
+          if (!response) {
+            return;
+          }
+
           if (onCssTemplateAdd) {
             onCssTemplateAdd();
           }
@@ -120,7 +121,11 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       }
     } else if (currentCssTemplate) {
       // Create
-      createResource(currentCssTemplate).then(() => {
+      createResource(currentCssTemplate).then(response => {
+        if (!response) {
+          return;
+        }
+
         if (onCssTemplateAdd) {
           onCssTemplateAdd();
         }
@@ -166,29 +171,35 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
   };
 
   // Initialize
-  if (
-    isEditMode &&
-    (!currentCssTemplate ||
-      !currentCssTemplate.id ||
-      (cssTemplate && cssTemplate.id !== currentCssTemplate.id) ||
-      (isHidden && show))
-  ) {
-    if (cssTemplate && cssTemplate.id !== null && !loading) {
-      const id = cssTemplate.id || 0;
+  useEffect(() => {
+    if (
+      isEditMode &&
+      (!currentCssTemplate ||
+        !currentCssTemplate.id ||
+        (cssTemplate && cssTemplate.id !== currentCssTemplate.id) ||
+        (isHidden && show))
+    ) {
+      if (cssTemplate && cssTemplate.id !== null && !loading) {
+        const id = cssTemplate.id || 0;
 
-      fetchResource(id).then(() => {
-        setCurrentCssTemplate(resource);
+        fetchResource(id);
+      }
+    } else if (
+      !isEditMode &&
+      (!currentCssTemplate || currentCssTemplate.id || (isHidden && show))
+    ) {
+      setCurrentCssTemplate({
+        template_name: '',
+        css: '',
       });
     }
-  } else if (
-    !isEditMode &&
-    (!currentCssTemplate || currentCssTemplate.id || (isHidden && show))
-  ) {
-    setCurrentCssTemplate({
-      template_name: '',
-      css: '',
-    });
-  }
+  }, [cssTemplate]);
+
+  useEffect(() => {
+    if (resource) {
+      setCurrentCssTemplate(resource);
+    }
+  }, [resource]);
 
   // Validation
   useEffect(() => {
@@ -214,22 +225,22 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       title={
         <h4 data-test="css-template-modal-title">
           {isEditMode ? (
-            <StyledIcon name="edit-alt" />
+            <Icons.EditAlt css={StyledIcon} />
           ) : (
-            <StyledIcon name="plus-large" />
+            <Icons.PlusLarge css={StyledIcon} />
           )}
           {isEditMode
-            ? t('Edit CSS Template Properties')
-            : t('Add CSS Template')}
+            ? t('Edit CSS template properties')
+            : t('Add CSS template')}
         </h4>
       }
     >
       <StyledCssTemplateTitle>
-        <h4>{t('Basic Information')}</h4>
+        <h4>{t('Basic information')}</h4>
       </StyledCssTemplateTitle>
       <TemplateContainer>
         <div className="control-label">
-          {t('css template name')}
+          {t('CSS template name')}
           <span className="required">*</span>
         </div>
         <input

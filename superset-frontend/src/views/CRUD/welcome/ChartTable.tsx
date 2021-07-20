@@ -16,22 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { t } from '@superset-ui/core';
 import {
   useListViewResource,
   useChartEditModal,
   useFavoriteStatus,
 } from 'src/views/CRUD/hooks';
+import {
+  setInLocalStorage,
+  getFromLocalStorage,
+} from 'src/utils/localStorageHelpers';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import { useHistory } from 'react-router-dom';
+import { TableTabTypes } from 'src/views/CRUD/types';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { User } from 'src/types/bootstrapTypes';
-import Icon from 'src/components/Icon';
+import { CardContainer } from 'src/views/CRUD/utils';
+import { HOMEPAGE_CHART_FILTER } from 'src/views/CRUD/storageKeys';
 import ChartCard from 'src/views/CRUD/chart/ChartCard';
 import Chart from 'src/types/Chart';
+import handleResourceExport from 'src/utils/export';
+import Loading from 'src/components/Loading';
+import ErrorBoundary from 'src/components/ErrorBoundary';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
-import { CardContainer, IconContainer } from '../utils';
 
 const PAGE_SIZE = 3;
 
@@ -42,6 +51,7 @@ interface ChartTableProps {
   chartFilter?: string;
   user?: User;
   mine: Array<any>;
+  showThumbnails: boolean;
 }
 
 function ChartTable({
@@ -49,9 +59,14 @@ function ChartTable({
   addDangerToast,
   addSuccessToast,
   mine,
+  showThumbnails,
 }: ChartTableProps) {
+  const history = useHistory();
+  const filterStore = getFromLocalStorage(HOMEPAGE_CHART_FILTER, null);
+  const initialFilter = filterStore || TableTabTypes.MINE;
+
   const {
-    state: { resourceCollection: charts, bulkSelectEnabled },
+    state: { loading, resourceCollection: charts, bulkSelectEnabled },
     setResourceCollection: setCharts,
     hasPerm,
     refreshData,
@@ -61,8 +76,11 @@ function ChartTable({
     t('chart'),
     addDangerToast,
     true,
-    mine,
+    initialFilter === 'Favorite' ? [] : mine,
+    [],
+    false,
   );
+
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
     'chart',
@@ -76,7 +94,20 @@ function ChartTable({
     closeChartEditModal,
   } = useChartEditModal(setCharts, charts);
 
-  const [chartFilter, setChartFilter] = useState('Mine');
+  const [chartFilter, setChartFilter] = useState(initialFilter);
+  const [preparingExport, setPreparingExport] = useState<boolean>(false);
+
+  useEffect(() => {
+    getData(chartFilter);
+  }, [chartFilter]);
+
+  const handleBulkChartExport = (chartsToExport: Chart[]) => {
+    const ids = chartsToExport.map(({ id }) => id);
+    handleResourceExport('chart', ids, () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
+  };
 
   const getFilters = (filterName: string) => {
     const filters = [];
@@ -90,15 +121,15 @@ function ChartTable({
     } else {
       filters.push({
         id: 'id',
-        operator: 'chart_is_fav',
+        operator: 'chart_is_favorite',
         value: true,
       });
     }
     return filters;
   };
 
-  const getData = (filter: string) => {
-    return fetchData({
+  const getData = (filter: string) =>
+    fetchData({
       pageIndex: 0,
       pageSize: PAGE_SIZE,
       sortBy: [
@@ -109,10 +140,10 @@ function ChartTable({
       ],
       filters: getFilters(filter),
     });
-  };
 
+  if (loading) return <Loading position="inline" />;
   return (
-    <>
+    <ErrorBoundary>
       {sliceCurrentlyEditing && (
         <PropertiesModal
           onHide={closeChartEditModal}
@@ -129,33 +160,42 @@ function ChartTable({
           {
             name: 'Favorite',
             label: t('Favorite'),
-            onClick: () =>
-              getData('Favorite').then(() => setChartFilter('Favorite')),
+            onClick: () => {
+              setChartFilter('Favorite');
+              setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.FAVORITE);
+            },
           },
           {
             name: 'Mine',
             label: t('Mine'),
-            onClick: () => getData('Mine').then(() => setChartFilter('Mine')),
+            onClick: () => {
+              setChartFilter('Mine');
+              setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.MINE);
+            },
           },
         ]}
         buttons={[
           {
             name: (
-              <IconContainer>
-                <Icon name="plus-small" />
+              <>
+                <i className="fa fa-plus" />
                 {t('Chart')}
-              </IconContainer>
+              </>
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.href = '/chart/add';
+              window.location.assign('/chart/add');
             },
           },
           {
             name: 'View All »',
             buttonStyle: 'link',
             onClick: () => {
-              window.location.href = '/chart/list';
+              const target =
+                chartFilter === 'Favorite'
+                  ? '/chart/list/?filters=(favorite:!t)'
+                  : '/chart/list/';
+              history.push(target);
             },
           },
         ]}
@@ -170,19 +210,22 @@ function ChartTable({
               chart={e}
               userId={user?.userId}
               hasPerm={hasPerm}
+              showThumbnails={showThumbnails}
               bulkSelectEnabled={bulkSelectEnabled}
               refreshData={refreshData}
               addDangerToast={addDangerToast}
               addSuccessToast={addSuccessToast}
               favoriteStatus={favoriteStatus[e.id]}
               saveFavoriteStatus={saveFavoriteStatus}
+              handleBulkChartExport={handleBulkChartExport}
             />
           ))}
         </CardContainer>
       ) : (
         <EmptyState tableName="CHARTS" tab={chartFilter} />
       )}
-    </>
+      {preparingExport && <Loading />}
+    </ErrorBoundary>
   );
 }
 

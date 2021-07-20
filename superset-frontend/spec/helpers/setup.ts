@@ -16,13 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// `jest-dom` must be imported before `jest-enzyme` because there are conflicts
-// between these two.
-import '@testing-library/jest-dom/extend-expect';
 import 'jest-enzyme';
 import './shim';
 import { configure as configureTestingLibrary } from '@testing-library/react';
 
 configureTestingLibrary({
-  testIdAttribute: 'data-test-id',
+  testIdAttribute: 'data-test',
 });

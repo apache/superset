@@ -21,7 +21,6 @@ from typing import Any, Callable, Dict, List, Optional
 import yaml
 from flask_appbuilder import Model
 from sqlalchemy.orm import Session
-from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import make_transient
 
 from superset import db
@@ -56,14 +55,14 @@ def lookup_sqla_table(table: SqlaTable) -> Optional[SqlaTable]:
 
 
 def lookup_sqla_database(table: SqlaTable) -> Optional[Database]:
-    try:
-        return (
-            db.session.query(Database)
-            .filter_by(database_name=table.params_dict["database_name"])
-            .one()
-        )
-    except NoResultFound:
+    database = (
+        db.session.query(Database)
+        .filter_by(database_name=table.params_dict["database_name"])
+        .one_or_none()
+    )
+    if database is None:
         raise DatabaseNotFoundError
+    return database
 
 
 def lookup_druid_cluster(datasource: DruidDatasource) -> Optional[DruidCluster]:
@@ -284,19 +283,17 @@ class ImportDatasetsCommand(BaseCommand):
     in Superset.
     """
 
+    # pylint: disable=unused-argument
     def __init__(
-        self,
-        contents: Dict[str, str],
-        sync_columns: bool = False,
-        sync_metrics: bool = False,
+        self, contents: Dict[str, str], *args: Any, **kwargs: Any,
     ):
         self.contents = contents
         self._configs: Dict[str, Any] = {}
 
         self.sync = []
-        if sync_columns:
+        if kwargs.get("sync_columns"):
             self.sync.append("columns")
-        if sync_metrics:
+        if kwargs.get("sync_metrics"):
             self.sync.append("metrics")
 
     def run(self) -> None:

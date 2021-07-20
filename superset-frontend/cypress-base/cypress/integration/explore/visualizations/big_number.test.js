@@ -49,8 +49,7 @@ describe('Visualization > Big Number with Trendline', () => {
 
   beforeEach(() => {
     cy.login();
-    cy.server();
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 
   it('should work', () => {

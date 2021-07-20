@@ -17,8 +17,11 @@
  * under the License.
  */
 import React from 'react';
-import { Menu } from 'src/common/components';
-import NavDropdown from 'src/components/NavDropdown';
+import { MainNav as Menu } from 'src/common/components';
+import { styled } from '@superset-ui/core';
+import Icons from 'src/components/Icons';
+
+const { SubMenu } = Menu;
 
 export interface Languages {
   [key: string]: {
@@ -33,36 +36,50 @@ interface LanguagePickerProps {
   languages: Languages;
 }
 
-export default function LanguagePicker({
-  locale,
-  languages,
-}: LanguagePickerProps) {
+const StyledLabel = styled.div`
+  display: flex;
+  align-items: center;
+
+  & i {
+    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+  }
+
+  & a {
+    display: block;
+    width: 150px;
+    word-wrap: break-word;
+    text-decoration: none;
+  }
+`;
+
+const StyledFlag = styled.i`
+  margin-top: 2px;
+`;
+
+export default function LanguagePicker(props: LanguagePickerProps) {
+  const { locale, languages, ...rest } = props;
   return (
-    <NavDropdown
-      id="locale-dropdown"
+    <SubMenu
+      aria-label="Languages"
       title={
-        <span className="f16">
-          <i className={`flag ${languages[locale].flag}`} />
-        </span>
+        <div className="f16">
+          <StyledFlag className={`flag ${languages[locale].flag}`} />
+        </div>
       }
+      icon={<Icons.TriangleDown />}
+      {...rest}
     >
-      <Menu
-        onSelect={({ key }) => {
-          window.location.href = languages[key].url;
-        }}
-      >
-        {Object.keys(languages).map(langKey =>
-          langKey === locale ? null : (
-            <Menu.Item key={langKey}>
-              {' '}
-              <div className="f16">
-                <i className={`flag ${languages[langKey].flag}`} /> -{' '}
-                {languages[langKey].name}
-              </div>
-            </Menu.Item>
-          ),
-        )}
-      </Menu>
-    </NavDropdown>
+      {Object.keys(languages).map(langKey => (
+        <Menu.Item
+          key={langKey}
+          style={{ whiteSpace: 'normal', height: 'auto' }}
+        >
+          <StyledLabel className="f16">
+            <i className={`flag ${languages[langKey].flag}`} />
+            <a href={languages[langKey].url}>{languages[langKey].name}</a>
+          </StyledLabel>
+        </Menu.Item>
+      ))}
+    </SubMenu>
   );
 }

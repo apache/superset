@@ -17,15 +17,16 @@
  * under the License.
  */
 import React from 'react';
-import { mount, ReactWrapper } from 'enzyme';
+import { ReactWrapper } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import { act } from 'react-dom/test-utils';
 
-import MetricsControl from 'src/explore/components/controls/MetricsControl';
 import withAsyncVerification, {
   ControlPropsWithExtras,
   WithAsyncVerificationOptions,
 } from 'src/explore/components/controls/withAsyncVerification';
 import { ExtraControlProps } from '@superset-ui/chart-controls';
+import MetricsControl from 'src/explore/components/controls/MetricControl/MetricsControl';
 
 const VALID_METRIC = {
   metric_name: 'sum__value',
@@ -56,15 +57,15 @@ const defaultProps = {
 
 function verify(sourceProp: string) {
   const mock = jest.fn();
-  mock.mockImplementation(async (props: ControlPropsWithExtras) => {
-    return { [sourceProp]: props.validMetrics || [VALID_METRIC] };
-  });
+  mock.mockImplementation(async (props: ControlPropsWithExtras) => ({
+    [sourceProp]: props.validMetrics || [VALID_METRIC],
+  }));
   return mock;
 }
 
 async function setup({
   extraProps,
-  baseControl = MetricsControl,
+  baseControl = MetricsControl as WithAsyncVerificationOptions['baseControl'],
   onChange,
 }: Partial<WithAsyncVerificationOptions> & {
   extraProps?: ExtraControlProps;
@@ -120,7 +121,7 @@ describe('VerifiedMetricsControl', () => {
     });
 
     const child = wrapper.find(MetricsControl);
-    child.props().onChange(['abc']);
+    child.props().onChange?.(['abc']);
 
     expect(child.length).toBe(1);
     expect(mockOnChange).toBeCalledTimes(1);

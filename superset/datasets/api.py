@@ -14,12 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from datetime import datetime
-from distutils.util import strtobool
 from io import BytesIO
 from typing import Any
-from zipfile import ZipFile
+from zipfile import is_zipfile, ZipFile
 
 import yaml
 from flask import g, request, Response, send_file
@@ -29,10 +29,10 @@ from flask_babel import ngettext
 from marshmallow import ValidationError
 
 from superset import event_logger, is_feature_enabled
-from superset.commands.exceptions import CommandInvalidError
-from superset.commands.importers.v1.utils import remove_root
+from superset.commands.importers.exceptions import NoValidFilesFoundError
+from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.connectors.sqla.models import SqlaTable
-from superset.constants import RouteMethod
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.commands.bulk_delete import BulkDeleteDatasetCommand
 from superset.datasets.commands.create import CreateDatasetCommand
@@ -42,7 +42,6 @@ from superset.datasets.commands.exceptions import (
     DatasetCreateFailedError,
     DatasetDeleteFailedError,
     DatasetForbiddenError,
-    DatasetImportError,
     DatasetInvalidError,
     DatasetNotFoundError,
     DatasetRefreshFailedError,
@@ -61,6 +60,7 @@ from superset.datasets.schemas import (
     get_delete_ids_schema,
     get_export_ids_schema,
 )
+from superset.utils.core import parse_boolean_string
 from superset.views.base import DatasourceFilter, generate_download_headers
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -78,7 +78,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
     resource_name = "dataset"
     allow_browser_login = True
-    class_permission_name = "TableModelView"
+    class_permission_name = "Dataset"
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
         RouteMethod.IMPORT,
@@ -118,7 +119,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "changed_on_delta_humanized",
         "database.database_name",
     ]
-    show_columns = [
+    show_select_columns = [
         "id",
         "database.database_name",
         "database.id",
@@ -138,12 +139,26 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "owners.username",
         "owners.first_name",
         "owners.last_name",
-        "columns",
+        "columns.changed_on",
+        "columns.column_name",
+        "columns.created_on",
+        "columns.description",
+        "columns.expression",
+        "columns.filterable",
+        "columns.groupby",
+        "columns.id",
+        "columns.is_active",
+        "columns.is_dttm",
+        "columns.python_date_format",
+        "columns.type",
+        "columns.uuid",
+        "columns.verbose_name",
         "metrics",
         "datasource_type",
         "url",
         "extra",
     ]
+    show_columns = show_select_columns + ["columns.type_generic"]
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
     add_columns = ["database", "schema", "table_name", "owners"]
@@ -184,7 +199,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
+        log_to_statsd=False,
+    )
     def post(self) -> Response:
         """Creates a new Dataset
         ---
@@ -226,6 +244,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
         try:
             new_model = CreateDatasetCommand(g.user, item).run()
             return self.response(201, id=new_model.id, result=item)
@@ -233,7 +252,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=ex.normalized_messages())
         except DatasetCreateFailedError as ex:
             logger.error(
-                "Error creating model %s: %s", self.__class__.__name__, str(ex)
+                "Error creating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -241,7 +263,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
+        log_to_statsd=False,
+    )
     def put(self, pk: int) -> Response:
         """Changes a Dataset
         ---
@@ -253,9 +278,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             schema:
               type: integer
             name: pk
-          - in: path
+          - in: query
             schema:
-              type: bool
+              type: boolean
             name: override_columns
           requestBody:
             description: Dataset schema
@@ -290,7 +315,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         override_columns = (
-            bool(strtobool(request.args["override_columns"]))
+            parse_boolean_string(request.args["override_columns"])
             if "override_columns" in request.args
             else False
         )
@@ -305,6 +330,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             changed_model = UpdateDatasetCommand(
                 g.user, pk, item, override_columns
             ).run()
+            if override_columns:
+                RefreshDatasetCommand(g.user, pk).run()
             response = self.response(200, id=changed_model.id, result=item)
         except DatasetNotFoundError:
             response = self.response_404()
@@ -314,7 +341,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             response = self.response_422(message=ex.normalized_messages())
         except DatasetUpdateFailedError as ex:
             logger.error(
-                "Error updating model %s: %s", self.__class__.__name__, str(ex)
+                "Error updating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             response = self.response_422(message=str(ex))
         return response
@@ -323,7 +353,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
+        log_to_statsd=False,
+    )
     def delete(self, pk: int) -> Response:
         """Deletes a Dataset
         ---
@@ -365,7 +398,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except DatasetDeleteFailedError as ex:
             logger.error(
-                "Error deleting model %s: %s", self.__class__.__name__, str(ex)
+                "Error deleting model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -374,7 +410,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_export_ids_schema)
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
+        log_to_statsd=False,
+    )
     def export(self, **kwargs: Any) -> Response:
         """Export datasets
         ---
@@ -407,6 +446,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         requested_ids = kwargs["rison"]
 
         if is_feature_enabled("VERSIONED_EXPORT"):
+            token = request.args.get("token")
             timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
             root = f"dataset_export_{timestamp}"
             filename = f"{root}.zip"
@@ -423,12 +463,15 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                     return self.response_404()
             buf.seek(0)
 
-            return send_file(
+            response = send_file(
                 buf,
                 mimetype="application/zip",
                 as_attachment=True,
                 attachment_filename=filename,
             )
+            if token:
+                response.set_cookie(token, "done", max_age=600)
+            return response
 
         query = self.datamodel.session.query(SqlaTable).filter(
             SqlaTable.id.in_(requested_ids)
@@ -450,7 +493,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".refresh",
+        log_to_statsd=False,
+    )
     def refresh(self, pk: int) -> Response:
         """Refresh a Dataset
         ---
@@ -492,7 +538,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except DatasetRefreshFailedError as ex:
             logger.error(
-                "Error refreshing dataset %s: %s", self.__class__.__name__, str(ex)
+                "Error refreshing dataset %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -500,7 +549,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".related_objects",
+        log_to_statsd=False,
+    )
     def related_objects(self, pk: int) -> Response:
         """Get charts and dashboards count associated to a dataset
         ---
@@ -559,7 +612,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_delete_ids_schema)
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
+        log_to_statsd=False,
+    )
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Delete bulk Datasets
         ---
@@ -616,18 +672,32 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
     @expose("/import/", methods=["POST"])
     @protect()
-    @safe
     @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
+        log_to_statsd=False,
+    )
     def import_(self) -> Response:
         """Import dataset(s) with associated databases
         ---
         post:
           requestBody:
+            required: true
             content:
-              application/zip:
+              multipart/form-data:
                 schema:
-                  type: string
-                  format: binary
+                  type: object
+                  properties:
+                    formData:
+                      description: upload file (ZIP or YAML)
+                      type: string
+                      format: binary
+                    passwords:
+                      description: JSON map of passwords for each file
+                      type: string
+                    overwrite:
+                      description: overwrite existing datasets?
+                      type: boolean
           responses:
             200:
               description: Dataset import result
@@ -650,19 +720,25 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         upload = request.files.get("formData")
         if not upload:
             return self.response_400()
-        with ZipFile(upload) as bundle:
-            contents = {
-                remove_root(file_name): bundle.read(file_name).decode()
-                for file_name in bundle.namelist()
-            }
+        if is_zipfile(upload):
+            with ZipFile(upload) as bundle:
+                contents = get_contents_from_bundle(bundle)
+        else:
+            upload.seek(0)
+            contents = {upload.filename: upload.read()}
 
-        command = ImportDatasetsCommand(contents)
-        try:
-            command.run()
-            return self.response(200, message="OK")
-        except CommandInvalidError as exc:
-            logger.warning("Import dataset failed")
-            return self.response_422(message=exc.normalized_messages())
-        except DatasetImportError as exc:
-            logger.exception("Import dataset failed")
-            return self.response_500(message=str(exc))
+        if not contents:
+            raise NoValidFilesFoundError()
+
+        passwords = (
+            json.loads(request.form["passwords"])
+            if "passwords" in request.form
+            else None
+        )
+        overwrite = request.form.get("overwrite") == "true"
+
+        command = ImportDatasetsCommand(
+            contents, passwords=passwords, overwrite=overwrite
+        )
+        command.run()
+        return self.response(200, message="OK")

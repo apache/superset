@@ -18,12 +18,11 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ButtonGroup } from 'react-bootstrap';
-import { t, styled } from '@superset-ui/core';
+import ButtonGroup from 'src/components/ButtonGroup';
+import { t, useTheme } from '@superset-ui/core';
 
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import Button from 'src/components/Button';
-import Hotkeys from '../../components/Hotkeys';
 
 const propTypes = {
   canAdd: PropTypes.bool.isRequired,
@@ -39,32 +38,6 @@ const defaultProps = {
   onStop: () => {},
   onSave: () => {},
 };
-
-// Prolly need to move this to a global context
-const keymap = {
-  RUN: 'ctrl + r, ctrl + enter',
-  SAVE: 'ctrl + s',
-};
-
-const getHotKeys = () =>
-  Object.keys(keymap).map(k => ({
-    name: k,
-    descr: keymap[k],
-    key: k,
-  }));
-
-const Styles = styled.div`
-  display: flex;
-  flex-shrink: 0;
-  flex-direction: row;
-  align-items: center;
-  padding-bottom: ${({ theme }) => 2 * theme.gridUnit}px;
-
-  .btn {
-    /* just to make sure buttons don't jiggle */
-    width: 100px;
-  }
-`;
 
 export default function QueryAndSaveBtns({
   canAdd,
@@ -104,44 +77,54 @@ export default function QueryAndSaveBtns({
     </Button>
   );
 
+  const theme = useTheme();
+
   return (
-    <Styles>
-      <div>
-        <ButtonGroup className="query-and-save">
-          {qryOrStopButton}
-          <Button
-            buttonStyle="tertiary"
-            buttonSize="small"
-            data-target="#save_modal"
-            data-toggle="modal"
-            disabled={saveButtonDisabled}
-            onClick={onSave}
-            data-test="query-save-button"
+    <div
+      css={{
+        display: 'flex',
+        flexShrink: 0,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingTop: theme.gridUnit * 2,
+        paddingRight: theme.gridUnit * 2,
+        paddingBottom: 0,
+        paddingLeft: theme.gridUnit * 4,
+        '& button': {
+          width: 100,
+        },
+        '.errMsg': {
+          marginLeft: theme.gridUnit * 4,
+        },
+      }}
+    >
+      <ButtonGroup className="query-and-save">
+        {qryOrStopButton}
+        <Button
+          buttonStyle="tertiary"
+          buttonSize="small"
+          data-target="#save_modal"
+          data-toggle="modal"
+          disabled={saveButtonDisabled}
+          onClick={onSave}
+          data-test="query-save-button"
+        >
+          <i className="fa fa-plus-circle" /> {t('Save')}
+        </Button>
+      </ButtonGroup>
+      {errorMessage && (
+        <span className="errMsg">
+          {' '}
+          <Tooltip
+            id="query-error-tooltip"
+            placement="right"
+            title={errorMessage}
           >
-            <i className="fa fa-plus-circle" /> {t('Save')}
-          </Button>
-        </ButtonGroup>
-        {errorMessage && (
-          <span>
-            {' '}
-            <Tooltip
-              id="query-error-tooltip"
-              placement="right"
-              title={errorMessage}
-            >
-              <i className="fa fa-exclamation-circle text-danger fa-lg" />
-            </Tooltip>
-          </span>
-        )}
-      </div>
-      <div className="m-l-5 text-muted">
-        <Hotkeys
-          header="Keyboard shortcuts"
-          hotkeys={getHotKeys()}
-          placement="right"
-        />
-      </div>
-    </Styles>
+            <i className="fa fa-exclamation-circle text-danger fa-lg" />
+          </Tooltip>
+        </span>
+      )}
+    </div>
   );
 }
 

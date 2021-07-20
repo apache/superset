@@ -29,9 +29,8 @@ import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DeleteModal from 'src/components/DeleteModal';
 import ListView, { ListViewProps } from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import getClientErrorObject from 'src/utils/getClientErrorObject';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import { IconName } from 'src/components/Icon';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 
@@ -177,16 +176,16 @@ function AnnotationList({
           const actions = [
             {
               label: 'edit-action',
-              tooltip: t('Edit Annotation'),
+              tooltip: t('Edit annotation'),
               placement: 'bottom',
-              icon: 'edit' as IconName,
+              icon: 'Edit',
               onClick: handleEdit,
             },
             {
               label: 'delete-action',
-              tooltip: t('Delete Annotation'),
+              tooltip: t('Delete annotation'),
               placement: 'bottom',
-              icon: 'trash' as IconName,
+              icon: 'Trash',
               onClick: handleDelete,
             },
           ];
@@ -215,7 +214,7 @@ function AnnotationList({
   });
 
   subMenuButtons.push({
-    name: t('Bulk Select'),
+    name: t('Bulk select'),
     onClick: toggleBulkSelect,
     buttonStyle: 'secondary',
     'data-test': 'annotation-bulk-select',
@@ -280,6 +279,7 @@ function AnnotationList({
       />
       <AnnotationModal
         addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
         annotation={currentAnnotation}
         show={annotationModalOpen}
         onAnnotationAdd={() => refreshData()}

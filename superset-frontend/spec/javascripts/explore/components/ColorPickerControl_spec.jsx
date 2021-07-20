@@ -23,7 +23,7 @@ import {
   CategoricalScheme,
   getCategoricalSchemeRegistry,
 } from '@superset-ui/core';
-import Popover from 'src/common/components/Popover';
+import Popover from 'src/components/Popover';
 import ColorPickerControl from 'src/explore/components/controls/ColorPickerControl';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
@@ -34,7 +34,7 @@ const defaultProps = {
 describe('ColorPickerControl', () => {
   let wrapper;
   let inst;
-  beforeEach(() => {
+  beforeAll(() => {
     getCategoricalSchemeRegistry()
       .registerValue(
         'test',

@@ -18,6 +18,8 @@
  */
 import React from 'react';
 import { mount } from 'enzyme';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import DraggableNewComponent from 'src/dashboard/components/gridComponents/new/DraggableNewComponent';
@@ -26,7 +28,6 @@ import {
   NEW_COMPONENT_SOURCE_TYPE,
   CHART_TYPE,
 } from 'src/dashboard/util/componentTypes';
-import WithDragDropContext from 'spec/helpers/WithDragDropContext';
 
 describe('DraggableNewComponent', () => {
   const props = {
@@ -40,9 +41,9 @@ describe('DraggableNewComponent', () => {
     // We have to wrap provide DragDropContext for the underlying DragDroppable
     // otherwise we cannot assert on DragDroppable children
     const wrapper = mount(
-      <WithDragDropContext>
+      <DndProvider backend={HTML5Backend}>
         <DraggableNewComponent {...props} {...overrideProps} />
-      </WithDragDropContext>,
+      </DndProvider>,
     );
     return wrapper;
   }

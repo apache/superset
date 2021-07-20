@@ -19,10 +19,10 @@
 import React, { useState, ReactNode } from 'react';
 import { styled, supersetTheme, t } from '@superset-ui/core';
 import { noOp } from 'src/utils/common';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 
-import Icon from '../Icon';
+import Icons from 'src/components/Icons';
 import { ErrorLevel, ErrorSource } from './types';
 import CopyToClipboard from '../CopyToClipboard';
 
@@ -59,6 +59,11 @@ const ErrorModal = styled(Modal)<{ level: ErrorLevel }>`
   color: ${({ level, theme }) => theme.colors[level].dark2};
   overflow-wrap: break-word;
 
+  .ant-modal-header {
+    background-color: ${({ level, theme }) => theme.colors[level].light2};
+    padding: ${({ theme }) => 4 * theme.gridUnit}px;
+  }
+
   .icon {
     margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
   }
@@ -66,7 +71,6 @@ const ErrorModal = styled(Modal)<{ level: ErrorLevel }>`
   .header {
     display: flex;
     align-items: center;
-    background-color: ${({ level, theme }) => theme.colors[level].light2};
     font-size: ${({ theme }) => theme.typography.sizes.l}px;
   }
 `;
@@ -99,20 +103,31 @@ export default function ErrorAlert({
   const isExpandable = ['explore', 'sqllab'].includes(source);
 
   return (
-    <ErrorAlertDiv level={level}>
+    <ErrorAlertDiv level={level} role="alert">
       <div className="top-row">
         <LeftSideContent>
-          <Icon
-            className="icon"
-            name={level === 'error' ? 'error-solid' : 'warning-solid'}
-            color={supersetTheme.colors[level].base}
-          />
+          {level === 'error' ? (
+            <Icons.ErrorSolid
+              className="icon"
+              iconColor={supersetTheme.colors[level].base}
+            />
+          ) : (
+            <Icons.WarningSolid
+              className="icon"
+              iconColor={supersetTheme.colors[level].base}
+            />
+          )}
           <strong>{title}</strong>
         </LeftSideContent>
         {!isExpandable && (
-          <a href="#" className="link" onClick={() => setIsModalOpen(true)}>
-            {t('See More')}
-          </a>
+          <span
+            role="button"
+            tabIndex={0}
+            className="link"
+            onClick={() => setIsModalOpen(true)}
+          >
+            {t('See more')}
+          </span>
         )}
       </div>
       {isExpandable ? (
@@ -121,25 +136,27 @@ export default function ErrorAlert({
           {body && (
             <>
               {!isBodyExpanded && (
-                <a
-                  href="#"
+                <span
+                  role="button"
+                  tabIndex={0}
                   className="link"
                   onClick={() => setIsBodyExpanded(true)}
                 >
-                  {t('See More')}
-                </a>
+                  {t('See more')}
+                </span>
               )}
               {isBodyExpanded && (
                 <>
                   <br />
                   {body}
-                  <a
-                    href="#"
+                  <span
+                    role="button"
+                    tabIndex={0}
                     className="link"
                     onClick={() => setIsBodyExpanded(false)}
                   >
-                    {t('See Less')}
-                  </a>
+                    {t('See less')}
+                  </span>
                 </>
               )}
             </>
@@ -152,11 +169,17 @@ export default function ErrorAlert({
           onHide={() => setIsModalOpen(false)}
           title={
             <div className="header">
-              <Icon
-                className="icon"
-                name={level === 'error' ? 'error-solid' : 'warning-solid'}
-                color={supersetTheme.colors[level].base}
-              />
+              {level === 'error' ? (
+                <Icons.ErrorSolid
+                  className="icon"
+                  iconColor={supersetTheme.colors[level].base}
+                />
+              ) : (
+                <Icons.WarningSolid
+                  className="icon"
+                  iconColor={supersetTheme.colors[level].base}
+                />
+              )}
               <div className="title">{title}</div>
             </div>
           }
@@ -167,7 +190,7 @@ export default function ErrorAlert({
                   text={copyText}
                   shouldShowText={false}
                   wrapped={false}
-                  copyNode={<Button onClick={noOp}>{t('Copy Message')}</Button>}
+                  copyNode={<Button onClick={noOp}>{t('Copy message')}</Button>}
                 />
               )}
               <Button

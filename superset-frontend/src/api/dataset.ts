@@ -41,6 +41,7 @@ export const getByUser = async (userId: number) => {
 
 export const put = async (
   datasetId: number,
+  dbId: number,
   sql: string,
   columns: Array<Record<string, any>>,
   overrideColumns: boolean,
@@ -50,6 +51,7 @@ export const put = async (
   const body = JSON.stringify({
     sql,
     columns,
+    database_id: dbId,
   });
 
   const data: JsonResponse = await SupersetClient.put({

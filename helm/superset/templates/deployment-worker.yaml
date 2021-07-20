@@ -23,6 +23,10 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+{{- if .Values.supersetWorker.deploymentAnnotations }}
+  annotations:
+    {{ toYaml .Values.supersetWorker.deploymentAnnotations | nindent 4 }}
+{{- end }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -31,17 +35,29 @@ spec:
       release: {{ .Release.Name }}
   template:
     metadata:
-      {{ if .Values.supersetWorker.forceReload }}
       annotations:
+        checksum/superset_config.py: {{ include "superset-config" . | sha256sum }}
+        checksum/connections: {{ .Values.supersetNode.connections | toYaml | sha256sum }}
+        checksum/extraConfigs: {{ .Values.extraConfigs | toYaml | sha256sum }}
+        checksum/extraSecrets: {{ .Values.extraSecrets | toYaml | sha256sum }}
+        checksum/extraSecretEnv: {{ .Values.extraSecretEnv | toYaml | sha256sum }}
+        checksum/configOverrides: {{ .Values.configOverrides | toYaml | sha256sum }}
+        {{ if .Values.supersetWorker.forceReload }}
         # Optionally force the thing to reload
         force-reload: {{ randAlphaNum 5 | quote }}
-      {{ end }}
+        {{ end }}
+      {{- if .Values.supersetWorker.podAnnotations }}
+        {{ toYaml .Values.supersetWorker.podAnnotations | nindent 8 }}
+      {{- end }}
       labels:
         app: {{ template "superset.name" . }}-worker
         release: {{ .Release.Name }}
     spec:
+      {{- if .Values.serviceAccountName }}
+      serviceAccountName: {{ .Values.serviceAccountName }}
+      {{- end }}
       securityContext:
-        runAsUser: 0 # Needed in order to allow pip install to work in bootstrap
+        runAsUser: {{ .Values.runAsUser }}
       {{- if .Values.supersetWorker.initContainers }}
       initContainers:
       {{-  tpl (toYaml .Values.supersetWorker.initContainers) . | nindent 6 }}
@@ -54,7 +70,7 @@ spec:
           env:
             - name: "SUPERSET_PORT"
               value: {{ .Values.service.port | quote}}
-          {{ if .Values.extraEnv }}
+          {{- if .Values.extraEnv }}
             {{- range $key, $value := .Values.extraEnv }}
             - name: {{ $key | quote}}
               value: {{ $value | quote }}
@@ -63,6 +79,10 @@ spec:
           envFrom:
             - secretRef:
                 name: {{ tpl .Values.envFromSecret . | quote }}
+            {{- range .Values.envFromSecrets }}
+            - secretRef:
+                name: {{ tpl . $ | quote }}
+            {{- end }}
           volumeMounts:
             - name: superset-config
               mountPath: {{ .Values.configMountPath | quote }}
@@ -81,6 +101,10 @@ spec:
       tolerations:
 {{ toYaml . | indent 8 }}
     {{- end }}
+{{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.imagePullSecrets | indent 8 }}
+      {{- end }}
       volumes:
         - name: superset-config
           secret:

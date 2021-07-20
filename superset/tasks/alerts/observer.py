@@ -29,7 +29,7 @@ logger = logging.getLogger("tasks.email_reports")
 
 
 # Session needs to be passed along in the celery workers and db.session cannot be used.
-# For more info see: https://github.com/apache/incubator-superset/issues/10530
+# For more info see: https://github.com/apache/superset/issues/10530
 def observe(alert_id: int, session: Session) -> Optional[str]:
     """Collect observations for the alert.
     Returns an error message if the observer value was not valid

@@ -19,61 +19,51 @@
 import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import Popover from 'src/common/components/Popover';
 import fetchMock from 'fetch-mock';
 import * as featureFlags from 'src/featureFlags';
-import { shallow } from 'enzyme';
-
+import { Provider } from 'react-redux';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { render, screen, act } from '@testing-library/react';
+import '@testing-library/jest-dom/extend-expect';
+import userEvent from '@testing-library/user-event';
 import * as utils from 'src/utils/common';
-import Button from 'src/components/Button';
 import ShareSqlLabQuery from 'src/SqlLab/components/ShareSqlLabQuery';
 
 const mockStore = configureStore([thunk]);
-const store = mockStore();
+const store = mockStore({});
 let isFeatureEnabledMock;
 
-describe('ShareSqlLabQuery via /kv/store', () => {
-  const storeQueryUrl = 'glob:*/kv/store/';
-  const storeQueryMockId = '123';
+const standardProvider = ({ children }) => (
+  <ThemeProvider theme={supersetTheme}>
+    <Provider store={store}>{children}</Provider>
+  </ThemeProvider>
+);
 
-  beforeEach(() => {
-    fetchMock.post(storeQueryUrl, () => ({ id: storeQueryMockId }), {
-      overwriteRoutes: true,
-    });
-    fetchMock.resetHistory();
-  });
-
-  afterAll(fetchMock.reset);
-
-  const defaultProps = {
-    queryEditor: {
-      dbId: 0,
-      title: 'query title',
-      schema: 'query_schema',
-      autorun: false,
-      sql: 'SELECT * FROM ...',
-      remoteId: 999,
-    },
-  };
-
-  const storedQueryAttributes = {
+const defaultProps = {
+  queryEditor: {
     dbId: 0,
     title: 'query title',
     schema: 'query_schema',
     autorun: false,
     sql: 'SELECT * FROM ...',
-  };
+    remoteId: 999,
+  },
+  addDangerToast: jest.fn(),
+};
 
-  function setup(overrideProps) {
-    const wrapper = shallow(
-      <ShareSqlLabQuery {...defaultProps} {...overrideProps} />,
-      {
-        context: { store },
-      },
-    ).dive(); // wrapped in withToasts HOC
+describe('ShareSqlLabQuery', () => {
+  const storeQueryUrl = 'glob:*/kv/store/';
+  const storeQueryMockId = '123';
 
-    return wrapper;
-  }
+  beforeEach(async () => {
+    fetchMock.post(storeQueryUrl, () => ({ id: storeQueryMockId }), {
+      overwriteRoutes: true,
+    });
+    fetchMock.resetHistory();
+    jest.clearAllMocks();
+  });
+
+  afterAll(fetchMock.reset);
 
   describe('via /kv/store', () => {
     beforeAll(() => {
@@ -86,61 +76,20 @@ describe('ShareSqlLabQuery via /kv/store', () => {
       isFeatureEnabledMock.restore();
     });
 
-    it('renders an OverlayTrigger with Button', () => {
-      const wrapper = setup();
-      const trigger = wrapper.find(Popover);
-      const button = trigger.find(Button);
-
-      expect(trigger).toHaveLength(1);
-      expect(button).toHaveLength(1);
-    });
-
-    it('calls storeQuery() with the query when getCopyUrl() is called and saves the url', () => {
-      expect.assertions(4);
-      const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
-
-      const wrapper = setup();
-      const instance = wrapper.instance();
-
-      return instance.getCopyUrl().then(() => {
-        expect(storeQuerySpy.mock.calls).toHaveLength(1);
-        expect(fetchMock.calls(storeQueryUrl)).toHaveLength(1);
-        expect(storeQuerySpy.mock.calls[0][0]).toMatchObject(
-          storedQueryAttributes,
-        );
-        expect(instance.state.shortUrl).toContain(storeQueryMockId);
-
-        storeQuerySpy.mockRestore();
-
-        return Promise.resolve();
-      });
-    });
-
-    it('dispatches an error toast upon fetching failure', () => {
-      expect.assertions(3);
-      const error = 'error';
-      const addDangerToastSpy = jest.fn();
-      fetchMock.post(
-        storeQueryUrl,
-        { throws: error },
-        { overwriteRoutes: true },
-      );
-      const wrapper = setup();
-      wrapper.setProps({ addDangerToast: addDangerToastSpy });
-
-      return wrapper
-        .instance()
-        .getCopyUrl()
-        .then(() => {
-          // Fails then retries thrice
-          expect(fetchMock.calls(storeQueryUrl)).toHaveLength(4);
-          expect(addDangerToastSpy.mock.calls).toHaveLength(1);
-          expect(addDangerToastSpy.mock.calls[0][0]).toBe(error);
-
-          return Promise.resolve();
+    it('calls storeQuery() with the query when getCopyUrl() is called', async () => {
+      await act(async () => {
+        render(<ShareSqlLabQuery {...defaultProps} />, {
+          wrapper: standardProvider,
         });
+      });
+      const button = screen.getByRole('button');
+      const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
+      userEvent.click(button);
+      expect(storeQuerySpy.mock.calls).toHaveLength(1);
+      storeQuerySpy.mockRestore();
     });
   });
+
   describe('via saved query', () => {
     beforeAll(() => {
       isFeatureEnabledMock = jest
@@ -152,37 +101,32 @@ describe('ShareSqlLabQuery via /kv/store', () => {
       isFeatureEnabledMock.restore();
     });
 
-    it('renders an OverlayTrigger with Button', () => {
-      const wrapper = setup();
-      const trigger = wrapper.find(Popover);
-      const button = trigger.find(Button);
-
-      expect(trigger).toHaveLength(1);
-      expect(button).toHaveLength(1);
-    });
-
-    it('does not call storeQuery() with the query when getCopyUrl() is called', () => {
+    it('does not call storeQuery() with the query when getCopyUrl() is called and feature is not enabled', async () => {
+      await act(async () => {
+        render(<ShareSqlLabQuery {...defaultProps} />, {
+          wrapper: standardProvider,
+        });
+      });
       const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
-
-      const wrapper = setup();
-      const instance = wrapper.instance();
-
-      instance.getCopyUrl();
-
+      const button = screen.getByRole('button');
+      userEvent.click(button);
       expect(storeQuerySpy.mock.calls).toHaveLength(0);
-      expect(fetchMock.calls(storeQueryUrl)).toHaveLength(0);
-      expect(instance.state.shortUrl).toContain(999);
-
       storeQuerySpy.mockRestore();
     });
 
-    it('shows a request to save the query when the query is not yet saved', () => {
-      const wrapper = setup({ remoteId: undefined });
-      const instance = wrapper.instance();
+    it('button is disabled and there is a request to save the query', async () => {
+      const updatedProps = {
+        queryEditor: {
+          ...defaultProps.queryEditor,
+          remoteId: undefined,
+        },
+      };
 
-      instance.getCopyUrl();
-
-      expect(instance.state.shortUrl).toContain('save');
+      render(<ShareSqlLabQuery {...updatedProps} />, {
+        wrapper: standardProvider,
+      });
+      const button = await screen.findByRole('button', { name: /copy link/i });
+      expect(button).toBeDisabled();
     });
   });
 });

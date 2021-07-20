@@ -68,9 +68,9 @@ export default function CardCollection({
     <CardContainer>
       {loading &&
         rows.length === 0 &&
-        [...new Array(25)].map((e, i) => {
-          return <div key={i}>{renderCard({ loading })}</div>;
-        })}
+        [...new Array(25)].map((e, i) => (
+          <div key={i}>{renderCard({ loading })}</div>
+        ))}
       {rows.length > 0 &&
         rows.map(row => {
           if (!renderCard) return null;

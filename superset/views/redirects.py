@@ -14,6 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
+from typing import Optional
+
 from flask import flash, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
@@ -24,10 +27,21 @@ from superset.models import core as models
 from superset.typing import FlaskResponse
 from superset.views.base import BaseSupersetView
 
+logger = logging.getLogger(__name__)
+
 
 class R(BaseSupersetView):  # pylint: disable=invalid-name
 
     """used for short urls"""
+
+    @staticmethod
+    def _validate_url(url: Optional[str] = None) -> bool:
+        if url and (
+            url.startswith("//superset/dashboard/")
+            or url.startswith("//superset/explore/")
+        ):
+            return True
+        return False
 
     @event_logger.log_this
     @expose("/<int:url_id>")
@@ -38,8 +52,9 @@ class R(BaseSupersetView):  # pylint: disable=invalid-name
             if url.url.startswith(explore_url):
                 explore_url += f"r={url_id}"
                 return redirect(explore_url[1:])
-
-            return redirect(url.url[1:])
+            if self._validate_url(url.url):
+                return redirect(url.url[1:])
+            return redirect("/")
 
         flash("URL to nowhere...", "danger")
         return redirect("/")
@@ -49,6 +64,9 @@ class R(BaseSupersetView):  # pylint: disable=invalid-name
     @expose("/shortner/", methods=["POST"])
     def shortner(self) -> FlaskResponse:  # pylint: disable=no-self-use
         url = request.form.get("data")
+        if not self._validate_url(url):
+            logger.warning("Invalid URL: %s", url)
+            return Response(f"Invalid URL: {url}", 400)
         obj = models.Url(url=url)
         db.session.add(obj)
         db.session.commit()

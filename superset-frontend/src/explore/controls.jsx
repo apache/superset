@@ -64,9 +64,9 @@ import {
   legacyValidateInteger,
   validateNonEmpty,
 } from '@superset-ui/core';
-import { ColumnOption } from '@superset-ui/chart-controls';
-import { formatSelectOptions, mainMetric } from 'src/modules/utils';
+import { formatSelectOptions } from 'src/modules/utils';
 import { TIME_FILTER_LABELS } from './constants';
+import { StyledColumnOption } from './components/optionRenderers';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -118,15 +118,14 @@ const timeColumnOption = {
 
 const groupByControl = {
   type: 'SelectControl',
-  queryField: 'groupby',
   multi: true,
   freeForm: true,
   label: t('Group by'),
   default: [],
   includeTime: false,
   description: t('One or many controls to group by'),
-  optionRenderer: c => <ColumnOption column={c} showType />,
-  valueRenderer: c => <ColumnOption column={c} />,
+  optionRenderer: c => <StyledColumnOption column={c} showType />,
+  valueRenderer: c => <StyledColumnOption column={c} />,
   valueKey: 'column_name',
   allowAll: true,
   filterOption: ({ data: opt }, text) =>
@@ -150,14 +149,9 @@ const groupByControl = {
 
 const metrics = {
   type: 'MetricsControl',
-  queryField: 'metrics',
   multi: true,
   label: t('Metrics'),
   validators: [validateNonEmpty],
-  default: c => {
-    const metric = mainMetric(c.savedMetrics);
-    return metric ? [metric] : null;
-  },
   mapStateToProps: state => {
     const { datasource } = state;
     return {
@@ -173,7 +167,6 @@ const metric = {
   multi: false,
   label: t('Metric'),
   description: t('Metric'),
-  default: props => mainMetric(props.savedMetrics),
 };
 
 export function columnChoices(datasource) {
@@ -205,13 +198,13 @@ export const controls = {
 
   viz_type: {
     type: 'VizTypeControl',
-    label: t('Visualization Type'),
+    label: t('Visualization type'),
     default: 'table',
     description: t('The type of visualization to display'),
   },
 
   color_picker: {
-    label: t('Fixed Color'),
+    label: t('Fixed color'),
     description: t('Use this to define a static color for all circles'),
     type: 'ColorPickerControl',
     default: PRIMARY_COLOR,
@@ -220,14 +213,14 @@ export const controls = {
 
   metric_2: {
     ...metric,
-    label: t('Right Axis Metric'),
+    label: t('Right axis metric'),
     clearable: true,
     description: t('Choose a metric for right axis'),
   },
 
   linear_color_scheme: {
     type: 'ColorSchemeControl',
-    label: t('Linear Color Scheme'),
+    label: t('Linear color scheme'),
     choices: () =>
       sequentialSchemeRegistry.values().map(value => [value.id, value.label]),
     default: sequentialSchemeRegistry.getDefaultKey(),
@@ -240,7 +233,7 @@ export const controls = {
 
   secondary_metric: {
     ...metric,
-    label: t('Color Metric'),
+    label: t('Color metric'),
     default: null,
     validators: [],
     description: t('A metric to use for color'),
@@ -310,8 +303,8 @@ export const controls = {
         'expression',
     ),
     clearable: false,
-    optionRenderer: c => <ColumnOption column={c} showType />,
-    valueRenderer: c => <ColumnOption column={c} />,
+    optionRenderer: c => <StyledColumnOption column={c} showType />,
+    valueRenderer: c => <StyledColumnOption column={c} />,
     valueKey: 'column_name',
     mapStateToProps: state => {
       const props = {};
@@ -348,7 +341,7 @@ export const controls = {
     type: 'DateFilterControl',
     freeForm: true,
     label: TIME_FILTER_LABELS.time_range,
-    default: t('Last week'), // this value is translated, but the backend wouldn't understand a translated value?
+    default: t('No filter'), // this value is translated, but the backend wouldn't understand a translated value?
     description: t(
       'The time range for the visualization. All relative times, e.g. "Last month", ' +
         '"Last 7 days", "now", etc. are evaluated on the server using the server\'s ' +
@@ -357,8 +350,9 @@ export const controls = {
         "using the engine's local timezone. Note one can explicitly set the timezone " +
         'per the ISO 8601 format if specifying either the start and/or end time.',
     ),
-    mapStateToProps: state => ({
-      endpoints: state.form_data ? state.form_data.time_range_endpoints : null,
+    mapStateToProps: ({ form_data: formData }) => ({
+      // eslint-disable-next-line camelcase
+      endpoints: formData?.time_range_endpoints,
     }),
   },
 
@@ -387,7 +381,7 @@ export const controls = {
 
   timeseries_limit_metric: {
     type: 'MetricsControl',
-    label: t('Sort By'),
+    label: t('Sort by'),
     default: null,
     clearable: true,
     description: t('Metric used to define the top series'),
@@ -435,7 +429,7 @@ export const controls = {
 
   size: {
     ...metric,
-    label: t('Bubble Size'),
+    label: t('Bubble size'),
     default: null,
   },
 
@@ -476,12 +470,11 @@ export const controls = {
       savedMetrics: state.datasource ? state.datasource.metrics : [],
       datasource: state.datasource,
     }),
-    provideFormDataToProps: true,
   },
 
   color_scheme: {
     type: 'ColorSchemeControl',
-    label: t('Color Scheme'),
+    label: t('Color scheme'),
     default: categoricalSchemeRegistry.getDefaultKey(),
     renderTrigger: true,
     choices: () => categoricalSchemeRegistry.keys().map(s => [s, s]),
@@ -491,7 +484,7 @@ export const controls = {
 
   label_colors: {
     type: 'ColorMapControl',
-    label: t('Color Map'),
+    label: t('Color map'),
     default: {},
     renderTrigger: true,
     mapStateToProps: state => ({

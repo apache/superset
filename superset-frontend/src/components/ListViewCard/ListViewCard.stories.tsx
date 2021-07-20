@@ -22,7 +22,7 @@ import { withKnobs, boolean, select, text } from '@storybook/addon-knobs';
 import DashboardImg from 'images/dashboard-card-fallback.svg';
 import ChartImg from 'images/chart-card-fallback.svg';
 import { Dropdown, Menu } from 'src/common/components';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import FaveStar from 'src/components/FaveStar';
 import ListViewCard from '.';
 
@@ -41,49 +41,43 @@ const imgFallbackKnob = {
   defaultValue: DashboardImg,
 };
 
-export const SupersetListViewCard = () => {
-  return (
-    <ListViewCard
-      title="Superset Card Title"
-      loading={boolean('loading', false)}
-      url="/superset/dashboard/births/"
-      imgURL={text('imgURL', 'https://picsum.photos/800/600')}
-      imgFallbackURL={select(
-        imgFallbackKnob.label,
-        imgFallbackKnob.options,
-        imgFallbackKnob.defaultValue,
-      )}
-      description="Lorem ipsum dolor sit amet, consectetur adipiscing elit..."
-      coverLeft="Left Section"
-      coverRight="Right Section"
-      actions={
-        <ListViewCard.Actions>
-          <FaveStar
-            itemId={0}
-            fetchFaveStar={action('fetchFaveStar')}
-            saveFaveStar={action('saveFaveStar')}
-            isStarred={boolean('isStarred', false)}
-          />
-          <Dropdown
-            overlay={
-              <Menu>
-                <Menu.Item
-                  role="button"
-                  tabIndex={0}
-                  onClick={action('Delete')}
-                >
-                  <ListViewCard.MenuIcon name="trash" /> Delete
-                </Menu.Item>
-                <Menu.Item role="button" tabIndex={0} onClick={action('Edit')}>
-                  <ListViewCard.MenuIcon name="edit-alt" /> Edit
-                </Menu.Item>
-              </Menu>
-            }
-          >
-            <Icon name="more-horiz" />
-          </Dropdown>
-        </ListViewCard.Actions>
-      }
-    />
-  );
-};
+export const SupersetListViewCard = () => (
+  <ListViewCard
+    title="Superset Card Title"
+    loading={boolean('loading', false)}
+    url="/superset/dashboard/births/"
+    imgURL={text('imgURL', 'https://picsum.photos/800/600')}
+    imgFallbackURL={select(
+      imgFallbackKnob.label,
+      imgFallbackKnob.options,
+      imgFallbackKnob.defaultValue,
+    )}
+    description="Lorem ipsum dolor sit amet, consectetur adipiscing elit..."
+    coverLeft="Left Section"
+    coverRight="Right Section"
+    actions={
+      <ListViewCard.Actions>
+        <FaveStar
+          itemId={0}
+          fetchFaveStar={action('fetchFaveStar')}
+          saveFaveStar={action('saveFaveStar')}
+          isStarred={boolean('isStarred', false)}
+        />
+        <Dropdown
+          overlay={
+            <Menu>
+              <Menu.Item role="button" tabIndex={0} onClick={action('Delete')}>
+                <Icons.Trash /> Delete
+              </Menu.Item>
+              <Menu.Item role="button" tabIndex={0} onClick={action('Edit')}>
+                <Icons.EditAlt /> Edit
+              </Menu.Item>
+            </Menu>
+          }
+        >
+          <Icons.MoreHoriz />
+        </Dropdown>
+      </ListViewCard.Actions>
+    }
+  />
+);

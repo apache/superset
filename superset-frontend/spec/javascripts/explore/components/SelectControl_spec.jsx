@@ -19,10 +19,11 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { shallow, mount } from 'enzyme';
+import { shallow } from 'enzyme';
 import { Select, CreatableSelect } from 'src/components/Select';
 import OnPasteSelect from 'src/components/Select/OnPasteSelect';
 import SelectControl from 'src/explore/components/controls/SelectControl';
+import { styledMount as mount } from 'spec/helpers/theming';
 
 const defaultProps = {
   choices: [
@@ -77,7 +78,7 @@ describe('SelectControl', () => {
       onChange: sinon.spy(),
     };
     wrapper.setProps(selectAllProps);
-    wrapper.instance().onChange([{ meta: true, value: 'Select All' }]);
+    wrapper.instance().onChange([{ meta: true, value: 'Select all' }]);
     expect(selectAllProps.onChange.calledWith(expectedValues)).toBe(true);
   });
 
@@ -111,7 +112,7 @@ describe('SelectControl', () => {
               placeholder="add something"
             />,
           );
-          expect(withMulti.html()).not.toContain('placeholder=');
+          expect(withMulti.html()).not.toContain('option(s');
         });
       });
       describe('withSingleChoice', () => {
@@ -124,7 +125,7 @@ describe('SelectControl', () => {
               placeholder="add something"
             />,
           );
-          expect(singleChoice.html()).not.toContain('placeholder=');
+          expect(singleChoice.html()).not.toContain('option(s');
         });
       });
       describe('default placeholder', () => {
@@ -132,7 +133,7 @@ describe('SelectControl', () => {
           const defaultPlaceholder = mount(
             <SelectControl {...defaultProps} choices={[]} multi />,
           );
-          expect(defaultPlaceholder.html()).not.toContain('placeholder=');
+          expect(defaultPlaceholder.html()).not.toContain('option(s');
         });
       });
       describe('all choices selected', () => {
@@ -144,21 +145,21 @@ describe('SelectControl', () => {
               value={['today', '1 year ago']}
             />,
           );
-          expect(allChoicesSelected.html()).toContain('placeholder=""');
+          expect(allChoicesSelected.html()).not.toContain('option(s');
         });
       });
     });
     describe('when select is multi', () => {
-      it('renders the placeholder when a selection has been made', () => {
+      it('does not render the placeholder when a selection has been made', () => {
         wrapper = mount(
           <SelectControl
             {...defaultProps}
             multi
-            value={50}
+            value={['today']}
             placeholder="add something"
           />,
         );
-        expect(wrapper.html()).toContain('add something');
+        expect(wrapper.html()).not.toContain('add something');
       });
       it('shows numbers of options as a placeholder by default', () => {
         wrapper = mount(<SelectControl {...defaultProps} multi />);
@@ -206,7 +207,7 @@ describe('SelectControl', () => {
         expect(wrapper.instance().optionsRemaining()).toEqual(2);
       });
     });
-    describe('with Select All', () => {
+    describe('with Select all', () => {
       it('does not count it', () => {
         const props = { ...defaultProps, multi: true, allowAll: true };
         const wrapper = mount(<SelectControl {...props} />);
@@ -233,9 +234,9 @@ describe('SelectControl', () => {
       };
       wrapper.setProps(selectAllProps);
       expect(wrapper.instance().getOptions(selectAllProps)).toContainEqual({
-        label: 'Select All',
+        label: 'Select all',
         meta: true,
-        value: 'Select All',
+        value: 'Select all',
       });
     });
 

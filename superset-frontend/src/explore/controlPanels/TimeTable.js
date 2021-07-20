@@ -17,9 +17,11 @@
  * under the License.
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
+import { sections } from '@superset-ui/chart-controls';
 
 export default {
   controlPanelSections: [
+    sections.legacyTimeseriesTime,
     {
       label: t('Query'),
       expanded: true,
@@ -33,12 +35,13 @@ export default {
             name: 'column_collection',
             config: {
               type: 'CollectionControl',
-              label: t('Time Series Columns'),
+              label: t('Time series columns'),
               validators: [validateNonEmpty],
               controlName: 'TimeSeriesColumnControl',
             },
           },
         ],
+        ['row_limit'],
         [
           {
             name: 'url',
@@ -59,14 +62,6 @@ export default {
   controlOverrides: {
     groupby: {
       multiple: false,
-    },
-  },
-  sectionOverrides: {
-    druidTimeSeries: {
-      controlSetRows: [['granularity', 'druid_time_origin'], ['time_range']],
-    },
-    sqlaTimeSeries: {
-      controlSetRows: [['granularity_sqla', 'time_grain_sqla'], ['time_range']],
     },
   },
 };

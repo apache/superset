@@ -21,14 +21,13 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import { styled, t } from '@superset-ui/core';
-
+import { Tooltip } from 'src/components/Tooltip';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ExploreActionButtons from './ExploreActionButtons';
 import RowCountLabel from './RowCountLabel';
 import EditableTitle from '../../components/EditableTitle';
 import AlteredSliceTag from '../../components/AlteredSliceTag';
 import FaveStar from '../../components/FaveStar';
-import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
 import CachedLabel from '../../components/CachedLabel';
 import PropertiesModal from './PropertiesModal';
@@ -45,12 +44,12 @@ const propTypes = {
   addHistory: PropTypes.func,
   can_overwrite: PropTypes.bool.isRequired,
   can_download: PropTypes.bool.isRequired,
-  chartHeight: PropTypes.string.isRequired,
   isStarred: PropTypes.bool.isRequired,
   slice: PropTypes.object,
   sliceName: PropTypes.string,
   table_name: PropTypes.string,
   form_data: PropTypes.object,
+  ownState: PropTypes.object,
   timeout: PropTypes.number,
   chart: chartPropShape,
 };
@@ -94,7 +93,7 @@ export class ExploreChartHeader extends React.PureComponent {
     this.state = {
       isPropertiesModalOpen: false,
     };
-    this.openProperiesModal = this.openProperiesModal.bind(this);
+    this.openPropertiesModal = this.openPropertiesModal.bind(this);
     this.closePropertiesModal = this.closePropertiesModal.bind(this);
   }
 
@@ -108,10 +107,11 @@ export class ExploreChartHeader extends React.PureComponent {
       true,
       this.props.timeout,
       this.props.chart.id,
+      this.props.ownState,
     );
   }
 
-  openProperiesModal() {
+  openPropertiesModal() {
     this.setState({
       isPropertiesModalOpen: true,
     });
@@ -130,8 +130,10 @@ export class ExploreChartHeader extends React.PureComponent {
       chartUpdateEndTime,
       chartUpdateStartTime,
       latestQueryFormData,
-      queryResponse,
+      queriesResponse,
     } = this.props.chart;
+    // TODO: when will get appropriate design for multi queries use all results and not first only
+    const queryResponse = queriesResponse?.[0];
     const chartFinished = ['failed', 'rendered', 'success'].includes(
       this.props.chart.chartStatus,
     );
@@ -146,32 +148,34 @@ export class ExploreChartHeader extends React.PureComponent {
 
           {this.props.slice && (
             <StyledButtons>
-              <FaveStar
-                itemId={this.props.slice.slice_id}
-                fetchFaveStar={this.props.actions.fetchFaveStar}
-                saveFaveStar={this.props.actions.saveFaveStar}
-                isStarred={this.props.isStarred}
-                showTooltip
-              />
+              {this.props.userId && (
+                <FaveStar
+                  itemId={this.props.slice.slice_id}
+                  fetchFaveStar={this.props.actions.fetchFaveStar}
+                  saveFaveStar={this.props.actions.saveFaveStar}
+                  isStarred={this.props.isStarred}
+                  showTooltip
+                />
+              )}
               <PropertiesModal
                 show={this.state.isPropertiesModalOpen}
                 onHide={this.closePropertiesModal}
                 onSave={this.props.sliceUpdated}
                 slice={this.props.slice}
               />
-              <TooltipWrapper
-                label="edit-desc"
-                tooltip={t('Edit chart properties')}
+              <Tooltip
+                id="edit-desc-tooltip"
+                title={t('Edit chart properties')}
               >
                 <span
                   role="button"
                   tabIndex={0}
                   className="edit-desc-icon"
-                  onClick={this.openProperiesModal}
+                  onClick={this.openPropertiesModal}
                 >
                   <i className="fa fa-edit" />
                 </span>
-              </TooltipWrapper>
+              </Tooltip>
               {this.props.chart.sliceFormData && (
                 <AlteredSliceTag
                   className="altered"
@@ -202,11 +206,13 @@ export class ExploreChartHeader extends React.PureComponent {
             status={CHART_STATUS_MAP[chartStatus]}
           />
           <ExploreActionButtons
-            actions={this.props.actions}
+            actions={{
+              ...this.props.actions,
+              openPropertiesModal: this.openPropertiesModal,
+            }}
             slice={this.props.slice}
-            canDownload={this.props.can_download}
+            canDownloadCSV={this.props.can_download}
             chartStatus={chartStatus}
-            chartHeight={this.props.chartHeight}
             latestQueryFormData={latestQueryFormData}
             queryResponse={queryResponse}
           />

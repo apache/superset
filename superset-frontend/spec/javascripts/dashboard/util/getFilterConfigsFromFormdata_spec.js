@@ -56,13 +56,25 @@ describe('getFilterConfigsFromFormdata', () => {
     });
   });
 
-  it('should use default value from form_data', () => {
+  it('should use default value and treat empty defaults as null', () => {
     const result = getFilterConfigsFromFormdata({
       ...testFormdata,
       show_sqla_time_column: true,
+      filter_configs: [
+        ...testFormdata.filter_configs,
+        {
+          asc: false,
+          clearable: true,
+          column: 'country',
+          defaultValue: '',
+          key: 'foo',
+          multiple: true,
+        },
+      ],
     });
     expect(result.columns).toMatchObject({
       state: ['CA'],
+      country: null,
     });
   });
 

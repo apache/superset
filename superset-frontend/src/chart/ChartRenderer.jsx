@@ -19,14 +19,14 @@
 import { snakeCase } from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import { SuperChart, logging } from '@superset-ui/core';
+import { SuperChart, logging, Behavior } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
 
 const propTypes = {
   annotationData: PropTypes.object,
   actions: PropTypes.object,
   chartId: PropTypes.number.isRequired,
-  datasource: PropTypes.object.isRequired,
+  datasource: PropTypes.object,
   initialValues: PropTypes.object,
   formData: PropTypes.object.isRequired,
   height: PropTypes.number,
@@ -37,13 +37,15 @@ const propTypes = {
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
-  queryResponse: PropTypes.object,
+  queriesResponse: PropTypes.arrayOf(PropTypes.object),
   triggerQuery: PropTypes.bool,
   refreshOverlayVisible: PropTypes.bool,
   // dashboard callbacks
   addFilter: PropTypes.func,
+  setDataMask: PropTypes.func,
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
+  ownState: PropTypes.object,
 };
 
 const BLANK = {};
@@ -73,22 +75,28 @@ class ChartRenderer extends React.Component {
       setControlValue: this.handleSetControlValue,
       onFilterMenuOpen: this.props.onFilterMenuOpen,
       onFilterMenuClose: this.props.onFilterMenuClose,
+      setDataMask: dataMask => {
+        this.props.actions?.updateDataMask(this.props.chartId, dataMask);
+      },
     };
   }
 
   shouldComponentUpdate(nextProps) {
     const resultsReady =
-      nextProps.queryResponse &&
+      nextProps.queriesResponse &&
       ['success', 'rendered'].indexOf(nextProps.chartStatus) > -1 &&
-      !nextProps.queryResponse.error &&
+      !nextProps.queriesResponse?.[0]?.error &&
       !nextProps.refreshOverlayVisible;
 
     if (resultsReady) {
       this.hasQueryResponseChange =
-        nextProps.queryResponse !== this.props.queryResponse;
+        nextProps.queriesResponse !== this.props.queriesResponse;
       return (
         this.hasQueryResponseChange ||
+        nextProps.datasource !== this.props.datasource ||
         nextProps.annotationData !== this.props.annotationData ||
+        nextProps.ownState !== this.props.ownState ||
+        nextProps.filterState !== this.props.filterState ||
         nextProps.height !== this.props.height ||
         nextProps.width !== this.props.width ||
         nextProps.triggerRender ||
@@ -178,8 +186,10 @@ class ChartRenderer extends React.Component {
       annotationData,
       datasource,
       initialValues,
+      ownState,
+      filterState,
       formData,
-      queryResponse,
+      queriesResponse,
     } = this.props;
 
     // It's bad practice to use unprefixed `vizType` as classnames for chart
@@ -214,11 +224,14 @@ class ChartRenderer extends React.Component {
         width={width}
         height={height}
         annotationData={annotationData}
-        datasource={datasource}
+        datasource={datasource || {}}
         initialValues={initialValues}
         formData={formData}
+        ownState={ownState}
+        filterState={filterState}
         hooks={this.hooks}
-        queryData={queryResponse}
+        behaviors={[Behavior.INTERACTIVE_CHART]}
+        queriesData={queriesResponse}
         onRenderSuccess={this.handleRenderSuccess}
         onRenderFailure={this.handleRenderFailure}
       />

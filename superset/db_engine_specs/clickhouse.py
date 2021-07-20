@@ -15,9 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Optional
+from typing import Dict, Optional, Type
 
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 from superset.utils import core as utils
 
 
@@ -44,6 +45,21 @@ class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "P0.25Y": "toStartOfQuarter(toDateTime({col}))",
         "P1Y": "toStartOfYear(toDateTime({col}))",
     }
+
+    @classmethod
+    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
+        from urllib3.exceptions import NewConnectionError
+
+        return {NewConnectionError: SupersetDBAPIDatabaseError}
+
+    @classmethod
+    def get_dbapi_mapped_exception(cls, exception: Exception) -> Exception:
+        new_exception = cls.get_dbapi_exception_mapping().get(type(exception))
+        if new_exception == SupersetDBAPIDatabaseError:
+            return SupersetDBAPIDatabaseError("Connection failed")
+        if not new_exception:
+            return exception
+        return new_exception(str(exception))
 
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:

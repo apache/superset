@@ -20,6 +20,8 @@ import { Provider } from 'react-redux';
 import React from 'react';
 import { mount } from 'enzyme';
 import sinon from 'sinon';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
@@ -32,9 +34,9 @@ import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import { DASHBOARD_GRID_ID } from 'src/dashboard/util/constants';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
-import WithDragDropContext from 'spec/helpers/WithDragDropContext';
-import { mockStore } from 'spec/fixtures/mockStore';
+import { getMockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
+import { initialState } from 'spec/javascripts/sqllab/fixtures';
 
 describe('Row', () => {
   const rowWithoutChildren = { ...mockLayout.present.ROW_ID, children: [] };
@@ -60,11 +62,14 @@ describe('Row', () => {
   function setup(overrideProps) {
     // We have to wrap provide DragDropContext for the underlying DragDroppable
     // otherwise we cannot assert on DragDroppable children
+    const mockStore = getMockStore({
+      ...initialState,
+    });
     const wrapper = mount(
       <Provider store={mockStore}>
-        <WithDragDropContext>
+        <DndProvider backend={HTML5Backend}>
           <Row {...props} {...overrideProps} />
-        </WithDragDropContext>
+        </DndProvider>
       </Provider>,
       {
         wrappingComponent: ThemeProvider,

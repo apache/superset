@@ -86,7 +86,7 @@ describe('sqlLabReducer', () => {
       newState = sqlLabReducer(newState, action);
       expect(newState.queryEditors[1].schema).toBe(schema);
     });
-    it('should not fail while setting autorun ', () => {
+    it('should not fail while setting autorun', () => {
       const action = {
         type: actions.QUERY_EDITOR_SET_AUTORUN,
         queryEditor: qe,
@@ -153,6 +153,7 @@ describe('sqlLabReducer', () => {
     it('should add a table', () => {
       // Testing that beforeEach actually added the table
       expect(newState.tables).toHaveLength(1);
+      expect(newState.tables[0].expanded).toBe(true);
     });
     it('should merge the table attributes', () => {
       // Merging the extra attribute

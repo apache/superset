@@ -17,8 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { shallow, mount } from 'enzyme';
-
+import { shallow } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import FilterBox from 'src/visualizations/FilterBox/FilterBox';
 import SelectControl from 'src/explore/components/controls/SelectControl';
 

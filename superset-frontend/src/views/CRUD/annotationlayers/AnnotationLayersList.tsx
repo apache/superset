@@ -26,9 +26,12 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import { IconName } from 'src/components/Icon';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import ListView, { ListViewProps, Filters } from 'src/components/ListView';
+import ListView, {
+  ListViewProps,
+  Filters,
+  FilterOperator,
+} from 'src/components/ListView';
 import Button from 'src/components/Button';
 import DeleteModal from 'src/components/DeleteModal';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -64,13 +67,14 @@ function AnnotationLayersList({
     toggleBulkSelect,
   } = useListViewResource<AnnotationLayerObject>(
     'annotation_layer',
-    t('annotation layers'),
+    t('Annotation layers'),
     addDangerToast,
   );
 
-  const [annotationLayerModalOpen, setAnnotationLayerModalOpen] = useState<
-    boolean
-  >(false);
+  const [
+    annotationLayerModalOpen,
+    setAnnotationLayerModalOpen,
+  ] = useState<boolean>(false);
   const [
     currentAnnotationLayer,
     setCurrentAnnotationLayer,
@@ -114,9 +118,9 @@ function AnnotationLayersList({
     );
   };
 
-  const canCreate = hasPerm('can_add');
-  const canEdit = hasPerm('can_edit');
-  const canDelete = hasPerm('can_delete');
+  const canCreate = hasPerm('can_write');
+  const canEdit = hasPerm('can_write');
+  const canDelete = hasPerm('can_write');
 
   function handleAnnotationLayerEdit(layer: AnnotationLayerObject | null) {
     setCurrentAnnotationLayer(layer);
@@ -177,7 +181,7 @@ function AnnotationLayersList({
 
           return moment(utc).format(MOMENT_FORMAT);
         },
-        Header: t('Last Modified'),
+        Header: t('Last modified'),
         accessor: 'changed_on',
         size: 'xl',
       },
@@ -202,14 +206,14 @@ function AnnotationLayersList({
 
           return moment(utc).format(MOMENT_FORMAT);
         },
-        Header: t('Created On'),
+        Header: t('Created on'),
         accessor: 'created_on',
         size: 'xl',
       },
       {
         accessor: 'created_by',
         disableSortBy: true,
-        Header: t('Created By'),
+        Header: t('Created by'),
         Cell: ({
           row: {
             original: { created_by: createdBy },
@@ -229,7 +233,7 @@ function AnnotationLayersList({
                   label: 'edit-action',
                   tooltip: t('Edit template'),
                   placement: 'bottom',
-                  icon: 'edit' as IconName,
+                  icon: 'Edit',
                   onClick: handleEdit,
                 }
               : null,
@@ -238,7 +242,7 @@ function AnnotationLayersList({
                   label: 'delete-action',
                   tooltip: t('Delete template'),
                   placement: 'bottom',
-                  icon: 'trash' as IconName,
+                  icon: 'Trash',
                   onClick: handleDelete,
                 }
               : null,
@@ -262,7 +266,7 @@ function AnnotationLayersList({
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {t('Annotation Layer')}
+          <i className="fa fa-plus" /> {t('Annotation layer')}
         </>
       ),
       buttonStyle: 'primary',
@@ -274,7 +278,7 @@ function AnnotationLayersList({
 
   if (canDelete) {
     subMenuButtons.push({
-      name: t('Bulk Select'),
+      name: t('Bulk select'),
       onClick: toggleBulkSelect,
       buttonStyle: 'secondary',
     });
@@ -283,10 +287,10 @@ function AnnotationLayersList({
   const filters: Filters = useMemo(
     () => [
       {
-        Header: t('Created By'),
+        Header: t('Created by'),
         id: 'created_by',
         input: 'select',
-        operator: 'rel_o_m',
+        operator: FilterOperator.relationOneMany,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'annotation_layer',
@@ -305,7 +309,7 @@ function AnnotationLayersList({
         Header: t('Search'),
         id: 'name',
         input: 'search',
-        operator: 'ct',
+        operator: FilterOperator.contains,
       },
     ],
     [],
@@ -319,7 +323,7 @@ function AnnotationLayersList({
       }}
     >
       <>
-        <i className="fa fa-plus" /> {t('Annotation Layer')}
+        <i className="fa fa-plus" /> {t('Annotation layer')}
       </>
     </Button>
   );
@@ -333,14 +337,19 @@ function AnnotationLayersList({
     window.location.href = `/annotationmodelview/${id}/annotation`;
   };
 
+  const onModalHide = () => {
+    refreshData();
+    setAnnotationLayerModalOpen(false);
+  };
+
   return (
     <>
-      <SubMenu name={t('Annotation Layers')} buttons={subMenuButtons} />
+      <SubMenu name={t('Annotation layers')} buttons={subMenuButtons} />
       <AnnotationLayerModal
         addDangerToast={addDangerToast}
         layer={currentAnnotationLayer}
         onLayerAdd={onLayerAdd}
-        onHide={() => setAnnotationLayerModalOpen(false)}
+        onHide={onModalHide}
         show={annotationLayerModalOpen}
       />
       {layerCurrentlyDeleting && (

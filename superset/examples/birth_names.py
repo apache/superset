@@ -19,10 +19,11 @@ import textwrap
 from typing import Dict, List, Tuple, Union
 
 import pandas as pd
+from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import DateTime, String
 from sqlalchemy.sql import column
 
-from superset import db, security_manager
+from superset import app, db, security_manager
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlMetric, TableColumn
 from superset.exceptions import NoDataException
@@ -32,22 +33,24 @@ from superset.models.slice import Slice
 from superset.utils.core import get_example_database
 
 from .helpers import (
-    config,
     get_example_data,
     get_slice_json,
+    get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
-    TBL,
     update_slice_ids,
 )
 
-admin = security_manager.find_user("admin")
-if admin is None:
-    raise NoDataException(
-        "Admin user does not exist. "
-        "Please, check if test users are properly loaded "
-        "(`superset load_test_users`)."
-    )
+
+def get_admin_user() -> User:
+    admin = security_manager.find_user("admin")
+    if admin is None:
+        raise NoDataException(
+            "Admin user does not exist. "
+            "Please, check if test users are properly loaded "
+            "(`superset load_test_users`)."
+        )
+    return admin
 
 
 def gen_filter(
@@ -63,7 +66,7 @@ def gen_filter(
 
 
 def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
-    pdf = pd.read_json(get_example_data("birth_names.json.gz"))
+    pdf = pd.read_json(get_example_data("birth_names2.json.gz"))
     # TODO(bkyryliuk): move load examples data into the pytest fixture
     if database.backend == "presto":
         pdf.ds = pd.to_datetime(pdf.ds, unit="ms")
@@ -103,37 +106,55 @@ def load_birth_names(
     if not only_metadata and (not table_exists or force):
         load_data(tbl_name, database, sample=sample)
 
-    obj = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    table = get_table_connector_registry()
+    obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
         print(f"Creating table [{tbl_name}] reference")
-        obj = TBL(table_name=tbl_name)
+        obj = table(table_name=tbl_name)
         db.session.add(obj)
-    obj.main_dttm_col = "ds"
-    obj.database = database
-    obj.filter_select_enabled = True
-    obj.fetch_metadata()
 
-    if not any(col.column_name == "num_california" for col in obj.columns):
+    _set_table_metadata(obj, database)
+    _add_table_metrics(obj)
+
+    db.session.commit()
+
+    slices, _ = create_slices(obj, admin_owner=True)
+    create_dashboard(slices)
+
+
+def _set_table_metadata(datasource: "BaseDatasource", database: "Database") -> None:
+    datasource.main_dttm_col = "ds"  # type: ignore
+    datasource.database = database
+    datasource.filter_select_enabled = True
+    datasource.fetch_metadata()
+
+
+def _add_table_metrics(datasource: "BaseDatasource") -> None:
+    if not any(col.column_name == "num_california" for col in datasource.columns):
         col_state = str(column("state").compile(db.engine))
         col_num = str(column("num").compile(db.engine))
-        obj.columns.append(
+        datasource.columns.append(
             TableColumn(
                 column_name="num_california",
                 expression=f"CASE WHEN {col_state} = 'CA' THEN {col_num} ELSE 0 END",
             )
         )
 
-    if not any(col.metric_name == "sum__num" for col in obj.metrics):
+    if not any(col.metric_name == "sum__num" for col in datasource.metrics):
         col = str(column("num").compile(db.engine))
-        obj.metrics.append(SqlMetric(metric_name="sum__num", expression=f"SUM({col})"))
+        datasource.metrics.append(
+            SqlMetric(metric_name="sum__num", expression=f"SUM({col})")
+        )
 
-    db.session.commit()
+    for col in datasource.columns:
+        if col.column_name == "ds":
+            col.is_dttm = True  # type: ignore
+            break
 
-    slices, _ = create_slices(obj)
-    create_dashboard(slices)
 
-
-def create_slices(tbl: BaseDatasource) -> Tuple[List[Slice], List[Slice]]:
+def create_slices(
+    tbl: BaseDatasource, admin_owner: bool
+) -> Tuple[List[Slice], List[Slice]]:
     metrics = [
         {
             "expressionType": "SIMPLE",
@@ -153,16 +174,25 @@ def create_slices(tbl: BaseDatasource) -> Tuple[List[Slice], List[Slice]]:
         "time_range_endpoints": ["inclusive", "exclusive"],
         "granularity_sqla": "ds",
         "groupby": [],
-        "row_limit": config["ROW_LIMIT"],
+        "row_limit": app.config["ROW_LIMIT"],
         "since": "100 years ago",
         "until": "now",
         "viz_type": "table",
         "markup_type": "markdown",
     }
 
-    slice_props = dict(
-        datasource_id=tbl.id, datasource_type="table", owners=[admin], created_by=admin
-    )
+    admin = get_admin_user()
+    if admin_owner:
+        slice_props = dict(
+            datasource_id=tbl.id,
+            datasource_type="table",
+            owners=[admin],
+            created_by=admin,
+        )
+    else:
+        slice_props = dict(
+            datasource_id=tbl.id, datasource_type="table", owners=[], created_by=admin
+        )
 
     print("Creating some slices")
     slices = [
@@ -221,14 +251,14 @@ def create_slices(tbl: BaseDatasource) -> Tuple[List[Slice], List[Slice]]:
                 metrics=[
                     {
                         "expressionType": "SIMPLE",
-                        "column": {"column_name": "sum_boys", "type": "BIGINT(20)"},
+                        "column": {"column_name": "num_boys", "type": "BIGINT(20)"},
                         "aggregate": "SUM",
                         "label": "Boys",
                         "optionName": "metric_11",
                     },
                     {
                         "expressionType": "SIMPLE",
-                        "column": {"column_name": "sum_girls", "type": "BIGINT(20)"},
+                        "column": {"column_name": "num_girls", "type": "BIGINT(20)"},
                         "aggregate": "SUM",
                         "label": "Girls",
                         "optionName": "metric_12",
@@ -246,8 +276,8 @@ def create_slices(tbl: BaseDatasource) -> Tuple[List[Slice], List[Slice]]:
                 groupby=["name"],
                 adhoc_filters=[gen_filter("gender", "girl")],
                 row_limit=50,
-                timeseries_limit_metric="sum__num",
-                metrics=metrics,
+                timeseries_limit_metric=metric,
+                metrics=[metric],
             ),
         ),
         Slice(
@@ -275,7 +305,8 @@ def create_slices(tbl: BaseDatasource) -> Tuple[List[Slice], List[Slice]]:
                 groupby=["name"],
                 adhoc_filters=[gen_filter("gender", "boy")],
                 row_limit=50,
-                metrics=metrics,
+                timeseries_limit_metric=metric,
+                metrics=[metric],
             ),
         ),
         Slice(
@@ -475,9 +506,9 @@ def create_slices(tbl: BaseDatasource) -> Tuple[List[Slice], List[Slice]]:
     return slices, misc_slices
 
 
-def create_dashboard(slices: List[Slice]) -> None:
+def create_dashboard(slices: List[Slice]) -> Dashboard:
     print("Creating a dashboard")
-
+    admin = get_admin_user()
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
     if not dash:
         dash = Dashboard()
@@ -779,3 +810,4 @@ def create_dashboard(slices: List[Slice]) -> None:
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = "births"
     db.session.commit()
+    return dash

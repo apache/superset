@@ -31,7 +31,7 @@ from superset.models.core import Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.tags import Tag, TaggedObject
-from superset.utils.core import parse_human_datetime
+from superset.utils.date_parser import parse_human_datetime
 from superset.views.utils import build_extra_filters
 
 logger = get_task_logger(__name__)
@@ -272,7 +272,7 @@ def cache_warmup(
             break
     else:
         message = f"No strategy {strategy_name} found!"
-        logger.error(message)
+        logger.error(message, exc_info=True)
         return message
 
     logger.info("Loading %s", class_.__name__)

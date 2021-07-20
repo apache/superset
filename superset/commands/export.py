@@ -43,8 +43,8 @@ class ExportModelsCommand(BaseCommand):
         self._models: List[Model] = []
 
     @staticmethod
-    def export(model: Model) -> Iterator[Tuple[str, str]]:
-        raise NotImplementedError("Subclasses MUST implement export")
+    def _export(model: Model) -> Iterator[Tuple[str, str]]:
+        raise NotImplementedError("Subclasses MUST implement _export")
 
     def run(self) -> Iterator[Tuple[str, str]]:
         self.validate()
@@ -58,7 +58,7 @@ class ExportModelsCommand(BaseCommand):
 
         seen = {METADATA_FILE_NAME}
         for model in self._models:
-            for file_name, file_content in self.export(model):
+            for file_name, file_content in self._export(model):
                 if file_name not in seen:
                     yield file_name, file_content
                     seen.add(file_name)

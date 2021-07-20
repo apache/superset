@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/core';
+import { t, css } from '@superset-ui/core';
 import { Select, CreatableSelect, OnPasteSelect } from 'src/components/Select';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
@@ -56,6 +56,7 @@ const propTypes = {
   menuPortalTarget: PropTypes.element,
   menuPosition: PropTypes.string,
   menuPlacement: PropTypes.string,
+  forceOverflow: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -81,7 +82,10 @@ const defaultProps = {
 export default class SelectControl extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = { options: this.getOptions(props) };
+    this.state = {
+      options: this.getOptions(props),
+      value: this.props.value,
+    };
     this.onChange = this.onChange.bind(this);
     this.createMetaSelectAllOption = this.createMetaSelectAllOption.bind(this);
     this.select = null; // pointer to the react-select instance
@@ -101,11 +105,10 @@ export default class SelectControl extends React.PureComponent {
 
   // Beware: This is acting like an on-click instead of an on-change
   // (firing every time user chooses vs firing only if a new option is chosen).
-  onChange(opt) {
-    let optionValue = null;
+  onChange(opt, actionMeta) {
+    let optionValue = this.props.multi ? [] : null;
     if (opt) {
       if (this.props.multi) {
-        optionValue = [];
         opt.forEach(o => {
           // select all options
           if (o.meta === true) {
@@ -123,7 +126,7 @@ export default class SelectControl extends React.PureComponent {
       }
     }
     // will eventually call `exploreReducer`: SET_FIELD_VALUE
-    this.props.onChange(optionValue);
+    this.props.onChange(optionValue, [], actionMeta);
   }
 
   getSelectRef(instance) {
@@ -184,7 +187,7 @@ export default class SelectControl extends React.PureComponent {
   }
 
   isMetaSelectAllOption(o) {
-    return o.meta && o.meta === true && o.label === 'Select All';
+    return o.meta && o.meta === true && o.label === 'Select all';
   }
 
   optionsIncludesSelectAll(o) {
@@ -201,19 +204,12 @@ export default class SelectControl extends React.PureComponent {
     if (this.optionsIncludesSelectAll(options)) {
       remainingOptions -= 1;
     }
-    return remainingOptions;
-  }
-
-  createPlaceholder() {
-    const optionsRemaining = this.optionsRemaining();
-    const placeholder =
-      this.props.placeholder || t('%s option(s)', optionsRemaining);
-    return optionsRemaining ? placeholder : '';
+    return remainingOptions < 0 ? 0 : remainingOptions;
   }
 
   createMetaSelectAllOption() {
-    const option = { label: 'Select All', meta: true };
-    option[this.props.valueKey] = 'Select All';
+    const option = { label: 'Select all', meta: true };
+    option[this.props.valueKey] = 'Select all';
     return option;
   }
 
@@ -225,9 +221,8 @@ export default class SelectControl extends React.PureComponent {
       disabled,
       filterOption,
       isLoading,
+      label,
       menuPlacement,
-      menuPortalTarget,
-      menuPosition,
       name,
       noResultsText,
       onFocus,
@@ -236,12 +231,32 @@ export default class SelectControl extends React.PureComponent {
       value,
       valueKey,
       valueRenderer,
+      forceOverflow,
+      menuPortalTarget,
+      menuPosition,
     } = this.props;
-    const placeholder = this.createPlaceholder();
+
+    const optionsRemaining = this.optionsRemaining();
+    const optionRemaingText = optionsRemaining
+      ? t('%s option(s)', optionsRemaining)
+      : '';
+    const placeholder = this.props.placeholder || optionRemaingText;
     const isMulti = this.props.isMulti || this.props.multi;
+
+    let assistiveText;
+    if (
+      isMulti &&
+      optionsRemaining &&
+      Array.isArray(this.state.value) &&
+      Array.isArray(value) &&
+      !!value.length
+    ) {
+      assistiveText = optionRemaingText;
+    }
 
     const selectProps = {
       autoFocus,
+      'aria-label': label,
       clearable,
       disabled,
       filterOption,
@@ -250,6 +265,7 @@ export default class SelectControl extends React.PureComponent {
       isMulti,
       labelKey: 'label',
       menuPlacement,
+      forceOverflow,
       menuPortalTarget,
       menuPosition,
       name: `select-${name}`,
@@ -257,11 +273,12 @@ export default class SelectControl extends React.PureComponent {
       onChange: this.onChange,
       onFocus,
       optionRenderer,
+      value,
       options: this.state.options,
       placeholder,
+      assistiveText,
       promptTextCreator,
       selectRef: this.getSelectRef,
-      value,
       valueKey,
       valueRenderer,
     };
@@ -277,7 +294,13 @@ export default class SelectControl extends React.PureComponent {
     }
 
     return (
-      <div>
+      <div
+        css={theme => css`
+          .type-label {
+            margin-right: ${theme.gridUnit * 2}px;
+          }
+        `}
+      >
         {this.props.showHeader && <ControlHeader {...this.props} />}
         {isMulti ? (
           <OnPasteSelect {...selectProps} selectWrap={SelectComponent} />

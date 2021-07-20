@@ -14,20 +14,69 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import hashlib
 import re
+import urllib
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 
 import pandas as pd
+from apispec import APISpec
+from apispec.ext.marshmallow import MarshmallowPlugin
+from flask_babel import gettext as __
+from marshmallow import fields, Schema
+from marshmallow.exceptions import ValidationError
 from sqlalchemy import literal_column
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql.expression import ColumnClause
+from typing_extensions import TypedDict
 
+from superset.databases.schemas import encrypted_field_properties, EncryptedField
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.errors import SupersetError, SupersetErrorType
+from superset.sql_parse import Table
 from superset.utils import core as utils
+from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
+
+
+CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
+    "Access Denied: Project User does not have bigquery.jobs.create "
+    + "permission in project (?P<project>.+?)"
+)
+
+TABLE_DOES_NOT_EXIST_REGEX = re.compile(
+    'Table name "(?P<table>.*?)" missing dataset while no default '
+    "dataset is set in the request"
+)
+
+COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
+    r"Unrecognized name: (?P<column>.*?) at \[(?P<location>.+?)\]"
+)
+
+SCHEMA_DOES_NOT_EXIST_REGEX = re.compile(
+    r"bigquery error: 404 Not found: Dataset (?P<dataset>.*?):"
+    r"(?P<schema>.*?) was not found in location"
+)
+
+SYNTAX_ERROR_REGEX = re.compile(
+    'Syntax error: Expected end of input but got identifier "(?P<syntax_error>.+?)"'
+)
+
+ma_plugin = MarshmallowPlugin()
+
+
+class BigQueryParametersSchema(Schema):
+    credentials_info = EncryptedField(
+        required=False, description="Contents of BigQuery JSON credentials.",
+    )
+    query = fields.Dict(required=False)
+
+
+class BigQueryParametersType(TypedDict):
+    credentials_info: Dict[str, Any]
+    query: Dict[str, Any]
 
 
 class BigQueryEngineSpec(BaseEngineSpec):
@@ -38,6 +87,10 @@ class BigQueryEngineSpec(BaseEngineSpec):
     engine = "bigquery"
     engine_name = "Google BigQuery"
     max_column_name_length = 128
+
+    parameters_schema = BigQueryParametersSchema()
+    default_driver = "bigquery"
+    sqlalchemy_uri_placeholder = "bigquery://{project_id}"
 
     # BigQuery doesn't maintain context when running multiple statements in the
     # same cursor, so we need to run all statements at once
@@ -66,12 +119,65 @@ class BigQueryEngineSpec(BaseEngineSpec):
         None: "{col}",
         "PT1S": "{func}({col}, SECOND)",
         "PT1M": "{func}({col}, MINUTE)",
+        "PT5M": "CAST(TIMESTAMP_SECONDS("
+        "5*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 5*60)"
+        ") AS {type})",
+        "PT10M": "CAST(TIMESTAMP_SECONDS("
+        "10*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 10*60)"
+        ") AS {type})",
+        "PT15M": "CAST(TIMESTAMP_SECONDS("
+        "15*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 15*60)"
+        ") AS {type})",
+        "PT0.5H": "CAST(TIMESTAMP_SECONDS("
+        "30*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 30*60)"
+        ") AS {type})",
         "PT1H": "{func}({col}, HOUR)",
         "P1D": "{func}({col}, DAY)",
         "P1W": "{func}({col}, WEEK)",
         "P1M": "{func}({col}, MONTH)",
         "P0.25Y": "{func}({col}, QUARTER)",
         "P1Y": "{func}({col}, YEAR)",
+    }
+
+    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
+        CONNECTION_DATABASE_PERMISSIONS_REGEX: (
+            __(
+                "We were unable to connect to your database. Please "
+                "confirm that your service account has the Viewer "
+                "and Job User roles on the project."
+            ),
+            SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
+            {},
+        ),
+        TABLE_DOES_NOT_EXIST_REGEX: (
+            __(
+                'The table "%(table)s" does not exist. '
+                "A valid table must be used to run this query.",
+            ),
+            SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+            {},
+        ),
+        COLUMN_DOES_NOT_EXIST_REGEX: (
+            __('We can\'t seem to resolve column "%(column)s" at line %(location)s.'),
+            SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+            {},
+        ),
+        SCHEMA_DOES_NOT_EXIST_REGEX: (
+            __(
+                'The schema "%(schema)s" does not exist. '
+                "A valid schema must be used to run this query."
+            ),
+            SupersetErrorType.SCHEMA_DOES_NOT_EXIST_ERROR,
+            {},
+        ),
+        SYNTAX_ERROR_REGEX: (
+            __(
+                "Please check your query for syntax errors at or near "
+                '"%(syntax_error)s". Then, try running your query again.'
+            ),
+            SupersetErrorType.SYNTAX_ERROR,
+            {},
+        ),
     }
 
     @classmethod
@@ -109,7 +215,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
         :param label: Expected expression label
         :return: Conditionally mutated label
         """
-        label_hashed = "_" + hashlib.md5(label.encode("utf-8")).hexdigest()
+        label_hashed = "_" + md5_sha_from_str(label)
 
         # if label starts with number, add underscore as first character
         label_mutated = "_" + label if re.match(r"^\d", label) else label
@@ -131,7 +237,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
         :param label: expected expression label
         :return: truncated label
         """
-        return "_" + hashlib.md5(label.encode("utf-8")).hexdigest()
+        return "_" + md5_sha_from_str(label)
 
     @classmethod
     def normalize_indexes(cls, indexes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -197,16 +303,26 @@ class BigQueryEngineSpec(BaseEngineSpec):
         return "TIMESTAMP_MILLIS({col})"
 
     @classmethod
-    def df_to_sql(cls, df: pd.DataFrame, **kwargs: Any) -> None:
+    def df_to_sql(
+        cls,
+        database: "Database",
+        table: Table,
+        df: pd.DataFrame,
+        to_sql_kwargs: Dict[str, Any],
+    ) -> None:
         """
-        Upload data from a Pandas DataFrame to BigQuery. Calls
-        `DataFrame.to_gbq()` which requires `pandas_gbq` to be installed.
+        Upload data from a Pandas DataFrame to a database.
 
-        :param df: Dataframe with data to be uploaded
-        :param kwargs: kwargs to be passed to to_gbq() method. Requires that `schema`,
-        `name` and `con` are present in kwargs. `name` and `schema` are combined
-         and passed to `to_gbq()` as `destination_table`.
+        Calls `pandas_gbq.DataFrame.to_gbq` which requires `pandas_gbq` to be installed.
+
+        Note this method does not create metadata for the table.
+
+        :param database: The database to upload the data to
+        :param table: The table to upload the data to
+        :param df: The dataframe with data to be uploaded
+        :param to_sql_kwargs: The kwargs to be passed to pandas.DataFrame.to_sql` method
         """
+
         try:
             import pandas_gbq
             from google.oauth2 import service_account
@@ -217,22 +333,82 @@ class BigQueryEngineSpec(BaseEngineSpec):
                 "to upload data to BigQuery"
             )
 
-        if not ("name" in kwargs and "schema" in kwargs and "con" in kwargs):
-            raise Exception("name, schema and con need to be defined in kwargs")
+        if not table.schema:
+            raise Exception("The table schema must be defined")
 
-        gbq_kwargs = {}
-        gbq_kwargs["project_id"] = kwargs["con"].engine.url.host
-        gbq_kwargs["destination_table"] = f"{kwargs.pop('schema')}.{kwargs.pop('name')}"
+        engine = cls.get_engine(database)
+        to_gbq_kwargs = {"destination_table": str(table), "project_id": engine.url.host}
 
-        # add credentials if they are set on the SQLAlchemy Dialect:
-        creds = kwargs["con"].dialect.credentials_info
+        # Add credentials if they are set on the SQLAlchemy dialect.
+        creds = engine.dialect.credentials_info
+
         if creds:
-            credentials = service_account.Credentials.from_service_account_info(creds)
-            gbq_kwargs["credentials"] = credentials
+            to_gbq_kwargs[
+                "credentials"
+            ] = service_account.Credentials.from_service_account_info(creds)
 
-        # Only pass through supported kwargs
+        # Only pass through supported kwargs.
         supported_kwarg_keys = {"if_exists"}
+
         for key in supported_kwarg_keys:
-            if key in kwargs:
-                gbq_kwargs[key] = kwargs[key]
-        pandas_gbq.to_gbq(df, **gbq_kwargs)
+            if key in to_sql_kwargs:
+                to_gbq_kwargs[key] = to_sql_kwargs[key]
+
+        pandas_gbq.to_gbq(df, **to_gbq_kwargs)
+
+    @classmethod
+    def build_sqlalchemy_uri(
+        cls,
+        parameters: BigQueryParametersType,
+        encrypted_extra: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        query = parameters.get("query", {})
+        query_params = urllib.parse.urlencode(query)
+
+        if not encrypted_extra:
+            raise ValidationError("Missing service credentials")
+
+        project_id = encrypted_extra.get("credentials_info", {}).get("project_id")
+
+        if project_id:
+            return f"{cls.default_driver}://{project_id}/?{query_params}"
+
+        raise ValidationError("Invalid service credentials")
+
+    @classmethod
+    def get_parameters_from_uri(
+        cls, uri: str, encrypted_extra: Optional[Dict[str, str]] = None
+    ) -> Any:
+        value = make_url(uri)
+
+        # Building parameters from encrypted_extra and uri
+        if encrypted_extra:
+            return {**encrypted_extra, "query": value.query}
+
+        raise ValidationError("Invalid service credentials")
+
+    @classmethod
+    def validate_parameters(
+        cls, parameters: BigQueryParametersType  # pylint: disable=unused-argument
+    ) -> List[SupersetError]:
+        return []
+
+    @classmethod
+    def parameters_json_schema(cls) -> Any:
+        """
+        Return configuration parameters as OpenAPI.
+        """
+        if not cls.parameters_schema:
+            return None
+
+        spec = APISpec(
+            title="Database Parameters",
+            version="1.0.0",
+            openapi_version="3.0.0",
+            plugins=[ma_plugin],
+        )
+
+        ma_plugin.init_spec(spec)
+        ma_plugin.converter.add_attribute_function(encrypted_field_properties)
+        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
+        return spec.to_dict()["components"]["schemas"][cls.__name__]

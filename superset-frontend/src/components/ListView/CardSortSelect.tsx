@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { styled, withTheme, SupersetThemeProps } from '@superset-ui/core';
+import { styled, withTheme, SupersetThemeProps, t } from '@superset-ui/core';
 import { PartialThemeConfig, Select } from 'src/components/Select';
 import { CardSortSelectOption, FetchDataConfig, SortColumn } from './types';
 import { filterSelectStyles } from './utils';
@@ -31,7 +31,7 @@ const SortTitle = styled.label`
 const SortContainer = styled.div`
   display: inline-flex;
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  padding: ${({ theme }) => theme.gridUnit * 3}px 0 0 0;
+  padding-top: ${({ theme }) => theme.gridUnit}px;
   text-align: left;
 `;
 interface CardViewSelectSortProps {
@@ -100,7 +100,7 @@ export const CardSortSelect = ({
 
   return (
     <SortContainer>
-      <SortTitle>Sort:</SortTitle>
+      <SortTitle>{t('Sort:')}</SortTitle>
       <StyledCardSortSelect
         onChange={(value: CardSortSelectOption) => handleOnChange(value)}
         options={options}

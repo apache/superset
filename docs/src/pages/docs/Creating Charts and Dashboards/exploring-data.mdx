@@ -21,24 +21,26 @@ following information about each flight is given:
 - Information about the origin and destination.
 - The distance between the origin and destination, in kilometers (km).
 
-### Enabling Upload a CSV Functionality
+### Enabling Data Upload Functionality
 
-You may need to enable the functionality to upload a CSV to your database. The following section
+You may need to enable the functionality to upload a CSV or Excel file to your database. The following section
 explains how to enable this functionality for the examples database.
 
-In the top menu, select **Sources ‣ Databases**. Find the **examples** database in the list and
-select the edit record button.
+In the top menu, select **Data ‣ Databases**. Find the **examples** database in the list and
+select the **Edit** button.
 
 <img src="/images/edit-record.png" />
 
-Within the **Edit Database** page, check the **Allow Csv Upload** checkbox. Save by selecting
-**Save** at the bottom of the page.
+In the resulting modal window, switch to the **Extra** tab and
+tick the checkbox for **Allow Data Upload**. End by clicking the **Save** button.
+
+<img src="/images/add-data-upload.png" />
 
 ### Loading CSV Data
 
 Download the CSV dataset to your computer from
 [Github](https://raw.githubusercontent.com/apache-superset/examples-data/master/tutorial_flights.csv).
-In the Superset menu, select **Sources > Upload a CSV**.
+In the Superset menu, select **Data ‣ Upload a CSV**.
 
 <img src="/images/upload_a_csv.png" />
 
@@ -54,40 +56,28 @@ Leaving all the other options in their default settings, select **Save** at the 
 
 ### Table Visualization
 
-In this section, we’ll create our first visualization: a table to show the number of flights and
-cost per travel class.
+You should now see _tutorial_flights_ as a dataset in the **Datasets** tab. Click on the entry to
+launch an Explore workflow using this dataset.
 
-To create a new chart, select **New > Chart**.
+In this section, we'll create a table visualization
+to show the number of flights and cost per travel class.
 
-<img src="/images/add_new_chart.png" />
-
-Once in the **Create a new chart** form, select _tutorial_flights_ from the **Chose a datasource**
-dropdown.
-
-<img src="/images/chose_a_datasource.png" />
-
-Next, select the visualization type as **Table**.
-
-<img src="/images/select_table_visualization_type.png" />
-
-Then, select **Create new chart** to go into the chart view.
-
-By default, Apache Superset only shows the last week of data: in our example, we want to look at all
-the data in the dataset. No problem - within the **Time** section, remove the filter on **Time
-range** by selecting **Last week** then changing the selection to **No filter**, with a final **OK**
-to confirm your selection.
+By default, Apache Superset only shows the last week of data. In our example, we want to visualize all
+of the data in the dataset. Click the **Time ‣ Time Range** section and change
+the **Range Type** to **No Filter**.
 
 <img src="/images/no_filter_on_time_filter.png" />
+
+Click **Apply** to save.
 
 Now, we want to specify the rows in our table by using the **Group by** option. Since in this
 example, we want to understand different Travel Classes, we select **Travel Class** in this menu.
 
-Next, we can specify the metrics we would like to see in our table with the **Metrics**option.
-Count(\*), which represents the number of rows in the table (in this case corresponding to the
-number of flights since we have a row per flight), is already there. To add cost, within
-**Metrics**, select **Cost**.
+Next, we can specify the metrics we would like to see in our table with the **Metrics** option.
 
-**Save** the default aggregation option, which is to sum the column.
+- `COUNT(*)`, which represents the number of rows in the table
+(in this case, quantity of flights in each Travel Class)
+- `SUM(Cost)`, which represents the total cost spent by each Travel Class
 
 <img src="/images/sum_cost_column.png" />
 
@@ -95,12 +85,13 @@ Finally, select **Run Query** to see the results of the table.
 
 <img src="/images/tutorial_table.png" />
 
-Congratulations, you have created your first visualization in Apache Superset!
+To save the visualization, click on **Save** in the top left of the screen. In the following modal,
 
-To save the visualization, click on **Save** in the top left of the screen. Select the ** Save as**
-option, and enter the chart name as Tutorial Table (you will be able to find it again through the
-**Charts** screen, accessible in the top menu). Similarly, select **Add to new dashboard** and enter
-Tutorial Dashboard. Finally, select **Save & go to dashboard**.
+- Select the **Save as**
+option and enter the chart name as Tutorial Table (you will be able to find it again through the
+**Charts** screen, accessible in the top menu).
+- Select **Add To Dashboard** and enter
+Tutorial Dashboard. Finally, select **Save & Go To Dashboard**.
 
 <img src="/images/save_tutorial_table.png" />
 
@@ -124,10 +115,12 @@ In this section, we will extend our analysis using a more complex visualization,
 end of this section, you will have created a table that shows the monthly spend on flights for the
 first six months, by department, by travel class.
 
-As before, create a new visualization by selecting **New > Chart** on the top menu. Choose
+Create a new chart by selecting **+ ‣ Chart** from the top right corner. Choose
 tutorial_flights again as a datasource, then click on the visualization type to get to the
 visualization menu. Select the **Pivot Table** visualization (you can filter by entering text in the
-search box) and then **Create a new chart**.
+search box) and then **Create New Chart**.
+
+<img src="/images/create_pivot.png" />
 
 In the **Time** section, keep the Time Column as Travel Date (this is selected automatically as we
 only have one time column in our dataset). Then select Time Grain to be month as having daily data
@@ -151,22 +144,18 @@ see some data!
 
 <img src="/images/tutorial_pivot_table.png" />
 
-You should see months in the rows and Department and Travel Class in the columns. To get this in our
-dashboard, select Save, name the chart Tutorial Pivot and using **Add chart to existing dashboard**
-select **Tutorial Dashboard**, and then finally **Save & go to dashboard**.
+You should see months in the rows and Department and Travel Class in the columns. Publish this chart
+to your existing Tutorial Dashboard you created earlier.
 
 ### Line Chart
 
 In this section, we are going to create a line chart to understand the average price of a ticket by
-month across the entire dataset. As before, select **New > Chart**, and then tutorial_flights as the
-datasource and Line Chart as the visualization type.
+month across the entire dataset.
 
 In the Time section, as before, keep the Time Column as Travel Date and Time Grain as month but this
 time for the Time range select No filter as we want to look at entire dataset.
 
-Within Metrics, remove the default COUNT(\*) and add Cost. This time, we want to change how this
-column is aggregated to show the mean value: we can do this by selecting AVG in the aggregate
-dropdown.
+Within Metrics, remove the default `COUNT(*)` metric and instead add `AVG(Cost)`, to show the mean value.
 
 <img src="/images/average_aggregate_for_cost.png" />
 
@@ -187,8 +176,7 @@ and Y Axis Label.
 
 <img src="/images/tutorial_line_chart.png" />
 
-Once you’re done, Save as Tutorial Line Chart, use **Add chart to existing dashboard** to add this
-chart to the previous ones on the Tutorial Dashboard and then **Save & go to dashboard**.
+Once you’re done, publish the chart in your Tutorial Dashboard.
 
 ### Markup
 
@@ -216,8 +204,8 @@ To exit, select any other part of the dashboard. Finally, don’t forget to keep
 In this section, you will learn how to add a filter to your dashboard. Specifically, we will create
 a filter that allows us to look at those flights that depart from a particular country.
 
-A filter box visualization can be created as any other visualization by selecting **New > Chart**,
-and then tutorial_flights as the datasource and Filter Box as the visualization type.
+A filter box visualization can be created as any other visualization by selecting **+ ‣ Chart**,
+and then _tutorial_flights_ as the datasource and Filter Box as the visualization type.
 
 First of all, in the **Time** section, remove the filter from the Time range selection by selecting
 No filter.

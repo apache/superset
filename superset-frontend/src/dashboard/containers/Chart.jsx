@@ -26,7 +26,7 @@ import {
 } from '../actions/dashboardState';
 import { updateComponents } from '../actions/dashboardLayout';
 import { changeFilter } from '../actions/dashboardFilters';
-import { addDangerToast } from '../../messageToasts/actions';
+import { addSuccessToast, addDangerToast } from '../../messageToasts/actions';
 import { refreshChart } from '../../chart/chartAction';
 import { logEvent } from '../../logger/actions';
 import {
@@ -43,36 +43,54 @@ function mapStateToProps(
     charts: chartQueries,
     dashboardInfo,
     dashboardState,
+    dashboardLayout,
+    dataMask,
     datasources,
     sliceEntities,
+    nativeFilters,
+    common,
   },
   ownProps,
 ) {
   const { id } = ownProps;
   const chart = chartQueries[id] || {};
+  const datasource =
+    (chart && chart.form_data && datasources[chart.form_data.datasource]) || {};
   const { colorScheme, colorNamespace } = dashboardState;
+
+  // note: this method caches filters if possible to prevent render cascades
+  const formData = getFormDataWithExtraFilters({
+    layout: dashboardLayout.present,
+    chart,
+    // eslint-disable-next-line camelcase
+    chartConfiguration: dashboardInfo.metadata?.chart_configuration,
+    charts: chartQueries,
+    filters: getAppliedFilterValues(id),
+    colorScheme,
+    colorNamespace,
+    sliceId: id,
+    nativeFilters,
+    dataMask,
+  });
+
+  formData.dashboardId = dashboardInfo.id;
 
   return {
     chart,
-    datasource:
-      (chart && chart.form_data && datasources[chart.form_data.datasource]) ||
-      {},
+    datasource,
     slice: sliceEntities.slices[id],
     timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
     filters: getActiveFilters() || EMPTY_FILTERS,
-    // note: this method caches filters if possible to prevent render cascades
-    formData: getFormDataWithExtraFilters({
-      chart,
-      filters: getAppliedFilterValues(id),
-      colorScheme,
-      colorNamespace,
-      sliceId: id,
-    }),
+    formData,
     editMode: dashboardState.editMode,
     isExpanded: !!dashboardState.expandedSlices[id],
     supersetCanExplore: !!dashboardInfo.superset_can_explore,
+    supersetCanShare: !!dashboardInfo.superset_can_share,
     supersetCanCSV: !!dashboardInfo.superset_can_csv,
     sliceCanEdit: !!dashboardInfo.slice_can_edit,
+    ownState: dataMask[id]?.ownState,
+    filterState: dataMask[id]?.filterState,
+    maxRows: common.conf.SQL_MAX_ROW,
   };
 }
 
@@ -80,6 +98,7 @@ function mapDispatchToProps(dispatch) {
   return bindActionCreators(
     {
       updateComponents,
+      addSuccessToast,
       addDangerToast,
       toggleExpandSlice,
       changeFilter,

@@ -59,10 +59,4 @@ describe('Button', () => {
 
     expect(wrapper.find(Button).length).toEqual(permutationCount);
   });
-
-  // test things NOT in the storybook!
-  it('renders custom button styles without melting', () => {
-    wrapper = mount(<Button buttonStyle="foobar" />);
-    expect(wrapper.find('Button.btn-foobar')).toHaveLength(1);
-  });
 });

@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState, useCallback } from 'react';
-import { SupersetClient, t, styled } from '@superset-ui/core';
+import React, { useMemo, useState, useCallback, ReactElement } from 'react';
+import { SupersetClient, t, styled, useTheme } from '@superset-ui/core';
 import moment from 'moment';
 import {
   createFetchRelated,
@@ -28,21 +28,21 @@ import {
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import { Popover } from 'src/common/components';
+import Popover from 'src/components/Popover';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import ListView, {
   Filters,
-  FilterOperators,
+  FilterOperator,
   ListViewProps,
 } from 'src/components/ListView';
-import Icon, { IconName } from 'src/components/Icon';
-import { Tooltip } from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { DATETIME_WITH_TIME_ZONE, TIME_WITH_MS } from 'src/constants';
 import { QueryObject, QueryObjectColumns } from 'src/views/CRUD/types';
 
+import Icons from 'src/components/Icons';
 import QueryPreviewModal from './QueryPreviewModal';
 
 const PAGE_SIZE = 25;
@@ -80,31 +80,23 @@ const StyledPopoverItem = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
 `;
 
-const StatusIcon = styled(Icon)<{ status: string }>`
-  color: ${({ status, theme }) => {
-    if (status === 'success') return theme.colors.success.base;
-    if (status === 'failed') return theme.colors.error.base;
-    if (status === 'running') return theme.colors.primary.base;
-    if (status === 'offline') return theme.colors.grayscale.light1;
-
-    return theme.colors.grayscale.base;
-  }};
-`;
-
 function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
   const {
     state: { loading, resourceCount: queryCount, resourceCollection: queries },
     fetchData,
   } = useListViewResource<QueryObject>(
     'query',
-    t('Query History'),
+    t('Query history'),
     addDangerToast,
     false,
   );
 
-  const [queryCurrentlyPreviewing, setQueryCurrentlyPreviewing] = useState<
-    QueryObject
-  >();
+  const [
+    queryCurrentlyPreviewing,
+    setQueryCurrentlyPreviewing,
+  ] = useState<QueryObject>();
+
+  const theme = useTheme();
 
   const handleQueryPreview = useCallback(
     (id: number) => {
@@ -125,7 +117,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
   );
 
   const menuData: SubMenuProps = {
-    activeChild: 'Query History',
+    activeChild: 'Query history',
     ...commonMenuData,
   };
 
@@ -138,44 +130,48 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
             original: { status },
           },
         }: any) => {
-          const statusConfig = {
-            name: '',
+          const statusConfig: {
+            name: ReactElement | null;
+            label: string;
+          } = {
+            name: null,
             label: '',
-            status: '',
           };
           if (status === 'success') {
-            statusConfig.name = 'check';
+            statusConfig.name = (
+              <Icons.Check iconColor={theme.colors.success.base} />
+            );
             statusConfig.label = t('Success');
-            statusConfig.status = 'success';
-          }
-          if (status === 'failed' || status === 'stopped') {
-            statusConfig.name = 'x-small';
+          } else if (status === 'failed' || status === 'stopped') {
+            statusConfig.name = (
+              <Icons.XSmall
+                iconColor={
+                  status === 'failed'
+                    ? theme.colors.error.base
+                    : theme.colors.grayscale.base
+                }
+              />
+            );
             statusConfig.label = t('Failed');
-            statusConfig.status = 'failed';
-          }
-          if (status === 'running') {
-            statusConfig.name = 'running';
+          } else if (status === 'running') {
+            statusConfig.name = (
+              <Icons.Running iconColor={theme.colors.primary.base} />
+            );
             statusConfig.label = t('Running');
-            statusConfig.status = 'running';
-          }
-          if (status === 'timed_out') {
-            statusConfig.name = 'offline';
+          } else if (status === 'timed_out') {
+            statusConfig.name = (
+              <Icons.Offline iconColor={theme.colors.grayscale.light1} />
+            );
             statusConfig.label = t('Offline');
-            statusConfig.status = 'offline';
-          }
-          if (status === 'scheduled' || status === 'pending') {
-            statusConfig.name = 'queued';
+          } else if (status === 'scheduled' || status === 'pending') {
+            statusConfig.name = (
+              <Icons.Queued iconColor={theme.colors.grayscale.base} />
+            );
             statusConfig.label = t('Scheduled');
-            statusConfig.status = 'queued';
           }
           return (
             <Tooltip title={statusConfig.label} placement="bottom">
-              <span>
-                <StatusIcon
-                  name={statusConfig.name as IconName}
-                  status={statusConfig.status}
-                />
-              </span>
+              <span>{statusConfig.name}</span>
             </Tooltip>
           );
         },
@@ -221,7 +217,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
       },
       {
         accessor: QueryObjectColumns.tab_name,
-        Header: t('Tab Name'),
+        Header: t('Tab name'),
         size: 'xl',
       },
       {
@@ -284,7 +280,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
           row: {
             original: { user },
           },
-        }: any) => `${user.first_name} ${user.last_name}`,
+        }: any) => (user ? `${user.first_name} ${user.last_name}` : ''),
       },
       {
         accessor: QueryObjectColumns.user,
@@ -298,20 +294,18 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.sql,
         Header: t('SQL'),
-        Cell: ({ row: { original, id } }: any) => {
-          return (
-            <div
-              tabIndex={0}
-              role="button"
-              data-test={`open-sql-preview-${id}`}
-              onClick={() => setQueryCurrentlyPreviewing(original)}
-            >
-              <StyledSyntaxHighlighter language="sql" style={github}>
-                {shortenSQL(original.sql, SQL_PREVIEW_MAX_LINES)}
-              </StyledSyntaxHighlighter>
-            </div>
-          );
-        },
+        Cell: ({ row: { original, id } }: any) => (
+          <div
+            tabIndex={0}
+            role="button"
+            data-test={`open-sql-preview-${id}`}
+            onClick={() => setQueryCurrentlyPreviewing(original)}
+          >
+            <StyledSyntaxHighlighter language="sql" style={github}>
+              {shortenSQL(original.sql, SQL_PREVIEW_MAX_LINES)}
+            </StyledSyntaxHighlighter>
+          </div>
+        ),
       },
       {
         Header: t('Actions'),
@@ -321,15 +315,13 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
           row: {
             original: { id },
           },
-        }: any) => {
-          return (
-            <Tooltip title={t('Open query in SQL Lab')} placement="bottom">
-              <a href={`/superset/sqllab?queryId=${id}`}>
-                <Icon name="full" />
-              </a>
-            </Tooltip>
-          );
-        },
+        }: any) => (
+          <Tooltip title={t('Open query in SQL Lab')} placement="bottom">
+            <a href={`/superset/sqllab?queryId=${id}`}>
+              <Icons.Full iconColor={theme.colors.grayscale.base} />
+            </a>
+          </Tooltip>
+        ),
       },
     ],
     [],
@@ -341,7 +333,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         Header: t('Database'),
         id: 'database',
         input: 'select',
-        operator: FilterOperators.relationOneMany,
+        operator: FilterOperator.relationOneMany,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'query',
@@ -358,7 +350,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         Header: t('State'),
         id: 'status',
         input: 'select',
-        operator: FilterOperators.equals,
+        operator: FilterOperator.equals,
         unfilteredLabel: 'All',
         fetchSelects: createFetchDistinct(
           'query',
@@ -375,7 +367,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         Header: t('User'),
         id: 'user',
         input: 'select',
-        operator: FilterOperators.relationOneMany,
+        operator: FilterOperator.relationOneMany,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'query',
@@ -389,16 +381,16 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         paginate: true,
       },
       {
-        Header: t('Time Range'),
+        Header: t('Time range'),
         id: 'start_time',
         input: 'datetime_range',
-        operator: FilterOperators.between,
+        operator: FilterOperator.between,
       },
       {
         Header: t('Search by query text'),
         id: 'sql',
         input: 'search',
-        operator: FilterOperators.contains,
+        operator: FilterOperator.contains,
       },
     ],
     [addDangerToast],

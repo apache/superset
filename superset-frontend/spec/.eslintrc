@@ -21,8 +21,14 @@
   "env": {
     "jest/globals": true
   },
+  "settings": {
+    "jest": {
+      "version": "detect"
+    }
+  },
   "extends": [
     "plugin:jest/recommended",
+    "plugin:jest-dom/recommended",
     "plugin:testing-library/react"
   ],
   "rules": {

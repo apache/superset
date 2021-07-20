@@ -42,12 +42,12 @@ MAPBOX_API_KEY = ''
 ```
 
 All the parameters and default values defined in
-[https://github.com/apache/incubator-superset/blob/master/superset/config.py](https://github.com/apache/incubator-superset/blob/master/superset/config.py)
+[https://github.com/apache/superset/blob/master/superset/config.py](https://github.com/apache/superset/blob/master/superset/config.py)
 can be altered in your local `superset_config.py`. Administrators will want to read through the file
 to understand what can be configured locally as well as the default values in place.
 
 Since `superset_config.py` acts as a Flask configuration module, it can be used to alter the
-settings Flask itself, as well as Flask extensions like `flask-wtf`, `flask-cache`, `flask-migrate`,
+settings Flask itself, as well as Flask extensions like `flask-wtf`, `flask-caching`, `flask-migrate`,
 and `flask-appbuilder`. Flask App Builder, the web framework used by Superset, offers many
 configuration settings. Please consult the
 [Flask App Builder Documentation](https://flask-appbuilder.readthedocs.org/en/latest/config.html)
@@ -113,6 +113,8 @@ RequestHeader set X-Forwarded-Proto "https"
 Beyond FAB supported providers (Github, Twitter, LinkedIn, Google, Azure, etc), its easy to connect
 Superset with other OAuth2 Authorization Server implementations that support “code” authorization.
 
+Make sure the pip package [`Authlib`](https://authlib.org/) is installed on the webserver.
+
 First, configure authorization in Superset `superset_config.py`.
 
 ```python
@@ -122,9 +124,9 @@ OAUTH_PROVIDERS = [
         'token_key':'access_token', # Name of the token in the response of access_token_url
         'icon':'fa-address-card',   # Icon for the provider
         'remote_app': {
-            'consumer_key':'myClientId',  # Client Id (Identify Superset application)
-            'consumer_secret':'MySecret', # Secret for this Client Id (Identify Superset application)
-            'request_token_params':{
+            'client_id':'myClientId',  # Client Id (Identify Superset application)
+            'client_secret':'MySecret', # Secret for this Client Id (Identify Superset application)
+            'client_kwargs':{
                 'scope': 'read'               # Scope for the Authorization
             },
             'access_token_method':'POST',    # HTTP Method to call access_token_url
@@ -134,7 +136,7 @@ OAUTH_PROVIDERS = [
             'access_token_headers':{    # Additional headers for calls to access_token_url
                 'Authorization': 'Basic Base64EncodedClientIdAndSecret'
             },
-            'base_url':'https://myAuthorizationServer/oauth2AuthorizationServer/',
+            'api_base_url':'https://myAuthorizationServer/oauth2AuthorizationServer/',
             'access_token_url':'https://myAuthorizationServer/oauth2AuthorizationServer/token',
             'authorize_url':'https://myAuthorizationServer/oauth2AuthorizationServer/authorize'
         }
@@ -152,6 +154,7 @@ Then, create a `CustomSsoSecurityManager` that extends `SupersetSecurityManager`
 `oauth_user_info`:
 
 ```python
+import logging
 from superset.security import SupersetSecurityManager
 
 class CustomSsoSecurityManager(SupersetSecurityManager):
@@ -175,6 +178,29 @@ from custom_sso_security_manager import CustomSsoSecurityManager
 CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
 ```
 
+**Notes**
+
+- The redirect URL will be `https://<superset-webserver>/oauth-authorized/<provider-name>`
+  When configuring an OAuth2 authorization provider if needed. For instance, the redirect URL will
+  be `https://<superset-webserver>/oauth-authorized/egaSSO` for the above configuration.
+
+- If an OAuth2 authorization server supports OpenID Connect 1.0, you could configure its configuration
+  document URL only without providing `api_base_url`, `access_token_url`, `authorize_url` and other
+  required options like user info endpoint, jwks uri etc. For instance:
+  ```python
+  OAUTH_PROVIDERS = [
+    {   'name':'egaSSO',
+        'token_key':'access_token', # Name of the token in the response of access_token_url
+        'icon':'fa-address-card',   # Icon for the provider
+        'remote_app': {
+            'client_id':'myClientId',  # Client Id (Identify Superset application)
+            'client_secret':'MySecret', # Secret for this Client Id (Identify Superset application)
+            'server_metadata_url': 'https://myAuthorizationServer/.well-known/openid-configuration'
+        }
+    }
+  ]
+  ```
+
 ### Feature Flags
 
 To support a diverse set of users, Superset has some features that are not enabled by default. For
@@ -185,28 +211,18 @@ functionalities in Superset, but will be only affected by a subset of users.
 You can enable or disable features with flag from `superset_config.py`:
 
 ```python
-DEFAULT_FEATURE_FLAGS = {
+FEATURE_FLAGS = {
     'CLIENT_CACHE': False,
     'ENABLE_EXPLORE_JSON_CSRF_PROTECTION': False,
     'PRESTO_EXPAND_DATA': False,
 }
 ```
 
-Here is a list of flags and descriptions:
-
-- `ENABLE_EXPLORE_JSON_CSRF_PROTECTION`: For some security concerns, you may need to enforce CSRF
-  protection on all query request to the `explore_json` endpoint. When
-  `ENABLE_EXPLORE_JSON_CSRF_PROTECTION` is set to true, your users cannot make GET request to
-  `explore_json`. The default value for this feature is `False` and `explore_json` will accept both
-  GET and POST request. See [PR 7935](https://github.com/apache/incubator-superset/pull/7935) for
-  more details.
-
-- `PRESTO_EXPAND_DATA`: When this feature is enabled, nested types in Presto will be expanded into
-  extra columns and / or arrays. This is experimental, and doesn’t work with all nested types.
+A current list of feature flags can be found in `RESOURCES/FEATURE_FLAGS.md`
 
 ### SIP 15
 
-[Superset Improvement Proposal 15](https://github.com/apache/incubator-superset/issues/6360) aims to
+[Superset Improvement Proposal 15](https://github.com/apache/superset/issues/6360) aims to
 ensure that time intervals are handled in a consistent and transparent manner for both the Druid and
 SQLAlchemy connectors.
 

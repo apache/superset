@@ -20,10 +20,11 @@ import React from 'react';
 import { shallow } from 'enzyme';
 
 import { ColumnTypeLabel } from '@superset-ui/chart-controls';
+import { GenericDataType } from '@superset-ui/core';
 
 describe('ColumnOption', () => {
   const defaultProps = {
-    type: 'string',
+    type: GenericDataType.STRING,
   };
 
   const props = { ...defaultProps };
@@ -44,12 +45,16 @@ describe('ColumnOption', () => {
     expect(lbl.first().text()).toBe('ABC');
   });
   it('int type shows # icon', () => {
-    const lbl = getWrapper({ type: 'int(164)' }).find('.type-label');
+    const lbl = getWrapper({
+      type: GenericDataType.NUMERIC,
+    }).find('.type-label');
     expect(lbl).toHaveLength(1);
     expect(lbl.first().text()).toBe('#');
   });
   it('bool type shows T/F icon', () => {
-    const lbl = getWrapper({ type: 'BOOL' }).find('.type-label');
+    const lbl = getWrapper({
+      type: GenericDataType.BOOLEAN,
+    }).find('.type-label');
     expect(lbl).toHaveLength(1);
     expect(lbl.first().text()).toBe('T/F');
   });
@@ -64,7 +69,9 @@ describe('ColumnOption', () => {
     expect(lbl.first().text()).toBe('?');
   });
   it('datetime type displays', () => {
-    const lbl = getWrapper({ type: 'datetime' }).find('.fa-clock-o');
+    const lbl = getWrapper({
+      type: GenericDataType.TEMPORAL,
+    }).find('.fa-clock-o');
     expect(lbl).toHaveLength(1);
   });
 });

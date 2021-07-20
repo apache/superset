@@ -38,7 +38,7 @@ class ExportSavedQueriesCommand(ExportModelsCommand):
     not_found = SavedQueryNotFoundError
 
     @staticmethod
-    def export(model: SavedQuery) -> Iterator[Tuple[str, str]]:
+    def _export(model: SavedQuery) -> Iterator[Tuple[str, str]]:
         # build filename based on database, optional schema, and label
         database_slug = secure_filename(model.database.database_name)
         schema_slug = secure_filename(model.schema)

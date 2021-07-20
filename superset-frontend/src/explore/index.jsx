@@ -25,7 +25,6 @@ import { initFeatureFlags } from '../featureFlags';
 import { initEnhancer } from '../reduxUtils';
 import getInitialState from './reducers/getInitialState';
 import rootReducer from './reducers/index';
-
 import App from './App';
 
 const exploreViewContainer = document.getElementById('app');
@@ -34,7 +33,6 @@ const bootstrapData = JSON.parse(
 );
 initFeatureFlags(bootstrapData.common.feature_flags);
 const initState = getInitialState(bootstrapData);
-
 const store = createStore(
   rootReducer,
   initState,

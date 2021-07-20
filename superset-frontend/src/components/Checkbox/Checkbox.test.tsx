@@ -24,8 +24,10 @@ import {
   styledShallow as shallow,
 } from 'spec/helpers/theming';
 
-import Checkbox from '.';
-import { CheckboxChecked, CheckboxUnchecked } from '../CheckboxIcons';
+import Checkbox, {
+  CheckboxChecked,
+  CheckboxUnchecked,
+} from 'src/components/Checkbox';
 
 describe('Checkbox', () => {
   let wrapper: ReactWrapper;
@@ -43,7 +45,7 @@ describe('Checkbox', () => {
       const shallowWrapper = shallow(
         <Checkbox style={{}} checked={false} onChange={() => true} />,
       );
-      expect(shallowWrapper.dive().dive().find(CheckboxUnchecked)).toExist();
+      expect(shallowWrapper.dive().find(CheckboxUnchecked)).toExist();
     });
   });
 
@@ -52,7 +54,7 @@ describe('Checkbox', () => {
       const shallowWrapper = shallow(
         <Checkbox style={{}} checked onChange={() => true} />,
       );
-      expect(shallowWrapper.dive().dive().find(CheckboxChecked)).toExist();
+      expect(shallowWrapper.dive().find(CheckboxChecked)).toExist();
     });
   });
 
@@ -67,9 +69,9 @@ describe('Checkbox', () => {
 
   it('renders custom Checkbox styles without melting', () => {
     wrapper = mount(
-      <Checkbox onChange={() => true} checked={false} style={{ foo: 'foo' }} />,
+      <Checkbox onChange={() => true} checked={false} style={{ opacity: 1 }} />,
     );
     expect(wrapper.find('Checkbox')).toExist();
-    expect(wrapper.find('Checkbox')).toHaveStyle({ foo: 'foo' });
+    expect(wrapper.find('Checkbox')).toHaveStyle({ opacity: 1 });
   });
 });

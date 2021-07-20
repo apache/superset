@@ -18,7 +18,7 @@
  */
 import React, { useState } from 'react';
 import { styled, t } from '@superset-ui/core';
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import cx from 'classnames';
 import Button from 'src/components/Button';
 import withToasts, { ToastProps } from 'src/messageToasts/enhancers/withToasts';
@@ -116,7 +116,7 @@ function QueryPreviewModal({
       <StyledModal
         onHide={onHide}
         show={show}
-        title={t('Query Preview')}
+        title={t('Query preview')}
         footer={[
           <Button
             data-test="previous-query"
@@ -144,7 +144,7 @@ function QueryPreviewModal({
           </Button>,
         ]}
       >
-        <QueryTitle>{t('Tab Name')}</QueryTitle>
+        <QueryTitle>{t('Tab name')}</QueryTitle>
         <QueryLabel>{query.tab_name}</QueryLabel>
         <QueryViewToggle>
           <TabButton

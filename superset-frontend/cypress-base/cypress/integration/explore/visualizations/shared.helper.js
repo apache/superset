@@ -100,7 +100,7 @@ export const MAX_STATE = {
 export const SIMPLE_FILTER = {
   expressionType: 'SIMPLE',
   subject: 'name',
-  operator: 'in',
+  operator: 'IN',
   comparator: ['Aaron', 'Amy', 'Andrea'],
   clause: 'WHERE',
   sqlExpression: null,

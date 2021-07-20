@@ -28,7 +28,7 @@ spec:
       name: {{ template "superset.name" . }}-init-db
     spec:
       securityContext:
-        runAsUser: 0 # Needed in order to allow pip install to work in bootstrap
+        runAsUser: {{ .Values.runAsUser }}
       {{- if .Values.init.initContainers }}
       initContainers:
       {{-  tpl (toYaml .Values.init.initContainers) . | nindent 6 }}
@@ -46,15 +46,35 @@ spec:
         envFrom:
           - secretRef:
               name: {{ tpl .Values.envFromSecret . }}
+          {{- range .Values.envFromSecrets }}
+          - secretRef:
+              name: {{ tpl . $ }}
+          {{- end }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         volumeMounts:
           - name: superset-config
             mountPath: {{ .Values.configMountPath | quote }}
             readOnly: true
+        {{- if .Values.extraConfigs }}
+          - name: superset-extra-config
+            mountPath: {{ .Values.extraConfigMountPath | quote }}
+            readOnly: true
+        {{- end }}
         command: {{  tpl (toJson .Values.init.command) . }}
+        resources:
+{{ toYaml .Values.init.resources | indent 10 }}
+{{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.imagePullSecrets | indent 8 }}
+      {{- end }}
       volumes:
         - name: superset-config
           secret:
             secretName: {{ tpl .Values.configFromSecret . }}
+        {{- if .Values.extraConfigs }}
+        - name: superset-extra-config
+          configMap:
+            name: {{ template "superset.fullname" . }}-extra-config
+        {{- end }}
       restartPolicy: Never
 {{- end }}

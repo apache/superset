@@ -21,18 +21,34 @@ import { addDecorator } from '@storybook/react';
 import { jsxDecorator } from 'storybook-addon-jsx';
 import { addParameters } from '@storybook/react';
 import { withPaddings } from 'storybook-addon-paddings';
-
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
+import thunk from 'redux-thunk';
+import { Provider } from 'react-redux';
+import reducerIndex from 'spec/helpers/reducerIndex';
 
-import '../src/theme.ts';
+import 'src/theme.ts';
 import './storybook.css';
 
-const themeDecorator = storyFn => (
-  <ThemeProvider theme={supersetTheme}>{storyFn()}</ThemeProvider>
+const store = createStore(
+  combineReducers(reducerIndex),
+  {},
+  compose(applyMiddleware(thunk)),
+);
+
+const themeDecorator = Story => (
+  <ThemeProvider theme={supersetTheme}>{<Story />}</ThemeProvider>
+);
+
+const providerDecorator = Story => (
+  <Provider store={store}>
+    <Story />
+  </Provider>
 );
 
 addDecorator(jsxDecorator);
 addDecorator(themeDecorator);
+addDecorator(providerDecorator);
 addDecorator(withPaddings);
 
 addParameters({
@@ -42,4 +58,9 @@ addParameters({
     { name: 'Medium', value: '32px', default: true },
     { name: 'Large', value: '64px' },
   ],
+  options: {
+    storySort: {
+      method: 'alphabetical',
+    },
+  },
 });

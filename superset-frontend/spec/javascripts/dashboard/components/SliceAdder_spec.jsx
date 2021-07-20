@@ -155,10 +155,10 @@ describe('SliceAdder', () => {
     });
 
     it('handleSelect', () => {
-      const newSortBy = 1;
+      const newSortBy = { value: 'viz_type' };
       wrapper.instance().handleSelect(newSortBy);
       expect(spy.calledOnce).toBe(true);
-      expect(spy.lastCall.args[1]).toBe(newSortBy);
+      expect(spy.lastCall.args[1]).toBe(newSortBy.value);
     });
 
     it('handleKeyPress', () => {

@@ -25,7 +25,7 @@ from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __, lazy_gettext as _
 
 from superset import db, event_logger, is_feature_enabled
-from superset.constants import RouteMethod
+from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.dashboard import Dashboard as DashboardModel
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
@@ -46,6 +46,9 @@ class DashboardModelView(
     datamodel = SQLAInterface(DashboardModel)
     # TODO disable api_read and api_delete (used by cypress)
     # once we move to ChartRestModelApi
+    class_permission_name = "Dashboard"
+    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
+
     include_route_methods = RouteMethod.CRUD_SET | {
         RouteMethod.API_READ,
         RouteMethod.API_DELETE,
@@ -106,6 +109,9 @@ class DashboardModelView(
 class Dashboard(BaseSupersetView):
     """The base views for Superset!"""
 
+    class_permission_name = "Dashboard"
+    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
+
     @has_access
     @expose("/new/")
     def new(self) -> FlaskResponse:  # pylint: disable=no-self-use
@@ -120,6 +126,9 @@ class Dashboard(BaseSupersetView):
 
 class DashboardModelViewAsync(DashboardModelView):  # pylint: disable=too-many-ancestors
     route_base = "/dashboardasync"
+    class_permission_name = "Dashboard"
+    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
+
     include_route_methods = {RouteMethod.API_READ}
 
     list_columns = [

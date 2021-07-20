@@ -52,7 +52,7 @@ from superset.annotation_layers.annotations.schemas import (
     openapi_spec_methods_override,
 )
 from superset.annotation_layers.commands.exceptions import AnnotationLayerNotFoundError
-from superset.constants import RouteMethod
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.annotations import Annotation
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 
@@ -65,7 +65,9 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         "bulk_delete",  # not using RouteMethod since locally defined
     }
-    class_permission_name = "AnnotationLayerModelView"
+    class_permission_name = "Annotation"
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+
     resource_name = "annotation_layer"
     allow_browser_login = True
 
@@ -309,7 +311,10 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=ex.normalized_messages())
         except AnnotationCreateFailedError as ex:
             logger.error(
-                "Error creating annotation %s: %s", self.__class__.__name__, str(ex)
+                "Error creating annotation %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -382,7 +387,10 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=ex.normalized_messages())
         except AnnotationUpdateFailedError as ex:
             logger.error(
-                "Error updating annotation %s: %s", self.__class__.__name__, str(ex)
+                "Error updating annotation %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 
@@ -434,7 +442,10 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except AnnotationDeleteFailedError as ex:
             logger.error(
-                "Error deleting annotation %s: %s", self.__class__.__name__, str(ex)
+                "Error deleting annotation %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
             )
             return self.response_422(message=str(ex))
 

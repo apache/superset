@@ -17,16 +17,14 @@
  * under the License.
  */
 import React from 'react';
+import { Link, useHistory } from 'react-router-dom';
 import { t } from '@superset-ui/core';
-import {
-  handleDashboardDelete,
-  handleBulkDashboardExport,
-  CardStyles,
-} from 'src/views/CRUD/utils';
+import { handleDashboardDelete, CardStyles } from 'src/views/CRUD/utils';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { Dropdown, Menu } from 'src/common/components';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListViewCard from 'src/components/ListViewCard';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import Label from 'src/components/Label';
 import FacePile from 'src/components/FacePile';
 import FaveStar from 'src/components/FaveStar';
@@ -46,6 +44,8 @@ interface DashboardCardProps {
   favoriteStatus: boolean;
   dashboardFilter?: string;
   userId?: number;
+  showThumbnails?: boolean;
+  handleBulkDashboardExport: (dashboardsToExport: Dashboard[]) => void;
 }
 
 function DashboardCard({
@@ -60,38 +60,48 @@ function DashboardCard({
   openDashboardEditModal,
   favoriteStatus,
   saveFavoriteStatus,
+  showThumbnails,
+  handleBulkDashboardExport,
 }: DashboardCardProps) {
-  const canEdit = hasPerm('can_edit');
-  const canDelete = hasPerm('can_delete');
-  const canExport = hasPerm('can_mulexport');
+  const history = useHistory();
+  const canEdit = hasPerm('can_write');
+  const canDelete = hasPerm('can_write');
+  const canExport = hasPerm('can_read');
 
   const menu = (
     <Menu>
       {canEdit && openDashboardEditModal && (
-        <Menu.Item
-          role="button"
-          tabIndex={0}
-          onClick={() =>
-            openDashboardEditModal && openDashboardEditModal(dashboard)
-          }
-          data-test="dashboard-card-option-edit-button"
-        >
-          <ListViewCard.MenuIcon name="edit-alt" /> Edit
+        <Menu.Item>
+          <div
+            role="button"
+            tabIndex={0}
+            className="action-button"
+            onClick={() =>
+              openDashboardEditModal && openDashboardEditModal(dashboard)
+            }
+            data-test="dashboard-card-option-edit-button"
+          >
+            <Icons.EditAlt iconSize="l" data-test="edit-alt" /> {t('Edit')}
+          </div>
         </Menu.Item>
       )}
       {canExport && (
-        <Menu.Item
-          role="button"
-          tabIndex={0}
-          onClick={() => handleBulkDashboardExport([dashboard])}
-        >
-          <ListViewCard.MenuIcon name="share" /> Export
+        <Menu.Item>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => handleBulkDashboardExport([dashboard])}
+            className="action-button"
+            data-test="dashboard-card-option-export-button"
+          >
+            <Icons.Share iconSize="l" /> {t('Export')}
+          </div>
         </Menu.Item>
       )}
       {canDelete && (
         <Menu.Item>
           <ConfirmStatusChange
-            title={t('Please Confirm')}
+            title={t('Please confirm')}
             description={
               <>
                 {t('Are you sure you want to delete')}{' '}
@@ -117,7 +127,7 @@ function DashboardCard({
                 onClick={confirmDelete}
                 data-test="dashboard-card-option-delete-button"
               >
-                <ListViewCard.MenuIcon name="trash" /> Delete
+                <Icons.Trash iconSize="l" /> {t('Delete')}
               </div>
             )}
           </ConfirmStatusChange>
@@ -128,16 +138,24 @@ function DashboardCard({
   return (
     <CardStyles
       onClick={() => {
-        window.location.href = dashboard.url;
+        if (!bulkSelectEnabled) {
+          history.push(dashboard.url);
+        }
       }}
     >
       <ListViewCard
         loading={dashboard.loading || false}
         title={dashboard.dashboard_title}
         titleRight={
-          <Label>{dashboard.published ? 'published' : 'draft'}</Label>
+          <Label>{dashboard.published ? t('published') : t('draft')}</Label>
+        }
+        cover={
+          !isFeatureEnabled(FeatureFlag.THUMBNAILS) || !showThumbnails ? (
+            <></>
+          ) : null
         }
         url={bulkSelectEnabled ? undefined : dashboard.url}
+        linkComponent={Link}
         imgURL={dashboard.thumbnail_url}
         imgFallbackURL="/static/assets/images/dashboard-card-fallback.svg"
         description={t(
@@ -158,7 +176,7 @@ function DashboardCard({
               isStarred={favoriteStatus}
             />
             <Dropdown overlay={menu}>
-              <Icon name="more-horiz" />
+              <Icons.MoreHoriz />
             </Dropdown>
           </ListViewCard.Actions>
         }

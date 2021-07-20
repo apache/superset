@@ -14,13 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Union
+from typing import Any, Dict, Union
 
 from croniter import croniter
-from marshmallow import fields, Schema, validate
-from marshmallow.validate import Length, ValidationError
+from flask_babel import gettext as _
+from marshmallow import fields, Schema, validate, validates_schema
+from marshmallow.validate import Length, Range, ValidationError
+from marshmallow_enum import EnumField
 
 from superset.models.reports import (
+    ReportCreationMethodType,
+    ReportDataFormat,
     ReportRecipientType,
     ReportScheduleType,
     ReportScheduleValidatorType,
@@ -77,6 +81,14 @@ grace_period_description = (
     "Once an alert is triggered, how long, in seconds, before "
     "Superset nags you again. (in seconds)"
 )
+working_timeout_description = (
+    "If an alert is staled at a working state, how long until it's state is reseted to"
+    " error"
+)
+creation_method_description = (
+    "Creation method is used to inform the frontend whether the report/alert was "
+    "created in the dashboard, chart, or alerts and reports UI."
+)
 
 
 def validate_crontab(value: Union[bytes, bytearray, str]) -> None:
@@ -85,7 +97,7 @@ def validate_crontab(value: Union[bytes, bytearray, str]) -> None:
 
 
 class ValidatorConfigJSONSchema(Schema):
-    operation = fields.String(
+    op = fields.String(  # pylint: disable=invalid-name
         description=validator_config_json_op_description,
         validate=validate.OneOf(choices=["<", "<=", ">", ">=", "==", "!="]),
     )
@@ -135,7 +147,7 @@ class ReportSchedulePostSchema(Schema):
     active = fields.Boolean()
     crontab = fields.String(
         description=crontab_description,
-        validate=[validate_crontab, Length(1, 50)],
+        validate=[validate_crontab, Length(1, 1000)],
         example="*/5 * * * *",
         allow_none=False,
         required=True,
@@ -143,8 +155,14 @@ class ReportSchedulePostSchema(Schema):
     sql = fields.String(
         description=sql_description, example="SELECT value FROM time_series_table"
     )
-    chart = fields.Integer(required=False)
-    dashboard = fields.Integer(required=False)
+    chart = fields.Integer(required=False, allow_none=True)
+    creation_method = EnumField(
+        ReportCreationMethodType,
+        by_value=True,
+        required=True,
+        description=creation_method_description,
+    )
+    dashboard = fields.Integer(required=False, allow_none=True)
     database = fields.Integer(required=False)
     owners = fields.List(fields.Integer(description=owners_description))
     validator_type = fields.String(
@@ -154,9 +172,39 @@ class ReportSchedulePostSchema(Schema):
         ),
     )
     validator_config_json = fields.Nested(ValidatorConfigJSONSchema)
-    log_retention = fields.Integer(description=log_retention_description, example=90)
-    grace_period = fields.Integer(description=grace_period_description, example=14400)
+    log_retention = fields.Integer(
+        description=log_retention_description,
+        example=90,
+        validate=[Range(min=1, error=_("Value must be greater than 0"))],
+    )
+    grace_period = fields.Integer(
+        description=grace_period_description,
+        example=60 * 60 * 4,
+        default=60 * 60 * 4,
+        validate=[Range(min=1, error=_("Value must be greater than 0"))],
+    )
+    working_timeout = fields.Integer(
+        description=working_timeout_description,
+        example=60 * 60 * 1,
+        default=60 * 60 * 1,
+        validate=[Range(min=1, error=_("Value must be greater than 0"))],
+    )
+
     recipients = fields.List(fields.Nested(ReportRecipientSchema))
+    report_format = fields.String(
+        default=ReportDataFormat.VISUALIZATION,
+        validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
+    )
+
+    @validates_schema
+    def validate_report_references(  # pylint: disable=unused-argument,no-self-use
+        self, data: Dict[str, Any], **kwargs: Any
+    ) -> None:
+        if data["type"] == ReportScheduleType.REPORT:
+            if "database" in data:
+                raise ValidationError(
+                    {"database": ["Database reference is not allowed on a report"]}
+                )
 
 
 class ReportSchedulePutSchema(Schema):
@@ -180,16 +228,23 @@ class ReportSchedulePutSchema(Schema):
     active = fields.Boolean(required=False)
     crontab = fields.String(
         description=crontab_description,
-        validate=[validate_crontab, Length(1, 50)],
+        validate=[validate_crontab, Length(1, 1000)],
         required=False,
     )
     sql = fields.String(
         description=sql_description,
         example="SELECT value FROM time_series_table",
         required=False,
+        allow_none=True,
     )
-    chart = fields.Integer(required=False)
-    dashboard = fields.Integer(required=False)
+    chart = fields.Integer(required=False, allow_none=True)
+    creation_method = EnumField(
+        ReportCreationMethodType,
+        by_value=True,
+        allow_none=True,
+        description=creation_method_description,
+    )
+    dashboard = fields.Integer(required=False, allow_none=True)
     database = fields.Integer(required=False)
     owners = fields.List(fields.Integer(description=owners_description), required=False)
     validator_type = fields.String(
@@ -197,13 +252,31 @@ class ReportSchedulePutSchema(Schema):
         validate=validate.OneOf(
             choices=tuple(key.value for key in ReportScheduleValidatorType)
         ),
+        allow_none=True,
         required=False,
     )
     validator_config_json = fields.Nested(ValidatorConfigJSONSchema, required=False)
     log_retention = fields.Integer(
-        description=log_retention_description, example=90, required=False
+        description=log_retention_description,
+        example=90,
+        required=False,
+        validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
     grace_period = fields.Integer(
-        description=grace_period_description, example=14400, required=False
+        description=grace_period_description,
+        example=60 * 60 * 4,
+        required=False,
+        validate=[Range(min=1, error=_("Value must be greater than 0"))],
+    )
+    working_timeout = fields.Integer(
+        description=working_timeout_description,
+        example=60 * 60 * 1,
+        allow_none=True,
+        required=False,
+        validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
     recipients = fields.List(fields.Nested(ReportRecipientSchema), required=False)
+    report_format = fields.String(
+        default=ReportDataFormat.VISUALIZATION,
+        validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
+    )

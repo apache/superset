@@ -19,6 +19,7 @@
 import React from 'react';
 import { mount } from 'enzyme';
 import { Provider } from 'react-redux';
+import fetchMock from 'fetch-mock';
 
 import {
   supersetTheme,
@@ -26,7 +27,7 @@ import {
   ThemeProvider,
 } from '@superset-ui/core';
 
-import Modal from 'src/common/components/Modal';
+import Modal from 'src/components/Modal';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import { mockStore } from 'spec/fixtures/mockStore';
 
@@ -37,9 +38,26 @@ const dashboardResult = {
       slug: '/new',
       json_metadata: '{"something":"foo"}',
       owners: [],
+      roles: [],
     },
   },
 };
+
+fetchMock.restore();
+
+fetchMock.get('glob:*/api/v1/dashboard/related/owners?*', {
+  result: [],
+});
+
+fetchMock.get('glob:*/api/v1/dashboard/*', {
+  result: {
+    dashboard_title: 'New Title',
+    slug: '/new',
+    json_metadata: '{"something":"foo"}',
+    owners: [],
+    roles: [],
+  },
+});
 
 describe('PropertiesModal', () => {
   afterEach(() => {
@@ -84,18 +102,18 @@ describe('PropertiesModal', () => {
       });
       describe('with metadata', () => {
         describe('with color_scheme in the metadata', () => {
-          const wrapper = setup();
-          const modalInstance = wrapper.find('PropertiesModal').instance();
-          modalInstance.setState({
-            values: {
-              json_metadata: '{"color_scheme": "foo"}',
-            },
-          });
           it('will update the metadata', () => {
+            const wrapper = setup();
+            const modalInstance = wrapper.find('PropertiesModal').instance();
+            modalInstance.setState({
+              values: {
+                json_metadata: '{"color_scheme": "foo"}',
+              },
+            });
             const spy = jest.spyOn(modalInstance, 'onMetadataChange');
             modalInstance.onColorSchemeChange('SUPERSET_DEFAULT');
             expect(spy).toHaveBeenCalledWith(
-              '{"color_scheme": "SUPERSET_DEFAULT"}',
+              '{"color_scheme": "SUPERSET_DEFAULT", "label_colors": {}}',
             );
           });
         });
@@ -191,6 +209,7 @@ describe('PropertiesModal', () => {
             slug: '/new',
             json_metadata: '{"something":"foo"}',
             owners: [{ id: 1, first_name: 'Al', last_name: 'Pacino' }],
+            roles: [],
           },
         },
       });
@@ -201,6 +220,27 @@ describe('PropertiesModal', () => {
       expect(onOwnersSpy).toHaveBeenCalledWith([
         { value: 1, label: 'Al Pacino' },
       ]);
+    });
+
+    it('should call onRolesChange', async () => {
+      const wrapper = setup();
+      const modalInstance = wrapper.find('PropertiesModal').instance();
+      const fetchSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+        json: {
+          result: {
+            dashboard_title: 'New Title',
+            slug: '/new',
+            json_metadata: '{"something":"foo"}',
+            owners: [],
+            roles: [{ id: 1, name: 'Alpha' }],
+          },
+        },
+      });
+      const onRolwesSpy = jest.spyOn(modalInstance, 'onRolesChange');
+      modalInstance.fetchDashboardDetails();
+      await fetchSpy();
+      expect(modalInstance.state.values.colorScheme).toBeUndefined();
+      expect(onRolwesSpy).toHaveBeenCalledWith([{ value: 1, label: 'Alpha' }]);
     });
 
     describe('when colorScheme is undefined as a prop', () => {
@@ -215,6 +255,7 @@ describe('PropertiesModal', () => {
                 slug: '/new',
                 json_metadata: '{"color_scheme":"SUPERSET_DEFAULT"}',
                 owners: [],
+                roles: [],
               },
             },
           });
@@ -253,6 +294,7 @@ describe('PropertiesModal', () => {
                 slug: '/new',
                 json_metadata: '{"color_scheme":"SUPERSET_DEFAULT"}',
                 owners: [],
+                roles: [],
               },
             },
           });

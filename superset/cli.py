@@ -15,22 +15,24 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
+import sys
 from datetime import datetime, timedelta
 from subprocess import Popen
-from sys import stdout
-from typing import Any, Dict, List, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union
+from zipfile import is_zipfile, ZipFile
 
 import click
 import yaml
 from celery.utils.abstract import CallableTask
 from colorama import Fore, Style
-from flask import g
+from flask import current_app, g
 from flask.cli import FlaskGroup, with_appcontext
 from flask_appbuilder import Model
 from pathlib2 import Path
 
-from superset import app, appbuilder, security_manager
+from superset import app, appbuilder, config, security_manager
 from superset.app import create_app
 from superset.extensions import celery_app, db
 from superset.utils import core as utils
@@ -38,6 +40,19 @@ from superset.utils.celery import session_scope
 from superset.utils.urls import get_url_path
 
 logger = logging.getLogger(__name__)
+
+
+feature_flags = config.DEFAULT_FEATURE_FLAGS.copy()
+feature_flags.update(config.FEATURE_FLAGS)
+feature_flags_func = config.GET_FEATURE_FLAGS_FUNC
+if feature_flags_func:
+    # pylint: disable=not-callable
+    try:
+        feature_flags = feature_flags_func(feature_flags)
+    except Exception:  # pylint: disable=broad-except
+        # bypass any feature flags that depend on context
+        # that's not available
+        pass
 
 
 def normalize_token(token_name: str) -> str:
@@ -94,7 +109,10 @@ def version(verbose: bool) -> None:
 
 
 def load_examples_run(
-    load_test_data: bool, only_metadata: bool = False, force: bool = False
+    load_test_data: bool = False,
+    load_big_data: bool = False,
+    only_metadata: bool = False,
+    force: bool = False,
 ) -> None:
     if only_metadata:
         print("Loading examples metadata")
@@ -115,8 +133,8 @@ def load_examples_run(
     print("Loading [Birth names]")
     examples.load_birth_names(only_metadata, force)
 
-    print("Loading [Unicode test data]")
-    examples.load_unicode_test_data(only_metadata, force)
+    print("Loading [Tabbed dashboard]")
+    examples.load_tabbed_dashboard(only_metadata)
 
     if not load_test_data:
         print("Loading [Random time series data]")
@@ -152,13 +170,18 @@ def load_examples_run(
         print("Loading DECK.gl demo")
         examples.load_deck_dash()
 
-    print("Loading [Tabbed dashboard]")
-    examples.load_tabbed_dashboard(only_metadata)
+    if load_big_data:
+        print("Loading big synthetic data for tests")
+        examples.load_big_data()
+
+    # load examples that are stored as YAML config files
+    examples.load_from_configs(force, load_test_data)
 
 
 @with_appcontext
 @superset.command()
 @click.option("--load-test-data", "-t", is_flag=True, help="Load additional test data")
+@click.option("--load-big-data", "-b", is_flag=True, help="Load additional big data")
 @click.option(
     "--only-metadata", "-m", is_flag=True, help="Only load metadata, skip actual data"
 )
@@ -166,19 +189,29 @@ def load_examples_run(
     "--force", "-f", is_flag=True, help="Force load data even if table already exists"
 )
 def load_examples(
-    load_test_data: bool, only_metadata: bool = False, force: bool = False
+    load_test_data: bool,
+    load_big_data: bool,
+    only_metadata: bool = False,
+    force: bool = False,
 ) -> None:
     """Loads a set of Slices and Dashboards and a supporting dataset """
-    load_examples_run(load_test_data, only_metadata, force)
+    load_examples_run(load_test_data, load_big_data, only_metadata, force)
 
 
 @with_appcontext
 @superset.command()
 @click.option("--database_name", "-d", help="Database name to change")
 @click.option("--uri", "-u", help="Database URI to change")
-def set_database_uri(database_name: str, uri: str) -> None:
+@click.option(
+    "--skip_create",
+    "-s",
+    is_flag=True,
+    default=False,
+    help="Create the DB if it doesn't exist",
+)
+def set_database_uri(database_name: str, uri: str, skip_create: bool) -> None:
     """Updates a database connection URI """
-    utils.get_or_create_db(database_name, uri)
+    utils.get_or_create_db(database_name, uri, not skip_create)
 
 
 @superset.command()
@@ -212,180 +245,310 @@ def refresh_druid(datasource: str, merge: bool) -> None:
     session.commit()
 
 
-@superset.command()
-@with_appcontext
-@click.option(
-    "--path",
-    "-p",
-    help="Path to a single JSON file or path containing multiple JSON "
-    "files to import (*.json)",
-)
-@click.option(
-    "--recursive",
-    "-r",
-    is_flag=True,
-    default=False,
-    help="recursively search the path for json files",
-)
-@click.option(
-    "--username",
-    "-u",
-    default=None,
-    help="Specify the user name to assign dashboards to",
-)
-def import_dashboards(path: str, recursive: bool, username: str) -> None:
-    """Import dashboards from JSON"""
-    from superset.dashboards.commands.importers.dispatcher import (
-        ImportDashboardsCommand,
+if feature_flags.get("VERSIONED_EXPORT"):
+
+    @superset.command()
+    @with_appcontext
+    @click.option(
+        "--dashboard-file", "-f", help="Specify the the file to export to",
     )
+    def export_dashboards(dashboard_file: Optional[str] = None) -> None:
+        """Export dashboards to ZIP file"""
+        from superset.dashboards.commands.export import ExportDashboardsCommand
+        from superset.models.dashboard import Dashboard
 
-    path_object = Path(path)
-    files: List[Path] = []
-    if path_object.is_file():
-        files.append(path_object)
-    elif path_object.exists() and not recursive:
-        files.extend(path_object.glob("*.json"))
-    elif path_object.exists() and recursive:
-        files.extend(path_object.rglob("*.json"))
-    if username is not None:
-        g.user = security_manager.find_user(username=username)
-    contents = {path.name: open(path).read() for path in files}
-    try:
-        ImportDashboardsCommand(contents).run()
-    except Exception:  # pylint: disable=broad-except
-        logger.exception("Error when importing dashboard")
+        g.user = security_manager.find_user(username="admin")
 
+        dashboard_ids = [id_ for (id_,) in db.session.query(Dashboard.id).all()]
+        timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+        root = f"dashboard_export_{timestamp}"
+        dashboard_file = dashboard_file or f"{root}.zip"
 
-@superset.command()
-@with_appcontext
-@click.option(
-    "--dashboard-file", "-f", default=None, help="Specify the the file to export to"
-)
-@click.option(
-    "--print_stdout", "-p", is_flag=True, default=False, help="Print JSON to stdout"
-)
-def export_dashboards(dashboard_file: str, print_stdout: bool) -> None:
-    """Export dashboards to JSON"""
-    from superset.utils import dashboard_import_export
+        try:
+            with ZipFile(dashboard_file, "w") as bundle:
+                for file_name, file_content in ExportDashboardsCommand(
+                    dashboard_ids
+                ).run():
+                    with bundle.open(f"{root}/{file_name}", "w") as fp:
+                        fp.write(file_content.encode())
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "There was an error when exporting the dashboards, please check "
+                "the exception traceback in the log"
+            )
 
-    data = dashboard_import_export.export_dashboards(db.session)
-    if print_stdout or not dashboard_file:
-        print(data)
-    if dashboard_file:
-        logger.info("Exporting dashboards to %s", dashboard_file)
-        with open(dashboard_file, "w") as data_stream:
-            data_stream.write(data)
-
-
-@superset.command()
-@with_appcontext
-@click.option(
-    "--path",
-    "-p",
-    help="Path to a single YAML file or path containing multiple YAML "
-    "files to import (*.yaml or *.yml)",
-)
-@click.option(
-    "--sync",
-    "-s",
-    "sync",
-    default="",
-    help="comma seperated list of element types to synchronize "
-    'e.g. "metrics,columns" deletes metrics and columns in the DB '
-    "that are not specified in the YAML file",
-)
-@click.option(
-    "--recursive",
-    "-r",
-    is_flag=True,
-    default=False,
-    help="recursively search the path for yaml files",
-)
-def import_datasources(path: str, sync: str, recursive: bool) -> None:
-    """Import datasources from YAML"""
-    from superset.datasets.commands.importers.dispatcher import ImportDatasetsCommand
-
-    sync_array = sync.split(",")
-    sync_columns = "columns" in sync_array
-    sync_metrics = "metrics" in sync_array
-
-    path_object = Path(path)
-    files: List[Path] = []
-    if path_object.is_file():
-        files.append(path_object)
-    elif path_object.exists() and not recursive:
-        files.extend(path_object.glob("*.yaml"))
-        files.extend(path_object.glob("*.yml"))
-    elif path_object.exists() and recursive:
-        files.extend(path_object.rglob("*.yaml"))
-        files.extend(path_object.rglob("*.yml"))
-    contents = {path.name: open(path).read() for path in files}
-    try:
-        ImportDatasetsCommand(contents, sync_columns, sync_metrics).run()
-    except Exception:  # pylint: disable=broad-except
-        logger.exception("Error when importing dataset")
-
-
-@superset.command()
-@with_appcontext
-@click.option(
-    "--datasource-file", "-f", default=None, help="Specify the the file to export to"
-)
-@click.option(
-    "--print_stdout", "-p", is_flag=True, default=False, help="Print YAML to stdout"
-)
-@click.option(
-    "--back-references",
-    "-b",
-    is_flag=True,
-    default=False,
-    help="Include parent back references",
-)
-@click.option(
-    "--include-defaults",
-    "-d",
-    is_flag=True,
-    default=False,
-    help="Include fields containing defaults",
-)
-def export_datasources(
-    print_stdout: bool,
-    datasource_file: str,
-    back_references: bool,
-    include_defaults: bool,
-) -> None:
-    """Export datasources to YAML"""
-    from superset.utils import dict_import_export
-
-    data = dict_import_export.export_to_dict(
-        session=db.session,
-        recursive=True,
-        back_references=back_references,
-        include_defaults=include_defaults,
+    # pylint: disable=too-many-locals
+    @superset.command()
+    @with_appcontext
+    @click.option(
+        "--datasource-file", "-f", help="Specify the the file to export to",
     )
-    if print_stdout or not datasource_file:
-        yaml.safe_dump(data, stdout, default_flow_style=False)
-    if datasource_file:
-        logger.info("Exporting datasources to %s", datasource_file)
-        with open(datasource_file, "w") as data_stream:
-            yaml.safe_dump(data, data_stream, default_flow_style=False)
+    def export_datasources(datasource_file: Optional[str] = None) -> None:
+        """Export datasources to ZIP file"""
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.datasets.commands.export import ExportDatasetsCommand
+
+        g.user = security_manager.find_user(username="admin")
+
+        dataset_ids = [id_ for (id_,) in db.session.query(SqlaTable.id).all()]
+        timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+        root = f"dataset_export_{timestamp}"
+        datasource_file = datasource_file or f"{root}.zip"
+
+        try:
+            with ZipFile(datasource_file, "w") as bundle:
+                for file_name, file_content in ExportDatasetsCommand(dataset_ids).run():
+                    with bundle.open(f"{root}/{file_name}", "w") as fp:
+                        fp.write(file_content.encode())
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "There was an error when exporting the datasets, please check "
+                "the exception traceback in the log"
+            )
+
+    @superset.command()
+    @with_appcontext
+    @click.option(
+        "--path", "-p", help="Path to a single ZIP file",
+    )
+    @click.option(
+        "--username",
+        "-u",
+        default=None,
+        help="Specify the user name to assign dashboards to",
+    )
+    def import_dashboards(path: str, username: Optional[str]) -> None:
+        """Import dashboards from ZIP file"""
+        from superset.commands.importers.v1.utils import get_contents_from_bundle
+        from superset.dashboards.commands.importers.dispatcher import (
+            ImportDashboardsCommand,
+        )
+
+        if username is not None:
+            g.user = security_manager.find_user(username=username)
+        if is_zipfile(path):
+            with ZipFile(path) as bundle:
+                contents = get_contents_from_bundle(bundle)
+        else:
+            contents = {path: open(path).read()}
+        try:
+            ImportDashboardsCommand(contents, overwrite=True).run()
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "There was an error when importing the dashboards(s), please check "
+                "the exception traceback in the log"
+            )
+
+    @superset.command()
+    @with_appcontext
+    @click.option(
+        "--path", "-p", help="Path to a single ZIP file",
+    )
+    def import_datasources(path: str) -> None:
+        """Import datasources from ZIP file"""
+        from superset.commands.importers.v1.utils import get_contents_from_bundle
+        from superset.datasets.commands.importers.dispatcher import (
+            ImportDatasetsCommand,
+        )
+
+        if is_zipfile(path):
+            with ZipFile(path) as bundle:
+                contents = get_contents_from_bundle(bundle)
+        else:
+            contents = {path: open(path).read()}
+        try:
+            ImportDatasetsCommand(contents, overwrite=True).run()
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "There was an error when importing the dataset(s), please check the "
+                "exception traceback in the log"
+            )
 
 
-@superset.command()
-@with_appcontext
-@click.option(
-    "--back-references",
-    "-b",
-    is_flag=True,
-    default=False,
-    help="Include parent back references",
-)
-def export_datasource_schema(back_references: bool) -> None:
-    """Export datasource YAML schema to stdout"""
-    from superset.utils import dict_import_export
+else:
 
-    data = dict_import_export.export_schema_to_dict(back_references=back_references)
-    yaml.safe_dump(data, stdout, default_flow_style=False)
+    @superset.command()
+    @with_appcontext
+    @click.option(
+        "--dashboard-file", "-f", default=None, help="Specify the the file to export to"
+    )
+    @click.option(
+        "--print_stdout",
+        "-p",
+        is_flag=True,
+        default=False,
+        help="Print JSON to stdout",
+    )
+    def export_dashboards(
+        dashboard_file: Optional[str], print_stdout: bool = False
+    ) -> None:
+        """Export dashboards to JSON"""
+        from superset.utils import dashboard_import_export
+
+        data = dashboard_import_export.export_dashboards(db.session)
+        if print_stdout or not dashboard_file:
+            print(data)
+        if dashboard_file:
+            logger.info("Exporting dashboards to %s", dashboard_file)
+            with open(dashboard_file, "w") as data_stream:
+                data_stream.write(data)
+
+    # pylint: disable=too-many-locals
+    @superset.command()
+    @with_appcontext
+    @click.option(
+        "--datasource-file",
+        "-f",
+        default=None,
+        help="Specify the the file to export to",
+    )
+    @click.option(
+        "--print_stdout",
+        "-p",
+        is_flag=True,
+        default=False,
+        help="Print YAML to stdout",
+    )
+    @click.option(
+        "--back-references",
+        "-b",
+        is_flag=True,
+        default=False,
+        help="Include parent back references",
+    )
+    @click.option(
+        "--include-defaults",
+        "-d",
+        is_flag=True,
+        default=False,
+        help="Include fields containing defaults",
+    )
+    def export_datasources(
+        datasource_file: Optional[str],
+        print_stdout: bool = False,
+        back_references: bool = False,
+        include_defaults: bool = False,
+    ) -> None:
+        """Export datasources to YAML"""
+        from superset.utils import dict_import_export
+
+        data = dict_import_export.export_to_dict(
+            session=db.session,
+            recursive=True,
+            back_references=back_references,
+            include_defaults=include_defaults,
+        )
+        if print_stdout or not datasource_file:
+            yaml.safe_dump(data, sys.stdout, default_flow_style=False)
+        if datasource_file:
+            logger.info("Exporting datasources to %s", datasource_file)
+            with open(datasource_file, "w") as data_stream:
+                yaml.safe_dump(data, data_stream, default_flow_style=False)
+
+    @superset.command()
+    @with_appcontext
+    @click.option(
+        "--path",
+        "-p",
+        help="Path to a single JSON file or path containing multiple JSON "
+        "files to import (*.json)",
+    )
+    @click.option(
+        "--recursive",
+        "-r",
+        is_flag=True,
+        default=False,
+        help="recursively search the path for json files",
+    )
+    @click.option(
+        "--username",
+        "-u",
+        default=None,
+        help="Specify the user name to assign dashboards to",
+    )
+    def import_dashboards(path: str, recursive: bool, username: str) -> None:
+        """Import dashboards from JSON file"""
+        from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
+
+        path_object = Path(path)
+        files: List[Path] = []
+        if path_object.is_file():
+            files.append(path_object)
+        elif path_object.exists() and not recursive:
+            files.extend(path_object.glob("*.json"))
+        elif path_object.exists() and recursive:
+            files.extend(path_object.rglob("*.json"))
+        if username is not None:
+            g.user = security_manager.find_user(username=username)
+        contents = {path.name: open(path).read() for path in files}
+        try:
+            ImportDashboardsCommand(contents).run()
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("Error when importing dashboard")
+
+    @superset.command()
+    @with_appcontext
+    @click.option(
+        "--path",
+        "-p",
+        help="Path to a single YAML file or path containing multiple YAML "
+        "files to import (*.yaml or *.yml)",
+    )
+    @click.option(
+        "--sync",
+        "-s",
+        "sync",
+        default="",
+        help="comma seperated list of element types to synchronize "
+        'e.g. "metrics,columns" deletes metrics and columns in the DB '
+        "that are not specified in the YAML file",
+    )
+    @click.option(
+        "--recursive",
+        "-r",
+        is_flag=True,
+        default=False,
+        help="recursively search the path for yaml files",
+    )
+    def import_datasources(path: str, sync: str, recursive: bool) -> None:
+        """Import datasources from YAML"""
+        from superset.datasets.commands.importers.v0 import ImportDatasetsCommand
+
+        sync_array = sync.split(",")
+        sync_columns = "columns" in sync_array
+        sync_metrics = "metrics" in sync_array
+
+        path_object = Path(path)
+        files: List[Path] = []
+        if path_object.is_file():
+            files.append(path_object)
+        elif path_object.exists() and not recursive:
+            files.extend(path_object.glob("*.yaml"))
+            files.extend(path_object.glob("*.yml"))
+        elif path_object.exists() and recursive:
+            files.extend(path_object.rglob("*.yaml"))
+            files.extend(path_object.rglob("*.yml"))
+        contents = {path.name: open(path).read() for path in files}
+        try:
+            ImportDatasetsCommand(contents, sync_columns, sync_metrics).run()
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("Error when importing dataset")
+
+    @superset.command()
+    @with_appcontext
+    @click.option(
+        "--back-references",
+        "-b",
+        is_flag=True,
+        default=False,
+        help="Include parent back references",
+    )
+    def export_datasource_schema(back_references: bool) -> None:
+        """Export datasource YAML schema to stdout"""
+        from superset.utils import dict_import_export
+
+        data = dict_import_export.export_schema_to_dict(back_references=back_references)
+        yaml.safe_dump(data, sys.stdout, default_flow_style=False)
 
 
 @superset.command()
@@ -569,9 +732,15 @@ def load_test_users_run() -> None:
         gamma_sqllab_role = sm.add_role("gamma_sqllab")
         sm.add_permission_role(gamma_sqllab_role, examples_pv)
 
+        gamma_no_csv_role = sm.add_role("gamma_no_csv")
+        sm.add_permission_role(gamma_no_csv_role, examples_pv)
+
         for role in ["Gamma", "sql_lab"]:
             for perm in sm.find_role(role).permissions:
                 sm.add_permission_role(gamma_sqllab_role, perm)
+
+                if str(perm) != "can csv on Superset":
+                    sm.add_permission_role(gamma_no_csv_role, perm)
 
         users = (
             ("admin", "Admin"),
@@ -579,6 +748,7 @@ def load_test_users_run() -> None:
             ("gamma2", "Gamma"),
             ("gamma_sqllab", "gamma_sqllab"),
             ("alpha", "Alpha"),
+            ("gamma_no_csv", "gamma_no_csv"),
         )
         for username, role in users:
             user = sm.find_user(username)
@@ -625,3 +795,39 @@ def alert() -> None:
             resolution=6000,
             session=session,
         )
+
+
+@superset.command()
+@with_appcontext
+def update_api_docs() -> None:
+    """Regenerate the openapi.json file in docs"""
+    from apispec import APISpec
+    from apispec.ext.marshmallow import MarshmallowPlugin
+    from flask_appbuilder.api import BaseApi
+    from os import path
+
+    superset_dir = path.abspath(path.dirname(__file__))
+    openapi_json = path.join(
+        superset_dir, "..", "docs", "src", "resources", "openapi.json"
+    )
+    api_version = "v1"
+
+    version_found = False
+    api_spec = APISpec(
+        title=current_app.appbuilder.app_name,
+        version=api_version,
+        openapi_version="3.0.2",
+        info=dict(description=current_app.appbuilder.app_name),
+        plugins=[MarshmallowPlugin()],
+        servers=[{"url": "/api/{}".format(api_version)}],
+    )
+    for base_api in current_app.appbuilder.baseviews:
+        if isinstance(base_api, BaseApi) and base_api.version == api_version:
+            base_api.add_api_spec(api_spec)
+            version_found = True
+    if version_found:
+        click.secho("Generating openapi.json", fg="green")
+        with open(openapi_json, "w") as outfile:
+            json.dump(api_spec.to_dict(), outfile, sort_keys=True, indent=2)
+    else:
+        click.secho("API version not found", err=True)

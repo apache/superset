@@ -14,16 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""
+DEPRECATION NOTICE: this module is deprecated and will be removed on 2.0.
+"""
+
 import enum
 from typing import Type, Union
 
 import simplejson as json
 from croniter import croniter
-from flask import flash, g
+from flask import current_app as app, flash, g, Markup
 from flask_appbuilder import expose
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
+from werkzeug.exceptions import NotFound
 from wtforms import BooleanField, Form, StringField
 
 from superset import db, security_manager
@@ -49,6 +55,15 @@ class EmailScheduleView(
 ):  # pylint: disable=too-many-ancestors
     include_route_methods = RouteMethod.CRUD_SET
     _extra_data = {"test_email": False, "test_email_recipients": None}
+
+    @staticmethod
+    def is_enabled() -> bool:
+        return app.config["ENABLE_SCHEDULED_EMAIL_REPORTS"]
+
+    @before_request
+    def ensure_enabled(self) -> None:
+        if not self.is_enabled():
+            raise NotFound()
 
     @property
     def schedule_type(self) -> str:
@@ -232,6 +247,23 @@ class DashboardEmailScheduleView(
         "delivery_type": _("Delivery Type"),
     }
 
+    @expose("/list/")
+    @has_access
+    def list(self) -> FlaskResponse:
+        flash(
+            Markup(
+                _(
+                    "This feature is deprecated and will be removed on 2.0. "
+                    "Take a look at the replacement feature "
+                    "<a href="
+                    "'https://superset.apache.org/docs/installation/alerts-reports'>"
+                    "Alerts & Reports documentation</a>"
+                )
+            ),
+            "warning",
+        )
+        return super().list()
+
     def pre_add(self, item: "DashboardEmailScheduleView") -> None:
         if item.dashboard is None:
             raise SupersetException("Dashboard is mandatory")
@@ -295,6 +327,23 @@ class SliceEmailScheduleView(EmailScheduleView):  # pylint: disable=too-many-anc
         "delivery_type": _("Delivery Type"),
         "email_format": _("Email Format"),
     }
+
+    @expose("/list/")
+    @has_access
+    def list(self) -> FlaskResponse:
+        flash(
+            Markup(
+                _(
+                    "This feature is deprecated and will be removed on 2.0. "
+                    "Take a look at the replacement feature "
+                    "<a href="
+                    "'https://superset.apache.org/docs/installation/alerts-reports'>"
+                    "Alerts & Reports documentation</a>"
+                )
+            ),
+            "warning",
+        )
+        return super().list()
 
     def pre_add(self, item: "SliceEmailScheduleView") -> None:
         if item.slice is None:

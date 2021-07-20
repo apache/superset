@@ -37,29 +37,10 @@ export interface CardSortSelectOption {
   value: any;
 }
 
-type FilterOperator =
-  | 'sw'
-  | 'ew'
-  | 'ct'
-  | 'eq'
-  | 'nsw'
-  | 'new'
-  | 'nct'
-  | 'neq'
-  | 'gt'
-  | 'lt'
-  | 'rel_m_m'
-  | 'rel_o_m'
-  | 'title_or_slug'
-  | 'name_or_description'
-  | 'all_text'
-  | 'chart_all_text'
-  | 'dataset_is_null_or_empty'
-  | 'between';
-
 export interface Filter {
   Header: ReactNode;
   id: string;
+  urlDisplay?: string;
   operator?: FilterOperator;
   input?:
     | 'text'
@@ -85,6 +66,7 @@ export type ViewModeType = 'card' | 'table';
 
 export interface FilterValue {
   id: string;
+  urlDisplay?: string;
   operator?: string;
   value: string | boolean | number | null | undefined | string[] | number[];
 }
@@ -100,7 +82,7 @@ export interface InternalFilter extends FilterValue {
   Header?: string;
 }
 
-export enum FilterOperators {
+export enum FilterOperator {
   startsWith = 'sw',
   endsWith = 'ew',
   contains = 'ct',
@@ -119,4 +101,6 @@ export enum FilterOperators {
   chartAllText = 'chart_all_text',
   datasetIsNullOrEmpty = 'dataset_is_null_or_empty',
   between = 'between',
+  dashboardIsFav = 'dashboard_is_favorite',
+  chartIsFav = 'chart_is_favorite',
 }

@@ -35,7 +35,7 @@ export const Pill = styled.div`
 
   svg {
     position: relative;
-    top: -1px;
+    top: -2px;
     color: ${({ theme }) => theme.colors.grayscale.light5};
     width: 1em;
     height: 1em;
@@ -46,6 +46,13 @@ export const Pill = styled.div`
   &:hover {
     cursor: pointer;
     background: ${({ theme }) => theme.colors.grayscale.dark1};
+  }
+
+  &.has-cross-filters {
+    background: ${({ theme }) => theme.colors.primary.base};
+    &:hover {
+      background: ${({ theme }) => theme.colors.primary.dark1};
+    }
   }
 
   &.has-incompatible-filters {
@@ -73,15 +80,6 @@ export const Pill = styled.div`
   }
 `;
 
-export const WarningPill = styled(Pill)`
-  background: ${({ theme }) => theme.colors.alert.base};
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-`;
-
-export const UnsetPill = styled(Pill)`
-  background: ${({ theme }) => theme.colors.grayscale.light1};
-`;
-
 export interface TitleProps {
   bold?: boolean;
   color?: string;
@@ -91,9 +89,15 @@ export const Title = styled.span<TitleProps>`
   position: relative;
   margin-right: ${({ theme }) => theme.gridUnit}px;
   font-weight: ${({ bold, theme }) => {
-    return bold ? theme.typography.weights.bold : 'auto';
+    if (bold) return theme.typography.weights.bold;
+    return 'auto';
   }};
   color: ${({ color, theme }) => color || theme.colors.grayscale.light5};
+  display: flex;
+  align-items: center;
+  & > * {
+    margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
 `;
 
 export const ItemIcon = styled.i`
@@ -148,4 +152,14 @@ export const FilterValue = styled.div`
   flex-grow: 1;
   overflow: auto;
   color: ${({ theme }) => theme.colors.grayscale.light5};
+`;
+
+export const FilterIndicatorText = styled.div`
+  ${({ theme }) => `
+  padding-top: ${theme.gridUnit * 3}px;
+  max-width: 100%;
+  flex-grow: 1;
+  overflow: auto;
+  color: ${theme.colors.grayscale.light5};
+  `}
 `;

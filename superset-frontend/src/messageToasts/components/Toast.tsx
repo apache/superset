@@ -16,16 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Alert } from 'react-bootstrap';
-import { styled } from '@superset-ui/core';
+import { styled, css, SupersetTheme } from '@superset-ui/core';
 import cx from 'classnames';
 import Interweave from 'interweave';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { ToastType } from 'src/messageToasts/constants';
 import { ToastMeta } from '../types';
 
-const ToastContianer = styled.div`
+const ToastContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
@@ -33,6 +32,11 @@ const ToastContianer = styled.div`
   span {
     padding: 0 11px;
   }
+`;
+
+const StyledIcon = (theme: SupersetTheme) => css`
+  min-width: ${theme.gridUnit * 5}px;
+  color: ${theme.colors.grayscale.base};
 `;
 
 interface ToastPresenterProps {
@@ -73,26 +77,36 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
     };
   }, [handleClosePress, toast.duration]);
 
+  let className = 'toast--success';
+  let icon = <Icons.CircleCheckSolid css={theme => StyledIcon(theme)} />;
+
+  if (toast.toastType === ToastType.WARNING) {
+    icon = <Icons.WarningSolid css={StyledIcon} />;
+    className = 'toast--warning';
+  } else if (toast.toastType === ToastType.DANGER) {
+    icon = <Icons.ErrorSolid css={StyledIcon} />;
+    className = 'toast--danger';
+  } else if (toast.toastType === ToastType.INFO) {
+    icon = <Icons.InfoSolid css={StyledIcon} />;
+    className = 'toast--info';
+  }
+
   return (
-    <Alert
-      onDismiss={handleClosePress}
-      bsClass={cx(
-        'alert',
-        'toast',
-        visible && 'toast--visible',
-        toast.toastType === ToastType.SUCCESS && 'toast--success',
-        toast.toastType === ToastType.WARNING && 'toast--warning',
-        toast.toastType === ToastType.DANGER && 'toast--danger',
-      )}
+    <ToastContainer
+      className={cx('alert', 'toast', visible && 'toast--visible', className)}
+      data-test="toast-container"
+      role="alert"
     >
-      <ToastContianer>
-        {toast.toastType === ToastType.SUCCESS && (
-          <Icon name="circle-check-solid" />
-        )}
-        {toast.toastType === ToastType.WARNING ||
-          (toast.toastType === ToastType.DANGER && <Icon name="error-solid" />)}
-        <Interweave content={toast.text} />
-      </ToastContianer>
-    </Alert>
+      {icon}
+      <Interweave content={toast.text} />
+      <i
+        className="fa fa-close pull-right pointer"
+        role="button"
+        tabIndex={0}
+        onClick={handleClosePress}
+        aria-label="Close"
+        data-test="close-button"
+      />
+    </ToastContainer>
   );
 }

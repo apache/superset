@@ -30,7 +30,7 @@ import {
   addSuccessToast as addSuccessToastAction,
   addWarningToast as addWarningToastAction,
 } from '../../messageToasts/actions/index';
-import getClientErrorObject from '../../utils/getClientErrorObject';
+import { getClientErrorObject } from '../../utils/getClientErrorObject';
 import COMMON_ERR_MESSAGES from '../../utils/errorMessages';
 
 export const RESET_STATE = 'RESET_STATE';
@@ -57,7 +57,10 @@ export const QUERY_EDITOR_SET_QUERY_LIMIT = 'QUERY_EDITOR_SET_QUERY_LIMIT';
 export const QUERY_EDITOR_SET_TEMPLATE_PARAMS =
   'QUERY_EDITOR_SET_TEMPLATE_PARAMS';
 export const QUERY_EDITOR_SET_SELECTED_TEXT = 'QUERY_EDITOR_SET_SELECTED_TEXT';
+export const QUERY_EDITOR_SET_FUNCTION_NAMES =
+  'QUERY_EDITOR_SET_FUNCTION_NAMES';
 export const QUERY_EDITOR_PERSIST_HEIGHT = 'QUERY_EDITOR_PERSIST_HEIGHT';
+export const QUERY_EDITOR_TOGGLE_LEFT_BAR = 'QUERY_EDITOR_TOGGLE_LEFT_BAR';
 export const MIGRATE_QUERY_EDITOR = 'MIGRATE_QUERY_EDITOR';
 export const MIGRATE_TAB_HISTORY = 'MIGRATE_TAB_HISTORY';
 export const MIGRATE_TABLE = 'MIGRATE_TABLE';
@@ -139,42 +142,8 @@ export function queryValidationFailed(query, message, error) {
   return { type: QUERY_VALIDATION_FAILED, query, message, error };
 }
 
-export function saveQuery(query) {
-  return dispatch =>
-    SupersetClient.post({
-      endpoint: '/savedqueryviewapi/api/create',
-      postPayload: convertQueryToServer(query),
-      stringify: false,
-    })
-      .then(result => {
-        dispatch({
-          type: QUERY_EDITOR_SAVED,
-          query,
-          result: convertQueryToClient(result.json.item),
-        });
-        dispatch(addSuccessToast(t('Your query was saved')));
-      })
-      .catch(() =>
-        dispatch(addDangerToast(t('Your query could not be saved'))),
-      );
-}
-
 export function updateQueryEditor(alterations) {
   return { type: UPDATE_QUERY_EDITOR, alterations };
-}
-
-export function updateSavedQuery(query) {
-  return dispatch =>
-    SupersetClient.put({
-      endpoint: `/savedqueryviewapi/api/update/${query.remoteId}`,
-      postPayload: convertQueryToServer(query),
-      stringify: false,
-    })
-      .then(() => dispatch(addSuccessToast(t('Your query was updated'))))
-      .catch(() =>
-        dispatch(addDangerToast(t('Your query could not be updated'))),
-      )
-      .then(() => dispatch(updateQueryEditor(query)));
 }
 
 export function scheduleQuery(query) {
@@ -188,7 +157,7 @@ export function scheduleQuery(query) {
         dispatch(
           addSuccessToast(
             t(
-              'Your query has been scheduled. To see details of your query, navigate to Saved Queries',
+              'Your query has been scheduled. To see details of your query, navigate to Saved queries',
             ),
           ),
         ),
@@ -281,18 +250,22 @@ export function queryFailed(query, msg, link, errors) {
           })
         : Promise.resolve();
 
-    return sync
-      .then(() => dispatch({ type: QUERY_FAILED, query, msg, link, errors }))
-      .catch(() =>
-        dispatch(
-          addDangerToast(
-            t(
-              'An error occurred while storing the latest query id in the backend. ' +
-                'Please contact your administrator if this problem persists.',
+    return (
+      sync
+        .catch(() =>
+          dispatch(
+            addDangerToast(
+              t(
+                'An error occurred while storing the latest query id in the backend. ' +
+                  'Please contact your administrator if this problem persists.',
+              ),
             ),
           ),
-        ),
-      );
+        )
+        // We should always show the error message, even if we couldn't sync the
+        // state to the backend
+        .then(() => dispatch({ type: QUERY_FAILED, query, msg, link, errors }))
+    );
   };
 }
 
@@ -380,6 +353,13 @@ export function runQuery(query) {
           dispatch(queryFailed(query, message, error.link, error.errors));
         }),
       );
+  };
+}
+
+export function reRunQuery(query) {
+  // run Query with a new id
+  return function (dispatch) {
+    dispatch(runQuery({ ...query, id: shortid.generate() }));
   };
 }
 
@@ -669,6 +649,7 @@ export function switchQueryEditor(queryEditor, displayLimit) {
               errors: [],
               completed: false,
             },
+            hideLeftBar: json.hide_left_bar,
           };
           dispatch(loadQueryEditor(loadedQueryEditor));
           dispatch(setTables(json.table_schemas || []));
@@ -693,6 +674,36 @@ export function switchQueryEditor(queryEditor, displayLimit) {
 
 export function setActiveSouthPaneTab(tabId) {
   return { type: SET_ACTIVE_SOUTHPANE_TAB, tabId };
+}
+
+export function toggleLeftBar(queryEditor) {
+  const hideLeftBar = !queryEditor.hideLeftBar;
+  return function (dispatch) {
+    const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
+      ? SupersetClient.put({
+          endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+          postPayload: { hide_left_bar: hideLeftBar },
+        })
+      : Promise.resolve();
+
+    return sync
+      .then(() =>
+        dispatch({
+          type: QUERY_EDITOR_TOGGLE_LEFT_BAR,
+          queryEditor,
+          hideLeftBar,
+        }),
+      )
+      .catch(() =>
+        dispatch(
+          addDangerToast(
+            t(
+              'An error occurred while hiding the left bar. Please contact your administrator.',
+            ),
+          ),
+        ),
+      );
+  };
 }
 
 export function removeQueryEditor(queryEditor) {
@@ -847,12 +858,50 @@ export function queryEditorSetTitle(queryEditor, title) {
   };
 }
 
+export function saveQuery(query) {
+  return dispatch =>
+    SupersetClient.post({
+      endpoint: '/savedqueryviewapi/api/create',
+      postPayload: convertQueryToServer(query),
+      stringify: false,
+    })
+      .then(result => {
+        dispatch({
+          type: QUERY_EDITOR_SAVED,
+          query,
+          result: convertQueryToClient(result.json.item),
+        });
+        dispatch(addSuccessToast(t('Your query was saved')));
+        dispatch(queryEditorSetTitle(query, query.title));
+      })
+      .catch(() =>
+        dispatch(addDangerToast(t('Your query could not be saved'))),
+      );
+}
+
+export function updateSavedQuery(query) {
+  return dispatch =>
+    SupersetClient.put({
+      endpoint: `/savedqueryviewapi/api/update/${query.remoteId}`,
+      postPayload: convertQueryToServer(query),
+      stringify: false,
+    })
+      .then(() => {
+        dispatch(addSuccessToast(t('Your query was updated')));
+        dispatch(queryEditorSetTitle(query, query.title));
+      })
+      .catch(() =>
+        dispatch(addDangerToast(t('Your query could not be updated'))),
+      )
+      .then(() => dispatch(updateQueryEditor(query)));
+}
+
 export function queryEditorSetSql(queryEditor, sql) {
   return function (dispatch) {
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? SupersetClient.put({
           endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
-          postPayload: { sql },
+          postPayload: { sql, latest_query_id: queryEditor.latestQueryId },
         })
       : Promise.resolve();
 
@@ -942,10 +991,9 @@ export function mergeTable(table, query) {
 function getTableMetadata(table, query, dispatch) {
   return SupersetClient.get({
     endpoint: encodeURI(
-      `/api/v1/database/${query.dbId}/table/` +
-        `${encodeURIComponent(table.name)}/${encodeURIComponent(
-          table.schema,
-        )}/`,
+      `/api/v1/database/${query.dbId}/table/${encodeURIComponent(
+        table.name,
+      )}/${encodeURIComponent(table.schema)}/`,
     ),
   })
     .then(({ json }) => {
@@ -1026,7 +1074,7 @@ export function addTable(query, tableName, schemaName) {
         ...table,
         isMetadataLoading: true,
         isExtraMetadataLoading: true,
-        expanded: false,
+        expanded: true,
       }),
     );
 
@@ -1176,7 +1224,7 @@ export function popStoredQuery(urlId) {
       .then(({ json }) =>
         dispatch(
           addQueryEditor({
-            title: json.title ? json.title : t('Sjsonhared query'),
+            title: json.title ? json.title : t('Shared query'),
             dbId: json.dbId ? parseInt(json.dbId, 10) : null,
             schema: json.schema ? json.schema : null,
             autorun: json.autorun ? json.autorun : false,
@@ -1294,5 +1342,25 @@ export function createCtasDatasource(vizOptions) {
         dispatch(createDatasourceFailed(errorMsg));
         return Promise.reject(new Error(errorMsg));
       });
+  };
+}
+
+export function queryEditorSetFunctionNames(queryEditor, dbId) {
+  return function (dispatch) {
+    return SupersetClient.get({
+      endpoint: encodeURI(`/api/v1/database/${dbId}/function_names/`),
+    })
+      .then(({ json }) =>
+        dispatch({
+          type: QUERY_EDITOR_SET_FUNCTION_NAMES,
+          queryEditor,
+          functionNames: json.function_names,
+        }),
+      )
+      .catch(() =>
+        dispatch(
+          addDangerToast(t('An error occurred while fetching function names.')),
+        ),
+      );
   };
 }

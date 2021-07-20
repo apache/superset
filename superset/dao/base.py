@@ -77,6 +77,19 @@ class BaseDAO:
         return query.all()
 
     @classmethod
+    def find_all(cls) -> List[Model]:
+        """
+        Get all that fit the `base_filter`
+        """
+        query = db.session.query(cls.model_cls)
+        if cls.base_filter:
+            data_model = SQLAInterface(cls.model_cls, db.session)
+            query = cls.base_filter(  # pylint: disable=not-callable
+                "id", data_model
+            ).apply(query, None)
+        return query.all()
+
+    @classmethod
     def create(cls, properties: Dict[str, Any], commit: bool = True) -> Model:
         """
         Generic for creating models

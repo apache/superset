@@ -20,7 +20,7 @@ import React from 'react';
 import cx from 'classnames';
 import { TableInstance } from 'react-table';
 import { styled } from '@superset-ui/core';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 
 interface TableCollectionProps {
   getTableProps: (userProps?: any) => any;
@@ -52,8 +52,6 @@ export const Table = styled.table`
     position: sticky;
     top: 0;
 
-    white-space: nowrap;
-
     &:first-of-type {
       padding-left: ${({ theme }) => theme.gridUnit * 4}px;
     }
@@ -77,9 +75,15 @@ export const Table = styled.table`
       min-width: 200px;
     }
 
+    span {
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      line-height: 2;
+    }
+
     svg {
       display: inline-block;
-      top: 6px;
       position: relative;
     }
   }
@@ -204,17 +208,17 @@ export const Table = styled.table`
 
 Table.displayName = 'table';
 
-export default function TableCollection({
-  getTableProps,
-  getTableBodyProps,
-  prepareRow,
-  headerGroups,
-  columns,
-  rows,
-  loading,
-  highlightRowId,
-}: TableCollectionProps) {
-  return (
+export default React.memo(
+  ({
+    getTableProps,
+    getTableBodyProps,
+    prepareRow,
+    headerGroups,
+    columns,
+    rows,
+    loading,
+    highlightRowId,
+  }: TableCollectionProps) => (
     <Table
       {...getTableProps()}
       className="table table-hover"
@@ -224,11 +228,11 @@ export default function TableCollection({
         {headerGroups.map(headerGroup => (
           <tr {...headerGroup.getHeaderGroupProps()}>
             {headerGroup.headers.map(column => {
-              let sortIcon = <Icon name="sort" />;
+              let sortIcon = <Icons.Sort />;
               if (column.isSorted && column.isSortedDesc) {
-                sortIcon = <Icon name="sort-desc" />;
+                sortIcon = <Icons.SortDesc />;
               } else if (column.isSorted && !column.isSortedDesc) {
-                sortIcon = <Icon name="sort-asc" />;
+                sortIcon = <Icons.SortAsc />;
               }
               return column.hidden ? null : (
                 <th
@@ -265,7 +269,7 @@ export default function TableCollection({
                       [column.size || '']: column.size,
                     })}
                   >
-                    <span className="loading-bar">
+                    <span className="loading-bar" role="progressbar">
                       <span>LOADING</span>
                     </span>
                   </td>
@@ -302,7 +306,10 @@ export default function TableCollection({
                       {...cell.getCellProps()}
                       {...columnCellProps}
                     >
-                      <span className={cx({ 'loading-bar': loading })}>
+                      <span
+                        className={cx({ 'loading-bar': loading })}
+                        role={loading ? 'progressbar' : undefined}
+                      >
                         <span data-test="cell-text">{cell.render('Cell')}</span>
                       </span>
                     </td>
@@ -313,5 +320,5 @@ export default function TableCollection({
           })}
       </tbody>
     </Table>
-  );
-}
+  ),
+);

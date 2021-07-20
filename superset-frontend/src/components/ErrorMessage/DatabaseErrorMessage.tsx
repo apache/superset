@@ -35,6 +35,7 @@ interface DatabaseErrorExtra {
 function DatabaseErrorMessage({
   error,
   source = 'dashboard',
+  subtitle,
 }: ErrorMessageComponentProps<DatabaseErrorExtra>) {
   const { extra, level, message } = error;
 
@@ -46,7 +47,9 @@ function DatabaseErrorMessage({
         {t('This may be triggered by:')}
         <br />
         {extra.issue_codes
-          .map<React.ReactNode>(issueCode => <IssueCode {...issueCode} />)
+          .map<React.ReactNode>(issueCode => (
+            <IssueCode {...issueCode} key={issueCode.code} />
+          ))
           .reduce((prev, curr) => [prev, <br />, curr])}
       </p>
       {isVisualization && extra.owners && (
@@ -78,8 +81,8 @@ ${extra.issue_codes.map(issueCode => issueCode.message).join('\n')}`;
 
   return (
     <ErrorAlert
-      title={t('%s Error', extra.engine_name || t('DB Engine'))}
-      subtitle={message}
+      title={t('%s Error', extra.engine_name || t('DB engine'))}
+      subtitle={subtitle}
       level={level}
       source={source}
       copyText={copyText}

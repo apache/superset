@@ -37,9 +37,8 @@ describe('Visualization > Sunburst', () => {
   }
 
   beforeEach(() => {
-    cy.server();
     cy.login();
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 
   it('should work without secondary metric', () => {
@@ -71,7 +70,7 @@ describe('Visualization > Sunburst', () => {
         {
           expressionType: 'SIMPLE',
           subject: 'region',
-          operator: 'in',
+          operator: 'IN',
           comparator: ['South Asia', 'North America'],
           clause: 'WHERE',
           sqlExpression: null,

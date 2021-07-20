@@ -14,10 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from flask import current_app as app
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from werkzeug.exceptions import NotFound
 
 import superset.models.core as models
-from superset.constants import RouteMethod
+from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.views.base import SupersetModelView
 
 from . import LogMixin
@@ -26,3 +29,14 @@ from . import LogMixin
 class LogModelView(LogMixin, SupersetModelView):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.Log)
     include_route_methods = {RouteMethod.LIST, RouteMethod.SHOW}
+    class_permission_name = "Log"
+    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
+
+    @staticmethod
+    def is_enabled() -> bool:
+        return app.config["FAB_ADD_SECURITY_VIEWS"] and app.config["SUPERSET_LOG_VIEW"]
+
+    @before_request
+    def ensure_enabled(self) -> None:
+        if not self.is_enabled():
+            raise NotFound()
