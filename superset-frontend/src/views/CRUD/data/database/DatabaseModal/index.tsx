@@ -240,13 +240,13 @@ function dbReducer(
       };
     case ActionType.parametersChange:
       if (action.payload.type?.startsWith('catalog')) {
-        // todo: find condition to make the valide for googke sheets only
-        // formatting wrapping google sheets table catalog
+        // Formatting wrapping google sheets table catalog
         const idx = action.payload.type?.split('-')[1];
         const catalogToUpdate = trimmedState.catalog[idx];
         catalogToUpdate[action.payload.name] = action.payload.value;
 
         const paramatersCatalog = {};
+        // eslint-disable-next-line array-callback-return
         trimmedState.catalog?.map(item => {
           paramatersCatalog[item.name] = item.value;
         });
