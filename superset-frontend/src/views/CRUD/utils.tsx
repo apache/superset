@@ -70,7 +70,7 @@ const getParams = (filters?: Array<Filters>) => {
     order_column: 'changed_on_delta_humanized',
     order_direction: 'desc',
     page: 0,
-    page_size: 5,
+    page_size: 2,
     filters,
   };
   if (!filters) delete params.filters;
@@ -192,7 +192,7 @@ export function handleChartDelete(
 ) {
   const filters = {
     pageIndex: 0,
-    pageSize: 3,
+    pageSize: 5,
     sortBy: [
       {
         id: 'changed_on_delta_humanized',
@@ -277,10 +277,10 @@ export const mq = breakpoints.map(bp => `@media (max-width: ${bp}px)`);
 export const CardContainer = styled.div`
   grid-area: main;
   display: grid;
-  grid-template-columns: repeat(auto-fill, 200px);
+  grid-template-columns: repeat(auto-fill, 19%);
   grid-auto-rows: max-content;
   //justify-content: space-evenly;
-  grid-gap: 18px;
+  grid-gap: 1%;
   //justify-items: center;
   padding: 24px;
   //grid-template-columns: repeat(auto-fit, minmax(19%, 19%));
