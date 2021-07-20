@@ -56,7 +56,7 @@ import {
 
 import { logEvent } from '../../logger/actions';
 import { DASHBOARD_HEADER_ID } from '../util/constants';
-import { fetchUISpecificReport } from '../../reports/actions/reportState';
+import { fetchUISpecificReport } from '../../reports/actions';
 
 function mapStateToProps({
   dashboardLayout: undoableLayout,

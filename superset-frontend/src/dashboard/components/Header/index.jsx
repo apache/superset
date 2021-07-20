@@ -170,7 +170,10 @@ class Header extends React.PureComponent {
       // this is in case there is an anonymous user.
       this.props.fetchUISpecificReport(
         user.userId,
+<<<<<<< HEAD
         'dashboard_id',
+=======
+>>>>>>> abstracted report action
         'dashboards',
         dashboardInfo.id,
       );
@@ -392,7 +395,7 @@ class Header extends React.PureComponent {
       // this is in the case that there is an anonymous user.
       return false;
     }
-    const roles = Object.keys(this.props.user?.roles);
+    const roles = Object.keys(this.props.user.roles);
     const permissions = roles.map(key =>
       this.props.user.roles[key].filter(
         perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
