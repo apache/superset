@@ -118,6 +118,7 @@ Join our growing community!
 - [Brilliant.org](https://brilliant.org/)
 - [Udemy](https://www.udemy.com/) [@sungjuly]
 - [VIPKID](https://www.vipkid.com.cn/) [@illpanda]
+- [Sunbird](https://www.sunbird.org/) [@eksteporg]
 
 ### Energy
 - [Airboxlab](https://foobot.io) [@antoine-galataud]
