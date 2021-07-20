@@ -35,6 +35,7 @@ import EditableTitle from 'src/components/EditableTitle';
 import FaveStar from 'src/components/FaveStar';
 import { safeStringify } from 'src/utils/safeStringify';
 import HeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
+import HeaderReportActionsDropdown from 'src/dashboard/components/Header/HeaderReportActionsDropdown';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
@@ -146,7 +147,6 @@ class Header extends React.PureComponent {
       emphasizeUndo: false,
       showingPropertiesModal: false,
       showingReportModal: false,
-      attachedReports: {},
     };
 
     this.handleChangeText = this.handleChangeText.bind(this);
@@ -170,10 +170,7 @@ class Header extends React.PureComponent {
       // this is in case there is an anonymous user.
       this.props.fetchUISpecificReport(
         user.userId,
-<<<<<<< HEAD
         'dashboard_id',
-=======
->>>>>>> abstracted report action
         'dashboards',
         dashboardInfo.id,
       );
@@ -384,10 +381,16 @@ class Header extends React.PureComponent {
   }
 
   handleReportModalclick() {
-    const attachedReportExists = this.state.attachedReports.count > 0;
-    if (!attachedReportExists) {
-      this.showReportModal();
-    }
+    const attachedReportExists = this.props.reports.count > 0;
+    return !attachedReportExists ? (
+      this.showReportModal()
+    ) : (
+      <HeaderReportActionsDropdown
+        showReportModal={this.showReportModal}
+        hideReportModal={this.hideReportModal}
+        report={this.props.report}
+      />
+    );
   }
 
   canAddReportsModal() {
