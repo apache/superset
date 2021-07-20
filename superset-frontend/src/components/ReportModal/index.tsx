@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+ import React, {
   useState,
   useCallback,
   useReducer,
@@ -24,6 +24,7 @@ import React, {
   FunctionComponent,
 } from 'react';
 import { styled, css, t } from '@superset-ui/core';
+import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import Icons from 'src/components/Icons';
@@ -143,6 +144,41 @@ const ReportModal: FunctionComponent<ReportProps> = ({
     setCurrentReport({ type, payload } as ReportActionType);
   }, []);
   const [error, setError] = useState<CronError>();
+  const [hasConnectedReport, setHasConnectedReport] = useState<boolean>(false);
+  const [isLoading, setLoading] = useState<boolean>(false);
+
+  // Placeholder functions (will be brought in from parent component?)
+  // Toasts use withToasts
+  const addDangerToast = () => 'Placeholder for addDangerToast functionality';
+  // Live in header and passed in
+  // -- talk to Arash to see how this will be updated
+  // Header just needs to know if report exists or not
+  const onReportAdd = () => 'Placeholder for onReportAdd functionality';
+
+  // Report fetch logic
+  // Below is not needed, data will be passed in
+  const { createResource } = useSingleViewResource<ReportObject>(
+    'report',
+    t('report'),
+    addDangerToast,
+  );
+
+  const onSave = async () => {
+    if (currentReport) {
+      // Create new Report
+      setLoading(true);
+      const currentReportID = await createResource(
+        currentReport as ReportObject,
+      );
+
+      if (currentReportID) {
+        setHasConnectedReport(true);
+        if (onReportAdd) {
+          onReportAdd();
+        }
+      }
+    }
+  };
 
   const wrappedTitle = (
     <StyledIconWrapper>
