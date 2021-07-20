@@ -188,6 +188,8 @@ function dbReducer(
     ...(state || {}),
   };
   let query = '';
+  let deserializeExtraJSON = {};
+  let extra_json: DatabaseObject['extra_json'];
 
   console.log(action);
   switch (action.type) {
@@ -237,16 +239,26 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.parametersChange:
-      if (true) { // todo: find condition to make the valide for googke sheets only
+      if (action.payload.type?.startsWith('catalog')) {
+        // todo: find condition to make the valide for googke sheets only
         // formatting wrapping google sheets table catalog
+        const idx = action.payload.type?.split('-')[1];
+        const catalogToUpdate = trimmedState.catalog[idx];
+        catalogToUpdate[action.payload.name] = action.payload.value;
+
+        console.log('catalog', trimmedState.catalog);
+        const paramatersCatalog = {};
+        trimmedState.catalog.map(item => {
+          paramatersCatalog[item.name] = item.value;
+        });
+
+        console.log('paramsCatalog', paramatersCatalog);
+
         return {
           ...trimmedState,
           parameters: {
             ...trimmedState.parameters,
-            catalog: {
-              ...trimmedState.parameters?.catalog,
-              [action.payload.name.substring(14)]: action.payload.value, // removing table-catalog from key
-            },
+            catalog: paramatersCatalog,
           },
         };
       }
@@ -285,10 +297,8 @@ function dbReducer(
       };
     case ActionType.fetched:
       // convert all the keys in this payload into strings
-      // eslint-disable-next-line no-case-declarations
-      let deserializeExtraJSON = {};
       if (action.payload.extra) {
-        const extra_json = {
+        extra_json = {
           ...JSON.parse(action.payload.extra || ''),
         } as DatabaseObject['extra_json'];
 
@@ -325,6 +335,30 @@ function dbReducer(
               action.payload?.parameters?.credentials_info || '',
             ),
           },
+        };
+      }
+
+      if (
+        action.payload.backend === 'gsheets' &&
+        action.payload.configuration_method ===
+          CONFIGURATION_METHOD.DYNAMIC_FORM
+      ) {
+        // pull catalog from engine params
+        console.log(extra_json?.engine_params);
+        const result = Object.keys(extra_json?.engine_params?.catalog).map(
+          e => {
+            const ret = {};
+            ret.name = e;
+            ret.value = extra_json?.engine_params?.catalog[e];
+            return ret;
+          },
+        );
+        return {
+          ...action.payload,
+          engine: action.payload.backend,
+          configuration_method: action.payload.configuration_method,
+          extra_json: deserializeExtraJSON,
+          catalog: result,
         };
       }
 
@@ -987,6 +1021,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   value: target.value,
                 })
               }
+              onAddTableCatalog={() => {
+                console.log('hey');
+                setDB({ type: ActionType.addTableCatalogSheet });
+              }}
+              onRemoveTableCatalog={idx => {
+                setDB({
+                  type: ActionType.removeTableCatalogSheet,
+                  payload: { indexToDelete: idx },
+                });
+              }}
               getValidation={() => getValidation(db)}
               validationErrors={validationErrors}
             />

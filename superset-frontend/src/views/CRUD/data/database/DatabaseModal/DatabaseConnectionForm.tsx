@@ -202,8 +202,8 @@ const TableCatalog = ({
   validationErrors,
   db,
 }: FieldPropTypes) => {
-  const tableCatalog = db.catalog
-  console.log(tableCatalog);
+  const tableCatalog = db.catalog;
+  console.log('tableCatalog', tableCatalog);
   return (
     <div>
       <>
@@ -218,10 +218,16 @@ const TableCatalog = ({
         {tableCatalog.map((sheet, idx) => (
           <>
             <Input
-              name={`table-catalog-name-${idx}`}
               placeholder="Enter create a name for this sheet"
               onChange={e => {
                 tableCatalog[idx].name = e.target.value;
+                changeMethods.onParametersChange({
+                  target: {
+                    type: `catalog-${idx}`,
+                    name: 'name',
+                    value: e.target.value,
+                  },
+                });
               }}
               value={sheet.name}
             />
@@ -234,14 +240,24 @@ const TableCatalog = ({
               validationMethods={{ onBlur: getValidation }}
               errorMessage={validationErrors?.table_catalog}
               placeholder="Paste the shareable Google Sheet URL here"
-              onChange={changeMethods.onParametersChange}
-              onPaste={e => {
-                const sheetUrl = e.clipboardData.getData('Text');
-                tableCatalog[idx].value = sheetUrl;
+              onChange={e => {
                 changeMethods.onParametersChange({
                   target: {
-                    name: sheet.name,
-                    value: sheetUrl,
+                    type: `catalog-${idx}`,
+                    name: 'value',
+                    value: e.target.value,
+                  },
+                });
+              }}
+              onPaste={e => {
+                const sheetUrl = e.clipboardData.getData('Text');
+                changeMethods.onParametersChange({
+                  target: {
+                    target: {
+                      type: `catalog-${idx}`,
+                      name: 'value',
+                      value: sheetUrl,
+                    },
                   },
                 });
               }}
