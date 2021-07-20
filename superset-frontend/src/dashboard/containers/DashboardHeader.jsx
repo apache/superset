@@ -39,6 +39,7 @@ import {
   setMaxUndoHistoryExceeded,
   maxUndoHistoryToast,
   setRefreshFrequency,
+  fetchDashboardSpecificReport,
 } from '../actions/dashboardState';
 
 import {
@@ -94,6 +95,7 @@ function mapStateToProps({
     editMode: !!dashboardState.editMode,
     slug: dashboardInfo.slug,
     metadata: dashboardInfo.metadata,
+    report: dashboardState.report,
   };
 }
 
@@ -123,6 +125,7 @@ function mapDispatchToProps(dispatch) {
       dashboardInfoChanged,
       dashboardTitleChanged,
       updateDataMask,
+      fetchDashboardSpecificReport,
     },
     dispatch,
   );
