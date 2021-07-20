@@ -35,6 +35,8 @@ from superset.db_engine_specs.base import BasicParametersMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.core import Database
 
+BYPASS_VALIDATION_ENGINES = {"bigquery"}
+
 
 class ValidateDatabaseParametersCommand(BaseCommand):
     def __init__(self, user: User, parameters: Dict[str, Any]):
@@ -45,6 +47,11 @@ class ValidateDatabaseParametersCommand(BaseCommand):
     def run(self) -> None:
         engine = self._properties["engine"]
         engine_specs = get_engine_specs()
+
+        if engine in BYPASS_VALIDATION_ENGINES:
+            # Skip engines that are only validated onCreate
+            return
+
         if engine not in engine_specs:
             raise InvalidEngineError(
                 SupersetError(
@@ -78,7 +85,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             )
 
         # perform initial validation
-        errors = engine_spec.validate_parameters(self._properties["parameters"])
+        errors = engine_spec.validate_parameters(self._properties.get("parameters", {}))
         if errors:
             raise InvalidParametersError(errors)
 
@@ -90,7 +97,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
 
         # try to connect
         sqlalchemy_uri = engine_spec.build_sqlalchemy_uri(
-            self._properties["parameters"],  # type: ignore
+            self._properties.get("parameters", None),  # type: ignore
             encrypted_extra,
         )
         if self._model and sqlalchemy_uri == self._model.safe_sqlalchemy_uri():

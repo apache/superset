@@ -30,6 +30,7 @@ export type QueryState =
   | 'running'
   | 'scheduled'
   | 'success'
+  | 'fetching'
   | 'timed_out';
 
 export type Query = {

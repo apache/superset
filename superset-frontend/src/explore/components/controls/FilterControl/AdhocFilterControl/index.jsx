@@ -30,7 +30,10 @@ import ControlHeader from 'src/explore/components/ControlHeader';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
 import savedMetricType from 'src/explore/components/controls/MetricControl/savedMetricType';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
-import { OPERATORS } from 'src/explore/constants';
+import {
+  Operators,
+  OPERATOR_ENUM_TO_OPERATOR_TYPE,
+} from 'src/explore/constants';
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
 import {
   AddControlLabel,
@@ -242,7 +245,8 @@ class AdhocFilterControl extends React.Component {
           this.props.datasource.type === 'druid'
             ? option.saved_metric_name
             : this.getMetricExpression(option.saved_metric_name),
-        operator: OPERATORS['>'],
+        operator:
+          OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
         comparator: 0,
         clause: CLAUSES.HAVING,
       });
@@ -258,7 +262,8 @@ class AdhocFilterControl extends React.Component {
           this.props.datasource.type === 'druid'
             ? option.label
             : new AdhocMetric(option).translateToSql(),
-        operator: OPERATORS['>'],
+        operator:
+          OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
         comparator: 0,
         clause: CLAUSES.HAVING,
       });
@@ -268,7 +273,7 @@ class AdhocFilterControl extends React.Component {
       return new AdhocFilter({
         expressionType: EXPRESSION_TYPES.SIMPLE,
         subject: option.column_name,
-        operator: OPERATORS['=='],
+        operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.EQUALS].operation,
         comparator: '',
         clause: CLAUSES.WHERE,
         isNew: true,

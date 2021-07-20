@@ -63,7 +63,7 @@ from superset.charts.schemas import (
     screenshot_query_schema,
     thumbnail_query_schema,
 )
-from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.exceptions import QueryObjectValidationError
@@ -480,17 +480,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
-    def get_data_response(
-        self, command: ChartDataCommand, force_cached: bool = False
-    ) -> Response:
-        try:
-            result = command.run(force_cached=force_cached)
-        except ChartDataCacheLoadError as exc:
-            return self.response_422(message=exc.message)
-        except ChartDataQueryFailedError as exc:
-            return self.response_400(message=exc.message)
-
+    def send_chart_response(self, result: Dict[Any, Any]) -> Response:
         result_format = result["query_context"].result_format
+
         if result_format == ChartDataResultFormat.CSV:
             # Verify user has permission to export CSV file
             if not security_manager.can_access("can_csv", "Superset"):
@@ -511,6 +503,18 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return resp
 
         return self.response_400(message=f"Unsupported result_format: {result_format}")
+
+    def get_data_response(
+        self, command: ChartDataCommand, force_cached: bool = False
+    ) -> Response:
+        try:
+            result = command.run(force_cached=force_cached)
+        except ChartDataCacheLoadError as exc:
+            return self.response_422(message=exc.message)
+        except ChartDataQueryFailedError as exc:
+            return self.response_400(message=exc.message)
+
+        return self.send_chart_response(result)
 
     @expose("/data", methods=["POST"])
     @protect()
@@ -589,7 +593,22 @@ class ChartRestApi(BaseSupersetModelRestApi):
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
         ):
+            # First, look for the chart query results in the cache.
+            try:
+                result = command.run(force_cached=True)
+            except ChartDataCacheLoadError:
+                result = None  # type: ignore
 
+            already_cached_result = result is not None
+
+            # If the chart query has already been cached, return it immediately.
+            if already_cached_result:
+                return self.send_chart_response(result)
+
+            # Otherwise, kick off a background job to run the chart query.
+            # Clients will either poll or be notified of query completion,
+            # at which point they will call the /data/<cache_key> endpoint
+            # to retrieve the results.
             try:
                 command.validate_async_request(request)
             except AsyncQueryTokenException:
@@ -903,6 +922,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        token = request.args.get("token")
         requested_ids = kwargs["rison"]
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
         root = f"chart_export_{timestamp}"
@@ -918,12 +938,15 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 return self.response_404()
         buf.seek(0)
 
-        return send_file(
+        response = send_file(
             buf,
             mimetype="application/zip",
             as_attachment=True,
             attachment_filename=filename,
         )
+        if token:
+            response.set_cookie(token, "done", max_age=600)
+        return response
 
     @expose("/favorite_status/", methods=["GET"])
     @protect()
@@ -977,7 +1000,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     @expose("/import/", methods=["POST"])
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
@@ -1003,7 +1025,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
                       type: string
                     overwrite:
                       description: overwrite existing databases?
-                      type: bool
+                      type: boolean
           responses:
             200:
               description: Chart import result
@@ -1029,6 +1051,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         with ZipFile(upload) as bundle:
             contents = get_contents_from_bundle(bundle)
 
+        if not contents:
+            raise NoValidFilesFoundError()
+
         passwords = (
             json.loads(request.form["passwords"])
             if "passwords" in request.form
@@ -1039,12 +1064,5 @@ class ChartRestApi(BaseSupersetModelRestApi):
         command = ImportChartsCommand(
             contents, passwords=passwords, overwrite=overwrite
         )
-        try:
-            command.run()
-            return self.response(200, message="OK")
-        except CommandInvalidError as exc:
-            logger.warning("Import chart failed")
-            return self.response_422(message=exc.normalized_messages())
-        except Exception as exc:  # pylint: disable=broad-except
-            logger.exception("Import chart failed")
-            return self.response_500(message=str(exc))
+        command.run()
+        return self.response(200, message="OK")

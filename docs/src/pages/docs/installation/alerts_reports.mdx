@@ -246,7 +246,7 @@ services:
       - superset
       - postgres
       - redis
-    command: "celery worker --app=superset.tasks.celery_app:app --pool=gevent --concurrency=500"
+    command: "celery --app=superset.tasks.celery_app:app worker --pool=gevent --concurrency=500"
     volumes:
       - ./config/:/app/pythonpath/
   beat:
@@ -258,7 +258,7 @@ services:
       - superset
       - postgres
       - redis
-    command: "celery beat --app=superset.tasks.celery_app:app --pidfile /tmp/celerybeat.pid --schedule /tmp/celerybeat-schedule"
+    command: "celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid --schedule /tmp/celerybeat-schedule"
     volumes:
       - ./config/:/app/pythonpath/
   superset:

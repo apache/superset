@@ -29,7 +29,7 @@ import {
 import { RefObject } from 'react';
 import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
 
-export type SelectValue = (number | string)[] | null;
+export type SelectValue = (number | string)[] | null | undefined;
 
 interface PluginFilterSelectCustomizeProps {
   defaultValue?: SelectValue;
@@ -39,7 +39,7 @@ interface PluginFilterSelectCustomizeProps {
   defaultToFirstItem: boolean;
   inputRef?: RefObject<HTMLInputElement>;
   searchAllOptions: boolean;
-  sortAscending: boolean;
+  sortAscending?: boolean;
   sortMetric?: string;
 }
 

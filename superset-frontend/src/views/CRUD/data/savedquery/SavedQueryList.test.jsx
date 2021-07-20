@@ -26,7 +26,6 @@ import { render, screen, cleanup, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import { act } from 'react-dom/test-utils';
-import { handleBulkSavedQueryExport } from 'src/views/CRUD/utils';
 import * as featureFlags from 'src/featureFlags';
 import SavedQueryList from 'src/views/CRUD/data/savedquery/SavedQueryList';
 import SubMenu from 'src/components/Menu/SubMenu';
@@ -285,14 +284,6 @@ describe('RTL', () => {
     expect(exportTooltip).toBeInTheDocument();
   });
 
-  it('runs handleBulkSavedQueryExport when export is clicked', () => {
-    // Grab Export action button and mock mouse clicking it
-    const exportActionButton = screen.getAllByRole('button')[18];
-    userEvent.click(exportActionButton);
-
-    expect(handleBulkSavedQueryExport).toHaveBeenCalled();
-  });
-
   it('renders an import button in the submenu', () => {
     // Grab and assert that import saved query button is visible
     const importButton = screen.getByTestId('import-button');
@@ -330,7 +321,7 @@ describe('RTL', () => {
     userEvent.click(importButton);
 
     // Grab "Choose File" input from import modal
-    const chooseFileInput = screen.getByLabelText(/file\*/i);
+    const chooseFileInput = screen.getByTestId('model-file-input');
     // Upload mocked import file
     userEvent.upload(chooseFileInput, mockImportFile);
 

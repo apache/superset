@@ -20,14 +20,14 @@ import React from 'react';
 import { MainNav as Menu } from 'src/common/components';
 import { t, styled, css, SupersetTheme } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import LanguagePicker from './LanguagePicker';
 import { NavBarProps, MenuObjectProps } from './Menu';
 
 export const dropdownItems = [
   {
     label: t('SQL query'),
-    url: '/superset/sqllab',
+    url: '/superset/sqllab?new=true',
     icon: 'fa-fw fa-search',
   },
   {
@@ -59,11 +59,23 @@ const StyledDiv = styled.div<{ align: string }>`
   justify-content: ${({ align }) => align};
   align-items: center;
   margin-right: ${({ theme }) => theme.gridUnit}px;
+  .ant-menu-submenu-title > svg {
+    top: ${({ theme }) => theme.gridUnit * 5.25}px;
+  }
 `;
 
 const StyledAnchor = styled.a`
   padding-right: ${({ theme }) => theme.gridUnit}px;
   padding-left: ${({ theme }) => theme.gridUnit}px;
+`;
+
+const WaterMark = styled.span`
+  font-size: 13px;
+  color: #b0b4c3;
+  margin: 0 ${({ theme }) => theme.gridUnit * 4}px;
+  @media (max-width: 1070px) {
+    display: none;
+  }
 `;
 
 const { SubMenu } = Menu;
@@ -83,13 +95,16 @@ const RightMenu = ({
 }: RightMenuProps) => (
   <StyledDiv align={align}>
     <Menu mode="horizontal">
+      {navbarRight.show_watermark && (
+        <WaterMark>{t('Powered by Apache Superset')}</WaterMark>
+      )}
       {!navbarRight.user_is_anonymous && (
         <SubMenu
           data-test="new-dropdown"
           title={
             <StyledI data-test="new-dropdown-icon" className="fa fa-plus" />
           }
-          icon={<Icon name="triangle-down" />}
+          icon={<Icons.TriangleDown />}
         >
           {dropdownItems.map(menu => (
             <Menu.Item key={menu.label}>
@@ -104,7 +119,7 @@ const RightMenu = ({
           ))}
         </SubMenu>
       )}
-      <SubMenu title="Settings" icon={<Icon name="triangle-down" />}>
+      <SubMenu title="Settings" icon={<Icons.TriangleDown iconSize="xl" />}>
         {settings.map((section, index) => [
           <Menu.ItemGroup key={`${section.label}`} title={section.label}>
             {section.childs?.map(child => {

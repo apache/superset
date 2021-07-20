@@ -22,9 +22,11 @@ import { debounce } from 'lodash';
 import { Global } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MainNav as DropdownMenu, MenuMode } from 'src/common/components';
+import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
 import { Row, Col, Grid } from 'antd';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
+import { URL_PARAMS } from 'src/constants';
 import RightMenu from './MenuRight';
 import { Languages } from './LanguagePicker';
 
@@ -33,9 +35,12 @@ interface BrandProps {
   icon: string;
   alt: string;
   width: string | number;
+  tooltip: string;
+  text: string;
 }
 
 export interface NavBarProps {
+  show_watermark: boolean;
   bug_report_url?: string;
   version_string?: string;
   version_sha?: string;
@@ -77,7 +82,6 @@ export interface MenuObjectProps extends MenuObjectChildProps {
 const StyledHeader = styled.header`
   background-color: white;
   margin-bottom: 2px;
-  border-bottom: 2px solid ${({ theme }) => theme.colors.grayscale.light4}px;
   &:nth-last-of-type(2) nav {
     margin-bottom: 2px;
   }
@@ -89,6 +93,33 @@ const StyledHeader = styled.header`
     display: flex;
     flex-direction: column;
     justify-content: center;
+  }
+  .navbar-brand-text {
+    border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    height: 100%;
+    color: ${({ theme }) => theme.colors.grayscale.dark1};
+    padding-left: ${({ theme }) => theme.gridUnit * 4}px;
+    padding-right: ${({ theme }) => theme.gridUnit * 4}px;
+    margin-right: ${({ theme }) => theme.gridUnit * 6}px;
+    font-size: ${({ theme }) => theme.gridUnit * 4}px;
+    float: left;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    span {
+      max-width: ${({ theme }) => theme.gridUnit * 58}px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    @media (max-width: 1127px) {
+      display: none;
+    }
+  }
+  .main-nav .ant-menu-submenu-title > svg {
+    top: ${({ theme }) => theme.gridUnit * 5.25}px;
   }
   @media (max-width: 767px) {
     .navbar-brand {
@@ -158,7 +189,7 @@ export function Menu({
     return () => window.removeEventListener('resize', windowResize);
   }, []);
 
-  const standalone = getUrlParam('standalone', 'boolean');
+  const standalone = getUrlParam(URL_PARAMS.standalone);
   if (standalone) return <></>;
 
   const renderSubMenu = ({
@@ -185,7 +216,11 @@ export function Menu({
       );
     }
     return (
-      <SubMenu key={index} title={label} icon={<Icon name="triangle-down" />}>
+      <SubMenu
+        key={index}
+        title={label}
+        icon={showMenu === 'inline' ? <></> : <Icons.TriangleDown />}
+      >
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
           if (typeof child === 'string' && child === '-') {
             return <DropdownMenu.Divider key={`$${index1}`} />;
@@ -220,9 +255,21 @@ export function Menu({
       />
       <Row>
         <Col md={16} xs={24}>
-          <a className="navbar-brand" href={brand.path}>
-            <img width={brand.width} src={brand.icon} alt={brand.alt} />
-          </a>
+          <Tooltip
+            id="brand-tooltip"
+            placement="bottomLeft"
+            title={brand.tooltip}
+            arrowPointAtCenter
+          >
+            <a className="navbar-brand" href={brand.path}>
+              <img width={brand.width} src={brand.icon} alt={brand.alt} />
+            </a>
+          </Tooltip>
+          {brand.text && (
+            <div className="navbar-brand-text">
+              <span>{brand.text}</span>
+            </div>
+          )}
           <DropdownMenu
             mode={showMenu}
             data-test="navbar-top"

@@ -17,11 +17,17 @@
  * under the License.
  */
 import React, { FunctionComponent, useState, useEffect } from 'react';
-import { styled, t, SupersetClient } from '@superset-ui/core';
+import {
+  styled,
+  t,
+  SupersetClient,
+  css,
+  SupersetTheme,
+} from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
 import { Radio } from 'src/components/Radio';
@@ -129,8 +135,15 @@ const DEFAULT_ALERT = {
   grace_period: undefined,
 };
 
-const StyledIcon = styled(Icon)`
-  margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
+const StyledModal = styled(Modal)`
+  .ant-modal-body {
+    overflow: initial;
+  }
+`;
+
+const StyledIcon = (theme: SupersetTheme) => css`
+  margin: auto ${theme.gridUnit * 2}px auto 0;
+  color: ${theme.colors.grayscale.base};
 `;
 
 const StyledSectionContainer = styled.div`
@@ -979,7 +992,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   ));
 
   return (
-    <Modal
+    <StyledModal
       className="no-content-padding"
       responsive
       disablePrimaryButton={disableSave}
@@ -992,9 +1005,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       title={
         <h4 data-test="alert-report-modal-title">
           {isEditMode ? (
-            <StyledIcon name="edit-alt" />
+            <Icons.EditAlt css={StyledIcon} />
           ) : (
-            <StyledIcon name="plus-large" />
+            <Icons.PlusLarge css={StyledIcon} />
           )}
           {isEditMode
             ? t(`Edit ${isReport ? 'Report' : 'Alert'}`)
@@ -1064,7 +1077,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </StyledSectionTitle>
               <StyledInputContainer>
                 <div className="control-label">
-                  {t('Source')}
+                  {t('Database')}
                   <span className="required">*</span>
                 </div>
                 <div className="input-container">
@@ -1308,7 +1321,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           </div>
         </div>
       </StyledSectionContainer>
-    </Modal>
+    </StyledModal>
   );
 };
 

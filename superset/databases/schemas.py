@@ -16,7 +16,7 @@
 # under the License.
 import inspect
 import json
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Type
 
 from flask import current_app
 from flask_babel import lazy_gettext as _
@@ -27,7 +27,7 @@ from sqlalchemy import MetaData
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError
 
-from superset.db_engine_specs import get_engine_specs
+from superset.db_engine_specs import BaseEngineSpec, get_engine_specs
 from superset.exceptions import CertificateException, SupersetSecurityException
 from superset.models.core import ConfigurationMethod, PASSWORD_MASK
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
@@ -233,6 +233,12 @@ class DatabaseParametersSchemaMixin:
         values=fields.Raw(),
         description="DB-specific parameters for configuration",
     )
+    configuration_method = EnumField(
+        ConfigurationMethod,
+        by_value=True,
+        description=configuration_method_description,
+        missing=ConfigurationMethod.SQLALCHEMY_FORM,
+    )
 
     # pylint: disable=no-self-use, unused-argument
     @pre_load
@@ -247,45 +253,67 @@ class DatabaseParametersSchemaMixin:
         the constructed SQLAlchemy URI to be passed.
         """
         parameters = data.pop("parameters", {})
+        # TODO(AAfghahi) standardize engine.
+        engine = (
+            data.pop("engine", None)
+            or parameters.pop("engine", None)
+            or data.pop("backend", None)
+        )
 
-        # TODO (betodealmeida): remove second expression after making sure
-        # frontend is not passing engine inside parameters
-        engine = data.pop("engine", None) or parameters.pop("engine", None)
+        configuration_method = data.get("configuration_method")
+        if configuration_method == ConfigurationMethod.DYNAMIC_FORM:
+            engine_spec = get_engine_spec(engine)
 
-        if parameters:
-            if not engine:
+            if not hasattr(engine_spec, "build_sqlalchemy_uri") or not hasattr(
+                engine_spec, "parameters_schema"
+            ):
                 raise ValidationError(
                     [
                         _(
-                            "An engine must be specified when passing "
-                            "individual parameters to a database."
+                            'Engine spec "InvalidEngine" does not support '
+                            "being configured via individual parameters."
                         )
                     ]
                 )
-            engine_specs = get_engine_specs()
-            if engine not in engine_specs:
-                raise ValidationError(
-                    [_('Engine "%(engine)s" is not a valid engine.', engine=engine,)]
-                )
-            engine_spec = engine_specs[engine]
 
-            if hasattr(engine_spec, "build_sqlalchemy_uri"):
-                serialized_encrypted_extra = data.get("encrypted_extra", "{}")
-                try:
-                    encrypted_extra = json.loads(serialized_encrypted_extra)
-                except json.decoder.JSONDecodeError:
-                    encrypted_extra = {}
+            # validate parameters
+            parameters = engine_spec.parameters_schema.load(parameters)  # type: ignore
 
-                data[
-                    "sqlalchemy_uri"
-                ] = engine_spec.build_sqlalchemy_uri(  # type: ignore
-                    parameters, encrypted_extra
-                )
+            serialized_encrypted_extra = data.get("encrypted_extra") or "{}"
+            try:
+                encrypted_extra = json.loads(serialized_encrypted_extra)
+            except json.decoder.JSONDecodeError:
+                encrypted_extra = {}
+
+            data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(  # type: ignore
+                parameters, encrypted_extra
+            )
 
         return data
 
 
+def get_engine_spec(engine: Optional[str]) -> Type[BaseEngineSpec]:
+    if not engine:
+        raise ValidationError(
+            [
+                _(
+                    "An engine must be specified when passing "
+                    "individual parameters to a database."
+                )
+            ]
+        )
+    engine_specs = get_engine_specs()
+    if engine not in engine_specs:
+        raise ValidationError(
+            [_('Engine "%(engine)s" is not a valid engine.', engine=engine,)]
+        )
+    return engine_specs[engine]
+
+
 class DatabaseValidateParametersSchema(Schema):
+    class Meta:  # pylint: disable=too-few-public-methods
+        unknown = EXCLUDE
+
     engine = fields.String(required=True, description="SQLAlchemy engine to use")
     parameters = fields.Dict(
         keys=fields.String(),
@@ -307,6 +335,12 @@ class DatabaseValidateParametersSchema(Schema):
         allow_none=True,
         validate=server_cert_validator,
     )
+    configuration_method = EnumField(
+        ConfigurationMethod,
+        by_value=True,
+        required=True,
+        description=configuration_method_description,
+    )
 
 
 class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
@@ -325,11 +359,6 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     allow_ctas = fields.Boolean(description=allow_ctas_description)
     allow_cvas = fields.Boolean(description=allow_cvas_description)
     allow_dml = fields.Boolean(description=allow_dml_description)
-    configuration_method = EnumField(
-        ConfigurationMethod,
-        by_value=True,
-        description=configuration_method_description,
-    )
     force_ctas_schema = fields.String(
         description=force_ctas_schema_description,
         allow_none=True,
@@ -367,12 +396,6 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
         description=cache_timeout_description, allow_none=True
     )
     expose_in_sqllab = fields.Boolean(description=expose_in_sqllab_description)
-    configuration_method = EnumField(
-        ConfigurationMethod,
-        by_value=True,
-        allow_none=True,
-        description=configuration_method_description,
-    )
     allow_run_async = fields.Boolean(description=allow_run_async_description)
     allow_csv_upload = fields.Boolean(description=allow_csv_upload_description)
     allow_ctas = fields.Boolean(description=allow_ctas_description)

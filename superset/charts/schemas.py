@@ -1007,11 +1007,21 @@ class ChartDataQueryObjectSchema(Schema):
         allow_none=True,
     )
     orderby = fields.List(
-        fields.List(fields.Raw()),
+        fields.Tuple(
+            (
+                fields.Raw(
+                    validate=[
+                        Length(min=1, error=_("orderby column must be populated"))
+                    ],
+                    allow_none=False,
+                ),
+                fields.Boolean(),
+            )
+        ),
         description="Expects a list of lists where the first element is the column "
         "name which to sort by, and the second element is a boolean.",
         allow_none=True,
-        example=[["my_col_1", False], ["my_col_2", True]],
+        example=[("my_col_1", False), ("my_col_2", True)],
     )
     where = fields.String(
         description="WHERE clause to be added to queries using AND operator."

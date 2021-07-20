@@ -43,7 +43,7 @@ from superset.charts.commands.exceptions import (
     TimeRangeParseFailError,
     TimeRangeUnclearError,
 )
-from superset.utils.core import memoized
+from superset.utils.memoized import memoized
 
 ParserElement.enablePackrat()
 
@@ -79,7 +79,8 @@ def parse_human_datetime(human_readable: str) -> datetime:
     if re.search(x_periods, human_readable, re.IGNORECASE):
         raise TimeRangeUnclearError(human_readable)
     try:
-        dttm = parse(human_readable)
+        default = datetime(year=datetime.now().year, month=1, day=1)
+        dttm = parse(human_readable, default=default)
     except (ValueError, OverflowError) as ex:
         cal = parsedatetime.Calendar()
         parsed_dttm, parsed_flags = cal.parseDT(human_readable)

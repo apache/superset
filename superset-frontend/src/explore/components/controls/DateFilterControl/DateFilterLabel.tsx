@@ -21,9 +21,9 @@ import rison from 'rison';
 import {
   SupersetClient,
   styled,
-  supersetTheme,
   t,
   TimeRangeEndpoints,
+  useTheme,
 } from '@superset-ui/core';
 import {
   buildTimeRangeString,
@@ -39,14 +39,14 @@ import ControlHeader from 'src/explore/components/ControlHeader';
 import Label from 'src/components/Label';
 import Popover from 'src/components/Popover';
 import { Divider } from 'src/common/components';
-import Icon from 'src/components/Icon';
-import { Select } from 'src/components/Select';
+import Icons from 'src/components/Icons';
+import { Select } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
 import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { testWithId } from 'src/utils/testUtils';
-import { SelectOptionType, FrameType } from './types';
+import { FrameType } from './types';
 
 import {
   CommonFrame,
@@ -95,6 +95,9 @@ const fetchTimeRange = async (
 };
 
 const StyledPopover = styled(Popover)``;
+const StyledRangeType = styled(Select)`
+  width: 272px;
+`;
 
 const ContentStyleWrapper = styled.div`
   .ant-row {
@@ -103,10 +106,6 @@ const ContentStyleWrapper = styled.div`
 
   .ant-input-number {
     width: 100%;
-  }
-
-  .frame-dropdown {
-    width: 272px;
   }
 
   .ant-picker {
@@ -156,7 +155,7 @@ const ContentStyleWrapper = styled.div`
 `;
 
 const IconWrapper = styled.span`
-  svg {
+  span {
     margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
     vertical-align: middle;
   }
@@ -187,6 +186,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [show, setShow] = useState<boolean>(false);
   const guessedFrame = useMemo(() => guessFrame(value), [value]);
   const [frame, setFrame] = useState<FrameType>(guessedFrame);
+  const [lastFetchedTimeRange, setLastFetchedTimeRange] = useState(value);
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalResponse, setEvalResponse] = useState<string>(value);
@@ -223,20 +223,26 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         }
         setValidTimeRange(true);
       }
+      setLastFetchedTimeRange(value);
     });
   }, [value]);
 
   useDebouncedEffect(
     () => {
-      fetchTimeRange(timeRangeValue, endpoints).then(({ value, error }) => {
-        if (error) {
-          setEvalResponse(error || '');
-          setValidTimeRange(false);
-        } else {
-          setEvalResponse(value || '');
-          setValidTimeRange(true);
-        }
-      });
+      if (lastFetchedTimeRange !== timeRangeValue) {
+        fetchTimeRange(timeRangeValue, endpoints).then(
+          ({ value: actualRange, error }) => {
+            if (error) {
+              setEvalResponse(error || '');
+              setValidTimeRange(false);
+            } else {
+              setEvalResponse(actualRange || '');
+              setValidTimeRange(true);
+            }
+            setLastFetchedTimeRange(timeRangeValue);
+          },
+        );
+      }
     },
     SLOW_DEBOUNCE,
     [timeRangeValue],
@@ -267,21 +273,23 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     }
   };
 
-  function onChangeFrame(option: SelectOptionType) {
-    if (option.value === 'No filter') {
+  function onChangeFrame(value: string) {
+    if (value === 'No filter') {
       setTimeRangeValue('No filter');
     }
-    setFrame(option.value as FrameType);
+    setFrame(value as FrameType);
   }
 
-  const overlayConetent = (
+  const theme = useTheme();
+
+  const overlayContent = (
     <ContentStyleWrapper>
       <div className="control-label">{t('RANGE TYPE')}</div>
-      <Select
+      <StyledRangeType
+        ariaLabel={t('RANGE TYPE')}
         options={FRAME_OPTIONS}
-        value={FRAME_OPTIONS.filter(({ value }) => value === frame)}
+        value={frame}
         onChange={onChangeFrame}
-        className="frame-dropdown"
       />
       {frame !== 'No filter' && <Divider />}
       {frame === 'Common' && (
@@ -303,10 +311,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         {validTimeRange && <div>{evalResponse}</div>}
         {!validTimeRange && (
           <IconWrapper className="warning">
-            <Icon
-              name="error-solid-small"
-              color={supersetTheme.colors.error.base}
-            />
+            <Icons.ErrorSolidSmall iconColor={theme.colors.error.base} />
             <span className="text error">{evalResponse}</span>
           </IconWrapper>
         )}
@@ -338,7 +343,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
 
   const title = (
     <IconWrapper>
-      <Icon name="edit-alt" />
+      <Icons.EditAlt iconColor={theme.colors.grayscale.base} />
       <span className="text">{t('Edit time range')}</span>
     </IconWrapper>
   );
@@ -353,7 +358,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       <StyledPopover
         placement="right"
         trigger="click"
-        content={overlayConetent}
+        content={overlayContent}
         title={title}
         defaultVisible={show}
         visible={show}

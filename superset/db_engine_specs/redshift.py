@@ -50,6 +50,7 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
     engine = "redshift"
     engine_name = "Amazon Redshift"
     max_column_name_length = 127
+    default_driver = "psycopg2"
 
     sqlalchemy_uri_placeholder = (
         "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]"

@@ -18,7 +18,6 @@
 import collections
 import decimal
 import errno
-import functools
 import json
 import logging
 import os
@@ -96,7 +95,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.typing import FlaskResponse, FormData, Metric
+from superset.typing import AdhocMetric, FlaskResponse, FormData, Metric
 from superset.utils.dates import datetime_to_epoch, EPOCH
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
 
@@ -218,7 +217,7 @@ class FilterOperator(str, Enum):
 
 class PostProcessingBoxplotWhiskerType(str, Enum):
     """
-    Calculate cell contibution to row/column total
+    Calculate cell contribution to row/column total
     """
 
     TUKEY = "tukey"
@@ -228,7 +227,7 @@ class PostProcessingBoxplotWhiskerType(str, Enum):
 
 class PostProcessingContributionOrientation(str, Enum):
     """
-    Calculate cell contibution to row/column total
+    Calculate cell contribution to row/column total
     """
 
     ROW = "row"
@@ -263,6 +262,7 @@ class QueryStatus(str, Enum):  # pylint: disable=too-few-public-methods
     RUNNING: str = "running"
     SCHEDULED: str = "scheduled"
     SUCCESS: str = "success"
+    FETCHING: str = "fetching"
     TIMED_OUT: str = "timed_out"
 
 
@@ -366,65 +366,6 @@ def flasher(msg: str, severity: str = "message") -> None:
             logger.error(msg, exc_info=True)
         else:
             logger.info(msg)
-
-
-class _memoized:
-    """Decorator that caches a function's return value each time it is called
-
-    If called later with the same arguments, the cached value is returned, and
-    not re-evaluated.
-
-    Define ``watch`` as a tuple of attribute names if this Decorator
-    should account for instance variable changes.
-    """
-
-    def __init__(
-        self, func: Callable[..., Any], watch: Optional[Tuple[str, ...]] = None
-    ) -> None:
-        self.func = func
-        self.cache: Dict[Any, Any] = {}
-        self.is_method = False
-        self.watch = watch or ()
-
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        key = [args, frozenset(kwargs.items())]
-        if self.is_method:
-            key.append(tuple([getattr(args[0], v, None) for v in self.watch]))
-        key = tuple(key)  # type: ignore
-        if key in self.cache:
-            return self.cache[key]
-        try:
-            value = self.func(*args, **kwargs)
-            self.cache[key] = value
-            return value
-        except TypeError:
-            # uncachable -- for instance, passing a list as an argument.
-            # Better to not cache than to blow up entirely.
-            return self.func(*args, **kwargs)
-
-    def __repr__(self) -> str:
-        """Return the function's docstring."""
-        return self.func.__doc__ or ""
-
-    def __get__(
-        self, obj: Any, objtype: Type[Any]
-    ) -> functools.partial:  # type: ignore
-        if not self.is_method:
-            self.is_method = True
-        # Support instance methods.
-        return functools.partial(self.__call__, obj)
-
-
-def memoized(
-    func: Optional[Callable[..., Any]] = None, watch: Optional[Tuple[str, ...]] = None
-) -> Callable[..., Any]:
-    if func:
-        return _memoized(func)
-
-    def wrapper(f: Callable[..., Any]) -> Callable[..., Any]:
-        return _memoized(f, watch)
-
-    return wrapper
 
 
 def parse_js_uri_path_item(
@@ -1268,6 +1209,11 @@ def get_metric_names(metrics: Sequence[Metric]) -> List[str]:
     return [get_metric_name(metric) for metric in metrics]
 
 
+def get_main_metric_name(metrics: Sequence[Metric]) -> Optional[str]:
+    metric_labels = get_metric_names(metrics)
+    return metric_labels[0] if metric_labels else None
+
+
 def ensure_path_exists(path: str) -> None:
     try:
         os.makedirs(path)
@@ -1493,7 +1439,7 @@ def get_column_name_from_metric(metric: Metric) -> Optional[str]:
     :return: column name if simple metric, otherwise None
     """
     if is_adhoc_metric(metric):
-        metric = cast(Dict[str, Any], metric)
+        metric = cast(AdhocMetric, metric)
         if metric["expressionType"] == AdhocMetricExpressionType.SIMPLE:
             return cast(Dict[str, Any], metric["column"])["column_name"]
     return None

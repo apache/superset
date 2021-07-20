@@ -92,6 +92,13 @@ const Styles = styled.div`
   .Select__menu {
     max-width: 100%;
   }
+  .type-label {
+    margin-right: ${({ theme }) => theme.gridUnit * 3}px;
+    width: ${({ theme }) => theme.gridUnit * 7}px;
+    display: inline-block;
+    text-align: center;
+    font-weight: ${({ theme }) => theme.typography.weights.bold};
+  }
 `;
 
 const ControlPanelsTabs = styled(Tabs)`

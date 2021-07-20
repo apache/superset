@@ -26,7 +26,7 @@ from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 
-from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.filters import DatabaseFilter
@@ -237,6 +237,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        token = request.args.get("token")
         requested_ids = kwargs["rison"]
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
         root = f"saved_query_export_{timestamp}"
@@ -254,16 +255,18 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
                 return self.response_404()
         buf.seek(0)
 
-        return send_file(
+        response = send_file(
             buf,
             mimetype="application/zip",
             as_attachment=True,
             attachment_filename=filename,
         )
+        if token:
+            response.set_cookie(token, "done", max_age=600)
+        return response
 
     @expose("/import/", methods=["POST"])
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
@@ -289,7 +292,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
                       type: string
                     overwrite:
                       description: overwrite existing saved queries?
-                      type: bool
+                      type: boolean
           responses:
             200:
               description: Saved Query import result
@@ -315,6 +318,9 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         with ZipFile(upload) as bundle:
             contents = get_contents_from_bundle(bundle)
 
+        if not contents:
+            raise NoValidFilesFoundError()
+
         passwords = (
             json.loads(request.form["passwords"])
             if "passwords" in request.form
@@ -325,12 +331,5 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         command = ImportSavedQueriesCommand(
             contents, passwords=passwords, overwrite=overwrite
         )
-        try:
-            command.run()
-            return self.response(200, message="OK")
-        except CommandInvalidError as exc:
-            logger.warning("Import Saved Query failed")
-            return self.response_422(message=exc.normalized_messages())
-        except Exception as exc:  # pylint: disable=broad-except
-            logger.exception("Import Saved Query failed")
-            return self.response_500(message=str(exc))
+        command.run()
+        return self.response(200, message="OK")

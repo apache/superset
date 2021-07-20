@@ -29,7 +29,7 @@ import {
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
 } from 'src/logger/LogUtils';
 
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
 import EditableTitle from 'src/components/EditableTitle';
 import FaveStar from 'src/components/FaveStar';
@@ -51,8 +51,10 @@ const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
   addWarningToast: PropTypes.func.isRequired,
+  userId: PropTypes.number,
   dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
+  dataMask: PropTypes.object.isRequired,
   charts: PropTypes.objectOf(chartPropShape).isRequired,
   layout: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
@@ -108,6 +110,9 @@ const StyledDashboardHeader = styled.div`
   padding: 0 ${({ theme }) => theme.gridUnit * 6}px;
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
 
+  .action-button > span {
+    color: ${({ theme }) => theme.colors.grayscale.base};
+  }
   button,
   .fave-unfave-icon {
     margin-left: ${({ theme }) => theme.gridUnit * 2}px;
@@ -326,7 +331,7 @@ class Header extends React.PureComponent {
     if (positionJSONLength >= limit) {
       this.props.addDangerToast(
         t(
-          'Your dashboard is too large. Please reduce the size before save it.',
+          'Your dashboard is too large. Please reduce its size before saving it.',
         ),
       );
     } else {
@@ -353,6 +358,7 @@ class Header extends React.PureComponent {
       expandedSlices,
       customCss,
       colorNamespace,
+      dataMask,
       setColorSchemeAndUnsavedChanges,
       colorScheme,
       onUndo,
@@ -364,6 +370,7 @@ class Header extends React.PureComponent {
       updateCss,
       editMode,
       isPublished,
+      userId,
       dashboardInfo,
       hasUnsavedChanges,
       isLoading,
@@ -402,7 +409,7 @@ class Header extends React.PureComponent {
             canEdit={userCanEdit}
             canSave={userCanSaveAs}
           />
-          {dashboardInfo.userId && (
+          {userId && (
             <FaveStar
               itemId={dashboardInfo.id}
               fetchFaveStar={this.props.fetchFaveStar}
@@ -487,7 +494,7 @@ class Header extends React.PureComponent {
                 className="action-button"
                 onClick={this.toggleEditMode}
               >
-                <Icon name="edit-alt" />
+                <Icons.EditAlt />
               </span>
             </>
           )}
@@ -526,6 +533,7 @@ class Header extends React.PureComponent {
             dashboardId={dashboardInfo.id}
             dashboardTitle={dashboardTitle}
             dashboardInfo={dashboardInfo}
+            dataMask={dataMask}
             layout={layout}
             expandedSlices={expandedSlices}
             customCss={customCss}

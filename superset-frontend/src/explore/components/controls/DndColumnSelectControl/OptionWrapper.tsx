@@ -43,6 +43,8 @@ export default function OptionWrapper(
     onShiftOptions,
     clickClose,
     withCaret,
+    isExtra,
+    canDelete = true,
     children,
     ...rest
   } = props;
@@ -107,7 +109,13 @@ export default function OptionWrapper(
 
   return (
     <DragContainer ref={ref} {...rest}>
-      <Option index={index} clickClose={clickClose} withCaret={withCaret}>
+      <Option
+        index={index}
+        clickClose={clickClose}
+        withCaret={withCaret}
+        isExtra={isExtra}
+        canDelete={canDelete}
+      >
         {children}
       </Option>
     </DragContainer>

@@ -74,6 +74,12 @@ class ReportDataFormat(str, enum.Enum):
     DATA = "CSV"
 
 
+class ReportCreationMethodType(str, enum.Enum):
+    CHARTS = "charts"
+    DASHBOARDS = "dashboards"
+    ALERTS_REPORTS = "alerts_reports"
+
+
 report_schedule_user = Table(
     "report_schedule_user",
     metadata,
@@ -102,6 +108,9 @@ class ReportSchedule(Model, AuditMixinNullable):
     context_markdown = Column(Text)
     active = Column(Boolean, default=True, index=True)
     crontab = Column(String(1000), nullable=False)
+    creation_method = Column(
+        String(255), server_default=ReportCreationMethodType.ALERTS_REPORTS
+    )
     report_format = Column(String(50), default=ReportDataFormat.VISUALIZATION)
     sql = Column(Text())
     # (Alerts/Reports) M-O to chart

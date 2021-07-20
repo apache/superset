@@ -17,8 +17,6 @@
  * under the License.
  */
 import PropTypes from 'prop-types';
-
-import { OPERATORS } from 'src/explore/constants';
 import { EXPRESSION_TYPES, CLAUSES } from './AdhocFilter';
 
 export default PropTypes.oneOfType([
@@ -26,7 +24,6 @@ export default PropTypes.oneOfType([
     expressionType: PropTypes.oneOf([EXPRESSION_TYPES.SIMPLE]).isRequired,
     clause: PropTypes.oneOf([CLAUSES.HAVING, CLAUSES.WHERE]).isRequired,
     subject: PropTypes.string.isRequired,
-    operator: PropTypes.oneOf(Object.keys(OPERATORS)).isRequired,
     comparator: PropTypes.oneOfType([
       PropTypes.string,
       PropTypes.arrayOf(PropTypes.string),
