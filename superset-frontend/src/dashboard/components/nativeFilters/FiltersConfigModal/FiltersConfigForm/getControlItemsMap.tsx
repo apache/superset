@@ -101,7 +101,6 @@ export default function getControlItemsMap({
           />
           <StyledFormItem
             // don't show the column select unless we have a dataset
-            // style={{ display: datasetId == null ? undefined : 'none' }}
             name={['filters', filterId, 'column']}
             initialValue={initColumn}
             label={
