@@ -84,7 +84,8 @@ const StyledHeader = styled.div`
   }
 
   .action-button {
-    margin: 0 6px 0 4px;
+    margin: 0 ${({ theme }) => theme.gridUnit * 1.5}px 0
+      ${({ theme }) => theme.gridUnit}px;
   }
 `;
 
