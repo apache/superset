@@ -36,4 +36,4 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_column("report_execution_log", "execution_id")
+    op.drop_column("report_execution_log", "uuid")
