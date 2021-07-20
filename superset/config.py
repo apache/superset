@@ -1309,14 +1309,17 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
     if MOBI_SECRET_KEY is None and  MOBI_SECRET_KEY_OLD is None:
         raise Exception("MOBI_SECRET_KEY or MOBI_SECRET_KEY_OLD is not defined")
 
-    logger.info(cond)
+    logger.info("Condition: {}".format(cond))
+    logger.info("Default: {}".format(default))
+    logger.info("Request: ",request)
 
     # fetching form data
     form_data = request.form.get("form_data")
+    logger.info("form_data: ", form_data)
 
     #fetching dashboard_id
     dashboard_id = request.args.get("dashboard_id")
-
+    logger.info("dashboard_id: ", dashboard_id)
     # returning default value if form is null
     if form_data is None:
         return default
