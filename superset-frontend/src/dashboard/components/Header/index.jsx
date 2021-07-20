@@ -71,6 +71,7 @@ const propTypes = {
   onChange: PropTypes.func.isRequired,
   fetchFaveStar: PropTypes.func.isRequired,
   fetchCharts: PropTypes.func.isRequired,
+  fetchUISpecificReport: PropTypes.func.isRequired,
   saveFaveStar: PropTypes.func.isRequired,
   savePublished: PropTypes.func.isRequired,
   updateDashboardTitle: PropTypes.func.isRequired,
@@ -163,7 +164,12 @@ class Header extends React.PureComponent {
     const { refreshFrequency, user, dashboardInfo } = this.props;
     this.startPeriodicRender(refreshFrequency * 1000);
     if (user) {
-      this.props.fetchDashboardSpecificReport(user.userId, dashboardInfo.id);
+      // this is in case there is an anonymous user.
+      this.props.fetchUISpecificReport(
+        user.userId,
+        'dashboards',
+        dashboardInfo.id,
+      );
     }
   }
 
@@ -382,7 +388,7 @@ class Header extends React.PureComponent {
       // this is in the case that there is an anonymous user.
       return false;
     }
-    const roles = Object.keys(this.props.user?.roles);
+    const roles = Object.keys(this.props.user.roles);
     const permissions = roles.map(key =>
       this.props.user.roles[key].filter(
         perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
