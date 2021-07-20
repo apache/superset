@@ -18,7 +18,7 @@
  */
 import React, { useState, useMemo, useEffect } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
-import { reject } from 'lodash';
+import { filter } from 'lodash';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import {
   Dashboard,
@@ -61,11 +61,10 @@ function DashboardTable({
   const filterStore = getFromLocalStorage(HOMEPAGE_DASHBOARD_FILTER, null);
   const defaultFilter = filterStore || TableTabTypes.EXAMPLES;
 
-  // @ts-ignore
-  // eslint-disable-next-line consistent-return
-  const filteredExamples: Array<Dashboard> = reject(examples, obj => {
-    if ('viz_type' in obj) return obj;
-  }).map(r => r);
+  const filteredExamples: Array<Dashboard> = filter<Dashboard>(
+    examples,
+    (obj: Dashboard) => !('viz_type' in obj),
+  );
 
   const {
     state: { loading, resourceCollection: dashboards },

@@ -18,7 +18,7 @@
  */
 import React, { useState, useMemo, useEffect } from 'react';
 import { t } from '@superset-ui/core';
-import { reject } from 'lodash';
+import { filter } from 'lodash';
 import {
   useListViewResource,
   useChartEditModal,
@@ -68,11 +68,7 @@ function ChartTable({
   const filterStore = getFromLocalStorage(HOMEPAGE_CHART_FILTER, null);
   const initialFilter = filterStore || TableTabTypes.MINE;
 
-  // @ts-ignore
-  // eslint-disable-next-line consistent-return
-  const filteredExamples = reject(examples, obj => {
-    if (!('viz_type' in obj)) return obj;
-  }).map(r => r);
+  const filteredExamples = filter(examples, obj => 'viz_type' in obj);
 
   const {
     state: { loading, resourceCollection: charts, bulkSelectEnabled },
