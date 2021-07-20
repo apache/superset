@@ -31,6 +31,7 @@ import {
   toggleStyle,
   infoTooltip,
   StyledFooterButton,
+  StyledCatalogTable,
 } from './styles';
 import { DatabaseForm, DatabaseObject } from '../types';
 
@@ -203,35 +204,46 @@ const TableCatalog = ({
 }: FieldPropTypes) => {
   const tableCatalog = db.catalog;
   return (
-    <div>
-      <>
+    <StyledCatalogTable>
+      <div className="catalog-type-select">
         <FormLabel required>{t('Type of Google Sheets Allowed')}</FormLabel>
         <Select style={{ width: '100%' }} defaultValue="true" disabled>
           <Select.Option value="true" key={1}>
             Publicly shared sheets only
           </Select.Option>
         </Select>
-      </>
-      <>
+      </div>
+      <h4 className="gsheet-title">
+        Connect Google Sheets as tables to this database
+      </h4>
+      <div>
         {tableCatalog.map((sheet, idx) => (
           <>
-            <Input
-              placeholder="Enter create a name for this sheet"
-              onChange={e => {
-                changeMethods.onParametersChange({
-                  target: {
-                    type: `catalog-${idx}`,
-                    name: 'name',
-                    value: e.target.value,
-                  },
-                });
-              }}
-              value={sheet.name}
-            />
-            <CloseOutlined
-              onClick={() => changeMethods.onRemoveTableCatalog(idx)}
-            />
+            <FormLabel className="catalog-label" required>
+              {t('Google Sheet Name and Url')}
+            </FormLabel>
+            <div className="catalog-name">
+              <Input
+                className="catalog-name-input"
+                placeholder="Enter create a name for this sheet"
+                onChange={e => {
+                  changeMethods.onParametersChange({
+                    target: {
+                      type: `catalog-${idx}`,
+                      name: 'name',
+                      value: e.target.value,
+                    },
+                  });
+                }}
+                value={sheet.name}
+              />
+              <CloseOutlined
+                className="catalog-delete"
+                onClick={() => changeMethods.onRemoveTableCatalog(idx)}
+              />
+            </div>
             <ValidatedInput
+              className="catalog-name-url"
               required={required}
               validationMethods={{ onBlur: getValidation }}
               errorMessage={validationErrors?.table_catalog}
@@ -263,14 +275,15 @@ const TableCatalog = ({
           </>
         ))}
         <StyledFooterButton
+          className="catalog-add-btn"
           onClick={() => {
             changeMethods.onAddTableCatalog();
           }}
         >
           Add sheet
         </StyledFooterButton>
-      </>
-    </div>
+      </div>
+    </StyledCatalogTable>
   );
 };
 
