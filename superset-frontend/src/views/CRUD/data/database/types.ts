@@ -46,6 +46,9 @@ export type DatabaseObject = {
   configuration_method: CONFIGURATION_METHOD;
   engine?: string;
 
+  // Gsheets temporary storage
+  catalog?: [];
+
   // Performance
   cache_timeout?: string;
   allow_run_async?: boolean;

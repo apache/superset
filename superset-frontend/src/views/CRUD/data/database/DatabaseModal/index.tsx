@@ -246,13 +246,10 @@ function dbReducer(
         const catalogToUpdate = trimmedState.catalog[idx];
         catalogToUpdate[action.payload.name] = action.payload.value;
 
-        console.log('catalog', trimmedState.catalog);
         const paramatersCatalog = {};
-        trimmedState.catalog.map(item => {
+        trimmedState.catalog?.map(item => {
           paramatersCatalog[item.name] = item.value;
         });
-
-        console.log('paramsCatalog', paramatersCatalog);
 
         return {
           ...trimmedState,
@@ -281,7 +278,7 @@ function dbReducer(
         catalog: [{}],
       };
     case ActionType.removeTableCatalogSheet:
-      trimmedState.catalog.splice(action.payload.indexToDelete, 1);
+      trimmedState.catalog?.splice(action.payload.indexToDelete, 1);
       return {
         ...trimmedState,
       };

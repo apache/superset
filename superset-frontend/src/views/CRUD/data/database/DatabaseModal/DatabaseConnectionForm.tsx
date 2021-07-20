@@ -197,13 +197,11 @@ const CredentialsInfo = ({
 const TableCatalog = ({
   required,
   changeMethods,
-  isEditMode,
   getValidation,
   validationErrors,
   db,
 }: FieldPropTypes) => {
   const tableCatalog = db.catalog;
-  console.log('tableCatalog', tableCatalog);
   return (
     <div>
       <>
@@ -220,7 +218,6 @@ const TableCatalog = ({
             <Input
               placeholder="Enter create a name for this sheet"
               onChange={e => {
-                tableCatalog[idx].name = e.target.value;
                 changeMethods.onParametersChange({
                   target: {
                     type: `catalog-${idx}`,
@@ -235,32 +232,32 @@ const TableCatalog = ({
               onClick={() => changeMethods.onRemoveTableCatalog(idx)}
             />
             <ValidatedInput
-              name={sheet.name}
               required={required}
               validationMethods={{ onBlur: getValidation }}
               errorMessage={validationErrors?.table_catalog}
               placeholder="Paste the shareable Google Sheet URL here"
-              onChange={e => {
+              onChange={(e: { target: { value: any } }) =>
                 changeMethods.onParametersChange({
                   target: {
                     type: `catalog-${idx}`,
                     name: 'value',
                     value: e.target.value,
                   },
-                });
-              }}
-              onPaste={e => {
-                const sheetUrl = e.clipboardData.getData('Text');
+                })
+              }
+              onPaste={(e: {
+                clipboardData: { getData: (arg0: string) => any };
+              }) =>
                 changeMethods.onParametersChange({
                   target: {
                     target: {
                       type: `catalog-${idx}`,
                       name: 'value',
-                      value: sheetUrl,
+                      value: e.clipboardData.getData('Text'),
                     },
                   },
-                });
-              }}
+                })
+              }
               value={sheet.value}
             />
           </>
@@ -384,38 +381,29 @@ const passwordField = ({
     onChange={changeMethods.onParametersChange}
   />
 );
-const DisplayField = ({
+const displayField = ({
   changeMethods,
   getValidation,
   validationErrors,
   db,
-  setPublic,
-}: FieldPropTypes) => {
-  const setBooleanToString = (value: string): boolean => {
-    if (value === 'true') {
-      return true;
-    }
-    return false;
-  };
-  return (
-    <>
-      <ValidatedInput
-        id="database_name"
-        name="database_name"
-        required
-        value={db?.database_name}
-        validationMethods={{ onBlur: getValidation }}
-        errorMessage={validationErrors?.database_name}
-        placeholder=""
-        label="Display Name"
-        onChange={changeMethods.onChange}
-        helpText={t(
-          'Pick a nickname for this database to display as in Superset.',
-        )}
-      />
-    </>
-  );
-};
+}: FieldPropTypes) => (
+  <>
+    <ValidatedInput
+      id="database_name"
+      name="database_name"
+      required
+      value={db?.database_name}
+      validationMethods={{ onBlur: getValidation }}
+      errorMessage={validationErrors?.database_name}
+      placeholder=""
+      label="Display Name"
+      onChange={changeMethods.onChange}
+      helpText={t(
+        'Pick a nickname for this database to display as in Superset.',
+      )}
+    />
+  </>
+);
 
 const queryField = ({
   required,
@@ -474,7 +462,7 @@ const FORM_FIELD_MAP = {
   database: databaseField,
   username: usernameField,
   password: passwordField,
-  database_name: DisplayField,
+  database_name: displayField,
   query: queryField,
   encryption: forceSSLField,
   credentials_info: CredentialsInfo,
