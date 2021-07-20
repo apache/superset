@@ -59,9 +59,14 @@ function DashboardTable({
 }: DashboardTableProps) {
   const history = useHistory();
   const filterStore = getFromLocalStorage(HOMEPAGE_DASHBOARD_FILTER, null);
-  const defaultFilter = filterStore || TableTabTypes.MINE;
+  const defaultFilter = filterStore || TableTabTypes.EXAMPLES;
 
-  console.log('examples top of', examples);
+  // @ts-ignore
+  // eslint-disable-next-line consistent-return
+  const filteredExamples: Array<Dashboard> = reject(examples, obj => {
+    if ('viz_type' in obj) return obj;
+  }).map(r => r);
+
   const {
     state: { loading, resourceCollection: dashboards },
     setResourceCollection: setDashboards,
@@ -73,7 +78,7 @@ function DashboardTable({
     t('dashboard'),
     addDangerToast,
     true,
-    defaultFilter === 'Favorite' ? [] : mine,
+    defaultFilter === 'Mine' ? mine : filteredExamples,
     [],
     false,
   );
@@ -87,12 +92,13 @@ function DashboardTable({
   const [editModal, setEditModal] = useState<Dashboard>();
   const [dashboardFilter, setDashboardFilter] = useState(defaultFilter);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
+  const [loaded, setLoaded] = useState<boolean>(false);
 
   useEffect(() => {
-    getData(dashboardFilter);
-    console.log('examples', examples);
-    const filtered = reject(examples, ['viz_type', undefined]).map(r => r);
-    console.log('filtered', filtered);
+    if (loaded || dashboardFilter === 'Favorite') {
+      getData(dashboardFilter);
+    }
+    setLoaded(true);
   }, [dashboardFilter]);
 
   const handleBulkDashboardExport = (dashboardsToExport: Dashboard[]) => {
@@ -132,7 +138,7 @@ function DashboardTable({
         operator: 'rel_m_m',
         value: `${user?.userId}`,
       });
-    } else {
+    } else if (filterName === 'Favorite') {
       filters.push({
         id: 'id',
         operator: 'dashboard_is_favorite',
@@ -166,7 +172,7 @@ function DashboardTable({
       name: 'Examples',
       label: t('Examples'),
       onClick: () => {
-        setDashboardFilter('Mine');
+        setDashboardFilter(TableTabTypes.EXAMPLES);
         setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, TableTabTypes.EXAMPLES);
       },
     });

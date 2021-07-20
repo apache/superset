@@ -132,15 +132,15 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         if (res.viewed) {
           const filtered = reject(res.viewed, ['item_url', null]).map(r => r);
           data.Viewed = filtered;
-          if (!activeTab) {
+          if (!activeTab && data.Viewed) {
             setActiveChild('Viewed');
+          } else if (!activeTab && !data.Viewed) {
+            setActiveChild('Created');
           } else setActiveChild(activeTab);
         } else {
+          if (!activeTab) setActiveChild('Created');
+          else setActiveChild(activeTab);
           data.Examples = res.examples;
-          console.log('data', data);
-          if (activeTab === 'Viewed' || !activeTab) {
-            setActiveChild('Examples');
-          } else setActiveChild(activeTab);
         }
         setActivityData(activityData => ({ ...activityData, ...data }));
       })
@@ -198,7 +198,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
 
   useEffect(() => {
     const defaultArr = ['2', '3'];
-    if (activityData?.Viewed || activityData?.Examples) {
+    if (activityData?.Viewed) {
       defaultArr.push('1');
     }
     if (queryData?.length) {
@@ -213,9 +213,10 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         ...(queryData || []),
       ],
     }));
-    // console.log('chartData', chartData)
   }, [chartData, queryData, dashboardData]);
 
+  const isRecentActivityLoading =
+    !activityData?.Examples && !activityData?.Viewed;
   return (
     <WelcomeContainer>
       <WelcomeNav>
@@ -246,7 +247,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           )}
         </Collapse.Panel>
         <Collapse.Panel header={t('Dashboards')} key="2">
-          {!dashboardData ? (
+          {!dashboardData || isRecentActivityLoading ? (
             <Loading position="inline" />
           ) : (
             <DashboardTable
@@ -258,7 +259,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           )}
         </Collapse.Panel>
         <Collapse.Panel header={t('Charts')} key="3">
-          {!chartData ? (
+          {!chartData || isRecentActivityLoading ? (
             <Loading position="inline" />
           ) : (
             <ChartTable

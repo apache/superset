@@ -18,6 +18,7 @@
  */
 import React, { useState, useMemo, useEffect } from 'react';
 import { t } from '@superset-ui/core';
+import { reject } from 'lodash';
 import {
   useListViewResource,
   useChartEditModal,
@@ -67,6 +68,12 @@ function ChartTable({
   const filterStore = getFromLocalStorage(HOMEPAGE_CHART_FILTER, null);
   const initialFilter = filterStore || TableTabTypes.MINE;
 
+  // @ts-ignore
+  // eslint-disable-next-line consistent-return
+  const filteredExamples = reject(examples, obj => {
+    if (!('viz_type' in obj)) return obj;
+  }).map(r => r);
+
   const {
     state: { loading, resourceCollection: charts, bulkSelectEnabled },
     setResourceCollection: setCharts,
@@ -78,7 +85,7 @@ function ChartTable({
     t('chart'),
     addDangerToast,
     true,
-    initialFilter === 'Favorite' ? [] : mine,
+    initialFilter === 'Mine' ? mine : filteredExamples,
     [],
     false,
   );
@@ -98,9 +105,13 @@ function ChartTable({
 
   const [chartFilter, setChartFilter] = useState(initialFilter);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
+  const [loaded, setLoaded] = useState<boolean>(false);
 
   useEffect(() => {
-    getData(chartFilter);
+    if (loaded || chartFilter === 'Favorite') {
+      getData(chartFilter);
+    }
+    setLoaded(true);
   }, [chartFilter]);
 
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
@@ -120,7 +131,7 @@ function ChartTable({
         operator: 'rel_o_m',
         value: `${user?.userId}`,
       });
-    } else {
+    } else if (filterName === 'Favorite') {
       filters.push({
         id: 'id',
         operator: 'chart_is_favorite',
@@ -135,7 +146,7 @@ function ChartTable({
       name: 'Favorite',
       label: t('Favorite'),
       onClick: () => {
-        setChartFilter('Favorite');
+        setChartFilter(TableTabTypes.FAVORITE);
         setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.FAVORITE);
       },
     },
@@ -143,7 +154,7 @@ function ChartTable({
       name: 'Mine',
       label: t('Mine'),
       onClick: () => {
-        setChartFilter('Mine');
+        setChartFilter(TableTabTypes.MINE);
         setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.MINE);
       },
     },
@@ -154,7 +165,7 @@ function ChartTable({
       name: 'Examples',
       label: t('Examples'),
       onClick: () => {
-        setChartFilter('Mine');
+        setChartFilter(TableTabTypes.EXAMPLES);
         setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.EXAMPLES);
       },
     });
