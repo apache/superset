@@ -348,7 +348,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # and doesn't work with all nested types.
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
-    "THUMBNAILS": False,
+    "THUMBNAILS": True,
     "DASHBOARD_CACHE": False,
     "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,
     "SHARE_QUERIES_VIA_KV_STORE": False,

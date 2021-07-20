@@ -70,7 +70,7 @@ const getParams = (filters?: Array<Filters>) => {
     order_column: 'changed_on_delta_humanized',
     order_direction: 'desc',
     page: 0,
-    page_size: 3,
+    page_size: 5,
     filters,
   };
   if (!filters) delete params.filters;
@@ -131,7 +131,7 @@ export const getRecentAcitivtyObjs = (
 ) =>
   SupersetClient.get({ endpoint: recent }).then(recentsRes => {
     const res: any = {};
-    if (recentsRes.json.length === 0) {
+    //if (recentsRes.json.length === 0) {
       const newBatch = [
         SupersetClient.get({ endpoint: `/api/v1/chart/?q=${getParams()}` }),
         SupersetClient.get({
@@ -149,9 +149,9 @@ export const getRecentAcitivtyObjs = (
             errMsg,
           ),
         );
-    }
-    res.viewed = recentsRes.json;
-    return res;
+    //}
+    //res.viewed = recentsRes.json;
+    //return res;
   });
 
 export const createFetchRelated = createFetchResourceMethod('related');
@@ -275,21 +275,28 @@ const breakpoints = [576, 768, 992, 1200];
 export const mq = breakpoints.map(bp => `@media (max-width: ${bp}px)`);
 
 export const CardContainer = styled.div`
+  grid-area: main;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(31%, 31%));
-  ${mq[3]} {
-    grid-template-columns: repeat(auto-fit, minmax(31%, 31%));
-  }
-  ${mq[2]} {
-    grid-template-columns: repeat(auto-fit, minmax(48%, 48%));
-  }
-  ${mq[1]} {
-    grid-template-columns: repeat(auto-fit, minmax(50%, 80%));
-  }
-  grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
-  justify-content: left;
-  padding: ${({ theme }) => theme.gridUnit * 6}px;
-  padding-top: ${({ theme }) => theme.gridUnit * 2}px;
+  grid-template-columns: repeat(auto-fill, 200px);
+  grid-auto-rows: max-content;
+  //justify-content: space-evenly;
+  grid-gap: 18px;
+  //justify-items: center;
+  padding: 24px;
+  //grid-template-columns: repeat(auto-fit, minmax(19%, 19%));
+  //${mq[3]} {
+   // grid-template-columns: repeat(auto-fit, minmax(19%, 19%));
+  //}
+  //${mq[2]} {
+   //  grid-template-columns: repeat(auto-fit, minmax(31%, 31%));
+  //}
+  //${mq[1]} {
+   // grid-template-columns: repeat(auto-fit, minmax(50%, 80%));
+  //}
+  //grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
+  //justify-content: left;
+  //padding: ${({ theme }) => theme.gridUnit * 6}px;
+  // padding-top: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 export const CardStyles = styled.div`
