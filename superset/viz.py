@@ -21,7 +21,6 @@ These objects represent the backend of all the visualizations that
 Superset can render.
 """
 import copy
-import inspect
 import logging
 import math
 import re
@@ -53,7 +52,7 @@ from flask_babel import lazy_gettext as _
 from geopy.point import Point
 from pandas.tseries.frequencies import to_offset
 
-from superset import app, db, is_feature_enabled
+from superset import app, is_feature_enabled
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -64,7 +63,6 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager, security_manager
-from superset.models.cache import CacheKey
 from superset.models.helpers import QueryResult
 from superset.typing import Metric, QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils, csv
@@ -619,11 +617,26 @@ class BaseViz:
 
     def get_csv(self) -> Optional[str]:
         df = self.get_df_payload()["df"]  # leverage caching logic
+        df = self.post_process(df)
         include_index = not isinstance(df.index, pd.RangeIndex)
         return csv.df_to_escaped_csv(df, index=include_index, **config["CSV_EXPORT"])
 
     def get_data(self, df: pd.DataFrame) -> VizData:
         return df.to_dict(orient="records")
+
+    def post_process(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Post-process data to return same format as visualization.
+
+        Some visualizations post-process the data in the frontend before presenting
+        it to the user. Eg, the t-test visualization will compute p-values and
+        significance in Javascript, while the pivot table will pivot the data.
+
+        When we produce a report we want to send to the user the exact same data
+        that they see in the chart. For visualizations with post-processing we need
+        to compute the perform the same processing in Python.
+        """
+        return df
 
     @property
     def json_data(self) -> str:
@@ -896,7 +909,7 @@ class PivotTableViz(BaseViz):
         # fallback in case something incompatible is returned
         return cast(str, value)
 
-    def get_data(self, df: pd.DataFrame) -> VizData:
+    def _pivot_data(self, df: pd.DataFrame) -> Optional[pd.DataFrame]:
         if df.empty:
             return None
 
@@ -934,6 +947,11 @@ class PivotTableViz(BaseViz):
         # Display metrics side by side with each column
         if self.form_data.get("combine_metric"):
             df = df.stack(0).unstack().reindex(level=-1, columns=metrics)
+
+        return df
+
+    def get_data(self, df: pd.DataFrame) -> VizData:
+        df = self._pivot_data(df)
         return dict(
             columns=list(df.columns),
             html=df.to_html(
@@ -944,6 +962,9 @@ class PivotTableViz(BaseViz):
                 ).split(" "),
             ),
         )
+
+    def post_process(self, df: pd.DataFrame) -> pd.DataFrame:
+        return self._pivot_data(df)
 
 
 class TreemapViz(BaseViz):
