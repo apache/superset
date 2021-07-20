@@ -523,7 +523,7 @@ class Header extends React.PureComponent {
                 className="action-button"
                 onClick={this.showReportModal}
               >
-                <Icon name="calendar" />
+                <Icons.Calendar />
               </span>
             </>
           )}
