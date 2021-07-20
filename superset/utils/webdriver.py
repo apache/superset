@@ -20,7 +20,6 @@ from time import sleep
 from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
 
 from flask import current_app
-from retry.api import retry_call
 from selenium.common.exceptions import (
     StaleElementReferenceException,
     TimeoutException,
@@ -33,6 +32,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from superset.extensions import machine_auth_provider_factory
+from superset.utils.retries import retry_call
 
 WindowSize = Tuple[int, int]
 logger = logging.getLogger(__name__)
@@ -85,7 +85,7 @@ class WebDriverProxy:
         # This is some very flaky code in selenium. Hence the retries
         # and catch-all exceptions
         try:
-            retry_call(driver.close, tries=tries)
+            retry_call(driver.close, max_tries=tries)
         except Exception:  # pylint: disable=broad-except
             pass
         try:
