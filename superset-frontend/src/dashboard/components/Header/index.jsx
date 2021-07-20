@@ -40,6 +40,7 @@ import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners'
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import ReportModal from 'src/components/ReportModal';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
   UNDO_LIMIT,
   SAVE_TYPE_OVERWRITE,
@@ -52,8 +53,7 @@ const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
   addWarningToast: PropTypes.func.isRequired,
-  userId: PropTypes.number,
-  userEmail: PropTypes.string,
+  user: UserWithPermissionsAndRoles,
   dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
   dataMask: PropTypes.object.isRequired,
@@ -368,6 +368,20 @@ class Header extends React.PureComponent {
     this.setState({ showingReportModal: false });
   }
 
+  canAddReportsModal() {
+    if (!this.props.user) {
+      // this is in the case that there is an anonymous user.
+      return false;
+    }
+    const roles = Object.keys(this.props.user?.roles);
+    const permissions = roles.map(key =>
+      this.props.user.roles[key].filter(
+        perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
+      ),
+    );
+    return permissions[0].length > 0;
+  }
+
   render() {
     const {
       dashboardTitle,
@@ -387,8 +401,7 @@ class Header extends React.PureComponent {
       updateCss,
       editMode,
       isPublished,
-      userId,
-      userEmail,
+      user,
       dashboardInfo,
       hasUnsavedChanges,
       isLoading,
@@ -397,10 +410,10 @@ class Header extends React.PureComponent {
       setRefreshFrequency,
       lastModifiedTime,
     } = this.props;
-
     const userCanEdit = dashboardInfo.dash_edit_perm;
     const userCanShare = dashboardInfo.dash_share_perm;
     const userCanSaveAs = dashboardInfo.dash_save_perm;
+    const shouldShowReportsModal = !editMode && this.canAddReportsModal();
     const refreshLimit =
       dashboardInfo.common.conf.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
     const refreshWarning =
@@ -427,7 +440,7 @@ class Header extends React.PureComponent {
             canEdit={userCanEdit}
             canSave={userCanSaveAs}
           />
-          {userId && (
+          {user?.userId && (
             <FaveStar
               itemId={dashboardInfo.id}
               fetchFaveStar={this.props.fetchFaveStar}
@@ -516,8 +529,7 @@ class Header extends React.PureComponent {
               </span>
             </>
           )}
-
-          {!editMode && (
+          {shouldShowReportsModal && (
             <>
               <span
                 role="button"
@@ -526,7 +538,7 @@ class Header extends React.PureComponent {
                 className="action-button"
                 onClick={this.showReportModal}
               >
-                <Icon name="calendar" />
+                <Icons.Calendar />
               </span>
             </>
           )}
@@ -564,8 +576,8 @@ class Header extends React.PureComponent {
               show={this.state.showingReportModal}
               onHide={this.hideReportModal}
               props={{
-                userId,
-                userEmail,
+                userId: user.userId,
+                userEmail: user.email,
                 dashboardId: dashboardInfo.id,
               }}
             />
