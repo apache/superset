@@ -44,7 +44,8 @@ ma_plugin = MarshmallowPlugin()
 
 
 class GSheetsParametersSchema(Schema):
-    catalog = fields.Dict(required=False)
+    catalog = fields.Dict()
+    query = fields.Dict(required=False)
 
 
 class GSheetsParametersType(TypedDict):
