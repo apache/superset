@@ -125,6 +125,8 @@ class ImportExamplesCommand(ImportModelsCommand):
             if file_name.startswith("dashboards/"):
                 config = update_id_refs(config, chart_ids)
                 dashboard = import_dashboard(session, config, overwrite=overwrite)
+                dashboard.published = True
+
                 for uuid in find_chart_uuids(config["position"]):
                     chart_id = chart_ids[uuid]
                     if (dashboard.id, chart_id) not in existing_relationships:
