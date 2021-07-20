@@ -569,7 +569,7 @@ export const StyledCatalogTable = styled.div`
 
   .catalog-delete {
     align-self: center;
-    background: ${({ theme }) => theme.colors.grayscale.grey4};
+    background: ${({ theme }) => theme.colors.grayscale.light4};
     margin: 5px;
   }
 

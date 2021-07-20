@@ -50,6 +50,7 @@ import {
   DatabaseObject,
   DatabaseForm,
   CONFIGURATION_METHOD,
+  CatalogObject,
 } from 'src/views/CRUD/data/database/types';
 import Loading from 'src/components/Loading';
 import ExtraOptions from './ExtraOptions';
@@ -239,15 +240,18 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.parametersChange:
-      if (action.payload.type?.startsWith('catalog')) {
+      if (
+        trimmedState.catalog !== undefined &&
+        action.payload.type?.startsWith('catalog')
+      ) {
         // Formatting wrapping google sheets table catalog
         const idx = action.payload.type?.split('-')[1];
-        const catalogToUpdate = trimmedState.catalog[idx];
+        const catalogToUpdate = trimmedState?.catalog[idx] || {};
         catalogToUpdate[action.payload.name] = action.payload.value;
 
         const paramatersCatalog = {};
         // eslint-disable-next-line array-callback-return
-        trimmedState.catalog?.map(item => {
+        trimmedState.catalog?.map((item: CatalogObject) => {
           paramatersCatalog[item.name] = item.value;
         });
 
@@ -341,10 +345,9 @@ function dbReducer(
           CONFIGURATION_METHOD.DYNAMIC_FORM
       ) {
         // pull catalog from engine params
-        console.log(extra_json?.engine_params);
         const result = Object.keys(extra_json?.engine_params?.catalog).map(
           e => {
-            const ret = {};
+            const ret: CatalogObject = { name: '', value: '' };
             ret.name = e;
             ret.value = extra_json?.engine_params?.catalog[e];
             return ret;

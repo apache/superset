@@ -33,7 +33,7 @@ import {
   StyledFooterButton,
   StyledCatalogTable,
 } from './styles';
-import { DatabaseForm, DatabaseObject } from '../types';
+import { CatalogObject, DatabaseForm, DatabaseObject } from '../types';
 
 enum CredentialInfoOptions {
   jsonUpload,
@@ -202,7 +202,7 @@ const TableCatalog = ({
   validationErrors,
   db,
 }: FieldPropTypes) => {
-  const tableCatalog = db?.catalog;
+  const tableCatalog = db?.catalog || [];
   return (
     <StyledCatalogTable>
       <div className="catalog-type-select">
@@ -217,7 +217,7 @@ const TableCatalog = ({
         Connect Google Sheets as tables to this database
       </h4>
       <div>
-        {db?.catalog?.map((sheet, idx) => (
+        {tableCatalog?.map((sheet: CatalogObject, idx: number) => (
           <>
             <FormLabel className="catalog-label" required>
               {t('Google Sheet Name and Url')}

@@ -21,6 +21,11 @@ type DatabaseUser = {
   last_name: string;
 };
 
+export type CatalogObject = {
+  name: string;
+  value: string;
+};
+
 export type DatabaseObject = {
   // Connection + general
   id?: number;
@@ -47,7 +52,7 @@ export type DatabaseObject = {
   engine?: string;
 
   // Gsheets temporary storage
-  catalog?: [];
+  catalog?: [CatalogObject];
 
   // Performance
   cache_timeout?: string;
@@ -69,11 +74,7 @@ export type DatabaseObject = {
 
   // Extra
   extra_json?: {
-    engine_params?:
-      | {
-          catalog: {};
-        }
-      | string;
+    engine_params?: { catalog: {} } | string;
     metadata_params?: {} | string;
     metadata_cache_timeout?: {
       schema_cache_timeout?: number; // in Performance
