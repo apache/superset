@@ -76,6 +76,26 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
     };
   }
 
+  componentDidUpdate(
+    prevProps: Readonly<AdhocMetricPopoverTriggerProps>,
+    prevState: Readonly<AdhocMetricPopoverTriggerState>,
+    snapshot?: any,
+  ) {
+    if (
+      prevProps.adhocMetric.optionName !== this.props.adhocMetric.optionName
+    ) {
+      // eslint-disable-next-line react/no-did-update-set-state
+      this.setState({
+        title: {
+          label: this.props.adhocMetric.label,
+          hasCustomLabel: this.props.adhocMetric.hasCustomLabel,
+        },
+        currentLabel: '',
+        labelModified: false,
+      });
+    }
+  }
+
   onLabelChange(e: any) {
     const { verbose_name, metric_name } = this.props.savedMetric;
     const defaultMetricLabel = this.props.adhocMetric?.getDefaultLabel();
