@@ -237,10 +237,13 @@ const TableCatalog = ({
                 }}
                 value={sheet.name}
               />
-              <CloseOutlined
-                className="catalog-delete"
-                onClick={() => changeMethods.onRemoveTableCatalog(idx)}
-              />
+
+              {tableCatalog?.length > 1 && (
+                <CloseOutlined
+                  className="catalog-delete"
+                  onClick={() => changeMethods.onRemoveTableCatalog(idx)}
+                />
+              )}
             </div>
             <ValidatedInput
               className="catalog-name-url"
