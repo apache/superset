@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-world-map",
-  "version": "0.17.69",
+  "version": "0.17.70",
   "description": "Superset Legacy Chart - World Map",
   "sideEffects": [
     "*.css"
