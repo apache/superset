@@ -17,9 +17,11 @@
 import json
 import logging
 from datetime import datetime, timedelta
+from io import BytesIO
 from typing import Any, List, Optional
 from uuid import UUID
 
+import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
@@ -91,7 +93,9 @@ class BaseReportState:
         self._execution_id = execution_id
 
     def set_state_and_log(
-        self, state: ReportState, error_message: Optional[str] = None,
+        self,
+        state: ReportState,
+        error_message: Optional[str] = None,
     ) -> None:
         """
         Updates current ReportSchedule state and TS. If on final state writes the log
@@ -100,7 +104,8 @@ class BaseReportState:
         now_dttm = datetime.utcnow()
         self.set_state(state, now_dttm)
         self.create_log(
-            state, error_message=error_message,
+            state,
+            error_message=error_message,
         )
 
     def set_state(self, state: ReportState, dttm: datetime) -> None:
@@ -114,7 +119,9 @@ class BaseReportState:
         self._session.commit()
 
     def create_log(  # pylint: disable=too-many-arguments
-        self, state: ReportState, error_message: Optional[str] = None,
+        self,
+        state: ReportState,
+        error_message: Optional[str] = None,
     ) -> None:
         """
         Creates a Report execution log, uses the current computed last_value for Alerts
@@ -240,6 +247,14 @@ class BaseReportState:
             raise ReportScheduleCsvFailedError()
         return csv_data
 
+    def _get_embedded_data(self) -> str:
+        """
+        Return data as an HTML table, to embed in the email.
+        """
+        buf = BytesIO(self._get_csv_data())
+        df = pd.read_csv(buf)
+        return df.to_html(na_rep="null")
+
     def _get_notification_content(self) -> NotificationContent:
         """
         Gets a notification content, this is composed by a title and a screenshot
@@ -247,6 +262,7 @@ class BaseReportState:
         :raises: ReportScheduleScreenshotFailedError
         """
         csv_data = None
+        embedded_data = None
         error_text = None
         screenshot_data = None
         url = self._get_url(user_friendly=True)
@@ -270,6 +286,12 @@ class BaseReportState:
                     name=self._report_schedule.name, text=error_text
                 )
 
+        if (
+            self._report_schedule.chart
+            and self._report_schedule.report_format == ReportDataFormat.TEXT
+        ):
+            embedded_data = self._get_embedded_data()
+
         if self._report_schedule.chart:
             name = (
                 f"{self._report_schedule.name}: "
@@ -286,6 +308,7 @@ class BaseReportState:
             screenshot=screenshot_data,
             description=self._report_schedule.description,
             csv=csv_data,
+            embedded_data=embedded_data,
         )
 
     def _send(
@@ -454,12 +477,14 @@ class ReportWorkingState(BaseReportState):
         if self.is_on_working_timeout():
             exception_timeout = ReportScheduleWorkingTimeoutError()
             self.set_state_and_log(
-                ReportState.ERROR, error_message=str(exception_timeout),
+                ReportState.ERROR,
+                error_message=str(exception_timeout),
             )
             raise exception_timeout
         exception_working = ReportSchedulePreviousWorkingError()
         self.set_state_and_log(
-            ReportState.WORKING, error_message=str(exception_working),
+            ReportState.WORKING,
+            error_message=str(exception_working),
         )
         raise exception_working
 

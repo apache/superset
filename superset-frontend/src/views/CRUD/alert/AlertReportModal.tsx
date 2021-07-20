@@ -1259,6 +1259,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 >
                   <StyledRadio value="PNG">{t('Send as PNG')}</StyledRadio>
                   <StyledRadio value="CSV">{t('Send as CSV')}</StyledRadio>
+                  <StyledRadio value="TEXT">{t('Send as text')}</StyledRadio>
                 </StyledRadioGroup>
               </div>
             )}

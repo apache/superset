@@ -74,7 +74,7 @@ export type AlertObject = {
   owners?: Array<Owner | MetaObject>;
   sql?: string;
   recipients?: Array<Recipient>;
-  report_format?: 'PNG' | 'CSV';
+  report_format?: 'PNG' | 'CSV' | 'TEXT';
   type?: string;
   validator_config_json?: {
     op?: Operator;
