@@ -269,7 +269,7 @@ export const DndMetricSelect = (props: any) => {
       return new AdhocMetric(config);
     }
     return new AdhocMetric({ isNew: true });
-  }, [droppedItem?.type, droppedItem?.value]);
+  }, [droppedItem]);
 
   return (
     <div className="metrics-select">
