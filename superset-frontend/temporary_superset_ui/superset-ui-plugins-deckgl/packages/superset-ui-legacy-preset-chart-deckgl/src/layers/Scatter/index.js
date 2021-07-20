@@ -27,6 +27,7 @@ const metadata = new ChartMetadata({
   name: t('deck.gl Scatterplot'),
   thumbnail,
   useLegacyApi: true,
+  tags: [t('Highly-used')],
 });
 
 export default class ScatterChartPlugin extends ChartPlugin {

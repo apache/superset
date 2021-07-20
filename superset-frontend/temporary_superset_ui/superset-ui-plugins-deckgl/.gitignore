@@ -13,6 +13,7 @@ logs/
 .cache
 .eslintcache
 .idea
+*.iml
 .npm
 .vscode
 .yarnclean
