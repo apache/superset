@@ -33,6 +33,7 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import { Input } from 'src/common/components';
+import Label from 'src/components/Label';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import Icons from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
@@ -95,6 +96,8 @@ const DEFAULT_ORDER = [
   'country_map',
 ];
 
+const ALL_TAGS = [t('Highly-used'), t('Text'), t('Trend'), t('Formattable')];
+
 const typesWithDefaultOrder = new Set(DEFAULT_ORDER);
 
 const THUMBNAIL_GRID_UNITS = 24;
@@ -103,13 +106,16 @@ export const MAX_ADVISABLE_VIZ_GALLERY_WIDTH = 1090;
 
 const OTHER_CATEGORY = t('Other');
 
+const DEFAULT_SEARCH_INPUT_VALUE = t('Highly-used');
+
 export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
 
 const VizPickerLayout = styled.div`
   display: grid;
-  grid-template-rows: minmax(100px, 1fr) minmax(200px, 35%);
+  grid-template-rows: auto minmax(100px, 1fr) minmax(200px, 35%);
   grid-template-columns: 1fr 5fr;
   grid-template-areas:
+    'sidebar tags'
     'sidebar main'
     'details details';
   height: 70vh;
@@ -131,6 +137,21 @@ const LeftPane = styled.div`
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   padding: ${({ theme }) => theme.gridUnit * 2}px;
   overflow: hidden;
+`;
+
+const RightPane = styled.div`
+  grid-area: main;
+  overflow-y: scroll;
+`;
+
+const AllTagsWrapper = styled.div`
+  ${({ theme }) => `
+    grid-area: tags;
+    margin: ${theme.gridUnit * 4}px ${theme.gridUnit * 2}px 0;
+    input {
+      font-size: ${theme.typography.sizes.s};
+    }
+  `}
 `;
 
 const CategoriesWrapper = styled.div`
@@ -179,7 +200,6 @@ const CategoryLabel = styled.button`
 `;
 
 const IconsPane = styled.div`
-  grid-area: main;
   overflow: auto;
   display: grid;
   grid-template-columns: repeat(
@@ -203,9 +223,10 @@ const DetailsPopulated = (theme: SupersetTheme) => css`
   padding: ${theme.gridUnit * 4}px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto auto 1fr;
   grid-template-areas:
     'viz-name examples-header'
+    'viz-tags examples'
     'description examples';
 `;
 
@@ -220,6 +241,12 @@ const DetailsEmpty = (theme: SupersetTheme) => css`
 
 // overflow hidden on the details pane and overflow auto on the description
 // (plus grid layout) enables the description to scroll while the header stays in place.
+const TagsWrapper = styled.div`
+  grid-area: viz-tags;
+  width: ${({ theme }) => theme.gridUnit * 120}px;
+  padding-right: ${({ theme }) => theme.gridUnit * 14}px;
+  padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+`;
 
 const Description = styled.p`
   grid-area: description;
@@ -358,8 +385,10 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   const { selectedViz, onChange, className } = props;
   const { mountedPluginMetadata } = usePluginContext();
   const searchInputRef = useRef<HTMLInputElement>();
-  const [searchInputValue, setSearchInputValue] = useState('');
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [searchInputValue, setSearchInputValue] = useState(
+    DEFAULT_SEARCH_INPUT_VALUE,
+  );
+  const [isSearchFocused, setIsSearchFocused] = useState(true);
   const isActivelySearching = isSearchFocused && !!searchInputValue;
 
   const selectedVizMetadata: ChartMetadata | null = selectedViz
@@ -504,11 +533,27 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
         </CategoriesWrapper>
       </LeftPane>
 
-      <ThumbnailGallery
-        vizEntries={vizEntriesToDisplay}
-        selectedViz={selectedViz}
-        setSelectedViz={onChange}
-      />
+      <AllTagsWrapper>
+        {ALL_TAGS.map(tag => (
+          <Label
+            key={tag}
+            onClick={() => {
+              focusSearch();
+              setSearchInputValue(tag);
+            }}
+          >
+            {tag}
+          </Label>
+        ))}
+      </AllTagsWrapper>
+
+      <RightPane>
+        <ThumbnailGallery
+          vizEntries={vizEntriesToDisplay}
+          selectedViz={selectedViz}
+          setSelectedViz={onChange}
+        />
+      </RightPane>
 
       {selectedVizMetadata ? (
         <div
@@ -525,6 +570,11 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
             >
               {selectedVizMetadata?.name}
             </SectionTitle>
+            <TagsWrapper>
+              {selectedVizMetadata?.tags.map(tag => (
+                <Label key={tag}>{tag}</Label>
+              ))}
+            </TagsWrapper>
             <Description>
               {selectedVizMetadata?.description ||
                 t('No description available.')}
