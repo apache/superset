@@ -95,7 +95,7 @@ const StyledContent = styled.div<{
 }>`
   grid-column: 2;
   grid-row: 2;
-  z-index: ${({ fullSizeChartId }) => (fullSizeChartId ? 1000 : 1)};
+  ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 1000;`}
 `;
 
 const StyledDashboardContent = styled.div<{
