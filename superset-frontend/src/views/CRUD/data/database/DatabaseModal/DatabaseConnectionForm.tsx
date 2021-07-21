@@ -266,11 +266,9 @@ const TableCatalog = ({
               }) =>
                 changeMethods.onParametersChange({
                   target: {
-                    target: {
-                      type: `catalog-${idx}`,
-                      name: 'value',
-                      value: e.clipboardData.getData('Text'),
-                    },
+                    type: `catalog-${idx}`,
+                    name: 'value',
+                    value: e.clipboardData.getData('Text'),
                   },
                 })
               }
