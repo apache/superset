@@ -30,7 +30,7 @@ from sqlalchemy.engine.url import URL
 from typing_extensions import TypedDict
 
 from superset import security_manager
-from superset.databases.schemas import encrypted_field_properties, EncryptedField
+from superset.databases.schemas import encrypted_field_properties
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
