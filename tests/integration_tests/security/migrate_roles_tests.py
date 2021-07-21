@@ -17,10 +17,10 @@
 """Unit tests for alerting in Superset"""
 import json
 import logging
+from contextlib import contextmanager
 from unittest.mock import patch
 
 import pytest
-from contextlib2 import contextmanager
 from flask_appbuilder.security.sqla.models import Role
 
 from superset.extensions import db, security_manager
