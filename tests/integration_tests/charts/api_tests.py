@@ -1055,7 +1055,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "post_data")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        print(data)
         expected_row_count = self.get_expected_row_count("client_id_1")
         self.assertEqual(data["result"][0]["rowcount"], expected_row_count)
 
@@ -1113,27 +1112,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         )
         rv = self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
         data = json.loads(rv.data.decode("utf-8"))
-        assert data == {
-            "result": [
-                {
-                    "cache_key": data["result"][0]["cache_key"],  # random
-                    "cached_dttm": None,
-                    "cache_timeout": 600,
-                    "annotation_data": {},
-                    "error": None,
-                    "is_cached": False,
-                    "query": "SELECT gender AS gender,\n       SUM(num) AS sum__num\nFROM birth_names\nWHERE ds >= '1900-01-01 00:00:00.000000'\n  AND ds < '2000-01-01 00:00:00.000000'\nGROUP BY gender\nORDER BY sum__num DESC\nLIMIT 50000\nOFFSET 0",
-                    "status": "success",
-                    "stacktrace": None,
-                    "rowcount": 2,
-                    "colnames": ["gender", "sum__num"],
-                    "coltypes": [1, 0],
-                    "data": data["result"][0]["data"],
-                    "applied_filters": [],
-                    "rejected_filters": [],
-                }
-            ]
-        }
+        assert data["result"][0]["status"] == "success"
+        assert data["result"][0]["rowcount"] == 2
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_applied_time_extras(self):
