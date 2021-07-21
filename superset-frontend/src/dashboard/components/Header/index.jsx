@@ -376,7 +376,7 @@ class Header extends React.PureComponent {
   }
 
   handleReportModalclick() {
-    const attachedReportExists = this.props.report.count > 0;
+    const attachedReportExists = this.props.report?.count > 0;
     if (!attachedReportExists) {
       this.showReportModal();
     }
@@ -393,7 +393,7 @@ class Header extends React.PureComponent {
         perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
       ),
     );
-    return permissions[0].length > 0;
+    return this.props.report && permissions[0].length > 0;
   }
 
   render() {
