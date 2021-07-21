@@ -329,7 +329,7 @@ def rolling(  # pylint: disable=too-many-arguments
     df: DataFrame,
     columns: Dict[str, str],
     rolling_type: str,
-    window: int,
+    window: Optional[int] = None,
     rolling_type_options: Optional[Dict[str, Any]] = None,
     center: bool = False,
     win_type: Optional[str] = None,
@@ -359,7 +359,7 @@ def rolling(  # pylint: disable=too-many-arguments
     rolling_type_options = rolling_type_options or {}
     df_rolling = df[columns.keys()]
     kwargs: Dict[str, Union[str, int]] = {}
-    if not window and window != 0:
+    if window is None:
         raise QueryObjectValidationError(_("Undefined window for rolling operation"))
     if window == 0:
         raise QueryObjectValidationError(_("Window must be > 0"))
