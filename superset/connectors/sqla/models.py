@@ -57,8 +57,11 @@ from sqlalchemy import (
     String,
     Table,
     Text,
+    update,
 )
+from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
+from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
 from sqlalchemy.sql.elements import ColumnClause
@@ -1667,9 +1670,24 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         return extra_cache_keys
 
 
+def update_table(
+    _mapper: Mapper, _connection: Connection, obj: Union[SqlMetric, TableColumn]
+) -> None:
+    """
+    Forces an update to the table's changed_on value when a metric or column on the
+    table is updated. This busts the cache key for all charts that use the table.
+
+    :param _mapper: Unused.
+    :param _connection: Unused.
+    :param obj: The metric or column that was updated.
+    """
+    db.session.execute(update(SqlaTable).where(SqlaTable.id == obj.table.id))
+
+
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)
 sa.event.listen(SqlaTable, "after_update", security_manager.set_perm)
-
+sa.event.listen(SqlMetric, "after_update", update_table)
+sa.event.listen(TableColumn, "after_update", update_table)
 
 RLSFilterRoles = Table(
     "rls_filter_roles",
