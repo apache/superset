@@ -203,6 +203,7 @@ const TableCatalog = ({
   db,
 }: FieldPropTypes) => {
   const tableCatalog = db?.catalog || [];
+  const catalogError = validationErrors || {};
   return (
     <StyledCatalogTable>
       <div className="catalog-type-select">
@@ -249,7 +250,7 @@ const TableCatalog = ({
               className="catalog-name-url"
               required={required}
               validationMethods={{ onBlur: getValidation }}
-              errorMessage={validationErrors?.table_catalog}
+              errorMessage={catalogError[sheet.name]}
               placeholder="Paste the shareable Google Sheet URL here"
               onChange={(e: { target: { value: any } }) =>
                 changeMethods.onParametersChange({

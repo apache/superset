@@ -340,7 +340,8 @@ function dbReducer(
       if (
         action.payload.backend === 'gsheets' &&
         action.payload.configuration_method ===
-          CONFIGURATION_METHOD.DYNAMIC_FORM
+          CONFIGURATION_METHOD.DYNAMIC_FORM &&
+        extra_json?.engine_params?.catalog !== undefined
       ) {
         // pull catalog from engine params
         const engineParamsCatalog = extra_json?.engine_params?.catalog;
@@ -388,7 +389,9 @@ const serializeExtra = (extraJson: DatabaseObject['extra_json']) =>
   JSON.stringify({
     ...extraJson,
     metadata_params: JSON.parse((extraJson?.metadata_params as string) || '{}'),
-    engine_params: JSON.parse((extraJson?.engine_params as string) || '{}'),
+    engine_params: JSON.parse(
+      ((extraJson?.engine_params as unknown) as string) || '{}',
+    ),
     schemas_allowed_for_csv_upload:
       (extraJson?.schemas_allowed_for_csv_upload as string) || '[]',
   });
