@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
-import { getExploreUrl } from '../exploreUtils';
+import { buildV1ChartDataPayload, getExploreUrl } from '../exploreUtils';
 
 export const FETCH_DASHBOARDS_SUCCEEDED = 'FETCH_DASHBOARDS_SUCCEEDED';
 export function fetchDashboardsSucceeded(choices) {
@@ -70,7 +70,19 @@ export function saveSlice(formData, requestParams) {
       requestParams,
     });
 
-    return SupersetClient.post({ url, postPayload: { form_data: formData } })
+    // Save the query context so we can re-generate the data from Python
+    // for alerts and reports
+    const queryContext = buildV1ChartDataPayload({
+      formData,
+      force: false,
+      resultFormat: 'json',
+      resultType: 'full',
+    });
+
+    return SupersetClient.post({
+      url,
+      postPayload: { form_data: formData, query_context: queryContext },
+    })
       .then(response => {
         dispatch(saveSliceSuccess(response.json));
         return response.json;
