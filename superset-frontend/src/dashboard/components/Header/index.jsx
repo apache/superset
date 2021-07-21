@@ -399,6 +399,7 @@ class Header extends React.PureComponent {
         showReportModal={this.showReportModal}
         hideReportModal={this.hideReportModal}
         report={this.props.report}
+        addDangerToast={this.props.addDangerToast}
       />
     );
   }

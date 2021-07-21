@@ -16,30 +16,56 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { styled, t, JsonObject } from '@superset-ui/core';
+import React, { useState } from 'react';
+import { JsonObject, styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-
+import { Switch } from 'src/components/Switch';
+import { AlertObject } from 'src/views/CRUD/alert/types';
+import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { Menu, NoAnimationDropdown } from 'src/common/components';
-
-const MENU_KEYS = {
-  EMAIL_REPORTS_ACTIVE: 'email-reports-active',
-  EDIT_REPORT: 'edit-report',
-  DELETE_REPORT: 'delete-report',
-};
 
 export default function HeaderReportActionsDropDown({
   showReportModal,
   hideReportModal,
   report,
+  addDangerToast,
 }: {
   showReportModal: () => void;
   hideReportModal: () => void;
   report: JsonObject;
+  addDangerToast: () => void;
 }) {
+  const { result } = report;
+  const [active, setActive] = useState<boolean | undefined>(result[0].active);
+  const [visible, setVisible] = useState<boolean>(true);
+  const { updateResource } = useSingleViewResource<Partial<AlertObject>>(
+    'report',
+    t('reports'),
+    addDangerToast,
+  );
+
+  const toggleActive = async (data: AlertObject, checked: boolean) => {
+    if (data && data.id) {
+      const update_id = data.id;
+      await updateResource(update_id, { active: checked }).then(() => {
+        setActive(checked);
+      });
+    }
+  };
+
   const menu = () => (
-    <Menu selectable={false}>
-      <Menu.Item>{t('Activate Report Toggle')}</Menu.Item>
+    <Menu selectable={false} onBlur={() => setVisible(!visible)}>
+      <Menu.Item>
+        {t('Email reports active')}
+        <Switch
+          data-test="toggle-active"
+          checked={active}
+          onClick={(checked: boolean) => toggleActive(result[0], checked)}
+          size="small"
+        />
+      </Menu.Item>
+      <Menu.Item>{t('Edit email report')}</Menu.Item>
+      <Menu.Item>{t('Delete email report')}</Menu.Item>
     </Menu>
   );
 
@@ -47,11 +73,17 @@ export default function HeaderReportActionsDropDown({
     <NoAnimationDropdown
       overlay={menu()}
       trigger={['click']}
+      visible={visible}
       getPopupContainer={(triggerNode: any) =>
         triggerNode.closest('.action-button')
       }
     >
-      <span role="button" className="action-button">
+      <span
+        role="button"
+        className="action-button"
+        tabIndex={0}
+        onClick={() => setVisible(!visible)}
+      >
         <Icons.Calendar />
       </span>
     </NoAnimationDropdown>
