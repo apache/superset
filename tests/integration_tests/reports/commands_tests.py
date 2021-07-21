@@ -15,13 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import List, Optional
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
 import pytest
-from contextlib2 import contextmanager
 from flask_sqlalchemy import BaseQuery
 from freezegun import freeze_time
 from sqlalchemy.sql import func
