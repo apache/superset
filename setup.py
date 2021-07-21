@@ -32,7 +32,7 @@ with io.open("README.md", "r", encoding="utf-8") as f:
     long_description = f.read()
 
 
-def get_git_sha():
+def get_git_sha() -> str:
     try:
         s = subprocess.check_output(["git", "rev-parse", "HEAD"])
         return s.decode().strip()

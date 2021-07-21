@@ -15,6 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=unused-argument, invalid-name
+from flask.ctx import AppContext
+from pytest_mock import MockFixture
+
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
 
@@ -24,16 +27,30 @@ class ProgrammingError(Exception):
     """
 
 
-def test_validate_parameters_simple(mocker, app_context):
-    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+def test_validate_parameters_simple(
+    mocker: MockFixture, app_context: AppContext,
+) -> None:
+    from superset.db_engine_specs.gsheets import (
+        GSheetsEngineSpec,
+        GSheetsParametersType,
+    )
 
-    parameters = {}
+    parameters: GSheetsParametersType = {
+        "credentials_info": {},
+        "query": {},
+        "table_catalog": {},
+    }
     errors = GSheetsEngineSpec.validate_parameters(parameters)
     assert errors == []
 
 
-def test_validate_parameters_catalog(mocker, app_context):
-    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+def test_validate_parameters_catalog(
+    mocker: MockFixture, app_context: AppContext,
+) -> None:
+    from superset.db_engine_specs.gsheets import (
+        GSheetsEngineSpec,
+        GSheetsParametersType,
+    )
 
     g = mocker.patch("superset.db_engine_specs.gsheets.g")
     g.user.email = "admin@example.com"
@@ -47,7 +64,9 @@ def test_validate_parameters_catalog(mocker, app_context):
         ProgrammingError("Unsupported table: https://www.google.com/"),
     ]
 
-    parameters = {
+    parameters: GSheetsParametersType = {
+        "credentials_info": {},
+        "query": {},
         "table_catalog": {
             "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
             "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",
@@ -114,12 +133,17 @@ def test_validate_parameters_catalog(mocker, app_context):
         ),
     ]
     create_engine.assert_called_with(
-        "gsheets://", service_account_info=None, subject="admin@example.com",
+        "gsheets://", service_account_info={}, subject="admin@example.com",
     )
 
 
-def test_validate_parameters_catalog_and_credentials(mocker, app_context):
-    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+def test_validate_parameters_catalog_and_credentials(
+    mocker: MockFixture, app_context: AppContext,
+) -> None:
+    from superset.db_engine_specs.gsheets import (
+        GSheetsEngineSpec,
+        GSheetsParametersType,
+    )
 
     g = mocker.patch("superset.db_engine_specs.gsheets.g")
     g.user.email = "admin@example.com"
@@ -133,13 +157,14 @@ def test_validate_parameters_catalog_and_credentials(mocker, app_context):
         ProgrammingError("Unsupported table: https://www.google.com/"),
     ]
 
-    parameters = {
+    parameters: GSheetsParametersType = {
+        "credentials_info": {},
+        "query": {},
         "table_catalog": {
             "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
             "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",
             "not_a_sheet": "https://www.google.com/",
         },
-        "credentials_info": "SECRET",
     }
     errors = GSheetsEngineSpec.validate_parameters(parameters)
     assert errors == [
@@ -173,5 +198,5 @@ def test_validate_parameters_catalog_and_credentials(mocker, app_context):
         ),
     ]
     create_engine.assert_called_with(
-        "gsheets://", service_account_info="SECRET", subject="admin@example.com",
+        "gsheets://", service_account_info={}, subject="admin@example.com",
     )
