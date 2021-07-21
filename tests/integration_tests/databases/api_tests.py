@@ -1579,7 +1579,7 @@ class TestDatabaseApi(SupersetTestCase):
                                 "type": "string",
                                 "x-encrypted-extra": True,
                             },
-                            "table_catalog": {"type": "object"},
+                            "catalog": {"type": "object"},
                         },
                         "type": "object",
                     },
