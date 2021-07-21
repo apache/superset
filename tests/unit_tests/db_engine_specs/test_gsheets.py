@@ -28,7 +28,7 @@ def test_validate_parameters_simple(mocker, app_context):
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
     parameters = {}
-    errors = GSheetsEngineSpec.validate_parameters(parameters)
+    errors = GSheetsEngineSpec.validate_parameters(parameters)  # ignore: type
     assert errors == []
 
 
@@ -48,13 +48,13 @@ def test_validate_parameters_catalog(mocker, app_context):
     ]
 
     parameters = {
-        "table_catalog": {
+        "catalog": {
             "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
             "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",
             "not_a_sheet": "https://www.google.com/",
         },
     }
-    errors = GSheetsEngineSpec.validate_parameters(parameters)
+    errors = GSheetsEngineSpec.validate_parameters(parameters)  # ignore: type
     assert errors == [
         SupersetError(
             message=(
@@ -141,7 +141,7 @@ def test_validate_parameters_catalog_and_credentials(mocker, app_context):
         },
         "credentials_info": "SECRET",
     }
-    errors = GSheetsEngineSpec.validate_parameters(parameters)
+    errors = GSheetsEngineSpec.validate_parameters(parameters)  # ignore: type
     assert errors == [
         SupersetError(
             message=(
