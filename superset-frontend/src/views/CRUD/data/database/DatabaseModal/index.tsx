@@ -192,7 +192,7 @@ function dbReducer(
   let deserializeExtraJSON = {};
   let extra_json: DatabaseObject['extra_json'];
 
-  console.log(action);
+  // console.log(action);
   switch (action.type) {
     case ActionType.extraEditorChange:
       return {
@@ -475,7 +475,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     testDatabaseConnection(connection, addDangerToast, addSuccessToast);
   };
 
-  console.log('db', db);
+  // console.log('db', db);
 
   const onClose = () => {
     setDB({ type: ActionType.reset });
@@ -902,7 +902,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           })
         }
         onAddTableCatalog={() => {
-          console.log('hello');
+          // console.log('hello');
         }}
         getValidation={() => getValidation(db)}
         validationErrors={validationErrors}
@@ -1019,7 +1019,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 })
               }
               onAddTableCatalog={() => {
-                console.log('hey');
+                // console.log('hey');
                 setDB({ type: ActionType.addTableCatalogSheet });
               }}
               onRemoveTableCatalog={idx => {
@@ -1176,7 +1176,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   sslForced={sslForced}
                   dbModel={dbModel}
                   onAddTableCatalog={() => {
-                    console.log('hey');
+                    // console.log('hey');
                     setDB({ type: ActionType.addTableCatalogSheet });
                   }}
                   onRemoveTableCatalog={idx => {

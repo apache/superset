@@ -1,3 +1,5 @@
+/* eslint-disable no-only-tests/no-only-tests */
+/* eslint-disable jest/no-focused-tests */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -40,7 +42,7 @@ const dbProps = {
 };
 
 const DATABASE_FETCH_ENDPOINT = 'glob:*/api/v1/database/10';
-// const DATABASE_POST_ENDPOINT = 'glob:*/api/v1/database/';
+const DATABASE_POST_ENDPOINT = 'glob:*/api/v1/database/';
 const AVAILABLE_DB_ENDPOINT = 'glob:*/api/v1/database/available*';
 fetchMock.config.overwriteRoutes = true;
 fetchMock.get(DATABASE_FETCH_ENDPOINT, {
@@ -103,6 +105,25 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: true,
       sqlalchemy_uri_placeholder:
         'postgresql://user:password@host:port/dbname[?key=value&key=value...]',
+    },
+    {
+      available_drivers: ['apsw'],
+      default_driver: 'apsw',
+      engine: 'gsheets',
+      name: 'Google Sheets',
+      parameters: {
+        properties: {
+          catalog: {
+            type: 'object',
+          },
+          query: {
+            type: 'object',
+          },
+        },
+        type: 'object',
+      },
+      preferred: true,
+      sqlalchemy_uri_placeholder: 'gsheets://',
     },
     {
       available_drivers: ['rest'],
@@ -308,7 +329,7 @@ describe('DatabaseModal', () => {
         expect(component).toBeVisible();
       });
       // This is how many preferred databases are rendered
-      expect(preferredDbIcon).toHaveLength(4);
+      expect(preferredDbIcon).toHaveLength(5);
     });
 
     it('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {
@@ -955,7 +976,7 @@ describe('DatabaseModal', () => {
       });
     });
 
-    describe('Dynamic form flow', () => {
+    describe('Dynamic form flow - PostgreSQL', () => {
       beforeEach(() => {
         userEvent.click(
           screen.getByRole('button', {
@@ -1008,6 +1029,46 @@ describe('DatabaseModal', () => {
         expect(fetchResource).toHaveBeenCalled();
 
         */
+      });
+    });
+
+    describe.only('Dynamic form flow - Google Sheets', () => {
+      beforeEach(() => {
+        userEvent.click(
+          screen.getByRole('button', {
+            name: /default-icon google sheets/i,
+          }),
+        );
+      });
+
+      it('enters form credentials and runs fetchResource when "Connect" is clicked', () => {
+        // Type in form credentials and click "Connect" button
+        const gsheetName = screen.getByTestId('catalog-name-input-test');
+        const gsheetURL = screen.getByTestId('catalog-name-url-test');
+        const connectButton = screen.getByRole('button', { name: 'Connect' });
+
+        userEvent.type(gsheetName, 'test');
+        userEvent.type(
+          gsheetURL,
+          'https://docs.google.com/spreadsheets/d/1XGpBx5-SPwM9mcdqMBTQcQNt-3Aa5-TEusUp5OvwMWs/edit?usp=sharing',
+        );
+        userEvent.click(connectButton);
+
+        // Mock Google Sheet Post
+        fetchMock.post(DATABASE_POST_ENDPOINT, {
+          id: 4,
+          result: {
+            configuration_method: 'dynamic_form',
+            database_name: 'Google Sheets',
+            expose_in_sqllab: true,
+            extra:
+              '{"engine_params":{"catalog":{"test":"https://docs.google.com/spreadsheets/d/1XGpBx5-SPwM9mcdqMBTQcQNt-3Aa5-TEusUp5OvwMWs/edit?usp=sharing"}},"metadata_params":{},"schemas_allowed_for_csv_upload":"[]"}',
+            sqlalchemy_uri: 'gsheets://',
+          },
+        });
+
+        screen.logTestingPlaygroundURL();
+        expect.anything();
       });
     });
   });

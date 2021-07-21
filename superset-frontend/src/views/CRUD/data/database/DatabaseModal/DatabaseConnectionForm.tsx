@@ -236,6 +236,7 @@ const TableCatalog = ({
                   });
                 }}
                 value={sheet.name}
+                data-test="catalog-name-input-test"
               />
 
               {tableCatalog?.length > 1 && (
@@ -274,6 +275,7 @@ const TableCatalog = ({
                 })
               }
               value={sheet.value}
+              data-test="catalog-name-url-test"
             />
           </>
         ))}
