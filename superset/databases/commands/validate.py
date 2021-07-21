@@ -97,7 +97,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
 
         # try to connect
         sqlalchemy_uri = engine_spec.build_sqlalchemy_uri(
-            self._properties.get("parameters", None),  # type: ignore
+            self._properties.get("parameters"),  # type: ignore
             encrypted_extra,
         )
         if self._model and sqlalchemy_uri == self._model.safe_sqlalchemy_uri():

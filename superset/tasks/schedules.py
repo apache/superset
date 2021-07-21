@@ -352,7 +352,7 @@ def _get_slice_data(
 
         # Parse the csv file and generate HTML
         columns = rows.pop(0)
-        with app.app_context():  # type: ignore
+        with app.app_context():
             body = render_template(
                 "superset/reports/slice_data.html",
                 columns=columns,
