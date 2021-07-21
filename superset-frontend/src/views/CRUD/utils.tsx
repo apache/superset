@@ -131,7 +131,7 @@ export const getRecentAcitivtyObjs = (
 ) =>
   SupersetClient.get({ endpoint: recent }).then(recentsRes => {
     const res: any = {};
-    //if (recentsRes.json.length === 0) {
+    if (recentsRes.json.length === 0) {
       const newBatch = [
         SupersetClient.get({ endpoint: `/api/v1/chart/?q=${getParams()}` }),
         SupersetClient.get({
@@ -149,9 +149,9 @@ export const getRecentAcitivtyObjs = (
             errMsg,
           ),
         );
-    //}
-    //res.viewed = recentsRes.json;
-    //return res;
+    }
+    res.viewed = recentsRes.json;
+    return res;
   });
 
 export const createFetchRelated = createFetchResourceMethod('related');

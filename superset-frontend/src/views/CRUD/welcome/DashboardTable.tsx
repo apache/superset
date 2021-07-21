@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState, useMemo, useEffect } from 'react';
-import { SupersetClient, t } from '@superset-ui/core';
+import { SupersetClient, t, styled, css } from '@superset-ui/core';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import {
   Dashboard,
@@ -30,7 +30,7 @@ import {
   setInLocalStorage,
   getFromLocalStorage,
 } from 'src/utils/localStorageHelpers';
-import { createErrorHandler, CardContainer } from 'src/views/CRUD/utils';
+import { createErrorHandler } from 'src/views/CRUD/utils';
 import { HOMEPAGE_DASHBOARD_FILTER } from 'src/views/CRUD/storageKeys';
 
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -40,13 +40,22 @@ import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
 
-const PAGE_SIZE = 3;
+const PAGE_SIZE = 5;
 
 export interface FilterValue {
   col: string;
   operator: string;
   value: string | boolean | number | null | undefined;
 }
+
+const CardContainer = styled.div(({ showThumbnails }) => ({
+  overflow: 'hidden',
+  display: 'grid',
+  gridGap: '10px',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+  maxHeight: `${showThumbnails ? '352' : '100'}px`,
+  padding: '10px 30px 10px 30px',
+}));
 
 function DashboardTable({
   user,
@@ -210,7 +219,7 @@ function DashboardTable({
         />
       )}
       {dashboards.length > 0 && (
-        <CardContainer>
+        <CardContainer showThumbnails={showThumbnails}>
           {dashboards.map(e => (
             <DashboardCard
               key={e.id}
