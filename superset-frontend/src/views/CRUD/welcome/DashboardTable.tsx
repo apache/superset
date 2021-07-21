@@ -64,7 +64,7 @@ function DashboardTable({
       ? TableTabTypes.MINE
       : filterStore || TableTabTypes.MINE;
 
- const filteredExamples = filter(examples, obj => !('viz_type' in obj));
+  const filteredExamples = filter(examples, obj => !('viz_type' in obj));
 
   const {
     state: { loading, resourceCollection: dashboards },
