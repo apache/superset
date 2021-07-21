@@ -1580,6 +1580,7 @@ class TestDatabaseApi(SupersetTestCase):
                                 "x-encrypted-extra": True,
                             },
                             "catalog": {"type": "object"},
+                            "query": {"type": "object"},
                         },
                         "type": "object",
                     },
