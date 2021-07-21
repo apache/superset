@@ -172,6 +172,7 @@ def main(
         rows = session.query(model).count()
         print(f"- {model.__name__} ({rows} rows in table {model.__tablename__})")
         model_rows[model] = rows
+    session.close()
 
     print("Benchmarking migration")
     results: Dict[str, float] = {}
