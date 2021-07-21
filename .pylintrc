@@ -88,7 +88,6 @@ disable=
     import-outside-toplevel,
     raise-missing-from,
     super-with-arguments,
-    bad-option-value,
     too-few-public-methods,
     too-many-locals,
 
