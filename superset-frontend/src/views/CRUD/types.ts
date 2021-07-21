@@ -43,7 +43,7 @@ export interface DashboardTableProps {
   mine: Array<Dashboard>;
   showThumbnails?: boolean;
   featureFlag?: boolean;
-  examples: Array<object>;
+  examples: Array<Dashboard>;
 }
 
 export interface Dashboard {
