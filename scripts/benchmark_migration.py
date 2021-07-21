@@ -214,6 +214,10 @@ def main(
         results[f"{min_entities}+"] = duration
         min_entities *= 10
 
+    print("\nResults:\n")
+    for label, duration in results.items():
+        print(f"{label}: {duration:.2f} s")
+
     if auto_cleanup:
         print("Cleaning up DB")
         # delete in reverse order of creation to handle relationships
@@ -227,10 +231,6 @@ def main(
         click.confirm(f"\nRevert DB to {revision}?", abort=True)
         upgrade(revision=revision)
         print("Reverted")
-
-    print("\nResults:\n")
-    for label, duration in results.items():
-        print(f"{label}: {duration:.2f} s")
 
 
 if __name__ == "__main__":
