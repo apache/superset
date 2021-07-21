@@ -30,7 +30,7 @@ from flask_appbuilder import Model
 from flask_migrate import downgrade, upgrade
 from graphlib import TopologicalSorter  # pylint: disable=wrong-import-order
 from progress.bar import ChargingBar
-from sqlalchemy import create_engine, inspect, Table
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.ext.automap import automap_base
 
 from superset import db
@@ -172,7 +172,6 @@ def main(
         rows = session.query(model).count()
         print(f"- {model.__name__} ({rows} rows in table {model.__tablename__})")
         model_rows[model] = rows
-    session.close()
 
     print("Benchmarking migration")
     results: Dict[str, float] = {}
