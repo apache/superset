@@ -54,6 +54,8 @@ export interface ActivityData {
   Examples?: Array<object>;
 }
 
+const DEFAULT_TAB_ARR = ['2', '3'];
+
 const WelcomeContainer = styled.div`
   background-color: ${({ theme }) => theme.colors.grayscale.light4};
   .ant-row.menu {
@@ -114,7 +116,9 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     null,
   );
   const [loadedCount, setLoadedCount] = useState(0);
-  const [activeState, setActiveState] = useState<Array<string>>(['2', '3']);
+  const [activeState, setActiveState] = useState<Array<string>>(
+    DEFAULT_TAB_ARR,
+  );
   const userid = user.userId;
   const id = userid.toString();
 
@@ -197,7 +201,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   };
 
   useEffect(() => {
-    const defaultArr = ['2', '3'];
+    const defaultArr = DEFAULT_TAB_ARR;
     if (activityData?.Viewed) {
       defaultArr.push('1');
     }
