@@ -253,7 +253,7 @@ class BaseReportState:
         """
         buf = BytesIO(self._get_csv_data())
         df = pd.read_csv(buf)
-        return df.to_html(na_rep="null")
+        return df.to_html(na_rep="", index=False)
 
     def _get_notification_content(self) -> NotificationContent:
         """
