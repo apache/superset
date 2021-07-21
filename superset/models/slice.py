@@ -67,6 +67,7 @@ class Slice(
     datasource_name = Column(String(2000))
     viz_type = Column(String(250))
     params = Column(Text)
+    query_context = Column(Text)
     description = Column(Text)
     cache_timeout = Column(Integer)
     perm = Column(String(1000))
@@ -89,6 +90,7 @@ class Slice(
         "datasource_name",
         "viz_type",
         "params",
+        "query_context",
         "cache_timeout",
     ]
     export_parent = "table"
