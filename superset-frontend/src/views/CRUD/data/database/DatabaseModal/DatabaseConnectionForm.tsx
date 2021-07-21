@@ -63,7 +63,7 @@ interface FieldPropTypes {
     onChange: (value: any) => string;
   } & { onParametersUploadFileChange: (value: any) => string } & {
     onAddTableCatalog: () => void;
-    onRemoveTableCatalog: (value: number) => void;
+    onRemoveTableCatalog: (idx: number) => void;
   };
   validationErrors: JsonObject | null;
   getValidation: () => void;
@@ -518,7 +518,7 @@ const DatabaseConnectionForm = ({
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
   onAddTableCatalog: () => void;
-  onRemoveTableCatalog: () => void;
+  onRemoveTableCatalog: (idx: number) => void;
   validationErrors: JsonObject | null;
   getValidation: () => void;
 }) => (

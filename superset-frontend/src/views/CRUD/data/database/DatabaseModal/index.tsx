@@ -192,7 +192,6 @@ function dbReducer(
   let deserializeExtraJSON = {};
   let extra_json: DatabaseObject['extra_json'];
 
-  console.log(action);
   switch (action.type) {
     case ActionType.extraEditorChange:
       return {
@@ -274,12 +273,12 @@ function dbReducer(
       if (trimmedState.catalog !== undefined) {
         return {
           ...trimmedState,
-          catalog: [...trimmedState.catalog, {}],
+          catalog: [...trimmedState.catalog, { name: '', value: '' }],
         };
       }
       return {
         ...trimmedState,
-        catalog: [{}],
+        catalog: [{ name: '', value: '' }],
       };
     case ActionType.removeTableCatalogSheet:
       trimmedState.catalog?.splice(action.payload.indexToDelete, 1);
@@ -473,8 +472,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
     testDatabaseConnection(connection, addDangerToast, addSuccessToast);
   };
-
-  console.log('db', db);
 
   const onClose = () => {
     setDB({ type: ActionType.reset });
@@ -900,9 +897,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             value: target.value,
           })
         }
-        onAddTableCatalog={() => {
-          console.log('hello');
-        }}
+        onAddTableCatalog={() =>
+          setDB({ type: ActionType.addTableCatalogSheet })
+        }
+        onRemoveTableCatalog={(idx: number) =>
+          setDB({
+            type: ActionType.removeTableCatalogSheet,
+            payload: { indexToDelete: idx },
+          })
+        }
         getValidation={() => getValidation(db)}
         validationErrors={validationErrors}
       />
@@ -1017,16 +1020,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   value: target.value,
                 })
               }
-              onAddTableCatalog={() => {
-                console.log('hey');
-                setDB({ type: ActionType.addTableCatalogSheet });
-              }}
-              onRemoveTableCatalog={idx => {
+              onAddTableCatalog={() =>
+                setDB({ type: ActionType.addTableCatalogSheet })
+              }
+              onRemoveTableCatalog={(idx: number) =>
                 setDB({
                   type: ActionType.removeTableCatalogSheet,
                   payload: { indexToDelete: idx },
-                });
-              }}
+                })
+              }
               getValidation={() => getValidation(db)}
               validationErrors={validationErrors}
             />
@@ -1178,7 +1180,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     console.log('hey');
                     setDB({ type: ActionType.addTableCatalogSheet });
                   }}
-                  onRemoveTableCatalog={idx => {
+                  onRemoveTableCatalog={(idx: number) => {
                     setDB({
                       type: ActionType.removeTableCatalogSheet,
                       payload: { indexToDelete: idx },
