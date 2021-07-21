@@ -108,7 +108,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
           dbId={datasourceId}
           formMode
           handleError={addDangerToast}
-          onChange={onChange}
+          onUpdate={onChange}
           schema={currentSchema}
           tableName={currentTableName}
         />

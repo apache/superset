@@ -29,7 +29,8 @@ from flask import current_app
 from flask_appbuilder import Model
 from flask_migrate import downgrade, upgrade
 from graphlib import TopologicalSorter  # pylint: disable=wrong-import-order
-from sqlalchemy import create_engine, inspect, Table
+from progress.bar import ChargingBar
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.ext.automap import automap_base
 
 from superset import db
@@ -93,10 +94,21 @@ def find_models(module: ModuleType) -> List[Type[Model]]:
     engine = create_engine(sqlalchemy_uri)
     Base = automap_base()
     Base.prepare(engine, reflect=True)
-    for table in tables:
+    seen = set()
+    while tables:
+        table = tables.pop()
+        seen.add(table)
         model = getattr(Base.classes, table)
         model.__tablename__ = table
         models.append(model)
+
+        # add other models referenced in foreign keys
+        inspector = inspect(model)
+        for column in inspector.columns.values():
+            for foreign_key in column.foreign_keys:
+                table = foreign_key.column.table.name
+                if table not in seen:
+                    tables.add(table)
 
     # sort topologically so we can create entities in order and
     # maintain relationships (eg, create a database before creating
@@ -107,7 +119,8 @@ def find_models(module: ModuleType) -> List[Type[Model]]:
         dependent_tables: List[str] = []
         for column in inspector.columns.values():
             for foreign_key in column.foreign_keys:
-                dependent_tables.append(foreign_key.target_fullname.split(".")[0])
+                if foreign_key.column.table.name != model.__tablename__:
+                    dependent_tables.append(foreign_key.column.table.name)
         sorter.add(model.__tablename__, *dependent_tables)
     order = list(sorter.static_order())
     models.sort(key=lambda model: order.index(model.__tablename__))
@@ -159,7 +172,6 @@ def main(
         rows = session.query(model).count()
         print(f"- {model.__name__} ({rows} rows in table {model.__tablename__})")
         model_rows[model] = rows
-    session.close()
 
     print("Benchmarking migration")
     results: Dict[str, float] = {}
@@ -177,18 +189,23 @@ def main(
         for model in models:
             missing = min_entities - model_rows[model]
             if missing > 0:
+                entities: List[Model] = []
                 print(f"- Adding {missing} entities to the {model.__name__} model")
+                bar = ChargingBar("Processing", max=missing)
                 try:
-                    added_models = add_sample_rows(session, model, missing)
+                    for entity in add_sample_rows(session, model, missing):
+                        entities.append(entity)
+                        bar.next()
                 except Exception:
                     session.rollback()
                     raise
+                bar.finish()
                 model_rows[model] = min_entities
+                session.add_all(entities)
                 session.commit()
 
                 if auto_cleanup:
-                    new_models[model].extend(added_models)
-
+                    new_models[model].extend(entities)
         start = time.time()
         upgrade(revision=revision)
         duration = time.time() - start

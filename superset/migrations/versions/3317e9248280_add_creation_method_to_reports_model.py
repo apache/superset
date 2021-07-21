@@ -14,26 +14,35 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""add_execution_id_to_report_execution_log_model.py
+"""add_creation_method_to_reports_model
 
-Revision ID: 301362411006
-Revises: 989bbe479899
-Create Date: 2021-03-23 05:23:15.641856
+Revision ID: 3317e9248280
+Revises: 453530256cea
+Create Date: 2021-07-14 10:31:38.610095
 
 """
 
 # revision identifiers, used by Alembic.
-revision = "301362411006"
-down_revision = "989bbe479899"
+revision = "3317e9248280"
+down_revision = "453530256cea"
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy_utils import UUIDType
 
 
 def upgrade():
-    op.add_column("report_execution_log", sa.Column("uuid", UUIDType(binary=True)))
+    with op.batch_alter_table("report_schedule") as batch_op:
+        batch_op.add_column(
+            sa.Column(
+                "creation_method", sa.VARCHAR(255), server_default="alerts_reports",
+            )
+        )
+        batch_op.create_index(
+            op.f("ix_creation_method"), ["creation_method"], unique=False
+        )
 
 
 def downgrade():
-    op.drop_column("report_execution_log", "uuid")
+    with op.batch_alter_table("report_schedule") as batch_op:
+        batch_op.drop_index("ix_creation_method")
+        batch_op.drop_column("creation_method")

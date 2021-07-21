@@ -16,26 +16,44 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Dispatch } from 'redux';
 import { SupersetClient } from '@superset-ui/core';
-import { getClientErrorObject } from '../../utils/getClientErrorObject';
+import { Datasource, RootState } from 'src/dashboard/types';
 
-export const SET_DATASOURCE = 'SET_DATASOURCE';
-export function setDatasource(datasource, key) {
-  return { type: SET_DATASOURCE, datasource, key };
+// update datasources index for Dashboard
+export enum DatasourcesAction {
+  SET_DATASOURCES = 'SET_DATASOURCES',
+  SET_DATASOURCE = 'SET_DATASOURCE',
 }
 
-export const FETCH_DATASOURCE_STARTED = 'FETCH_DATASOURCE_STARTED';
-export function fetchDatasourceStarted(key) {
-  return { type: FETCH_DATASOURCE_STARTED, key };
+export type DatasourcesActionPayload =
+  | {
+      type: DatasourcesAction.SET_DATASOURCES;
+      datasources: Datasource[] | null;
+    }
+  | {
+      type: DatasourcesAction.SET_DATASOURCE;
+      key: Datasource['uid'];
+      datasource: Datasource;
+    };
+
+export function setDatasources(datasources: Datasource[] | null) {
+  return {
+    type: DatasourcesAction.SET_DATASOURCES,
+    datasources,
+  };
 }
 
-export const FETCH_DATASOURCE_FAILED = 'FETCH_DATASOURCE_FAILED';
-export function fetchDatasourceFailed(error, key) {
-  return { type: FETCH_DATASOURCE_FAILED, error, key };
+export function setDatasource(datasource: Datasource, key: string) {
+  return {
+    type: DatasourcesAction.SET_DATASOURCE,
+    key,
+    datasource,
+  };
 }
 
-export function fetchDatasourceMetadata(key) {
-  return (dispatch, getState) => {
+export function fetchDatasourceMetadata(key: string) {
+  return (dispatch: Dispatch, getState: () => RootState) => {
     const { datasources } = getState();
     const datasource = datasources[key];
 
@@ -45,12 +63,6 @@ export function fetchDatasourceMetadata(key) {
 
     return SupersetClient.get({
       endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${key}`,
-    })
-      .then(({ json }) => dispatch(setDatasource(json, key)))
-      .catch(response =>
-        getClientErrorObject(response).then(({ error }) =>
-          dispatch(fetchDatasourceFailed(error, key)),
-        ),
-      );
+    }).then(({ json }) => dispatch(setDatasource(json as Datasource, key)));
   };
 }

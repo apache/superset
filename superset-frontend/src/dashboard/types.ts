@@ -25,9 +25,12 @@ import {
 import { DatasourceMeta } from '@superset-ui/chart-controls';
 import { chart } from 'src/chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
+
 import { DataMaskStateWithId } from '../dataMask/types';
 import { NativeFiltersState } from './reducers/types';
 import { ChartState } from '../explore/types';
+
+export { Dashboard } from 'src/types/Dashboard';
 
 export type ChartReducerInitialState = typeof chart;
 
@@ -72,11 +75,14 @@ export type DashboardInfo = {
 };
 
 export type ChartsState = { [key: string]: Chart };
+
+export type Datasource = DatasourceMeta & {
+  uid: string;
+  column_types: GenericDataType[];
+  table_name: string;
+};
 export type DatasourcesState = {
-  [key: string]: DatasourceMeta & {
-    column_types: GenericDataType[];
-    table_name: string;
-  };
+  [key: string]: Datasource;
 };
 
 /** Root state of redux */

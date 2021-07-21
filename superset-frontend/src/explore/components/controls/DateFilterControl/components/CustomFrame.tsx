@@ -23,7 +23,7 @@ import { isInteger } from 'lodash';
 import { Col, InputNumber, Row } from 'src/common/components';
 import { DatePicker } from 'src/components/DatePicker';
 import { Radio } from 'src/components/Radio';
-import { Select } from 'src/components/Select';
+import { Select } from 'src/components';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
   SINCE_GRAIN_OPTIONS,
@@ -38,7 +38,6 @@ import {
 } from 'src/explore/components/controls/DateFilterControl/utils';
 import {
   CustomRangeKey,
-  SelectOptionType,
   FrameComponentProps,
 } from 'src/explore/components/controls/DateFilterControl/types';
 
@@ -118,13 +117,10 @@ export function CustomFrame(props: FrameComponentProps) {
             />
           </div>
           <Select
+            ariaLabel={t('START (INCLUSIVE)')}
             options={SINCE_MODE_OPTIONS}
-            value={SINCE_MODE_OPTIONS.filter(
-              option => option.value === sinceMode,
-            )}
-            onChange={(option: SelectOptionType) =>
-              onChange('sinceMode', option.value)
-            }
+            value={sinceMode}
+            onChange={(value: string) => onChange('sinceMode', value)}
           />
           {sinceMode === 'specific' && (
             <Row>
@@ -155,13 +151,10 @@ export function CustomFrame(props: FrameComponentProps) {
               </Col>
               <Col span={13}>
                 <Select
+                  ariaLabel={t('Relative period')}
                   options={SINCE_GRAIN_OPTIONS}
-                  value={SINCE_GRAIN_OPTIONS.filter(
-                    option => option.value === sinceGrain,
-                  )}
-                  onChange={(option: SelectOptionType) =>
-                    onChange('sinceGrain', option.value)
-                  }
+                  value={sinceGrain}
+                  onChange={(value: string) => onChange('sinceGrain', value)}
                 />
               </Col>
             </Row>
@@ -176,13 +169,10 @@ export function CustomFrame(props: FrameComponentProps) {
             />
           </div>
           <Select
+            ariaLabel={t('END (EXCLUSIVE)')}
             options={UNTIL_MODE_OPTIONS}
-            value={UNTIL_MODE_OPTIONS.filter(
-              option => option.value === untilMode,
-            )}
-            onChange={(option: SelectOptionType) =>
-              onChange('untilMode', option.value)
-            }
+            value={untilMode}
+            onChange={(value: string) => onChange('untilMode', value)}
           />
           {untilMode === 'specific' && (
             <Row>
@@ -212,13 +202,10 @@ export function CustomFrame(props: FrameComponentProps) {
               </Col>
               <Col span={13}>
                 <Select
+                  ariaLabel={t('Relative period')}
                   options={UNTIL_GRAIN_OPTIONS}
-                  value={UNTIL_GRAIN_OPTIONS.filter(
-                    option => option.value === untilGrain,
-                  )}
-                  onChange={(option: SelectOptionType) =>
-                    onChange('untilGrain', option.value)
-                  }
+                  value={untilGrain}
+                  onChange={(value: string) => onChange('untilGrain', value)}
                 />
               </Col>
             </Row>

@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,14 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
--r base.in
-flask-cors>=2.0.0
-mysqlclient==1.4.2.post1
-pillow>=7.0.0,<8.0.0
-pydruid>=0.6.1,<0.7
-pyhive[hive]>=0.6.1
-psycopg2-binary==2.8.5
-tableschema
-thrift>=0.11.0,<1.0.0
-pygithub>=1.54.1,<2.0.0
-progress>=1.5,<2
+
+from typing import Any, Callable, Dict, Generator, List, Optional, Type
+
+import backoff
+
+
+def retry_call(
+    func: Callable[..., Any],
+    *args: Any,
+    strategy: Callable[..., Generator[int, None, None]] = backoff.constant,
+    exception: Type[Exception] = Exception,
+    fargs: Optional[List[Any]] = None,
+    fkwargs: Optional[Dict[str, Any]] = None,
+    **kwargs: Any
+) -> Any:
+    """
+    Retry a given call.
+    """
+    decorated = backoff.on_exception(strategy, exception, *args, **kwargs)(func)
+    fargs = fargs or []
+    fkwargs = fkwargs or {}
+    return decorated(*fargs, **fkwargs)

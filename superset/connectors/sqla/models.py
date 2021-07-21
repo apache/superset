@@ -57,17 +57,13 @@ from sqlalchemy import (
     String,
     Table,
     Text,
+    update,
 )
+from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
+from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
-from sqlalchemy.sql import (
-    column,
-    ColumnElement,
-    literal_column,
-    quoted_name,
-    table,
-    text,
-)
+from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
 from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom, TextClause
 from sqlalchemy.sql.selectable import Alias, TableClause
@@ -887,7 +883,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
     def adhoc_metric_to_sqla(
         self, metric: AdhocMetric, columns_by_name: Dict[str, TableColumn]
-    ) -> Column:
+    ) -> ColumnElement:
         """
         Turn an adhoc metric into a sqlalchemy column.
 
@@ -917,28 +913,19 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         return self.make_sqla_column_compatible(sqla_metric, label)
 
     def make_sqla_column_compatible(
-        self, sqla_col: Column, label: Optional[str] = None
-    ) -> Column:
+        self, sqla_col: ColumnElement, label: Optional[str] = None
+    ) -> ColumnElement:
         """Takes a sqlalchemy column object and adds label info if supported by engine.
-        also adds quotes to the column if engine is configured for quotes.
         :param sqla_col: sqlalchemy column instance
         :param label: alias/label that column is expected to have
         :return: either a sql alchemy column or label instance if supported by engine
         """
         label_expected = label or sqla_col.name
         db_engine_spec = self.db_engine_spec
-
-        # add quotes to column
-        if db_engine_spec.force_column_alias_quotes:
-            sqla_col = column(
-                quoted_name(sqla_col.name, True), sqla_col.type, sqla_col.is_literal
-            )
-
         # add quotes to tables
         if db_engine_spec.allows_alias_in_select:
             label = db_engine_spec.make_label_compatible(label_expected)
             sqla_col = sqla_col.label(label)
-
         sqla_col.key = label_expected
         return sqla_col
 
@@ -1086,7 +1073,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
         # To ensure correct handling of the ORDER BY labeling we need to reference the
         # metric instance if defined in the SELECT clause.
-        metrics_exprs_by_label = {m.name: m for m in metrics_exprs}
+        # use the key of the ColumnClause for the expected label
+        metrics_exprs_by_label = {m.key: m for m in metrics_exprs}
         metrics_exprs_by_expr = {str(m): m for m in metrics_exprs}
 
         # Since orderby may use adhoc metrics, too; we need to process them first
@@ -1682,9 +1670,24 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         return extra_cache_keys
 
 
+def update_table(
+    _mapper: Mapper, _connection: Connection, obj: Union[SqlMetric, TableColumn]
+) -> None:
+    """
+    Forces an update to the table's changed_on value when a metric or column on the
+    table is updated. This busts the cache key for all charts that use the table.
+
+    :param _mapper: Unused.
+    :param _connection: Unused.
+    :param obj: The metric or column that was updated.
+    """
+    db.session.execute(update(SqlaTable).where(SqlaTable.id == obj.table.id))
+
+
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)
 sa.event.listen(SqlaTable, "after_update", security_manager.set_perm)
-
+sa.event.listen(SqlMetric, "after_update", update_table)
+sa.event.listen(TableColumn, "after_update", update_table)
 
 RLSFilterRoles = Table(
     "rls_filter_roles",
