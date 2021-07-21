@@ -19,7 +19,6 @@ import logging
 import re
 import time
 from collections import defaultdict
-from graphlib import TopologicalSorter  # pylint: disable=wrong-import-order
 from inspect import getsource
 from pathlib import Path
 from types import ModuleType
@@ -29,6 +28,7 @@ import click
 from flask import current_app
 from flask_appbuilder import Model
 from flask_migrate import downgrade, upgrade
+from graphlib import TopologicalSorter  # pylint: disable=wrong-import-order
 from progress.bar import ChargingBar
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.ext.automap import automap_base
