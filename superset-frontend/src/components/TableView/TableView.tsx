@@ -86,13 +86,7 @@ const TableViewStyles = styled.div<{
     z-index: 1;
     border-bottom: ${({ theme }) =>
       `${theme.gridUnit - 2}px solid ${theme.colors.grayscale.light2}`};
-
-    ${({ theme, small }) =>
-      small &&
-      `
-        padding-top: ${theme.gridUnit - 1}px;
-        padding-bottom: 0;
-      `}
+    ${({ small }) => small && `padding-bottom: 0;`}
   }
 
   .pagination-container {
