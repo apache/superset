@@ -37,7 +37,7 @@ from superset.utils import core as utils
 from superset.utils.hashing import md5_sha_from_str
 from superset.utils.memoized import memoized
 from superset.utils.urls import get_url_path
-from superset.viz import BaseViz, viz_types  # type: ignore
+from superset.viz import BaseViz, viz_types
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
