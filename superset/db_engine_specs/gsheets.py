@@ -106,9 +106,9 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     def build_sqlalchemy_uri(
         cls,
         _: GSheetsParametersType,
-        encrypted_extra: Optional[
+        encrypted_extra: Optional[  # pylint: disable=unused-argument
             Dict[str, Any]
-        ] = None,  # pylint: disable=unused-argument
+        ] = None,
     ) -> str:  # pylint: disable=unused-variable
 
         return "gsheets://"
