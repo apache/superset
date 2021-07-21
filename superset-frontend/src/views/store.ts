@@ -22,6 +22,7 @@ import messageToastReducer from 'src/messageToasts/reducers';
 import { initEnhancer } from 'src/reduxUtils';
 import charts from 'src/chart/chartReducer';
 import dataMask from 'src/dataMask/reducer';
+import reportState from 'src/reports/reducers/reportState';
 import dashboardInfo from 'src/dashboard/reducers/dashboardInfo';
 import dashboardState from 'src/dashboard/reducers/dashboardState';
 import dashboardFilters from 'src/dashboard/reducers/dashboardFilters';
@@ -52,6 +53,7 @@ const dashboardReducers = {
   dashboardState,
   dashboardLayout,
   sliceEntities,
+  reportState,
 };
 
 // exported for tests

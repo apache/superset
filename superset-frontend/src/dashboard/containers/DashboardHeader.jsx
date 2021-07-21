@@ -61,7 +61,7 @@ import { fetchUISpecificReport } from '../../reports/actions/reportState';
 function mapStateToProps({
   dashboardLayout: undoableLayout,
   dashboardState,
-  report,
+  reportState,
   dashboardInfo,
   charts,
   dataMask,
@@ -96,7 +96,7 @@ function mapStateToProps({
     editMode: !!dashboardState.editMode,
     slug: dashboardInfo.slug,
     metadata: dashboardInfo.metadata,
-    report,
+    report: reportState.report,
   };
 }
 

@@ -143,7 +143,6 @@ class Header extends React.PureComponent {
       emphasizeUndo: false,
       showingPropertiesModal: false,
       showingReportModal: false,
-      attachedReports: {},
     };
 
     this.handleChangeText = this.handleChangeText.bind(this);
@@ -377,7 +376,7 @@ class Header extends React.PureComponent {
   }
 
   handleReportModalclick() {
-    const attachedReportExists = this.state.attachedReports.count > 0;
+    const attachedReportExists = this.props.report.count > 0;
     if (!attachedReportExists) {
       this.showReportModal();
     }

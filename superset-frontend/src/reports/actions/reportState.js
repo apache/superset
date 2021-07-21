@@ -21,7 +21,7 @@ import { t, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 import { addDangerToast } from '../../messageToasts/actions';
 
-export const SET_REPORT = 'SET_DASHBOARD_REPORT';
+export const SET_REPORT = 'SET_REPORT';
 export function setReport(report) {
   return { type: SET_REPORT, report };
 }
