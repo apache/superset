@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { styled, t, JsonObject } from '@superset-ui/core';
+import Icons from 'src/components/Icons';
 
 import { Menu, NoAnimationDropdown } from 'src/common/components';
 
@@ -44,11 +45,15 @@ export default function HeaderReportActionsDropDown({
 
   return (
     <NoAnimationDropdown
-      overlay={menu}
+      overlay={menu()}
       trigger={['click']}
       getPopupContainer={(triggerNode: any) =>
-        triggerNode.closes('action-button') as HTMLElement
+        triggerNode.closest('.action-button')
       }
-    />
+    >
+      <span role="button" className="action-button">
+        <Icons.Calendar />
+      </span>
+    </NoAnimationDropdown>
   );
 }

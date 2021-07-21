@@ -21,32 +21,21 @@ import { t, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 import { addDangerToast } from '../../messageToasts/actions';
 
-<<<<<<< HEAD
 export const SET_REPORT = 'SET_REPORT';
 export function setReport(report) {
   return { type: SET_REPORT, report };
 }
+
 export function fetchUISpecificReport(
   userId,
-  search_field,
+  filter_field,
   creation_method,
   dashboardId,
 ) {
   const queryParams = rison.encode({
     filters: [
       {
-        col: search_field,
-=======
-export const SET_REPORT = 'SET_DASHBOARD_REPORT';
-export function setReport(report) {
-  return { type: SET_REPORT, report };
-}
-export function fetchUISpecificReport(userId, creation_method, dashboardId) {
-  const queryParams = rison.encode({
-    filters: [
-      {
-        col: 'dashboard_id',
->>>>>>> abstracted report action
+        col: filter_field,
         opr: 'eq',
         value: dashboardId,
       },
@@ -62,11 +51,7 @@ export function fetchUISpecificReport(userId, creation_method, dashboardId) {
       },
     ],
   });
-<<<<<<< HEAD
   return function fetchUISpecificReportThunk(dispatch) {
-=======
-  return function fetchUISpecifcReportThunk(dispatch) {
->>>>>>> abstracted report action
     return SupersetClient.get({
       endpoint: `/api/v1/report/?q=${queryParams}`,
     })

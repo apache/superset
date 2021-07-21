@@ -160,7 +160,7 @@ class Header extends React.PureComponent {
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
     this.showReportModal = this.showReportModal.bind(this);
     this.hideReportModal = this.hideReportModal.bind(this);
-    this.handleReportClick = this.handleReportClick.bind(this);
+    this.reportModal = this.reportModal.bind(this);
   }
 
   componentDidMount() {
@@ -380,10 +380,20 @@ class Header extends React.PureComponent {
     this.setState({ showingReportModal: false });
   }
 
-  handleReportModalclick() {
-    const attachedReportExists = this.props.reports.count > 0;
+  reportModal() {
+    const attachedReportExists = this.props.report.count > 0;
     return !attachedReportExists ? (
-      this.showReportModal()
+      <>
+        <span
+          role="button"
+          title={t('Schedule email report')}
+          tabIndex={0}
+          className="action-button"
+          onClick={this.showReportModal}
+        >
+          <Icons.Calendar />
+        </span>
+      </>
     ) : (
       <HeaderReportActionsDropdown
         showReportModal={this.showReportModal}
@@ -404,7 +414,7 @@ class Header extends React.PureComponent {
         perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
       ),
     );
-    return permissions[0].length > 0;
+    return this.props.report && permissions[0].length > 0;
   }
 
   render() {
@@ -554,6 +564,7 @@ class Header extends React.PureComponent {
               </span>
             </>
           )}
+<<<<<<< HEAD
           {shouldShowReport && (
             <>
               <span
@@ -567,6 +578,9 @@ class Header extends React.PureComponent {
               </span>
             </>
           )}
+=======
+          {canAccesReportsModal && this.reportModal()}
+>>>>>>> toggle started
 
           {this.state.showingPropertiesModal && (
             <PropertiesModal
