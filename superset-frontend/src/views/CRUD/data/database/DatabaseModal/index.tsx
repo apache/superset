@@ -1180,7 +1180,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   sslForced={sslForced}
                   dbModel={dbModel}
                   onAddTableCatalog={() => {
-                    console.log('hey');
                     setDB({ type: ActionType.addTableCatalogSheet });
                   }}
                   onRemoveTableCatalog={(idx: number) => {
