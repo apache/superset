@@ -889,11 +889,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         # test filtering on datasource_name
         arguments = {
             "filters": [
-                {
-                    "col": "slice_name",
-                    "opr": "chart_all_text",
-                    "value": "energy",
-                }
+                {"col": "slice_name", "opr": "chart_all_text", "value": "energy",}
             ],
             "keys": ["none"],
             "columns": ["slice_name"],
@@ -911,11 +907,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         # test filtering on datasource_name
         arguments = {
             "filters": [
-                {
-                    "col": "slice_name",
-                    "opr": "chart_all_text",
-                    "value": "energy",
-                }
+                {"col": "slice_name", "opr": "chart_all_text", "value": "energy",}
             ],
             "keys": ["none"],
             "columns": ["slice_name"],
@@ -1063,7 +1055,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "post_data")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        print(data)
         expected_row_count = self.get_expected_row_count("client_id_1")
         self.assertEqual(data["result"][0]["rowcount"], expected_row_count)
 
@@ -1149,9 +1140,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         )
         self.assertEqual(
             data["result"][0]["rejected_filters"],
-            [
-                {"column": "__time_origin", "reason": "not_druid_datasource"},
-            ],
+            [{"column": "__time_origin", "reason": "not_druid_datasource"},],
         )
         expected_row_count = self.get_expected_row_count("client_id_2")
         self.assertEqual(data["result"][0]["rowcount"], expected_row_count)
@@ -1187,8 +1176,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.common.query_object.config",
-        {**app.config, "ROW_LIMIT": 7},
+        "superset.common.query_object.config", {**app.config, "ROW_LIMIT": 7},
     )
     def test_chart_data_default_row_limit(self):
         """
@@ -1204,8 +1192,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.common.query_actions.config",
-        {**app.config, "SAMPLES_ROW_LIMIT": 5},
+        "superset.common.query_actions.config", {**app.config, "SAMPLES_ROW_LIMIT": 5},
     )
     def test_chart_data_default_sample_limit(self):
         """
@@ -1340,8 +1327,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
                 dttm_col = col
         if dttm_col:
             dttm_expression = table.database.db_engine_spec.convert_dttm(
-                dttm_col.type,
-                dttm,
+                dttm_col.type, dttm,
             )
             self.assertIn(dttm_expression, result["query"])
         else:
@@ -1621,9 +1607,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             return orig_run(self, force_cached=False)
 
         with mock.patch.object(ChartDataCommand, "run", new=mock_run):
-            rv = self.client.get(
-                f"{CHART_DATA_URI}/test-cache-key",
-            )
+            rv = self.client.get(f"{CHART_DATA_URI}/test-cache-key",)
 
         self.assertEqual(rv.status_code, 401)
 
