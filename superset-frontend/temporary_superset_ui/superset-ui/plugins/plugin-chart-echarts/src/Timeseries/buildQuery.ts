@@ -38,10 +38,12 @@ export default function buildQuery(formData: QueryFormData) {
             options: {
               index: ['__timestamp'],
               columns: formData.groupby || [],
-              // Create 'dummy' sum aggregates to assign cell values in pivot table
+              // Create 'dummy' mean aggregates to assign cell values in pivot table
+              // use the 'mean' aggregates to avoid drop NaN
               aggregates: Object.fromEntries(
-                metricLabels.map(metric => [metric, { operator: 'sum' }]),
+                metricLabels.map(metric => [metric, { operator: 'mean' }]),
               ),
+              drop_missing_columns: false,
             },
           },
           formData.contributionMode
