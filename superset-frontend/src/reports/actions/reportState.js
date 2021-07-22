@@ -57,7 +57,6 @@ export function fetchUISpecificReport(
     })
       .then(({ json }) => {
         dispatch(setReport(json));
-        console.log(json);
       })
       .catch(() =>
         dispatch(
