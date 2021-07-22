@@ -211,19 +211,6 @@ export class ControlPanelsContainer extends React.Component<
     this.renderControlPanelSection = this.renderControlPanelSection.bind(this);
   }
 
-  static getDerivedStateFromProps(
-    props: ControlPanelsContainerProps,
-    state: ControlPanelsContainerState,
-  ): ControlPanelsContainerState {
-    // only update the sections, not the expanded/collapsed state
-    const newState = getState(props);
-    return {
-      ...state,
-      customizeSections: newState.customizeSections,
-      querySections: newState.querySections,
-    };
-  }
-
   componentDidUpdate(prevProps: ControlPanelsContainerProps) {
     if (
       this.props.form_data.datasource !== prevProps.form_data.datasource ||
