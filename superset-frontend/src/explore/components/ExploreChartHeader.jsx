@@ -20,8 +20,10 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
+import Icons from 'src/components/Icons';
 import { styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
+import ReportModal from 'src/components/ReportModal';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ExploreActionButtons from './ExploreActionButtons';
 import RowCountLabel from './RowCountLabel';
@@ -80,6 +82,11 @@ const StyledHeader = styled.div`
       margin-left: ${({ theme }) => theme.gridUnit}px;
     }
   }
+
+  .action-button {
+    margin: 0 ${({ theme }) => theme.gridUnit * 1.5}px 0
+      ${({ theme }) => theme.gridUnit}px;
+  }
 `;
 
 const StyledButtons = styled.span`
@@ -92,9 +99,12 @@ export class ExploreChartHeader extends React.PureComponent {
     super(props);
     this.state = {
       isPropertiesModalOpen: false,
+      showingReportModal: false,
     };
     this.openPropertiesModal = this.openPropertiesModal.bind(this);
     this.closePropertiesModal = this.closePropertiesModal.bind(this);
+    this.showReportModal = this.showReportModal.bind(this);
+    this.hideReportModal = this.hideReportModal.bind(this);
   }
 
   getSliceName() {
@@ -121,6 +131,14 @@ export class ExploreChartHeader extends React.PureComponent {
     this.setState({
       isPropertiesModalOpen: false,
     });
+  }
+
+  showReportModal() {
+    this.setState({ showingReportModal: true });
+  }
+
+  hideReportModal() {
+    this.setState({ showingReportModal: false });
   }
 
   render() {
@@ -204,6 +222,19 @@ export class ExploreChartHeader extends React.PureComponent {
             endTime={chartUpdateEndTime}
             isRunning={chartStatus === 'loading'}
             status={CHART_STATUS_MAP[chartStatus]}
+          />
+          <span
+            role="button"
+            title={t('Schedule email report')}
+            tabIndex={0}
+            className="action-button"
+            onClick={this.showReportModal}
+          >
+            <Icons.Calendar />
+          </span>
+          <ReportModal
+            show={this.state.showingReportModal}
+            onHide={this.hideReportModal}
           />
           <ExploreActionButtons
             actions={{
