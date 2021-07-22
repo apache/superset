@@ -226,7 +226,7 @@ const TableCatalog = ({
             <div className="catalog-name">
               <Input
                 className="catalog-name-input"
-                placeholder="Enter create a name for this sheet"
+                placeholder={t('Enter a name for this sheet')}
                 onChange={e => {
                   changeMethods.onParametersChange({
                     target: {
