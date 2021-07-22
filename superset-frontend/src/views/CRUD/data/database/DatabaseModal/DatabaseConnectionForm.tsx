@@ -259,17 +259,6 @@ const TableCatalog = ({
                   },
                 })
               }
-              onPaste={(e: {
-                clipboardData: { getData: (arg0: string) => any };
-              }) =>
-                changeMethods.onParametersChange({
-                  target: {
-                    type: `catalog-${idx}`,
-                    name: 'value',
-                    value: e.clipboardData.getData('Text'),
-                  },
-                })
-              }
               value={sheet.value}
             />
           </>
