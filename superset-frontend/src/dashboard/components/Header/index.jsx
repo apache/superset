@@ -574,7 +574,7 @@ class Header extends React.PureComponent {
                 title={t('Schedule email report')}
                 tabIndex={0}
                 className="action-button"
-                onClick={this.showReportModal}
+                onClick={this.handleReportClick}
               >
                 <Icons.Calendar />
               </span>
