@@ -411,7 +411,7 @@ const displayField = ({
       validationMethods={{ onBlur: getValidation }}
       errorMessage={validationErrors?.database_name}
       placeholder=""
-      label="Display Name"
+      label={t('Display Name')}
       onChange={changeMethods.onChange}
       helpText={t(
         'Pick a nickname for this database to display as in Superset.',
