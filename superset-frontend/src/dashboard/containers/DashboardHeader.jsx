@@ -57,10 +57,12 @@ import {
 
 import { logEvent } from '../../logger/actions';
 import { DASHBOARD_HEADER_ID } from '../util/constants';
+import { fetchUISpecificReport } from '../../reports/actions/reportState';
 
 function mapStateToProps({
   dashboardLayout: undoableLayout,
   dashboardState,
+  reportState,
   dashboardInfo,
   charts,
   dataMask,
@@ -95,6 +97,7 @@ function mapStateToProps({
     editMode: !!dashboardState.editMode,
     slug: dashboardInfo.slug,
     metadata: dashboardInfo.metadata,
+    report: reportState.report,
   };
 }
 
@@ -125,6 +128,7 @@ function mapDispatchToProps(dispatch) {
       dashboardInfoChanged,
       dashboardTitleChanged,
       updateDataMask,
+      fetchUISpecificReport,
     },
     dispatch,
   );
