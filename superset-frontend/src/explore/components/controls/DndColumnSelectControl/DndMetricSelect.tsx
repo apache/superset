@@ -18,7 +18,14 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ensureIsArray, GenericDataType, Metric, tn } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  FeatureFlag,
+  GenericDataType,
+  isFeatureEnabled,
+  Metric,
+  tn,
+} from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { isEqual } from 'lodash';
 import { usePrevious } from 'src/common/hooks/usePrevious';
@@ -258,13 +265,16 @@ export const DndMetricSelect = (props: any) => {
       const config: Partial<AdhocMetric> = {
         column: { column_name: itemValue?.column_name },
       };
-      if (itemValue.type_generic === GenericDataType.NUMERIC) {
-        config.aggregate = AGGREGATES.SUM;
-      } else if (
-        itemValue.type_generic === GenericDataType.STRING ||
-        itemValue.type_generic === GenericDataType.BOOLEAN
-      ) {
-        config.aggregate = AGGREGATES.COUNT_DISTINCT;
+      if (isFeatureEnabled(FeatureFlag.UX_BETA)) {
+        if (itemValue.type_generic === GenericDataType.NUMERIC) {
+          config.aggregate = AGGREGATES.SUM;
+        } else if (
+          itemValue.type_generic === GenericDataType.STRING ||
+          itemValue.type_generic === GenericDataType.BOOLEAN ||
+          itemValue.type_generic === GenericDataType.TEMPORAL
+        ) {
+          config.aggregate = AGGREGATES.COUNT_DISTINCT;
+        }
       }
       return new AdhocMetric(config);
     }
