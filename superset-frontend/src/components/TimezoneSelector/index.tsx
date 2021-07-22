@@ -119,7 +119,7 @@ const TimezoneSelector = ({ onTimezoneChange, timezone }: TimezoneProps) => {
 
   return (
     <Select
-      css={{ width: '450px' }}
+      css={{ minWidth: '375px' }} // smallest size for current values
       onChange={onTimezoneChange}
       value={timezone || DEFAULT_TIMEZONE}
     >
