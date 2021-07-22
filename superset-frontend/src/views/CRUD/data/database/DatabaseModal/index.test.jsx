@@ -1067,7 +1067,10 @@ describe('DatabaseModal', () => {
           },
         });
 
-        screen.logTestingPlaygroundURL();
+        // See if you can represent value of dbID or db - [These values exist in console.log() but I'm not sure how to represent them]
+        // Import setHasConnectedDb(), set it to a variable, check value through that to make sure it changed - [could not import the function, can mock?]
+
+        // screen.logTestingPlaygroundURL();
         expect.anything();
       });
     });
