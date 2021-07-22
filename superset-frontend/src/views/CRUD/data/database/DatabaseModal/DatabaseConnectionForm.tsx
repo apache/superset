@@ -215,7 +215,7 @@ const TableCatalog = ({
         </Select>
       </div>
       <h4 className="gsheet-title">
-        Connect Google Sheets as tables to this database
+        {t('Connect Google Sheets as tables to this database')}
       </h4>
       <div>
         {tableCatalog?.map((sheet: CatalogObject, idx: number) => (
