@@ -251,7 +251,7 @@ const TableCatalog = ({
               required={required}
               validationMethods={{ onBlur: getValidation }}
               errorMessage={catalogError[sheet.name]}
-              placeholder="Paste the shareable Google Sheet URL here"
+              placeholder={t('Paste the shareable Google Sheet URL here')}
               onChange={(e: { target: { value: any } }) =>
                 changeMethods.onParametersChange({
                   target: {
