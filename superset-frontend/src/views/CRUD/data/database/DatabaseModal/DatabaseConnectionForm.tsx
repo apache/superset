@@ -210,7 +210,7 @@ const TableCatalog = ({
         <FormLabel required>{t('Type of Google Sheets Allowed')}</FormLabel>
         <Select style={{ width: '100%' }} defaultValue="true" disabled>
           <Select.Option value="true" key={1}>
-            Publicly shared sheets only
+            {t('Publicly shared sheets only')}
           </Select.Option>
         </Select>
       </div>
