@@ -686,7 +686,7 @@ export function useDatabaseValidation() {
                     // error can't be mapped to a parameter
                     // so leave it alone
                     if (extra.invalid) {
-                      if (extra.invalid[0] === 'table_catalog') {
+                      if (extra.invalid[0] === 'catalog') {
                         return {
                           ...obj,
                           [extra.name]: message,

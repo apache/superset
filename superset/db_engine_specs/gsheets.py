@@ -176,7 +176,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
                         message=f"Unable to connect to spreadsheet {name} at {url}",
                         error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
                         level=ErrorLevel.WARNING,
-                        extra={"invalid": ["table_catalog"], "name": name, "url": url},
+                        extra={"invalid": ["catalog"], "name": name, "url": url},
                     ),
                 )
         return errors
