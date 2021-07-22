@@ -142,9 +142,9 @@ class BaseReportState:
         if self._report_schedule.chart:
             if csv:
                 return get_url_path(
-                    "Superset.explore_json",
-                    csv="true",
-                    form_data=json.dumps({"slice_id": self._report_schedule.chart_id}),
+                    "ChartRestApi.get_data",
+                    pk=self._report_schedule.chart_id,
+                    format="csv",
                 )
             return get_url_path(
                 "Superset.slice",
