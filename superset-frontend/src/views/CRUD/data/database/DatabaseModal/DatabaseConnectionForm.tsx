@@ -221,7 +221,7 @@ const TableCatalog = ({
         {tableCatalog?.map((sheet: CatalogObject, idx: number) => (
           <>
             <FormLabel className="catalog-label" required>
-              {t('Google Sheet Name and Url')}
+              {t('Google Sheet Name and URL')}
             </FormLabel>
             <div className="catalog-name">
               <Input
