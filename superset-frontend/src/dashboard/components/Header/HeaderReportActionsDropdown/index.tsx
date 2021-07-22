@@ -16,17 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import { JsonObject, styled, t } from '@superset-ui/core';
+import React, { useState, useRef, useEffect } from 'react';
+import { JsonObject, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Switch } from 'src/components/Switch';
 import { AlertObject } from 'src/views/CRUD/alert/types';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { Menu, NoAnimationDropdown } from 'src/common/components';
 
+function useOnClickOutside(ref: any, handler: any) {
+  useEffect(() => {
+    const listener = (event: any) => {
+      if (ref.current || ref.current.contains(event.target)) {
+        handler(event);
+      }
+    };
+    document.addEventListener('mousedown', listener, { capture: true });
+    document.addEventListener('touchstart', listener, { capture: true });
+    return () => {
+      document.removeEventListener('mousedown', listener, { capture: true });
+      document.removeEventListener('touchstart', listener, { capture: true });
+    };
+  }, [ref, handler]);
+}
+
 export default function HeaderReportActionsDropDown({
-  showReportModal,
-  hideReportModal,
+  // showReportModal,
+  // hideReportModal,
   report,
   addDangerToast,
 }: {
@@ -43,6 +59,8 @@ export default function HeaderReportActionsDropDown({
     t('reports'),
     addDangerToast,
   );
+  const ref: any = useRef();
+  useOnClickOutside(ref, () => setVisible(false));
 
   const toggleActive = async (data: AlertObject, checked: boolean) => {
     if (data && data.id) {
@@ -54,7 +72,7 @@ export default function HeaderReportActionsDropDown({
   };
 
   const menu = () => (
-    <Menu selectable={false} onBlur={() => setVisible(!visible)}>
+    <Menu selectable={false}>
       <Menu.Item>
         {t('Email reports active')}
         <Switch
@@ -64,13 +82,21 @@ export default function HeaderReportActionsDropDown({
           size="small"
         />
       </Menu.Item>
-      <Menu.Item>{t('Edit email report')}</Menu.Item>
-      <Menu.Item>{t('Delete email report')}</Menu.Item>
+      <Menu.Item>
+        <div role="button" tabIndex={0} onClick={() => setVisible(false)}>
+          {' '}
+          {t('Edit email report')}
+        </div>
+      </Menu.Item>
+      <Menu.Item onClick={() => setVisible(false)}>
+        {t('Delete email report')}
+      </Menu.Item>
     </Menu>
   );
 
   return (
     <NoAnimationDropdown
+      ref={ref}
       overlay={menu()}
       trigger={['click']}
       visible={visible}
