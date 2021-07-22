@@ -355,8 +355,14 @@ const FiltersConfigForm = (
   const hasDataset = !!nativeFilterItems[formFilter?.filterType]?.value
     ?.datasourceCount;
 
+  const datasetId =
+    formFilter?.dataset?.value ??
+    filterToEdit?.targets[0]?.datasetId ??
+    mostUsedDataset(loadedDatasets, charts);
+
   const { controlItems = {}, mainControlItems = {} } = formFilter
     ? getControlItemsMap({
+        datasetId,
         disabled: false,
         forceUpdate,
         form,
@@ -372,10 +378,9 @@ const FiltersConfigForm = (
   const nativeFilterItem = nativeFilterItems[formFilter?.filterType] ?? {};
   // @ts-ignore
   const enableNoResults = !!nativeFilterItem.value?.enableNoResults;
-  const datasetId = formFilter?.dataset?.value;
 
   useEffect(() => {
-    if (datasetId && hasColumn) {
+    if (datasetId) {
       cachedSupersetGet({
         endpoint: `/api/v1/dataset/${datasetId}`,
       })
@@ -391,7 +396,7 @@ const FiltersConfigForm = (
           addDangerToast(response.message);
         });
     }
-  }, [datasetId, hasColumn]);
+  }, [datasetId]);
 
   useImperativeHandle(ref, () => ({
     changeTab(tab: 'configuration' | 'scoping') {
@@ -491,10 +496,6 @@ const FiltersConfigForm = (
     [filterId, forceUpdate, form, formFilter, hasDataset],
   );
 
-  const initialDatasetId =
-    filterToEdit?.targets[0]?.datasetId ??
-    mostUsedDataset(loadedDatasets, charts);
-
   const newFormData = getFormData({
     datasetId,
     groupby: hasColumn ? formFilter?.column : undefined,
@@ -508,6 +509,8 @@ const FiltersConfigForm = (
     setHasDefaultValue,
   ] = useDefaultValue(formFilter, filterToEdit);
 
+  const showDataset = !datasetId || datasetDetails;
+
   useEffect(() => {
     if (hasDataset && hasFilledDataset && hasDefaultValue && isDataDirty) {
       refreshHandler();
@@ -519,6 +522,7 @@ const FiltersConfigForm = (
     formFilter,
     isDataDirty,
     refreshHandler,
+    showDataset,
   ]);
 
   const updateFormValues = useCallback(
@@ -713,24 +717,29 @@ const FiltersConfigForm = (
         </StyledContainer>
         {hasDataset && (
           <StyledRowContainer>
-            <StyledFormItem
-              name={['filters', filterId, 'dataset']}
-              initialValue={{ value: initialDatasetId }}
-              label={<StyledLabel>{t('Dataset')}</StyledLabel>}
-              rules={[
-                { required: !removed, message: t('Dataset is required') },
-              ]}
-              {...getFiltersConfigModalTestId('datasource-input')}
-            >
-              {!datasetId || !hasColumn || datasetDetails ? (
+            {showDataset ? (
+              <StyledFormItem
+                name={['filters', filterId, 'dataset']}
+                label={<StyledLabel>{t('Dataset')}</StyledLabel>}
+                initialValue={
+                  datasetDetails
+                    ? {
+                        label: datasetDetails.table_name,
+                        value: datasetDetails.id,
+                      }
+                    : undefined
+                }
+                rules={[
+                  { required: !removed, message: t('Dataset is required') },
+                ]}
+                {...getFiltersConfigModalTestId('datasource-input')}
+              >
                 <DatasetSelect
-                  datasetDetails={datasetDetails}
-                  datasetId={initialDatasetId}
-                  onChange={(value: number) => {
+                  onChange={(value: { label: string; value: number }) => {
                     // We need to reset the column when the dataset has changed
-                    if (value !== datasetId) {
+                    if (value.value !== datasetId) {
                       setNativeFilterFieldValues(form, filterId, {
-                        dataset: { value },
+                        dataset: value,
                         defaultDataMask: null,
                         column: null,
                       });
@@ -738,10 +747,12 @@ const FiltersConfigForm = (
                     forceUpdate();
                   }}
                 />
-              ) : (
+              </StyledFormItem>
+            ) : (
+              <StyledFormItem label={<StyledLabel>{t('Dataset')}</StyledLabel>}>
                 <Loading position="inline-centered" />
-              )}
-            </StyledFormItem>
+              </StyledFormItem>
+            )}
             {hasDataset &&
               Object.keys(mainControlItems).map(
                 key => mainControlItems[key].element,
@@ -784,11 +795,8 @@ const FiltersConfigForm = (
                   required={hasDefaultValue}
                   rules={[
                     {
-                      validator: (rule, value) => {
-                        const hasValue =
-                          value?.filterState?.value !== null &&
-                          value?.filterState?.value !== undefined;
-                        if (hasValue) {
+                      validator: () => {
+                        if (formFilter?.defaultDataMask?.filterState?.value) {
                           return Promise.resolve();
                         }
                         return Promise.reject(
