@@ -30,7 +30,7 @@ describe('Dashboard edit markdown', () => {
       numScripts = nodes.length;
     });
     cy.get('[data-test="dashboard-header"]')
-      .find('[data-test="edit-alt"]')
+      .find('[aria-label="edit-alt"]')
       .click();
 
     // lazy load - need to open dropdown for the scripts to load
@@ -70,7 +70,7 @@ describe('Dashboard edit markdown', () => {
       .type('Test resize');
 
     resize(
-      '[data-test="dashboard-markdown-editor"] .resizable-container span div',
+      '[data-test="dashboard-markdown-editor"] .resizable-container span div:last-child',
     ).to(500, 600);
 
     cy.get('[data-test="dashboard-markdown-editor"]').contains('Test resize');

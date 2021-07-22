@@ -399,6 +399,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Allow users to export full CSV of table viz type.
     # This could cause the server to run out of memory or compute.
     "ALLOW_FULL_CSV_EXPORT": False,
+    "UX_BETA": False,
 }
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
@@ -499,6 +500,8 @@ SCREENSHOT_LOAD_WAIT = 60
 SCREENSHOT_SELENIUM_RETRIES = 5
 # Give selenium an headstart, in seconds
 SCREENSHOT_SELENIUM_HEADSTART = 3
+# Wait for the chart animation, in seconds
+SCREENSHOT_SELENIUM_ANIMATION_WAIT = 5
 
 # ---------------------------------------------------
 # Image and file configuration

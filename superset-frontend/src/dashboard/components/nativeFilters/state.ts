@@ -18,7 +18,6 @@
  */
 import { useSelector } from 'react-redux';
 import { useMemo } from 'react';
-import { JsonObject } from '@superset-ui/core';
 import { Filter, FilterConfiguration } from './types';
 import { ActiveTabs, DashboardLayout, RootState } from '../../types';
 import { TAB_TYPE } from '../../util/componentTypes';
@@ -124,14 +123,4 @@ export function useSelectFiltersInScope(cascadeFilters: CascadeFilter[]) {
     }
     return [filtersInScope, filtersOutOfScope];
   }, [cascadeFilters, dashboardHasTabs, isFilterInScope]);
-}
-
-export function usePreselectNativeFilters(): JsonObject | undefined {
-  return useSelector<RootState, any>(
-    state => state.dashboardState?.preselectNativeFilters,
-  );
-}
-
-export function usePreselectNativeFilter(id: string): JsonObject | undefined {
-  return usePreselectNativeFilters()?.[id];
 }

@@ -27,6 +27,7 @@ import {
   styled,
   SupersetApiError,
   t,
+  SupersetClient,
 } from '@superset-ui/core';
 import {
   ColumnMeta,
@@ -45,15 +46,12 @@ import React, {
 import { useSelector } from 'react-redux';
 import { FormItem } from 'src/components/Form';
 import { Input } from 'src/common/components';
-import { Select } from 'src/components/Select';
-import SupersetResourceSelect, {
-  cachedSupersetGet,
-} from 'src/components/SupersetResourceSelect';
+import { Select } from 'src/components';
+import { cacheWrapper } from 'src/utils/cacheWrapper';
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { addDangerToast } from 'src/messageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
-import SelectControl from 'src/explore/components/controls/SelectControl';
 import Collapse from 'src/components/Collapse';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
@@ -61,6 +59,7 @@ import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import Tabs from 'src/components/Tabs';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
+import { Radio } from 'src/components/Radio';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import {
   Chart,
@@ -68,14 +67,15 @@ import {
   DatasourcesState,
   RootState,
 } from 'src/dashboard/types';
+import Loading from 'src/components/Loading';
 import { ColumnSelect } from './ColumnSelect';
 import { NativeFiltersForm } from '../types';
 import {
-  datasetToSelectOption,
   FILTER_SUPPORTED_TYPES,
   hasTemporalColumns,
   setNativeFilterFieldValues,
   useForceUpdate,
+  mostUsedDataset,
 } from './utils';
 import { useBackendFormUpdate, useDefaultValue } from './state';
 import { getFormData } from '../../utils';
@@ -89,6 +89,7 @@ import {
   CASCADING_FILTERS,
   getFiltersConfigModalTestId,
 } from '../FiltersConfigModal';
+import DatasetSelect from './DatasetSelect';
 
 const { TabPane } = Tabs;
 
@@ -282,6 +283,14 @@ const FILTER_TYPE_NAME_MAPPING = {
   [t('Group By')]: t('Group by'),
 };
 
+const localCache = new Map<string, any>();
+
+const cachedSupersetGet = cacheWrapper(
+  SupersetClient.get,
+  localCache,
+  ({ endpoint }) => endpoint || '',
+);
+
 /**
  * The configuration form for a specific filter.
  * Assigns field values to `filters[filterId]` in the form.
@@ -323,6 +332,7 @@ const FiltersConfigForm = (
   const loadedDatasets = useSelector<RootState, DatasourcesState>(
     ({ datasources }) => datasources,
   );
+
   const charts = useSelector<RootState, ChartsState>(({ charts }) => charts);
 
   const doLoadedDatasetsHaveTemporalColumns = useMemo(
@@ -345,8 +355,14 @@ const FiltersConfigForm = (
   const hasDataset = !!nativeFilterItems[formFilter?.filterType]?.value
     ?.datasourceCount;
 
+  const datasetId =
+    formFilter?.dataset?.value ??
+    filterToEdit?.targets[0]?.datasetId ??
+    mostUsedDataset(loadedDatasets, charts);
+
   const { controlItems = {}, mainControlItems = {} } = formFilter
     ? getControlItemsMap({
+        datasetId,
         disabled: false,
         forceUpdate,
         form,
@@ -362,10 +378,9 @@ const FiltersConfigForm = (
   const nativeFilterItem = nativeFilterItems[formFilter?.filterType] ?? {};
   // @ts-ignore
   const enableNoResults = !!nativeFilterItem.value?.enableNoResults;
-  const datasetId = formFilter?.dataset?.value;
 
   useEffect(() => {
-    if (datasetId && hasColumn) {
+    if (datasetId) {
       cachedSupersetGet({
         endpoint: `/api/v1/dataset/${datasetId}`,
       })
@@ -381,7 +396,7 @@ const FiltersConfigForm = (
           addDangerToast(response.message);
         });
     }
-  }, [datasetId, hasColumn]);
+  }, [datasetId]);
 
   useImperativeHandle(ref, () => ({
     changeTab(tab: 'configuration' | 'scoping') {
@@ -481,14 +496,6 @@ const FiltersConfigForm = (
     [filterId, forceUpdate, form, formFilter, hasDataset],
   );
 
-  const defaultDatasetSelectOptions = Object.values(loadedDatasets).map(
-    datasetToSelectOption,
-  );
-  const initialDatasetId =
-    filterToEdit?.targets[0]?.datasetId ??
-    (defaultDatasetSelectOptions.length === 1
-      ? defaultDatasetSelectOptions[0].value
-      : undefined);
   const newFormData = getFormData({
     datasetId,
     groupby: hasColumn ? formFilter?.column : undefined,
@@ -502,6 +509,8 @@ const FiltersConfigForm = (
     setHasDefaultValue,
   ] = useDefaultValue(formFilter, filterToEdit);
 
+  const showDataset = !datasetId || datasetDetails;
+
   useEffect(() => {
     if (hasDataset && hasFilledDataset && hasDefaultValue && isDataDirty) {
       refreshHandler();
@@ -513,18 +522,8 @@ const FiltersConfigForm = (
     formFilter,
     isDataDirty,
     refreshHandler,
+    showDataset,
   ]);
-
-  const onDatasetSelectError = useCallback(
-    ({ error, message }: ClientErrorObject) => {
-      let errorText = message || error || t('An error has occurred');
-      if (message === 'Forbidden') {
-        errorText = t('You do not have permission to edit this dashboard');
-      }
-      addDangerToast(errorText);
-    },
-    [],
-  );
 
   const updateFormValues = useCallback(
     (values: any) => setNativeFilterFieldValues(form, filterId, values),
@@ -547,6 +546,11 @@ const FiltersConfigForm = (
 
   const hasSorting =
     typeof filterToEdit?.controlValues?.sortAscending === 'boolean';
+
+  let sort = filterToEdit?.controlValues?.sortAscending;
+  if (typeof formFilter?.controlValues?.sortAscending === 'boolean') {
+    sort = formFilter.controlValues.sortAscending;
+  }
 
   const showDefaultValue =
     !hasDataset ||
@@ -625,6 +629,22 @@ const FiltersConfigForm = (
     JSON.stringify(loadedDatasets),
   ]);
 
+  const ParentSelect = ({
+    value,
+    ...rest
+  }: {
+    value?: { value: string | number };
+  }) => (
+    <Select
+      ariaLabel={t('Parent filter')}
+      placeholder={t('None')}
+      options={parentFilterOptions}
+      allowClear
+      value={value?.value}
+      {...rest}
+    />
+  );
+
   if (removed) {
     return <RemovedFilter onClick={() => restoreFilter(filterId)} />;
   }
@@ -657,6 +677,7 @@ const FiltersConfigForm = (
             {...getFiltersConfigModalTestId('filter-type')}
           >
             <Select
+              ariaLabel={t('Filter type')}
               options={nativeFilterVizTypes.map(filterType => {
                 // @ts-ignore
                 const name = nativeFilterItems[filterType]?.value.name;
@@ -680,10 +701,10 @@ const FiltersConfigForm = (
                   ) : (
                     mappedName || name
                   ),
-                  isDisabled,
+                  disabled: isDisabled,
                 };
               })}
-              onChange={({ value }: { value: string }) => {
+              onChange={value => {
                 setNativeFilterFieldValues(form, filterId, {
                   filterType: value,
                   defaultDataMask: null,
@@ -696,37 +717,42 @@ const FiltersConfigForm = (
         </StyledContainer>
         {hasDataset && (
           <StyledRowContainer>
-            <StyledFormItem
-              name={['filters', filterId, 'dataset']}
-              initialValue={{ value: initialDatasetId }}
-              label={<StyledLabel>{t('Dataset')}</StyledLabel>}
-              rules={[
-                { required: !removed, message: t('Dataset is required') },
-              ]}
-              {...getFiltersConfigModalTestId('datasource-input')}
-            >
-              <SupersetResourceSelect
-                initialId={initialDatasetId}
-                resource="dataset"
-                searchColumn="table_name"
-                transformItem={datasetToSelectOption}
-                isMulti={false}
-                onError={onDatasetSelectError}
-                defaultOptions={Object.values(loadedDatasets).map(
-                  datasetToSelectOption,
-                )}
-                onChange={e => {
-                  // We need reset column when dataset changed
-                  if (datasetId && e?.value !== datasetId) {
-                    setNativeFilterFieldValues(form, filterId, {
-                      defaultDataMask: null,
-                      column: null,
-                    });
-                  }
-                  forceUpdate();
-                }}
-              />
-            </StyledFormItem>
+            {showDataset ? (
+              <StyledFormItem
+                name={['filters', filterId, 'dataset']}
+                label={<StyledLabel>{t('Dataset')}</StyledLabel>}
+                initialValue={
+                  datasetDetails
+                    ? {
+                        label: datasetDetails.table_name,
+                        value: datasetDetails.id,
+                      }
+                    : undefined
+                }
+                rules={[
+                  { required: !removed, message: t('Dataset is required') },
+                ]}
+                {...getFiltersConfigModalTestId('datasource-input')}
+              >
+                <DatasetSelect
+                  onChange={(value: { label: string; value: number }) => {
+                    // We need to reset the column when the dataset has changed
+                    if (value.value !== datasetId) {
+                      setNativeFilterFieldValues(form, filterId, {
+                        dataset: value,
+                        defaultDataMask: null,
+                        column: null,
+                      });
+                    }
+                    forceUpdate();
+                  }}
+                />
+              </StyledFormItem>
+            ) : (
+              <StyledFormItem label={<StyledLabel>{t('Dataset')}</StyledLabel>}>
+                <Loading position="inline-centered" />
+              </StyledFormItem>
+            )}
             {hasDataset &&
               Object.keys(mainControlItems).map(
                 key => mainControlItems[key].element,
@@ -769,11 +795,8 @@ const FiltersConfigForm = (
                   required={hasDefaultValue}
                   rules={[
                     {
-                      validator: (rule, value) => {
-                        const hasValue =
-                          value?.filterState?.value !== null &&
-                          value?.filterState?.value !== undefined;
-                        if (hasValue) {
+                      validator: () => {
+                        if (formFilter?.defaultDataMask?.filterState?.value) {
                           return Promise.resolve();
                         }
                         return Promise.reject(
@@ -851,6 +874,7 @@ const FiltersConfigForm = (
                     name={['filters', filterId, 'parentFilter']}
                     label={<StyledLabel>{t('Parent filter')}</StyledLabel>}
                     initialValue={parentFilter}
+                    normalize={value => (value ? { value } : undefined)}
                     data-test="parent-filter-input"
                     required
                     rules={[
@@ -860,11 +884,7 @@ const FiltersConfigForm = (
                       },
                     ]}
                   >
-                    <Select
-                      placeholder={t('None')}
-                      options={parentFilterOptions}
-                      isClearable
-                    />
+                    <ParentSelect />
                   </StyledRowSubFormItem>
                 </CollapsibleControl>
               )}
@@ -986,27 +1006,17 @@ const FiltersConfigForm = (
                       'controlValues',
                       'sortAscending',
                     ]}
-                    initialValue={filterToEdit?.controlValues?.sortAscending}
+                    initialValue={sort}
                     label={<StyledLabel>{t('Sort type')}</StyledLabel>}
                   >
-                    <Select
-                      form={form}
-                      filterId={filterId}
-                      name="sortAscending"
-                      options={[
-                        {
-                          value: true,
-                          label: t('Sort ascending'),
-                        },
-                        {
-                          value: false,
-                          label: t('Sort descending'),
-                        },
-                      ]}
-                      onChange={({ value }: { value: boolean }) =>
-                        onSortChanged(value)
-                      }
-                    />
+                    <Radio.Group
+                      onChange={value => {
+                        onSortChanged(value.target.value);
+                      }}
+                    >
+                      <Radio value>{t('Sort ascending')}</Radio>
+                      <Radio value={false}>{t('Sort descending')}</Radio>
+                    </Radio.Group>
                   </StyledRowFormItem>
                   {hasMetrics && (
                     <StyledRowSubFormItem
@@ -1025,15 +1035,15 @@ const FiltersConfigForm = (
                       }
                       data-test="field-input"
                     >
-                      <SelectControl
-                        form={form}
-                        filterId={filterId}
+                      <Select
+                        allowClear
+                        ariaLabel={t('Sort metric')}
                         name="sortMetric"
                         options={metrics.map((metric: Metric) => ({
                           value: metric.metric_name,
                           label: metric.verbose_name ?? metric.metric_name,
                         }))}
-                        onChange={(value: string | null): void => {
+                        onChange={value => {
                           if (value !== undefined) {
                             setNativeFilterFieldValues(form, filterId, {
                               sortMetric: value,

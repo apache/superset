@@ -219,17 +219,7 @@ export default function ActivityTable({
         setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, SetTabType.VIEWED);
       },
     });
-  } else {
-    tabs.unshift({
-      name: 'Examples',
-      label: t('Examples'),
-      onClick: () => {
-        setActiveChild('Examples');
-        setInLocalStorage(HOMEPAGE_ACTIVITY_FILTER, SetTabType.EXAMPLE);
-      },
-    });
   }
-
   const renderActivity = () =>
     (activeChild !== 'Edited' ? activityData[activeChild] : editedObjs).map(
       (entity: ActivityObject) => {

@@ -101,6 +101,10 @@ const CollapseWrapper = styled.div`
   }
 `;
 
+const Error = styled.pre`
+  margin-top: ${({ theme }) => `${theme.gridUnit * 4}px`};
+`;
+
 export const DataTablesPane = ({
   queryFormData,
   tableSectionHeight,
@@ -263,7 +267,7 @@ export const DataTablesPane = ({
       return <Loading />;
     }
     if (error[type]) {
-      return <pre>{error[type]}</pre>;
+      return <Error>{error[type]}</Error>;
     }
     if (data[type]) {
       if (data[type]?.length === 0) {
@@ -279,11 +283,12 @@ export const DataTablesPane = ({
           className="table-condensed"
           isPaginationSticky
           showRowCount={false}
+          small
         />
       );
     }
     if (errorMessage) {
-      return <pre>{errorMessage}</pre>;
+      return <Error>{errorMessage}</Error>;
     }
     return null;
   };

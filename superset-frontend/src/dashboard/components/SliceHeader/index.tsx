@@ -21,48 +21,24 @@ import { styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { useDispatch, useSelector } from 'react-redux';
 import EditableTitle from 'src/components/EditableTitle';
-import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
+import SliceHeaderControls, {
+  SliceHeaderControlsProps,
+} from 'src/dashboard/components/SliceHeaderControls';
 import FiltersBadge from 'src/dashboard/components/FiltersBadge';
 import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
 import { clearDataMask } from 'src/dataMask/actions';
 
-type SliceHeaderProps = {
+type SliceHeaderProps = SliceHeaderControlsProps & {
   innerRef?: string;
-  slice: {
-    description: string;
-    viz_type: string;
-    slice_name: string;
-    slice_id: number;
-    slice_description: string;
-  };
-  isExpanded?: boolean;
-  isCached?: boolean[];
-  cachedDttm?: string[];
-  updatedDttm?: number;
   updateSliceName?: (arg0: string) => void;
-  toggleExpandSlice?: () => void;
-  forceRefresh?: () => void;
-  exploreChart?: () => void;
-  exportCSV?: () => void;
-  exportFullCSV?: () => void;
   editMode?: boolean;
-  isFullSize?: boolean;
   annotationQuery?: object;
   annotationError?: object;
   sliceName?: string;
-  supersetCanExplore?: boolean;
-  supersetCanShare?: boolean;
-  supersetCanCSV?: boolean;
-  sliceCanEdit?: boolean;
-  componentId: string;
-  dashboardId: number;
   filters: object;
-  addSuccessToast: () => void;
-  addDangerToast: () => void;
   handleToggleFullSize: () => void;
-  chartStatus: string;
   formData: object;
 };
 
@@ -81,7 +57,8 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   forceRefresh = () => ({}),
   updateSliceName = () => ({}),
   toggleExpandSlice = () => ({}),
-  exploreChart = () => ({}),
+  logExploreChart = () => ({}),
+  exploreUrl = '#',
   exportCSV = () => ({}),
   editMode = false,
   annotationQuery = {},
@@ -184,7 +161,8 @@ const SliceHeader: FC<SliceHeaderProps> = ({
               updatedDttm={updatedDttm}
               toggleExpandSlice={toggleExpandSlice}
               forceRefresh={forceRefresh}
-              exploreChart={exploreChart}
+              logExploreChart={logExploreChart}
+              exploreUrl={exploreUrl}
               exportCSV={exportCSV}
               exportFullCSV={exportFullCSV}
               supersetCanExplore={supersetCanExplore}

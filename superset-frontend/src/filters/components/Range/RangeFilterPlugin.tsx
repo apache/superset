@@ -27,45 +27,51 @@ import { Slider } from 'src/common/components';
 import { rgba } from 'emotion-rgba';
 import { FormItemProps } from 'antd/lib/form';
 import { PluginFilterRangeProps } from './types';
-import { StatusMessage, StyledFormItem, Styles } from '../common';
+import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
 
 const Wrapper = styled.div<{ validateStatus?: 'error' | 'warning' | 'info' }>`
-  border: 1px solid transparent;
-  &:focus {
-    border: 1px solid
-      ${({ theme, validateStatus }) =>
-        theme.colors[validateStatus || 'primary']?.base};
-    outline: 0;
-    box-shadow: 0 0 0 3px
-      ${({ theme, validateStatus }) =>
-        rgba(theme.colors[validateStatus || 'primary']?.base, 0.2)};
-  }
-  & .ant-slider {
-    & .ant-slider-track {
-      background-color: ${({ theme, validateStatus }) =>
-        validateStatus && theme.colors[validateStatus]?.light1};
+  ${({ theme, validateStatus }) => `
+    border: 1px solid transparent;
+    &:focus {
+      border: 1px solid
+        ${theme.colors[validateStatus || 'primary']?.base};
+      outline: 0;
+      box-shadow: 0 0 0 3px
+        ${rgba(theme.colors[validateStatus || 'primary']?.base, 0.2)};
     }
-    & .ant-slider-handle {
-      border: ${({ theme, validateStatus }) =>
-        validateStatus && `2px solid ${theme.colors[validateStatus]?.light1}`};
-      &:focus {
-        box-shadow: 0 0 0 3px
-          ${({ theme, validateStatus }) =>
-            rgba(theme.colors[validateStatus || 'primary']?.base, 0.2)};
-      }
-    }
-    &:hover {
+    & .ant-slider {
+      margin-top: ${theme.gridUnit}px;
+      margin-bottom: ${theme.gridUnit * 5}px;
+
       & .ant-slider-track {
-        background-color: ${({ theme, validateStatus }) =>
-          validateStatus && theme.colors[validateStatus]?.base};
+        background-color: ${
+          validateStatus && theme.colors[validateStatus]?.light1
+        };
       }
       & .ant-slider-handle {
-        border: ${({ theme, validateStatus }) =>
-          validateStatus && `2px solid ${theme.colors[validateStatus]?.base}`};
+        border: ${
+          validateStatus && `2px solid ${theme.colors[validateStatus]?.light1}`
+        };
+        &:focus {
+          box-shadow: 0 0 0 3px
+            ${rgba(theme.colors[validateStatus || 'primary']?.base, 0.2)};
+        }
+      }
+      &:hover {
+        & .ant-slider-track {
+          background-color: ${
+            validateStatus && theme.colors[validateStatus]?.base
+          };
+        }
+        & .ant-slider-handle {
+          border: ${
+            validateStatus && `2px solid ${theme.colors[validateStatus]?.base}`
+          };
+        }
       }
     }
-  }
+  `}
 `;
 
 export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
@@ -163,7 +169,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     );
   }
   return (
-    <Styles height={height} width={width}>
+    <FilterPluginStyle height={height} width={width}>
       {Number.isNaN(Number(min)) || Number.isNaN(Number(max)) ? (
         <h4>{t('Chosen non-numeric column')}</h4>
       ) : (
@@ -190,6 +196,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
           </Wrapper>
         </StyledFormItem>
       )}
-    </Styles>
+    </FilterPluginStyle>
   );
 }

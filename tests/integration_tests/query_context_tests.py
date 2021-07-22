@@ -14,7 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import datetime
 import re
+import time
 from typing import Any, Dict
 
 import pytest
@@ -24,6 +26,7 @@ from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.query_context import QueryContext
 from superset.common.query_object import QueryObject
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.connectors.sqla.models import SqlMetric
 from superset.extensions import cache_manager
 from superset.utils.core import (
     AdhocMetricExpressionType,
@@ -140,6 +143,42 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         cache_key_new = query_context.query_cache_key(query_object)
+
+        # the new cache_key should be different due to updated datasource
+        self.assertNotEqual(cache_key_original, cache_key_new)
+
+    def test_query_cache_key_changes_when_metric_is_updated(self):
+        self.login(username="admin")
+        payload = get_query_context("birth_names")
+
+        # make temporary change and revert it to refresh the changed_on property
+        datasource = ConnectorRegistry.get_datasource(
+            datasource_type=payload["datasource"]["type"],
+            datasource_id=payload["datasource"]["id"],
+            session=db.session,
+        )
+
+        datasource.metrics.append(SqlMetric(metric_name="foo", expression="select 1;"))
+        db.session.commit()
+
+        # construct baseline query_cache_key
+        query_context = ChartDataQueryContextSchema().load(payload)
+        query_object = query_context.queries[0]
+        cache_key_original = query_context.query_cache_key(query_object)
+
+        # wait a second since mysql records timestamps in second granularity
+        time.sleep(1)
+
+        datasource.metrics[0].expression = "select 2;"
+        db.session.commit()
+
+        # create new QueryContext with unchanged attributes, extract new query_cache_key
+        query_context = ChartDataQueryContextSchema().load(payload)
+        query_object = query_context.queries[0]
+        cache_key_new = query_context.query_cache_key(query_object)
+
+        datasource.metrics = []
+        db.session.commit()
 
         # the new cache_key should be different due to updated datasource
         self.assertNotEqual(cache_key_original, cache_key_new)

@@ -28,7 +28,8 @@ import {
   TimeGrainFilterPlugin,
 } from 'src/filters/components';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import mockDatasource, { datasourceId } from 'spec/fixtures/mockDatasource';
+import mockDatasource, { id, datasourceId } from 'spec/fixtures/mockDatasource';
+import chartQueries from 'spec/fixtures/mockChartQueries';
 import {
   FiltersConfigModal,
   FiltersConfigModalProps,
@@ -49,24 +50,30 @@ class MainPreset extends Preset {
   }
 }
 
-const initialStoreState = {
-  datasources: mockDatasource,
-};
+const defaultState = () => ({
+  datasources: { ...mockDatasource },
+  charts: chartQueries,
+});
 
-const storeWithDatasourceWithoutTemporalColumns = {
-  ...initialStoreState,
-  datasources: {
-    ...initialStoreState.datasources,
-    [datasourceId]: {
-      ...initialStoreState.datasources[datasourceId],
-      column_types: [0, 1],
+const noTemporalColumnsState = () => {
+  const state = defaultState();
+  return {
+    charts: {
+      ...state.charts,
     },
-  },
+    datasources: {
+      ...state.datasources,
+      [datasourceId]: {
+        ...state.datasources[datasourceId],
+        column_types: [0, 1],
+      },
+    },
+  };
 };
 
-fetchMock.get('glob:*/api/v1/dataset/1', {
+const datasetResult = (id: number) => ({
   description_columns: {},
-  id: 1,
+  id,
   label_columns: {
     columns: 'Columns',
     table_name: 'Table Name',
@@ -80,10 +87,13 @@ fetchMock.get('glob:*/api/v1/dataset/1', {
       },
     ],
     table_name: 'birth_names',
-    id: 1,
+    id,
   },
   show_columns: ['id', 'table_name'],
 });
+
+fetchMock.get('glob:*/api/v1/dataset/1', datasetResult(1));
+fetchMock.get(`glob:*/api/v1/dataset/${id}`, datasetResult(id));
 
 fetchMock.post('glob:*/api/v1/chart/data', {
   result: [
@@ -138,11 +148,8 @@ beforeAll(() => {
   new MainPreset().register();
 });
 
-function defaultRender(
-  overrides?: Partial<FiltersConfigModalProps>,
-  initialState = initialStoreState,
-) {
-  return render(<FiltersConfigModal {...props} {...overrides} />, {
+function defaultRender(initialState = defaultState()) {
+  return render(<FiltersConfigModal {...props} />, {
     useRedux: true,
     initialState,
   });
@@ -178,11 +185,13 @@ test('renders a value filter type', () => {
   expect(getCheckbox(MULTIPLE_REGEX)).toBeChecked();
 });
 
-test('renders a numerical range filter type', () => {
+test('renders a numerical range filter type', async () => {
   defaultRender();
 
   userEvent.click(screen.getByText(VALUE_REGEX));
-  userEvent.click(screen.getByText(NUMERICAL_RANGE_REGEX));
+
+  await waitFor(() => userEvent.click(screen.getByText(NUMERICAL_RANGE_REGEX)));
+
   userEvent.click(screen.getByText(ADVANCED_REGEX));
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
@@ -202,11 +211,12 @@ test('renders a numerical range filter type', () => {
   expect(queryCheckbox(SORT_REGEX)).not.toBeInTheDocument();
 });
 
-test('renders a time range filter type', () => {
+test('renders a time range filter type', async () => {
   defaultRender();
 
   userEvent.click(screen.getByText(VALUE_REGEX));
-  userEvent.click(screen.getByText(TIME_RANGE_REGEX));
+
+  await waitFor(() => userEvent.click(screen.getByText(TIME_RANGE_REGEX)));
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
   expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();
@@ -218,11 +228,12 @@ test('renders a time range filter type', () => {
   expect(screen.queryByText(ADVANCED_REGEX)).not.toBeInTheDocument();
 });
 
-test('renders a time column filter type', () => {
+test('renders a time column filter type', async () => {
   defaultRender();
 
   userEvent.click(screen.getByText(VALUE_REGEX));
-  userEvent.click(screen.getByText(TIME_COLUMN_REGEX));
+
+  await waitFor(() => userEvent.click(screen.getByText(TIME_COLUMN_REGEX)));
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
   expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();
@@ -234,11 +245,12 @@ test('renders a time column filter type', () => {
   expect(screen.queryByText(ADVANCED_REGEX)).not.toBeInTheDocument();
 });
 
-test('renders a time grain filter type', () => {
+test('renders a time grain filter type', async () => {
   defaultRender();
 
   userEvent.click(screen.getByText(VALUE_REGEX));
-  userEvent.click(screen.getByText(TIME_GRAIN_REGEX));
+
+  await waitFor(() => userEvent.click(screen.getByText(TIME_GRAIN_REGEX)));
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
   expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();
@@ -250,18 +262,19 @@ test('renders a time grain filter type', () => {
   expect(screen.queryByText(ADVANCED_REGEX)).not.toBeInTheDocument();
 });
 
-test('render time filter types as disabled if there are no temporal columns in the dataset', () => {
-  defaultRender(undefined, storeWithDatasourceWithoutTemporalColumns);
+test('render time filter types as disabled if there are no temporal columns in the dataset', async () => {
+  defaultRender(noTemporalColumnsState());
+
   userEvent.click(screen.getByText(VALUE_REGEX));
-  expect(screen.getByText(TIME_RANGE_REGEX).closest('div')).toHaveClass(
-    'Select__option--is-disabled',
-  );
-  expect(screen.getByText(TIME_GRAIN_REGEX).closest('div')).toHaveClass(
-    'Select__option--is-disabled',
-  );
-  expect(screen.getByText(TIME_COLUMN_REGEX).closest('div')).toHaveClass(
-    'Select__option--is-disabled',
-  );
+
+  const timeRange = await screen.findByText(TIME_RANGE_REGEX);
+  const timeGrain = await screen.findByText(TIME_GRAIN_REGEX);
+  const timeColumn = await screen.findByText(TIME_COLUMN_REGEX);
+  const disabledClass = '.ant-select-item-option-disabled';
+
+  expect(timeRange.closest(disabledClass)).toBeInTheDocument();
+  expect(timeGrain.closest(disabledClass)).toBeInTheDocument();
+  expect(timeColumn.closest(disabledClass)).toBeInTheDocument();
 });
 
 test('validates the name', async () => {
@@ -278,7 +291,7 @@ test('validates the column', async () => {
 
 // eslint-disable-next-line jest/no-disabled-tests
 test.skip('validates the default value', async () => {
-  defaultRender(undefined, initialStoreState);
+  defaultRender(noTemporalColumnsState());
   expect(await screen.findByText('birth_names')).toBeInTheDocument();
   userEvent.type(screen.getByRole('combobox'), `Column A${specialChars.enter}`);
   userEvent.click(getCheckbox(DEFAULT_VALUE_REGEX));
@@ -309,12 +322,19 @@ test('validates the pre-filter value', async () => {
 });
 
 test("doesn't render time range pre-filter if there are no temporal columns in datasource", async () => {
-  defaultRender(undefined, storeWithDatasourceWithoutTemporalColumns);
+  defaultRender(noTemporalColumnsState());
+  userEvent.click(screen.getByText(DATASET_REGEX));
+  await waitFor(() => {
+    expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
+    userEvent.click(screen.getByText('birth_names'));
+  });
   userEvent.click(screen.getByText(ADVANCED_REGEX));
   userEvent.click(getCheckbox(PRE_FILTER_REGEX));
-  expect(
-    screen.queryByText(TIME_RANGE_PREFILTER_REGEX),
-  ).not.toBeInTheDocument();
+  await waitFor(() =>
+    expect(
+      screen.queryByText(TIME_RANGE_PREFILTER_REGEX),
+    ).not.toBeInTheDocument(),
+  );
 });
 /*
   TODO

@@ -28,6 +28,7 @@ export interface OptionProps {
   clickClose: (index: number) => void;
   withCaret?: boolean;
   isExtra?: boolean;
+  canDelete?: boolean;
 }
 
 export interface OptionItemInterface {
@@ -41,6 +42,8 @@ export interface LabelProps<T = string[] | string> {
   onChange: (value?: T) => void;
   options: { string: ColumnMeta };
   multi?: boolean;
+  canDelete?: boolean;
+  ghostButtonText?: string;
 }
 
 export interface DndColumnSelectProps<

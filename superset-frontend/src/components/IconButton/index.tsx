@@ -17,10 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { styled, supersetTheme } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import { ButtonProps as AntdButtonProps } from 'antd/lib/button';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import LinesEllipsis from 'react-lines-ellipsis';
 
 export interface IconButtonProps extends AntdButtonProps {
@@ -40,6 +40,15 @@ const StyledImage = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
   height: ${({ theme }) => theme.gridUnit * 18}px;
   margin: ${({ theme }) => theme.gridUnit * 3}px 0;
+
+  .default-db-icon {
+    font-size: 36px;
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    margin-right: 0;
+    span:first-of-type {
+      margin-right: 0;
+    }
+  }
 
   &:first-of-type {
     margin-right: 0;
@@ -97,12 +106,9 @@ const IconButton = styled(
       <StyledImage>
         {icon && <img src={icon} alt={altText} />}
         {!icon && (
-          <Icon
-            color={supersetTheme.colors.primary.base}
-            height="40"
-            width="40"
-            viewBox="0 0 18 18"
-            name="default-database"
+          <Icons.DatabaseOutlined
+            className="default-db-icon"
+            aria-label="default-icon"
           />
         )}
       </StyledImage>

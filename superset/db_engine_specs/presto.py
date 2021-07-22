@@ -1212,7 +1212,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         return super().is_readonly_query(parsed_query) or parsed_query.is_show()
 
     @classmethod
-    def get_column_spec(  # type: ignore
+    def get_column_spec(
         cls,
         native_type: Optional[str],
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
