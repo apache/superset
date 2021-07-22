@@ -25,11 +25,16 @@ export const SET_REPORT = 'SET_REPORT';
 export function setReport(report) {
   return { type: SET_REPORT, report };
 }
-export function fetchUISpecificReport(userId, creation_method, dashboardId) {
+export function fetchUISpecificReport(
+  userId,
+  search_field,
+  creation_method,
+  dashboardId,
+) {
   const queryParams = rison.encode({
     filters: [
       {
-        col: 'dashboard_id',
+        col: search_field,
         opr: 'eq',
         value: dashboardId,
       },

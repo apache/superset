@@ -156,7 +156,7 @@ class Header extends React.PureComponent {
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
     this.showReportModal = this.showReportModal.bind(this);
     this.hideReportModal = this.hideReportModal.bind(this);
-    this.handleReportModalclick = this.handleReportModalclick.bind(this);
+    this.handleReportClick = this.handleReportClick.bind(this);
   }
 
   componentDidMount() {
@@ -166,6 +166,7 @@ class Header extends React.PureComponent {
       // this is in case there is an anonymous user.
       this.props.fetchUISpecificReport(
         user.userId,
+        'dashboard_id',
         'dashboards',
         dashboardInfo.id,
       );
@@ -375,20 +376,20 @@ class Header extends React.PureComponent {
     this.setState({ showingReportModal: false });
   }
 
-  handleReportModalclick() {
+  handleReportClick() {
     const attachedReportExists = this.props.report?.count > 0;
     if (!attachedReportExists) {
       this.showReportModal();
     }
   }
 
-  canAddReportsModal() {
+  canAddReports() {
     const { user } = this.props;
     if (!user) {
       // this is in the case that there is an anonymous user.
       return false;
     }
-    const roles = Object.keys(user.roles) || [];
+    const roles = Object.keys(user.roles || []);
     const permissions = roles.map(key =>
       user.roles[key].filter(
         perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
@@ -428,7 +429,7 @@ class Header extends React.PureComponent {
     const userCanEdit = dashboardInfo.dash_edit_perm;
     const userCanShare = dashboardInfo.dash_share_perm;
     const userCanSaveAs = dashboardInfo.dash_save_perm;
-    const shouldShowReportsModal = !editMode && this.canAddReportsModal();
+    const shouldShowReport = !editMode && this.canAddReports();
     const refreshLimit =
       dashboardInfo.common.conf.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
     const refreshWarning =
@@ -544,14 +545,14 @@ class Header extends React.PureComponent {
               </span>
             </>
           )}
-          {shouldShowReportsModal && (
+          {shouldShowReport && (
             <>
               <span
                 role="button"
                 title={t('Schedule email report')}
                 tabIndex={0}
                 className="action-button"
-                onClick={this.handleReportModalclick}
+                onClick={this.handleReportClick}
               >
                 <Icons.Calendar />
               </span>
