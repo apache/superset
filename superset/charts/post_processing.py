@@ -84,9 +84,9 @@ def pivot_table(
         # re-arrange data into a list of dicts
         data = []
         for i in df.index:
-            d = {col: df[col][i] for col in df.columns}
-            d[df.index.name] = i
-            data.append(d)
+            row = {col: df[col][i] for col in df.columns}
+            row[df.index.name] = i
+            data.append(row)
         query["data"] = data
         query["colnames"] = list(df.columns)
         query["coltypes"] = extract_dataframe_dtypes(df)
