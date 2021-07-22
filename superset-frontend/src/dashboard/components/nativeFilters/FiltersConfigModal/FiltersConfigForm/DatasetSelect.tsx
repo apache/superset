@@ -27,8 +27,6 @@ import {
 } from 'src/utils/getClientErrorObject';
 import { datasetToSelectOption } from './utils';
 
-const PAGE_SIZE = 50;
-
 const localCache = new Map<string, any>();
 
 const cachedSupersetGet = cacheWrapper(
@@ -61,17 +59,16 @@ const DatasetSelect = ({
     [],
   );
 
-  // TODO Change offset and limit to page and pageSize
   const loadDatasetOptions = async (
     search: string,
-    offset: number,
-    limit: number, // eslint-disable-line @typescript-eslint/no-unused-vars
+    page: number,
+    pageSize: number,
   ) => {
     const searchColumn = 'table_name';
     const query = rison.encode({
       filters: [{ col: searchColumn, opr: 'ct', value: search }],
-      page: Math.floor(offset / PAGE_SIZE),
-      page_size: PAGE_SIZE,
+      page,
+      page_size: pageSize,
       order_column: searchColumn,
       order_direction: 'asc',
     });
@@ -111,7 +108,6 @@ const DatasetSelect = ({
     <Select
       ariaLabel={t('Dataset')}
       value={value?.value}
-      pageSize={PAGE_SIZE}
       options={loadDatasetOptions}
       onChange={onChange}
     />
