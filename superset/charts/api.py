@@ -52,6 +52,7 @@ from superset.charts.commands.importers.dispatcher import ImportChartsCommand
 from superset.charts.commands.update import UpdateChartCommand
 from superset.charts.dao import ChartDAO
 from superset.charts.filters import ChartAllTextFilter, ChartFavoriteFilter, ChartFilter
+from superset.charts.post_processing import post_processors
 from superset.charts.schemas import (
     CHART_SCHEMAS,
     ChartPostSchema,
@@ -481,8 +482,24 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
-    def send_chart_response(self, result: Dict[Any, Any]) -> Response:
+    def send_chart_response(
+        self,
+        result: Dict[Any, Any],
+        viz_type: Optional[str] = None,
+        form_data: Optional[Dict[str, Any]] = None,
+    ) -> Response:
+        result_type = result["query_context"].result_type
         result_format = result["query_context"].result_format
+
+        # Post-process the data so it matches the data presented in the chart.
+        # This is needed for sending reports based on text charts that do the
+        # post-processing of data, eg, the pivot table.
+        if (
+            result_type == ChartDataResultType.POST_PROCESSED
+            and viz_type in post_processors
+        ):
+            post_process = post_processors[viz_type]
+            result = post_process(result, form_data)
 
         if result_format == ChartDataResultFormat.CSV:
             # Verify user has permission to export CSV file
@@ -506,7 +523,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
         return self.response_400(message=f"Unsupported result_format: {result_format}")
 
     def get_data_response(
-        self, command: ChartDataCommand, force_cached: bool = False
+        self,
+        command: ChartDataCommand,
+        force_cached: bool = False,
+        viz_type: Optional[str] = None,
+        form_data: Optional[Dict[str, Any]] = None,
     ) -> Response:
         try:
             result = command.run(force_cached=force_cached)
@@ -515,7 +536,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartDataQueryFailedError as exc:
             return self.response_400(message=exc.message)
 
-        return self.send_chart_response(result)
+        return self.send_chart_response(result, viz_type, form_data)
 
     @expose("/<int:pk>/data/", methods=["GET"])
     @protect()
@@ -542,6 +563,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
           - in: query
             name: format
             description: The format in which the data should be returned
+            schema:
+              type: string
+          - in: query
+            name: type
+            description: The type in which the data should be returned
             schema:
               type: string
           responses:
@@ -580,9 +606,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 )
             )
 
+        # override saved query context
         json_body["result_format"] = request.args.get(
             "format", ChartDataResultFormat.JSON
         )
+        json_body["result_type"] = request.args.get("type", ChartDataResultType.FULL)
+
         try:
             command = ChartDataCommand()
             query_context = command.set_query_context(json_body)
@@ -604,7 +633,14 @@ class ChartRestApi(BaseSupersetModelRestApi):
         ):
             return self._run_async(command)
 
-        return self.get_data_response(command)
+        try:
+            form_data = json.loads(chart.params)
+        except (TypeError, json.decoder.JSONDecodeError):
+            form_data = {}
+
+        return self.get_data_response(
+            command, viz_type=chart.viz_type, form_data=form_data
+        )
 
     @expose("/data", methods=["POST"])
     @protect()
