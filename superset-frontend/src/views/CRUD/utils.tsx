@@ -274,29 +274,16 @@ export function shortenSQL(sql: string, maxLines: number) {
 const breakpoints = [576, 768, 992, 1200];
 export const mq = breakpoints.map(bp => `@media (max-width: ${bp}px)`);
 
-export const CardContainer = styled.div`
-  grid-area: main;
+export const CardContainer = styled.div<{
+  showThumbnails?: boolean | undefined;
+}>`
+  ${({ showThumbnails, theme }) => `
+  overflow: hidden;
   display: grid;
-  grid-template-columns: repeat(auto-fill, 19%);
-  grid-auto-rows: max-content;
-  //justify-content: space-evenly;
-  grid-gap: 1%;
-  //justify-items: center;
-  padding: 24px;
-  //grid-template-columns: repeat(auto-fit, minmax(19%, 19%));
-  //${mq[3]} {
-   // grid-template-columns: repeat(auto-fit, minmax(19%, 19%));
-  //}
-  //${mq[2]} {
-   //  grid-template-columns: repeat(auto-fit, minmax(31%, 31%));
-  //}
-  //${mq[1]} {
-   // grid-template-columns: repeat(auto-fit, minmax(50%, 80%));
-  //}
-  //grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
-  //justify-content: left;
-  //padding: ${({ theme }) => theme.gridUnit * 6}px;
-  // padding-top: ${({ theme }) => theme.gridUnit * 2}px;
+  grid-gap: ${theme.gridUnit * 2.5}px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  max-height: ${showThumbnails ? '361' : '87'}px;
+`}
 `;
 
 export const CardStyles = styled.div`

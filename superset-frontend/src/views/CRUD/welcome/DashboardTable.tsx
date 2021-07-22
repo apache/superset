@@ -30,7 +30,7 @@ import {
   setInLocalStorage,
   getFromLocalStorage,
 } from 'src/utils/localStorageHelpers';
-import { createErrorHandler } from 'src/views/CRUD/utils';
+import { createErrorHandler, CardContainer } from 'src/views/CRUD/utils';
 import { HOMEPAGE_DASHBOARD_FILTER } from 'src/views/CRUD/storageKeys';
 
 import withToasts from 'src/messageToasts/enhancers/withToasts';
@@ -47,15 +47,6 @@ export interface FilterValue {
   operator: string;
   value: string | boolean | number | null | undefined;
 }
-
-const CardContainer = styled.div(({ showThumbnails }) => ({
-  overflow: 'hidden',
-  display: 'grid',
-  gridGap: '10px',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-  maxHeight: `${showThumbnails ? '352' : '100'}px`,
-  padding: '10px 30px 10px 30px',
-}));
 
 function DashboardTable({
   user,
