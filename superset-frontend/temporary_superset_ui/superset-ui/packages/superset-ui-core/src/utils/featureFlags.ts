@@ -47,6 +47,7 @@ export enum FeatureFlag {
   DASHBOARD_RBAC = 'DASHBOARD_RBAC',
   ALERTS_ATTACH_REPORTS = 'ALERTS_ATTACH_REPORTS',
   ALLOW_FULL_CSV_EXPORT = 'ALLOW_FULL_CSV_EXPORT',
+  UX_BETA = 'UX_BETA',
 }
 export type ScheduleQueriesProps = {
   JSONSCHEMA: {
