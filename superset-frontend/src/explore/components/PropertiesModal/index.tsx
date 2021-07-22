@@ -23,10 +23,11 @@ import Button from 'src/components/Button';
 import { OptionsType } from 'react-select/src/types';
 import { AsyncSelect } from 'src/components/Select';
 import rison from 'rison';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t, SupersetClient, QueryFormData } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
 import { Form, FormItem } from 'src/components/Form';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { buildV1ChartDataPayload } from '../../exploreUtils';
 
 type PropertiesModalProps = {
   slice: Slice;
@@ -70,7 +71,9 @@ export default function PropertiesModal({
 
   const fetchChartData = useCallback(
     async function fetchChartData() {
+      console.log(slice);
       try {
+        console.log('fetching chart data!');
         const response = await SupersetClient.get({
           endpoint: `/api/v1/chart/${slice.slice_id}`,
         });
@@ -81,6 +84,26 @@ export default function PropertiesModal({
             label: `${owner.first_name} ${owner.last_name}`,
           })),
         );
+
+        if (chart.query_context === null) {
+          // Build query context
+          const queryContext = buildV1ChartDataPayload({
+            formData: slice.form_data as QueryFormData,
+            force: false,
+            resultFormat: 'json',
+            resultType: 'full',
+          });
+
+          console.log('queryContext', queryContext);
+
+          // Todo: Make PUT to update query context
+          // const response = await makeApi({
+          //   method: 'PUT',
+          //   endpoint: `/api/v1/chart/${}`,
+          // })(`q=${queryParams}`);
+        }
+
+        // set query_context if null
       } catch (response) {
         const clientError = await getClientErrorObject(response);
         showError(clientError);

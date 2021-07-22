@@ -303,6 +303,8 @@ export const exportChart = ({
       ownState,
     });
   }
+
+  console.log('making POST for getting data');
   postForm(url, payload);
 };
 
