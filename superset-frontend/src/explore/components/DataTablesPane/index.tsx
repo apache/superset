@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { JsonObject, styled, t } from '@superset-ui/core';
+import { ensureIsArray, JsonObject, styled, t } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
 import Tabs from 'src/components/Tabs';
 import Loading from 'src/components/Loading';
@@ -155,8 +155,29 @@ export const DataTablesPane = ({
       })
         .then(({ json }) => {
           // Only displaying the first query is currently supported
-          const result = json.result[0];
-          setData(prevData => ({ ...prevData, [resultType]: result.data }));
+          const result = ensureIsArray(json.result);
+          if (result.length > 1) {
+            const data: any[] = [];
+            result.forEach(item => {
+              ensureIsArray(item.data).forEach((row, i) => {
+                if (data[i] !== undefined) {
+                  data[i] = { ...data[i], ...row };
+                } else {
+                  data[i] = row;
+                }
+              });
+            });
+            setData(prevData => ({
+              ...prevData,
+              [resultType]: data,
+            }));
+          } else {
+            setData(prevData => ({
+              ...prevData,
+              [resultType]: result[0].data,
+            }));
+          }
+
           setIsLoading(prevIsLoading => ({
             ...prevIsLoading,
             [resultType]: false,
