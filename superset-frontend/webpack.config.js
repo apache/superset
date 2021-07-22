@@ -343,8 +343,15 @@ const config = {
       {
         test: /\.jsx?$/,
         // include source code for plugins, but exclude node_modules and test files within them
-        exclude: [/superset-ui.*\/node_modules\//, /\.test.jsx?$/],
+        exclude: {
+          and: [/(superset-ui)?.*\/node_modules\//, /\.test.jsx?$/],
+          not: [
+            // these need to be transpiled because
+            /encodable/,
+          ],
+        },
         include: [
+          new RegExp(`${APP_DIR}/node_modules`),
           new RegExp(`${APP_DIR}/src`),
           /superset-ui.*\/src/,
           new RegExp(`${APP_DIR}/.storybook`),
