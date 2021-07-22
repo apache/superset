@@ -125,6 +125,8 @@ class ImportExamplesCommand(ImportModelsCommand):
             if file_name.startswith("dashboards/"):
                 config = update_id_refs(config, chart_ids)
                 dashboard = import_dashboard(session, config, overwrite=overwrite)
+                dashboard.published = True
+
                 for uuid in find_chart_uuids(config["position"]):
                     chart_id = chart_ids[uuid]
                     if (dashboard.id, chart_id) not in existing_relationships:
@@ -135,5 +137,5 @@ class ImportExamplesCommand(ImportModelsCommand):
             {"dashboard_id": dashboard_id, "slice_id": chart_id}
             for (dashboard_id, chart_id) in dashboard_chart_ids
         ]
-        # pylint: disable=no-value-for-parameter (sqlalchemy/issues/4656)
+        # pylint: disable=no-value-for-parameter # sqlalchemy/issues/4656
         session.execute(dashboard_slices.insert(), values)

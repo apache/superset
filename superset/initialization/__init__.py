@@ -66,7 +66,7 @@ class SupersetAppInitializer:
         self.manifest: Dict[Any, Any] = {}
 
     @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore   # pylint: disable=line-too-long
-    @property  # type: ignore
+    @property
     def flask_app(self) -> SupersetApp:
         return self.superset_app
 
@@ -99,7 +99,7 @@ class SupersetAppInitializer:
 
             # Grab each call into the task and set up an app context
             def __call__(self, *args: Any, **kwargs: Any) -> Any:
-                with superset_app.app_context():  # type: ignore
+                with superset_app.app_context():
                     return task_base.__call__(self, *args, **kwargs)
 
         celery_app.Task = AppContextTask
@@ -573,7 +573,7 @@ class SupersetAppInitializer:
         self.configure_middlewares()
         self.configure_cache()
 
-        with self.superset_app.app_context():  # type: ignore
+        with self.superset_app.app_context():
             self.init_app_in_ctx()
 
         self.post_init()
@@ -689,7 +689,7 @@ class SupersetAppInitializer:
     def setup_db(self) -> None:
         db.init_app(self.superset_app)
 
-        with self.superset_app.app_context():  # type: ignore
+        with self.superset_app.app_context():
             pessimistic_connection_handling(db.engine)
 
         migrate.init_app(self.superset_app, db=db, directory=APP_DIR + "/migrations")

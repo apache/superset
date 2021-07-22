@@ -59,13 +59,13 @@ describe('dashboard filters card view', () => {
     // filter by published
     cy.get('.Select__control').eq(2).click();
     cy.get('.Select__menu').contains('Published').click({ timeout: 5000 });
-    cy.get('[data-test="styled-card"]').should('have.length', 2);
+    cy.get('[data-test="styled-card"]').should('have.length', 3);
     cy.get('[data-test="styled-card"]')
       .contains('USA Births Names')
       .should('be.visible');
     cy.get('.Select__control').eq(1).click();
     cy.get('.Select__control').eq(1).type('unpub{enter}');
-    cy.get('[data-test="styled-card"]').should('have.length', 2);
+    cy.get('[data-test="styled-card"]').should('have.length', 3);
   });
 });
 
@@ -110,12 +110,12 @@ describe('dashboard filters list view', () => {
     // filter by published
     cy.get('.Select__control').eq(2).click();
     cy.get('.Select__menu').contains('Published').click();
-    cy.get('[data-test="table-row"]').should('have.length', 2);
+    cy.get('[data-test="table-row"]').should('have.length', 3);
     cy.get('[data-test="table-row"]')
       .contains('USA Births Names')
       .should('be.visible');
     cy.get('.Select__control').eq(2).click();
     cy.get('.Select__control').eq(2).type('unpub{enter}');
-    cy.get('[data-test="table-row"]').should('have.length', 2);
+    cy.get('[data-test="table-row"]').should('have.length', 3);
   });
 });

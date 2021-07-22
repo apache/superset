@@ -14,28 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""add_execution_id_to_report_execution_log_model.py
 
-Revision ID: 301362411006
-Revises: 989bbe479899
-Create Date: 2021-03-23 05:23:15.641856
+from typing import Any, Callable, Dict, Generator, List, Optional, Type
 
-"""
-
-# revision identifiers, used by Alembic.
-revision = "301362411006"
-down_revision = "989bbe479899"
-
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy_utils import UUIDType
+import backoff
 
 
-def upgrade():
-    with op.batch_alter_table("report_execution_log") as batch_op:
-        batch_op.add_column(sa.Column("uuid", UUIDType(binary=True)))
-
-
-def downgrade():
-    with op.batch_alter_table("report_execution_log") as batch_op:
-        batch_op.drop_column("uuid")
+def retry_call(
+    func: Callable[..., Any],
+    *args: Any,
+    strategy: Callable[..., Generator[int, None, None]] = backoff.constant,
+    exception: Type[Exception] = Exception,
+    fargs: Optional[List[Any]] = None,
+    fkwargs: Optional[Dict[str, Any]] = None,
+    **kwargs: Any
+) -> Any:
+    """
+    Retry a given call.
+    """
+    decorated = backoff.on_exception(strategy, exception, *args, **kwargs)(func)
+    fargs = fargs or []
+    fkwargs = fkwargs or {}
+    return decorated(*fargs, **fkwargs)
