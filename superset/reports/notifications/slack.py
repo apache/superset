@@ -20,8 +20,8 @@ import logging
 from io import IOBase
 from typing import Optional, Union
 
+import backoff
 from flask_babel import gettext as __
-from retry.api import retry
 from slack import WebClient
 from slack.errors import SlackApiError, SlackClientError
 
@@ -79,7 +79,7 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
             return self._content.screenshot
         return None
 
-    @retry(SlackApiError, delay=10, backoff=2, tries=5)
+    @backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)
     def send(self) -> None:
         file = self._get_inline_file()
         title = self._content.name

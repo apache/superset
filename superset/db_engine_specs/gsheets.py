@@ -30,7 +30,7 @@ from sqlalchemy.engine.url import URL
 from typing_extensions import TypedDict
 
 from superset import security_manager
-from superset.databases.schemas import encrypted_field_properties, EncryptedField
+from superset.databases.schemas import encrypted_field_properties
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
@@ -50,7 +50,8 @@ class GSheetsParametersSchema(Schema):
 
 class GSheetsParametersType(TypedDict):
     credentials_info: Dict[str, Any]
-    table_catalog: Dict[str, str]
+    catalog: Dict[str, str]
+    query: Dict[str, str]
 
 
 class GSheetsEngineSpec(SqliteEngineSpec):
@@ -104,7 +105,11 @@ class GSheetsEngineSpec(SqliteEngineSpec):
 
     @classmethod
     def build_sqlalchemy_uri(
-        cls, _: GSheetsParametersType, encrypted_extra: Optional[Dict[str, Any]] = None,
+        cls,
+        _: GSheetsParametersType,
+        encrypted_extra: Optional[  # pylint: disable=unused-argument
+            Dict[str, Any]
+        ] = None,
     ) -> str:  # pylint: disable=unused-variable
 
         return "gsheets://"
@@ -146,7 +151,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         errors: List[SupersetError] = []
 
         credentials_info = parameters.get("credentials_info")
-        table_catalog = parameters.get("table_catalog", {})
+        table_catalog = parameters.get("catalog", {})
 
         if not table_catalog:
             return errors
@@ -171,8 +176,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
                         message=f"Unable to connect to spreadsheet {name} at {url}",
                         error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
                         level=ErrorLevel.WARNING,
-                        extra={"name": name, "url": url},
+                        extra={"invalid": ["catalog"], "name": name, "url": url},
                     ),
                 )
-
         return errors

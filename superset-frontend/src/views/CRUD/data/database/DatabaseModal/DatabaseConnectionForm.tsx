@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FormEvent, useState, Dispatch, SetStateAction } from 'react';
+import React, { FormEvent, useState } from 'react';
 import { SupersetTheme, JsonObject, t } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
 import { Input, Switch, Select, Button } from 'src/common/components';
@@ -63,7 +63,7 @@ interface FieldPropTypes {
     onChange: (value: any) => string;
   } & { onParametersUploadFileChange: (value: any) => string } & {
     onAddTableCatalog: () => void;
-    onRemoveTableCatalog: (value: number) => void;
+    onRemoveTableCatalog: (idx: number) => void;
   };
   validationErrors: JsonObject | null;
   getValidation: () => void;
@@ -72,8 +72,6 @@ interface FieldPropTypes {
   sslForced?: boolean;
   defaultDBName?: string;
   editNewDb?: boolean;
-  setPublic: Dispatch<SetStateAction<boolean>>;
-  isPublic?: boolean;
 }
 
 const CredentialsInfo = ({
@@ -203,29 +201,30 @@ const TableCatalog = ({
   db,
 }: FieldPropTypes) => {
   const tableCatalog = db?.catalog || [];
+  const catalogError = validationErrors || {};
   return (
     <StyledCatalogTable>
       <div className="catalog-type-select">
         <FormLabel required>{t('Type of Google Sheets Allowed')}</FormLabel>
         <Select style={{ width: '100%' }} defaultValue="true" disabled>
           <Select.Option value="true" key={1}>
-            Publicly shared sheets only
+            {t('Publicly shared sheets only')}
           </Select.Option>
         </Select>
       </div>
       <h4 className="gsheet-title">
-        Connect Google Sheets as tables to this database
+        {t('Connect Google Sheets as tables to this database')}
       </h4>
       <div>
         {tableCatalog?.map((sheet: CatalogObject, idx: number) => (
           <>
             <FormLabel className="catalog-label" required>
-              {t('Google Sheet Name and Url')}
+              {t('Google Sheet Name and URL')}
             </FormLabel>
             <div className="catalog-name">
               <Input
                 className="catalog-name-input"
-                placeholder="Enter create a name for this sheet"
+                placeholder={t('Enter a name for this sheet')}
                 onChange={e => {
                   changeMethods.onParametersChange({
                     target: {
@@ -250,27 +249,14 @@ const TableCatalog = ({
               className="catalog-name-url"
               required={required}
               validationMethods={{ onBlur: getValidation }}
-              errorMessage={validationErrors?.table_catalog}
-              placeholder="Paste the shareable Google Sheet URL here"
+              errorMessage={catalogError[sheet.name]}
+              placeholder={t('Paste the shareable Google Sheet URL here')}
               onChange={(e: { target: { value: any } }) =>
                 changeMethods.onParametersChange({
                   target: {
                     type: `catalog-${idx}`,
                     name: 'value',
                     value: e.target.value,
-                  },
-                })
-              }
-              onPaste={(e: {
-                clipboardData: { getData: (arg0: string) => any };
-              }) =>
-                changeMethods.onParametersChange({
-                  target: {
-                    target: {
-                      type: `catalog-${idx}`,
-                      name: 'value',
-                      value: e.clipboardData.getData('Text'),
-                    },
                   },
                 })
               }
@@ -285,7 +271,7 @@ const TableCatalog = ({
             changeMethods.onAddTableCatalog();
           }}
         >
-          + Add sheet
+          + {t('Add sheet')}
         </StyledFooterButton>
       </div>
     </StyledCatalogTable>
@@ -414,7 +400,7 @@ const displayField = ({
       validationMethods={{ onBlur: getValidation }}
       errorMessage={validationErrors?.database_name}
       placeholder=""
-      label="Display Name"
+      label={t('Display Name')}
       onChange={changeMethods.onChange}
       helpText={t(
         'Pick a nickname for this database to display as in Superset.',
@@ -500,14 +486,10 @@ const DatabaseConnectionForm = ({
   isEditMode = false,
   sslForced,
   editNewDb,
-  setPublic,
-  isPublic,
 }: {
   isEditMode?: boolean;
   sslForced: boolean;
   editNewDb?: boolean;
-  isPublic?: boolean;
-  setPublic: Dispatch<SetStateAction<boolean>>;
   dbModel: DatabaseForm;
   db: Partial<DatabaseObject> | null;
   onParametersChange: (
@@ -520,7 +502,7 @@ const DatabaseConnectionForm = ({
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
   onAddTableCatalog: () => void;
-  onRemoveTableCatalog: () => void;
+  onRemoveTableCatalog: (idx: number) => void;
   validationErrors: JsonObject | null;
   getValidation: () => void;
 }) => (
@@ -554,8 +536,6 @@ const DatabaseConnectionForm = ({
             isEditMode,
             sslForced,
             editNewDb,
-            setPublic,
-            isPublic,
           }),
         )}
     </div>

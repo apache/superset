@@ -18,12 +18,10 @@
  */
 import { ensureIsArray, ExtraFormData, t, tn } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
-import { Select } from 'src/common/components';
 import { FormItemProps } from 'antd/lib/form';
-import { Styles, StyledSelect, StyledFormItem, StatusMessage } from '../common';
+import { Select } from 'src/components';
+import { FilterPluginStyle, StyledFormItem, StatusMessage } from '../common';
 import { PluginFilterGroupByProps } from './types';
-
-const { Option } = Select;
 
 export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
   const {
@@ -90,13 +88,22 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
       </StatusMessage>
     );
   }
+  const options = columns.map(
+    (row: { column_name: string; verbose_name: string | null }) => {
+      const { column_name: columnName, verbose_name: verboseName } = row;
+      return {
+        label: verboseName ?? columnName,
+        value: columnName,
+      };
+    },
+  );
   return (
-    <Styles height={height} width={width}>
+    <FilterPluginStyle height={height} width={width}>
       <StyledFormItem
         validateStatus={filterState.validateStatus}
         {...formItemData}
       >
-        <StyledSelect
+        <Select
           allowClear
           value={value}
           placeholder={placeholderText}
@@ -106,22 +113,9 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
           onBlur={unsetFocusedFilter}
           onFocus={setFocusedFilter}
           ref={inputRef}
-        >
-          {columns.map(
-            (row: { column_name: string; verbose_name: string | null }) => {
-              const {
-                column_name: columnName,
-                verbose_name: verboseName,
-              } = row;
-              return (
-                <Option key={columnName} value={columnName}>
-                  {verboseName ?? columnName}
-                </Option>
-              );
-            },
-          )}
-        </StyledSelect>
+          options={options}
+        />
       </StyledFormItem>
-    </Styles>
+    </FilterPluginStyle>
   );
 }

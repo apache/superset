@@ -276,7 +276,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         return extra
 
     @classmethod
-    def get_column_spec(  # type: ignore
+    def get_column_spec(
         cls,
         native_type: Optional[str],
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,

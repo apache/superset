@@ -72,7 +72,7 @@ interface DatabaseSelectorProps {
   readOnly?: boolean;
   schema?: string;
   sqlLabMode?: boolean;
-  onChange?: ({
+  onUpdate?: ({
     dbId,
     schema,
   }: {
@@ -89,7 +89,7 @@ export default function DatabaseSelector({
   getTableList,
   handleError,
   isDatabaseSelectEnabled = true,
-  onChange,
+  onUpdate,
   onDbChange,
   onSchemaChange,
   onSchemasLoad,
@@ -143,8 +143,8 @@ export default function DatabaseSelector({
   function onSelectChange({ dbId, schema }: { dbId: number; schema?: string }) {
     setCurrentDbId(dbId);
     setCurrentSchema(schema);
-    if (onChange) {
-      onChange({ dbId, schema, tableName: undefined });
+    if (onUpdate) {
+      onUpdate({ dbId, schema, tableName: undefined });
     }
   }
 

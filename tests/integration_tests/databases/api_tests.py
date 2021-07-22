@@ -1574,12 +1574,8 @@ class TestDatabaseApi(SupersetTestCase):
                     "name": "Google Sheets",
                     "parameters": {
                         "properties": {
-                            "credentials_info": {
-                                "description": "Contents of Google Sheets JSON credentials.",
-                                "type": "string",
-                                "x-encrypted-extra": True,
-                            },
-                            "table_catalog": {"type": "object"},
+                            "catalog": {"type": "object"},
+                            "query": {"type": "object"},
                         },
                         "type": "object",
                     },

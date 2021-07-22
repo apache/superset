@@ -51,7 +51,7 @@ const propTypes = {
   // from redux
   chart: chartPropShape.isRequired,
   formData: PropTypes.object.isRequired,
-  datasource: PropTypes.object.isRequired,
+  datasource: PropTypes.object,
   slice: slicePropShape.isRequired,
   sliceName: PropTypes.string.isRequired,
   timeout: PropTypes.number.isRequired,
@@ -125,7 +125,8 @@ export default class Chart extends React.Component {
     if (
       nextState.width !== this.state.width ||
       nextState.height !== this.state.height ||
-      nextState.descriptionHeight !== this.state.descriptionHeight
+      nextState.descriptionHeight !== this.state.descriptionHeight ||
+      nextProps.datasource !== this.props.datasource
     ) {
       return true;
     }

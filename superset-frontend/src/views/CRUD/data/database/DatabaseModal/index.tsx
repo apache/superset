@@ -192,7 +192,6 @@ function dbReducer(
   let deserializeExtraJSON = {};
   let extra_json: DatabaseObject['extra_json'];
 
-  // console.log(action);
   switch (action.type) {
     case ActionType.extraEditorChange:
       return {
@@ -274,12 +273,12 @@ function dbReducer(
       if (trimmedState.catalog !== undefined) {
         return {
           ...trimmedState,
-          catalog: [...trimmedState.catalog, {}],
+          catalog: [...trimmedState.catalog, { name: '', value: '' }],
         };
       }
       return {
         ...trimmedState,
-        catalog: [{}],
+        catalog: [{ name: '', value: '' }],
       };
     case ActionType.removeTableCatalogSheet:
       trimmedState.catalog?.splice(action.payload.indexToDelete, 1);
@@ -307,9 +306,8 @@ function dbReducer(
           ...JSON.parse(action.payload.extra || ''),
           metadata_params: JSON.stringify(extra_json?.metadata_params),
           engine_params: JSON.stringify(extra_json?.engine_params),
-          schemas_allowed_for_csv_upload: JSON.stringify(
+          schemas_allowed_for_csv_upload:
             extra_json?.schemas_allowed_for_csv_upload,
-          ),
         };
       }
 
@@ -342,7 +340,8 @@ function dbReducer(
       if (
         action.payload.backend === 'gsheets' &&
         action.payload.configuration_method ===
-          CONFIGURATION_METHOD.DYNAMIC_FORM
+          CONFIGURATION_METHOD.DYNAMIC_FORM &&
+        extra_json?.engine_params?.catalog !== undefined
       ) {
         // pull catalog from engine params
         const engineParamsCatalog = extra_json?.engine_params?.catalog;
@@ -390,7 +389,9 @@ const serializeExtra = (extraJson: DatabaseObject['extra_json']) =>
   JSON.stringify({
     ...extraJson,
     metadata_params: JSON.parse((extraJson?.metadata_params as string) || '{}'),
-    engine_params: JSON.parse((extraJson?.engine_params as string) || '{}'),
+    engine_params: JSON.parse(
+      ((extraJson?.engine_params as unknown) as string) || '{}',
+    ),
     schemas_allowed_for_csv_upload:
       (extraJson?.schemas_allowed_for_csv_upload as string) || '[]',
   });
@@ -417,7 +418,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [dbName, setDbName] = useState('');
   const [editNewDb, setEditNewDb] = useState<boolean>(false);
   const [isLoading, setLoading] = useState<boolean>(false);
-  const [isPublic, setPublic] = useState<boolean>(true);
   const conf = useCommonConf();
   const dbImages = getDatabaseImages();
   const connectionAlert = getConnectionAlert();
@@ -474,8 +474,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
     testDatabaseConnection(connection, addDangerToast, addSuccessToast);
   };
-
-  // console.log('db', db);
 
   const onClose = () => {
     setDB({ type: ActionType.reset });
@@ -881,8 +879,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
     return (
       <DatabaseConnectionForm
-        isPublic={isPublic}
-        setPublic={setPublic}
         isEditMode
         sslForced={sslForced}
         dbModel={dbModel}
@@ -901,9 +897,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             value: target.value,
           })
         }
-        onAddTableCatalog={() => {
-          // console.log('hello');
-        }}
+        onAddTableCatalog={() =>
+          setDB({ type: ActionType.addTableCatalogSheet })
+        }
+        onRemoveTableCatalog={(idx: number) =>
+          setDB({
+            type: ActionType.removeTableCatalogSheet,
+            payload: { indexToDelete: idx },
+          })
+        }
         getValidation={() => getValidation(db)}
         validationErrors={validationErrors}
       />
@@ -999,8 +1001,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           ) : (
             <DatabaseConnectionForm
               isEditMode
-              isPublic={isPublic}
-              setPublic={setPublic}
               sslForced={sslForced}
               dbModel={dbModel}
               db={db as DatabaseObject}
@@ -1018,16 +1018,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   value: target.value,
                 })
               }
-              onAddTableCatalog={() => {
-                // console.log('hey');
-                setDB({ type: ActionType.addTableCatalogSheet });
-              }}
-              onRemoveTableCatalog={idx => {
+              onAddTableCatalog={() =>
+                setDB({ type: ActionType.addTableCatalogSheet })
+              }
+              onRemoveTableCatalog={(idx: number) =>
                 setDB({
                   type: ActionType.removeTableCatalogSheet,
                   payload: { indexToDelete: idx },
-                });
-              }}
+                })
+              }
               getValidation={() => getValidation(db)}
               validationErrors={validationErrors}
             />
@@ -1171,15 +1170,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 )}
                 <DatabaseConnectionForm
                   db={db}
-                  setPublic={setPublic}
-                  isPublic={isPublic}
                   sslForced={sslForced}
                   dbModel={dbModel}
                   onAddTableCatalog={() => {
-                    // console.log('hey');
                     setDB({ type: ActionType.addTableCatalogSheet });
                   }}
-                  onRemoveTableCatalog={idx => {
+                  onRemoveTableCatalog={(idx: number) => {
                     setDB({
                       type: ActionType.removeTableCatalogSheet,
                       payload: { indexToDelete: idx },

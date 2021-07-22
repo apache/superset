@@ -718,6 +718,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     ) -> FlaskResponse:
         user_id = g.user.get_id() if g.user else None
         form_data, slc = get_form_data(use_slice_data=True)
+        query_context = request.form.get("query_context")
 
         # Flash the SIP-15 message if the slice is owned by the current user and has not
         # been updated, i.e., is not using the [start, end) interval.
@@ -825,6 +826,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 datasource.id,
                 datasource.type,
                 datasource.name,
+                query_context,
             )
         standalone_mode = ReservedUrlParameters.is_standalone_mode()
         dummy_datasource_data: Dict[str, Any] = {
@@ -924,6 +926,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         datasource_id: int,
         datasource_type: str,
         datasource_name: str,
+        query_context: Optional[str] = None,
     ) -> FlaskResponse:
         """Save or overwrite a slice"""
         slice_name = request.args.get("slice_name")
@@ -946,6 +949,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         slc.datasource_type = datasource_type
         slc.datasource_id = datasource_id
         slc.slice_name = slice_name
+        slc.query_context = query_context
 
         if action == "saveas" and slice_add_perm:
             ChartDAO.save(slc)

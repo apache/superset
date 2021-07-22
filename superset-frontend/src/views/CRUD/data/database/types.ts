@@ -52,7 +52,7 @@ export type DatabaseObject = {
   engine?: string;
 
   // Gsheets temporary storage
-  catalog?: [CatalogObject];
+  catalog?: Array<CatalogObject>;
 
   // Performance
   cache_timeout?: string;
@@ -74,7 +74,9 @@ export type DatabaseObject = {
 
   // Extra
   extra_json?: {
-    engine_params?: { catalog: {} } | string;
+    engine_params?: {
+      catalog: Record<any, any> | string;
+    };
     metadata_params?: {} | string;
     metadata_cache_timeout?: {
       schema_cache_timeout?: number; // in Performance

@@ -102,9 +102,7 @@ export const FormattingPopoverContent = ({
         return Promise.resolve();
       }
       return Promise.reject(
-        new Error(
-          t('This value should be smaller than the right target value'),
-        ),
+        new Error(t('This value should be greater than the left target value')),
       );
     },
     [],
