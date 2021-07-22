@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FormEvent, useState, Dispatch, SetStateAction } from 'react';
+import React, { FormEvent, useState } from 'react';
 import { SupersetTheme, JsonObject, t } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
 import { Input, Switch, Select, Button } from 'src/common/components';
@@ -72,8 +72,6 @@ interface FieldPropTypes {
   sslForced?: boolean;
   defaultDBName?: string;
   editNewDb?: boolean;
-  setPublic: Dispatch<SetStateAction<boolean>>;
-  isPublic?: boolean;
 }
 
 const CredentialsInfo = ({

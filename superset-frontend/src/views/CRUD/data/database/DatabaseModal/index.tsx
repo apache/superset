@@ -418,7 +418,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [dbName, setDbName] = useState('');
   const [editNewDb, setEditNewDb] = useState<boolean>(false);
   const [isLoading, setLoading] = useState<boolean>(false);
-  const [isPublic, setPublic] = useState<boolean>(true);
   const conf = useCommonConf();
   const dbImages = getDatabaseImages();
   const connectionAlert = getConnectionAlert();
@@ -880,8 +879,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
     return (
       <DatabaseConnectionForm
-        isPublic={isPublic}
-        setPublic={setPublic}
         isEditMode
         sslForced={sslForced}
         dbModel={dbModel}
@@ -1004,8 +1001,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           ) : (
             <DatabaseConnectionForm
               isEditMode
-              isPublic={isPublic}
-              setPublic={setPublic}
               sslForced={sslForced}
               dbModel={dbModel}
               db={db as DatabaseObject}
@@ -1175,8 +1170,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 )}
                 <DatabaseConnectionForm
                   db={db}
-                  setPublic={setPublic}
-                  isPublic={isPublic}
                   sslForced={sslForced}
                   dbModel={dbModel}
                   onAddTableCatalog={() => {
