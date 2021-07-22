@@ -66,8 +66,8 @@ export type OptionsTypePage = {
 
 export type OptionsPagePromise = (
   search: string,
-  offset: number,
-  limit: number,
+  page: number,
+  pageSize: number,
 ) => Promise<OptionsTypePage>;
 
 export interface SelectProps extends PickedSelectProps {
@@ -125,7 +125,7 @@ const StyledError = styled.div`
 const MAX_TAG_COUNT = 4;
 const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
 const DEBOUNCE_TIMEOUT = 500;
-const DEFAULT_PAGE_SIZE = 50;
+const DEFAULT_PAGE_SIZE = 100;
 const EMPTY_OPTIONS: OptionsType = [];
 
 const Error = ({ error }: { error: string }) => (
@@ -162,7 +162,7 @@ const Select = ({
   const [isLoading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-  const [offset, setOffset] = useState(0);
+  const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const fetchedQueries = useRef(new Set<string>());
   const mappedMode = isSingleMode
@@ -269,14 +269,14 @@ const Select = ({
   };
 
   const handlePaginatedFetch = useMemo(
-    () => (value: string, offset: number, limit: number) => {
-      const key = `${value};${offset};${limit}`;
+    () => (value: string, page: number, pageSize: number) => {
+      const key = `${value};${page};${pageSize}`;
       if (fetchedQueries.current.has(key)) {
         return;
       }
       setLoading(true);
       const fetchOptions = options as OptionsPagePromise;
-      fetchOptions(value, offset, limit)
+      fetchOptions(value, page, pageSize)
         .then(({ data, totalCount }: OptionsTypePage) => {
           handleData(data);
           fetchedQueries.current.add(key);
@@ -321,14 +321,12 @@ const Select = ({
     const vScroll = e.currentTarget;
     const thresholdReached =
       vScroll.scrollTop > (vScroll.scrollHeight - vScroll.offsetHeight) * 0.7;
-    const hasMoreData = offset + pageSize < totalCount;
+    const hasMoreData = page * pageSize + pageSize < totalCount;
 
     if (!isLoading && isAsync && hasMoreData && thresholdReached) {
-      const newOffset = offset + pageSize;
-      const limit =
-        newOffset + pageSize > totalCount ? totalCount - newOffset : pageSize;
-      handlePaginatedFetch(searchedValue, newOffset, limit);
-      setOffset(newOffset);
+      const newPage = page + 1;
+      handlePaginatedFetch(searchedValue, newPage, pageSize);
+      setPage(newPage);
     }
   };
 
@@ -363,9 +361,9 @@ const Select = ({
   useEffect(() => {
     const foundOption = hasOption(searchedValue, selectOptions);
     if (isAsync && !foundOption) {
-      const offset = 0;
-      handlePaginatedFetch(searchedValue, offset, pageSize);
-      setOffset(offset);
+      const page = 0;
+      handlePaginatedFetch(searchedValue, page, pageSize);
+      setPage(page);
     }
   }, [isAsync, searchedValue, selectOptions, pageSize, handlePaginatedFetch]);
 

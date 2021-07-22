@@ -51,6 +51,7 @@ class GSheetsParametersSchema(Schema):
 class GSheetsParametersType(TypedDict):
     credentials_info: Dict[str, Any]
     catalog: Dict[str, str]
+    query: Dict[str, str]
 
 
 class GSheetsEngineSpec(SqliteEngineSpec):

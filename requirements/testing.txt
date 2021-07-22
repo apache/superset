@@ -17,6 +17,8 @@ backcall==0.2.0
     # via ipython
 coverage==5.3
     # via pytest-cov
+decorator==5.0.9
+    # via ipython
 docker==4.3.1
     # via -r requirements/testing.in
 flask-testing==0.8.0

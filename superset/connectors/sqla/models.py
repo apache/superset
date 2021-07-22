@@ -734,7 +734,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             self.table_name, schema=self.schema, show_cols=False, latest_partition=False
         )
 
-    @property  # type: ignore
+    @property
     def health_check_message(self) -> Optional[str]:
         check = config["DATASET_HEALTH_CHECK"]
         return check(self) if check else None

@@ -6,39 +6,87 @@
 #    pip-compile-multi
 #
 -r base.txt
--e file:.                 # via -r requirements/base.in
-boto3==1.16.10            # via tabulator
-botocore==1.19.10         # via boto3, s3transfer
-cached-property==1.5.2    # via tableschema
-certifi==2020.6.20        # via requests
-deprecated==1.2.11        # via pygithub
-et-xmlfile==1.0.1         # via openpyxl
-flask-cors==3.0.9         # via -r requirements/development.in
-future==0.18.2            # via pyhive
-ijson==3.1.2.post0        # via tabulator
-jdcal==1.4.1              # via openpyxl
-jmespath==0.10.0          # via boto3, botocore
-jsonlines==1.2.0          # via tabulator
-linear-tsv==1.1.0         # via tabulator
-mysqlclient==1.4.2.post1  # via -r requirements/development.in
-openpyxl==3.0.5           # via tabulator
-pillow==7.2.0             # via -r requirements/development.in
-progress==1.5             # via -r requirements/development.in
-psycopg2-binary==2.8.5    # via -r requirements/development.in
-pydruid==0.6.1            # via -r requirements/development.in
-pygithub==1.54.1          # via -r requirements/development.in
-pyhive[hive]==0.6.3       # via -r requirements/development.in
-requests==2.24.0          # via pydruid, pygithub, tableschema, tabulator
-rfc3986==1.4.0            # via tableschema
-s3transfer==0.3.3         # via boto3
-sasl==0.2.1               # via pyhive, thrift-sasl
-tableschema==1.20.0       # via -r requirements/development.in
-tabulator==1.52.5         # via tableschema
-thrift-sasl==0.4.2        # via pyhive
-thrift==0.13.0            # via -r requirements/development.in, pyhive, thrift-sasl
-unicodecsv==0.14.1        # via tableschema, tabulator
-wrapt==1.12.1             # via deprecated
-xlrd==1.2.0               # via tabulator
+-e file:.
+    # via -r requirements/base.in
+boto3==1.16.10
+    # via tabulator
+botocore==1.19.10
+    # via
+    #   boto3
+    #   s3transfer
+cached-property==1.5.2
+    # via tableschema
+certifi==2020.6.20
+    # via requests
+deprecated==1.2.11
+    # via pygithub
+et-xmlfile==1.0.1
+    # via openpyxl
+flask-cors==3.0.9
+    # via -r requirements/development.in
+future==0.18.2
+    # via pyhive
+ijson==3.1.2.post0
+    # via tabulator
+jdcal==1.4.1
+    # via openpyxl
+jmespath==0.10.0
+    # via
+    #   boto3
+    #   botocore
+jsonlines==1.2.0
+    # via tabulator
+linear-tsv==1.1.0
+    # via tabulator
+mysqlclient==1.4.2.post1
+    # via -r requirements/development.in
+openpyxl==3.0.5
+    # via tabulator
+pillow==7.2.0
+    # via -r requirements/development.in
+progress==1.5
+    # via -r requirements/development.in
+psycopg2-binary==2.8.5
+    # via -r requirements/development.in
+pydruid==0.6.1
+    # via -r requirements/development.in
+pygithub==1.54.1
+    # via -r requirements/development.in
+pyhive[hive]==0.6.3
+    # via -r requirements/development.in
+requests==2.24.0
+    # via
+    #   pydruid
+    #   pygithub
+    #   tableschema
+    #   tabulator
+rfc3986==1.4.0
+    # via tableschema
+s3transfer==0.3.3
+    # via boto3
+sasl==0.2.1
+    # via
+    #   pyhive
+    #   thrift-sasl
+tableschema==1.20.0
+    # via -r requirements/development.in
+tabulator==1.52.5
+    # via tableschema
+thrift==0.13.0
+    # via
+    #   -r requirements/development.in
+    #   pyhive
+    #   thrift-sasl
+thrift-sasl==0.4.2
+    # via pyhive
+unicodecsv==0.14.1
+    # via
+    #   tableschema
+    #   tabulator
+wrapt==1.12.1
+    # via deprecated
+xlrd==1.2.0
+    # via tabulator
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

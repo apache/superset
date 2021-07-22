@@ -497,14 +497,10 @@ const DatabaseConnectionForm = ({
   isEditMode = false,
   sslForced,
   editNewDb,
-  setPublic,
-  isPublic,
 }: {
   isEditMode?: boolean;
   sslForced: boolean;
   editNewDb?: boolean;
-  isPublic?: boolean;
-  setPublic: Dispatch<SetStateAction<boolean>>;
   dbModel: DatabaseForm;
   db: Partial<DatabaseObject> | null;
   onParametersChange: (
@@ -551,8 +547,6 @@ const DatabaseConnectionForm = ({
             isEditMode,
             sslForced,
             editNewDb,
-            setPublic,
-            isPublic,
           }),
         )}
     </div>
