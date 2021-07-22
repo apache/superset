@@ -282,7 +282,7 @@ const TableCatalog = ({
             changeMethods.onAddTableCatalog();
           }}
         >
-          + Add sheet
+          + {t('Add sheet')}
         </StyledFooterButton>
       </div>
     </StyledCatalogTable>
