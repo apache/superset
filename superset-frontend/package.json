@@ -302,7 +302,7 @@
     "transform-loader": "^0.2.3",
     "ts-jest": "^26.4.2",
     "ts-loader": "^8.0.7",
-    "typescript": "^4.0.3",
+    "typescript": "^4.1.6",
     "url-loader": "^1.0.1",
     "webpack": "^4.42.0",
     "webpack-bundle-analyzer": "^3.6.1",
