@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { JsonObject, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Switch } from 'src/components/Switch';
@@ -24,21 +24,21 @@ import { AlertObject } from 'src/views/CRUD/alert/types';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { Menu, NoAnimationDropdown } from 'src/common/components';
 
-function useOnClickOutside(ref: any, handler: any) {
-  useEffect(() => {
-    const listener = (event: any) => {
-      if (ref.current || ref.current.contains(event.target)) {
-        handler(event);
-      }
-    };
-    document.addEventListener('mousedown', listener, { capture: true });
-    document.addEventListener('touchstart', listener, { capture: true });
-    return () => {
-      document.removeEventListener('mousedown', listener, { capture: true });
-      document.removeEventListener('touchstart', listener, { capture: true });
-    };
-  }, [ref, handler]);
-}
+// function useOnClickOutside(ref: any, handler: any) {
+//   useEffect(() => {
+//     const listener = (event: any) => {
+//       if (ref.current || ref.current.contains(event.target)) {
+//         handler(event);
+//       }
+//     };
+//     document.addEventListener('mousedown', listener, { capture: true });
+//     document.addEventListener('touchstart', listener, { capture: true });
+//     return () => {
+//       document.removeEventListener('mousedown', listener, { capture: true });
+//       document.removeEventListener('touchstart', listener, { capture: true });
+//     };
+//   }, [ref, handler]);
+// }
 
 export default function HeaderReportActionsDropDown({
   // showReportModal,
@@ -53,14 +53,13 @@ export default function HeaderReportActionsDropDown({
 }) {
   const { result } = report;
   const [active, setActive] = useState<boolean | undefined>(result[0].active);
-  const [visible, setVisible] = useState<boolean>(true);
   const { updateResource } = useSingleViewResource<Partial<AlertObject>>(
     'report',
     t('reports'),
     addDangerToast,
   );
-  const ref: any = useRef();
-  useOnClickOutside(ref, () => setVisible(false));
+  // const ref: any = useRef();
+  // useOnClickOutside(ref, () => setVisible(false));
 
   const toggleActive = async (data: AlertObject, checked: boolean) => {
     if (data && data.id) {
@@ -83,33 +82,25 @@ export default function HeaderReportActionsDropDown({
         />
       </Menu.Item>
       <Menu.Item>
-        <div role="button" tabIndex={0} onClick={() => setVisible(false)}>
+        <div role="button" tabIndex={0}>
           {' '}
           {t('Edit email report')}
         </div>
       </Menu.Item>
-      <Menu.Item onClick={() => setVisible(false)}>
-        {t('Delete email report')}
-      </Menu.Item>
+      <Menu.Item>{t('Delete email report')}</Menu.Item>
     </Menu>
   );
 
   return (
     <NoAnimationDropdown
-      ref={ref}
+      // ref={ref}
       overlay={menu()}
       trigger={['click']}
-      visible={visible}
       getPopupContainer={(triggerNode: any) =>
         triggerNode.closest('.action-button')
       }
     >
-      <span
-        role="button"
-        className="action-button"
-        tabIndex={0}
-        onClick={() => setVisible(!visible)}
-      >
+      <span role="button" className="action-button" tabIndex={0}>
         <Icons.Calendar />
       </span>
     </NoAnimationDropdown>
