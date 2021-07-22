@@ -129,6 +129,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "params",
         "slice_name",
         "viz_type",
+        "query_context",
     ]
     show_select_columns = show_columns + ["table.id"]
     list_columns = [
@@ -337,6 +338,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        logger.info("*" * 20)
+        logger.info("hit put endpoint!!")
+        logger.info("*" * 20)
 
         if not request.is_json:
             return self.response_400(message="Request is not JSON")
@@ -345,7 +349,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
-
         try:
             changed_model = UpdateChartCommand(g.user, pk, item).run()
             response = self.response(200, id=changed_model.id, result=item)
