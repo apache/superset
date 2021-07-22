@@ -31,6 +31,7 @@ import { ColorFormatters } from '@superset-ui/chart-controls';
 export interface PivotTableStylesProps {
   height: number;
   width: number;
+  margin: number;
 }
 
 export type FilterType = Record<string, DataRecordValue>;

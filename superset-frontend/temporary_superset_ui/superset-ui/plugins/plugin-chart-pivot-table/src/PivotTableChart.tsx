@@ -24,6 +24,7 @@ import {
   getNumberFormatter,
   DataRecordValue,
   NumberFormatter,
+  useTheme,
 } from '@superset-ui/core';
 // @ts-ignore
 import PivotTable from '@superset-ui/react-pivottable/PivotTable';
@@ -39,11 +40,12 @@ import {
 } from './types';
 
 const Styles = styled.div<PivotTableStylesProps>`
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
-  height: ${({ height }) => height}px;
-  width: ${({ width }) => width}px;
-  overflow-y: scroll;
-  }
+  ${({ height, width, margin }) => `
+      margin: ${margin}px;
+      height: ${height - margin * 2}px;
+      width: ${width - margin * 2}px;
+      overflow-y: scroll;
+ `}
 `;
 
 const METRIC_KEY = 'metric';
@@ -122,6 +124,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     dateFormatters,
   } = props;
 
+  const theme = useTheme();
   const defaultFormatter = getNumberFormatter(valueFormat);
   const columnFormatsArray = Object.entries(columnFormats);
   const hasCustomMetricFormatters = columnFormatsArray.length > 0;
@@ -244,7 +247,7 @@ export default function PivotTableChart(props: PivotTableProps) {
   );
 
   return (
-    <Styles height={height} width={width}>
+    <Styles height={height} width={width} margin={theme.gridUnit * 4}>
       <PivotTable
         data={unpivotedData}
         rows={rows}

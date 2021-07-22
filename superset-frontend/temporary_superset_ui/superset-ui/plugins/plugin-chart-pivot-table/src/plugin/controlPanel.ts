@@ -138,6 +138,30 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'rowTotals',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show rows total'),
+              default: false,
+              renderTrigger: true,
+              description: t('Display row level total'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'colTotals',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show columns total'),
+              default: false,
+              renderTrigger: true,
+              description: t('Display column level total'),
+            },
+          },
+        ],
+        [
+          {
             name: 'transposePivot',
             config: {
               type: 'CheckboxControl',
@@ -208,6 +232,8 @@ const config: ControlPanelConfig = {
               description: t('Order of rows'),
             },
           },
+        ],
+        [
           {
             name: 'colOrder',
             config: {
@@ -231,7 +257,7 @@ const config: ControlPanelConfig = {
             name: 'rowSubtotalPosition',
             config: {
               type: 'SelectControl',
-              label: t('Rows subtotals position'),
+              label: t('Rows subtotal position'),
               default: false,
               choices: [
                 // [value, label]
@@ -239,14 +265,16 @@ const config: ControlPanelConfig = {
                 [false, t('Bottom')],
               ],
               renderTrigger: true,
-              description: t('Position of row level subtotals'),
+              description: t('Position of row level subtotal'),
             },
           },
+        ],
+        [
           {
             name: 'colSubtotalPosition',
             config: {
               type: 'SelectControl',
-              label: t('Cols subtotals position'),
+              label: t('Cols subtotal position'),
               default: false,
               choices: [
                 // [value, label]
@@ -254,29 +282,7 @@ const config: ControlPanelConfig = {
                 [false, t('Right')],
               ],
               renderTrigger: true,
-              description: t('Position of column level subtotals'),
-            },
-          },
-        ],
-        [
-          {
-            name: 'rowTotals',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Show rows totals'),
-              default: true,
-              renderTrigger: true,
-              description: t('Display row level totals'),
-            },
-          },
-          {
-            name: 'colTotals',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Show cols totals'),
-              default: true,
-              renderTrigger: true,
-              description: t('Display column level totals'),
+              description: t('Position of column level subtotal'),
             },
           },
         ],
