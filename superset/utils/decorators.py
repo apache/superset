@@ -17,10 +17,10 @@
 from __future__ import annotations
 
 import time
+from contextlib import contextmanager
 from functools import wraps
 from typing import Any, Callable, Dict, Iterator, TYPE_CHECKING, Union
 
-from contextlib2 import contextmanager
 from flask import current_app, Response
 
 from superset import is_feature_enabled

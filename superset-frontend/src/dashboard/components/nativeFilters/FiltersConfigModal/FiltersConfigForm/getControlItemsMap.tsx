@@ -41,6 +41,7 @@ import { Filter } from '../../types';
 import { ColumnSelect } from './ColumnSelect';
 
 export interface ControlItemsProps {
+  datasetId: number;
   disabled: boolean;
   forceUpdate: Function;
   form: FormInstance<NativeFiltersForm>;
@@ -56,6 +57,7 @@ const CleanFormItem = styled(FormItem)`
 `;
 
 export default function getControlItemsMap({
+  datasetId,
   disabled,
   forceUpdate,
   form,
@@ -87,7 +89,6 @@ export default function getControlItemsMap({
         filterToEdit?.controlValues?.[mainControlItem.name] ??
         mainControlItem?.config?.default;
       const initColumn = filterToEdit?.targets[0]?.column?.name;
-      const datasetId = formFilter?.dataset?.value;
 
       const element = (
         <>
@@ -101,7 +102,6 @@ export default function getControlItemsMap({
           />
           <StyledFormItem
             // don't show the column select unless we have a dataset
-            // style={{ display: datasetId == null ? undefined : 'none' }}
             name={['filters', filterId, 'column']}
             initialValue={initColumn}
             label={

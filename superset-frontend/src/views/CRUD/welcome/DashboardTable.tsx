@@ -17,7 +17,12 @@
  * under the License.
  */
 import React, { useState, useMemo, useEffect } from 'react';
+<<<<<<< HEAD
 import { SupersetClient, t, styled, css } from '@superset-ui/core';
+=======
+import { SupersetClient, t } from '@superset-ui/core';
+import { filter } from 'lodash';
+>>>>>>> ebec353351aed9421c7db8fdeb8a7a9c05ca97ab
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import {
   Dashboard,
@@ -54,10 +59,17 @@ function DashboardTable({
   addSuccessToast,
   mine,
   showThumbnails,
+  examples,
 }: DashboardTableProps) {
   const history = useHistory();
   const filterStore = getFromLocalStorage(HOMEPAGE_DASHBOARD_FILTER, null);
-  const defaultFilter = filterStore || TableTabTypes.MINE;
+  let defaultFilter = filterStore || TableTabTypes.EXAMPLES;
+
+  if (!examples && filterStore === TableTabTypes.EXAMPLES) {
+    defaultFilter = TableTabTypes.MINE;
+  }
+
+  const filteredExamples = filter(examples, obj => !('viz_type' in obj));
 
   const {
     state: { loading, resourceCollection: dashboards },
@@ -70,7 +82,7 @@ function DashboardTable({
     t('dashboard'),
     addDangerToast,
     true,
-    defaultFilter === 'Favorite' ? [] : mine,
+    defaultFilter === 'Mine' ? mine : filteredExamples,
     [],
     false,
   );
@@ -84,9 +96,13 @@ function DashboardTable({
   const [editModal, setEditModal] = useState<Dashboard>();
   const [dashboardFilter, setDashboardFilter] = useState(defaultFilter);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
+  const [loaded, setLoaded] = useState<boolean>(false);
 
   useEffect(() => {
-    getData(dashboardFilter);
+    if (loaded || dashboardFilter === 'Favorite') {
+      getData(dashboardFilter);
+    }
+    setLoaded(true);
   }, [dashboardFilter]);
 
   const handleBulkDashboardExport = (dashboardsToExport: Dashboard[]) => {
@@ -126,7 +142,7 @@ function DashboardTable({
         operator: 'rel_m_m',
         value: `${user?.userId}`,
       });
-    } else {
+    } else if (filterName === 'Favorite') {
       filters.push({
         id: 'id',
         operator: 'dashboard_is_favorite',
@@ -135,6 +151,36 @@ function DashboardTable({
     }
     return filters;
   };
+
+  const menuTabs = [
+    {
+      name: 'Favorite',
+      label: t('Favorite'),
+      onClick: () => {
+        setDashboardFilter(TableTabTypes.FAVORITE);
+        setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, TableTabTypes.FAVORITE);
+      },
+    },
+    {
+      name: 'Mine',
+      label: t('Mine'),
+      onClick: () => {
+        setDashboardFilter(TableTabTypes.MINE);
+        setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, TableTabTypes.MINE);
+      },
+    },
+  ];
+
+  if (examples) {
+    menuTabs.push({
+      name: 'Examples',
+      label: t('Examples'),
+      onClick: () => {
+        setDashboardFilter(TableTabTypes.EXAMPLES);
+        setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, TableTabTypes.EXAMPLES);
+      },
+    });
+  }
 
   const getData = (filter: string) =>
     fetchData({
@@ -154,27 +200,7 @@ function DashboardTable({
     <>
       <SubMenu
         activeChild={dashboardFilter}
-        tabs={[
-          {
-            name: 'Favorite',
-            label: t('Favorite'),
-            onClick: () => {
-              setDashboardFilter(TableTabTypes.FAVORITE);
-              setInLocalStorage(
-                HOMEPAGE_DASHBOARD_FILTER,
-                TableTabTypes.FAVORITE,
-              );
-            },
-          },
-          {
-            name: 'Mine',
-            label: t('Mine'),
-            onClick: () => {
-              setDashboardFilter(TableTabTypes.MINE);
-              setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, TableTabTypes.MINE);
-            },
-          },
-        ]}
+        tabs={menuTabs}
         buttons={[
           {
             name: (

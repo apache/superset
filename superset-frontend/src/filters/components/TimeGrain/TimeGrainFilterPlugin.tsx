@@ -24,12 +24,10 @@ import {
   tn,
 } from '@superset-ui/core';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Select } from 'src/common/components';
+import { Select } from 'src/components';
 import { FormItemProps } from 'antd/lib/form';
-import { Styles, StyledSelect, StyledFormItem, StatusMessage } from '../common';
+import { FilterPluginStyle, StyledFormItem, StatusMessage } from '../common';
 import { PluginFilterTimeGrainProps } from './types';
-
-const { Option } = Select;
 
 export default function PluginFilterTimegrain(
   props: PluginFilterTimeGrainProps,
@@ -101,13 +99,24 @@ export default function PluginFilterTimegrain(
       </StatusMessage>
     );
   }
+
+  const options = (data || []).map(
+    (row: { name: string; duration: string }) => {
+      const { name, duration } = row;
+      return {
+        label: name,
+        value: duration,
+      };
+    },
+  );
+
   return (
-    <Styles height={height} width={width}>
+    <FilterPluginStyle height={height} width={width}>
       <StyledFormItem
         validateStatus={filterState.validateStatus}
         {...formItemData}
       >
-        <StyledSelect
+        <Select
           allowClear
           value={value}
           placeholder={placeholderText}
@@ -116,17 +125,9 @@ export default function PluginFilterTimegrain(
           onMouseEnter={setFocusedFilter}
           onMouseLeave={unsetFocusedFilter}
           ref={inputRef}
-        >
-          {(data || []).map((row: { name: string; duration: string }) => {
-            const { name, duration } = row;
-            return (
-              <Option key={duration} value={duration}>
-                {name}
-              </Option>
-            );
-          })}
-        </StyledSelect>
+          options={options}
+        />
       </StyledFormItem>
-    </Styles>
+    </FilterPluginStyle>
   );
 }

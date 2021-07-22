@@ -21,6 +21,7 @@ import { FormInstance } from 'antd/lib/form';
 import React from 'react';
 import { CustomControlItem, DatasourceMeta } from '@superset-ui/chart-controls';
 import { Column, ensureIsArray, GenericDataType } from '@superset-ui/core';
+import { DatasourcesState, ChartsState } from 'src/dashboard/types';
 
 const FILTERS_FIELD_NAME = 'filters';
 
@@ -99,3 +100,28 @@ export const doesColumnMatchFilterType = (filterType: string, column: Column) =>
   !column.type_generic ||
   !(filterType in FILTER_SUPPORTED_TYPES) ||
   FILTER_SUPPORTED_TYPES[filterType]?.includes(column.type_generic);
+
+export const mostUsedDataset = (
+  datasets: DatasourcesState,
+  charts: ChartsState,
+) => {
+  const map = new Map<string, number>();
+  let mostUsedDataset = '';
+  let maxCount = 0;
+
+  Object.values(charts).forEach(chart => {
+    const { formData } = chart;
+    if (formData) {
+      const { datasource } = formData;
+      const count = (map.get(datasource) || 0) + 1;
+      map.set(datasource, count);
+
+      if (count > maxCount) {
+        maxCount = count;
+        mostUsedDataset = datasource;
+      }
+    }
+  });
+
+  return datasets[mostUsedDataset]?.id;
+};

@@ -18,7 +18,14 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ensureIsArray, Metric, tn } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  FeatureFlag,
+  GenericDataType,
+  isFeatureEnabled,
+  Metric,
+  tn,
+} from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { isEqual } from 'lodash';
 import { usePrevious } from 'src/common/hooks/usePrevious';
@@ -30,6 +37,7 @@ import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/t
 import { DndItemType } from 'src/explore/components/DndItemType';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
+import { AGGREGATES } from 'src/explore/constants';
 
 const isDictionaryForAdhocMetric = (value: any) =>
   value && !(value instanceof AdhocMetric) && value.expressionType;
@@ -254,12 +262,24 @@ export const DndMetricSelect = (props: any) => {
   const adhocMetric = useMemo(() => {
     if (droppedItem?.type === DndItemType.Column) {
       const itemValue = droppedItem?.value as ColumnMeta;
-      return new AdhocMetric({
+      const config: Partial<AdhocMetric> = {
         column: { column_name: itemValue?.column_name },
-      });
+      };
+      if (isFeatureEnabled(FeatureFlag.UX_BETA)) {
+        if (itemValue.type_generic === GenericDataType.NUMERIC) {
+          config.aggregate = AGGREGATES.SUM;
+        } else if (
+          itemValue.type_generic === GenericDataType.STRING ||
+          itemValue.type_generic === GenericDataType.BOOLEAN ||
+          itemValue.type_generic === GenericDataType.TEMPORAL
+        ) {
+          config.aggregate = AGGREGATES.COUNT_DISTINCT;
+        }
+      }
+      return new AdhocMetric(config);
     }
     return new AdhocMetric({ isNew: true });
-  }, [droppedItem?.type, droppedItem?.value]);
+  }, [droppedItem]);
 
   return (
     <div className="metrics-select">

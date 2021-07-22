@@ -399,6 +399,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Allow users to export full CSV of table viz type.
     # This could cause the server to run out of memory or compute.
     "ALLOW_FULL_CSV_EXPORT": False,
+    "UX_BETA": False,
 }
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.

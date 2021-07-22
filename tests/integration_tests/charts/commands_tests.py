@@ -78,6 +78,7 @@ class TestExportChartsCommand(SupersetTestCase):
                 "slice_name": "Energy Sankey",
                 "viz_type": "sankey",
             },
+            "query_context": None,
             "cache_timeout": None,
             "dataset_uuid": str(example_chart.table.uuid),
             "uuid": str(example_chart.uuid),
@@ -123,6 +124,7 @@ class TestExportChartsCommand(SupersetTestCase):
             "slice_name",
             "viz_type",
             "params",
+            "query_context",
             "cache_timeout",
             "uuid",
             "version",
@@ -142,9 +144,9 @@ class TestImportChartsCommand(SupersetTestCase):
         command = ImportChartsCommand(contents)
         command.run()
 
-        chart: Slice = db.session.query(Slice).filter_by(
-            uuid=chart_config["uuid"]
-        ).one()
+        chart: Slice = (
+            db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
+        )
         dataset = chart.datasource
         assert json.loads(chart.params) == {
             "color_picker": {"a": 1, "b": 135, "g": 122, "r": 0},

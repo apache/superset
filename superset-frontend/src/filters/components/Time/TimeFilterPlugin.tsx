@@ -21,9 +21,9 @@ import React, { useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { NO_TIME_RANGE } from 'src/explore/constants';
 import { PluginFilterTimeProps } from './types';
-import { Styles } from '../common';
+import { FilterPluginStyle } from '../common';
 
-const TimeFilterStyles = styled(Styles)`
+const TimeFilterStyles = styled(FilterPluginStyle)`
   overflow-x: auto;
 `;
 
