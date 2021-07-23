@@ -35,7 +35,7 @@ import EditableTitle from 'src/components/EditableTitle';
 import FaveStar from 'src/components/FaveStar';
 import { safeStringify } from 'src/utils/safeStringify';
 import HeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
-import HeaderReportActionsDropdown from 'src/dashboard/components/Header/HeaderReportActionsDropdown';
+import HeaderReportActionsDropdown from 'src/components/ReportModal/HeaderReportActionsDropdown';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
@@ -160,7 +160,7 @@ class Header extends React.PureComponent {
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
     this.showReportModal = this.showReportModal.bind(this);
     this.hideReportModal = this.hideReportModal.bind(this);
-    this.reportModal = this.reportModal.bind(this);
+    this.renderReportModal = this.renderReportModal.bind(this);
   }
 
   componentDidMount() {
@@ -380,9 +380,15 @@ class Header extends React.PureComponent {
     this.setState({ showingReportModal: false });
   }
 
-  reportModal() {
+  renderReportModal() {
     const attachedReportExists = this.props.report?.count > 0;
-    return !attachedReportExists ? (
+    return attachedReportExists ? (
+      <HeaderReportActionsDropdown
+        showReportModal={this.showReportModal}
+        hideReportModal={this.hideReportModal}
+        report={this.props.report.result}
+      />
+    ) : (
       <>
         <span
           role="button"
@@ -394,12 +400,6 @@ class Header extends React.PureComponent {
           <Icons.Calendar />
         </span>
       </>
-    ) : (
-      <HeaderReportActionsDropdown
-        showReportModal={this.showReportModal}
-        hideReportModal={this.hideReportModal}
-        report={this.props.report}
-      />
     );
   }
 
@@ -565,7 +565,7 @@ class Header extends React.PureComponent {
               </span>
             </>
           )}
-          {shouldShowReport && this.reportModal()}
+          {shouldShowReport && this.renderReportModal()}
 
           {this.state.showingPropertiesModal && (
             <PropertiesModal

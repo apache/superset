@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { JsonObject, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Switch } from 'src/components/Switch';
 import { AlertObject } from 'src/views/CRUD/alert/types';
@@ -48,11 +48,10 @@ export default function HeaderReportActionsDropDown({
 }: {
   showReportModal: () => void;
   hideReportModal: () => void;
-  report: JsonObject;
+  report: AlertObject;
   addDangerToast: () => void;
 }) {
-  const { result } = report;
-  const [active, setActive] = useState<boolean | undefined>(result[0].active);
+  const [active, setActive] = useState<boolean | undefined>(report[0].active);
   const { updateResource } = useSingleViewResource<Partial<AlertObject>>(
     'report',
     t('reports'),
@@ -62,7 +61,7 @@ export default function HeaderReportActionsDropDown({
   // useOnClickOutside(ref, () => setVisible(false));
 
   const toggleActive = async (data: AlertObject, checked: boolean) => {
-    if (data && data.id) {
+    if (data?.id) {
       const update_id = data.id;
       await updateResource(update_id, { active: checked }).then(() => {
         setActive(checked);
@@ -77,7 +76,7 @@ export default function HeaderReportActionsDropDown({
         <Switch
           data-test="toggle-active"
           checked={active}
-          onClick={(checked: boolean) => toggleActive(result[0], checked)}
+          onClick={(checked: boolean) => toggleActive(report[0], checked)}
           size="small"
         />
       </Menu.Item>
