@@ -19,7 +19,7 @@
 /* eslint camelcase: 0 */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import { t, SupersetClient } from '@superset-ui/core';
-import rison from 'rison';
+
 import { addChart, removeChart, refreshChart } from '../../chart/chartAction';
 import { chart as initChart } from '../../chart/chartReducer';
 import { fetchDatasourceMetadata } from './datasources';
@@ -272,48 +272,6 @@ export function fetchCharts(
         delay * i,
       );
     });
-  };
-}
-export const SET_DASHBOARD_REPORT = 'SET_DASHBOARD_REPORT';
-export function setDashboardReport(report) {
-  return { type: SET_DASHBOARD_REPORT, report };
-}
-export function fetchDashboardSpecificReport(userId, dashboardId) {
-  const queryParams = rison.encode({
-    filters: [
-      {
-        col: 'dashboard_id',
-        opr: 'eq',
-        value: dashboardId,
-      },
-      {
-        col: 'creation_method',
-        opr: 'eq',
-        value: 'dashboards',
-      },
-      {
-        col: 'created_by',
-        opr: 'rel_o_m',
-        value: userId,
-      },
-    ],
-  });
-  return function fetchDashboardSpecifcReportThunk(dispatch) {
-    return SupersetClient.get({
-      endpoint: `/api/v1/report/?q=${queryParams}`,
-    })
-      .then(({ json }) => {
-        dispatch(setDashboardReport(json));
-      })
-      .catch(() =>
-        dispatch(
-          addDangerToast(
-            t(
-              'There was an issue fetching reports attached to this dashboard.',
-            ),
-          ),
-        ),
-      );
   };
 }
 

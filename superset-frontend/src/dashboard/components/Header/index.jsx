@@ -381,7 +381,7 @@ class Header extends React.PureComponent {
   }
 
   reportModal() {
-    const attachedReportExists = this.props.report?.count > 0;
+    const attachedReportExists = this.props.report.count > 0;
     return !attachedReportExists ? (
       <>
         <span
@@ -399,18 +399,17 @@ class Header extends React.PureComponent {
         showReportModal={this.showReportModal}
         hideReportModal={this.hideReportModal}
         report={this.props.report}
-        addDangerToast={this.props.addDangerToast}
       />
     );
   }
 
-  canAddReportsModal() {
+  canAddReports() {
     const { user } = this.props;
     if (!user) {
       // this is in the case that there is an anonymous user.
       return false;
     }
-    const roles = Object.keys(user.roles) || [];
+    const roles = Object.keys(user.roles || []);
     const permissions = roles.map(key =>
       user.roles[key].filter(
         perms => perms[0] === 'can_add' && perms[1] === 'AlertModelView',
@@ -566,23 +565,7 @@ class Header extends React.PureComponent {
               </span>
             </>
           )}
-<<<<<<< HEAD
-          {shouldShowReport && (
-            <>
-              <span
-                role="button"
-                title={t('Schedule email report')}
-                tabIndex={0}
-                className="action-button"
-                onClick={this.handleReportClick}
-              >
-                <Icons.Calendar />
-              </span>
-            </>
-          )}
-=======
-          {canAccesReportsModal && this.reportModal()}
->>>>>>> toggle started
+          {shouldShowReport && this.reportModal()}
 
           {this.state.showingPropertiesModal && (
             <PropertiesModal
