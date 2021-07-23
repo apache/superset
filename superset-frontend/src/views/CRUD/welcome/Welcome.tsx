@@ -108,7 +108,7 @@ const WelcomeNav = styled.div`
 function Welcome({ user, addDangerToast }: WelcomeProps) {
   const recent = `/superset/recent_activity/${user.userId}/?limit=6`;
   const [activeChild, setActiveChild] = useState('Loading');
-  const [checked, setChecked] = useState(false);
+  const [checked, setChecked] = useState(true);
   const [activityData, setActivityData] = useState<ActivityData | null>(null);
   const [chartData, setChartData] = useState<Array<object> | null>(null);
   const [queryData, setQueryData] = useState<Array<object> | null>(null);
@@ -129,11 +129,12 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   useEffect(() => {
     const userKey = getFromLocalStorage(id, null);
     const activeTab = getFromLocalStorage(HOMEPAGE_ACTIVITY_FILTER, null);
-    if (isFeatureEnabled(FeatureFlag.THUMBNAILS)) setChecked(true);
     if (userKey && !userKey.thumbnails) setChecked(false);
+    if (isFeatureEnabled(FeatureFlag.THUMBNAILS)) setChecked(true);
     getRecentAcitivtyObjs(user.userId, recent, addDangerToast)
       .then(res => {
         const data: ActivityData | null = {};
+        data.Examples = res.examples;
         if (res.viewed) {
           const filtered = reject(res.viewed, ['item_url', null]).map(r => r);
           data.Viewed = filtered;
@@ -142,11 +143,8 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           } else if (!activeTab && !data.Viewed) {
             setActiveChild('Created');
           } else setActiveChild(activeTab);
-        } else {
-          if (!activeTab) setActiveChild('Created');
-          else setActiveChild(activeTab);
-          data.Examples = res.examples;
-        }
+        } else if (!activeTab) setActiveChild('Created');
+        else setActiveChild(activeTab);
         setActivityData(activityData => ({ ...activityData, ...data }));
       })
       .catch(
@@ -202,14 +200,9 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   };
 
   useEffect(() => {
-    const defaultArr = DEFAULT_TAB_ARR;
-    if (activityData?.Viewed) {
-      defaultArr.push('1');
-    }
     if (queryData?.length) {
-      defaultArr.push('4');
+      setActiveState(activeState => [...activeState, '4']);
     }
-    setActiveState(defaultArr);
     setActivityData(activityData => ({
       ...activityData,
       Created: [
@@ -219,6 +212,12 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
       ],
     }));
   }, [chartData, queryData, dashboardData]);
+
+  useEffect(() => {
+    if (activityData?.Viewed) {
+      setActiveState(activeState => ['1', ...activeState]);
+    }
+  }, [activityData]);
 
   const isRecentActivityLoading =
     !activityData?.Examples && !activityData?.Viewed;

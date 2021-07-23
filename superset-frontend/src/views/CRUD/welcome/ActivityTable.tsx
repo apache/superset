@@ -24,7 +24,11 @@ import { setInLocalStorage } from 'src/utils/localStorageHelpers';
 import Loading from 'src/components/Loading';
 import ListViewCard from 'src/components/ListViewCard';
 import SubMenu from 'src/components/Menu/SubMenu';
-import { mq, CardStyles, getEditedObjects } from 'src/views/CRUD/utils';
+import {
+  CardStyles,
+  getEditedObjects,
+  CardContainer,
+} from 'src/views/CRUD/utils';
 import { HOMEPAGE_ACTIVITY_FILTER } from 'src/views/CRUD/storageKeys';
 import { Chart } from 'src/types/Chart';
 import { Dashboard, SavedQueryObject } from 'src/views/CRUD/types';
@@ -79,32 +83,11 @@ interface ActivityProps {
   loadedCount: number;
 }
 
-const ActivityContainer = styled.div`
-  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-  margin-top: ${({ theme }) => theme.gridUnit * -4}px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
-
-  grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
-  justify-content: left;
-  padding: ${({ theme }) => theme.gridUnit * 6}px;
-  padding-top: ${({ theme }) => theme.gridUnit * 2}px;
-  .ant-card-meta-avatar {
-    margin-top: ${({ theme }) => theme.gridUnit * 3}px;
-    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-    color: ${({ theme }) => theme.colors.grayscale.base};
-  }
-  .ant-card-meta-title {
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
-  }
-  ${mq[3]} {
-    grid-template-columns: repeat(auto-fit, minmax(31%, max-content));
-  }
-  ${mq[2]} {
-    grid-template-columns: repeat(auto-fit, minmax(42%, max-content));
-  }
-  ${mq[1]} {
-    grid-template-columns: repeat(auto-fit, minmax(80%, max-content));
+const Styles = styled.div`
+  .recentCards {
+    max-height: none;
+    grid-gap: ${({ theme }) =>
+      `${theme.gridUnit * 2.5}px ${theme.gridUnit * 5.5}px`};
   }
 `;
 
@@ -251,14 +234,16 @@ export default function ActivityTable({
     return <Loading position="inline" />;
   }
   return (
-    <>
+    <Styles>
       <SubMenu activeChild={activeChild} tabs={tabs} />
       {activityData[activeChild]?.length > 0 ||
       (activeChild === 'Edited' && editedObjs && editedObjs.length > 0) ? (
-        <ActivityContainer>{renderActivity()}</ActivityContainer>
+        <CardContainer className="recentCards">
+          {renderActivity()}
+        </CardContainer>
       ) : (
         <EmptyState tableName="RECENTS" tab={activeChild} />
       )}
-    </>
+    </Styles>
   );
 }

@@ -131,27 +131,24 @@ export const getRecentAcitivtyObjs = (
 ) =>
   SupersetClient.get({ endpoint: recent }).then(recentsRes => {
     const res: any = {};
-    if (recentsRes.json.length === 0) {
-      const newBatch = [
-        SupersetClient.get({ endpoint: `/api/v1/chart/?q=${getParams()}` }),
-        SupersetClient.get({
-          endpoint: `/api/v1/dashboard/?q=${getParams()}`,
-        }),
-      ];
-      return Promise.all(newBatch)
-        .then(([chartRes, dashboardRes]) => {
-          res.examples = [...chartRes.json.result, ...dashboardRes.json.result];
-          return res;
-        })
-        .catch(errMsg =>
-          addDangerToast(
-            t('There was an error fetching your recent activity:'),
-            errMsg,
-          ),
-        );
-    }
-    res.viewed = recentsRes.json;
-    return res;
+    const newBatch = [
+      SupersetClient.get({ endpoint: `/api/v1/chart/?q=${getParams()}` }),
+      SupersetClient.get({
+        endpoint: `/api/v1/dashboard/?q=${getParams()}`,
+      }),
+    ];
+    return Promise.all(newBatch)
+      .then(([chartRes, dashboardRes]) => {
+        res.examples = [...chartRes.json.result, ...dashboardRes.json.result];
+        res.viewed = recentsRes.json;
+        return res;
+      })
+      .catch(errMsg =>
+        addDangerToast(
+          t('There was an error fetching your recent activity:'),
+          errMsg,
+        ),
+      );
   });
 
 export const createFetchRelated = createFetchResourceMethod('related');
@@ -280,8 +277,8 @@ export const CardContainer = styled.div<{
   ${({ showThumbnails, theme }) => `
     overflow: hidden;
     display: grid;
-    grid-gap: ${theme.gridUnit * 12}px ${theme.gridUnit * 2.5}px;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-gap: ${theme.gridUnit * 12}px ${theme.gridUnit * 5.5}px;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 400px));
     max-height: ${showThumbnails ? '416' : '140'}px;
     margin-top: ${theme.gridUnit * -6.25}px;
     padding: ${
@@ -297,6 +294,8 @@ export const CardStyles = styled.div`
   a {
     text-decoration: none;
   }
+  max-width: 422px;
+  min-width: 413px;
 `;
 
 export const StyledIcon = (theme: SupersetTheme) => css`

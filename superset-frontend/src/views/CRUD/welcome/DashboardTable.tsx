@@ -59,11 +59,7 @@ function DashboardTable({
 }: DashboardTableProps) {
   const history = useHistory();
   const filterStore = getFromLocalStorage(HOMEPAGE_DASHBOARD_FILTER, null);
-  let defaultFilter = filterStore || TableTabTypes.EXAMPLES;
-
-  if (!examples && defaultFilter === TableTabTypes.EXAMPLES) {
-    defaultFilter = TableTabTypes.MINE;
-  }
+  const defaultFilter = filterStore || TableTabTypes.EXAMPLES;
 
   const filteredExamples = filter(examples, obj => !('viz_type' in obj));
 
