@@ -182,7 +182,6 @@ function ChartTable({
     });
   }
 
-  console.log('showThumbnails', showThumbnails)
   if (loading) return <Loading position="inline" />;
   return (
     <ErrorBoundary>
