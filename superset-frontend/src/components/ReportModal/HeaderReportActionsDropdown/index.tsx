@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React from 'react';
 import { t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Switch } from 'src/components/Switch';
@@ -51,20 +51,21 @@ export default function HeaderReportActionsDropDown({
   report: AlertObject;
   addDangerToast: () => void;
 }) {
-  const [active, setActive] = useState<boolean | undefined>(report[0].active);
-  const { updateResource } = useSingleViewResource<Partial<AlertObject>>(
+  const { updateResource, state } = useSingleViewResource<Partial<AlertObject>>(
     'report',
     t('reports'),
     addDangerToast,
   );
   // const ref: any = useRef();
+  let active = state?.resource?.active || report[0].active;
+
   // useOnClickOutside(ref, () => setVisible(false));
 
   const toggleActive = async (data: AlertObject, checked: boolean) => {
     if (data?.id) {
       const update_id = data.id;
       await updateResource(update_id, { active: checked }).then(() => {
-        setActive(checked);
+        active = state?.resource?.active;
       });
     }
   };
