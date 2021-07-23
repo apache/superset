@@ -303,7 +303,6 @@ export const exportChart = ({
       ownState,
     });
   }
-
   postForm(url, payload);
 };
 

@@ -71,9 +71,7 @@ export default function PropertiesModal({
 
   const fetchChartData = useCallback(
     async function fetchChartData() {
-      console.log(slice);
       try {
-        console.log('fetching chart data!');
         const response = await SupersetClient.get({
           endpoint: `/api/v1/chart/${slice.slice_id}`,
         });
@@ -86,22 +84,17 @@ export default function PropertiesModal({
         );
 
         if (chart.query_context === null) {
-          // Build query context
-          const queryContext = buildV1ChartDataPayload({
-            formData: slice.form_data as QueryFormData,
-            force: false,
-            resultFormat: 'json',
-            resultType: 'full',
-          });
-
-          console.log('queryContext', queryContext);
-
-          // Todo: Make PUT to update query context
+          // Update query context on explore
           const updateResponse = await SupersetClient.put({
             endpoint: `/api/v1/chart/${slice.slice_id}`,
             headers: { 'Content-Type': 'application/json' },
             body: {
-              query_context: queryContext,
+              query_context: buildV1ChartDataPayload({
+                formData: slice.form_data as QueryFormData,
+                force: false,
+                resultFormat: 'json',
+                resultType: 'full',
+              }),
             },
           });
         }
