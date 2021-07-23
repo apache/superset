@@ -381,7 +381,7 @@ class Header extends React.PureComponent {
   }
 
   reportModal() {
-    const attachedReportExists = this.props.report.count > 0;
+    const attachedReportExists = this.props.report?.count > 0;
     return !attachedReportExists ? (
       <>
         <span
