@@ -129,6 +129,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   useEffect(() => {
     const userKey = getFromLocalStorage(id, null);
     const activeTab = getFromLocalStorage(HOMEPAGE_ACTIVITY_FILTER, null);
+    if (isFeatureEnabled(FeatureFlag.THUMBNAILS)) setChecked(true);
     if (userKey && !userKey.thumbnails) setChecked(false);
     getRecentAcitivtyObjs(user.userId, recent, addDangerToast)
       .then(res => {
