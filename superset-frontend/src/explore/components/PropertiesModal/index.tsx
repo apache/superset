@@ -84,7 +84,8 @@ export default function PropertiesModal({
         );
 
         if (chart.query_context === null) {
-          const updateResponse = await SupersetClient.put({
+          // set query_context if null
+          await SupersetClient.put({
             endpoint: `/api/v1/chart/${slice.slice_id}`,
             headers: { 'Content-Type': 'application/json' },
             body: {
@@ -97,8 +98,6 @@ export default function PropertiesModal({
             },
           });
         }
-
-        // set query_context if null
       } catch (response) {
         const clientError = await getClientErrorObject(response);
         showError(clientError);
