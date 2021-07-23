@@ -44,7 +44,7 @@ import {
 interface ReportObject {
   active: boolean;
   crontab: string;
-  dashboard_id: number;
+  dashboard: number;
   description?: string;
   log_retention: number;
   name: string;
@@ -142,7 +142,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
     const newReport: ReportObject = {
       active: true,
       crontab: currentReport?.crontab || '0 12 * * 1',
-      dashboard_id: props.props.dashboardId,
+      dashboard: props.props.dashboardId,
       description: currentReport?.description || '',
       log_retention: 90,
       name: currentReport?.name || 'Weekly Report',
@@ -158,14 +158,11 @@ const ReportModal: FunctionComponent<ReportProps> = ({
       validator_config_json: {},
       validator_type: 'operator',
       working_timeout: 3600,
-      creation_method: 'dashboard',
+      creation_method: 'dashboards',
     };
-
-    console.log('newReport', newReport);
 
     setLoading(true);
     const currentReportID = await createResource(newReport as ReportObject);
-    console.log('currentReportID', currentReportID);
 
     if (currentReportID) {
       setHasConnectedReport(true);
