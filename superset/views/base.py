@@ -412,7 +412,6 @@ def show_http_exception(ex: HTTPException) -> FlaskResponse:
                 message=utils.error_msg_from_exception(ex),
                 error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
                 level=ErrorLevel.ERROR,
-                extra={},
             ),
         ],
         status=ex.code or 500,
@@ -449,7 +448,6 @@ def show_unexpected_exception(ex: Exception) -> FlaskResponse:
                 message=utils.error_msg_from_exception(ex),
                 error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
                 level=ErrorLevel.ERROR,
-                extra={},
             ),
         ],
     )
