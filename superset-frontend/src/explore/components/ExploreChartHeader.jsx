@@ -24,6 +24,7 @@ import Icons from 'src/components/Icons';
 import { styled, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import ReportModal from 'src/components/ReportModal';
+import { fetchUISpecificReport } from 'src/reports/actions/reportState';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ExploreActionButtons from './ExploreActionButtons';
 import RowCountLabel from './RowCountLabel';
@@ -107,6 +108,19 @@ export class ExploreChartHeader extends React.PureComponent {
     this.hideReportModal = this.hideReportModal.bind(this);
   }
 
+  componentDidMount() {
+    const { user, chart } = this.props;
+    if (user) {
+      // this is in case there is an anonymous user.
+      this.props.fetchUISpecificReport(
+        user.userId,
+        'chart_id',
+        'charts',
+        chart.id,
+      );
+    }
+  }
+
   getSliceName() {
     return this.props.sliceName || t('%s - untitled', this.props.table_name);
   }
@@ -166,7 +180,7 @@ export class ExploreChartHeader extends React.PureComponent {
 
           {this.props.slice && (
             <StyledButtons>
-              {this.props.userId && (
+              {this.props.user.userId && (
                 <FaveStar
                   itemId={this.props.slice.slice_id}
                   fetchFaveStar={this.props.actions.fetchFaveStar}
@@ -256,7 +270,7 @@ export class ExploreChartHeader extends React.PureComponent {
 ExploreChartHeader.propTypes = propTypes;
 
 function mapDispatchToProps(dispatch) {
-  return bindActionCreators({ sliceUpdated }, dispatch);
+  return bindActionCreators({ sliceUpdated, fetchUISpecificReport }, dispatch);
 }
 
 export default connect(null, mapDispatchToProps)(ExploreChartHeader);
