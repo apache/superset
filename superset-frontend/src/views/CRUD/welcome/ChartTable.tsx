@@ -68,7 +68,7 @@ function ChartTable({
   const filterStore = getFromLocalStorage(HOMEPAGE_CHART_FILTER, null);
   let initialFilter = filterStore || TableTabTypes.EXAMPLES;
 
-  if (!examples && filterStore === TableTabTypes.EXAMPLES) {
+  if (!examples && initialFilter === TableTabTypes.EXAMPLES) {
     initialFilter = TableTabTypes.MINE;
   }
   const filteredExamples = filter(examples, obj => 'viz_type' in obj);
@@ -182,6 +182,7 @@ function ChartTable({
     });
   }
 
+  console.log('showThumbnails', showThumbnails)
   if (loading) return <Loading position="inline" />;
   return (
     <ErrorBoundary>

@@ -61,7 +61,7 @@ function DashboardTable({
   const filterStore = getFromLocalStorage(HOMEPAGE_DASHBOARD_FILTER, null);
   let defaultFilter = filterStore || TableTabTypes.EXAMPLES;
 
-  if (!examples && filterStore === TableTabTypes.EXAMPLES) {
+  if (!examples && defaultFilter === TableTabTypes.EXAMPLES) {
     defaultFilter = TableTabTypes.MINE;
   }
 
