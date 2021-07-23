@@ -2685,23 +2685,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         try:
             query.raise_for_access()
         except SupersetSecurityException as ex:
-            message = __(
-                "You are not authorized to see this query. If you think this "
-                "is an error, please reach out to your administrator."
-            )
-            error = SupersetError(
-                message=message,
-                error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
-                level=ErrorLevel.ERROR,
-            )
-            error_payload = dataclasses.asdict(error)
-
-            query.set_extra_json_key("errors", [error_payload])
+            query.set_extra_json_key("errors", [dataclasses.asdict(ex.error)])
             query.status = QueryStatus.FAILED
-            query.error_message = message
+            query.error_message = ex.error.message
             session.commit()
-
-            raise SupersetErrorException(error, status=403) from ex
+            raise SupersetErrorException(ex.error, status=403) from ex
 
         try:
             template_processor = get_template_processor(
