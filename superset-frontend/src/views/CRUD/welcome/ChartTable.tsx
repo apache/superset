@@ -43,7 +43,7 @@ import ErrorBoundary from 'src/components/ErrorBoundary';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
 
-const PAGE_SIZE = 3;
+const PAGE_SIZE = 5;
 
 interface ChartTableProps {
   addDangerToast: (message: string) => void;
@@ -71,7 +71,6 @@ function ChartTable({
   if (!examples && filterStore === TableTabTypes.EXAMPLES) {
     initialFilter = TableTabTypes.MINE;
   }
-
   const filteredExamples = filter(examples, obj => 'viz_type' in obj);
 
   const {
@@ -141,6 +140,19 @@ function ChartTable({
     return filters;
   };
 
+  const getData = (filter: string) =>
+    fetchData({
+      pageIndex: 0,
+      pageSize: PAGE_SIZE,
+      sortBy: [
+        {
+          id: 'changed_on_delta_humanized',
+          desc: true,
+        },
+      ],
+      filters: getFilters(filter),
+    });
+
   const menuTabs = [
     {
       name: 'Favorite',
@@ -159,7 +171,6 @@ function ChartTable({
       },
     },
   ];
-
   if (examples) {
     menuTabs.push({
       name: 'Examples',
@@ -170,19 +181,6 @@ function ChartTable({
       },
     });
   }
-
-  const getData = (filter: string) =>
-    fetchData({
-      pageIndex: 0,
-      pageSize: PAGE_SIZE,
-      sortBy: [
-        {
-          id: 'changed_on_delta_humanized',
-          desc: true,
-        },
-      ],
-      filters: getFilters(filter),
-    });
 
   if (loading) return <Loading position="inline" />;
   return (
@@ -198,7 +196,6 @@ function ChartTable({
 
       <SubMenu
         activeChild={chartFilter}
-        // eslint-disable-next-line react/no-children-prop
         tabs={menuTabs}
         buttons={[
           {
@@ -227,7 +224,7 @@ function ChartTable({
         ]}
       />
       {charts?.length ? (
-        <CardContainer>
+        <CardContainer showThumbnails={showThumbnails}>
           {charts.map(e => (
             <ChartCard
               key={`${e.id}`}

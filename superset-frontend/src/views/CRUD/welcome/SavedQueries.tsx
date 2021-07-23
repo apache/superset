@@ -34,7 +34,7 @@ import { CardContainer, createErrorHandler, shortenSQL } from '../utils';
 
 SyntaxHighlighter.registerLanguage('sql', sql);
 
-const PAGE_SIZE = 3;
+const PAGE_SIZE = 5;
 
 interface Query {
   id?: number;
@@ -298,7 +298,7 @@ const SavedQueries = ({
         ]}
       />
       {queries.length > 0 ? (
-        <CardContainer>
+        <CardContainer showThumbnails={showThumbnails}>
           {queries.map(q => (
             <CardStyles
               onClick={() => {

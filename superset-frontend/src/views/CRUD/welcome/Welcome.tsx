@@ -212,9 +212,9 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     setActivityData(activityData => ({
       ...activityData,
       Created: [
-        ...(chartData || []),
-        ...(dashboardData || []),
-        ...(queryData || []),
+        ...(chartData?.slice(0, 3) || []),
+        ...(dashboardData?.slice(0, 3) || []),
+        ...(queryData?.slice(0, 3) || []),
       ],
     }));
   }, [chartData, queryData, dashboardData]);

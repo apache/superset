@@ -70,7 +70,7 @@ const getParams = (filters?: Array<Filters>) => {
     order_column: 'changed_on_delta_humanized',
     order_direction: 'desc',
     page: 0,
-    page_size: 2,
+    page_size: 5,
     filters,
   };
   if (!filters) delete params.filters;
@@ -278,12 +278,18 @@ export const CardContainer = styled.div<{
   showThumbnails?: boolean | undefined;
 }>`
   ${({ showThumbnails, theme }) => `
-  overflow: hidden;
-  display: grid;
-  grid-gap: ${theme.gridUnit * 2.5}px;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  max-height: ${showThumbnails ? '361' : '87'}px;
-`}
+    overflow: hidden;
+    display: grid;
+    grid-gap: ${theme.gridUnit * 12}px ${theme.gridUnit * 2.5}px;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    max-height: ${showThumbnails ? '416' : '140'}px;
+    margin-top: ${theme.gridUnit * -6.25}px;
+    padding: ${
+      showThumbnails
+        ? `${theme.gridUnit * 8.75}px ${theme.gridUnit * 9}px`
+        : `${theme.gridUnit * 8.25}px ${theme.gridUnit * 9}px`
+    };
+  `}
 `;
 
 export const CardStyles = styled.div`
