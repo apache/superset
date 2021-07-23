@@ -44,7 +44,7 @@ import {
 interface ReportObject {
   active: boolean;
   crontab: string;
-  dashboard: number;
+  dashboard_id: number;
   description?: string;
   log_retention: number;
   name: string;
@@ -55,6 +55,7 @@ interface ReportObject {
   validator_config_json: {} | null;
   validator_type: string;
   working_timeout: number;
+  creation_method: string;
 }
 
 interface ReportProps {
@@ -138,33 +139,38 @@ const ReportModal: FunctionComponent<ReportProps> = ({
 
   const onSave = async () => {
     // Create new Report
-    const newReport = {
+    const newReport: ReportObject = {
       active: true,
       crontab: currentReport?.crontab || '0 12 * * 1',
-      dashboard: props.dashboardId,
+      dashboard_id: props.props.dashboardId,
       description: currentReport?.description || '',
       log_retention: 90,
       name: currentReport?.name || 'Weekly Report',
-      owners: [props.userId],
+      owners: [props.props.userId],
       recipients: [
-        { recipient_config_json: { target: props.userEmail }, type: 'Email' },
+        {
+          recipient_config_json: { target: props.props.userEmail },
+          type: 'Email',
+        },
       ],
       report_format: 'PNG',
       type: 'Report',
       validator_config_json: {},
       validator_type: 'operator',
       working_timeout: 3600,
+      creation_method: 'dashboard',
     };
 
-    if (currentReport) {
-      setLoading(true);
-      const currentReportID = await createResource(newReport as ReportObject);
+    console.log('newReport', newReport);
 
-      if (currentReportID) {
-        setHasConnectedReport(true);
-        if (onReportAdd) {
-          onReportAdd();
-        }
+    setLoading(true);
+    const currentReportID = await createResource(newReport as ReportObject);
+    console.log('currentReportID', currentReportID);
+
+    if (currentReportID) {
+      setHasConnectedReport(true);
+      if (onReportAdd) {
+        onReportAdd();
       }
     }
   };
