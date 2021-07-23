@@ -23,19 +23,23 @@ import React, {
   Reducer,
   FunctionComponent,
 } from 'react';
-import { styled, css, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import Icons from 'src/components/Icons';
-import Modal from 'src/components/Modal';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { CronPicker, CronError } from 'src/components/CronPicker';
-
-interface ReportProps {
-  onHide: () => {};
-  show: boolean;
-  props: any;
-}
+import {
+  StyledModal,
+  StyledTopSection,
+  StyledBottomSection,
+  StyledIconWrapper,
+  StyledScheduleTitle,
+  StyledCronError,
+  noBottomMargin,
+  StyledFooterButton,
+} from './styles';
 
 interface ReportObject {
   active: boolean;
@@ -51,6 +55,18 @@ interface ReportObject {
   validator_config_json: {} | null;
   validator_type: string;
   working_timeout: number;
+}
+
+interface ReportProps {
+  addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
+  onHide: () => {};
+  onReportAdd: (report?: ReportObject) => {};
+  show: boolean;
+  userId: number;
+  userEmail: string;
+  dashboardId: number;
+  props: any;
 }
 
 enum ActionType {
@@ -95,47 +111,12 @@ const reportReducer = (
   }
 };
 
-const StyledModal = styled(Modal)`
-  .ant-modal-body {
-    padding: 0;
-  }
-`;
-
-const StyledTopSection = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
-`;
-
-const StyledBottomSection = styled.div`
-  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
-`;
-
-const StyledIconWrapper = styled.span`
-  span {
-    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
-    vertical-align: middle;
-  }
-  .text {
-    vertical-align: middle;
-  }
-`;
-
-const StyledScheduleTitle = styled.div`
-  margin-bottom: ${({ theme }) => theme.gridUnit * 7}px;
-`;
-
-const StyledCronError = styled.p`
-  color: ${({ theme }) => theme.colors.error.base};
-`;
-
-const noBottomMargin = css`
-  margin-bottom: 0;
-`;
-
 const ReportModal: FunctionComponent<ReportProps> = ({
-  show = false,
+  addDangerToast,
+  onReportAdd,
   onHide,
-  props,
+  show = false,
+  ...props
 }) => {
   const [currentReport, setCurrentReport] = useReducer<
     Reducer<Partial<ReportObject> | null, ReportActionType>
@@ -147,14 +128,6 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   const [hasConnectedReport, setHasConnectedReport] = useState<boolean>(false);
   const [isLoading, setLoading] = useState<boolean>(false);
 
-  // Placeholder functions (will be brought in from parent component?)
-  // Toasts use withToasts
-  const addDangerToast = () => 'Placeholder for addDangerToast functionality';
-  // Live in header and passed in
-  // -- talk to Arash to see how this will be updated
-  // Header just needs to know if report exists or not
-  const onReportAdd = () => 'Placeholder for onReportAdd functionality';
-
   // Report fetch logic
   // Below is not needed, data will be passed in
   const { createResource } = useSingleViewResource<ReportObject>(
@@ -164,12 +137,28 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   );
 
   const onSave = async () => {
+    // Create new Report
+    const newReport = {
+      active: true,
+      crontab: currentReport?.crontab || '0 12 * * 1',
+      dashboard: props.dashboardId,
+      description: currentReport?.description || '',
+      log_retention: 90,
+      name: currentReport?.name || 'Weekly Report',
+      owners: [props.userId],
+      recipients: [
+        { recipient_config_json: { target: props.userEmail }, type: 'Email' },
+      ],
+      report_format: 'PNG',
+      type: 'Report',
+      validator_config_json: {},
+      validator_type: 'operator',
+      working_timeout: 3600,
+    };
+
     if (currentReport) {
-      // Create new Report
       setLoading(true);
-      const currentReportID = await createResource(
-        currentReport as ReportObject,
-      );
+      const currentReportID = await createResource(newReport as ReportObject);
 
       if (currentReportID) {
         setHasConnectedReport(true);
@@ -187,8 +176,24 @@ const ReportModal: FunctionComponent<ReportProps> = ({
     </StyledIconWrapper>
   );
 
+  const renderModalFooter = (
+    <>
+      <StyledFooterButton key="back">Cancel</StyledFooterButton>
+      <StyledFooterButton key="submit" buttonStyle="primary" onClick={onSave}>
+        Add
+      </StyledFooterButton>
+    </>
+  );
+
   return (
-    <StyledModal show={show} onHide={onHide} title={wrappedTitle}>
+    <StyledModal
+      show={show}
+      onHide={onHide}
+      title={wrappedTitle}
+      footer={renderModalFooter}
+      width="432"
+      centered
+    >
       <StyledTopSection>
         <LabeledErrorBoundInput
           id="name"
@@ -232,7 +237,7 @@ const ReportModal: FunctionComponent<ReportProps> = ({
 
       <StyledBottomSection>
         <StyledScheduleTitle>
-          <h1>Schedule</h1>
+          <h2>Schedule</h2>
           <p>Scheduled reports will be sent to your email as a PNG</p>
         </StyledScheduleTitle>
 
@@ -253,4 +258,4 @@ const ReportModal: FunctionComponent<ReportProps> = ({
   );
 };
 
-export default ReportModal;
+export default withToasts(ReportModal);
